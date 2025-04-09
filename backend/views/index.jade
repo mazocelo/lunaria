@@ -1,0 +1,126 @@
+extends layout
+
+block content
+  h1 Bora jogar um jogo
+
+  button#requestButton(data-jogador-id=jogadorId data-sala-id=salaId) Tomar uma ação
+  div#responseContainer
+
+    h2 Prologo 
+    h3=inicio
+
+  div#titlecontainer
+    h2 História
+
+  div#responseMessage
+  style.
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    button#requestButton {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button#requestButton:hover {
+      background-color: #0056b3;
+    }
+
+    div#responseMessage {
+      margin: 20px auto;
+      padding: 10px;
+      width: 80%;
+      max-height: 40vh;
+      overflow-y: auto;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    div#responseMessage h3 {
+      margin: 5px 0;
+      color: #555;
+    }
+
+    div#responseContainer {
+      margin: 20px auto;
+      padding: 10px;
+      width: 80%;
+      background-color: #e9ecef;
+      border-radius: 5px;
+    }
+
+    div#titlecontainer{
+      margin: 20px auto;
+      padding: 10px;
+      width: 80%;
+      background-color: #e9ecef;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+  script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+  script.
+    // Acessa os atributos do botão
+    const requestButton = document.getElementById('requestButton');
+    const jogadorId = requestButton.dataset.jogadorId;
+    const salaId = requestButton.dataset.salaId;
+
+    requestButton.addEventListener('click', handleButtonClick);
+
+    function handleButtonClick() {
+      const userInput = prompt('Digite algo:');
+
+      if (userInput) {
+        axios.post('/rpg/acao', {
+          mensagem: userInput,
+          jogadorId,
+          salaId
+        })
+        .then(response => {
+          if (response.data.success) {
+            addToResponse('Você: ' + userInput);
+            addToResponse('Mestre: ' + response.data.narrativa);
+          }
+        })
+        .catch(error => {
+          console.error('Erro:', error);
+          alert('Ocorreu um erro. Tente novamente.');
+        });
+      }
+    }
+
+    function addToResponse(message) {
+      const responseContainer = document.getElementById('responseMessage');
+      const newElement = document.createElement('h3');
+      newElement.textContent = message;
+      responseContainer.appendChild(newElement);
+
+      // Scroll automático
+      responseContainer.scrollTop = responseContainer.scrollHeight;
+    }
+
+    // Se houver histórico vindo do backend, renderiza
+    //- if (typeof historico !== 'undefined' && Array.isArray(historico)) {
+    //-   historico.forEach(item => {
+    //-     if (item?.content) {
+    //-       addToResponse('Mestre: ' + item.content);
+    //-     }
+    //-   });
+    //- }

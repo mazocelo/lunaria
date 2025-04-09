@@ -11,6 +11,12 @@ router.get('/:id', async (req, res, next) => {
 
   // Cria novo jogador
   const novoJogadorId = Math.floor(Math.random() * 1000000);
+  
+  router.get("/", (req, res) => {
+    //send to random room
+    const roomId = Math.floor(Math.random() * 1000000);
+    res.redirect(`/${roomId}`);
+  })
 
   if (!sala) {
     // Criação de nova sala
@@ -61,10 +67,6 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.get("/", (req, res) => {
-  //send to random room
-  const roomId = Math.floor(Math.random() * 1000000);
-  res.redirect(`/${roomId}`);
-})
+
 
 export default router;

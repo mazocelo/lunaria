@@ -61,4 +61,10 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
+router.get("/", (req, res) => {
+  //send to random room
+  const roomId = Math.floor(Math.random() * 1000000);
+  res.redirect(`/${roomId}`);
+})
+
 export default router;

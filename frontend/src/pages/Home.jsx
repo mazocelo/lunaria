@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import InputSimples from './Personagem/components/inputSimples.jsx';
-
+import ThemeSelector from './Personagem/components/Select';
 const Home = () => {
   const [nomePersonagem, setNomePersonagem] = useState('');
   
@@ -10,10 +9,9 @@ const Home = () => {
 
   return (
     <div>
-      <h1>Bem-vindo à Página Inicial!</h1>
-      
-      <InputSimples label="Nome Personagem" type="text" value={nomePersonagem} onChange={handleNomeChange} />
-
+      <ThemeSelector
+        onChange={(value) => console.log(value)}
+      />
     </div>
   );
 };

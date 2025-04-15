@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import InputSimples from './Personagem/Criar';
+import InputSimples from './Personagem/components/inputSimples.jsx';
 
 const Home = () => {
   const [nomePersonagem, setNomePersonagem] = useState('');

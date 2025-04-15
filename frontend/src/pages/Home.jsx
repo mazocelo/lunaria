@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
+import InputSimples from './Personagem/Criar';
 
 const Home = () => {
+  const [nomePersonagem, setNomePersonagem] = useState('');
+  
+  const handleNomeChange = (event) => {
+    setNomePersonagem(event.target.value);
+  };
+
   return (
     <div>
       <h1>Bem-vindo à Página Inicial!</h1>
-      <p>Este é um exemplo simples de uma página React.</p>
+      
+      <InputSimples label="Nome Personagem" type="text" value={nomePersonagem} onChange={handleNomeChange} />
+
     </div>
   );
 };

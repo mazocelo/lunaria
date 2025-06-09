@@ -3,9 +3,12 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import cors from 'cors';
 
 import indexRouter from './routes/index.js';
 import rpgRouter from './routes/rpg.js';
+import historiaRouter from './routes/historia.js';
+import temasRouter from './routes/temas.js';
 
 import { createExecutor } from './tools/master.js';
 
@@ -17,12 +20,15 @@ app.set('view engine', 'jade');
 
 app.use(logger('dev'));
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(), 'public')));
 
 app.use('/', indexRouter);
 app.use('/rpg', rpgRouter);
+app.use('/historia', historiaRouter);
+app.use('/temas', temasRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {

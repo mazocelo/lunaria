@@ -16,7 +16,7 @@ const Historia = sequelize.define('Historia', {
         type: DataTypes.ARRAY(DataTypes.STRING),
         allowNull: true,
     },
-    maximo_participantes: {
+    maximo_de_participantes: {
         type: DataTypes.INTEGER,
         allowNull: true,
     },
@@ -26,7 +26,7 @@ const Historia = sequelize.define('Historia', {
     },
 }, {
     tableName: 'historias',
-    timestamps: true,
+    timestamps: false,
 });
 
 export default Historia;

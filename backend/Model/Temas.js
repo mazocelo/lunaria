@@ -7,14 +7,16 @@ const Temas = sequelize.define('Temas', {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
     },
     nome: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
     },
 }, {
     tableName: 'temas',
-    timestamps: true,
+    timestamps: false,
 });
 
 export default Temas;

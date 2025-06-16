@@ -11,23 +11,33 @@ function Selector({
   type = "single",
   max = null, // novo: limite de seleção para multiple
   containerClass = "",
+  zerate = false,
+  removeLast = false,
 }) {
   // Função que trata a lógica de seleção (limitando se for "multiple")
   const handleChange = (value) => {
     if (type === "multiple") {
       const current = Array.isArray(selected) ? selected : [];
-      // Se já estava selecionado, remover
       const isSelected = current.includes(value);
+
+      // Se já estava selecionado, remover
       const newValue = isSelected
         ? current.filter((v) => v !== value)
         : [...current, value];
-      // Checar limite
-      if (!isSelected && max && newValue.length > max) return;
+
+      //equalizar o valor com o estado atual
       let lastArray = newValue[newValue.length - 1];
-      onChange(lastArray);
+
+      //S bater no valor Máximo, remove o primeiro valor
+      if (max && lastArray?.length >= max) {
+        if (zerate) lastArray = lastArray.slice(-1);
+        else if (removeLast) lastArray = lastArray.filter((v, i) => i !== 0);
+        else lastArray = lastArray.slice(0, max);
+      }
+      onChange(lastArray, newValue);
     } else {
       // modo "single"
-      if (value) onChange(value);
+      if (value) onChange(value, false);
     }
   };
 

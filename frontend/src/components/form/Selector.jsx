@@ -1,6 +1,6 @@
 import React from 'react';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { Label } from "../ui/label";
 
 function Selector({
   selected,
@@ -42,22 +42,22 @@ function Selector({
   };
 
   return (
-    <div className={`flex flex-col gap-2 ${containerClass}`}>
-      <Label htmlFor={id} className="text-sm font-medium">
+    <div className={`flex flex-col gap-3 ${containerClass}`}>
+      <Label htmlFor={id} className="text-sm font-semibold text-white mb-1">
         {label}
       </Label>
       <ToggleGroup
         type={type}
         value={type === "multiple" ? (selected || []) : selected}
         onValueChange={handleChange}
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap gap-3 p-1"
         id={id}
       >
         {options.map((opt) => (
           <ToggleGroupItem
             key={opt.value}
             value={opt.value}
-            className="capitalize cursor-pointer min-w-[15%] text-center"
+            className="capitalize cursor-pointer min-w-[120px] px-4 py-2.5 text-center text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
           >
             {opt.label}
           </ToggleGroupItem>

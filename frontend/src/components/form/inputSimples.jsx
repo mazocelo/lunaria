@@ -1,19 +1,49 @@
 import React from 'react';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"
 
-const InputSimples = ({ label, type, value, onChange, htmlFor }) => {
-  return (
-    <div className="flex flex-col mb-4">
-      <Label className="mb-1 text-sm font-medium text-gray-700">{label}</Label>
-      <Input
-        type={type}
-        value={value}
-        onChange={onChange}
-        className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-500"
-      />
-    </div>
-  );
-}
+const InputSimples = ({ 
+    label, 
+    type = "text", 
+    value, 
+    onChange, 
+    htmlFor,
+    placeholder,
+    required = false,
+    disabled = false,
+    className = "",
+    error
+}) => {
+    const inputId = htmlFor || `input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
+
+    return (
+        <div className={`flex flex-col mb-4 ${className}`}>
+            {label && (
+                <label 
+                    htmlFor={inputId}
+                    className="mb-2 text-sm font-semibold text-white font-modern"
+                >
+                    {label}
+                    {required && <span className="text-red-400 ml-1">*</span>}
+                </label>
+            )}
+            
+            <input
+                id={inputId}
+                type={type}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled}
+                className={`input-rpg ${error ? 'border-red-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
+            
+            {error && (
+                <p className="mt-1 text-xs text-red-400 font-modern">
+                    {error}
+                </p>
+            )}
+        </div>
+    );
+};
 
 export default InputSimples;

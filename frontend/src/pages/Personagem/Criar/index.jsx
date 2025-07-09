@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+import { PersonagemService } from '../../../services/PersonagemService';
+import { apiClient } from '../../../services/ApiClient';
 
 const atributosIniciais = {
     forca: "",
@@ -41,6 +44,10 @@ export default function Personagem() {
         habilidades: "",
         equipamentos: "",
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const personagemService = new PersonagemService(apiClient);
+    const navigate = useNavigate();
 
     // Reset pontos totais e atributos ao montar
     useEffect(() => {
@@ -71,20 +78,72 @@ export default function Personagem() {
     const pontosDistribuidos = somaAtributos(form.atributos);
     const pontosRestantes = pontosTotais - pontosDistribuidos;
 
-    return (
-        <form className="max-w-xl mx-auto p-6 bg-white dark:bg-zinc-900 rounded shadow space-y-6">
-            <h2 className="text-2xl font-bold mb-4 text-zinc-900 dark:text-zinc-100">Ficha de Personagem</h2>
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (pontosRestantes !== 0) {
+            setError('Distribua todos os pontos antes de salvar');
+            return;
+        }
 
-            {/* Pontos de atributos */}
-            <div className="mb-2">
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                    Pontos para distribuir:{" "}
-                    <span className={pontosRestantes < 0 ? "text-red-600" : "dark:text-zinc-100"}>
-                        {pontosRestantes}
-                    </span>{" "}
-                    / {pontosTotais}
-                </span>
+        setLoading(true);
+        setError(null);
+
+        try {
+            await personagemService.create({
+                ...form,
+                hp: 100,
+                nivel: 1
+            });
+            navigate('/personagens');
+        } catch (error) {
+            setError(error.message || 'Erro ao criar personagem');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="animate-fade-in max-w-2xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+                <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <span className="text-3xl">⚔️</span>
+                </div>
+                <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+                    Criar Novo Personagem
+                </h1>
+                <p className="text-slate-400 font-modern">
+                    Dê vida a um novo herói épico
+                </p>
             </div>
+
+            <form onSubmit={handleSubmit} className="card-rpg space-y-6">
+                {/* Mensagem de erro */}
+                {error && (
+                    <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-white text-sm">!</span>
+                            </div>
+                            <div>
+                                <div className="font-semibold text-red-400 font-modern">Erro</div>
+                                <p className="text-red-300 text-sm font-modern mt-1">{error}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Pontos de atributos */}
+                <div className="mb-4 p-4 glass rounded-lg">
+                    <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white font-modern">
+                            Pontos para distribuir:
+                        </span>
+                        <span className={`font-bold text-lg ${pontosRestantes < 0 ? "text-red-400" : "text-cyan-400"}`}>
+                            {pontosRestantes} / {pontosTotais}
+                        </span>
+                    </div>
+                </div>
 
             {/* Nome */}
             <div>
@@ -234,14 +293,35 @@ export default function Personagem() {
                 />
             </div>
 
-            <button
-                type="submit"
-                className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition"
-                disabled={pontosRestantes !== 0}
-                title={pontosRestantes !== 0 ? "Distribua todos os pontos antes de salvar" : ""}
-            >
-                Salvar Ficha
-            </button>
-        </form>
+                {/* Botões de ação */}
+                <div className="flex space-x-4 pt-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/personagens')}
+                        className="flex-1 p-3 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-white font-modern"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={pontosRestantes !== 0 || loading}
+                        className="flex-1 btn-rpg disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={pontosRestantes !== 0 ? "Distribua todos os pontos antes de salvar" : ""}
+                    >
+                        {loading ? (
+                            <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Criando...</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center space-x-2">
+                                <span>⚔️</span>
+                                <span>Criar Personagem</span>
+                            </div>
+                        )}
+                    </button>
+                </div>
+            </form>
+        </div>
     );
 }

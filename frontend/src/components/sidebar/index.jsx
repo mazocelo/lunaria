@@ -51,7 +51,7 @@ const Sidebar = () => {
                                 isActive(item.path)
                                     ? 'gradient-primary text-white shadow-lg'
                                     : 'glass text-slate-300 hover:text-white hover:bg-slate-700/50'
-                            }`}
+                            }`} style={{ width: '80%' }}
                         >
                             <div className="flex items-center space-x-3">
                                 <span className="text-2xl">{item.icon}</span>

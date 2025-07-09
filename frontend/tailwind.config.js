@@ -187,21 +187,7 @@ export default {
           boxShadow: '0 20px 40px rgba(139, 92, 246, 0.15)',
           borderColor: 'rgba(139, 92, 246, 0.3)',
         },
-        /* Modo Light - Card suave */
-        '.card-rpg-light': {
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(148, 163, 184, 0.2)',
-          borderRadius: '0.75rem',
-          padding: '1.5rem',
-          transition: 'all 0.3s',
-          color: '#1e293b',
-        },
-        '.card-rpg-light:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: '0 20px 40px rgba(139, 92, 246, 0.1)',
-          borderColor: 'rgba(139, 92, 246, 0.2)',
-        },
+       
         '.input-rpg': {
           background: 'rgba(30, 41, 59, 0.5)',
           border: '1px solid rgba(71, 85, 105, 0.5)',

@@ -1,251 +1,116 @@
-# 🎲 Role Chat Game - Plataforma de RPG
+# Role Chat Game - Frontend
 
-Uma plataforma moderna e imersiva para gerenciamento de campanhas de RPG, com design único inspirado em jogos de fantasia e arquitetura MVVM.
+Uma aplicação moderna de RPG com interface elegante e modo claro/escuro.
 
-## 🏗️ Arquitetura MVVM
+## 🎨 Modo Light
 
-Este projeto segue a arquitetura **MVVM (Model-View-ViewModel)** para garantir:
+A aplicação agora suporta um modo light elegante que mantém a estética RPG com cores mais suaves e claras.
 
-- ✅ **Separação de responsabilidades**
-- ✅ **Testabilidade**
-- ✅ **Manutenibilidade**
-- ✅ **Reutilização de código**
-- ✅ **Escalabilidade**
+### Características do Modo Light:
 
-### 📁 Estrutura da Arquitetura
+- **Cores Suaves**: Paleta de cores claras e elegantes
+- **Glassmorphism**: Efeitos de vidro com transparência suave
+- **Partículas Adaptativas**: Partículas mais suaves e menos intensas
+- **Contraste Otimizado**: Texto e elementos com contraste adequado
+- **Transições Suaves**: Animações e transições adaptadas ao tema
 
-```
-src/
-├── models/           # Modelos de dados
-│   ├── Historia.js
-│   ├── Personagem.js
-│   ├── Tema.js
-│   └── index.js
-├── views/            # Componentes de UI (Views)
-│   ├── HistoriaView.jsx
-│   └── index.js
-├── viewmodels/       # ViewModels (lógica de negócio)
-│   ├── HistoriaViewModel.js
-│   ├── PersonagemViewModel.js
-│   └── index.js
-├── services/         # Serviços de API e dados
-│   ├── ApiClient.js
-│   ├── HistoriaService.js
-│   ├── PersonagemService.js
-│   ├── TemaService.js
-│   └── index.js
-├── shared/           # Componentes e utilitários compartilhados
-│   ├── hooks/
-│   │   ├── useViewModel.js
-│   │   └── index.js
-│   └── index.js
-└── architecture/     # Configurações e documentação da arquitetura
-    └── README.md
-```
+### Como Usar:
 
-## 🎯 Responsabilidades
+1. **Toggle de Tema**: Clique no botão no header para alternar entre modo claro e escuro
+2. **Detecção Automática**: O tema inicial é baseado na preferência do sistema
+3. **Persistência**: O tema escolhido é mantido durante a sessão
 
-### 📊 Models
-- **Definição de dados**: Estrutura e tipos de dados
-- **Validação**: Regras de validação dos modelos
-- **Transformação**: Conversão entre diferentes formatos
-- **Métodos de negócio**: Lógica específica do domínio
+### Componentes Atualizados:
 
-### 🖥️ Views
-- **Apresentação**: Componentes React puros
-- **Interação**: Eventos de UI e navegação
-- **Renderização**: Como os dados são exibidos
-- **Sem lógica de negócio**: Apenas responsáveis pela UI
+- ✅ App.jsx - Header e layout principal
+- ✅ Sidebar - Navegação lateral
+- ✅ ParticlesBackground - Partículas adaptativas
+- ✅ InputSimples - Campos de entrada
+- ✅ Button - Botões com variantes
+- ✅ RPGCard - Cards com glassmorphism
+- ✅ StatCard - Cards de estatísticas
+- ✅ Table - Tabelas responsivas
+- ✅ LoadingSpinner - Indicadores de carregamento
+- ✅ Notification - Notificações do sistema
 
-### 🔄 ViewModels
-- **Estado**: Gerenciamento do estado da aplicação
-- **Lógica de negócio**: Regras e validações
-- **Comunicação**: Entre Views e Models/services
-- **Transformação**: Preparação de dados para Views
-- **Observers**: Sistema de reatividade
+### Classes CSS Disponíveis:
 
-### 🔌 services
-- **API**: Comunicação com backend
-- **Dados**: Acesso a dados externos
-- **Utilitários**: Funções auxiliares
-- **Validação**: Validação antes de enviar dados
+#### Modo Light:
+- `.glass-light` - Efeito de vidro claro
+- `.glass-strong-light` - Efeito de vidro forte claro
+- `.card-rpg-light` - Cards com estilo light
+- `.input-rpg-light` - Inputs com estilo light
+- `.btn-rpg-light` - Botões com estilo light
+- `.table-rpg-light` - Tabelas com estilo light
+- `.sidebar-rpg-light` - Sidebar com estilo light
+- `.gradient-light` - Gradientes suaves
+- `.gradient-light-warm` - Gradientes quentes suaves
 
-## 🔄 Fluxo de Dados
-
-```
-View → ViewModel → Service → Model
-  ↑                                    ↓
-  ←─────────── Dados ────────────────←
-```
-
-### Exemplo de Fluxo:
-
-1. **View** chama método do ViewModel
-2. **ViewModel** valida dados e chama Service
-3. **Service** comunica com API e retorna Model
-4. **Model** é validado e processado
-5. **ViewModel** atualiza estado e notifica View
-6. **View** re-renderiza com novos dados
-
-## ✨ Características
-
-### 🎨 Design Moderno e Imersivo
-- **Tema de Fantasia**: Design inspirado em RPGs com gradientes, efeitos de vidro e animações
-- **Partículas Animadas**: Fundo dinâmico com partículas conectadas
-- **Tipografia Dupla**: Fontes Cinzel (fantasia) e Inter (moderna)
-- **Efeitos Visuais**: Hover, glow, shimmer e transições suaves
-- **Modo Escuro**: Tema escuro otimizado para longas sessões
-
-### 🛠️ Componentes Personalizados
-- **Cards RPG**: Cards com efeitos de vidro e hover
-- **Botões Temáticos**: Botões com gradientes e animações
-- **Inputs Estilizados**: Campos de entrada com design moderno
-- **Tabelas Personalizadas**: Tabelas com hover e efeitos visuais
-- **Loading Spinners**: Indicadores de carregamento temáticos
-- **Notificações**: Sistema de notificações elegante
-
-### 📱 Interface Responsiva
-- **Mobile-First**: Design otimizado para dispositivos móveis
-- **Sidebar Inteligente**: Navegação lateral com estatísticas
-- **Grid Adaptativo**: Layouts que se adaptam ao tamanho da tela
+#### Modo Dark (Original):
+- `.glass` - Efeito de vidro escuro
+- `.glass-strong` - Efeito de vidro forte escuro
+- `.card-rpg` - Cards com estilo dark
+- `.input-rpg` - Inputs com estilo dark
+- `.btn-rpg` - Botões com estilo dark
+- `.table-rpg` - Tabelas com estilo dark
+- `.sidebar-rpg` - Sidebar com estilo dark
 
 ## 🚀 Tecnologias
 
-- **React 18** - Framework principal
-- **Vite** - Build tool e dev server
-- **Tailwind CSS** - Framework de estilização
-- **React Router** - Navegação
-- **Canvas API** - Animações de partículas
-- **MVVM Pattern** - Arquitetura de aplicação
-
-## 🎯 Funcionalidades
-
-### 📚 Gestão de Histórias
-- Criar e gerenciar campanhas
-- Sistema de temas e categorização
-- Controle de participantes
-- Interface intuitiva para criação
-
-### ⚔️ Gestão de Personagens
-- Criação de personagens
-- Sistema de classes e raças
-- Atributos e estatísticas
-- Visualização em cards
-
-### 🎨 Sistema de Temas
-- Múltiplos temas por história
-- Categorização inteligente
-- Interface de seleção moderna
-
-## 🎨 Paleta de Cores
-
-### Cores Principais
-- **Roxo**: `#8b5cf6` - Cor primária
-- **Azul**: `#6366f1` - Cor secundária  
-- `#06b6d4` - Cor de destaque
-
-### Gradientes
-- **Primário**: Roxo → Azul → Ciano
-- **Secundário**: Azul → Roxo → Magenta
-- **Destaque**: Ciano → Azul escuro
+- React 18
+- Vite
+- Tailwind CSS
+- React Router
+- Context API para gerenciamento de estado
 
 ## 📦 Instalação
 
 ```bash
-# Clone o repositório
-git clone [url-do-repositorio]
-
-# Instale as dependências
 npm install
-
-# Execute em modo de desenvolvimento
 npm run dev
-
-# Build para produção
-npm run build
 ```
 
-## 🎮 Como Usar
+## 🎯 Funcionalidades
 
-### Criando uma História
-1. Navegue para "Histórias" na sidebar
-2. Clique em "Nova História"
-3. Preencha o nome da aventura
-4. Selecione os temas (até 3)
-5. Defina o número máximo de participantes
-6. Clique em "Criar História"
+- ✅ Sistema de temas (Light/Dark)
+- ✅ Interface responsiva
+- ✅ Animações suaves
+- ✅ Glassmorphism effects
+- ✅ Partículas interativas
+- ✅ Componentes reutilizáveis
+- ✅ Sistema de notificações
+- ✅ Loading states
+- ✅ Tabelas responsivas
 
-### Criando um Personagem
-1. Navegue para "Personagens" na sidebar
-2. Clique em "Novo Personagem"
-3. Preencha os dados do personagem
-4. Escolha classe e raça
-5. Defina os atributos
-6. Salve o personagem
+## 🎨 Design System
 
-## 🎨 Componentes Disponíveis
+A aplicação utiliza um design system consistente com:
 
-### Básicos
-- `Button` - Botões com variantes e tamanhos
-- `InputSimples` - Campos de entrada estilizados
-- `Selector` - Seletores múltiplos
+- **Tipografia**: Cinzel (fantasy) + Inter (modern)
+- **Cores**: Paleta roxa/ciano com variações
+- **Efeitos**: Glassmorphism, gradientes, sombras
+- **Animações**: Transições suaves e micro-interações
+- **Responsividade**: Mobile-first approach
 
-### RPG Específicos
-- `RPGCard` - Cards com efeitos de vidro
-- `StatCard` - Cards de estatísticas
-- `LoadingSpinner` - Indicadores de carregamento
-- `Notification` - Sistema de notificações
-- `ParticlesBackground` - Fundo animado
+## 🔧 Desenvolvimento
 
-## 🧪 Testabilidade
+Para adicionar novos componentes com suporte a temas:
 
-### ViewModels
-- Testáveis independentemente
-- Mock de services para testes isolados
-- Validação de lógica de negócio
+1. Importe o contexto de tema: `import { useTheme } from '../contexts/theme.jsx'`
+2. Use a variável `isLight`: `const isLight = theme === 'light'`
+3. Aplique classes condicionais: `className={isLight ? 'classe-light' : 'classe-dark'}`
 
-### Models
-- Testáveis sem dependências
-- Validação de dados
-- Métodos de transformação
+## 📱 Responsividade
 
-### services
-- Mockáveis para testes
-- Testes de integração com API
-- Tratamento de erros
+A aplicação é totalmente responsiva e funciona em:
+- Desktop (1200px+)
+- Tablet (768px - 1199px)
+- Mobile (320px - 767px)
 
-### Views
-- Testáveis com ViewModels mockados
-- Testes de renderização
-- Testes de interação
+## 🎮 RPG Features
 
-## 🎯 Próximas Funcionalidades
-
-- [ ] Sistema de chat em tempo real
-- [ ] Mapa interativo para campanhas
-- [ ] Sistema de dados virtuais
-- [ ] Integração com APIs de RPG
-- [ ] Modo colaborativo
-- [ ] Sistema de conquistas
-- [ ] Migração completa para MVVM
-- [ ] Testes automatizados
-
-## 🤝 Contribuição
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
-## 🎲 Sobre
-
-Role Chat Game é uma plataforma criada para entusiastas de RPG que desejam uma experiência moderna e imersiva para gerenciar suas campanhas e personagens, seguindo as melhores práticas de arquitetura de software.
-
----
-
-**Desenvolvido com ❤️ para a comunidade RPG**
+- Gerenciamento de histórias
+- Criação de personagens
+- Sistema de estatísticas
+- Interface imersiva
+- Temas adaptativos

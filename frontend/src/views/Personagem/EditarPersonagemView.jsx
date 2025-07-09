@@ -4,11 +4,14 @@ import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { editarPersonagemViewModel } from '../../viewmodels/Personagens/EditarPersonagemViewModel';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const EditarPersonagemView = () => {
   const vm = useViewModel(editarPersonagemViewModel);
   const navigate = useNavigate();
   const { id } = useParams();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   useEffect(() => {
     if (id) {
@@ -71,7 +74,7 @@ const EditarPersonagemView = () => {
         <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
           <span className="text-3xl">✏️</span>
         </div>
-        <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Editar Personagem
         </h1>
         <p className="text-slate-400 font-modern">
@@ -85,7 +88,7 @@ const EditarPersonagemView = () => {
           <div className="mb-6 p-4 glass rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-sm">!</span>
+                <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>!</span>
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
@@ -97,7 +100,7 @@ const EditarPersonagemView = () => {
 
         {/* Nome */}
         <div>
-          <label className="block font-semibold mb-2 text-white font-modern">Nome do personagem</label>
+          <label className={`block font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>Nome do personagem</label>
           <input
             type="text"
             name="nome"
@@ -321,10 +324,10 @@ const EditarPersonagemView = () => {
       <div className="mt-6 card-rpg">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">💡</span>
+            <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>💡</span>
           </div>
           <div>
-            <h3 className="font-semibold text-white font-modern mb-1">Dicas para edição</h3>
+            <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para edição</h3>
             <ul className="text-sm text-slate-400 space-y-1 font-modern">
               <li>• Mantenha a consistência com a história do personagem</li>
               <li>• Considere o impacto das mudanças no jogo</li>

@@ -6,6 +6,7 @@ import { HistoriaView, NovaHistoriaView, PersonagemView, NovoPersonagemView, Edi
 
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const isLight = theme === 'light';
 
   return (
     <div className="w-screen min-h-screen">
@@ -13,7 +14,11 @@ function App() {
       <ParticlesBackground />
 
       {/* Gradiente de fundo adicional */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 z-0" />
+      <div className={`fixed inset-0 z-0 ${
+        isLight 
+          ? 'bg-gradient-to-br from-slate-100 via-purple-100/30 to-slate-100' 
+          : 'bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900'
+      }`} />
 
       {/* Sidebar fixa à esquerda */}
       <div className="fixed left-0 top-0 h-screen w-[260px] z-20 flex-shrink-0">
@@ -23,7 +28,11 @@ function App() {
       {/* Conteúdo principal com scroll independente */}
       <div className="ml-[260px] flex flex-col min-h-screen">
         {/* Header com toggle de tema */}
-        <header className="glass-strong border-b border-slate-700/50 px-6 py-6 flex-shrink-0 z-10" style={{height: '8vh'}}>
+        <header className={`border-b px-6 py-6 flex-shrink-0 z-10 ${
+          isLight 
+            ? 'glass-strong-light border-slate-200/50' 
+            : 'glass-strong border-slate-700/50'
+        }`} style={{height: '8vh'}}>
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
@@ -34,7 +43,9 @@ function App() {
 
             <button
               onClick={toggleTheme}
-              className="btn-rpg hover-lift"
+              className={`hover-lift ${
+                isLight ? 'btn-rpg-light' : 'btn-rpg'
+              }`}
               aria-label="Alternar tema"
             >
               {theme === 'dark' ? '🌙' : '☀️'}

@@ -5,10 +5,13 @@ import Button from '../../components/form/button';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novaHistoriaViewModel } from '../../viewmodels/Historias/NovaHistoriaViewModel';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const NovaHistoriaView = () => {
   const vm = useViewModel(novaHistoriaViewModel);
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   useEffect(() => {
     vm.loadTemas();
@@ -27,7 +30,7 @@ const NovaHistoriaView = () => {
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
           <span className="text-3xl">📚</span>
         </div>
-        <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Criar Nova História
         </h1>
         <p className="text-slate-400 font-modern">
@@ -41,7 +44,7 @@ const NovaHistoriaView = () => {
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-sm">!</span>
+                <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>!</span>
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
@@ -60,7 +63,7 @@ const NovaHistoriaView = () => {
         />
 
         <div>
-          <label className="block text-sm font-semibold text-white mb-2 font-modern">
+          <label className={`block text-sm font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
             Temas da História
           </label>
           <div className="glass rounded-lg p-4">
@@ -137,10 +140,10 @@ const NovaHistoriaView = () => {
       <div className="mt-6 card-rpg">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">💡</span>
+            <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>💡</span>
           </div>
           <div>
-            <h3 className="font-semibold text-white font-modern mb-1">Dicas para uma boa história</h3>
+            <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para uma boa história</h3>
             <ul className="text-sm text-slate-400 space-y-1 font-modern">
               <li>• Escolha um nome memorável e descritivo</li>
               <li>• Selecione temas que combinem com sua narrativa</li>

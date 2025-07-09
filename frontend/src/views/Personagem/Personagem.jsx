@@ -2,9 +2,12 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { personagemViewModel } from '../../viewmodels/Personagens/PersonagemViewModel';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const PersonagemView = () => {
   const vm = useViewModel(personagemViewModel);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   useEffect(() => {
     vm.loadPersonagens();
@@ -41,7 +44,7 @@ const PersonagemView = () => {
       {/* Header da página */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
             Personagens & Heróis
           </h1>
           <p className="text-slate-400 font-modern">
@@ -65,7 +68,7 @@ const PersonagemView = () => {
               <span className="text-xl">⚔️</span>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">{vm.estatisticas.total}</div>
+              <div className={`text-2xl font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{vm.estatisticas.total}</div>
               <div className="text-sm text-slate-400 font-modern">Total de Personagens</div>
             </div>
           </div>
@@ -77,7 +80,7 @@ const PersonagemView = () => {
             <span className="text-xl">🛡️</span>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">
+              <div className={`text-2xl font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {vm.estatisticas.guerreiros}
               </div>
               <div className="text-sm text-slate-400 font-modern">Guerreiros</div>
@@ -91,7 +94,7 @@ const PersonagemView = () => {
               <span className="text-xl">🔮</span>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">
+              <div className={`text-2xl font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {vm.estatisticas.magos}
               </div>
               <div className="text-sm text-slate-400 font-modern">Magos</div>
@@ -103,7 +106,7 @@ const PersonagemView = () => {
       {/* Grid de personagens */}
       <div className="card-rpg">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-fantasy font-semibold text-white">
+          <h2 className={`text-xl font-fantasy font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
             Seus Personagens
           </h2>
           <div className="flex items-center space-x-2">
@@ -119,7 +122,7 @@ const PersonagemView = () => {
             <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
               <span className="text-3xl">⚔️</span>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2 font-modern">
+            <h3 className={`text-lg font-semibold ${isLight ? 'text-slate-700' : 'text-white'} mb-2 font-modern`}>
               Nenhum personagem encontrado
             </h3>
             <p className="text-slate-400 font-modern mb-6">
@@ -159,14 +162,14 @@ const PersonagemView = () => {
                           </span>
                         </div>
                         <div>
-                          <div className="font-semibold text-white font-modern">
+                          <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
                             {personagem.nome}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-left">
-                      <span className="text-white font-semibold font-modern">
+                      <span className={`${isLight ? 'text-slate-700' : 'text-white'} font-semibold font-modern`}>
                         {personagem.classe || 'Aventureiro'}
                       </span>
                     </td>

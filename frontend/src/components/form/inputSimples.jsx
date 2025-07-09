@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const InputSimples = ({ 
     label, 
@@ -12,6 +13,8 @@ const InputSimples = ({
     className = "",
     error
 }) => {
+    const { theme } = useTheme();
+    const isLight = theme === 'light';
     const inputId = htmlFor || `input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
@@ -19,7 +22,9 @@ const InputSimples = ({
             {label && (
                 <label 
                     htmlFor={inputId}
-                    className="mb-2 text-sm font-semibold text-white font-modern"
+                    className={`mb-2 text-sm font-semibold font-modern ${
+                        isLight ? 'text-slate-700' : 'text-white'
+                    }`}
                 >
                     {label}
                     {required && <span className="text-red-400 ml-1">*</span>}
@@ -34,7 +39,7 @@ const InputSimples = ({
                 placeholder={placeholder}
                 required={required}
                 disabled={disabled}
-                className={`input-rpg ${error ? 'border-red-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`${isLight ? 'input-rpg-light' : 'input-rpg'} ${error ? 'border-red-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
             
             {error && (

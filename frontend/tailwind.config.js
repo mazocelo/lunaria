@@ -64,6 +64,17 @@ export default {
           backdropFilter: 'blur(30px)',
           border: '1px solid rgba(148, 163, 184, 0.3)',
         },
+        /* Modo Light - Classes específicas */
+        '.glass-light': {
+          background: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+        },
+        '.glass-strong-light': {
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(30px)',
+          border: '1px solid rgba(148, 163, 184, 0.3)',
+        },
         '.gradient-primary': {
           background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #06b6d4 100%)',
         },
@@ -75,6 +86,13 @@ export default {
         },
         '.gradient-dark': {
           background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+        },
+        /* Modo Light - Gradientes suaves */
+        '.gradient-light': {
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+        },
+        '.gradient-light-warm': {
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)',
         },
         '.hover-lift': {
           transition: 'all 0.3s ease',
@@ -127,6 +145,35 @@ export default {
           transform: 'translateY(-2px)',
           boxShadow: '0 10px 25px rgba(139, 92, 246, 0.4)',
         },
+        /* Modo Light - Botão suave */
+        '.btn-rpg-light': {
+          position: 'relative',
+          overflow: 'hidden',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.5rem',
+          fontWeight: '600',
+          transition: 'all 0.3s',
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+          border: 'none',
+          color: 'white',
+        },
+        '.btn-rpg-light::before': {
+          content: '""',
+          position: 'absolute',
+          top: '0',
+          left: '-100%',
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+          transition: 'left 0.5s',
+        },
+        '.btn-rpg-light:hover::before': {
+          left: '100%',
+        },
+        '.btn-rpg-light:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 10px 25px rgba(139, 92, 246, 0.3)',
+        },
         '.card-rpg': {
           background: 'rgba(30, 41, 59, 0.7)',
           backdropFilter: 'blur(20px)',
@@ -139,6 +186,21 @@ export default {
           transform: 'translateY(-5px)',
           boxShadow: '0 20px 40px rgba(139, 92, 246, 0.15)',
           borderColor: 'rgba(139, 92, 246, 0.3)',
+        },
+        /* Modo Light - Card suave */
+        '.card-rpg-light': {
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          borderRadius: '0.75rem',
+          padding: '1.5rem',
+          transition: 'all 0.3s',
+          color: '#1e293b',
+        },
+        '.card-rpg-light:hover': {
+          transform: 'translateY(-5px)',
+          boxShadow: '0 20px 40px rgba(139, 92, 246, 0.1)',
+          borderColor: 'rgba(139, 92, 246, 0.2)',
         },
         '.input-rpg': {
           background: 'rgba(30, 41, 59, 0.5)',
@@ -154,6 +216,22 @@ export default {
           borderColor: '#8b5cf6',
           boxShadow: '0 0 0 3px rgba(139, 92, 246, 0.1)',
           background: 'rgba(30, 41, 59, 0.8)',
+        },
+        /* Modo Light - Input suave */
+        '.input-rpg-light': {
+          background: 'rgba(255, 255, 255, 0.8)',
+          border: '1px solid rgba(148, 163, 184, 0.3)',
+          borderRadius: '0.5rem',
+          padding: '0.75rem 1rem',
+          color: '#1e293b',
+          backdropFilter: 'blur(10px)',
+          transition: 'all 0.3s ease',
+        },
+        '.input-rpg-light:focus': {
+          outline: 'none',
+          borderColor: '#8b5cf6',
+          boxShadow: '0 0 0 3px rgba(139, 92, 246, 0.1)',
+          background: 'rgba(255, 255, 255, 0.9)',
         },
         '.table-rpg': {
           width: '100%',
@@ -178,6 +256,30 @@ export default {
         '.table-rpg tr:hover': {
           background: 'rgba(139, 92, 246, 0.1)',
         },
+        /* Modo Light - Tabela suave */
+        '.table-rpg-light': {
+          width: '100%',
+          borderRadius: '0.5rem',
+          overflow: 'hidden',
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px)',
+        },
+        '.table-rpg-light th': {
+          background: 'rgba(255, 255, 255, 0.9)',
+          color: '#1e293b',
+          fontWeight: '600',
+          padding: '1rem 1.5rem',
+          textAlign: 'left',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+        },
+        '.table-rpg-light td': {
+          padding: '1rem 1.5rem',
+          color: '#475569',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+        },
+        '.table-rpg-light tr:hover': {
+          background: 'rgba(139, 92, 246, 0.05)',
+        },
         '.sidebar-rpg': {
           background: 'rgba(30, 41, 59, 0.9)',
           backdropFilter: 'blur(30px)',
@@ -185,8 +287,22 @@ export default {
           borderRight: '1px solid rgba(148, 163, 184, 0.2)',
           boxShadow: '5px 0 20px rgba(0, 0, 0, 0.3)',
         },
+        /* Modo Light - Sidebar suave */
+        '.sidebar-rpg-light': {
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(30px)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          borderRight: '1px solid rgba(148, 163, 184, 0.1)',
+          boxShadow: '5px 0 20px rgba(0, 0, 0, 0.1)',
+        },
         '.shimmer': {
           background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
+          backgroundSize: '200px 100%',
+          animation: 'shimmer 1.5s infinite',
+        },
+        /* Modo Light - Shimmer suave */
+        '.shimmer-light': {
+          background: 'linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent)',
           backgroundSize: '200px 100%',
           animation: 'shimmer 1.5s infinite',
         },
@@ -204,6 +320,15 @@ export default {
           width: '2px',
           height: '2px',
           background: 'rgba(139, 92, 246, 0.6)',
+          borderRadius: '50%',
+          animation: 'float 8s ease-in-out infinite',
+        },
+        /* Modo Light - Partículas suaves */
+        '.particle-light': {
+          position: 'absolute',
+          width: '2px',
+          height: '2px',
+          background: 'rgba(139, 92, 246, 0.3)',
           borderRadius: '50%',
           animation: 'float 8s ease-in-out infinite',
         },

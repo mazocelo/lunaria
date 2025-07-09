@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from '../../contexts/theme.jsx';
 
 const Button = ({ 
     title, 
@@ -10,14 +11,17 @@ const Button = ({
     size = "medium",
     disabled = false 
 }) => {
-    const baseClasses = "btn-rpg hover-lift font-modern transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed";
+    const { theme } = useTheme();
+    const isLight = theme === 'light';
+    
+    const baseClasses = `${isLight ? 'btn-rpg-light' : 'btn-rpg'} hover-lift font-modern transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed`;
     
     const variantClasses = {
         primary: "gradient-primary",
         secondary: "gradient-secondary", 
         accent: "gradient-accent",
         danger: "bg-red-600 hover:bg-red-700",
-        ghost: "glass hover:bg-slate-700/50"
+        ghost: isLight ? "glass-light hover:bg-slate-100/50" : "glass hover:bg-slate-700/50"
     };
     
     const sizeClasses = {

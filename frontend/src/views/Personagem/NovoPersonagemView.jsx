@@ -4,10 +4,13 @@ import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from '../../viewmodels/Personagens/NovoPersonagemViewModel';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const NovoPersonagemView = () => {
   const vm = useViewModel(novoPersonagemViewModel);
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   useEffect(() => {
     vm.clearError();
@@ -49,7 +52,7 @@ const NovoPersonagemView = () => {
         <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
           <span className="text-3xl">⚔️</span>
         </div>
-        <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Criar Novo Personagem
         </h1>
         <p className="text-slate-400 font-modern">
@@ -63,7 +66,7 @@ const NovoPersonagemView = () => {
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-sm">!</span>
+                <span className={`${isLight ? 'text-slate-800' : 'text-white'} text-sm`}>!</span>
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
@@ -76,7 +79,7 @@ const NovoPersonagemView = () => {
         {/* Pontos de atributos */}
         <div className="mb-6 p-4 glass rounded-lg">
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-white font-modern">
+            <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
               Pontos para distribuir:
             </span>
             <span className={`font-bold text-lg ${vm.pontosRestantes < 0 ? "text-red-400" : "text-cyan-400"}`}>
@@ -87,7 +90,7 @@ const NovoPersonagemView = () => {
 
         {/* Nome */}
         <div>
-          <label className="block font-semibold mb-2 text-white font-modern">Nome do personagem</label>
+          <label className={`block font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>Nome do personagem</label>
           <input
             type="text"
             name="nome"
@@ -271,10 +274,10 @@ const NovoPersonagemView = () => {
       <div className="mt-6 card-rpg">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">💡</span>
+            <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>💡</span>
           </div>
           <div>
-            <h3 className="font-semibold text-white font-modern mb-1">Dicas para um bom personagem</h3>
+            <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para um bom personagem</h3>
             <ul className="text-sm text-slate-400 space-y-1 font-modern">
               <li>• Distribua todos os pontos de atributos antes de salvar</li>
               <li>• Combine classe e raça para criar sinergias</li>

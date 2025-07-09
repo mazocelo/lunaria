@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../contexts/theme.jsx';
 
 const LoadingSpinner = ({ 
     size = 'medium', 
@@ -6,6 +7,9 @@ const LoadingSpinner = ({
     showText = true,
     variant = 'primary' 
 }) => {
+    const { theme } = useTheme();
+    const isLight = theme === 'light';
+    
     const sizeClasses = {
         small: 'w-6 h-6',
         medium: 'w-8 h-8',
@@ -21,9 +25,13 @@ const LoadingSpinner = ({
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4">
-            <div className={`${sizeClasses[size]} border-2 border-slate-700 border-t-current rounded-full animate-spin ${variantClasses[variant]}`} />
+            <div className={`${sizeClasses[size]} border-2 rounded-full animate-spin ${variantClasses[variant]} ${
+                isLight ? 'border-slate-300' : 'border-slate-700'
+            }`} />
             {showText && (
-                <p className="text-slate-400 font-modern text-sm animate-pulse">
+                <p className={`font-modern text-sm animate-pulse ${
+                    isLight ? 'text-slate-600' : 'text-slate-400'
+                }`}>
                     {text}
                 </p>
             )}

@@ -4,6 +4,7 @@ import { useViewModel } from '../../shared/hooks/useViewModel';
 import { historiaViewModel } from '../../viewmodels';
 import { StatCard, LoadingSpinner, Notification } from '../../components';
 import Table from '../../components/Table/Table';
+import { useTheme } from '../../contexts/theme.jsx';
 
 /**
  * View para exibição e gerenciamento de Histórias
@@ -18,6 +19,9 @@ export const HistoriaView = () => {
     loadHistorias,
     clearError
   } = useViewModel(historiaViewModel);
+
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Carrega histórias ao montar o componente
   useEffect(() => {
@@ -59,7 +63,7 @@ export const HistoriaView = () => {
       {/* Header da página */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
             Histórias & Aventuras
           </h1>
           <p className="text-slate-400 font-modern">
@@ -102,7 +106,7 @@ export const HistoriaView = () => {
       {/* Tabela de histórias */}
       <div className="card-rpg">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-fantasy font-semibold text-white">
+          <h2 className={`text-xl font-fantasy font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
             Lista de Histórias
           </h2>
           <div className="flex items-center space-x-2">
@@ -118,7 +122,7 @@ export const HistoriaView = () => {
             <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
               <span className="text-3xl">📖</span>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2 font-modern">
+            <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
               Nenhuma história encontrada
             </h3>
             <p className="text-slate-400 font-modern mb-6">

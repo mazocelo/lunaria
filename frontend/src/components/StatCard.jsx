@@ -29,7 +29,7 @@ const StatCard = ({
     };
 
     return (
-        <div className={`${isLight ? 'card-rpg-light' : 'card-rpg'} hover-lift ${className}`}>
+        <div className={`card-rpg hover-lift ${className}`}>
             <div className="flex items-center space-x-4">
                 <div className={`w-12 h-12 ${variantClasses[variant]} rounded-lg flex items-center justify-center`}>
                     <span className="text-xl">{icon}</span>

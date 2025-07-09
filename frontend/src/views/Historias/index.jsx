@@ -1,160 +1,171 @@
 import React, { useEffect } from 'react';
-import Selector from '../../components/form/Selector';
-import InputSimples from '../../components/form/inputSimples';
-import Button from '../../components/form/button';
-import { useNavigate } from 'react-router-dom';
-import { useViewModel } from '../../shared/hooks/useViewModel';
-import { novaHistoriaViewModel } from '../../viewmodels/Historias/NovaHistoriaViewModel';
+import { Link } from 'react-router-dom';
+import { useViewModel } from '../../shared/hooks/useViewModel.js';
+import { historiaViewModel } from '../../viewmodels/index.js';
+import { StatCard, LoadingSpinner, Notification } from '../../components/index.js';
+import Table from '../../components/Table/Table.jsx';
 import { useTheme } from '../../contexts/theme.jsx';
 
-const NovaHistoriaView = () => {
-  const vm = useViewModel(novaHistoriaViewModel);
-  const navigate = useNavigate();
+/**
+ * View para exibição e gerenciamento de Histórias
+ * Segue o padrão MVVM - apenas responsável pela apresentação
+ */
+export const HistoriaView = () => {
+  const {
+    historias,
+    loading,
+    error,
+    estatisticas,
+    loadHistorias,
+    clearError
+  } = useViewModel(historiaViewModel);
+
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
+  // Carrega histórias ao montar o componente
   useEffect(() => {
-    vm.loadTemas();
-    vm.clearError();
+    loadHistorias();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await vm.criarHistoria(() => navigate('/historias'));
-  };
+  // Limpa erro quando componente desmonta
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, []);
+
+  if (loading && historias.length === 0) {
+    return (
+      <div className="animate-fade-in">
+        <div className="card-rpg">
+          <LoadingSpinner 
+            size="xl" 
+            text="Carregando histórias..." 
+            variant="primary"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="animate-fade-in max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">📚</span>
-        </div>
-        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-          Criar Nova História
-        </h1>
-        <p className="text-slate-400 font-modern">
-          Dê vida a uma nova aventura épica
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="card-rpg space-y-6">
-        {/* Mensagem de erro */}
-        {vm.error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>!</span>
-              </div>
-              <div>
-                <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <InputSimples
-          label="Nome da História"
-          onChange={e => vm.setNome(e.target.value)}
-          value={vm.nome}
-          placeholder="Digite o nome da sua aventura..."
-          required
+    <div className="animate-fade-in space-y-6">
+      {/* Notificação de erro */}
+      {error && (
+        <Notification
+          message={error}
+          type="error"
+          onClose={clearError}
         />
+      )}
 
+      {/* Header da página */}
+      <div className="flex items-center justify-between">
         <div>
-          <label className={`block text-sm font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            Temas da História
-          </label>
-          <div className="glass rounded-lg p-4">
-            <Selector
-              onChange={vm.setTemasSelecionados}
-              id="history-selector"
-              selected={vm.temasSelecionados}
-              options={vm.temas.map((tema) => ({ value: tema.id, label: tema.nome }))}
-              type="multiple"
-              max={3}
-              label="Escolha os Temas"
-            />
-            <p className="text-xs text-slate-400 mt-2 font-modern">
-              Selecione até 3 temas para categorizar sua história
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-white mb-2 font-modern">
-            Máximo de Participantes
-          </label>
-          <div className="relative">
-            <input
-              type="number"
-              min={2}
-              max={10}
-              value={vm.maximo_de_participantes}
-              onChange={e => vm.setMaximoDeParticipantes(Number(e.target.value))}
-              className="input-rpg w-full"
-              placeholder="Número de jogadores"
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-              <span className="text-sm">👥</span>
-            </div>
-          </div>
-          <p className="text-xs text-slate-400 mt-2 font-modern">
-            Recomendamos entre 2 e 10 jogadores para uma experiência ideal
+          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
+            Histórias & Aventuras
+          </h1>
+          <p className="text-slate-400 font-modern">
+            Gerencie suas campanhas e aventuras épicas
           </p>
         </div>
+        
+        <Link to="/nova-historia">
+          <button className="btn-rpg hover-lift flex items-center space-x-2">
+            <span>✨</span>
+            <span>Nova História</span>
+          </button>
+        </Link>
+      </div>
 
-        {/* Botões de ação */}
-        <div className="flex space-x-4 pt-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/historias')}
-            className="flex-1"
-            type="button"
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={vm.loading}
-            className="flex-1"
-          >
-            {vm.loading ? (
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Criando...</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <span>✨</span>
-                <span>Criar História</span>
-              </div>
-            )}
-          </Button>
-        </div>
-      </form>
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          title="Total de Histórias"
+          value={estatisticas.total}
+          icon="📚"
+          variant="primary"
+        />
 
-      {/* Dicas */}
-      <div className="mt-6 card-rpg">
-        <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>💡</span>
-          </div>
-          <div>
-            <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para uma boa história</h3>
-            <ul className="text-sm text-slate-400 space-y-1 font-modern">
-              <li>• Escolha um nome memorável e descritivo</li>
-              <li>• Selecione temas que combinem com sua narrativa</li>
-              <li>• Considere o número ideal de jogadores para sua história</li>
-              <li>• Pense na progressão e desenvolvimento dos personagens</li>
-            </ul>
+        <StatCard
+          title="Vagas Disponíveis"
+          value={estatisticas.totalParticipantes}
+          icon="🎭"
+          variant="secondary"
+        />
+
+        <StatCard
+          title="Com Temas"
+          value={estatisticas.comTemas}
+          icon="⚡"
+          variant="accent"
+        />
+      </div>
+
+      {/* Tabela de histórias */}
+      <div className="card-rpg">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className={`text-xl font-fantasy font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
+            Lista de Histórias
+          </h2>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
+            <span className="text-sm text-slate-400 font-modern">
+              {historias.length} histórias encontradas
+            </span>
           </div>
         </div>
+
+        {historias.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+              <span className="text-3xl">📖</span>
+            </div>
+            <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
+              Nenhuma história encontrada
+            </h3>
+            <p className="text-slate-400 font-modern mb-6">
+              Comece criando sua primeira aventura épica!
+            </p>
+            <Link to="/nova-historia">
+              <button className="btn-rpg">
+                Criar Primeira História
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <Table
+            columns={[
+              { key: 'id', label: 'ID', align: 'left', render: (row) => `#${row.id}` },
+              { key: 'nome', label: 'Nome da História', align: 'left' },
+              { key: 'temas', label: 'Temas', align: 'left', render: (row) => (
+                <div className="flex flex-wrap gap-1">
+                  {Array.isArray(row.temas) && row.temas.length > 0
+                    ? row.temas.map((tema, i) => (
+                        <span key={i} className="px-2 py-1 text-xs rounded-full bg-slate-700/50 text-slate-300 font-modern">{tema}</span>
+                      ))
+                    : <span className="text-slate-500 text-xs">Sem tema</span>
+                  }
+                </div>
+              ) },
+              { key: 'maximo_de_participantes', label: 'Máximo de Participantes', align: 'left', render: (row) => (
+                <div className="flex items-center space-x-2">
+                  <span className="text-cyan-400 font-semibold">{row.maximo_de_participantes || 0}</span>
+                  <span className="text-slate-400 text-sm">jogadores</span>
+                </div>
+              ) },
+            ]}
+            data={historias}
+            keyField="id"
+            actions={[
+              { label: 'Ver', icon: '👁️', onClick: (row) => {/* ação de ver */}, color: 'purple' },
+              { label: 'Editar', icon: '✏️', onClick: (row) => {/* ação de editar */}, color: 'cyan' },
+              { label: 'Deletar', icon: '🗑️', onClick: (row) => {/* ação de deletar */}, color: 'red' },
+            ]}
+          />
+        )}
       </div>
     </div>
   );
-};
-
-export default NovaHistoriaView;
+}; 

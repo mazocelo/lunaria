@@ -13,7 +13,7 @@ const RPGCard = ({
     const { theme } = useTheme();
     const isLight = theme === 'light';
     
-    const baseClasses = `${isLight ? 'card-rpg-light' : 'card-rpg'} transition-all duration-300`;
+    const baseClasses = `card-rpg transition-all duration-300`;
     const hoverClasses = hover ? "hover-lift" : "";
     const glowClasses = glow ? "animate-glow" : "";
     const disabledClasses = disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer";

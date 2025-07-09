@@ -2,9 +2,12 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { personagemViewModel } from '../../viewmodels/Personagens/PersonagemViewModel';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const PersonagemView = () => {
   const vm = useViewModel(personagemViewModel);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   useEffect(() => {
     vm.loadPersonagens();
@@ -41,7 +44,7 @@ const PersonagemView = () => {
       {/* Header da página */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-fantasy font-bold text-white mb-2">
+          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
             Personagens & Heróis
           </h1>
           <p className="text-slate-400 font-modern">
@@ -159,14 +162,14 @@ const PersonagemView = () => {
                           </span>
                         </div>
                         <div>
-                          <div className="font-semibold text-white font-modern">
+                          <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
                             {personagem.nome}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-left">
-                      <span className="text-white font-semibold font-modern">
+                      <span className={`${isLight ? 'text-slate-700' : 'text-white'} font-semibold font-modern`}>
                         {personagem.classe || 'Aventureiro'}
                       </span>
                     </td>

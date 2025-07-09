@@ -24,7 +24,7 @@ const Sidebar = () => {
     return (
         <aside className="sidebar-rpg w-80 h-screen flex flex-col">
             {/* Logo e título */}
-            <div className="p-6 border-b border-slate-700/50">
+            <div className="p-6 border-b border-slate-700/50" style={{height: '8vh'}}>
                 <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center text-white font-bold text-lg">
                         🎲

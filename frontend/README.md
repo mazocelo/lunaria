@@ -38,7 +38,6 @@ A aplicação agora suporta um modo light elegante que mantém a estética RPG c
 #### Modo Light:
 - `.glass-light` - Efeito de vidro claro
 - `.glass-strong-light` - Efeito de vidro forte claro
-- `.card-rpg-light` - Cards com estilo light
 - `.input-rpg-light` - Inputs com estilo light
 - `.btn-rpg-light` - Botões com estilo light
 - `.table-rpg-light` - Tabelas com estilo light

@@ -1,11 +1,12 @@
 /**
  * Cliente HTTP base para comunicação com a API
  * Responsável por gerenciar requisições HTTP
-//let baseURL = 'https://role-chat-play-fcb920fa09f3.herokuapp.com/'; // URL padrão da API
  
 */
+let baseURL = 'https://role-chat-play-fcb920fa09f3.herokuapp.com/'; // URL padrão da API
+// let baseURL = 'http://localhost:3000';
 export class ApiClient {
-  constructor(baseURL = 'http://localhost:3000') {
+  constructor() {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',

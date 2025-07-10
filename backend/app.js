@@ -27,7 +27,7 @@ app.use(express.static(path.join(path.resolve(), 'public')));
 
 app.use('/', indexRouter);
 app.use('/rpg', rpgRouter);
-app.use('/historia', historiaRouter);
+app.use('/historias', historiaRouter);
 app.use('/temas', temasRouter);
 
 // catch 404 and forward to error handler

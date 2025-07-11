@@ -8,7 +8,9 @@
     "build": "tsc && vite build",
     "serve": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "serve -s dist -l $PORT",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@langchain/core": "^0.3.57",

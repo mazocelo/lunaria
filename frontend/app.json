@@ -1,0 +1,21 @@
+{
+  "name": "role-chat-game-frontend",
+  "description": "Frontend do Role Chat Game",
+  "repository": "https://github.com/seu-usuario/role-chat-game",
+  "logo": "https://node-js-sample.herokuapp.com/node.png",
+  "keywords": ["node", "express", "static"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-static"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Environment",
+      "value": "production"
+    }
+  }
+} 

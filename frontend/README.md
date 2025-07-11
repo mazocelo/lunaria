@@ -69,6 +69,50 @@ npm install
 npm run dev
 ```
 
+## 🚀 Deploy na Heroku
+
+### Pré-requisitos:
+- Conta na Heroku
+- Heroku CLI instalado
+- Git configurado
+
+### Passos para Deploy:
+
+1. **Login na Heroku:**
+```bash
+heroku login
+```
+
+2. **Criar app na Heroku:**
+```bash
+heroku create seu-app-name
+```
+
+3. **Configurar buildpacks:**
+```bash
+heroku buildpacks:set heroku/nodejs
+heroku buildpacks:add https://github.com/heroku/heroku-buildpack-static
+```
+
+4. **Configurar variáveis de ambiente:**
+```bash
+heroku config:set NODE_ENV=production
+heroku config:set VITE_API_URL=https://seu-backend-url.herokuapp.com/
+```
+
+5. **Fazer deploy:**
+```bash
+git add .
+git commit -m "Deploy para Heroku"
+git push heroku main
+```
+
+### Estrutura de Deploy:
+- `static.json` - Configuração do buildpack estático
+- `Procfile` - Comando de inicialização
+- `package.json` - Scripts de build e start
+- `app.json` - Configuração do app Heroku
+
 ## 🎯 Funcionalidades
 
 - ✅ Sistema de temas (Light/Dark)

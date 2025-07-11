@@ -10,4 +10,22 @@ export default defineConfig({
       "@": "./src",
     },
   },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          router: ["react-router-dom"],
+          ui: ["@radix-ui/react-label", "@radix-ui/react-slot", "@radix-ui/react-toggle", "@radix-ui/react-toggle-group"]
+        }
+      }
+    }
+  },
+  server: {
+    port: process.env.PORT || 3000,
+    host: "0.0.0.0"
+  }
 })

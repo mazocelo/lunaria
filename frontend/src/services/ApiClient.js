@@ -3,8 +3,8 @@
  * Responsável por gerenciar requisições HTTP
  
 */
-let baseURL = 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/'; // URL padrão da API
-// let baseURL = 'http://localhost:3000';
+// Configuração da URL base da API
+const baseURL = import.meta.env.VITE_API_URL || 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/';
 export class ApiClient {
   constructor() {
     this.baseURL = baseURL;

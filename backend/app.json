@@ -1,0 +1,28 @@
+{
+  "name": "role-chat-game-backend",
+  "description": "Backend API do Role Chat Game",
+  "repository": "https://github.com/seu-usuario/role-chat-game",
+  "logo": "https://node-js-sample.herokuapp.com/node.png",
+  "keywords": ["node", "express", "api", "rpg"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Environment",
+      "value": "production"
+    },
+    "PORT": {
+      "description": "Porta do servidor",
+      "value": "3000"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  }
+} 

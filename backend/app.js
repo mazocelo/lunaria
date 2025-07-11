@@ -11,8 +11,13 @@ import historiaRouter from './routes/historia.js';
 import temasRouter from './routes/temas.js';
 
 import { createExecutor } from './tools/master.js';
+import initDatabase from './Model/initDB.js';
 
 const app = express();
+
+// Inicializar banco de dados
+initDatabase().catch(console.error);
+
 createExecutor()
 // view engine setup
 app.set('views', path.join(path.resolve(), 'views'));

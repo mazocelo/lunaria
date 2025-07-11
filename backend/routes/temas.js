@@ -1,12 +1,12 @@
 
 import express from 'express';
-import Temas from '../Model/Temas.js'; // ajuste o caminho conforme sua estrutura de pastas
+import db from '../Model/index.js';
 const router = express.Router();
 
 export default router;
 
 router.get('/', (req, res) => {
-    Temas.findAll()
+    db.Temas.findAll()
         .then(temas => {
             res.status(200).json(temas);
         })

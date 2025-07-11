@@ -1,6 +1,6 @@
 import express from 'express';
 import Criador from '../agents/historia/Criador.js';
-import Historia from '../Model/Historia.js'; // ajuste o caminho conforme sua estrutura de pastas
+import db from '../Model/index.js';
 const router = express.Router();
 
 router.post('/nova', async (req, res, next) => {
@@ -8,7 +8,7 @@ router.post('/nova', async (req, res, next) => {
         console.log('body', req.body);
         // const criador = await Criador();
         const { nome, tema, maximo_de_participantes } = req.body;
-        const novaHistoria = await Historia.create({
+        const novaHistoria = await db.Agent.create({
             nome,
             tema,
             maximo_de_participantes
@@ -24,13 +24,12 @@ router.post('/nova', async (req, res, next) => {
 
 router.get('/' , async (req, res, next) => {
     try {
-        const historias = await Historia.findAll();
+        const historias = await db.Agent.findAll();
         res.status(200).json(historias);
     } catch (error) {
         console.error('Erro ao buscar histórias:', error);
         res.status(500).json({ error: error.message });
     }
 });
-
 
 export default router;

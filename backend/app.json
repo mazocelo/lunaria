@@ -17,6 +17,18 @@
     "PORT": {
       "description": "Porta do servidor",
       "value": "3000"
+    },
+    "DATABASE_URL": {
+      "description": "URL do banco de dados PostgreSQL",
+      "required": true
+    },
+    "OPENAI_API_KEY": {
+      "description": "Chave da API OpenAI",
+      "required": false
+    },
+    "GROQ_API_KEY": {
+      "description": "Chave da API Groq",
+      "required": false
     }
   },
   "formation": {

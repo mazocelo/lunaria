@@ -1,4 +1,5 @@
 import { PersonagemService } from '../../services/PersonagemService';
+import { HabilidadeService } from '../../services/HabilidadeService';
 import { apiClient } from '../../services/ApiClient';
 
 const atributosIniciais = {
@@ -41,11 +42,14 @@ export class EditarPersonagemViewModel {
       hp: 100,
       loading: false,
       error: null,
-      personagemId: null
+      personagemId: null,
+      habilidadesDisponiveis: [],
+      loadingHabilidades: false
     };
     
     this.subscribers = [];
     this.personagemService = new PersonagemService(apiClient);
+    this.habilidadeService = new HabilidadeService(apiClient);
   }
 
   getState() {
@@ -116,6 +120,22 @@ export class EditarPersonagemViewModel {
     this.setState({
       atributos: { ...this.state.atributos, [atributo]: valor }
     });
+  };
+
+  loadHabilidades = async () => {
+    this.setState({ loadingHabilidades: true });
+    try {
+      const habilidades = await this.habilidadeService.getAll();
+      this.setState({ 
+        habilidadesDisponiveis: habilidades,
+        loadingHabilidades: false 
+      });
+    } catch (error) {
+      this.setState({ 
+        error: `Erro ao carregar habilidades: ${error.message}`,
+        loadingHabilidades: false 
+      });
+    }
   };
 
   loadPersonagem = async (id) => {

@@ -2,6 +2,9 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
+import FormSelect from '../../components/form/FormSelect';
+import FormTextarea from '../../components/form/FormTextarea';
+import FormRadioGroup from '../../components/form/FormRadioGroup';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from '../../viewmodels/Personagens/NovoPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -15,6 +18,7 @@ const NovoPersonagemView = () => {
   useEffect(() => {
     vm.clearError();
     vm.resetPontos();
+    vm.loadHabilidades();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -24,8 +28,6 @@ const NovoPersonagemView = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Mapear campos para métodos do ViewModel
     const fieldMappings = {
       nome: vm.setNome,
       raca: vm.setRaca,
@@ -36,8 +38,6 @@ const NovoPersonagemView = () => {
       habilidades: vm.setHabilidades,
       equipamentos: vm.setEquipamentos
     };
-
-    // Se for um atributo
     if (name in vm.atributos) {
       vm.setAtributo(name, value);
     } else if (fieldMappings[name]) {
@@ -89,104 +89,74 @@ const NovoPersonagemView = () => {
         </div>
 
         {/* Nome */}
-        <div>
-          <label className={`block font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>Nome do personagem</label>
-          <input
-            type="text"
-            name="nome"
-            value={vm.nome}
-            onChange={handleChange}
-            className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-            placeholder="Digite o nome"
-          />
-        </div>
+        <InputSimples
+          label="Nome do personagem"
+          name="nome"
+          value={vm.nome}
+          onChange={handleChange}
+          placeholder="Digite o nome"
+          required
+        />
 
         {/* Raça / Classe / Profissão */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div>
-            <label className="block font-semibold mb-2 text-white font-modern">Raça</label>
-            <input
-              type="text"
-              name="raca"
-              value={vm.raca}
-              onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-              placeholder="Raça"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold mb-2 text-white font-modern">Classe</label>
-            <input
-              type="text"
-              name="classe"
-              value={vm.classe}
-              onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-              placeholder="Classe"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold mb-2 text-white font-modern">Profissão</label>
-            <input
-              type="text"
-              name="profissao"
-              value={vm.profissao}
-              onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-              placeholder="Profissão"
-            />
-          </div>
+          <InputSimples
+            label="Raça"
+            name="raca"
+            value={vm.raca}
+            onChange={handleChange}
+            placeholder="Raça"
+            required
+          />
+          <InputSimples
+            label="Classe"
+            name="classe"
+            value={vm.classe}
+            onChange={handleChange}
+            placeholder="Classe"
+            required
+          />
+          <InputSimples
+            label="Profissão"
+            name="profissao"
+            value={vm.profissao}
+            onChange={handleChange}
+            placeholder="Profissão"
+            required
+          />
         </div>
 
         {/* Background */}
         <div>
-          <label className="block font-semibold mb-2 text-white font-modern">Background</label>
-          <div className="flex gap-4 mb-2">
-            <label className="flex items-center gap-1 text-white font-modern">
-              <input
-                type="radio"
-                name="backgroundTipo"
-                value="guiado"
-                checked={vm.backgroundTipo === "guiado"}
-                onChange={handleChange}
-                className="mr-2"
-              />
-              Guiado
-            </label>
-            <label className="flex items-center gap-1 text-white font-modern">
-              <input
-                type="radio"
-                name="backgroundTipo"
-                value="livre"
-                checked={vm.backgroundTipo === "livre"}
-                onChange={handleChange}
-                className="mr-2"
-              />
-              Livre
-            </label>
-          </div>
+          <FormRadioGroup
+            label="Background"
+            name="backgroundTipo"
+            value={vm.backgroundTipo}
+            onChange={handleChange}
+            options={[
+              { value: 'guiado', label: 'Guiado' },
+              { value: 'livre', label: 'Livre' }
+            ]}
+          />
           {vm.backgroundTipo === "guiado" ? (
-            <select
+            <FormSelect
               name="background"
+              label="Selecione um background"
               value={vm.background}
               onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-            >
-              <option value="">Selecione um background</option>
-              {vm.backgroundsGuiados.map((bg) => (
-                <option key={bg} value={bg}>
-                  {bg}
-                </option>
-              ))}
-            </select>
+              options={vm.backgroundsGuiados.map(bg => ({ value: bg, label: bg }))}
+              placeholder="Selecione um background"
+              required
+            />
           ) : (
-            <textarea
+            <FormTextarea
               name="background"
+              label="Descreva o background livremente"
               value={vm.background}
               onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
               placeholder="Descreva o background livremente"
               rows={3}
+              required
             />
           )}
         </div>
@@ -196,47 +166,42 @@ const NovoPersonagemView = () => {
           <label className="block font-semibold mb-2 text-white font-modern">Atributos</label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             {Object.keys(vm.atributos).map((attr) => (
-              <div key={attr}>
-                <label className="block text-sm capitalize text-white font-modern">{attr}</label>
-                <input
-                  type="number"
-                  name={attr}
-                  value={vm.atributos[attr]}
-                  onChange={handleChange}
-                  className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-                  min={0}
-                  max={20}
-                />
-              </div>
+              <InputSimples
+                key={attr}
+                label={attr.charAt(0).toUpperCase() + attr.slice(1)}
+                name={attr}
+                value={vm.atributos[attr]}
+                onChange={handleChange}
+                type="number"
+                required
+              />
             ))}
           </div>
         </div>
 
-        {/* Habilidades especiais */}
-        <div>
-          <label className="block font-semibold mb-2 text-white font-modern">Habilidades especiais</label>
-          <textarea
-            name="habilidades"
-            value={vm.habilidades}
-            onChange={handleChange}
-            className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-            placeholder="Liste ou descreva as habilidades especiais"
-            rows={2}
-          />
-        </div>
+        {/* Habilidades */}
+        <FormSelect
+          name="habilidades"
+          label="Habilidades"
+          value={vm.habilidades}
+          onChange={handleChange}
+          options={vm.habilidadesDisponiveis?.map(habilidade => ({ 
+            value: habilidade.id, 
+            label: habilidade.nome 
+          }))}
+          placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
+          required
+          disabled={vm.loadingHabilidades}
+        />
 
-        {/* Equipamentos iniciais */}
-        <div>
-          <label className="block font-semibold mb-2 text-white font-modern">Equipamentos iniciais</label>
-          <textarea
-            name="equipamentos"
-            value={vm.equipamentos}
-            onChange={handleChange}
-            className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-            placeholder="Liste os equipamentos iniciais"
-            rows={2}
-          />
-        </div>
+        {/* Equipamentos */}
+        <InputSimples
+          label="Equipamentos"
+          name="equipamentos"
+          value={vm.equipamentos}
+          onChange={handleChange}
+          placeholder="Liste os equipamentos"
+        />
 
         {/* Botões de ação */}
         <div className="flex space-x-4 pt-4">
@@ -251,9 +216,8 @@ const NovoPersonagemView = () => {
           <Button
             variant="primary"
             type="submit"
-            disabled={vm.pontosRestantes !== 0 || vm.loading}
+            disabled={vm.loading}
             className="flex-1"
-            title={vm.pontosRestantes !== 0 ? "Distribua todos os pontos antes de salvar" : ""}
           >
             {vm.loading ? (
               <div className="flex items-center space-x-2">
@@ -262,31 +226,13 @@ const NovoPersonagemView = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <span>⚔️</span>
+                <span>✨</span>
                 <span>Criar Personagem</span>
               </div>
             )}
           </Button>
         </div>
       </form>
-
-      {/* Dicas */}
-      <div className="mt-6 card-rpg">
-        <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>💡</span>
-          </div>
-          <div>
-            <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para um bom personagem</h3>
-            <ul className="text-sm text-slate-400 space-y-1 font-modern">
-              <li>• Distribua todos os pontos de atributos antes de salvar</li>
-              <li>• Combine classe e raça para criar sinergias</li>
-              <li>• Considere a história de fundo do personagem</li>
-              <li>• Pense na progressão e desenvolvimento futuro</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

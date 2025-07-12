@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import Selector from '../../components/form/Selector';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
+import FormSelect from '../../components/form/FormSelect';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novaHistoriaViewModel } from '../../viewmodels/Historias/NovaHistoriaViewModel';
@@ -62,48 +62,37 @@ const NovaHistoriaView = () => {
           required
         />
 
-        <div>
-          <label className={`block text-sm font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            Temas da História
-          </label>
-          <div className="glass rounded-lg p-4">
-            <Selector
-              onChange={vm.setTemasSelecionados}
-              id="history-selector"
-              selected={vm.temasSelecionados}
-              options={vm.temas.map((tema) => ({ value: tema.id, label: tema.nome }))}
-              type="multiple"
-              max={3}
-              label="Escolha os Temas"
-            />
-            <p className="text-xs text-slate-400 mt-2 font-modern">
-              Selecione até 3 temas para categorizar sua história
-            </p>
-          </div>
-        </div>
+        <FormSelect
+          label="Temas da História"
+          name="temas"
+          value={vm.temasSelecionados}
+          onChange={e => {
+            // Para múltipla seleção, use e.target.selectedOptions
+            const values = Array.from(e.target.selectedOptions).map(opt => opt.value);
+            vm.setTemasSelecionados(values);
+          }}
+          options={vm.temas.map((tema) => ({ value: tema.id, label: tema.nome }))}
+          placeholder="Selecione até 3 temas"
+          required
+          multiple
+        />
+        <p className="text-xs text-slate-400 mt-2 font-modern">
+          Selecione até 3 temas para categorizar sua história
+        </p>
 
-        <div>
-          <label className="block text-sm font-semibold text-white mb-2 font-modern">
-            Máximo de Participantes
-          </label>
-          <div className="relative">
-            <input
-              type="number"
-              min={2}
-              max={10}
-              value={vm.maximo_de_participantes}
-              onChange={e => vm.setMaximoDeParticipantes(Number(e.target.value))}
-              className="input-rpg w-full"
-              placeholder="Número de jogadores"
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-              <span className="text-sm">👥</span>
-            </div>
-          </div>
-          <p className="text-xs text-slate-400 mt-2 font-modern">
-            Recomendamos entre 2 e 10 jogadores para uma experiência ideal
-          </p>
-        </div>
+        <InputSimples
+          label="Máximo de Participantes"
+          type="number"
+          min={2}
+          max={10}
+          value={vm.maximo_de_participantes}
+          onChange={e => vm.setMaximoDeParticipantes(Number(e.target.value))}
+          placeholder="Número de jogadores"
+          required
+        />
+        <p className="text-xs text-slate-400 mt-2 font-modern">
+          Recomendamos entre 2 e 10 jogadores para uma experiência ideal
+        </p>
 
         {/* Botões de ação */}
         <div className="flex space-x-4 pt-4">

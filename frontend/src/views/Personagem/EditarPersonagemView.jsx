@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
+import FormSelect from '../../components/form/FormSelect';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { editarPersonagemViewModel } from '../../viewmodels/Personagens/EditarPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -18,6 +19,7 @@ const EditarPersonagemView = () => {
       vm.loadPersonagem(id);
     }
     vm.clearError();
+    vm.loadHabilidades();
   }, [id]);
 
   const handleSubmit = async (e) => {
@@ -263,20 +265,21 @@ const EditarPersonagemView = () => {
           </div>
         </div>
 
-        {/* Habilidades especiais */}
-        <div>
-          <label className="block font-semibold mb-1 text-white font-modern">Habilidades especiais</label>
-          <textarea
-            name="habilidades"
-            value={vm.habilidades}
-            onChange={handleChange}
-            className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-            placeholder="Liste ou descreva as habilidades especiais"
-            rows={2}
-          />
-        </div>
+        {/* Habilidades */}
+        <FormSelect
+          name="habilidades"
+          label="Habilidades"
+          value={vm.habilidades}
+          onChange={handleChange}
+          options={vm.habilidadesDisponiveis.map(habilidade => ({ 
+            value: habilidade.id, 
+            label: habilidade.nome 
+          }))}
+          placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
+          disabled={vm.loadingHabilidades}
+        />
 
-        {/* Equipamentos iniciais */}
+        {/* Equipamentos */}
         <div>
           <label className="block font-semibold mb-1 text-white font-modern">Equipamentos</label>
           <textarea

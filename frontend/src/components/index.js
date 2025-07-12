@@ -9,6 +9,7 @@ import LoadingSpinner from './LoadingSpinner';
 import RPGCard from './RPGCard';
 import StatCard from './StatCard';
 import Notification from './Notification';
+import ConfirmationModal from './ConfirmationModal';
 
 // Componentes de formulário
 export { default as Button } from './form/button';
@@ -25,3 +26,4 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as RPGCard } from './RPGCard';
 export { default as StatCard } from './StatCard';
 export { default as Notification } from './Notification';
+export { default as ConfirmationModal } from './ConfirmationModal';

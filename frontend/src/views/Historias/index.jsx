@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel.js';
 import { historiaViewModel } from '../../viewmodels/index.js';
-import { StatCard, LoadingSpinner, Notification } from '../../components/index.js';
+import { StatCard, LoadingSpinner, Notification, ConfirmationModal } from '../../components/index.js';
 import Table from '../../components/Table/Table.jsx';
 import { useTheme } from '../../contexts/theme.jsx';
 
@@ -12,17 +12,24 @@ import { useTheme } from '../../contexts/theme.jsx';
  */
 export const HistoriaView = () => {
   const navigate = useNavigate();
+  const viewModel = useViewModel(historiaViewModel);
   const {
     historias,
     loading,
     error,
     estatisticas,
     loadHistorias,
-    clearError
-  } = useViewModel(historiaViewModel);
+    clearError,
+    deleteHistoria
+  } = viewModel;
 
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  // Estado para o modal de confirmação
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [historiaToDelete, setHistoriaToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Carrega histórias ao montar o componente
   useEffect(() => {
@@ -35,6 +42,35 @@ export const HistoriaView = () => {
       clearError();
     };
   }, []);
+
+  // Função para abrir o modal de confirmação
+  const handleDeleteClick = (historia) => {
+    setHistoriaToDelete(historia);
+    setShowDeleteModal(true);
+  };
+
+  // Função para confirmar a exclusão
+  const handleConfirmDelete = async () => {
+    if (!historiaToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      await deleteHistoria(historiaToDelete.id);
+      setShowDeleteModal(false);
+      setHistoriaToDelete(null);
+    } catch (error) {
+      console.error('Erro ao deletar história:', error);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Função para cancelar a exclusão
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setHistoriaToDelete(null);
+    setDeleteLoading(false);
+  };
 
   if (loading && historias.length === 0) {
     return (
@@ -140,16 +176,19 @@ export const HistoriaView = () => {
             columns={[
               { key: 'id', label: 'ID', align: 'left', render: (row) => `#${row.id}` },
               { key: 'nome', label: 'Nome da História', align: 'left' },
-              { key: 'temas', label: 'Temas', align: 'left', render: (row) => (
-                <div className="flex flex-wrap gap-1">
-                  {Array.isArray(row.temas) && row.temas.length > 0
-                    ? row.temas.map((tema, i) => (
-                        <span key={i} className="px-2 py-1 text-xs rounded-full bg-slate-700/50 text-slate-300 font-modern">{tema}</span>
-                      ))
-                    : <span className="text-slate-500 text-xs">Sem tema</span>
-                  }
-                </div>
-              ) },
+              { key: 'temas', label: 'Temas', align: 'left', render: (row) => {
+                const nomesTemas = viewModel.getNomesTemas(row);
+                return (
+                  <div className="flex flex-wrap gap-1">
+                    {nomesTemas.length > 0
+                      ? nomesTemas.map((nomeTema, i) => (
+                          <span key={i} className="px-2 py-1 text-xs rounded-full bg-slate-700/50 text-slate-300 font-modern">{nomeTema}</span>
+                        ))
+                      : <span className="text-slate-500 text-xs">Sem tema</span>
+                    }
+                  </div>
+                );
+              } },
               { key: 'maximo_de_participantes', label: 'Máximo de Participantes', align: 'left', render: (row) => (
                 <div className="flex items-center space-x-2">
                   <span className="text-cyan-400 font-semibold">{row.maximo_de_participantes || 0}</span>
@@ -161,13 +200,25 @@ export const HistoriaView = () => {
             keyField="id"
             actions={[
               { label: 'Iniciar Sessão', icon: '🎮', onClick: (row) => navigate(`/jogo/${row.id}`), color: 'green' },
-              { label: 'Ver', icon: '👁️', onClick: (row) => {/* ação de ver */}, color: 'purple' },
-              { label: 'Editar', icon: '✏️', onClick: (row) => {/* ação de editar */}, color: 'cyan' },
-              { label: 'Deletar', icon: '🗑️', onClick: (row) => {/* ação de deletar */}, color: 'red' },
+              { label: 'Ver', icon: '👁️', onClick: (row) => navigate(`/historias/${row.id}`), color: 'purple' },
+              { label: 'Deletar', icon: '🗑️', onClick: (row) => handleDeleteClick(row), color: 'red' },
             ]}
           />
         )}
       </div>
+
+      {/* Modal de Confirmação */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Deletar História"
+        message={`Tem certeza que deseja deletar a história "${historiaToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+      />
     </div>
   );
 }; 

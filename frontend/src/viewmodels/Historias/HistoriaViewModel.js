@@ -1,8 +1,10 @@
 import { Historia } from '../../models/Historia';
 import { HistoriaService } from '../../services/HistoriaService';
+import { TemaService } from '../../services/TemaService';
 import { apiClient } from '../../services/ApiClient';
 
 const historiaService = new HistoriaService(apiClient);
+const temaService = new TemaService(apiClient);
 
 /**
  * ViewModel para gerenciar o estado e lógica de negócio das Histórias
@@ -14,6 +16,7 @@ export class HistoriaViewModel {
     this.historiaAtual = null;
     this.loading = false;
     this.error = null;
+    this.temas = []; // Cache de temas para mapeamento
     this.filtros = {
       tema: null,
       participantes: null,
@@ -53,6 +56,7 @@ export class HistoriaViewModel {
       historiaAtual: this.historiaAtual,
       loading: this.loading,
       error: this.error,
+      temas: this.temas,
       filtros: this.filtros,
       estatisticas: this.getEstatisticas()
     };
@@ -84,8 +88,14 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      const historias = await historiaService.getAll();
+      // Carrega histórias e temas em paralelo
+      const [historias, temas] = await Promise.all([
+        historiaService.getAll(),
+        temaService.getAll()
+      ]);
+      // console.log(historias, temas);
       this.historias = historias;
+      this.temas = temas;
       this.notify();
     } catch (error) {
       this.setError(error.message);
@@ -103,7 +113,21 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      const historia = await historiaService.getById(id);
+      // Carrega a história e os temas em paralelo se os temas ainda não foram carregados
+      const promises = [historiaService.getById(id)];
+      
+      // Se não temos temas carregados, carrega eles também
+      if (this.temas.length === 0) {
+        promises.push(temaService.getAll());
+      }
+      
+      const results = await Promise.all(promises);
+      const historia = results[0];
+      
+      // Se carregou temas, atualiza o cache
+      if (results.length > 1) {
+        this.temas = results[1];
+      }
       this.historiaAtual = historia;
       this.notify();
     } catch (error) {
@@ -264,6 +288,62 @@ export class HistoriaViewModel {
     return this.historias.filter(h => 
       h.temas && h.temas.includes(temaId)
     );
+  }
+
+  /**
+   * Obtém o nome de um tema pelo ID
+   * @param {number|string} temaId - ID do tema ou nome do tema
+   * @returns {string} Nome do tema ou 'Tema não encontrado'
+   */
+  getNomeTema = (temaId) => {
+    // Se temaId já é uma string e parece ser um nome, retorna ele mesmo
+    if (typeof temaId === 'string' && !/^\d+$/.test(temaId)) {
+      return temaId;
+    }
+    
+    // Converte para número se for string numérica
+    const id = typeof temaId === 'string' ? parseInt(temaId, 10) : temaId;
+    
+    const tema = this.temas.find(t => t.id === id);
+    return tema ? tema.nome : 'Tema não encontrado';
+  }
+
+  /**
+   * Obtém os nomes dos temas de uma história
+   * @param {Historia} historia - História para obter os nomes dos temas
+   * @returns {string[]} Array com os nomes dos temas
+   */
+  getNomesTemas = (historia) => {
+    // Se não há temas, retorna array vazio
+    if (!historia.temas) {
+      return [];
+    }
+
+    // Se temas é uma string, tenta fazer parse
+    if (typeof historia.temas === 'string') {
+      try {
+        const temasArray = JSON.parse(historia.temas);
+        if (Array.isArray(temasArray)) {
+          return temasArray.map(temaId => this.getNomeTema(temaId));
+        }
+      } catch (e) {
+        // Se não conseguiu fazer parse, trata como string única
+        return [this.getNomeTema(historia.temas)];
+      }
+    }
+
+    // Se temas é um array
+    if (Array.isArray(historia.temas)) {
+      return historia.temas.map(temaId => this.getNomeTema(temaId));
+    }
+
+    // Se temas é um objeto, extrai os IDs
+    if (typeof historia.temas === 'object' && historia.temas !== null) {
+      const temaIds = Object.values(historia.temas);
+      return temaIds.map(temaId => this.getNomeTema(temaId));
+    }
+
+    return [];
   }
 
   /**

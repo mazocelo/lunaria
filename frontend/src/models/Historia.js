@@ -8,6 +8,7 @@ export class Historia {
     this.nome = data.nome || '';
     this.temas = data.temas || [];
     this.maximo_de_participantes = data.maximo_de_participantes || 3;
+    this.prologo = data.prologo || '';
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
   }
@@ -55,6 +56,7 @@ export class Historia {
       nome: this.nome,
       temas: this.temas,
       maximo_de_participantes: this.maximo_de_participantes,
+      prologo: this.prologo,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
@@ -71,6 +73,7 @@ export class Historia {
       nome: apiData.nome,
       temas: apiData.temas || [],
       maximo_de_participantes: apiData.maximo_de_participantes,
+      prologo: apiData.prologo || '',
       created_at: apiData.created_at,
       updated_at: apiData.updated_at
     });

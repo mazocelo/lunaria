@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import FormSelect from '../../components/form/FormSelect';
+import FormHabilidade from '../../components/form/FormHabilidade';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { editarPersonagemViewModel } from '../../viewmodels/Personagens/EditarPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -266,15 +267,17 @@ const EditarPersonagemView = () => {
         </div>
 
         {/* Habilidades */}
-        <FormSelect
+        <FormHabilidade
           name="habilidades"
           label="Habilidades"
           value={vm.habilidades}
           onChange={handleChange}
-          options={vm.habilidadesDisponiveis.map(habilidade => ({ 
+          options={vm.habilidadesDisponiveis?.map(habilidade => ({ 
             value: habilidade.id, 
-            label: habilidade.nome 
-          }))}
+            label: habilidade.nome,
+            custo: habilidade.custo,
+            descricao: habilidade.descricao
+          })) || []}
           placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
           disabled={vm.loadingHabilidades}
         />

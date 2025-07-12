@@ -5,6 +5,7 @@ import Button from '../../components/form/button';
 import FormSelect from '../../components/form/FormSelect';
 import FormTextarea from '../../components/form/FormTextarea';
 import FormRadioGroup from '../../components/form/FormRadioGroup';
+import FormHabilidade from '../../components/form/FormHabilidade';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from '../../viewmodels/Personagens/NovoPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -180,15 +181,17 @@ const NovoPersonagemView = () => {
         </div>
 
         {/* Habilidades */}
-        <FormSelect
+        <FormHabilidade
           name="habilidades"
           label="Habilidades"
           value={vm.habilidades}
           onChange={handleChange}
           options={vm.habilidadesDisponiveis?.map(habilidade => ({ 
             value: habilidade.id, 
-            label: habilidade.nome 
-          }))}
+            label: habilidade.nome,
+            custo: habilidade.custo,
+            descricao: habilidade.descricao
+          })) || []}
           placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
           required
           disabled={vm.loadingHabilidades}

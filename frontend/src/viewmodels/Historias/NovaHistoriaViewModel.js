@@ -54,6 +54,7 @@ export class NovaHistoriaViewModel {
   };
 
   setTemasSelecionados = (temas) => { 
+    console.log('Temas selecionados:', temas);
     this.temasSelecionados = temas; 
     this.notify();
   };
@@ -68,13 +69,15 @@ export class NovaHistoriaViewModel {
     this.notify();
     try {
       const temasData = await this.temaService.getAll();
+      console.log('Temas carregados:', temasData);
       runInAction(() => {
-        this.temas = temasData;
+        this.temas = temasData || [];
         this.notify();
       });
     } catch (error) {
+      console.error('Erro ao carregar temas:', error);
       runInAction(() => {
-        this.error = 'Erro ao carregar temas';
+        this.error = `Erro ao carregar temas: ${error.message}`;
         this.notify();
       });
     } finally {
@@ -91,13 +94,20 @@ export class NovaHistoriaViewModel {
       this.notify();
       return;
     }
+
+    if (!this.temasSelecionados || this.temasSelecionados.length === 0) {
+      this.error = 'Selecione pelo menos um tema';
+      this.notify();
+      return;
+    }
+
     this.loading = true;
     this.error = null;
     this.notify();
     try {
       await this.historiaService.create({
         nome: this.nome,
-        temas: this.temasSelecionados.map((t) => t.value),
+        temas: this.temasSelecionados,
         maximo_de_participantes: this.maximo_de_participantes,
       });
       if (onSuccess) onSuccess();

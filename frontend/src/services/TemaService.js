@@ -17,7 +17,14 @@ export class TemaService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      return response.data.map(temaData => Tema.fromAPI(temaData));
+      console.log('temas response:', response.data);
+      if(response.data?.success){
+        console.log('temas response:', response.data?.data);
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar temas: ${error.message}`);
     }
@@ -30,7 +37,12 @@ export class TemaService {
   async getAtivos() {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?ativo=true`);
-      return response.data.map(temaData => Tema.fromAPI(temaData));
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar temas ativos: ${error.message}`);
     }
@@ -44,7 +56,12 @@ export class TemaService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      return Tema.fromAPI(response.data);
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar tema: ${error.message}`);
     }
@@ -64,7 +81,12 @@ export class TemaService {
       }
 
       const response = await this.apiClient.post(this.baseUrl, tema.toJSON());
-      return Tema.fromAPI(response.data);
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao criar tema: ${error.message}`);
     }
@@ -85,7 +107,12 @@ export class TemaService {
       }
 
       const response = await this.apiClient.put(`${this.baseUrl}/${id}`, tema.toJSON());
-      return Tema.fromAPI(response.data);
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao atualizar tema: ${error.message}`);
     }
@@ -98,7 +125,10 @@ export class TemaService {
    */
   async delete(id) {
     try {
-      await this.apiClient.delete(`${this.baseUrl}/${id}`);
+      const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
+      if(!response.data?.success){
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao remover tema: ${error.message}`);
     }
@@ -112,7 +142,12 @@ export class TemaService {
   async ativar(id) {
     try {
       const response = await this.apiClient.patch(`${this.baseUrl}/${id}/ativar`);
-      return Tema.fromAPI(response.data);
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao ativar tema: ${error.message}`);
     }
@@ -126,7 +161,12 @@ export class TemaService {
   async desativar(id) {
     try {
       const response = await this.apiClient.patch(`${this.baseUrl}/${id}/desativar`);
-      return Tema.fromAPI(response.data);
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao desativar tema: ${error.message}`);
     }
@@ -140,7 +180,12 @@ export class TemaService {
   async getByNome(nome) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?nome=${encodeURIComponent(nome)}`);
-      return response.data.map(temaData => Tema.fromAPI(temaData));
+      if(response.data?.success){
+        return response.data?.data;
+      }
+      else{
+        throw new Error(response.data?.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar temas por nome: ${error.message}`);
     }

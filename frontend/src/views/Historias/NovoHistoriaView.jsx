@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
-import FormSelect from '../../components/form/FormSelect';
+import Selector from '../../components/form/Selector';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novaHistoriaViewModel } from '../../viewmodels/Historias/NovaHistoriaViewModel';
@@ -21,6 +21,11 @@ const NovaHistoriaView = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await vm.criarHistoria(() => navigate('/historias'));
+  };
+
+  // Handler para o Selector
+  const handleTemasChange = (selected) => {
+    vm.setTemasSelecionados(selected);
   };
 
   return (
@@ -56,25 +61,21 @@ const NovaHistoriaView = () => {
 
         <InputSimples
           label="Nome da História"
+          name="nome"
           onChange={e => vm.setNome(e.target.value)}
           value={vm.nome}
           placeholder="Digite o nome da sua aventura..."
           required
         />
 
-        <FormSelect
-          label="Temas da História"
-          name="temas"
-          value={vm.temasSelecionados}
-          onChange={e => {
-            // Para múltipla seleção, use e.target.selectedOptions
-            const values = Array.from(e.target.selectedOptions).map(opt => opt.value);
-            vm.setTemasSelecionados(values);
-          }}
-          options={vm.temas.map((tema) => ({ value: tema.id, label: tema.nome }))}
-          placeholder="Selecione até 3 temas"
-          required
-          multiple
+        <Selector
+          label="Escolha os Temas"
+          options={vm.temas?.map((tema) => ({ value: tema.id, label: tema.nome })) || []}
+          selected={vm.temasSelecionados}
+          onChange={handleTemasChange}
+          type="multiple"
+          max={3}
+          containerClass="mb-2"
         />
         <p className="text-xs text-slate-400 mt-2 font-modern">
           Selecione até 3 temas para categorizar sua história

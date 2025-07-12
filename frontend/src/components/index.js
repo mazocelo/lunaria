@@ -2,6 +2,10 @@
 import Button from './form/button';
 import InputSimples from './form/inputSimples';
 import Selector from './form/Selector';
+import FormSelect from './form/FormSelect';
+import FormTextarea from './form/FormTextarea';
+import FormRadioGroup from './form/FormRadioGroup';
+import FormHabilidade from './form/FormHabilidade';
 import Sidebar from './sidebar';
 import Table from './Table';
 import ParticlesBackground from './ParticlesBackground';
@@ -15,12 +19,14 @@ import ConfirmationModal from './ConfirmationModal';
 export { default as Button } from './form/button';
 export { default as InputSimples } from './form/inputSimples';
 export { default as Selector } from './form/Selector';
+export { default as FormSelect } from './form/FormSelect';
+export { default as FormTextarea } from './form/FormTextarea';
+export { default as FormRadioGroup } from './form/FormRadioGroup';
+export { default as FormHabilidade } from './form/FormHabilidade';
 
-// Componentes de layout
+// Componentes de interface
 export { default as Sidebar } from './sidebar';
 export { default as Table } from './Table';
-
-// Componentes RPG personalizados
 export { default as ParticlesBackground } from './ParticlesBackground';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as RPGCard } from './RPGCard';

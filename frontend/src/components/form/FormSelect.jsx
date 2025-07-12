@@ -11,7 +11,8 @@ const FormSelect = ({
   required = false,
   disabled = false,
   className = '',
-  error
+  error,
+  multiple = false
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -35,11 +36,13 @@ const FormSelect = ({
         onChange={onChange}
         required={required}
         disabled={disabled}
+        multiple={multiple}
         className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all
           ${isLight ? 'bg-white/90 border-slate-300 text-slate-800' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
-          ${error ? 'border-red-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          ${error ? 'border-red-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+          ${multiple ? 'min-h-24' : ''}`}
       >
-        <option value="" disabled>{placeholder}</option>
+        <option value="" disabled={!multiple}>{placeholder}</option>
         {options.map((opt) => (
           <option key={opt.value ?? opt} value={opt.value ?? opt}>
             {opt.label ?? opt}

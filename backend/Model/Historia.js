@@ -23,6 +23,31 @@ const Historia = (sequelize, DataTypes) => {
             type: DataTypes.ARRAY(DataTypes.STRING),
             allowNull: true,
         },
+        prologo: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
+        descricao: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
+        genero: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        status: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: 'ativa',
+        },
+        criada_em: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
+        atualizada_em: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
     }, {
         tableName: 'historias',
         timestamps: false,

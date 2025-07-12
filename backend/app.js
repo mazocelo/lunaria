@@ -4,19 +4,32 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 
 import indexRouter from './routes/index.js';
 import rpgRouter from './routes/rpg.js';
 import historiaRouter from './routes/historia.js';
+import sessaoRouter from './routes/sessao.js';
 import temasRouter from './routes/temas.js';
+import websocketRouter from './routes/websocket.js';
+import habilidadeRouter from './routes/habilidade.js';
 
 import { createExecutor } from './tools/master.js';
 import initDatabase from './Model/initDB.js';
+import specs from './swagger-config.js';
 
 const app = express();
 
 // Inicializar banco de dados
-initDatabase().catch(console.error);
+initDatabase().then(success => {
+  if (success) {
+    console.log('✅ Aplicação iniciada com banco de dados');
+  } else {
+    console.log('⚠️  Aplicação iniciada sem banco de dados');
+  }
+}).catch(error => {
+  console.error('❌ Erro crítico ao inicializar aplicação:', error);
+});
 
 createExecutor()
 // view engine setup
@@ -30,10 +43,19 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(), 'public')));
 
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Role Chat Game API Documentation'
+}));
+
 app.use('/', indexRouter);
 app.use('/rpg', rpgRouter);
 app.use('/historias', historiaRouter);
+app.use('/sessoes', sessaoRouter);
 app.use('/temas', temasRouter);
+app.use('/websocket', websocketRouter);
+app.use('/habilidades', habilidadeRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {

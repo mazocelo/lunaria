@@ -2,13 +2,15 @@ import { ChatGroq } from '@langchain/groq'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import dotenv from 'dotenv'
+import criarGeradorPrologo from './GeradorPrologo.js'
+import criarMestreRPG from './MestreRPG.js'
 
 dotenv.config();
 
 // Constantes globais
 const DEFAULT_MODEL_SETTINGS = {
     model: 'gemma2-9b-it',
-    temperature: 0.0,
+    temperature: 0.7,
     maxTokens: 8000,
     topP: 0.99,
     language: 'pt-br',
@@ -23,8 +25,8 @@ function generateModel(detalhes = {}) {
     });
 }
 
-// Cria o prompt para análise de triagem
-function createPrompt() {
+// Cria o prompt para análise de triagem (agente original)
+function createPromptTriagem() {
     const systemPrompt = `
         O usuários esta fazendo uma pergunta, 
         re-formule com base na tentativa de pergunta.
@@ -40,10 +42,10 @@ function createPrompt() {
     ]);
 }
 
-// Cria o agente Groq
+// Cria o agente Groq original para triagem
 async function criadorDeHistoria() {
     try {
-        const prompt = createPrompt();
+        const prompt = createPromptTriagem();
         const model = generateModel();
 
         const chain = RunnableSequence.from([
@@ -69,4 +71,79 @@ async function criadorDeHistoria() {
     }
 }
 
-export default criadorDeHistoria
+// Função principal que combina todos os agentes
+async function criadorCompleto(temas = [], personagens = []) {
+    try {
+        // Criar os agentes separados
+        const agenteHistoria = await criadorDeHistoria();
+        const agentePrologo = await criarGeradorPrologo(temas);
+        const agenteMestre = await criarMestreRPG(temas, personagens);
+
+        return {
+            // Agente original para perguntas
+            processarPergunta: agenteHistoria.invoke,
+
+            // Agente para gerar prólogos
+            gerarPrologo: agentePrologo.gerarPrologo,
+            criarHistoriaCompleta: agentePrologo.criarHistoriaCompleta,
+
+            // Agente mestre de RPG
+            mestre: {
+                narrarAcao: agenteMestre.narrarAcao,
+                iniciarSessao: agenteMestre.iniciarSessao,
+                processarResposta: agenteMestre.processarResposta
+            },
+
+            // Função combinada que gera história completa com mestre
+            criarAventuraCompleta: async ({ tema, nome, descricao, personagens }) => {
+                try {
+                    // Gerar prólogo
+                    const resultadoPrologo = await agentePrologo.gerarPrologo({ tema });
+
+                    // Iniciar sessão com mestre
+                    const sessaoIniciada = await agenteMestre.iniciarSessao({
+                        tema: tema,
+                        personagens: personagens || [],
+                        cenaInicial: resultadoPrologo.prologo
+                    });
+
+                    // Estrutura da aventura completa
+                    const aventuraCompleta = {
+                        nome: nome || `Aventura em ${tema}`,
+                        tema: tema,
+                        descricao: descricao || '',
+                        prologo: resultadoPrologo.prologo,
+                        personagens: personagens || [],
+                        sessao: sessaoIniciada,
+                        elementos: {
+                            cenaInicial: 'Baseada no prólogo gerado',
+                            npcsSugeridos: [],
+                            locaisSugeridos: [],
+                            conflitosSugeridos: []
+                        },
+                        metadata: {
+                            geradoEm: resultadoPrologo.timestamp,
+                            modelo: 'gemma2-9b-it',
+                            versao: '2.0',
+                            temasUtilizados: temas,
+                            agentes: ['GeradorPrologo', 'MestreRPG']
+                        }
+                    };
+
+                    console.log('🎮 Aventura completa criada:', aventuraCompleta.nome);
+                    return aventuraCompleta;
+
+                } catch (error) {
+                    console.error('Erro ao criar aventura completa:', error);
+                    throw error;
+                }
+            }
+        };
+    } catch (error) {
+        console.error('Erro ao criar criador completo:', error.message);
+        throw new Error(`Erro ao criar criador completo: ${error.message}`);
+    }
+}
+
+export default criadorCompleto;
+export { criarGeradorPrologo, criarMestreRPG };

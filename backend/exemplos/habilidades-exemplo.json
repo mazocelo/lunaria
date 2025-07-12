@@ -1,0 +1,269 @@
+{
+  "habilidades": [
+    {
+      "nome": "Golpe Crítico",
+      "descricao": "Um ataque poderoso que tem chance aumentada de causar dano crítico. O usuário concentra sua força em um único golpe devastador.",
+      "custo": 15,
+      "tipo": ["ativa"],
+      "bonus": {
+        "ataque": "+2",
+        "dano": "+1d6"
+      },
+      "restricao": {
+        "arma": "corpo_a_corpo",
+        "concentracao": true
+      },
+      "dano_base": "1d8",
+      "efeito": {
+        "chance_critico": 0.15,
+        "modificador_critico": 2
+      },
+      "usar": 1,
+      "elemento": ["fisico"],
+      "nivel": 3,
+      "requisitos": {
+        "forca": 14,
+        "proficiencia": "armas_simples"
+      }
+    },
+    {
+      "nome": "Bola de Fogo",
+      "descricao": "Conjura uma esfera de fogo mágico que explode ao atingir o alvo, causando dano por fogo em área.",
+      "custo": 25,
+      "tipo": ["ativa"],
+      "bonus": {
+        "ataque_magico": "+3",
+        "dano_fogo": "+2d6"
+      },
+      "restricao": {
+        "concentracao": true,
+        "gestos": true
+      },
+      "dano_base": "8d6",
+      "efeito": {
+        "area": "raio_6m",
+        "tipo_dano": "fogo",
+        "salvacao": "reflexos"
+      },
+      "usar": 1,
+      "elemento": ["fogo"],
+      "nivel": 5,
+      "requisitos": {
+        "inteligencia": 16,
+        "proficiencia": "magia_arcana"
+      }
+    },
+    {
+      "nome": "Persuasão",
+      "descricao": "Habilidade social que permite convencer outros através de argumentos lógicos e carisma.",
+      "custo": 5,
+      "tipo": ["ativa"],
+      "bonus": {
+        "testes_sociais": "+5",
+        "carisma": "+2"
+      },
+      "restricao": {
+        "lingua": true,
+        "audivel": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "duracao": "1_hora",
+        "mudanca_atitude": true
+      },
+      "usar": 1,
+      "elemento": ["social"],
+      "nivel": 1,
+      "requisitos": {
+        "carisma": 12
+      }
+    },
+    {
+      "nome": "Rastreamento",
+      "descricao": "Permite seguir trilhas e rastros deixados por criaturas ou pessoas, identificando direção e tempo aproximado.",
+      "custo": 10,
+      "tipo": ["ativa"],
+      "bonus": {
+        "percepcao": "+4",
+        "sobrevivencia": "+2"
+      },
+      "restricao": {
+        "ambiente_natural": true,
+        "rastros_visiveis": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "identificacao_rastros": true,
+        "direcao": true,
+        "tempo_aproximado": true
+      },
+      "usar": 3,
+      "elemento": ["mental"],
+      "nivel": 2,
+      "requisitos": {
+        "sabedoria": 13,
+        "proficiencia": "sobrevivencia"
+      }
+    },
+    {
+      "nome": "Cura Menor",
+      "descricao": "Canaliza energia divina para curar ferimentos leves de um aliado.",
+      "custo": 15,
+      "tipo": ["ativa"],
+      "bonus": {
+        "cura": "+2",
+        "magia_divina": "+1"
+      },
+      "restricao": {
+        "toque": true,
+        "aliado": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "remove_sangramento": true,
+        "tipo_cura": "positiva"
+      },
+      "usar": 1,
+      "elemento": ["luz"],
+      "nivel": 1,
+      "requisitos": {
+        "sabedoria": 14,
+        "proficiencia": "magia_divina"
+      }
+    },
+    {
+      "nome": "Esquiva Instintiva",
+      "descricao": "Reflexos aprimorados que permitem desviar automaticamente de ataques surpresa.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "defesa": "+2",
+        "destreza": "+1"
+      },
+      "restricao": {
+        "sempre_ativo": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "imunidade_surpresa": true,
+        "reflexos_aprimorados": true
+      },
+      "usar": null,
+      "elemento": ["fisico"],
+      "nivel": 7,
+      "requisitos": {
+        "destreza": 16,
+        "nivel": 7
+      }
+    },
+    {
+      "nome": "Forja Mágica",
+      "descricao": "Permite criar itens mágicos básicos usando materiais especiais e conhecimento arcano.",
+      "custo": 70,
+      "tipo": ["ritual"],
+      "bonus": {
+        "encantamento": "+1",
+        "artesanato": "+3"
+      },
+      "restricao": {
+        "materiais_especiais": true,
+        "tempo": "8_horas"
+      },
+      "dano_base": null,
+      "efeito": {
+        "criacao_itens": true,
+        "encantamento_basico": true
+      },
+      "usar": 4,
+      "elemento": ["magico"],
+      "nivel": 8,
+      "requisitos": {
+        "inteligencia": 18,
+        "proficiencia": "artesanato",
+        "proficiencia": "magia_arcana"
+      }
+    },
+    {
+      "nome": "Comando Animal",
+      "descricao": "Permite comunicar-se e dar comandos simples a animais selvagens.",
+      "custo": 15,
+      "tipo": ["ativa"],
+      "bonus": {
+        "testes_animais": "+5",
+        "natureza": "+2"
+      },
+      "restricao": {
+        "proximidade": true,
+        "animais_selvagens": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "comunicacao": true,
+        "comandos_simples": true,
+        "duracao": "1_hora"
+      },
+      "usar": 1,
+      "elemento": ["natureza"],
+      "nivel": 4,
+      "requisitos": {
+        "sabedoria": 15,
+        "proficiencia": "natureza"
+      }
+    },
+    {
+      "nome": "Golpe Mortal",
+      "descricao": "Um ataque preciso que busca pontos vitais do inimigo, causando dano massivo se bem-sucedido.",
+      "custo": 30,
+      "tipo": ["ativa"],
+      "bonus": {
+        "ataque": "+3",
+        "dano": "+2d6"
+      },
+      "restricao": {
+        "arma": "corpo_a_corpo",
+        "precisao": true
+      },
+      "dano_base": "2d10",
+      "efeito": {
+        "chance_critico": 0.25,
+        "modificador_critico": 4,
+        "dano_adicional": "1d6_por_nivel"
+      },
+      "usar": 1,
+      "elemento": ["fisico"],
+      "nivel": 12,
+      "requisitos": {
+        "forca": 18,
+        "destreza": 16,
+        "nivel": 12
+      }
+    },
+    {
+      "nome": "Ressurreição",
+      "descricao": "Ritual divino que traz um morto de volta à vida, restaurando completamente seu corpo e alma.",
+      "custo": 150,
+      "tipo": ["ritual"],
+      "bonus": {
+        "magia_divina": "+5"
+      },
+      "restricao": {
+        "morto_recente": "1_dia",
+        "toque": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "ressurreicao": true,
+        "restauracao_completa": true,
+        "penalidade_temporaria": "-2_todos_atributos_1_dia"
+      },
+      "usar": 4,
+      "elemento": ["divino"],
+      "nivel": 15,
+      "requisitos": {
+        "sabedoria": 20,
+        "proficiencia": "magia_divina",
+        "nivel": 15
+      }
+    }
+  ]
+} 

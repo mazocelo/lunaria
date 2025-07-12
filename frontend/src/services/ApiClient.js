@@ -4,7 +4,10 @@
  
 */
 // Configuração da URL base da API
+console.log('import.meta.env:', import.meta.env);
+console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
 const baseURL = import.meta.env.VITE_API_URL || 'https://role-chat-play-backend-562ca33432b0.herokuapp.com';
+console.log('baseURL final:', baseURL);
 export class ApiClient {
   constructor() {
     this.baseURL = baseURL;

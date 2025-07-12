@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel.js';
 import { historiaViewModel } from '../../viewmodels/index.js';
 import { StatCard, LoadingSpinner, Notification } from '../../components/index.js';
@@ -11,6 +11,7 @@ import { useTheme } from '../../contexts/theme.jsx';
  * Segue o padrão MVVM - apenas responsável pela apresentação
  */
 export const HistoriaView = () => {
+  const navigate = useNavigate();
   const {
     historias,
     loading,
@@ -159,6 +160,7 @@ export const HistoriaView = () => {
             data={historias}
             keyField="id"
             actions={[
+              { label: 'Iniciar Sessão', icon: '🎮', onClick: (row) => navigate(`/jogo/${row.id}`), color: 'green' },
               { label: 'Ver', icon: '👁️', onClick: (row) => {/* ação de ver */}, color: 'purple' },
               { label: 'Editar', icon: '✏️', onClick: (row) => {/* ação de editar */}, color: 'cyan' },
               { label: 'Deletar', icon: '🗑️', onClick: (row) => {/* ação de deletar */}, color: 'red' },

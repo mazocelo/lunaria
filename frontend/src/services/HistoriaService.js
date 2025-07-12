@@ -17,7 +17,13 @@ export class HistoriaService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      return response.data.map(historiaData => Historia.fromAPI(historiaData));
+      if(response.data.success){
+        console.log(response.data?.data);
+        return response.data?.data.map(historiaData => Historia.fromAPI(historiaData));
+      }
+      else{
+        throw new Error(response.data.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar histórias: ${error.message}`);
     }

@@ -1,6 +1,7 @@
 // Views MVVM
 export { HistoriaView } from './Historias';
 export { default as NovaHistoriaView } from './Historias/NovoHistoriaView';
+export { JogoView } from './Jogo';
 export { default as PersonagemView } from './Personagem';
 export { default as NovoPersonagemView } from './Personagem/NovoPersonagemView';
 export { default as EditarPersonagemView } from './Personagem/EditarPersonagemView';

@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { useTheme } from './contexts/theme.jsx'
 import Sidebar from './components/sidebar'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
-import { HistoriaView, NovaHistoriaView, PersonagemView, NovoPersonagemView, EditarPersonagemView } from './views'
+import { HistoriaView, NovaHistoriaView, PersonagemView, NovoPersonagemView, EditarPersonagemView, JogoView } from './views'
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -65,6 +65,9 @@ function App() {
 
               {/* Rotas MVVM - Histórias */}
               <Route path="/nova-historia" element={<NovaHistoriaView />} />
+
+              {/* Rotas MVVM - Jogo */}
+              <Route path="/jogo/:id" element={<JogoView />} />
 
               {/* Rotas MVVM - Personagens */}
               <Route path="/personagens" element={<PersonagemView />} />

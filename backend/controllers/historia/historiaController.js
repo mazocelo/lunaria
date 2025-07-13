@@ -1,6 +1,7 @@
 import db from '../../Model/index.js';
 import criadorCompleto from '../../agents/historia/Criador.js';
-import criarGeradorPrologo from '../../agents/historia/GeradorPrologo.js';
+import { criarGeradorPrologo } from '../../agents/historia/prologo/index.js';
+import { criarGeradorTitulo } from '../../agents/historia/titulos/aleatorios/index.js';
 import criarMestreRPG from '../../agents/historia/MestreRPG.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 
@@ -22,9 +23,9 @@ class HistoriaController {
       const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis } = req.body;
       
       // Validações básicas
-      if (!nome || !temas) {
+      if (!temas) {
         return res.status(400).json({ 
-          error: 'Nome e temas são obrigatórios' 
+          error: 'Temas são obrigatórios' 
         });
       }
       
@@ -44,15 +45,26 @@ class HistoriaController {
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
-      console.log(`🎲 Usando ${temasParaUsar.length} temas para geração de prólogo`);
+      console.log(`🎲 Usando ${temasParaUsar.length} temas para geração`);
+      
+      // Gerar título se não fornecido
+      let nomeHistoria = nome;
+      if (!nome || nome.trim() === '') {
+        console.log('📝 Gerando título automático...');
+        const geradorTitulo = await criarGeradorTitulo(temasParaUsar);
+        const resultadoTitulo = await geradorTitulo.gerarTitulo({ tema: temas });
+        nomeHistoria = resultadoTitulo.titulo;
+        console.log('✅ Título gerado:', nomeHistoria);
+      }
       
       // Gerar prólogo automaticamente
       const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
       const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas });
+      console.log('resultadoPrologo', resultadoPrologo);
       
       // Criar história no banco com prólogo
       const novaHistoria = await db.Historia.create({
-        nome,
+        nome: nomeHistoria,
         temas,
         maximo_de_participantes: maximo_de_participantes || 5,
         participantes: participantes || [],
@@ -71,7 +83,8 @@ class HistoriaController {
         data: {
           ...novaHistoria.toJSON(),
           prologo: resultadoPrologo.prologo,
-          temas_utilizados: resultadoPrologo.temasUtilizados
+          temas_utilizados: resultadoPrologo.temasUtilizados,
+          titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null
         }
       });
       

@@ -2,7 +2,7 @@ import { ChatGroq } from '@langchain/groq'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import dotenv from 'dotenv'
-import criarGeradorPrologo from './GeradorPrologo.js'
+import { criarGeradorPrologo } from './prologo/index.js'
 import criarMestreRPG from './MestreRPG.js'
 
 dotenv.config();

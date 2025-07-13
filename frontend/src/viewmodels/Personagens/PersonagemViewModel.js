@@ -1,4 +1,5 @@
 import { PersonagemService } from '../../services/PersonagemService';
+import { Personagem } from '../../models/Personagem';
 import { apiClient } from '../../services/ApiClient';
 
 const personagemService = new PersonagemService(apiClient);
@@ -121,7 +122,8 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const novoPersonagem = await personagemService.create(dados);
+      const personagem = new Personagem(dados);
+      const novoPersonagem = await personagemService.create(personagem);
       this.personagens.push(novoPersonagem);
       this.notify();
       return novoPersonagem;
@@ -143,7 +145,8 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagemAtualizado = await personagemService.update(id, dados);
+      const personagem = new Personagem({ ...dados, id });
+      const personagemAtualizado = await personagemService.update(id, personagem);
       
       // Atualiza na lista
       const index = this.personagens.findIndex(p => p.id === id);

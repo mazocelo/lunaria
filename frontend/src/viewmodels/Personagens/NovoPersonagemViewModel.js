@@ -1,5 +1,6 @@
 import { PersonagemService } from '../../services/PersonagemService';
 import { HabilidadeService } from '../../services/HabilidadeService';
+import { Personagem } from '../../models/Personagem';
 import { apiClient } from '../../services/ApiClient';
 
 const atributosIniciais = {
@@ -184,7 +185,7 @@ export class NovoPersonagemViewModel {
     }
     this.setState({ loading: true, error: null });
     try {
-      await this.personagemService.create({
+      const personagem = new Personagem({
         nome: this.state.nome,
         raca: this.state.raca,
         classe: this.state.classe,
@@ -197,6 +198,7 @@ export class NovoPersonagemViewModel {
         hp: 100,
         nivel: 1
       });
+      await this.personagemService.create(personagem);
       if (onSuccess) onSuccess();
     } catch (error) {
       this.setState({ 

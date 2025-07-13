@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { TemaService } from '../../services/TemaService';
 import { HistoriaService } from '../../services/HistoriaService';
+import { Historia } from '../../models/Historia';
 import { apiClient } from '../../services/ApiClient';
 
 export class NovaHistoriaViewModel {
@@ -105,11 +106,12 @@ export class NovaHistoriaViewModel {
     this.error = null;
     this.notify();
     try {
-      await this.historiaService.create({
+      const historia = new Historia({
         nome: this.nome,
         temas: this.temasSelecionados,
         maximo_de_participantes: this.maximo_de_participantes,
       });
+      await this.historiaService.create(historia);
       if (onSuccess) onSuccess();
     } catch (error) {
       this.error = error.message || 'Erro ao criar história';

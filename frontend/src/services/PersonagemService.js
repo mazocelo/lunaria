@@ -7,7 +7,7 @@ import { Personagem } from '../models/Personagem';
 export class PersonagemService {
   constructor(apiClient) {
     this.apiClient = apiClient;
-    this.baseUrl = '/personagens';
+    this.baseUrl = '/personagem';
   }
 
   /**
@@ -17,7 +17,12 @@ export class PersonagemService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      return response.data.map(personagemData => Personagem.fromAPI(personagemData));
+      if(response.data?.success){
+        return response.data.data.map(personagemData => Personagem.fromAPI(personagemData));
+      }
+      else{
+        throw new Error(response.data.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar personagens: ${error.message}`);
     }

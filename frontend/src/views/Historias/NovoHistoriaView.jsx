@@ -65,7 +65,6 @@ const NovaHistoriaView = () => {
           onChange={e => vm.setNome(e.target.value)}
           value={vm.nome}
           placeholder="Digite o nome da sua aventura..."
-          required
         />
 
         <Selector

@@ -199,6 +199,23 @@ export class NovoPersonagemViewModel {
         nivel: 1
       });
       await this.personagemService.create(personagem);
+      
+      // Limpar formulário após sucesso
+      this.setState({
+        nome: '',
+        raca: '',
+        classe: '',
+        profissao: '',
+        backgroundTipo: 'guiado',
+        background: '',
+        atributos: { ...atributosIniciais },
+        habilidades: [],
+        equipamentos: '',
+        pontosTotais: getRandomPontos(),
+        error: null,
+        habilidadeError: null
+      });
+      
       if (onSuccess) onSuccess();
     } catch (error) {
       this.setState({ 

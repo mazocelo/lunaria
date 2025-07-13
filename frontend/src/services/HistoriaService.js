@@ -55,17 +55,13 @@ export class HistoriaService {
    */
   async create(historia) {
     try {
-      console.log('HistoriaService.create - historia recebida:', historia);
-      console.log('Tipo de historia:', typeof historia);
-      console.log('Método validate existe?', typeof historia.validate);
-      
       // Validar antes de enviar
       const validation = historia.validate();
       if (!validation.isValid) {
         throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
       }
 
-      const response = await this.apiClient.post(this.baseUrl, historia.toJSON());
+      const response = await this.apiClient.post(this.baseUrl+'/create', historia.toJSON());
       return Historia.fromAPI(response.data);
     } catch (error) {
       throw new Error(`Erro ao criar história: ${error.message}`);

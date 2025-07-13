@@ -20,11 +20,7 @@ export class Historia {
   validate() {
     const errors = [];
 
-    if (!this.nome || this.nome.trim().length === 0) {
-      errors.push('Nome da história é obrigatório');
-    }
-
-    if (this.nome && this.nome.trim().length < 3) {
+    if (this.nome && this.nome.trim().length > 0 && this.nome.trim().length < 3) {
       errors.push('Nome deve ter pelo menos 3 caracteres');
     }
 

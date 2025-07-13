@@ -90,12 +90,6 @@ export class NovaHistoriaViewModel {
   };
 
   criarHistoria = async (onSuccess) => {
-    if (!this.nome.trim()) {
-      this.error = 'O nome da história é obrigatório';
-      this.notify();
-      return;
-    }
-
     if (!this.temasSelecionados || this.temasSelecionados.length === 0) {
       this.error = 'Selecione pelo menos um tema';
       this.notify();
@@ -106,22 +100,21 @@ export class NovaHistoriaViewModel {
     this.error = null;
     this.notify();
     try {
-      console.log('Dados para criar história:', {
-        nome: this.nome,
-        temas: this.temasSelecionados,
-        maximo_de_participantes: this.maximo_de_participantes,
-      });
-      
       const historia = new Historia({
         nome: this.nome,
         temas: this.temasSelecionados,
         maximo_de_participantes: this.maximo_de_participantes,
       });
       
-      console.log('Instância do modelo Historia:', historia);
-      console.log('Método validate existe?', typeof historia.validate);
-      
       await this.historiaService.create(historia);
+      
+      // Limpar formulário após sucesso
+      this.nome = '';
+      this.temasSelecionados = [];
+      this.maximo_de_participantes = 3;
+      this.error = null;
+      this.notify();
+      
       if (onSuccess) onSuccess();
     } catch (error) {
       this.error = error.message || 'Erro ao criar história';

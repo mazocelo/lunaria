@@ -19,12 +19,12 @@ class HistoriaController {
     try {
       console.log('📝 Criando nova história:', req.body);
       
-      const { nome, tema, maximo_de_participantes, descricao, genero, temas_disponiveis } = req.body;
+      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis } = req.body;
       
       // Validações básicas
-      if (!nome || !tema) {
+      if (!nome || !temas) {
         return res.status(400).json({ 
-          error: 'Nome e tema são obrigatórios' 
+          error: 'Nome e temas são obrigatórios' 
         });
       }
       
@@ -39,7 +39,6 @@ class HistoriaController {
       if (!temas_disponiveis || temas_disponiveis.length === 0) {
         // Buscar temas do banco de dados
         const temasDB = await db.Temas.findAll({
-          where: { status: 'ativo' },
           attributes: ['nome']
         });
         temasParaUsar = temasDB.map(t => t.nome);
@@ -49,23 +48,19 @@ class HistoriaController {
       
       // Gerar prólogo automaticamente
       const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
-      const resultadoPrologo = await geradorPrologo.gerarPrologo({ tema });
+      const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas });
       
       // Criar história no banco com prólogo
-      const novaHistoria = await db.Agent.create({
+      const novaHistoria = await db.Historia.create({
         nome,
-        tema,
+        temas,
         maximo_de_participantes: maximo_de_participantes || 5,
+        participantes: participantes || [],
         descricao: descricao || '',
         prologo: resultadoPrologo.prologo,
-        genero: genero || this.determinarGenero(tema),
         status: 'ativa',
         criada_em: new Date(),
-        atualizada_em: new Date(),
-        metadata: JSON.stringify({
-          prologoGeradoEm: new Date().toISOString(),
-          temasUtilizados: resultadoPrologo.temasUtilizados
-        })
+        atualizada_em: new Date()
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
@@ -96,21 +91,21 @@ class HistoriaController {
     try {
       console.log('📋 Listando histórias...');
       
-      const { status, tema, limit = 20, offset = 0 } = req.query;
+      const { status, temas, limit = 20, offset = 0 } = req.query;
       
       // Construir filtros
       const where = {};
       if (status) where.status = status;
-      if (tema) where.tema = tema;
+      if (temas) where.temas = temas;
       
-      const historias = await db.Agent.findAll({
+      const historias = await db.Historia.findAll({
         where,
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [['criada_em', 'DESC']]
       });
       
-      const total = await db.Agent.count({ where });
+      const total = await db.Historia.count({ where });
       
       console.log(`✅ ${historias.length} histórias encontradas`);
       
@@ -143,7 +138,7 @@ class HistoriaController {
       
       console.log(`🔍 Buscando história ID: ${id}`);
       
-      const historia = await db.Agent.findByPk(id);
+      const historia = await db.Historia.findByPk(id);
       
       if (!historia) {
         return res.status(404).json({
@@ -177,7 +172,7 @@ class HistoriaController {
       
       console.log(`📝 Atualizando história ID: ${id}`, dadosAtualizacao);
       
-      const historia = await db.Agent.findByPk(id);
+      const historia = await db.Historia.findByPk(id);
       
       if (!historia) {
         return res.status(404).json({
@@ -218,7 +213,7 @@ class HistoriaController {
       
       console.log(`🗑️ Excluindo história ID: ${id}`);
       
-      const historia = await db.Agent.findByPk(id);
+      const historia = await db.Historia.findByPk(id);
       
       if (!historia) {
         return res.status(404).json({
@@ -249,11 +244,11 @@ class HistoriaController {
    */
   async gerarHistoriaComIA(req, res, next) {
     try {
-      const { tema, nome, descricao, maximo_de_participantes, temas_disponiveis } = req.body;
+      const { temas, nome, descricao, maximo_de_participantes, temas_disponiveis } = req.body;
       
-      console.log('🤖 Gerando história com IA:', { tema, nome, temas_disponiveis: temas_disponiveis?.length || 0 });
+      console.log('🤖 Gerando história com IA:', { temas, nome, temas_disponiveis: temas_disponiveis?.length || 0 });
       
-      if (!tema) {
+      if (!temas) {
         return res.status(400).json({
           success: false,
           error: 'Tema é obrigatório para gerar história com IA'
@@ -265,7 +260,6 @@ class HistoriaController {
       if (!temas_disponiveis || temas_disponiveis.length === 0) {
         // Buscar temas do banco de dados
         const temasDB = await db.Temas.findAll({
-          where: { status: 'ativo' },
           attributes: ['nome']
         });
         temasParaUsar = temasDB.map(t => t.nome);
@@ -278,23 +272,22 @@ class HistoriaController {
       
       // Gerar história completa com prólogo
       const historiaGerada = await geradorPrologo.criarHistoriaCompleta({
-        tema,
-        nome: nome || `Aventura em ${tema}`,
+        temas,
+        nome: nome || `Aventura em ${temas}`,
         descricao: descricao || ''
       });
       
       // Salvar no banco de dados
-      const novaHistoria = await db.Agent.create({
+      const novaHistoria = await db.Historia.create({
         nome: historiaGerada.nome,
-        tema: historiaGerada.tema,
+        temas: historiaGerada.temas,
         descricao: historiaGerada.descricao,
         prologo: historiaGerada.prologo,
         maximo_de_participantes: maximo_de_participantes || 5,
-        genero: this.determinarGenero(tema),
+        participantes: [],
         status: 'ativa',
         criada_em: new Date(),
-        atualizada_em: new Date(),
-        metadata: JSON.stringify(historiaGerada.metadata)
+        atualizada_em: new Date()
       });
       
       console.log('✅ História gerada com IA e salva:', novaHistoria.id);
@@ -325,11 +318,11 @@ class HistoriaController {
    */
   async gerarAventuraCompleta(req, res, next) {
     try {
-      const { tema, nome, descricao, personagens, temas_disponiveis } = req.body;
+      const { temas, nome, descricao, personagens, temas_disponiveis } = req.body;
       
-      console.log('🎮 Gerando aventura completa:', { tema, nome, personagens: personagens?.length || 0 });
+      console.log('🎮 Gerando aventura completa:', { temas, nome, personagens: personagens?.length || 0 });
       
-      if (!tema) {
+      if (!temas) {
         return res.status(400).json({
           success: false,
           error: 'Tema é obrigatório para gerar aventura'
@@ -340,7 +333,6 @@ class HistoriaController {
       let temasParaUsar = temas_disponiveis || [];
       if (!temas_disponiveis || temas_disponiveis.length === 0) {
         const temasDB = await db.Temas.findAll({
-          where: { status: 'ativo' },
           attributes: ['nome']
         });
         temasParaUsar = temasDB.map(t => t.nome);
@@ -353,24 +345,23 @@ class HistoriaController {
       
       // Gerar aventura completa
       const aventuraCompleta = await criador.criarAventuraCompleta({
-        tema,
-        nome: nome || `Aventura em ${tema}`,
+        temas,
+        nome: nome || `Aventura em ${temas}`,
         descricao: descricao || '',
         personagens: personagens || []
       });
       
       // Salvar no banco de dados
-      const novaHistoria = await db.Agent.create({
+      const novaHistoria = await db.Historia.create({
         nome: aventuraCompleta.nome,
-        tema: aventuraCompleta.tema,
+        temas: aventuraCompleta.temas,
         descricao: aventuraCompleta.descricao,
         prologo: aventuraCompleta.prologo,
         maximo_de_participantes: personagens?.length || 5,
-        genero: this.determinarGenero(tema),
+        participantes: aventuraCompleta.personagens?.map(p => p.nome) || [],
         status: 'ativa',
         criada_em: new Date(),
-        atualizada_em: new Date(),
-        metadata: JSON.stringify(aventuraCompleta.metadata)
+        atualizada_em: new Date()
       });
       
       console.log('✅ Aventura completa gerada e salva:', novaHistoria.id);
@@ -401,12 +392,12 @@ class HistoriaController {
 
 
   /**
-   * Determinar gênero baseado no tema
-   * @param {string} tema - Tema da história
+   * Determinar gênero baseado no temas
+   * @param {string} temas - Tema da história
    * @returns {string} Gênero determinado
    */
-  determinarGenero(tema) {
-    const temaLower = tema.toLowerCase();
+  determinarGenero(temas) {
+    const temaLower = temas.toLowerCase();
     
     if (temaLower.includes('fantasia') || temaLower.includes('medieval')) {
       return 'fantasia';

@@ -95,7 +95,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/nova', historiaController.criarHistoria);
+router.post('/create', historiaController.criarHistoria);
 
 /**
  * @swagger

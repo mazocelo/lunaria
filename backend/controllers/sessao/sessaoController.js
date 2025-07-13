@@ -21,7 +21,7 @@ class SessaoController {
       console.log(`🎮 Iniciando sessão para história ID: ${historiaId}`);
       
       // Verificar se a história existe
-      const historia = await db.Agent.findByPk(historiaId);
+      const historia = await db.Historia.findByPk(historiaId);
       
       if (!historia) {
         return res.status(404).json({

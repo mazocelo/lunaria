@@ -7,7 +7,7 @@ import Habilidade from './Habilidade.js';
 
 const db = {};
 
-db.Agent = Historia(sequelize, Sequelize.DataTypes);
+db.Historia = Historia(sequelize, Sequelize.DataTypes);
 db.Temas = Temas(sequelize, Sequelize.DataTypes);
 db.Personagem = Personagem(sequelize, Sequelize.DataTypes);
 db.Habilidade = Habilidade(sequelize, Sequelize.DataTypes);

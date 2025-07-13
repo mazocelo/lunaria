@@ -31,10 +31,6 @@ const Historia = (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: true,
         },
-        genero: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
         status: {
             type: DataTypes.STRING,
             allowNull: true,

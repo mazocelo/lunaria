@@ -8,39 +8,83 @@ const Personagem = (sequelize, DataTypes) => {
             autoIncrement: true,
         },
         nome: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-        descricao: {
             type: DataTypes.TEXT,
-            allowNull: true,
-        },
-        classe: {
-            type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: false,
         },
         nivel: {
             type: DataTypes.INTEGER,
             allowNull: true,
             defaultValue: 1,
         },
-        historia_id: {
+        pontos_totais: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'historias',
-                key: 'id'
-            }
+            allowNull: true,
+            defaultValue: 0,
         },
-        jogador_id: {
+        pontos_iniciais: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0,
+        },
+        background: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
+        raca_id: {
             type: DataTypes.INTEGER,
             allowNull: true,
         },
-        status: {
-            type: DataTypes.STRING,
+        classe_id: {
+            type: DataTypes.INTEGER,
             allowNull: true,
-            defaultValue: 'ativo',
         },
+        profissao_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        forca: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 10,
+        },
+        inteligencia: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 10,
+        },
+        carisma: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 10,
+        },
+        destreza: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 10,
+        },
+        constituicao: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 10,
+        },
+        sabedoria: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 10,
+        },
+        // historia_id: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: false,
+        //     references: {
+        //         model: 'historias',
+        //         key: 'id'
+        //     }
+        // },
+        // jogador_id: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: true,
+        // },
+       
         criado_em: {
             type: DataTypes.DATE,
             allowNull: true,

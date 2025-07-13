@@ -1,6 +1,7 @@
 import express from 'express';
 import historiaRoutes from './historia.js';
 import sessaoRoutes from './sessao.js';
+import personagemRoutes from './personagem.js';
 
 const router = express.Router();
 
@@ -12,7 +13,8 @@ router.get('/', async (req, res, next) => {
     version: '1.0.0',
     endpoints: {
       historias: '/api/historia',
-      sessoes: '/api/sessao'
+      sessoes: '/api/sessao',
+      personagens: '/api/personagens'
     }
   });
 });
@@ -20,5 +22,6 @@ router.get('/', async (req, res, next) => {
 // Rotas da API
 router.use('/api/historia', historiaRoutes);
 router.use('/api/sessao', sessaoRoutes);
+router.use('/api/personagens', personagemRoutes);
 
 export default router;

@@ -13,6 +13,7 @@ import sessaoRouter from './routes/sessao.js';
 import temasRouter from './routes/temas.js';
 import websocketRouter from './routes/websocket.js';
 import habilidadeRouter from './routes/habilidade.js';
+import personagemRouter from './routes/personagem.js';
 
 import { createExecutor } from './tools/master.js';
 import initDatabase from './Model/initDB.js';
@@ -56,6 +57,7 @@ app.use('/sessoes', sessaoRouter);
 app.use('/temas', temasRouter);
 app.use('/websocket', websocketRouter);
 app.use('/habilidades', habilidadeRouter);
+app.use('/personagem', personagemRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {

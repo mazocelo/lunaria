@@ -40,6 +40,7 @@ const FormSelectDescricao = ({
     if (disabled) return;
     onChange({ target: { name, value: option.value } });
     setIsOpen(false);
+    setHoveredOption(null);
   };
 
   return (

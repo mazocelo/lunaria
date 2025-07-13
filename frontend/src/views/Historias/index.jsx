@@ -109,7 +109,7 @@ export const HistoriaView = () => {
         </div>
         
         <Link to="/nova-historia">
-          <button className="btn-rpg hover-lift flex items-center space-x-2">
+          <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
             <span>✨</span>
             <span>Nova História</span>
           </button>
@@ -166,7 +166,7 @@ export const HistoriaView = () => {
               Comece criando sua primeira aventura épica!
             </p>
             <Link to="/nova-historia">
-              <button className="btn-rpg">
+              <button className="btn-rpg cursor-pointer">
                 Criar Primeira História
               </button>
             </Link>

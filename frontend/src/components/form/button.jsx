@@ -14,7 +14,7 @@ const Button = ({
     const { theme } = useTheme();
     const isLight = theme === 'light';
     
-    const baseClasses = `${isLight ? 'btn-rpg-light' : 'btn-rpg'} hover-lift font-modern transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed`;
+    const baseClasses = `${isLight ? 'btn-rpg-light' : 'btn-rpg'} hover-lift font-modern transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`;
     
     const variantClasses = {
         primary: "gradient-primary",

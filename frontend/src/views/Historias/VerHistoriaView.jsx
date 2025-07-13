@@ -102,7 +102,7 @@ export const VerHistoriaView = () => {
         
         <div className="flex items-center space-x-3">
           <Link to="/historias">
-            <button className={`px-4 py-2 rounded-lg font-modern transition-all duration-200 ${
+            <button className={`px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
               isLight 
                 ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' 
                 : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
@@ -112,7 +112,7 @@ export const VerHistoriaView = () => {
           </Link>
           <button 
             onClick={() => navigate(`/jogo/${historiaAtual.id}`)}
-            className="btn-rpg hover-lift flex items-center space-x-2"
+            className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer"
           >
             <span>🎮</span>
             <span>Iniciar Sessão</span>
@@ -261,14 +261,14 @@ export const VerHistoriaView = () => {
             <div className="space-y-3">
               <button 
                 onClick={() => navigate(`/jogo/${historiaAtual.id}`)}
-                className="w-full btn-rpg hover-lift flex items-center justify-center space-x-2"
+                className="w-full btn-rpg hover-lift flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <span>🎮</span>
                 <span>Iniciar Sessão</span>
               </button>
               <button 
                 onClick={() => navigate('/historias')}
-                className={`w-full px-4 py-2 rounded-lg font-modern transition-all duration-200 ${
+                className={`w-full px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
                   isLight 
                     ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' 
                     : 'bg-slate-700 hover:bg-slate-600 text-slate-200'

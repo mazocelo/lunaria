@@ -40,7 +40,7 @@ const Table = ({ columns, data, keyField = 'id', actions = [] }) => {
                     {actions.map((action, i) => (
                       <button
                         key={i}
-                        className={`p-2 rounded-lg transition-colors ${
+                        className={`p-2 rounded-lg transition-colors cursor-pointer ${
                           isLight 
                             ? 'bg-slate-200/50 hover:bg-purple-500/20' 
                             : 'bg-slate-700/50 hover:bg-purple-500/20'

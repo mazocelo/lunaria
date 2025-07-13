@@ -43,7 +43,7 @@ function App() {
 
             <button
               onClick={toggleTheme}
-              className={`hover-lift ${
+              className={`hover-lift cursor-pointer ${
                 isLight ? 'btn-rpg-light' : 'btn-rpg'
               }`}
               aria-label="Alternar tema"

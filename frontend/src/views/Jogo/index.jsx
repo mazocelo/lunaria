@@ -77,7 +77,7 @@ export const JogoView = () => {
           <p className="text-slate-400 font-modern mb-6">
             A história que você está procurando não existe.
           </p>
-          <button onClick={voltarParaHistorias} className="btn-rpg">
+          <button onClick={voltarParaHistorias} className="btn-rpg cursor-pointer">
             Voltar para Histórias
           </button>
         </div>
@@ -107,7 +107,7 @@ export const JogoView = () => {
           </p>
         </div>
         
-        <button onClick={voltarParaHistorias} className="btn-rpg-secondary hover-lift flex items-center space-x-2">
+        <button onClick={voltarParaHistorias} className="btn-rpg-secondary hover-lift flex items-center space-x-2 cursor-pointer">
           <span>←</span>
           <span>Voltar</span>
         </button>
@@ -161,7 +161,7 @@ export const JogoView = () => {
           <div className="text-center py-8">
             <button 
               onClick={iniciarSessao}
-              className="btn-rpg-lg hover-lift flex items-center space-x-3 mx-auto"
+              className="btn-rpg-lg hover-lift flex items-center space-x-3 mx-auto cursor-pointer"
             >
               <span className="text-2xl">🎮</span>
               <span className="text-lg font-fantasy">Iniciar Sessão de Jogo</span>
@@ -207,7 +207,7 @@ export const JogoView = () => {
                     placeholder="Digite sua mensagem..."
                     className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-purple-500/50"
                   />
-                  <button className="btn-rpg-secondary px-4">
+                  <button className="btn-rpg-secondary px-4 cursor-pointer">
                     Enviar
                   </button>
                 </div>
@@ -215,15 +215,15 @@ export const JogoView = () => {
 
               {/* Controles do Jogo */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button className="btn-rpg-secondary flex items-center justify-center space-x-2">
+                <button className="btn-rpg-secondary flex items-center justify-center space-x-2 cursor-pointer">
                   <span>🎲</span>
                   <span>Rolar Dados</span>
                 </button>
-                <button className="btn-rpg-secondary flex items-center justify-center space-x-2">
+                <button className="btn-rpg-secondary flex items-center justify-center space-x-2 cursor-pointer">
                   <span>📋</span>
                   <span>Ficha</span>
                 </button>
-                <button className="btn-rpg-secondary flex items-center justify-center space-x-2">
+                <button className="btn-rpg-secondary flex items-center justify-center space-x-2 cursor-pointer">
                   <span>⚙️</span>
                   <span>Configurações</span>
                 </button>

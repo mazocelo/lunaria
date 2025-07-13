@@ -6,9 +6,30 @@ import FormSelect from '../../components/form/FormSelect';
 import FormTextarea from '../../components/form/FormTextarea';
 import FormRadioGroup from '../../components/form/FormRadioGroup';
 import FormHabilidade from '../../components/form/FormHabilidade';
+import FormSelectDescricao from '../../components/form/FormSelectDescricao';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from '../../viewmodels/Personagens/NovoPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
+
+// Opções de exemplo para Classe, Raça e Profissão
+const opcoesClasse = [
+  { value: 'guerreiro', label: 'Guerreiro', descricao: 'Especialista em combate corpo a corpo, forte e resistente.' },
+  { value: 'mago', label: 'Mago', descricao: 'Usuário de magia arcana, domina feitiços poderosos.' },
+  { value: 'arqueiro', label: 'Arqueiro', descricao: 'Especialista em ataques à distância e furtividade.' },
+  { value: 'ladino', label: 'Ladino', descricao: 'Ágil, mestre em furtividade e armadilhas.' }
+];
+const opcoesRaca = [
+  { value: 'humano', label: 'Humano', descricao: 'Versátil e adaptável, aprende rápido.' },
+  { value: 'elfo', label: 'Elfo', descricao: 'Ágil, com sentidos aguçados e afinidade com magia.' },
+  { value: 'anao', label: 'Anão', descricao: 'Resistente, mestre em forja e combate pesado.' },
+  { value: 'orc', label: 'Orc', descricao: 'Forte, feroz e com grande vigor físico.' }
+];
+const opcoesProfissao = [
+  { value: 'ferreiro', label: 'Ferreiro', descricao: 'Especialista em criar e reparar armas e armaduras.' },
+  { value: 'alquimista', label: 'Alquimista', descricao: 'Mestre em poções, elixires e explosivos.' },
+  { value: 'curandeiro', label: 'Curandeiro', descricao: 'Especialista em cura e suporte ao grupo.' },
+  { value: 'mercador', label: 'Mercador', descricao: 'Hábil em negociações e comércio.' }
+];
 
 const NovoPersonagemView = () => {
   const vm = useViewModel(novoPersonagemViewModel);
@@ -19,7 +40,7 @@ const NovoPersonagemView = () => {
   useEffect(() => {
     vm.clearError();
     vm.resetPontos();
-    vm.loadHabilidades();
+    vm.loadHabilidades({ nivel: 1 });
   }, []);
 
   const handleSubmit = async (e) => {
@@ -46,8 +67,14 @@ const NovoPersonagemView = () => {
     }
   };
 
+  // Handler especial para habilidades múltiplas
+  const handleHabilidadesChange = (e) => {
+    // value é um array de IDs
+    vm.setHabilidades(e.target.value);
+  };
+
   return (
-    <div className="animate-fade-in max-w-2xl mx-auto">
+    <div className="animate-fade-in max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -101,31 +128,80 @@ const NovoPersonagemView = () => {
 
         {/* Raça / Classe / Profissão */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <InputSimples
+          <FormSelectDescricao
             label="Raça"
             name="raca"
             value={vm.raca}
             onChange={handleChange}
-            placeholder="Raça"
+            options={opcoesRaca}
+            placeholder="Selecione a raça"
             required
           />
-          <InputSimples
+          <FormSelectDescricao
             label="Classe"
             name="classe"
             value={vm.classe}
             onChange={handleChange}
-            placeholder="Classe"
+            options={opcoesClasse}
+            placeholder="Selecione a classe"
             required
           />
-          <InputSimples
+          <FormSelectDescricao
             label="Profissão"
             name="profissao"
             value={vm.profissao}
             onChange={handleChange}
-            placeholder="Profissão"
+            options={opcoesProfissao}
+            placeholder="Selecione a profissão"
             required
           />
         </div>
+
+        {/* Atributos */}
+        <div>
+          <label className="block font-semibold mb-2 text-white font-modern">Atributos</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            {Object.keys(vm.atributos).map((attr) => (
+              <InputSimples
+                key={attr}
+                label={attr.charAt(0).toUpperCase() + attr.slice(1)}
+                name={attr}
+                value={vm.atributos[attr]}
+                onChange={handleChange}
+                type="number"
+                required
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Habilidades */}
+        <FormHabilidade
+          name="habilidades"
+          label="Habilidades"
+          value={vm.habilidades}
+          onChange={handleHabilidadesChange}
+          options={vm.habilidadesDisponiveis?.map(habilidade => ({
+            value: habilidade.id,
+            label: habilidade.nome,
+            custo: habilidade.custo,
+            descricao: habilidade.descricao
+          })) || []}
+          placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
+          required
+          disabled={vm.loadingHabilidades}
+          pontosRestantes={vm.pontosRestantes}
+          habilidadeError={vm.habilidadeError}
+        />
+
+        {/* Equipamentos */}
+        <InputSimples
+          label="Equipamentos"
+          name="equipamentos"
+          value={vm.equipamentos}
+          onChange={handleChange}
+          placeholder="Liste os equipamentos"
+        />
 
         {/* Background */}
         <div>
@@ -161,50 +237,6 @@ const NovoPersonagemView = () => {
             />
           )}
         </div>
-
-        {/* Atributos */}
-        <div>
-          <label className="block font-semibold mb-2 text-white font-modern">Atributos</label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-            {Object.keys(vm.atributos).map((attr) => (
-              <InputSimples
-                key={attr}
-                label={attr.charAt(0).toUpperCase() + attr.slice(1)}
-                name={attr}
-                value={vm.atributos[attr]}
-                onChange={handleChange}
-                type="number"
-                required
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Habilidades */}
-        <FormHabilidade
-          name="habilidades"
-          label="Habilidades"
-          value={vm.habilidades}
-          onChange={handleChange}
-          options={vm.habilidadesDisponiveis?.map(habilidade => ({ 
-            value: habilidade.id, 
-            label: habilidade.nome,
-            custo: habilidade.custo,
-            descricao: habilidade.descricao
-          })) || []}
-          placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
-          required
-          disabled={vm.loadingHabilidades}
-        />
-
-        {/* Equipamentos */}
-        <InputSimples
-          label="Equipamentos"
-          name="equipamentos"
-          value={vm.equipamentos}
-          onChange={handleChange}
-          placeholder="Liste os equipamentos"
-        />
 
         {/* Botões de ação */}
         <div className="flex space-x-4 pt-4">

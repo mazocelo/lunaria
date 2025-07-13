@@ -30,6 +30,14 @@ function somaAtributos(atributos) {
     .reduce((a, b) => a + b, 0);
 }
 
+function somaCustoHabilidades(habilidadesSelecionadas, habilidadesDisponiveis) {
+  if (!Array.isArray(habilidadesSelecionadas)) return 0;
+  return habilidadesSelecionadas.reduce((acc, id) => {
+    const hab = habilidadesDisponiveis.find(h => h.id === id);
+    return acc + (hab ? Number(hab.custo) || 0 : 0);
+  }, 0);
+}
+
 export class NovoPersonagemViewModel {
   constructor() {
     this.state = {
@@ -40,13 +48,14 @@ export class NovoPersonagemViewModel {
       backgroundTipo: 'guiado',
       background: '',
       atributos: { ...atributosIniciais },
-      habilidades: '',
+      habilidades: [], // agora array de IDs
       equipamentos: '',
       pontosTotais: getRandomPontos(),
       loading: false,
       error: null,
       habilidadesDisponiveis: [],
-      loadingHabilidades: false
+      loadingHabilidades: false,
+      habilidadeError: null // erro visual de pontos
     };
     
     this.subscribers = [];
@@ -55,10 +64,14 @@ export class NovoPersonagemViewModel {
   }
 
   getState() {
+    const pontosAtributos = somaAtributos(this.state.atributos);
+    const pontosHabilidades = somaCustoHabilidades(this.state.habilidades, this.state.habilidadesDisponiveis);
+    const pontosRestantes = this.state.pontosTotais - pontosAtributos - pontosHabilidades;
     return { 
       ...this.state,
-      pontosDistribuidos: somaAtributos(this.state.atributos),
-      pontosRestantes: this.state.pontosTotais - somaAtributos(this.state.atributos),
+      pontosDistribuidos: pontosAtributos,
+      pontosRestantes: pontosRestantes,
+      pontosHabilidadesRestantes: pontosRestantes,
       backgroundsGuiados
     };
   }
@@ -104,7 +117,16 @@ export class NovoPersonagemViewModel {
   };
 
   setHabilidades = (habilidades) => {
-    this.setState({ habilidades });
+    // habilidades: array de IDs
+    if (!Array.isArray(habilidades)) habilidades = [];
+    const pontosAtributos = somaAtributos(this.state.atributos);
+    const custoTotal = somaCustoHabilidades(habilidades, this.state.habilidadesDisponiveis);
+    const pontosRestantes = this.state.pontosTotais - pontosAtributos - custoTotal;
+    if (pontosRestantes < 0) {
+      this.setState({ habilidadeError: 'Pontos insuficientes para selecionar esta habilidade.' });
+      return;
+    }
+    this.setState({ habilidades, habilidadeError: null });
   };
 
   setEquipamentos = (equipamentos) => {
@@ -115,10 +137,9 @@ export class NovoPersonagemViewModel {
     const novoValor = Number(valor) || 0;
     const outrosAtributos = { ...this.state.atributos, [atributo]: 0 };
     const somaSemAtual = somaAtributos(outrosAtributos);
-    
+    const custoHabilidades = somaCustoHabilidades(this.state.habilidades, this.state.habilidadesDisponiveis);
     // Não permitir que a soma ultrapasse pontosTotais
-    if (somaSemAtual + novoValor > this.state.pontosTotais) return;
-    
+    if (somaSemAtual + novoValor + custoHabilidades > this.state.pontosTotais) return;
     this.setState({
       atributos: { ...this.state.atributos, [atributo]: valor }
     });
@@ -127,14 +148,16 @@ export class NovoPersonagemViewModel {
   resetPontos = () => {
     this.setState({
       pontosTotais: getRandomPontos(),
-      atributos: { ...atributosIniciais }
+      atributos: { ...atributosIniciais },
+      habilidades: [],
+      habilidadeError: null
     });
   };
 
-  loadHabilidades = async () => {
+  loadHabilidades = async (params) => {
     this.setState({ loadingHabilidades: true });
     try {
-      const habilidades = await this.habilidadeService.getAll();
+      const habilidades = await this.habilidadeService.getAll(params);
       this.setState({ 
         habilidadesDisponiveis: habilidades,
         loadingHabilidades: false 
@@ -148,18 +171,17 @@ export class NovoPersonagemViewModel {
   };
 
   criarPersonagem = async (onSuccess) => {
-    const pontosRestantes = this.state.pontosTotais - somaAtributos(this.state.atributos);
-    
+    const pontosAtributos = somaAtributos(this.state.atributos);
+    const custoTotal = somaCustoHabilidades(this.state.habilidades, this.state.habilidadesDisponiveis);
+    const pontosRestantes = this.state.pontosTotais - pontosAtributos - custoTotal;
     if (!this.state.nome.trim()) {
       this.setState({ error: 'O nome do personagem é obrigatório' });
       return;
     }
-
     if (pontosRestantes !== 0) {
-      this.setState({ error: 'Distribua todos os pontos antes de salvar' });
+      this.setState({ error: 'Distribua todos os pontos entre atributos e habilidades antes de salvar' });
       return;
     }
-    
     this.setState({ loading: true, error: null });
     try {
       await this.personagemService.create({
@@ -186,7 +208,7 @@ export class NovoPersonagemViewModel {
   };
 
   clearError = () => {
-    this.setState({ error: null });
+    this.setState({ error: null, habilidadeError: null });
   };
 }
 

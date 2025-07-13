@@ -29,7 +29,7 @@ const NovaHistoriaView = () => {
   };
 
   return (
-    <div className="animate-fade-in max-w-2xl mx-auto">
+    <div className="animate-fade-in max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">

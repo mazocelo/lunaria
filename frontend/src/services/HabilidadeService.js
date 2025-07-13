@@ -1,7 +1,8 @@
 /**
  * Serviço para gerenciar operações de Habilidade
  * Responsável pela comunicação com a API
- */
+  */
+import generateGETparams from './generateGETparams';
 export class HabilidadeService {
   constructor(apiClient) {
     this.apiClient = apiClient;
@@ -12,11 +13,12 @@ export class HabilidadeService {
    * Busca todas as habilidades
    * @returns {Promise<Array>} Lista de habilidades
    */
-  async getAll() {
+  async getAll(params) {
+    
     try {
-      const response = await this.apiClient.get(this.baseUrl);
-      if(response.data?.success){
-        console.log('responsae',response.data?.data);
+      const paramsString = generateGETparams(params);
+      const response = await this.apiClient.get(this.baseUrl+paramsString);
+      if(response.data?.success){ 
         return response.data?.data;
       }
       else{

@@ -99,6 +99,9 @@ class HabilidadeController {
         offset
       } = req.query;
       
+      console.log('req.query keys', req.query);
+
+    
       // Construir filtros
       const where = {};
       if (tipo) where.tipo = tipo;
@@ -107,38 +110,29 @@ class HabilidadeController {
       if (usar) where.usar = usar;
       
       let habilidades;
-      console.log('limit', limit);
-      console.log('offset', offset);
       // Se há termo de busca, usar método de busca
       if (search) {
         habilidades = await db.Habilidade.search(search);
-        console.log('habilidades1');
       } 
       else if(limit || offset){
-        console.log('limit', limit);
-        console.log('offset', offset);
         habilidades = await db.Habilidade.findAll({
           where,
           limit: parseInt(limit),
           offset: parseInt(offset),
           order: [['nome', 'ASC']]
         });
-        console.log('habilidades2', habilidades);
       }
        else if(Object.keys(where).length > 0){
         habilidades = await db.Habilidade.findAll({
           where,
           order: [['nome', 'ASC']]
         }); 
-        console.log('habilidades3');
       } else {
         habilidades = await db.Habilidade.findAll({
           order: [['nome', 'ASC']]
         });
-        console.log('habilidades4');
       }
       
-      console.log('where', where);
       const total = await db.Habilidade.count({ where });
       
       console.log(`✅ ${habilidades.length} habilidades encontradas`);

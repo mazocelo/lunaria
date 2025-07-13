@@ -55,6 +55,10 @@ export class HistoriaService {
    */
   async create(historia) {
     try {
+      console.log('HistoriaService.create - historia recebida:', historia);
+      console.log('Tipo de historia:', typeof historia);
+      console.log('Método validate existe?', typeof historia.validate);
+      
       // Validar antes de enviar
       const validation = historia.validate();
       if (!validation.isValid) {

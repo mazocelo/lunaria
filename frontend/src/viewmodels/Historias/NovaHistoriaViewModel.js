@@ -106,11 +106,21 @@ export class NovaHistoriaViewModel {
     this.error = null;
     this.notify();
     try {
+      console.log('Dados para criar história:', {
+        nome: this.nome,
+        temas: this.temasSelecionados,
+        maximo_de_participantes: this.maximo_de_participantes,
+      });
+      
       const historia = new Historia({
         nome: this.nome,
         temas: this.temasSelecionados,
         maximo_de_participantes: this.maximo_de_participantes,
       });
+      
+      console.log('Instância do modelo Historia:', historia);
+      console.log('Método validate existe?', typeof historia.validate);
+      
       await this.historiaService.create(historia);
       if (onSuccess) onSuccess();
     } catch (error) {

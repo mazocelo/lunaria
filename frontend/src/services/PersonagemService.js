@@ -36,7 +36,13 @@ export class PersonagemService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      return Personagem.fromAPI(response.data);
+      if(response.data?.success){
+        console.log('PersonagemService.getById - personagem encontrado:', response.data.data);
+        return Personagem.fromAPI(response.data.data);
+      }
+      else{
+        throw new Error(response.data.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar personagem: ${error.message}`);
     }

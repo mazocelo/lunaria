@@ -16,7 +16,8 @@ const RPGCard = ({
     const baseClasses = `card-rpg transition-all duration-300`;
     const hoverClasses = hover ? "hover-lift" : "";
     const glowClasses = glow ? "animate-glow" : "";
-    const disabledClasses = disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer";
+    const disabledClasses = disabled ? "opacity-50 cursor-not-allowed" : "";
+    const cursorClasses = onClick && !disabled ? "cursor-pointer" : "";
     
     const variantClasses = {
         default: "",
@@ -28,7 +29,7 @@ const RPGCard = ({
 
     return (
         <div 
-            className={`${baseClasses} ${hoverClasses} ${glowClasses} ${disabledClasses} ${variantClasses[variant]} ${className}`}
+            className={`${baseClasses} ${hoverClasses} ${glowClasses} ${disabledClasses} ${cursorClasses} ${variantClasses[variant]} ${className}`}
             onClick={!disabled ? onClick : undefined}
         >
             {children}

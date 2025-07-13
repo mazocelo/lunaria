@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { useTheme } from './contexts/theme.jsx'
 import Sidebar from './components/sidebar'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
-import { HistoriaView, NovaHistoriaView, VerHistoriaView, PersonagemView, NovoPersonagemView, EditarPersonagemView, JogoView } from './views'
+import { HistoriaView, NovaHistoriaView, VerHistoriaView, PersonagemView, NovoPersonagemView, EditarPersonagemView, VerPersonagemView, JogoView } from './views'
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -74,6 +74,7 @@ function App() {
               <Route path="/personagens" element={<PersonagemView />} />
               <Route path="/novo-personagem" element={<NovoPersonagemView />} />
               <Route path="/editar-personagem/:id" element={<EditarPersonagemView />} />
+              <Route path="/ver-personagem/:id" element={<VerPersonagemView />} />
             </Routes>
           </div>
         </main>

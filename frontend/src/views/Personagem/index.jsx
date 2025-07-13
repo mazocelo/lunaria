@@ -196,9 +196,11 @@ const PersonagemView = () => {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center space-x-2">
-                        <button className="p-2 rounded-lg bg-slate-700/50 hover:bg-purple-500/20 transition-colors cursor-pointer">
-                          <span className="text-sm">👁️</span>
-                        </button>
+                        <Link to={`/ver-personagem/${personagem.id}`}>
+                          <button className="p-2 rounded-lg bg-slate-700/50 hover:bg-purple-500/20 transition-colors cursor-pointer">
+                            <span className="text-sm">👁️</span>
+                          </button>
+                        </Link>
                         <Link to={`/editar-personagem/${personagem.id}`}>
                           <button className="p-2 rounded-lg bg-slate-700/50 hover:bg-cyan-500/20 transition-colors cursor-pointer">
                             <span className="text-sm">✏️</span>

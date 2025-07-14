@@ -12,8 +12,11 @@ import historiaRouter from './routes/historia.js';
 import sessaoRouter from './routes/sessao.js';
 import temasRouter from './routes/temas.js';
 import websocketRouter from './routes/websocket.js';
-import habilidadeRouter from './routes/habilidade.js';
+import vantagemRouter from './routes/vantagens.js';
+import desvantagemRouter from './routes/desvantagens.js';
 import personagemRouter from './routes/personagem.js';
+import classeRouter from './routes/classe.js';
+import racaRouter from './routes/raca.js';
 
 import { createExecutor } from './tools/master.js';
 import initDatabase from './Model/initDB.js';
@@ -56,8 +59,12 @@ app.use('/historias', historiaRouter);
 app.use('/sessoes', sessaoRouter);
 app.use('/temas', temasRouter);
 app.use('/websocket', websocketRouter);
-app.use('/habilidades', habilidadeRouter);
+app.use('/vantagens', vantagemRouter);
+app.use('/desvantagens', desvantagemRouter);
 app.use('/personagem', personagemRouter);
+app.use('/racas', racaRouter);
+app.use('/classes', classeRouter);
+
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {

@@ -38,10 +38,6 @@ const Personagem = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: true,
         },
-        profissao_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
         forca: {
             type: DataTypes.INTEGER,
             allowNull: true,
@@ -67,7 +63,7 @@ const Personagem = (sequelize, DataTypes) => {
             allowNull: true,
             defaultValue: 10,
         },
-        sabedoria: {
+        agilidade: {
             type: DataTypes.INTEGER,
             allowNull: true,
             defaultValue: 10,

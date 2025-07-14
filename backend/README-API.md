@@ -70,18 +70,63 @@ A documentação completa da API está disponível através do Swagger UI em:
 
 **Nota:** Para comunicação em tempo real, use o WebSocket. Veja a documentação completa em `README-WebSocket.md`.
 
-### Habilidades (`/habilidades`)
+### Vantagens (`/vantagens`)
 
-- `POST /habilidades` - Criar nova habilidade
-- `GET /habilidades` - Listar habilidades
-- `GET /habilidades/{id}` - Obter habilidade específica
-- `PUT /habilidades/{id}` - Atualizar habilidade
-- `DELETE /habilidades/{id}` - Excluir habilidade
-- `GET /habilidades/elemento/{elemento}` - Listar por elemento
-- `GET /habilidades/tipo/{tipo}` - Listar por tipo
-- `GET /habilidades/nivel/{nivel}` - Listar por nível
-- `GET /habilidades/buscar?termo=...` - Buscar habilidades
-- `GET /habilidades/estatisticas` - Obter estatísticas
+- `POST /vantagens` - Criar nova vantagem
+- `GET /vantagens` - Listar vantagens
+- `GET /vantagens/{id}` - Obter vantagem específica
+- `PUT /vantagens/{id}` - Atualizar vantagem
+- `DELETE /vantagens/{id}` - Excluir vantagem
+- `GET /vantagens/elemento/{elemento}` - Listar por elemento
+- `GET /vantagens/tipo/{tipo}` - Listar por tipo
+- `GET /vantagens/nivel/{nivel}` - Listar por nível
+- `GET /vantagens/buscar?termo=...` - Buscar vantagens
+- `GET /vantagens/estatisticas` - Obter estatísticas
+
+### Desvantagens (`/desvantagens`)
+
+- `POST /desvantagens` - Criar nova desvantagem
+- `GET /desvantagens` - Listar desvantagens
+- `GET /desvantagens/{id}` - Obter desvantagem específica
+- `PUT /desvantagens/{id}` - Atualizar desvantagem
+- `DELETE /desvantagens/{id}` - Excluir desvantagem
+- `GET /desvantagens/elemento/{elemento}` - Listar por elemento
+- `GET /desvantagens/tipo/{tipo}` - Listar por tipo
+- `GET /desvantagens/nivel/{nivel}` - Listar por nível
+- `GET /desvantagens/buscar?termo=...` - Buscar desvantagens
+- `GET /desvantagens/estatisticas` - Obter estatísticas
+
+
+
+### Personagens (`/personagens`)
+
+- `POST /personagens` - Criar novo personagem
+- `GET /personagens` - Listar personagens
+- `GET /personagens/:id` - Obter personagem específico
+- `PUT /personagens/:id` - Atualizar personagem
+- `DELETE /personagens/:id` - Excluir personagem
+- `POST /personagens/:id/gerar-background` - Gerar background para personagem
+- `GET /historias/:historia_id/personagens` - Listar personagens por história
+
+**Nota:** Ao criar um personagem, você pode incluir `gerar_background: true` e `sugestao_background` para gerar automaticamente um background baseado na sugestão (ex: "nobre", "carpinteiro", "aventureiro").
+
+### Raças (`/racas`)
+
+- `POST /racas` - Criar nova raça
+- `GET /racas` - Listar raças
+- `GET /racas/:id` - Obter raça específica
+- `PUT /racas/:id` - Atualizar raça
+- `DELETE /racas/:id` - Excluir raça
+- `GET /racas/buscar` - Buscar raças por nome
+
+### Classes (`/classes`)
+
+- `POST /classes` - Criar nova classe
+- `GET /classes` - Listar classes
+- `GET /classes/:id` - Obter classe específica
+- `PUT /classes/:id` - Atualizar classe
+- `DELETE /classes/:id` - Excluir classe
+- `GET /classes/buscar` - Buscar classes por nome
 
 ## Exemplos de Uso
 
@@ -136,7 +181,86 @@ Para testar a API, use a documentação Swagger em `http://localhost:3000/api-do
 }
 ```
 
-### Habilidade
+### Personagem
+
+```json
+{
+  "id": 1,
+  "nome": "Marcus",
+  "nivel": 5,
+  "background": "Nascido nas ruas de Porto Negro...",
+  "forca": 14,
+  "inteligencia": 12,
+  "carisma": 16,
+  "destreza": 18,
+  "constituicao": 12,
+  "agilidade": 15,
+  "historia_id": 1,
+  "criado_em": "2024-01-01T00:00:00.000Z",
+  "atualizado_em": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### Criar Personagem com Background Automático
+
+```json
+{
+  "nome": "Marcus",
+  "historia_id": 1,
+  "gerar_background": true,
+  "sugestao_background": "nobre",
+  "temas_disponiveis": ["fantasia", "medieval"],
+  "nivel": 5,
+  "forca": 14,
+  "inteligencia": 12,
+  "carisma": 16,
+  "destreza": 18,
+  "constituicao": 12,
+  "agilidade": 15
+}
+```
+  "carisma": 16,
+  "destreza": 18,
+  "constituicao": 12,
+  "sabedoria": 10
+}
+```
+
+### Gerar Background para Personagem Existente
+
+```json
+{
+  "tipo": "detalhado",
+  "sugestao_background": "carpinteiro",
+  "temas_disponiveis": ["fantasia", "medieval"]
+}
+```
+
+### Raça
+
+```json
+{
+  "id": 1,
+  "nome": "Humano",
+  "custo": 0,
+  "descricao": "Raça versátil e adaptável",
+  "bonus": "{\"forca\": \"+1\", \"destreza\": \"+1\", \"constituicao\": \"+1\", \"inteligencia\": \"+1\", \"sabedoria\": \"+1\", \"carisma\": \"+1\"}"
+}
+```
+
+### Classe
+
+```json
+{
+  "id": 1,
+  "nome": "Guerreiro",
+  "custo": 0,
+  "descricao": "Especialista em combate corpo a corpo",
+  "bonus": "{\"proficiencia_armas\": [\"simples\", \"marciais\"], \"proficiencia_armaduras\": [\"leve\", \"media\", \"pesada\"], \"pontos_vida\": \"+10\"}"
+}
+```
+
+### Vantagem
 
 ```json
 {
@@ -170,6 +294,41 @@ Para testar a API, use a documentação Swagger em `http://localhost:3000/api-do
   "atualizada_em": "2024-01-01T00:00:00.000Z"
 }
 ```
+
+### Desvantagem
+
+```json
+{
+  "id": 1,
+  "nome": "Fraqueza Física",
+  "descricao": "O personagem tem uma constituição física debilitada, sofrendo penalidades em testes de força e resistência.",
+  "custo": 0,
+  "tipo": ["passiva"],
+  "bonus": {
+    "penalidade_forca": -2,
+    "penalidade_constituicao": -1
+  },
+  "restricao": {
+    "requer_descanso": true,
+    "limite_carga": 0.5
+  },
+  "dano_base": null,
+  "efeito": {
+    "fadiga_rapida": true,
+    "recuperacao_lenta": true
+  },
+  "usar": null,
+  "elemento": ["fisico"],
+  "nivel": 1,
+  "requisitos": {
+    "constituicao_maxima": 12
+  },
+  "criada_em": "2024-01-01T00:00:00.000Z",
+  "atualizada_em": "2024-01-01T00:00:00.000Z"
+}
+```
+
+
 
 ## Códigos de Status
 

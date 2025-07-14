@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
-    "check-db": "node check-db.js"
+    "check-db": "node check-db.js",
+    "populate-data": "node populate-initial-data.js"
   },
   "engines": {
     "node": "22.x"

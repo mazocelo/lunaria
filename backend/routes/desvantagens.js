@@ -1,20 +1,20 @@
 import express from 'express';
-import habilidadeController from '../controllers/habilidade/habilidadeController.js';
+import desvantagemController from '../controllers/desvantagens/desvantagensController.js';
 
 const router = express.Router();
 
 /**
  * @swagger
  * tags:
- *   name: Habilidades
- *   description: Gerenciamento de habilidades para RPG
+ *   name: Desvantagens
+ *   description: Gerenciamento de desvantagens para RPG
  */
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     Habilidade:
+ *     Desvantagem:
  *       type: object
  *       required:
  *         - nome
@@ -22,52 +22,52 @@ const router = express.Router();
  *       properties:
  *         id:
  *           type: integer
- *           description: ID unico da habilidade
+ *           description: ID unico da desvantagem
  *         nome:
  *           type: string
  *           maxLength: 100
- *           description: Nome da habilidade
+ *           description: Nome da desvantagem
  *         descricao:
  *           type: string
- *           description: Descricao detalhada da habilidade
+ *           description: Descricao detalhada da desvantagem
  *         custo:
  *           type: integer
  *           minimum: 0
- *           description: Custo em mana ou energia para usar a habilidade
+ *           description: Custo em mana ou energia para usar a desvantagem
  *         tipo:
  *           type: array
  *           items:
  *             type: string
  *             enum: [ativa, passiva, reacao, ritual]
- *           description: Tipos da habilidade
+ *           description: Tipos da desvantagem
  *         bonus:
  *           type: object
- *           description: Bonus aplicado pela habilidade em formato JSON
+ *           description: Bonus aplicado pela desvantagem em formato JSON
  *         restricao:
  *           type: object
- *           description: Restricoes para usar a habilidade em formato JSON
+ *           description: Restricoes para usar a desvantagem em formato JSON
  *         dano_base:
  *           type: string
- *           description: Dano base da habilidade ex 1d8, 2d6
+ *           description: Dano base da desvantagem ex 1d8, 2d6
  *         efeito:
  *           type: object
- *           description: Efeito especial da habilidade em formato JSON
+ *           description: Efeito especial da desvantagem em formato JSON
  *         usar:
  *           type: integer
- *           description: Como usar a habilidade 1=acao, 2=reacao, 3=movimento
+ *           description: Como usar a desvantagem 1=acao, 2=reacao, 3=movimento
  *         elemento:
  *           type: array
  *           items:
  *             type: string
- *           description: Elementos da habilidade fogo, gelo, fisico
+ *           description: Elementos da desvantagem fogo, gelo, fisico
  *         nivel:
  *           type: integer
  *           minimum: 1
  *           maximum: 20
- *           description: Nivel minimo para aprender a habilidade
+ *           description: Nivel minimo para aprender a desvantagem
  *         requisitos:
  *           type: object
- *           description: Requisitos para aprender a habilidade
+ *           description: Requisitos para aprender a desvantagem
  *         criada_em:
  *           type: string
  *           format: date-time
@@ -80,10 +80,10 @@ const router = express.Router();
 
 /**
  * @swagger
- * /habilidades:
+ * /desvantagens:
  *   post:
- *     summary: Criar uma nova habilidade
- *     tags: [Habilidades]
+ *     summary: Criar uma nova desvantagem
+ *     tags: [Desvantagens]
  *     requestBody:
  *       required: true
  *       content:
@@ -96,10 +96,10 @@ const router = express.Router();
  *             properties:
  *               nome:
  *                 type: string
- *                 description: Nome da habilidade
+ *                 description: Nome da desvantagem
  *               descricao:
  *                 type: string
- *                 description: Descricao da habilidade
+ *                 description: Descricao da desvantagem
  *               custo:
  *                 type: integer
  *                 minimum: 0
@@ -109,27 +109,27 @@ const router = express.Router();
  *                 items:
  *                   type: string
  *                   enum: [ativa, passiva, reacao, ritual]
- *                 description: Tipos da habilidade
+ *                 description: Tipos da desvantagem
  *               bonus:
  *                 type: object
- *                 description: Bonus aplicado pela habilidade
+ *                 description: Bonus aplicado pela desvantagem
  *               restricao:
  *                 type: object
- *                 description: Restricoes para usar a habilidade
+ *                 description: Restricoes para usar a desvantagem
  *               dano_base:
  *                 type: string
- *                 description: Dano base da habilidade
+ *                 description: Dano base da desvantagem
  *               efeito:
  *                 type: object
- *                 description: Efeito especial da habilidade
+ *                 description: Efeito especial da desvantagem
  *               usar:
  *                 type: integer
- *                 description: Como usar a habilidade
+ *                 description: Como usar a desvantagem
  *               elemento:
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Elementos da habilidade
+ *                 description: Elementos da desvantagem
  *               nivel:
  *                 type: integer
  *                 minimum: 1
@@ -140,7 +140,7 @@ const router = express.Router();
  *                 description: Requisitos para aprender
  *     responses:
  *       201:
- *         description: Habilidade criada com sucesso
+ *         description: Desvantagem criada com sucesso
  *         content:
  *           application/json:
  *             schema:
@@ -151,7 +151,7 @@ const router = express.Router();
  *                 message:
  *                   type: string
  *                 data:
- *                   $ref: '#/components/schemas/Habilidade'
+ *                   $ref: '#/components/schemas/Desvantagem'
  *       400:
  *         description: Dados invalidos
  *         content:
@@ -159,14 +159,14 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', habilidadeController.criarHabilidade);
+router.post('/', desvantagemController.criarDesvantagem);
 
 /**
  * @swagger
- * /habilidades:
+ * /desvantagens:
  *   get:
- *     summary: Listar todas as habilidades
- *     tags: [Habilidades]
+ *     summary: Listar todas as desvantagens
+ *     tags: [Desvantagens]
  *     parameters:
  *       - in: query
  *         name: tipo
@@ -207,7 +207,7 @@ router.post('/', habilidadeController.criarHabilidade);
  *         description: Numero de resultados para pular
  *     responses:
  *       200:
- *         description: Lista de habilidades
+ *         description: Lista de desvantagens
  *         content:
  *           application/json:
  *             schema:
@@ -218,7 +218,7 @@ router.post('/', habilidadeController.criarHabilidade);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Habilidade'
+ *                     $ref: '#/components/schemas/Desvantagem'
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -231,24 +231,24 @@ router.post('/', habilidadeController.criarHabilidade);
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/', habilidadeController.listarHabilidades);
+router.get('/', desvantagemController.listarDesvantagens);
 
 /**
  * @swagger
- * /habilidades/{id}:
+ * /desvantagens/{id}:
  *   get:
- *     summary: Obter uma habilidade especifica
- *     tags: [Habilidades]
+ *     summary: Obter uma desvantagem especifica
+ *     tags: [Desvantagens]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID da habilidade
+ *         description: ID da desvantagem
  *     responses:
  *       200:
- *         description: Habilidade encontrada
+ *         description: Desvantagem encontrada
  *         content:
  *           application/json:
  *             schema:
@@ -257,149 +257,34 @@ router.get('/', habilidadeController.listarHabilidades);
  *                 success:
  *                   type: boolean
  *                 data:
- *                   $ref: '#/components/schemas/Habilidade'
+ *                   $ref: '#/components/schemas/Desvantagem'
  *       404:
- *         description: Habilidade nao encontrada
+ *         description: Desvantagem nao encontrada
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', habilidadeController.obterHabilidade);
+router.get('/:id', desvantagemController.obterDesvantagem);
+
+
 
 /**
  * @swagger
- * /habilidades/{id}:
- *   put:
- *     summary: Atualizar uma habilidade
- *     tags: [Habilidades]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID da habilidade
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               nome:
- *                 type: string
- *               descricao:
- *                 type: string
- *               custo:
- *                 type: integer
- *               tipo:
- *                 type: array
- *                 items:
- *                   type: string
- *                   enum: [ativa, passiva, reacao, ritual]
- *                 description: Tipos da habilidade
- *               bonus:
- *                 type: object
- *                 description: Bonus aplicado pela habilidade
- *               restricao:
- *                 type: object
- *                 description: Restricoes para usar a habilidade
- *               dano_base:
- *                 type: string
- *                 description: Dano base da habilidade
- *               efeito:
- *                 type: object
- *                 description: Efeito especial da habilidade
- *               usar:
- *                 type: integer
- *                 description: Como usar a habilidade
- *               elemento:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Elementos da habilidade
- *               nivel:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 20
- *                 description: Nivel minimo para aprender
- *               requisitos:
- *                 type: object
- *                 description: Requisitos para aprender
- *     responses:
- *       200:
- *         description: Habilidade atualizada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   $ref: '#/components/schemas/Habilidade'
- *       404:
- *         description: Habilidade nao encontrada
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.put('/:id', habilidadeController.atualizarHabilidade);
-
-/**
- * @swagger
- * /habilidades/{id}:
- *   delete:
- *     summary: Excluir uma habilidade
- *     tags: [Habilidades]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID da habilidade
- *     responses:
- *       200:
- *         description: Habilidade excluida com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       404:
- *         description: Habilidade nao encontrada
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.delete('/:id', habilidadeController.excluirHabilidade);
-
-/**
- * @swagger
- * /habilidades/elemento/{elemento}:
+ * /desvantagens/elemento/{elemento}:
  *   get:
- *     summary: Listar habilidades por elemento
- *     tags: [Habilidades]
+ *     summary: Listar desvantagens por elemento
+ *     tags: [Desvantagens]
  *     parameters:
  *       - in: path
  *         name: elemento
  *         required: true
  *         schema:
  *           type: string
- *         description: Elemento das habilidades
+ *         description: Elemento das desvantagens
  *     responses:
  *       200:
- *         description: Lista de habilidades do elemento
+ *         description: Lista de desvantagens do elemento
  *         content:
  *           application/json:
  *             schema:
@@ -410,26 +295,26 @@ router.delete('/:id', habilidadeController.excluirHabilidade);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Habilidade'
+ *                     $ref: '#/components/schemas/Desvantagem'
  */
-router.get('/elemento/:elemento', habilidadeController.listarPorElemento);
+router.get('/elemento/:elemento', desvantagemController.listarPorElemento);
 
 /**
  * @swagger
- * /habilidades/tipo/{tipo}:
+ * /desvantagens/tipo/{tipo}:
  *   get:
- *     summary: Listar habilidades por tipo
- *     tags: [Habilidades]
+ *     summary: Listar desvantagens por tipo
+ *     tags: [Desvantagens]
  *     parameters:
  *       - in: path
  *         name: tipo
  *         required: true
  *         schema:
  *           type: string
- *         description: Tipo das habilidades
+ *         description: Tipo das desvantagens
  *     responses:
  *       200:
- *         description: Lista de habilidades do tipo
+ *         description: Lista de desvantagens do tipo
  *         content:
  *           application/json:
  *             schema:
@@ -440,26 +325,26 @@ router.get('/elemento/:elemento', habilidadeController.listarPorElemento);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Habilidade'
+ *                     $ref: '#/components/schemas/Desvantagem'
  */
-router.get('/tipo/:tipo', habilidadeController.listarPorTipo);
+router.get('/tipo/:tipo', desvantagemController.listarPorTipo);
 
 /**
  * @swagger
- * /habilidades/nivel/{nivel}:
+ * /desvantagens/nivel/{nivel}:
  *   get:
- *     summary: Listar habilidades por nivel
- *     tags: [Habilidades]
+ *     summary: Listar desvantagens por nivel
+ *     tags: [Desvantagens]
  *     parameters:
  *       - in: path
  *         name: nivel
  *         required: true
  *         schema:
  *           type: integer
- *         description: Nivel das habilidades
+ *         description: Nivel das desvantagens
  *     responses:
  *       200:
- *         description: Lista de habilidades do nivel
+ *         description: Lista de desvantagens do nivel
  *         content:
  *           application/json:
  *             schema:
@@ -470,16 +355,16 @@ router.get('/tipo/:tipo', habilidadeController.listarPorTipo);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Habilidade'
+ *                     $ref: '#/components/schemas/Desvantagem'
  */
-router.get('/nivel/:nivel', habilidadeController.listarPorNivel);
+router.get('/nivel/:nivel', desvantagemController.listarPorNivel);
 
 /**
  * @swagger
- * /habilidades/buscar:
+ * /desvantagens/buscar:
  *   get:
- *     summary: Buscar habilidades por termo
- *     tags: [Habilidades]
+ *     summary: Buscar desvantagens por termo
+ *     tags: [Desvantagens]
  *     parameters:
  *       - in: query
  *         name: termo
@@ -500,7 +385,7 @@ router.get('/nivel/:nivel', habilidadeController.listarPorNivel);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Habilidade'
+ *                     $ref: '#/components/schemas/Desvantagem'
  *       400:
  *         description: Termo de busca e obrigatorio
  *         content:
@@ -508,17 +393,17 @@ router.get('/nivel/:nivel', habilidadeController.listarPorNivel);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/buscar', habilidadeController.buscarHabilidades);
+router.get('/buscar', desvantagemController.buscarDesvantagens);
 
 /**
  * @swagger
- * /habilidades/estatisticas:
+ * /desvantagens/estatisticas:
  *   get:
- *     summary: Obter estatisticas das habilidades
- *     tags: [Habilidades]
+ *     summary: Obter estatisticas das desvantagens
+ *     tags: [Desvantagens]
  *     responses:
  *       200:
- *         description: Estatisticas das habilidades
+ *         description: Estatisticas das desvantagens
  *         content:
  *           application/json:
  *             schema:
@@ -531,7 +416,7 @@ router.get('/buscar', habilidadeController.buscarHabilidades);
  *                   properties:
  *                     total:
  *                       type: integer
- *                       description: Total de habilidades ativas
+ *                       description: Total de desvantagens ativas
  *                     porNivel:
  *                       type: array
  *                       items:
@@ -551,6 +436,6 @@ router.get('/buscar', habilidadeController.buscarHabilidades);
  *                           total:
  *                             type: integer
  */
-router.get('/estatisticas', habilidadeController.obterEstatisticas);
+router.get('/estatisticas', desvantagemController.obterEstatisticas);
 
 export default router; 

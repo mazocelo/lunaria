@@ -1,8 +1,8 @@
 /**
- * Modelo de Habilidades para RPG
+ * Modelo de Desvantagens para RPG
  */
 export default (sequelize, DataTypes) => {
-  const Habilidade = sequelize.define('Habilidade', {
+  const Desvantagem = sequelize.define('Desvantagem', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -30,43 +30,43 @@ export default (sequelize, DataTypes) => {
       validate: {
         min: 0
       },
-      comment: 'Custo em mana/energia para usar a habilidade'
+      comment: 'Custo em mana/energia para usar a desvantagem'
     },
     tipo: {
       type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: false,
       defaultValue: ['ativa'],
-      comment: 'Tipos da habilidade (ativa, passiva, reacao, ritual)'
+      comment: 'Tipos da desvantagem (ativa, passiva, reacao, ritual)'
     },
     bonus: {
       type: DataTypes.JSONB,
       allowNull: true,
-      comment: 'Bônus aplicado pela habilidade em formato JSON'
+      comment: 'Bônus aplicado pela desvantagem em formato JSON'
     },
     restricao: {
       type: DataTypes.JSONB,
       allowNull: true,
-      comment: 'Restrições para usar a habilidade em formato JSON'
+      comment: 'Restrições para usar a desvantagem em formato JSON'
     },
     dano_base: {
       type: DataTypes.TEXT,
       allowNull: true,
-      comment: 'Dano base da habilidade (ex: 1d8, 2d6)'
+      comment: 'Dano base da desvantagem (ex: 1d8, 2d6)'
     },
     efeito: {
       type: DataTypes.JSON,
       allowNull: true,
-      comment: 'Efeito especial da habilidade em formato JSON'
+      comment: 'Efeito especial da desvantagem em formato JSON'
     },
     usar: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: 'Como usar a habilidade (1=acao, 2=reacao, 3=movimento, etc.)'
+      comment: 'Como usar a desvantagem (1=acao, 2=reacao, 3=movimento, etc.)'
     },
     elemento: {
       type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: true,
-      comment: 'Elementos da habilidade (fogo, gelo, físico, etc.)'
+      comment: 'Elementos da desvantagem (fogo, gelo, físico, etc.)'
     },
     nivel: {
       type: DataTypes.INTEGER,
@@ -76,62 +76,60 @@ export default (sequelize, DataTypes) => {
         min: 1,
         max: 20
       },
-      comment: 'Nível mínimo para aprender a habilidade'
+      comment: 'Nível mínimo para aprender a desvantagem'
     },
     requisitos: {
       type: DataTypes.JSONB,
       allowNull: true,
-      comment: 'Requisitos para aprender a habilidade em formato JSON'
+      comment: 'Requisitos para aprender a desvantagem em formato JSON'
     },
     criada_em: {
       type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
+      allowNull: true
     },
     atualizada_em: {
       type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
+      allowNull: true
     }
   }, {
-    tableName: 'habilidades',
+    tableName: 'desvantagens',
     timestamps: true,
     createdAt: 'criada_em',
     updatedAt: 'atualizada_em',
     indexes: [
       {
-        name: 'idx_habilidade_nivel',
+        name: 'idx_desvantagem_nivel',
         fields: ['nivel']
       },
       {
-        name: 'idx_habilidade_usar',
+        name: 'idx_desvantagem_usar',
         fields: ['usar']
       }
     ]
   });
 
   // Hooks
-  Habilidade.beforeCreate((habilidade) => {
-    if (!habilidade.requisitos) {
-      habilidade.requisitos = {};
+  Desvantagem.beforeCreate((desvantagem) => {
+    if (!desvantagem.requisitos) {
+      desvantagem.requisitos = {};
     }
-    if (!habilidade.bonus) {
-      habilidade.bonus = {};
+    if (!desvantagem.bonus) {
+      desvantagem.bonus = {};
     }
-    if (!habilidade.restricao) {
-      habilidade.restricao = {};
+    if (!desvantagem.restricao) {
+      desvantagem.restricao = {};
     }
-    if (!habilidade.efeito) {
-      habilidade.efeito = {};
+    if (!desvantagem.efeito) {
+      desvantagem.efeito = {};
     }
   });
 
-  Habilidade.beforeUpdate((habilidade) => {
-    habilidade.atualizada_em = new Date();
+  Desvantagem.beforeUpdate((desvantagem) => {
+    desvantagem.atualizada_em = new Date();
   });
 
   // Métodos de instância
-  Habilidade.prototype.toJSON = function() {
+  Desvantagem.prototype.toJSON = function() {
     const values = Object.assign({}, this.get());
     
     // Converter JSON strings de volta para objetos se necessário
@@ -171,35 +169,35 @@ export default (sequelize, DataTypes) => {
   };
 
   // Métodos de classe
-  Habilidade.findByTipo = function(tipo) {
+  Desvantagem.findByTipo = function(tipo) {
     return this.findAll({
       where: sequelize.literal(`'${tipo}' = ANY(tipo)`),
       order: [['nome', 'ASC']]
     });
   };
 
-  Habilidade.findByElemento = function(elemento) {
+  Desvantagem.findByElemento = function(elemento) {
     return this.findAll({
       where: sequelize.literal(`'${elemento}' = ANY(elemento)`),
       order: [['nome', 'ASC']]
     });
   };
 
-  Habilidade.findByNivel = function(nivel) {
+  Desvantagem.findByNivel = function(nivel) {
     return this.findAll({
       where: { nivel },
       order: [['nome', 'ASC']]
     });
   };
 
-  Habilidade.findByUsar = function(usar) {
+  Desvantagem.findByUsar = function(usar) {
     return this.findAll({
       where: { usar },
       order: [['nome', 'ASC']]
     });
   };
 
-  Habilidade.search = function(termo) {
+  Desvantagem.search = function(termo) {
     return this.findAll({
       where: {
         [sequelize.Op.or]: [
@@ -212,5 +210,5 @@ export default (sequelize, DataTypes) => {
     });
   };
 
-  return Habilidade;
+  return Desvantagem;
 }; 

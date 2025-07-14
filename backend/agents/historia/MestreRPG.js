@@ -39,7 +39,7 @@ function createMestrePrompt(temas = [], personagens = []) {
         personagensContexto = `
         ### PERSONAGENS JOGANDO:
         ${personagens.map((personagem, index) => `${index + 1}. ${personagem}`).join('\n')}
-        Cada personagem tem papel ativo na história. Considere suas características, objetivos, medos e habilidades ao narrar o desenrolar das ações.
+        Cada personagem tem papel ativo na história. Considere suas características, objetivos, medos e vantagens ao narrar o desenrolar das ações.
         `;
     }
 

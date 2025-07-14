@@ -24,16 +24,18 @@ async function criarGeradorBackground(temas = []) {
              * @param {string} params.nome - Nome do personagem
              * @param {string} params.classe - Classe do personagem
              * @param {string} params.tema - Tema da história
+             * @param {string} params.sugestao_background - Sugestão de background (ex: nobre, carpinteiro, aventureiro)
              * @returns {Object} Resultado da geração
              */
-            gerarBackground: async ({ nome, classe, tema }) => {
-                const response = await chain.invoke({ nome, classe, tema });
+            gerarBackground: async ({ nome, classe, tema, sugestao_background = '' }) => {
+                const response = await chain.invoke({ nome, classe, tema, sugestao_background });
                 console.log('👤 Background gerado para personagem:', nome);
                 return {
                     background: response.content.trim(),
                     nome: nome,
                     classe: classe,
                     tema: tema,
+                    sugestao_background: sugestao_background,
                     timestamp: new Date().toISOString(),
                     temasUtilizados: temas
                 };
@@ -45,9 +47,10 @@ async function criarGeradorBackground(temas = []) {
              * @param {string} params.nome - Nome do personagem
              * @param {string} params.classe - Classe do personagem
              * @param {string} params.tema - Tema da história
+             * @param {string} params.sugestao_background - Sugestão de background (ex: nobre, carpinteiro, aventureiro)
              * @returns {Object} Resultado da geração
              */
-            gerarBackgroundDetalhado: async ({ nome, classe, tema }) => {
+            gerarBackgroundDetalhado: async ({ nome, classe, tema, sugestao_background = '' }) => {
                 try {
                     const promptDetalhado = createBackgroundClassePrompt(temas, classe);
                     const modelDetalhado = createBackgroundDetalhadoModel();
@@ -57,7 +60,7 @@ async function criarGeradorBackground(temas = []) {
                         modelDetalhado,
                     ]);
 
-                    const response = await chainDetalhado.invoke({ nome, classe, tema });
+                    const response = await chainDetalhado.invoke({ nome, classe, tema, sugestao_background });
                     console.log('👤 Background detalhado gerado para personagem:', nome);
                     
                     return {
@@ -65,6 +68,7 @@ async function criarGeradorBackground(temas = []) {
                         nome: nome,
                         classe: classe,
                         tema: tema,
+                        sugestao_background: sugestao_background,
                         timestamp: new Date().toISOString(),
                         temasUtilizados: temas,
                         tipo: 'detalhado'
@@ -80,22 +84,28 @@ async function criarGeradorBackground(temas = []) {
              * @param {Object} params - Parâmetros de geração
              * @param {Array} params.personagens - Lista de personagens
              * @param {string} params.tema - Tema da história
+             * @param {Array} params.sugestoes_background - Lista de sugestões de background para cada personagem
              * @returns {Object} Resultado da geração
              */
-            gerarBackgroundsMultiplos: async ({ personagens, tema }) => {
+            gerarBackgroundsMultiplos: async ({ personagens, tema, sugestoes_background = [] }) => {
                 try {
                     const backgrounds = [];
                     
-                    for (const personagem of personagens) {
+                    for (let i = 0; i < personagens.length; i++) {
+                        const personagem = personagens[i];
+                        const sugestao = sugestoes_background[i] || '';
+                        
                         const resultado = await chain.invoke({ 
                             nome: personagem.nome, 
                             classe: personagem.classe, 
-                            tema: tema 
+                            tema: tema,
+                            sugestao_background: sugestao
                         });
                         backgrounds.push({
                             nome: personagem.nome,
                             classe: personagem.classe,
-                            background: resultado.content.trim()
+                            background: resultado.content.trim(),
+                            sugestao_background: sugestao
                         });
                     }
 

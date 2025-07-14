@@ -40,9 +40,6 @@ const router = express.Router();
  *         classe_id:
  *           type: integer
  *           description: ID da classe do personagem
- *         profissao_id:
- *           type: integer
- *           description: ID da profissão do personagem
  *         forca:
  *           type: integer
  *           minimum: 1
@@ -129,8 +126,6 @@ const router = express.Router();
  *               raca_id:
  *                 type: integer
  *               classe_id:
- *                 type: integer
- *               profissao_id:
  *                 type: integer
  *               forca:
  *                 type: integer
@@ -325,8 +320,6 @@ router.get('/:id', asyncHandler(personagemController.obterPersonagem));
  *               raca_id:
  *                 type: integer
  *               classe_id:
- *                 type: integer
- *               profissao_id:
  *                 type: integer
  *               forca:
  *                 type: integer

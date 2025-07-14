@@ -38,14 +38,20 @@ export function createBackgroundPrompt(temas = []) {
         - Responda APENAS com o background, sem formatação adicional
         ${temasContexto}
 
+        SUGESTÃO DE BACKGROUND:
+        - Se uma sugestão for fornecida (ex: "nobre", "carpinteiro", "aventureiro"), use-a como base para criar o background
+        - A sugestão deve influenciar a origem, profissão ou estilo de vida do personagem
+        - Mantenha coerência entre a sugestão, classe e tema da história
+        - Se a sugestão for vazia, crie um background baseado apenas na classe e tema
+
         ESTRUTURA SUGERIDA:
         1. Primeiro parágrafo: Origem e contexto familiar
         2. Segundo parágrafo: Eventos marcantes e motivações
-        3. Terceiro parágrafo: Habilidades e características únicas
+        3. Terceiro parágrafo: Vantagens e características únicas
         4. Quarto parágrafo (opcional): Objetivos e aspirações
 
         EXEMPLO DE BACKGROUND:
-        "Nascido nas ruas de Porto Negro, Marcus sempre soube que a sobrevivência dependia de sua astúcia e rapidez. Órfão desde os seis anos, aprendeu a se mover nas sombras da cidade portuária, desenvolvendo habilidades que muitos considerariam questionáveis, mas que lhe garantiram não apenas a sobrevivência, mas também uma reputação entre os comerciantes locais.
+        "Nascido nas ruas de Porto Negro, Marcus sempre soube que a sobrevivência dependia de sua astúcia e rapidez. Órfão desde os seis anos, aprendeu a se mover nas sombras da cidade portuária, desenvolvendo vantagens que muitos considerariam questionáveis, mas que lhe garantiram não apenas a sobrevivência, mas também uma reputação entre os comerciantes locais.
 
         Aos quinze anos, Marcus descobriu que sua agilidade natural e reflexos rápidos o tornavam um candidato perfeito para o treinamento como ladino. Foi então que conheceu o velho Thaddeus, um ex-membro da Guilda dos Ladinos que viu potencial no jovem e decidiu treiná-lo. Durante três anos, Marcus aprendeu não apenas as técnicas de combate furtivo, mas também a arte da diplomacia e da negociação.
 
@@ -56,7 +62,7 @@ export function createBackgroundPrompt(temas = []) {
 
     return ChatPromptTemplate.fromMessages([
         ['system', systemPrompt],
-        ['human', 'Nome do personagem: {nome}\nClasse: {classe}\nTema da história: {tema}'],
+        ['human', 'Nome do personagem: {nome}\nClasse: {classe}\nTema da história: {tema}\nSugestão de background: {sugestao_background}'],
     ]);
 }
 
@@ -83,10 +89,16 @@ export function createBackgroundClassePrompt(temas = [], classe = '') {
         ${temasContexto}
         ${classeContexto}
 
+        SUGESTÃO DE BACKGROUND:
+        - Se uma sugestão for fornecida (ex: "nobre", "carpinteiro", "aventureiro"), use-a como base para criar o background
+        - A sugestão deve influenciar a origem, profissão ou estilo de vida do personagem
+        - Mantenha coerência entre a sugestão, classe e tema da história
+        - Se a sugestão for vazia, crie um background baseado apenas na classe e tema
+
         ELEMENTOS ESPECÍFICOS POR CLASSE:
         - Guerreiro: Treinamento militar, batalhas, honra, disciplina
         - Mago: Estudos arcanos, descoberta de poderes, academia
-        - Ladino: Ruas, sobrevivência, habilidades furtivas, contatos
+        - Ladino: Ruas, sobrevivência, vantagens furtivas, contatos
         - Clérigo: Fé, templo, chamado divino, missão sagrada
         - Ranger: Natureza, caça, isolamento, conexão com animais
         - Bardo: Arte, performance, viagens, inspiração
@@ -100,6 +112,6 @@ export function createBackgroundClassePrompt(temas = [], classe = '') {
 
     return ChatPromptTemplate.fromMessages([
         ['system', systemPrompt],
-        ['human', 'Nome do personagem: {nome}\nClasse: {classe}\nTema da história: {tema}'],
+        ['human', 'Nome do personagem: {nome}\nClasse: {classe}\nTema da história: {tema}\nSugestão de background: {sugestao_background}'],
     ]);
 } 

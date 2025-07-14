@@ -19,6 +19,30 @@ const Sidebar = () => {
             label: 'Personagens',
             icon: '⚔️',
             description: 'Crie e edite personagens'
+        },
+        {
+            path: '/racas',
+            label: 'Raças',
+            icon: '🧬',
+            description: 'Gerencie as raças disponíveis'
+        },
+        {
+            path: '/classes',
+            label: 'Classes',
+            icon: '🛡️',
+            description: 'Gerencie as classes disponíveis'
+        },
+        {
+            path: '/vantagens',
+            label: 'Vantagens',
+            icon: '⭐',
+            description: 'Gerencie as vantagens disponíveis'
+        },
+        {
+            path: '/desvantagens',
+            label: 'Desvantagens',
+            icon: '⚠️',
+            description: 'Gerencie as desvantagens disponíveis'
         }
     ];
 

@@ -57,24 +57,39 @@ export class ApiClient {
     }
 
     try {
+      console.log('ApiClient.request - URL:', config.url);
+      console.log('ApiClient.request - Method:', config.method);
+      console.log('ApiClient.request - Headers:', config.headers);
+      
       const response = await fetch(config.url, {
         method: config.method,
         headers: config.headers,
-        body: config.data ? JSON.stringify(config.data) : null,
-        ...config
+        body: config.data ? JSON.stringify(config.data) : null
       });
 
+      console.log('ApiClient.request - Response status:', response.status);
+      console.log('ApiClient.request - Response headers:', response.headers);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('ApiClient.request - Error response:', errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const contentType = response.headers.get('content-type');
+      console.log('ApiClient.request - Content-Type:', contentType);
+      
       if (contentType && contentType.includes('application/json')) {
-        return { data: await response.json() };
+        const jsonData = await response.json();
+        console.log('ApiClient.request - JSON response:', jsonData);
+        return { data: jsonData };
       }
 
-      return { data: await response.text() };
+      const textData = await response.text();
+      console.log('ApiClient.request - Text response:', textData);
+      return { data: textData };
     } catch (error) {
+      console.error('ApiClient.request - Error:', error);
       throw new Error(`Erro na requisição: ${error.message}`);
     }
   }

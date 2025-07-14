@@ -85,7 +85,14 @@ const FormSelectDescricao = ({
                   onMouseLeave={() => setHoveredOption(null)}
                 >
                   <span className="font-medium flex-1">{option.label}</span>
-                  {value === option.value && <span className="ml-2 text-cyan-300">✓</span>}
+                  <div className="flex items-center space-x-2">
+                    {option.custo && (
+                      <span className="text-xs px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 font-medium">
+                        {option.custo} pts
+                      </span>
+                    )}
+                    {value === option.value && <span className="text-cyan-300">✓</span>}
+                  </div>
                 </div>
               ))
             )}
@@ -101,7 +108,14 @@ const FormSelectDescricao = ({
               transform: 'translateY(-100%)'
             }}
           >
-            <div className="font-semibold mb-1">{hoveredOption.label}</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-semibold">{hoveredOption.label}</div>
+              {hoveredOption.custo && (
+                <span className="text-xs px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 font-medium">
+                  {hoveredOption.custo} pts
+                </span>
+              )}
+            </div>
             <div className="text-slate-300 text-xs leading-relaxed">
               {hoveredOption.descricao}
             </div>

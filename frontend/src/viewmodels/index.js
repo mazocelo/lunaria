@@ -1,7 +1,8 @@
 // Exportação de todos os ViewModels
 export { HistoriaViewModel, historiaViewModel } from './Historias/HistoriaViewModel';
 export { PersonagemViewModel, personagemViewModel } from './Personagens/PersonagemViewModel';
-
+export * from './Racas';
+export * from './Classes';
 // Factory para criação de ViewModels
 export class ViewModelFactory {
   /**

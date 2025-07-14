@@ -1,23 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
 
-const FormHabilidade = ({
+const FormVantagem = ({
   label,
   value = [],
   onChange,
   name,
   options = [],
-  placeholder = 'Selecione as habilidades',
+            placeholder = 'Selecione as vantagens e desvantagens',
   required = false,
   disabled = false,
   className = '',
   error,
   pontosRestantes = 0,
-  habilidadeError = null
+  vantagemError = null
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const selectId = `habilidade-${name}`;
+  const selectId = `vantagem-${name}`;
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredOption, setHoveredOption] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -36,10 +36,10 @@ const FormHabilidade = ({
     };
   }, []);
 
-  // Soma custo das habilidades selecionadas
+  // Soma custo das vantagens selecionadas
   const custoTotal = value.reduce((acc, id) => {
-    const hab = options.find(h => h.value === id);
-    return acc + (hab ? Number(hab.custo) || 0 : 0);
+    const vant = options.find(v => v.value === id);
+    return acc + (vant ? Number(vant.custo) || 0 : 0);
   }, 0);
 
   // Handler de seleção múltipla
@@ -61,10 +61,10 @@ const FormHabilidade = ({
     onChange({ target: { name, value: newValue } });
   };
 
-  // Handler para remover habilidade pelo chip
+  // Handler para remover vantagem pelo chip
   const handleRemoveChip = (id) => {
     if (disabled) return;
-    const newValue = value.filter(habId => habId !== id);
+    const newValue = value.filter(vantId => vantId !== id);
     onChange({ target: { name, value: newValue } });
   };
 
@@ -80,7 +80,7 @@ const FormHabilidade = ({
         </label>
       )}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-slate-400 font-modern">Pontos restantes para habilidades: <span className="font-bold text-cyan-400">{pontosRestantes - custoTotal}</span></span>
+        <span className="text-xs text-slate-400 font-modern">Pontos restantes para vantagens/desvantagens: <span className="font-bold text-cyan-400">{pontosRestantes - custoTotal}</span></span>
       </div>
       <div className="relative" ref={dropdownRef}>
         {/* Select customizado */}
@@ -96,16 +96,20 @@ const FormHabilidade = ({
               <span className="text-slate-400">{placeholder}</span>
             ) : (
               value.map(id => {
-                const hab = options.find(h => h.value === id);
-                return hab ? (
-                  <span key={id} className="bg-cyan-700/80 text-white rounded px-2 py-0.5 text-xs font-semibold flex items-center gap-1">
-                    {hab.label} {hab.custo ? <span className="text-cyan-300">({hab.custo} pts)</span> : null}
+                const vant = options.find(v => v.value === id);
+                return vant ? (
+                  <span key={id} className={`rounded px-2 py-0.5 text-xs font-semibold flex items-center gap-1 ${
+                    vant.tipo === 'desvantagem' 
+                      ? 'bg-red-700/80 text-white' 
+                      : 'bg-cyan-700/80 text-white'
+                  }`}>
+                    {vant.label} {vant.custo ? <span className={vant.tipo === 'desvantagem' ? 'text-red-300' : 'text-cyan-300'}>({vant.custo} pts)</span> : null}
                     <button
                       type="button"
                       className="ml-1 text-white/70 hover:text-red-400 focus:outline-none text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full transition-colors duration-150"
                       onClick={e => { e.stopPropagation(); handleRemoveChip(id); }}
                       tabIndex={-1}
-                      aria-label="Remover habilidade"
+                      aria-label="Remover vantagem"
                     >
                       ×
                     </button>
@@ -120,7 +124,7 @@ const FormHabilidade = ({
         {isOpen && !disabled && (
           <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {options.length === 0 ? (
-              <div className="px-4 py-2 text-slate-400 text-sm">Nenhuma habilidade disponível</div>
+              <div className="px-4 py-2 text-slate-400 text-sm">Nenhuma vantagem/desvantagem disponível</div>
             ) : (
               options.map((option) => {
                 const isSelected = value.includes(option.value);
@@ -139,10 +143,16 @@ const FormHabilidade = ({
                     onMouseLeave={() => setHoveredOption(null)}
                   >
                     <span className="font-medium flex-1">{option.label}</span>
-                    {option.custo && (
-                      <span className="text-cyan-400 text-sm ml-2">{option.custo} pts</span>
-                    )}
-                    {isSelected && <span className="ml-2 text-cyan-300">✓</span>}
+                    <div className="flex items-center space-x-2">
+                      {option.custo && (
+                        <span className={`text-sm ml-2 ${
+                          option.tipo === 'desvantagem' ? 'text-red-400' : 'text-cyan-400'
+                        }`}>
+                          {option.custo} pts
+                        </span>
+                      )}
+                      {isSelected && <span className="text-cyan-300">✓</span>}
+                    </div>
                   </div>
                 );
               })
@@ -159,9 +169,22 @@ const FormHabilidade = ({
               transform: 'translateY(-100%)'
             }}
           >
-            <div className="font-semibold mb-1">{hoveredOption.label}</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-semibold">{hoveredOption.label}</div>
+              {hoveredOption.tipo && (
+                <span className={`text-xs px-2 py-1 rounded font-medium ${
+                  hoveredOption.tipo === 'desvantagem' 
+                    ? 'bg-red-500/20 text-red-300' 
+                    : 'bg-cyan-500/20 text-cyan-300'
+                }`}>
+                  {hoveredOption.tipo === 'desvantagem' ? 'Desvantagem' : 'Vantagem'}
+                </span>
+              )}
+            </div>
             {hoveredOption.custo && (
-              <div className="text-cyan-400 text-xs mb-2">
+              <div className={`text-xs mb-2 ${
+                hoveredOption.tipo === 'desvantagem' ? 'text-red-400' : 'text-cyan-400'
+              }`}>
                 Custo: {hoveredOption.custo} pontos
               </div>
             )}
@@ -172,8 +195,8 @@ const FormHabilidade = ({
           </div>
         )}
       </div>
-      {habilidadeError && (
-        <div className="mt-2 text-xs text-red-400 font-modern animate-pulse">{habilidadeError}</div>
+      {vantagemError && (
+        <div className="mt-2 text-xs text-red-400 font-modern animate-pulse">{vantagemError}</div>
       )}
       {error && (
         <p className="mt-1 text-xs text-red-400 font-modern">{error}</p>
@@ -182,4 +205,4 @@ const FormHabilidade = ({
   );
 };
 
-export default FormHabilidade; 
+export default FormVantagem; 

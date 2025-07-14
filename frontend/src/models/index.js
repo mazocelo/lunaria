@@ -2,6 +2,9 @@
 export { Historia } from './Historia';
 export { Personagem } from './Personagem';
 export { Tema } from './Tema';
+export { Raca } from './Raca';
+export { Classe } from './Classe';
+export { VantagemDesvantagem } from './VantagemDesvantagem';
 
 // Factory para criação de modelos
 export class ModelFactory {
@@ -19,6 +22,12 @@ export class ModelFactory {
         return new Personagem(data);
       case 'tema':
         return new Tema(data);
+      case 'raca':
+        return new Raca(data);
+      case 'classe':
+        return new Classe(data);
+      case 'vantagem-desvantagem':
+        return new VantagemDesvantagem(data);
       default:
         throw new Error(`Tipo de modelo desconhecido: ${type}`);
     }
@@ -38,6 +47,12 @@ export class ModelFactory {
         return Personagem.fromAPI(apiData);
       case 'tema':
         return Tema.fromAPI(apiData);
+      case 'raca':
+        return Raca.fromApi(apiData);
+      case 'classe':
+        return Classe.fromApi(apiData);
+      case 'vantagem-desvantagem':
+        return VantagemDesvantagem.fromApi(apiData);
       default:
         throw new Error(`Tipo de modelo desconhecido: ${type}`);
     }

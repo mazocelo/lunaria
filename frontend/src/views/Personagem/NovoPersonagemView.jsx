@@ -5,31 +5,26 @@ import Button from '../../components/form/button';
 import FormSelect from '../../components/form/FormSelect';
 import FormTextarea from '../../components/form/FormTextarea';
 import FormRadioGroup from '../../components/form/FormRadioGroup';
-import FormHabilidade from '../../components/form/FormHabilidade';
+import FormVantagem from '../../components/form/FormVantagem';
 import FormSelectDescricao from '../../components/form/FormSelectDescricao';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from '../../viewmodels/Personagens/NovoPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 
-// Opções de exemplo para Classe, Raça e Profissão
+// Opções de exemplo para Classe, Raça e Profissão (fallback caso API não esteja disponível)
 const opcoesClasse = [
-  { value: 'guerreiro', label: 'Guerreiro', descricao: 'Especialista em combate corpo a corpo, forte e resistente.' },
-  { value: 'mago', label: 'Mago', descricao: 'Usuário de magia arcana, domina feitiços poderosos.' },
-  { value: 'arqueiro', label: 'Arqueiro', descricao: 'Especialista em ataques à distância e furtividade.' },
-  { value: 'ladino', label: 'Ladino', descricao: 'Ágil, mestre em furtividade e armadilhas.' }
+  { value: 'guerreiro', label: 'Guerreiro', descricao: 'Especialista em combate corpo a corpo, forte e resistente.', custo: 0 },
+  { value: 'mago', label: 'Mago', descricao: 'Usuário de magia arcana, domina feitiços poderosos.', custo: 2 },
+  { value: 'arqueiro', label: 'Arqueiro', descricao: 'Especialista em ataques à distância e furtividade.', custo: 1 },
+  { value: 'ladino', label: 'Ladino', descricao: 'Ágil, mestre em furtividade e armadilhas.', custo: 1 }
 ];
 const opcoesRaca = [
-  { value: 'humano', label: 'Humano', descricao: 'Versátil e adaptável, aprende rápido.' },
-  { value: 'elfo', label: 'Elfo', descricao: 'Ágil, com sentidos aguçados e afinidade com magia.' },
-  { value: 'anao', label: 'Anão', descricao: 'Resistente, mestre em forja e combate pesado.' },
-  { value: 'orc', label: 'Orc', descricao: 'Forte, feroz e com grande vigor físico.' }
+  { value: 'humano', label: 'Humano', descricao: 'Versátil e adaptável, aprende rápido.', custo: 0 },
+  { value: 'elfo', label: 'Elfo', descricao: 'Ágil, com sentidos aguçados e afinidade com magia.', custo: 2 },
+  { value: 'anao', label: 'Anão', descricao: 'Resistente, mestre em forja e combate pesado.', custo: 1 },
+  { value: 'orc', label: 'Orc', descricao: 'Forte, feroz e com grande vigor físico.', custo: 3 }
 ];
-const opcoesProfissao = [
-  { value: 'ferreiro', label: 'Ferreiro', descricao: 'Especialista em criar e reparar armas e armaduras.' },
-  { value: 'alquimista', label: 'Alquimista', descricao: 'Mestre em poções, elixires e explosivos.' },
-  { value: 'curandeiro', label: 'Curandeiro', descricao: 'Especialista em cura e suporte ao grupo.' },
-  { value: 'mercador', label: 'Mercador', descricao: 'Hábil em negociações e comércio.' }
-];
+
 
 const NovoPersonagemView = () => {
   const vm = useViewModel(novoPersonagemViewModel);
@@ -40,7 +35,9 @@ const NovoPersonagemView = () => {
   useEffect(() => {
     vm.clearError();
     vm.resetPontos();
-    vm.loadHabilidades({ nivel: 1 });
+    vm.loadVantagens({ nivel: 1 });
+    vm.loadHistorias();
+    vm.loadOpcoes();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -52,12 +49,12 @@ const NovoPersonagemView = () => {
     const { name, value } = e.target;
     const fieldMappings = {
       nome: vm.setNome,
+      historia_id: vm.setHistoriaId,
       raca: vm.setRaca,
       classe: vm.setClasse,
-      profissao: vm.setProfissao,
       backgroundTipo: vm.setBackgroundTipo,
       background: vm.setBackground,
-      habilidades: vm.setHabilidades,
+      vantagens: vm.setVantagens,
       equipamentos: vm.setEquipamentos
     };
     if (name in vm.atributos) {
@@ -67,10 +64,10 @@ const NovoPersonagemView = () => {
     }
   };
 
-  // Handler especial para habilidades múltiplas
-  const handleHabilidadesChange = (e) => {
+  // Handler especial para vantagens múltiplas
+  const handleVantagensChange = (e) => {
     // value é um array de IDs
-    vm.setHabilidades(e.target.value);
+    vm.setVantagens(e.target.value);
   };
 
   return (
@@ -126,34 +123,37 @@ const NovoPersonagemView = () => {
           required
         />
 
-        {/* Raça / Classe / Profissão */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Raça / Classe */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <FormSelectDescricao
             label="Raça"
             name="raca"
             value={vm.raca}
             onChange={handleChange}
-            options={opcoesRaca}
-            placeholder="Selecione a raça"
+            options={vm.racasDisponiveis?.length > 0 ? vm.racasDisponiveis.map(raca => ({
+              value: raca.id,
+              label: raca.nome,
+              descricao: raca.descricao,
+              custo: raca.custo
+            })) : opcoesRaca}
+            placeholder={vm.loadingOpcoes ? "Carregando raças..." : "Selecione a raça"}
             required
+            disabled={vm.loadingOpcoes}
           />
           <FormSelectDescricao
             label="Classe"
             name="classe"
             value={vm.classe}
             onChange={handleChange}
-            options={opcoesClasse}
-            placeholder="Selecione a classe"
+            options={vm.classesDisponiveis?.length > 0 ? vm.classesDisponiveis.map(classe => ({
+              value: classe.id,
+              label: classe.nome,
+              descricao: classe.descricao,
+              custo: classe.custo
+            })) : opcoesClasse}
+            placeholder={vm.loadingOpcoes ? "Carregando classes..." : "Selecione a classe"}
             required
-          />
-          <FormSelectDescricao
-            label="Profissão"
-            name="profissao"
-            value={vm.profissao}
-            onChange={handleChange}
-            options={opcoesProfissao}
-            placeholder="Selecione a profissão"
-            required
+            disabled={vm.loadingOpcoes}
           />
         </div>
 
@@ -161,12 +161,12 @@ const NovoPersonagemView = () => {
         <div>
           <label className="block font-semibold mb-2 text-white font-modern">Atributos</label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-            {Object.keys(vm.atributos).map((attr) => (
+            {Object.keys(vm.state.atributos || {}).map((attr) => (
               <InputSimples
                 key={attr}
                 label={attr.charAt(0).toUpperCase() + attr.slice(1)}
                 name={attr}
-                value={vm.atributos[attr]}
+                value={vm.state.atributos[attr]}
                 onChange={handleChange}
                 type="number"
                 required
@@ -175,23 +175,24 @@ const NovoPersonagemView = () => {
           </div>
         </div>
 
-        {/* Habilidades */}
-        <FormHabilidade
-          name="habilidades"
-          label="Habilidades"
-          value={vm.habilidades}
-          onChange={handleHabilidadesChange}
-          options={vm.habilidadesDisponiveis?.map(habilidade => ({
-            value: habilidade.id,
-            label: habilidade.nome,
-            custo: habilidade.custo,
-            descricao: habilidade.descricao
+        {/* Vantagens */}
+        <FormVantagem
+          name="vantagens"
+          label="Vantagens"
+          value={vm.vantagens}
+          onChange={handleVantagensChange}
+          options={vm.vantagensDisponiveis?.map(vantagem => ({
+            value: vantagem.id,
+            label: vantagem.nome,
+            custo: vantagem.custo,
+            descricao: vantagem.descricao,
+            tipo: vantagem.tipo
           })) || []}
-          placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
+          placeholder={vm.loadingVantagens ? "Carregando vantagens..." : "Selecione as vantagens e desvantagens"}
           required
-          disabled={vm.loadingHabilidades}
+          disabled={vm.loadingVantagens}
           pontosRestantes={vm.pontosRestantes}
-          habilidadeError={vm.habilidadeError}
+          vantagemError={vm.vantagemError}
         />
 
         {/* Equipamentos */}
@@ -237,6 +238,21 @@ const NovoPersonagemView = () => {
             />
           )}
         </div>
+
+        {/* História */}
+        <FormSelect
+          label="História"
+          name="historia_id"
+          value={vm.historia_id}
+          onChange={handleChange}
+          options={vm.historiasDisponiveis?.map(historia => ({
+            value: historia.id,
+            label: historia.nome
+          })) || []}
+          placeholder={vm.loadingHistorias ? "Carregando histórias..." : "Selecione uma história"}
+          disabled={vm.loadingHistorias}
+          required
+        />
 
         {/* Botões de ação */}
         <div className="flex space-x-4 pt-4">

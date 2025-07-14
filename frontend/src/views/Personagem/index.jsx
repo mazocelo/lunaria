@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { personagemViewModel } from '../../viewmodels/Personagens/PersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
+import DataTable from '../../components/Table/DataTable.jsx';
+import StatCard from '../../components/StatCard.jsx';
 
 const PersonagemView = () => {
   const vm = useViewModel(personagemViewModel);
@@ -22,7 +24,7 @@ const PersonagemView = () => {
     }
   };
 
-  if (vm.loading) {
+  if (vm.loading && vm.personagens.length === 0) {
     return (
       <div className="animate-fade-in">
         <div className="card-rpg">
@@ -39,6 +41,114 @@ const PersonagemView = () => {
     );
   }
 
+  // Renderizador para ícone da classe
+  const renderClasseIcon = (personagem) => {
+    const classe = personagem.classe || 'Aventureiro';
+    const icon = classe === 'Guerreiro' ? '⚔️' : 
+                 classe === 'Mago' ? '🔮' : 
+                 classe === 'Arqueiro' ? '🏹' : '👤';
+    return (
+      <div className="flex items-center space-x-3">
+        <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+          <span className="text-sm">{icon}</span>
+        </div>
+        <div>
+          <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
+            {personagem.nome}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Renderizador para nível
+  const renderNivel = (personagem) => (
+    <div className="flex items-center space-x-2">
+      <span className="text-cyan-400 font-semibold">
+        {personagem.nivel || 1}
+      </span>
+      <span className="text-slate-400 text-sm">nível</span>
+    </div>
+  );
+
+  // Renderizador para HP
+  const renderHP = (personagem) => (
+    <div className="flex items-center space-x-2">
+      <span className="text-red-400 font-semibold">
+        {personagem.hp || 100}
+      </span>
+      <span className="text-slate-400 text-sm">HP</span>
+    </div>
+  );
+
+  const columns = [
+    { 
+      key: 'id', 
+      label: 'ID', 
+      align: 'left', 
+      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
+    },
+    { 
+      key: 'nome', 
+      label: 'Nome', 
+      align: 'left', 
+      render: renderClasseIcon
+    },
+    { 
+      key: 'classe', 
+      label: 'Classe', 
+      align: 'left', 
+      render: (row) => (
+        <span className={`${isLight ? 'text-slate-700' : 'text-white'} font-semibold font-modern`}>
+          {row.classe || 'Aventureiro'}
+        </span>
+      )
+    },
+    { 
+      key: 'raca', 
+      label: 'Raça', 
+      align: 'left', 
+      render: (row) => (
+        <span className="text-slate-300 font-modern">
+          {row.raca || 'Humano'}
+        </span>
+      )
+    },
+    { 
+      key: 'nivel', 
+      label: 'Nível', 
+      align: 'left', 
+      render: renderNivel
+    },
+    { 
+      key: 'hp', 
+      label: 'HP', 
+      align: 'left', 
+      render: renderHP
+    }
+  ];
+
+  const actions = [
+    {
+      label: 'Ver',
+      icon: '👁️',
+      color: 'purple',
+      onClick: (row) => window.location.href = `/ver-personagem/${row.id}`
+    },
+    {
+      label: 'Editar',
+      icon: '✏️',
+      color: 'cyan',
+      onClick: (row) => window.location.href = `/editar-personagem/${row.id}`
+    },
+    {
+      label: 'Deletar',
+      icon: '🗑️',
+      color: 'red',
+      onClick: (row) => handleDeletePersonagem(row.id)
+    }
+  ];
+
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header da página */}
@@ -54,7 +164,7 @@ const PersonagemView = () => {
         
         <Link to="/novo-personagem">
           <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
-            <span>⚔️</span>
+            <span>✨</span>
             <span>Novo Personagem</span>
           </button>
         </Link>
@@ -62,165 +172,39 @@ const PersonagemView = () => {
 
       {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card-rpg hover-lift">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 gradient-secondary rounded-lg flex items-center justify-center">
-              <span className="text-xl">⚔️</span>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{vm.estatisticas.total}</div>
-              <div className="text-sm text-slate-400 font-modern">Total de Personagens</div>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title="Total de Personagens"
+          value={vm.estatisticas?.total || 0}
+          icon="⚔️"
+          variant="primary"
+        />
 
-        <div className="card-rpg hover-lift">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center">
-            <span className="text-xl">🛡️</span>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-white">
-                {vm.estatisticas.guerreiros}
-              </div>
-              <div className="text-sm text-slate-400 font-modern">Guerreiros</div>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title="Guerreiros"
+          value={vm.estatisticas?.guerreiros || 0}
+          icon="🛡️"
+          variant="secondary"
+        />
 
-        <div className="card-rpg hover-lift">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center">
-              <span className="text-xl">🔮</span>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-white">
-                {vm.estatisticas.magos}
-              </div>
-              <div className="text-sm text-slate-400 font-modern">Magos</div>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title="Magos"
+          value={vm.estatisticas?.magos || 0}
+          icon="🔮"
+          variant="accent"
+        />
       </div>
 
-      {/* Grid de personagens */}
-      <div className="card-rpg">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-fantasy font-semibold text-white">
-            Seus Personagens
-          </h2>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
-            <span className="text-sm text-slate-400 font-modern">
-              {vm.personagens.length} personagens encontrados
-            </span>
-          </div>
-        </div>
-
-        {vm.personagens.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-3xl">⚔️</span>
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2 font-modern">
-              Nenhum personagem encontrado
-            </h3>
-            <p className="text-slate-400 font-modern mb-6">
-              Comece criando seu primeiro herói épico!
-            </p>
-            <Link to="/novo-personagem">
-              <button className="btn-rpg cursor-pointer">
-                Criar Primeiro Personagem
-              </button>
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table-rpg w-full min-w-[1100px]">
-              <thead>
-                <tr>
-                  <th className="font-fantasy px-4 py-3 text-left">ID</th>
-                  <th className="font-fantasy px-4 py-3 text-left">Nome</th>
-                  <th className="font-fantasy px-4 py-3 text-left">Classe</th>
-                  <th className="font-fantasy px-4 py-3 text-left">Raça</th>
-                  <th className="font-fantasy px-4 py-3 text-left">Nível</th>
-                  <th className="font-fantasy px-4 py-3 text-left">HP</th>
-                  <th className="font-fantasy px-4 py-3 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vm.personagens.map((personagem) => (
-                  <tr key={personagem.id} className="hover-lift">
-                    <td className="px-4 py-3 font-mono text-purple-400 text-left">#{personagem.id}</td>
-                    <td className="px-4 py-3 text-left">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-                          <span className="text-sm">
-                            {personagem.classe === 'Guerreiro' ? '⚔️' : 
-                             personagem.classe === 'Mago' ? '🔮' : 
-                             personagem.classe === 'Arqueiro' ? '🏹' : '👤'}
-                          </span>
-                        </div>
-                        <div>
-                          <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-                            {personagem.nome}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <span className={`${isLight ? 'text-slate-700' : 'text-white'} font-semibold font-modern`}>
-                        {personagem.classe || 'Aventureiro'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <span className="text-slate-300 font-modern">
-                        {personagem.raca || 'Humano'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-cyan-400 font-semibold">
-                          {personagem.nivel || 1}
-                        </span>
-                        <span className="text-slate-400 text-sm">nível</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-red-400 font-semibold">
-                          {personagem.hp || 100}
-                        </span>
-                        <span className="text-slate-400 text-sm">HP</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Link to={`/ver-personagem/${personagem.id}`}>
-                          <button className="p-2 rounded-lg bg-slate-700/50 hover:bg-purple-500/20 transition-colors cursor-pointer">
-                            <span className="text-sm">👁️</span>
-                          </button>
-                        </Link>
-                        <Link to={`/editar-personagem/${personagem.id}`}>
-                          <button className="p-2 rounded-lg bg-slate-700/50 hover:bg-cyan-500/20 transition-colors cursor-pointer">
-                            <span className="text-sm">✏️</span>
-                          </button>
-                        </Link>
-                        <button 
-                          onClick={() => handleDeletePersonagem(personagem.id)}
-                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-red-500/20 transition-colors cursor-pointer"
-                        >
-                          <span className="text-sm">🗑️</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Tabela de personagens */}
+      <DataTable
+        columns={columns}
+        data={vm.personagens}
+        actions={actions}
+        loading={vm.loading}
+        title="Lista de Personagens"
+        emptyMessage="Nenhum personagem encontrado"
+        emptyIcon="⚔️"
+        totalItems={vm.personagens.length}
+      />
     </div>
   );
 };

@@ -15,8 +15,13 @@ export class Personagem {
     this.destreza = data.destreza || 10;
     this.constituicao = data.constituicao || 10;
     this.inteligencia = data.inteligencia || 10;
-    this.sabedoria = data.sabedoria || 10;
+    this.agilidade = data.agilidade || 10;
     this.carisma = data.carisma || 10;
+    this.sugestao_background = data.sugestao_background || 'guiado';
+    this.background = data.background || '';
+    this.atributos = data.atributos || {};
+    this.vantagens = data.vantagens || [];
+    this.equipamentos = data.equipamentos || '';
     this.historia_id = data.historia_id || null;
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
@@ -54,7 +59,7 @@ export class Personagem {
     }
 
     // Validar atributos (1-20)
-    const atributos = ['forca', 'destreza', 'constituicao', 'inteligencia', 'sabedoria', 'carisma'];
+    const atributos = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
     atributos.forEach(atributo => {
       if (this[atributo] < 1 || this[atributo] > 20) {
         errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 20`);
@@ -112,8 +117,13 @@ export class Personagem {
       destreza: this.destreza,
       constituicao: this.constituicao,
       inteligencia: this.inteligencia,
-      sabedoria: this.sabedoria,
+      agilidade: this.agilidade,
       carisma: this.carisma,
+      sugestao_background: this.sugestao_background,
+      background: this.background,
+      atributos: this.atributos,
+      vantagens: this.vantagens,
+      equipamentos: this.equipamentos,
       historia_id: this.historia_id,
       created_at: this.created_at,
       updated_at: this.updated_at
@@ -138,8 +148,13 @@ export class Personagem {
       destreza: apiData.destreza,
       constituicao: apiData.constituicao,
       inteligencia: apiData.inteligencia,
-      sabedoria: apiData.sabedoria,
+      agilidade: apiData.agilidade,
       carisma: apiData.carisma,
+      sugestao_background: apiData.sugestao_background,
+      background: apiData.background,
+      atributos: apiData.atributos,
+      vantagens: apiData.vantagens,
+      equipamentos: apiData.equipamentos,
       historia_id: apiData.historia_id,
       created_at: apiData.created_at,
       updated_at: apiData.updated_at

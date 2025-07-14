@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel.js';
 import { historiaViewModel } from '../../viewmodels/index.js';
 import { StatCard, LoadingSpinner, Notification, ConfirmationModal } from '../../components/index.js';
-import Table from '../../components/Table/Table.jsx';
+import DataTable from '../../components/Table/DataTable.jsx';
 import { useTheme } from '../../contexts/theme.jsx';
 
 /**
@@ -20,7 +20,8 @@ export const HistoriaView = () => {
     estatisticas,
     loadHistorias,
     clearError,
-    deleteHistoria
+    deleteHistoria,
+    getNomesTemas
   } = viewModel;
 
   const { theme } = useTheme();
@@ -72,6 +73,97 @@ export const HistoriaView = () => {
     setDeleteLoading(false);
   };
 
+  // Função para navegar para ver história
+  const handleViewHistoria = (historia) => {
+    navigate(`/historias/${historia.id}`);
+  };
+
+  // Função para iniciar sessão
+  const handlePlayHistoria = (historia) => {
+    navigate(`/jogo/${historia.id}`);
+  };
+
+  // Renderizador para temas
+  const renderTemas = (historia) => {
+    const nomesTemas = getNomesTemas ? getNomesTemas(historia) : [];
+    return (
+      <div className="flex flex-wrap gap-1">
+        {nomesTemas.length > 0
+          ? nomesTemas.map((nomeTema, i) => (
+              <span 
+                key={i} 
+                className={`px-2 py-1 text-xs rounded-full ${
+                  isLight 
+                    ? 'bg-slate-200/50 text-slate-700' 
+                    : 'bg-slate-700/50 text-slate-300'
+                } font-modern`}
+              >
+                {nomeTema}
+              </span>
+            ))
+          : <span className="text-slate-500 text-xs">Sem tema</span>
+        }
+      </div>
+    );
+  };
+
+  // Renderizador para máximo de participantes
+  const renderMaxParticipantes = (historia) => (
+    <div className="flex items-center space-x-2">
+      <span className="text-cyan-400 font-semibold">
+        {historia.maximo_de_participantes || 0}
+      </span>
+      <span className="text-slate-400 text-sm">jogadores</span>
+    </div>
+  );
+
+  const columns = [
+    { 
+      key: 'id', 
+      label: 'ID', 
+      align: 'left', 
+      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
+    },
+    { 
+      key: 'nome', 
+      label: 'Nome da História', 
+      align: 'left'
+    },
+    { 
+      key: 'temas', 
+      label: 'Temas', 
+      align: 'left', 
+      render: renderTemas
+    },
+    { 
+      key: 'maximo_de_participantes', 
+      label: 'Máximo de Participantes', 
+      align: 'left', 
+      render: renderMaxParticipantes
+    }
+  ];
+
+  const actions = [
+    {
+      label: 'Iniciar Sessão',
+      icon: '🎮',
+      color: 'green',
+      onClick: (row) => handlePlayHistoria(row)
+    },
+    {
+      label: 'Ver',
+      icon: '👁️',
+      color: 'purple',
+      onClick: (row) => handleViewHistoria(row)
+    },
+    {
+      label: 'Deletar',
+      icon: '🗑️',
+      color: 'red',
+      onClick: (row) => handleDeleteClick(row)
+    }
+  ];
+
   if (loading && historias.length === 0) {
     return (
       <div className="animate-fade-in">
@@ -120,92 +212,37 @@ export const HistoriaView = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Total de Histórias"
-          value={estatisticas.total}
+          value={estatisticas?.total || 0}
           icon="📚"
           variant="primary"
         />
 
         <StatCard
           title="Vagas Disponíveis"
-          value={estatisticas.totalParticipantes}
+          value={estatisticas?.totalParticipantes || 0}
           icon="🎭"
           variant="secondary"
         />
 
         <StatCard
           title="Com Temas"
-          value={estatisticas.comTemas}
+          value={estatisticas?.comTemas || 0}
           icon="⚡"
           variant="accent"
         />
       </div>
 
       {/* Tabela de histórias */}
-      <div className="card-rpg">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={`text-xl font-fantasy font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            Lista de Histórias
-          </h2>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
-            <span className="text-sm text-slate-400 font-modern">
-              {historias.length} histórias encontradas
-            </span>
-          </div>
-        </div>
-
-        {historias.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-3xl">📖</span>
-            </div>
-            <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              Nenhuma história encontrada
-            </h3>
-            <p className="text-slate-400 font-modern mb-6">
-              Comece criando sua primeira aventura épica!
-            </p>
-            <Link to="/nova-historia">
-              <button className="btn-rpg cursor-pointer">
-                Criar Primeira História
-              </button>
-            </Link>
-          </div>
-        ) : (
-          <Table
-            columns={[
-              { key: 'id', label: 'ID', align: 'left', render: (row) => `#${row.id}` },
-              { key: 'nome', label: 'Nome da História', align: 'left' },
-              { key: 'temas', label: 'Temas', align: 'left', render: (row) => {
-                const nomesTemas = viewModel.getNomesTemas(row);
-                return (
-                  <div className="flex flex-wrap gap-1">
-                    {nomesTemas.length > 0
-                      ? nomesTemas.map((nomeTema, i) => (
-                          <span key={i} className="px-2 py-1 text-xs rounded-full bg-slate-700/50 text-slate-300 font-modern">{nomeTema}</span>
-                        ))
-                      : <span className="text-slate-500 text-xs">Sem tema</span>
-                    }
-                  </div>
-                );
-              } },
-              { key: 'maximo_de_participantes', label: 'Máximo de Participantes', align: 'left', render: (row) => (
-                <div className="flex items-center space-x-2">
-                  <span className="text-cyan-400 font-semibold">{row.maximo_de_participantes || 0}</span>
-                  <span className="text-slate-400 text-sm">jogadores</span>
-                </div>
-              ) },
-            ]}
-            data={historias}
-            keyField="id"
-            actions={[
-              { label: 'Iniciar Sessão', icon: '🎮', onClick: (row) => navigate(`/jogo/${row.id}`), color: 'green' },
-              { label: 'Ver', icon: '👁️', onClick: (row) => navigate(`/historias/${row.id}`), color: 'purple' },
-              { label: 'Deletar', icon: '🗑️', onClick: (row) => handleDeleteClick(row), color: 'red' },
-            ]}
-          />
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={historias}
+        actions={actions}
+        loading={loading}
+        title="Lista de Histórias"
+        emptyMessage="Nenhuma história encontrada"
+        emptyIcon="📖"
+        totalItems={historias.length}
+      />
 
       {/* Modal de Confirmação */}
       <ConfirmationModal

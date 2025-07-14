@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { useTheme } from './contexts/theme.jsx'
 import Sidebar from './components/sidebar'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
-import { HistoriaView, NovaHistoriaView, VerHistoriaView, PersonagemView, NovoPersonagemView, EditarPersonagemView, VerPersonagemView, JogoView } from './views'
+import { HistoriaView, NovaHistoriaView, VerHistoriaView, PersonagemView, NovoPersonagemView, EditarPersonagemView, VerPersonagemView, JogoView, RacaView, NovaRacaView, EditarRacaView, VerRacaView, ClasseView, NovaClasseView, EditarClasseView, VerClasseView, VantagemView, NovaVantagemView, EditarVantagemView, VerVantagemView, DesvantagemView, NovaDesvantagemView, VerDesvantagemView } from './views'
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -75,6 +75,29 @@ function App() {
               <Route path="/novo-personagem" element={<NovoPersonagemView />} />
               <Route path="/editar-personagem/:id" element={<EditarPersonagemView />} />
               <Route path="/ver-personagem/:id" element={<VerPersonagemView />} />
+
+              {/* Rotas MVVM - Raças */}
+              <Route path="/racas" element={<RacaView />} />
+              <Route path="/criar-raca" element={<NovaRacaView />} />
+              <Route path="/editar-raca/:id" element={<EditarRacaView />} />
+              <Route path="/ver-raca/:id" element={<VerRacaView />} />
+
+              {/* Rotas MVVM - Classes */}
+              <Route path="/classes" element={<ClasseView />} />
+              <Route path="/criar-classe" element={<NovaClasseView />} />
+              <Route path="/editar-classe/:id" element={<EditarClasseView />} />
+              <Route path="/ver-classe/:id" element={<VerClasseView />} />
+
+              {/* Rotas MVVM - Vantagens */}
+              <Route path="/vantagens" element={<VantagemView />} />
+              <Route path="/criar-vantagem" element={<NovaVantagemView />} />
+              <Route path="/editar-vantagem/:id" element={<EditarVantagemView />} />
+              <Route path="/ver-vantagem/:id" element={<VerVantagemView />} />
+
+              {/* Rotas MVVM - Desvantagens */}
+              <Route path="/desvantagens" element={<DesvantagemView />} />
+              <Route path="/criar-desvantagem" element={<NovaDesvantagemView />} />
+              <Route path="/ver-desvantagem/:id" element={<VerDesvantagemView />} />
             </Routes>
           </div>
         </main>

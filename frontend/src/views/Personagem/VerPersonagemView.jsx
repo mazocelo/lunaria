@@ -118,7 +118,7 @@ const VerPersonagemView = () => {
               </div>
 
               {/* Informações básicas */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className={`p-4 rounded-lg ${
                   isLight 
                     ? 'bg-slate-50 border border-slate-200' 
@@ -137,16 +137,6 @@ const VerPersonagemView = () => {
                   <div className="text-sm text-slate-400 font-modern mb-1">Raça</div>
                   <div className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
                     {personagem.raca || 'Humano'}
-                  </div>
-                </div>
-                <div className={`p-4 rounded-lg ${
-                  isLight 
-                    ? 'bg-slate-50 border border-slate-200' 
-                    : 'bg-slate-800/50 border border-slate-700'
-                }`}>
-                  <div className="text-sm text-slate-400 font-modern mb-1">Profissão</div>
-                  <div className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    {personagem.profissao || 'Aventureiro'}
                   </div>
                 </div>
               </div>
@@ -199,23 +189,32 @@ const VerPersonagemView = () => {
                 </div>
               </div>
 
-              {/* Habilidades */}
-              {personagem.habilidades && personagem.habilidades.length > 0 && (
+              {/* Vantagens */}
+              {personagem.vantagens && personagem.vantagens.length > 0 && (
                 <div>
                   <h3 className={`text-lg font-semibold font-fantasy mb-4 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    🎯 Habilidades
+                    ⭐ Vantagens
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {personagem.habilidades.map((habilidade, i) => (
+                    {personagem.vantagens.map((vantagem, i) => (
                       <span 
                         key={i} 
                         className={`px-3 py-1 rounded-full text-sm font-modern ${
-                          isLight 
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200' 
-                            : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          vantagem.tipo === 'desvantagem'
+                            ? isLight 
+                              ? 'bg-red-100 text-red-800 border border-red-200' 
+                              : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                            : isLight 
+                              ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' 
+                              : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
                         }`}
                       >
-                        {habilidade}
+                        {vantagem.nome || vantagem}
+                        {vantagem.tipo && (
+                          <span className="ml-1 text-xs opacity-75">
+                            ({vantagem.tipo === 'desvantagem' ? 'Desv' : 'Vant'})
+                          </span>
+                        )}
                       </span>
                     ))}
                   </div>

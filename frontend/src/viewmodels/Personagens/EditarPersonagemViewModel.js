@@ -1,14 +1,17 @@
 import { PersonagemService } from '../../services/PersonagemService';
-import { HabilidadeService } from '../../services/HabilidadeService';
+import { RacaService } from '../../services/RacaService';
+import { ClasseService } from '../../services/ClasseService';
+import { VantagemService } from '../../services/VantagemService';
+import { HistoriaService } from '../../services/HistoriaService';
 import { apiClient } from '../../services/ApiClient';
 
 const atributosIniciais = {
   forca: "",
   inteligencia: "",
-  carisma: "",
-  destreza: "",
   constituicao: "",
-  sabedoria: "",
+  agilidade: "",
+  destreza: "",
+  carisma: "",
 };
 
 const backgroundsGuiados = [
@@ -32,24 +35,32 @@ export class EditarPersonagemViewModel {
       nome: '',
       raca: '',
       classe: '',
-      profissao: '',
       backgroundTipo: 'guiado',
       background: '',
+      historia_id: null,
       atributos: { ...atributosIniciais },
-      habilidades: '',
+      vantagens: '',
       equipamentos: '',
       nivel: 1,
       hp: 100,
       loading: false,
       error: null,
       personagemId: null,
-      habilidadesDisponiveis: [],
-      loadingHabilidades: false
+      vantagensDisponiveis: [],
+      loadingVantagens: false,
+      historiasDisponiveis: [],
+      loadingHistorias: false,
+      racasDisponiveis: [],
+      classesDisponiveis: [],
+      loadingOpcoes: false
     };
     
     this.subscribers = [];
     this.personagemService = new PersonagemService(apiClient);
-    this.habilidadeService = new HabilidadeService(apiClient);
+    this.vantagemService = new VantagemService(apiClient);
+    this.historiaService = new HistoriaService(apiClient);
+    this.racaService = new RacaService(apiClient);
+    this.classeService = new ClasseService(apiClient);
   }
 
   getState() {
@@ -88,10 +99,6 @@ export class EditarPersonagemViewModel {
     this.setState({ classe });
   };
 
-  setProfissao = (profissao) => {
-    this.setState({ profissao });
-  };
-
   setBackgroundTipo = (backgroundTipo) => {
     this.setState({ backgroundTipo });
   };
@@ -100,8 +107,12 @@ export class EditarPersonagemViewModel {
     this.setState({ background });
   };
 
-  setHabilidades = (habilidades) => {
-    this.setState({ habilidades });
+  setHistoriaId = (historia_id) => {
+    this.setState({ historia_id });
+  };
+
+  setVantagens = (vantagens) => {
+    this.setState({ vantagens });
   };
 
   setEquipamentos = (equipamentos) => {
@@ -122,18 +133,70 @@ export class EditarPersonagemViewModel {
     });
   };
 
-  loadHabilidades = async () => {
-    this.setState({ loadingHabilidades: true });
+  loadVantagens = async () => {
+    this.setState({ loadingVantagens: true });
     try {
-      const habilidades = await this.habilidadeService.getAll();
+      const vantagens = await this.vantagemService.getAll();
       this.setState({ 
-        habilidadesDisponiveis: habilidades,
-        loadingHabilidades: false 
+        vantagensDisponiveis: vantagens,
+        loadingVantagens: false 
+      });
+    } catch (error) {
+      // Fallback para opções estáticas caso a API não esteja disponível
+      const opcoesVantagens = [
+        // Vantagens
+        { id: 1, nome: 'Visão Noturna', custo: 2, descricao: 'Pode ver no escuro como se fosse dia claro.', tipo: 'vantagem' },
+        { id: 2, nome: 'Imunidade a Veneno', custo: 3, descricao: 'Não é afetado por venenos de qualquer tipo.', tipo: 'vantagem' },
+        { id: 3, nome: 'Regeneração', custo: 4, descricao: 'Recupera pontos de vida automaticamente.', tipo: 'vantagem' },
+        { id: 4, nome: 'Telepatia', custo: 3, descricao: 'Pode se comunicar mentalmente com outros.', tipo: 'vantagem' },
+        { id: 5, nome: 'Voo', custo: 5, descricao: 'Pode voar livremente pelo ar.', tipo: 'vantagem' },
+        // Desvantagens
+        { id: 6, nome: 'Cegueira', custo: -3, descricao: 'Não pode ver, mas ganha pontos extras.', tipo: 'desvantagem' },
+        { id: 7, nome: 'Fraqueza', custo: -2, descricao: 'Menos resistente a dano físico.', tipo: 'desvantagem' },
+        { id: 8, nome: 'Medo de Altura', custo: -1, descricao: 'Fica paralisado em lugares altos.', tipo: 'desvantagem' },
+        { id: 9, nome: 'Alergia a Metais', custo: -2, descricao: 'Não pode usar equipamentos de metal.', tipo: 'desvantagem' },
+        { id: 10, nome: 'Amnésia', custo: -4, descricao: 'Esqueceu parte de seu passado.', tipo: 'desvantagem' }
+      ];
+      this.setState({ 
+        vantagensDisponiveis: opcoesVantagens,
+        loadingVantagens: false 
+      });
+    }
+  };
+
+  loadHistorias = async () => {
+    this.setState({ loadingHistorias: true });
+    try {
+      const historias = await this.historiaService.getAll();
+      this.setState({ 
+        historiasDisponiveis: historias,
+        loadingHistorias: false 
       });
     } catch (error) {
       this.setState({ 
-        error: `Erro ao carregar habilidades: ${error.message}`,
-        loadingHabilidades: false 
+        error: `Erro ao carregar histórias: ${error.message}`,
+        loadingHistorias: false 
+      });
+    }
+  };
+
+  loadOpcoes = async () => {
+    this.setState({ loadingOpcoes: true });
+    try {
+      // Buscar raças e classes separadamente
+      const [racas, classes] = await Promise.all([
+        this.racaService.getAll(),
+        this.classeService.getAll()
+      ]);
+      this.setState({ 
+        racasDisponiveis: racas,
+        classesDisponiveis: classes,
+        loadingOpcoes: false 
+      });
+    } catch (error) {
+      this.setState({ 
+        error: `Erro ao carregar opções: ${error.message}`,
+        loadingOpcoes: false 
       });
     }
   };
@@ -146,11 +209,11 @@ export class EditarPersonagemViewModel {
         nome: personagem.nome || '',
         raca: personagem.raca || '',
         classe: personagem.classe || '',
-        profissao: personagem.profissao || '',
-        backgroundTipo: personagem.backgroundTipo || 'guiado',
+        backgroundTipo: personagem.sugestao_background || 'guiado',
         background: personagem.background || '',
+        historia_id: personagem.historia_id || null,
         atributos: personagem.atributos || { ...atributosIniciais },
-        habilidades: personagem.habilidades || '',
+        vantagens: personagem.vantagens || '',
         equipamentos: personagem.equipamentos || '',
         nivel: personagem.nivel || 1,
         hp: personagem.hp || 100,
@@ -170,6 +233,11 @@ export class EditarPersonagemViewModel {
       return;
     }
     
+    if (!this.state.historia_id) {
+      this.setState({ error: 'A história é obrigatória' });
+      return;
+    }
+    
     if (!this.state.personagemId) {
       this.setState({ error: 'ID do personagem não encontrado' });
       return;
@@ -181,11 +249,11 @@ export class EditarPersonagemViewModel {
         nome: this.state.nome,
         raca: this.state.raca,
         classe: this.state.classe,
-        profissao: this.state.profissao,
-        backgroundTipo: this.state.backgroundTipo,
+        sugestao_background: this.state.backgroundTipo,
         background: this.state.background,
+        historia_id: this.state.historia_id,
         atributos: this.state.atributos,
-        habilidades: this.state.habilidades,
+        vantagens: this.state.vantagens,
         equipamentos: this.state.equipamentos,
         nivel: this.state.nivel,
         hp: this.state.hp,

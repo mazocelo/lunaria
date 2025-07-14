@@ -3,10 +3,25 @@ import { useNavigate, useParams } from 'react-router-dom';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import FormSelect from '../../components/form/FormSelect';
-import FormHabilidade from '../../components/form/FormHabilidade';
+import FormSelectDescricao from '../../components/form/FormSelectDescricao';
+import FormVantagem from '../../components/form/FormVantagem';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { editarPersonagemViewModel } from '../../viewmodels/Personagens/EditarPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
+
+// Opções de exemplo para Classe e Raça (fallback caso API não esteja disponível)
+const opcoesClasse = [
+  { value: 'guerreiro', label: 'Guerreiro', descricao: 'Especialista em combate corpo a corpo, forte e resistente.', custo: 0 },
+  { value: 'mago', label: 'Mago', descricao: 'Usuário de magia arcana, domina feitiços poderosos.', custo: 2 },
+  { value: 'arqueiro', label: 'Arqueiro', descricao: 'Especialista em ataques à distância e furtividade.', custo: 1 },
+  { value: 'ladino', label: 'Ladino', descricao: 'Ágil, mestre em furtividade e armadilhas.', custo: 1 }
+];
+const opcoesRaca = [
+  { value: 'humano', label: 'Humano', descricao: 'Versátil e adaptável, aprende rápido.', custo: 0 },
+  { value: 'elfo', label: 'Elfo', descricao: 'Ágil, com sentidos aguçados e afinidade com magia.', custo: 2 },
+  { value: 'anao', label: 'Anão', descricao: 'Resistente, mestre em forja e combate pesado.', custo: 1 },
+  { value: 'orc', label: 'Orc', descricao: 'Forte, feroz e com grande vigor físico.', custo: 3 }
+];
 
 const EditarPersonagemView = () => {
   const vm = useViewModel(editarPersonagemViewModel);
@@ -20,7 +35,9 @@ const EditarPersonagemView = () => {
       vm.loadPersonagem(id);
     }
     vm.clearError();
-    vm.loadHabilidades();
+    vm.loadVantagens();
+    vm.loadHistorias();
+    vm.loadOpcoes();
   }, [id]);
 
   const handleSubmit = async (e) => {
@@ -34,12 +51,12 @@ const EditarPersonagemView = () => {
     // Mapear campos para métodos do ViewModel
     const fieldMappings = {
       nome: vm.setNome,
+      historia_id: vm.setHistoriaId,
       raca: vm.setRaca,
       classe: vm.setClasse,
-      profissao: vm.setProfissao,
       backgroundTipo: vm.setBackgroundTipo,
       background: vm.setBackground,
-      habilidades: vm.setHabilidades,
+      vantagens: vm.setVantagens,
       equipamentos: vm.setEquipamentos,
       nivel: vm.setNivel,
       hp: vm.setHP
@@ -114,41 +131,36 @@ const EditarPersonagemView = () => {
           />
         </div>
 
-        {/* Raça / Classe / Profissão */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div>
-            <label className="block font-semibold mb-1 text-white font-modern">Raça</label>
-            <input
-              type="text"
-              name="raca"
-              value={vm.raca}
-              onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-              placeholder="Raça"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold mb-1 text-white font-modern">Classe</label>
-            <input
-              type="text"
-              name="classe"
-              value={vm.classe}
-              onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-              placeholder="Classe"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold mb-1 text-white font-modern">Profissão</label>
-            <input
-              type="text"
-              name="profissao"
-              value={vm.profissao}
-              onChange={handleChange}
-              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-              placeholder="Profissão"
-            />
-          </div>
+        {/* Raça / Classe */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <FormSelectDescricao
+            label="Raça"
+            name="raca"
+            value={vm.raca}
+            onChange={handleChange}
+            options={vm.racasDisponiveis?.length > 0 ? vm.racasDisponiveis.map(raca => ({
+              value: raca.id,
+              label: raca.nome,
+              descricao: raca.descricao,
+              custo: raca.custo
+            })) : opcoesRaca}
+            placeholder={vm.loadingOpcoes ? "Carregando raças..." : "Selecione a raça"}
+            disabled={vm.loadingOpcoes}
+          />
+          <FormSelectDescricao
+            label="Classe"
+            name="classe"
+            value={vm.classe}
+            onChange={handleChange}
+            options={vm.classesDisponiveis?.length > 0 ? vm.classesDisponiveis.map(classe => ({
+              value: classe.id,
+              label: classe.nome,
+              descricao: classe.descricao,
+              custo: classe.custo
+            })) : opcoesClasse}
+            placeholder={vm.loadingOpcoes ? "Carregando classes..." : "Selecione a classe"}
+            disabled={vm.loadingOpcoes}
+          />
         </div>
 
         {/* Background */}
@@ -266,20 +278,21 @@ const EditarPersonagemView = () => {
           </div>
         </div>
 
-        {/* Habilidades */}
-        <FormHabilidade
-          name="habilidades"
-          label="Habilidades"
-          value={vm.habilidades}
+        {/* Vantagens */}
+        <FormVantagem
+          name="vantagens"
+          label="Vantagens"
+          value={vm.vantagens}
           onChange={handleChange}
-          options={vm.habilidadesDisponiveis?.map(habilidade => ({ 
-            value: habilidade.id, 
-            label: habilidade.nome,
-            custo: habilidade.custo,
-            descricao: habilidade.descricao
+          options={vm.vantagensDisponiveis?.map(vantagem => ({ 
+            value: vantagem.id, 
+            label: vantagem.nome,
+            custo: vantagem.custo,
+            descricao: vantagem.descricao,
+            tipo: vantagem.tipo
           })) || []}
-          placeholder={vm.loadingHabilidades ? "Carregando habilidades..." : "Selecione as habilidades"}
-          disabled={vm.loadingHabilidades}
+          placeholder={vm.loadingVantagens ? "Carregando vantagens..." : "Selecione as vantagens e desvantagens"}
+          disabled={vm.loadingVantagens}
         />
 
         {/* Equipamentos */}
@@ -293,6 +306,25 @@ const EditarPersonagemView = () => {
             placeholder="Liste os equipamentos"
             rows={2}
           />
+        </div>
+
+        {/* História */}
+        <div>
+          <label className="block font-semibold mb-1 text-white font-modern">História</label>
+          <select
+            name="historia_id"
+            value={vm.historia_id || ''}
+            onChange={handleChange}
+            className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
+            required
+          >
+            <option value="">Selecione uma história</option>
+            {vm.historiasDisponiveis?.map((historia) => (
+              <option key={historia.id} value={historia.id}>
+                {historia.nome}
+              </option>
+            )) || []}
+          </select>
         </div>
 
         {/* Botões de ação */}

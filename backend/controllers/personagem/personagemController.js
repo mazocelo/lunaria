@@ -8,12 +8,65 @@ import { asyncHandler } from '../../middleware/errorHandler.js';
 class PersonagemController {
 
   /**
+   * Configuração dos includes para relacionamentos
+   * @returns {Array} - Array de configurações de include
+   */
+  getIncludesRelacionamentos() {
+    return [
+      {
+        model: db.Classe,
+        as: 'classe',
+        attributes: ['id', 'nome'],
+        required: false
+      },
+      {
+        model: db.Raca,
+        as: 'raca',
+        attributes: ['id', 'nome'],
+        required: false
+      }
+    ];
+  }
+
+  /**
+   * Buscar personagem com relacionamentos
+   * @param {number} id - ID do personagem
+   * @returns {Object} - Dados do personagem com relacionamentos
+   */
+  async buscarPersonagemComRelacionamentos(id) {
+    return await db.Personagem.findByPk(id, {
+      include: this.getIncludesRelacionamentos()
+    });
+  }
+
+  /**
+   * Processar dados do personagem para incluir nomes das entidades relacionadas
+   * @param {Object} personagem - Objeto do personagem
+   * @returns {Object} - Dados processados
+   */
+  processarDadosPersonagem(personagem) {
+    const personagemData = personagem.toJSON();
+    
+    // Adicionar nome da classe
+    if (personagemData.classe) {
+      personagemData.classe = personagemData.classe.nome;
+    }
+    
+    // Adicionar nome da raça
+    if (personagemData.raca) {
+      personagemData.raca = personagemData.raca.nome;
+    }
+    
+    return personagemData;
+  }
+
+  /**
    * Criar um novo personagem
    * @param {Object} req - Request object
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async criarPersonagem(req, res, next) {
+  criarPersonagem = async (req, res, next) => {
     try {
       console.log('👤 Criando novo personagem:', req.body);
 
@@ -34,7 +87,6 @@ class PersonagemController {
         historia_id,
         jogador_id,
         sugestao_background = '',
-        gerar_background = false,
         temas_disponiveis = []
       } = req.body;
 
@@ -64,15 +116,15 @@ class PersonagemController {
       let backgroundFinal = background;
 
       // Gerar background automaticamente se solicitado
-      console.log('📝 Gerando background automático...', gerar_background, background);
-      if (gerar_background && (!background || background.trim() === '')) {
+      console.log('📝 Gerando background automático...', sugestao_background, background);
+      if (sugestao_background == 'guiado') {
         console.log('📝 Gerando background automático...');
 
         // Buscar informações da história para contexto
         const historia = await db.Historia.findByPk(historia_id);
         if (!historia) {
-          return res.status(404).json({ 
-            error: 'História não encontrada' 
+          return res.status(404).json({
+            error: 'História não encontrada'
           });
         }
 
@@ -121,12 +173,16 @@ class PersonagemController {
 
       console.log('✅ Personagem criado:', novoPersonagem.id);
 
+      // Buscar o personagem recém-criado com os relacionamentos
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(novoPersonagem.id);
+      const personagemData = this.processarDadosPersonagem(personagemCompleto);
+
       res.status(201).json({
         success: true,
         message: 'Personagem criado com sucesso',
         data: {
-          ...novoPersonagem.toJSON(),
-          background_gerado: gerar_background && (!background || background.trim() === '')
+          ...personagemData,
+          background: backgroundFinal
         }
       });
 
@@ -142,7 +198,7 @@ class PersonagemController {
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async listarPersonagens(req, res, next) {
+  listarPersonagens = async (req, res, next) => {
     try {
       console.log('📋 Listando personagens...');
 
@@ -156,6 +212,7 @@ class PersonagemController {
 
       const personagens = await db.Personagem.findAll({
         where,
+        include: this.getIncludesRelacionamentos(),
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [['criado_em', 'DESC']]
@@ -163,11 +220,16 @@ class PersonagemController {
 
       const total = await db.Personagem.count({ where });
 
+      // Processar dados para incluir nomes das entidades relacionadas
+      const personagensProcessados = personagens.map(personagem => 
+        this.processarDadosPersonagem(personagem)
+      );
+
       console.log(`✅ ${personagens.length} personagens encontrados`);
 
       res.status(200).json({
         success: true,
-        data: personagens,
+        data: personagensProcessados,
         pagination: {
           total,
           limit: parseInt(limit),
@@ -188,13 +250,13 @@ class PersonagemController {
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async obterPersonagem(req, res, next) {
+  obterPersonagem = async (req, res, next) => {
     try {
       const { id } = req.params;
 
       console.log(`🔍 Buscando personagem ID: ${id}`);
 
-      const personagem = await db.Personagem.findByPk(id);
+      const personagem = await this.buscarPersonagemComRelacionamentos(id);
 
       if (!personagem) {
         return res.status(404).json({
@@ -202,11 +264,13 @@ class PersonagemController {
         });
       }
 
-      console.log('✅ Personagem encontrado');
+      const personagemData = this.processarDadosPersonagem(personagem);
+
+      console.log('✅ Personagem encontrado', personagemData);
 
       res.status(200).json({
         success: true,
-        data: personagem
+        data: personagemData
       });
 
     } catch (error) {
@@ -221,7 +285,7 @@ class PersonagemController {
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async atualizarPersonagem(req, res, next) {
+  atualizarPersonagem = async (req, res, next) => {
     try {
       const { id } = req.params;
       const dadosAtualizacao = req.body;
@@ -253,12 +317,16 @@ class PersonagemController {
 
       await personagem.save();
 
+      // Buscar o personagem atualizado com os relacionamentos
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
+      const personagemData = this.processarDadosPersonagem(personagemCompleto);
+
       console.log('✅ Personagem atualizado com sucesso');
 
       res.status(200).json({
         success: true,
         message: 'Personagem atualizado com sucesso',
-        data: personagem
+        data: personagemData
       });
 
     } catch (error) {
@@ -273,7 +341,7 @@ class PersonagemController {
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async excluirPersonagem(req, res, next) {
+  excluirPersonagem = async (req, res, next) => {
     try {
       const { id } = req.params;
 
@@ -308,7 +376,7 @@ class PersonagemController {
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async gerarBackground(req, res, next) {
+  gerarBackground = async (req, res, next) => {
     try {
       const { id } = req.params;
       const { temas_disponiveis = [], tipo = 'normal', sugestao_background = '' } = req.body;
@@ -365,13 +433,17 @@ class PersonagemController {
       personagem.atualizado_em = new Date();
       await personagem.save();
 
+      // Buscar o personagem atualizado com os relacionamentos
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
+      const personagemData = this.processarDadosPersonagem(personagemCompleto);
+
       console.log('✅ Background gerado e salvo');
 
       res.status(200).json({
         success: true,
         message: 'Background gerado com sucesso',
         data: {
-          ...personagem.toJSON(),
+          ...personagemData,
           background_gerado: resultadoBackground.background,
           tipo: tipo
         }
@@ -389,7 +461,7 @@ class PersonagemController {
    * @param {Object} res - Response object
    * @param {Function} next - Next middleware
    */
-  async listarPersonagensPorHistoria(req, res, next) {
+  listarPersonagensPorHistoria = async (req, res, next) => {
     try {
       const { historia_id } = req.params;
       const { status, limit = 20, offset = 0 } = req.query;
@@ -401,6 +473,7 @@ class PersonagemController {
 
       const personagens = await db.Personagem.findAll({
         where,
+        include: this.getIncludesRelacionamentos(),
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [['criado_em', 'DESC']]
@@ -408,11 +481,16 @@ class PersonagemController {
 
       const total = await db.Personagem.count({ where });
 
+      // Processar dados para incluir nomes das entidades relacionadas
+      const personagensProcessados = personagens.map(personagem => 
+        this.processarDadosPersonagem(personagem)
+      );
+
       console.log(`✅ ${personagens.length} personagens encontrados na história`);
 
       res.status(200).json({
         success: true,
-        data: personagens,
+        data: personagensProcessados,
         pagination: {
           total,
           limit: parseInt(limit),

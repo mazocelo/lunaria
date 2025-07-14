@@ -1,6 +1,6 @@
 import express from 'express';
 import personagemController from '../controllers/personagem/personagemController.js';
-import { asyncHandler } from '../middleware/errorHandler.js';
+import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
@@ -190,7 +190,7 @@ const router = express.Router();
  *       404:
  *         description: História não encontrada
  */
-router.post('/', asyncHandler(personagemController.criarPersonagem));
+router.post('/', asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -253,7 +253,7 @@ router.post('/', asyncHandler(personagemController.criarPersonagem));
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/', asyncHandler(personagemController.listarPersonagens));
+router.get('/', asyncHandlerWithContext(personagemController.listarPersonagens, personagemController));
 
 /**
  * @swagger
@@ -283,7 +283,7 @@ router.get('/', asyncHandler(personagemController.listarPersonagens));
  *       404:
  *         description: Personagem não encontrado
  */
-router.get('/:id', asyncHandler(personagemController.obterPersonagem));
+router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem, personagemController));
 
 /**
  * @swagger
@@ -367,7 +367,7 @@ router.get('/:id', asyncHandler(personagemController.obterPersonagem));
  *       404:
  *         description: Personagem não encontrado
  */
-router.put('/:id', asyncHandler(personagemController.atualizarPersonagem));
+router.put('/:id', asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -397,7 +397,7 @@ router.put('/:id', asyncHandler(personagemController.atualizarPersonagem));
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id', asyncHandler(personagemController.excluirPersonagem));
+router.delete('/:id', asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
 
 /**
  * @swagger
@@ -446,7 +446,7 @@ router.delete('/:id', asyncHandler(personagemController.excluirPersonagem));
  *       404:
  *         description: Personagem não encontrado
  */
-router.post('/:id/background', asyncHandler(personagemController.gerarBackground));
+router.post('/:id/background', asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
 
 /**
  * @swagger
@@ -507,6 +507,6 @@ router.post('/:id/background', asyncHandler(personagemController.gerarBackground
  *       404:
  *         description: História não encontrada
  */
-router.get('/historia/:historia_id', asyncHandler(personagemController.listarPersonagensPorHistoria));
+router.get('/historia/:historia_id', asyncHandlerWithContext(personagemController.listarPersonagensPorHistoria, personagemController));
 
 export default router; 

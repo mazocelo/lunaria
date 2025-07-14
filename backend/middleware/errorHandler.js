@@ -9,6 +9,13 @@ export const asyncHandler = (fn) => {
   };
 };
 
+// Middleware para capturar erros assíncronos com contexto preservado
+export const asyncHandlerWithContext = (fn, context) => {
+  return (req, res, next) => {
+    Promise.resolve(fn.call(context, req, res, next)).catch(next);
+  };
+};
+
 // Middleware de tratamento de erros
 export const errorHandler = (err, req, res, next) => {
   console.error('❌ Erro na aplicação:', err);

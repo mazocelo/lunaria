@@ -38,25 +38,20 @@ const FormVantagem = ({
 
   // Soma custo das vantagens selecionadas
   const custoTotal = value.reduce((acc, id) => {
-    const vant = options.find(v => v.value === id);
+    const vant = options.find(v => String(v.value) === String(id));
     return acc + (vant ? Number(vant.custo) || 0 : 0);
   }, 0);
 
   // Handler de seleção múltipla
   const handleSelect = (option) => {
     if (disabled) return;
-    const isSelected = value.includes(option.value);
+    const isSelected = value.includes(String(option.value));
     let newValue;
     if (isSelected) {
-      newValue = value.filter(id => id !== option.value);
+      newValue = value.filter(id => String(id) !== String(option.value));
     } else {
-      // Checar se há pontos suficientes
-      const custoNova = Number(option.custo) || 0;
-      if (custoTotal + custoNova > pontosRestantes) {
-        // Notificação visual será exibida pelo erro vindo do ViewModel
-        return;
-      }
-      newValue = [...value, option.value];
+      // Sem restrição de pontos - permitir qualquer seleção
+      newValue = [...value, String(option.value)];
     }
     onChange({ target: { name, value: newValue } });
   };
@@ -80,7 +75,7 @@ const FormVantagem = ({
         </label>
       )}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-slate-400 font-modern">Pontos restantes para vantagens/desvantagens: <span className="font-bold text-cyan-400">{pontosRestantes - custoTotal}</span></span>
+        <span className="text-xs text-slate-400 font-modern">Pontos utilizados em vantagens/desvantagens: <span className="font-bold text-cyan-400">{custoTotal}</span></span>
       </div>
       <div className="relative" ref={dropdownRef}>
         {/* Select customizado */}
@@ -96,7 +91,7 @@ const FormVantagem = ({
               <span className="text-slate-400">{placeholder}</span>
             ) : (
               value.map(id => {
-                const vant = options.find(v => v.value === id);
+                const vant = options.find(v => String(v.value) === String(id));
                 return vant ? (
                   <span key={id} className={`rounded px-2 py-0.5 text-xs font-semibold flex items-center gap-1 ${
                     vant.tipo === 'desvantagem' 
@@ -127,14 +122,12 @@ const FormVantagem = ({
               <div className="px-4 py-2 text-slate-400 text-sm">Nenhuma vantagem/desvantagem disponível</div>
             ) : (
               options.map((option) => {
-                const isSelected = value.includes(option.value);
-                const custoNova = Number(option.custo) || 0;
-                const semPontos = !isSelected && (custoTotal + custoNova > pontosRestantes);
+                const isSelected = value.includes(String(option.value));
                 return (
                   <div
                     key={option.value}
                     className={`px-4 py-2 cursor-pointer transition-colors flex items-center justify-between
-                      ${isSelected ? 'bg-purple-600/20 text-purple-300' : semPontos ? 'bg-slate-700/40 text-slate-500 cursor-not-allowed' : 'text-white hover:bg-slate-700'}`}
+                      ${isSelected ? 'bg-purple-600/20 text-purple-300' : 'text-white hover:bg-slate-700'}`}
                     onClick={() => handleSelect(option)}
                     onMouseEnter={(e) => {
                       setHoveredOption(option);

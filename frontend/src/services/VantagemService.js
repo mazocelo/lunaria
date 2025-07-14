@@ -17,32 +17,25 @@ export class VantagemService {
   async getAll(params) {
     try {
       const paramsString = generateGETparams(params);
-      console.log('VantagemService.getAll - fazendo requisição para:', this.baseUrl + paramsString);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      console.log('VantagemService.getAll - resposta completa:', response);
-      console.log('VantagemService.getAll - response.data:', response.data);
       
       // Verificação mais robusta da estrutura de resposta
       if (response.data) {
         // Se a resposta tem a estrutura esperada (success + data)
         if (response.data.success !== undefined) {
           if (response.data.success) {
-            console.log('VantagemService.getAll - dados retornados:', response.data?.data);
             return response.data?.data || [];
           } else {
-            console.log('VantagemService.getAll - erro na resposta:', response.data?.message);
             throw new Error(response.data?.message || 'Erro desconhecido');
           }
         } else {
           // Se não tem a estrutura success, assume que a resposta é direta
-          console.log('VantagemService.getAll - resposta direta:', response.data);
           return Array.isArray(response.data) ? response.data : [response.data];
         }
       } else {
         throw new Error('Resposta inválida da API');
       }
     } catch (error) {
-      console.error('VantagemService.getAll - erro:', error);
       throw new Error(`Erro ao buscar vantagens: ${error.message}`);
     }
   }

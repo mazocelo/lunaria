@@ -17,11 +17,10 @@ export class HistoriaService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      if(response.data.success){
-        // console.log(response.data?.data);
-        return response.data?.data.map(historiaData => Historia.fromAPI(historiaData));
+      if (response.success) {
+        return response.data
       }
-      else{
+      else {
         throw new Error(response.data.message);
       }
     } catch (error) {
@@ -37,10 +36,10 @@ export class HistoriaService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      if(response.data.success){
+      if (response.data.success) {
         return Historia.fromAPI(response.data?.data);
       }
-      else{
+      else {
         throw new Error(response.data.message);
       }
     } catch (error) {
@@ -61,7 +60,7 @@ export class HistoriaService {
         throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
       }
 
-      const response = await this.apiClient.post(this.baseUrl+'/create', historia.toJSON());
+      const response = await this.apiClient.post(this.baseUrl + '/create', historia.toJSON());
       return Historia.fromAPI(response.data);
     } catch (error) {
       throw new Error(`Erro ao criar história: ${error.message}`);

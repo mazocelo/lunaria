@@ -17,13 +17,19 @@ export class TemaService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      console.log('temas response:', response.data);
-      if(response.data?.success){
-        console.log('temas response:', response.data?.data);
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      
+      if (response.data) {
+        if (response.data.success !== undefined) {
+          if (response.data.success) {
+            return response.data?.data || [];
+          } else {
+            throw new Error(response.data?.message || 'Erro desconhecido');
+          }
+        } else {
+          return Array.isArray(response.data) ? response.data : [response.data];
+        }
+      } else {
+        throw new Error('Resposta inválida da API');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar temas: ${error.message}`);

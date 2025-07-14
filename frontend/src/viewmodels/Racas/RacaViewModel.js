@@ -1,11 +1,10 @@
 import { RacaService } from '../../services/RacaService';
 import { Raca } from '../../models/Raca';
-import { ApiClient } from '../../services/ApiClient';
+import { apiClient } from '../../services/ApiClient';
 
 export default class RacaViewModel {
   constructor() {
-    this.apiClient = new ApiClient();
-    this.racaService = new RacaService(this.apiClient);
+    this.racaService = new RacaService(apiClient);
     
     this.state = {
       racas: [],
@@ -29,8 +28,8 @@ export default class RacaViewModel {
   }
 
   notify() {
-    console.log('[RacaViewModel] Notificando subscribers, total:', this.subscribers.length);
-    this.subscribers.forEach(callback => callback(this.getState()));
+    const state = this.getState();
+    this.subscribers.forEach(callback => callback(state));
   }
 
   setState(newState) {
@@ -65,35 +64,26 @@ export default class RacaViewModel {
       };
 
       const response = await this.racaService.getAll(params);
-      // O service já retorna os dados processados
+      let racas = [];
       if (Array.isArray(response)) {
-        this.setState({
-          racas: response,
-          totalPages: 1,
-          loading: false
-        });
-      } else if (response && response.data && response.pagination) {  
-        this.setState({
-          racas: response.data,
-          totalPages: response.pagination.totalPages || 1,  
-          loading: false
-        });
-      } else {
-        this.setState({
-          racas: [],
-          totalPages: 1,
-          loading: false
-        });
+        racas = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        racas = response.data;
+      } else if (response && response.data && Array.isArray(response.data.data)) {
+        racas = response.data.data;
       }
+      this.setState({
+        racas,
+        totalPages: response?.pagination?.totalPages || 1,
+        loading: false
+      });
     } catch (error) {
-      // Fallback com dados de exemplo
-      console.log('RacaViewModel.loadRacas - ERROR:', error);
       this.setState({
         racas: [],
         totalPages: 1,
-        loading: false
+        loading: false,
+        error: `Erro ao carregar raças: ${error.message}`
       });
-
     }
   };
 

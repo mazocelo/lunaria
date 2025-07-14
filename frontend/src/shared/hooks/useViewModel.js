@@ -11,7 +11,6 @@ export function useViewModel(viewModel) {
 
   useEffect(() => {
     const unsubscribe = viewModel.subscribe(() => {
-      console.log('[useViewModel] Forçando re-render do React por mudança no ViewModel');
       setVersion(v => v + 1);
     });
     return unsubscribe;

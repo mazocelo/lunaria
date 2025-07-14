@@ -54,9 +54,8 @@ export class NovaHistoriaViewModel {
     this.notify();
   };
 
-  setTemasSelecionados = (temas) => { 
-    console.log('Temas selecionados:', temas);
-    this.temasSelecionados = temas; 
+  setTemasSelecionados = (temas) => {
+    this.temasSelecionados = temas;
     this.notify();
   };
 
@@ -70,7 +69,6 @@ export class NovaHistoriaViewModel {
     this.notify();
     try {
       const temasData = await this.temaService.getAll();
-      console.log('Temas carregados:', temasData);
       runInAction(() => {
         this.temas = temasData || [];
         this.notify();

@@ -17,32 +17,25 @@ export class RacaService {
   async getAll(params) {
     try {
       const paramsString = generateGETparams(params);
-      console.log('RacaService.getAll - fazendo requisição para:', this.baseUrl + paramsString);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      console.log('RacaService.getAll - resposta completa:', response);
-      console.log('RacaService.getAll - response.data:', response.data);
       
       // Verificação mais robusta da estrutura de resposta
       if (response.data) {
         // Se a resposta tem a estrutura esperada (success + data)
         if (response.data.success !== undefined) {
           if (response.data.success) {
-            console.log('RacaService.getAll - dados retornados:', response.data?.data);
             return response.data?.data || [];
           } else {
-            console.log('RacaService.getAll - erro na resposta:', response.data?.message);
             throw new Error(response.data?.message || 'Erro desconhecido');
           }
         } else {
           // Se não tem a estrutura success, assume que a resposta é direta
-          console.log('RacaService.getAll - resposta direta:', response.data);
           return Array.isArray(response.data) ? response.data : [response.data];
         }
       } else {
         throw new Error('Resposta inválida da API');
       }
     } catch (error) {
-      console.error('RacaService.getAll - erro:', error);
       throw new Error(`Erro ao buscar raças: ${error.message}`);
     }
   }

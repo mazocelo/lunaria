@@ -76,7 +76,6 @@ export const VerHistoriaView = () => {
   }
 
   const nomesTemas = viewModel.getNomesTemas(historiaAtual);
-  console.log(historiaAtual);
 
   return (
     <div className="animate-fade-in space-y-6">

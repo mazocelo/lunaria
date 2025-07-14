@@ -1,5 +1,6 @@
 import { PersonagemService } from '../../services/PersonagemService';
 import { VantagemService } from '../../services/VantagemService';
+import { DesvantagemService } from '../../services/DesvantagemService';
 import { HistoriaService } from '../../services/HistoriaService';
 import { RacaService } from '../../services/RacaService';
 import { ClasseService } from '../../services/ClasseService';
@@ -24,10 +25,6 @@ const backgroundsGuiados = [
   "Outro",
 ];
 
-function getRandomPontos() {
-  return Math.floor(Math.random() * 11) + 20; // 20 a 30
-}
-
 function somaAtributos(atributos) {
   return Object.values(atributos)
     .map((v) => Number(v) || 0)
@@ -42,6 +39,14 @@ function somaCustoVantagens(vantagensSelecionadas, vantagensDisponiveis) {
   }, 0);
 }
 
+function somaCustoDesvantagens(desvantagensSelecionadas, desvantagensDisponiveis) {
+  if (!Array.isArray(desvantagensSelecionadas)) return 0;
+  return desvantagensSelecionadas.reduce((acc, id) => {
+    const desv = desvantagensDisponiveis.find(d => d.id === id);
+    return acc + (desv ? Number(desv.custo) || 0 : 0);
+  }, 0);
+}
+
 export class NovoPersonagemViewModel {
   constructor() {
     this.state = {
@@ -50,16 +55,18 @@ export class NovoPersonagemViewModel {
       classe: '',
       backgroundTipo: 'guiado',
       background: '',
-      historia_id: null,
+      historia_id: '',
       atributos: { ...atributosIniciais },
-      vantagens: [], // agora array de IDs
+      vantagens: [],
+      desvantagens: [],
       equipamentos: '',
-      pontosTotais: getRandomPontos(),
       loading: false,
       error: null,
       vantagensDisponiveis: [],
+      desvantagensDisponiveis: [],
       loadingVantagens: false,
-      vantagemError: null, // erro visual de pontos
+      loadingDesvantagens: false,
+      vantagemError: null,
       historiasDisponiveis: [],
       loadingHistorias: false,
       racasDisponiveis: [],
@@ -70,6 +77,7 @@ export class NovoPersonagemViewModel {
     this.subscribers = [];
     this.personagemService = new PersonagemService(apiClient);
     this.vantagemService = new VantagemService(apiClient);
+    this.desvantagemService = new DesvantagemService(apiClient);
     this.historiaService = new HistoriaService(apiClient);
     this.racaService = new RacaService(apiClient);
     this.classeService = new ClasseService(apiClient);
@@ -78,14 +86,17 @@ export class NovoPersonagemViewModel {
   getState() {
     const pontosAtributos = somaAtributos(this.state.atributos);
     const pontosVantagens = somaCustoVantagens(this.state.vantagens, this.state.vantagensDisponiveis);
-    const pontosRestantes = this.state.pontosTotais - pontosAtributos - pontosVantagens;
-    return { 
+    const pontosDesvantagens = somaCustoDesvantagens(this.state.desvantagens, this.state.desvantagensDisponiveis);
+    const pontosUsados = pontosAtributos + pontosVantagens + pontosDesvantagens;
+    const state = { 
       ...this.state,
       pontosDistribuidos: pontosAtributos,
-      pontosRestantes: pontosRestantes,
-      pontosVantagensRestantes: pontosRestantes,
+      pontosVantagens: pontosVantagens,
+      pontosDesvantagens: pontosDesvantagens,
+      pontosUsados: pontosUsados,
       backgroundsGuiados
     };
+    return state;
   }
 
   subscribe(callback) {
@@ -96,7 +107,8 @@ export class NovoPersonagemViewModel {
   }
 
   notify() {
-    this.subscribers.forEach(callback => callback(this.getState()));
+    const state = this.getState();
+    this.subscribers.forEach(callback => callback(state));
   }
 
   setState(newState) {
@@ -109,11 +121,11 @@ export class NovoPersonagemViewModel {
   };
 
   setRaca = (raca) => {
-    this.setState({ raca });
+    this.setState({ raca: String(raca) });
   };
 
   setClasse = (classe) => {
-    this.setState({ classe });
+    this.setState({ classe: String(classe) });
   };
 
   setBackgroundTipo = (backgroundTipo) => {
@@ -125,20 +137,17 @@ export class NovoPersonagemViewModel {
   };
 
   setHistoriaId = (historia_id) => {
-    this.setState({ historia_id });
+    this.setState({ historia_id: String(historia_id) });
   };
 
   setVantagens = (vantagens) => {
-    // vantagens: array de IDs
     if (!Array.isArray(vantagens)) vantagens = [];
-    const pontosAtributos = somaAtributos(this.state.atributos);
-    const custoTotal = somaCustoVantagens(vantagens, this.state.vantagensDisponiveis);
-    const pontosRestantes = this.state.pontosTotais - pontosAtributos - custoTotal;
-    if (pontosRestantes < 0) {
-      this.setState({ vantagemError: 'Pontos insuficientes para selecionar esta vantagem.' });
-      return;
-    }
     this.setState({ vantagens, vantagemError: null });
+  };
+
+  setDesvantagens = (desvantagens) => {
+    if (!Array.isArray(desvantagens)) desvantagens = [];
+    this.setState({ desvantagens, vantagemError: null });
   };
 
   setEquipamentos = (equipamentos) => {
@@ -146,12 +155,6 @@ export class NovoPersonagemViewModel {
   };
 
   setAtributo = (atributo, valor) => {
-    const novoValor = Number(valor) || 0;
-    const outrosAtributos = { ...this.state.atributos, [atributo]: 0 };
-    const somaSemAtual = somaAtributos(outrosAtributos);
-    const custoVantagens = somaCustoVantagens(this.state.vantagens, this.state.vantagensDisponiveis);
-    // Não permitir que a soma ultrapasse pontosTotais
-    if (somaSemAtual + novoValor + custoVantagens > this.state.pontosTotais) return;
     this.setState({
       atributos: { ...this.state.atributos, [atributo]: valor }
     });
@@ -159,10 +162,13 @@ export class NovoPersonagemViewModel {
 
   resetPontos = () => {
     this.setState({
-      pontosTotais: getRandomPontos(),
       atributos: { ...atributosIniciais },
       vantagens: [],
-      vantagemError: null
+      desvantagens: [],
+      vantagemError: null,
+      raca: '',
+      classe: '',
+      historia_id: ''
     });
   };
 
@@ -170,25 +176,18 @@ export class NovoPersonagemViewModel {
     this.setState({ loadingVantagens: true });
     try {
       const vantagens = await this.vantagemService.getAll(params);
+      const vantagensProcessadas = Array.isArray(vantagens) ? vantagens : [];
       this.setState({ 
-        vantagensDisponiveis: vantagens,
+        vantagensDisponiveis: vantagensProcessadas,
         loadingVantagens: false 
       });
     } catch (error) {
-      // Fallback para opções estáticas caso a API não esteja disponível
       const opcoesVantagens = [
-        // Vantagens
         { id: 1, nome: 'Visão Noturna', custo: 2, descricao: 'Pode ver no escuro como se fosse dia claro.', tipo: 'vantagem' },
         { id: 2, nome: 'Imunidade a Veneno', custo: 3, descricao: 'Não é afetado por venenos de qualquer tipo.', tipo: 'vantagem' },
         { id: 3, nome: 'Regeneração', custo: 4, descricao: 'Recupera pontos de vida automaticamente.', tipo: 'vantagem' },
         { id: 4, nome: 'Telepatia', custo: 3, descricao: 'Pode se comunicar mentalmente com outros.', tipo: 'vantagem' },
-        { id: 5, nome: 'Voo', custo: 5, descricao: 'Pode voar livremente pelo ar.', tipo: 'vantagem' },
-        // Desvantagens
-        { id: 6, nome: 'Cegueira', custo: -3, descricao: 'Não pode ver, mas ganha pontos extras.', tipo: 'desvantagem' },
-        { id: 7, nome: 'Fraqueza', custo: -2, descricao: 'Menos resistente a dano físico.', tipo: 'desvantagem' },
-        { id: 8, nome: 'Medo de Altura', custo: -1, descricao: 'Fica paralisado em lugares altos.', tipo: 'desvantagem' },
-        { id: 9, nome: 'Alergia a Metais', custo: -2, descricao: 'Não pode usar equipamentos de metal.', tipo: 'desvantagem' },
-        { id: 10, nome: 'Amnésia', custo: -4, descricao: 'Esqueceu parte de seu passado.', tipo: 'desvantagem' }
+        { id: 5, nome: 'Voo', custo: 5, descricao: 'Pode voar livremente pelo ar.', tipo: 'vantagem' }
       ];
       this.setState({ 
         vantagensDisponiveis: opcoesVantagens,
@@ -197,12 +196,37 @@ export class NovoPersonagemViewModel {
     }
   };
 
+  loadDesvantagens = async (params) => {
+    this.setState({ loadingDesvantagens: true });
+    try {
+      const desvantagens = await this.desvantagemService.getAll(params);
+      const desvantagensProcessadas = Array.isArray(desvantagens) ? desvantagens : [];
+      this.setState({ 
+        desvantagensDisponiveis: desvantagensProcessadas,
+        loadingDesvantagens: false 
+      });
+    } catch (error) {
+      const opcoesDesvantagens = [
+        { id: 6, nome: 'Cegueira', custo: -3, descricao: 'Não pode ver, mas ganha pontos extras.', tipo: 'desvantagem' },
+        { id: 7, nome: 'Fraqueza', custo: -2, descricao: 'Menos resistente a dano físico.', tipo: 'desvantagem' },
+        { id: 8, nome: 'Medo de Altura', custo: -1, descricao: 'Fica paralisado em lugares altos.', tipo: 'desvantagem' },
+        { id: 9, nome: 'Alergia a Metais', custo: -2, descricao: 'Não pode usar equipamentos de metal.', tipo: 'desvantagem' },
+        { id: 10, nome: 'Amnésia', custo: -4, descricao: 'Esqueceu parte de seu passado.', tipo: 'desvantagem' }
+      ];
+      this.setState({ 
+        desvantagensDisponiveis: opcoesDesvantagens,
+        loadingDesvantagens: false 
+      });
+    }
+  };
+
   loadHistorias = async () => {
     this.setState({ loadingHistorias: true });
     try {
       const historias = await this.historiaService.getAll();
+      const historiasProcessadas = Array.isArray(historias) ? historias : [];
       this.setState({ 
-        historiasDisponiveis: historias,
+        historiasDisponiveis: historiasProcessadas,
         loadingHistorias: false 
       });
     } catch (error) {
@@ -216,14 +240,18 @@ export class NovoPersonagemViewModel {
   loadOpcoes = async () => {
     this.setState({ loadingOpcoes: true });
     try {
-      // Buscar raças e classes separadamente
       const [racas, classes] = await Promise.all([
         this.racaService.getAll(),
         this.classeService.getAll()
       ]);
+      
+      // Garantir que os dados tenham a estrutura correta
+      const racasProcessadas = Array.isArray(racas) ? racas : [];
+      const classesProcessadas = Array.isArray(classes) ? classes : [];
+      
       this.setState({ 
-        racasDisponiveis: racas,
-        classesDisponiveis: classes,
+        racasDisponiveis: racasProcessadas,
+        classesDisponiveis: classesProcessadas,
         loadingOpcoes: false 
       });
     } catch (error) {
@@ -236,20 +264,19 @@ export class NovoPersonagemViewModel {
 
   criarPersonagem = async (onSuccess) => {
     const pontosAtributos = somaAtributos(this.state.atributos);
-    const custoTotal = somaCustoVantagens(this.state.vantagens, this.state.vantagensDisponiveis);
-    const pontosRestantes = this.state.pontosTotais - pontosAtributos - custoTotal;
+    const custoVantagens = somaCustoVantagens(this.state.vantagens, this.state.vantagensDisponiveis);
+    const custoDesvantagens = somaCustoDesvantagens(this.state.desvantagens, this.state.desvantagensDisponiveis);
+    const pontosUsados = pontosAtributos + custoVantagens + custoDesvantagens;
+    
     if (!this.state.nome.trim()) {
       this.setState({ error: 'O nome do personagem é obrigatório' });
       return;
     }
-    if (!this.state.historia_id) {
+    if (!this.state.historia_id || this.state.historia_id === '') {
       this.setState({ error: 'A história é obrigatória' });
       return;
     }
-    if (pontosRestantes !== 0) {
-      this.setState({ error: 'Distribua todos os pontos entre atributos e vantagens/desvantagens antes de salvar' });
-      return;
-    }
+    
     this.setState({ loading: true, error: null });
     try {
       const personagem = new Personagem({
@@ -261,24 +288,26 @@ export class NovoPersonagemViewModel {
         historia_id: this.state.historia_id,
         atributos: this.state.atributos,
         vantagens: this.state.vantagens,
+        desvantagens: this.state.desvantagens,
         equipamentos: this.state.equipamentos,
+        pontos_iniciais: 0,
+        pontos_totais: pontosUsados,
         hp: 100,
         nivel: 1
       });
       await this.personagemService.create(personagem);
       
-      // Limpar formulário após sucesso
       this.setState({
         nome: '',
         raca: '',
         classe: '',
         backgroundTipo: 'guiado',
         background: '',
-        historia_id: null,
+        historia_id: '',
         atributos: { ...atributosIniciais },
         vantagens: [],
+        desvantagens: [],
         equipamentos: '',
-        pontosTotais: getRandomPontos(),
         error: null,
         vantagemError: null
       });
@@ -296,6 +325,51 @@ export class NovoPersonagemViewModel {
   clearError = () => {
     this.setState({ error: null, vantagemError: null });
   };
+
+  // Getters para acessar os valores do estado
+  get nome() {
+    return this.state.nome;
+  }
+
+  get raca() {
+    return this.state.raca;
+  }
+
+  get classe() {
+    return this.state.classe;
+  }
+
+  get backgroundTipo() {
+    return this.state.backgroundTipo;
+  }
+
+  get background() {
+    return this.state.background;
+  }
+
+  get historia_id() {
+    return this.state.historia_id;
+  }
+
+  get vantagens() {
+    return this.state.vantagens;
+  }
+
+  get desvantagens() {
+    return this.state.desvantagens;
+  }
+
+  get equipamentos() {
+    return this.state.equipamentos;
+  }
+
+  get error() {
+    return this.state.error;
+  }
+
+  get vantagemError() {
+    return this.state.vantagemError;
+  }
 }
 
 export const novoPersonagemViewModel = new NovoPersonagemViewModel(); 

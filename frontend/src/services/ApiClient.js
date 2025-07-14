@@ -1,152 +1,149 @@
-/**
- * Cliente HTTP base para comunicação com a API
- * Responsável por gerenciar requisições HTTP
- 
-*/
+import axios from 'axios';
+
 // Configuração da URL base da API
-console.log('import.meta.env:', import.meta.env);
-console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-const baseURL = import.meta.env.VITE_API_URL || 'https://role-chat-play-backend-562ca33432b0.herokuapp.com';
-console.log('baseURL final:', baseURL);
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Criação da instância do axios
+const axiosInstance = axios.create({
+  baseURL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Interceptor para requisições
+axiosInstance.interceptors.request.use(
+  (config) => {
+    // Adicionar token de autenticação se disponível
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para respostas
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Tratamento de erros de rede
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Timeout na requisição');
+    }
+    
+    if (error.response) {
+      // Erro com resposta do servidor
+      const { status, data } = error.response;
+      
+      switch (status) {
+        case 401:
+          throw new Error('Não autorizado');
+        case 403:
+          throw new Error('Acesso negado');
+        case 404:
+          throw new Error('Recurso não encontrado');
+        case 422:
+          throw new Error(data?.message || 'Dados inválidos');
+        case 500:
+          throw new Error('Erro interno do servidor');
+        default:
+          throw new Error(data?.message || `Erro ${status}`);
+      }
+    } else if (error.request) {
+      // Erro de rede
+      throw new Error('Erro de conexão com o servidor');
+    } else {
+      // Outro tipo de erro
+      throw new Error('Erro desconhecido');
+    }
+  }
+);
+
+// Classe principal do ApiClient
 export class ApiClient {
   constructor() {
-    this.baseURL = baseURL;
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-    };
+    this.client = axiosInstance;
   }
 
-  /**
-   * Configura headers padrão
-   * @param {Object} headers - Headers adicionais
-   */
-  setHeaders(headers) {
-    this.defaultHeaders = { ...this.defaultHeaders, ...headers };
-  }
-
-  /**
-   * Adiciona token de autenticação
-   * @param {string} token - Token JWT
-   */
-  setAuthToken(token) {
-    if (token) {
-      this.defaultHeaders['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete this.defaultHeaders['Authorization'];
-    }
-  }
-
-  /**
-   * Faz uma requisição HTTP
-   * @param {string} method - Método HTTP
-   * @param {string} url - URL da requisição
-   * @param {Object} data - Dados da requisição
-   * @param {Object} options - Opções adicionais
-   * @returns {Promise<Object>} Resposta da requisição
-   */
-  async request(method, url, data = null, options = {}) {
-    const config = {
-      method,
-      url: `${this.baseURL}${url}`,
-      headers: { ...this.defaultHeaders, ...options.headers },
-      ...options
-    };
-
-    if (data) {
-      config.data = data;
-    }
-
+  async request(config) {
     try {
-      console.log('ApiClient.request - URL:', config.url);
-      console.log('ApiClient.request - Method:', config.method);
-      console.log('ApiClient.request - Headers:', config.headers);
+      const response = await this.client.request(config);
       
-      const response = await fetch(config.url, {
-        method: config.method,
-        headers: config.headers,
-        body: config.data ? JSON.stringify(config.data) : null
-      });
+      // Processar resposta
+      const contentType = response.headers['content-type'];
+      let data = response.data;
 
-      console.log('ApiClient.request - Response status:', response.status);
-      console.log('ApiClient.request - Response headers:', response.headers);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('ApiClient.request - Error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      console.log('ApiClient.request - Content-Type:', contentType);
-      
+      // Se for JSON, retornar diretamente
       if (contentType && contentType.includes('application/json')) {
-        const jsonData = await response.json();
-        console.log('ApiClient.request - JSON response:', jsonData);
-        return { data: jsonData };
+        return data;
       }
 
-      const textData = await response.text();
-      console.log('ApiClient.request - Text response:', textData);
-      return { data: textData };
+      // Se for texto, tentar fazer parse como JSON
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          // Se não conseguir fazer parse, retornar como texto
+          return data;
+        }
+      }
+
+      return data;
     } catch (error) {
-      console.error('ApiClient.request - Error:', error);
-      throw new Error(`Erro na requisição: ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Requisição GET
-   * @param {string} url - URL da requisição
-   * @param {Object} options - Opções adicionais
-   * @returns {Promise<Object>} Resposta da requisição
-   */
-  async get(url, options = {}) {
-    return this.request('GET', url, null, options);
+  async get(url, config = {}) {
+    return this.request({
+      method: 'GET',
+      url,
+      ...config
+    });
   }
 
-  /**
-   * Requisição POST
-   * @param {string} url - URL da requisição
-   * @param {Object} data - Dados da requisição
-   * @param {Object} options - Opções adicionais
-   * @returns {Promise<Object>} Resposta da requisição
-   */
-  async post(url, data, options = {}) {
-    return this.request('POST', url, data, options);
+  async post(url, data = {}, config = {}) {
+    return this.request({
+      method: 'POST',
+      url,
+      data,
+      ...config
+    });
   }
 
-  /**
-   * Requisição PUT
-   * @param {string} url - URL da requisição
-   * @param {Object} data - Dados da requisição
-   * @param {Object} options - Opções adicionais
-   * @returns {Promise<Object>} Resposta da requisição
-   */
-  async put(url, data, options = {}) {
-    return this.request('PUT', url, data, options);
+  async put(url, data = {}, config = {}) {
+    return this.request({
+      method: 'PUT',
+      url,
+      data,
+      ...config
+    });
   }
 
-  /**
-   * Requisição PATCH
-   * @param {string} url - URL da requisição
-   * @param {Object} data - Dados da requisição
-   * @param {Object} options - Opções adicionais
-   * @returns {Promise<Object>} Resposta da requisição
-   */
-  async patch(url, data, options = {}) {
-    return this.request('PATCH', url, data, options);
+  async delete(url, config = {}) {
+    return this.request({
+      method: 'DELETE',
+      url,
+      ...config
+    });
   }
 
-  /**
-   * Requisição DELETE
-   * @param {string} url - URL da requisição
-   * @param {Object} options - Opções adicionais
-   * @returns {Promise<Object>} Resposta da requisição
-   */
-  async delete(url, options = {}) {
-    return this.request('DELETE', url, null, options);
+  async patch(url, data = {}, config = {}) {
+    return this.request({
+      method: 'PATCH',
+      url,
+      data,
+      ...config
+    });
   }
 }
 
-// Instância singleton do cliente API
+// Instância exportada
 export const apiClient = new ApiClient(); 

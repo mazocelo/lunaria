@@ -34,7 +34,12 @@ const FormSelectDescricao = ({
     };
   }, []);
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const selectedOption = options.find(opt => {
+    const optValue = String(opt.value || '');
+    const currentValue = String(value || '');
+    const isMatch = optValue === currentValue && optValue !== '';
+    return isMatch;
+  });
 
   const handleSelect = (option) => {
     if (disabled) return;

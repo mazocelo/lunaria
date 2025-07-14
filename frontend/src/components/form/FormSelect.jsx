@@ -50,7 +50,7 @@ const FormSelect = ({
       >
         <option value="" disabled={!multiple}>{placeholder}</option>
         {options.map((opt) => (
-          <option key={opt.value ?? opt} value={opt.value ?? opt}>
+          <option key={String(opt.value ?? opt)} value={String(opt.value ?? opt)}>
             {opt.label ?? opt}
           </option>
         ))}

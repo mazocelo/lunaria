@@ -1,11 +1,10 @@
 import { ClasseService } from '../../services/ClasseService';
 import { Classe } from '../../models/Classe';
-import { ApiClient } from '../../services/ApiClient';
+import { apiClient } from '../../services/ApiClient';
 
 export default class ClasseViewModel {
   constructor() {
-    this.apiClient = new ApiClient();
-    this.classeService = new ClasseService(this.apiClient);
+    this.classeService = new ClasseService(apiClient);
     
     this.state = {
       classes: [],
@@ -35,7 +34,6 @@ export default class ClasseViewModel {
 
   setState(newState) {
     this.state = { ...this.state, ...newState };
-    console.log('[ClasseViewModel] Novo state:', this.state); // Depuração
     this.notify();
   }
 
@@ -66,82 +64,22 @@ export default class ClasseViewModel {
       };
 
       const response = await this.classeService.getAll(params);
-      console.log('[ClasseViewModel] Resposta da API:', response); // Depuração
-      // O service já retorna os dados processados
+      let classes = [];
       if (Array.isArray(response)) {
-        this.setState({
-          classes: response,
-          totalPages: 1,
-          loading: false
-        });
-      } else if (response && response.data && response.pagination) {
-        this.setState({
-          classes: response.data,
-          totalPages: response.pagination.totalPages || 1,
-          loading: false
-        });
-      } else {
-        this.setState({
-          classes: [],
-          totalPages: 1,
-          loading: false
-        });
+        classes = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        classes = response.data;
+      } else if (response && response.data && Array.isArray(response.data.data)) {
+        classes = response.data.data;
       }
-    } catch (error) {
-      // Fallback com dados de exemplo
-      const classesExemplo = [
-        {
-          id: 1,
-          nome: 'Guerreiro',
-          descricao: 'Especialista em combate corpo a corpo, forte e resistente.',
-          custo: 0,
-          atributos_bonus: { forca: 2, constituicao: 1 },
-          vantagens_iniciais: ['Armadura Pesada'],
-          desvantagens_iniciais: [],
-          habilidades_especiais: ['Ataque Extra', 'Defesa Aprimorada'],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          nome: 'Mago',
-          descricao: 'Usuário de magia arcana, domina feitiços poderosos.',
-          custo: 2,
-          atributos_bonus: { inteligencia: 3, carisma: 1 },
-          vantagens_iniciais: ['Magia Arcana'],
-          desvantagens_iniciais: ['Fragilidade'],
-          habilidades_especiais: ['Conjurar Feitiços', 'Resistência Mágica'],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 3,
-          nome: 'Arqueiro',
-          descricao: 'Especialista em ataques à distância e furtividade.',
-          custo: 1,
-          atributos_bonus: { destreza: 2, agilidade: 1 },
-          vantagens_iniciais: ['Tiro Preciso'],
-          desvantagens_iniciais: [],
-          habilidades_especiais: ['Furtividade', 'Tiro Múltiplo'],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 4,
-          nome: 'Ladino',
-          descricao: 'Ágil, mestre em furtividade e armadilhas.',
-          custo: 1,
-          atributos_bonus: { destreza: 2, agilidade: 2 },
-          vantagens_iniciais: ['Furtividade'],
-          desvantagens_iniciais: ['Fragilidade'],
-          habilidades_especiais: ['Esquiva', 'Armadilhas'],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-
       this.setState({
-        classes: classesExemplo.map(classe => Classe.fromApi(classe)),
+        classes,
+        totalPages: response?.pagination?.totalPages || 1,
+        loading: false
+      });
+    } catch (error) {
+      this.setState({
+        classes: [],
         totalPages: 1,
         loading: false,
         error: `Erro ao carregar classes: ${error.message}`

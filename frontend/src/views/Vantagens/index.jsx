@@ -216,25 +216,12 @@ const VantagemView = () => {
       icon: '👁️',
       color: 'cyan',
       onClick: (row) => navigate(`/ver-vantagem/${row.id}`)
-    },
-    {
-      label: 'Editar',
-      icon: '✏️',
-      color: 'yellow',
-      onClick: (row) => navigate(`/editar-vantagem/${row.id}`)
-    },
-    {
-      label: 'Deletar',
-      icon: '🗑️',
-      color: 'red',
-      onClick: (row) => handleDelete(row.id)
     }
   ];
 
   // Usar diretamente o array de vantagens
-  const vantagens = vm.state.vantagens || [];
-  console.log('Primeira vantagem:', vantagens[0]);
-  console.log('vm.state.vantagens:', vm.state.vantagens);
+  const vmState = vm.getState();
+  const vantagens = vmState.vantagens || [];
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto">
@@ -244,10 +231,10 @@ const VantagemView = () => {
           <span className="text-3xl">⭐</span>
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-          Gerenciar Vantagens
+          Visualizar Vantagens
         </h1>
         <p className="text-slate-400 font-modern">
-          Crie e gerencie as vantagens disponíveis para personagens
+          Visualize as vantagens disponíveis para personagens
         </p>
       </div>
 
@@ -257,22 +244,15 @@ const VantagemView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar vantagens..."
-              value={vm.searchTerm}
+              value={vmState.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
           </div>
-          <Button
-            variant="primary"
-            onClick={() => navigate('/criar-vantagem')}
-            className="whitespace-nowrap"
-          >
-            ⭐ Nova Vantagem
-          </Button>
         </div>
 
         {/* Mensagem de erro */}
-        {vm.error && (
+        {vmState.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -280,14 +260,14 @@ const VantagemView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Loading */}
-        {vm.loading && (
+        {vmState.loading && (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
             <span className="ml-3 text-slate-400 font-modern">Carregando vantagens...</span>
@@ -299,7 +279,7 @@ const VantagemView = () => {
           columns={columns}
           data={vantagens}
           actions={actions}
-          loading={vm.loading}
+          loading={vmState.loading}
           title="Lista de Vantagens"
           emptyMessage="Nenhuma vantagem encontrada"
           emptyIcon="⭐"
@@ -307,7 +287,7 @@ const VantagemView = () => {
         />
 
         {/* Paginação */}
-        {!vm.loading && vantagens.length > 0 && (
+        {!vmState.loading && vantagens.length > 0 && (
           <div className="flex items-center justify-between mt-6">
             <div className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern`}>
               Mostrando {vantagens.length} vantagens
@@ -315,19 +295,19 @@ const VantagemView = () => {
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
-                onClick={() => vm.setPage(vm.currentPage - 1)}
-                disabled={vm.currentPage <= 1}
+                onClick={() => vm.setPage(vmState.currentPage - 1)}
+                disabled={vmState.currentPage <= 1}
                 className="px-3 py-1"
               >
                 ← Anterior
               </Button>
               <span className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern`}>
-                Página {vm.currentPage} de {vm.totalPages}
+                Página {vmState.currentPage} de {vmState.totalPages}
               </span>
               <Button
                 variant="ghost"
-                onClick={() => vm.setPage(vm.currentPage + 1)}
-                disabled={vm.currentPage >= vm.totalPages}
+                onClick={() => vm.setPage(vmState.currentPage + 1)}
+                disabled={vmState.currentPage >= vmState.totalPages}
                 className="px-3 py-1"
               >
                 Próxima →

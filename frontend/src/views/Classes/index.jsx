@@ -9,21 +9,14 @@ import InputSimples from '../../components/form/inputSimples';
 import DataTable from '../../components/Table/DataTable.jsx';
 
 const ClasseView = () => {
-  console.log('ClasseView - Renderizando componente');
-  const [force, setForce] = useState(0);
-  const vm = useViewModel(useMemo(() => new ClasseViewModel(), []));
-  console.log('ClasseView - ViewModel criado:', vm);
-  console.log('ClasseView - Estado inicial:', vm.getState());
-  console.log('[ClasseView] vm.state.classes:', vm.state.classes);
-  console.log('[ClasseView] DataTable data:', vm.state.classes);
-  
+  const classeViewModel = useMemo(() => new ClasseViewModel(), []);
+  const vm = useViewModel(classeViewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
-    console.log('ClasseView - Chamando vm.init()');
     vm.init();
   }, []);
 
@@ -31,18 +24,21 @@ const ClasseView = () => {
     vm.setSearchTerm(e.target.value);
   };
 
-  const handleDelete = async (id) => {
-    const result = await vm.deleteClasse(id);
+  const vmState = vm.getState();
+
+  const handleDelete = async (classe) => {
+    const result = await vm.deleteClasse(classe.id);
     if (result.success) {
       setDeleteConfirm(null);
-    } else {
-      // Mostrar erro
-      console.error(result.error);
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const handleView = (classe) => {
+    navigate(`/ver-classe/${classe.id}`);
+  };
+
+  const handleEdit = (classe) => {
+    navigate(`/editar-classe/${classe.id}`);
   };
 
   // Função para obter cor do custo
@@ -124,7 +120,6 @@ const ClasseView = () => {
 
   // Renderizador para data de criação
   const renderDataCriacao = (classe) => {
-    if (!classe.created_at) return null;
     const formatDate = (dateString) => {
       return new Date(dateString).toLocaleDateString('pt-BR');
     };
@@ -179,19 +174,7 @@ const ClasseView = () => {
       label: 'Ver',
       icon: '👁️',
       color: 'cyan',
-      onClick: (row) => navigate(`/ver-classe/${row.id}`)
-    },
-    {
-      label: 'Editar',
-      icon: '✏️',
-      color: 'yellow',
-      onClick: (row) => navigate(`/editar-classe/${row.id}`)
-    },
-    {
-      label: 'Deletar',
-      icon: '🗑️',
-      color: 'red',
-      onClick: (row) => handleDelete(row.id)
+      onClick: (row) => handleView(row)
     }
   ];
 
@@ -203,10 +186,10 @@ const ClasseView = () => {
           <span className="text-3xl">⚔️</span>
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-          Gerenciar Classes
+          Visualizar Classes
         </h1>
         <p className="text-slate-400 font-modern">
-          Crie e gerencie as classes disponíveis para personagens
+          Visualize as classes disponíveis para personagens
         </p>
       </div>
 
@@ -216,22 +199,15 @@ const ClasseView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar classes..."
-              value={vm.state.searchTerm}
+              value={vmState.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
           </div>
-          <Button
-            variant="primary"
-            onClick={() => navigate('/criar-classe')}
-            className="whitespace-nowrap"
-          >
-            ✨ Nova Classe
-          </Button>
         </div>
 
         {/* Mensagem de erro */}
-        {vm.state.error && (
+        {vmState.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -239,81 +215,24 @@ const ClasseView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vm.state.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Loading */}
-        {vm.state.loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-            <span className="ml-3 text-slate-400 font-modern">Carregando classes...</span>
-          </div>
-        )}
-
         {/* Tabela de classes */}
         <DataTable
-          keyField="id"
           columns={columns}
-          data={vm.state.classes}
+          data={vmState.classes}
           actions={actions}
-          loading={vm.state.loading}
+          loading={vmState.loading}
           title="Lista de Classes"
           emptyMessage="Nenhuma classe encontrada"
           emptyIcon="⚔️"
-          totalItems={vm.state.classes.length}
+          totalItems={vmState.classes.length}
         />
-
-        {/* Paginação */}
-        {vm.state.totalPages > 1 && (
-          <div className="flex items-center justify-center mt-6">
-            <div className="flex space-x-2">
-              {Array.from({ length: vm.state.totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={page === vm.state.currentPage ? "primary" : "ghost"}
-                  size="sm"
-                  onClick={() => vm.setPage(page)}
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
       </RPGCard>
-
-      {/* Modal de confirmação de exclusão */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${isLight ? 'bg-white' : 'bg-slate-800'}`}>
-            <h3 className={`text-lg font-semibold mb-4 ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-              Confirmar exclusão
-            </h3>
-            <p className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern mb-6`}>
-              Tem certeza que deseja excluir esta classe? Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex space-x-3">
-              <Button
-                variant="ghost"
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 bg-red-500 hover:bg-red-600"
-              >
-                Excluir
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

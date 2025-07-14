@@ -17,8 +17,8 @@ export class PersonagemService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      if(response.data?.success){
-        return response.data.data.map(personagemData => Personagem.fromAPI(personagemData));
+      if(response.success){
+        return response.data
       }
       else{
         throw new Error(response.data.message);
@@ -36,9 +36,8 @@ export class PersonagemService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      if(response.data?.success){
-        console.log('PersonagemService.getById - personagem encontrado:', response.data.data);
-        return Personagem.fromAPI(response.data.data);
+      if(response.success){
+        return response.data
       }
       else{
         throw new Error(response.data.message);

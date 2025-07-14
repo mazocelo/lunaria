@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import DesvantagemViewModel from '../../viewmodels/Desvantagens/DesvantagemViewModel';
@@ -8,8 +8,11 @@ import Button from '../../components/form/button';
 import InputSimples from '../../components/form/inputSimples';
 import DataTable from '../../components/Table/DataTable.jsx';
 
+
+
 const DesvantagemView = () => {
-  const vm = useViewModel(new DesvantagemViewModel());
+  const viewModel = useMemo(() => new DesvantagemViewModel(), []);
+  const vm = useViewModel(viewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -216,23 +219,12 @@ const DesvantagemView = () => {
       icon: '👁️',
       color: 'cyan',
       onClick: (row) => navigate(`/ver-desvantagem/${row.id}`)
-    },
-    {
-      label: 'Editar',
-      icon: '✏️',
-      color: 'yellow',
-      onClick: (row) => navigate(`/editar-desvantagem/${row.id}`)
-    },
-    {
-      label: 'Deletar',
-      icon: '🗑️',
-      color: 'red',
-      onClick: (row) => handleDelete(row.id)
     }
   ];
 
   // Filtra apenas desvantagens (custo negativo)
-  const desvantagens = (vm.state.desvantagens || []).filter(item => item.custo < 0);
+  const vmState = vm.getState();
+  const desvantagens = (vmState.desvantagens || []).filter(item => item.custo < 0);
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto">
@@ -242,10 +234,10 @@ const DesvantagemView = () => {
           <span className="text-3xl">⚠️</span>
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-          Gerenciar Desvantagens
+          Visualizar Desvantagens
         </h1>
         <p className="text-slate-400 font-modern">
-          Crie e gerencie as desvantagens disponíveis para personagens
+          Visualize as desvantagens disponíveis para personagens
         </p>
       </div>
 
@@ -255,22 +247,15 @@ const DesvantagemView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar desvantagens..."
-              value={vm.searchTerm}
+              value={vmState.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
           </div>
-          <Button
-            variant="primary"
-            onClick={() => navigate('/criar-desvantagem')}
-            className="whitespace-nowrap"
-          >
-            ⚠️ Nova Desvantagem
-          </Button>
         </div>
 
         {/* Mensagem de erro */}
-        {vm.error && (
+        {vmState.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -278,14 +263,14 @@ const DesvantagemView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Loading */}
-        {vm.loading && (
+        {vmState.loading && (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
             <span className="ml-3 text-slate-400 font-modern">Carregando desvantagens...</span>

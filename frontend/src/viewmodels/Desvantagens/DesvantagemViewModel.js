@@ -24,7 +24,8 @@ export default class DesvantagemViewModel {
   }
 
   notify() {
-    this.subscribers.forEach(callback => callback(this.getState()));
+    const state = this.getState();
+    this.subscribers.forEach(callback => callback(state));
   }
 
   setState(newState) {
@@ -54,7 +55,7 @@ export default class DesvantagemViewModel {
         limit: this.state.itemsPerPage,
         search: this.state.searchTerm
       };
-      const response = await this.service.getDesvantagens(params);
+      const response = await this.service.getAll(params);
       let desvantagens = [];
       if (Array.isArray(response)) {
         desvantagens = response;
@@ -78,19 +79,6 @@ export default class DesvantagemViewModel {
     }
   };
 
-  deleteDesvantagem = async (id) => {
-    try {
-      await this.service.delete(id);
-      this.loadDesvantagens();
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Erro ao remover desvantagem: ${error.message}`
-      };
-    }
-  };
-
   loadDesvantagem = async (id) => {
     this.setState({ loadingVantagemDesvantagem: true, error: null });
     try {
@@ -104,6 +92,19 @@ export default class DesvantagemViewModel {
         loadingVantagemDesvantagem: false,
         error: `Erro ao carregar desvantagem: ${error.message}`
       });
+    }
+  };
+
+  deleteDesvantagem = async (id) => {
+    try {
+      await this.service.delete(id);
+      this.loadDesvantagens();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Erro ao remover desvantagem: ${error.message}`
+      };
     }
   };
 

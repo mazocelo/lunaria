@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { personagemViewModel } from '../../viewmodels/Personagens/PersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -8,6 +8,7 @@ import StatCard from '../../components/StatCard.jsx';
 
 const PersonagemView = () => {
   const vm = useViewModel(personagemViewModel);
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -133,13 +134,13 @@ const PersonagemView = () => {
       label: 'Ver',
       icon: '👁️',
       color: 'purple',
-      onClick: (row) => window.location.href = `/ver-personagem/${row.id}`
+      onClick: (row) => navigate(`/ver-personagem/${row.id}`)
     },
     {
       label: 'Editar',
       icon: '✏️',
       color: 'cyan',
-      onClick: (row) => window.location.href = `/editar-personagem/${row.id}`
+      onClick: (row) => navigate(`/editar-personagem/${row.id}`)
     },
     {
       label: 'Deletar',

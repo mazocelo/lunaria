@@ -17,32 +17,25 @@ export class ClasseService {
   async getAll(params) {
     try {
       const paramsString = generateGETparams(params);
-      console.log('ClasseService.getAll - fazendo requisição para:', this.baseUrl + paramsString);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      console.log('ClasseService.getAll - resposta completa:', response);
-      console.log('ClasseService.getAll - response.data:', response.data);
       
       // Verificação mais robusta da estrutura de resposta
       if (response.data) {
         // Se a resposta tem a estrutura esperada (success + data)
         if (response.data.success !== undefined) {
           if (response.data.success) {
-            console.log('ClasseService.getAll - dados retornados:', response.data?.data);
             return response.data?.data || [];
           } else {
-            console.log('ClasseService.getAll - erro na resposta:', response.data?.message);
             throw new Error(response.data?.message || 'Erro desconhecido');
           }
         } else {
           // Se não tem a estrutura success, assume que a resposta é direta
-          console.log('ClasseService.getAll - resposta direta:', response.data);
           return Array.isArray(response.data) ? response.data : [response.data];
         }
       } else {
         throw new Error('Resposta inválida da API');
       }
     } catch (error) {
-      console.error('ClasseService.getAll - erro:', error);
       throw new Error(`Erro ao buscar classes: ${error.message}`);
     }
   }

@@ -21,8 +21,11 @@ export class Personagem {
     this.background = data.background || '';
     this.atributos = data.atributos || {};
     this.vantagens = data.vantagens || [];
+    this.desvantagens = data.desvantagens || [];
     this.equipamentos = data.equipamentos || '';
     this.historia_id = data.historia_id || null;
+    this.pontos_iniciais = data.pontos_iniciais || 25;
+    this.pontos_totais = data.pontos_totais || 0;
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
   }
@@ -123,8 +126,11 @@ export class Personagem {
       background: this.background,
       atributos: this.atributos,
       vantagens: this.vantagens,
+      desvantagens: this.desvantagens,
       equipamentos: this.equipamentos,
       historia_id: this.historia_id,
+      pontos_iniciais: this.pontos_iniciais,
+      pontos_totais: this.pontos_totais,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
@@ -154,8 +160,11 @@ export class Personagem {
       background: apiData.background,
       atributos: apiData.atributos,
       vantagens: apiData.vantagens,
+      desvantagens: apiData.desvantagens,
       equipamentos: apiData.equipamentos,
       historia_id: apiData.historia_id,
+      pontos_iniciais: apiData.pontos_iniciais,
+      pontos_totais: apiData.pontos_totais,
       created_at: apiData.created_at,
       updated_at: apiData.updated_at
     });

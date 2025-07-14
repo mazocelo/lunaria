@@ -18,11 +18,13 @@ const RacaView = () => {
 
   useEffect(() => {
     vm.init();
-  }, [vm]);
+  }, []);
 
   const handleSearch = (e) => {
     vm.setSearchTerm(e.target.value);
   };
+
+  const vmState = vm.getState();
 
   const handleDelete = async (raca) => {
     const result = await vm.deleteRaca(raca.id);
@@ -173,18 +175,6 @@ const RacaView = () => {
       icon: '👁️',
       color: 'cyan',
       onClick: (row) => handleView(row)
-    },
-    {
-      label: 'Editar',
-      icon: '✏️',
-      color: 'yellow',
-      onClick: (row) => handleEdit(row)
-    },
-    {
-      label: 'Deletar',
-      icon: '🗑️',
-      color: 'red',
-      onClick: (row) => handleDelete(row)
     }
   ];
 
@@ -196,10 +186,10 @@ const RacaView = () => {
           <span className="text-3xl">🏹</span>
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-          Gerenciar Raças
+          Visualizar Raças
         </h1>
         <p className="text-slate-400 font-modern">
-          Crie e gerencie as raças disponíveis para personagens
+          Visualize as raças disponíveis para personagens
         </p>
       </div>
 
@@ -209,22 +199,15 @@ const RacaView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar raças..."
-              value={vm.searchTerm}
+              value={vmState.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
           </div>
-          <Button
-            variant="primary"
-            onClick={() => navigate('/criar-raca')}
-            className="whitespace-nowrap"
-          >
-            ✨ Nova Raça
-          </Button>
         </div>
 
         {/* Mensagem de erro */}
-        {vm.error && (
+        {vmState.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -232,7 +215,7 @@ const RacaView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
               </div>
             </div>
           </div>
@@ -241,13 +224,13 @@ const RacaView = () => {
         {/* Tabela de raças */}
         <DataTable
           columns={columns}
-          data={vm.state.racas}
+          data={vmState.racas}
           actions={actions}
-          loading={vm.state.loading}
+          loading={vmState.loading}
           title="Lista de Raças"
           emptyMessage="Nenhuma raça encontrada"
           emptyIcon="🏹"
-          totalItems={vm.state.racas.length}
+          totalItems={vmState.racas.length}
         />
       </RPGCard>
     </div>

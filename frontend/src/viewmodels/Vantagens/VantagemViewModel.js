@@ -24,7 +24,8 @@ export default class VantagemViewModel {
   }
 
   notify() {
-    this.subscribers.forEach(callback => callback(this.getState()));
+    const state = this.getState();
+    this.subscribers.forEach(callback => callback(state));
   }
 
   setState(newState) {
@@ -54,8 +55,7 @@ export default class VantagemViewModel {
         limit: this.state.itemsPerPage,
         search: this.state.searchTerm
       };
-      const response = await this.service.getVantagens(params);
-      console.log('Resposta bruta da API:', response);
+      const response = await this.service.getAll(params);
       let vantagens = [];
       if (Array.isArray(response)) {
         vantagens = response;
@@ -75,6 +75,22 @@ export default class VantagemViewModel {
         totalPages: 1,
         loading: false,
         error: `Erro ao carregar vantagens: ${error.message}`
+      });
+    }
+  };
+
+  loadVantagemDesvantagem = async (id) => {
+    this.setState({ loadingVantagemDesvantagem: true, error: null });
+    try {
+      const response = await this.service.getById(id);
+      this.setState({
+        ...response,
+        loadingVantagemDesvantagem: false
+      });
+    } catch (error) {
+      this.setState({
+        loadingVantagemDesvantagem: false,
+        error: `Erro ao carregar vantagem: ${error.message}`
       });
     }
   };

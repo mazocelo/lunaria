@@ -267,7 +267,7 @@ class PersonagemController {
 
       const personagemData = this.processarDadosPersonagem(personagem);
 
-      console.log('✅ Personagem encontrado', personagemData);
+      console.log('✅ Personagem encontrado');
 
       res.status(200).json({
         success: true,

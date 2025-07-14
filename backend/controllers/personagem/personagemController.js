@@ -89,6 +89,7 @@ class PersonagemController {
         sugestao_background = '',
         temas_disponiveis = []
       } = req.body;
+      console.log('👤 Dados do personagem:', req.body);
 
       // Validações básicas
       if (!nome || !historia_id) {

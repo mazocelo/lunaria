@@ -99,8 +99,6 @@ class DesvantagemController {
         offset
       } = req.query;
       
-      console.log('req.query keys', req.query);
-
     
       // Construir filtros
       const where = {};

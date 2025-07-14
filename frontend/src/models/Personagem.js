@@ -6,8 +6,8 @@ export class Personagem {
   constructor(data = {}) {
     this.id = data.id || null;
     this.nome = data.nome || '';
-    this.classe = data.classe || 'Aventureiro';
-    this.raca = data.raca || 'Humano';
+    this.classe_id = data.classe_id || null;
+    this.raca_id = data.raca_id || null;
     this.nivel = data.nivel || 1;
     this.hp = data.hp || 100;
     this.hp_maximo = data.hp_maximo || 100;
@@ -28,6 +28,22 @@ export class Personagem {
     this.pontos_totais = data.pontos_totais || 0;
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
+  }
+
+  /**
+   * Getter para classe (compatibilidade)
+   * @returns {string} ID da classe
+   */
+  get classe() {
+    return this.classe_id;
+  }
+
+  /**
+   * Getter para raca (compatibilidade)
+   * @returns {string} ID da raça
+   */
+  get raca() {
+    return this.raca_id;
   }
 
   /**
@@ -111,8 +127,8 @@ export class Personagem {
     return {
       id: this.id,
       nome: this.nome,
-      classe: this.classe,
-      raca: this.raca,
+      classe_id: this.classe_id,
+      raca_id: this.raca_id,
       nivel: this.nivel,
       hp: this.hp,
       hp_maximo: this.hp_maximo,
@@ -145,8 +161,8 @@ export class Personagem {
     return new Personagem({
       id: apiData.id,
       nome: apiData.nome,
-      classe: apiData.classe,
-      raca: apiData.raca,
+      classe_id: apiData.classe_id,
+      raca_id: apiData.raca_id,
       nivel: apiData.nivel,
       hp: apiData.hp,
       hp_maximo: apiData.hp_maximo,

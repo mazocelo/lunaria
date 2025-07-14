@@ -139,7 +139,7 @@ const NovoPersonagemView = () => {
           <FormSelectDescricao
             label="Raça"
             name="raca"
-            value={String(vmState.raca || '')}
+            value={String(vmState.raca_id || '')}
             onChange={handleChange}
             options={vmState.racasDisponiveis?.length > 0 ? vmState.racasDisponiveis.map(raca => {
               if (!raca || typeof raca !== 'object') {
@@ -159,7 +159,7 @@ const NovoPersonagemView = () => {
           <FormSelectDescricao
             label="Classe"
             name="classe"
-            value={String(vmState.classe || '')}
+            value={String(vmState.classe_id || '')}
             onChange={handleChange}
             options={vmState.classesDisponiveis?.length > 0 ? vmState.classesDisponiveis.map(classe => {
               if (!classe || typeof classe !== 'object') {

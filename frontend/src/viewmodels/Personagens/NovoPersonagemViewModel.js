@@ -51,8 +51,8 @@ export class NovoPersonagemViewModel {
   constructor() {
     this.state = {
       nome: '',
-      raca: '',
-      classe: '',
+      raca_id: '',
+      classe_id: '',
       backgroundTipo: 'guiado',
       background: '',
       historia_id: '',
@@ -121,11 +121,11 @@ export class NovoPersonagemViewModel {
   };
 
   setRaca = (raca) => {
-    this.setState({ raca: String(raca) });
+    this.setState({ raca_id: String(raca) });
   };
 
   setClasse = (classe) => {
-    this.setState({ classe: String(classe) });
+    this.setState({ classe_id: String(classe) });
   };
 
   setBackgroundTipo = (backgroundTipo) => {
@@ -166,8 +166,8 @@ export class NovoPersonagemViewModel {
       vantagens: [],
       desvantagens: [],
       vantagemError: null,
-      raca: '',
-      classe: '',
+      raca_id: '',
+      classe_id: '',
       historia_id: ''
     });
   };
@@ -281,8 +281,8 @@ export class NovoPersonagemViewModel {
     try {
       const personagem = new Personagem({
         nome: this.state.nome,
-        raca: this.state.raca,
-        classe: this.state.classe,
+        raca_id: this.state.raca_id,
+        classe_id: this.state.classe_id,
         sugestao_background: this.state.backgroundTipo,
         background: this.state.background,
         historia_id: this.state.historia_id,
@@ -299,8 +299,8 @@ export class NovoPersonagemViewModel {
       
       this.setState({
         nome: '',
-        raca: '',
-        classe: '',
+        raca_id: '',
+        classe_id: '',
         backgroundTipo: 'guiado',
         background: '',
         historia_id: '',
@@ -332,11 +332,11 @@ export class NovoPersonagemViewModel {
   }
 
   get raca() {
-    return this.state.raca;
+    return this.state.raca_id;
   }
 
   get classe() {
-    return this.state.classe;
+    return this.state.classe_id;
   }
 
   get backgroundTipo() {

@@ -1,3 +1,5 @@
+import Desvantagem from '../../Model/Desvantagem.js';
+import Vantagem from '../../Model/Vantagem.js';
 import db from '../../Model/index.js';
 import { criarGeradorBackground } from '../../agents/historia/personagem/background/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
@@ -86,6 +88,8 @@ class PersonagemController {
         agilidade,
         historia_id,
         jogador_id,
+        vantagens,
+        desvantagens,
         sugestao_background = '',
         temas_disponiveis = []
       } = req.body;
@@ -139,12 +143,43 @@ class PersonagemController {
           }
         }
 
+        let nomeRaca = 'Humano';
+        if (raca_id) {
+          const raca = await db.Raca.findByPk(raca_id);
+          if (raca) {
+            nomeRaca = raca.nome;
+          }
+        }
+        let vantagensArray = [];
+        let desvantagensArray = [];
+        if(vantagens) {
+          vantagensArray = await Vantagem.findAll({
+            where: {
+              id: {
+                [Op.in]: vantagens
+              }
+            }
+          });
+        }
+        if(desvantagens) {
+          desvantagensArray = await Desvantagem.findAll({
+            where: {
+              id: {
+                [Op.in]: desvantagens
+              }
+            }
+          });
+        }
+
         const geradorBackground = await criarGeradorBackground(temas_disponiveis);
         const resultadoBackground = await geradorBackground.gerarBackground({
           nome,
           classe: nomeClasse,
+          raca: nomeRaca,
           tema: historia.temas,
-          sugestao_background: sugestao_background || ''
+          sugestao_background: sugestao_background || '',
+          vantagens: vantagensArray,
+          desvantagens: desvantagensArray
         });
 
         backgroundFinal = resultadoBackground.background;

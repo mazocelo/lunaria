@@ -36,8 +36,8 @@ export class HistoriaService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      if (response.data.success) {
-        return Historia.fromAPI(response.data?.data);
+      if (response.success) {
+        return response.data;
       }
       else {
         throw new Error(response.data.message);

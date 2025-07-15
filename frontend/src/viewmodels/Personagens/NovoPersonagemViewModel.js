@@ -47,6 +47,18 @@ function somaCustoDesvantagens(desvantagensSelecionadas, desvantagensDisponiveis
   }, 0);
 }
 
+function getCustoRaca(raca_id, racasDisponiveis) {
+  if (!raca_id || !Array.isArray(racasDisponiveis)) return 0;
+  const raca = racasDisponiveis.find(r => String(r.id) === String(raca_id));
+  return raca ? Number(raca.custo) || 0 : 0;
+}
+
+function getCustoClasse(classe_id, classesDisponiveis) {
+  if (!classe_id || !Array.isArray(classesDisponiveis)) return 0;
+  const classe = classesDisponiveis.find(c => String(c.id) === String(classe_id));
+  return classe ? Number(classe.custo) || 0 : 0;
+}
+
 export class NovoPersonagemViewModel {
   constructor() {
     this.state = {
@@ -87,12 +99,16 @@ export class NovoPersonagemViewModel {
     const pontosAtributos = somaAtributos(this.state.atributos);
     const pontosVantagens = somaCustoVantagens(this.state.vantagens, this.state.vantagensDisponiveis);
     const pontosDesvantagens = somaCustoDesvantagens(this.state.desvantagens, this.state.desvantagensDisponiveis);
-    const pontosUsados = pontosAtributos + pontosVantagens + pontosDesvantagens;
+    const custoRaca = getCustoRaca(this.state.raca_id, this.state.racasDisponiveis);
+    const custoClasse = getCustoClasse(this.state.classe_id, this.state.classesDisponiveis);
+    const pontosUsados = pontosAtributos + pontosVantagens + pontosDesvantagens + custoRaca + custoClasse;
     const state = { 
       ...this.state,
       pontosDistribuidos: pontosAtributos,
       pontosVantagens: pontosVantagens,
       pontosDesvantagens: pontosDesvantagens,
+      custoRaca: custoRaca,
+      custoClasse: custoClasse,
       pontosUsados: pontosUsados,
       backgroundsGuiados
     };
@@ -266,7 +282,9 @@ export class NovoPersonagemViewModel {
     const pontosAtributos = somaAtributos(this.state.atributos);
     const custoVantagens = somaCustoVantagens(this.state.vantagens, this.state.vantagensDisponiveis);
     const custoDesvantagens = somaCustoDesvantagens(this.state.desvantagens, this.state.desvantagensDisponiveis);
-    const pontosUsados = pontosAtributos + custoVantagens + custoDesvantagens;
+    const custoRaca = getCustoRaca(this.state.raca_id, this.state.racasDisponiveis);
+    const custoClasse = getCustoClasse(this.state.classe_id, this.state.classesDisponiveis);
+    const pontosUsados = pontosAtributos + custoVantagens + custoDesvantagens + custoRaca + custoClasse;
     
     if (!this.state.nome.trim()) {
       this.setState({ error: 'O nome do personagem é obrigatório' });

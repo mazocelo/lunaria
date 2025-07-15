@@ -120,7 +120,7 @@ const NovoPersonagemView = () => {
             </span>
           </div>
           <div className="mt-2 text-sm text-slate-400 font-modern">
-            <span>Atributos: {vmState.pontosDistribuidos} | Vantagens: {vmState.pontosVantagens} | Desvantagens: {vmState.pontosDesvantagens}</span>
+            <span>Atributos: {vmState.pontosDistribuidos} | Vantagens: {vmState.pontosVantagens} | Desvantagens: {vmState.pontosDesvantagens} | Raça: {vmState.custoRaca} | Classe: {vmState.custoClasse}</span>
           </div>
         </div>
 

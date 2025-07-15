@@ -18,10 +18,11 @@ export function generateModel(detalhes = {}) {
  * Cria um modelo otimizado para geração de background de personagens
  * @returns {ChatGroq} Modelo configurado para backgrounds
  */
-export function createBackgroundModel() {
+export function createBackgroundModel(params) {
     return generateModel({ 
         temperature: 0.8, // Criativo para backgrounds
-        maxTokens: 4000 
+        maxTokens: 4000,
+        ...params
     });
 }
 

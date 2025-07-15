@@ -19,6 +19,32 @@ function createTemasContext(temas = []) {
 }
 
 /**
+ * Cria o contexto de vantagens e desvantagens
+ * @param {Array} vantagens - Lista de vantagens
+ * @param {Array} desvantagens - Lista de desvantagens
+ * @returns {string} Contexto formatado das vantagens e desvantagens
+ */
+function createVantagensDesvantagensContext(vantagens = [], desvantagens = []) {
+    let contexto = '';
+    
+    if (vantagens && vantagens.length > 0) {
+        contexto += `
+        VANTAGENS DO PERSONAGEM:
+        ${vantagens.map((vantagem, index) => `${index + 1}. ${vantagem.nome || vantagem}: ${vantagem.descricao || 'Vantagem especial'}`).join('\n')}
+        `;
+    }
+    
+    if (desvantagens && desvantagens.length > 0) {
+        contexto += `
+        DESVANTAGENS DO PERSONAGEM:
+        ${desvantagens.map((desvantagem, index) => `${index + 1}. ${desvantagem.nome || desvantagem}: ${desvantagem.descricao || 'Desvantagem especial'}`).join('\n')}
+        `;
+    }
+    
+    return contexto;
+}
+
+/**
  * Cria o prompt para geração de background de personagem
  * @param {Array} temas - Lista de temas disponíveis
  * @returns {ChatPromptTemplate} Template do prompt
@@ -27,28 +53,34 @@ export function createBackgroundPrompt(temas = []) {
     const temasContexto = createTemasContext(temas);
 
     const systemPrompt = `
-        Você é um especialista em criar backgrounds ricos e envolventes para personagens de RPG. Sua tarefa é gerar um background detalhado baseado no nome, classe e tema fornecidos.
+        Você é um especialista em criar backgrounds ricos e envolventes para personagens de RPG. Sua tarefa é gerar um background detalhado baseado no nome, classe, raça, tema e características fornecidas.
 
         INSTRUÇÕES:
         - Crie um background de 2-4 parágrafos
         - Use linguagem descritiva e narrativa
         - Inclua elementos que definam a personalidade do personagem
-        - Mantenha consistência com o tema e classe
+        - Mantenha consistência com as características do personagem (classe, raça, vantagens, desvantagens)
         - Use português brasileiro
         - Responda APENAS com o background, sem formatação adicional
         ${temasContexto}
 
+        CARACTERÍSTICAS DO PERSONAGEM:
+        - Considere a raça do personagem e como ela influencia sua história
+        - Integre as vantagens e desvantagens de forma natural no background
+        - As vantagens devem refletir habilidades ou características positivas
+        - As desvantagens devem criar desafios ou limitações que moldaram o personagem
+
         SUGESTÃO DE BACKGROUND:
         - Se uma sugestão for fornecida (ex: "nobre", "carpinteiro", "aventureiro"), use-a como base para criar o background
         - A sugestão deve influenciar a origem, profissão ou estilo de vida do personagem
-        - Mantenha coerência entre a sugestão, classe e tema da história
-        - Se a sugestão for vazia, crie um background baseado apenas na classe e tema
+        - Mantenha coerência entre a sugestão, classe, raça e tema da história
+        - Se a sugestão for vazia, crie um background baseado apenas na classe, raça e tema
 
         ESTRUTURA SUGERIDA:
-        1. Primeiro parágrafo: Origem e contexto familiar
-        2. Segundo parágrafo: Eventos marcantes e motivações
-        3. Terceiro parágrafo: Vantagens e características únicas
-        4. Quarto parágrafo (opcional): Objetivos e aspirações
+        1. Primeiro parágrafo: Origem, raça e contexto familiar
+        2. Segundo parágrafo: Eventos marcantes e como as vantagens/desvantagens se desenvolveram
+        3. Terceiro parágrafo: Treinamento da classe e motivações
+        4. Quarto parágrafo (opcional): Objetivos e aspirações atuais
 
         EXEMPLO DE BACKGROUND:
         "Nascido nas ruas de Porto Negro, Marcus sempre soube que a sobrevivência dependia de sua astúcia e rapidez. Órfão desde os seis anos, aprendeu a se mover nas sombras da cidade portuária, desenvolvendo vantagens que muitos considerariam questionáveis, mas que lhe garantiram não apenas a sobrevivência, mas também uma reputação entre os comerciantes locais.
@@ -62,7 +94,7 @@ export function createBackgroundPrompt(temas = []) {
 
     return ChatPromptTemplate.fromMessages([
         ['system', systemPrompt],
-        ['human', 'Nome do personagem: {nome}\nClasse: {classe}\nTema da história: {tema}\nSugestão de background: {sugestao_background}'],
+        ['human', 'Nome do personagem: {nome}\nClasse: {classe}\nRaça: {raca}\nTema da história: {tema}\nSugestão de background: {sugestao_background}\nVantagens: {vantagens}\nDesvantagens: {desvantagens}'],
     ]);
 }
 

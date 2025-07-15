@@ -1,6 +1,6 @@
-import Desvantagem from '../../Model/Desvantagem.js';
-import Vantagem from '../../Model/Vantagem.js';
+
 import db from '../../Model/index.js';
+import { Op } from 'sequelize';
 import { criarGeradorBackground } from '../../agents/historia/personagem/background/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 
@@ -91,7 +91,7 @@ class PersonagemController {
         vantagens,
         desvantagens,
         sugestao_background = '',
-        temas_disponiveis = []
+         
       } = req.body;
       console.log('👤 Dados do personagem:', req.body);
 
@@ -153,16 +153,16 @@ class PersonagemController {
         let vantagensArray = [];
         let desvantagensArray = [];
         if(vantagens) {
-          vantagensArray = await Vantagem.findAll({
+          vantagensArray = await db.Vantagem.findAll({
             where: {
               id: {
                 [Op.in]: vantagens
               }
             }
-          });
+          });   
         }
         if(desvantagens) {
-          desvantagensArray = await Desvantagem.findAll({
+          desvantagensArray = await db.Desvantagem.findAll({
             where: {
               id: {
                 [Op.in]: desvantagens
@@ -171,7 +171,14 @@ class PersonagemController {
           });
         }
 
-        const geradorBackground = await criarGeradorBackground(temas_disponiveis);
+        const temas = await db.Temas.findAll({
+          where: {
+            id: {
+              [Op.in]: historia.temas
+            }
+          }
+        });
+        const geradorBackground = await criarGeradorBackground();
         const resultadoBackground = await geradorBackground.gerarBackground({
           nome,
           classe: nomeClasse,
@@ -415,7 +422,7 @@ class PersonagemController {
   gerarBackground = async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { temas_disponiveis = [], tipo = 'normal', sugestao_background = '' } = req.body;
+      const { temas_disponiveis = [], sugestao_background = '' } = req.body;
 
       console.log(`📝 Gerando background para personagem ID: ${id}`);
 
@@ -435,34 +442,33 @@ class PersonagemController {
         });
       }
 
-      // Buscar nome da classe (implementar quando tiver tabela de classes)
+      // Buscar nome da classe
       let nomeClasse = 'Aventureiro';
       if (personagem.classe_id) {
-        // Buscar classe no banco
         const classe = await db.Classe.findByPk(personagem.classe_id);
         if (classe) {
           nomeClasse = classe.nome;
         }
       }
 
+      // Buscar nome da raça
+      let nomeRaca = 'Humano';
+      if (personagem.raca_id) {
+        const raca = await db.Raca.findByPk(personagem.raca_id);
+        if (raca) {
+          nomeRaca = raca.nome;
+        }
+      }
+
       const geradorBackground = await criarGeradorBackground(temas_disponiveis);
 
-      let resultadoBackground;
-      if (tipo === 'detalhado') {
-        resultadoBackground = await geradorBackground.gerarBackgroundDetalhado({
-          nome: personagem.nome,
-          classe: nomeClasse,
-          tema: historia.temas,
-          sugestao_background: sugestao_background
-        });
-      } else {
-        resultadoBackground = await geradorBackground.gerarBackground({
-          nome: personagem.nome,
-          classe: nomeClasse,
-          tema: historia.temas,
-          sugestao_background: sugestao_background
-        });
-      }
+      const resultadoBackground = await geradorBackground.gerarBackground({
+        nome: personagem.nome,
+        classe: nomeClasse,
+        raca: nomeRaca,
+        tema: historia.temas,
+        sugestao_background: sugestao_background
+      });
 
       // Atualizar personagem com o novo background
       personagem.background = resultadoBackground.background;
@@ -480,8 +486,7 @@ class PersonagemController {
         message: 'Background gerado com sucesso',
         data: {
           ...personagemData,
-          background_gerado: resultadoBackground.background,
-          tipo: tipo
+          background_gerado: resultadoBackground.background
         }
       });
 

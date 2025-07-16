@@ -1,214 +1,178 @@
 /**
- * Modelo de Vantagens para RPG
+ * Modelo de Vantagens para RPG usando Prisma
  */
-export default (sequelize, DataTypes) => {
-  const Vantagem = sequelize.define('Vantagem', {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
-    nome: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      unique: true,
-      validate: {
-        notEmpty: true
-      }
-    },
-    descricao: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      validate: {
-        notEmpty: true
-      }
-    },
-    custo: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-      validate: {
-        min: 0
-      },
-      comment: 'Custo em mana/energia para usar a vantagem'
-    },
-    tipo: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: false,
-      defaultValue: ['ativa'],
-      comment: 'Tipos da vantagem (ativa, passiva, reacao, ritual)'
-    },
-    bonus: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-      comment: 'Bônus aplicado pela vantagem em formato JSON'
-    },
-    restricao: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-      comment: 'Restrições para usar a vantagem em formato JSON'
-    },
-    dano_base: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      comment: 'Dano base da vantagem (ex: 1d8, 2d6)'
-    },
-    efeito: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      comment: 'Efeito especial da vantagem em formato JSON'
-    },
-    usar: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      comment: 'Como usar a vantagem (1=acao, 2=reacao, 3=movimento, etc.)'
-    },
-    elemento: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: true,
-      comment: 'Elementos da vantagem (fogo, gelo, físico, etc.)'
-    },
-    nivel: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1,
-      validate: {
-        min: 1,
-        max: 20
-      },
-      comment: 'Nível mínimo para aprender a vantagem'
-    },
-    requisitos: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-      comment: 'Requisitos para aprender a vantagem em formato JSON'
-    },
-    criada_em: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    atualizada_em: {
-      type: DataTypes.DATE,
-      allowNull: true
-    }
-  }, {
-    tableName: 'vantagens',
-    timestamps: true,
-    createdAt: 'criada_em',
-    updatedAt: 'atualizada_em',
-    indexes: [
-      {
-        name: 'idx_vantagem_nivel',
-        fields: ['nivel']
-      },
-      {
-        name: 'idx_vantagem_usar',
-        fields: ['usar']
-      }
-    ]
-  });
+const Vantagem = (prisma) => {
+  const model = prisma.vantagens;
 
-  // Hooks
-  Vantagem.beforeCreate((vantagem) => {
-    if (!vantagem.requisitos) {
-      vantagem.requisitos = {};
-    }
-    if (!vantagem.bonus) {
-      vantagem.bonus = {};
-    }
-    if (!vantagem.restricao) {
-      vantagem.restricao = {};
-    }
-    if (!vantagem.efeito) {
-      vantagem.efeito = {};
-    }
-  });
+  // Métodos customizados
+  const VantagemMethods = {
+    // Buscar vantagem por tipo
+    async findByTipo(tipo) {
+      return await model.findMany({
+        where: {
+          tipo: {
+            has: tipo
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
 
-  Vantagem.beforeUpdate((vantagem) => {
-    vantagem.atualizada_em = new Date();
-  });
+    // Buscar vantagem por elemento
+    async findByElemento(elemento) {
+      return await model.findMany({
+        where: {
+          elemento: {
+            has: elemento
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
 
-  // Métodos de instância
-  Vantagem.prototype.toJSON = function() {
-    const values = Object.assign({}, this.get());
-    
-    // Converter JSON strings de volta para objetos se necessário
-    if (typeof values.requisitos === 'string') {
-      try {
-        values.requisitos = JSON.parse(values.requisitos);
-      } catch (e) {
-        values.requisitos = {};
-      }
+    // Buscar vantagem por nível
+    async findByNivel(nivel) {
+      return await model.findMany({
+        where: { nivel },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar vantagem por forma de usar
+    async findByUsar(usar) {
+      return await model.findMany({
+        where: { usar },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar vantagem por termo
+    async search(termo) {
+      return await model.findMany({
+        where: {
+          OR: [
+            { nome: { contains: termo, mode: 'insensitive' } },
+            { descricao: { contains: termo, mode: 'insensitive' } }
+          ]
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Criar vantagem
+    async create(data) {
+      // Preparar dados com valores padrão
+      const vantagemData = {
+        ...data,
+        requisitos: data.requisitos || {},
+        bonus: data.bonus || {},
+        restricao: data.restricao || {},
+        efeito: data.efeito || {},
+        criada_em: new Date(),
+        atualizada_em: new Date()
+      };
+
+      return await model.create({
+        data: vantagemData
+      });
+    },
+
+    // Atualizar vantagem
+    async update(id, data) {
+      return await model.update({
+        where: { id },
+        data: {
+          ...data,
+          atualizada_em: new Date()
+        }
+      });
+    },
+
+    // Deletar vantagem
+    async delete(id) {
+      return await model.delete({
+        where: { id }
+      });
+    },
+
+    // Listar todas as vantagens
+    async findAll() {
+      return await model.findMany({
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por ID
+    async findById(id) {
+      return await model.findUnique({
+        where: { id }
+      });
+    },
+
+    // Buscar vantagens por nível máximo
+    async findByNivelMax(nivel) {
+      return await model.findMany({
+        where: {
+          nivel: {
+            lte: nivel
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar vantagens por custo
+    async findByCusto(custo) {
+      return await model.findMany({
+        where: { custo },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar vantagens por custo máximo
+    async findByCustoMax(custo) {
+      return await model.findMany({
+        where: {
+          custo: {
+            lte: custo
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Contar vantagens
+    async count() {
+      return await model.count();
+    },
+
+    // Buscar vantagens ativas
+    async findAtivas() {
+      return await model.findMany({
+        where: {
+          tipo: {
+            has: 'ativa'
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar vantagens passivas
+    async findPassivas() {
+      return await model.findMany({
+        where: {
+          tipo: {
+            has: 'passiva'
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
     }
-    
-    if (typeof values.bonus === 'string') {
-      try {
-        values.bonus = JSON.parse(values.bonus);
-      } catch (e) {
-        values.bonus = {};
-      }
-    }
-    
-    if (typeof values.restricao === 'string') {
-      try {
-        values.restricao = JSON.parse(values.restricao);
-      } catch (e) {
-        values.restricao = {};
-      }
-    }
-    
-    if (typeof values.efeito === 'string') {
-      try {
-        values.efeito = JSON.parse(values.efeito);
-      } catch (e) {
-        values.efeito = {};
-      }
-    }
-    
-    return values;
   };
 
-  // Métodos de classe
-  Vantagem.findByTipo = function(tipo) {
-    return this.findAll({
-      where: sequelize.literal(`'${tipo}' = ANY(tipo)`),
-      order: [['nome', 'ASC']]
-    });
-  };
+  // Retornar o modelo com métodos customizados
+  return Object.assign(model, VantagemMethods);
+};
 
-  Vantagem.findByElemento = function(elemento) {
-    return this.findAll({
-      where: sequelize.literal(`'${elemento}' = ANY(elemento)`),
-      order: [['nome', 'ASC']]
-    });
-  };
-
-  Vantagem.findByNivel = function(nivel) {
-    return this.findAll({
-      where: { nivel },
-      order: [['nome', 'ASC']]
-    });
-  };
-
-  Vantagem.findByUsar = function(usar) {
-    return this.findAll({
-      where: { usar },
-      order: [['nome', 'ASC']]
-    });
-  };
-
-  Vantagem.search = function(termo) {
-    return this.findAll({
-      where: {
-        [sequelize.Op.or]: [
-          { nome: { [sequelize.Op.iLike]: `%${termo}%` } },
-          { descricao: { [sequelize.Op.iLike]: `%${termo}%` } },
-          sequelize.literal(`efeito::text ILIKE '%${termo}%'`)
-        ]
-      },
-      order: [['nome', 'ASC']]
-    });
-  };
-
-  return Vantagem;
-}; 
+export default Vantagem; 

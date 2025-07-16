@@ -1,22 +1,87 @@
-import { DataTypes } from 'sequelize';
+/**
+ * Modelo de Temas para RPG usando Prisma
+ */
+const Temas = (prisma) => {
+  const model = prisma.temas;
 
-const Temas = (sequelize, DataTypes) => {
-    return sequelize.define('Temas', {
-        id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            allowNull: false,
+  // Métodos customizados
+  const TemasMethods = {
+    // Buscar tema por nome
+    async findByNome(nome) {
+      return await model.findUnique({
+        where: { nome }
+      });
+    },
+
+    // Buscar temas por termo
+    async search(termo) {
+      return await model.findMany({
+        where: {
+          nome: { contains: termo, mode: 'insensitive' }
         },
-        nome: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            unique: true,
-        },
-    }, {
-        tableName: 'temas',
-        timestamps: false,
-    });
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Criar tema
+    async create(data) {
+      return await model.create({
+        data
+      });
+    },
+
+    // Atualizar tema
+    async update(id, data) {
+      return await model.update({
+        where: { id },
+        data
+      });
+    },
+
+    // Deletar tema
+    async delete(id) {
+      return await model.delete({
+        where: { id }
+      });
+    },
+
+    // Listar todos os temas
+    async findAll() {
+      return await model.findMany({
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por ID
+    async findById(id) {
+      return await model.findUnique({
+        where: { id }
+      });
+    },
+
+    // Contar temas
+    async count() {
+      return await model.count();
+    },
+
+    // Verificar se tema existe
+    async exists(nome) {
+      const tema = await model.findUnique({
+        where: { nome }
+      });
+      return !!tema;
+    },
+
+    // Buscar temas ordenados
+    async findAllOrdered() {
+      return await model.findMany({
+        orderBy: { nome: 'asc' }
+      });
+    }
+  };
+
+  // Retornar o modelo com métodos customizados
+  return Object.assign(model, TemasMethods);
 };
 
 export default Temas;

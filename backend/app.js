@@ -19,21 +19,9 @@ import classeRouter from './routes/classe.js';
 import racaRouter from './routes/raca.js';
 
 import { createExecutor } from './tools/master.js';
-import initDatabase from './Model/initDB.js';
 import specs from './swagger-config.js';
 
 const app = express();
-
-// Inicializar banco de dados
-initDatabase().then(success => {
-  if (success) {
-    console.log('✅ Aplicação iniciada com banco de dados');
-  } else {
-    console.log('⚠️  Aplicação iniciada sem banco de dados');
-  }
-}).catch(error => {
-  console.error('❌ Erro crítico ao inicializar aplicação:', error);
-});
 
 createExecutor()
 // view engine setup

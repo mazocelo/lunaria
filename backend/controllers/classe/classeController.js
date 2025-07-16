@@ -32,7 +32,7 @@ class ClasseController {
       }
 
       // Verificar se já existe uma classe com este nome
-      const classeExistente = await db.Classe.findOne({ where: { nome } });
+      const classeExistente = await db.Classe.findByNome(nome);
       if (classeExistente) {
         return res.status(400).json({
           error: 'Já existe uma classe com este nome'
@@ -57,7 +57,9 @@ class ClasseController {
 
     } catch (error) {
       console.error('❌ Erro ao criar classe:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -69,34 +71,32 @@ class ClasseController {
    */
   async listarClasses(req, res, next) {
     try {
-      console.log('📋 Listando classes...');
+      console.log('📋 Listando classes');
 
       const { limit = 50, offset = 0 } = req.query;
 
-      const classes = await db.Classe.findAll({
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [['nome', 'ASC']]
-      });
+      const classes = await db.Classe.findAll();
 
-      const total = await db.Classe.count();
+      // Aplicar paginação manualmente se necessário
+      const startIndex = parseInt(offset);
+      const endIndex = startIndex + parseInt(limit);
+      const classesPaginadas = classes.slice(startIndex, endIndex);
 
-      console.log(`✅ ${classes.length} classes encontradas`);
+      console.log(`✅ ${classesPaginadas.length} classes encontradas`);
 
       res.status(200).json({
         success: true,
-        data: classes,
-        pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: offset + classes.length < total
-        }
+        data: classesPaginadas,
+        total: classes.length,
+        offset: parseInt(offset),
+        limit: parseInt(limit)
       });
 
     } catch (error) {
       console.error('❌ Erro ao listar classes:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -112,7 +112,7 @@ class ClasseController {
 
       console.log(`🔍 Buscando classe ID: ${id}`);
 
-      const classe = await db.Classe.findByPk(id);
+      const classe = await db.Classe.findById(parseInt(id));
 
       if (!classe) {
         return res.status(404).json({
@@ -120,7 +120,7 @@ class ClasseController {
         });
       }
 
-      console.log('✅ Classe encontrada');
+      console.log('✅ Classe encontrada:', classe.nome);
 
       res.status(200).json({
         success: true,
@@ -129,11 +129,11 @@ class ClasseController {
 
     } catch (error) {
       console.error('❌ Erro ao obter classe:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
-
-
 
   /**
    * Buscar classes por nome
@@ -145,33 +145,29 @@ class ClasseController {
     try {
       const { termo } = req.query;
 
-      console.log(`🔍 Buscando classes com termo: ${termo}`);
-
       if (!termo) {
         return res.status(400).json({
           error: 'Termo de busca é obrigatório'
         });
       }
 
-      const classes = await db.Classe.findAll({
-        where: {
-          nome: {
-            [db.Sequelize.Op.iLike]: `%${termo}%`
-          }
-        },
-        order: [['nome', 'ASC']]
-      });
+      console.log(`🔍 Buscando classes por: ${termo}`);
+
+      const classes = await db.Classe.search(termo);
 
       console.log(`✅ ${classes.length} classes encontradas`);
 
       res.status(200).json({
         success: true,
-        data: classes
+        data: classes,
+        total: classes.length
       });
 
     } catch (error) {
       console.error('❌ Erro ao buscar classes:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 }

@@ -142,8 +142,8 @@ const Desvantagem = (prisma) => {
     },
 
     // Contar desvantagens
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.desvantagem.count({ where });
     },
 
     // Buscar desvantagens ativas

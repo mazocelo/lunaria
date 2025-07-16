@@ -105,8 +105,8 @@ const Classe = (prisma) => {
     },
 
     // Contar classes
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.classe.count({ where });
     },
 
     // Buscar classes gratuitas

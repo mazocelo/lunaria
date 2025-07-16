@@ -32,7 +32,7 @@ class RacaController {
       }
 
       // Verificar se já existe uma raça com este nome
-      const racaExistente = await db.Raca.findOne({ where: { nome } });
+      const racaExistente = await db.Raca.findByNome(nome);
       if (racaExistente) {
         return res.status(400).json({
           error: 'Já existe uma raça com este nome'
@@ -57,7 +57,9 @@ class RacaController {
 
     } catch (error) {
       console.error('❌ Erro ao criar raça:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -69,34 +71,32 @@ class RacaController {
    */
   async listarRacas(req, res, next) {
     try {
-      console.log('📋 Listando raças...');
+      console.log('📋 Listando raças');
 
       const { limit = 50, offset = 0 } = req.query;
 
-      const racas = await db.Raca.findAll({
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [['nome', 'ASC']]
-      });
+      const racas = await db.Raca.findAll();
 
-      const total = await db.Raca.count();
+      // Aplicar paginação manualmente se necessário
+      const startIndex = parseInt(offset);
+      const endIndex = startIndex + parseInt(limit);
+      const racasPaginadas = racas.slice(startIndex, endIndex);
 
-      console.log(`✅ ${racas.length} raças encontradas`);
+      console.log(`✅ ${racasPaginadas.length} raças encontradas`);
 
       res.status(200).json({
         success: true,
-        data: racas,
-        pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: offset + racas.length < total
-        }
+        data: racasPaginadas,
+        total: racas.length,
+        offset: parseInt(offset),
+        limit: parseInt(limit)
       });
 
     } catch (error) {
       console.error('❌ Erro ao listar raças:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -112,7 +112,7 @@ class RacaController {
 
       console.log(`🔍 Buscando raça ID: ${id}`);
 
-      const raca = await db.Raca.findByPk(id);
+      const raca = await db.Raca.findById(parseInt(id));
 
       if (!raca) {
         return res.status(404).json({
@@ -120,7 +120,7 @@ class RacaController {
         });
       }
 
-      console.log('✅ Raça encontrada');
+      console.log('✅ Raça encontrada:', raca.nome);
 
       res.status(200).json({
         success: true,
@@ -129,7 +129,9 @@ class RacaController {
 
     } catch (error) {
       console.error('❌ Erro ao obter raça:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -145,33 +147,29 @@ class RacaController {
     try {
       const { termo } = req.query;
 
-      console.log(`🔍 Buscando raças com termo: ${termo}`);
-
       if (!termo) {
         return res.status(400).json({
           error: 'Termo de busca é obrigatório'
         });
       }
 
-      const racas = await db.Raca.findAll({
-        where: {
-          nome: {
-            [db.Sequelize.Op.iLike]: `%${termo}%`
-          }
-        },
-        order: [['nome', 'ASC']]
-      });
+      console.log(`🔍 Buscando raças por: ${termo}`);
+
+      const racas = await db.Raca.search(termo);
 
       console.log(`✅ ${racas.length} raças encontradas`);
 
       res.status(200).json({
         success: true,
-        data: racas
+        data: racas,
+        total: racas.length
       });
 
     } catch (error) {
       console.error('❌ Erro ao buscar raças:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 }

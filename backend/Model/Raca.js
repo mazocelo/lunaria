@@ -105,8 +105,8 @@ const Raca = (prisma) => {
     },
 
     // Contar raças
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.raca.count({ where });
     },
 
     // Buscar raças gratuitas

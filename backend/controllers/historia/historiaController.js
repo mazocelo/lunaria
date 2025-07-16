@@ -39,9 +39,7 @@ class HistoriaController {
       let temasParaUsar = temas_disponiveis || [];
       if (!temas_disponiveis || temas_disponiveis.length === 0) {
         // Buscar temas do banco de dados
-        const temasDB = await db.Temas.findAll({
-          attributes: ['nome']
-        });
+        const temasDB = await db.Temas.findAll();
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
@@ -81,7 +79,7 @@ class HistoriaController {
         success: true,
         message: 'História criada com prólogo gerado automaticamente',
         data: {
-          ...novaHistoria.toJSON(),
+          ...novaHistoria,
           prologo: resultadoPrologo.prologo,
           temas_utilizados: resultadoPrologo.temasUtilizados,
           titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null
@@ -111,14 +109,26 @@ class HistoriaController {
       if (status) where.status = status;
       if (temas) where.temas = temas;
       
-      const historias = await db.Historia.findAll({
-        where,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [['criada_em', 'DESC']]
-      });
+      // Buscar todas as histórias e aplicar filtros manualmente
+      let historias = await db.Historia.findAll();
       
-      const total = await db.Historia.count({ where });
+      // Aplicar filtros
+      if (status) {
+        historias = historias.filter(h => h.status === status);
+      }
+      if (temas) {
+        historias = historias.filter(h => h.temas && h.temas.includes(temas));
+      }
+      
+      // Ordenar por data de criação (mais recente primeiro)
+      historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+      
+      const total = historias.length;
+      
+      // Aplicar paginação
+      const startIndex = parseInt(offset) || 0;
+      const endIndex = startIndex + parseInt(limit || 20);
+      historias = historias.slice(startIndex, endIndex);
       
       console.log(`✅ ${historias.length} histórias encontradas`);
       
@@ -151,7 +161,7 @@ class HistoriaController {
       
       console.log(`🔍 Buscando história ID: ${id}`);
       
-      const historia = await db.Historia.findByPk(id);
+      const historia = await db.Historia.findById(parseInt(id));
       
       if (!historia) {
         return res.status(404).json({
@@ -185,7 +195,7 @@ class HistoriaController {
       
       console.log(`📝 Atualizando história ID: ${id}`, dadosAtualizacao);
       
-      const historia = await db.Historia.findByPk(id);
+      const historia = await db.Historia.findById(parseInt(id));
       
       if (!historia) {
         return res.status(404).json({
@@ -193,19 +203,21 @@ class HistoriaController {
         });
       }
       
-      // Atualizar dados
-      Object.assign(historia, dadosAtualizacao, {
+      // Atualizar dados usando o método update do Prisma
+      await db.Historia.update(parseInt(id), {
+        ...dadosAtualizacao,
         atualizada_em: new Date()
       });
       
-      await historia.save();
+      // Buscar a história atualizada
+      const historiaAtualizada = await db.Historia.findById(parseInt(id));
       
       console.log('✅ História atualizada com sucesso');
       
       res.status(200).json({
         success: true,
         message: 'História atualizada com sucesso',
-        data: historia
+        data: historiaAtualizada
       });
       
     } catch (error) {
@@ -226,7 +238,7 @@ class HistoriaController {
       
       console.log(`🗑️ Excluindo história ID: ${id}`);
       
-      const historia = await db.Historia.findByPk(id);
+      const historia = await db.Historia.findById(parseInt(id));
       
       if (!historia) {
         return res.status(404).json({
@@ -234,7 +246,7 @@ class HistoriaController {
         });
       }
       
-      await historia.destroy();
+      await db.Historia.delete(parseInt(id));
       
       console.log('✅ História excluída com sucesso');
       
@@ -272,9 +284,7 @@ class HistoriaController {
       let temasParaUsar = temas_disponiveis || [];
       if (!temas_disponiveis || temas_disponiveis.length === 0) {
         // Buscar temas do banco de dados
-        const temasDB = await db.Temas.findAll({
-          attributes: ['nome']
-        });
+        const temasDB = await db.Temas.findAll();
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
@@ -309,7 +319,7 @@ class HistoriaController {
         success: true,
         message: 'História gerada com IA com sucesso',
         data: {
-          ...novaHistoria.toJSON(),
+          ...novaHistoria,
           elementos: historiaGerada.elementos,
           temas_utilizados: historiaGerada.metadata.temasUtilizados
         }
@@ -383,7 +393,7 @@ class HistoriaController {
         success: true,
         message: 'Aventura completa gerada com sucesso',
         data: {
-          ...novaHistoria.toJSON(),
+          ...novaHistoria,
           personagens: aventuraCompleta.personagens,
           sessao: aventuraCompleta.sessao,
           elementos: aventuraCompleta.elementos,

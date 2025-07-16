@@ -2,7 +2,7 @@
  * Modelo de Personagem para RPG usando Prisma
  */
 const Personagem = (prisma) => {
-  const model = prisma.personagem;
+  const model = prisma.personagens;
 
   // Métodos customizados
   const PersonagemMethods = {
@@ -124,8 +124,8 @@ const Personagem = (prisma) => {
     },
 
     // Contar personagens
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.personagem.count({ where });
     }
   };
 

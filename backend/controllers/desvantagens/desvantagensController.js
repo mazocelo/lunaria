@@ -39,9 +39,9 @@ class DesvantagemController {
       }
       
       // Verificar se já existe uma desvantagem com o mesmo nome
-      const desvantagemExistente = await db.Desvantagem.findOne({
-        where: { nome }
-      });
+      const desvantagemExistente = await db.Desvantagem.findByNome ? 
+        await db.Desvantagem.findByNome(nome) : 
+        await db.Desvantagem.findUnique({ where: { nome } });
       
       if (desvantagemExistente) {
         return res.status(400).json({ 
@@ -75,7 +75,9 @@ class DesvantagemController {
       
     } catch (error) {
       console.error('❌ Erro ao criar desvantagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
   
@@ -107,31 +109,36 @@ class DesvantagemController {
       if (nivel) where.nivel = nivel;
       if (usar) where.usar = usar;
       
-      let desvantagens;
+      let desvantagens = [];
+      
       // Se há termo de busca, usar método de busca
       if (search) {
         desvantagens = await db.Desvantagem.search(search);
       } 
-      else if(limit || offset){
-        desvantagens = await db.Desvantagem.findAll({
-          where,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          order: [['nome', 'ASC']]
-        });
+      else if (tipo) {
+        desvantagens = await db.Desvantagem.findByTipo(tipo);
       }
-       else if(Object.keys(where).length > 0){
-        desvantagens = await db.Desvantagem.findAll({
-          where,
-          order: [['nome', 'ASC']]
-        }); 
-      } else {
-        desvantagens = await db.Desvantagem.findAll({
-          order: [['nome', 'ASC']]
-        });
+      else if (elemento) {
+        desvantagens = await db.Desvantagem.findByElemento(elemento);
+      }
+      else if (nivel) {
+        desvantagens = await db.Desvantagem.findByNivel(parseInt(nivel));
+      }
+      else if (usar) {
+        desvantagens = await db.Desvantagem.findByUsar(parseInt(usar));
+      }
+      else {
+        desvantagens = await db.Desvantagem.findAll();
       }
       
-      const total = await db.Desvantagem.count({ where });
+      // Aplicar paginação manualmente se necessário
+      if (limit || offset) {
+        const startIndex = parseInt(offset) || 0;
+        const endIndex = startIndex + parseInt(limit || 50);
+        desvantagens = desvantagens.slice(startIndex, endIndex);
+      }
+      
+      const total = desvantagens.length;
       
       console.log(`✅ ${desvantagens.length} desvantagens encontradas`);
       
@@ -148,7 +155,9 @@ class DesvantagemController {
       
     } catch (error) {
       console.error('❌ Erro ao listar desvantagens:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
   
@@ -164,7 +173,7 @@ class DesvantagemController {
       
       console.log(`🔍 Buscando desvantagem ID: ${id}`);
       
-      const desvantagem = await db.Desvantagem.findByPk(id);
+      const desvantagem = await db.Desvantagem.findById(parseInt(id));
       
       if (!desvantagem) {
         return res.status(404).json({
@@ -181,7 +190,9 @@ class DesvantagemController {
       
     } catch (error) {
       console.error('❌ Erro ao obter desvantagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
   
@@ -311,30 +322,25 @@ class DesvantagemController {
     try {
       console.log('📊 Obtendo estatísticas das desvantagens');
       
-      const [
-        totalDesvantagens,
-        porNivel,
-        porUsar
-      ] = await Promise.all([
-        db.Desvantagem.count(),
-        db.Desvantagem.findAll({
-          attributes: [
-            'nivel',
-            [db.sequelize.fn('COUNT', '*'), 'total']
-          ],
-          group: ['nivel'],
-          order: [['nivel', 'ASC']]
-        }),
-        db.Desvantagem.findAll({
-          attributes: [
-            'usar',
-            [db.sequelize.fn('COUNT', '*'), 'total']
-          ],
-          where: { usar: { [db.sequelize.Op.ne]: null } },
-          group: ['usar'],
-          order: [['usar', 'ASC']]
-        })
-      ]);
+      const totalDesvantagens = await db.Desvantagem.count();
+      
+      // Para estatísticas por nível e por usar, vamos buscar todos e agrupar manualmente
+      const todasDesvantagens = await db.Desvantagem.findAll();
+      
+      // Agrupar por nível
+      const porNivel = {};
+      todasDesvantagens.forEach(d => {
+        const nivel = d.nivel || 'Sem nível';
+        porNivel[nivel] = (porNivel[nivel] || 0) + 1;
+      });
+      
+      // Agrupar por usar
+      const porUsar = {};
+      todasDesvantagens.forEach(d => {
+        if (d.usar) {
+          porUsar[d.usar] = (porUsar[d.usar] || 0) + 1;
+        }
+      });
       
       const estatisticas = {
         total: totalDesvantagens,

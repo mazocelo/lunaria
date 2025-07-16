@@ -39,9 +39,9 @@ class VantagemController {
       }
       
       // Verificar se já existe uma vantagem com o mesmo nome
-      const vantagemExistente = await db.Vantagem.findOne({
-        where: { nome }
-      });
+      const vantagemExistente = await db.Vantagem.findByNome ? 
+        await db.Vantagem.findByNome(nome) : 
+        await db.Vantagem.findUnique({ where: { nome } });
       
       if (vantagemExistente) {
         return res.status(400).json({ 
@@ -75,7 +75,9 @@ class VantagemController {
       
     } catch (error) {
       console.error('❌ Erro ao criar vantagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
   
@@ -106,31 +108,36 @@ class VantagemController {
       if (nivel) where.nivel = nivel;
       if (usar) where.usar = usar;
       
-      let vantagens;
+      let vantagens = [];
+      
       // Se há termo de busca, usar método de busca
       if (search) {
         vantagens = await db.Vantagem.search(search);
       } 
-      else if(limit || offset){
-        vantagens = await db.Vantagem.findAll({
-          where,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          order: [['nome', 'ASC']]
-        });
+      else if (tipo) {
+        vantagens = await db.Vantagem.findByTipo(tipo);
       }
-       else if(Object.keys(where).length > 0){
-        vantagens = await db.Vantagem.findAll({
-          where,
-          order: [['nome', 'ASC']]
-        }); 
-      } else {
-        vantagens = await db.Vantagem.findAll({
-          order: [['nome', 'ASC']]
-        });
+      else if (elemento) {
+        vantagens = await db.Vantagem.findByElemento(elemento);
+      }
+      else if (nivel) {
+        vantagens = await db.Vantagem.findByNivel(parseInt(nivel));
+      }
+      else if (usar) {
+        vantagens = await db.Vantagem.findByUsar(parseInt(usar));
+      }
+      else {
+        vantagens = await db.Vantagem.findAll();
       }
       
-      const total = await db.Vantagem.count({ where });
+      // Aplicar paginação manualmente se necessário
+      if (limit || offset) {
+        const startIndex = parseInt(offset) || 0;
+        const endIndex = startIndex + parseInt(limit || 50);
+        vantagens = vantagens.slice(startIndex, endIndex);
+      }
+      
+      const total = vantagens.length;
       
       console.log(`✅ ${vantagens.length} vantagens encontradas`);
       
@@ -147,7 +154,9 @@ class VantagemController {
       
     } catch (error) {
       console.error('❌ Erro ao listar vantagens:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
   
@@ -163,7 +172,7 @@ class VantagemController {
       
       console.log(`🔍 Buscando vantagem ID: ${id}`);
       
-      const vantagem = await db.Vantagem.findByPk(id);
+      const vantagem = await db.Vantagem.findById(parseInt(id));
       
       if (!vantagem) {
         return res.status(404).json({
@@ -180,7 +189,9 @@ class VantagemController {
       
     } catch (error) {
       console.error('❌ Erro ao obter vantagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
   
@@ -310,30 +321,25 @@ class VantagemController {
     try {
       console.log('📊 Obtendo estatísticas das vantagens');
       
-      const [
-        totalVantagens,
-        porNivel,
-        porUsar
-      ] = await Promise.all([
-        db.Vantagem.count(),
-        db.Vantagem.findAll({
-          attributes: [
-            'nivel',
-            [db.sequelize.fn('COUNT', '*'), 'total']
-          ],
-          group: ['nivel'],
-          order: [['nivel', 'ASC']]
-        }),
-        db.Vantagem.findAll({
-          attributes: [
-            'usar',
-            [db.sequelize.fn('COUNT', '*'), 'total']
-          ],
-          where: { usar: { [db.sequelize.Op.ne]: null } },
-          group: ['usar'],
-          order: [['usar', 'ASC']]
-        })
-      ]);
+      const totalVantagens = await db.Vantagem.count();
+      
+      // Para estatísticas por nível e por usar, vamos buscar todos e agrupar manualmente
+      const todasVantagens = await db.Vantagem.findAll();
+      
+      // Agrupar por nível
+      const porNivel = {};
+      todasVantagens.forEach(v => {
+        const nivel = v.nivel || 'Sem nível';
+        porNivel[nivel] = (porNivel[nivel] || 0) + 1;
+      });
+      
+      // Agrupar por usar
+      const porUsar = {};
+      todasVantagens.forEach(v => {
+        if (v.usar) {
+          porUsar[v.usar] = (porUsar[v.usar] || 0) + 1;
+        }
+      });
       
       const estatisticas = {
         total: totalVantagens,

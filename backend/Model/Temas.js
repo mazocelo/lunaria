@@ -60,8 +60,8 @@ const Temas = (prisma) => {
     },
 
     // Contar temas
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.temas.count({ where });
     },
 
     // Verificar se tema existe

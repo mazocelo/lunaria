@@ -30,7 +30,6 @@
     "openai": "^4.93.0",
     "pg": "^8.16.0",
     "redis": "^4.7.1",
-    "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"

@@ -167,8 +167,8 @@ const Historia = (prisma) => {
     },
 
     // Contar histórias
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.historias.count({ where });
     },
 
     // Buscar histórias com vagas disponíveis

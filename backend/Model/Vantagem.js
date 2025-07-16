@@ -142,8 +142,8 @@ const Vantagem = (prisma) => {
     },
 
     // Contar vantagens
-    async count() {
-      return await model.count();
+    async count(where = {}) {
+      return await prisma.vantagem.count({ where });
     },
 
     // Buscar vantagens ativas

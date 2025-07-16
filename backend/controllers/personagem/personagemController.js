@@ -1,6 +1,5 @@
 
 import db from '../../Model/index.js';
-import { Op } from 'sequelize';
 import { criarGeradorBackground } from '../../agents/historia/personagem/background/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 
@@ -10,35 +9,12 @@ import { asyncHandler } from '../../middleware/errorHandler.js';
 class PersonagemController {
 
   /**
-   * Configuração dos includes para relacionamentos
-   * @returns {Array} - Array de configurações de include
-   */
-  getIncludesRelacionamentos() {
-    return [
-      {
-        model: db.Classe,
-        as: 'classe',
-        attributes: ['id', 'nome'],
-        required: false
-      },
-      {
-        model: db.Raca,
-        as: 'raca',
-        attributes: ['id', 'nome'],
-        required: false
-      }
-    ];
-  }
-
-  /**
    * Buscar personagem com relacionamentos
    * @param {number} id - ID do personagem
    * @returns {Object} - Dados do personagem com relacionamentos
    */
   async buscarPersonagemComRelacionamentos(id) {
-    return await db.Personagem.findByPk(id, {
-      include: this.getIncludesRelacionamentos()
-    });
+    return await db.Personagem.findByIdWithRelations(id);
   }
 
   /**
@@ -47,16 +23,16 @@ class PersonagemController {
    * @returns {Object} - Dados processados
    */
   processarDadosPersonagem(personagem) {
-    const personagemData = personagem.toJSON();
+    const personagemData = { ...personagem };
     
     // Adicionar nome da classe
-    if (personagemData.classe) {
-      personagemData.classe = personagemData.classe.nome;
+    if (personagemData.classes) {
+      personagemData.classe = personagemData.classes.nome;
     }
     
     // Adicionar nome da raça
-    if (personagemData.raca) {
-      personagemData.raca = personagemData.raca.nome;
+    if (personagemData.racas) {
+      personagemData.raca = personagemData.racas.nome;
     }
     
     return personagemData;
@@ -126,7 +102,7 @@ class PersonagemController {
         console.log('📝 Gerando background automático...');
 
         // Buscar informações da história para contexto
-        const historia = await db.Historia.findByPk(historia_id);
+        const historia = await db.Historia.findById(parseInt(historia_id));
         if (!historia) {
           return res.status(404).json({
             error: 'História não encontrada'
@@ -137,7 +113,7 @@ class PersonagemController {
         let nomeClasse = 'Aventureiro';
         if (classe_id) {
           // Buscar classe no banco
-          const classe = await db.Classe.findByPk(classe_id);
+          const classe = await db.Classe.findById(parseInt(classe_id));
           if (classe) {
             nomeClasse = classe.nome;
           }
@@ -145,7 +121,7 @@ class PersonagemController {
 
         let nomeRaca = 'Humano';
         if (raca_id) {
-          const raca = await db.Raca.findByPk(raca_id);
+          const raca = await db.Raca.findById(parseInt(raca_id));
           if (raca) {
             nomeRaca = raca.nome;
           }
@@ -153,31 +129,25 @@ class PersonagemController {
         let vantagensArray = [];
         let desvantagensArray = [];
         if(vantagens) {
-          vantagensArray = await db.Vantagem.findAll({
-            where: {
-              id: {
-                [Op.in]: vantagens
-              }
-            }
-          });   
+          // Buscar vantagens por IDs
+          vantagensArray = await Promise.all(
+            vantagens.map(id => db.Vantagem.findById(parseInt(id)))
+          );
+          vantagensArray = vantagensArray.filter(v => v !== null);
         }
         if(desvantagens) {
-          desvantagensArray = await db.Desvantagem.findAll({
-            where: {
-              id: {
-                [Op.in]: desvantagens
-              }
-            }
-          });
+          // Buscar desvantagens por IDs
+          desvantagensArray = await Promise.all(
+            desvantagens.map(id => db.Desvantagem.findById(parseInt(id)))
+          );
+          desvantagensArray = desvantagensArray.filter(d => d !== null);
         }
 
-        const temas = await db.Temas.findAll({
-          where: {
-            id: {
-              [Op.in]: historia.temas
-            }
-          }
-        });
+        // Buscar temas por nomes (historia.temas contém nomes, não IDs)
+        const temas = await Promise.all(
+          historia.temas.map(nome => db.Temas.findByNome(nome))
+        );
+        const temasFiltrados = temas.filter(t => t !== null);
         const geradorBackground = await criarGeradorBackground();
         const resultadoBackground = await geradorBackground.gerarBackground({
           nome,
@@ -231,7 +201,9 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao criar personagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -247,43 +219,51 @@ class PersonagemController {
 
       const { historia_id, jogador_id, status, limit = 20, offset = 0 } = req.query;
 
-      // Construir filtros
-      const where = {};
-      if (historia_id) where.historia_id = historia_id;
-      if (jogador_id) where.jogador_id = jogador_id;
-      if (status) where.status = status;
+      // Buscar todos os personagens com relacionamentos
+      let personagens = await db.Personagem.findAll();
 
-      const personagens = await db.Personagem.findAll({
-        where,
-        include: this.getIncludesRelacionamentos(),
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [['criado_em', 'DESC']]
-      });
-
-      const total = await db.Personagem.count({ where });
-
+      // Aplicar filtros manualmente
+      if (historia_id) {
+        personagens = personagens.filter(p => p.historia_id === parseInt(historia_id));
+      }
+      if (jogador_id) {
+        personagens = personagens.filter(p => p.jogador_id === parseInt(jogador_id));
+      }
+      if (status) {
+        personagens = personagens.filter(p => p.status === status);
+      }
+      
+      // Ordenar por data de criação (mais recente primeiro)
+      personagens.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+      
+      // Aplicar paginação
+      const startIndex = parseInt(offset) || 0;
+      const endIndex = startIndex + parseInt(limit || 50);
+      const personagensPaginados = personagens.slice(startIndex, endIndex);
+      
       // Processar dados para incluir nomes das entidades relacionadas
-      const personagensProcessados = personagens.map(personagem => 
+      const personagensProcessados = personagensPaginados.map(personagem => 
         this.processarDadosPersonagem(personagem)
       );
 
-      console.log(`✅ ${personagens.length} personagens encontrados`);
+      console.log(`✅ ${personagensProcessados.length} personagens encontrados`);
 
       res.status(200).json({
         success: true,
         data: personagensProcessados,
         pagination: {
-          total,
+          total: personagens.length,
           limit: parseInt(limit),
           offset: parseInt(offset),
-          hasMore: offset + personagens.length < total
+          hasMore: startIndex + personagensProcessados.length < personagens.length
         }
       });
 
     } catch (error) {
       console.error('❌ Erro ao listar personagens:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -318,7 +298,9 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao obter personagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -335,7 +317,7 @@ class PersonagemController {
 
       console.log(`📝 Atualizando personagem ID: ${id}`, dadosAtualizacao);
 
-      const personagem = await db.Personagem.findByPk(id);
+      const personagem = await db.Personagem.findById(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -353,15 +335,14 @@ class PersonagemController {
         }
       }
 
-      // Atualizar dados
-      Object.assign(personagem, dadosAtualizacao, {
+      // Atualizar dados usando o método update do Prisma
+      await db.Personagem.update(parseInt(id), {
+        ...dadosAtualizacao,
         atualizado_em: new Date()
       });
 
-      await personagem.save();
-
       // Buscar o personagem atualizado com os relacionamentos
-      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       const personagemData = this.processarDadosPersonagem(personagemCompleto);
 
       console.log('✅ Personagem atualizado com sucesso');
@@ -374,7 +355,9 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao atualizar personagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -390,7 +373,7 @@ class PersonagemController {
 
       console.log(`🗑️ Excluindo personagem ID: ${id}`);
 
-      const personagem = await db.Personagem.findByPk(id);
+      const personagem = await db.Personagem.findById(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -398,7 +381,7 @@ class PersonagemController {
         });
       }
 
-      await personagem.destroy();
+      await db.Personagem.delete(parseInt(id));
 
       console.log('✅ Personagem excluído com sucesso');
 
@@ -409,7 +392,9 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao excluir personagem:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -426,7 +411,7 @@ class PersonagemController {
 
       console.log(`📝 Gerando background para personagem ID: ${id}`);
 
-      const personagem = await db.Personagem.findByPk(id);
+      const personagem = await db.Personagem.findById(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -435,7 +420,7 @@ class PersonagemController {
       }
 
       // Buscar informações da história
-      const historia = await db.Historia.findByPk(personagem.historia_id);
+      const historia = await db.Historia.findById(parseInt(personagem.historia_id));
       if (!historia) {
         return res.status(404).json({
           error: 'História não encontrada'
@@ -445,7 +430,7 @@ class PersonagemController {
       // Buscar nome da classe
       let nomeClasse = 'Aventureiro';
       if (personagem.classe_id) {
-        const classe = await db.Classe.findByPk(personagem.classe_id);
+        const classe = await db.Classe.findById(parseInt(personagem.classe_id));
         if (classe) {
           nomeClasse = classe.nome;
         }
@@ -454,7 +439,7 @@ class PersonagemController {
       // Buscar nome da raça
       let nomeRaca = 'Humano';
       if (personagem.raca_id) {
-        const raca = await db.Raca.findByPk(personagem.raca_id);
+        const raca = await db.Raca.findById(parseInt(personagem.raca_id));
         if (raca) {
           nomeRaca = raca.nome;
         }
@@ -471,12 +456,13 @@ class PersonagemController {
       });
 
       // Atualizar personagem com o novo background
-      personagem.background = resultadoBackground.background;
-      personagem.atualizado_em = new Date();
-      await personagem.save();
+      await db.Personagem.update(parseInt(id), {
+        background: resultadoBackground.background,
+        atualizado_em: new Date()
+      });
 
       // Buscar o personagem atualizado com os relacionamentos
-      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       const personagemData = this.processarDadosPersonagem(personagemCompleto);
 
       console.log('✅ Background gerado e salvo');
@@ -492,7 +478,9 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao gerar background:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 
@@ -509,40 +497,48 @@ class PersonagemController {
 
       console.log(`📋 Listando personagens da história ID: ${historia_id}`);
 
-      const where = { historia_id };
-      if (status) where.status = status;
-
-      const personagens = await db.Personagem.findAll({
-        where,
-        include: this.getIncludesRelacionamentos(),
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [['criado_em', 'DESC']]
-      });
-
-      const total = await db.Personagem.count({ where });
+      // Buscar todos os personagens e filtrar por história
+      let personagens = await db.Personagem.findMany();
+      
+      // Filtrar por história
+      personagens = personagens.filter(p => p.historia_id === parseInt(historia_id));
+      
+      // Filtrar por status se fornecido
+      if (status) {
+        personagens = personagens.filter(p => p.status === status);
+      }
+      
+      // Ordenar por data de criação (mais recente primeiro)
+      personagens.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+      
+      // Aplicar paginação
+      const startIndex = parseInt(offset) || 0;
+      const endIndex = startIndex + parseInt(limit || 50);
+      const personagensPaginados = personagens.slice(startIndex, endIndex);
 
       // Processar dados para incluir nomes das entidades relacionadas
-      const personagensProcessados = personagens.map(personagem => 
+      const personagensProcessados = personagensPaginados.map(personagem => 
         this.processarDadosPersonagem(personagem)
       );
 
-      console.log(`✅ ${personagens.length} personagens encontrados na história`);
+      console.log(`✅ ${personagensProcessados.length} personagens encontrados na história`);
 
       res.status(200).json({
         success: true,
         data: personagensProcessados,
         pagination: {
-          total,
+          total: personagens.length,
           limit: parseInt(limit),
           offset: parseInt(offset),
-          hasMore: offset + personagens.length < total
+          hasMore: startIndex + personagensProcessados.length < personagens.length
         }
       });
 
     } catch (error) {
       console.error('❌ Erro ao listar personagens por história:', error);
-      next(error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
     }
   }
 }

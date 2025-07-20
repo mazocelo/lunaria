@@ -1,7 +1,6 @@
 
 import db from '../../Model/index.js';
 import { criarGeradorBackground } from '../../agents/historia/personagem/background/index.js';
-import { asyncHandler } from '../../middleware/errorHandler.js';
 
 /**
  * Controller para gerenciar operações de personagem
@@ -18,11 +17,31 @@ class PersonagemController {
   }
 
   /**
+   * Converter campos numéricos para inteiros
+   * @param {Object} dados - Dados a serem convertidos
+   * @returns {Object} - Dados convertidos
+   */
+  converterCamposNumericos(dados) {
+    const dadosConvertidos = { ...dados };
+    
+    // Converter campos que devem ser inteiros
+    const camposInteiros = ['nivel', 'pontos_totais', 'pontos_iniciais', 'raca_id', 'classe_id', 'forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+    
+    camposInteiros.forEach(campo => {
+      if (dadosConvertidos[campo] !== undefined && dadosConvertidos[campo] !== null) {
+        dadosConvertidos[campo] = parseInt(dadosConvertidos[campo]);
+      }
+    });
+    
+    return dadosConvertidos;
+  }
+
+  /**
    * Processar dados do personagem para incluir nomes das entidades relacionadas
    * @param {Object} personagem - Objeto do personagem
    * @returns {Object} - Dados processados
    */
-  processarDadosPersonagem(personagem) {
+  async processarDadosPersonagem(personagem) {
     const personagemData = { ...personagem };
     
     // Adicionar nome da classe
@@ -33,6 +52,47 @@ class PersonagemController {
     // Adicionar nome da raça
     if (personagemData.racas) {
       personagemData.raca = personagemData.racas.nome;
+    }
+
+    // Processar vantagens (buscar separadamente)
+    const vantagens = await db.Personagem.listarVantagens(personagemData.id);
+    if (vantagens.length > 0) {
+      personagemData.vantagens = vantagens.map(v => ({
+        id: v.vantagem.id,
+        nome: v.vantagem.nome,
+        descricao: v.vantagem.descricao,
+        custo: v.vantagem.custo,
+        tipo: v.vantagem.tipo,
+        nivel: v.vantagem.nivel,
+        elemento: v.vantagem.elemento
+      }));
+    }
+
+    // Processar desvantagens (buscar separadamente)
+    const desvantagens = await db.Personagem.listarDesvantagens(personagemData.id);
+    if (desvantagens.length > 0) {
+      personagemData.desvantagens = desvantagens.map(d => ({
+        id: d.desvantagem.id,
+        nome: d.desvantagem.nome,
+        descricao: d.desvantagem.descricao,
+        custo: d.desvantagem.custo,
+        tipo: d.desvantagem.tipo,
+        nivel: d.desvantagem.nivel,
+        elemento: d.desvantagem.elemento
+      }));
+    }
+
+    // Processar equipamentos (buscar separadamente)
+    const equipamentos = await db.Personagem.listarEquipamentos(personagemData.id);
+    if (equipamentos.length > 0) {
+      personagemData.equipamentos = equipamentos.map(e => ({
+        id: e.equipamento.id,
+        nome: e.equipamento.nome,
+        descricao: e.equipamento.descricao,
+        tipo: e.equipamento.tipo,
+        bonus: e.equipamento.bonus,
+        elemento: e.equipamento.elemento
+      }));
     }
     
     return personagemData;
@@ -66,6 +126,7 @@ class PersonagemController {
         jogador_id,
         vantagens,
         desvantagens,
+        equipamentos,
         sugestao_background = '',
          
       } = req.body;
@@ -153,7 +214,7 @@ class PersonagemController {
           nome,
           classe: nomeClasse,
           raca: nomeRaca,
-          tema: historia.temas,
+          tema: temasFiltrados,
           sugestao_background: sugestao_background || '',
           vantagens: vantagensArray,
           desvantagens: desvantagensArray
@@ -163,8 +224,8 @@ class PersonagemController {
       }
       console.log('✅ Background gerado:', backgroundFinal.substring(0, 100) + '...');
 
-      // Criar personagem no banco
-      const novoPersonagem = await db.Personagem.create({
+      // Preparar dados do personagem
+      const dadosPersonagem = this.converterCamposNumericos({
         nome,
         nivel: nivel || 1,
         pontos_totais: pontos_totais || 0,
@@ -177,18 +238,53 @@ class PersonagemController {
         carisma: carisma || 10,
         destreza: destreza || 10,
         constituicao: constituicao || 10,
-        agilidade: agilidade || 10,
-        // historia_id,
-        // jogador_id: jogador_id || null,     
-        criado_em: new Date(),
-        atualizado_em: new Date()
+        agilidade: agilidade || 10
       });
+
+      // Criar personagem no banco
+      const novoPersonagem = await db.Personagem.createPersonagem(dadosPersonagem);
 
       console.log('✅ Personagem criado:', novoPersonagem.id);
 
+      // Criar vínculos com vantagens se fornecidas
+      if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
+        console.log('🔗 Criando vínculos com vantagens:', vantagens);
+        for (const vantagem_id of vantagens) {
+          try {
+            await db.Personagem.adicionarVantagem(novoPersonagem.id, vantagem_id);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao adicionar vantagem ${vantagem_id}:`, error.message);
+          }
+        }
+      }
+
+      // Criar vínculos com desvantagens se fornecidas
+      if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
+        console.log('🔗 Criando vínculos com desvantagens:', desvantagens);
+        for (const desvantagem_id of desvantagens) {
+          try {
+            await db.Personagem.adicionarDesvantagem(novoPersonagem.id, desvantagem_id);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao adicionar desvantagem ${desvantagem_id}:`, error.message);
+          }
+        }
+      }
+
+      // Criar vínculos com equipamentos se fornecidos
+      if (equipamentos && Array.isArray(equipamentos) && equipamentos.length > 0) {
+        console.log('🔗 Criando vínculos com equipamentos:', equipamentos);
+        for (const equipamento_id of equipamentos) {
+          try {
+            await db.Personagem.adicionarEquipamento(novoPersonagem.id, equipamento_id);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao adicionar equipamento ${equipamento_id}:`, error.message);
+          }
+        }
+      }
+
       // Buscar o personagem recém-criado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(novoPersonagem.id);
-      const personagemData = this.processarDadosPersonagem(personagemCompleto);
+      const personagemData = await this.processarDadosPersonagem(personagemCompleto);
 
       res.status(201).json({
         success: true,
@@ -220,7 +316,7 @@ class PersonagemController {
       const { historia_id, jogador_id, status, limit = 20, offset = 0 } = req.query;
 
       // Buscar todos os personagens com relacionamentos
-      let personagens = await db.Personagem.findAll();
+      let personagens = await db.Personagem.findAllPersonagens();
 
       // Aplicar filtros manualmente
       if (historia_id) {
@@ -242,8 +338,10 @@ class PersonagemController {
       const personagensPaginados = personagens.slice(startIndex, endIndex);
       
       // Processar dados para incluir nomes das entidades relacionadas
-      const personagensProcessados = personagensPaginados.map(personagem => 
-        this.processarDadosPersonagem(personagem)
+      const personagensProcessados = await Promise.all(
+        personagensPaginados.map(personagem => 
+          this.processarDadosPersonagem(personagem)
+        )
       );
 
       console.log(`✅ ${personagensProcessados.length} personagens encontrados`);
@@ -279,7 +377,7 @@ class PersonagemController {
 
       console.log(`🔍 Buscando personagem ID: ${id}`);
 
-      const personagem = await this.buscarPersonagemComRelacionamentos(id);
+      const personagem = await this.buscarPersonagemComRelacionamentos(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -287,7 +385,7 @@ class PersonagemController {
         });
       }
 
-      const personagemData = this.processarDadosPersonagem(personagem);
+      const personagemData = await this.processarDadosPersonagem(personagem);
 
       console.log('✅ Personagem encontrado');
 
@@ -313,11 +411,11 @@ class PersonagemController {
   atualizarPersonagem = async (req, res, next) => {
     try {
       const { id } = req.params;
-      const dadosAtualizacao = req.body;
+      const { vantagens, desvantagens, equipamentos, ...dadosAtualizacao } = req.body;
 
       console.log(`📝 Atualizando personagem ID: ${id}`, dadosAtualizacao);
 
-      const personagem = await db.Personagem.findById(parseInt(id));
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -335,15 +433,95 @@ class PersonagemController {
         }
       }
 
+      // Converter campos numéricos para inteiros
+      const dadosConvertidos = this.converterCamposNumericos(dadosAtualizacao);
+
       // Atualizar dados usando o método update do Prisma
-      await db.Personagem.update(parseInt(id), {
-        ...dadosAtualizacao,
-        atualizado_em: new Date()
+      await db.Personagem.updatePersonagem(parseInt(id), {
+        ...dadosConvertidos
       });
+
+      // Gerenciar vínculos com vantagens se fornecidas
+      if (vantagens !== undefined) {
+        console.log('🔗 Atualizando vínculos com vantagens:', vantagens);
+        
+        // Remover todas as vantagens atuais
+        const vantagensAtuais = await db.Personagem.listarVantagens(id);
+        for (const vinculo of vantagensAtuais) {
+          try {
+            await db.Personagem.removerVantagem(id, vinculo.vantagem.id);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao remover vantagem ${vinculo.vantagem.id}:`, error.message);
+          }
+        }
+        
+        // Adicionar novas vantagens
+        if (Array.isArray(vantagens) && vantagens.length > 0) {
+          for (const vantagem_id of vantagens) {
+            try {
+              await db.Personagem.adicionarVantagem(id, vantagem_id);
+            } catch (error) {
+              console.warn(`⚠️ Erro ao adicionar vantagem ${vantagem_id}:`, error.message);
+            }
+          }
+        }
+      }
+
+      // Gerenciar vínculos com desvantagens se fornecidas
+      if (desvantagens !== undefined) {
+        console.log('🔗 Atualizando vínculos com desvantagens:', desvantagens);
+        
+        // Remover todas as desvantagens atuais
+        const desvantagensAtuais = await db.Personagem.listarDesvantagens(id);
+        for (const vinculo of desvantagensAtuais) {
+          try {
+            await db.Personagem.removerDesvantagem(id, vinculo.desvantagem.id);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao remover desvantagem ${vinculo.desvantagem.id}:`, error.message);
+          }
+        }
+        
+        // Adicionar novas desvantagens
+        if (Array.isArray(desvantagens) && desvantagens.length > 0) {
+          for (const desvantagem_id of desvantagens) {
+            try {
+              await db.Personagem.adicionarDesvantagem(id, desvantagem_id);
+            } catch (error) {
+              console.warn(`⚠️ Erro ao adicionar desvantagem ${desvantagem_id}:`, error.message);
+            }
+          }
+        }
+      }
+
+      // Gerenciar vínculos com equipamentos se fornecidos
+      if (equipamentos !== undefined) {
+        console.log('🔗 Atualizando vínculos com equipamentos:', equipamentos);
+        
+        // Remover todos os equipamentos atuais
+        const equipamentosAtuais = await db.Personagem.listarEquipamentos(id);
+        for (const vinculo of equipamentosAtuais) {
+          try {
+            await db.Personagem.removerEquipamento(id, vinculo.equipamento.id);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao remover equipamento ${vinculo.equipamento.id}:`, error.message);
+          }
+        }
+        
+        // Adicionar novos equipamentos
+        if (Array.isArray(equipamentos) && equipamentos.length > 0) {
+          for (const equipamento_id of equipamentos) {
+            try {
+              await db.Personagem.adicionarEquipamento(id, equipamento_id);
+            } catch (error) {
+              console.warn(`⚠️ Erro ao adicionar equipamento ${equipamento_id}:`, error.message);
+            }
+          }
+        }
+      }
 
       // Buscar o personagem atualizado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
-      const personagemData = this.processarDadosPersonagem(personagemCompleto);
+      const personagemData = await this.processarDadosPersonagem(personagemCompleto);
 
       console.log('✅ Personagem atualizado com sucesso');
 
@@ -373,7 +551,7 @@ class PersonagemController {
 
       console.log(`🗑️ Excluindo personagem ID: ${id}`);
 
-      const personagem = await db.Personagem.findById(parseInt(id));
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -381,7 +559,7 @@ class PersonagemController {
         });
       }
 
-      await db.Personagem.delete(parseInt(id));
+      await db.Personagem.deletePersonagem(parseInt(id));
 
       console.log('✅ Personagem excluído com sucesso');
 
@@ -411,7 +589,7 @@ class PersonagemController {
 
       console.log(`📝 Gerando background para personagem ID: ${id}`);
 
-      const personagem = await db.Personagem.findById(parseInt(id));
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
 
       if (!personagem) {
         return res.status(404).json({
@@ -456,14 +634,14 @@ class PersonagemController {
       });
 
       // Atualizar personagem com o novo background
-      await db.Personagem.update(parseInt(id), {
+      await db.Personagem.updatePersonagem(parseInt(id), {
         background: resultadoBackground.background,
         atualizado_em: new Date()
       });
 
       // Buscar o personagem atualizado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
-      const personagemData = this.processarDadosPersonagem(personagemCompleto);
+      const personagemData = await this.processarDadosPersonagem(personagemCompleto);
 
       console.log('✅ Background gerado e salvo');
 
@@ -493,23 +671,36 @@ class PersonagemController {
   listarPersonagensPorHistoria = async (req, res, next) => {
     try {
       const { historia_id } = req.params;
-      const { status, limit = 20, offset = 0 } = req.query;
+      const { status, limit = 20, offset = 0, search } = req.query;
 
       console.log(`📋 Listando personagens da história ID: ${historia_id}`);
 
-      // Buscar todos os personagens e filtrar por história
-      let personagens = await db.Personagem.findMany();
+      // Verificar se a história existe
+      const historia = await db.Historia.findById(parseInt(historia_id));
+      if (!historia) {
+        return res.status(404).json({
+          error: 'História não encontrada'
+        });
+      }
+
+      // Buscar personagens que podem estar relacionados à história
+      let personagens = [];
       
-      // Filtrar por história
-      personagens = personagens.filter(p => p.historia_id === parseInt(historia_id));
+      if (search) {
+        // Se há termo de busca, usar o método de busca
+        personagens = await db.Personagem.search(search);
+      } else {
+        // Buscar todos os personagens
+        personagens = await db.Personagem.findAllPersonagens();
+      }
       
       // Filtrar por status se fornecido
       if (status) {
         personagens = personagens.filter(p => p.status === status);
       }
       
-      // Ordenar por data de criação (mais recente primeiro)
-      personagens.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+      // Ordenar por nome
+      personagens.sort((a, b) => a.nome.localeCompare(b.nome));
       
       // Aplicar paginação
       const startIndex = parseInt(offset) || 0;
@@ -517,21 +708,30 @@ class PersonagemController {
       const personagensPaginados = personagens.slice(startIndex, endIndex);
 
       // Processar dados para incluir nomes das entidades relacionadas
-      const personagensProcessados = personagensPaginados.map(personagem => 
-        this.processarDadosPersonagem(personagem)
+      const personagensProcessados = await Promise.all(
+        personagensPaginados.map(personagem => 
+          this.processarDadosPersonagem(personagem)
+        )
       );
 
-      console.log(`✅ ${personagensProcessados.length} personagens encontrados na história`);
+      console.log(`✅ ${personagensProcessados.length} personagens encontrados para a história "${historia.nome}"`);
 
       res.status(200).json({
         success: true,
         data: personagensProcessados,
+        historia: {
+          id: historia.id,
+          nome: historia.nome,
+          temas: historia.temas,
+          status: historia.status
+        },
         pagination: {
           total: personagens.length,
           limit: parseInt(limit),
           offset: parseInt(offset),
           hasMore: startIndex + personagensProcessados.length < personagens.length
-        }
+        },
+        message: 'Nota: Como não há relação direta entre personagens e histórias no schema atual, todos os personagens são retornados. Use o parâmetro "search" para filtrar por nome ou background.'
       });
 
     } catch (error) {
@@ -541,6 +741,399 @@ class PersonagemController {
       });
     }
   }
+  
+  // ===== MÉTODOS PARA GERENCIAR VÍNCULOS COM VANTAGENS =====
+
+  /**
+   * Adicionar vantagem ao personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  adicionarVantagem = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { vantagem_id } = req.body;
+
+      console.log(`➕ Adicionando vantagem ${vantagem_id} ao personagem ${id}`);
+
+      if (!vantagem_id) {
+        return res.status(400).json({
+          error: 'ID da vantagem é obrigatório'
+        });
+      }
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Verificar se a vantagem existe
+      const vantagem = await db.Vantagem.findById(parseInt(vantagem_id));
+      if (!vantagem) {
+        return res.status(404).json({
+          error: 'Vantagem não encontrada'
+        });
+      }
+
+      // Adicionar vantagem ao personagem
+      await db.Personagem.adicionarVantagem(id, vantagem_id);
+
+      console.log('✅ Vantagem adicionada com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Vantagem adicionada com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao adicionar vantagem:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Remover vantagem do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  removerVantagem = async (req, res, next) => {
+    try {
+      const { id, vantagem_id } = req.params;
+
+      console.log(`➖ Removendo vantagem ${vantagem_id} do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Remover vantagem do personagem
+      await db.Personagem.removerVantagem(id, vantagem_id);
+
+      console.log('✅ Vantagem removida com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Vantagem removida com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao remover vantagem:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Listar vantagens do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  listarVantagens = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      console.log(`📋 Listando vantagens do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Listar vantagens do personagem
+      const vantagens = await db.Personagem.listarVantagens(id);
+
+      console.log(`✅ ${vantagens.length} vantagens encontradas`);
+
+      res.status(200).json({
+        success: true,
+        data: vantagens
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao listar vantagens:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  // ===== MÉTODOS PARA GERENCIAR VÍNCULOS COM DESVANTAGENS =====
+
+  /**
+   * Adicionar desvantagem ao personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  adicionarDesvantagem = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { desvantagem_id } = req.body;
+
+      console.log(`➕ Adicionando desvantagem ${desvantagem_id} ao personagem ${id}`);
+
+      if (!desvantagem_id) {
+        return res.status(400).json({
+          error: 'ID da desvantagem é obrigatório'
+        });
+      }
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Verificar se a desvantagem existe
+      const desvantagem = await db.Desvantagem.findById(parseInt(desvantagem_id));
+      if (!desvantagem) {
+        return res.status(404).json({
+          error: 'Desvantagem não encontrada'
+        });
+      }
+
+      // Adicionar desvantagem ao personagem
+      await db.Personagem.adicionarDesvantagem(id, desvantagem_id);
+
+      console.log('✅ Desvantagem adicionada com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Desvantagem adicionada com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao adicionar desvantagem:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Remover desvantagem do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  removerDesvantagem = async (req, res, next) => {
+    try {
+      const { id, desvantagem_id } = req.params;
+
+      console.log(`➖ Removendo desvantagem ${desvantagem_id} do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Remover desvantagem do personagem
+      await db.Personagem.removerDesvantagem(id, desvantagem_id);
+
+      console.log('✅ Desvantagem removida com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Desvantagem removida com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao remover desvantagem:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Listar desvantagens do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  listarDesvantagens = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      console.log(`📋 Listando desvantagens do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Listar desvantagens do personagem
+      const desvantagens = await db.Personagem.listarDesvantagens(id);
+
+      console.log(`✅ ${desvantagens.length} desvantagens encontradas`);
+
+      res.status(200).json({
+        success: true,
+        data: desvantagens
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao listar desvantagens:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  // ===== MÉTODOS PARA GERENCIAR VÍNCULOS COM EQUIPAMENTOS =====
+
+  /**
+   * Adicionar equipamento ao personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  adicionarEquipamento = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { equipamento_id } = req.body;
+
+      console.log(`➕ Adicionando equipamento ${equipamento_id} ao personagem ${id}`);
+
+      if (!equipamento_id) {
+        return res.status(400).json({
+          error: 'ID do equipamento é obrigatório'
+        });
+      }
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Verificar se o equipamento existe
+      const equipamento = await db.Equipamento.findById(parseInt(equipamento_id));
+      if (!equipamento) {
+        return res.status(404).json({
+          error: 'Equipamento não encontrado'
+        });
+      }
+
+      // Adicionar equipamento ao personagem
+      await db.Personagem.adicionarEquipamento(id, equipamento_id);
+
+      console.log('✅ Equipamento adicionado com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Equipamento adicionado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao adicionar equipamento:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Remover equipamento do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  removerEquipamento = async (req, res, next) => {
+    try {
+      const { id, equipamento_id } = req.params;
+
+      console.log(`➖ Removendo equipamento ${equipamento_id} do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Remover equipamento do personagem
+      await db.Personagem.removerEquipamento(id, equipamento_id);
+
+      console.log('✅ Equipamento removido com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Equipamento removido com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao remover equipamento:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Listar equipamentos do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  listarEquipamentos = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      console.log(`📋 Listando equipamentos do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Listar equipamentos do personagem
+      const equipamentos = await db.Personagem.listarEquipamentos(id);
+
+      console.log(`✅ ${equipamentos.length} equipamentos encontrados`);
+
+      res.status(200).json({
+        success: true,
+        data: equipamentos
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao listar equipamentos:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  };
 }
 
 export default new PersonagemController(); 

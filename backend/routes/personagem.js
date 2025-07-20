@@ -162,10 +162,24 @@ const router = express.Router();
  *                 description: ID da história
  *               jogador_id:
  *                 type: integer
- *               gerar_background:
- *                 type: boolean
- *                 default: false
- *                 description: Se deve gerar background automaticamente
+ *               vantagens:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array de IDs das vantagens do personagem
+ *               desvantagens:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array de IDs das desvantagens do personagem
+ *               equipamentos:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array de IDs dos equipamentos do personagem
+ *               sugestao_background:
+ *                 type: string
+ *                 description: Sugestão para geração de background
  *               temas_disponiveis:
  *                 type: array
  *                 items:
@@ -345,6 +359,21 @@ router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem,
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 20
+ *               vantagens:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array de IDs das vantagens do personagem (substitui todas as vantagens atuais)
+ *               desvantagens:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array de IDs das desvantagens do personagem (substitui todas as desvantagens atuais)
+ *               equipamentos:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array de IDs dos equipamentos do personagem (substitui todos os equipamentos atuais)
  *               status:
  *                 type: string
  *                 enum: [ativo, inativo, morto]
@@ -462,6 +491,11 @@ router.post('/:id/background', asyncHandlerWithContext(personagemController.gera
  *           type: integer
  *         description: ID da história
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Termo para buscar por nome ou background do personagem
+ *       - in: query
  *         name: status
  *         schema:
  *           type: string
@@ -493,6 +527,19 @@ router.post('/:id/background', asyncHandlerWithContext(personagemController.gera
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Personagem'
+ *                 historia:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     nome:
+ *                       type: string
+ *                     temas:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     status:
+ *                       type: string
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -504,9 +551,362 @@ router.post('/:id/background', asyncHandlerWithContext(personagemController.gera
  *                       type: integer
  *                     hasMore:
  *                       type: boolean
+ *                 message:
+ *                   type: string
  *       404:
  *         description: História não encontrada
  */
 router.get('/historia/:historia_id', asyncHandlerWithContext(personagemController.listarPersonagensPorHistoria, personagemController));
+
+// ===== ROTAS PARA GERENCIAR VÍNCULOS COM VANTAGENS =====
+
+/**
+ * @swagger
+ * /api/personagens/{id}/vantagens:
+ *   post:
+ *     summary: Adicionar vantagem ao personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - vantagem_id
+ *             properties:
+ *               vantagem_id:
+ *                 type: integer
+ *                 description: ID da vantagem
+ *     responses:
+ *       200:
+ *         description: Vantagem adicionada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Personagem ou vantagem não encontrado
+ */
+router.post('/:id/vantagens', asyncHandlerWithContext(personagemController.adicionarVantagem, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/vantagens/{vantagem_id}:
+ *   delete:
+ *     summary: Remover vantagem do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *       - in: path
+ *         name: vantagem_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da vantagem
+ *     responses:
+ *       200:
+ *         description: Vantagem removida com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.delete('/:id/vantagens/:vantagem_id', asyncHandlerWithContext(personagemController.removerVantagem, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/vantagens:
+ *   get:
+ *     summary: Listar vantagens do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     responses:
+ *       200:
+ *         description: Lista de vantagens do personagem
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       vantagem:
+ *                         type: object
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.get('/:id/vantagens', asyncHandlerWithContext(personagemController.listarVantagens, personagemController));
+
+// ===== ROTAS PARA GERENCIAR VÍNCULOS COM DESVANTAGENS =====
+
+/**
+ * @swagger
+ * /api/personagens/{id}/desvantagens:
+ *   post:
+ *     summary: Adicionar desvantagem ao personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - desvantagem_id
+ *             properties:
+ *               desvantagem_id:
+ *                 type: integer
+ *                 description: ID da desvantagem
+ *     responses:
+ *       200:
+ *         description: Desvantagem adicionada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Personagem ou desvantagem não encontrado
+ */
+router.post('/:id/desvantagens', asyncHandlerWithContext(personagemController.adicionarDesvantagem, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/desvantagens/{desvantagem_id}:
+ *   delete:
+ *     summary: Remover desvantagem do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *       - in: path
+ *         name: desvantagem_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da desvantagem
+ *     responses:
+ *       200:
+ *         description: Desvantagem removida com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.delete('/:id/desvantagens/:desvantagem_id', asyncHandlerWithContext(personagemController.removerDesvantagem, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/desvantagens:
+ *   get:
+ *     summary: Listar desvantagens do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     responses:
+ *       200:
+ *         description: Lista de desvantagens do personagem
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       desvantagem:
+ *                         type: object
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.get('/:id/desvantagens', asyncHandlerWithContext(personagemController.listarDesvantagens, personagemController));
+
+// ===== ROTAS PARA GERENCIAR VÍNCULOS COM EQUIPAMENTOS =====
+
+/**
+ * @swagger
+ * /api/personagens/{id}/equipamentos:
+ *   post:
+ *     summary: Adicionar equipamento ao personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - equipamento_id
+ *             properties:
+ *               equipamento_id:
+ *                 type: integer
+ *                 description: ID do equipamento
+ *     responses:
+ *       200:
+ *         description: Equipamento adicionado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Personagem ou equipamento não encontrado
+ */
+router.post('/:id/equipamentos', asyncHandlerWithContext(personagemController.adicionarEquipamento, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/equipamentos/{equipamento_id}:
+ *   delete:
+ *     summary: Remover equipamento do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *       - in: path
+ *         name: equipamento_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do equipamento
+ *     responses:
+ *       200:
+ *         description: Equipamento removido com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.delete('/:id/equipamentos/:equipamento_id', asyncHandlerWithContext(personagemController.removerEquipamento, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/equipamentos:
+ *   get:
+ *     summary: Listar equipamentos do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     responses:
+ *       200:
+ *         description: Lista de equipamentos do personagem
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       equipamento:
+ *                         type: object
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.get('/:id/equipamentos', asyncHandlerWithContext(personagemController.listarEquipamentos, personagemController));
 
 export default router; 

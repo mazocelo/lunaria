@@ -11,15 +11,14 @@ export class Personagem {
     this.nivel = data.nivel || 1;
     this.hp = data.hp || 100;
     this.hp_maximo = data.hp_maximo || 100;
-    this.forca = data.forca || 10;
-    this.destreza = data.destreza || 10;
-    this.constituicao = data.constituicao || 10;
-    this.inteligencia = data.inteligencia || 10;
-    this.agilidade = data.agilidade || 10;
-    this.carisma = data.carisma || 10;
+    this.forca = data.forca 
+    this.destreza = data.destreza 
+    this.constituicao = data.constituicao 
+    this.inteligencia = data.inteligencia 
+    this.agilidade = data.agilidade 
+    this.carisma = data.carisma 
     this.sugestao_background = data.sugestao_background || 'guiado';
     this.background = data.background || '';
-    this.atributos = data.atributos || {};
     this.vantagens = data.vantagens || [];
     this.desvantagens = data.desvantagens || [];
     this.equipamentos = data.equipamentos || '';
@@ -166,15 +165,15 @@ export class Personagem {
       nivel: apiData.nivel,
       hp: apiData.hp,
       hp_maximo: apiData.hp_maximo,
-      forca: apiData.forca,
-      destreza: apiData.destreza,
-      constituicao: apiData.constituicao,
-      inteligencia: apiData.inteligencia,
-      agilidade: apiData.agilidade,
-      carisma: apiData.carisma,
+      forca: apiData.forca || 10,
+      destreza: apiData.destreza || 10,
+      constituicao: apiData.constituicao || 10,
+      inteligencia: apiData.inteligencia || 10,
+      agilidade: apiData.agilidade || 10,
+      carisma: apiData.carisma || 10,
       sugestao_background: apiData.sugestao_background,
       background: apiData.background,
-      atributos: apiData.atributos,
+      atributos: apiData.atributos || {},
       vantagens: apiData.vantagens,
       desvantagens: apiData.desvantagens,
       equipamentos: apiData.equipamentos,

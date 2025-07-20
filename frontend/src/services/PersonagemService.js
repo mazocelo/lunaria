@@ -104,12 +104,26 @@ export class PersonagemService {
   /**
    * Busca personagens por história
    * @param {number} historiaId - ID da história
+   * @param {Object} options - Opções de busca (search, limit, offset, status)
    * @returns {Promise<Personagem[]>} Lista de personagens da história
    */
-  async getByHistoria(historiaId) {
+  async getByHistoria(historiaId, options = {}) {
     try {
-      const response = await this.apiClient.get(`${this.baseUrl}?historia_id=${historiaId}`);
-      return response.data.map(personagemData => Personagem.fromAPI(personagemData));
+      const queryParams = new URLSearchParams();
+      
+      // Adicionar parâmetros de busca se fornecidos
+      if (options.search) queryParams.append('search', options.search);
+      if (options.limit) queryParams.append('limit', options.limit);
+      if (options.offset) queryParams.append('offset', options.offset);
+      
+      const url = `${this.baseUrl}/historia/${historiaId}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await this.apiClient.get(url);
+      
+      if (response.success) {
+        return response.data.map(personagemData => Personagem.fromAPI(personagemData));
+      } else {
+        throw new Error(response.data.message);
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar personagens por história: ${error.message}`);
     }

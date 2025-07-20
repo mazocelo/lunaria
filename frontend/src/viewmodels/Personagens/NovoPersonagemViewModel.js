@@ -304,6 +304,14 @@ export class NovoPersonagemViewModel {
         sugestao_background: this.state.backgroundTipo,
         background: this.state.background,
         historia_id: this.state.historia_id,
+        // Mapear atributos individuais
+        forca: Number(this.state.atributos.forca) || 10,
+        destreza: Number(this.state.atributos.destreza) || 10,
+        constituicao: Number(this.state.atributos.constituicao) || 10,
+        inteligencia: Number(this.state.atributos.inteligencia) || 10,
+        agilidade: Number(this.state.atributos.agilidade) || 10,
+        carisma: Number(this.state.atributos.carisma) || 10,
+        // Manter o objeto atributos para compatibilidade
         atributos: this.state.atributos,
         vantagens: this.state.vantagens,
         desvantagens: this.state.desvantagens,

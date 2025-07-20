@@ -205,6 +205,17 @@ export class EditarPersonagemViewModel {
     this.setState({ loading: true, error: null, personagemId: id });
     try {
       const personagem = await this.personagemService.getById(id);
+      
+      // Mapear atributos individuais para o objeto atributos
+      const atributosMapeados = {
+        forca: personagem.forca || personagem.atributos?.forca || 10,
+        destreza: personagem.destreza || personagem.atributos?.destreza || 10,
+        constituicao: personagem.constituicao || personagem.atributos?.constituicao || 10,
+        inteligencia: personagem.inteligencia || personagem.atributos?.inteligencia || 10,
+        agilidade: personagem.agilidade || personagem.atributos?.agilidade || 10,
+        carisma: personagem.carisma || personagem.atributos?.carisma || 10,
+      };
+      
       this.setState({
         nome: personagem.nome || '',
         raca: personagem.raca || '',
@@ -212,7 +223,7 @@ export class EditarPersonagemViewModel {
         backgroundTipo: personagem.sugestao_background || 'guiado',
         background: personagem.background || '',
         historia_id: personagem.historia_id || null,
-        atributos: personagem.atributos || { ...atributosIniciais },
+        atributos: atributosMapeados,
         vantagens: personagem.vantagens || '',
         equipamentos: personagem.equipamentos || '',
         nivel: personagem.nivel || 1,
@@ -252,6 +263,14 @@ export class EditarPersonagemViewModel {
         sugestao_background: this.state.backgroundTipo,
         background: this.state.background,
         historia_id: this.state.historia_id,
+        // Mapear atributos individuais
+        forca: Number(this.state.atributos.forca) || 10,
+        destreza: Number(this.state.atributos.destreza) || 10,
+        constituicao: Number(this.state.atributos.constituicao) || 10,
+        inteligencia: Number(this.state.atributos.inteligencia) || 10,
+        agilidade: Number(this.state.atributos.agilidade) || 10,
+        carisma: Number(this.state.atributos.carisma) || 10,
+        // Manter o objeto atributos para compatibilidade
         atributos: this.state.atributos,
         vantagens: this.state.vantagens,
         equipamentos: this.state.equipamentos,

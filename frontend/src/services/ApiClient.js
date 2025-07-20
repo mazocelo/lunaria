@@ -2,11 +2,11 @@ import axios from 'axios';
 
 // Configuração da URL base da API
 
-// const baseURL = import.meta.env.VITE_API_URL || 'http://lo\calhost:3001';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 //https://role-chat-play-backend-562ca33432b0.herokuapp.com/
 
-const baseURL = 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/';
+// const baseURL = 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/';
 
 // Criação da instância do axios
 const axiosInstance = axios.create({

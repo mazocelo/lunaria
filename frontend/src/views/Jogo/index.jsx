@@ -6,6 +6,13 @@ import { LoadingSpinner, Notification } from '../../components/index.js';
 import { useTheme } from '../../contexts/theme.jsx';
 import { PersonagemService } from '../../services/PersonagemService.js';
 import { apiClient } from '../../services/ApiClient.js';
+import { useWebSocket } from '../../hooks/useWebSocket.js';
+import { 
+  HeaderJogo,
+  EtapaInformacoes, 
+  EtapaSelecaoPersonagem, 
+  EtapaJogoAtivo 
+} from './components/index.js';
 
 /**
  * View para o início do jogo
@@ -32,8 +39,30 @@ export const JogoView = () => {
   const [errorPersonagens, setErrorPersonagens] = useState(null);
   const [buscaPersonagem, setBuscaPersonagem] = useState('');
   const [participantes, setParticipantes] = useState([]);
+  const [mensagens, setMensagens] = useState([]);
+  const [mensagemAtual, setMensagemAtual] = useState('');
+  const [usuariosDigitando, setUsuariosDigitando] = useState([]);
+
+  // Estado para controlar se houve tentativa de conexão
+  const [tentativaConexaoIniciada, setTentativaConexaoIniciada] = useState(false);
 
   const personagemService = new PersonagemService(apiClient);
+
+  // WebSocket hook
+  const webSocket = useWebSocket({
+    onConnect: () => {
+      console.log('🎮 WebSocket conectado no jogo');
+    },
+    onDisconnect: (data) => {
+      console.log('🎮 WebSocket desconectado:', data.reason);
+    },
+    onMessage: (messageData) => {
+      setMensagens(prev => [...prev, messageData]);
+    },
+    onError: (error) => {
+      console.error('🎮 Erro WebSocket:', error);
+    }
+  });
 
   // Carrega a história ao montar o componente
   useEffect(() => {
@@ -49,6 +78,67 @@ export const JogoView = () => {
     };
   }, []);
 
+  // Listeners para eventos WebSocket específicos
+  useEffect(() => {
+    if (!webSocket) return;
+
+    // Listener para novos usuários na sala
+    const handleUserJoined = (data) => {
+      setParticipantes(prev => [...prev, data.user]);
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        type: 'system',
+        message: `${data.user.username} entrou na sala`,
+        timestamp: new Date()
+      }]);
+    };
+
+    // Listener para usuários saindo da sala
+    const handleUserLeft = (data) => {
+      setParticipantes(prev => prev.filter(p => p.id !== data.user.id));
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        type: 'system',
+        message: `${data.user.username} saiu da sala`,
+        timestamp: new Date()
+      }]);
+    };
+
+    // Listener para usuários digitando
+    const handleUserTyping = (data) => {
+      if (data.isTyping) {
+        setUsuariosDigitando(prev => [...prev.filter(u => u !== data.username), data.username]);
+      } else {
+        setUsuariosDigitando(prev => prev.filter(u => u !== data.username));
+      }
+    };
+
+    // Listener para resultados de ações
+    const handleActionResult = (data) => {
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        type: 'action_result',
+        message: data.result,
+        user: data.user,
+        timestamp: new Date()
+      }]);
+    };
+
+    // Adicionar listeners
+    webSocket.on('user_joined', handleUserJoined);
+    webSocket.on('user_left', handleUserLeft);
+    webSocket.on('user_typing', handleUserTyping);
+    webSocket.on('action_result', handleActionResult);
+
+    // Cleanup
+    return () => {
+      webSocket.off('user_joined', handleUserJoined);
+      webSocket.off('user_left', handleUserLeft);
+      webSocket.off('user_typing', handleUserTyping);
+      webSocket.off('action_result', handleActionResult);
+    };
+  }, [webSocket]);
+
   // Carrega personagens quando entra na etapa de seleção
   useEffect(() => {
     if (etapaAtual === 'selecao-personagem' && historiaAtual) {
@@ -63,7 +153,6 @@ export const JogoView = () => {
     try {
       const personagens = await personagemService.getByHistoria(historiaAtual.id, {
         search: buscaPersonagem,
-        status: 'ativo',
         limit: 20,
         ...opcoesBusca
       });
@@ -91,17 +180,61 @@ export const JogoView = () => {
     setPersonagemSelecionado(personagem);
   };
 
-  const iniciarSessaoComPersonagem = () => {
+  const iniciarSessaoComPersonagem = async () => {
     if (!personagemSelecionado) {
       setErrorPersonagens('Selecione um personagem para continuar');
       return;
     }
-    setEtapaAtual('jogo');
+
+    try {
+      // Marcar que iniciou tentativa de conexão
+      setTentativaConexaoIniciada(true);
+
+      // Conectar WebSocket se não estiver conectado
+      if (!webSocket.isConnected) {
+        await webSocket.connect();
+      }
+
+      // Autenticar se não estiver autenticado
+      if (!webSocket.isAuthenticated) {
+        await webSocket.authenticate({
+          userId: 'temp_user_id', // TODO: Pegar do contexto de autenticação
+          username: 'Jogador', // TODO: Pegar do usuário logado
+          personagemId: personagemSelecionado.id
+        });
+      }
+
+      // Gerar ID da sala baseado na história
+      const roomId = `historia_${historiaAtual.id}`;
+      
+      // Entrar na sala
+      await webSocket.joinRoom(roomId);
+
+      // Iniciar sessão de jogo
+      const sessionData = await webSocket.startSession({
+        historiaId: historiaAtual.id,
+        personagemId: personagemSelecionado.id,
+        roomId: roomId
+      });
+
+      console.log('🎮 Sessão iniciada:', sessionData);
+      setEtapaAtual('jogo');
+
+    } catch (error) {
+      console.error('❌ Erro ao iniciar sessão:', error);
+      setErrorPersonagens(`Erro ao conectar: ${error.message}`);
+    }
   };
 
-  const voltarParaSelecaoPersonagem = () => {
+  const voltarParaSelecaoPersonagem = async () => {
+    // Sair da sala atual se estiver conectado
+    if (webSocket.currentRoom) {
+      await webSocket.leaveRoom();
+    }
+    
     setEtapaAtual('selecao-personagem');
     setPersonagemSelecionado(null);
+    setMensagens([]);
   };
 
   const voltarParaInfo = () => {
@@ -109,8 +242,50 @@ export const JogoView = () => {
     setPersonagemSelecionado(null);
   };
 
-  const voltarParaHistorias = () => {
+  const voltarParaHistorias = async () => {
+    // Desconectar WebSocket ao sair
+    if (webSocket.isConnected) {
+      webSocket.disconnect();
+    }
     navigate('/historias');
+  };
+
+  // Funções do chat
+  const enviarMensagem = () => {
+    if (!mensagemAtual.trim() || !webSocket.isAuthenticated) return;
+
+    try {
+      webSocket.sendMessage({
+        message: mensagemAtual,
+        messageType: 'chat'
+      });
+      setMensagemAtual('');
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      enviarMensagem();
+    }
+  };
+
+  const rolarDados = () => {
+    if (!webSocket.isAuthenticated) return;
+
+    try {
+      webSocket.playerAction({
+        action: 'roll_dice',
+        actionData: {
+          dice: '1d20',
+          reason: 'Rolagem manual'
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao rolar dados:', error);
+    }
   };
 
   if (loading && !historiaAtual) {
@@ -159,334 +334,52 @@ export const JogoView = () => {
         />
       )}
 
-      {/* Header com navegação por etapas */}
-      <div className={`relative overflow-hidden rounded-2xl mb-8 ${isLight ? 'bg-gradient-to-br from-slate-50 to-slate-100' : 'bg-gradient-to-br from-slate-800 to-slate-900'}`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10"></div>
-        <div className="relative p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className={`text-4xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-                🎲 Sessão de Jogo
-              </h1>
-              <p className={`text-lg font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                {etapaAtual === 'info' && 'Prepare-se para uma aventura épica!'}
-                {etapaAtual === 'selecao-personagem' && 'Escolha seu personagem para a aventura'}
-                {etapaAtual === 'jogo' && 'Aventura em andamento!'}
-              </p>
-            </div>
-            
-            <button onClick={voltarParaHistorias} className="btn-rpg-secondary hover-lift flex items-center space-x-2 cursor-pointer px-6 py-3">
-              <span>←</span>
-              <span>Voltar</span>
-            </button>
-          </div>
-
-          {/* Indicador de progresso */}
-          <div className="flex items-center space-x-4">
-            <div className={`flex items-center space-x-2 ${etapaAtual === 'info' ? 'text-cyan-400' : 'text-slate-500'}`}>
-              <div className={`w-3 h-3 rounded-full ${etapaAtual === 'info' ? 'bg-cyan-400' : 'bg-slate-500'}`}></div>
-              <span className="text-sm font-modern">Informações</span>
-            </div>
-            <div className="w-8 h-0.5 bg-slate-600"></div>
-            <div className={`flex items-center space-x-2 ${etapaAtual === 'selecao-personagem' ? 'text-cyan-400' : 'text-slate-500'}`}>
-              <div className={`w-3 h-3 rounded-full ${etapaAtual === 'selecao-personagem' ? 'bg-cyan-400' : 'bg-slate-500'}`}></div>
-              <span className="text-sm font-modern">Personagem</span>
-            </div>
-            <div className="w-8 h-0.5 bg-slate-600"></div>
-            <div className={`flex items-center space-x-2 ${etapaAtual === 'jogo' ? 'text-cyan-400' : 'text-slate-500'}`}>
-              <div className={`w-3 h-3 rounded-full ${etapaAtual === 'jogo' ? 'bg-cyan-400' : 'bg-slate-500'}`}></div>
-              <span className="text-sm font-modern">Jogo</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Header */}
+      <HeaderJogo
+        etapaAtual={etapaAtual}
+        webSocket={webSocket}
+        tentativaConexaoIniciada={tentativaConexaoIniciada}
+        onVoltarHistorias={voltarParaHistorias}
+      />
 
       {/* Etapa 1: Informações da História */}
       {etapaAtual === 'info' && (
-        <div className="card-rpg p-8">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <h2 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'} mb-4`}>
-                {historiaAtual.nome}
-              </h2>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {Array.isArray(historiaAtual.temas) && historiaAtual.temas.length > 0
-                  ? historiaAtual.temas.map((tema, i) => (
-                      <span key={i} className="px-4 py-2 text-sm rounded-full bg-purple-600/20 text-purple-300 font-modern border border-purple-500/30">
-                        {tema}
-                      </span>
-                    ))
-                  : <span className="text-slate-500 text-sm">Sem tema definido</span>
-                }
-              </div>
-              
-              {historiaAtual.descricao && (
-                <div className={`p-6 rounded-xl mb-6 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
-                  <h3 className={`text-lg font-semibold mb-3 ${isLight ? 'text-slate-700' : 'text-white'}`}>📖 Descrição</h3>
-                  <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                    {historiaAtual.descricao}
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <div className="text-center ml-8">
-              <div className="text-4xl font-bold text-cyan-400 mb-2">
-                {historiaAtual.maximo_de_participantes || 0}
-              </div>
-              <div className="text-sm text-slate-400 font-modern">
-                Máximo de jogadores
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center py-8">
-            <button 
-              onClick={() => setEtapaAtual('selecao-personagem')}
-              className="btn-rpg-lg hover-lift flex items-center space-x-3 mx-auto cursor-pointer px-12 py-4"
-            >
-              <span className="text-2xl">👤</span>
-              <span className="text-xl font-fantasy">Escolher Personagem</span>
-            </button>
-            <p className="text-slate-400 font-modern mt-4 text-sm">
-              Selecione um personagem para começar a aventura
-            </p>
-          </div>
-        </div>
+        <EtapaInformacoes
+          historiaAtual={historiaAtual}
+          onProximaEtapa={() => setEtapaAtual('selecao-personagem')}
+        />
       )}
 
       {/* Etapa 2: Seleção de Personagem */}
       {etapaAtual === 'selecao-personagem' && (
-        <div className="space-y-6">
-          {/* Barra de busca */}
-          <div className="card-rpg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                👥 Escolha seu Personagem
-              </h2>
-              <button 
-                onClick={voltarParaInfo}
-                className="btn-rpg-secondary cursor-pointer px-4 py-2"
-              >
-                ← Voltar
-              </button>
-            </div>
-            
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar personagem por nome..."
-                value={buscaPersonagem}
-                onChange={handleBuscaPersonagem}
-                className={`w-full px-4 py-3 pl-12 rounded-xl border ${
-                  isLight 
-                    ? 'bg-white border-slate-300 text-slate-900' 
-                    : 'bg-slate-800 border-slate-600 text-white'
-                } placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-              />
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                <span className="text-slate-400">🔍</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Lista de personagens */}
-          <div className="card-rpg p-6">
-            {errorPersonagens && (
-              <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-                <p className="text-red-300 font-modern">{errorPersonagens}</p>
-              </div>
-            )}
-
-            {loadingPersonagens ? (
-              <div className="text-center py-12">
-                <LoadingSpinner size="lg" text="Carregando personagens..." />
-              </div>
-            ) : personagensDaHistoria.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {personagensDaHistoria.map((personagem) => (
-                  <div 
-                    key={personagem.id}
-                    onClick={() => selecionarPersonagem(personagem)}
-                    className={`cursor-pointer rounded-xl p-6 border-2 transition-all duration-200 hover:scale-105 ${
-                      personagemSelecionado?.id === personagem.id
-                        ? isLight
-                          ? 'border-cyan-500 bg-cyan-50 shadow-lg'
-                          : 'border-cyan-400 bg-cyan-500/10 shadow-cyan-500/20 shadow-lg'
-                        : isLight
-                          ? 'border-slate-200 bg-white hover:border-slate-300'
-                          : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                        {personagem.nome}
-                      </h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-modern ${
-                        isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-300'
-                      }`}>
-                        Nv. {personagem.nivel || 1}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className={`${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Classe:</span>
-                        <span className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                          {personagem.classe || 'Aventureiro'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className={`${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Raça:</span>
-                        <span className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                          {personagem.raca || 'Humano'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className={`${isLight ? 'text-slate-600' : 'text-slate-400'}`}>HP:</span>
-                        <span className="font-semibold text-red-400">
-                          {personagem.hp || 100}/{personagem.hp_maximo || 100}
-                        </span>
-                      </div>
-                    </div>
-
-                    {personagemSelecionado?.id === personagem.id && (
-                      <div className="mt-4 flex items-center justify-center">
-                        <span className="text-cyan-400 text-sm font-semibold">✓ Selecionado</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-slate-700/50 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-2xl">👤</span>
-                </div>
-                <p className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                  {buscaPersonagem ? 'Nenhum personagem encontrado com esse nome' : 'Nenhum personagem encontrado para esta história'}
-                </p>
-                <p className="text-slate-500 text-sm mt-2">
-                  Você precisa criar um personagem para esta história primeiro
-                </p>
-              </div>
-            )}
-
-            {personagemSelecionado && (
-              <div className="mt-8 text-center">
-                <button 
-                  onClick={iniciarSessaoComPersonagem}
-                  className="btn-rpg-lg hover-lift flex items-center space-x-3 mx-auto cursor-pointer px-12 py-4"
-                >
-                  <span className="text-2xl">🎮</span>
-                  <span className="text-xl font-fantasy">Iniciar Aventura</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <EtapaSelecaoPersonagem
+          personagensDaHistoria={personagensDaHistoria}
+          personagemSelecionado={personagemSelecionado}
+          loadingPersonagens={loadingPersonagens}
+          errorPersonagens={errorPersonagens}
+          buscaPersonagem={buscaPersonagem}
+          onBuscaChange={handleBuscaPersonagem}
+          onSelecionarPersonagem={selecionarPersonagem}
+          onIniciarSessao={iniciarSessaoComPersonagem}
+          onVoltarEtapa={voltarParaInfo}
+        />
       )}
 
       {/* Etapa 3: Jogo Ativo */}
       {etapaAtual === 'jogo' && personagemSelecionado && (
-        <div className="space-y-6">
-          {/* Info do personagem selecionado */}
-          <div className="card-rpg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isLight ? 'bg-cyan-100' : 'bg-cyan-500/20'}`}>
-                  <span className="text-xl">👤</span>
-                </div>
-                <div>
-                  <h3 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                    {personagemSelecionado.nome}
-                  </h3>
-                  <p className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    {personagemSelecionado.classe} • {personagemSelecionado.raca} • Nível {personagemSelecionado.nivel}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-red-400">{personagemSelecionado.hp}</div>
-                  <div className="text-xs text-slate-400">HP</div>
-                </div>
-                <button 
-                  onClick={voltarParaSelecaoPersonagem}
-                  className="btn-rpg-secondary cursor-pointer px-4 py-2"
-                >
-                  Trocar Personagem
-                </button>
-              </div>
-            </div>
-
-            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-modern bg-green-600/20 text-green-300 border border-green-500/30`}>
-              <div className="w-2 h-2 rounded-full mr-2 bg-green-400" />
-              Sessão Ativa
-            </div>
-          </div>
-
-          {/* Área do Jogo */}
-          <div className="card-rpg p-6">
-            <h3 className={`text-2xl font-fantasy font-bold mb-6 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              🎭 Área de Jogo
-            </h3>
-            
-            {/* Chat do Jogo */}
-            <div className={`rounded-xl p-6 mb-6 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                  💬 Chat da Sessão
-                </h4>
-                <span className="text-xs text-slate-400 font-modern">
-                  {participantes.length} participantes
-                </span>
-              </div>
-              
-              <div className={`rounded-lg p-4 min-h-[200px] mb-4 ${isLight ? 'bg-white border border-slate-200' : 'bg-slate-900/50 border border-slate-700'}`}>
-                <div className="text-center text-slate-500 font-modern text-sm py-8">
-                  <div className={`w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center ${isLight ? 'bg-slate-200' : 'bg-slate-700/50'}`}>
-                    <span className="text-xl">💬</span>
-                  </div>
-                  <p>Chat da sessão aparecerá aqui</p>
-                  <p className="text-xs mt-1">Aguarde a conexão com outros jogadores...</p>
-                </div>
-              </div>
-              
-              <div className="flex space-x-3">
-                <input 
-                  type="text" 
-                  placeholder="Digite sua mensagem..."
-                  className={`flex-1 px-4 py-3 rounded-lg border ${
-                    isLight 
-                      ? 'bg-white border-slate-300 text-slate-900' 
-                      : 'bg-slate-700 border-slate-600 text-white'
-                  } placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-                />
-                <button className="btn-rpg-secondary px-6 cursor-pointer">
-                  Enviar
-                </button>
-              </div>
-            </div>
-
-            {/* Controles do Jogo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="btn-rpg-secondary flex items-center justify-center space-x-2 cursor-pointer py-4">
-                <span>🎲</span>
-                <span>Rolar Dados</span>
-              </button>
-              <button className="btn-rpg-secondary flex items-center justify-center space-x-2 cursor-pointer py-4">
-                <span>📋</span>
-                <span>Ver Ficha</span>
-              </button>
-              <button className="btn-rpg-secondary flex items-center justify-center space-x-2 cursor-pointer py-4">
-                <span>⚙️</span>
-                <span>Configurações</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <EtapaJogoAtivo
+          personagemSelecionado={personagemSelecionado}
+          webSocket={webSocket}
+          mensagens={mensagens}
+          mensagemAtual={mensagemAtual}
+          setMensagemAtual={setMensagemAtual}
+          usuariosDigitando={usuariosDigitando}
+          participantes={participantes}
+          onEnviarMensagem={enviarMensagem}
+          onHandleKeyPress={handleKeyPress}
+          onRolarDados={rolarDados}
+          onVoltarSelecaoPersonagem={voltarParaSelecaoPersonagem}
+        />
       )}
     </div>
   );

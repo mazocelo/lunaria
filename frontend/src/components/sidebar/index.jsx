@@ -57,7 +57,7 @@ const Sidebar = () => {
                 <div className="flex items-center space-x-3">
                     <div className={`w-10 h-10 gradient-primary rounded-lg flex items-center justify-center font-bold text-lg ${isLight ? 'text-slate-900' : 'text-white'}`}>🎲</div>
                     <div>
-                        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>RPG Portal</h2>
+                        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>LUNARIA Portal</h2>
                         <p className={`text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'
                             }`}>
                             Plataforma de Roleplay
@@ -147,7 +147,7 @@ const Sidebar = () => {
                     </p>
                     <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-500'
                         }`}>
-                        © 2024 RPG Portal
+                        © 2024 LUNARIA Portal
                     </p>
                 </div>
             </div>

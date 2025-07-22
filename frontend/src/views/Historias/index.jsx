@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel.js';
 import { historiaViewModel } from '../../viewmodels/index.js';
-import { StatCard, LoadingSpinner, Notification, ConfirmationModal } from '../../components/index.js';
+import StatCard from '../../components/StatCard.jsx';
+import LoadingSpinner from '../../components/LoadingSpinner.jsx';
+import Notification from '../../components/Notification.jsx';
+import ConfirmationModal from '../../components/ConfirmationModal.jsx';
 import DataTable from '../../components/Table/DataTable.jsx';
 import { useTheme } from '../../contexts/theme.jsx';
+import { ROUTES, generateRoute } from '../../routes.jsx';
 
 /**
  * View para exibição e gerenciamento de Histórias
@@ -73,14 +77,14 @@ export const HistoriaView = () => {
     setDeleteLoading(false);
   };
 
-  // Função para navegar para ver história
+  // ✅ Função para navegar para ver história usando constantes
   const handleViewHistoria = (historia) => {
-    navigate(`/historias/${historia.id}`);
+    navigate(generateRoute.verHistoria(historia.id));
   };
 
-  // Função para iniciar sessão
+  // ✅ Função para iniciar sessão usando constantes
   const handlePlayHistoria = (historia) => {
-    navigate(`/jogo/${historia.id}`);
+    navigate(generateRoute.jogo(historia.id));
   };
 
   // Renderizador para temas
@@ -200,7 +204,8 @@ export const HistoriaView = () => {
           </p>
         </div>
         
-        <Link to="/nova-historia">
+        {/* ✅ Link usando constante de rota */}
+        <Link to={ROUTES.NOVA_HISTORIA}>
           <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
             <span>✨</span>
             <span>Nova História</span>
@@ -247,15 +252,17 @@ export const HistoriaView = () => {
       {/* Modal de Confirmação */}
       <ConfirmationModal
         isOpen={showDeleteModal}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
         title="Deletar História"
-        message={`Tem certeza que deseja deletar a história "${historiaToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza de que deseja deletar a história "${historiaToDelete?.nome}"? Esta ação não pode ser desfeita.`}
         confirmText="Deletar"
         cancelText="Cancelar"
-        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
         loading={deleteLoading}
+        variant="danger"
       />
     </div>
   );
 }; 
+
+export default HistoriaView; 

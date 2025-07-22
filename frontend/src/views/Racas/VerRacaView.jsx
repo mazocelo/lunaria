@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/theme.jsx';
-import { RPGCard } from '../../components';
+import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 import { RacaService } from '../../services/RacaService';
 import { Raca } from '../../models/Raca';

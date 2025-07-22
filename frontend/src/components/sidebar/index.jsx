@@ -1,11 +1,23 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/theme.jsx';
+// ❌ useWebSocket foi removido - usando useSocketManager agora
+// import { useWebSocket } from '../../hooks/useWebSocket';
+import { WebSocketStatusCompact } from '../WebSocketStatus';
 
 const Sidebar = () => {
     const location = useLocation();
     const { theme } = useTheme();
     const isLight = theme === 'light';
+
+    // ❌ WebSocket mock temporário - integrar useSocketManager quando necessário
+    const webSocket = {
+        isConnected: false,
+        isAuthenticated: false,
+        isConnecting: false,
+        error: null,
+        connect: () => console.log('WebSocket connect - usar useSocketManager')
+    };
 
     const menuItems = [
         {
@@ -49,15 +61,35 @@ const Sidebar = () => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <aside className={`w-80 h-screen flex flex-col ${isLight ? 'sidebar-rpg-light' : 'sidebar-rpg'
+        <aside className={`w-[260px] h-screen flex flex-col ${isLight ? 'sidebar-rpg-light' : 'sidebar-rpg'
             }`}>
             {/* Logo e título */}
             <div className={`p-6 border-b ${isLight ? 'border-slate-200/50' : 'border-slate-700/50'
                 }`} style={{ height: '8vh' }}>
                 <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 gradient-primary rounded-lg flex items-center justify-center font-bold text-lg ${isLight ? 'text-slate-900' : 'text-white'}`}>🎲</div>
-                    <div>
-                        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>LUNARIA Portal</h2>
+                    {/* Logo Lunaria */}
+                    <div className="w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden">
+                        <img 
+                            src="/assets/logo_lunaria.png" 
+                            alt="Lunaria" 
+                            className="w-full h-full object-contain filter drop-shadow-lg"
+                        />
+                    </div>
+                    
+                    <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                                Lunaria
+                            </h2>
+                            {/* Indicador WebSocket */}
+                            <WebSocketStatusCompact 
+                                isConnected={webSocket.isConnected}
+                                isAuthenticated={webSocket.isAuthenticated}
+                                isConnecting={webSocket.isConnecting}
+                                error={webSocket.error}
+                                className="flex-shrink-0"
+                            />
+                        </div>
                         <p className={`text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'
                             }`}>
                             Plataforma de Roleplay
@@ -67,7 +99,7 @@ const Sidebar = () => {
             </div>
 
             {/* Menu de navegação */}
-            <nav className="flex-1 p-6">
+            <nav className="flex-1 p-6 overflow-y-auto">
                 <div className="space-y-2">
                     {menuItems.map((item) => (
                         <Link
@@ -78,11 +110,11 @@ const Sidebar = () => {
                                 : isLight
                                     ? 'glass-light text-slate-700 hover:text-slate-900 hover:bg-slate-100/50'
                                     : 'glass text-slate-300 hover:text-white hover:bg-slate-700/50'
-                                }`} style={{ width: '80%' }}
+                                }`}
                         >
                             <div className="flex items-center space-x-3">
-                                <span className="text-2xl">{item.icon}</span>
-                                <div className="flex-1">
+                                <span className="text-2xl flex-shrink-0">{item.icon}</span>
+                                <div className="flex-1 min-w-0">
                                     <div className="font-semibold font-modern">
                                         {item.label}
                                     </div>
@@ -105,49 +137,50 @@ const Sidebar = () => {
                     ))}
                 </div>
 
-                {/* Seção de estatísticas */}
-                <div className={`mt-8 p-4 rounded-xl ${isLight ? 'glass-light' : 'glass'
-                    }`}
-                    style={{ width: '80%' }}>
-                    <h3 className={`text-sm font-semibold mb-3 font-modern ${isLight ? 'text-slate-700' : 'text-slate-300'
-                        }`}>
-                        Estatísticas
-                    </h3>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>
-                                Histórias Ativas
+
+
+                {/* Status da conexão WebSocket (versão expandida quando há erro) */}
+                {webSocket.error && (
+                    <div className={`mt-4 p-3 rounded-xl border ${
+                        isLight ? 'bg-red-50 border-red-200' : 'bg-red-500/20 border-red-500/30'
+                    }`}>
+                        <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-red-500">⚠️</span>
+                            <span className={`text-sm font-semibold ${isLight ? 'text-red-800' : 'text-red-300'}`}>
+                                Erro de Conexão
                             </span>
-                            <span className="text-purple-400 font-semibold">12</span>
                         </div>
-                        <div className="flex justify-between text-xs">
-                            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>
-                                Personagens
-                            </span>
-                            <span className="text-cyan-400 font-semibold">48</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>
-                                Sessões Hoje
-                            </span>
-                            <span className="text-green-400 font-semibold">3</span>
-                        </div>
+                        <p className={`text-xs ${isLight ? 'text-red-700' : 'text-red-400'} mb-2`}>
+                            {webSocket.error}
+                        </p>
+                        <button
+                            onClick={webSocket.connect}
+                            className={`w-full px-3 py-2 text-xs rounded-lg font-semibold transition-colors ${
+                                isLight 
+                                    ? 'bg-red-200 hover:bg-red-300 text-red-800' 
+                                    : 'bg-red-500/30 hover:bg-red-500/50 text-red-300'
+                            }`}
+                        >
+                            Tentar Reconectar
+                        </button>
                     </div>
-                </div>
+                )}
             </nav>
 
             {/* Footer da sidebar */}
             <div className={`p-6 border-t ${isLight ? 'border-slate-200/50' : 'border-slate-700/50'
                 }`}>
                 <div className="text-center">
-                    <div className={`w-8 h-8 gradient-accent rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>🎯</div>
+                    <div className={`w-8 h-8 gradient-accent rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                        🎯
+                    </div>
                     <p className={`text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'
                         }`}>
                         Versão 1.0.0
                     </p>
                     <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-500'
                         }`}>
-                        © 2024 LUNARIA Portal
+                        © 2024 Lunaria
                     </p>
                 </div>
             </div>

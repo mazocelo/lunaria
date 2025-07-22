@@ -18,10 +18,11 @@ export class HistoriaService {
     try {
       const response = await this.apiClient.get(this.baseUrl);
       if (response.success) {
-        return response.data
+        // ✅ NORMALIZAR dados usando Historia.fromAPI() conforme API documentation
+        return response.data.map(historiaData => Historia.fromAPI(historiaData));
       }
       else {
-        throw new Error(response.data.message);
+        throw new Error(response.error || response.message || 'Erro ao buscar histórias');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar histórias: ${error.message}`);
@@ -37,10 +38,11 @@ export class HistoriaService {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
       if (response.success) {
-        return response.data;
+        // ✅ USAR Historia.fromAPI() para normalizar dados conforme API documentation
+        return Historia.fromAPI(response.data);
       }
       else {
-        throw new Error(response.data.message);
+        throw new Error(response.error || response.message || 'História não encontrada');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar história: ${error.message}`);

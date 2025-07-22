@@ -18,10 +18,11 @@ export class PersonagemService {
     try {
       const response = await this.apiClient.get(this.baseUrl);
       if(response.success){
-        return response.data
+        // ✅ NORMALIZAR dados usando Personagem.fromAPI() conforme API documentation
+        return response.data.map(personagemData => Personagem.fromAPI(personagemData));
       }
       else{
-        throw new Error(response.data.message);
+        throw new Error(response.error || response.message || 'Erro ao buscar personagens');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar personagens: ${error.message}`);
@@ -37,10 +38,11 @@ export class PersonagemService {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
       if(response.success){
-        return response.data
+        // ✅ NORMALIZAR dados usando Personagem.fromAPI() conforme API documentation
+        return Personagem.fromAPI(response.data);
       }
       else{
-        throw new Error(response.data.message);
+        throw new Error(response.error || response.message || 'Personagem não encontrado');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar personagem: ${error.message}`);
@@ -105,7 +107,7 @@ export class PersonagemService {
    * Busca personagens por história
    * @param {number} historiaId - ID da história
    * @param {Object} options - Opções de busca (search, limit, offset, status)
-   * @returns {Promise<Personagem[]>} Lista de personagens da história
+   * @returns {Promise<Object>} Resposta completa com personagens, história e paginação
    */
   async getByHistoria(historiaId, options = {}) {
     try {
@@ -120,9 +122,17 @@ export class PersonagemService {
       const response = await this.apiClient.get(url);
       
       if (response.success) {
-        return response.data.map(personagemData => Personagem.fromAPI(personagemData));
+        // ✅ RETORNAR RESPOSTA COMPLETA conforme API documentation:
+        // { success: true, data: "array", historia: {...}, pagination: {...}, message: "string" }
+        return {
+          personagens: response.data.map(personagemData => Personagem.fromAPI(personagemData)),
+          historia: response.historia || null,
+          pagination: response.pagination || null,
+          message: response.message || null,
+          total: response.pagination?.total || response.data?.length || 0
+        };
       } else {
-        throw new Error(response.data.message);
+        throw new Error(response.message || response.error || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar personagens por história: ${error.message}`);

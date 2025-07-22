@@ -5,7 +5,7 @@ import { useTheme } from '../../../contexts/theme.jsx';
 /**
  * Componente para a etapa do jogo ativo
  */
-export const EtapaJogoAtivo = ({
+const EtapaJogoAtivo = ({
   personagemSelecionado,
   webSocket,
   mensagens,
@@ -21,6 +21,25 @@ export const EtapaJogoAtivo = ({
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  // Verificar se temos dados necessários
+  if (!personagemSelecionado) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Personagem não encontrado</h2>
+          <p className="text-purple-300 mb-6">Você precisa selecionar um personagem primeiro.</p>
+          <button
+            onClick={onVoltarSelecaoPersonagem}
+            className="btn-rpg bg-gradient-to-r from-purple-600 to-cyan-600"
+          >
+            Voltar para Seleção
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -231,3 +250,6 @@ const MensagemChat = ({ mensagem, isLight }) => {
     </div>
   );
 }; 
+
+
+export default EtapaJogoAtivo;

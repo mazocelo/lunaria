@@ -6,7 +6,8 @@ import { TemaService } from './TemaService';
 import { VantagemService } from './VantagemService';
 import { RacaService } from './RacaService';
 import { ClasseService } from './ClasseService';
-import { VantagemDesvantagemService } from './VantagemDesvantagemService';
+import { DesvantagemService } from './DesvantagemService';
+import { AuthService } from './AuthService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
@@ -18,7 +19,13 @@ export { TemaService } from './TemaService';
 export { VantagemService } from './VantagemService';
 export { RacaService } from './RacaService';
 export { ClasseService } from './ClasseService';
-export { VantagemDesvantagemService } from './VantagemDesvantagemService';
+export { DesvantagemService } from './DesvantagemService';
+export { AuthService } from './AuthService';
+
+// WebSocket Service - SINGLETON RIGOROSO
+import { WebSocketService } from './WebSocketService.js';
+export { WebSocketService } from './WebSocketService.js';
+export const webSocketService = WebSocketService.getInstance();
 
 // Factory para criação de serviços
 export class ServiceFactory {
@@ -42,8 +49,10 @@ export class ServiceFactory {
         return new RacaService(apiClient);
       case 'classe':
         return new ClasseService(apiClient);
-      case 'vantagem-desvantagem':
-        return new VantagemDesvantagemService(apiClient);
+      case 'desvantagem':
+        return new DesvantagemService(apiClient);
+      case 'auth':
+        return new AuthService(apiClient);
       default:
         throw new Error(`Tipo de serviço desconhecido: ${type}`);
     }
@@ -57,4 +66,5 @@ export const temaService = new TemaService(apiClient);
 export const vantagemService = new VantagemService(apiClient);
 export const racaService = new RacaService(apiClient);
 export const classeService = new ClasseService(apiClient);
-export const vantagemDesvantagemService = new VantagemDesvantagemService(apiClient); 
+export const desvantagemService = new DesvantagemService(apiClient);
+export const authService = new AuthService(apiClient); 

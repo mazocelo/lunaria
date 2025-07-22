@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel.js';
 import { historiaViewModel } from '../../viewmodels/index.js';
-import { LoadingSpinner, Notification, RPGCard } from '../../components/index.js';
+import LoadingSpinner from '../../components/LoadingSpinner.jsx';
+import Notification from '../../components/Notification.jsx';
+import RPGCard from '../../components/RPGCard.jsx';
 import { useTheme } from '../../contexts/theme.jsx';
 
 /**
@@ -282,3 +284,5 @@ export const VerHistoriaView = () => {
     </div>
   );
 }; 
+
+export default VerHistoriaView; 

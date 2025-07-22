@@ -1,159 +1,108 @@
-# Role Chat Game - Frontend
+# 🎮 Role Chat Game - Frontend
 
-Uma aplicação moderna de RPG com interface elegante e modo claro/escuro.
+Sistema de RPG com chat em tempo real usando React + Vite + Zustand + WebSocket.
 
-## 🎨 Modo Light
+## 🏗️ **Nova Arquitetura (Zustand)**
 
-A aplicação agora suporta um modo light elegante que mantém a estética RPG com cores mais suaves e claras.
+### 🏪 **Sistema de Estados Globais**
+- **🎮 Game Store**: Estados do jogo, história, personagens, sessões
+- **🌐 Socket Store**: Estados de conexão WebSocket, usuários, sala técnica
+- **💾 Persistência**: localStorage apenas para recuperação/hidratação
 
-### Características do Modo Light:
+### 📁 **Estrutura do Projeto**
+```
+src/
+├── 🎨 components/          # Componentes reutilizáveis
+├── 🎯 contexts/           # React Contexts (Auth, Layout, Theme)
+├── 🎛️ services/          # APIs e WebSocket
+├── 🏪 store/             # Estados Globais Zustand
+│   ├── index.js          # Exports + utilities
+│   ├── game/             # Game Store
+│   └── socket/           # Socket Store
+├── 🎮 views/             # Views principais
+│   ├── Auth/             # Login/Register
+│   ├── Jogo/            # Sistema de jogo
+│   └── ...              # Outras views
+├── 🎨 viewmodels/        # Business Logic
+└── 🔧 utils/            # Utilitários
 
-- **Cores Suaves**: Paleta de cores claras e elegantes
-- **Glassmorphism**: Efeitos de vidro com transparência suave
-- **Partículas Adaptativas**: Partículas mais suaves e menos intensas
-- **Contraste Otimizado**: Texto e elementos com contraste adequado
-- **Transições Suaves**: Animações e transições adaptadas ao tema
+```
 
-### Como Usar:
+## 🚀 **Views → Stores (Direto)**
 
-1. **Toggle de Tema**: Clique no botão no header para alternar entre modo claro e escuro
-2. **Detecção Automática**: O tema inicial é baseado na preferência do sistema
-3. **Persistência**: O tema escolhido é mantido durante a sessão
+### **Antes (com Hooks intermediários):**
+```javascript
+// ❌ Camada desnecessária
+View → Hook → Store → WebSocket/API
+```
 
-### Componentes Atualizados:
+### **Agora (Direto):**
+```javascript
+// ✅ Acesso direto e eficiente
+View → Store → WebSocket/API
+```
 
-- ✅ App.jsx - Header e layout principal
-- ✅ Sidebar - Navegação lateral
-- ✅ ParticlesBackground - Partículas adaptativas
-- ✅ InputSimples - Campos de entrada
-- ✅ Button - Botões com variantes
-- ✅ RPGCard - Cards com glassmorphism
-- ✅ StatCard - Cards de estatísticas
-- ✅ Table - Tabelas responsivas
-- ✅ LoadingSpinner - Indicadores de carregamento
-- ✅ Notification - Notificações do sistema
+### **Exemplo de Uso:**
+```javascript
+// Views conectadas diretamente às stores
+const { etapaAtual, mudarEtapa, personagemSelecionado } = useGameStore();
+const { isConnected, setConnected } = useSocketStore();
+```
 
-### Classes CSS Disponíveis:
+## 🔄 **Fluxo de Dados**
 
-#### Modo Light:
-- `.glass-light` - Efeito de vidro claro
-- `.glass-strong-light` - Efeito de vidro forte claro
-- `.input-rpg-light` - Inputs com estilo light
-- `.btn-rpg-light` - Botões com estilo light
-- `.table-rpg-light` - Tabelas com estilo light
-- `.sidebar-rpg-light` - Sidebar com estilo light
-- `.gradient-light` - Gradientes suaves
-- `.gradient-light-warm` - Gradientes quentes suaves
+1. **🚀 Inicialização**: `initializeAllStores()` (hidrata do localStorage)
+2. **🎮 Uso**: Views → Stores → WebSocket/API
+3. **💾 Persistência**: `persistirEstadoCritico()` (quando necessário)
+4. **🧹 Reset**: `resetAllStores()` (logout/cleanup)
 
-#### Modo Dark (Original):
-- `.glass` - Efeito de vidro escuro
-- `.glass-strong` - Efeito de vidro forte escuro
-- `.card-rpg` - Cards com estilo dark
-- `.input-rpg` - Inputs com estilo dark
-- `.btn-rpg` - Botões com estilo dark
-- `.table-rpg` - Tabelas com estilo dark
-- `.sidebar-rpg` - Sidebar com estilo dark
+## 🎯 **Responsabilidades**
 
-## 🚀 Tecnologias
+### 🏪 **Stores (Única Fonte de Verdade)**
+- **Estados**: Sempre atualizada
+- **Actions**: Lógicas de negócio
+- **Persistência**: Controle total
 
-- React 18
-- Vite
-- Tailwind CSS
-- React Router
-- Context API para gerenciamento de estado
+### 🎮 **Views (Apresentação)**
+- **Rendering**: Baseado em estados das stores
+- **Interação**: Disparam actions das stores
+- **Efeitos**: Reagem a mudanças das stores
 
-## 📦 Instalação
+### 🌐 **Services (Comunicação)**
+- **WebSocket**: Eventos em tempo real
+- **APIs**: Dados do servidor
+- **Normalização**: Padronização de dados
+
+## ⚡ **Benefícios da Nova Arquitetura**
+
+1. **🎯 Menos Complexidade**: Sem camada intermediária de hooks
+2. **⚡ Melhor Performance**: Menos re-renders desnecessários
+3. **🔧 Mais Manutenível**: Estados centralizados e organizados
+4. **📈 Escalável**: Fácil adicionar novas features
+5. **🛡️ Mais Consistente**: Single source of truth
+6. **💾 Persistência Controlada**: localStorage apenas quando necessário
+
+## 🚀 **Scripts**
 
 ```bash
-npm install
+# Desenvolvimento
 npm run dev
+
+# Build para produção
+npm run build
+
+# Preview do build
+npm run preview
+
+# Linting
+npm run lint
 ```
 
-## 🚀 Deploy na Heroku
+## 🔧 **Tecnologias**
 
-### Pré-requisitos:
-- Conta na Heroku
-- Heroku CLI instalado
-- Git configurado
-
-### Passos para Deploy:
-
-1. **Login na Heroku:**
-```bash
-heroku login
-```
-
-2. **Criar app na Heroku:**
-```bash
-heroku create seu-app-name
-```
-
-3. **Configurar buildpacks:**
-```bash
-heroku buildpacks:set heroku/nodejs
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-static
-```
-
-4. **Configurar variáveis de ambiente:**
-```bash
-heroku config:set NODE_ENV=production
-heroku config:set VITE_API_URL=https://seu-backend-url.herokuapp.com/
-```
-
-5. **Fazer deploy:**
-```bash
-git add .
-git commit -m "Deploy para Heroku"
-git push heroku main
-```
-
-### Estrutura de Deploy:
-- `static.json` - Configuração do buildpack estático
-- `Procfile` - Comando de inicialização
-- `package.json` - Scripts de build e start
-- `app.json` - Configuração do app Heroku
-
-## 🎯 Funcionalidades
-
-- ✅ Sistema de temas (Light/Dark)
-- ✅ Interface responsiva
-- ✅ Animações suaves
-- ✅ Glassmorphism effects
-- ✅ Partículas interativas
-- ✅ Componentes reutilizáveis
-- ✅ Sistema de notificações
-- ✅ Loading states
-- ✅ Tabelas responsivas
-
-## 🎨 Design System
-
-A aplicação utiliza um design system consistente com:
-
-- **Tipografia**: Cinzel (fantasy) + Inter (modern)
-- **Cores**: Paleta roxa/ciano com variações
-- **Efeitos**: Glassmorphism, gradientes, sombras
-- **Animações**: Transições suaves e micro-interações
-- **Responsividade**: Mobile-first approach
-
-## 🔧 Desenvolvimento
-
-Para adicionar novos componentes com suporte a temas:
-
-1. Importe o contexto de tema: `import { useTheme } from '../contexts/theme.jsx'`
-2. Use a variável `isLight`: `const isLight = theme === 'light'`
-3. Aplique classes condicionais: `className={isLight ? 'classe-light' : 'classe-dark'}`
-
-## 📱 Responsividade
-
-A aplicação é totalmente responsiva e funciona em:
-- Desktop (1200px+)
-- Tablet (768px - 1199px)
-- Mobile (320px - 767px)
-
-## 🎮 RPG Features
-
-- Gerenciamento de histórias
-- Criação de personagens
-- Sistema de estatísticas
-- Interface imersiva
-- Temas adaptativos
+- **⚛️ React 18** - Interface de usuário
+- **🏪 Zustand** - Gerenciamento de estado global
+- **🎨 Tailwind CSS** - Estilização
+- **🌐 WebSocket** - Comunicação em tempo real
+- **📱 React Router** - Roteamento
+- **⚡ Vite** - Build tool moderna

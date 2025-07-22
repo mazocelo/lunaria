@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import DesvantagemViewModel from '../../viewmodels/Desvantagens/DesvantagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
-import { RPGCard } from '../../components';
+import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 import InputSimples from '../../components/form/inputSimples';
 

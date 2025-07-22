@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import DesvantagemViewModel from '../../viewmodels/Desvantagens/DesvantagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
-import { RPGCard } from '../../components';
+import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 
 const VerDesvantagemView = () => {
@@ -234,87 +234,20 @@ const VerDesvantagemView = () => {
             Restrições e Requisitos
           </h2>
           <div className={`p-3 rounded-lg border min-h-20 ${isLight ? 'bg-white border-slate-300' : 'bg-slate-700 border-slate-600'} font-modern`}>
-            {((vm.restricao && Object.keys(vm.restricao).length > 0) || (vm.requisitos && Object.keys(vm.requisitos).length > 0)) ? (
-              <>
-                {vm.restricao && Object.keys(vm.restricao).length > 0 && (
-                  <div><b>Restrição:</b> {Object.entries(vm.restricao).map(([k, v]) => `${k}: ${v}`).join(', ')}</div>
-                )}
-                {vm.requisitos && Object.keys(vm.requisitos).length > 0 && (
-                  <div><b>Requisitos:</b> {Object.entries(vm.requisitos).map(([k, v]) => `${k}: ${v}`).join(', ')}</div>
-                )}
-              </>
+            {vm.restricoes ? (
+              <p className={`text-sm ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                {vm.restricoes}
+              </p>
             ) : (
               <span className={`text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                Nenhuma restrição ou requisito definido.
+                Nenhuma restrição definida.
               </span>
             )}
           </div>
         </div>
-
-        {/* Data de criação */}
-        <div className="mb-8">
-          <h2 className={`text-xl font-semibold mb-4 ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-            Data de Criação
-          </h2>
-          <div className={`p-3 rounded-lg border text-center ${isLight ? 'bg-white border-slate-300' : 'bg-slate-700 border-slate-600'} font-modern`}>
-            {vm.created_at ? formatDate(vm.created_at) : '-'}
-          </div>
-        </div>
-
-        {/* Botões de ação */}
-        <div className="flex space-x-3 justify-end mt-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/desvantagens')}
-          >
-            Voltar
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => navigate(`/editar-desvantagem/${id}`)}
-          >
-            Editar
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => setDeleteConfirm(true)}
-          >
-            Excluir
-          </Button>
-        </div>
       </RPGCard>
-
-      {/* Modal de confirmação de exclusão */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${isLight ? 'bg-white' : 'bg-slate-800'}`}>
-            <h3 className={`text-lg font-semibold mb-4 ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-              Confirmar exclusão
-            </h3>
-            <p className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern mb-6`}>
-              Tem certeza que deseja excluir esta desvantagem? Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex space-x-3">
-              <Button
-                variant="ghost"
-                onClick={() => setDeleteConfirm(false)}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleDelete}
-                className="flex-1 bg-red-500 hover:bg-red-600"
-              >
-                Excluir
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default VerDesvantagemView; 
+export default VerDesvantagemView;

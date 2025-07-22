@@ -11,9 +11,11 @@ const LoadingSpinner = ({
     const isLight = theme === 'light';
     
     const sizeClasses = {
+        sm: 'w-4 h-4',
         small: 'w-6 h-6',
         medium: 'w-8 h-8',
         large: 'w-12 h-12',
+        lg: 'w-12 h-12',
         xl: 'w-16 h-16'
     };
 

@@ -1,73 +1,99 @@
 import React from 'react';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { LoadingSpinner } from '../../../components/index.js';
+import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 
 /**
  * Componente para a etapa de seleção de personagem
+ * 📍 Usado por: JogoView (etapa 'selecao-personagem')
  */
-export const EtapaSelecaoPersonagem = ({
-  personagensDaHistoria,
+const EtapaSelecaoPersonagem = ({
+  historia,
+  personagens,
   personagemSelecionado,
-  loadingPersonagens,
-  errorPersonagens,
-  buscaPersonagem,
-  onBuscaChange,
+  loading,
+  error,
   onSelecionarPersonagem,
-  onIniciarSessao,
-  onVoltarEtapa
+  onVoltar
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
   return (
     <div className="space-y-6">
-      {/* Barra de busca */}
+      {/* Informações da História */}
       <div className="card-rpg p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex-1">
+            <h2 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'} mb-4`}>
+              {historia?.nome || 'História sem nome'}
+            </h2>
+            
+            <div className="flex flex-wrap gap-2 mb-6">
+              {Array.isArray(historia?.temas) && historia?.temas.length > 0
+                ? historia?.temas.map((tema, i) => (
+                    <span key={i} className="px-4 py-2 text-sm rounded-full bg-purple-600/20 text-purple-300 font-modern border border-purple-500/30">
+                      {tema}
+                    </span>
+                  ))
+                : <span className="text-slate-500 text-sm">Sem tema definido</span>
+              }
+            </div>
+            
+            {historia?.descricao && (
+              <div className={`p-4 rounded-xl mb-4 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
+                <h3 className={`text-lg font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                  📖 Descrição
+                </h3>
+                <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'} text-sm`}>
+                  {historia?.descricao}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <div className="text-center ml-8">
+            <div className="text-4xl font-bold text-cyan-400 mb-2">
+              {historia?.maximo_de_participantes || 0}
+            </div>
+            <div className="text-sm text-slate-400 font-modern">
+              Máximo de jogadores
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Seleção de Personagem */}
+      <div className="card-rpg p-6">
+        <div className="flex items-center justify-between mb-6">
           <h2 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'}`}>
             👥 Escolha seu Personagem
           </h2>
           <button 
-            onClick={onVoltarEtapa}
+            onClick={onVoltar}
             className="btn-rpg-secondary cursor-pointer px-4 py-2"
           >
             ← Voltar
           </button>
         </div>
-        
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Buscar personagem por nome..."
-            value={buscaPersonagem}
-            onChange={onBuscaChange}
-            className={`w-full px-4 py-3 pl-12 rounded-xl border ${
-              isLight 
-                ? 'bg-white border-slate-300 text-slate-900' 
-                : 'bg-slate-800 border-slate-600 text-white'
-            } placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-          />
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-            <span className="text-slate-400">🔍</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Lista de personagens */}
-      <div className="card-rpg p-6">
-        {errorPersonagens && (
+        {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-            <p className="text-red-300 font-modern">{errorPersonagens}</p>
+            <p className="text-red-300 font-modern">{error}</p>
           </div>
         )}
 
-        {loadingPersonagens ? (
-          <div className="text-center py-12">
-            <LoadingSpinner size="lg" text="Carregando personagens..." />
+        {loading && (
+          <div className="text-center py-8">
+            <LoadingSpinner />
+            <p className={`mt-4 ${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern`}>
+              Carregando personagens disponíveis...
+            </p>
           </div>
-        ) : personagensDaHistoria.length > 0 ? (
+        )}
+
+        {!loading && personagens?.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {personagensDaHistoria.map((personagem) => (
+            {personagens.map((personagem) => (
               <PersonagemCard
                 key={personagem.id}
                 personagem={personagem}
@@ -77,13 +103,12 @@ export const EtapaSelecaoPersonagem = ({
               />
             ))}
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-slate-700/50 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-2xl">👤</span>
-            </div>
-            <p className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-              {buscaPersonagem ? 'Nenhum personagem encontrado com esse nome' : 'Nenhum personagem encontrado para esta história'}
+        )}
+
+        {!loading && personagens?.length === 0 && !error && (
+          <div className="text-center py-8">
+            <p className={`text-xl ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-4 font-modern`}>
+              Nenhum personagem encontrado para esta história
             </p>
             <p className="text-slate-500 text-sm mt-2">
               Você precisa criar um personagem para esta história primeiro
@@ -92,14 +117,18 @@ export const EtapaSelecaoPersonagem = ({
         )}
 
         {personagemSelecionado && (
-          <div className="mt-8 text-center">
-            <button 
-              onClick={onIniciarSessao}
-              className="btn-rpg-lg hover-lift flex items-center space-x-3 mx-auto cursor-pointer px-12 py-4"
-            >
-              <span className="text-2xl">🎮</span>
-              <span className="text-xl font-fantasy">Iniciar Aventura</span>
-            </button>
+          <div className="mt-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">✨</span>
+              <div>
+                <p className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                  {personagemSelecionado.nome} selecionado!
+                </p>
+                <p className={`text-sm ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                  🏠 Abrindo sala de espera automaticamente...
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -163,4 +192,6 @@ const PersonagemCard = ({ personagem, isSelected, onSelect, isLight }) => {
       )}
     </div>
   );
-}; 
+};
+
+export default EtapaSelecaoPersonagem;

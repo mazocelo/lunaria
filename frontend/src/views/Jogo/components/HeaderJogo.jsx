@@ -5,7 +5,7 @@ import { WebSocketStatus } from '../../../components/WebSocketStatus.jsx';
 /**
  * Componente do header do jogo com navegação por etapas
  */
-export const HeaderJogo = ({
+const HeaderJogo = ({
   etapaAtual,
   webSocket,
   tentativaConexaoIniciada,
@@ -105,3 +105,5 @@ const IndicadorProgresso = ({ etapaAtual }) => {
     </div>
   );
 }; 
+
+export default HeaderJogo;

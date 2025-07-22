@@ -1,7 +1,8 @@
 // Componentes das etapas do jogo
-export { EtapaInformacoes } from './EtapaInformacoes.jsx';
-export { EtapaSelecaoPersonagem } from './EtapaSelecaoPersonagem.jsx';
-export { EtapaJogoAtivo } from './EtapaJogoAtivo.jsx';
+export { default as EtapaSelecaoPersonagem } from './EtapaSelecaoPersonagem.jsx';
+export { default as EtapaSalaEspera } from './EtapaSalaEspera.jsx';
+export { default as EtapaJogoRPG } from './EtapaJogoRPG.jsx';
 
-// Componente do header
-export { HeaderJogo } from './HeaderJogo.jsx'; 
+// 📦 LEGACY COMPONENTS - Não usados na arquitetura atual
+// export { default as EtapaJogoAtivo } from './EtapaJogoAtivo.jsx';
+// export { default as HeaderJogo } from './HeaderJogo.jsx'; 

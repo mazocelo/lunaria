@@ -7,11 +7,26 @@ import LoadingSpinner from './components/LoadingSpinner'
 import { AuthContainer } from './views/Auth'
 import AppRoutes from './routes.jsx'
 
+// 🚀 STORE INITIALIZATION - Cache de dados estáticos em background
+import { useEffect } from 'react'
+import { initializeAllStores } from './store/index.js'
+
 function App() {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, loading, logout } = useAuth();
   const { showSidebar } = useLayout();
   const isLight = theme === 'light';
+
+  // 🚀 INICIALIZAR STORES EM BACKGROUND - Uma vez por sessão
+  useEffect(() => {
+    // Só inicializa se autenticado para evitar requests desnecessárias
+    if (isAuthenticated && !loading) {
+      console.log('🚀 App: Inicializando stores em background...');
+      initializeAllStores().catch(error => {
+        console.error('❌ App: Erro ao inicializar stores:', error);
+      });
+    }
+  }, [isAuthenticated, loading]);
 
   // Mostrar loading enquanto verifica autenticação
   if (loading) {

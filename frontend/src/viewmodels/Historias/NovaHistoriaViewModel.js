@@ -1,52 +1,25 @@
-import { makeAutoObservable, runInAction } from 'mobx';
-import { TemaService } from '../../services/TemaService';
 import { HistoriaService } from '../../services/HistoriaService';
-import { Historia } from '../../models/Historia';
 import { apiClient } from '../../services/ApiClient';
+import { getTemaStoreAPI } from '../../store/index.js';
+import { runInAction } from '../../utils/EventEmitter.js';
 
+/**
+ * ViewModel para criação de nova história
+ * 📍 MIGRADO: Agora usa Tema Store ao invés de TemaService
+ */
 export class NovaHistoriaViewModel {
-  nome = '';
-  temasSelecionados = [];
-  maximo_de_participantes = 3;
-  temas = [];
-  loading = false;
-  error = null;
-  subscribers = [];
-
-  temaService = new TemaService(apiClient);
-  historiaService = new HistoriaService(apiClient);
-
   constructor() {
-    makeAutoObservable(this, {
-      subscribers: false,
-      temaService: false,
-      historiaService: false,
-      subscribe: false,
-      notify: false,
-      getState: false
-    });
-  }
-
-  getState() {
-    return {
-      nome: this.nome,
-      temasSelecionados: this.temasSelecionados,
-      maximo_de_participantes: this.maximo_de_participantes,
-      temas: this.temas,
-      loading: this.loading,
-      error: this.error
-    };
-  }
-
-  subscribe(callback) {
-    this.subscribers.push(callback);
-    return () => {
-      this.subscribers = this.subscribers.filter(sub => sub !== callback);
-    };
-  }
-
-  notify() {
-    this.subscribers.forEach(callback => callback(this.getState()));
+    this.nome = '';
+    this.temasSelecionados = [];
+    this.maximo_de_participantes = 4;
+    this.descricao = '';
+    this.loading = false;
+    this.error = null;
+    this.subscribers = [];
+    
+    // 🎨 TEMA STORE - API direta (sem hooks) para ViewModels
+    this.temaStore = getTemaStoreAPI();
+    this.historiaService = new HistoriaService(apiClient);
   }
 
   setNome = (nome) => { 
@@ -54,8 +27,8 @@ export class NovaHistoriaViewModel {
     this.notify();
   };
 
-  setTemasSelecionados = (temas) => {
-    this.temasSelecionados = temas;
+  setTemasSelecionados = (temas) => { 
+    this.temasSelecionados = temas; 
     this.notify();
   };
 
@@ -64,69 +37,135 @@ export class NovaHistoriaViewModel {
     this.notify();
   };
 
+  setDescricao = (descricao) => { 
+    this.descricao = descricao; 
+    this.notify();
+  };
+
+  /**
+   * 🎨 MIGRADO: Carregamento de temas via Tema Store
+   * Agora usa cache global e não precisa de loading local
+   */
   loadTemas = async () => {
     this.loading = true;
     this.notify();
+    
     try {
-      const temasData = await this.temaService.getAll();
+      // ✅ USAR TEMA STORE: Carregamento único e cache global
+      await this.temaStore.carregarTemas();
+      
       runInAction(() => {
-        this.temas = temasData || [];
+        this.loading = false;
         this.notify();
       });
     } catch (error) {
       console.error('Erro ao carregar temas:', error);
       runInAction(() => {
         this.error = `Erro ao carregar temas: ${error.message}`;
-        this.notify();
-      });
-    } finally {
-      runInAction(() => {
         this.loading = false;
         this.notify();
       });
     }
   };
 
-  criarHistoria = async (onSuccess) => {
-    if (!this.temasSelecionados || this.temasSelecionados.length === 0) {
-      this.error = 'Selecione pelo menos um tema';
-      this.notify();
-      return;
-    }
+  /**
+   * 🎨 GETTER: Temas para seleção (via store)
+   * Substitui a propriedade 'temas' que era carregada do service
+   */
+  get temas() {
+    return this.temaStore.getTemasParaSelecao();
+  }
 
+  /**
+   * 🎨 GETTER: Status de loading dos temas
+   */
+  get temasLoading() {
+    return this.temaStore.loading || this.loading;
+  }
+
+  criarHistoria = async (onSuccess) => {
     this.loading = true;
     this.error = null;
     this.notify();
+
     try {
-      const historia = new Historia({
+      const historiaData = {
         nome: this.nome,
-        temas: this.temasSelecionados,
+        temas: this.temasSelecionados, // IDs dos temas selecionados
         maximo_de_participantes: this.maximo_de_participantes,
+        descricao: this.descricao
+      };
+
+      console.log('🎨 NovaHistoriaViewModel: Criando história com temas:', {
+        nome: this.nome,
+        temasIds: this.temasSelecionados,
+        temasNomes: this.temaStore.getNomesDeTemas(this.temasSelecionados)
       });
-      
-      await this.historiaService.create(historia);
-      
-      // Limpar formulário após sucesso
-      this.nome = '';
-      this.temasSelecionados = [];
-      this.maximo_de_participantes = 3;
-      this.error = null;
-      this.notify();
-      
-      if (onSuccess) onSuccess();
+
+      const novaHistoria = await this.historiaService.create(historiaData);
+
+      runInAction(() => {
+        this.loading = false;
+        this.error = null;
+        this.notify();
+      });
+
+      if (onSuccess) {
+        onSuccess(novaHistoria);
+      }
+
+      return novaHistoria;
     } catch (error) {
-      this.error = error.message || 'Erro ao criar história';
-      this.notify();
-    } finally {
-      this.loading = false;
-      this.notify();
+      console.error('❌ Erro ao criar história:', error);
+      runInAction(() => {
+        this.error = error.message;
+        this.loading = false;
+        this.notify();
+      });
+      throw error;
     }
   };
 
-  clearError = () => { 
-    this.error = null; 
+  subscribe = (observer) => {
+    this.subscribers.push(observer);
+    return () => {
+      const index = this.subscribers.indexOf(observer);
+      if (index > -1) {
+        this.subscribers.splice(index, 1);
+      }
+    };
+  };
+
+  notify = () => {
+    this.subscribers.forEach(subscriber => subscriber(this.getState()));
+  };
+
+  /**
+   * 🔧 MÉTODO FALTANTE: Limpa erros
+   * Usado por: NovoHistoriaView no useEffect
+   */
+  clearError = () => {
+    this.error = null;
     this.notify();
   };
+
+  getState() {
+    return {
+      nome: this.nome,
+      temasSelecionados: this.temasSelecionados,
+      maximo_de_participantes: this.maximo_de_participantes,
+      descricao: this.descricao,
+      temas: this.temas, // ✅ AGORA VIA GETTER DO STORE
+      loading: this.loading,
+      temasLoading: this.temasLoading, // ✅ NOVO: Loading específico dos temas
+      error: this.error
+    };
+  }
+
+  dispose() {
+    this.subscribers = [];
+  }
 }
 
+// ✅ SINGLETON INSTANCE para compatibilidade
 export const novaHistoriaViewModel = new NovaHistoriaViewModel(); 

@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/theme.jsx';
-// ❌ useWebSocket foi removido - usando useSocketManager agora
-// import { useWebSocket } from '../../hooks/useWebSocket';
+import { useSocketStore } from '../../store';
 import { WebSocketStatusCompact } from '../WebSocketStatus';
 
 const Sidebar = () => {
@@ -10,14 +9,14 @@ const Sidebar = () => {
     const { theme } = useTheme();
     const isLight = theme === 'light';
 
-    // ❌ WebSocket mock temporário - integrar useSocketManager quando necessário
-    const webSocket = {
-        isConnected: false,
-        isAuthenticated: false,
-        isConnecting: false,
-        error: null,
-        connect: () => console.log('WebSocket connect - usar useSocketManager')
-    };
+    // 🌐 SOCKET STORE - Usando o store Zustand integrado
+    const {
+        isConnected,
+        isAuthenticated,
+        isConnecting,
+        error,
+        connectToSocket
+    } = useSocketStore();
 
     const menuItems = [
         {
@@ -83,10 +82,10 @@ const Sidebar = () => {
                             </h2>
                             {/* Indicador WebSocket */}
                             <WebSocketStatusCompact 
-                                isConnected={webSocket.isConnected}
-                                isAuthenticated={webSocket.isAuthenticated}
-                                isConnecting={webSocket.isConnecting}
-                                error={webSocket.error}
+                                isConnected={isConnected}
+                                isAuthenticated={isAuthenticated}
+                                isConnecting={isConnecting}
+                                error={error}
                                 className="flex-shrink-0"
                             />
                         </div>
@@ -140,7 +139,7 @@ const Sidebar = () => {
 
 
                 {/* Status da conexão WebSocket (versão expandida quando há erro) */}
-                {webSocket.error && (
+                {error && (
                     <div className={`mt-4 p-3 rounded-xl border ${
                         isLight ? 'bg-red-50 border-red-200' : 'bg-red-500/20 border-red-500/30'
                     }`}>
@@ -151,10 +150,10 @@ const Sidebar = () => {
                             </span>
                         </div>
                         <p className={`text-xs ${isLight ? 'text-red-700' : 'text-red-400'} mb-2`}>
-                            {webSocket.error}
+                            {error}
                         </p>
                         <button
-                            onClick={webSocket.connect}
+                            onClick={connectToSocket}
                             className={`w-full px-3 py-2 text-xs rounded-lg font-semibold transition-colors ${
                                 isLight 
                                     ? 'bg-red-200 hover:bg-red-300 text-red-800' 

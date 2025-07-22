@@ -1,22 +1,29 @@
-import { ClasseService } from '../../services/ClasseService';
+import { getClasseStoreAPI } from '../../store/index.js';
 import { Classe } from '../../models/Classe';
-import { apiClient } from '../../services/ApiClient';
 
 export default class ClasseViewModel {
   constructor() {
-    this.classeService = new ClasseService(apiClient);
+    // 🏛️ API direta para ViewModels - sem hooks!
+    this.classeStore = getClasseStoreAPI();
     
     this.state = {
       classes: [],
+      classeAtual: null,
       loading: false,
       error: null,
       searchTerm: '',
       currentPage: 1,
       totalPages: 1,
-      itemsPerPage: 10
+      itemsPerPage: 10,
+      filteredClasses: []
     };
 
     this.subscribers = [];
+    
+    // 🔄 Subscribir a mudanças no store
+    this.unsubscribe = this.classeStore.subscribe((state) => {
+      this.handleStoreChange(state);
+    });
   }
 
   // Métodos de estado
@@ -41,57 +48,142 @@ export default class ClasseViewModel {
     return { ...this.state };
   }
 
-  // Métodos de busca e filtros
+  // ===== MÉTODOS DE BUSCA E FILTROS =====
   setSearchTerm = (term) => {
     this.setState({ searchTerm: term, currentPage: 1 });
-    this.loadClasses();
+    
+    // Aplicar filtro com o novo termo
+    const filteredClasses = this.filterClasses(this.state.classes, term);
+    this.setState({ 
+      filteredClasses,
+      totalPages: Math.ceil(filteredClasses.length / this.state.itemsPerPage)
+    });
   };
 
   setPage = (page) => {
     this.setState({ currentPage: page });
-    this.loadClasses();
   };
 
-  // Carregamento de dados
-  loadClasses = async () => {
-    this.setState({ loading: true, error: null });
-    
-    try {
-      const params = {
-        page: this.state.currentPage,
-        limit: this.state.itemsPerPage,
-        search: this.state.searchTerm
-      };
+  // ===== HANDLER DE MUDANÇAS DO STORE =====
+  handleStoreChange = (storeState) => {
+    // 🔄 Atualizar estado local quando store muda
+    const filteredClasses = this.filterClasses(storeState.classes, this.state.searchTerm);
+    this.setState({
+      classes: storeState.classes,
+      filteredClasses,
+      loading: storeState.loading,
+      error: storeState.error,
+      totalPages: Math.ceil(filteredClasses.length / this.state.itemsPerPage)
+    });
+  };
 
-      const response = await this.classeService.getAll(params);
-      let classes = [];
-      if (Array.isArray(response)) {
-        classes = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        classes = response.data;
-      } else if (response && response.data && Array.isArray(response.data.data)) {
-        classes = response.data.data;
+  // ===== CARREGAMENTO DE DADOS =====
+  loadClasses = async (id = null) => {
+    try {
+      // 🏛️ CACHE FIRST: Verificar se já existem dados no store
+      const storeState = this.classeStore.getState();
+      
+      if (storeState.classesCarregadas && storeState.classes.length > 0) {
+        console.log('✅ ClasseViewModel: Usando dados do cache');
+        
+        // Se ID fornecido, buscar classe específica do cache
+        if (id) {
+          const classe = this.classeStore.getClasseById(parseInt(id));
+          this.setState({ classeAtual: classe });
+        }
+        
+        // Forçar atualização do estado local com dados do cache
+        this.handleStoreChange(storeState);
+        return;
       }
-      this.setState({
-        classes,
-        totalPages: response?.pagination?.totalPages || 1,
-        loading: false
-      });
+      
+      // 📡 FALLBACK: Se não há cache, carregar do backend
+      console.log('📡 ClasseViewModel: Cache vazio, carregando do backend...');
+      await this.classeStore.carregarClasses();
+      
+      // Se ID fornecido, buscar classe específica
+      if (id) {
+        const classe = this.classeStore.getClasseById(parseInt(id));
+        this.setState({ classeAtual: classe });
+      }
+      
+      // Estado será atualizado via handleStoreChange
     } catch (error) {
       this.setState({
-        classes: [],
-        totalPages: 1,
-        loading: false,
-        error: `Erro ao carregar classes: ${error.message}`
+        error: `Erro ao carregar classes: ${error.message}`,
+        loading: false
       });
     }
   };
 
-  // Métodos de CRUD
+  // ===== CARREGAMENTO DE CLASSE INDIVIDUAL =====
+  loadClasseById = async (id) => {
+    try {
+      // 🏛️ CACHE FIRST: Verificar se classe já existe no cache
+      const storeState = this.classeStore.getState();
+      
+      if (storeState.classesCarregadas && storeState.classes.length > 0) {
+        console.log('✅ ClasseViewModel: Buscando classe no cache');
+        const classe = this.classeStore.getClasseById(parseInt(id));
+        
+        this.setState({ 
+          classeAtual: classe,
+          error: classe ? null : 'Classe não encontrada'
+        });
+        
+        return classe;
+      }
+      
+      // 📡 FALLBACK: Se não há cache, carregar primeiro
+      console.log('📡 ClasseViewModel: Cache vazio, carregando classes...');
+      await this.classeStore.carregarClasses();
+      
+      // Buscar classe específica após carregamento
+      const classe = this.classeStore.getClasseById(parseInt(id));
+      this.setState({ 
+        classeAtual: classe,
+        error: classe ? null : 'Classe não encontrada'
+      });
+      
+      return classe;
+    } catch (error) {
+      this.setState({
+        error: `Erro ao carregar classe: ${error.message}`,
+        classeAtual: null
+      });
+      return null;
+    }
+  };
+
+  // ===== FILTROS E BUSCA =====
+  filterClasses = (classes, searchTerm = null) => {
+    const term = searchTerm || this.state.searchTerm;
+    if (!term) return classes;
+    
+    const termLower = term.toLowerCase();
+    return classes.filter(classe => 
+      classe.nome?.toLowerCase().includes(termLower) ||
+      classe.descricao?.toLowerCase().includes(termLower)
+    );
+  };
+
+  // ===== PAGINAÇÃO =====
+  getPaginatedClasses = () => {
+    const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
+    const end = start + this.state.itemsPerPage;
+    return this.state.filteredClasses.slice(start, end);
+  };
+
+  // ===== MÉTODOS DE CRUD =====
   deleteClasse = async (id) => {
     try {
-      await this.classeService.delete(id);
-      this.loadClasses(); // Recarrega a lista
+      // 🔥 TODO: Implementar delete no store quando necessário
+      // Por enquanto, usar service direto para operações CRUD
+      const { classeService } = await import('../../services/index.js');
+      await classeService.delete(id);
+      
+      // 🔄 Recarregar do store
+      await this.classeStore.recarregarClasses();
       return { success: true };
     } catch (error) {
       return { 
@@ -99,6 +191,15 @@ export default class ClasseViewModel {
         error: `Erro ao remover classe: ${error.message}` 
       };
     }
+  };
+
+  // ===== MÉTODOS UTILITÁRIOS =====
+  getClasseById = (id) => {
+    return this.classeStore.getClasseById(id);
+  };
+
+  getClasseByNome = (nome) => {
+    return this.classeStore.getClasseByNome(nome);
   };
 
   // Métodos de navegação
@@ -120,8 +221,29 @@ export default class ClasseViewModel {
     this.setState({ error: null });
   };
 
-  // Inicialização
+  // ===== INICIALIZAÇÃO E LIMPEZA =====
   init() {
     this.loadClasses();
+  }
+
+  // 🧹 Cleanup para evitar memory leaks
+  destroy() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+    this.subscribers = [];
+  }
+
+  // ===== GETTERS PARA COMPATIBILIDADE =====
+  getClasses() {
+    return this.getPaginatedClasses();
+  }
+
+  getAllClasses() {
+    return this.state.classes;
+  }
+
+  getFilteredClasses() {
+    return this.state.filteredClasses;
   }
 } 

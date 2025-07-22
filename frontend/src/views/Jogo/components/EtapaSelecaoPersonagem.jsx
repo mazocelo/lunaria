@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { useTemas } from '../../../store/index.js';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 
 /**
  * Componente para a etapa de seleção de personagem
  * 📍 Usado por: JogoView (etapa 'selecao-personagem')
+ * 🎨 MIGRADO: Agora usa Tema Store para exibir temas por nome
  */
 const EtapaSelecaoPersonagem = ({
   historia,
@@ -18,6 +20,40 @@ const EtapaSelecaoPersonagem = ({
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
+  // 🎨 TEMA STORE - Para mapear IDs de temas para nomes
+  const { 
+    carregarTemas, 
+    temasCarregados, 
+    getNomesDeTemas,
+    loading: temasLoading 
+  } = useTemas();
+
+  // Garantir que os temas estejam carregados
+  useEffect(() => {
+    if (!temasCarregados) {
+      carregarTemas();
+    }
+  }, [temasCarregados, carregarTemas]);
+
+  // 🎨 HELPER: Obter nomes dos temas da história
+  const obterTemasNomes = () => {
+    if (!historia?.temas) return [];
+    
+    // Se já são strings (nomes), retorna como está
+    if (Array.isArray(historia.temas) && typeof historia.temas[0] === 'string') {
+      return historia.temas;
+    }
+    
+    // Se são IDs, converte para nomes
+    if (Array.isArray(historia.temas)) {
+      return getNomesDeTemas(historia.temas);
+    }
+    
+    return [];
+  };
+
+  const temasNomes = obterTemasNomes();
+
   return (
     <div className="space-y-6">
       {/* Informações da História */}
@@ -28,65 +64,65 @@ const EtapaSelecaoPersonagem = ({
               {historia?.nome || 'História sem nome'}
             </h2>
             
+            {/* 🎨 TEMAS POR NOME - Agora via Tema Store */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {Array.isArray(historia?.temas) && historia?.temas.length > 0
-                ? historia?.temas.map((tema, i) => (
-                    <span key={i} className="px-4 py-2 text-sm rounded-full bg-purple-600/20 text-purple-300 font-modern border border-purple-500/30">
-                      {tema}
-                    </span>
-                  ))
-                : <span className="text-slate-500 text-sm">Sem tema definido</span>
-              }
+              {temasLoading ? (
+                <span className="text-slate-500 text-sm animate-pulse">Carregando temas...</span>
+              ) : temasNomes.length > 0 ? (
+                temasNomes.map((temaNome, i) => (
+                  <span key={i} className="px-4 py-2 text-sm rounded-full bg-purple-600/20 text-purple-300 font-modern border border-purple-500/30">
+                    {temaNome}
+                  </span>
+                ))
+              ) : (
+                <span className="text-slate-500 text-sm">Sem temas definidos</span>
+              )}
             </div>
             
-            {historia?.descricao && (
-              <div className={`p-4 rounded-xl mb-4 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
-                <h3 className={`text-lg font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                  📖 Descrição
-                </h3>
-                <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'} text-sm`}>
-                  {historia?.descricao}
-                </p>
-              </div>
-            )}
+            <div className="flex items-center space-x-4 text-sm">
+              <span className={`flex items-center ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                <span className="mr-1">👥</span>
+                Máx. {historia?.maximo_de_participantes || 0} participantes
+              </span>
+              
+              {historia?.descricao && (
+                <span className={`flex items-center ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                  <span className="mr-1">📖</span>
+                  {historia.descricao.length > 50 
+                    ? `${historia.descricao.substring(0, 50)}...` 
+                    : historia.descricao
+                  }
+                </span>
+              )}
+            </div>
           </div>
           
-          <div className="text-center ml-8">
-            <div className="text-4xl font-bold text-cyan-400 mb-2">
-              {historia?.maximo_de_participantes || 0}
-            </div>
-            <div className="text-sm text-slate-400 font-modern">
-              Máximo de jogadores
-            </div>
-          </div>
+          <button 
+            onClick={onVoltar}
+            className="btn-rpg-secondary flex items-center space-x-2 cursor-pointer px-4 py-2"
+          >
+            <span>←</span>
+            <span>Voltar</span>
+          </button>
         </div>
       </div>
 
       {/* Seleção de Personagem */}
       <div className="card-rpg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            👥 Escolha seu Personagem
-          </h2>
-          <button 
-            onClick={onVoltar}
-            className="btn-rpg-secondary cursor-pointer px-4 py-2"
-          >
-            ← Voltar
-          </button>
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-            <p className="text-red-300 font-modern">{error}</p>
-          </div>
-        )}
+        <h3 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'} mb-6`}>
+          👤 Escolha seu Personagem
+        </h3>
 
         {loading && (
           <div className="text-center py-8">
-            <LoadingSpinner />
-            <p className={`mt-4 ${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern`}>
-              Carregando personagens disponíveis...
+            <LoadingSpinner size="lg" text="Carregando personagens..." />
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center py-8">
+            <p className={`text-xl ${isLight ? 'text-red-600' : 'text-red-400'} mb-4 font-modern`}>
+              {error}
             </p>
           </div>
         )}
@@ -143,53 +179,59 @@ const PersonagemCard = ({ personagem, isSelected, onSelect, isLight }) => {
   return (
     <div 
       onClick={onSelect}
-      className={`cursor-pointer rounded-xl p-6 border-2 transition-all duration-200 hover:scale-105 ${
-        isSelected
-          ? isLight
-            ? 'border-cyan-500 bg-cyan-50 shadow-lg'
-            : 'border-cyan-400 bg-cyan-500/10 shadow-cyan-500/20 shadow-lg'
-          : isLight
-            ? 'border-slate-200 bg-white hover:border-slate-300'
-            : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-      }`}
+      className={`
+        card-rpg cursor-pointer transition-all duration-300 hover:scale-105 p-4 border-2
+        ${isSelected 
+          ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/25' 
+          : 'border-transparent hover:border-purple-500/50'
+        }
+      `}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+      <div className="text-center">
+        <div className="text-3xl mb-3">
+          {isSelected ? '✨' : '👤'}
+        </div>
+        
+        <h4 className={`text-lg font-bold mb-3 ${isLight ? 'text-slate-700' : 'text-white'}`}>
           {personagem.nome}
-        </h3>
-        <span className={`px-3 py-1 rounded-full text-sm font-modern ${
-          isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-300'
-        }`}>
-          Nv. {personagem.nivel || 1}
-        </span>
+        </h4>
+        
+        <div className="space-y-2 text-sm">
+          <div className={`flex justify-between ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <span>Nível:</span>
+            <span className="font-semibold">
+              {personagem.nivel || '1'}
+            </span>
+          </div>
+          
+          <div className={`flex justify-between ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <span>Classe:</span>
+            <span className="font-semibold text-purple-400">
+              {personagem.classe_nome || 'Desconhecida'}
+            </span>
+          </div>
+          
+          <div className={`flex justify-between ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <span>Raça:</span>
+            <span className="font-semibold text-cyan-400">
+              {personagem.raca_nome || 'Desconhecida'}
+            </span>
+          </div>
+          
+          <div className={`flex justify-between ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <span>HP:</span>
+            <span className="font-semibold text-red-400">
+              {personagem.hp_atual || personagem.hp_maximo || 100}/{personagem.hp_maximo || 100}
+            </span>
+          </div>
+        </div>
+        
+        {isSelected && (
+          <div className="mt-4 text-cyan-400 font-semibold text-sm">
+            ✅ Selecionado
+          </div>
+        )}
       </div>
-      
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className={`${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Classe:</span>
-          <span className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            {personagem.classe || 'Aventureiro'}
-          </span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className={`${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Raça:</span>
-          <span className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            {personagem.raca || 'Humano'}
-          </span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className={`${isLight ? 'text-slate-600' : 'text-slate-400'}`}>HP:</span>
-          <span className="font-semibold text-red-400">
-            {personagem.hp || 100}/{personagem.hp_maximo || 100}
-          </span>
-        </div>
-      </div>
-
-      {isSelected && (
-        <div className="mt-4 flex items-center justify-center">
-          <span className="text-cyan-400 text-sm font-semibold">✓ Selecionado</span>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,11 +1,13 @@
 import { PersonagemService } from '../../services/PersonagemService';
-import { VantagemService } from '../../services/VantagemService';
-import { DesvantagemService } from '../../services/DesvantagemService';
 import { HistoriaService } from '../../services/HistoriaService';
-import { RacaService } from '../../services/RacaService';
-import { ClasseService } from '../../services/ClasseService';
 import { Personagem } from '../../models/Personagem';
 import { apiClient } from '../../services/ApiClient';
+import { 
+  getVantagemStoreAPI, 
+  getDesvantagemStoreAPI, 
+  getRacaStoreAPI, 
+  getClasseStoreAPI 
+} from '../../store/index.js';
 
 const atributosIniciais = {
   forca: "",
@@ -87,12 +89,24 @@ export class NovoPersonagemViewModel {
     };
     
     this.subscribers = [];
+    
+    // 🎯 Services para CRUD de personagens e histórias
     this.personagemService = new PersonagemService(apiClient);
-    this.vantagemService = new VantagemService(apiClient);
-    this.desvantagemService = new DesvantagemService(apiClient);
     this.historiaService = new HistoriaService(apiClient);
-    this.racaService = new RacaService(apiClient);
-    this.classeService = new ClasseService(apiClient);
+    
+    // 🏪 APIs diretas dos stores para dados estáticos (sem hooks!)
+    this.vantagemStore = getVantagemStoreAPI();
+    this.desvantagemStore = getDesvantagemStoreAPI();
+    this.racaStore = getRacaStoreAPI();
+    this.classeStore = getClasseStoreAPI();
+    
+    // 🔄 Subscribir a mudanças nos stores para sincronizar estado local
+    this.unsubscribers = [
+      this.vantagemStore.subscribe(() => this.updateVantagensFromStore()),
+      this.desvantagemStore.subscribe(() => this.updateDesvantagensFromStore()),
+      this.racaStore.subscribe(() => this.updateRacasFromStore()),
+      this.classeStore.subscribe(() => this.updateClassesFromStore())
+    ];
   }
 
   getState() {
@@ -131,6 +145,50 @@ export class NovoPersonagemViewModel {
     this.state = { ...this.state, ...newState };
     this.notify();
   }
+
+  // ===== HANDLERS DE SINCRONIZAÇÃO COM STORES =====
+  updateVantagensFromStore = () => {
+    const storeState = this.vantagemStore.getState();
+    if (storeState.vantagensCarregadas && storeState.vantagens.length > 0) {
+      // Filtrar apenas vantagens positivas (custo >= 0)
+      const vantagensPositivas = storeState.vantagens.filter(v => v.custo >= 0);
+      this.setState({ 
+        vantagensDisponiveis: vantagensPositivas,
+        loadingVantagens: storeState.loading,
+        vantagemError: storeState.error
+      });
+    }
+  };
+
+  updateDesvantagensFromStore = () => {
+    const storeState = this.desvantagemStore.getState();
+    if (storeState.desvantagensCarregadas && storeState.desvantagens.length > 0) {
+      this.setState({ 
+        desvantagensDisponiveis: storeState.desvantagens,
+        loadingDesvantagens: storeState.loading
+      });
+    }
+  };
+
+  updateRacasFromStore = () => {
+    const storeState = this.racaStore.getState();
+    if (storeState.racasCarregadas && storeState.racas.length > 0) {
+      this.setState({ 
+        racasDisponiveis: storeState.racas,
+        loadingOpcoes: storeState.loading
+      });
+    }
+  };
+
+  updateClassesFromStore = () => {
+    const storeState = this.classeStore.getState();
+    if (storeState.classesCarregadas && storeState.classes.length > 0) {
+      this.setState({ 
+        classesDisponiveis: storeState.classes,
+        loadingOpcoes: storeState.loading
+      });
+    }
+  };
 
   setNome = (nome) => {
     this.setState({ nome });
@@ -189,15 +247,27 @@ export class NovoPersonagemViewModel {
   };
 
   loadVantagens = async (params) => {
-    this.setState({ loadingVantagens: true });
     try {
-      const vantagens = await this.vantagemService.getAll(params);
-      const vantagensProcessadas = Array.isArray(vantagens) ? vantagens : [];
-      this.setState({ 
-        vantagensDisponiveis: vantagensProcessadas,
-        loadingVantagens: false 
-      });
+      // 🔻 CACHE FIRST: Verificar se já existem dados no store
+      const storeState = this.vantagemStore.getState();
+      
+      if (storeState.vantagensCarregadas && storeState.vantagens.length > 0) {
+        console.log('✅ NovoPersonagemViewModel: Usando vantagens do cache');
+        this.updateVantagensFromStore();
+        return;
+      }
+      
+      // 📡 FALLBACK: Se não há cache, carregar do backend
+      console.log('📡 NovoPersonagemViewModel: Cache vazio, carregando vantagens...');
+      this.setState({ loadingVantagens: true });
+      
+      await this.vantagemStore.carregarVantagens();
+      
+      // Estado será atualizado via updateVantagensFromStore
     } catch (error) {
+      console.error('❌ NovoPersonagemViewModel: Erro ao carregar vantagens:', error);
+      
+      // Fallback com dados estáticos
       const opcoesVantagens = [
         { id: 1, nome: 'Visão Noturna', custo: 2, descricao: 'Pode ver no escuro como se fosse dia claro.', tipo: 'vantagem' },
         { id: 2, nome: 'Imunidade a Veneno', custo: 3, descricao: 'Não é afetado por venenos de qualquer tipo.', tipo: 'vantagem' },
@@ -207,21 +277,34 @@ export class NovoPersonagemViewModel {
       ];
       this.setState({ 
         vantagensDisponiveis: opcoesVantagens,
-        loadingVantagens: false 
+        loadingVantagens: false,
+        vantagemError: error.message
       });
     }
   };
 
   loadDesvantagens = async (params) => {
-    this.setState({ loadingDesvantagens: true });
     try {
-      const desvantagens = await this.desvantagemService.getAll(params);
-      const desvantagensProcessadas = Array.isArray(desvantagens) ? desvantagens : [];
-      this.setState({ 
-        desvantagensDisponiveis: desvantagensProcessadas,
-        loadingDesvantagens: false 
-      });
+      // 🔻 CACHE FIRST: Verificar se já existem dados no store
+      const storeState = this.desvantagemStore.getState();
+      
+      if (storeState.desvantagensCarregadas && storeState.desvantagens.length > 0) {
+        console.log('✅ NovoPersonagemViewModel: Usando desvantagens do cache');
+        this.updateDesvantagensFromStore();
+        return;
+      }
+      
+      // 📡 FALLBACK: Se não há cache, carregar do backend
+      console.log('📡 NovoPersonagemViewModel: Cache vazio, carregando desvantagens...');
+      this.setState({ loadingDesvantagens: true });
+      
+      await this.desvantagemStore.carregarDesvantagens();
+      
+      // Estado será atualizado via updateDesvantagensFromStore
     } catch (error) {
+      console.error('❌ NovoPersonagemViewModel: Erro ao carregar desvantagens:', error);
+      
+      // Fallback com dados estáticos
       const opcoesDesvantagens = [
         { id: 6, nome: 'Cegueira', custo: -3, descricao: 'Não pode ver, mas ganha pontos extras.', tipo: 'desvantagem' },
         { id: 7, nome: 'Fraqueza', custo: -2, descricao: 'Menos resistente a dano físico.', tipo: 'desvantagem' },
@@ -254,23 +337,39 @@ export class NovoPersonagemViewModel {
   };
 
   loadOpcoes = async () => {
-    this.setState({ loadingOpcoes: true });
     try {
-      const [racas, classes] = await Promise.all([
-        this.racaService.getAll(),
-        this.classeService.getAll()
-      ]);
+      // 🔻 CACHE FIRST: Verificar se já existem dados nos stores
+      const racaState = this.racaStore.getState();
+      const classeState = this.classeStore.getState();
       
-      // Garantir que os dados tenham a estrutura correta
-      const racasProcessadas = Array.isArray(racas) ? racas : [];
-      const classesProcessadas = Array.isArray(classes) ? classes : [];
+      const racasJaCarregadas = racaState.racasCarregadas && racaState.racas.length > 0;
+      const classesJaCarregadas = classeState.classesCarregadas && classeState.classes.length > 0;
       
-      this.setState({ 
-        racasDisponiveis: racasProcessadas,
-        classesDisponiveis: classesProcessadas,
-        loadingOpcoes: false 
-      });
+      if (racasJaCarregadas && classesJaCarregadas) {
+        console.log('✅ NovoPersonagemViewModel: Usando raças e classes do cache');
+        this.updateRacasFromStore();
+        this.updateClassesFromStore();
+        return;
+      }
+      
+      // 📡 FALLBACK: Se não há cache, carregar do backend
+      console.log('📡 NovoPersonagemViewModel: Cache vazio, carregando raças e classes...');
+      this.setState({ loadingOpcoes: true });
+      
+      // Carregar em paralelo apenas os que não estão carregados
+      const promises = [];
+      if (!racasJaCarregadas) {
+        promises.push(this.racaStore.carregarRacas());
+      }
+      if (!classesJaCarregadas) {
+        promises.push(this.classeStore.carregarClasses());
+      }
+      
+      await Promise.all(promises);
+      
+      // Estados serão atualizados via updateRacasFromStore e updateClassesFromStore
     } catch (error) {
+      console.error('❌ NovoPersonagemViewModel: Erro ao carregar opções:', error);
       this.setState({ 
         error: `Erro ao carregar opções: ${error.message}`,
         loadingOpcoes: false 
@@ -395,6 +494,19 @@ export class NovoPersonagemViewModel {
 
   get vantagemError() {
     return this.state.vantagemError;
+  }
+
+  // 🧹 Cleanup para evitar memory leaks
+  destroy() {
+    if (this.unsubscribers) {
+      this.unsubscribers.forEach(unsubscribe => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
+      this.unsubscribers = [];
+    }
+    this.subscribers = [];
   }
 }
 

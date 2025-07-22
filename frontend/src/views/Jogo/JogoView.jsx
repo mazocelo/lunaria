@@ -74,10 +74,12 @@ export const JogoView = () => {
     latency,
     isTyping,
     roomUsers,
+    isConnecting,
 
     // Ações Socket
     clearError: clearSocketError,
-    resetSocketState
+    resetSocketState,
+    connectToSocket
   } = useSocketStore();
 
   // 🎯 HANDLERS DAS ETAPAS
@@ -121,13 +123,13 @@ export const JogoView = () => {
   // 🚀 INICIALIZAÇÃO - Carrega diretamente na seleção de personagem
   useEffect(() => {
     console.log('🚀 JogoView: Inicializando diretamente na seleção de personagem...');
-    
+
     // Inicializar stores na primeira vez
     initializeAllStores();
-    
+
     // Esconder sidebar para tela cheia
     hideSidebar();
-    
+
     // Cleanup ao desmontar
     return () => {
       console.log('🧹 JogoView: Limpeza ao desmontar');
@@ -141,7 +143,7 @@ export const JogoView = () => {
       console.log('📚 JogoView: Carregando história...', id);
       setLoading(true);
       clearErrors();
-      
+
       // ✅ USAR HISTORIASERVICE DIRETO conforme nova arquitetura
       historiaService.getById(id)
         .then(historia => {
@@ -168,12 +170,12 @@ export const JogoView = () => {
       personagemService.getByHistoria(historiaAtual.id)
         .then(response => {
           console.log('✅ JogoView: Personagens carregados:', response);
-          
+
           // ✅ Tratar nova estrutura de resposta:
           // { personagens: array, historia: object, pagination: object, message: string, total: number }
           setPersonagensDaHistoria(response.personagens || []);
           setLoadingPersonagens(false);
-          
+
           // 📊 Log informações úteis de debug
           if (response.total > 0) {
             console.log(`📊 Total de ${response.total} personagens encontrados para a história`);
@@ -186,12 +188,32 @@ export const JogoView = () => {
           console.error('❌ JogoView: Erro ao carregar personagens:', error);
           setErrorPersonagens('Erro ao carregar personagens: ' + error.message);
           setLoadingPersonagens(false);
-          
+
           // ✅ Fallback: Se não houver personagens, permitir que continue
           setPersonagensDaHistoria([]);
         });
     }
   }, [historiaAtual, personagensDaHistoria.length]); // ✅ Removido 'loadingPersonagens' pois é alterado dentro
+
+  // 🌐 CONEXÃO AUTOMÁTICA AO WEBSOCKET NA SALA DE ESPERA
+  useEffect(() => {
+    if (etapaAtual === 'sala-espera' && personagemSelecionado && !isConnected && !isConnecting) {
+      console.log('🌐 JogoView: Conectando automaticamente ao WebSocket na sala de espera...');
+
+      // Obter token do localStorage ou contexto de auth
+      const token = localStorage.getItem('authToken') || user?.token;
+      
+      if (token) {
+        connectToSocket({ 
+          token,
+          userId: user?.id,
+          username: user?.nome || user?.name
+        });
+      } else {
+        console.warn('⚠️ JogoView: Token não encontrado para conexão WebSocket');
+      }
+    }
+  }, [etapaAtual, personagemSelecionado, isConnected, isConnecting, user, connectToSocket]);
 
   // 🔒 VALIDAÇÕES DE ACESSO
   if (!user) {
@@ -221,7 +243,7 @@ export const JogoView = () => {
           onClose={clearErrors}
         />
       )}
-      
+
       {socketError && (
         <Notification
           message={`Erro de conexão: ${socketError}`}
@@ -236,15 +258,6 @@ export const JogoView = () => {
           type="error"
           onClose={() => setErrorPersonagens(null)}
         />
-      )}
-
-      {/* 🎮 STATUS DEBUG (desenvolvimento) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 right-4 bg-black/80 text-white p-2 rounded text-xs z-50">
-          <div>Etapa: {etapaAtual}</div>
-          <div>Socket: {isConnected ? '🟢' : '🔴'} {latency}ms</div>
-          <div>Participantes: {participantes.length}</div>
-        </div>
       )}
 
       {/* 🎯 RENDERIZAÇÃO CONDICIONAL POR ETAPA */}

@@ -214,7 +214,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 Email
               </label>
               <InputSimples
-                id="email"
+                id="register-email"
                 name="email"
                 type="email"
                 value={formData.email}
@@ -222,6 +222,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="seu@email.com"
                 disabled={loading}
+                autoComplete="email"
               />
               {errors.email && (
                 <p className="text-red-400 text-xs mt-1">{errors.email}</p>
@@ -234,14 +235,15 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 Senha
               </label>
               <InputSimples
-                id="senha"
+                id="register-senha"
                 name="senha"
-                type="senha"
+                type="password"
                 value={formData.senha}
                 onChange={handleInputChange}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="••••••••"
                 disabled={loading}
+                autoComplete="new-password"
               />
               {errors.senha && (
                 <p className="text-red-400 text-xs mt-1">{errors.senha}</p>
@@ -254,14 +256,15 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 Confirmar Senha
               </label>
               <InputSimples
-                id="confirmSenha"
+                id="register-confirm-senha"
                 name="confirmSenha"
-                type="senha"
+                type="password"
                 value={formData.confirmSenha}
                 onChange={handleInputChange}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="••••••••"
                 disabled={loading}
+                autoComplete="new-password"
               />
               {errors.confirmSenha && (
                 <p className="text-red-400 text-xs mt-1">{errors.confirmSenha}</p>

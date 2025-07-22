@@ -46,6 +46,28 @@ const EtapaSalaEspera = ({
     onVoltar();
   };
 
+  // Status de conexão para exibição
+  const getConnectionStatus = () => {
+    if (!socketConnected) {
+      return {
+        text: 'Desconectado',
+        color: 'text-red-400',
+        bgColor: 'bg-red-500/20',
+        borderColor: 'border-red-500/30',
+        icon: '🔴'
+      };
+    }
+    return {
+      text: 'Conectado à Sala',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/20',
+      borderColor: 'border-green-500/30',
+      icon: '🟢'
+    };
+  };
+
+  const connectionStatus = getConnectionStatus();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       {/* Background effects */}
@@ -74,15 +96,9 @@ const EtapaSalaEspera = ({
             {historiaSegura.titulo}
           </p>
           <div className="flex items-center justify-center mt-4 space-x-4">
-            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-modern border ${
-              socketConnected 
-                ? 'bg-green-600/20 text-green-300 border-green-500/30'
-                : 'bg-red-600/20 text-red-300 border-red-500/30'
-            }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
-                socketConnected ? 'bg-green-400' : 'bg-red-400'
-              }`} />
-              {socketConnected ? 'Conectado à Sala' : 'Desconectado'}
+            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-modern border ${connectionStatus.bgColor} ${connectionStatus.color} ${connectionStatus.borderColor}`}>
+              <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${socketConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+              {connectionStatus.text}
             </div>
             <div className="text-purple-300 text-sm">
               {participantesSeguros.length} jogador{participantesSeguros.length !== 1 ? 'es' : ''} conectado{participantesSeguros.length !== 1 ? 's' : ''}
@@ -252,43 +268,51 @@ const EtapaSalaEspera = ({
             </div>
 
             {/* Controles */}
-            <div className="glass p-6 rounded-2xl border border-red-500/20">
-              <h3 className="text-xl font-fantasy font-bold text-white mb-4">
+            <div className="glass p-6 rounded-2xl border border-blue-500/20">
+              <h3 className="text-xl font-fantasy font-bold text-white mb-4 flex items-center">
                 ⚙️ Controles
               </h3>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-purple-300">Status WebSocket:</span>
-                  <span className={`font-semibold ${
-                    socketConnected ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {socketConnected ? '🟢 Conectado' : '🔴 Desconectado'}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-300 text-sm">Status WebSocket:</span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-xs ${connectionStatus.color}`}>
+                      {connectionStatus.icon}
+                    </span>
+                    <span className={`text-xs ${connectionStatus.color}`}>
+                      {connectionStatus.text}
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-purple-300">Etapa:</span>
-                  <span className="text-cyan-400 font-mono text-xs">
-                    🏠 Sala de Espera
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-300 text-sm">Etapa:</span>
+                  <span className="text-white text-sm">🏰 Sala de Espera</span>
                 </div>
                 
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-purple-300">Pode Iniciar:</span>
-                  <span className={`text-xs ${salaAberta ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {salaAberta ? '✅ Sim' : '⏳ Aguardando'}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-300 text-sm">Pode Iniciar:</span>
+                  <span className="text-yellow-300 text-sm">⏳ Aguardando</span>
                 </div>
-
-                <div className="pt-4 border-t border-white/10 space-y-2">
-                  <button
-                    onClick={onSair}
-                    className="w-full px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors"
-                  >
-                    🚪 Sair da Sala
-                  </button>
-                </div>
+              </div>
+              
+              <div className="mt-6 space-y-3">
+                <button
+                  onClick={onSair}
+                  className="w-full btn-rpg-secondary h-10 text-sm font-bold flex items-center justify-center space-x-2"
+                >
+                  <span>🚪</span>
+                  <span>Sair da Sala</span>
+                </button>
+                
+                {!socketConnected && (
+                  <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <p className="text-yellow-300 text-xs text-center">
+                      ⚠️ Conexão perdida. Tentando reconectar automaticamente...
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

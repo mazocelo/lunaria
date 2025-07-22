@@ -1,14 +1,14 @@
 import { Historia } from '../../models/Historia';
 import { HistoriaService } from '../../services/HistoriaService';
-import { TemaService } from '../../services/TemaService';
+import { getTemaStoreAPI } from '../../store/index.js';
 import { apiClient } from '../../services/ApiClient';
 
 const historiaService = new HistoriaService(apiClient);
-const temaService = new TemaService(apiClient);
 
 /**
  * ViewModel para gerenciar o estado e lógica de negócio das Histórias
  * Responsável pela comunicação entre View e services
+ * 📍 MIGRADO: Agora usa Tema Store ao invés de TemaService
  */
 export class HistoriaViewModel {
   constructor() {
@@ -16,7 +16,10 @@ export class HistoriaViewModel {
     this.historiaAtual = null;
     this.loading = false;
     this.error = null;
-    this.temas = []; // Cache de temas para mapeamento
+    
+    // 🎨 TEMA STORE - API direta (sem hooks) para ViewModels
+    this.temaStore = getTemaStoreAPI();
+    
     this.filtros = {
       tema: null,
       participantes: null,
@@ -48,23 +51,68 @@ export class HistoriaViewModel {
 
   /**
    * Retorna o estado atual do ViewModel
-   * @returns {Object} Estado atual
    */
   getState = () => {
     return {
-      historias: this.historias,
-      historiaAtual: this.historiaAtual,
+      historias: this.historiasComTemasMapeados, // ✅ NOVO: Histórias com nomes de temas
+      historiaAtual: this.historiaAtualComTemas, // ✅ NOVO: História atual com nomes
       loading: this.loading,
       error: this.error,
-      temas: this.temas,
+      temas: this.temaStore.getTemasParaFiltro(), // ✅ MIGRADO: Temas para filtros
       filtros: this.filtros,
-      estatisticas: this.getEstatisticas()
+      totalHistorias: this.historias.length
     };
   }
 
   /**
-   * Define o estado de loading
-   * @param {boolean} loading - Estado de loading
+   * 🎨 GETTER: Histórias com temas mapeados para nomes
+   * Substitui o processamento manual feito antes
+   */
+  get historiasComTemasMapeados() {
+    return this.historias.map(historia => ({
+      ...historia,
+      temasNomes: this.temaStore.mapearTemasDeHistoria(historia)
+    }));
+  }
+
+  /**
+   * 🎨 GETTER: História atual com temas mapeados
+   */
+  get historiaAtualComTemas() {
+    if (!this.historiaAtual) return null;
+    
+    return {
+      ...this.historiaAtual,
+      temasNomes: this.temaStore.mapearTemasDeHistoria(this.historiaAtual)
+    };
+  }
+
+  /**
+   * 🔧 GETTER FALTANTE: Estatísticas das histórias
+   * Usado por: Views de listagem para exibir estatísticas
+   */
+  get estatisticas() {
+    const total = this.historias.length;
+    const comTemas = this.historias.filter(h => h.temas && h.temas.length > 0).length;
+    const totalParticipantes = this.historias.reduce((acc, h) => acc + (h.maximo_de_participantes || 0), 0);
+
+    return {
+      total,
+      comTemas,
+      totalParticipantes,
+      mediaParticipantes: total > 0 ? Math.round(totalParticipantes / total) : 0
+    };
+  }
+
+  /**
+   * 🎨 GETTER: Temas para filtro com cache do store
+   */
+  get temasParaFiltro() {
+    return this.temaStore.getTemasParaFiltro();
+  }
+
+  /**
+   * Define estado de loading
    */
   setLoading = (loading) => {
     this.loading = loading;
@@ -72,8 +120,7 @@ export class HistoriaViewModel {
   }
 
   /**
-   * Define o erro atual
-   * @param {string|null} error - Mensagem de erro
+   * Define erro
    */
   setError = (error) => {
     this.error = error;
@@ -81,23 +128,30 @@ export class HistoriaViewModel {
   }
 
   /**
-   * Carrega todas as histórias
+   * 🎨 MIGRADO: Carrega todas as histórias e inicializa temas
+   * Agora os temas são carregados via store global
    */
   loadHistorias = async () => {
     this.setLoading(true);
     this.setError(null);
 
     try {
-      // Carrega histórias e temas em paralelo
-      const [historias, temas] = await Promise.all([
-        historiaService.getAll(),
-        temaService.getAll()
-      ]);
-      // console.log(historias, temas);
-      this.historias = historias;
-      this.temas = temas;
+      console.log('📚 HistoriaViewModel: Carregando histórias...');
+      
+      // Carregar temas se necessário (cache global)
+      await this.temaStore.carregarTemas();
+      
+      // Carregar histórias
+      const historiasData = await historiaService.getAll();
+      
+      this.historias = historiasData;
+      
+      console.log(`✅ HistoriaViewModel: ${historiasData.length} histórias carregadas`);
+      console.log('🎨 Temas mapeados para exibição por nome');
+      
       this.notify();
     } catch (error) {
+      console.error('❌ Erro ao carregar histórias:', error);
       this.setError(error.message);
     } finally {
       this.setLoading(false);
@@ -105,32 +159,30 @@ export class HistoriaViewModel {
   }
 
   /**
-   * Carrega uma história específica
-   * @param {number} id - ID da história
+   * 🎨 MIGRADO: Carrega uma história específica
+   * Agora usa o mapeamento de temas do store
    */
   loadHistoria = async (id) => {
     this.setLoading(true);
     this.setError(null);
 
     try {
-      // Carrega a história e os temas em paralelo se os temas ainda não foram carregados
-      const promises = [historiaService.getById(id)];
+      console.log('📖 HistoriaViewModel: Carregando história específica...', id);
       
-      // Se não temos temas carregados, carrega eles também
-      if (this.temas.length === 0) {
-        promises.push(temaService.getAll());
-      }
+      // Garantir que os temas estejam carregados
+      await this.temaStore.carregarTemas();
       
-      const results = await Promise.all(promises);
-      const historia = results[0];
+      // Carregar a história
+      const historia = await historiaService.getById(id);
       
-      // Se carregou temas, atualiza o cache
-      if (results.length > 1) {
-        this.temas = results[1];
-      }
       this.historiaAtual = historia;
+      
+      console.log('✅ História carregada:', historia);
+      console.log('🎨 Temas da história:', this.temaStore.mapearTemasDeHistoria(historia));
+      
       this.notify();
     } catch (error) {
+      console.error('❌ Erro ao carregar história:', error);
       this.setError(error.message);
     } finally {
       this.setLoading(false);
@@ -153,9 +205,17 @@ export class HistoriaViewModel {
         throw new Error(validation.errors.join(', '));
       }
 
-      const novaHistoria = await historiaService.create(historia);
-      this.historias.push(novaHistoria);
-      this.notify();
+      console.log('🎨 HistoriaViewModel: Criando história com temas:', {
+        nome: dados.nome,
+        temasIds: dados.temas,
+        temasNomes: this.temaStore.getNomesDeTemas(dados.temas || [])
+      });
+
+      const novaHistoria = await historiaService.create(dados);
+      
+      // Recarregar lista após criação
+      await this.loadHistorias();
+      
       return novaHistoria;
     } catch (error) {
       this.setError(error.message);
@@ -175,26 +235,26 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      const historia = new Historia({ ...dados, id });
-      const validation = historia.validate();
-      
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '));
-      }
+      console.log('🎨 HistoriaViewModel: Atualizando história com temas:', {
+        id,
+        nome: dados.nome,
+        temasIds: dados.temas,
+        temasNomes: this.temaStore.getNomesDeTemas(dados.temas || [])
+      });
 
-      const historiaAtualizada = await historiaService.update(id, historia);
+      const historiaAtualizada = await historiaService.update(id, dados);
       
-      // Atualiza na lista
+      // Atualizar na lista local
       const index = this.historias.findIndex(h => h.id === id);
       if (index !== -1) {
         this.historias[index] = historiaAtualizada;
       }
-
-      // Atualiza história atual se for a mesma
+      
+      // Atualizar história atual se for a mesma
       if (this.historiaAtual && this.historiaAtual.id === id) {
         this.historiaAtual = historiaAtualizada;
       }
-
+      
       this.notify();
       return historiaAtualizada;
     } catch (error) {
@@ -206,7 +266,7 @@ export class HistoriaViewModel {
   }
 
   /**
-   * Remove uma história
+   * Exclui uma história
    * @param {number} id - ID da história
    */
   deleteHistoria = async (id) => {
@@ -216,14 +276,14 @@ export class HistoriaViewModel {
     try {
       await historiaService.delete(id);
       
-      // Remove da lista
+      // Remover da lista local
       this.historias = this.historias.filter(h => h.id !== id);
       
-      // Limpa história atual se for a mesma
+      // Limpar história atual se for a mesma
       if (this.historiaAtual && this.historiaAtual.id === id) {
         this.historiaAtual = null;
       }
-
+      
       this.notify();
     } catch (error) {
       this.setError(error.message);
@@ -234,127 +294,84 @@ export class HistoriaViewModel {
   }
 
   /**
-   * Aplica filtros às histórias
-   * @param {Object} filtros - Filtros a serem aplicados
+   * 🎨 MIGRADO: Aplicar filtros com suporte a nomes de temas
    */
-  aplicarFiltros = async (filtros) => {
+  aplicarFiltros = (filtros) => {
     this.filtros = { ...this.filtros, ...filtros };
-    this.setLoading(true);
-    this.setError(null);
+    
+    console.log('🔍 HistoriaViewModel: Aplicando filtros:', {
+      ...this.filtros,
+      temaNome: this.filtros.tema ? this.temaStore.getTemaById(this.filtros.tema)?.nome : 'Todos'
+    });
+    
+    this.notify();
+  }
 
-    try {
-      const historias = await historiaService.getWithFilters(this.filtros);
-      this.historias = historias;
-      this.notify();
-    } catch (error) {
-      this.setError(error.message);
-    } finally {
-      this.setLoading(false);
+  /**
+   * 🎨 GETTER: Histórias filtradas com temas por nome
+   */
+  get historiasFiltradasComTemas() {
+    let historiasFiltradas = this.historiasComTemasMapeados;
+
+    // Filtro por tema
+    if (this.filtros.tema) {
+      historiasFiltradas = historiasFiltradas.filter(historia => 
+        historia.temas && historia.temas.includes(this.filtros.tema)
+      );
     }
+
+    // Filtro por participantes
+    if (this.filtros.participantes) {
+      historiasFiltradas = historiasFiltradas.filter(historia => 
+        historia.maximo_de_participantes >= this.filtros.participantes
+      );
+    }
+
+    // Filtro por busca (nome ou temas)
+    if (this.filtros.busca) {
+      const termoBusca = this.filtros.busca.toLowerCase();
+      historiasFiltradas = historiasFiltradas.filter(historia => 
+        historia.nome.toLowerCase().includes(termoBusca) ||
+        (historia.temasNomes && historia.temasNomes.some(tema => 
+          tema.toLowerCase().includes(termoBusca)
+        ))
+      );
+    }
+
+    return historiasFiltradas;
   }
 
   /**
-   * Busca histórias por texto
-   * @param {string} texto - Texto para busca
+   * Limpa filtros
    */
-  buscarHistorias = async (texto) => {
-    this.filtros.busca = texto;
-    await this.aplicarFiltros(this.filtros);
-  }
-
-  /**
-   * Calcula estatísticas das histórias
-   * @returns {Object} Estatísticas
-   */
-  getEstatisticas = () => {
-    const total = this.historias.length;
-    const comTemas = this.historias.filter(h => h.temas && h.temas.length > 0).length;
-    const totalParticipantes = this.historias.reduce((acc, h) => acc + (h.maximo_de_participantes || 0), 0);
-
-    return {
-      total,
-      comTemas,
-      totalParticipantes,
-      mediaParticipantes: total > 0 ? Math.round(totalParticipantes / total) : 0
+  limparFiltros = () => {
+    this.filtros = {
+      tema: null,
+      participantes: null,
+      busca: ''
     };
+    this.notify();
   }
 
   /**
-   * Obtém histórias filtradas por tema
-   * @param {number} temaId - ID do tema
-   * @returns {Historia[]} Histórias do tema
-   */
-  getHistoriasPorTema = (temaId) => {
-    return this.historias.filter(h => 
-      h.temas && h.temas.includes(temaId)
-    );
-  }
-
-  /**
-   * Obtém o nome de um tema pelo ID
-   * @param {number|string} temaId - ID do tema ou nome do tema
-   * @returns {string} Nome do tema ou 'Tema não encontrado'
-   */
-  getNomeTema = (temaId) => {
-    // Se temaId já é uma string e parece ser um nome, retorna ele mesmo
-    if (typeof temaId === 'string' && !/^\d+$/.test(temaId)) {
-      return temaId;
-    }
-    
-    // Converte para número se for string numérica
-    const id = typeof temaId === 'string' ? parseInt(temaId, 10) : temaId;
-    
-    const tema = this.temas.find(t => t.id === id);
-    return tema ? tema.nome : 'Tema não encontrado';
-  }
-
-  /**
-   * Obtém os nomes dos temas de uma história
-   * @param {Historia} historia - História para obter os nomes dos temas
-   * @returns {string[]} Array com os nomes dos temas
-   */
-  getNomesTemas = (historia) => {
-    // Se não há temas, retorna array vazio
-    if (!historia.temas) {
-      return [];
-    }
-
-    // Se temas é uma string, tenta fazer parse
-    if (typeof historia.temas === 'string') {
-      try {
-        const temasArray = JSON.parse(historia.temas);
-        if (Array.isArray(temasArray)) {
-          return temasArray.map(temaId => this.getNomeTema(temaId));
-        }
-      } catch (e) {
-        // Se não conseguiu fazer parse, trata como string única
-        return [this.getNomeTema(historia.temas)];
-      }
-    }
-
-    // Se temas é um array
-    if (Array.isArray(historia.temas)) {
-      return historia.temas.map(temaId => this.getNomeTema(temaId));
-    }
-
-    // Se temas é um objeto, extrai os IDs
-    if (typeof historia.temas === 'object' && historia.temas !== null) {
-      const temaIds = Object.values(historia.temas);
-      return temaIds.map(temaId => this.getNomeTema(temaId));
-    }
-
-    return [];
-  }
-
-  /**
-   * Limpa o erro atual
+   * 🔧 MÉTODO FALTANTE: Limpa erros
+   * Usado por: VerHistoriaView no useEffect
    */
   clearError = () => {
     this.setError(null);
   }
 
   /**
-   * Reseta o ViewModel para o estado inicial
+   * 🔧 MÉTODO FALTANTE: Obter nomes dos temas de uma história
+   * Usado por: VerHistoriaView para exibir temas por nome
+   */
+  getNomesTemas = (historia) => {
+    if (!historia) return [];
+    return this.temaStore.mapearTemasDeHistoria(historia);
+  }
+
+  /**
+   * Reset completo do estado
    */
   reset = () => {
     this.historias = [];

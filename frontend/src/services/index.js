@@ -22,11 +22,6 @@ export { ClasseService } from './ClasseService';
 export { DesvantagemService } from './DesvantagemService';
 export { AuthService } from './AuthService';
 
-// WebSocket Service - SINGLETON RIGOROSO
-import { WebSocketService } from './WebSocketService.js';
-export { WebSocketService } from './WebSocketService.js';
-export const webSocketService = WebSocketService.getInstance();
-
 // Factory para criação de serviços
 export class ServiceFactory {
   /**

@@ -6,6 +6,13 @@ O sistema de jogo foi **completamente refatorado** para usar **Zustand stores** 
 
 ## ✅ OTIMIZAÇÕES REALIZADAS (Nova Revisão)
 
+### 🌐 **CONEXÃO AUTOMÁTICA AO WEBSOCKET**
+- **✅ IMPLEMENTADO**: Conexão automática ao WebSocket na etapa 'sala-espera'
+- **✅ AUTENTICAÇÃO**: Autenticação automática com token do usuário
+- **✅ LISTENERS**: Configuração automática de listeners para eventos do socket
+- **✅ RECONEXÃO**: Sistema de reconexão automática em caso de perda de conexão
+- **✅ STATUS**: Interface atualizada para mostrar status de conexão em tempo real
+
 ### 🎯 **UX OTIMIZADA - Fluxo Direto**
 - **✅ MELHORADO**: Acesso direto à seleção de personagem ao entrar em `/jogo/{id}`
 - **❌ REMOVIDO**: Etapa intermediária 'info' (dados da história integrados na seleção)
@@ -99,6 +106,9 @@ const {
 - **Componente**: `EtapaSalaEspera`
 - **Função**: Mostrar jogadores na sala e botão para iniciar
 - **Props**: `historia`, `personagemSelecionado`, `participantes`, `isDonoSala`, `salaAberta`, `socketConnected`, `roomUsers`, `onIniciarJogo`, `onSair`, `onVoltar`
+- **🌐 CONEXÃO**: Conecta automaticamente ao WebSocket quando chega nesta etapa
+- **🔐 AUTENTICAÇÃO**: Autentica automaticamente com token do usuário
+- **👥 SINCRONIZAÇÃO**: Recebe atualizações em tempo real dos outros jogadores
 
 ### 3. **`jogo-ativo`** - Jogo RPG em Andamento
 - **Componente**: `EtapaJogoRPG`
@@ -143,11 +153,12 @@ const {
 - **Arquivos removidos**: 7 (3 views legadas + 3 hooks antigos + 1 componente de etapa)
 - **Etapas do jogo**: 4 → 3 (fluxo 25% mais direto)
 - **Cliques até seleção**: 2 → 1 (50% menos interações)
+- **Conexão WebSocket**: Manual → Automática (100% automática)
 - **Linhas de código reduzidas**: ~45% menos código duplicado
 - **Variáveis não utilizadas removidas**: 34
 - **Props desnecessárias removidas**: 10
 - **Rotas simplificadas**: 4 → 1
-- **Build time**: ~3.8s (otimizado)
+- **Build time**: ~3.6s (otimizado)
 - **Componentes ativos**: 6 → 3 (arquitetura mais enxuta)
 
 ## 🚀 **Próximos Passos**

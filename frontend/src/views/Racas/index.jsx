@@ -224,13 +224,13 @@ const RacaView = () => {
         {/* Tabela de raças */}
         <DataTable
           columns={columns}
-          data={vmState.racas}
+          data={vm.getRacas()}
           actions={actions}
           loading={vmState.loading}
           title="Lista de Raças"
           emptyMessage="Nenhuma raça encontrada"
           emptyIcon="🏹"
-          totalItems={vmState.racas.length}
+          totalItems={vmState.filteredRacas?.length || 0}
         />
       </RPGCard>
     </div>

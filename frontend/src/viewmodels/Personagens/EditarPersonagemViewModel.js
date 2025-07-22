@@ -1,9 +1,12 @@
 import { PersonagemService } from '../../services/PersonagemService';
-import { RacaService } from '../../services/RacaService';
-import { ClasseService } from '../../services/ClasseService';
-import { VantagemService } from '../../services/VantagemService';
 import { HistoriaService } from '../../services/HistoriaService';
 import { apiClient } from '../../services/ApiClient';
+import { 
+  getVantagemStoreAPI, 
+  getDesvantagemStoreAPI, 
+  getRacaStoreAPI, 
+  getClasseStoreAPI 
+} from '../../store/index.js';
 
 const atributosIniciais = {
   forca: "",
@@ -56,11 +59,23 @@ export class EditarPersonagemViewModel {
     };
     
     this.subscribers = [];
+    
+    // 🎯 Services para CRUD de personagens e histórias
     this.personagemService = new PersonagemService(apiClient);
-    this.vantagemService = new VantagemService(apiClient);
     this.historiaService = new HistoriaService(apiClient);
-    this.racaService = new RacaService(apiClient);
-    this.classeService = new ClasseService(apiClient);
+    
+    // 🏪 APIs diretas dos stores para dados estáticos (sem hooks!)
+    this.vantagemStore = getVantagemStoreAPI();
+    this.desvantagemStore = getDesvantagemStoreAPI();
+    this.racaStore = getRacaStoreAPI();
+    this.classeStore = getClasseStoreAPI();
+    
+    // 🔄 Subscribir a mudanças nos stores para sincronizar estado local
+    this.unsubscribers = [
+      this.vantagemStore.subscribe(() => this.updateVantagensFromStore()),
+      this.racaStore.subscribe(() => this.updateRacasFromStore()),
+      this.classeStore.subscribe(() => this.updateClassesFromStore())
+    ];
   }
 
   getState() {
@@ -86,6 +101,37 @@ export class EditarPersonagemViewModel {
     this.state = { ...this.state, ...newState };
     this.notify();
   }
+
+  // ===== HANDLERS DE SINCRONIZAÇÃO COM STORES =====
+  updateVantagensFromStore = () => {
+    const storeState = this.vantagemStore.getState();
+    if (storeState.vantagensCarregadas && storeState.vantagens.length > 0) {
+      this.setState({ 
+        vantagensDisponiveis: storeState.vantagens,
+        loadingVantagens: storeState.loading
+      });
+    }
+  };
+
+  updateRacasFromStore = () => {
+    const storeState = this.racaStore.getState();
+    if (storeState.racasCarregadas && storeState.racas.length > 0) {
+      this.setState({ 
+        racasDisponiveis: storeState.racas,
+        loadingOpcoes: storeState.loading
+      });
+    }
+  };
+
+  updateClassesFromStore = () => {
+    const storeState = this.classeStore.getState();
+    if (storeState.classesCarregadas && storeState.classes.length > 0) {
+      this.setState({ 
+        classesDisponiveis: storeState.classes,
+        loadingOpcoes: storeState.loading
+      });
+    }
+  };
 
   setNome = (nome) => {
     this.setState({ nome });
@@ -134,15 +180,38 @@ export class EditarPersonagemViewModel {
   };
 
   loadVantagens = async () => {
-    this.setState({ loadingVantagens: true });
     try {
-      const vantagens = await this.vantagemService.getAll();
-      this.setState({ 
-        vantagensDisponiveis: vantagens,
-        loadingVantagens: false 
-      });
+      // 🔻 CACHE FIRST: Verificar se já existem dados no store
+      const vantagemState = this.vantagemStore.getState();
+      const desvantagemState = this.desvantagemStore.getState();
+      
+      if (vantagemState.vantagensCarregadas && vantagemState.vantagens.length > 0 &&
+          desvantagemState.desvantagensCarregadas && desvantagemState.desvantagens.length > 0) {
+        console.log('✅ EditarPersonagemViewModel: Usando vantagens e desvantagens do cache');
+        
+        // Combinar vantagens e desvantagens para o EditarPersonagem
+        const todasVantagens = [...vantagemState.vantagens, ...desvantagemState.desvantagens];
+        this.setState({ 
+          vantagensDisponiveis: todasVantagens,
+          loadingVantagens: false
+        });
+        return;
+      }
+      
+      // 📡 FALLBACK: Se não há cache, carregar do backend
+      console.log('📡 EditarPersonagemViewModel: Cache vazio, carregando vantagens e desvantagens...');
+      this.setState({ loadingVantagens: true });
+      
+      await Promise.all([
+        this.vantagemStore.carregarVantagens(),
+        this.desvantagemStore.carregarDesvantagens()
+      ]);
+      
+      // Estado será atualizado via updateVantagensFromStore
     } catch (error) {
-      // Fallback para opções estáticas caso a API não esteja disponível
+      console.error('❌ EditarPersonagemViewModel: Erro ao carregar vantagens:', error);
+      
+      // Fallback para opções estáticas
       const opcoesVantagens = [
         // Vantagens
         { id: 1, nome: 'Visão Noturna', custo: 2, descricao: 'Pode ver no escuro como se fosse dia claro.', tipo: 'vantagem' },
@@ -181,19 +250,39 @@ export class EditarPersonagemViewModel {
   };
 
   loadOpcoes = async () => {
-    this.setState({ loadingOpcoes: true });
     try {
-      // Buscar raças e classes separadamente
-      const [racas, classes] = await Promise.all([
-        this.racaService.getAll(),
-        this.classeService.getAll()
-      ]);
-      this.setState({ 
-        racasDisponiveis: racas,
-        classesDisponiveis: classes,
-        loadingOpcoes: false 
-      });
+      // 🔻 CACHE FIRST: Verificar se já existem dados nos stores
+      const racaState = this.racaStore.getState();
+      const classeState = this.classeStore.getState();
+      
+      const racasJaCarregadas = racaState.racasCarregadas && racaState.racas.length > 0;
+      const classesJaCarregadas = classeState.classesCarregadas && classeState.classes.length > 0;
+      
+      if (racasJaCarregadas && classesJaCarregadas) {
+        console.log('✅ EditarPersonagemViewModel: Usando raças e classes do cache');
+        this.updateRacasFromStore();
+        this.updateClassesFromStore();
+        return;
+      }
+      
+      // 📡 FALLBACK: Se não há cache, carregar do backend
+      console.log('📡 EditarPersonagemViewModel: Cache vazio, carregando raças e classes...');
+      this.setState({ loadingOpcoes: true });
+      
+      // Carregar em paralelo apenas os que não estão carregados
+      const promises = [];
+      if (!racasJaCarregadas) {
+        promises.push(this.racaStore.carregarRacas());
+      }
+      if (!classesJaCarregadas) {
+        promises.push(this.classeStore.carregarClasses());
+      }
+      
+      await Promise.all(promises);
+      
+      // Estados serão atualizados via updateRacasFromStore e updateClassesFromStore
     } catch (error) {
+      console.error('❌ EditarPersonagemViewModel: Erro ao carregar opções:', error);
       this.setState({ 
         error: `Erro ao carregar opções: ${error.message}`,
         loadingOpcoes: false 
@@ -290,6 +379,19 @@ export class EditarPersonagemViewModel {
   clearError = () => {
     this.setState({ error: null });
   };
+
+  // 🧹 Cleanup para evitar memory leaks
+  destroy() {
+    if (this.unsubscribers) {
+      this.unsubscribers.forEach(unsubscribe => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
+      this.unsubscribers = [];
+    }
+    this.subscribers = [];
+  }
 }
 
 export const editarPersonagemViewModel = new EditarPersonagemViewModel(); 

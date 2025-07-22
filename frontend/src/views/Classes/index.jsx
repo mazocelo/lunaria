@@ -224,13 +224,13 @@ const ClasseView = () => {
         {/* Tabela de classes */}
         <DataTable
           columns={columns}
-          data={vmState.classes}
+          data={vm.getClasses()} 
           actions={actions}
           loading={vmState.loading}
           title="Lista de Classes"
           emptyMessage="Nenhuma classe encontrada"
           emptyIcon="⚔️"
-          totalItems={vmState.classes.length}
+          totalItems={vmState.filteredClasses?.length || 0}
         />
       </RPGCard>
     </div>

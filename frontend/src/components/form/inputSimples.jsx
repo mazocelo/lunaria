@@ -14,11 +14,15 @@ const InputSimples = ({
     error,
     name,
     min,
-    max
+    max,
+    id,
+    autoComplete
 }) => {
     const { theme } = useTheme();
     const isLight = theme === 'light';
-    const inputId = htmlFor || `input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
+    
+    // ✅ CORRIGIDO: Gerar ID único e seguro
+    const inputId = id || htmlFor || (name ? `input-${name}` : `input-${Math.random().toString(36).substr(2, 9)}`);
 
     // Handler para aceitar apenas números
     const handleKeyDown = (e) => {
@@ -57,6 +61,7 @@ const InputSimples = ({
                 disabled={disabled}
                 min={min}
                 max={max}
+                autoComplete={autoComplete}
                 className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all
                     ${isLight ? 'bg-white/20 border-slate-400 text-slate-100' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
                     placeholder:text-slate-400

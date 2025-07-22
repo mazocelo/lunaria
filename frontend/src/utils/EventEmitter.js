@@ -96,4 +96,14 @@ export class EventEmitter {
   eventNames() {
     return Object.keys(this.events);
   }
-} 
+}
+
+/**
+ * Função de compatibilidade para ViewModels que usavam MobX
+ * Executa uma função e retorna seu resultado
+ * @param {Function} fn - Função a ser executada
+ * @returns {any} Resultado da função
+ */
+export const runInAction = (fn) => {
+  return fn();
+}; 

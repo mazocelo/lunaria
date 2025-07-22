@@ -7,6 +7,7 @@ import Desvantagem from './Desvantagem.js';
 import Raca from './Raca.js';
 import Classe from './Classe.js';
 import Equipamento from './Equipamento.js';
+import Usuario from './Usuario.js';
 
 // Exportar o cliente Prisma e todos os modelos
 const db = {
@@ -18,7 +19,8 @@ const db = {
   Desvantagem: Desvantagem(prisma),
   Raca: Raca(prisma),
   Classe: Classe(prisma),
-  Equipamento: Equipamento(prisma)
+  Equipamento: Equipamento(prisma),
+  Usuario: Usuario(prisma)
 };
 
 export default db;

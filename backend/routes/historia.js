@@ -1,5 +1,6 @@
 import express from 'express';
 import historiaController from '../controllers/historia/historiaController.js';
+import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -95,7 +96,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/create', historiaController.criarHistoria);
+router.post('/create', authenticateToken, historiaController.criarHistoria);
 
 /**
  * @swagger
@@ -152,7 +153,7 @@ router.post('/create', historiaController.criarHistoria);
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/', historiaController.listarHistorias);
+router.get('/', optionalAuth, historiaController.listarHistorias);
 
 /**
  * @swagger
@@ -186,7 +187,7 @@ router.get('/', historiaController.listarHistorias);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', historiaController.obterHistoria);
+router.get('/:id', optionalAuth, historiaController.obterHistoria);
 
 /**
  * @swagger
@@ -241,7 +242,7 @@ router.get('/:id', historiaController.obterHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', historiaController.atualizarHistoria);
+router.put('/:id', authenticateToken, historiaController.atualizarHistoria);
 
 /**
  * @swagger
@@ -275,7 +276,7 @@ router.put('/:id', historiaController.atualizarHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', historiaController.excluirHistoria);
+router.delete('/:id', authenticateToken, historiaController.excluirHistoria);
 
 /**
  * @swagger
@@ -317,7 +318,7 @@ router.delete('/:id', historiaController.excluirHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
+router.post('/gerar-ia', authenticateToken, historiaController.gerarHistoriaComIA);
 
 
 
@@ -370,7 +371,7 @@ router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-aventura-completa', historiaController.gerarAventuraCompleta);
+router.post('/gerar-aventura-completa', authenticateToken, historiaController.gerarAventuraCompleta);
 
 
 

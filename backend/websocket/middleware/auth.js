@@ -24,8 +24,8 @@ export const authMiddleware = (socket, next) => {
     // Verificar token JWT (se você estiver usando JWT)
     if (process.env.JWT_SECRET) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.id;
-      socket.username = decoded.username || decoded.name;
+      socket.userId = decoded.userId; // Corrigido: usar userId do token HTTP
+      socket.username = decoded.nome || decoded.username || `User_${decoded.userId}`; // Usar nome do token HTTP
       socket.email = decoded.email;
       socket.role = decoded.role || 'player';
       socket.isAuthenticated = true;

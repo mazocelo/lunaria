@@ -13,28 +13,84 @@ export class ChatHandlers {
   }
 
   /**
+   * Log estruturado para handlers de chat
+   */
+  log(level, event, socketId, userId = null, data = {}) {
+    const timestamp = new Date().toISOString();
+    const prefix = {
+      'INFO': '💬',
+      'WARN': '⚠️',
+      'ERROR': '❌',
+      'SUCCESS': '✅',
+      'DEBUG': '🔍'
+    }[level] || '💬';
+    
+    const userInfo = userId ? `[User:${userId}]` : '';
+    const socketInfo = `[Socket:${socketId?.substring(0, 8)}...]`;
+    const handlerInfo = '[ChatHandler]';
+    
+    console.log(`${prefix} ${timestamp} ${event} ${handlerInfo}${socketInfo}${userInfo}`, data);
+  }
+
+  /**
    * Handler para envio de mensagem
    */
   async handleSendMessage(socket, data) {
+    const startTime = Date.now();
+    
+    this.log('INFO', 'SEND_MESSAGE_HANDLER_START', socket.id, socket.userId, {
+      receivedData: {
+        roomId: data?.roomId,
+        sessionId: data?.sessionId,
+        messageLength: data?.message?.length,
+        messageType: data?.messageType,
+        isPrivate: data?.isPrivate,
+        targetUser: data?.targetUser
+      },
+      username: socket.username
+    });
+
     try {
       const { roomId, sessionId, message, messageType = 'chat', isPrivate = false, targetUser } = data;
 
       if (!socket.userId) {
+        this.log('ERROR', 'SEND_MESSAGE_USER_NOT_AUTHENTICATED', socket.id, null, {
+          receivedData: data
+        });
         socket.emit('error', { message: 'Usuário não autenticado' });
         return;
       }
 
       if (!roomId || !message) {
+        this.log('ERROR', 'SEND_MESSAGE_MISSING_REQUIRED_FIELDS', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !roomId,
+            message: !message
+          },
+          receivedData: data
+        });
         socket.emit('error', { message: 'RoomId e message são obrigatórios' });
         return;
       }
 
       if (message.trim().length === 0) {
+        this.log('ERROR', 'SEND_MESSAGE_EMPTY_MESSAGE', socket.id, socket.userId, {
+          roomId: roomId,
+          messageLength: message.length
+        });
         socket.emit('error', { message: 'Mensagem não pode estar vazia' });
         return;
       }
 
-      console.log(`💬 Mensagem de ${socket.username} na sala ${roomId}: ${message.substring(0, 50)}...`);
+      this.log('INFO', 'SEND_MESSAGE_VALIDATION_PASSED', socket.id, socket.userId, {
+        roomId: roomId,
+        sessionId: sessionId,
+        messageLength: message.trim().length,
+        messageType: messageType,
+        isPrivate: isPrivate,
+        targetUser: targetUser,
+        messageTruncated: message.length > 100 ? `${message.substring(0, 100)}...` : message
+      });
 
       // Criar objeto da mensagem
       const messageObj = {

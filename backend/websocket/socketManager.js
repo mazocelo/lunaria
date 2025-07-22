@@ -1,5 +1,6 @@
 import { Server } from 'socket.io';
 import { createClient } from 'redis';
+import gerenciadorSessoes from '../redis/sessoes.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -8,6 +9,7 @@ class SocketManager {
   constructor() {
     this.io = null;
     this.redis = null;
+    this.gerenciadorSessoes = gerenciadorSessoes;
     this.connectedUsers = new Map(); // userId -> socket
     this.roomUsers = new Map(); // roomId -> Set of userIds
   }
@@ -16,7 +18,7 @@ class SocketManager {
    * Inicializar o servidor WebSocket
    * @param {Object} server - Servidor HTTP
    */
-  initialize(server) {
+  async initialize(server) {
     console.log('🔌 Inicializando WebSocket...');
     
     // Criar servidor Socket.IO
@@ -29,7 +31,15 @@ class SocketManager {
     });
 
     // Conectar ao Redis
-    this.connectRedis();
+    await this.connectRedis();
+
+    // Inicializar gerenciador de sessões
+    try {
+      await this.gerenciadorSessoes.initialize();
+      console.log('✅ Gerenciador de sessões inicializado');
+    } catch (error) {
+      console.error('❌ Erro ao inicializar gerenciador de sessões:', error);
+    }
 
     // Configurar eventos
     this.setupEventHandlers();
@@ -55,56 +65,181 @@ class SocketManager {
   }
 
   /**
+   * Log estruturado para eventos WebSocket
+   */
+  log(level, event, socketId, userId = null, data = {}) {
+    const timestamp = new Date().toISOString();
+    const prefix = {
+      'INFO': '📡',
+      'WARN': '⚠️',
+      'ERROR': '❌',
+      'SUCCESS': '✅',
+      'DEBUG': '🔍'
+    }[level] || '📡';
+    
+    const userInfo = userId ? `[User:${userId}]` : '';
+    const socketInfo = `[Socket:${socketId?.substring(0, 8)}...]`;
+    
+    console.log(`${prefix} ${timestamp} ${event} ${socketInfo}${userInfo}`, data);
+  }
+
+  /**
    * Configurar handlers de eventos
    */
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
-      console.log(`🔗 Cliente conectado: ${socket.id}`);
+      this.log('INFO', 'CLIENT_CONNECTED', socket.id, null, {
+        transport: socket.conn.transport.name,
+        remoteAddress: socket.conn.remoteAddress,
+        userAgent: socket.handshake.headers['user-agent']?.substring(0, 50)
+      });
 
       // Evento de autenticação
       socket.on('authenticate', async (data) => {
-        await this.handleAuthentication(socket, data);
+        this.log('INFO', 'AUTH_REQUEST_RECEIVED', socket.id, data?.userId, {
+          username: data?.username,
+          email: data?.email,
+          sessionId: data?.sessionId
+        });
+        try {
+          await this.handleAuthentication(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'AUTH_REQUEST_FAILED', socket.id, data?.userId, {
+            error: error.message,
+            stack: error.stack
+          });
+        }
       });
 
       // Evento de entrar em sala
       socket.on('join_room', async (data) => {
-        await this.handleJoinRoom(socket, data);
+        this.log('INFO', 'JOIN_ROOM_REQUEST', socket.id, socket.userId, {
+          roomId: data?.roomId,
+          historiaId: data?.historiaId,
+          username: data?.username || socket.username
+        });
+        try {
+          await this.handleJoinRoom(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'JOIN_ROOM_FAILED', socket.id, socket.userId, {
+            roomId: data?.roomId,
+            error: error.message,
+            stack: error.stack
+          });
+        }
       });
 
       // Evento de sair da sala
       socket.on('leave_room', async (data) => {
-        await this.handleLeaveRoom(socket, data);
+        this.log('INFO', 'LEAVE_ROOM_REQUEST', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom
+        });
+        try {
+          await this.handleLeaveRoom(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'LEAVE_ROOM_FAILED', socket.id, socket.userId, {
+            roomId: data?.roomId,
+            error: error.message
+          });
+        }
       });
 
       // Evento de mensagem de chat
       socket.on('chat_message', async (data) => {
-        await this.handleChatMessage(socket, data);
+        this.log('INFO', 'CHAT_MESSAGE_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          messageLength: data?.message?.length,
+          type: data?.type
+        });
+        try {
+          await this.handleChatMessage(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'CHAT_MESSAGE_FAILED', socket.id, socket.userId, {
+            error: error.message
+          });
+        }
       });
 
       // Evento de ação RPG
       socket.on('rpg_action', async (data) => {
-        await this.handleRpgAction(socket, data);
+        this.log('INFO', 'RPG_ACTION_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          action: data?.action,
+          target: data?.target
+        });
+        try {
+          await this.handleRpgAction(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'RPG_ACTION_FAILED', socket.id, socket.userId, {
+            action: data?.action,
+            error: error.message
+          });
+        }
       });
 
       // Evento de rolagem de dados
       socket.on('dice_roll', async (data) => {
-        await this.handleDiceRoll(socket, data);
+        this.log('INFO', 'DICE_ROLL_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          diceType: data?.diceType,
+          quantity: data?.quantity,
+          modifier: data?.modifier
+        });
+        try {
+          await this.handleDiceRoll(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'DICE_ROLL_FAILED', socket.id, socket.userId, {
+            error: error.message
+          });
+        }
       });
 
       // Evento de atualização de status
       socket.on('status_update', async (data) => {
-        await this.handleStatusUpdate(socket, data);
+        this.log('INFO', 'STATUS_UPDATE_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          status: data?.status,
+          attribute: data?.attribute
+        });
+        try {
+          await this.handleStatusUpdate(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'STATUS_UPDATE_FAILED', socket.id, socket.userId, {
+            error: error.message
+          });
+        }
       });
 
       // Evento de ping para manter conexão
       socket.on('ping', () => {
+        this.log('DEBUG', 'PING_RECEIVED', socket.id, socket.userId);
         socket.emit('pong', { timestamp: Date.now() });
+        this.log('DEBUG', 'PONG_SENT', socket.id, socket.userId);
       });
 
       // Evento de desconexão
-      socket.on('disconnect', () => {
-        this.handleDisconnect(socket);
+      socket.on('disconnect', (reason) => {
+        this.log('WARN', 'CLIENT_DISCONNECTING', socket.id, socket.userId, {
+          reason: reason,
+          currentRoom: socket.currentRoom,
+          connectionDuration: socket.connectedAt ? Date.now() - socket.connectedAt : 'unknown'
+        });
+        this.handleDisconnect(socket, reason);
       });
+
+      // Log de eventos genéricos não tratados
+      socket.onAny((eventName, ...args) => {
+        if (!['authenticate', 'join_room', 'leave_room', 'chat_message', 'rpg_action', 'dice_roll', 'status_update', 'ping', 'disconnect'].includes(eventName)) {
+          this.log('WARN', 'UNKNOWN_EVENT_RECEIVED', socket.id, socket.userId, {
+            eventName: eventName,
+            argsCount: args.length,
+            firstArg: args[0] ? JSON.stringify(args[0]).substring(0, 100) : 'undefined'
+          });
+        }
+      });
+
+      // Marcar timestamp de conexão
+      socket.connectedAt = Date.now();
     });
   }
 
@@ -112,94 +247,464 @@ class SocketManager {
    * Handler para autenticação
    */
   async handleAuthentication(socket, data) {
-    try {
-      const { userId, username, sessionId } = data;
+    const startTime = Date.now();
+    this.log('INFO', 'AUTH_PROCESSING_START', socket.id, data?.userId, {
+      receivedData: {
+        userId: data?.userId,
+        username: data?.username,
+        email: data?.email,
+        sessionId: data?.sessionId,
+        token: data?.token ? `${data.token.substring(0, 10)}...` : 'absent'
+      }
+    });
 
-      if (!userId || !username) {
+    try {
+      const { userId: rawUserId, username: rawUsername, sessionId: rawSessionId } = data || {};
+
+      if (!rawUserId || !rawUsername) {
+        this.log('ERROR', 'AUTH_VALIDATION_FAILED', socket.id, rawUserId, {
+          missingFields: {
+            userId: !rawUserId,
+            username: !rawUsername
+          },
+          receivedData: data
+        });
         socket.emit('error', { message: 'userId e username são obrigatórios' });
         return;
+      }
+
+      // Fazer parsing dos dados para tipos corretos
+      const userId = String(rawUserId);
+      const username = String(rawUsername);
+      const sessionId = rawSessionId ? String(rawSessionId) : null;
+
+      this.log('INFO', 'AUTH_DATA_PARSED', socket.id, userId, {
+        parsedData: {
+          userId: userId,
+          username: username,
+          sessionId: sessionId,
+          hasEmail: !!data?.email,
+          hasToken: !!data?.token
+        }
+      });
+
+      // Verificar se usuário já está conectado
+      const existingSocket = this.connectedUsers.get(userId);
+      if (existingSocket && existingSocket.id !== socket.id) {
+        this.log('WARN', 'AUTH_USER_ALREADY_CONNECTED', socket.id, userId, {
+          existingSocketId: existingSocket.id,
+          existingSocketConnected: existingSocket.connected
+        });
+        
+        // Desconectar conexão anterior
+        existingSocket.emit('force_disconnect', { 
+          reason: 'Nova conexão detectada',
+          timestamp: Date.now()
+        });
+        existingSocket.disconnect(true);
+        this.log('INFO', 'AUTH_PREVIOUS_CONNECTION_TERMINATED', existingSocket.id, userId);
       }
 
       // Armazenar informações do usuário
       socket.userId = userId;
       socket.username = username;
       socket.sessionId = sessionId;
+      socket.authenticatedAt = Date.now();
 
       this.connectedUsers.set(userId, socket);
 
-      // Salvar no Redis
+      this.log('INFO', 'AUTH_USER_DATA_STORED', socket.id, userId, {
+        connectedUsersCount: this.connectedUsers.size,
+        socketProperties: {
+          userId: socket.userId,
+          username: socket.username,
+          sessionId: socket.sessionId
+        }
+      });
+
+      // Salvar no Redis com valores parseados
       if (this.redis) {
-        await this.redis.hSet(`user:${userId}`, {
+        const redisData = {
           socketId: socket.id,
           username: username,
-          sessionId: sessionId,
-          connectedAt: Date.now()
+          connectedAt: Date.now().toString()
+        };
+
+        // Adicionar sessionId apenas se existir
+        if (sessionId) {
+          redisData.sessionId = sessionId;
+        }
+
+        this.log('INFO', 'AUTH_REDIS_SAVE_START', socket.id, userId, {
+          redisKey: `user:${userId}`,
+          redisData: redisData
+        });
+
+        await this.redis.hSet(`user:${userId}`, redisData);
+        
+        this.log('SUCCESS', 'AUTH_REDIS_SAVE_SUCCESS', socket.id, userId, {
+          redisKey: `user:${userId}`
+        });
+      } else {
+        this.log('WARN', 'AUTH_REDIS_UNAVAILABLE', socket.id, userId, {
+          message: 'Redis não disponível para salvar dados do usuário'
         });
       }
 
-      socket.emit('authenticated', {
+      const authResponse = {
         userId,
         username,
-        socketId: socket.id
+        socketId: socket.id,
+        sessionId: sessionId
+      };
+
+      socket.emit('authenticated', authResponse);
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'AUTH_COMPLETED', socket.id, userId, {
+        username: username,
+        sessionId: sessionId,
+        processingTimeMs: processingTime,
+        responseData: authResponse
       });
 
-      console.log(`✅ Usuário autenticado: ${username} (${userId})`);
-
     } catch (error) {
-      console.error('❌ Erro na autenticação:', error);
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'AUTH_ERROR', socket.id, data?.userId, {
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime,
+        inputData: data
+      });
       socket.emit('error', { message: 'Erro na autenticação' });
     }
   }
 
   /**
-   * Handler para entrar em sala
+   * Handler para entrar em sala (conectar a uma história)
    */
   async handleJoinRoom(socket, data) {
-    try {
-      const { roomId, userId, username } = data;
+    const startTime = Date.now();
+    this.log('INFO', 'JOIN_ROOM_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: {
+        roomId: data?.roomId,
+        userId: data?.userId,
+        username: data?.username,
+        historiaId: data?.historiaId
+      },
+      socketCurrentRoom: socket.currentRoom,
+      socketAuthenticated: !!socket.userId
+    });
 
-      if (!roomId || !userId) {
+    try {
+      const { roomId: rawRoomId, userId: rawUserId, username: rawUsername, historiaId: rawHistoriaId } = data || {};
+
+      if (!rawRoomId || !rawUserId) {
+        this.log('ERROR', 'JOIN_ROOM_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId
+          },
+          receivedData: data
+        });
         socket.emit('error', { message: 'roomId e userId são obrigatórios' });
         return;
       }
 
+      // Fazer parsing dos dados para tipos corretos
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Usuario';
+      const historiaId = rawHistoriaId ? String(rawHistoriaId) : null;
+
+      this.log('INFO', 'JOIN_ROOM_DATA_PARSED', socket.id, userId, {
+        parsedData: {
+          roomId: roomId,
+          userId: userId,
+          username: username,
+          historiaId: historiaId
+        },
+        roomType: roomId.startsWith('historia_') ? 'historia' : 'generic'
+      });
+
+      // Verificar se usuário está tentando entrar em uma sala diferente
+      if (socket.currentRoom && socket.currentRoom !== roomId) {
+        this.log('INFO', 'JOIN_ROOM_LEAVING_CURRENT', socket.id, userId, {
+          currentRoom: socket.currentRoom,
+          targetRoom: roomId
+        });
+        
+        // Sair da sala atual primeiro
+        await this.handleLeaveRoom(socket, { roomId: socket.currentRoom });
+      }
+
+      // Verificar se é uma sala de história
+      if (roomId.startsWith('historia_')) {
+        this.log('INFO', 'JOIN_ROOM_HISTORIA_TYPE', socket.id, userId, {
+          roomId: roomId,
+          extractedHistoriaId: historiaId
+        });
+
+        // Obter ou criar sessão da história (isso também valida se a história existe)
+        const sessao = await this.obterSessaoHistoria(roomId);
+        
+        if (!sessao) {
+          this.log('ERROR', 'JOIN_ROOM_SESSAO_NOT_FOUND', socket.id, userId, {
+            roomId: roomId,
+            historiaId: historiaId
+          });
+          socket.emit('error', { 
+            message: 'História não encontrada.',
+            code: 'HISTORIA_NAO_ENCONTRADA'
+          });
+          return;
+        }
+        
+        this.log('SUCCESS', 'JOIN_ROOM_SESSAO_FOUND', socket.id, userId, {
+          sessaoStatus: sessao.status,
+          historiaNome: sessao.historiaNome,
+          historiaId: sessao.historiaId,
+          maxJogadores: sessao.maxJogadores,
+          jogadoresConectados: sessao.jogadoresConectados?.length || 0,
+          donoId: sessao.donoId
+        });
+
+        // Se a sessão foi iniciada, bloquear entrada de novos usuários
+        if (sessao.status === 'iniciada') {
+          // Verificar se o usuário já estava na lista de jogadores conectados
+          const jaConectado = sessao.jogadoresConectados?.some(j => j.userId === userId);
+          
+          this.log('INFO', 'JOIN_ROOM_AVENTURA_INICIADA_CHECK', socket.id, userId, {
+            sessaoStatus: sessao.status,
+            jaConectadoAnteriormente: jaConectado,
+            jogadoresConectados: sessao.jogadoresConectados?.map(j => ({ userId: j.userId, username: j.username }))
+          });
+          
+          if (!jaConectado) {
+            this.log('ERROR', 'JOIN_ROOM_AVENTURA_INICIADA_BLOCKED', socket.id, userId, {
+              roomId: roomId,
+              sessaoStatus: sessao.status
+            });
+            socket.emit('error', { 
+              message: 'A aventura já foi iniciada. Não é possível entrar agora.',
+              code: 'AVENTURA_INICIADA'
+            });
+            return;
+          } else {
+            this.log('INFO', 'JOIN_ROOM_RECONNECTION_ALLOWED', socket.id, userId, {
+              username: username,
+              sessaoStatus: sessao.status
+            });
+          }
+        }
+        
+        // Verificar limite de jogadores
+        if (sessao.maxJogadores) {
+          const jogadoresAtuais = sessao.jogadoresConectados?.length || 0;
+          this.log('INFO', 'JOIN_ROOM_CAPACITY_CHECK', socket.id, userId, {
+            jogadoresAtuais: jogadoresAtuais,
+            maxJogadores: sessao.maxJogadores,
+            roomId: roomId
+          });
+          
+          if (jogadoresAtuais >= sessao.maxJogadores) {
+            const jaConectado = sessao.jogadoresConectados?.some(j => j.userId === userId);
+            if (!jaConectado) {
+              this.log('ERROR', 'JOIN_ROOM_CAPACITY_EXCEEDED', socket.id, userId, {
+                jogadoresAtuais: jogadoresAtuais,
+                maxJogadores: sessao.maxJogadores,
+                roomId: roomId
+              });
+              socket.emit('error', { 
+                message: `Sala lotada. Máximo de ${sessao.maxJogadores} jogadores.`,
+                code: 'SALA_LOTADA' 
+              });
+              return;
+            } else {
+              this.log('INFO', 'JOIN_ROOM_CAPACITY_RECONNECTION_ALLOWED', socket.id, userId, {
+                message: 'Usuário já conectado anteriormente, permitindo reconexão mesmo com sala lotada'
+              });
+            }
+          }
+        }
+      }
+
       // Entrar na sala
+      this.log('INFO', 'JOIN_ROOM_SOCKET_JOIN_START', socket.id, userId, {
+        roomId: roomId,
+        previousRoom: socket.currentRoom
+      });
+
       socket.join(roomId);
+      socket.currentRoom = roomId;
+
+      this.log('SUCCESS', 'JOIN_ROOM_SOCKET_JOINED', socket.id, userId, {
+        roomId: roomId,
+        socketRoomsCount: socket.rooms.size
+      });
 
       // Adicionar usuário à lista da sala
       if (!this.roomUsers.has(roomId)) {
         this.roomUsers.set(roomId, new Set());
+        this.log('INFO', 'JOIN_ROOM_CREATED_ROOM_USERLIST', socket.id, userId, {
+          roomId: roomId
+        });
       }
+      
+      const wasAlreadyInRoom = this.roomUsers.get(roomId).has(userId);
       this.roomUsers.get(roomId).add(userId);
+
+      this.log('INFO', 'JOIN_ROOM_ADDED_TO_USERLIST', socket.id, userId, {
+        roomId: roomId,
+        wasAlreadyInRoom: wasAlreadyInRoom,
+        totalUsersInRoom: this.roomUsers.get(roomId).size
+      });
+
+      // Atualizar sessão no Redis se for uma história
+      if (roomId.startsWith('historia_')) {
+        this.log('INFO', 'JOIN_ROOM_UPDATING_SESSAO', socket.id, userId, {
+          roomId: roomId
+        });
+
+        await this.adicionarJogadorSessao(roomId, {
+          userId,
+          username,
+          socketId: socket.id,
+          conectadoEm: new Date().toISOString()
+        });
+
+        this.log('SUCCESS', 'JOIN_ROOM_SESSAO_UPDATED', socket.id, userId, {
+          roomId: roomId
+        });
+      }
 
       // Salvar no Redis
       if (this.redis) {
+        this.log('INFO', 'JOIN_ROOM_REDIS_SAVE_START', socket.id, userId, {
+          roomId: roomId,
+          redisKeys: [`room:${roomId}:users`, `room:${roomId}:user:${userId}`]
+        });
+
         await this.redis.sAdd(`room:${roomId}:users`, userId);
         await this.redis.hSet(`room:${roomId}:user:${userId}`, {
-          username: username,
-          joinedAt: Date.now()
+          username,
+          joinedAt: Date.now().toString(),
+          socketId: socket.id
+        });
+
+        this.log('SUCCESS', 'JOIN_ROOM_REDIS_SAVED', socket.id, userId, {
+          roomId: roomId
+        });
+      } else {
+        this.log('WARN', 'JOIN_ROOM_REDIS_UNAVAILABLE', socket.id, userId, {
+          roomId: roomId
         });
       }
 
       // Notificar outros usuários
-      socket.to(roomId).emit('user_joined', {
+      const userJoinedEvent = {
         userId,
         username,
         roomId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isReconnection: wasAlreadyInRoom
+      };
+
+      this.log('INFO', 'JOIN_ROOM_NOTIFYING_OTHERS', socket.id, userId, {
+        roomId: roomId,
+        eventData: userJoinedEvent,
+        isReconnection: wasAlreadyInRoom
       });
 
-      // Enviar lista de usuários na sala
+      socket.to(roomId).emit('user_joined', userJoinedEvent);
+
+      // Obter lista de usuários na sala
       const roomUsers = Array.from(this.roomUsers.get(roomId) || []);
-      socket.emit('room_users', {
-        roomId,
-        users: roomUsers
+      
+      this.log('INFO', 'JOIN_ROOM_PREPARING_RESPONSE', socket.id, userId, {
+        roomId: roomId,
+        totalUsers: roomUsers.length,
+        userList: roomUsers
       });
+      
+      // Se for uma história, enviar dados da sessão também
+      if (roomId.startsWith('historia_')) {
+        this.log('INFO', 'JOIN_ROOM_SENDING_HISTORIA_RESPONSE', socket.id, userId, {
+          roomId: roomId
+        });
 
-      console.log(`🎮 ${username} entrou na sala ${roomId}`);
+        // Obter sessão (que já foi criada/validada anteriormente)
+        const sessao = await this.obterSessaoHistoria(roomId);
+        
+        if (sessao) {
+          const responseData = {
+            roomId,
+            users: roomUsers,
+            sessao: {
+              status: sessao.status,
+              historiaId: sessao.historiaId,
+              historiaNome: sessao.historiaNome,
+              historiaTemas: sessao.historiaTemas,
+              historiaPrologo: sessao.historiaPrologo,
+              donoId: sessao.donoId,
+              donoNome: sessao.donoNome,
+              maxJogadores: sessao.maxJogadores,
+              totalJogadores: sessao.jogadoresConectados?.length || 0,
+              estadoJogo: sessao.estadoJogo,
+              iniciadaEm: sessao.iniciadaEm || null
+            }
+          };
+
+          socket.emit('room_joined', responseData);
+          
+          const processingTime = Date.now() - startTime;
+          this.log('SUCCESS', 'JOIN_ROOM_HISTORIA_COMPLETED', socket.id, userId, {
+            roomId: roomId,
+            historiaNome: sessao.historiaNome,
+            historiaId: sessao.historiaId,
+            totalJogadores: sessao.jogadoresConectados?.length || 0,
+            processingTimeMs: processingTime,
+            responseData: {
+              roomId: responseData.roomId,
+              usersCount: responseData.users.length,
+              sessaoStatus: responseData.sessao.status
+            }
+          });
+        } else {
+          // Se chegou aqui, algo deu errado
+          this.log('ERROR', 'JOIN_ROOM_SESSAO_DISAPPEARED', socket.id, userId, {
+            roomId: roomId,
+            message: 'Sessão deveria existir mas retornou null'
+          });
+          socket.emit('error', { message: 'Erro ao conectar à história' });
+          return;
+        }
+      } else {
+        const responseData = {
+          roomId,
+          users: roomUsers
+        };
+        
+        socket.emit('room_joined', responseData);
+        
+        const processingTime = Date.now() - startTime;
+        this.log('SUCCESS', 'JOIN_ROOM_GENERIC_COMPLETED', socket.id, userId, {
+          roomId: roomId,
+          totalUsers: roomUsers.length,
+          processingTimeMs: processingTime,
+          responseData: responseData
+        });
+      }
 
     } catch (error) {
-      console.error('❌ Erro ao entrar na sala:', error);
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'JOIN_ROOM_ERROR', socket.id, socket.userId, {
+        roomId: data?.roomId,
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime,
+        inputData: data
+      });
       socket.emit('error', { message: 'Erro ao entrar na sala' });
     }
   }
@@ -208,44 +713,145 @@ class SocketManager {
    * Handler para sair da sala
    */
   async handleLeaveRoom(socket, data) {
-    try {
-      const { roomId, userId, username } = data;
+    const startTime = Date.now();
+    this.log('INFO', 'LEAVE_ROOM_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: data,
+      currentRoom: socket.currentRoom
+    });
 
-      if (!roomId || !userId) {
+    try {
+      const { roomId: rawRoomId, userId: rawUserId, username: rawUsername } = data || {};
+
+      if (!rawRoomId || !rawUserId) {
+        this.log('ERROR', 'LEAVE_ROOM_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId
+          },
+          receivedData: data
+        });
         socket.emit('error', { message: 'roomId e userId são obrigatórios' });
         return;
       }
 
+      // Fazer parsing dos dados para tipos corretos
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Usuario';
+
+      this.log('INFO', 'LEAVE_ROOM_DATA_PARSED', socket.id, userId, {
+        roomId: roomId,
+        userId: userId,
+        username: username
+      });
+
       // Sair da sala
+      this.log('INFO', 'LEAVE_ROOM_SOCKET_LEAVE', socket.id, userId, {
+        roomId: roomId,
+        socketRoomsBeforeLeave: Array.from(socket.rooms)
+      });
+
       socket.leave(roomId);
+      socket.currentRoom = null;
+
+      this.log('SUCCESS', 'LEAVE_ROOM_SOCKET_LEFT', socket.id, userId, {
+        roomId: roomId,
+        socketRoomsAfterLeave: Array.from(socket.rooms)
+      });
 
       // Remover usuário da lista da sala
       const roomUserSet = this.roomUsers.get(roomId);
       if (roomUserSet) {
+        const wasInRoom = roomUserSet.has(userId);
         roomUserSet.delete(userId);
+        
+        this.log('INFO', 'LEAVE_ROOM_REMOVED_FROM_USERLIST', socket.id, userId, {
+          roomId: roomId,
+          wasInRoom: wasInRoom,
+          remainingUsersInRoom: roomUserSet.size
+        });
+        
         if (roomUserSet.size === 0) {
           this.roomUsers.delete(roomId);
+          this.log('INFO', 'LEAVE_ROOM_DELETED_EMPTY_ROOM', socket.id, userId, {
+            roomId: roomId
+          });
         }
+      } else {
+        this.log('WARN', 'LEAVE_ROOM_USER_NOT_IN_ROOM', socket.id, userId, {
+          roomId: roomId
+        });
+      }
+
+      // Remover da sessão se for uma história
+      if (roomId.startsWith('historia_')) {
+        this.log('INFO', 'LEAVE_ROOM_REMOVING_FROM_SESSAO', socket.id, userId, {
+          roomId: roomId
+        });
+        await this.removerJogadorSessao(roomId, userId);
+        this.log('SUCCESS', 'LEAVE_ROOM_REMOVED_FROM_SESSAO', socket.id, userId, {
+          roomId: roomId
+        });
       }
 
       // Remover do Redis
       if (this.redis) {
+        this.log('INFO', 'LEAVE_ROOM_REDIS_CLEANUP_START', socket.id, userId, {
+          roomId: roomId,
+          redisKeys: [`room:${roomId}:users`, `room:${roomId}:user:${userId}`]
+        });
+
         await this.redis.sRem(`room:${roomId}:users`, userId);
         await this.redis.del(`room:${roomId}:user:${userId}`);
+
+        this.log('SUCCESS', 'LEAVE_ROOM_REDIS_CLEANED', socket.id, userId, {
+          roomId: roomId
+        });
+      } else {
+        this.log('WARN', 'LEAVE_ROOM_REDIS_UNAVAILABLE', socket.id, userId, {
+          roomId: roomId
+        });
       }
 
       // Notificar outros usuários
-      socket.to(roomId).emit('user_left', {
+      const userLeftEvent = {
         userId,
         username,
         roomId,
         timestamp: Date.now()
+      };
+
+      this.log('INFO', 'LEAVE_ROOM_NOTIFYING_OTHERS', socket.id, userId, {
+        roomId: roomId,
+        eventData: userLeftEvent
       });
 
-      console.log(`👋 ${username} saiu da sala ${roomId}`);
+      socket.to(roomId).emit('user_left', userLeftEvent);
+
+      // Confirmar saída para o usuário
+      const roomLeftEvent = {
+        roomId,
+        timestamp: Date.now()
+      };
+
+      socket.emit('room_left', roomLeftEvent);
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'LEAVE_ROOM_COMPLETED', socket.id, userId, {
+        roomId: roomId,
+        username: username,
+        processingTimeMs: processingTime
+      });
 
     } catch (error) {
-      console.error('❌ Erro ao sair da sala:', error);
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'LEAVE_ROOM_ERROR', socket.id, socket.userId, {
+        roomId: data?.roomId,
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime,
+        inputData: data
+      });
       socket.emit('error', { message: 'Erro ao sair da sala' });
     }
   }
@@ -254,13 +860,53 @@ class SocketManager {
    * Handler para mensagem de chat
    */
   async handleChatMessage(socket, data) {
-    try {
-      const { roomId, userId, username, message, type = 'chat' } = data;
+    const startTime = Date.now();
+    this.log('INFO', 'CHAT_MESSAGE_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: {
+        roomId: data?.roomId,
+        userId: data?.userId,
+        username: data?.username,
+        messageLength: data?.message?.length,
+        type: data?.type
+      }
+    });
 
-      if (!roomId || !userId || !message) {
+    try {
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername, 
+        message: rawMessage, 
+        type: rawType = 'chat' 
+      } = data || {};
+
+      if (!rawRoomId || !rawUserId || !rawMessage) {
+        this.log('ERROR', 'CHAT_MESSAGE_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId,
+            message: !rawMessage
+          },
+          receivedData: data
+        });
         socket.emit('error', { message: 'roomId, userId e message são obrigatórios' });
         return;
       }
+
+      // Fazer parsing dos dados para tipos corretos
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Usuario';
+      const message = String(rawMessage);
+      const type = String(rawType);
+
+      this.log('INFO', 'CHAT_MESSAGE_DATA_PARSED', socket.id, userId, {
+        roomId: roomId,
+        username: username,
+        messageLength: message.length,
+        type: type,
+        messageTruncated: message.length > 100 ? `${message.substring(0, 100)}...` : message
+      });
 
       const messageData = {
         id: Date.now().toString(),
@@ -269,22 +915,59 @@ class SocketManager {
         message,
         type,
         roomId,
-        timestamp: Date.now()
+        timestamp: Date.now().toString()
       };
 
       // Salvar no Redis
       if (this.redis) {
+        this.log('INFO', 'CHAT_MESSAGE_REDIS_SAVE_START', socket.id, userId, {
+          roomId: roomId,
+          messageId: messageData.id,
+          redisKey: `room:${roomId}:messages`
+        });
+
         await this.redis.lPush(`room:${roomId}:messages`, JSON.stringify(messageData));
         await this.redis.lTrim(`room:${roomId}:messages`, 0, 99); // Manter apenas as últimas 100 mensagens
+
+        this.log('SUCCESS', 'CHAT_MESSAGE_REDIS_SAVED', socket.id, userId, {
+          roomId: roomId,
+          messageId: messageData.id
+        });
+      } else {
+        this.log('WARN', 'CHAT_MESSAGE_REDIS_UNAVAILABLE', socket.id, userId, {
+          roomId: roomId,
+          messageId: messageData.id
+        });
       }
 
       // Enviar para todos na sala
+      this.log('INFO', 'CHAT_MESSAGE_BROADCASTING', socket.id, userId, {
+        roomId: roomId,
+        messageId: messageData.id,
+        type: type
+      });
+
       this.io.to(roomId).emit('chat_message', messageData);
 
-      console.log(`💬 ${username}: ${message} (sala ${roomId})`);
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'CHAT_MESSAGE_COMPLETED', socket.id, userId, {
+        roomId: roomId,
+        messageId: messageData.id,
+        username: username,
+        messageLength: message.length,
+        type: type,
+        processingTimeMs: processingTime
+      });
 
     } catch (error) {
-      console.error('❌ Erro ao processar mensagem:', error);
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'CHAT_MESSAGE_ERROR', socket.id, socket.userId, {
+        roomId: data?.roomId,
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime,
+        inputData: data
+      });
       socket.emit('error', { message: 'Erro ao processar mensagem' });
     }
   }
@@ -294,12 +977,27 @@ class SocketManager {
    */
   async handleRpgAction(socket, data) {
     try {
-      const { roomId, userId, username, action, target, description } = data;
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername, 
+        action: rawAction, 
+        target: rawTarget, 
+        description: rawDescription 
+      } = data || {};
 
-      if (!roomId || !userId || !action) {
+      if (!rawRoomId || !rawUserId || !rawAction) {
         socket.emit('error', { message: 'roomId, userId e action são obrigatórios' });
         return;
       }
+
+      // Fazer parsing dos dados para tipos corretos
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Usuario';
+      const action = String(rawAction);
+      const target = rawTarget ? String(rawTarget) : null;
+      const description = rawDescription ? String(rawDescription) : null;
 
       const actionData = {
         id: Date.now().toString(),
@@ -309,7 +1007,7 @@ class SocketManager {
         target,
         description,
         roomId,
-        timestamp: Date.now()
+        timestamp: Date.now().toString()
       };
 
       // Salvar no Redis
@@ -333,12 +1031,27 @@ class SocketManager {
    */
   async handleDiceRoll(socket, data) {
     try {
-      const { roomId, userId, username, dice, result, description } = data;
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername, 
+        dice: rawDice, 
+        result: rawResult, 
+        description: rawDescription 
+      } = data || {};
 
-      if (!roomId || !userId || !dice || !result) {
+      if (!rawRoomId || !rawUserId || !rawDice || !rawResult) {
         socket.emit('error', { message: 'roomId, userId, dice e result são obrigatórios' });
         return;
       }
+
+      // Fazer parsing dos dados para tipos corretos
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Usuario';
+      const dice = String(rawDice);
+      const result = String(rawResult);
+      const description = rawDescription ? String(rawDescription) : null;
 
       const rollData = {
         id: Date.now().toString(),
@@ -348,7 +1061,7 @@ class SocketManager {
         result,
         description,
         roomId,
-        timestamp: Date.now()
+        timestamp: Date.now().toString()
       };
 
       // Salvar no Redis
@@ -372,12 +1085,25 @@ class SocketManager {
    */
   async handleStatusUpdate(socket, data) {
     try {
-      const { roomId, userId, username, status, details } = data;
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername, 
+        status: rawStatus, 
+        details: rawDetails 
+      } = data || {};
 
-      if (!roomId || !userId || !status) {
+      if (!rawRoomId || !rawUserId || !rawStatus) {
         socket.emit('error', { message: 'roomId, userId e status são obrigatórios' });
         return;
       }
+
+      // Fazer parsing dos dados para tipos corretos
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Usuario';
+      const status = String(rawStatus);
+      const details = rawDetails || null;
 
       const statusData = {
         userId,
@@ -390,11 +1116,17 @@ class SocketManager {
 
       // Salvar no Redis
       if (this.redis) {
-        await this.redis.hSet(`room:${roomId}:user:${userId}`, {
-          status: status,
-          statusDetails: JSON.stringify(details),
-          lastStatusUpdate: Date.now()
-        });
+        const redisData = {
+          status,
+          lastStatusUpdate: Date.now().toString()
+        };
+
+        // Adicionar detalhes apenas se existirem
+        if (details !== null && details !== undefined) {
+          redisData.statusDetails = JSON.stringify(details);
+        }
+
+        await this.redis.hSet(`room:${roomId}:user:${userId}`, redisData);
       }
 
       // Enviar para todos na sala
@@ -411,27 +1143,146 @@ class SocketManager {
   /**
    * Handler para desconexão
    */
-  handleDisconnect(socket) {
-    console.log(`🔌 Cliente desconectado: ${socket.id}`);
+  async handleDisconnect(socket, reason = 'unknown') {
+    const startTime = Date.now();
+    const connectionDuration = socket.connectedAt ? Date.now() - socket.connectedAt : 'unknown';
+    
+    this.log('INFO', 'DISCONNECT_PROCESSING_START', socket.id, socket.userId, {
+      reason: reason,
+      connectionDurationMs: connectionDuration,
+      socketProperties: {
+        userId: socket.userId,
+        username: socket.username,
+        currentRoom: socket.currentRoom,
+        authenticatedAt: socket.authenticatedAt
+      }
+    });
 
     if (socket.userId) {
+      const username = socket.username || 'Usuario';
+      
+      this.log('INFO', 'DISCONNECT_AUTHENTICATED_USER', socket.id, socket.userId, {
+        username: username,
+        connectedUsersBeforeRemoval: this.connectedUsers.size
+      });
+      
       // Remover usuário da lista de conectados
       this.connectedUsers.delete(socket.userId);
 
-      // Remover de todas as salas
+      this.log('SUCCESS', 'DISCONNECT_REMOVED_FROM_CONNECTED_USERS', socket.id, socket.userId, {
+        username: username,
+        connectedUsersAfterRemoval: this.connectedUsers.size
+      });
+
+      // Contar salas que o usuário estava conectado
+      const userRooms = [];
       for (const [roomId, userSet] of this.roomUsers.entries()) {
         if (userSet.has(socket.userId)) {
-          userSet.delete(socket.userId);
-          if (userSet.size === 0) {
-            this.roomUsers.delete(roomId);
+          userRooms.push(roomId);
+        }
+      }
+
+      this.log('INFO', 'DISCONNECT_USER_ROOMS_FOUND', socket.id, socket.userId, {
+        totalRooms: userRooms.length,
+        rooms: userRooms
+      });
+
+      // Remover de todas as salas e notificar
+      for (const [roomId, userSet] of this.roomUsers.entries()) {
+        if (userSet.has(socket.userId)) {
+          this.log('INFO', 'DISCONNECT_LEAVING_ROOM', socket.id, socket.userId, {
+            roomId: roomId,
+            roomType: roomId.startsWith('historia_') ? 'historia' : 'generic',
+            usersInRoomBeforeLeaving: userSet.size
+          });
+
+          // Remover da sessão se for uma história
+          if (roomId.startsWith('historia_')) {
+            this.log('INFO', 'DISCONNECT_REMOVING_FROM_HISTORIA_SESSAO', socket.id, socket.userId, {
+              roomId: roomId
+            });
+            try {
+              await this.removerJogadorSessao(roomId, socket.userId);
+              this.log('SUCCESS', 'DISCONNECT_REMOVED_FROM_HISTORIA_SESSAO', socket.id, socket.userId, {
+                roomId: roomId
+              });
+            } catch (error) {
+              this.log('ERROR', 'DISCONNECT_ERROR_REMOVING_FROM_SESSAO', socket.id, socket.userId, {
+                roomId: roomId,
+                error: error.message
+              });
+            }
           }
+          
+          // Remover da lista local
+          userSet.delete(socket.userId);
+          const shouldDeleteRoom = userSet.size === 0;
+          
+          if (shouldDeleteRoom) {
+            this.roomUsers.delete(roomId);
+            this.log('INFO', 'DISCONNECT_DELETED_EMPTY_ROOM', socket.id, socket.userId, {
+              roomId: roomId
+            });
+          }
+
+          // Notificar outros usuários na sala sobre a desconexão
+          const userLeftEvent = {
+            userId: socket.userId,
+            username,
+            roomId,
+            timestamp: Date.now(),
+            reason: 'disconnect'
+          };
+
+          this.log('INFO', 'DISCONNECT_NOTIFYING_ROOM_USERS', socket.id, socket.userId, {
+            roomId: roomId,
+            eventData: userLeftEvent,
+            remainingUsersInRoom: userSet.size
+          });
+
+          socket.to(roomId).emit('user_left', userLeftEvent);
         }
       }
 
       // Remover do Redis
       if (this.redis) {
-        this.redis.del(`user:${socket.userId}`).catch(console.error);
+        this.log('INFO', 'DISCONNECT_REDIS_CLEANUP_START', socket.id, socket.userId, {
+          redisKey: `user:${socket.userId}`
+        });
+
+        try {
+          await this.redis.del(`user:${socket.userId}`);
+          this.log('SUCCESS', 'DISCONNECT_REDIS_CLEANED', socket.id, socket.userId, {
+            redisKey: `user:${socket.userId}`
+          });
+        } catch (error) {
+          this.log('ERROR', 'DISCONNECT_REDIS_CLEANUP_ERROR', socket.id, socket.userId, {
+            redisKey: `user:${socket.userId}`,
+            error: error.message
+          });
+        }
+      } else {
+        this.log('WARN', 'DISCONNECT_REDIS_UNAVAILABLE', socket.id, socket.userId);
       }
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'DISCONNECT_COMPLETED', socket.id, socket.userId, {
+        username: username,
+        roomsLeft: userRooms.length,
+        processingTimeMs: processingTime,
+        connectionDurationMs: connectionDuration,
+        finalStats: {
+          connectedUsers: this.connectedUsers.size,
+          activeRooms: this.roomUsers.size
+        }
+      });
+    } else {
+      const processingTime = Date.now() - startTime;
+      this.log('INFO', 'DISCONNECT_UNAUTHENTICATED_USER', socket.id, null, {
+        reason: reason,
+        connectionDurationMs: connectionDuration,
+        processingTimeMs: processingTime
+      });
     }
   }
 
@@ -463,6 +1314,170 @@ class SocketManager {
       activeRooms: this.roomUsers.size,
       totalRooms: this.io ? this.io.sockets.adapter.rooms.size : 0
     };
+  }
+
+  /**
+   * Obter ou criar sessão de uma história
+   */
+  async obterSessaoHistoria(salaId) {
+    try {
+      // Garantir que o gerenciador de sessões está inicializado
+      await this.gerenciadorSessoes.initialize();
+      
+      // Verificar se é uma sala de história
+      if (!salaId.startsWith('historia_')) {
+        return null;
+      }
+
+      // Extrair historiaId do roomId (ex: historia_67 → 67)
+      const historiaId = parseInt(salaId.replace('historia_', ''));
+      
+      if (isNaN(historiaId)) {
+        console.error('❌ ID de história inválido:', salaId);
+        return null;
+      }
+
+      // Verificar se já existe uma sessão no Redis
+      let sessao = await this.gerenciadorSessoes.obterSessao(salaId);
+      
+      if (sessao) {
+        console.log(`📋 Sessão existente encontrada para história ${historiaId}`);
+        return sessao;
+      }
+
+      // Se não existe, buscar dados da história no banco e criar sessão
+      console.log(`🔍 Criando nova sessão para história ${historiaId}`);
+      
+      // Importar modelo do banco
+      const { default: db } = await import('../Model/index.js');
+      
+      // Buscar dados da história
+      const historia = await db.Historia.findById(historiaId);
+      
+      if (!historia) {
+        console.error(`❌ História ${historiaId} não encontrada no banco`);
+        return null;
+      }
+
+      // Buscar dados do usuário dono
+      let donoNome = 'Dono da História';
+      if (historia.id_usuario) {
+        try {
+          const usuario = await db.Usuario.findById(historia.id_usuario);
+          if (usuario) {
+            donoNome = usuario.nome;
+          }
+        } catch (error) {
+          console.warn('⚠️ Erro ao buscar dados do usuário dono:', error.message);
+        }
+      }
+
+      // Criar dados da sessão
+      const dadosSessao = {
+        historiaId: historia.id,
+        historiaNome: historia.nome,
+        historiaTemas: historia.temas || [],
+        historiaPrologo: historia.prologo || '',
+        donoId: historia.id_usuario ? String(historia.id_usuario) : null,
+        donoNome: donoNome,
+        maxJogadores: historia.maximo_de_participantes || 5,
+        status: 'aberta', // Status inicial
+        jogadoresConectados: [], // Lista vazia inicialmente
+        estadoJogo: {
+          fase: 'preparacao',
+          cenaAtual: 'Aguardando início',
+          mensagemMestre: `Bem-vindos à história "${historia.nome}"!`,
+          npcs: [],
+          ambiente: 'Sala de espera'
+        },
+        mensagens: [],
+        acoes: []
+      };
+
+      // Criar sessão no Redis
+      sessao = await this.gerenciadorSessoes.criarSessao(salaId, dadosSessao);
+      
+      console.log(`✅ Nova sessão criada para história "${historia.nome}" (ID: ${historiaId})`);
+      
+      return sessao;
+      
+    } catch (error) {
+      console.error('❌ Erro ao obter/criar sessão da história:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Adicionar jogador à sessão
+   */
+  async adicionarJogadorSessao(salaId, dadosJogador) {
+    try {
+      // Garantir que o gerenciador de sessões está inicializado
+      await this.gerenciadorSessoes.initialize();
+      
+      const sessao = await this.gerenciadorSessoes.obterSessao(salaId);
+      
+      if (sessao) {
+        // Verificar se o jogador já está na lista
+        const jogadoresAtuais = sessao.jogadoresConectados || [];
+        const jaExiste = jogadoresAtuais.find(j => j.userId === dadosJogador.userId);
+        
+        if (!jaExiste) {
+          // Adicionar novo jogador
+          jogadoresAtuais.push(dadosJogador);
+          sessao.jogadoresConectados = jogadoresAtuais;
+          sessao.atualizadaEm = new Date().toISOString();
+          
+          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+          console.log(`👤 Jogador ${dadosJogador.username} adicionado à sessão ${salaId}`);
+        } else {
+          // Atualizar dados do jogador existente (reconexão)
+          Object.assign(jaExiste, dadosJogador);
+          sessao.atualizadaEm = new Date().toISOString();
+          
+          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+          console.log(`🔄 Dados do jogador ${dadosJogador.username} atualizados na sessão ${salaId}`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao adicionar jogador à sessão:', error);
+    }
+  }
+
+  /**
+   * Remover jogador da sessão
+   */
+  async removerJogadorSessao(salaId, userId) {
+    try {
+      // Garantir que o gerenciador de sessões está inicializado
+      await this.gerenciadorSessoes.initialize();
+      
+      const sessao = await this.gerenciadorSessoes.obterSessao(salaId);
+      
+      if (sessao && sessao.jogadoresConectados) {
+        const jogadoresAtuais = sessao.jogadoresConectados.filter(j => j.userId !== userId);
+        sessao.jogadoresConectados = jogadoresAtuais;
+        sessao.atualizadaEm = new Date().toISOString();
+        
+        await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+        console.log(`👤 Jogador ${userId} removido da sessão ${salaId}`);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao remover jogador da sessão:', error);
+    }
+  }
+
+  /**
+   * Notificar início da aventura para uma sala
+   */
+  notificarInicioAventura(salaId, dados) {
+    if (this.io) {
+      this.io.to(salaId).emit('aventura_iniciada', {
+        ...dados,
+        timestamp: Date.now()
+      });
+      console.log(`🎮 Notificação de início enviada para sala ${salaId}`);
+    }
   }
 
   /**

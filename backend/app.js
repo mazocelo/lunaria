@@ -17,6 +17,8 @@ import desvantagemRouter from './routes/desvantagens.js';
 import personagemRouter from './routes/personagem.js';
 import classeRouter from './routes/classe.js';
 import racaRouter from './routes/raca.js';
+import authRouter from './routes/auth.js';
+import usuarioRouter from './routes/usuarios.js';
 
 import { createExecutor } from './tools/master.js';
 import specs from './swagger-config.js';
@@ -42,6 +44,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 }));
 
 app.use('/', indexRouter);
+app.use('/auth', authRouter);
+app.use('/usuarios', usuarioRouter);
 app.use('/rpg', rpgRouter);
 app.use('/historias', historiaRouter);
 app.use('/sessoes', sessaoRouter);

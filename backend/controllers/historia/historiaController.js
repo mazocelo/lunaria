@@ -70,7 +70,8 @@ class HistoriaController {
         prologo: resultadoPrologo.prologo,
         status: 'ativa',
         criada_em: new Date(),
-        atualizada_em: new Date()
+        atualizada_em: new Date(),
+        id_usuario: req.user?.id || null // Vincular ao usuário logado
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
@@ -100,17 +101,17 @@ class HistoriaController {
    */
   async listarHistorias(req, res, next) {
     try {
-      console.log('📋 Listando histórias...');
+      console.log('📋 Listando histórias...', req.user ? `para usuário ${req.user.id}` : 'público');
       
-      const { status, temas, limit = 20, offset = 0 } = req.query;
+      const { status, temas, limit = 20, offset = 0, todas = false } = req.query;
       
-      // Construir filtros
-      const where = {};
-      if (status) where.status = status;
-      if (temas) where.temas = temas;
-      
-      // Buscar todas as histórias e aplicar filtros manualmente
+      // Buscar todas as histórias
       let historias = await db.Historia.findAll();
+      
+      // Se o usuário estiver logado e não for solicitada listagem pública, filtrar por usuário
+      if (req.user && req.user.id && todas !== 'true') {
+        historias = historias.filter(h => h.id_usuario === req.user.id);
+      }
       
       // Aplicar filtros
       if (status) {
@@ -140,7 +141,8 @@ class HistoriaController {
           limit: parseInt(limit),
           offset: parseInt(offset),
           hasMore: offset + historias.length < total
-        }
+        },
+        filtrado_por_usuario: req.user && req.user.id && todas !== 'true' ? req.user.id : null
       });
       
     } catch (error) {
@@ -165,7 +167,16 @@ class HistoriaController {
       
       if (!historia) {
         return res.status(404).json({
+          success: false,
           error: 'História não encontrada'
+        });
+      }
+      
+      // Verificar se usuário tem permissão para ver esta história
+      if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você não tem permissão para acessar esta história'
         });
       }
       
@@ -199,9 +210,21 @@ class HistoriaController {
       
       if (!historia) {
         return res.status(404).json({
+          success: false,
           error: 'História não encontrada'
         });
       }
+      
+      // Verificar se usuário tem permissão para atualizar esta história
+      if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você só pode atualizar suas próprias histórias'
+        });
+      }
+      
+      // Remover id_usuario dos dados de atualização para evitar alteração
+      delete dadosAtualizacao.id_usuario;
       
       // Atualizar dados usando o método update do Prisma
       await db.Historia.update(parseInt(id), {
@@ -242,7 +265,16 @@ class HistoriaController {
       
       if (!historia) {
         return res.status(404).json({
+          success: false,
           error: 'História não encontrada'
+        });
+      }
+      
+      // Verificar se usuário tem permissão para excluir esta história
+      if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você só pode excluir suas próprias histórias'
         });
       }
       
@@ -310,7 +342,8 @@ class HistoriaController {
         participantes: [],
         status: 'ativa',
         criada_em: new Date(),
-        atualizada_em: new Date()
+        atualizada_em: new Date(),
+        id_usuario: req.user?.id || null // Vincular ao usuário logado
       });
       
       console.log('✅ História gerada com IA e salva:', novaHistoria.id);
@@ -384,7 +417,8 @@ class HistoriaController {
         participantes: aventuraCompleta.personagens?.map(p => p.nome) || [],
         status: 'ativa',
         criada_em: new Date(),
-        atualizada_em: new Date()
+        atualizada_em: new Date(),
+        id_usuario: req.user?.id || null // Vincular ao usuário logado
       });
       
       console.log('✅ Aventura completa gerada e salva:', novaHistoria.id);

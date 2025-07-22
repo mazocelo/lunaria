@@ -13,13 +13,20 @@ export class AuthMiddleware {
    */
   authenticate(socket, next) {
     try {
-      return next();
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
+      // Extrair token da query string, auth ou headers (compatível com auth.js)
+      const token = socket.handshake.auth?.token || 
+                    socket.handshake.query?.token ||
+                    socket.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
-        // Permitir conexão sem token (autenticação posterior)
-        console.log(`🔓 Conexão sem token permitida: ${socket.id}`);
+        // Permitir conexão sem token para modo visitante (compatível com auth.js)
+        socket.userId = null;
+        socket.username = 'Visitante';
         socket.isAuthenticated = false;
+        socket.role = 'guest';
+        socket.userRole = 'guest';
+        
+        console.log(`🔓 Conexão sem token permitida: ${socket.id}`);
         return next();
       }
 
@@ -27,10 +34,12 @@ export class AuthMiddleware {
       const cleanToken = token.replace('Bearer ', '');
       const decoded = jwt.verify(cleanToken, this.secretKey);
 
-      // Adicionar informações do usuário ao socket
-      socket.userId = decoded.userId;
-      socket.username = decoded.username;
-      socket.userRole = decoded.role || 'player';
+      // Adicionar informações do usuário ao socket (compatível com HTTP JWT)
+      socket.userId = decoded.userId; // Já correto
+      socket.username = decoded.nome || decoded.username || `User_${decoded.userId}`; // Usar nome do token HTTP
+      socket.email = decoded.email;
+      socket.role = decoded.role || 'player'; // Compatibilidade com auth.js
+      socket.userRole = decoded.role || 'player'; // Manter para compatibilidade existente
       socket.isAuthenticated = true;
 
       console.log(`🔐 Socket autenticado: ${socket.username} (${socket.userId})`);
@@ -77,13 +86,13 @@ export class AuthMiddleware {
   }
 
   /**
-   * Gerar token JWT para usuário
+   * Gerar token JWT para usuário (compatível com HTTP JWT)
    */
-  generateToken(userId, username, role = 'player') {
+  generateToken(userId, email, role = 'player') {
     return jwt.sign(
       { 
         userId, 
-        username, 
+        email, 
         role,
         iat: Math.floor(Date.now() / 1000)
       },
@@ -99,8 +108,8 @@ export class AuthMiddleware {
     try {
       const decoded = jwt.verify(token, this.secretKey);
       
-      // Gerar novo token com mesmos dados
-      return this.generateToken(decoded.userId, decoded.username, decoded.role);
+      // Gerar novo token com mesmos dados (compatível com HTTP JWT)
+      return this.generateToken(decoded.userId, decoded.email, decoded.role);
     } catch (error) {
       throw new Error('Token inválido para renovação');
     }

@@ -238,7 +238,8 @@ class PersonagemController {
         carisma: carisma || 10,
         destreza: destreza || 10,
         constituicao: constituicao || 10,
-        agilidade: agilidade || 10
+        agilidade: agilidade || 10,
+        id_usuario: req.user?.id || null // Vincular ao usuário logado
       });
 
       // Criar personagem no banco
@@ -311,12 +312,17 @@ class PersonagemController {
    */
   listarPersonagens = async (req, res, next) => {
     try {
-      console.log('📋 Listando personagens...');
+      console.log('📋 Listando personagens...', req.user ? `para usuário ${req.user.id}` : 'público');
 
-      const { historia_id, jogador_id, status, limit = 20, offset = 0 } = req.query;
+      const { historia_id, jogador_id, status, limit = 20, offset = 0, todos = false } = req.query;
 
       // Buscar todos os personagens com relacionamentos
       let personagens = await db.Personagem.findAllPersonagens();
+
+      // Se o usuário estiver logado e não for solicitada listagem pública, filtrar por usuário
+      if (req.user && req.user.id && todos !== 'true') {
+        personagens = personagens.filter(p => p.id_usuario === req.user.id);
+      }
 
       // Aplicar filtros manualmente
       if (historia_id) {
@@ -354,7 +360,8 @@ class PersonagemController {
           limit: parseInt(limit),
           offset: parseInt(offset),
           hasMore: startIndex + personagensProcessados.length < personagens.length
-        }
+        },
+        filtrado_por_usuario: req.user && req.user.id && todos !== 'true' ? req.user.id : null
       });
 
     } catch (error) {
@@ -381,7 +388,16 @@ class PersonagemController {
 
       if (!personagem) {
         return res.status(404).json({
+          success: false,
           error: 'Personagem não encontrado'
+        });
+      }
+
+      // Verificar se usuário tem permissão para ver este personagem
+      if (req.user && req.user.id && personagem.id_usuario && personagem.id_usuario !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você não tem permissão para acessar este personagem'
         });
       }
 
@@ -419,9 +435,21 @@ class PersonagemController {
 
       if (!personagem) {
         return res.status(404).json({
+          success: false,
           error: 'Personagem não encontrado'
         });
       }
+
+      // Verificar se usuário tem permissão para atualizar este personagem
+      if (req.user && req.user.id && personagem.id_usuario && personagem.id_usuario !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você só pode atualizar seus próprios personagens'
+        });
+      }
+
+      // Remover id_usuario dos dados de atualização para evitar alteração
+      delete dadosAtualizacao.id_usuario;
 
       // Validar atributos se fornecidos
       const atributos = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
@@ -555,7 +583,16 @@ class PersonagemController {
 
       if (!personagem) {
         return res.status(404).json({
+          success: false,
           error: 'Personagem não encontrado'
+        });
+      }
+
+      // Verificar se usuário tem permissão para excluir este personagem
+      if (req.user && req.user.id && personagem.id_usuario && personagem.id_usuario !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você só pode excluir seus próprios personagens'
         });
       }
 

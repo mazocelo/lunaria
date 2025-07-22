@@ -39,6 +39,20 @@ model desvantagens {
   @@index([usar], map: "idx_desvantagem_usar")
 }
 
+model equipamentos {
+  id                     Int                      @id(map: "equipamento_pkey") @default(autoincrement())
+  nome                   String
+  descricao              String?
+  tipo                   String[]
+  bonus                  Json?                    @default("[]")
+  restricao              Json?
+  dano_base              String?
+  efeito                 Json?
+  elemento               String[]                 @default([])
+  requisitos             Json?
+  personagem_equipamento personagem_equipamento[]
+}
+
 model historias {
   id                      Int       @id @default(autoincrement())
   temas                   String[]  @db.VarChar(255)
@@ -50,12 +64,14 @@ model historias {
   status                  String?   @default("ativa") @db.VarChar(255)
   criada_em               DateTime? @db.Timestamptz(6)
   atualizada_em           DateTime? @db.Timestamptz(6)
+  id_usuario              Int?
+  usuarios                usuarios? @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
 }
 
 model personagem_desvantagem {
   personagem_id Int
   habilidade_id Int
-  personagem    personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "personagem_habilidade_personagem_id_fkey")
+  personagens   personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "personagem_habilidade_personagem_id_fkey")
 
   @@id([personagem_id, habilidade_id], map: "personagem_habilidade_pkey")
 }
@@ -63,8 +79,8 @@ model personagem_desvantagem {
 model personagem_equipamento {
   personagem_id  Int
   equipamento_id Int
-  equipamento    equipamentos @relation(fields: [equipamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  personagem     personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  equipamentos   equipamentos @relation(fields: [equipamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  personagens    personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([personagem_id, equipamento_id])
 }
@@ -79,22 +95,26 @@ model personagem_vantagem {
 model personagens {
   id                     Int                      @id(map: "personagem_pkey") @default(autoincrement())
   nome                   String
-  nivel                  Int                      @default(1)
-  pontos_totais          Int                      @default(0)
-  pontos_iniciais        Int                      @default(0)
+  nivel                  Int?                     @default(1)
+  pontos_totais          Int?                     @default(0)
+  pontos_iniciais        Int?                     @default(0)
   background             String?
   raca_id                Int?
   classe_id              Int?
-  forca                  Int                      @default(0)
-  inteligencia           Int                      @default(0)
-  carisma                Int                      @default(0)
-  destreza               Int                      @default(0)
-  constituicao           Int                      @default(0)
-  agilidade              Int                      @default(0)
+  forca                  Int?                     @default(10)
+  inteligencia           Int?                     @default(10)
+  carisma                Int?                     @default(10)
+  destreza               Int?                     @default(10)
+  constituicao           Int?                     @default(10)
+  agilidade              Int?                     @default(10)
+  criado_em              DateTime?                @db.Timestamptz(6)
+  atualizado_em          DateTime?                @db.Timestamptz(6)
+  id_usuario             Int?
   personagem_desvantagem personagem_desvantagem[]
   personagem_equipamento personagem_equipamento[]
-  classes                classes?                 @relation(fields: [classe_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personagem_classe_id_fkey")
-  racas                  racas?                   @relation(fields: [raca_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personagem_raca_id_fkey")
+  usuarios               usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
+  classes                classes?                 @relation(fields: [classe_id], references: [id])
+  racas                  racas?                   @relation(fields: [raca_id], references: [id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -110,6 +130,15 @@ model racas {
 model temas {
   id   Int    @id @default(autoincrement())
   nome String @unique @db.VarChar(255)
+}
+
+model usuarios {
+  id          Int           @id @default(autoincrement())
+  nome        String        @db.VarChar(100)
+  email       String        @unique @db.VarChar(150)
+  senha       String        @db.VarChar(255)
+  historias   historias[]
+  personagens personagens[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -134,20 +163,6 @@ model vantagens {
   @@index([usar], map: "idx_habilidade_usar")
   @@index([nivel], map: "idx_vantagem_nivel")
   @@index([usar], map: "idx_vantagem_usar")
-}
-
-model equipamentos {
-  id                     Int                      @id(map: "equipamento_pkey") @default(autoincrement())
-  nome                   String
-  descricao              String?
-  tipo                   String[]
-  bonus                  Json?                    @default("[]")
-  restricao              Json?
-  dano_base              String?
-  efeito                 Json?
-  elemento               String[]                 @default([])
-  requisitos             Json?
-  personagem_equipamento personagem_equipamento[]
 }
 
 enum enum_habilidades_categoria {

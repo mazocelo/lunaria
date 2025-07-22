@@ -1,6 +1,7 @@
 import express from 'express';
 import personagemController from '../controllers/personagem/personagemController.js';
 import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
+import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -204,7 +205,7 @@ const router = express.Router();
  *       404:
  *         description: História não encontrada
  */
-router.post('/', asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
+router.post('/', authenticateToken, asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -267,7 +268,7 @@ router.post('/', asyncHandlerWithContext(personagemController.criarPersonagem, p
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/', asyncHandlerWithContext(personagemController.listarPersonagens, personagemController));
+router.get('/', optionalAuth, asyncHandlerWithContext(personagemController.listarPersonagens, personagemController));
 
 /**
  * @swagger
@@ -297,7 +298,7 @@ router.get('/', asyncHandlerWithContext(personagemController.listarPersonagens, 
  *       404:
  *         description: Personagem não encontrado
  */
-router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem, personagemController));
+router.get('/:id', optionalAuth, asyncHandlerWithContext(personagemController.obterPersonagem, personagemController));
 
 /**
  * @swagger
@@ -396,7 +397,7 @@ router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem,
  *       404:
  *         description: Personagem não encontrado
  */
-router.put('/:id', asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
+router.put('/:id', authenticateToken, asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -426,7 +427,7 @@ router.put('/:id', asyncHandlerWithContext(personagemController.atualizarPersona
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id', asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
+router.delete('/:id', authenticateToken, asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
 
 /**
  * @swagger
@@ -475,7 +476,7 @@ router.delete('/:id', asyncHandlerWithContext(personagemController.excluirPerson
  *       404:
  *         description: Personagem não encontrado
  */
-router.post('/:id/background', asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
+router.post('/:id/background', authenticateToken, asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
 
 /**
  * @swagger
@@ -556,7 +557,7 @@ router.post('/:id/background', asyncHandlerWithContext(personagemController.gera
  *       404:
  *         description: História não encontrada
  */
-router.get('/historia/:historia_id', asyncHandlerWithContext(personagemController.listarPersonagensPorHistoria, personagemController));
+router.get('/historia/:historia_id', optionalAuth, asyncHandlerWithContext(personagemController.listarPersonagensPorHistoria, personagemController));
 
 // ===== ROTAS PARA GERENCIAR VÍNCULOS COM VANTAGENS =====
 

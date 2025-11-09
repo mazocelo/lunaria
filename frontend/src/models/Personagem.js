@@ -8,6 +8,11 @@ export class Personagem {
     this.nome = data.nome || '';
     this.classe_id = data.classe_id || null;
     this.raca_id = data.raca_id || null;
+    this.classe = data.classe || null; // Nome da classe (string)
+    this.raca = data.raca || null; // Nome da raça (string)
+    this.historia_nome = data.historia_nome || null; // Nome da primeira história (compatibilidade)
+    this.historia_id = data.historia_id || null; // ID da primeira história (compatibilidade)
+    this.historias = data.historias || []; // Array de histórias vinculadas
     this.nivel = data.nivel || 1;
     this.hp = data.hp || 100;
     this.hp_maximo = data.hp_maximo || 100;
@@ -22,28 +27,12 @@ export class Personagem {
     this.vantagens = data.vantagens || [];
     this.desvantagens = data.desvantagens || [];
     this.equipamentos = data.equipamentos || '';
-    this.historia_id = data.historia_id || null;
     this.pontos_iniciais = data.pontos_iniciais || 25;
     this.pontos_totais = data.pontos_totais || 0;
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
   }
 
-  /**
-   * Getter para classe (compatibilidade)
-   * @returns {string} ID da classe
-   */
-  get classe() {
-    return this.classe_id;
-  }
-
-  /**
-   * Getter para raca (compatibilidade)
-   * @returns {string} ID da raça
-   */
-  get raca() {
-    return this.raca_id;
-  }
 
   /**
    * Valida se o modelo está correto
@@ -128,6 +117,11 @@ export class Personagem {
       nome: this.nome,
       classe_id: this.classe_id,
       raca_id: this.raca_id,
+      classe: this.classe,
+      raca: this.raca,
+      historia_nome: this.historia_nome,
+      historia_id: this.historia_id,
+      historias: this.historias,
       nivel: this.nivel,
       hp: this.hp,
       hp_maximo: this.hp_maximo,
@@ -143,7 +137,6 @@ export class Personagem {
       vantagens: this.vantagens,
       desvantagens: this.desvantagens,
       equipamentos: this.equipamentos,
-      historia_id: this.historia_id,
       pontos_iniciais: this.pontos_iniciais,
       pontos_totais: this.pontos_totais,
       created_at: this.created_at,
@@ -162,6 +155,11 @@ export class Personagem {
       nome: apiData.nome,
       classe_id: apiData.classe_id,
       raca_id: apiData.raca_id,
+      classe: apiData.classe, // Nome da classe
+      raca: apiData.raca, // Nome da raça
+      historia_nome: apiData.historia_nome, // Nome da primeira história (compatibilidade)
+      historia_id: apiData.historia_id, // ID da primeira história (compatibilidade)
+      historias: apiData.historias || [], // Array de histórias vinculadas
       nivel: apiData.nivel,
       hp: apiData.hp,
       hp_maximo: apiData.hp_maximo,
@@ -177,7 +175,6 @@ export class Personagem {
       vantagens: apiData.vantagens,
       desvantagens: apiData.desvantagens,
       equipamentos: apiData.equipamentos,
-      historia_id: apiData.historia_id,
       pontos_iniciais: apiData.pontos_iniciais,
       pontos_totais: apiData.pontos_totais,
       created_at: apiData.created_at,

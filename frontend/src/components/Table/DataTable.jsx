@@ -118,20 +118,22 @@ const DataTable = ({
                   {actions.length > 0 && (
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center space-x-2">
-                        {actions.map((action, i) => (
-                          <button
-                            key={i}
-                            className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                              isLight 
-                                ? 'bg-slate-200/50' 
-                                : 'bg-slate-700/50'
-                            } ${getActionColor(action.color)}`}
-                            title={action.label}
-                            onClick={() => action.onClick && action.onClick(row)}
-                          >
-                            <span className="text-lg">{action.icon}</span>
-                          </button>
-                        ))}
+                        {actions
+                          .filter((action) => !action.show || action.show(row))
+                          .map((action, i) => (
+                            <button
+                              key={i}
+                              className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                                isLight 
+                                  ? 'bg-slate-200/50' 
+                                  : 'bg-slate-700/50'
+                              } ${getActionColor(action.color)}`}
+                              title={action.label}
+                              onClick={() => action.onClick && action.onClick(row)}
+                            >
+                              <span className="text-lg">{action.icon}</span>
+                            </button>
+                          ))}
                       </div>
                     </td>
                   )}

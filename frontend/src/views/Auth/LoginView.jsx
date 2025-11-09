@@ -1,29 +1,41 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
+import { ROUTES } from '../../routes';
+import { Eye, EyeOff } from 'lucide-react';
 
 const LoginView = ({ onSwitchToRegister }) => {
   const { login, loading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
-    senha: ''
+    senha: '',
+    lembrarDeMim: false
   });
   const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Redireccionar se já autenticado
+  // Redirecionar se já autenticado
   useEffect(() => {
     if (isAuthenticated) {
-      // Aqui você pode redirecionar para a página principal
-      console.log('Usuário já autenticado, redirecionando...');
+      // Verificar se há URL de redirecionamento salva
+      const redirectUrl = localStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        localStorage.removeItem('redirectAfterLogin');
+        navigate(redirectUrl);
+      } else {
+        navigate(ROUTES.HISTORIAS);
+      }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate]);
 
   /**
    * Atualizar dados do formulário
@@ -76,13 +88,28 @@ const LoginView = ({ onSwitchToRegister }) => {
       return;
     }
 
+    // Limpar notificação anterior
+    setNotification(null);
+
     const result = await login(formData);
     
     if (result.success) {
       setNotification({
         type: 'success',
-        message: 'Login realizado com sucesso!'
+        message: `Bem-vindo, ${result.user.nome}! Redirecionando...`
       });
+      
+      // Aguardar um pouco antes de redirecionar para mostrar a mensagem
+      setTimeout(() => {
+        // Verificar se há URL de redirecionamento salva
+        const redirectUrl = localStorage.getItem('redirectAfterLogin');
+        if (redirectUrl) {
+          localStorage.removeItem('redirectAfterLogin');
+          navigate(redirectUrl);
+        } else {
+          navigate(ROUTES.HISTORIAS);
+        }
+      }, 1500);
     } else {
       setNotification({
         type: 'error',
@@ -175,24 +202,55 @@ const LoginView = ({ onSwitchToRegister }) => {
               <label htmlFor="senha" className="text-sm font-medium text-purple-200">
                 Senha
               </label>
-              <InputSimples
-                id="login-senha"
-                name="senha"
-                type="password"
-                value={formData.senha}
-                onChange={handleInputChange}
-                className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
-                placeholder="••••••••"
-                disabled={loading}
-                autoComplete="current-password"
-              />
+              <div className="relative [&>div]:relative [&>div>input]:pr-10">
+                <InputSimples
+                  id="login-senha"
+                  name="senha"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.senha}
+                  onChange={handleInputChange}
+                  className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
+                  placeholder="••••••••"
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 bottom-2 text-purple-300 hover:text-purple-200 transition-colors focus:outline-none z-10"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
               {errors.senha && (
                 <p className="text-red-400 text-xs mt-1">{errors.senha}</p>
               )}
             </div>
 
-            {/* Link Esqueci a senha */}
-            <div className="flex justify-end">
+            {/* Checkbox Lembrar de mim e Link Esqueci a senha */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="lembrarDeMim"
+                  name="lembrarDeMim"
+                  type="checkbox"
+                  checked={formData.lembrarDeMim}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    lembrarDeMim: e.target.checked
+                  }))}
+                  className="w-4 h-4 text-purple-600 bg-slate-800/50 border-purple-500/30 rounded focus:ring-purple-400 focus:ring-2"
+                />
+                <label htmlFor="lembrarDeMim" className="ml-2 text-sm text-purple-200">
+                  Lembrar de mim
+                </label>
+              </div>
+              
               <button
                 type="button"
                 onClick={handleForgotPassword}
@@ -206,15 +264,22 @@ const LoginView = ({ onSwitchToRegister }) => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full btn-rpg h-12 text-base font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+              className={`w-full btn-rpg h-12 text-base font-semibold transition-all duration-300 transform shadow-lg ${
+                loading 
+                  ? 'bg-gradient-to-r from-purple-600/70 to-cyan-600/70 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 hover:scale-105 hover:shadow-purple-500/25'
+              }`}
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <LoadingSpinner size="sm" />
-                  <span>Entrando...</span>
+                  <span>Entrando na aventura...</span>
                 </div>
               ) : (
-                'Entrar na Aventura'
+                <span className="flex items-center justify-center gap-2">
+                  <span>Entrar na Aventura</span>
+                  <span className="text-xl">🎮</span>
+                </span>
               )}
             </Button>
           </form>
@@ -260,6 +325,7 @@ const LoginView = ({ onSwitchToRegister }) => {
           type={notification.type}
           message={notification.message}
           onClose={() => setNotification(null)}
+          autoClose={notification.type === 'success' ? false : 5000}
         />
       )}
 

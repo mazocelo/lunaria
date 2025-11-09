@@ -8,12 +8,14 @@ import { RacaService } from './RacaService';
 import { ClasseService } from './ClasseService';
 import { DesvantagemService } from './DesvantagemService';
 import { AuthService } from './AuthService';
+import { NotificationService } from './NotificationService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
 
 // Serviços específicos
 export { HistoriaService } from './HistoriaService';
+export { NotificationService } from './NotificationService';
 export { PersonagemService } from './PersonagemService';
 export { TemaService } from './TemaService';
 export { VantagemService } from './VantagemService';
@@ -48,6 +50,8 @@ export class ServiceFactory {
         return new DesvantagemService(apiClient);
       case 'auth':
         return new AuthService(apiClient);
+      case 'notification':
+        return new NotificationService(apiClient);
       default:
         throw new Error(`Tipo de serviço desconhecido: ${type}`);
     }
@@ -62,4 +66,5 @@ export const vantagemService = new VantagemService(apiClient);
 export const racaService = new RacaService(apiClient);
 export const classeService = new ClasseService(apiClient);
 export const desvantagemService = new DesvantagemService(apiClient);
-export const authService = new AuthService(apiClient); 
+export const authService = new AuthService(apiClient);
+export const notificationService = new NotificationService(apiClient); 

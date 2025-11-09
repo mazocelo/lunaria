@@ -18,22 +18,10 @@ export class VantagemService {
     try {
       const paramsString = generateGETparams(params);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar vantagens: ${error.message}`);
@@ -47,22 +35,10 @@ export class VantagemService {
   async getVantagens() {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar vantagens: ${error.message}`);
@@ -76,22 +52,10 @@ export class VantagemService {
   async getDesvantagens() {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?tipo=desvantagem`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar desvantagens: ${error.message}`);
@@ -106,22 +70,10 @@ export class VantagemService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar vantagem/desvantagem: ${error.message}`);
@@ -136,22 +88,10 @@ export class VantagemService {
   async getByTipo(tipo) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?tipo=${encodeURIComponent(tipo)}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar vantagens/desvantagens por tipo: ${error.message}`);
@@ -166,22 +106,10 @@ export class VantagemService {
   async getByNome(nome) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?nome=${encodeURIComponent(nome)}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar vantagens/desvantagens por nome: ${error.message}`);

@@ -38,10 +38,7 @@ export const createSocketActions = (set, get) => ({
     if (level === 'error' || data.error) {
       console.error(`${prefix} ${timestamp} [Socket] ${event}`, data);
     } else if (logLevel === 'info') {
-      console.log(`${prefix} ${timestamp} [Socket] ${event}`, {
-        ...data,
-        state: { connected: get().isConnected, authenticated: get().isAuthenticated }
-      });
+      // Log de info removido para performance
     }
   },
 
@@ -127,13 +124,22 @@ export const createSocketActions = (set, get) => ({
 
     // Listeners de autenticação
     socket.on('authenticated', (data) => {
+      // Backend envia: { userId, username, socketId, sessionId }
+      // NÃO envia objeto 'user', então precisamos criar
+      const user = {
+        id: data.userId,
+        username: data.username,
+        socketId: data.socketId,
+        sessionId: data.sessionId
+      };
+      
       set({
         isAuthenticated: true,
-        currentUser: data.user,
-        userRole: data.user?.role,
+        currentUser: user,
+        userRole: null,
         error: null
       });
-      get().log('Authenticated', { userId: data.user?.id, role: data.user?.role, success: true });
+      get().log('Authenticated', { userId: user.id, username: user.username, success: true });
     });
 
     socket.on('authentication_error', (error) => {
@@ -148,14 +154,26 @@ export const createSocketActions = (set, get) => ({
 
     // Listeners de room
     socket.on('room_joined', (data) => {
+      console.log('🏠 [SocketStore] room_joined recebido:', data);
+      console.log('  - roomId:', data.roomId);
+      console.log('  - users:', data.users);
+      console.log('  - sessao:', data.sessao);
+      console.log('  - session:', data.session);
+      console.log('  - jogadoresConectados:', data.sessao?.jogadoresConectados || data.session?.jogadoresConectados);
+      
       set({
         inRoom: true,
         roomId: data.roomId,
-        session: data.session,
+        session: data.sessao || data.session,  // Backend pode enviar 'sessao' ou 'session'
         roomUsers: data.users || [],
         error: null
       });
-      get().log('Room joined', { roomId: data.roomId, users: data.users?.length, success: true });
+      get().log('Room joined', { 
+        roomId: data.roomId, 
+        users: data.users?.length,
+        jogadores: (data.sessao?.jogadoresConectados || data.session?.jogadoresConectados)?.length || 0,
+        success: true 
+      });
     });
 
     socket.on('room_left', () => {
@@ -213,8 +231,23 @@ export const createSocketActions = (set, get) => ({
 
         // Validação de token
         if (authData?.token && !validateToken(authData.token)) {
-          log('Invalid token provided', {}, 'error');
-          return reject(new Error('Token inválido'));
+          // Token inválido ou expirado - fornecer informação detalhada
+          try {
+            const payload = JSON.parse(atob(authData.token.split('.')[1]));
+            const expiryDate = new Date(payload.exp * 1000);
+            const now = new Date();
+            
+            log('Invalid or expired token provided', {
+              expiresAt: expiryDate.toLocaleString(),
+              currentTime: now.toLocaleString(),
+              isExpired: expiryDate <= now,
+              suggestion: 'Token deve ser renovado antes da conexão WebSocket'
+            }, 'error');
+          } catch (e) {
+            log('Invalid token format', {}, 'error');
+          }
+          
+          return reject(new Error('Token inválido ou expirado. Por favor, tente novamente.'));
         }
 
         if (isConnected && socket) {
@@ -344,6 +377,7 @@ export const createSocketActions = (set, get) => ({
         clearTimeout(timeout);
         socket.off('room_joined', onJoined);
         socket.off('join_room_error', onError);
+        socket.off('error', onGenericError);
       };
 
       const onJoined = (data) => {
@@ -358,8 +392,25 @@ export const createSocketActions = (set, get) => ({
         reject(new Error(error.message));
       };
 
+      const onGenericError = (error) => {
+        cleanup();
+        log('Join room generic error', { error: error.message || error }, 'error');
+        reject(new Error(error.message || 'Erro ao entrar na sala'));
+      };
+
       socket.once('room_joined', onJoined);
       socket.once('join_room_error', onError);
+      socket.once('error', onGenericError);
+      
+      // Log dos dados sendo enviados
+      log('Emitting join_room', { 
+        roomId: joinData.roomId, 
+        userId: joinData.userId, 
+        username: joinData.username,
+        historiaId: joinData.historiaId,
+        personagemId: joinData.personagemId
+      });
+      
       socket.emit('join_room', joinData);
     });
   },
@@ -568,11 +619,8 @@ export const createSocketActions = (set, get) => ({
 
     // Evitar múltiplas tentativas de conexão
     if (isConnected || isConnecting) {
-      console.log('🔄 SocketStore: Conexão já em andamento ou estabelecida');
       return;
     }
-
-    console.log('🌐 SocketStore: Iniciando conexão automática ao WebSocket...');
 
     try {
       // Conectar ao WebSocket
@@ -580,11 +628,9 @@ export const createSocketActions = (set, get) => ({
 
       // Se há dados de autenticação, autenticar automaticamente
       if (authData?.token) {
-        console.log('🔐 SocketStore: Autenticando automaticamente...');
         await authenticate(authData);
       }
 
-      console.log('✅ SocketStore: Conexão automática concluída com sucesso');
     } catch (error) {
       console.error('❌ SocketStore: Erro na conexão automática:', error.message);
       set({ error: error.message });

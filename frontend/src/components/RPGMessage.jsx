@@ -53,6 +53,21 @@ export const RPGMessage = ({ message, className = '' }) => {
         textColor: isLight ? 'text-red-800' : 'text-red-200',
         borderColor: 'border-red-300/50'
       },
+      mestre: {
+        icon: '🎭',
+        label: 'Mestre',
+        bgColor: isLight ? 'bg-gradient-to-r from-amber-50 to-orange-50' : 'bg-gradient-to-r from-amber-900/30 to-orange-900/30',
+        textColor: isLight ? 'text-amber-900' : 'text-amber-100',
+        borderColor: 'border-amber-400/60',
+        highlight: true
+      },
+      jogador: {
+        icon: '⚔️',
+        label: 'Jogador',
+        bgColor: isLight ? 'bg-cyan-50' : 'bg-cyan-500/10',
+        textColor: isLight ? 'text-cyan-800' : 'text-cyan-200',
+        borderColor: 'border-cyan-300/50'
+      },
       rpg_action: {
         icon: '⚔️',
         label: 'Ação RPG',
@@ -84,19 +99,19 @@ export const RPGMessage = ({ message, className = '' }) => {
   };
 
   return (
-    <div className={`p-3 rounded-lg border ${config.bgColor} ${config.borderColor} ${className}`}>
+    <div className={`p-4 rounded-lg border-2 ${config.bgColor} ${config.borderColor} ${config.highlight ? 'shadow-lg' : ''} ${className}`}>
       <div className="flex items-start space-x-3">
         {/* Ícone do tipo */}
-        <div className="flex-shrink-0 text-lg">
+        <div className={`flex-shrink-0 ${config.highlight ? 'text-2xl' : 'text-lg'}`}>
           {config.icon}
         </div>
         
         {/* Conteúdo da mensagem */}
         <div className="flex-1 min-w-0">
           {/* Header com usuário e tipo */}
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <span className={`font-semibold text-sm ${config.textColor}`}>
+              <span className={`font-semibold ${config.highlight ? 'text-base' : 'text-sm'} ${config.textColor}`}>
                 {message.username || message.user || 'Sistema'}
               </span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${config.bgColor} ${config.textColor} opacity-75`}>
@@ -109,9 +124,13 @@ export const RPGMessage = ({ message, className = '' }) => {
           </div>
           
           {/* Mensagem */}
-          <div className={`text-sm ${config.textColor} leading-relaxed`}>
+          <div className={`${config.highlight ? 'text-base' : 'text-sm'} ${config.textColor} leading-relaxed whitespace-pre-wrap`}>
             {message.type === 'action' ? (
               <em>*{message.message}*</em>
+            ) : message.tipo === 'mestre' || message.type === 'mestre' ? (
+              <div className="font-serif italic">
+                {message.message}
+              </div>
             ) : (
               message.message
             )}

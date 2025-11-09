@@ -6,7 +6,7 @@ import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 import InputSimples from '../../components/form/inputSimples';
-import DataTable from '../../components/Table/DataTable.jsx';
+import { TabelaList } from '../components';
 
 const VantagemView = () => {
   const vm = useViewModel(useMemo(() => new VantagemViewModel(), []));
@@ -16,7 +16,8 @@ const VantagemView = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
-    vm.init();
+    // somente carregar as vantagens
+    vm.loadVantagens();
   }, []);
 
   const handleSearch = (e) => {
@@ -220,8 +221,7 @@ const VantagemView = () => {
   ];
 
   // Usar diretamente o array de vantagens
-  const vmState = vm.getState();
-  const vantagens = vmState.vantagens || [];
+  const vantagens = vm.vantagens || [];
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto">
@@ -244,7 +244,7 @@ const VantagemView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar vantagens..."
-              value={vmState.searchTerm}
+              value={vm.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
@@ -252,7 +252,7 @@ const VantagemView = () => {
         </div>
 
         {/* Mensagem de erro */}
-        {vmState.error && (
+        {vm.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -260,14 +260,14 @@ const VantagemView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Loading */}
-        {vmState.loading && (
+        {vm.loading && (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
             <span className="ml-3 text-slate-400 font-modern">Carregando vantagens...</span>
@@ -275,19 +275,22 @@ const VantagemView = () => {
         )}
 
         {/* Tabela de vantagens */}
-        <DataTable
+        <TabelaList
+          header="Lista de Vantagens"
           columns={columns}
           data={vantagens}
           actions={actions}
-          loading={vmState.loading}
-          title="Lista de Vantagens"
+          loading={vm.loading}
+          pagination={true}
+          initialPageSize={10}
+          pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage="Nenhuma vantagem encontrada"
           emptyIcon="⭐"
-          totalItems={vantagens.length}
+          hoverable={true}
         />
 
         {/* Paginação */}
-        {!vmState.loading && vantagens.length > 0 && (
+        {!vm.loading && vantagens.length > 0 && (
           <div className="flex items-center justify-between mt-6">
             <div className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern`}>
               Mostrando {vantagens.length} vantagens
@@ -295,19 +298,19 @@ const VantagemView = () => {
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
-                onClick={() => vm.setPage(vmState.currentPage - 1)}
-                disabled={vmState.currentPage <= 1}
+                onClick={() => vm.setPage(vm.currentPage - 1)}
+                disabled={vm.currentPage <= 1}
                 className="px-3 py-1"
               >
                 ← Anterior
               </Button>
               <span className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern`}>
-                Página {vmState.currentPage} de {vmState.totalPages}
+                Página {vm.currentPage} de {vm.totalPages}
               </span>
               <Button
                 variant="ghost"
-                onClick={() => vm.setPage(vmState.currentPage + 1)}
-                disabled={vmState.currentPage >= vmState.totalPages}
+                onClick={() => vm.setPage(vm.currentPage + 1)}
+                disabled={vm.currentPage >= vm.totalPages}
                 className="px-3 py-1"
               >
                 Próxima →

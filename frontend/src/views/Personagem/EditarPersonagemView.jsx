@@ -5,6 +5,7 @@ import Button from '../../components/form/button';
 import FormSelect from '../../components/form/FormSelect';
 import FormSelectDescricao from '../../components/form/FormSelectDescricao';
 import FormVantagem from '../../components/form/FormVantagem';
+import FormHistorias from '../../components/form/FormHistorias';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { editarPersonagemViewModel } from '../../viewmodels/Personagens/EditarPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -51,7 +52,7 @@ const EditarPersonagemView = () => {
     // Mapear campos para métodos do ViewModel
     const fieldMappings = {
       nome: vm.setNome,
-      historia_id: vm.setHistoriaId,
+      historias: vm.setHistorias,
       raca: vm.setRaca,
       classe: vm.setClasse,
       backgroundTipo: vm.setBackgroundTipo,
@@ -63,7 +64,7 @@ const EditarPersonagemView = () => {
     };
 
     // Se for um atributo
-    if (name in vm.atributos) {
+    if (vm.atributos && name in vm.atributos) {
       vm.setAtributo(name, value);
     } else if (fieldMappings[name]) {
       fieldMappings[name](value);
@@ -131,36 +132,48 @@ const EditarPersonagemView = () => {
           />
         </div>
 
-        {/* Raça / Classe */}
+        {/* Raça / Classe - Desabilitado (não pode ser alterado) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <FormSelectDescricao
-            label="Raça"
-            name="raca"
-            value={vm.raca}
-            onChange={handleChange}
-            options={vm.racasDisponiveis?.length > 0 ? vm.racasDisponiveis.map(raca => ({
-              value: raca.id,
-              label: raca.nome,
-              descricao: raca.descricao,
-              custo: raca.custo
-            })) : opcoesRaca}
-            placeholder={vm.loadingOpcoes ? "Carregando raças..." : "Selecione a raça"}
-            disabled={vm.loadingOpcoes}
-          />
-          <FormSelectDescricao
-            label="Classe"
-            name="classe"
-            value={vm.classe}
-            onChange={handleChange}
-            options={vm.classesDisponiveis?.length > 0 ? vm.classesDisponiveis.map(classe => ({
-              value: classe.id,
-              label: classe.nome,
-              descricao: classe.descricao,
-              custo: classe.custo
-            })) : opcoesClasse}
-            placeholder={vm.loadingOpcoes ? "Carregando classes..." : "Selecione a classe"}
-            disabled={vm.loadingOpcoes}
-          />
+          <div>
+            <FormSelectDescricao
+              label="Raça"
+              name="raca"
+              value={String(vm.raca || '')}
+              onChange={handleChange}
+              options={Array.isArray(vm.racasDisponiveis) && vm.racasDisponiveis.length > 0 ? vm.racasDisponiveis.map(raca => ({
+                value: String(raca.id),
+                label: raca.nome,
+                descricao: raca.descricao,
+                custo: raca.custo
+              })) : opcoesRaca.map(raca => ({
+                ...raca,
+                value: String(raca.value)
+              }))}
+              placeholder={vm.loadingOpcoes ? "Carregando raças..." : "Raça"}
+              disabled={true}
+            />
+            <p className="text-xs text-slate-400 font-modern mt-1">Raça não pode ser alterada</p>
+          </div>
+          <div>
+            <FormSelectDescricao
+              label="Classe"
+              name="classe"
+              value={String(vm.classe || '')}
+              onChange={handleChange}
+              options={Array.isArray(vm.classesDisponiveis) && vm.classesDisponiveis.length > 0 ? vm.classesDisponiveis.map(classe => ({
+                value: String(classe.id),
+                label: classe.nome,
+                descricao: classe.descricao,
+                custo: classe.custo
+              })) : opcoesClasse.map(classe => ({
+                ...classe,
+                value: String(classe.value)
+              }))}
+              placeholder={vm.loadingOpcoes ? "Carregando classes..." : "Classe"}
+              disabled={true}
+            />
+            <p className="text-xs text-slate-400 font-modern mt-1">Classe não pode ser alterada</p>
+          </div>
         </div>
 
         {/* Background */}
@@ -220,13 +233,13 @@ const EditarPersonagemView = () => {
         <div>
           <label className="block font-semibold mb-1 text-white font-modern">Atributos</label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-            {Object.keys(vm.atributos).map((attr) => (
+            {Object.keys(vm.atributos || {}).map((attr) => (
               <div key={attr}>
                 <label className="block text-sm capitalize text-white font-modern">{attr}</label>
                 <input
                   type="number"
                   name={attr}
-                  value={vm.atributos[attr]}
+                  value={vm.atributos?.[attr] || ''}
                   onChange={handleChange}
                   className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
                   min={0}
@@ -237,43 +250,22 @@ const EditarPersonagemView = () => {
           </div>
         </div>
 
-        {/* Nível e HP */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block font-semibold mb-1 text-white font-modern">Nível</label>
-            <div className="relative">
-              <input
-                type="number"
-                min={1}
-                max={20}
-                name="nivel"
-                value={vm.nivel}
-                onChange={handleChange}
-                className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-                placeholder="Nível atual"
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-                <span className="text-sm">⭐</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold mb-1 text-white font-modern">Pontos de Vida</label>
-            <div className="relative">
-              <input
-                type="number"
-                min={1}
-                max={999}
-                name="hp"
-                value={vm.hp}
-                onChange={handleChange}
-                className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-                placeholder="HP atual"
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-                <span className="text-sm">❤️</span>
-              </div>
+        {/* Nível */}
+        <div>
+          <label className="block font-semibold mb-1 text-white font-modern">Nível</label>
+          <div className="relative">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              name="nivel"
+              value={vm.nivel}
+              onChange={handleChange}
+              className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
+              placeholder="Nível atual"
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
+              <span className="text-sm">⭐</span>
             </div>
           </div>
         </div>
@@ -284,13 +276,13 @@ const EditarPersonagemView = () => {
           label="Vantagens"
           value={vm.vantagens}
           onChange={handleChange}
-          options={vm.vantagensDisponiveis?.map(vantagem => ({ 
+          options={Array.isArray(vm.vantagensDisponiveis) ? vm.vantagensDisponiveis.map(vantagem => ({ 
             value: vantagem.id, 
             label: vantagem.nome,
             custo: vantagem.custo,
             descricao: vantagem.descricao,
             tipo: vantagem.tipo
-          })) || []}
+          })) : []}
           placeholder={vm.loadingVantagens ? "Carregando vantagens..." : "Selecione as vantagens e desvantagens"}
           disabled={vm.loadingVantagens}
         />
@@ -308,24 +300,19 @@ const EditarPersonagemView = () => {
           />
         </div>
 
-        {/* História */}
-        <div>
-          <label className="block font-semibold mb-1 text-white font-modern">História</label>
-          <select
-            name="historia_id"
-            value={vm.historia_id || ''}
-            onChange={handleChange}
-            className="input-rpg w-full bg-white/10 border border-white/20 backdrop-blur placeholder:text-white/60 text-white px-4 py-2"
-            required
-          >
-            <option value="">Selecione uma história</option>
-            {vm.historiasDisponiveis?.map((historia) => (
-              <option key={historia.id} value={historia.id}>
-                {historia.nome}
-              </option>
-            )) || []}
-          </select>
-        </div>
+        {/* Histórias */}
+        <FormHistorias
+          label="Histórias (Opcional)"
+          name="historias"
+          value={vm.historias}
+          onChange={handleChange}
+          options={Array.isArray(vm.historiasDisponiveis) ? vm.historiasDisponiveis.map(historia => ({
+            value: String(historia.id),
+            label: historia.nome
+          })) : []}
+          placeholder={vm.loadingHistorias ? "Carregando histórias..." : "Selecione as histórias (opcional)"}
+          disabled={vm.loadingHistorias}
+        />
 
         {/* Botões de ação */}
         <div className="flex space-x-4 pt-4">

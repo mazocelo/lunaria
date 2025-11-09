@@ -6,8 +6,10 @@ import StatCard from '../../components/StatCard.jsx';
 import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 import Notification from '../../components/Notification.jsx';
 import ConfirmationModal from '../../components/ConfirmationModal.jsx';
-import DataTable from '../../components/Table/DataTable.jsx';
+import ConviteModal from '../../components/ConviteModal.jsx';
+import { TabelaList } from '../components';
 import { useTheme } from '../../contexts/theme.jsx';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 import { ROUTES, generateRoute } from '../../routes.jsx';
 
 /**
@@ -16,6 +18,7 @@ import { ROUTES, generateRoute } from '../../routes.jsx';
  */
 export const HistoriaView = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const viewModel = useViewModel(historiaViewModel);
   const {
     historias,
@@ -25,7 +28,8 @@ export const HistoriaView = () => {
     loadHistorias,
     clearError,
     deleteHistoria,
-    getNomesTemas
+    getNomesTemas,
+    enviarConvite
   } = viewModel;
 
   const { theme } = useTheme();
@@ -36,10 +40,30 @@ export const HistoriaView = () => {
   const [historiaToDelete, setHistoriaToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Estado para o modal de convite
+  const [showConviteModal, setShowConviteModal] = useState(false);
+  const [historiaParaConvite, setHistoriaParaConvite] = useState(null);
+  const [conviteLoading, setConviteLoading] = useState(false);
+
   // Carrega histórias ao montar o componente
   useEffect(() => {
     loadHistorias();
   }, []);
+
+  // Debug: Verificar dados das histórias
+  useEffect(() => {
+    if (historias.length > 0) {
+      console.log('📊 HistoriaView: Histórias carregadas:', historias);
+      console.log('📊 HistoriaView: Primeira história:', historias[0]);
+      console.log('📊 HistoriaView: sessaoAtiva?', historias.map(h => ({
+        id: h.id,
+        nome: h.nome,
+        sessaoAtiva: h.sessaoAtiva,
+        statusSessao: h.statusSessao,
+        totalJogadores: h.totalJogadores
+      })));
+    }
+  }, [historias]);
 
   // Limpa erro quando componente desmonta
   useEffect(() => {
@@ -57,7 +81,7 @@ export const HistoriaView = () => {
   // Função para confirmar a exclusão
   const handleConfirmDelete = async () => {
     if (!historiaToDelete) return;
-    
+
     setDeleteLoading(true);
     try {
       await deleteHistoria(historiaToDelete.id);
@@ -87,6 +111,47 @@ export const HistoriaView = () => {
     navigate(generateRoute.jogo(historia.id));
   };
 
+  // Função para abrir modal de convite
+  const handleConviteClick = (historia) => {
+    setHistoriaParaConvite(historia);
+    setShowConviteModal(true);
+  };
+
+  // Função para enviar convite
+  const handleEnviarConvite = async (email) => {
+    if (!historiaParaConvite) return;
+
+    setConviteLoading(true);
+    try {
+      await enviarConvite(historiaParaConvite.id, email);
+      setShowConviteModal(false);
+      setHistoriaParaConvite(null);
+
+      // Mostrar notificação de sucesso (opcional)
+    } catch (error) {
+      console.error('❌ Erro ao enviar convite:', error);
+      // O erro já é tratado no viewModel
+    } finally {
+      setConviteLoading(false);
+    }
+  };
+
+  // Função para cancelar convite
+  const handleCancelConvite = () => {
+    setShowConviteModal(false);
+    setHistoriaParaConvite(null);
+    setConviteLoading(false);
+  };
+
+  // Função para verificar se o usuário é dono da história
+  const isOwner = (historia) => {
+    if(user && historia){
+      const {id_usuario} = historia;
+      return id_usuario == user.id;
+    }
+    return false;
+  };
+
   // Renderizador para temas
   const renderTemas = (historia) => {
     const nomesTemas = getNomesTemas ? getNomesTemas(historia) : [];
@@ -94,17 +159,16 @@ export const HistoriaView = () => {
       <div className="flex flex-wrap gap-1">
         {nomesTemas.length > 0
           ? nomesTemas.map((nomeTema, i) => (
-              <span 
-                key={i} 
-                className={`px-2 py-1 text-xs rounded-full ${
-                  isLight 
-                    ? 'bg-slate-200/50 text-slate-700' 
-                    : 'bg-slate-700/50 text-slate-300'
+            <span
+              key={i}
+              className={`px-2 py-1 text-xs rounded-full ${isLight
+                ? 'bg-slate-200/50 text-slate-700'
+                : 'bg-slate-700/50 text-slate-300'
                 } font-modern`}
-              >
-                {nomeTema}
-              </span>
-            ))
+            >
+              {nomeTema}
+            </span>
+          ))
           : <span className="text-slate-500 text-xs">Sem tema</span>
         }
       </div>
@@ -121,60 +185,122 @@ export const HistoriaView = () => {
     </div>
   );
 
+  // Renderizador para status de sessão
+  const renderStatusSessao = (historia) => {
+    if (historia.sessaoAtiva) {
+      return (
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          isLight
+            ? 'bg-green-100 text-green-800'
+            : 'bg-green-500/20 text-green-400'
+        }`}>
+          ✓ Em Andamento {historia.totalJogadores > 0 ? `(${historia.totalJogadores})` : ''}
+        </span>
+      );
+    }
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        isLight
+          ? 'bg-slate-100 text-slate-600'
+          : 'bg-slate-700/50 text-slate-400'
+      }`}>
+        ⏸ Aguardando
+      </span>
+    );
+  };
+
   const columns = [
-    { 
-      key: 'id', 
-      label: 'ID', 
-      align: 'left', 
+    {
+      key: 'id',
+      label: 'ID',
+      align: 'left',
       render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
     },
-    { 
-      key: 'nome', 
-      label: 'Nome da História', 
+    {
+      key: 'nome',
+      label: 'Nome da História',
       align: 'left'
     },
-    { 
-      key: 'temas', 
-      label: 'Temas', 
-      align: 'left', 
+    {
+      key: 'temas',
+      label: 'Temas',
+      align: 'left',
       render: renderTemas
     },
-    { 
-      key: 'maximo_de_participantes', 
-      label: 'Máximo de Participantes', 
-      align: 'left', 
+    {
+      key: 'status_sessao',
+      label: 'Status',
+      align: 'left',
+      render: renderStatusSessao
+    },
+    {
+      key: 'maximo_de_participantes',
+      label: 'Máximo de Participantes',
+      align: 'left',
       render: renderMaxParticipantes
     }
   ];
 
+  // Handler para entrar em partida ativa
+  const handleEntrarPartida = (historia) => {
+    console.log('🎮 Entrando em partida ativa da história:', historia.id);
+    navigate(generateRoute.jogo(historia.id));
+  };
+
+  // Ações que incluem verificação de propriedade dentro do onClick
   const actions = [
+    {
+      label: 'Entrar na Partida',
+      icon: '🎯',
+      color: 'orange',
+      onClick: (row) => handleEntrarPartida(row),
+      show: (row) => {
+        console.log('🔍 Verificando se deve mostrar "Entrar na Partida" para:', row.nome, 'sessaoAtiva:', row.sessaoAtiva, 'tipo:', typeof row.sessaoAtiva);
+        return row.sessaoAtiva === true;
+      }
+    },
     {
       label: 'Iniciar Sessão',
       icon: '🎮',
       color: 'green',
-      onClick: (row) => handlePlayHistoria(row)
+      onClick: (row) => handlePlayHistoria(row),
+      show: (row) => {
+        console.log('🔍 Verificando se deve mostrar "Iniciar Sessão" para:', row.nome, 'sessaoAtiva:', row.sessaoAtiva);
+        return !row.sessaoAtiva;
+      }
     },
     {
       label: 'Ver',
       icon: '👁️',
       color: 'purple',
-      onClick: (row) => handleViewHistoria(row)
+      onClick: (row) => handleViewHistoria(row),
+      show: (row) => isOwner(row)
     },
+    {
+      label: 'Convidar',
+      icon: '📧',
+      color: 'blue',
+      onClick: (row) =>
+        handleConviteClick(row),
+      show: (row) => isOwner(row)
+
+    },
+
     {
       label: 'Deletar',
       icon: '🗑️',
       color: 'red',
-      onClick: (row) => handleDeleteClick(row)
+      onClick: (row) => handleDeleteClick(row),
+      show: (row) => isOwner(row)
     }
-  ];
-
+  ]
   if (loading && historias.length === 0) {
     return (
       <div className="animate-fade-in">
         <div className="card-rpg">
-          <LoadingSpinner 
-            size="xl" 
-            text="Carregando histórias..." 
+          <LoadingSpinner
+            size="xl"
+            text="Carregando histórias..."
             variant="primary"
           />
         </div>
@@ -203,7 +329,7 @@ export const HistoriaView = () => {
             Gerencie suas campanhas e aventuras épicas
           </p>
         </div>
-        
+
         {/* ✅ Link usando constante de rota */}
         <Link to={ROUTES.NOVA_HISTORIA}>
           <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
@@ -229,24 +355,27 @@ export const HistoriaView = () => {
           variant="secondary"
         />
 
-        <StatCard
+        {/* <StatCard
           title="Com Temas"
           value={estatisticas?.comTemas || 0}
           icon="⚡"
           variant="accent"
-        />
+        /> */}
       </div>
 
       {/* Tabela de histórias */}
-      <DataTable
+      <TabelaList
+        header="Lista de Histórias"
         columns={columns}
         data={historias}
         actions={actions}
         loading={loading}
-        title="Lista de Histórias"
+        pagination={true}
+        initialPageSize={10}
+        pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhuma história encontrada"
         emptyIcon="📖"
-        totalItems={historias.length}
+        hoverable={true}
       />
 
       {/* Modal de Confirmação */}
@@ -261,8 +390,17 @@ export const HistoriaView = () => {
         loading={deleteLoading}
         variant="danger"
       />
+
+      {/* Modal de Convite */}
+      <ConviteModal
+        isOpen={showConviteModal}
+        onClose={handleCancelConvite}
+        onConfirm={handleEnviarConvite}
+        historia={historiaParaConvite}
+        loading={conviteLoading}
+      />
     </div>
   );
-}; 
+};
 
 export default HistoriaView; 

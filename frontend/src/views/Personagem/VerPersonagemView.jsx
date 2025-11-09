@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/form/button';
 import RPGCard from '../../components/RPGCard';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { personagemViewModel } from '../../viewmodels/Personagens/PersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
+import { useRacaStore } from '../../store/raca';
+import { useClasseStore } from '../../store/classe';
 
 const VerPersonagemView = () => {
   const vm = useViewModel(personagemViewModel);
@@ -13,13 +15,57 @@ const VerPersonagemView = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const atributos = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
+  
+  // Stores de raça e classe
+  const getRacaById = useRacaStore(state => state.getRacaById);
+  const getClasseById = useClasseStore(state => state.getClasseById);
+  const carregarRacas = useRacaStore(state => state.carregarRacas);
+  const carregarClasses = useClasseStore(state => state.carregarClasses);
 
   useEffect(() => {
     if (id) {
       vm.loadPersonagem(id);
     }
     vm.clearError();
-  }, [id]);
+    
+    // Inicializar stores de raça e classe
+    carregarRacas();
+    carregarClasses();
+  }, [id,carregarRacas, carregarClasses]);
+
+  // Buscar nomes de raça e classe usando os stores
+  // IMPORTANTE: Hooks devem ser chamados antes de qualquer return condicional
+  const personagem = vm.personagemAtual;
+  
+  const nomeRaca = useMemo(() => {
+    if (!personagem) return null;
+    // Tenta buscar por ID primeiro, depois por nome direto
+    const racaId = personagem.raca_id || personagem.raca;
+    if (racaId && typeof racaId === 'number') {
+      const raca = getRacaById(racaId);
+      return raca?.nome || personagem.raca || 'Humano';
+    }
+    // Se já é uma string (nome), retorna direto
+    if (typeof racaId === 'string') {
+      return racaId;
+    }
+    return personagem.raca || 'Humano';
+  }, [personagem, getRacaById]);
+
+  const nomeClasse = useMemo(() => {
+    if (!personagem) return null;
+    // Tenta buscar por ID primeiro, depois por nome direto
+    const classeId = personagem.classe_id || personagem.classe;
+    if (classeId && typeof classeId === 'number') {
+      const classe = getClasseById(classeId);
+      return classe?.nome || personagem.classe || 'Aventureiro';
+    }
+    // Se já é uma string (nome), retorna direto
+    if (typeof classeId === 'string') {
+      return classeId;
+    }
+    return personagem.classe || 'Aventureiro';
+  }, [personagem, getClasseById]);
 
   if (vm.loading) {
     return (
@@ -63,8 +109,6 @@ const VerPersonagemView = () => {
       </div>
     );
   }
-
-  const personagem = vm.personagemAtual;
 
   return (
     <div className="min-h-screen animate-fade-in">
@@ -128,9 +172,9 @@ const VerPersonagemView = () => {
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">⚔️</span>
                   <div>
-                    <div className="text-sm text-slate-400 font-modern">Classe</div>
+                    <div className={`text-sm font-modern ${isLight ? 'text-slate-400' : 'text-slate-300'}`}>Classe</div>
                     <div className={`text-xl font-bold font-fantasy ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                      {personagem.classe || 'Aventureiro'}
+                      {nomeClasse || 'Aventureiro'}
                     </div>
                   </div>
                 </div>
@@ -139,9 +183,9 @@ const VerPersonagemView = () => {
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">🏃</span>
                   <div>
-                    <div className="text-sm text-slate-400 font-modern">Raça</div>
+                    <div className={`text-sm font-modern ${isLight ? 'text-slate-400' : 'text-slate-300'}`}>Raça</div>
                     <div className={`text-xl font-bold font-fantasy ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                      {personagem.raca || 'Humano'}
+                      {nomeRaca || 'Humano'}
                     </div>
                   </div>
                 </div>
@@ -156,13 +200,13 @@ const VerPersonagemView = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {atributos.map((atributo) => (
                   <div key={atributo} className={`p-4 rounded-xl text-center ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
-                    <div className="text-sm text-slate-400 font-modern mb-2">
+                    <div className={`text-sm font-modern mb-2 ${isLight ? 'text-slate-400' : 'text-slate-300'}`}>
                       {atributo.charAt(0).toUpperCase() + atributo.slice(1)}
                     </div>
                     <div className={`text-3xl font-bold mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>
                       {personagem?.[atributo] || 0}
                     </div>
-                    <div className="text-xs text-slate-400 font-modern">
+                    <div className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-300'}`}>
                       Mod: {Math.floor((Number(personagem?.[atributo] || 0) - 10) / 2)}
                     </div>
                   </div>
@@ -182,7 +226,7 @@ const VerPersonagemView = () => {
                   {personagem.background}
                 </p>
               ) : (
-                <p className={`font-modern italic text-lg ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <p className={`font-modern italic text-lg ${isLight ? 'text-slate-500' : 'text-slate-300'}`}>
                   Background não definido
                 </p>
               )}
@@ -212,7 +256,7 @@ const VerPersonagemView = () => {
                 </div>
               ) : (
                 <div className={`p-6 rounded-xl text-center ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
-                  <p className={`font-modern italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <p className={`font-modern italic ${isLight ? 'text-slate-500' : 'text-slate-300'}`}>
                     Nenhuma vantagem definida
                   </p>
                 </div>
@@ -240,7 +284,7 @@ const VerPersonagemView = () => {
                 </div>
               ) : (
                 <div className={`p-6 rounded-xl text-center ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
-                  <p className={`font-modern italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <p className={`font-modern italic ${isLight ? 'text-slate-500' : 'text-slate-300'}`}>
                     Nenhuma desvantagem definida
                   </p>
                 </div>
@@ -259,7 +303,7 @@ const VerPersonagemView = () => {
                   {personagem.equipamentos}
                 </p>
               ) : (
-                <p className={`font-modern italic text-lg ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <p className={`font-modern italic text-lg ${isLight ? 'text-slate-500' : 'text-slate-300'}`}>
                   Nenhum equipamento definido
                 </p>
               )}
@@ -292,8 +336,8 @@ const VerPersonagemView = () => {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100/50">
-                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              <div className={`flex items-center justify-between p-3 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50 border border-slate-700'}`}>
+                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-200'}`}>
                   HP Máximo:
                 </span>
                 <span className="font-bold text-green-400 font-modern">
@@ -301,8 +345,8 @@ const VerPersonagemView = () => {
                 </span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100/50">
-                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              <div className={`flex items-center justify-between p-3 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50 border border-slate-700'}`}>
+                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-200'}`}>
                   Classe de Armadura:
                 </span>
                 <span className="font-bold text-cyan-400 font-modern">
@@ -318,45 +362,42 @@ const VerPersonagemView = () => {
               ⚙️ Informações
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100/50">
-                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              <div className={`flex items-center justify-between p-3 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50 border border-slate-700'}`}>
+                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-200'}`}>
                   Criado em:
                 </span>
-                <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-300'}`}>
                   {new Date(personagem.created_at).toLocaleDateString('pt-BR')}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100/50">
-                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              <div className={`flex items-center justify-between p-3 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50 border border-slate-700'}`}>
+                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-200'}`}>
                   Última atualização:
                 </span>
-                <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-300'}`}>
                   {new Date(personagem.updated_at).toLocaleDateString('pt-BR')}
                 </span>
               </div>
-            </div>
-          </RPGCard>
-
-          {/* Actions Card */}
-          <RPGCard className="p-6">
-            <h3 className={`text-xl font-bold font-fantasy mb-6 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              🎯 Ações
-            </h3>
-            <div className="space-y-3">
-              <Button
-                variant="primary"
-                onClick={() => navigate(`/editar-personagem/${personagem.id}`)}
-                className="w-full py-3"
-              >
-                ✏️ Editar Personagem
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/personagens')}
-                className="w-full py-3"
-              >
-                ← Voltar aos Personagens
-              </Button>
+              {Array.isArray(personagem.historias) && personagem.historias.length > 0 && (
+                <div className={`p-3 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50 border border-slate-700'}`}>
+                  <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-200'} block mb-2`}>
+                    Histórias:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {personagem.historias.map((historia) => (
+                      <span
+                        key={historia.id}
+                        className={`px-3 py-1 rounded-full text-xs font-modern font-semibold ${isLight
+                          ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                          : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        }`}
+                      >
+                        {historia.nome}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </RPGCard>
         </div>

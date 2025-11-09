@@ -31,7 +31,6 @@ export const initializeTemaStore = async () => {
   const { temasCarregados, inicializar } = useTemaStore.getState();
   
   if (!temasCarregados) {
-    console.log('🚀 Inicializando Tema Store...');
     await inicializar();
   }
 };

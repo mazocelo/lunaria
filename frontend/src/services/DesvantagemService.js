@@ -18,22 +18,10 @@ export class DesvantagemService {
     try {
       const paramsString = generateGETparams(params);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar desvantagens: ${error.message}`);
@@ -48,22 +36,10 @@ export class DesvantagemService {
     try {
       const paramsString = generateGETparams(params);
       const response = await this.apiClient.get(`${this.baseUrl}${paramsString}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar desvantagens: ${error.message}`);
@@ -78,22 +54,10 @@ export class DesvantagemService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar desvantagem: ${error.message}`);
@@ -108,22 +72,10 @@ export class DesvantagemService {
   async getByTipo(tipo) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?tipo=${encodeURIComponent(tipo)}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar desvantagens por tipo: ${error.message}`);
@@ -138,22 +90,10 @@ export class DesvantagemService {
   async getByNome(nome) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?nome=${encodeURIComponent(nome)}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar desvantagens por nome: ${error.message}`);
@@ -169,22 +109,10 @@ export class DesvantagemService {
   async update(id, data) {
     try {
       const response = await this.apiClient.put(`${this.baseUrl}/${id}`, data);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao atualizar desvantagem: ${error.message}`);
@@ -199,22 +127,10 @@ export class DesvantagemService {
   async delete(id) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao excluir desvantagem: ${error.message}`);

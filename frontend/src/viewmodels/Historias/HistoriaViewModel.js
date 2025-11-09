@@ -16,10 +16,10 @@ export class HistoriaViewModel {
     this.historiaAtual = null;
     this.loading = false;
     this.error = null;
-    
+
     // 🎨 TEMA STORE - API direta (sem hooks) para ViewModels
     this.temaStore = getTemaStoreAPI();
-    
+
     this.filtros = {
       tema: null,
       participantes: null,
@@ -80,7 +80,7 @@ export class HistoriaViewModel {
    */
   get historiaAtualComTemas() {
     if (!this.historiaAtual) return null;
-    
+
     return {
       ...this.historiaAtual,
       temasNomes: this.temaStore.mapearTemasDeHistoria(this.historiaAtual)
@@ -136,22 +136,17 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      console.log('📚 HistoriaViewModel: Carregando histórias...');
-      
+
       // Carregar temas se necessário (cache global)
       await this.temaStore.carregarTemas();
-      
+
       // Carregar histórias
-      const historiasData = await historiaService.getAll();
-      
-      this.historias = historiasData;
-      
-      console.log(`✅ HistoriaViewModel: ${historiasData.length} histórias carregadas`);
-      console.log('🎨 Temas mapeados para exibição por nome');
-      
+      const { data } = await historiaService.getAll();
+      this.historias = data;
+
+
       this.notify();
     } catch (error) {
-      console.error('❌ Erro ao carregar histórias:', error);
       this.setError(error.message);
     } finally {
       this.setLoading(false);
@@ -167,19 +162,14 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      console.log('📖 HistoriaViewModel: Carregando história específica...', id);
-      
       // Garantir que os temas estejam carregados
       await this.temaStore.carregarTemas();
-      
+
       // Carregar a história
       const historia = await historiaService.getById(id);
-      
+
       this.historiaAtual = historia;
-      
-      console.log('✅ História carregada:', historia);
-      console.log('🎨 Temas da história:', this.temaStore.mapearTemasDeHistoria(historia));
-      
+
       this.notify();
     } catch (error) {
       console.error('❌ Erro ao carregar história:', error);
@@ -200,22 +190,17 @@ export class HistoriaViewModel {
     try {
       const historia = new Historia(dados);
       const validation = historia.validate();
-      
+
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
 
-      console.log('🎨 HistoriaViewModel: Criando história com temas:', {
-        nome: dados.nome,
-        temasIds: dados.temas,
-        temasNomes: this.temaStore.getNomesDeTemas(dados.temas || [])
-      });
 
       const novaHistoria = await historiaService.create(dados);
-      
+
       // Recarregar lista após criação
       await this.loadHistorias();
-      
+
       return novaHistoria;
     } catch (error) {
       this.setError(error.message);
@@ -235,26 +220,20 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      console.log('🎨 HistoriaViewModel: Atualizando história com temas:', {
-        id,
-        nome: dados.nome,
-        temasIds: dados.temas,
-        temasNomes: this.temaStore.getNomesDeTemas(dados.temas || [])
-      });
 
       const historiaAtualizada = await historiaService.update(id, dados);
-      
+
       // Atualizar na lista local
       const index = this.historias.findIndex(h => h.id === id);
       if (index !== -1) {
         this.historias[index] = historiaAtualizada;
       }
-      
+
       // Atualizar história atual se for a mesma
       if (this.historiaAtual && this.historiaAtual.id === id) {
         this.historiaAtual = historiaAtualizada;
       }
-      
+
       this.notify();
       return historiaAtualizada;
     } catch (error) {
@@ -275,15 +254,15 @@ export class HistoriaViewModel {
 
     try {
       await historiaService.delete(id);
-      
+
       // Remover da lista local
       this.historias = this.historias.filter(h => h.id !== id);
-      
+
       // Limpar história atual se for a mesma
       if (this.historiaAtual && this.historiaAtual.id === id) {
         this.historiaAtual = null;
       }
-      
+
       this.notify();
     } catch (error) {
       this.setError(error.message);
@@ -298,12 +277,8 @@ export class HistoriaViewModel {
    */
   aplicarFiltros = (filtros) => {
     this.filtros = { ...this.filtros, ...filtros };
-    
-    console.log('🔍 HistoriaViewModel: Aplicando filtros:', {
-      ...this.filtros,
-      temaNome: this.filtros.tema ? this.temaStore.getTemaById(this.filtros.tema)?.nome : 'Todos'
-    });
-    
+
+
     this.notify();
   }
 
@@ -315,14 +290,14 @@ export class HistoriaViewModel {
 
     // Filtro por tema
     if (this.filtros.tema) {
-      historiasFiltradas = historiasFiltradas.filter(historia => 
+      historiasFiltradas = historiasFiltradas.filter(historia =>
         historia.temas && historia.temas.includes(this.filtros.tema)
       );
     }
 
     // Filtro por participantes
     if (this.filtros.participantes) {
-      historiasFiltradas = historiasFiltradas.filter(historia => 
+      historiasFiltradas = historiasFiltradas.filter(historia =>
         historia.maximo_de_participantes >= this.filtros.participantes
       );
     }
@@ -330,9 +305,9 @@ export class HistoriaViewModel {
     // Filtro por busca (nome ou temas)
     if (this.filtros.busca) {
       const termoBusca = this.filtros.busca.toLowerCase();
-      historiasFiltradas = historiasFiltradas.filter(historia => 
+      historiasFiltradas = historiasFiltradas.filter(historia =>
         historia.nome.toLowerCase().includes(termoBusca) ||
-        (historia.temasNomes && historia.temasNomes.some(tema => 
+        (historia.temasNomes && historia.temasNomes.some(tema =>
           tema.toLowerCase().includes(termoBusca)
         ))
       );
@@ -368,6 +343,30 @@ export class HistoriaViewModel {
   getNomesTemas = (historia) => {
     if (!historia) return [];
     return this.temaStore.mapearTemasDeHistoria(historia);
+  }
+
+  /**
+   * Envia convite por email para uma história
+   * @param {number} historia_id - ID da história
+   * @param {string} email - Email do jogador a ser convidado
+   * @returns {Promise<Object>} Resultado do convite
+   */
+  enviarConvite = async (historia_id, email) => {
+    this.setLoading(true);
+    this.setError(null);
+
+    try {
+      const resultado = await historiaService.enviarConvite(historia_id, email);
+
+
+      return resultado;
+    } catch (error) {
+      console.error('❌ HistoriaViewModel: Erro ao enviar convite:', error);
+      this.setError(error.message);
+      throw error;
+    } finally {
+      this.setLoading(false);
+    }
   }
 
   /**

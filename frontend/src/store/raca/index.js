@@ -32,7 +32,6 @@ export const initializeRacaStore = async () => {
   const { racasCarregadas, inicializar } = useRacaStore.getState();
   
   if (!racasCarregadas) {
-    console.log('🚀 Inicializando Raça Store...');
     await inicializar();
   }
 };

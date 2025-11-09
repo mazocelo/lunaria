@@ -12,9 +12,6 @@ export default class ClasseViewModel {
       loading: false,
       error: null,
       searchTerm: '',
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 10,
       filteredClasses: []
     };
 
@@ -50,18 +47,11 @@ export default class ClasseViewModel {
 
   // ===== MÉTODOS DE BUSCA E FILTROS =====
   setSearchTerm = (term) => {
-    this.setState({ searchTerm: term, currentPage: 1 });
+    this.setState({ searchTerm: term });
     
     // Aplicar filtro com o novo termo
     const filteredClasses = this.filterClasses(this.state.classes, term);
-    this.setState({ 
-      filteredClasses,
-      totalPages: Math.ceil(filteredClasses.length / this.state.itemsPerPage)
-    });
-  };
-
-  setPage = (page) => {
-    this.setState({ currentPage: page });
+    this.setState({ filteredClasses });
   };
 
   // ===== HANDLER DE MUDANÇAS DO STORE =====
@@ -72,8 +62,7 @@ export default class ClasseViewModel {
       classes: storeState.classes,
       filteredClasses,
       loading: storeState.loading,
-      error: storeState.error,
-      totalPages: Math.ceil(filteredClasses.length / this.state.itemsPerPage)
+      error: storeState.error
     });
   };
 
@@ -84,8 +73,6 @@ export default class ClasseViewModel {
       const storeState = this.classeStore.getState();
       
       if (storeState.classesCarregadas && storeState.classes.length > 0) {
-        console.log('✅ ClasseViewModel: Usando dados do cache');
-        
         // Se ID fornecido, buscar classe específica do cache
         if (id) {
           const classe = this.classeStore.getClasseById(parseInt(id));
@@ -98,7 +85,6 @@ export default class ClasseViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 ClasseViewModel: Cache vazio, carregando do backend...');
       await this.classeStore.carregarClasses();
       
       // Se ID fornecido, buscar classe específica
@@ -123,7 +109,6 @@ export default class ClasseViewModel {
       const storeState = this.classeStore.getState();
       
       if (storeState.classesCarregadas && storeState.classes.length > 0) {
-        console.log('✅ ClasseViewModel: Buscando classe no cache');
         const classe = this.classeStore.getClasseById(parseInt(id));
         
         this.setState({ 
@@ -135,7 +120,6 @@ export default class ClasseViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar primeiro
-      console.log('📡 ClasseViewModel: Cache vazio, carregando classes...');
       await this.classeStore.carregarClasses();
       
       // Buscar classe específica após carregamento
@@ -167,11 +151,9 @@ export default class ClasseViewModel {
     );
   };
 
-  // ===== PAGINAÇÃO =====
-  getPaginatedClasses = () => {
-    const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
-    const end = start + this.state.itemsPerPage;
-    return this.state.filteredClasses.slice(start, end);
+  // ===== DADOS PARA EXIBIÇÃO =====
+  getClasses = () => {
+    return this.state.filteredClasses;
   };
 
   // ===== MÉTODOS DE CRUD =====
@@ -235,10 +217,6 @@ export default class ClasseViewModel {
   }
 
   // ===== GETTERS PARA COMPATIBILIDADE =====
-  getClasses() {
-    return this.getPaginatedClasses();
-  }
-
   getAllClasses() {
     return this.state.classes;
   }

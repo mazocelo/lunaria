@@ -17,19 +17,10 @@ export class TemaService {
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar temas: ${error.message}`);
@@ -43,11 +34,10 @@ export class TemaService {
   async getAtivos() {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?ativo=true`);
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar temas ativos: ${error.message}`);
@@ -62,11 +52,10 @@ export class TemaService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar tema: ${error.message}`);
@@ -87,11 +76,10 @@ export class TemaService {
       }
 
       const response = await this.apiClient.post(this.baseUrl, tema.toJSON());
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao criar tema: ${error.message}`);
@@ -113,11 +101,10 @@ export class TemaService {
       }
 
       const response = await this.apiClient.put(`${this.baseUrl}/${id}`, tema.toJSON());
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao atualizar tema: ${error.message}`);
@@ -132,8 +119,10 @@ export class TemaService {
   async delete(id) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-      if(!response.data?.success){
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao remover tema: ${error.message}`);
@@ -148,11 +137,10 @@ export class TemaService {
   async ativar(id) {
     try {
       const response = await this.apiClient.patch(`${this.baseUrl}/${id}/ativar`);
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao ativar tema: ${error.message}`);
@@ -167,11 +155,10 @@ export class TemaService {
   async desativar(id) {
     try {
       const response = await this.apiClient.patch(`${this.baseUrl}/${id}/desativar`);
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao desativar tema: ${error.message}`);
@@ -186,11 +173,10 @@ export class TemaService {
   async getByNome(nome) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}?nome=${encodeURIComponent(nome)}`);
-      if(response.data?.success){
-        return response.data?.data;
-      }
-      else{
-        throw new Error(response.data?.message);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar temas por nome: ${error.message}`);

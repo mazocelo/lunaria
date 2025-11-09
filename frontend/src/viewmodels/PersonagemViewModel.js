@@ -68,8 +68,8 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagens = await personagemService.getAll();
-      this.personagens = personagens;
+      const { data } = await personagemService.getAll();
+      this.personagens = data;
       this.notify();
     } catch (error) {
       this.setError(error.message);
@@ -87,8 +87,8 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagem = await personagemService.getById(id);
-      this.personagemAtual = personagem;
+      const { data } = await personagemService.getById(id);
+      this.personagemAtual = data;
       this.notify();
     } catch (error) {
       this.setError(error.message);
@@ -113,7 +113,7 @@ export class PersonagemViewModel {
         throw new Error(validation.errors.join(', '));
       }
 
-      const novoPersonagem = await personagemService.create(personagem);
+      const { data: novoPersonagem } = await personagemService.create(personagem);
       this.personagens.push(novoPersonagem);
       this.notify();
       return novoPersonagem;
@@ -142,7 +142,7 @@ export class PersonagemViewModel {
         throw new Error(validation.errors.join(', '));
       }
 
-      const personagemAtualizado = await personagemService.update(id, personagem);
+      const { data: personagemAtualizado } = await personagemService.update(id, personagem);
       
       // Atualiza na lista
       const index = this.personagens.findIndex(p => p.id === id);
@@ -203,7 +203,7 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagemAtualizado = await personagemService.updateHP(id, novoHP);
+      const { data: personagemAtualizado } = await personagemService.updateHP(id, novoHP);
       
       // Atualiza na lista
       const index = this.personagens.findIndex(p => p.id === id);
@@ -235,7 +235,7 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagemAtualizado = await personagemService.levelUp(id);
+      const { data: personagemAtualizado } = await personagemService.levelUp(id);
       
       // Atualiza na lista
       const index = this.personagens.findIndex(p => p.id === id);
@@ -267,7 +267,7 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagens = await personagemService.getByHistoria(historiaId);
+      const { data: personagens } = await personagemService.getByHistoria(historiaId);
       this.personagens = personagens;
       this.notify();
     } catch (error) {
@@ -287,7 +287,7 @@ export class PersonagemViewModel {
     this.setError(null);
 
     try {
-      const personagens = await personagemService.getWithFilters(this.filtros);
+      const { data: personagens } = await personagemService.getWithFilters(this.filtros);
       this.personagens = personagens;
       this.notify();
     } catch (error) {

@@ -34,7 +34,6 @@ export const initializeDesvantagemStore = async () => {
   const { desvantagensCarregadas, inicializar } = useDesvantagemStore.getState();
   
   if (!desvantagensCarregadas) {
-    console.log('🚀 Inicializando Desvantagem Store...');
     await inicializar();
   }
 };

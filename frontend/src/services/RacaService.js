@@ -18,22 +18,10 @@ export class RacaService {
     try {
       const paramsString = generateGETparams(params);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar raças: ${error.message}`);
@@ -48,7 +36,11 @@ export class RacaService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      return response.data;
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
     } catch (error) {
       throw new Error(`Erro ao buscar raça: ${error.message}`);
     }
@@ -62,7 +54,11 @@ export class RacaService {
   async create(raca) {
     try {
       const response = await this.apiClient.post(this.baseUrl, raca);
-      return response.data;
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
     } catch (error) {
       throw new Error(`Erro ao criar raça: ${error.message}`);
     }
@@ -77,7 +73,11 @@ export class RacaService {
   async update(id, raca) {
     try {
       const response = await this.apiClient.put(`${this.baseUrl}/${id}`, raca);
-      return response.data;
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
     } catch (error) {
       throw new Error(`Erro ao atualizar raça: ${error.message}`);
     }
@@ -91,7 +91,11 @@ export class RacaService {
   async delete(id) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-      return response.data;
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
     } catch (error) {
       throw new Error(`Erro ao remover raça: ${error.message}`);
     }

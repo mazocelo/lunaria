@@ -10,6 +10,7 @@
  * 
  * 📡 API REAL: /classes endpoint com paginação (limit, offset)
  */
+import { classeService } from '../../services/index.js';
 
 export const createClasseActions = (set, get) => ({
 
@@ -20,30 +21,25 @@ export const createClasseActions = (set, get) => ({
     
     // Se já foram carregados ou está carregando, não faz nada (exceto se forçar)
     if ((classesCarregadas || loading) && !forceReload) {
-      console.log('🏛️ ClasseStore: Classes já carregadas ou carregando');
       return get().classes;
     }
 
-    console.log('🏛️ ClasseStore: Carregando classes do backend...');
     set({ loading: true, error: null });
 
     try {
       // Importar o service dinamicamente
-      const { classeService } = await import('../../services/index.js');
       
       // Buscar classes do backend (carregar todas de uma vez)
-      const response = await classeService.getAll();
+      const { data } = await classeService.getAll();
       
       // A API retorna { success, data, total, offset, limit }
-      const classesData = response.data || response;
-      const total = response.total || classesData.length;
-      const offset = response.offset || 0;
-      const limit = response.limit || 50;
+      const classesData = data;
+      const total = data.total || classesData.length;
+      const offset = data.offset || 0;
+      const limit = data.limit || 50;
       
       // Processar e cachear os dados
       get().processarClasses(classesData, total, offset, limit);
-      
-      console.log(`✅ ClasseStore: ${classesData.length} classes carregadas com sucesso`);
       
       return classesData;
     } catch (error) {
@@ -58,8 +54,6 @@ export const createClasseActions = (set, get) => ({
 
   // ===== PROCESSAMENTO E CACHE DOS DADOS =====
   processarClasses: (classesData, total = 0, offset = 0, limit = 50) => {
-    console.log('🔄 ClasseStore: Processando e criando cache das classes...');
-    
     // Filtrar apenas classes válidas
     const classesValidas = (classesData || []).filter(classe => classe && classe.id);
     
@@ -93,8 +87,6 @@ export const createClasseActions = (set, get) => ({
       loading: false,
       lastLoadTime: new Date().toISOString()
     });
-    
-    console.log(`🗂️ ClasseStore: Cache criado - ${classesValidas.length} classes de ${total} total`);
   },
 
   // ===== ACESSO OTIMIZADO AOS DADOS =====
@@ -167,7 +159,6 @@ export const createClasseActions = (set, get) => ({
     const { classesCarregadas } = get();
     
     if (!classesCarregadas) {
-      console.log('🚀 ClasseStore: Inicializando store de classes...');
       await get().carregarClasses();
     }
   },
@@ -176,13 +167,11 @@ export const createClasseActions = (set, get) => ({
   
   // Usado por: Em caso de erro ou necessidade de recarga
   recarregarClasses: async () => {
-    console.log('🔄 ClasseStore: Forçando recarga das classes...');
     return await get().carregarClasses(true);
   },
 
   // Reset completo do estado
   resetClasseState: () => {
-    console.log('🧹 ClasseStore: Reset completo do estado');
     const { classeInitialStates } = require('./states.js');
     set(classeInitialStates);
   },
@@ -219,11 +208,9 @@ export const createClasseActions = (set, get) => ({
     const { hasMore, offset, limit, loading } = get();
     
     if (!hasMore || loading) {
-      console.log('🏛️ ClasseStore: Não há mais classes para carregar');
       return;
     }
     
-    console.log('🏛️ ClasseStore: Carregando mais classes...');
     set({ loading: true });
     
     try {
@@ -245,8 +232,6 @@ export const createClasseActions = (set, get) => ({
         response.offset || (offset + limit),
         response.limit || limit
       );
-      
-      console.log(`✅ ClasseStore: ${novasClasses.length} classes adicionais carregadas`);
       
     } catch (error) {
       console.error('❌ ClasseStore: Erro ao carregar mais classes:', error);

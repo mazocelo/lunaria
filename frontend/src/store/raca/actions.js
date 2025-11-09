@@ -10,6 +10,7 @@
  * 
  * 📡 API REAL: /racas endpoint com paginação (limit, offset)
  */
+import { racaService } from '../../services/index.js';
 
 export const createRacaActions = (set, get) => ({
 
@@ -20,30 +21,24 @@ export const createRacaActions = (set, get) => ({
     
     // Se já foram carregados ou está carregando, não faz nada (exceto se forçar)
     if ((racasCarregadas || loading) && !forceReload) {
-      console.log('🧬 RacaStore: Raças já carregadas ou carregando');
       return get().racas;
     }
 
-    console.log('🧬 RacaStore: Carregando raças do backend...');
     set({ loading: true, error: null });
 
     try {
       // Importar o service dinamicamente
-      const { racaService } = await import('../../services/index.js');
       
       // Buscar raças do backend (carregar todas de uma vez)
-      const response = await racaService.getAll();
-      
+      const { data } = await racaService.getAll();
       // A API retorna { success, data, total, offset, limit }
-      const racasData = response.data || response;
-      const total = response.total || racasData.length;
-      const offset = response.offset || 0;
-      const limit = response.limit || 50;
+      const racasData = data;
+      const total = data.total || racasData.length;
+      const offset = data.offset || 0;
+      const limit = data.limit || 50;
       
       // Processar e cachear os dados
       get().processarRacas(racasData, total, offset, limit);
-      
-      console.log(`✅ RacaStore: ${racasData.length} raças carregadas com sucesso`);
       
       return racasData;
     } catch (error) {
@@ -58,8 +53,6 @@ export const createRacaActions = (set, get) => ({
 
   // ===== PROCESSAMENTO E CACHE DOS DADOS =====
   processarRacas: (racasData, total = 0, offset = 0, limit = 50) => {
-    console.log('🔄 RacaStore: Processando e criando cache das raças...');
-    
     // Filtrar apenas raças válidas
     const racasValidas = (racasData || []).filter(raca => raca && raca.id);
     
@@ -93,8 +86,6 @@ export const createRacaActions = (set, get) => ({
       loading: false,
       lastLoadTime: new Date().toISOString()
     });
-    
-    console.log(`🗂️ RacaStore: Cache criado - ${racasValidas.length} raças de ${total} total`);
   },
 
   // ===== ACESSO OTIMIZADO AOS DADOS =====
@@ -167,7 +158,6 @@ export const createRacaActions = (set, get) => ({
     const { racasCarregadas } = get();
     
     if (!racasCarregadas) {
-      console.log('🚀 RacaStore: Inicializando store de raças...');
       await get().carregarRacas();
     }
   },
@@ -176,13 +166,11 @@ export const createRacaActions = (set, get) => ({
   
   // Usado por: Em caso de erro ou necessidade de recarga
   recarregarRacas: async () => {
-    console.log('🔄 RacaStore: Forçando recarga das raças...');
     return await get().carregarRacas(true);
   },
 
   // Reset completo do estado
   resetRacaState: () => {
-    console.log('🧹 RacaStore: Reset completo do estado');
     const { racaInitialStates } = require('./states.js');
     set(racaInitialStates);
   },
@@ -219,34 +207,29 @@ export const createRacaActions = (set, get) => ({
     const { hasMore, offset, limit, loading } = get();
     
     if (!hasMore || loading) {
-      console.log('🧬 RacaStore: Não há mais raças para carregar');
       return;
     }
     
-    console.log('🧬 RacaStore: Carregando mais raças...');
     set({ loading: true });
     
     try {
-      const { racaService } = await import('../../services/index.js');
       
       // Carregar próxima página
-      const response = await racaService.getAll({ 
+      const { data } = await racaService.getAll({ 
         limit, 
         offset: offset + limit 
       });
       
-      const novasRacas = response.data || response;
+      const novasRacas = data;
       const todasRacas = [...get().racas, ...novasRacas];
       
       // Processar dados combinados
       get().processarRacas(
         todasRacas, 
-        response.total || todasRacas.length,
-        response.offset || (offset + limit),
-        response.limit || limit
+        data.total || todasRacas.length,
+        data.offset || (offset + limit),
+        data.limit || limit
       );
-      
-      console.log(`✅ RacaStore: ${novasRacas.length} raças adicionais carregadas`);
       
     } catch (error) {
       console.error('❌ RacaStore: Erro ao carregar mais raças:', error);

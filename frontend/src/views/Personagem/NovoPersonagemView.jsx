@@ -7,6 +7,7 @@ import FormTextarea from '../../components/form/FormTextarea';
 import FormRadioGroup from '../../components/form/FormRadioGroup';
 import FormVantagem from '../../components/form/FormVantagem';
 import FormSelectDescricao from '../../components/form/FormSelectDescricao';
+import FormHistorias from '../../components/form/FormHistorias';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from '../../viewmodels/Personagens/NovoPersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
@@ -32,8 +33,6 @@ const NovoPersonagemView = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  const vmState = vm.getState();
-
   useEffect(() => {
     vm.clearError();
     vm.resetPontos();
@@ -52,7 +51,7 @@ const NovoPersonagemView = () => {
     const { name, value } = e.target;
     const fieldMappings = {
       nome: vm.setNome,
-      historia_id: vm.setHistoriaId,
+      historias: vm.setHistorias,
       raca: vm.setRaca,
       classe: vm.setClasse,
       backgroundTipo: vm.setBackgroundTipo,
@@ -61,7 +60,7 @@ const NovoPersonagemView = () => {
       desvantagens: vm.setDesvantagens,
       equipamentos: vm.setEquipamentos
     };
-    if (vmState.atributos && name in vmState.atributos) {
+    if (vm.atributos && name in vm.atributos) {
       vm.setAtributo(name, value);
     } else if (fieldMappings[name]) {
       fieldMappings[name](value);
@@ -95,7 +94,7 @@ const NovoPersonagemView = () => {
 
       <form onSubmit={handleSubmit} className="card-rpg space-y-8">
         {/* Mensagem de erro */}
-        {vmState.error && (
+        {vm.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -103,7 +102,7 @@ const NovoPersonagemView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
               </div>
             </div>
           </div>
@@ -116,11 +115,11 @@ const NovoPersonagemView = () => {
               Pontos utilizados:
             </span>
             <span className={`font-bold text-lg text-cyan-400`}>
-              {vmState.pontosUsados}
+              {vm.pontosUsados}
             </span>
           </div>
           <div className="mt-2 text-sm text-slate-400 font-modern">
-            <span>Atributos: {vmState.pontosDistribuidos} | Vantagens: {vmState.pontosVantagens} | Desvantagens: {vmState.pontosDesvantagens} | Raça: {vmState.custoRaca} | Classe: {vmState.custoClasse}</span>
+            <span>Atributos: {vm.pontosDistribuidos} | Vantagens: {vm.pontosVantagens} | Desvantagens: {vm.pontosDesvantagens} | Raça: {vm.custoRaca} | Classe: {vm.custoClasse}</span>
           </div>
         </div>
 
@@ -128,7 +127,7 @@ const NovoPersonagemView = () => {
         <InputSimples
           label="Nome do personagem"
           name="nome"
-          value={vmState.nome}
+          value={vm.nome}
           onChange={handleChange}
           placeholder="Digite o nome"
           required
@@ -139,9 +138,9 @@ const NovoPersonagemView = () => {
           <FormSelectDescricao
             label="Raça"
             name="raca"
-            value={String(vmState.raca_id || '')}
+            value={String(vm.raca_id || '')}
             onChange={handleChange}
-            options={vmState.racasDisponiveis?.length > 0 ? vmState.racasDisponiveis.map(raca => {
+            options={vm.racasDisponiveis?.length > 0 ? vm.racasDisponiveis.map(raca => {
               if (!raca || typeof raca !== 'object') {
                 return null;
               }
@@ -152,16 +151,16 @@ const NovoPersonagemView = () => {
                 custo: raca.custo || 0
               };
             }).filter(Boolean) : opcoesRaca}
-            placeholder={vmState.loadingOpcoes ? "Carregando raças..." : "Selecione a raça"}
+            placeholder={vm.loadingOpcoes ? "Carregando raças..." : "Selecione a raça"}
             required
-            disabled={vmState.loadingOpcoes}
+            disabled={vm.loadingOpcoes}
           />
           <FormSelectDescricao
             label="Classe"
             name="classe"
-            value={String(vmState.classe_id || '')}
+            value={String(vm.classe_id || '')}
             onChange={handleChange}
-            options={vmState.classesDisponiveis?.length > 0 ? vmState.classesDisponiveis.map(classe => {
+            options={vm.classesDisponiveis?.length > 0 ? vm.classesDisponiveis.map(classe => {
               if (!classe || typeof classe !== 'object') {
                 return null;
               }
@@ -172,9 +171,9 @@ const NovoPersonagemView = () => {
                 custo: classe.custo || 0
               };
             }).filter(Boolean) : opcoesClasse}
-            placeholder={vmState.loadingOpcoes ? "Carregando classes..." : "Selecione a classe"}
+            placeholder={vm.loadingOpcoes ? "Carregando classes..." : "Selecione a classe"}
             required
-            disabled={vmState.loadingOpcoes}
+            disabled={vm.loadingOpcoes}
           />
         </div>
 
@@ -182,12 +181,12 @@ const NovoPersonagemView = () => {
         <div>
           <label className="block font-semibold mb-2 text-white font-modern">Atributos</label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-            {Object.keys(vmState.atributos || {}).map((attr) => (
+            {Object.keys(vm.atributos || {}).map((attr) => (
               <InputSimples
                 key={attr}
                 label={attr.charAt(0).toUpperCase() + attr.slice(1)}
                 name={attr}
-                value={vmState.atributos[attr]}
+                value={vm.atributos[attr]}
                 onChange={handleChange}
                 type="number"
                 required
@@ -200,9 +199,9 @@ const NovoPersonagemView = () => {
         <FormVantagem
           name="vantagens"
           label="Vantagens"
-          value={vmState.vantagens}
+          value={vm.vantagens}
           onChange={handleVantagensChange}
-          options={vmState.vantagensDisponiveis?.map(vantagem => {
+          options={vm.vantagensDisponiveis?.map(vantagem => {
             if (!vantagem || typeof vantagem !== 'object') {
               return null;
             }
@@ -214,19 +213,19 @@ const NovoPersonagemView = () => {
               tipo: vantagem.tipo || 'vantagem'
             };
           }).filter(Boolean) || []}
-          placeholder={vmState.loadingVantagens ? "Carregando vantagens..." : "Selecione as vantagens"}
-          disabled={vmState.loadingVantagens}
-          pontosRestantes={vmState.pontosUsados}
-          vantagemError={vmState.vantagemError}
+          placeholder={vm.loadingVantagens ? "Carregando vantagens..." : "Selecione as vantagens"}
+          disabled={vm.loadingVantagens}
+          pontosRestantes={vm.pontosUsados}
+          vantagemError={vm.vantagemError}
         />
 
         {/* Desvantagens */}
         <FormVantagem
           name="desvantagens"
           label="Desvantagens"
-          value={vmState.desvantagens}
+          value={vm.desvantagens}
           onChange={handleDesvantagensChange}
-          options={vmState.desvantagensDisponiveis?.map(desvantagem => {
+          options={vm.desvantagensDisponiveis?.map(desvantagem => {
             if (!desvantagem || typeof desvantagem !== 'object') {
               return null;
             }
@@ -238,17 +237,17 @@ const NovoPersonagemView = () => {
               tipo: desvantagem.tipo || 'desvantagem'
             };
           }).filter(Boolean) || []}
-          placeholder={vmState.loadingDesvantagens ? "Carregando desvantagens..." : "Selecione as desvantagens"}
-          disabled={vmState.loadingDesvantagens}
-          pontosRestantes={vmState.pontosUsados}
-          vantagemError={vmState.vantagemError}
+          placeholder={vm.loadingDesvantagens ? "Carregando desvantagens..." : "Selecione as desvantagens"}
+          disabled={vm.loadingDesvantagens}
+          pontosRestantes={vm.pontosUsados}
+          vantagemError={vm.vantagemError}
         />
 
         {/* Equipamentos */}
         <InputSimples
           label="Equipamentos"
           name="equipamentos"
-          value={vmState.equipamentos}
+          value={vm.equipamentos}
           onChange={handleChange}
           placeholder="Liste os equipamentos"
         />
@@ -258,20 +257,20 @@ const NovoPersonagemView = () => {
           <FormRadioGroup
             label="Background"
             name="backgroundTipo"
-            value={vmState.backgroundTipo}
+            value={vm.backgroundTipo}
             onChange={handleChange}
             options={[
               { value: 'guiado', label: 'Guiado' },
               { value: 'livre', label: 'Livre' }
             ]}
           />
-          {vmState.backgroundTipo === "guiado" ? (
+          {vm.backgroundTipo === "guiado" ? (
             <FormSelect
               name="background"
               label="Selecione um background"
-              value={vmState.background}
+              value={vm.background}
               onChange={handleChange}
-              options={vmState.backgroundsGuiados.map(bg => ({ value: bg, label: bg }))}
+              options={vm.backgroundsGuiados.map(bg => ({ value: bg, label: bg }))}
               placeholder="Selecione um background"
               required
             />
@@ -279,7 +278,7 @@ const NovoPersonagemView = () => {
             <FormTextarea
               name="background"
               label="Descreva o background livremente"
-              value={vmState.background}
+              value={vm.background}
               onChange={handleChange}
               placeholder="Descreva o background livremente"
               rows={3}
@@ -292,9 +291,9 @@ const NovoPersonagemView = () => {
         <FormSelect
           label="História"
           name="historia_id"
-          value={String(vmState.historia_id || '')}
+          value={String(vm.historia_id || '')}
           onChange={handleChange}
-          options={vmState.historiasDisponiveis?.map(historia => {
+          options={vm.historiasDisponiveis?.map(historia => {
             if (!historia || typeof historia !== 'object') {
               return null;
             }
@@ -303,8 +302,8 @@ const NovoPersonagemView = () => {
               label: historia.nome || historia.label || ''
             };
           }).filter(Boolean) || []}
-          placeholder={vmState.loadingHistorias ? "Carregando histórias..." : "Selecione uma história"}
-          disabled={vmState.loadingHistorias}
+          placeholder={vm.loadingHistorias ? "Carregando histórias..." : "Selecione uma história"}
+          disabled={vm.loadingHistorias}
           required
         />
 
@@ -321,10 +320,10 @@ const NovoPersonagemView = () => {
           <Button
             variant="primary"
             type="submit"
-            disabled={vmState.loading}
+            disabled={vm.loading}
             className="flex-1"
           >
-            {vmState.loading ? (
+            {vm.loading ? (
               <div className="flex items-center space-x-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Criando...</span>

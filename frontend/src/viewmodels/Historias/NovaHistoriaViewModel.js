@@ -2,6 +2,7 @@ import { HistoriaService } from '../../services/HistoriaService';
 import { apiClient } from '../../services/ApiClient';
 import { getTemaStoreAPI } from '../../store/index.js';
 import { runInAction } from '../../utils/EventEmitter.js';
+import { Historia } from '../../models/Historia.js';
 
 /**
  * ViewModel para criação de nova história
@@ -93,16 +94,13 @@ export class NovaHistoriaViewModel {
         nome: this.nome,
         temas: this.temasSelecionados, // IDs dos temas selecionados
         maximo_de_participantes: this.maximo_de_participantes,
-        descricao: this.descricao
+        prologo: this.descricao // Mapear descricao para prologo
       };
 
-      console.log('🎨 NovaHistoriaViewModel: Criando história com temas:', {
-        nome: this.nome,
-        temasIds: this.temasSelecionados,
-        temasNomes: this.temaStore.getNomesDeTemas(this.temasSelecionados)
-      });
+      // Criar instância da classe Historia
+      const historia = new Historia(historiaData);
 
-      const novaHistoria = await this.historiaService.create(historiaData);
+      const novaHistoria = await this.historiaService.create(historia);
 
       runInAction(() => {
         this.loading = false;

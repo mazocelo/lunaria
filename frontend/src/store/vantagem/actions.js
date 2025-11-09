@@ -11,6 +11,7 @@
  * 
  * 📡 API REAL: /vantagens endpoint com paginação (limit, offset)
  */
+import { vantagemService } from '../../services/index.js';
 
 export const createVantagemActions = (set, get) => ({
 
@@ -21,30 +22,26 @@ export const createVantagemActions = (set, get) => ({
     
     // Se já foram carregados ou está carregando, não faz nada (exceto se forçar)
     if ((vantagensCarregadas || loading) && !forceReload) {
-      console.log('🌟 VantagemStore: Vantagens já carregadas ou carregando');
       return get().vantagens;
     }
 
-    console.log('🌟 VantagemStore: Carregando vantagens do backend...');
     set({ loading: true, error: null });
 
     try {
       // Importar o service dinamicamente
-      const { vantagemService } = await import('../../services/index.js');
+     
       
       // Buscar vantagens do backend (carregar todas de uma vez)
-      const response = await vantagemService.getAll();
+      const { data } = await vantagemService.getAll();
       
       // A API retorna { success, data, total, offset, limit }
-      const vantagensData = response.data || response;
-      const total = response.total || vantagensData.length;
-      const offset = response.offset || 0;
-      const limit = response.limit || 50;
+      const vantagensData = data;
+      const total = data.total || vantagensData.length;
+      const offset = data.offset || 0;
+      const limit = data.limit || 50;
       
       // Processar e cachear os dados
       get().processarVantagens(vantagensData, total, offset, limit);
-      
-      console.log(`✅ VantagemStore: ${vantagensData.length} vantagens carregadas com sucesso`);
       
       return vantagensData;
     } catch (error) {
@@ -61,8 +58,6 @@ export const createVantagemActions = (set, get) => ({
 
   // ===== PROCESSAMENTO E CACHE DOS DADOS =====
   processarVantagens: (vantagensData, total, offset, limit) => {
-    console.log('🌟 VantagemStore: Processando vantagens...');
-    
     // Criar maps otimizados
     const vantagensPorId = new Map();
     const vantagensPorNome = new Map();
@@ -105,8 +100,6 @@ export const createVantagemActions = (set, get) => ({
       limit,
       hasMore: offset + limit < total
     });
-
-    console.log(`✅ VantagemStore: ${vantagensData.length} vantagens processadas e cacheadas`);
   },
 
   // ===== BUSCA POR ID =====
@@ -194,18 +187,15 @@ export const createVantagemActions = (set, get) => ({
   inicializar: async () => {
     const { vantagensCarregadas } = get();
     if (!vantagensCarregadas) {
-      console.log('🌟 VantagemStore: Inicializando...');
       await get().carregarVantagens();
     }
   },
 
   recarregarVantagens: async () => {
-    console.log('🌟 VantagemStore: Forçando recarregamento...');
     await get().carregarVantagens(true);
   },
 
   resetVantagemState: () => {
-    console.log('🌟 VantagemStore: Reset do estado...');
     set({
       vantagens: [],
       vantagensCarregadas: false,
@@ -231,32 +221,28 @@ export const createVantagemActions = (set, get) => ({
     const { hasMore, loading, offset, limit } = get();
     
     if (!hasMore || loading) {
-      console.log('🌟 VantagemStore: Não há mais vantagens para carregar ou já está carregando');
       return;
     }
 
-    console.log('🌟 VantagemStore: Carregando mais vantagens...');
     set({ loading: true });
 
     try {
-      const { vantagemService } = await import('../../services/index.js');
-      const response = await vantagemService.getAll({ 
+      
+      const { data } = await vantagemService.getAll({ 
         offset: offset + limit, 
         limit 
       });
       
-      const novasVantagens = response.data || response;
+      const novasVantagens = data;
       const currentVantagens = get().vantagens;
       const todasVantagens = [...currentVantagens, ...novasVantagens];
       
       get().processarVantagens(
         todasVantagens, 
-        response.total || todasVantagens.length,
-        response.offset || 0,
-        response.limit || 50
+        data.total || todasVantagens.length,
+        data.offset || 0,
+        data.limit || 50
       );
-      
-      console.log(`✅ VantagemStore: ${novasVantagens.length} vantagens adicionais carregadas`);
     } catch (error) {
       console.error('❌ VantagemStore: Erro ao carregar mais vantagens:', error);
       set({ loading: false, error: error.message });

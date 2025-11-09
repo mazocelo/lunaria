@@ -1,6 +1,7 @@
 // Exportação de todos os ViewModels
 export { HistoriaViewModel, historiaViewModel } from './Historias/HistoriaViewModel';
 export { PersonagemViewModel, personagemViewModel } from './Personagens/PersonagemViewModel';
+export { JogoViewModel, jogoViewModel } from './Jogo';
 export * from './Racas';
 export * from './Classes';
 // Factory para criação de ViewModels
@@ -16,6 +17,8 @@ export class ViewModelFactory {
         return new HistoriaViewModel();
       case 'personagem':
         return new PersonagemViewModel();
+      case 'jogo':
+        return new JogoViewModel();
       default:
         throw new Error(`Tipo de ViewModel desconhecido: ${type}`);
     }

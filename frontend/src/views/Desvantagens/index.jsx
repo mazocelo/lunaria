@@ -6,7 +6,7 @@ import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 import InputSimples from '../../components/form/inputSimples';
-import DataTable from '../../components/Table/DataTable.jsx';
+import { TabelaList } from '../components';
 
 
 
@@ -19,7 +19,8 @@ const DesvantagemView = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
-    vm.init();
+    // somente carregar as desvantagens
+    vm.loadDesvantagens();
   }, []);
 
   const handleSearch = (e) => {
@@ -223,8 +224,7 @@ const DesvantagemView = () => {
   ];
 
   // Filtra apenas desvantagens (custo negativo)
-  const vmState = vm.getState();
-  const desvantagens = (vmState.desvantagens || []).filter(item => item.custo < 0);
+  const desvantagens = (vm.desvantagens || []).filter(item => item.custo < 0);
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto">
@@ -247,7 +247,7 @@ const DesvantagemView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar desvantagens..."
-              value={vmState.searchTerm}
+              value={vm.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
@@ -255,7 +255,7 @@ const DesvantagemView = () => {
         </div>
 
         {/* Mensagem de erro */}
-        {vmState.error && (
+        {vm.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -263,14 +263,14 @@ const DesvantagemView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Loading */}
-        {vmState.loading && (
+        {vm.loading && (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
             <span className="ml-3 text-slate-400 font-modern">Carregando desvantagens...</span>
@@ -278,15 +278,18 @@ const DesvantagemView = () => {
         )}
 
         {/* Tabela de desvantagens */}
-        <DataTable
+        <TabelaList
+          header="Lista de Desvantagens"
           columns={columns}
           data={desvantagens}
           actions={actions}
           loading={vm.loading}
-          title="Lista de Desvantagens"
+          pagination={true}
+          initialPageSize={10}
+          pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage="Nenhuma desvantagem encontrada"
           emptyIcon="⚠️"
-          totalItems={desvantagens.length}
+          hoverable={true}
         />
 
         {/* Paginação */}

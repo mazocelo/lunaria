@@ -168,6 +168,23 @@
     border-radius: 4px;
   }
 
+  /* Classes RPG personalizadas */
+  .btn-rpg {
+    @apply px-6 py-3 rounded-lg font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 border-0 cursor-pointer;
+  }
+
+  .btn-rpg-light {
+    @apply px-6 py-3 rounded-lg font-bold text-purple-700 bg-gradient-to-r from-purple-100 to-blue-100 hover:from-purple-200 hover:to-blue-200 transition-all duration-300 shadow-md hover:shadow-purple-300/25 border border-purple-200 cursor-pointer;
+  }
+
+  .btn-rpg-secondary {
+    @apply px-4 py-2 rounded-lg font-medium text-purple-300 bg-purple-900/30 hover:bg-purple-800/40 transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50 cursor-pointer;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, #7c3aed, #5b21b6);
   }

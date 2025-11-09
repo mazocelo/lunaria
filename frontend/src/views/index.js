@@ -26,6 +26,9 @@ export { default as DesvantagemView } from './Desvantagens/index.jsx';
 export { default as NovaDesvantagemView } from './Desvantagens/NovaDesvantagemView.jsx';
 export { default as EditarDesvantagemView } from './Desvantagens/EditarDesvantagemView.jsx';
 export { default as VerDesvantagemView } from './Desvantagens/VerDesvantagemView.jsx';
+
+// Jogo - Contexts integrados
+export { ConviteJogoView } from './ConviteJogo/index.js';
  
 // Views temporárias (serão migradas para MVVM)
 // Todas as views principais já foram migradas para MVVM 

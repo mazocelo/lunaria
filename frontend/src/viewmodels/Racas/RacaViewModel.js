@@ -11,9 +11,6 @@ export default class RacaViewModel {
       loading: false,
       error: null,
       searchTerm: '',
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 10,
       filteredRacas: []
     };
 
@@ -55,25 +52,17 @@ export default class RacaViewModel {
       racas: storeState.racas,
       filteredRacas,
       loading: storeState.loading,
-      error: storeState.error,
-      totalPages: Math.ceil(filteredRacas.length / this.state.itemsPerPage)
+      error: storeState.error
     });
   };
 
   // ===== MÉTODOS DE BUSCA E FILTROS =====
   setSearchTerm = (term) => {
-    this.setState({ searchTerm: term, currentPage: 1 });
+    this.setState({ searchTerm: term });
     
     // Aplicar filtro com o novo termo
     const filteredRacas = this.filterRacas(this.state.racas, term);
-    this.setState({ 
-      filteredRacas,
-      totalPages: Math.ceil(filteredRacas.length / this.state.itemsPerPage)
-    });
-  };
-
-  setPage = (page) => {
-    this.setState({ currentPage: page });
+    this.setState({ filteredRacas });
   };
 
   // ===== CARREGAMENTO DE DADOS =====
@@ -83,8 +72,6 @@ export default class RacaViewModel {
       const storeState = this.racaStore.getState();
       
       if (storeState.racasCarregadas && storeState.racas.length > 0) {
-        console.log('✅ RacaViewModel: Usando dados do cache');
-        
         // Se ID fornecido, buscar raça específica do cache
         if (id) {
           const raca = this.racaStore.getRacaById(parseInt(id));
@@ -97,14 +84,7 @@ export default class RacaViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 RacaViewModel: Cache vazio, carregando do backend...');
       await this.racaStore.carregarRacas();
-      
-      // Se ID fornecido, buscar raça específica
-      if (id) {
-        const raca = this.racaStore.getRacaById(parseInt(id));
-        this.setState({ racaAtual: raca });
-      }
       
       // Estado será atualizado via handleStoreChange
     } catch (error) {
@@ -122,7 +102,6 @@ export default class RacaViewModel {
       const storeState = this.racaStore.getState();
       
       if (storeState.racasCarregadas && storeState.racas.length > 0) {
-        console.log('✅ RacaViewModel: Buscando raça no cache');
         const raca = this.racaStore.getRacaById(parseInt(id));
         
         this.setState({ 
@@ -134,7 +113,6 @@ export default class RacaViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar primeiro
-      console.log('📡 RacaViewModel: Cache vazio, carregando raças...');
       await this.racaStore.carregarRacas();
       
       // Buscar raça específica após carregamento
@@ -166,11 +144,9 @@ export default class RacaViewModel {
     );
   };
 
-  // ===== PAGINAÇÃO =====
-  getPaginatedRacas = () => {
-    const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
-    const end = start + this.state.itemsPerPage;
-    return this.state.filteredRacas.slice(start, end);
+  // ===== DADOS PARA EXIBIÇÃO =====
+  getRacas = () => {
+    return this.state.filteredRacas;
   };
 
   // ===== MÉTODOS DE CRUD =====
@@ -234,10 +210,6 @@ export default class RacaViewModel {
   }
 
   // ===== GETTERS PARA COMPATIBILIDADE =====
-  getRacas() {
-    return this.getPaginatedRacas();
-  }
-
   getAllRacas() {
     return this.state.racas;
   }

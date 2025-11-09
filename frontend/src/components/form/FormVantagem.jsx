@@ -23,6 +23,9 @@ const FormVantagem = ({
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const dropdownRef = useRef(null);
 
+  // Garantir que value seja sempre um array
+  const safeValue = Array.isArray(value) ? value : [];
+
   // Fechar dropdown quando clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -37,7 +40,7 @@ const FormVantagem = ({
   }, []);
 
   // Soma custo das vantagens selecionadas
-  const custoTotal = value.reduce((acc, id) => {
+  const custoTotal = safeValue.reduce((acc, id) => {
     const vant = options.find(v => String(v.value) === String(id));
     return acc + (vant ? Number(vant.custo) || 0 : 0);
   }, 0);
@@ -45,13 +48,13 @@ const FormVantagem = ({
   // Handler de seleção múltipla
   const handleSelect = (option) => {
     if (disabled) return;
-    const isSelected = value.includes(String(option.value));
+    const isSelected = safeValue.includes(String(option.value));
     let newValue;
     if (isSelected) {
-      newValue = value.filter(id => String(id) !== String(option.value));
+      newValue = safeValue.filter(id => String(id) !== String(option.value));
     } else {
       // Sem restrição de pontos - permitir qualquer seleção
-      newValue = [...value, String(option.value)];
+      newValue = [...safeValue, String(option.value)];
     }
     onChange({ target: { name, value: newValue } });
   };
@@ -59,7 +62,7 @@ const FormVantagem = ({
   // Handler para remover vantagem pelo chip
   const handleRemoveChip = (id) => {
     if (disabled) return;
-    const newValue = value.filter(vantId => vantId !== id);
+    const newValue = safeValue.filter(vantId => vantId !== id);
     onChange({ target: { name, value: newValue } });
   };
 
@@ -87,10 +90,10 @@ const FormVantagem = ({
           onClick={() => !disabled && setIsOpen(!isOpen)}
         >
           <div className="flex flex-wrap gap-2 min-h-[24px]">
-            {value.length === 0 ? (
+            {safeValue.length === 0 ? (
               <span className="text-slate-400">{placeholder}</span>
             ) : (
-              value.map(id => {
+              safeValue.map(id => {
                 const vant = options.find(v => String(v.value) === String(id));
                 return vant ? (
                   <span key={id} className={`rounded px-2 py-0.5 text-xs font-semibold flex items-center gap-1 ${
@@ -122,7 +125,7 @@ const FormVantagem = ({
               <div className="px-4 py-2 text-slate-400 text-sm">Nenhuma vantagem/desvantagem disponível</div>
             ) : (
               options.map((option) => {
-                const isSelected = value.includes(String(option.value));
+                const isSelected = safeValue.includes(String(option.value));
                 return (
                   <div
                     key={option.value}

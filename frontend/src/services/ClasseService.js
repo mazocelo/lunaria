@@ -18,22 +18,10 @@ export class ClasseService {
     try {
       const paramsString = generateGETparams(params);
       const response = await this.apiClient.get(this.baseUrl + paramsString);
-      
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        // Se a resposta tem a estrutura esperada (success + data)
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data || [];
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Array.isArray(response.data) ? response.data : [response.data];
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar classes: ${error.message}`);
@@ -48,19 +36,10 @@ export class ClasseService {
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar classe: ${error.message}`);
@@ -75,19 +54,10 @@ export class ClasseService {
   async create(classe) {
     try {
       const response = await this.apiClient.post(this.baseUrl, classe);
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao criar classe: ${error.message}`);
@@ -103,19 +73,10 @@ export class ClasseService {
   async update(id, classe) {
     try {
       const response = await this.apiClient.put(`${this.baseUrl}/${id}`, classe);
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao atualizar classe: ${error.message}`);
@@ -130,19 +91,10 @@ export class ClasseService {
   async delete(id) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data?.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return response.data;
-        }
+      if (response.success) {
+        return response;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao remover classe: ${error.message}`);

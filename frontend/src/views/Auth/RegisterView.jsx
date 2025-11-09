@@ -5,6 +5,7 @@ import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
+import { Eye, EyeOff } from 'lucide-react';
 
 const RegisterView = ({ onSwitchToLogin }) => {
   const { register, loading, isAuthenticated } = useAuth();
@@ -16,11 +17,13 @@ const RegisterView = ({ onSwitchToLogin }) => {
   });
   const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Redireccionar se já autenticado
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('Usuário já autenticado, redirecionando...');
+      // Usuário já autenticado
     }
   }, [isAuthenticated]);
 
@@ -234,17 +237,31 @@ const RegisterView = ({ onSwitchToLogin }) => {
               <label htmlFor="senha" className="text-sm font-medium text-purple-200">
                 Senha
               </label>
-              <InputSimples
-                id="register-senha"
-                name="senha"
-                type="password"
-                value={formData.senha}
-                onChange={handleInputChange}
-                className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
-                placeholder="••••••••"
-                disabled={loading}
-                autoComplete="new-password"
-              />
+              <div className="relative [&>div]:relative [&>div>input]:pr-10">
+                <InputSimples
+                  id="register-senha"
+                  name="senha"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.senha}
+                  onChange={handleInputChange}
+                  className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
+                  placeholder="••••••••"
+                  disabled={loading}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 bottom-2 text-purple-300 hover:text-purple-200 transition-colors focus:outline-none z-10"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
               {errors.senha && (
                 <p className="text-red-400 text-xs mt-1">{errors.senha}</p>
               )}
@@ -255,17 +272,31 @@ const RegisterView = ({ onSwitchToLogin }) => {
               <label htmlFor="confirmSenha" className="text-sm font-medium text-purple-200">
                 Confirmar Senha
               </label>
-              <InputSimples
-                id="register-confirm-senha"
-                name="confirmSenha"
-                type="password"
-                value={formData.confirmSenha}
-                onChange={handleInputChange}
-                className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
-                placeholder="••••••••"
-                disabled={loading}
-                autoComplete="new-password"
-              />
+              <div className="relative [&>div]:relative [&>div>input]:pr-10">
+                <InputSimples
+                  id="register-confirm-senha"
+                  name="confirmSenha"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmSenha}
+                  onChange={handleInputChange}
+                  className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
+                  placeholder="••••••••"
+                  disabled={loading}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 bottom-2 text-purple-300 hover:text-purple-200 transition-colors focus:outline-none z-10"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
               {errors.confirmSenha && (
                 <p className="text-red-400 text-xs mt-1">{errors.confirmSenha}</p>
               )}

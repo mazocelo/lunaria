@@ -69,7 +69,7 @@ export class NovoPersonagemViewModel {
       classe_id: '',
       backgroundTipo: 'guiado',
       background: '',
-      historia_id: '',
+      historias: [], // Array de IDs de histórias selecionadas
       atributos: { ...atributosIniciais },
       vantagens: [],
       desvantagens: [],
@@ -210,8 +210,8 @@ export class NovoPersonagemViewModel {
     this.setState({ background });
   };
 
-  setHistoriaId = (historia_id) => {
-    this.setState({ historia_id: String(historia_id) });
+  setHistorias = (historias) => {
+    this.setState({ historias: Array.isArray(historias) ? historias : [] });
   };
 
   setVantagens = (vantagens) => {
@@ -252,13 +252,11 @@ export class NovoPersonagemViewModel {
       const storeState = this.vantagemStore.getState();
       
       if (storeState.vantagensCarregadas && storeState.vantagens.length > 0) {
-        console.log('✅ NovoPersonagemViewModel: Usando vantagens do cache');
         this.updateVantagensFromStore();
         return;
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 NovoPersonagemViewModel: Cache vazio, carregando vantagens...');
       this.setState({ loadingVantagens: true });
       
       await this.vantagemStore.carregarVantagens();
@@ -289,13 +287,11 @@ export class NovoPersonagemViewModel {
       const storeState = this.desvantagemStore.getState();
       
       if (storeState.desvantagensCarregadas && storeState.desvantagens.length > 0) {
-        console.log('✅ NovoPersonagemViewModel: Usando desvantagens do cache');
         this.updateDesvantagensFromStore();
         return;
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 NovoPersonagemViewModel: Cache vazio, carregando desvantagens...');
       this.setState({ loadingDesvantagens: true });
       
       await this.desvantagemStore.carregarDesvantagens();
@@ -322,15 +318,18 @@ export class NovoPersonagemViewModel {
   loadHistorias = async () => {
     this.setState({ loadingHistorias: true });
     try {
-      const historias = await this.historiaService.getAll();
-      const historiasProcessadas = Array.isArray(historias) ? historias : [];
-      this.setState({ 
-        historiasDisponiveis: historiasProcessadas,
-        loadingHistorias: false 
-      });
+      const response = await this.historiaService.getAll();
+      if (response.success) {
+        const historias = Array.isArray(response.data) ? response.data : [];
+        this.setState({ 
+          historiasDisponiveis: historias,
+          loadingHistorias: false 
+        });
+      }
     } catch (error) {
       this.setState({ 
         error: `Erro ao carregar histórias: ${error.message}`,
+        historiasDisponiveis: [],
         loadingHistorias: false 
       });
     }
@@ -346,14 +345,12 @@ export class NovoPersonagemViewModel {
       const classesJaCarregadas = classeState.classesCarregadas && classeState.classes.length > 0;
       
       if (racasJaCarregadas && classesJaCarregadas) {
-        console.log('✅ NovoPersonagemViewModel: Usando raças e classes do cache');
         this.updateRacasFromStore();
         this.updateClassesFromStore();
         return;
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 NovoPersonagemViewModel: Cache vazio, carregando raças e classes...');
       this.setState({ loadingOpcoes: true });
       
       // Carregar em paralelo apenas os que não estão carregados
@@ -389,10 +386,7 @@ export class NovoPersonagemViewModel {
       this.setState({ error: 'O nome do personagem é obrigatório' });
       return;
     }
-    if (!this.state.historia_id || this.state.historia_id === '') {
-      this.setState({ error: 'A história é obrigatória' });
-      return;
-    }
+    // Histórias não são obrigatórias - personagem pode ser criado sem histórias
     
     this.setState({ loading: true, error: null });
     try {
@@ -402,7 +396,7 @@ export class NovoPersonagemViewModel {
         classe_id: this.state.classe_id,
         sugestao_background: this.state.backgroundTipo,
         background: this.state.background,
-        historia_id: this.state.historia_id,
+        historias: this.state.historias, // Array de IDs de histórias
         // Mapear atributos individuais
         forca: Number(this.state.atributos.forca) || 10,
         destreza: Number(this.state.atributos.destreza) || 10,

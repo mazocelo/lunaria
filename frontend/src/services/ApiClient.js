@@ -6,7 +6,9 @@ import axios from 'axios';
 
 //https://role-chat-play-backend-562ca33432b0.herokuapp.com/
 
-const baseURL = 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/';
+// const baseURL = 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/';
+
+const baseURL = 'http://localhost:3001/';
 
 // Criação da instância do axios
 const axiosInstance = axios.create({
@@ -20,10 +22,10 @@ const axiosInstance = axios.create({
 // Interceptor para requisições
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Adicionar token de autenticação se disponível
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Adicionar access token de autenticação se disponível
+    const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -32,12 +34,30 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Flag para evitar loop infinito de refresh
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 // Interceptor para respostas
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     // Tratamento de erros de rede
     if (error.code === 'ECONNABORTED') {
       throw new Error('Timeout na requisição');
@@ -46,6 +66,86 @@ axiosInstance.interceptors.response.use(
     if (error.response) {
       // Erro com resposta do servidor
       const { status, data } = error.response;
+      
+      // Se for 401 e não for uma tentativa de refresh/login, tentar renovar token
+      if (status === 401 && !originalRequest._retry && 
+          !originalRequest.url.includes('/auth/login') && 
+          !originalRequest.url.includes('/auth/renovar')) {
+        
+        if (isRefreshing) {
+          // Se já está renovando, adicionar à fila
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            return axiosInstance(originalRequest);
+          }).catch(err => {
+            return Promise.reject(err);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        const refreshToken = localStorage.getItem('refreshToken');
+        
+        if (refreshToken) {
+          try {
+            // Tentar renovar o token
+            const response = await axiosInstance.post('/auth/renovar', {
+              refreshToken
+            });
+
+            // A resposta vem no formato: { success: true, data: { accessToken, refreshToken } }
+            const responseData = response.data.data || response.data;
+            const { accessToken } = responseData;
+            
+            // Armazenar novo access token
+            localStorage.setItem('accessToken', accessToken);
+            
+            // Atualizar refresh token se fornecido
+            if (responseData.refreshToken) {
+              localStorage.setItem('refreshToken', responseData.refreshToken);
+            }
+
+            // Processar fila de requisições pendentes
+            processQueue(null, accessToken);
+            
+            // Repetir requisição original com novo token
+            originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
+            return axiosInstance(originalRequest);
+            
+          } catch (refreshError) {
+            // Falhou ao renovar token, limpar dados e processar fila
+            processQueue(refreshError, null);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            localStorage.removeItem('lembrarDeMim');
+            
+            // Redirecionar para login se necessário
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+            
+            throw new Error('Sessão expirada. Faça login novamente.');
+          } finally {
+            isRefreshing = false;
+          }
+        } else {
+          // Sem refresh token, limpar dados
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('lembrarDeMim');
+          
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          
+          throw new Error('Sessão expirada. Faça login novamente.');
+        }
+      }
       
       switch (status) {
         case 401:

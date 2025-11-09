@@ -12,9 +12,6 @@ export default class DesvantagemViewModel {
       loading: false,
       error: null,
       searchTerm: '',
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 10,
       filteredDesvantagens: []
     };
 
@@ -34,8 +31,7 @@ export default class DesvantagemViewModel {
       desvantagens: storeState.desvantagens,
       filteredDesvantagens,
       loading: storeState.loading,
-      error: storeState.error,
-      totalPages: Math.ceil(filteredDesvantagens.length / this.state.itemsPerPage)
+      error: storeState.error
     });
   };
 
@@ -62,18 +58,11 @@ export default class DesvantagemViewModel {
 
   // ===== MÉTODOS DE BUSCA E FILTROS =====
   setSearchTerm = (term) => {
-    this.setState({ searchTerm: term, currentPage: 1 });
+    this.setState({ searchTerm: term });
     
     // Aplicar filtro com o novo termo
     const filteredDesvantagens = this.filterDesvantagens(this.state.desvantagens, term);
-    this.setState({ 
-      filteredDesvantagens,
-      totalPages: Math.ceil(filteredDesvantagens.length / this.state.itemsPerPage)
-    });
-  };
-
-  setPage = (page) => {
-    this.setState({ currentPage: page });
+    this.setState({ filteredDesvantagens });
   };
 
   // ===== CARREGAMENTO DE DADOS =====
@@ -83,8 +72,6 @@ export default class DesvantagemViewModel {
       const storeState = this.desvantagemStore.getState();
       
       if (storeState.desvantagensCarregadas && storeState.desvantagens.length > 0) {
-        console.log('✅ DesvantagemViewModel: Usando dados do cache');
-        
         // Se ID fornecido, buscar desvantagem específica do cache
         if (id) {
           const desvantagem = this.desvantagemStore.getDesvantagemById(parseInt(id));
@@ -97,7 +84,6 @@ export default class DesvantagemViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 DesvantagemViewModel: Cache vazio, carregando do backend...');
       await this.desvantagemStore.carregarDesvantagens();
       
       // Se ID fornecido, buscar desvantagem específica
@@ -122,7 +108,6 @@ export default class DesvantagemViewModel {
       const storeState = this.desvantagemStore.getState();
       
       if (storeState.desvantagensCarregadas && storeState.desvantagens.length > 0) {
-        console.log('✅ DesvantagemViewModel: Buscando desvantagem no cache');
         const desvantagem = this.desvantagemStore.getDesvantagemById(parseInt(id));
         
         this.setState({ 
@@ -134,7 +119,6 @@ export default class DesvantagemViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar primeiro
-      console.log('📡 DesvantagemViewModel: Cache vazio, carregando desvantagens...');
       await this.desvantagemStore.carregarDesvantagens();
       
       // Buscar desvantagem específica após carregamento
@@ -169,11 +153,9 @@ export default class DesvantagemViewModel {
     );
   };
 
-  // ===== PAGINAÇÃO =====
-  getPaginatedDesvantagens = () => {
-    const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
-    const end = start + this.state.itemsPerPage;
-    return this.state.filteredDesvantagens.slice(start, end);
+  // ===== DADOS PARA EXIBIÇÃO =====
+  getDesvantagens = () => {
+    return this.state.filteredDesvantagens;
   };
 
   // ===== MÉTODOS DE CRUD =====
@@ -235,9 +217,6 @@ export default class DesvantagemViewModel {
   }
 
   // ===== GETTERS PARA COMPATIBILIDADE =====
-  getDesvantagens() {
-    return this.getPaginatedDesvantagens();
-  }
 
   getAllDesvantagens() {
     return this.state.desvantagens;

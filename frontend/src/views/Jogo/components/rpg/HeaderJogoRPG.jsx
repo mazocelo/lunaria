@@ -10,6 +10,10 @@ const HeaderJogoRPG = ({
   setShowActions, 
   onSairJogo 
 }) => {
+  // Validação e fallback para título
+  const titulo = historiaAtual?.titulo || historiaAtual?.nome || 'Aventura RPG';
+  const numJogadores = Array.isArray(participantes) ? participantes.length : 0;
+  
   return (
     <div className="flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm border-b border-purple-500/20">
       <div className="flex items-center space-x-4">
@@ -20,12 +24,12 @@ const HeaderJogoRPG = ({
         />
         <div>
           <h1 className="text-lg font-fantasy font-bold text-white">
-            {historiaAtual.titulo}
+            {titulo}
           </h1>
           <div className="flex items-center space-x-2 text-xs text-purple-300">
             <span>🎮 Jogo Ativo</span>
             <span>•</span>
-            <span>{participantes.length} jogadores</span>
+            <span>{numJogadores} jogadores</span>
           </div>
         </div>
       </div>

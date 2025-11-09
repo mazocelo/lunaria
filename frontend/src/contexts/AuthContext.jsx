@@ -24,19 +24,26 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      const token = authService.getToken();
+      const accessToken = authService.getAccessToken();
       const userData = authService.getCurrentUser();
       
-      if (token && userData) {
-        // Validar token com o servidor
-        const isValid = await authService.validateToken();
-        
-        if (isValid) {
+      if (accessToken && userData) {
+        // Verificar se o token está expirado
+        if (authService.isTokenExpired(accessToken)) {
+          // Token expirado, tentar renovar
+          const refreshResult = await authService.refreshAccessToken();
+          
+          if (refreshResult) {
+            setUser(refreshResult.usuario || userData);
+            setIsAuthenticated(true);
+          } else {
+            // Falhou ao renovar, fazer logout
+            await logout();
+          }
+        } else {
+          // Token ainda válido
           setUser(userData);
           setIsAuthenticated(true);
-        } else {
-          // Token inválido, limpar dados
-          await logout();
         }
       }
     } catch (error) {
@@ -57,10 +64,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const response = await authService.login(credentials);
       
-      setUser(response.usuario);
-      setIsAuthenticated(true);
-      
-      return { success: true, user: response.usuario };
+      // Verificar se recebemos os tokens necessários
+      if (response.accessToken && response.refreshToken && response.usuario) {
+        setUser(response.usuario);
+        setIsAuthenticated(true);
+        
+        return { 
+          success: true, 
+          user: response.usuario,
+          lembrarDeMim: response.lembrarDeMim
+        };
+      } else {
+        throw new Error('Resposta de login inválida');
+      }
     } catch (error) {
       console.error('Erro no login:', error);
       return { 
@@ -172,6 +188,46 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  /**
+   * Renovar token de acesso
+   * @returns {Promise<boolean>} True se renovado com sucesso
+   */
+  const refreshToken = async () => {
+    try {
+      const result = await authService.refreshAccessToken();
+      
+      if (result && result.usuario) {
+        setUser(result.usuario);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Erro ao renovar token:', error);
+      await logout();
+      return false;
+    }
+  };
+
+  /**
+   * Verificar se o token está próximo do vencimento e renovar se necessário
+   * @returns {Promise<boolean>} True se token válido ou renovado
+   */
+  const ensureTokenValidity = async () => {
+    const accessToken = authService.getAccessToken();
+    
+    if (!accessToken) {
+      return false;
+    }
+
+    // Se o token está próximo do vencimento, renovar
+    if (authService.isTokenNearExpiry()) {
+      return await refreshToken();
+    }
+
+    return true;
+  };
+
   const contextValue = {
     user,
     loading,
@@ -182,6 +238,8 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     updateUser,
+    refreshToken,
+    ensureTokenValidity,
     authService
   };
 

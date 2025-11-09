@@ -6,7 +6,7 @@ import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 import InputSimples from '../../components/form/inputSimples';
-import DataTable from '../../components/Table/DataTable.jsx';
+import { TabelaList } from '../components';
 
 const RacaView = () => {
   const racaViewModel = useMemo(() => new RacaViewModel(), []);
@@ -17,14 +17,13 @@ const RacaView = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
-    vm.init();
+   // somente carregar as raças
+   vm.loadRacas();
   }, []);
 
   const handleSearch = (e) => {
     vm.setSearchTerm(e.target.value);
   };
-
-  const vmState = vm.getState();
 
   const handleDelete = async (raca) => {
     const result = await vm.deleteRaca(raca.id);
@@ -199,7 +198,7 @@ const RacaView = () => {
           <div className="flex-1 max-w-md">
             <InputSimples
               placeholder="Buscar raças..."
-              value={vmState.searchTerm}
+              value={vm.searchTerm}
               onChange={handleSearch}
               className="w-full"
             />
@@ -207,7 +206,7 @@ const RacaView = () => {
         </div>
 
         {/* Mensagem de erro */}
-        {vmState.error && (
+        {vm.error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -215,22 +214,25 @@ const RacaView = () => {
               </div>
               <div>
                 <div className="font-semibold text-red-400 font-modern">Erro</div>
-                <p className="text-red-300 text-sm font-modern mt-1">{vmState.error}</p>
+                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Tabela de raças */}
-        <DataTable
+        <TabelaList
+          header="Lista de Raças"
           columns={columns}
           data={vm.getRacas()}
           actions={actions}
-          loading={vmState.loading}
-          title="Lista de Raças"
+          loading={vm.loading}
+          pagination={true}
+          initialPageSize={10}
+          pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage="Nenhuma raça encontrada"
           emptyIcon="🏹"
-          totalItems={vmState.filteredRacas?.length || 0}
+          hoverable={true}
         />
       </RPGCard>
     </div>

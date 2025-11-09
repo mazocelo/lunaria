@@ -12,9 +12,6 @@ export default class VantagemViewModel {
       loading: false,
       error: null,
       searchTerm: '',
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 10,
       filteredVantagens: []
     };
 
@@ -55,25 +52,17 @@ export default class VantagemViewModel {
       vantagens: storeState.vantagens,
       filteredVantagens,
       loading: storeState.loading,
-      error: storeState.error,
-      totalPages: Math.ceil(filteredVantagens.length / this.state.itemsPerPage)
+      error: storeState.error
     });
   };
 
   // ===== MÉTODOS DE BUSCA E FILTROS =====
   setSearchTerm = (term) => {
-    this.setState({ searchTerm: term, currentPage: 1 });
+    this.setState({ searchTerm: term });
     
     // Aplicar filtro com o novo termo
     const filteredVantagens = this.filterVantagens(this.state.vantagens, term);
-    this.setState({ 
-      filteredVantagens,
-      totalPages: Math.ceil(filteredVantagens.length / this.state.itemsPerPage)
-    });
-  };
-
-  setPage = (page) => {
-    this.setState({ currentPage: page });
+    this.setState({ filteredVantagens });
   };
 
   // ===== CARREGAMENTO DE DADOS =====
@@ -83,8 +72,6 @@ export default class VantagemViewModel {
       const storeState = this.vantagemStore.getState();
       
       if (storeState.vantagensCarregadas && storeState.vantagens.length > 0) {
-        console.log('✅ VantagemViewModel: Usando dados do cache');
-        
         // Se ID fornecido, buscar vantagem específica do cache
         if (id) {
           const vantagem = this.vantagemStore.getVantagemById(parseInt(id));
@@ -97,7 +84,6 @@ export default class VantagemViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 VantagemViewModel: Cache vazio, carregando do backend...');
       await this.vantagemStore.carregarVantagens();
       
       // Se ID fornecido, buscar vantagem específica
@@ -127,11 +113,9 @@ export default class VantagemViewModel {
     );
   };
 
-  // ===== PAGINAÇÃO =====
-  getPaginatedVantagens = () => {
-    const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
-    const end = start + this.state.itemsPerPage;
-    return this.state.filteredVantagens.slice(start, end);
+  // ===== DADOS PARA EXIBIÇÃO =====
+  getVantagens = () => {
+    return this.state.filteredVantagens;
   };
 
   // ===== CARREGAMENTO DE VANTAGEM INDIVIDUAL =====
@@ -141,7 +125,6 @@ export default class VantagemViewModel {
       const storeState = this.vantagemStore.getState();
       
       if (storeState.vantagensCarregadas && storeState.vantagens.length > 0) {
-        console.log('✅ VantagemViewModel: Buscando vantagem no cache');
         const vantagem = this.vantagemStore.getVantagemById(parseInt(id));
         
         this.setState({ 
@@ -153,7 +136,6 @@ export default class VantagemViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar primeiro
-      console.log('📡 VantagemViewModel: Cache vazio, carregando vantagens...');
       await this.vantagemStore.carregarVantagens();
       
       // Buscar vantagem específica após carregamento
@@ -228,9 +210,6 @@ export default class VantagemViewModel {
   }
 
   // ===== GETTERS PARA COMPATIBILIDADE =====
-  getVantagens() {
-    return this.getPaginatedVantagens();
-  }
 
   getAllVantagens() {
     return this.state.vantagens;

@@ -1,9 +1,17 @@
 const generateGETparams = (params) => {
-    let paramsString = '';
-    for(const key in params){
-        paramsString += `?${key}=${params[key]}&`;
+    if (!params || Object.keys(params).length === 0) {
+        return '';
     }
-    return paramsString;
+    
+    const queryString = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+            queryString.append(key, value);
+        }
+    });
+    
+    const result = queryString.toString();
+    return result ? `?${result}` : '';
 }
 
 export default generateGETparams;

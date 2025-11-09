@@ -20,6 +20,8 @@ import {
 } from './views';
 // 🎮 Arquitetura Zustand otimizada - View principal integrada
 import { JogoView } from './views/Jogo';
+// 🎮 View de convite para redirecionamento
+import { ConviteJogoView } from './views/ConviteJogo';
 
 /**
  * ============================================================================
@@ -48,6 +50,7 @@ export const ROUTES = {
   
   // ===== JOGO =====
   JOGO: '/jogo/:id', // 🎮 Arquitetura Zustand - gerencia todas as etapas
+  CONVITE_JOGO: '/convite-jogo/:id', // 🎮 Rota de convite para redirecionamento
   
   // ===== PERSONAGENS =====
   PERSONAGENS: '/personagens',
@@ -92,6 +95,7 @@ export const generateRoute = {
   
   // Jogo
   jogo: (id) => `/jogo/${id}`,
+  conviteJogo: (id) => `/convite-jogo/${id}`,
   jogoPreparacao: (id) => `/jogo/${id}/preparacao`,
   jogoSalaEspera: (id) => `/jogo/${id}/sala-espera`,
   jogoAtivo: (id) => `/jogo/${id}/jogo`,
@@ -196,6 +200,13 @@ const ROUTE_CONFIG = [
     path: ROUTES.JOGO,
     component: JogoView, // 🎮 View principal que gerencia todas as etapas
     name: 'Jogo',
+    category: 'JOGO',
+    hasParams: true
+  },
+  {
+    path: ROUTES.CONVITE_JOGO,
+    component: ConviteJogoView, // 🎮 View de convite para redirecionamento
+    name: 'Convite Jogo',
     category: 'JOGO',
     hasParams: true
   },

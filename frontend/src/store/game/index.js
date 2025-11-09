@@ -90,13 +90,10 @@ export const useGameSelectors = {
 
 // ===== UTILITIES PARA INICIALIZAÇÃO =====
 export const initializeGameStore = () => {
-  console.log('🚀 GameStore: Inicializando store...');
   
   // Hidratar com dados do localStorage
   const { hidrataDoLocalStorage } = useGameStore.getState();
   hidrataDoLocalStorage();
-  
-  console.log('✅ GameStore: Inicialização concluída');
 };
 
 // ===== EXPORTS =====

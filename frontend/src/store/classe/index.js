@@ -32,7 +32,6 @@ export const initializeClasseStore = async () => {
   const { classesCarregadas, inicializar } = useClasseStore.getState();
   
   if (!classesCarregadas) {
-    console.log('🚀 Inicializando Classe Store...');
     await inicializar();
   }
 };

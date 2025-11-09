@@ -10,7 +10,7 @@
  */
 
 // ===== IMPORTS DOS STORES =====
-export { useGameStore, initializeGameStore } from './game/index.js';
+export { useGameStore } from './game/index.js';
 export { useSocketStore } from './socket/index.js';
 export { useTemaStore, initializeTemaStore, useTemaSelectors } from './tema/index.js';
 export { useClasseStore, initializeClasseStore, useClasseSelectors } from './classe/index.js';
@@ -18,12 +18,25 @@ export { useRacaStore, initializeRacaStore, useRacaSelectors } from './raca/inde
 export { useVantagemStore, initializeVantagemStore, useVantagemSelectors } from './vantagem/index.js';
 export { useDesvantagemStore, initializeDesvantagemStore, useDesvantagemSelectors } from './desvantagem/index.js';
 
+// ===== UTILITÁRIOS DE INICIALIZAÇÃO =====
+export { initializeGameStore } from './game/index.js';
+
 // ===== IMPORTS INTERNOS PARA HOOKS =====
+import { useGameStore } from './game/index.js';
+import { useSocketStore } from './socket/index.js';
 import { useTemaStore } from './tema/index.js';
 import { useClasseStore } from './classe/index.js';
 import { useRacaStore } from './raca/index.js';
 import { useVantagemStore } from './vantagem/index.js';
 import { useDesvantagemStore } from './desvantagem/index.js';
+import { initializeGameStore } from './game/index.js';
+
+// ===== IMPORTS INTERNOS PARA INICIALIZAÇÃO =====
+import { initializeTemaStore } from './tema/index.js';
+import { initializeClasseStore } from './classe/index.js';
+import { initializeRacaStore } from './raca/index.js';
+import { initializeVantagemStore } from './vantagem/index.js';
+import { initializeDesvantagemStore } from './desvantagem/index.js';
 
 // ===== UTILITÁRIOS GLOBAIS =====
 
@@ -39,17 +52,13 @@ let initializationPromise = null;
 export const initializeAllStores = async () => {
   // Se já inicializados, retorna imediatamente
   if (storesInitialized) {
-    console.log('✅ Stores já inicializados, reutilizando cache');
     return;
   }
   
   // Se já está inicializando, aguarda a promise em andamento
   if (initializationPromise) {
-    console.log('⏳ Aguardando inicialização em andamento...');
     return await initializationPromise;
   }
-  
-  console.log('🚀 Inicializando todos os stores...');
   
   // Criar promise para controlar inicialização
   initializationPromise = (async () => {
@@ -67,7 +76,6 @@ export const initializeAllStores = async () => {
       ]);
       
       storesInitialized = true;
-      console.log('✅ Todos os stores inicializados com sucesso');
     } catch (error) {
       console.error('❌ Erro ao inicializar stores:', error);
       // Reset para permitir nova tentativa
@@ -84,14 +92,11 @@ export const initializeAllStores = async () => {
  * Usado por: Em momentos críticos da aplicação
  */
 export const persistirEstadoCritico = () => {
-  console.log('💾 Persistindo estados críticos...');
   
   try {
     // Persistir apenas dados críticos do game store
     const { persistirEstadoCritico: persistirGame } = useGameStore.getState();
     persistirGame();
-    
-    console.log('✅ Estados críticos persistidos');
   } catch (error) {
     console.error('❌ Erro ao persistir estados:', error);
   }
@@ -123,7 +128,6 @@ export const areStaticStoresLoaded = () => {
  * Usado por: Para refresh manual dos dados
  */
 export const reloadStaticStores = async () => {
-  console.log('🔄 Forçando recarregamento de todos os stores estáticos...');
   
   try {
     // Reset do controle de inicialização
@@ -140,7 +144,6 @@ export const reloadStaticStores = async () => {
     ]);
     
     storesInitialized = true;
-    console.log('✅ Stores estáticos recarregados com sucesso');
   } catch (error) {
     console.error('❌ Erro ao recarregar stores estáticos:', error);
     throw error;
@@ -152,7 +155,6 @@ export const reloadStaticStores = async () => {
  * Usado por: Logout ou reset completo da aplicação
  */
 export const resetAllStores = () => {
-  console.log('🧹 Reset de todos os stores...');
   
   try {
     // Reset do controle de inicialização
@@ -174,8 +176,6 @@ export const resetAllStores = () => {
     resetRacaState();
     resetVantagemState();
     resetDesvantagemState();
-    
-    console.log('✅ Todos os stores resetados');
   } catch (error) {
     console.error('❌ Erro ao resetar stores:', error);
   }
@@ -759,5 +759,97 @@ export const getDesvantagemStoreAPI = () => {
     
     // Método para subscribir a mudanças (obrigatório para ViewModels)
     subscribe: (callback) => useDesvantagemStore.subscribe(callback)
+  };
+};
+
+/**
+ * 🔧 API DIRETA para ViewModels de Game (sem hooks)
+ * Usado por: JogoViewModel (classes JavaScript)
+ */
+export const getGameStoreAPI = () => {
+  // Importar dinamicamente para evitar problemas de escopo
+  const store = useGameStore;
+  
+  return {
+    // ===== ACESSO AO ESTADO COMPLETO =====
+    getState: () => store.getState(),
+    
+    // Estados atuais (getters dinâmicos)
+    get etapaAtual() { return store.getState().etapaAtual; },
+    get historiaAtual() { return store.getState().historiaAtual; },
+    get personagensDaHistoria() { return store.getState().personagensDaHistoria; },
+    get personagemSelecionado() { return store.getState().personagemSelecionado; },
+    get participantes() { return store.getState().participantes; },
+    get salaAberta() { return store.getState().salaAberta; },
+    get isDonoSala() { return store.getState().isDonoSala; },
+    get loading() { return store.getState().loading; },
+    get error() { return store.getState().error; },
+    get loadingPersonagens() { return store.getState().loadingPersonagens; },
+    get errorPersonagens() { return store.getState().errorPersonagens; },
+    get mensagens() { return store.getState().mensagens; },
+    get statusPersonagem() { return store.getState().statusPersonagem; },
+    
+    // Actions (acessadas dinamicamente)
+    get setHistoriaAtual() { return store.getState().setHistoriaAtual; },
+    get mudarEtapa() { return store.getState().mudarEtapa; },
+    get setPersonagensDaHistoria() { return store.getState().setPersonagensDaHistoria; },
+    get selecionarPersonagem() { return store.getState().selecionarPersonagem; },
+    get setLoading() { return store.getState().setLoading; },
+    get setError() { return store.getState().setError; },
+    get clearErrors() { return store.getState().clearErrors; },
+    get setLoadingPersonagens() { return store.getState().setLoadingPersonagens; },
+    get setErrorPersonagens() { return store.getState().setErrorPersonagens; },
+    get iniciarJogo() { return store.getState().iniciarJogo; },
+    get abrirSala() { return store.getState().abrirSala; },
+    get adicionarMensagem() { return store.getState().adicionarMensagem; },
+    get setStatusPersonagem() { return store.getState().setStatusPersonagem; },
+    get resetGameState() { return store.getState().resetGameState; },
+    get setIsDonoSala() { return store.getState().setIsDonoSala; },
+    get setParticipantes() { return store.getState().setParticipantes; },
+    
+    // Método para subscribir a mudanças (obrigatório para ViewModels)
+    subscribe: (callback) => store.subscribe(callback)
+  };
+};
+
+/**
+ * 🔧 API DIRETA para ViewModels de Socket (sem hooks)
+ * Usado por: JogoViewModel (classes JavaScript)
+ */
+export const getSocketStoreAPI = () => {
+  // Importar dinamicamente para evitar problemas de escopo
+  const store = useSocketStore;
+  
+  return {
+    // ===== ACESSO AO ESTADO COMPLETO =====
+    getState: () => store.getState(),
+    
+    // Estados atuais (getters dinâmicos)
+    get isConnected() { return store.getState().isConnected; },
+    get isAuthenticated() { return store.getState().isAuthenticated; },
+    get error() { return store.getState().error; },
+    get latency() { return store.getState().latency; },
+    get isTyping() { return store.getState().isTyping; },
+    get roomUsers() { return store.getState().roomUsers; },
+    get isConnecting() { return store.getState().isConnecting; },
+    get inRoom() { return store.getState().inRoom; },
+    get roomId() { return store.getState().roomId; },
+    
+    // Actions (acessadas dinamicamente)
+    get clearError() { return store.getState().clearError; },
+    get resetSocketState() { return store.getState().resetSocketState; },
+    get connectToSocket() { return store.getState().connectToSocket; },
+    get connect() { return store.getState().connect; },
+    get authenticate() { return store.getState().authenticate; },
+    get joinRoom() { return store.getState().joinRoom; },
+    get leaveRoom() { return store.getState().leaveRoom; },
+    get sendMessage() { return store.getState().sendMessage; },
+    get safeEmit() { return store.getState().safeEmit; },
+    get on() { return store.getState().on; },
+    get off() { return store.getState().off; },
+    get once() { return store.getState().once; },
+    
+    // Método para subscribir a mudanças (obrigatório para ViewModels)
+    subscribe: (callback) => store.subscribe(callback)
   };
 }; 

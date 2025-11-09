@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
 import { personagemViewModel } from '../../viewmodels/Personagens/PersonagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
-import DataTable from '../../components/Table/DataTable.jsx';
+import { TabelaList } from '../components';
 import StatCard from '../../components/StatCard.jsx';
 
 const PersonagemView = () => {
@@ -116,6 +116,42 @@ const PersonagemView = () => {
       )
     },
     { 
+      key: 'historias', 
+      label: 'Histórias', 
+      align: 'left', 
+      render: (row) => {
+        const historias = Array.isArray(row.historias) && row.historias.length > 0
+          ? row.historias
+          : row.historia_nome 
+            ? [{ nome: row.historia_nome }] 
+            : [];
+        
+        if (historias.length === 0) {
+          return (
+            <span className={`${isLight ? 'text-slate-500' : 'text-slate-400'} font-modern text-sm italic`}>
+              Sem histórias
+            </span>
+          );
+        }
+        
+        return (
+          <div className="flex flex-wrap gap-1">
+            {historias.map((historia, index) => (
+              <span
+                key={historia.id || index}
+                className={`px-2 py-0.5 rounded-full text-xs font-modern font-semibold ${isLight
+                  ? 'bg-purple-100 text-purple-800'
+                  : 'bg-purple-500/20 text-purple-300'
+                }`}
+              >
+                {historia.nome}
+              </span>
+            ))}
+          </div>
+        );
+      }
+    },
+    { 
       key: 'nivel', 
       label: 'Nível', 
       align: 'left', 
@@ -196,15 +232,18 @@ const PersonagemView = () => {
       </div>
 
       {/* Tabela de personagens */}
-      <DataTable
+      <TabelaList
+        header="Lista de Personagens"
         columns={columns}
         data={vm.personagens}
         actions={actions}
         loading={vm.loading}
-        title="Lista de Personagens"
+        pagination={true}
+        initialPageSize={10}
+        pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhum personagem encontrado"
         emptyIcon="⚔️"
-        totalItems={vm.personagens.length}
+        hoverable={true}
       />
     </div>
   );

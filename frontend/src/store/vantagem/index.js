@@ -33,7 +33,6 @@ export const initializeVantagemStore = async () => {
   const { vantagensCarregadas, inicializar } = useVantagemStore.getState();
   
   if (!vantagensCarregadas) {
-    console.log('🚀 Inicializando Vantagem Store...');
     await inicializar();
   }
 };

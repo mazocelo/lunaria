@@ -48,9 +48,9 @@ export default class EditarDesvantagemViewModel {
   loadDesvantagem = async (id) => {
     this.setState({ loading: true, error: null });
     try {
-      const response = await this.service.getById(id);
+      const { data } = await this.service.getById(id);
       this.setState({
-        ...response,
+        ...data,
         loading: false
       });
     } catch (error) {

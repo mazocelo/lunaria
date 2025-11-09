@@ -40,9 +40,9 @@ export class EditarPersonagemViewModel {
       classe: '',
       backgroundTipo: 'guiado',
       background: '',
-      historia_id: null,
+      historias: [], // Array de IDs de histórias selecionadas
       atributos: { ...atributosIniciais },
-      vantagens: '',
+      vantagens: [], // Deve ser array, não string
       equipamentos: '',
       nivel: 1,
       hp: 100,
@@ -153,8 +153,8 @@ export class EditarPersonagemViewModel {
     this.setState({ background });
   };
 
-  setHistoriaId = (historia_id) => {
-    this.setState({ historia_id });
+  setHistorias = (historias) => {
+    this.setState({ historias: Array.isArray(historias) ? historias : [] });
   };
 
   setVantagens = (vantagens) => {
@@ -187,8 +187,6 @@ export class EditarPersonagemViewModel {
       
       if (vantagemState.vantagensCarregadas && vantagemState.vantagens.length > 0 &&
           desvantagemState.desvantagensCarregadas && desvantagemState.desvantagens.length > 0) {
-        console.log('✅ EditarPersonagemViewModel: Usando vantagens e desvantagens do cache');
-        
         // Combinar vantagens e desvantagens para o EditarPersonagem
         const todasVantagens = [...vantagemState.vantagens, ...desvantagemState.desvantagens];
         this.setState({ 
@@ -199,7 +197,6 @@ export class EditarPersonagemViewModel {
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 EditarPersonagemViewModel: Cache vazio, carregando vantagens e desvantagens...');
       this.setState({ loadingVantagens: true });
       
       await Promise.all([
@@ -236,7 +233,9 @@ export class EditarPersonagemViewModel {
   loadHistorias = async () => {
     this.setState({ loadingHistorias: true });
     try {
-      const historias = await this.historiaService.getAll();
+      const response = await this.historiaService.getAll();
+      // Garantir que seja sempre um array
+      const historias = response.data || [];
       this.setState({ 
         historiasDisponiveis: historias,
         loadingHistorias: false 
@@ -244,6 +243,7 @@ export class EditarPersonagemViewModel {
     } catch (error) {
       this.setState({ 
         error: `Erro ao carregar histórias: ${error.message}`,
+        historiasDisponiveis: [], // Garantir que seja array mesmo em erro
         loadingHistorias: false 
       });
     }
@@ -259,14 +259,12 @@ export class EditarPersonagemViewModel {
       const classesJaCarregadas = classeState.classesCarregadas && classeState.classes.length > 0;
       
       if (racasJaCarregadas && classesJaCarregadas) {
-        console.log('✅ EditarPersonagemViewModel: Usando raças e classes do cache');
         this.updateRacasFromStore();
         this.updateClassesFromStore();
         return;
       }
       
       // 📡 FALLBACK: Se não há cache, carregar do backend
-      console.log('📡 EditarPersonagemViewModel: Cache vazio, carregando raças e classes...');
       this.setState({ loadingOpcoes: true });
       
       // Carregar em paralelo apenas os que não estão carregados
@@ -293,7 +291,16 @@ export class EditarPersonagemViewModel {
   loadPersonagem = async (id) => {
     this.setState({ loading: true, error: null, personagemId: id });
     try {
+      // Garantir que as opções estejam carregadas antes de mapear
+      await this.loadOpcoes();
+      
+      // Aguardar um pouco para garantir que o estado foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const personagem = await this.personagemService.getById(id);
+      
+      // Obter estado atual após carregar opções
+      const currentState = this.getState();
       
       // Mapear atributos individuais para o objeto atributos
       const atributosMapeados = {
@@ -305,16 +312,81 @@ export class EditarPersonagemViewModel {
         carisma: personagem.carisma || personagem.atributos?.carisma || 10,
       };
       
+      // Mapear vantagens: se for array de objetos, extrair IDs; se for array de IDs, usar direto
+      // Combinar vantagens e desvantagens em um único array para o FormVantagem
+      let vantagensMapeadas = [];
+      if (personagem.vantagens) {
+        if (Array.isArray(personagem.vantagens)) {
+          vantagensMapeadas = personagem.vantagens.map(v => {
+            // Se for objeto, pegar o ID; se for número, usar direto
+            return typeof v === 'object' ? String(v.id) : String(v);
+          });
+        }
+      }
+      
+      // Adicionar desvantagens ao array de vantagens (FormVantagem mistura tudo)
+      if (personagem.desvantagens) {
+        if (Array.isArray(personagem.desvantagens)) {
+          const desvantagensIds = personagem.desvantagens.map(d => {
+            return typeof d === 'object' ? String(d.id) : String(d);
+          });
+          vantagensMapeadas = [...vantagensMapeadas, ...desvantagensIds];
+        }
+      }
+      
+      // Mapear equipamentos: se for array de objetos, converter para string; se já for string, usar direto
+      let equipamentosMapeados = '';
+      if (personagem.equipamentos) {
+        if (Array.isArray(personagem.equipamentos)) {
+          equipamentosMapeados = personagem.equipamentos.map(e => e.nome || e).join(', ');
+        } else if (typeof personagem.equipamentos === 'string') {
+          equipamentosMapeados = personagem.equipamentos;
+        }
+      }
+      
+      // Garantir que raça e classe sejam IDs numéricos
+      // A API pode retornar raca_id/classe_id ou raca/classe (nomes)
+      let racaId = personagem.raca_id || null;
+      let classeId = personagem.classe_id || null;
+      
+      // Se não tiver IDs diretos, tentar buscar pelos nomes nas opções disponíveis
+      if (!racaId && personagem.raca) {
+        const racaEncontrada = currentState.racasDisponiveis?.find(r => r.nome === personagem.raca);
+        if (racaEncontrada) {
+          racaId = racaEncontrada.id;
+        }
+      }
+      
+      if (!classeId && personagem.classe) {
+        const classeEncontrada = currentState.classesDisponiveis?.find(c => c.nome === personagem.classe);
+        if (classeEncontrada) {
+          classeId = classeEncontrada.id;
+        }
+      }
+      
+      // Converter IDs para o tipo correto (string para os selects)
+      const racaValue = racaId ? String(racaId) : '';
+      const classeValue = classeId ? String(classeId) : '';
+      
+      // Mapear histórias: se for array de objetos, extrair IDs
+      let historiasIds = [];
+      if (Array.isArray(personagem.historias) && personagem.historias.length > 0) {
+        historiasIds = personagem.historias.map(h => {
+          return typeof h === 'object' ? String(h.id) : String(h);
+        });
+      }
+      
       this.setState({
         nome: personagem.nome || '',
-        raca: personagem.raca || '',
-        classe: personagem.classe || '',
-        backgroundTipo: personagem.sugestao_background || 'guiado',
+        // Usar IDs como strings para os selects
+        raca: racaValue,
+        classe: classeValue,
+        backgroundTipo: personagem.sugestao_background || personagem.backgroundTipo || 'guiado',
         background: personagem.background || '',
-        historia_id: personagem.historia_id || null,
+        historias: historiasIds, // Array de IDs de histórias
         atributos: atributosMapeados,
-        vantagens: personagem.vantagens || '',
-        equipamentos: personagem.equipamentos || '',
+        vantagens: vantagensMapeadas,
+        equipamentos: equipamentosMapeados,
         nivel: personagem.nivel || 1,
         hp: personagem.hp || 100,
         loading: false
@@ -333,10 +405,7 @@ export class EditarPersonagemViewModel {
       return;
     }
     
-    if (!this.state.historia_id) {
-      this.setState({ error: 'A história é obrigatória' });
-      return;
-    }
+    // historia_id não é validado pois não pode ser alterado após criação
     
     if (!this.state.personagemId) {
       this.setState({ error: 'ID do personagem não encontrado' });
@@ -345,13 +414,36 @@ export class EditarPersonagemViewModel {
     
     this.setState({ loading: true, error: null });
     try {
-      await this.personagemService.update(this.state.personagemId, {
+      // Separar vantagens de desvantagens (FormVantagem mistura tudo)
+      const vantagensIds = [];
+      const desvantagensIds = [];
+      
+      if (Array.isArray(this.state.vantagens)) {
+        this.state.vantagens.forEach(id => {
+          // Buscar nas opções disponíveis para determinar o tipo
+          const vantagem = this.state.vantagensDisponiveis?.find(v => String(v.id) === String(id));
+          if (vantagem) {
+            if (vantagem.tipo === 'desvantagem') {
+              desvantagensIds.push(Number(id));
+            } else {
+              vantagensIds.push(Number(id));
+            }
+          } else {
+            // Se não encontrar, assumir que é vantagem (fallback)
+            vantagensIds.push(Number(id));
+          }
+        });
+      }
+      
+      // Converter histórias para números
+      const historiasIds = Array.isArray(this.state.historias) ? this.state.historias.map(id => Number(id)) : [];
+      
+      // Montar apenas campos permitidos para atualização
+      const dadosAtualizacao = {
         nome: this.state.nome,
-        raca: this.state.raca,
-        classe: this.state.classe,
-        sugestao_background: this.state.backgroundTipo,
+        // classe_id e raca_id não são enviados pois não podem ser alterados
         background: this.state.background,
-        historia_id: this.state.historia_id,
+        historias: historiasIds, // Array de IDs de histórias
         // Mapear atributos individuais
         forca: Number(this.state.atributos.forca) || 10,
         destreza: Number(this.state.atributos.destreza) || 10,
@@ -359,13 +451,15 @@ export class EditarPersonagemViewModel {
         inteligencia: Number(this.state.atributos.inteligencia) || 10,
         agilidade: Number(this.state.atributos.agilidade) || 10,
         carisma: Number(this.state.atributos.carisma) || 10,
-        // Manter o objeto atributos para compatibilidade
-        atributos: this.state.atributos,
-        vantagens: this.state.vantagens,
+        vantagens: vantagensIds,
+        desvantagens: desvantagensIds,
         equipamentos: this.state.equipamentos,
-        nivel: this.state.nivel,
-        hp: this.state.hp,
-      });
+        nivel: this.state.nivel
+        // hp não existe no schema do Prisma
+      };
+      
+      // Enviar dados para atualização
+      await this.personagemService.update(this.state.personagemId, dadosAtualizacao);
       if (onSuccess) onSuccess();
     } catch (error) {
       this.setState({ 

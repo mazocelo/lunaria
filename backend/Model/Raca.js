@@ -48,14 +48,14 @@ const Raca = (prisma) => {
 
     // Criar raça
     async create(data) {
-      return await model.create({
+      return await prisma.racas.create({
         data
       });
     },
 
     // Atualizar raça
     async update(id, data) {
-      return await model.update({
+      return await prisma.racas.update({
         where: { id },
         data
       });
@@ -63,7 +63,7 @@ const Raca = (prisma) => {
 
     // Deletar raça
     async delete(id) {
-      return await model.delete({
+      return await prisma.racas.delete({
         where: { id }
       });
     },

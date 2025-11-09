@@ -4,7 +4,7 @@ dotenv.config();
 
 // Configurações padrão do modelo para background de personagens
 export const DEFAULT_MODEL_SETTINGS = {
-    model: 'gemma2-9b-it',
+    model: 'openai/gpt-oss-120b',
     temperature: 0.8, // Criativo para backgrounds
     maxTokens: 4000,
     topP: 0.99,

@@ -48,14 +48,14 @@ const Classe = (prisma) => {
 
     // Criar classe
     async create(data) {
-      return await model.create({
+      return await prisma.classes.create({
         data
       });
     },
 
     // Atualizar classe
     async update(id, data) {
-      return await model.update({
+      return await prisma.classes.update({
         where: { id },
         data
       });
@@ -63,7 +63,7 @@ const Classe = (prisma) => {
 
     // Deletar classe
     async delete(id) {
-      return await model.delete({
+      return await prisma.classes.delete({
         where: { id }
       });
     },

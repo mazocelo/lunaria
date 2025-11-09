@@ -1,11 +1,33 @@
 import express from 'express';
 import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
-import criarMestreRPG from '../agents/historia/MestreRPG.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import criarMestreRPG from '../agents/Mestre/index.js';
 import socketManager from '../websocket/socketManager.js';
 
 const router = express.Router();
+
+/**
+ * Converte array de jogadores em mapa/objeto
+ * @param {Array} jogadoresArray - Array de objetos de jogadores
+ * @returns {Object} Mapa de jogadores com userId como chave
+ */
+function converterJogadoresParaMapa(jogadoresArray) {
+  const mapa = {};
+  if (Array.isArray(jogadoresArray)) {
+    jogadoresArray.forEach(j => {
+      if (j && j.userId) {
+        mapa[String(j.userId)] = {
+          id: String(j.userId),
+          nome: j.username || 'Jogador',
+          personagemId: j.personagemId || null,
+          personagemNome: j.personagemNome || null
+        };
+      }
+    });
+  }
+  console.log(`✅ Convertidos ${Object.keys(mapa).length} jogadores para mapa`);
+  return mapa;
+}
 
 /**
  * @swagger
@@ -47,7 +69,7 @@ const router = express.Router();
  *       400:
  *         description: Sessão já iniciada ou erro de validação
  */
-router.post('/start', authenticateToken, async (req, res, next) => {
+router.post('/start', async (req, res, next) => {
   try {
     const { historiaId, mensagemInicial } = req.body;
     const userId = req.user.id;
@@ -78,6 +100,7 @@ router.post('/start', authenticateToken, async (req, res, next) => {
     // Verificar se já existe uma sessão ativa
     const sessaoExistente = await gerenciadorSessoes.obterSessao(salaId);
     
+    
     if (sessaoExistente && sessaoExistente.status === 'iniciada') {
       return res.status(400).json({
         success: false,
@@ -88,10 +111,15 @@ router.post('/start', authenticateToken, async (req, res, next) => {
     // Se já existe uma sessão mas não iniciada, atualizá-la ao invés de criar nova
     if (sessaoExistente) {
       console.log(`📝 Atualizando sessão existente para história ${historia.id}`);
+      console.log(`👥 Jogadores conectados na sala de espera:`, sessaoExistente.jogadoresConectados);
       
       const dadosAtualizacao = {
         status: 'iniciada',
         iniciadaEm: new Date().toISOString(),
+        // ✅ Criar mapa IMUTÁVEL de jogadores que participam
+        jogadores: converterJogadoresParaMapa(sessaoExistente.jogadoresConectados || []),
+        // ✅ Converter para array de IDs (dinâmico)
+        jogadoresConectados: (sessaoExistente.jogadoresConectados || []).map(j => String(j.userId)),
         estadoJogo: {
           ...sessaoExistente.estadoJogo,
           fase: 'inicio',
@@ -100,6 +128,51 @@ router.post('/start', authenticateToken, async (req, res, next) => {
       };
 
       const sessao = await gerenciadorSessoes.atualizarSessao(salaId, dadosAtualizacao);
+
+      // Gerar mensagem de boas-vindas do Mestre IA
+      try {
+        console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
+        
+        const mestre = await criarMestreRPG(historia.temas || [], sessao.jogadoresConectados || []);
+        const boasVindas = await mestre.iniciarSessao({
+          historiaNome: historia.nome,
+          tema: historia.temas?.join(', '),
+          personagens: sessao.jogadoresConectados || [],
+          cenaInicial: mensagemInicial || dadosAtualizacao.estadoJogo.mensagemMestre
+        });
+
+        console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+
+        // Salvar mensagem inicial do Mestre na sessão
+        if (!sessao.mensagens) {
+          sessao.mensagens = [];
+        }
+        
+        sessao.mensagens.push({
+          tipo: 'mestre',
+          userId: 'mestre',
+          username: 'Mestre',
+          mensagem: boasVindas.introducao,
+          timestamp: Date.now()
+        });
+
+        await gerenciadorSessoes.atualizarSessao(salaId, sessao);
+
+        // Enviar mensagem de boas-vindas via WebSocket para todos na sala
+        socketManager.sendToRoom(salaId, 'mensagem_mestre', {
+          id: Date.now().toString(),
+          userId: 'mestre',
+          username: 'Mestre',
+          message: boasVindas.introducao,
+          tipo: 'mestre',
+          timestamp: Date.now()
+        });
+
+        console.log(`🎭 Mensagem de boas-vindas enviada para sala ${salaId}`);
+      } catch (error) {
+        console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
+        // Continuar mesmo se falhar a geração da mensagem
+      }
 
       // Notificar via WebSocket
       socketManager.notificarInicioAventura(salaId, {
@@ -139,6 +212,15 @@ router.post('/start', authenticateToken, async (req, res, next) => {
     // Aqui futuramente criaremos o mestre com IA
     // const mestre = await criarMestreRPG(historia.temas, []);
 
+    // Buscar jogadores se houver sessão prévia
+    let jogadoresDaSalaEspera = [];
+    const sessaoPrevia = await gerenciadorSessoes.obterSessao(salaId);
+    
+    if (sessaoPrevia && sessaoPrevia.jogadoresConectados) {
+      jogadoresDaSalaEspera = sessaoPrevia.jogadoresConectados;
+      console.log(`✅ Preservando ${jogadoresDaSalaEspera.length} jogadores da sala de espera`);
+    }
+
     // Criar/atualizar sessão no Redis
     const dadosSessao = {
       historiaId: historia.id,
@@ -149,7 +231,10 @@ router.post('/start', authenticateToken, async (req, res, next) => {
       donoNome: req.user.nome,
       maxJogadores: historia.maximo_de_participantes,
       status: 'iniciada', // Marca como iniciada para bloquear novas entradas
-      jogadoresConectados: [], // Lista de usuários conectados
+      // ✅ Criar mapa IMUTÁVEL de jogadores que participam
+      jogadores: converterJogadoresParaMapa(jogadoresDaSalaEspera),
+      // ✅ Array dinâmico de IDs dos jogadores conectados
+      jogadoresConectados: jogadoresDaSalaEspera.map(j => String(j.userId)),
       iniciadaEm: new Date().toISOString(),
       estadoJogo: {
         fase: 'inicio',
@@ -163,6 +248,51 @@ router.post('/start', authenticateToken, async (req, res, next) => {
     };
 
     const sessao = await gerenciadorSessoes.criarSessao(salaId, dadosSessao);
+
+    // Gerar mensagem de boas-vindas do Mestre IA
+    try {
+      console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
+      
+      const mestre = await criarMestreRPG(historia.temas || [], sessao.jogadoresConectados || []);
+      const boasVindas = await mestre.iniciarSessao({
+        historiaNome: historia.nome,
+        tema: historia.temas?.join(', '),
+        personagens: sessao.jogadoresConectados || [],
+        cenaInicial: mensagemInicial || dadosSessao.estadoJogo.mensagemMestre
+      });
+
+      console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+
+      // Salvar mensagem inicial do Mestre na sessão
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+      
+      sessao.mensagens.push({
+        tipo: 'mestre',
+        userId: 'mestre',
+        username: 'Mestre',
+        mensagem: boasVindas.introducao,
+        timestamp: Date.now()
+      });
+
+      await gerenciadorSessoes.atualizarSessao(salaId, sessao);
+
+      // Enviar mensagem de boas-vindas via WebSocket para todos na sala
+      socketManager.sendToRoom(salaId, 'mensagem_mestre', {
+        id: Date.now().toString(),
+        userId: 'mestre',
+        username: 'Mestre',
+        message: boasVindas.introducao,
+        tipo: 'mestre',
+        timestamp: Date.now()
+      });
+
+      console.log(`🎭 Mensagem de boas-vindas enviada para sala ${salaId}`);
+    } catch (error) {
+      console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
+      // Continuar mesmo se falhar a geração da mensagem
+    }
 
     // Notificar via WebSocket todos os usuários conectados à sala sobre o início
     socketManager.notificarInicioAventura(salaId, {
@@ -251,11 +381,14 @@ router.get('/status/:historiaId', async (req, res, next) => {
         sessao: sessao ? {
           salaId,
           status: sessao.status,
-          jogadoresConectados: sessao.jogadoresConectados || [],
-          totalJogadores: sessao.jogadoresConectados?.length || 0,
+          jogadores: sessao.jogadores || {}, // Mapa IMUTÁVEL de jogadores
+          jogadoresConectados: sessao.jogadoresConectados || [], // Array dinâmico de IDs
+          totalJogadores: sessao.jogadores ? Object.keys(sessao.jogadores).length : 0,
+          totalConectados: Array.isArray(sessao.jogadoresConectados) ? sessao.jogadoresConectados.length : 0,
           maxJogadores: sessao.maxJogadores,
           iniciadaEm: sessao.iniciadaEm || null,
-          estadoJogo: sessao.estadoJogo || null
+          estadoJogo: sessao.estadoJogo || null,
+          mensagens: sessao.mensagens || []
         } : null
       }
     });

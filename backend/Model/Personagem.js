@@ -83,11 +83,18 @@ const Personagem = (prisma) => {
 
     // Atualizar personagem
     async updatePersonagem(id, data) {
+      // Separar relacionamentos de campos diretos
+      const { classes, racas, ...camposDiretos } = data;
+      
+      const updateData = { ...camposDiretos };
+      
+      // Se tiver relacionamentos, adicionar
+      if (classes) updateData.classes = classes;
+      if (racas) updateData.racas = racas;
+      
       return await model.update({
         where: { id },
-        data: {
-          ...data
-        }
+        data: updateData
       });
     },
 
@@ -132,12 +139,10 @@ const Personagem = (prisma) => {
     },
 
     async removerVantagem(personagem_id, vantagem_id) {
-      return await prisma.personagem_vantagem.delete({
+      return await prisma.personagem_vantagem.deleteMany({
         where: {
-          personagem_id_desvantagem_id: {
-            personagem_id: parseInt(personagem_id),
-            desvantagem_id: parseInt(vantagem_id)
-          }
+          personagem_id: parseInt(personagem_id),
+          desvantagem_id: parseInt(vantagem_id)
         }
       });
     },
@@ -172,12 +177,10 @@ const Personagem = (prisma) => {
     },
 
     async removerDesvantagem(personagem_id, desvantagem_id) {
-      return await prisma.personagem_desvantagem.delete({
+      return await prisma.personagem_desvantagem.deleteMany({
         where: {
-          personagem_id_habilidade_id: {
-            personagem_id: parseInt(personagem_id),
-            habilidade_id: parseInt(desvantagem_id)
-          }
+          personagem_id: parseInt(personagem_id),
+          habilidade_id: parseInt(desvantagem_id)
         }
       });
     },
@@ -239,6 +242,49 @@ const Personagem = (prisma) => {
       return equipamentos.filter(e => e !== null).map(equipamento => ({
         equipamento
       }));
+    },
+
+    // Métodos para gerenciar vínculos com histórias
+    async vincularHistoria(personagem_id, historia_id, papel = null) {
+      return await prisma.historias_personagens.create({
+        data: {
+          personagem_id: parseInt(personagem_id),
+          historia_id: parseInt(historia_id),
+          papel: papel
+        }
+      });
+    },
+
+    async desvincularHistoria(personagem_id, historia_id) {
+      return await prisma.historias_personagens.deleteMany({
+        where: {
+          historia_id: parseInt(historia_id),
+          personagem_id: parseInt(personagem_id)
+        }
+      });
+    },
+
+    async listarHistoriasPersonagem(personagem_id) {
+      return await prisma.historias_personagens.findMany({
+        where: { personagem_id: parseInt(personagem_id) },
+        include: {
+          historias: true
+        }
+      });
+    },
+
+    async listarPersonagensHistoriaByUsuario(historia_id, usuario_id) {
+      return await prisma.historias_personagens.findMany({
+        where: { historia_id: parseInt(historia_id), personagens: { id_usuario: parseInt(usuario_id) } },
+        include: {
+          personagens: {
+            include: {
+              classes: true,
+              racas: true
+            }
+          }
+        }
+      });
     }
   };
 

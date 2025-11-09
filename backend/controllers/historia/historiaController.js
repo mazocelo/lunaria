@@ -4,6 +4,7 @@ import { criarGeradorPrologo } from '../../agents/historia/prologo/index.js';
 import { criarGeradorTitulo } from '../../agents/historia/titulos/aleatorios/index.js';
 import criarMestreRPG from '../../agents/historia/MestreRPG.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import gerenciadorSessoes from '../../redis/sessoes.js';
 
 /**
  * Controller para gerenciar operações de história
@@ -43,7 +44,7 @@ class HistoriaController {
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
-      console.log(`🎲 Usando ${temasParaUsar.length} temas para geração`);
+      console.log(`Usando ${temasParaUsar.length} temas para geração`);
       
       // Gerar título se não fornecido
       let nomeHistoria = nome;
@@ -61,17 +62,14 @@ class HistoriaController {
       console.log('resultadoPrologo', resultadoPrologo);
       
       // Criar história no banco com prólogo
-      const novaHistoria = await db.Historia.create({
+      const novaHistoria = await db.Historia.createHistoria({
         nome: nomeHistoria,
-        temas,
+        temas: temas, // Salvar IDs diretamente
         maximo_de_participantes: maximo_de_participantes || 5,
-        participantes: participantes || [],
         descricao: descricao || '',
         prologo: resultadoPrologo.prologo,
         status: 'ativa',
-        criada_em: new Date(),
-        atualizada_em: new Date(),
-        id_usuario: req.user?.id || null // Vincular ao usuário logado
+        id_usuario: req.user?.id || 1 // Vincular ao usuário logado
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
@@ -103,14 +101,25 @@ class HistoriaController {
     try {
       console.log('📋 Listando histórias...', req.user ? `para usuário ${req.user.id}` : 'público');
       
-      const { status, temas, limit = 20, offset = 0, todas = false } = req.query;
+      const { status, temas, limit = 20, offset = 0, todas = false, incluir_personagens = true } = req.query;
       
-      // Buscar todas as histórias
-      let historias = await db.Historia.findAll();
+      let historias = [];
       
-      // Se o usuário estiver logado e não for solicitada listagem pública, filtrar por usuário
+      // Se o usuário estiver logado e não for solicitada listagem pública
       if (req.user && req.user.id && todas !== 'true') {
-        historias = historias.filter(h => h.id_usuario === req.user.id);
+        if (incluir_personagens === 'true' || incluir_personagens === true) {
+          // Buscar histórias criadas pelo usuário + onde seus personagens participam
+          console.log('🔍 Buscando histórias criadas pelo usuário e onde seus personagens participam...');
+          historias = await db.Historia.findAllByUsuario(req.user.id);
+        } else {
+          // Buscar apenas histórias criadas pelo usuário
+          console.log('🔍 Buscando apenas histórias criadas pelo usuário...');
+          historias = await db.Historia.findByUsuario(req.user.id);
+        }
+      } else {
+        // Buscar todas as histórias (modo público)
+        console.log('🔍 Buscando todas as histórias (modo público)...');
+        historias = await db.Historia.findAll();
       }
       
       // Aplicar filtros
@@ -121,28 +130,73 @@ class HistoriaController {
         historias = historias.filter(h => h.temas && h.temas.includes(temas));
       }
       
-      // Ordenar por data de criação (mais recente primeiro)
-      historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+      // Se não foram ordenadas no método do model, ordenar aqui
+      if (!req.user || todas === 'true') {
+        historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+      }
       
       const total = historias.length;
       
       // Aplicar paginação
       const startIndex = parseInt(offset) || 0;
       const endIndex = startIndex + parseInt(limit || 20);
-      historias = historias.slice(startIndex, endIndex);
+      const historiasPaginadas = historias.slice(startIndex, endIndex);
       
-      console.log(`✅ ${historias.length} histórias encontradas`);
+      // Verificar status de sessão ativa para cada história (se usuário estiver logado)
+      let historiasComSessao = historiasPaginadas;
+      if (req.user && req.user.id) {
+        historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
+          try {
+            const sessao = await gerenciadorSessoes.obterSessao(`historia_${historia.id}`);
+            console.log('sessao', sessao);
+            if (sessao) {
+              // Verificar se o usuário está na sessão
+              const usuarioNaSessao = sessao.jogadoresConectados?.some(
+                jogador => String(jogador.userId) === String(req.user.id)
+              );
+              
+              return {
+                ...historia,
+                sessaoAtiva: true,
+                statusSessao: sessao.status || 'aguardando',
+                usuarioNaSessao: usuarioNaSessao || false,
+                totalJogadores: sessao.totalJogadores || 0
+              };
+            }
+            
+            return {
+              ...historia,
+              sessaoAtiva: false,
+              statusSessao: null,
+              usuarioNaSessao: false,
+              totalJogadores: 0
+            };
+          } catch (error) {
+            console.error(`⚠️ Erro ao verificar sessão da história ${historia.id}:`, error.message);
+            return {
+              ...historia,
+              sessaoAtiva: false,
+              statusSessao: null,
+              usuarioNaSessao: false,
+              totalJogadores: 0
+            };
+          }
+        }));
+      }
+      
+      console.log(`✅ ${historiasComSessao.length} histórias encontradas (${total} total)`);
       
       res.status(200).json({
         success: true,
-        data: historias,
+        data: historiasComSessao,
         pagination: {
           total,
           limit: parseInt(limit),
           offset: parseInt(offset),
-          hasMore: offset + historias.length < total
+          hasMore: startIndex + historiasPaginadas.length < total
         },
-        filtrado_por_usuario: req.user && req.user.id && todas !== 'true' ? req.user.id : null
+        filtrado_por_usuario: req.user && req.user.id && todas !== 'true' ? req.user.id : null,
+        incluindo_personagens: req.user && req.user.id && todas !== 'true' && (incluir_personagens === 'true' || incluir_personagens === true)
       });
       
     } catch (error) {
@@ -173,12 +227,12 @@ class HistoriaController {
       }
       
       // Verificar se usuário tem permissão para ver esta história
-      if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Você não tem permissão para acessar esta história'
-        });
-      }
+      // if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
+      //   return res.status(403).json({
+      //     success: false,
+      //     error: 'Você não tem permissão para acessar esta história'
+      //   });
+      // }
       
       console.log('✅ História encontrada');
       
@@ -227,7 +281,7 @@ class HistoriaController {
       delete dadosAtualizacao.id_usuario;
       
       // Atualizar dados usando o método update do Prisma
-      await db.Historia.update(parseInt(id), {
+      await db.Historia.updateHistoria(parseInt(id), {
         ...dadosAtualizacao,
         atualizada_em: new Date()
       });
@@ -278,7 +332,7 @@ class HistoriaController {
         });
       }
       
-      await db.Historia.delete(parseInt(id));
+      await db.Historia.deleteHistoria(parseInt(id));
       
       console.log('✅ História excluída com sucesso');
       
@@ -333,17 +387,14 @@ class HistoriaController {
       });
       
       // Salvar no banco de dados
-      const novaHistoria = await db.Historia.create({
+      const novaHistoria = await db.Historia.createHistoria({
         nome: historiaGerada.nome,
-        temas: historiaGerada.temas,
+        temas: historiaGerada.temas, // Salvar IDs diretamente
         descricao: historiaGerada.descricao,
         prologo: historiaGerada.prologo,
         maximo_de_participantes: maximo_de_participantes || 5,
-        participantes: [],
         status: 'ativa',
-        criada_em: new Date(),
-        atualizada_em: new Date(),
-        id_usuario: req.user?.id || null // Vincular ao usuário logado
+        id_usuario: req.user?.id || 1 // Vincular ao usuário logado
       });
       
       console.log('✅ História gerada com IA e salva:', novaHistoria.id);
@@ -408,17 +459,14 @@ class HistoriaController {
       });
       
       // Salvar no banco de dados
-      const novaHistoria = await db.Historia.create({
+      const novaHistoria = await db.Historia.createHistoria({
         nome: aventuraCompleta.nome,
-        temas: aventuraCompleta.temas,
+        temas: aventuraCompleta.temas, // Salvar IDs diretamente
         descricao: aventuraCompleta.descricao,
         prologo: aventuraCompleta.prologo,
         maximo_de_participantes: personagens?.length || 5,
-        participantes: aventuraCompleta.personagens?.map(p => p.nome) || [],
         status: 'ativa',
-        criada_em: new Date(),
-        atualizada_em: new Date(),
-        id_usuario: req.user?.id || null // Vincular ao usuário logado
+        id_usuario: req.user?.id || 1 // Vincular ao usuário logado
       });
       
       console.log('✅ Aventura completa gerada e salva:', novaHistoria.id);
@@ -447,6 +495,149 @@ class HistoriaController {
 
 
 
+
+  /**
+   * Listar apenas histórias criadas pelo usuário
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async listarMinhasHistorias(req, res, next) {
+    try {
+      console.log('📋 Listando histórias criadas pelo usuário:', req.user.id);
+      
+      const { status, temas, limit = 20, offset = 0 } = req.query;
+      
+      // Buscar apenas histórias criadas pelo usuário
+      let historias = await db.Historia.findByUsuario(req.user.id);
+      
+      // Aplicar filtros
+      if (status) {
+        historias = historias.filter(h => h.status === status);
+      }
+      if (temas) {
+        historias = historias.filter(h => h.temas && h.temas.includes(temas));
+      }
+      
+      const total = historias.length;
+      
+      // Aplicar paginação
+      const startIndex = parseInt(offset) || 0;
+      const endIndex = startIndex + parseInt(limit || 20);
+      const historiasPaginadas = historias.slice(startIndex, endIndex);
+      
+      // Verificar status de sessão ativa para cada história
+      const historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
+        try {
+          const sessao = await gerenciadorSessoes.obterSessao(historia.id);
+          
+          if (sessao) {
+            // Verificar se o usuário está na sessão
+            const usuarioNaSessao = sessao.jogadoresConectados?.some(
+              jogador => String(jogador.userId) === String(req.user.id)
+            );
+            
+            return {
+              ...historia,
+              sessaoAtiva: true,
+              statusSessao: sessao.status || 'aguardando',
+              usuarioNaSessao: usuarioNaSessao || false,
+              totalJogadores: sessao.totalJogadores || 0
+            };
+          }
+          
+          return {
+            ...historia,
+            sessaoAtiva: false,
+            statusSessao: null,
+            usuarioNaSessao: false,
+            totalJogadores: 0
+          };
+        } catch (error) {
+          console.error(`⚠️ Erro ao verificar sessão da história ${historia.id}:`, error.message);
+          // Em caso de erro, retornar história sem informação de sessão
+          return {
+            ...historia,
+            sessaoAtiva: false,
+            statusSessao: null,
+            usuarioNaSessao: false,
+            totalJogadores: 0
+          };
+        }
+      }));
+      
+      console.log(`✅ ${historiasComSessao.length} histórias criadas encontradas (${total} total)`);
+      
+      res.status(200).json({
+        success: true,
+        data: historiasComSessao,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: startIndex + historiasPaginadas.length < total
+        },
+        tipo: 'historias_criadas'
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao listar histórias criadas:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Listar histórias onde personagens do usuário participam
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async listarHistoriasComPersonagens(req, res, next) {
+    try {
+      console.log('📋 Listando histórias onde personagens do usuário participam:', req.user.id);
+      
+      const { status, temas, limit = 20, offset = 0 } = req.query;
+      
+      // Buscar histórias onde personagens do usuário participam
+      let historias = await db.Historia.findByPersonagensUsuario(req.user.id);
+      
+      // Aplicar filtros
+      if (status) {
+        historias = historias.filter(h => h.status === status);
+      }
+      if (temas) {
+        historias = historias.filter(h => h.temas && h.temas.includes(temas));
+      }
+      
+      // Ordenar por data de criação (mais recente primeiro)
+      historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+      
+      const total = historias.length;
+      
+      // Aplicar paginação
+      const startIndex = parseInt(offset) || 0;
+      const endIndex = startIndex + parseInt(limit || 20);
+      const historiasPaginadas = historias.slice(startIndex, endIndex);
+      
+      console.log(`✅ ${historiasPaginadas.length} histórias com personagens encontradas (${total} total)`);
+      
+      res.status(200).json({
+        success: true,
+        data: historiasPaginadas,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: startIndex + historiasPaginadas.length < total
+        },
+        tipo: 'historias_com_personagens'
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao listar histórias com personagens:', error);
+      next(error);
+    }
+  }
 
   /**
    * Determinar gênero baseado no temas

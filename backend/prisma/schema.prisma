@@ -54,18 +54,19 @@ model equipamentos {
 }
 
 model historias {
-  id                      Int       @id @default(autoincrement())
-  temas                   String[]  @db.VarChar(255)
-  nome                    String    @db.VarChar(255)
+  id                      Int                     @id @default(autoincrement())
+  nome                    String                  @db.VarChar(255)
   maximo_de_participantes Int?
-  participantes           String[]  @db.VarChar(255)
   prologo                 String?
   descricao               String?
-  status                  String?   @default("ativa") @db.VarChar(255)
-  criada_em               DateTime? @db.Timestamptz(6)
-  atualizada_em           DateTime? @db.Timestamptz(6)
+  status                  String?                 @default("ativa") @db.VarChar(255)
+  criada_em               DateTime?               @db.Timestamptz(6)
+  atualizada_em           DateTime?               @db.Timestamptz(6)
   id_usuario              Int?
-  usuarios                usuarios? @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
+  temas                   Int[]
+  usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
+  historias_convite       historias_convite[]
+  historias_personagens   historias_personagens[]
 }
 
 model personagem_desvantagem {
@@ -110,6 +111,7 @@ model personagens {
   criado_em              DateTime?                @db.Timestamptz(6)
   atualizado_em          DateTime?                @db.Timestamptz(6)
   id_usuario             Int?
+  historias_personagens  historias_personagens[]
   personagem_desvantagem personagem_desvantagem[]
   personagem_equipamento personagem_equipamento[]
   usuarios               usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
@@ -128,17 +130,19 @@ model racas {
 }
 
 model temas {
-  id   Int    @id @default(autoincrement())
-  nome String @unique @db.VarChar(255)
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique @db.VarChar(255)
+  descricao String? @db.VarChar(255)
 }
 
 model usuarios {
-  id          Int           @id @default(autoincrement())
-  nome        String        @db.VarChar(100)
-  email       String        @unique @db.VarChar(150)
-  senha       String        @db.VarChar(255)
-  historias   historias[]
-  personagens personagens[]
+  id                Int                 @id @default(autoincrement())
+  nome              String              @db.VarChar(100)
+  email             String              @unique @db.VarChar(150)
+  senha             String              @db.VarChar(255)
+  historias         historias[]
+  historias_convite historias_convite[]
+  personagens       personagens[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -163,6 +167,30 @@ model vantagens {
   @@index([usar], map: "idx_habilidade_usar")
   @@index([nivel], map: "idx_vantagem_nivel")
   @@index([usar], map: "idx_vantagem_usar")
+}
+
+model historias_personagens {
+  id            Int         @id @default(autoincrement())
+  historia_id   Int
+  personagem_id Int
+  papel         String?     @db.VarChar(50)
+  historias     historias   @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_historia")
+  personagens   personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_personagem")
+
+  @@unique([historia_id, personagem_id], map: "unq_historia_personagem")
+}
+
+model historias_convite {
+  id            Int       @id @default(autoincrement())
+  historia_id   Int
+  usuario_id    Int
+  status        String    @default("pendente") @db.VarChar(20)
+  criado_em     DateTime? @default(now()) @db.Timestamp(6)
+  respondido_em DateTime? @db.Timestamp(6)
+  historias     historias @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_historia")
+  usuarios      usuarios  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_usuario")
+
+  @@unique([historia_id, usuario_id], map: "unq_convite")
 }
 
 enum enum_habilidades_categoria {

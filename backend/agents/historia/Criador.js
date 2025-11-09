@@ -9,7 +9,7 @@ dotenv.config();
 
 // Constantes globais
 const DEFAULT_MODEL_SETTINGS = {
-    model: 'gemma2-9b-it',
+    model: 'openai/gpt-oss-120b',
     temperature: 0.7,
     maxTokens: 8000,
     topP: 0.99,
@@ -123,7 +123,7 @@ async function criadorCompleto(temas = [], personagens = []) {
                         },
                         metadata: {
                             geradoEm: resultadoPrologo.timestamp,
-                            modelo: 'gemma2-9b-it',
+                            modelo: 'openai/gpt-oss-120b',
                             versao: '2.0',
                             temasUtilizados: temas,
                             agentes: ['GeradorPrologo', 'MestreRPG']

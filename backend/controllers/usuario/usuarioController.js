@@ -352,6 +352,99 @@ class UsuarioController {
       });
     }
   }
+
+  /**
+   * Buscar novidades do usuário (convites pendentes, notificações, etc.)
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async obterNovidades(req, res) {
+    try {
+      const usuario_id = req.user.id;
+      const { limit = 20, offset = 0 } = req.query;
+
+      console.log(`📬 Buscando novidades para usuário ${usuario_id}`);
+
+      // Por enquanto, buscar apenas convites pendentes
+      const convites = await db.prisma.historias_convite.findMany({
+        where: {
+          usuario_id: usuario_id,
+          status: 'pendente'
+        },
+        include: {
+          historias: {
+            select: {
+              id: true,
+              nome: true,
+              descricao: true,
+              temas: true,
+              maximo_de_participantes: true,
+              prologo: true
+            }
+          },
+          usuarios: {
+            select: {
+              id: true,
+              nome: true,
+              email: true
+            }
+          }
+        },
+        orderBy: {
+          criado_em: 'desc'
+        },
+        take: parseInt(limit),
+        skip: parseInt(offset)
+      });
+
+      // Contar total de convites pendentes
+      const totalConvites = await db.prisma.historias_convite.count({
+        where: {
+          usuario_id: usuario_id,
+          status: 'pendente'
+        }
+      });
+
+      console.log(`✅ ${convites.length} convites pendentes encontrados`);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          convites: convites.map(convite => ({
+            id: convite.id,
+            tipo: 'convite_historia',
+            historia: convite.historias,
+            remetente: {
+              id: convite.historias.usuarios?.id,
+              nome: convite.historias.usuarios?.nome
+            },
+            status: convite.status,
+            criado_em: convite.criado_em
+          })),
+          // Futuramente aqui poderão ser adicionados outros tipos de novidades
+          // notificacoes: [],
+          // mensagens: [],
+          // etc.
+        },
+        resumo: {
+          total_convites: totalConvites,
+          total_novidades: totalConvites // Por enquanto só convites
+        },
+        pagination: {
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: (parseInt(offset) + parseInt(limit)) < totalConvites
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar novidades:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
 }
 
 export default new UsuarioController(); 

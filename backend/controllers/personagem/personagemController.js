@@ -94,6 +94,29 @@ class PersonagemController {
         elemento: e.equipamento.elemento
       }));
     }
+
+    // Processar histórias vinculadas (retornar TODAS as histórias)
+    try {
+      const historiasVinculadas = await db.Personagem.listarHistoriasPersonagem(personagemData.id);
+      
+      // Mapear array completo de histórias
+      personagemData.historias = historiasVinculadas.map(vinculo => ({
+        id: vinculo.historias.id,
+        nome: vinculo.historias.nome,
+        papel: vinculo.papel || 'jogador'
+      }));
+      
+      // Compatibilidade: manter primeira história como referência
+      if (historiasVinculadas.length > 0 && historiasVinculadas[0].historias) {
+        personagemData.historia_nome = historiasVinculadas[0].historias.nome;
+        personagemData.historia_id = historiasVinculadas[0].historias.id;
+      } else {
+        personagemData.historias = [];
+      }
+    } catch (error) {
+      console.error('❌ Erro ao processar histórias:', error);
+      personagemData.historias = [];
+    }
     
     return personagemData;
   }
@@ -122,20 +145,18 @@ class PersonagemController {
         destreza,
         constituicao,
         agilidade,
-        historia_id,
-        jogador_id,
         vantagens,
         desvantagens,
         equipamentos,
         sugestao_background = '',
-         
+        historias // Array de IDs de histórias para vincular
       } = req.body;
       console.log('👤 Dados do personagem:', req.body);
 
       // Validações básicas
-      if (!nome || !historia_id) {
+      if (!nome) {
         return res.status(400).json({
-          error: 'Nome e história são obrigatórios'
+          error: 'Nome é obrigatório'
         });
       }
 
@@ -162,13 +183,8 @@ class PersonagemController {
       if (sugestao_background == 'guiado') {
         console.log('📝 Gerando background automático...');
 
-        // Buscar informações da história para contexto
-        const historia = await db.Historia.findById(parseInt(historia_id));
-        if (!historia) {
-          return res.status(404).json({
-            error: 'História não encontrada'
-          });
-        }
+        // Para background automático, usaremos temas genéricos já que não há história específica na criação
+        const historia = { temas: ['aventura', 'fantasia'], nome: 'Mundo Genérico' };
 
         // Buscar informações da classe se disponível
         let nomeClasse = 'Aventureiro';
@@ -247,6 +263,25 @@ class PersonagemController {
 
       console.log('✅ Personagem criado:', novoPersonagem.id);
 
+      // Criar vínculos com histórias se fornecidas
+      if (historias && Array.isArray(historias) && historias.length > 0) {
+        console.log('🔗 Criando vínculos com histórias:', historias);
+        for (const historia_id of historias) {
+          try {
+            // Verificar se a história existe
+            const historia = await db.Historia.findById(parseInt(historia_id));
+            if (historia) {
+              await db.Personagem.vincularHistoria(novoPersonagem.id, historia_id, 'jogador');
+              console.log(`✅ Vínculo criado com história ${historia.nome}`);
+            } else {
+              console.warn(`⚠️ História ${historia_id} não encontrada`);
+            }
+          } catch (error) {
+            console.warn(`⚠️ Erro ao vincular história ${historia_id}:`, error.message);
+          }
+        }
+      }
+
       // Criar vínculos com vantagens se fornecidas
       if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
         console.log('🔗 Criando vínculos com vantagens:', vantagens);
@@ -314,7 +349,7 @@ class PersonagemController {
     try {
       console.log('📋 Listando personagens...', req.user ? `para usuário ${req.user.id}` : 'público');
 
-      const { historia_id, jogador_id, status, limit = 20, offset = 0, todos = false } = req.query;
+      const { id_usuario, status, limit = 20, offset = 0, todos = false } = req.query;
 
       // Buscar todos os personagens com relacionamentos
       let personagens = await db.Personagem.findAllPersonagens();
@@ -325,11 +360,8 @@ class PersonagemController {
       }
 
       // Aplicar filtros manualmente
-      if (historia_id) {
-        personagens = personagens.filter(p => p.historia_id === parseInt(historia_id));
-      }
-      if (jogador_id) {
-        personagens = personagens.filter(p => p.jogador_id === parseInt(jogador_id));
+      if (id_usuario) {
+        personagens = personagens.filter(p => p.id_usuario === parseInt(id_usuario));
       }
       if (status) {
         personagens = personagens.filter(p => p.status === status);
@@ -427,7 +459,7 @@ class PersonagemController {
   atualizarPersonagem = async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { vantagens, desvantagens, equipamentos, ...dadosAtualizacao } = req.body;
+      const { vantagens, desvantagens, equipamentos, historias, ...dadosAtualizacao } = req.body;
 
       console.log(`📝 Atualizando personagem ID: ${id}`, dadosAtualizacao);
 
@@ -448,8 +480,27 @@ class PersonagemController {
         });
       }
 
-      // Remover id_usuario dos dados de atualização para evitar alteração
+      // Remover campos que não podem ser atualizados ou são calculados
+      delete dadosAtualizacao.id;
       delete dadosAtualizacao.id_usuario;
+      delete dadosAtualizacao.classe; // nome, não ID
+      delete dadosAtualizacao.raca; // nome, não ID
+      delete dadosAtualizacao.historia_nome; // calculado
+      delete dadosAtualizacao.historia_id; // calculado
+      delete dadosAtualizacao.historias; // array, calculado
+      delete dadosAtualizacao.created_at;
+      delete dadosAtualizacao.updated_at;
+      delete dadosAtualizacao.criado_em;
+      delete dadosAtualizacao.atualizado_em;
+      delete dadosAtualizacao.atributos; // objeto, não enviamos direto
+      delete dadosAtualizacao.pontos_iniciais;
+      delete dadosAtualizacao.pontos_totais;
+      delete dadosAtualizacao.sugestao_background; // não existe no schema
+      delete dadosAtualizacao.classe_id; // classe não pode ser alterada
+      delete dadosAtualizacao.raca_id; // raça não pode ser alterada
+      delete dadosAtualizacao.hp; // não existe no schema
+      delete dadosAtualizacao.hp_maximo; // não existe no schema
+      delete dadosAtualizacao.equipamentos; // gerenciado via relacionamento personagem_equipamento
 
       // Validar atributos se fornecidos
       const atributos = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
@@ -461,13 +512,12 @@ class PersonagemController {
         }
       }
 
-      // Converter campos numéricos para inteiros
+      // Converter campos numéricos para inteiros (incluindo classe_id e raca_id)
       const dadosConvertidos = this.converterCamposNumericos(dadosAtualizacao);
 
       // Atualizar dados usando o método update do Prisma
-      await db.Personagem.updatePersonagem(parseInt(id), {
-        ...dadosConvertidos
-      });
+      // Os campos classe_id e raca_id são atualizados diretamente
+      await db.Personagem.updatePersonagem(parseInt(id), dadosConvertidos);
 
       // Gerenciar vínculos com vantagens se fornecidas
       if (vantagens !== undefined) {
@@ -547,6 +597,39 @@ class PersonagemController {
         }
       }
 
+      // Gerenciar vínculos com histórias se fornecidas
+      if (historias !== undefined) {
+        console.log('🔗 Atualizando vínculos com histórias:', historias);
+        
+        // Remover todos os vínculos atuais
+        const historiasAtuais = await db.Personagem.listarHistoriasPersonagem(id);
+        for (const vinculo of historiasAtuais) {
+          try {
+            await db.Personagem.desvincularHistoria(id, vinculo.historia_id);
+            console.log(`🔗 Vínculo removido da história ${vinculo.historia_id}`);
+          } catch (error) {
+            console.warn(`⚠️ Erro ao remover vínculo da história ${vinculo.historia_id}:`, error.message);
+          }
+        }
+        
+        // Adicionar novos vínculos
+        if (Array.isArray(historias) && historias.length > 0) {
+          for (const historia_id of historias) {
+            try {
+              const historia = await db.Historia.findById(parseInt(historia_id));
+              if (historia) {
+                await db.Personagem.vincularHistoria(id, historia_id, 'jogador');
+                console.log(`✅ Vínculo criado com história ${historia.nome}`);
+              } else {
+                console.warn(`⚠️ História ${historia_id} não encontrada`);
+              }
+            } catch (error) {
+              console.warn(`⚠️ Erro ao vincular história ${historia_id}:`, error.message);
+            }
+          }
+        }
+      }
+
       // Buscar o personagem atualizado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       const personagemData = await this.processarDadosPersonagem(personagemCompleto);
@@ -596,6 +679,17 @@ class PersonagemController {
         });
       }
 
+      // Remover vínculos com histórias antes de excluir o personagem
+      const vinculosHistorias = await db.Personagem.listarHistoriasPersonagem(parseInt(id));
+      for (const vinculo of vinculosHistorias) {
+        try {
+          await db.Personagem.desvincularHistoria(parseInt(id), vinculo.historia_id);
+          console.log(`🔗 Vínculo removido da história ${vinculo.historia_id}`);
+        } catch (error) {
+          console.warn(`⚠️ Erro ao remover vínculo da história ${vinculo.historia_id}:`, error.message);
+        }
+      }
+
       await db.Personagem.deletePersonagem(parseInt(id));
 
       console.log('✅ Personagem excluído com sucesso');
@@ -634,13 +728,9 @@ class PersonagemController {
         });
       }
 
-      // Buscar informações da história
-      const historia = await db.Historia.findById(parseInt(personagem.historia_id));
-      if (!historia) {
-        return res.status(404).json({
-          error: 'História não encontrada'
-        });
-      }
+      // Buscar histórias vinculadas ao personagem
+      const historiasVinculadas = await db.Personagem.listarHistoriasPersonagem(parseInt(id));
+      const historia = historiasVinculadas.length > 0 ? historiasVinculadas[0].historias : null;
 
       // Buscar nome da classe
       let nomeClasse = 'Aventureiro';
@@ -720,15 +810,20 @@ class PersonagemController {
         });
       }
 
-      // Buscar personagens que podem estar relacionados à história
-      let personagens = [];
+      // Buscar personagens vinculados à história através da tabela historias_personagens
+      const vinculosPersonagens = await db.Personagem.listarPersonagensHistoriaByUsuario(historia_id, req.user.id);
       
+      let personagens = vinculosPersonagens.map(vinculo => ({
+        ...vinculo.personagens,
+        papel: vinculo.papel // Adicionar o papel do personagem na história
+      }));
+      
+      // Se há termo de busca, filtrar pelos nomes e backgrounds
       if (search) {
-        // Se há termo de busca, usar o método de busca
-        personagens = await db.Personagem.search(search);
-      } else {
-        // Buscar todos os personagens
-        personagens = await db.Personagem.findAllPersonagens();
+        personagens = personagens.filter(p => 
+          p.nome.toLowerCase().includes(search.toLowerCase()) ||
+          (p.background && p.background.toLowerCase().includes(search.toLowerCase()))
+        );
       }
       
       // Filtrar por status se fornecido
@@ -768,7 +863,7 @@ class PersonagemController {
           offset: parseInt(offset),
           hasMore: startIndex + personagensProcessados.length < personagens.length
         },
-        message: 'Nota: Como não há relação direta entre personagens e histórias no schema atual, todos os personagens são retornados. Use o parâmetro "search" para filtrar por nome ou background.'
+        message: `Personagens vinculados à história "${historia.nome}" através da tabela historias_personagens.`
       });
 
     } catch (error) {
@@ -1166,6 +1261,147 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao listar equipamentos:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  // ===== MÉTODOS PARA GERENCIAR VÍNCULOS COM HISTÓRIAS =====
+
+  /**
+   * Vincular personagem a uma história
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  vincularHistoria = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { historia_id, papel } = req.body;
+
+      console.log(`🔗 Vinculando personagem ${id} à história ${historia_id}`);
+
+      if (!historia_id) {
+        return res.status(400).json({
+          error: 'ID da história é obrigatório'
+        });
+      }
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Verificar se a história existe
+      const historia = await db.Historia.findById(parseInt(historia_id));
+      if (!historia) {
+        return res.status(404).json({
+          error: 'História não encontrada'
+        });
+      }
+
+      // Verificar se o vínculo já existe
+      const vinculosExistentes = await db.Personagem.listarHistoriasPersonagem(parseInt(id));
+      const vinculoExiste = vinculosExistentes.some(v => v.historia_id === parseInt(historia_id));
+      
+      if (vinculoExiste) {
+        return res.status(400).json({
+          error: 'Personagem já está vinculado a esta história'
+        });
+      }
+
+      // Criar vínculo
+      await db.Personagem.vincularHistoria(id, historia_id, papel || 'jogador');
+
+      console.log('✅ Vínculo criado com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Personagem vinculado à história com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao vincular personagem à história:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Desvincular personagem de uma história
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  desvincularHistoria = async (req, res, next) => {
+    try {
+      const { id, historia_id } = req.params;
+
+      console.log(`🔗 Desvinculando personagem ${id} da história ${historia_id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Desvincular
+      await db.Personagem.desvincularHistoria(id, historia_id);
+
+      console.log('✅ Vínculo removido com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Personagem desvinculado da história com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao desvincular personagem da história:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Listar histórias do personagem
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  listarHistoriasPersonagem = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      console.log(`📋 Listando histórias do personagem ${id}`);
+
+      // Verificar se o personagem existe
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({
+          error: 'Personagem não encontrado'
+        });
+      }
+
+      // Listar histórias do personagem
+      const historias = await db.Personagem.listarHistoriasPersonagem(id);
+
+      console.log(`✅ ${historias.length} histórias encontradas`);
+
+      res.status(200).json({
+        success: true,
+        data: historias
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao listar histórias do personagem:', error);
       res.status(500).json({
         error: 'Erro interno do servidor'
       });

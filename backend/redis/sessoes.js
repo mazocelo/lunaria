@@ -55,9 +55,10 @@ class SessaoRPG {
    */
   async obterSessao(salaId) {
     try {
+      console.log('salaId', salaId);
       const sessionId = `${this.prefix}${salaId}`;
       const sessao = await this.client.get(sessionId);
-      
+      console.log('sessao', sessao);
       if (!sessao) {
         return null;
       }
@@ -142,6 +143,70 @@ class SessaoRPG {
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
       console.error('Erro ao atualizar estado do jogo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Adicionar ação RPG à sessão
+   * @param {string} salaId - ID da sala
+   * @param {Object} acao - Dados da ação
+   * @returns {Promise<Object>} - Sessão atualizada
+   */
+  async adicionarAcao(salaId, acao) {
+    try {
+      const sessao = await this.obterSessao(salaId);
+      
+      if (!sessao) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const acoes = sessao.acoes || [];
+      acoes.push({
+        ...acao,
+        timestamp: new Date().toISOString()
+      });
+
+      // Manter apenas as últimas 100 ações
+      if (acoes.length > 100) {
+        acoes.shift();
+      }
+
+      return await this.atualizarSessao(salaId, { acoes });
+    } catch (error) {
+      console.error('Erro ao adicionar ação:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Adicionar rolagem de dados à sessão
+   * @param {string} salaId - ID da sala
+   * @param {Object} rolagem - Dados da rolagem
+   * @returns {Promise<Object>} - Sessão atualizada
+   */
+  async adicionarRolagem(salaId, rolagem) {
+    try {
+      const sessao = await this.obterSessao(salaId);
+      
+      if (!sessao) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const rolagens = sessao.rolagens || [];
+      rolagens.push({
+        ...rolagem,
+        timestamp: new Date().toISOString()
+      });
+
+      // Manter apenas as últimas 100 rolagens
+      if (rolagens.length > 100) {
+        rolagens.shift();
+      }
+
+      return await this.atualizarSessao(salaId, { rolagens });
+    } catch (error) {
+      console.error('Erro ao adicionar rolagem:', error);
       throw error;
     }
   }

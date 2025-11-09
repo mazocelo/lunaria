@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { createClient } from 'redis';
 import gerenciadorSessoes from '../redis/sessoes.js';
+import criarMestreRPG from '../agents/Mestre/index.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -156,6 +157,23 @@ class SocketManager {
         } catch (error) {
           this.log('ERROR', 'CHAT_MESSAGE_FAILED', socket.id, socket.userId, {
             error: error.message
+          });
+        }
+      });
+
+      // Evento de mensagem para o Mestre (IA)
+      socket.on('mensagem_para_mestre', async (data) => {
+        this.log('INFO', 'MENSAGEM_PARA_MESTRE_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          messageLength: data?.mensagem?.length,
+          personagem: data?.personagem?.nome
+        });
+        try {
+          await this.handleMensagemParaMestre(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'MENSAGEM_PARA_MESTRE_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
           });
         }
       });
@@ -393,10 +411,27 @@ class SocketManager {
         historiaId: data?.historiaId
       },
       socketCurrentRoom: socket.currentRoom,
-      socketAuthenticated: !!socket.userId
+      socketAuthenticated: !!socket.userId,
+      socketUserId: socket.userId,
+      socketUsername: socket.username
     });
 
     try {
+      // ===== VALIDAÇÃO 1: Socket autenticado =====
+      if (!socket.userId) {
+        this.log('ERROR', 'JOIN_ROOM_NOT_AUTHENTICATED', socket.id, null, {
+          message: 'Socket não autenticado',
+          socketId: socket.id,
+          receivedData: data
+        });
+        socket.emit('error', { 
+          message: 'Socket não autenticado. Execute authenticate() primeiro.',
+          code: 'NOT_AUTHENTICATED' 
+        });
+        return;
+      }
+
+      // ===== VALIDAÇÃO 2: Dados obrigatórios =====
       const { roomId: rawRoomId, userId: rawUserId, username: rawUsername, historiaId: rawHistoriaId } = data || {};
 
       if (!rawRoomId || !rawUserId) {
@@ -407,7 +442,10 @@ class SocketManager {
           },
           receivedData: data
         });
-        socket.emit('error', { message: 'roomId e userId são obrigatórios' });
+        socket.emit('error', { 
+          message: 'roomId e userId são obrigatórios',
+          code: 'MISSING_REQUIRED_FIELDS'
+        });
         return;
       }
 
@@ -471,19 +509,23 @@ class SocketManager {
 
         // Se a sessão foi iniciada, bloquear entrada de novos usuários
         if (sessao.status === 'iniciada') {
-          // Verificar se o usuário já estava na lista de jogadores conectados
-          const jaConectado = sessao.jogadoresConectados?.some(j => j.userId === userId);
+          // Verificar se o usuário está no mapa de jogadores (participou do início)
+          const estaNoMapaJogadores = sessao.jogadores && sessao.jogadores[String(userId)];
           
           this.log('INFO', 'JOIN_ROOM_AVENTURA_INICIADA_CHECK', socket.id, userId, {
             sessaoStatus: sessao.status,
-            jaConectadoAnteriormente: jaConectado,
-            jogadoresConectados: sessao.jogadoresConectados?.map(j => ({ userId: j.userId, username: j.username }))
+            userId: userId,
+            userIdTipo: typeof userId,
+            estaNoMapaJogadores: !!estaNoMapaJogadores,
+            mapaJogadores: sessao.jogadores ? Object.keys(sessao.jogadores) : [],
+            jogadoresConectados: sessao.jogadoresConectados || []
           });
           
-          if (!jaConectado) {
+          if (!estaNoMapaJogadores) {
             this.log('ERROR', 'JOIN_ROOM_AVENTURA_INICIADA_BLOCKED', socket.id, userId, {
               roomId: roomId,
-              sessaoStatus: sessao.status
+              sessaoStatus: sessao.status,
+              motivo: 'Usuário não está no mapa de jogadores'
             });
             socket.emit('error', { 
               message: 'A aventura já foi iniciada. Não é possível entrar agora.',
@@ -491,9 +533,15 @@ class SocketManager {
             });
             return;
           } else {
+            console.log('✅ Permitindo reconexão de jogador existente na sessão iniciada:', {
+              userId,
+              username: socket.username,
+              personagem: estaNoMapaJogadores.personagemNome
+            });
             this.log('INFO', 'JOIN_ROOM_RECONNECTION_ALLOWED', socket.id, userId, {
               username: username,
-              sessaoStatus: sessao.status
+              sessaoStatus: sessao.status,
+              personagem: estaNoMapaJogadores.personagemNome
             });
           }
         }
@@ -554,11 +602,36 @@ class SocketManager {
       const wasAlreadyInRoom = this.roomUsers.get(roomId).has(userId);
       this.roomUsers.get(roomId).add(userId);
 
+      // Detectar se é convidado (não é o dono da sala) - APÓS obter sessão
+      let isOwner = false;
+      let isGuest = false;
+      
+      if (roomId.startsWith('historia_')) {
+        // Buscar sessão se já não estiver disponível neste escopo
+        const sessaoParaDeteccao = await this.obterSessaoHistoria(roomId);
+        if (sessaoParaDeteccao) {
+          isOwner = sessaoParaDeteccao.donoId === userId;
+          isGuest = !isOwner && !wasAlreadyInRoom;
+        }
+      }
+
       this.log('INFO', 'JOIN_ROOM_ADDED_TO_USERLIST', socket.id, userId, {
         roomId: roomId,
         wasAlreadyInRoom: wasAlreadyInRoom,
-        totalUsersInRoom: this.roomUsers.get(roomId).size
+        totalUsersInRoom: this.roomUsers.get(roomId).size,
+        username: username,
+        isOwner: isOwner,
+        isGuest: isGuest
       });
+
+      // Log específico para convidados
+      if (isGuest) {
+        this.log('SUCCESS', 'GUEST_JOINED_ROOM', socket.id, userId, {
+          roomId: roomId,
+          username: username,
+          totalJogadores: this.roomUsers.get(roomId).size
+        });
+      }
 
       // Atualizar sessão no Redis se for uma história
       if (roomId.startsWith('historia_')) {
@@ -569,6 +642,9 @@ class SocketManager {
         await this.adicionarJogadorSessao(roomId, {
           userId,
           username,
+          personagemId: data.personagemId || null,
+          personagemNome: data.personagemNome || null,
+          status: data.personagemId && data.personagemNome ? 'pronto' : 'selecionando',
           socketId: socket.id,
           conectadoEm: new Date().toISOString()
         });
@@ -578,33 +654,16 @@ class SocketManager {
         });
       }
 
-      // Salvar no Redis
-      if (this.redis) {
-        this.log('INFO', 'JOIN_ROOM_REDIS_SAVE_START', socket.id, userId, {
-          roomId: roomId,
-          redisKeys: [`room:${roomId}:users`, `room:${roomId}:user:${userId}`]
-        });
+      // Dados de usuário já salvos via gerenciadorSessoes.adicionarJogadorSessao()
+      // Não precisamos mais salvar em room:* duplicado
 
-        await this.redis.sAdd(`room:${roomId}:users`, userId);
-        await this.redis.hSet(`room:${roomId}:user:${userId}`, {
-          username,
-          joinedAt: Date.now().toString(),
-          socketId: socket.id
-        });
-
-        this.log('SUCCESS', 'JOIN_ROOM_REDIS_SAVED', socket.id, userId, {
-          roomId: roomId
-        });
-      } else {
-        this.log('WARN', 'JOIN_ROOM_REDIS_UNAVAILABLE', socket.id, userId, {
-          roomId: roomId
-        });
-      }
-
-      // Notificar outros usuários
+      // Notificar outros usuários (incluir dados do personagem)
       const userJoinedEvent = {
         userId,
         username,
+        personagemId: data.personagemId || null,
+        personagemNome: data.personagemNome || null,
+        status: data.personagemId && data.personagemNome ? 'pronto' : 'selecionando',
         roomId,
         timestamp: Date.now(),
         isReconnection: wasAlreadyInRoom
@@ -613,7 +672,15 @@ class SocketManager {
       this.log('INFO', 'JOIN_ROOM_NOTIFYING_OTHERS', socket.id, userId, {
         roomId: roomId,
         eventData: userJoinedEvent,
-        isReconnection: wasAlreadyInRoom
+        isReconnection: wasAlreadyInRoom,
+        hasPersonagem: !!data.personagemNome
+      });
+
+      console.log('📢 SocketManager: Notificando outros jogadores sobre novo usuário:', {
+        userId,
+        username,
+        personagemNome: data.personagemNome,
+        status: userJoinedEvent.status
       });
 
       socket.to(roomId).emit('user_joined', userJoinedEvent);
@@ -650,10 +717,17 @@ class SocketManager {
               donoNome: sessao.donoNome,
               maxJogadores: sessao.maxJogadores,
               totalJogadores: sessao.jogadoresConectados?.length || 0,
+              jogadoresConectados: sessao.jogadoresConectados || [],  // ← ADICIONAR LISTA COMPLETA
               estadoJogo: sessao.estadoJogo,
               iniciadaEm: sessao.iniciadaEm || null
             }
           };
+
+          console.log('📤 SocketManager: Enviando room_joined com jogadores:', {
+            roomId: responseData.roomId,
+            totalJogadores: responseData.sessao.jogadoresConectados.length,
+            jogadores: responseData.sessao.jogadoresConectados
+          });
 
           socket.emit('room_joined', responseData);
           
@@ -794,24 +868,8 @@ class SocketManager {
         });
       }
 
-      // Remover do Redis
-      if (this.redis) {
-        this.log('INFO', 'LEAVE_ROOM_REDIS_CLEANUP_START', socket.id, userId, {
-          roomId: roomId,
-          redisKeys: [`room:${roomId}:users`, `room:${roomId}:user:${userId}`]
-        });
-
-        await this.redis.sRem(`room:${roomId}:users`, userId);
-        await this.redis.del(`room:${roomId}:user:${userId}`);
-
-        this.log('SUCCESS', 'LEAVE_ROOM_REDIS_CLEANED', socket.id, userId, {
-          roomId: roomId
-        });
-      } else {
-        this.log('WARN', 'LEAVE_ROOM_REDIS_UNAVAILABLE', socket.id, userId, {
-          roomId: roomId
-        });
-      }
+      // Dados de usuário já removidos via gerenciadorSessoes.removerJogadorSessao()
+      // Não precisamos mais remover de room:* duplicado
 
       // Notificar outros usuários
       const userLeftEvent = {
@@ -918,27 +976,8 @@ class SocketManager {
         timestamp: Date.now().toString()
       };
 
-      // Salvar no Redis
-      if (this.redis) {
-        this.log('INFO', 'CHAT_MESSAGE_REDIS_SAVE_START', socket.id, userId, {
-          roomId: roomId,
-          messageId: messageData.id,
-          redisKey: `room:${roomId}:messages`
-        });
-
-        await this.redis.lPush(`room:${roomId}:messages`, JSON.stringify(messageData));
-        await this.redis.lTrim(`room:${roomId}:messages`, 0, 99); // Manter apenas as últimas 100 mensagens
-
-        this.log('SUCCESS', 'CHAT_MESSAGE_REDIS_SAVED', socket.id, userId, {
-          roomId: roomId,
-          messageId: messageData.id
-        });
-      } else {
-        this.log('WARN', 'CHAT_MESSAGE_REDIS_UNAVAILABLE', socket.id, userId, {
-          roomId: roomId,
-          messageId: messageData.id
-        });
-      }
+      // Mensagens de chat não precisam persistência separada
+      // handleMensagemParaMestre já salva mensagens importantes na rpg_session
 
       // Enviar para todos na sala
       this.log('INFO', 'CHAT_MESSAGE_BROADCASTING', socket.id, userId, {
@@ -1010,9 +1049,9 @@ class SocketManager {
         timestamp: Date.now().toString()
       };
 
-      // Salvar no Redis
-      if (this.redis) {
-        await this.redis.lPush(`room:${roomId}:actions`, JSON.stringify(actionData));
+      // Salvar ação na sessão unificada
+      if (roomId.startsWith('historia_')) {
+        await this.gerenciadorSessoes.adicionarAcao(roomId, actionData);
       }
 
       // Enviar para todos na sala
@@ -1064,9 +1103,9 @@ class SocketManager {
         timestamp: Date.now().toString()
       };
 
-      // Salvar no Redis
-      if (this.redis) {
-        await this.redis.lPush(`room:${roomId}:rolls`, JSON.stringify(rollData));
+      // Salvar rolagem na sessão unificada
+      if (roomId.startsWith('historia_')) {
+        await this.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
       }
 
       // Enviar para todos na sala
@@ -1077,6 +1116,180 @@ class SocketManager {
     } catch (error) {
       console.error('❌ Erro ao processar rolagem:', error);
       socket.emit('error', { message: 'Erro ao processar rolagem' });
+    }
+  }
+
+  /**
+   * Handler para mensagem destinada ao Mestre (IA)
+   */
+  async handleMensagemParaMestre(socket, data) {
+    const startTime = Date.now();
+    this.log('INFO', 'MENSAGEM_PARA_MESTRE_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: {
+        roomId: data?.roomId,
+        userId: data?.userId,
+        username: data?.username,
+        personagem: data?.personagem?.nome,
+        mensagemLength: data?.mensagem?.length
+      }
+    });
+
+    try {
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername, 
+        mensagem: rawMensagem,
+        personagem: rawPersonagem
+      } = data || {};
+
+      if (!rawRoomId || !rawUserId || !rawMensagem || !rawPersonagem) {
+        this.log('ERROR', 'MENSAGEM_PARA_MESTRE_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId,
+            mensagem: !rawMensagem,
+            personagem: !rawPersonagem
+          }
+        });
+        socket.emit('error', { message: 'roomId, userId, mensagem e personagem são obrigatórios' });
+        return;
+      }
+
+      // Parsing dos dados
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : 'Jogador';
+      const mensagem = String(rawMensagem);
+      const personagem = rawPersonagem;
+
+      this.log('INFO', 'MENSAGEM_PARA_MESTRE_DATA_PARSED', socket.id, userId, {
+        roomId,
+        username,
+        personagemNome: personagem.nome,
+        mensagemTruncated: mensagem.substring(0, 100)
+      });
+
+      // 1. Obter sessão da história
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        this.log('ERROR', 'MENSAGEM_PARA_MESTRE_SESSAO_NOT_FOUND', socket.id, userId, {
+          roomId
+        });
+        return socket.emit('error', { message: 'Sessão não encontrada' });
+      }
+
+      this.log('INFO', 'MENSAGEM_PARA_MESTRE_SESSAO_FOUND', socket.id, userId, {
+        sessaoStatus: sessao.status,
+        historiaNome: sessao.historiaNome,
+        totalMensagens: sessao.mensagens?.length || 0
+      });
+
+      // 2. Obter histórico de mensagens
+      const historico = sessao.mensagens || [];
+
+      // 3. Criar instância do Mestre com temas e personagens da história
+      this.log('INFO', 'MENSAGEM_PARA_MESTRE_CREATING_MESTRE', socket.id, userId, {
+        temas: sessao.historiaTemas,
+        jogadoresCount: sessao.jogadoresConectados?.length || 0
+      });
+
+      const mestre = await criarMestreRPG(
+        sessao.historiaTemas || [],
+        sessao.jogadoresConectados || []
+      );
+
+      // 4. Narrar ação do jogador
+      this.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {
+        jogador: username,
+        personagem: personagem.nome,
+        historicoLength: historico.length
+      });
+
+      const resposta = await mestre.narrarAcao({
+        jogador: username,
+        personagem: personagem.nome,
+        acao: mensagem,
+        chatHistory: historico
+      });
+
+      this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_IA_RESPONDED', socket.id, userId, {
+        narracaoLength: resposta.narracao?.length || 0
+      });
+
+      // 5. Salvar mensagem do jogador na sessão
+      const mensagemJogador = {
+        tipo: 'jogador',
+        userId,
+        username,
+        personagem: personagem.nome,
+        mensagem,
+        timestamp: Date.now()
+      };
+
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+      sessao.mensagens.push(mensagemJogador);
+
+      // 6. Salvar resposta do mestre na sessão
+      const mensagemMestre = {
+        tipo: 'mestre',
+        userId: 'mestre',
+        username: 'Mestre',
+        mensagem: resposta.narracao,
+        timestamp: Date.now()
+      };
+
+      sessao.mensagens.push(mensagemMestre);
+
+      // 7. Atualizar sessão no Redis
+      sessao.atualizadaEm = new Date().toISOString();
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_SESSAO_UPDATED', socket.id, userId, {
+        roomId,
+        totalMensagens: sessao.mensagens.length
+      });
+
+      // 8. Enviar mensagem do jogador para todos (echo)
+      this.io.to(roomId).emit('chat_message', {
+        id: Date.now().toString(),
+        userId,
+        username,
+        personagem: personagem.nome,
+        message: mensagem,
+        tipo: 'jogador',
+        timestamp: Date.now()
+      });
+
+      // 9. Enviar resposta do mestre para todos na sala
+      this.io.to(roomId).emit('mensagem_mestre', {
+        id: (Date.now() + 1).toString(),
+        userId: 'mestre',
+        username: 'Mestre',
+        message: resposta.narracao,
+        tipo: 'mestre',
+        timestamp: Date.now() + 1
+      });
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_COMPLETED', socket.id, userId, {
+        roomId,
+        jogador: username,
+        personagem: personagem.nome,
+        processingTimeMs: processingTime
+      });
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'MENSAGEM_PARA_MESTRE_ERROR', socket.id, socket.userId, {
+        roomId: data?.roomId,
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime
+      });
+      socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
     }
   }
 
@@ -1114,20 +1327,8 @@ class SocketManager {
         timestamp: Date.now()
       };
 
-      // Salvar no Redis
-      if (this.redis) {
-        const redisData = {
-          status,
-          lastStatusUpdate: Date.now().toString()
-        };
-
-        // Adicionar detalhes apenas se existirem
-        if (details !== null && details !== undefined) {
-          redisData.statusDetails = JSON.stringify(details);
-        }
-
-        await this.redis.hSet(`room:${roomId}:user:${userId}`, redisData);
-      }
+      // Status do jogador já está gerenciado em jogadoresConectados na rpg_session
+      // Não precisamos mais salvar em room:* duplicado
 
       // Enviar para todos na sala
       this.io.to(roomId).emit('status_update', statusData);
@@ -1418,25 +1619,44 @@ class SocketManager {
       const sessao = await this.gerenciadorSessoes.obterSessao(salaId);
       
       if (sessao) {
-        // Verificar se o jogador já está na lista
-        const jogadoresAtuais = sessao.jogadoresConectados || [];
-        const jaExiste = jogadoresAtuais.find(j => j.userId === dadosJogador.userId);
+        const userId = String(dadosJogador.userId);
         
-        if (!jaExiste) {
-          // Adicionar novo jogador
-          jogadoresAtuais.push(dadosJogador);
-          sessao.jogadoresConectados = jogadoresAtuais;
-          sessao.atualizadaEm = new Date().toISOString();
+        // Verificar se sessão já foi iniciada
+        if (sessao.status === 'iniciada') {
+          // APÓS INICIAR: jogadoresConectados é array de IDs
+          const jogadoresConectados = Array.isArray(sessao.jogadoresConectados) ? sessao.jogadoresConectados : [];
           
-          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-          console.log(`👤 Jogador ${dadosJogador.username} adicionado à sessão ${salaId}`);
+          if (!jogadoresConectados.includes(userId)) {
+            jogadoresConectados.push(userId);
+            sessao.jogadoresConectados = jogadoresConectados;
+            sessao.atualizadaEm = new Date().toISOString();
+            
+            await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+            console.log(`👤 Jogador ${userId} (${dadosJogador.username}) reconectado à sessão iniciada ${salaId}`);
+          } else {
+            console.log(`🔄 Jogador ${userId} já está em jogadoresConectados`);
+          }
         } else {
-          // Atualizar dados do jogador existente (reconexão)
-          Object.assign(jaExiste, dadosJogador);
-          sessao.atualizadaEm = new Date().toISOString();
+          // ANTES DE INICIAR: jogadoresConectados é array de objetos
+          const jogadoresAtuais = sessao.jogadoresConectados || [];
+          const jaExiste = jogadoresAtuais.find(j => String(j.userId) === userId);
           
-          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-          console.log(`🔄 Dados do jogador ${dadosJogador.username} atualizados na sessão ${salaId}`);
+          if (!jaExiste) {
+            // Adicionar novo jogador com dados completos
+            jogadoresAtuais.push(dadosJogador);
+            sessao.jogadoresConectados = jogadoresAtuais;
+            sessao.atualizadaEm = new Date().toISOString();
+            
+            await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+            console.log(`👤 Jogador ${dadosJogador.username} adicionado à sessão ${salaId}`);
+          } else {
+            // Atualizar dados do jogador existente (reconexão)
+            Object.assign(jaExiste, dadosJogador);
+            sessao.atualizadaEm = new Date().toISOString();
+            
+            await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+            console.log(`🔄 Dados do jogador ${dadosJogador.username} atualizados na sessão ${salaId}`);
+          }
         }
       }
     } catch (error) {
@@ -1455,12 +1675,26 @@ class SocketManager {
       const sessao = await this.gerenciadorSessoes.obterSessao(salaId);
       
       if (sessao && sessao.jogadoresConectados) {
-        const jogadoresAtuais = sessao.jogadoresConectados.filter(j => j.userId !== userId);
-        sessao.jogadoresConectados = jogadoresAtuais;
-        sessao.atualizadaEm = new Date().toISOString();
+        const userIdString = String(userId);
         
-        await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-        console.log(`👤 Jogador ${userId} removido da sessão ${salaId}`);
+        // Verificar se sessão já foi iniciada
+        if (sessao.status === 'iniciada') {
+          // APÓS INICIAR: jogadoresConectados é array de IDs
+          const jogadoresConectados = Array.isArray(sessao.jogadoresConectados) ? sessao.jogadoresConectados : [];
+          sessao.jogadoresConectados = jogadoresConectados.filter(id => String(id) !== userIdString);
+          sessao.atualizadaEm = new Date().toISOString();
+          
+          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+          console.log(`👤 Jogador ${userId} desconectado da sessão iniciada ${salaId}`);
+        } else {
+          // ANTES DE INICIAR: jogadoresConectados é array de objetos
+          const jogadoresAtuais = sessao.jogadoresConectados.filter(j => String(j.userId) !== userIdString);
+          sessao.jogadoresConectados = jogadoresAtuais;
+          sessao.atualizadaEm = new Date().toISOString();
+          
+          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
+          console.log(`👤 Jogador ${userId} removido da sessão ${salaId}`);
+        }
       }
     } catch (error) {
       console.error('❌ Erro ao remover jogador da sessão:', error);

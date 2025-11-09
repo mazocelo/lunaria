@@ -8,7 +8,7 @@ export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
+    // console.log('🔐 Token:', req.headers);
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -96,31 +96,92 @@ export const optionalAuth = async (req, res, next) => {
 };
 
 /**
- * Gerar token JWT
+ * Gerar token de acesso JWT (curta duração)
  */
-export const generateToken = (userId, email, role = 'player') => {
+export const generateAccessToken = (userId, email, role = 'player') => {
   return jwt.sign(
     { 
       userId, 
       email, 
       role,
+      type: 'access',
       iat: Math.floor(Date.now() / 1000)
     },
     process.env.JWT_SECRET || 'rpg_chat_game_secret_key',
-    { expiresIn: '24h' }
+    { expiresIn: '15m' } // Token de acesso com 15 minutos
   );
 };
 
 /**
- * Verificar e renovar token
+ * Gerar refresh token JWT (longa duração)
  */
-export const refreshToken = (token) => {
+export const generateRefreshToken = (userId, email, role = 'player', rememberMe = false) => {
+  const expiresIn = rememberMe ? '30d' : '25m'; // 30 dias se "lembrar de mim", senão 25 minutos
+  
+  return jwt.sign(
+    { 
+      userId, 
+      email, 
+      role,
+      type: 'refresh',
+      iat: Math.floor(Date.now() / 1000)
+    },
+    process.env.JWT_REFRESH_SECRET || 'rpg_chat_game_refresh_secret_key',
+    { expiresIn }
+  );
+};
+
+/**
+ * Gerar token JWT (compatibilidade com código existente)
+ */
+export const generateToken = (userId, email, role = 'player') => {
+  return generateAccessToken(userId, email, role);
+};
+
+/**
+ * Verificar e renovar access token usando refresh token
+ */
+export const refreshToken = (refreshTokenValue) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rpg_chat_game_secret_key');
+    const decoded = jwt.verify(
+      refreshTokenValue, 
+      process.env.JWT_REFRESH_SECRET || 'rpg_chat_game_refresh_secret_key'
+    );
     
-    // Gerar novo token com mesmos dados
-    return generateToken(decoded.userId, decoded.email, decoded.role);
+    // Verificar se é um refresh token
+    if (decoded.type !== 'refresh') {
+      throw new Error('Token deve ser um refresh token');
+    }
+    
+    // Gerar novos tokens
+    const accessToken = generateAccessToken(decoded.userId, decoded.email, decoded.role);
+    const newRefreshToken = generateRefreshToken(decoded.userId, decoded.email, decoded.role, false);
+    
+    return {
+      accessToken,
+      refreshToken: newRefreshToken
+    };
   } catch (error) {
-    throw new Error('Token inválido para renovação');
+    throw new Error('Refresh token inválido ou expirado');
+  }
+};
+
+/**
+ * Verificar refresh token
+ */
+export const verifyRefreshToken = (refreshTokenValue) => {
+  try {
+    const decoded = jwt.verify(
+      refreshTokenValue, 
+      process.env.JWT_REFRESH_SECRET || 'rpg_chat_game_refresh_secret_key'
+    );
+    
+    if (decoded.type !== 'refresh') {
+      throw new Error('Token deve ser um refresh token');
+    }
+    
+    return decoded;
+  } catch (error) {
+    throw new Error('Refresh token inválido ou expirado');
   }
 }; 

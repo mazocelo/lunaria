@@ -59,7 +59,7 @@ const Equipamento = (prisma) => {
 
     // Criar equipamento
     async create(data) {
-      return await model.create({
+      return await prisma.equipamentos.create({
         data: {
           ...data,
           bonus: data.bonus || [],
@@ -71,7 +71,7 @@ const Equipamento = (prisma) => {
 
     // Atualizar equipamento
     async update(id, data) {
-      return await model.update({
+      return await prisma.equipamentos.update({
         where: { id },
         data
       });
@@ -79,7 +79,7 @@ const Equipamento = (prisma) => {
 
     // Deletar equipamento
     async delete(id) {
-      return await model.delete({
+      return await prisma.equipamentos.delete({
         where: { id }
       });
     },

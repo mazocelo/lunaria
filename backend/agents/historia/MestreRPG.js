@@ -7,7 +7,7 @@ dotenv.config();
 
 // Constantes globais
 const DEFAULT_MODEL_SETTINGS = {
-    model: 'gemma2-9b-it',
+    model: 'openai/gpt-oss-120b',
     temperature: 0.9, // Alta criatividade para narração
     maxTokens: 8000,
     topP: 0.99,

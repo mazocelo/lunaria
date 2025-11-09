@@ -1,6 +1,6 @@
 import express from 'express';
 import historiaController from '../controllers/historia/historiaController.js';
-import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
+import gerenciadorSessoes from '../redis/sessoes.js';
 
 const router = express.Router();
 
@@ -96,13 +96,13 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/create', authenticateToken, historiaController.criarHistoria);
+router.post('/create', historiaController.criarHistoria);
 
 /**
  * @swagger
  * /historias:
  *   get:
- *     summary: Listar todas as histórias
+ *     summary: Listar histórias (minhas histórias + onde meus personagens participam)
  *     tags: [Histórias]
  *     parameters:
  *       - in: query
@@ -127,6 +127,18 @@ router.post('/create', authenticateToken, historiaController.criarHistoria);
  *           type: integer
  *           default: 0
  *         description: Número de resultados para pular
+ *       - in: query
+ *         name: todas
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Se true, lista todas as histórias públicas (ignora filtro de usuário)
+ *       - in: query
+ *         name: incluir_personagens
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: Se true, inclui histórias onde os personagens do usuário participam
  *     responses:
  *       200:
  *         description: Lista de histórias
@@ -140,7 +152,36 @@ router.post('/create', authenticateToken, historiaController.criarHistoria);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Historia'
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Historia'
+ *                       - type: object
+ *                         properties:
+ *                           tipo_relacao:
+ *                             type: string
+ *                             enum: [criador, participante, convite_pendente, convite_aceito, criador_e_participante, criador_e_convite_pendente, criador_e_convite_aceito, participante_e_convite_pendente, participante_e_convite_aceito, criador_e_participante_e_convite_pendente, criador_e_participante_e_convite_aceito]
+ *                             description: Tipo de relação do usuário com a história
+ *                           personagem_participante:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               nome:
+ *                                 type: string
+ *                               papel:
+ *                                 type: string
+ *                             description: Informações do personagem participante (quando tipo_relacao é participante)
+ *                           convite_status:
+ *                             type: string
+ *                             enum: [pendente, aceito, recusado]
+ *                             description: Status do convite (quando aplicável)
+ *                           convite_criado_em:
+ *                             type: string
+ *                             format: date-time
+ *                             description: Data de criação do convite (quando aplicável)
+ *                           convite_respondido_em:
+ *                             type: string
+ *                             format: date-time
+ *                             description: Data de resposta ao convite (quando aplicável)
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -152,8 +193,14 @@ router.post('/create', authenticateToken, historiaController.criarHistoria);
  *                       type: integer
  *                     hasMore:
  *                       type: boolean
+ *                 filtrado_por_usuario:
+ *                   type: integer
+ *                   description: ID do usuário usado no filtro (null se público)
+ *                 incluindo_personagens:
+ *                   type: boolean
+ *                   description: Se está incluindo histórias onde personagens do usuário participam
  */
-router.get('/', optionalAuth, historiaController.listarHistorias);
+router.get('/', historiaController.listarHistorias);
 
 /**
  * @swagger
@@ -187,7 +234,7 @@ router.get('/', optionalAuth, historiaController.listarHistorias);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', optionalAuth, historiaController.obterHistoria);
+router.get('/:id', historiaController.obterHistoria);
 
 /**
  * @swagger
@@ -242,7 +289,7 @@ router.get('/:id', optionalAuth, historiaController.obterHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', authenticateToken, historiaController.atualizarHistoria);
+router.put('/:id', historiaController.atualizarHistoria);
 
 /**
  * @swagger
@@ -276,7 +323,7 @@ router.put('/:id', authenticateToken, historiaController.atualizarHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', authenticateToken, historiaController.excluirHistoria);
+router.delete('/:id', historiaController.excluirHistoria);
 
 /**
  * @swagger
@@ -318,7 +365,7 @@ router.delete('/:id', authenticateToken, historiaController.excluirHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-ia', authenticateToken, historiaController.gerarHistoriaComIA);
+router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
 
 
 
@@ -371,8 +418,201 @@ router.post('/gerar-ia', authenticateToken, historiaController.gerarHistoriaComI
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-aventura-completa', authenticateToken, historiaController.gerarAventuraCompleta);
+router.post('/gerar-aventura-completa', historiaController.gerarAventuraCompleta);
 
+/**
+ * @swagger
+ * /historias/minhas:
+ *   get:
+ *     summary: Listar apenas histórias criadas por mim
+ *     tags: [Histórias]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filtrar por status
+ *       - in: query
+ *         name: tema
+ *         schema:
+ *           type: string
+ *         description: Filtrar por tema
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Número máximo de resultados
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Número de resultados para pular
+ *     responses:
+ *       200:
+ *         description: Lista de histórias criadas pelo usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Historia'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     hasMore:
+ *                       type: boolean
+ */
+router.get('/minhas', historiaController.listarMinhasHistorias);
 
+/**
+ * @swagger
+ * /historias/com-personagens:
+ *   get:
+ *     summary: Listar histórias onde meus personagens participam
+ *     tags: [Histórias]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filtrar por status
+ *       - in: query
+ *         name: tema
+ *         schema:
+ *           type: string
+ *         description: Filtrar por tema
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Número máximo de resultados
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Número de resultados para pular
+ *     responses:
+ *       200:
+ *         description: Lista de histórias onde personagens do usuário participam
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Historia'
+ *                       - type: object
+ *                         properties:
+ *                           personagem_participante:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               nome:
+ *                                 type: string
+ *                               papel:
+ *                                 type: string
+ *                             description: Informações do personagem participante
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     hasMore:
+ *                       type: boolean
+ */
+router.get('/com-personagens', historiaController.listarHistoriasComPersonagens);
+
+/**
+ * Verificar se há sessão ativa para uma história
+ */
+router.get('/:id/sessao-ativa', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const salaId = `historia_${id}`;
+    
+    console.log(`🔍 Verificando sessão ativa para história ${id} (usuário: ${userId})`);
+    
+    // Verificar se há sessão no Redis
+    const sessao = await gerenciadorSessoes.obterSessao(salaId);
+    console.log('📊 Sessão obtida do Redis:', {
+      salaId,
+      status: sessao?.status,
+      jogadores: sessao?.jogadores,
+      jogadoresConectados: sessao?.jogadoresConectados,
+      donoId: sessao?.donoId
+    });
+    
+    if (!sessao) {
+      console.log(`📭 Nenhuma sessão ativa encontrada para história ${id}`);
+      return res.json({ 
+        success: true, 
+        data: { hasActiveSession: false } 
+      });
+    }
+    
+    // Verificar se usuário está jogando:
+    // 1. Se está no mapa de jogadores (participou do início)
+    // 2. Se é o dono da história
+    const estaEmJogadores = sessao.jogadores && sessao.jogadores[String(userId)];
+    const ehDono = String(sessao.donoId) === String(userId);
+    const estaConectado = Array.isArray(sessao.jogadoresConectados) && 
+      sessao.jogadoresConectados.some(id => String(id) === String(userId));
+    
+    const estaJogando = !!estaEmJogadores || ehDono;
+    
+    console.log(`📋 Sessão encontrada:`, {
+      status: sessao.status,
+      totalJogadores: sessao.jogadores ? Object.keys(sessao.jogadores).length : 0,
+      jogadoresConectadosAgora: sessao.jogadoresConectados?.length || 0,
+      estaEmJogadores: !!estaEmJogadores,
+      ehDono,
+      estaConectado,
+      estaJogando
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        hasActiveSession: true,
+        isPlaying: estaJogando,
+        sessao: {
+          status: sessao.status,
+          totalJogadores: sessao.jogadoresConectados?.length || 0,
+          totalMensagens: sessao.mensagens?.length || 0,
+          iniciadaEm: sessao.iniciadaEm
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao verificar sessão ativa:', error);
+    next(error);
+  }
+});
 
 export default router;

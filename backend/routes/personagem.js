@@ -1,7 +1,6 @@
 import express from 'express';
 import personagemController from '../controllers/personagem/personagemController.js';
 import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
-import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -66,17 +65,14 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 20
  *           description: Constituição do personagem
- *         sabedoria:
+ *         agilidade:
  *           type: integer
  *           minimum: 1
  *           maximum: 20
- *           description: Sabedoria do personagem
- *         historia_id:
+ *           description: Agilidade do personagem
+ *         id_usuario:
  *           type: integer
- *           description: ID da história à qual o personagem pertence
- *         jogador_id:
- *           type: integer
- *           description: ID do jogador que controla o personagem
+ *           description: ID do usuário que criou o personagem
  *         status:
  *           type: string
  *           enum: [ativo, inativo, morto]
@@ -153,16 +149,14 @@ const router = express.Router();
  *                 minimum: 1
  *                 maximum: 20
  *                 default: 10
- *               sabedoria:
+ *               agilidade:
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 20
  *                 default: 10
- *               historia_id:
+ *               id_usuario:
  *                 type: integer
- *                 description: ID da história
- *               jogador_id:
- *                 type: integer
+ *                 description: ID do usuário que criará o personagem (opcional, será preenchido automaticamente)
  *               vantagens:
  *                 type: array
  *                 items:
@@ -205,7 +199,7 @@ const router = express.Router();
  *       404:
  *         description: História não encontrada
  */
-router.post('/', authenticateToken, asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
+router.post('/', asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -215,15 +209,10 @@ router.post('/', authenticateToken, asyncHandlerWithContext(personagemController
  *     tags: [Personagens]
  *     parameters:
  *       - in: query
- *         name: historia_id
+ *         name: id_usuario
  *         schema:
  *           type: integer
- *         description: Filtrar por história
- *       - in: query
- *         name: jogador_id
- *         schema:
- *           type: integer
- *         description: Filtrar por jogador
+ *         description: Filtrar por usuário
  *       - in: query
  *         name: status
  *         schema:
@@ -268,7 +257,7 @@ router.post('/', authenticateToken, asyncHandlerWithContext(personagemController
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/', optionalAuth, asyncHandlerWithContext(personagemController.listarPersonagens, personagemController));
+router.get('/', asyncHandlerWithContext(personagemController.listarPersonagens, personagemController));
 
 /**
  * @swagger
@@ -298,7 +287,7 @@ router.get('/', optionalAuth, asyncHandlerWithContext(personagemController.lista
  *       404:
  *         description: Personagem não encontrado
  */
-router.get('/:id', optionalAuth, asyncHandlerWithContext(personagemController.obterPersonagem, personagemController));
+router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem, personagemController));
 
 /**
  * @swagger
@@ -356,7 +345,7 @@ router.get('/:id', optionalAuth, asyncHandlerWithContext(personagemController.ob
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 20
- *               sabedoria:
+ *               agilidade:
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 20
@@ -397,7 +386,7 @@ router.get('/:id', optionalAuth, asyncHandlerWithContext(personagemController.ob
  *       404:
  *         description: Personagem não encontrado
  */
-router.put('/:id', authenticateToken, asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
+router.put('/:id', asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -427,7 +416,7 @@ router.put('/:id', authenticateToken, asyncHandlerWithContext(personagemControll
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id', authenticateToken, asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
+router.delete('/:id', asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
 
 /**
  * @swagger
@@ -476,7 +465,7 @@ router.delete('/:id', authenticateToken, asyncHandlerWithContext(personagemContr
  *       404:
  *         description: Personagem não encontrado
  */
-router.post('/:id/background', authenticateToken, asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
+router.post('/:id/background', asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
 
 /**
  * @swagger
@@ -557,7 +546,7 @@ router.post('/:id/background', authenticateToken, asyncHandlerWithContext(person
  *       404:
  *         description: História não encontrada
  */
-router.get('/historia/:historia_id', optionalAuth, asyncHandlerWithContext(personagemController.listarPersonagensPorHistoria, personagemController));
+router.get('/historia/:historia_id', asyncHandlerWithContext(personagemController.listarPersonagensPorHistoria, personagemController));
 
 // ===== ROTAS PARA GERENCIAR VÍNCULOS COM VANTAGENS =====
 
@@ -909,5 +898,130 @@ router.delete('/:id/equipamentos/:equipamento_id', asyncHandlerWithContext(perso
  *         description: Personagem não encontrado
  */
 router.get('/:id/equipamentos', asyncHandlerWithContext(personagemController.listarEquipamentos, personagemController));
+
+// ===== ROTAS PARA GERENCIAR VÍNCULOS COM HISTÓRIAS =====
+
+/**
+ * @swagger
+ * /api/personagens/{id}/historias:
+ *   post:
+ *     summary: Vincular personagem a uma história
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - historia_id
+ *             properties:
+ *               historia_id:
+ *                 type: integer
+ *                 description: ID da história
+ *               papel:
+ *                 type: string
+ *                 description: Papel do personagem na história
+ *                 default: jogador
+ *     responses:
+ *       200:
+ *         description: Vínculo criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Dados inválidos ou vínculo já existe
+ *       404:
+ *         description: Personagem ou história não encontrado
+ */
+router.post('/:id/historias', asyncHandlerWithContext(personagemController.vincularHistoria, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/historias/{historia_id}:
+ *   delete:
+ *     summary: Desvincular personagem de uma história
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *       - in: path
+ *         name: historia_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da história
+ *     responses:
+ *       200:
+ *         description: Vínculo removido com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.delete('/:id/historias/:historia_id', asyncHandlerWithContext(personagemController.desvincularHistoria, personagemController));
+
+/**
+ * @swagger
+ * /api/personagens/{id}/historias:
+ *   get:
+ *     summary: Listar histórias do personagem
+ *     tags: [Personagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do personagem
+ *     responses:
+ *       200:
+ *         description: Lista de histórias do personagem
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       historia:
+ *                         type: object
+ *                       papel:
+ *                         type: string
+ *       404:
+ *         description: Personagem não encontrado
+ */
+router.get('/:id/historias', asyncHandlerWithContext(personagemController.listarHistoriasPersonagem, personagemController));
+
+
 
 export default router; 

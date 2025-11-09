@@ -30,6 +30,10 @@ const router = express.Router();
  *           type: string
  *           minimum: 6
  *           description: Senha do usuário
+ *         lembrarDeMim:
+ *           type: boolean
+ *           description: Se verdadeiro, o refresh token terá duração de 30 dias ao invés de 25 minutos
+ *           default: false
  *     
  *     RegistroRequest:
  *       type: object
@@ -50,7 +54,7 @@ const router = express.Router();
  *           minimum: 6
  *           description: Senha do usuário (mínimo 6 caracteres)
  *     
- *     AuthResponse:
+     *     AuthResponse:
  *       type: object
  *       properties:
  *         success:
@@ -60,9 +64,15 @@ const router = express.Router();
  *         data:
  *           type: object
  *           properties:
- *             token:
+ *             accessToken:
  *               type: string
- *               description: Token JWT para autenticação
+ *               description: Token de acesso JWT (15 minutos)
+ *             refreshToken:
+ *               type: string
+ *               description: Token de renovação JWT (25 minutos ou 30 dias se "lembrar de mim")
+ *             lembrarDeMim:
+ *               type: boolean
+ *               description: Indica se "lembrar de mim" está ativo (apenas no login)
  *             usuario:
  *               type: object
  *               properties:
@@ -195,7 +205,7 @@ router.get('/verificar', authenticateToken, asyncHandler(authController.verifica
  * @swagger
  * /auth/renovar:
  *   post:
- *     summary: Renovar token JWT
+ *     summary: Renovar tokens JWT usando refresh token
  *     tags: [Autenticação]
  *     requestBody:
  *       required: true
@@ -204,14 +214,14 @@ router.get('/verificar', authenticateToken, asyncHandler(authController.verifica
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - refreshToken
  *             properties:
- *               token:
+ *               refreshToken:
  *                 type: string
- *                 description: Token JWT a ser renovado
+ *                 description: Refresh token para gerar novos tokens
  *     responses:
  *       200:
- *         description: Token renovado com sucesso
+ *         description: Tokens renovados com sucesso
  *         content:
  *           application/json:
  *             schema:
@@ -224,10 +234,14 @@ router.get('/verificar', authenticateToken, asyncHandler(authController.verifica
  *                 data:
  *                   type: object
  *                   properties:
- *                     token:
+ *                     accessToken:
  *                       type: string
+ *                       description: Novo token de acesso (15 minutos)
+ *                     refreshToken:
+ *                       type: string
+ *                       description: Novo refresh token (25 minutos)
  *       401:
- *         description: Token inválido para renovação
+ *         description: Refresh token inválido ou expirado
  */
 router.post('/renovar', asyncHandler(authController.renovarToken));
 

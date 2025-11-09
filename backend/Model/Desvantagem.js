@@ -72,14 +72,14 @@ const Desvantagem = (prisma) => {
         atualizada_em: new Date()
       };
 
-      return await model.create({
+      return await prisma.desvantagens.create({
         data: desvantagemData
       });
     },
 
     // Atualizar desvantagem
     async update(id, data) {
-      return await model.update({
+      return await prisma.desvantagens.update({
         where: { id },
         data: {
           ...data,
@@ -90,7 +90,7 @@ const Desvantagem = (prisma) => {
 
     // Deletar desvantagem
     async delete(id) {
-      return await model.delete({
+      return await prisma.desvantagens.delete({
         where: { id }
       });
     },

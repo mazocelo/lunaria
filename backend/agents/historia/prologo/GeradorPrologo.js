@@ -60,7 +60,7 @@ async function criarGeradorPrologo(temas = []) {
                         },
                         metadata: {
                             geradoEm: new Date().toISOString(),
-                            modelo: 'gemma2-9b-it',
+                            modelo: 'openai/gpt-oss-120b',
                             versao: '1.0',
                             temasUtilizados: temas
                         }

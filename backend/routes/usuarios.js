@@ -1,6 +1,5 @@
 import express from 'express';
 import usuarioController from '../controllers/usuario/usuarioController.js';
-import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -149,7 +148,7 @@ router.get('/', asyncHandler(usuarioController.listarUsuarios));
  *       404:
  *         description: Usuário não encontrado
  */
-router.get('/perfil', authenticateToken, asyncHandler(usuarioController.obterPerfil));
+router.get('/perfil', asyncHandler(usuarioController.obterPerfil));
 
 /**
  * @swagger
@@ -234,7 +233,7 @@ router.get('/:id', asyncHandler(usuarioController.obterUsuario));
  *       404:
  *         description: Usuário não encontrado
  */
-router.put('/:id', authenticateToken, asyncHandler(usuarioController.atualizarUsuario));
+router.put('/:id', asyncHandler(usuarioController.atualizarUsuario));
 
 /**
  * @swagger
@@ -270,7 +269,7 @@ router.put('/:id', authenticateToken, asyncHandler(usuarioController.atualizarUs
  *       404:
  *         description: Usuário não encontrado
  */
-router.delete('/:id', authenticateToken, asyncHandler(usuarioController.deletarUsuario));
+router.delete('/:id', asyncHandler(usuarioController.deletarUsuario));
 
 /**
  * @swagger
@@ -325,6 +324,7 @@ router.delete('/:id', authenticateToken, asyncHandler(usuarioController.deletarU
  *       404:
  *         description: Usuário não encontrado
  */
-router.get('/:id/estatisticas', authenticateToken, asyncHandler(usuarioController.obterEstatisticas));
+router.get('/:id/estatisticas', asyncHandler(usuarioController.obterEstatisticas));
+
 
 export default router; 

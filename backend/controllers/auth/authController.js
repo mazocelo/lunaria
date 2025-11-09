@@ -1,6 +1,11 @@
 import bcrypt from 'bcryptjs';
 import db from '../../Model/index.js';
-import { generateToken, refreshToken as renewToken } from '../../middleware/authMiddleware.js';
+import { 
+  generateAccessToken, 
+  generateRefreshToken, 
+  refreshToken as renewToken,
+  verifyRefreshToken 
+} from '../../middleware/authMiddleware.js';
 
 /**
  * Controller para autenticação de usuários
@@ -63,8 +68,9 @@ class AuthController {
         senha: senhaHash
       });
 
-      // Gerar token JWT
-      const token = generateToken(novoUsuario.id, novoUsuario.email);
+      // Gerar tokens JWT
+      const accessToken = generateAccessToken(novoUsuario.id, novoUsuario.email);
+      const refreshToken = generateRefreshToken(novoUsuario.id, novoUsuario.email);
 
       console.log('✅ Usuário registrado com sucesso:', novoUsuario.id);
 
@@ -72,7 +78,8 @@ class AuthController {
         success: true,
         message: 'Usuário registrado com sucesso',
         data: {
-          token,
+          accessToken,
+          refreshToken,
           usuario: {
             id: novoUsuario.id,
             nome: novoUsuario.nome,
@@ -99,7 +106,7 @@ class AuthController {
     try {
       console.log('🔐 Tentativa de login:', req.body.email);
 
-      const { email, senha } = req.body;
+      const { email, senha, lembrarDeMim = false } = req.body;
 
       // Validações básicas
       if (!email || !senha) {
@@ -127,16 +134,19 @@ class AuthController {
         });
       }
 
-      // Gerar token JWT
-      const token = generateToken(usuario.id, usuario.email);
+      // Gerar tokens JWT
+      const accessToken = generateAccessToken(usuario.id, usuario.email);
+      const refreshToken = generateRefreshToken(usuario.id, usuario.email, 'player', lembrarDeMim);
 
-      console.log('✅ Login realizado com sucesso:', usuario.id);
+      console.log('✅ Login realizado com sucesso:', usuario.id, lembrarDeMim ? '(lembrar de mim ativado)' : '');
 
       res.status(200).json({
         success: true,
         message: 'Login realizado com sucesso',
         data: {
-          token,
+          accessToken,
+          refreshToken,
+          lembrarDeMim,
           usuario: {
             id: usuario.id,
             nome: usuario.nome,
@@ -180,36 +190,48 @@ class AuthController {
   }
 
   /**
-   * Renovar token
+   * Renovar tokens usando refresh token
    * @param {Object} req - Request object
    * @param {Object} res - Response object
    */
   async renovarToken(req, res) {
     try {
-      const { token } = req.body;
+      const { refreshToken } = req.body;
 
-      if (!token) {
+      if (!refreshToken) {
         return res.status(400).json({
           success: false,
-          error: 'Token é obrigatório'
+          error: 'Refresh token é obrigatório'
         });
       }
 
-      const novoToken = renewToken(token);
+      // Verificar se o usuário ainda existe
+      const decoded = verifyRefreshToken(refreshToken);
+      const usuario = await db.Usuario.findById(decoded.userId);
+      
+      if (!usuario) {
+        return res.status(401).json({
+          success: false,
+          error: 'Usuário não encontrado'
+        });
+      }
+
+      const novosTokens = renewToken(refreshToken);
 
       res.status(200).json({
         success: true,
-        message: 'Token renovado com sucesso',
+        message: 'Tokens renovados com sucesso',
         data: {
-          token: novoToken
+          accessToken: novosTokens.accessToken,
+          refreshToken: novosTokens.refreshToken
         }
       });
 
     } catch (error) {
-      console.error('❌ Erro ao renovar token:', error);
+      console.error('❌ Erro ao renovar tokens:', error);
       res.status(401).json({
         success: false,
-        error: 'Token inválido para renovação'
+        error: 'Refresh token inválido ou expirado'
       });
     }
   }

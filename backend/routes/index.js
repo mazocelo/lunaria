@@ -5,9 +5,16 @@ import personagemRoutes from './personagem.js';
 import racaRoutes from './raca.js';
 import classeRoutes from './classe.js';
 import vantagemRoutes from './vantagens.js';
+import desvantagemRoutes from './desvantagens.js';
 import authRoutes from './auth.js';
 import usuarioRoutes from './usuarios.js';
 import jogoRoutes from './jogo.js';
+import conviteRoutes from './convites.js';
+import novidadesRoutes from './novidades.js';
+import rpgRoutes from './rpg.js';
+import temasRoutes from './temas.js';
+import websocketRoutes from './websocket.js';
+import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -18,28 +25,48 @@ router.get('/', async (req, res, next) => {
     message: 'Role Chat Game API',
     version: '1.0.0',
     endpoints: {
-      historias: '/api/historia',
-      sessoes: '/api/sessao',
-      personagens: '/api/personagens',
-      racas: '/api/racas',
-      classes: '/api/classes',
-      vantagens: '/api/vantagens',
-      auth: '/api/auth',
-      usuarios: '/api/usuarios',
-      jogo: '/api/jogo'
+      historias: '/historias',
+      sessoes: '/sessoes',
+      personagens: '/personagens',
+      racas: '/racas',
+      classes: '/classes',
+      vantagens: '/vantagens',
+      desvantagens: '/desvantagens',
+      auth: '/auth',
+      usuarios: '/usuarios',
+      jogo: '/jogo',
+      convites: '/convites',
+      novidades: '/novidades',
+      rpg: '/rpg',
+      temas: '/temas',
+      websocket: '/websocket'
     }
   });
 });
 
 // Rotas da API
-router.use('/api/auth', authRoutes);
-router.use('/api/usuarios', usuarioRoutes);
-router.use('/api/historia', historiaRoutes);
-router.use('/api/sessao', sessaoRoutes);
-router.use('/api/personagens', personagemRoutes);
-router.use('/api/racas', racaRoutes);
-router.use('/api/classes', classeRoutes);
-router.use('/api/vantagens', vantagemRoutes);
-router.use('/api/jogo', jogoRoutes);
+
+// Rotas públicas (sem autenticação obrigatória)
+router.use('/auth', authRoutes);
+router.use('/racas', racaRoutes);
+router.use('/classes', classeRoutes);
+router.use('/vantagens', vantagemRoutes);
+router.use('/desvantagens', desvantagemRoutes);
+router.use('/rpg', rpgRoutes);
+router.use('/temas', temasRoutes);
+router.use('/websocket', websocketRoutes);
+
+// Rotas com autenticação opcional (podem funcionar com ou sem token)
+router.use('/usuarios', optionalAuth, usuarioRoutes);
+
+// Rotas que requerem autenticação obrigatória
+router.use('/historias', authenticateToken, historiaRoutes);
+router.use('/personagens', authenticateToken, personagemRoutes);
+router.use('/convites', authenticateToken, conviteRoutes);
+router.use('/novidades', authenticateToken, novidadesRoutes);
+router.use('/jogo', authenticateToken, jogoRoutes);
+
+// Rotas de sessão (sem middleware global, aplicado individualmente)
+router.use('/sessoes', sessaoRoutes);
 
 export default router;

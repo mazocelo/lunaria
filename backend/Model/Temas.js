@@ -25,14 +25,14 @@ const Temas = (prisma) => {
 
     // Criar tema
     async create(data) {
-      return await model.create({
+      return await prisma.temas.create({
         data
       });
     },
 
     // Atualizar tema
     async update(id, data) {
-      return await model.update({
+      return await prisma.temas.update({
         where: { id },
         data
       });
@@ -40,7 +40,7 @@ const Temas = (prisma) => {
 
     // Deletar tema
     async delete(id) {
-      return await model.delete({
+      return await prisma.temas.delete({
         where: { id }
       });
     },

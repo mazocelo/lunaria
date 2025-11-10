@@ -177,12 +177,12 @@ const RegisterView = ({ onSwitchToLogin }) => {
             <div className="flex justify-center mb-6">
               <img 
                 src="/assets/logo_lunaria.png" 
-                alt="Lunaria Plataforma" 
+                alt="Lunaria - The Fable Forge" 
                 className="h-20 w-20 object-contain filter drop-shadow-2xl animate-pulse-slow"
               />
             </div>
             <h1 className="text-3xl font-fantasy text-white mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-              Lunaria
+              Lunaria - The Fable Forge
             </h1>
             <p className="text-purple-200 text-sm font-modern">
               Comece sua jornada épica
@@ -349,7 +349,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-purple-300/60 text-xs font-modern">
-            © 2024 Lunaria Plataforma. Todos os direitos reservados.
+            © 2024 Lunaria - The Fable Forge. Todos os direitos reservados.
           </p>
         </div>
       </div>

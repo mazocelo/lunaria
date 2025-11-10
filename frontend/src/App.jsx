@@ -116,7 +116,7 @@ function AppContent() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                   <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                    Role Chat Game
+                    The Fable Forge
                   </h1>
                   <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
                 </div>

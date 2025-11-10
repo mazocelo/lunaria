@@ -14,16 +14,15 @@
 import io from 'socket.io-client';
 
 // Configuração de URLs
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.lunaria.app.br'
-  : 'http://localhost:3001';
+// Nota: Domínios não configurados - usando localhost por padrão
+
+//URL PARA SER USADA EM PRODUÇÃO https://lunaria-backend-3754d2d676ff.herokuapp.com/
+
+let simpleURL= 'lunaria-backend-3754d2d676ff.herokuapp.com'
 
 const WS_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'wss://api.lunaria.app.br'
-  : (window.location.protocol === 'https:'
-      ? `https://${window.location.hostname}:3001`
-      : `http://${window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname}:3001`
-  );
+  ? `wss://${simpleURL}` // TODO: Configurar domínio de produção quando disponível
+  : `wss://${simpleURL}`;
 
 export const createSocketActions = (set, get) => ({
   

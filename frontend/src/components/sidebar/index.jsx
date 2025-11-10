@@ -81,13 +81,13 @@ const Sidebar = () => {
                                 Lunaria
                             </h2>
                             {/* Indicador WebSocket */}
-                            <WebSocketStatusCompact 
+                            {/* <WebSocketStatusCompact 
                                 isConnected={isConnected}
                                 isAuthenticated={isAuthenticated}
                                 isConnecting={isConnecting}
                                 error={error}
                                 className="flex-shrink-0"
-                            />
+                            /> */}
                         </div>
                         <p className={`text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'
                             }`}>

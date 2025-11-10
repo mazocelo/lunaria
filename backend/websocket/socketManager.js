@@ -53,8 +53,9 @@ class SocketManager {
    */
   async connectRedis() {
     try {
+      // Prioriza UPSTASH_REDIS_URL (Upstash), depois REDIS_URL, e por último localhost
       this.redis = createClient({
-        url: process.env.REDIS_URL || 'redis://localhost:6379'
+        url: process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379'
       });
 
       await this.redis.connect();

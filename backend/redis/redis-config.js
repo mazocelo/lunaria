@@ -4,8 +4,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Configuração do cliente Redis
+// Prioriza UPSTASH_REDIS_URL (Upstash), depois REDIS_URL, e por último localhost
 const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+  url: process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379'
 });
 
 // Event listeners para conexão

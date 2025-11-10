@@ -37,7 +37,7 @@ class WebSocketServer {
       });
 
       // Configurar Redis Adapter para escalabilidade
-      if (process.env.REDIS_URL) {
+      if (process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL) {
         const pubClient = redisClient.duplicate();
         const subClient = redisClient.duplicate();
         

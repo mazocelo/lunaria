@@ -8,6 +8,7 @@
     "dev": "nodemon ./bin/www",
     "check-db": "node check-db.js",
     "populate-data": "node populate-initial-data.js",
+    "seed": "node populate-initial-data.js",
     "build": "prisma generate",
     "postinstall": "prisma generate",
     "heroku-postbuild": "npm install --include=dev && prisma generate",

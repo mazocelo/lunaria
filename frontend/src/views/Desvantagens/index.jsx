@@ -36,10 +36,6 @@ const DesvantagemView = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
   // Função para obter cor do custo
   const getCustoColor = (custo) => {
     if (custo < 0) return 'text-red-400';
@@ -150,13 +146,6 @@ const DesvantagemView = () => {
     );
   };
 
-  // Renderizador para data de criação
-  const renderDataCriacao = (desvantagem) => (
-    <span className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern`}>
-      {formatDate(desvantagem.created_at)}
-    </span>
-  );
-
   const columns = [
     {
       key: 'nome',
@@ -205,12 +194,6 @@ const DesvantagemView = () => {
       label: 'Efeito',
       align: 'left',
       render: renderEfeito
-    },
-    {
-      key: 'created_at',
-      label: 'Criado em',
-      align: 'left',
-      render: renderDataCriacao
     }
   ];
 

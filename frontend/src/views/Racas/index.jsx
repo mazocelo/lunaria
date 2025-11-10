@@ -117,18 +117,6 @@ const RacaView = () => {
     );
   };
 
-  // Renderizador para data de criação
-  const renderDataCriacao = (raca) => {
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('pt-BR');
-    };
-    return (
-      <span className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} font-modern`}>
-        {formatDate(raca.created_at)}
-      </span>
-    );
-  };
-
   const columns = [
     {
       key: 'nome',
@@ -159,12 +147,6 @@ const RacaView = () => {
       label: 'Desvantagens',
       align: 'left',
       render: renderDesvantagens
-    },
-    {
-      key: 'created_at',
-      label: 'Criado em',
-      align: 'left',
-      render: renderDataCriacao
     }
   ];
 

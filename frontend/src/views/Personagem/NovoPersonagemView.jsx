@@ -287,24 +287,18 @@ const NovoPersonagemView = () => {
           )}
         </div>
 
-        {/* História */}
-        <FormSelect
-          label="História"
-          name="historia_id"
-          value={String(vm.historia_id || '')}
+        {/* Histórias */}
+        <FormHistorias
+          label="Histórias (Opcional)"
+          name="historias"
+          value={vm.historias}
           onChange={handleChange}
-          options={vm.historiasDisponiveis?.map(historia => {
-            if (!historia || typeof historia !== 'object') {
-              return null;
-            }
-            return {
-              value: String(historia.id || historia.value || ''),
-              label: historia.nome || historia.label || ''
-            };
-          }).filter(Boolean) || []}
-          placeholder={vm.loadingHistorias ? "Carregando histórias..." : "Selecione uma história"}
+          options={Array.isArray(vm.historiasDisponiveis) ? vm.historiasDisponiveis.map(historia => ({
+            value: String(historia.id),
+            label: historia.nome
+          })) : []}
+          placeholder={vm.loadingHistorias ? "Carregando histórias..." : "Selecione as histórias (opcional)"}
           disabled={vm.loadingHistorias}
-          required
         />
 
         {/* Botões de ação */}

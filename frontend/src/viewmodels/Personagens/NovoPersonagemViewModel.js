@@ -242,7 +242,8 @@ export class NovoPersonagemViewModel {
       vantagemError: null,
       raca_id: '',
       classe_id: '',
-      historia_id: ''
+      historia_id: '',
+      historias: []
     });
   };
 
@@ -423,6 +424,7 @@ export class NovoPersonagemViewModel {
         backgroundTipo: 'guiado',
         background: '',
         historia_id: '',
+        historias: [],
         atributos: { ...atributosIniciais },
         vantagens: [],
         desvantagens: [],

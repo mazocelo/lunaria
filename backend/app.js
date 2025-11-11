@@ -28,7 +28,7 @@ const corsOptions = {
 // Descomente o código abaixo e comente o código acima para usar em produção
 /*
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'http://:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,

@@ -135,7 +135,7 @@ export class EtapaJogoRPGViewModel {
       ? `🎲 ${descricao}: ${resultado} (${tipoDado})`
       : `🎲 Você rolou: ${resultado} (${tipoDado})`;
     
-    return this.criarMensagem(conteudo, 'Sistema', 'dados');
+    return this.criarMensagem(conteudo, 'Sistema', 'dado');  // Corrigido: 'dado' singular
   }
 
   /**

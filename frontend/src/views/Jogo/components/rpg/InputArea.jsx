@@ -27,6 +27,9 @@ const InputArea = ({
 }) => {
   // 🎯 VIEWMODEL - Estado reativo
   const [viewModelState, setViewModelState] = useState(inputAreaViewModel.getState());
+  
+  // ⏳ Estado de loading para botão iniciar turno
+  const [iniciandoTurno, setIniciandoTurno] = useState(false);
 
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
@@ -49,13 +52,27 @@ const InputArea = ({
 
   // 🎯 HANDLERS: Usando ViewModel
   const handleMessageTypeChange = (type) => {
+    console.log('📝 [InputArea] Tipo de mensagem alterado:', type);
+    console.log('📝 [InputArea] Estado anterior:', messageType);
     inputAreaViewModel.setMessageType(type);
+    console.log('✅ [InputArea] Novo tipo definido no ViewModel:', inputAreaViewModel.messageType);
   };
 
   const enviarMensagemComTipo = async () => {
+    console.log('📤 [InputArea] Tentando enviar mensagem:');
+    console.log('   ├─ Tipo:', messageType);
+    console.log('   ├─ Conteúdo:', mensagemAtual);
+    console.log('   └─ Dados completos:', { message: mensagemAtual, type: messageType });
+    
     const sucesso = await inputAreaViewModel.enviarMensagem(mensagemAtual, onEnviarMensagem);
-    if (sucesso && onEnviarMensagem) {
-      onEnviarMensagem();
+    
+    if (sucesso) {
+      console.log('✅ [InputArea] Mensagem enviada com sucesso!');
+      if (onEnviarMensagem) {
+        onEnviarMensagem();
+      }
+    } else {
+      console.error('❌ [InputArea] Falha ao enviar mensagem');
     }
   };
 
@@ -98,64 +115,88 @@ const InputArea = ({
   };
 
   return (
-    <div className="p-6 bg-black/20 backdrop-blur-sm border-t border-purple-500/20">
-      <div className="max-w-4xl mx-auto">
+    <div className="px-4 py-4 bg-black/30 backdrop-blur-sm border-t-2 border-purple-500/30 shadow-2xl">
+      <div className="w-full space-y-3">
         
-        {/* Cooldown de mensagens roleplay */}
-        {mostrarCooldown && (
-          <CooldownRoleplay 
-            segundosRestantes={cooldownRoleplay}
-            ativo={mostrarCooldown}
-          />
-        )}
+        {/* LINHA 1: Message Type Selector + Status/Avisos */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Seletor de tipo de mensagem - à esquerda */}
+          {faseJogo === 'rodada_em_andamento' && (
+            <div className="bg-black/50 backdrop-blur-sm border-2 border-purple-500/40 rounded-xl px-4 py-2.5 shadow-lg">
+              <MessageTypeSelector 
+                selectedType={messageType}
+                onTypeChange={handleMessageTypeChange}
+              />
+            </div>
+          )}
+          
+          {/* Mensagens de status/avisos - à direita */}
+          <div className="flex-1 flex justify-end">
+            {/* Cooldown de mensagens roleplay */}
+            {mostrarCooldown && (
+              <CooldownRoleplay 
+                segundosRestantes={cooldownRoleplay}
+                ativo={mostrarCooldown}
+              />
+            )}
 
-        {/* Aviso quando não é o turno */}
-        {faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay === 0 && (
-          <div className="mb-3 p-3 bg-purple-900/30 border border-purple-500/30 rounded-lg">
-            <p className="text-purple-300 text-sm text-center">
-              ⏳ Não é seu turno. Você pode enviar mensagens roleplay
-            </p>
+            {/* Aviso quando não é o turno */}
+            {faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay === 0 && (
+              <div className="px-4 py-2.5 bg-purple-900/40 border-2 border-purple-500/50 rounded-xl shadow-lg">
+                <p className="text-purple-200 text-sm font-semibold">
+                  ⏳ Não é seu turno. Você pode enviar mensagens roleplay
+                </p>
+              </div>
+            )}
+
+            {/* Botão para iniciar turno */}
+            {faseJogo === 'rodada_em_andamento' && ehMeuTurno && !turnoIniciado && (
+              <button
+                onClick={async () => {
+                  setIniciandoTurno(true);
+                  if (onIniciarTurno) {
+                    await onIniciarTurno();
+                  }
+                  setTimeout(() => setIniciandoTurno(false), 10000);
+                }}
+                disabled={iniciandoTurno}
+                className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
+                  iniciandoTurno ? '' : 'hover:scale-105 animate-pulse'
+                }`}
+              >
+                <span className="flex items-center space-x-2">
+                  {iniciandoTurno ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Aguarde o Mestre...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl">⚡</span>
+                      <span>Iniciar Turno</span>
+                    </>
+                  )}
+                </span>
+              </button>
+            )}
+
+            {/* Aviso após iniciar turno */}
+            {faseJogo === 'rodada_em_andamento' && ehMeuTurno && turnoIniciado && (
+              <div className="px-6 py-2.5 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border-2 border-cyan-400/70 rounded-xl shadow-xl animate-pulse">
+                <p className="text-cyan-200 font-bold drop-shadow-lg">
+                  ⚡ É SUA VEZ! Responda ao Mestre
+                </p>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Botão para iniciar turno */}
-        {faseJogo === 'rodada_em_andamento' && ehMeuTurno && !turnoIniciado && (
-          <div className="mb-3 text-center">
-            <button
-              onClick={onIniciarTurno}
-              className="px-8 py-4 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg shadow-lg transform transition-all hover:scale-105 animate-pulse"
-            >
-              <span className="flex items-center justify-center space-x-2">
-                <span className="text-2xl">⚡</span>
-                <span>Iniciar Turno</span>
-              </span>
-            </button>
-            <p className="text-cyan-300 text-sm mt-2">
-              Clique para receber a mensagem inicial do Mestre
-            </p>
-          </div>
-        )}
-
-        {/* Aviso após iniciar turno */}
-        {faseJogo === 'rodada_em_andamento' && ehMeuTurno && turnoIniciado && (
-          <div className="mb-3 p-3 bg-gradient-to-r from-cyan-900/30 to-purple-900/30 border border-cyan-400/50 rounded-lg">
-            <p className="text-cyan-300 text-sm text-center font-bold">
-              ⚡ É SUA VEZ! Responda ao Mestre
-            </p>
-          </div>
-        )}
-
-        {/* Seletor de tipo de mensagem - apenas durante rodadas */}
-        {faseJogo === 'rodada_em_andamento' && (
-          <MessageTypeSelector 
-            selectedType={messageType}
-            onTypeChange={handleMessageTypeChange}
-            className="mb-3"
-          />
-        )}
-        
-        {/* Input de mensagem */}
-        <div className="flex space-x-3">
+        </div>
+          
+        {/* LINHA 2: Input + Botões */}
+        <div className="grid grid-cols-12 gap-3">
+          {/* Input ocupa maior parte do espaço */}
           <input 
             type="text" 
             placeholder={getPlaceholderDinamico()}
@@ -163,16 +204,18 @@ const InputArea = ({
             onChange={onMensagemChange}
             onKeyPress={handleKeyPress}
             disabled={connectionStatus.status === 'error' || isSending || inputDesabilitado}
-            className={`flex-1 px-4 py-3 rounded-lg border bg-black/20 backdrop-blur-sm ${
-              ehMeuTurno && faseJogo === 'rodada_em_andamento'
-                ? 'border-cyan-400 ring-2 ring-cyan-500/50'
-                : 'border-purple-500/30'
-            } text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50`}
+            className={`col-span-8 px-5 py-4 text-base rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg ${
+              ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado
+                ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-cyan-500/30'
+                : 'border-purple-500/40'
+            } text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-all`}
           />
+          
+          {/* Botão Enviar */}
           <button 
             onClick={enviarMensagemComTipo}
             disabled={connectionStatus.status === 'error' || !mensagemAtual?.trim() || isSending || inputDesabilitado}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="col-span-3 px-4 py-4 text-base bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             {isSending ? 'Enviando...' : 'Enviar'}
           </button>
@@ -180,9 +223,9 @@ const InputArea = ({
           {/* Botão de dados rápido - apenas em jogo normal */}
           {faseJogo !== 'rolagem_inicial' && (
             <button 
-              onClick={onRolarDados}
+              onClick={() => onRolarDados && onRolarDados('d20', '')}
               disabled={connectionStatus.status === 'error'}
-              className="px-4 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="col-span-1 px-3 py-4 text-2xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
               title="Rolar dados (d20)"
             >
               🎲
@@ -192,7 +235,7 @@ const InputArea = ({
         
         {/* Status de conexão */}
         {connectionStatus.status === 'error' && (
-          <div className="mt-2 text-center">
+          <div className="text-center">
             <span className={`text-xs ${connectionStatus.color}`}>
               ⚠️ {connectionStatus.text}
             </span>

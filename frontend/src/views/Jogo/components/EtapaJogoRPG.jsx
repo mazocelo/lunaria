@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RPGActions } from '../../../components/RPGActions';
 import BackgroundEffects from './shared/BackgroundEffects';
-import HeaderJogoRPG from './rpg/HeaderJogoRPG';
 import PainelJogadores from './rpg/PainelJogadores';
 import ChatArea from './rpg/ChatArea';
 import InputArea from './rpg/InputArea';
@@ -49,6 +48,10 @@ const EtapaJogoRPG = ({
   // ⏱️ Timer local para cooldown roleplay
   const [cooldownLocal, setCooldownLocal] = useState(0);
   const cooldownIntervalRef = React.useRef(null);
+
+  // 📊 Estado para dropdown de informações da rodada
+  const [showRodadaInfo, setShowRodadaInfo] = useState(false);
+  const rodadaDropdownRef = React.useRef(null);
 
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
@@ -121,7 +124,7 @@ const EtapaJogoRPG = ({
       console.log('🧹 Evento de limpar mensagens recebido');
       
       // Filtrar mensagens para manter apenas a do Mestre
-      const { default: jogoViewModel } = await import('../../../viewmodels/Jogo/jogoViewModel.js');
+      const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
       const mensagensAtuais = jogoViewModel.getState().mensagens || [];
       
       // Manter apenas mensagens do tipo 'mestre'
@@ -150,6 +153,23 @@ const EtapaJogoRPG = ({
       etapaJogoRPGViewModel.destroy();
     };
   }, []);
+
+  // 🖱️ Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (rodadaDropdownRef.current && !rodadaDropdownRef.current.contains(event.target)) {
+        setShowRodadaInfo(false);
+      }
+    };
+
+    if (showRodadaInfo) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showRodadaInfo]);
 
   // 🎭 LISTENERS PARA MENSAGENS DO MESTRE E JOGADORES
   useEffect(() => {
@@ -252,6 +272,32 @@ const EtapaJogoRPG = ({
           window.dispatchEvent(event);
         };
 
+        // Listener para dice_roll (dados normais durante o jogo)
+        const handleDiceRoll = (data) => {
+          console.log('🎲 Dado rolado - data recebido:', data);
+          
+          const mensagem = {
+            id: data.id || `dice_${Date.now()}`,
+            userId: data.userId,
+            username: data.username,
+            dice: data.dice,
+            result: data.result,
+            tipo: 'dado',
+            timestamp: data.timestamp || Date.now()
+          };
+          
+          console.log('🎲 Mensagem criada para adicionar:', {
+            tipo: mensagem.tipo,
+            result: mensagem.result,
+            dice: mensagem.dice,
+            username: mensagem.username
+          });
+          
+          if (onAdicionarMensagem) {
+            onAdicionarMensagem(mensagem);
+          }
+        };
+
         // Adicionar listeners
         socketStore.on('mensagem_mestre', handleMensagemMestre);
         socketStore.on('chat_message', handleChatMessage);
@@ -259,6 +305,7 @@ const EtapaJogoRPG = ({
         socketStore.on('mensagem_roleplay', handleMensagemRoleplay);
         socketStore.on('rodada_finalizada', handleRodadaFinalizada);
         socketStore.on('ordem_definida', handleOrdemDefinida);
+        socketStore.on('dice_roll', handleDiceRoll);
 
         console.log('📡 Listeners de mensagens configurados');
 
@@ -270,6 +317,7 @@ const EtapaJogoRPG = ({
           socketStore.off('mensagem_roleplay', handleMensagemRoleplay);
           socketStore.off('rodada_finalizada', handleRodadaFinalizada);
           socketStore.off('ordem_definida', handleOrdemDefinida);
+          socketStore.off('dice_roll', handleDiceRoll);
           console.log('🧹 Listeners de mensagens removidos');
         };
       } catch (error) {
@@ -384,9 +432,43 @@ const EtapaJogoRPG = ({
     }
   };
 
-  const handleRolarDados = (tipoDado = 'd20', descricao = '') => {
-    const resultado = etapaJogoRPGViewModel.rolarDados(tipoDado, descricao);
-    onAdicionarMensagem(resultado.mensagem);
+  const handleRolarDados = async (tipoDado = 'd20', descricao = '') => {
+    try {
+      console.log('🎲 handleRolarDados chamado com:', { tipoDado, descricao });
+      
+      // Durante o jogo, emitir para o backend ao invés de adicionar localmente
+      const { getSocketStoreAPI } = await import('../../../store/index.js');
+      const socketStore = getSocketStoreAPI();
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const roomId = `historia_${historia?.id}`;
+
+      // Rolar dados localmente para obter resultado
+      const resultado = etapaJogoRPGViewModel.rolarDados(tipoDado, descricao);
+      console.log('🎲 Resultado local:', resultado);
+
+      // Emitir para o backend (backend irá distribuir para todos)
+      const enviado = socketStore.safeEmit('dice_roll', {
+        roomId: roomId,
+        userId: String(user.id),
+        username: user.nome || user.name,
+        dice: String(tipoDado),
+        result: String(resultado.resultado),
+        description: descricao || ''
+      });
+
+      if (enviado) {
+        console.log(`✅ Dado ${tipoDado} rolado e enviado: ${resultado.resultado}`);
+      } else {
+        console.warn('⚠️ Falhou ao enviar dado, usando fallback local');
+        // Se falhar ao enviar, adicionar localmente como fallback
+        onAdicionarMensagem(resultado.mensagem);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao rolar dados:', error);
+      // Fallback: adicionar mensagem localmente
+      const resultado = etapaJogoRPGViewModel.rolarDados(tipoDado, descricao);
+      onAdicionarMensagem(resultado.mensagem);
+    }
   };
 
   // 🎲 Handler para rolar dado inicial (d20)
@@ -446,15 +528,110 @@ const EtapaJogoRPG = ({
       <BackgroundEffects particleCount={50} />
 
       <div className="relative z-10 h-screen flex flex-col">
-        {/* Header Compact */}
-        <HeaderJogoRPG
-          historia={historia}
-          participantes={participantesFormatados}
-          showActions={showActions}
-          setShowActions={toggleActions}
-          onSairJogo={onSair}
-          socketStatus={socketConnected}
-        />
+        {/* Barra de Controle - Botões Fixos */}
+        <div className="absolute top-4 right-4 z-50 flex items-center space-x-3">
+          {/* Botão RODADA com dropdown */}
+          <div className="relative" ref={rodadaDropdownRef}>
+            <button
+              onClick={() => setShowRodadaInfo(!showRodadaInfo)}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
+            >
+              <span>📊</span>
+              <span>RODADA</span>
+            </button>
+            
+            {/* Dropdown de informações */}
+            {showRodadaInfo && (
+              <div className="absolute right-0 mt-2 w-80 glass p-4 rounded-xl border-2 border-purple-500/50 shadow-2xl animate-fade-in max-h-96 overflow-y-auto">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-purple-300 text-xs font-semibold mb-1">História</p>
+                    <p className="text-white font-bold text-lg">{historia?.nome || historia?.titulo || 'Aventura RPG'}</p>
+                  </div>
+                  
+                  <div className="border-t border-purple-500/20 pt-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-purple-300 text-xs font-semibold mb-1">Rodada Atual</p>
+                        <p className="text-cyan-400 font-bold text-2xl">{socketState.rodadaAtual}</p>
+                      </div>
+                      <div>
+                        <p className="text-purple-300 text-xs font-semibold mb-1">Jogadores</p>
+                        <p className="text-cyan-400 font-bold text-2xl">{participantesFormatados.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-purple-500/20 pt-3">
+                    <p className="text-purple-300 text-xs font-semibold mb-1">Status</p>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-green-300 text-sm font-semibold">
+                        {socketState.faseJogo === 'rolagem_inicial' ? 'Rolagem Inicial' : 
+                         socketState.faseJogo === 'rodada_em_andamento' ? 'Jogo Ativo' : 
+                         'Aguardando Início'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Ordem de Jogadores */}
+                  {socketState.ordemJogadores.length > 0 && (
+                    <div className="border-t border-purple-500/20 pt-3">
+                      <p className="text-purple-300 text-xs font-semibold mb-2">Ordem de Jogadores</p>
+                      <div className="space-y-2">
+                        {socketState.ordemJogadores.map((jogador, index) => (
+                          <div 
+                            key={jogador.userId}
+                            className={`flex items-center justify-between p-2 rounded-lg ${
+                              index === socketState.turnoAtual && socketState.faseJogo === 'rodada_em_andamento'
+                                ? 'bg-cyan-500/20 border border-cyan-400/50'
+                                : 'bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <span className="text-purple-400 font-bold text-sm">#{index + 1}</span>
+                              <div>
+                                <p className="text-white text-sm font-semibold">{jogador.username}</p>
+                                {jogador.personagemNome && (
+                                  <p className="text-purple-300 text-xs">{jogador.personagemNome}</p>
+                                )}
+                              </div>
+                            </div>
+                            {index === socketState.turnoAtual && socketState.faseJogo === 'rodada_em_andamento' && (
+                              <span className="text-cyan-400 text-xs font-bold">⚡ TURNO</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Botão AÇÕES */}
+          <button
+            onClick={toggleActions}
+            className={`px-4 py-2 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2 ${
+              showActions 
+                ? 'bg-purple-500/50 text-purple-200 border-2 border-purple-400' 
+                : 'bg-white/10 text-white hover:bg-white/20 border-2 border-white/20'
+            }`}
+          >
+            <span>⚡</span>
+            <span>AÇÕES</span>
+          </button>
+          
+          {/* Botão SAIR */}
+          <button
+            onClick={onSair}
+            className="px-4 py-2 bg-red-500/30 text-red-200 border-2 border-red-500/50 rounded-xl hover:bg-red-500/40 transition-all font-bold shadow-lg transform hover:scale-105 flex items-center space-x-2"
+          >
+            <span>🚪</span>
+            <span>SAIR</span>
+          </button>
+        </div>
 
         {/* Main Game Layout */}
         <div className="flex-1 flex overflow-hidden">
@@ -543,12 +720,6 @@ const EtapaJogoRPG = ({
             </div>
           )}
         </div>
-
-        {/* Painel Inferior - Dados do Seu Personagem */}
-        <StatusPersonagem
-          personagemSelecionado={infoPersonagem}
-          onRolarDados={handleRolarDados}
-        />
       </div>
     </div>
   );

@@ -34,30 +34,20 @@ const CooldownRoleplay = ({
   const porcentagem = (segundos / 12) * 100;
 
   return (
-    <div className="bg-amber-900/30 border border-amber-600/50 rounded-lg p-3 mb-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-2">
-          <span className="text-amber-400 text-lg">⏱️</span>
-          <span className="text-amber-300 text-sm font-semibold">
-            Cooldown Roleplay
-          </span>
-        </div>
-        <span className="text-amber-400 font-bold">
-          {segundos}s
+    <div className="bg-amber-900/30 border-2 border-amber-600/50 rounded-xl px-4 py-2.5 shadow-lg inline-flex items-center space-x-3">
+      <span className="text-amber-400 text-lg">⏱️</span>
+      <div className="flex flex-col">
+        <span className="text-amber-300 text-sm font-semibold">
+          Cooldown: {segundos}s
         </span>
+        {/* Barra de progresso compacta */}
+        <div className="w-32 h-1.5 bg-black/30 rounded-full overflow-hidden mt-1">
+          <div 
+            className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-1000 ease-linear"
+            style={{ width: `${porcentagem}%` }}
+          />
+        </div>
       </div>
-      
-      {/* Barra de progresso */}
-      <div className="w-full h-2 bg-black/30 rounded-full overflow-hidden">
-        <div 
-          className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-1000 ease-linear"
-          style={{ width: `${porcentagem}%` }}
-        />
-      </div>
-
-      <p className="text-amber-300/70 text-xs mt-2">
-        Aguarde para enviar outra mensagem roleplay
-      </p>
     </div>
   );
 };

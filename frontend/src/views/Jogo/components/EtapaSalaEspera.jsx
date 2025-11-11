@@ -25,6 +25,9 @@ const EtapaSalaEspera = ({
   const { user } = useAuth();
   const isLight = theme === 'light';
 
+  // 🎯 ESTADO LOCAL
+  const [iniciandoJogo, setIniciandoJogo] = useState(false);
+  
   // 🎯 VIEWMODEL - Estado reativo
   const [viewModelState, setViewModelState] = useState(etapaSalaEsperaViewModel.getState());
 
@@ -35,7 +38,7 @@ const EtapaSalaEspera = ({
   }, []);
 
   // 📊 DESTRUCTURING DO ESTADO
-  const { iniciandoJogo, linkCopiado } = viewModelState;
+  const { linkCopiado } = viewModelState;
 
   // 🚀 INICIALIZAÇÃO
   useEffect(() => {
@@ -161,7 +164,10 @@ const EtapaSalaEspera = ({
   
   // 🎯 HANDLERS: Usando ViewModel
   const handleIniciarJogo = async () => {
+    setIniciandoJogo(true);
     try {
+      console.log('🚀 EtapaSalaEspera: Iniciando jogo...');
+      
       // Primeiro, chamar a API para iniciar a partida (dispara evento WebSocket)
       await etapaSalaEsperaViewModel.iniciarPartidaViaAPI(
         historia?.id,
@@ -172,9 +178,14 @@ const EtapaSalaEspera = ({
       if (onIniciarJogo) {
         await onIniciarJogo();
       }
+      
+      console.log('✅ EtapaSalaEspera: Jogo iniciado com sucesso');
     } catch (error) {
       console.error('❌ EtapaSalaEspera: Erro ao iniciar jogo:', error);
       // O erro já será exibido pelo notification
+    } finally {
+      setIniciandoJogo(false);
+      console.log('🏁 EtapaSalaEspera: Loading finalizado');
     }
   };
 
@@ -294,7 +305,7 @@ const EtapaSalaEspera = ({
                   </p>
                   <button
                     onClick={handleIniciarJogo}
-                    disabled={!validacaoIniciarJogo.podeIniciar}
+                    disabled={iniciandoJogo || !validacaoIniciarJogo.podeIniciar}
                     className={`
                       w-full btn-rpg h-12 text-lg font-bold
                       bg-gradient-to-r from-yellow-600 to-orange-600 

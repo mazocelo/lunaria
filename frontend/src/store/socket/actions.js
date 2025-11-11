@@ -157,6 +157,66 @@ export const createSocketActions = (set, get) => ({
       console.log('  - session:', data.session);
       console.log('  - jogadoresConectados:', data.sessao?.jogadoresConectados || data.session?.jogadoresConectados);
       
+      // ✅ RECUPERAR ESTADO DO JOGO AO RECONECTAR
+      const estadoJogo = data.sessao?.estadoJogo || data.session?.estadoJogo;
+      
+      if (estadoJogo) {
+        console.log('📊 Restaurando estadoJogo ao reconectar:', estadoJogo);
+        
+        const currentUser = get().currentUser;
+        const updateData = {};
+        
+        // Restaurar fase
+        if (estadoJogo.fase) {
+          updateData.faseJogo = estadoJogo.fase;
+          console.log('  ✓ Fase:', estadoJogo.fase);
+        }
+        
+        // Restaurar rodada e turno
+        if (estadoJogo.rodadaAtual !== undefined) {
+          updateData.rodadaAtual = estadoJogo.rodadaAtual;
+          console.log('  ✓ Rodada:', estadoJogo.rodadaAtual);
+        }
+        if (estadoJogo.turnoAtual !== undefined) {
+          updateData.turnoAtual = estadoJogo.turnoAtual;
+          console.log('  ✓ Turno:', estadoJogo.turnoAtual);
+        }
+        
+        // Restaurar ordem de jogadores
+        if (estadoJogo.ordemJogadores && estadoJogo.ordemJogadores.length > 0) {
+          const ordemJogadores = estadoJogo.ordemJogadores;
+          const turnoAtual = estadoJogo.turnoAtual || 0;
+          const jogadorAtual = ordemJogadores[turnoAtual];
+          const ehMeuTurno = currentUser && jogadorAtual && 
+            String(jogadorAtual.userId) === String(currentUser.id);
+          
+          updateData.ordemJogadores = ordemJogadores;
+          updateData.ordemDefinida = true;
+          updateData.jogadorAtual = jogadorAtual;
+          updateData.ehMeuTurno = ehMeuTurno;
+          
+          console.log('  ✓ Ordem jogadores:', ordemJogadores.length);
+          console.log('  ✓ Jogador atual:', jogadorAtual?.username);
+          console.log('  ✓ É meu turno:', ehMeuTurno);
+        }
+        
+        // Restaurar turnoIniciado
+        if (estadoJogo.turnoIniciado !== undefined) {
+          updateData.turnoIniciado = estadoJogo.turnoIniciado;
+          console.log('  ✓ Turno iniciado:', estadoJogo.turnoIniciado);
+        }
+        
+        // Restaurar resultados de dados iniciais
+        if (estadoJogo.rolagemInicial) {
+          updateData.resultadosDados = estadoJogo.rolagemInicial;
+          console.log('  ✓ Resultados dados:', Object.keys(estadoJogo.rolagemInicial).length);
+        }
+        
+        // Aplicar todas as atualizações
+        set(updateData);
+        console.log('✅ Estado do jogo restaurado com sucesso');
+      }
+      
       set({
         inRoom: true,
         roomId: data.roomId,

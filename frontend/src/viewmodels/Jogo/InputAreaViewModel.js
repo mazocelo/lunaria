@@ -69,12 +69,17 @@ export class InputAreaViewModel {
 
   /**
    * Define o tipo de mensagem
-   * @param {string} type - Tipo da mensagem ('chat', 'action', 'ooc')
+   * @param {string} type - Tipo da mensagem ('chat', 'ic', 'ooc', 'action', 'gm')
    */
   setMessageType(type) {
-    if (['chat', 'action', 'ooc'].includes(type)) {
+    const validTypes = ['chat', 'ic', 'ooc', 'action', 'gm'];
+    if (validTypes.includes(type)) {
+      console.log('🔄 [ViewModel] Alterando tipo de mensagem:', this.messageType, '→', type);
       this.messageType = type;
       this.notify();
+      console.log('✅ [ViewModel] Tipo atualizado e observers notificados');
+    } else {
+      console.warn('⚠️ [ViewModel] Tipo de mensagem inválido:', type);
     }
   }
 
@@ -85,8 +90,10 @@ export class InputAreaViewModel {
   getPlaceholder() {
     const placeholders = {
       chat: 'Digite sua mensagem...',
+      ic: 'Digite como seu personagem (IC)...',
       action: 'Digite sua ação/emote...',
-      ooc: 'Digite sua mensagem (fora do personagem)...'
+      ooc: 'Digite sua mensagem (fora do personagem)...',
+      gm: 'Digite como Mestre...'
     };
     
     return placeholders[this.messageType] || placeholders.chat;
@@ -168,13 +175,23 @@ export class InputAreaViewModel {
         this.onSetLoading(true);
       }
       
+      const payload = {
+        message: mensagem.trim(),
+        type: this.messageType
+      };
+      
+      console.log('📡 [ViewModel] Enviando via WebSocket:');
+      console.log('   ├─ Tipo:', payload.type);
+      console.log('   ├─ Mensagem:', payload.message);
+      console.log('   └─ Payload completo:', payload);
+      
       // Enviar via WebSocket
       const socketStore = this.getSocketStore();
       if (socketStore.sendMessage) {
-        await socketStore.sendMessage({
-          message: mensagem.trim(),
-          type: this.messageType
-        });
+        await socketStore.sendMessage(payload);
+        console.log('✅ [ViewModel] Mensagem enviada ao WebSocket com sucesso');
+      } else {
+        console.warn('⚠️ [ViewModel] sendMessage não está disponível no socketStore');
       }
       
       // Chamar callback adicional se existir
@@ -254,8 +271,10 @@ export class InputAreaViewModel {
   getMessageTypeOptions() {
     return [
       { value: 'chat', label: '💬 Chat', description: 'Mensagem normal' },
-      { value: 'action', label: '⚔️ Ação', description: 'Ação/emote do personagem' },
-      { value: 'ooc', label: '👤 OOC', description: 'Fora do personagem' }
+      { value: 'ic', label: '🗣️ IC', description: 'In Character' },
+      { value: 'ooc', label: '📢 OOC', description: 'Out of Character' },
+      { value: 'action', label: '⚡ Ação', description: 'Ação/emote do personagem' },
+      { value: 'gm', label: '👑 Mestre', description: 'Mensagem do Mestre' }
     ];
   }
 

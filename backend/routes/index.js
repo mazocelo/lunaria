@@ -48,13 +48,13 @@ router.get('/', async (req, res, next) => {
 
 // Rotas públicas (sem autenticação obrigatória)
 router.use('/auth', authRoutes);
-router.use('/racas', racaRoutes);
-router.use('/classes', classeRoutes);
-router.use('/vantagens', vantagemRoutes);
-router.use('/desvantagens', desvantagemRoutes);
-router.use('/rpg', rpgRoutes);
-router.use('/temas', temasRoutes);
-router.use('/websocket', websocketRoutes);
+router.use('/racas',authenticateToken, racaRoutes);
+router.use('/classes',authenticateToken, classeRoutes);
+router.use('/vantagens',authenticateToken, vantagemRoutes);
+router.use('/desvantagens',authenticateToken, desvantagemRoutes);
+router.use('/rpg',authenticateToken, rpgRoutes);
+router.use('/temas',authenticateToken, temasRoutes);
+router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória
 router.use('/historias', authenticateToken, historiaRoutes);

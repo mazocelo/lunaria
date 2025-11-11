@@ -201,4 +201,3 @@ export class AuthService {
     return new Error('Erro de rede. Verifique sua conexão.');
   }
 } 
-} 

@@ -1,10 +1,7 @@
 import axios from 'axios';
 
 // Configuração da URL base da API
-
-// const baseURL = 'http://localhost:3001/';
-
-const baseURL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Criação da instância do axios
 const axiosInstance = axios.create({

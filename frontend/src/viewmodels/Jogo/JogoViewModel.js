@@ -389,8 +389,11 @@ export class JogoViewModel {
       // Autenticar
       console.log('🔐 JogoViewModel: Autenticando...');
       
+      // Obter socketToken do Zustand store
+      const socketToken = socketStore.getState().socketToken;
+      
       await socketStore.authenticate({
-        token,
+        token: socketToken,
         userId: String(connectionData.userId),
         username: connectionData.username,
         email: connectionData.email
@@ -574,7 +577,11 @@ export class JogoViewModel {
       // 5. Autenticar
       console.log('🔐 JogoViewModel: Autenticando convidado...');
       
+      // Obter socketToken do Zustand store
+      const socketToken = socketStore.getState().socketToken;
+      
       await socketStore.authenticate({
+        token: socketToken,
         userId: String(user.id),
         username: user.nome || user.name,
         email: user.email

@@ -14,13 +14,19 @@ import {
 const getCookieConfig = (maxAge) => {
   const isProduction = process.env.NODE_ENV === 'production';
   
-  return {
+  const config = {
     httpOnly: true,
     secure: isProduction, // Apenas HTTPS em produção
     sameSite: isProduction ? 'none' : 'lax', // 'none' permite cross-domain em HTTPS
-    maxAge: maxAge,
-    ...(isProduction && { domain: '.herokuapp.com' }) // Domain para Heroku
+    maxAge: maxAge
   };
+  
+  // NÃO definir domínio - deixar o navegador gerenciar automaticamente
+  // Isso funciona melhor para cross-domain (frontend e backend em domínios diferentes)
+  
+  console.log('🍪 Cookie config:', { isProduction, sameSite: config.sameSite, secure: config.secure });
+  
+  return config;
 };
 
 /**

@@ -7,6 +7,11 @@
  * - Status de conexão WebSocket
  * - Formatação de dados para exibição
  */
+
+//URL PARA SER USADA EM PRODUÇÃO https://lunaria-backend-3754d2d676ff.herokuapp.com/
+const API_URL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com/';
+// const API_URL = 'http://localhost:3001';
+
 import { getTemaStoreAPI } from '../../store/index.js';
 export class EtapaSalaEsperaViewModel {
   constructor() {
@@ -130,7 +135,6 @@ export class EtapaSalaEsperaViewModel {
     try {
       console.log('🚀 EtapaSalaEsperaViewModel: Iniciando partida via API...', { historiaId });
 
-      const API_URL = 'http://localhost:3001';
       const token = localStorage.getItem('accessToken') || 
                     localStorage.getItem('authToken') ||
                     sessionStorage.getItem('accessToken') ||

@@ -14,13 +14,35 @@ import specs from './swagger-config.js';
 const app = express();
 
 createExecutor()
+
+// Configuração CORS - Liberado para todas as origens (DESENVOLVIMENTO)
+const corsOptions = {
+  origin: true, // Permite todas as origens
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+// Configuração CORS - Restrito apenas ao frontend (PRODUÇÃO)
+// Descomente o código abaixo e comente o código acima para usar em produção
+/*
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+*/
+
 // view engine setup
 app.set('views', path.join(path.resolve(), 'views'));
 app.set('view engine', 'jade');
 
 app.use(logger('dev'));
+app.use(cors(corsOptions));
 app.use(express.json());
-app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(), 'public')));

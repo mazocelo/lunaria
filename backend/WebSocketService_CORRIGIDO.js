@@ -1,7 +1,9 @@
 // 🔧 WebSocketService CORRIGIDO - Implementação Singleton
 // Para resolver múltiplas conexões e timeouts
-
 import { io } from 'socket.io-client';
+
+// const baseURL = 'ws://localhost:3001';
+const baseURL = 'wss://lunaria-backend-3754d2d676ff.herokuapp.com';
 
 class WebSocketService {
   // ✅ CORREÇÃO 1: Singleton pattern
@@ -15,7 +17,7 @@ class WebSocketService {
     this.socket = null;
     this.isConnecting = false;
     this.connectionPromise = null;
-    this.url = 'ws://localhost:3001';
+    this.url = baseURL;
     this.currentUser = null;
     this.currentRoom = null;
     this.listeners = new Map();

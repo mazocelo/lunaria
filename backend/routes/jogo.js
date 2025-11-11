@@ -122,7 +122,14 @@ router.post('/start', async (req, res, next) => {
         jogadoresConectados: (sessaoExistente.jogadoresConectados || []).map(j => String(j.userId)),
         estadoJogo: {
           ...sessaoExistente.estadoJogo,
-          fase: 'inicio',
+          fase: 'rolagem_inicial',  // ← CORRIGIDO: agora é 'rolagem_inicial'
+          rodadaAtual: 1,
+          turnoAtual: 0,
+          ordemJogadores: [],
+          rolagemInicial: {},
+          contadorMensagensTurno: 0,
+          historicoTurnos: [],
+          cooldownRoleplay: {},
           mensagemMestre: mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`
         }
       };
@@ -183,6 +190,13 @@ router.post('/start', async (req, res, next) => {
         iniciadaEm: dadosAtualizacao.iniciadaEm
       });
 
+      // Notificar mudança de fase para rolagem inicial
+      socketManager.sendToRoom(salaId, 'fase_atualizada', {
+        fase: 'rolagem_inicial',
+        estadoJogo: dadosAtualizacao.estadoJogo,
+        timestamp: Date.now()
+      });
+
       console.log(`✅ Aventura iniciada com sucesso para história ${historia.id} - Sala: ${salaId}`);
 
       return res.status(200).json({
@@ -237,7 +251,14 @@ router.post('/start', async (req, res, next) => {
       jogadoresConectados: jogadoresDaSalaEspera.map(j => String(j.userId)),
       iniciadaEm: new Date().toISOString(),
       estadoJogo: {
-        fase: 'inicio',
+        fase: 'rolagem_inicial',  // ← CORRIGIDO: agora é 'rolagem_inicial'
+        rodadaAtual: 1,
+        turnoAtual: 0,
+        ordemJogadores: [],
+        rolagemInicial: {},
+        contadorMensagensTurno: 0,
+        historicoTurnos: [],
+        cooldownRoleplay: {},
         cenaAtual: 'Prólogo',
         mensagemMestre: mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`,
         npcs: [],
@@ -301,6 +322,13 @@ router.post('/start', async (req, res, next) => {
       donoNome: req.user.nome,
       mensagemInicial: dadosSessao.estadoJogo.mensagemMestre,
       iniciadaEm: dadosSessao.iniciadaEm
+    });
+
+    // Notificar mudança de fase para rolagem inicial
+    socketManager.sendToRoom(salaId, 'fase_atualizada', {
+      fase: 'rolagem_inicial',
+      estadoJogo: dadosSessao.estadoJogo,
+      timestamp: Date.now()
     });
 
     console.log(`✅ Aventura iniciada com sucesso para história ${historia.id} - Sala: ${salaId}`);

@@ -186,6 +186,120 @@ export class MestreAgent {
   }
 
   /**
+   * Narrar turno do jogador (controla interação durante o turno)
+   */
+  async narrarTurnoJogador({ 
+    jogador, 
+    personagem, 
+    mensagem, 
+    rodada, 
+    turno, 
+    contadorMensagens = 0,
+    chatHistory = [] 
+  }) {
+    try {
+      console.log(`🎯 MestreAgent: Narrando turno ${turno} de ${personagem} (rodada ${rodada})...`);
+
+      // Criar prompt específico para turno
+      let input = `TURNO DO JOGADOR ${personagem} (Jogador: ${jogador})
+Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/3
+
+Mensagem do Jogador:
+"${mensagem}"
+
+`;
+
+      // Se já houve 2 mensagens, avisar que é hora de finalizar
+      if (contadorMensagens >= 2) {
+        input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e prepare para passar para o próximo jogador.\n`;
+      } else {
+        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você pode fazer até ${3 - contadorMensagens - 1} resposta(s) adicionais antes de finalizar o turno.\n`;
+      }
+
+      // Converter histórico
+      const historico = converterHistoricoParaLangChain(chatHistory);
+
+      // Invocar chain
+      const response = await this.chain.invoke({
+        input,
+        chat_history: historico
+      });
+
+      // Determinar se deve finalizar o turno
+      const deveFinalizarTurno = contadorMensagens >= 2;
+
+      console.log(`✅ MestreAgent: Turno narrado (deve finalizar: ${deveFinalizarTurno})`);
+
+      return {
+        resposta: response.content,
+        deveFinalizarTurno,
+        rodada,
+        turno,
+        jogador,
+        personagem,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('❌ MestreAgent: Erro ao narrar turno:', error);
+      throw new Error(`Erro ao narrar turno: ${error.message}`);
+    }
+  }
+
+  /**
+   * Narrar entre rodadas (gerar novo desafio após todos jogarem)
+   */
+  async narrarEntreRodadas({ 
+    rodadaAnterior, 
+    proximaRodada, 
+    resumoAcoes = [],
+    chatHistory = [] 
+  }) {
+    try {
+      console.log(`🔄 MestreAgent: Narrando transição da rodada ${rodadaAnterior} para ${proximaRodada}...`);
+
+      // Criar resumo das ações da rodada anterior
+      const resumoTexto = resumoAcoes.length > 0 
+        ? `Resumo da Rodada ${rodadaAnterior}:\n${resumoAcoes.map((acao, idx) => `${idx + 1}. ${acao}`).join('\n')}`
+        : `A rodada ${rodadaAnterior} foi concluída.`;
+
+      // Criar prompt para entre rodadas
+      const input = `FIM DA RODADA ${rodadaAnterior} - INÍCIO DA RODADA ${proximaRodada}
+
+${resumoTexto}
+
+Como Mestre, você deve:
+1. Criar um NOVO DESAFIO ou situação interessante para a Rodada ${proximaRodada}
+2. Manter a narrativa empolgante e dinâmica
+3. Dar aos jogadores novos objetivos ou obstáculos
+4. Conectar a nova situação com as ações da rodada anterior
+
+Narre a transição e apresente o novo desafio:`;
+
+      // Converter histórico
+      const historico = converterHistoricoParaLangChain(chatHistory);
+
+      // Invocar chain
+      const response = await this.chain.invoke({
+        input,
+        chat_history: historico
+      });
+
+      console.log(`✅ MestreAgent: Narrativa entre rodadas gerada`);
+
+      return {
+        narrativa: response.content,
+        rodadaAnterior,
+        proximaRodada,
+        novoDesafio: response.content,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('❌ MestreAgent: Erro ao narrar entre rodadas:', error);
+      throw new Error(`Erro ao narrar entre rodadas: ${error.message}`);
+    }
+  }
+
+  /**
    * Obtém o histórico atual
    */
   getHistorico() {

@@ -179,6 +179,23 @@ class SocketManager {
         }
       });
 
+      // Evento de mensagem roleplay (jogadores fora do turno)
+      socket.on('mensagem_roleplay', async (data) => {
+        this.log('INFO', 'MENSAGEM_ROLEPLAY_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          messageLength: data?.mensagem?.length,
+          username: data?.username || socket.username
+        });
+        try {
+          await this.handleMensagemRoleplay(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'MENSAGEM_ROLEPLAY_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
+          });
+        }
+      });
+
       // Evento de ação RPG
       socket.on('rpg_action', async (data) => {
         this.log('INFO', 'RPG_ACTION_RECEIVED', socket.id, socket.userId, {
@@ -209,6 +226,39 @@ class SocketManager {
         } catch (error) {
           this.log('ERROR', 'DICE_ROLL_FAILED', socket.id, socket.userId, {
             error: error.message
+          });
+        }
+      });
+
+      // Evento de rolagem de dado inicial (d20 para definir ordem)
+      socket.on('rolar_dado_inicial', async (data) => {
+        this.log('INFO', 'ROLAR_DADO_INICIAL_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          username: data?.username || socket.username
+        });
+        try {
+          await this.handleRolarDadoInicial(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'ROLAR_DADO_INICIAL_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
+          });
+        }
+      });
+
+      // Evento de iniciar turno (jogador clica para receber mensagem inicial do Mestre)
+      socket.on('iniciar_turno', async (data) => {
+        this.log('INFO', 'INICIAR_TURNO_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          userId: data?.userId,
+          username: data?.username
+        });
+        try {
+          await this.handleIniciarTurno(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'INICIAR_TURNO_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
           });
         }
       });
@@ -718,9 +768,11 @@ class SocketManager {
               donoNome: sessao.donoNome,
               maxJogadores: sessao.maxJogadores,
               totalJogadores: sessao.jogadoresConectados?.length || 0,
-              jogadoresConectados: sessao.jogadoresConectados || [],  // ← ADICIONAR LISTA COMPLETA
-              estadoJogo: sessao.estadoJogo,
-              iniciadaEm: sessao.iniciadaEm || null
+              jogadores: sessao.jogadores || {},  // ← Mapa de jogadores
+              jogadoresConectados: sessao.jogadoresConectados || [],  // ← Array de IDs
+              estadoJogo: sessao.estadoJogo || {},  // ← Estado completo do jogo
+              iniciadaEm: sessao.iniciadaEm || null,
+              mensagens: sessao.mensagens || []  // ← Mensagens do chat
             }
           };
 
@@ -1121,6 +1173,163 @@ class SocketManager {
   }
 
   /**
+   * Handler para rolagem de dado inicial (d20) para definir ordem de jogadores
+   */
+  async handleRolarDadoInicial(socket, data) {
+    const startTime = Date.now();
+    this.log('INFO', 'ROLAR_DADO_INICIAL_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: data
+    });
+
+    try {
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername 
+      } = data || {};
+
+      if (!rawRoomId || !rawUserId) {
+        this.log('ERROR', 'ROLAR_DADO_INICIAL_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId
+          }
+        });
+        socket.emit('error', { message: 'roomId e userId são obrigatórios' });
+        return;
+      }
+
+      // Parsing dos dados
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
+
+      this.log('INFO', 'ROLAR_DADO_INICIAL_DATA_PARSED', socket.id, userId, {
+        roomId,
+        username
+      });
+
+      // Obter sessão
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        this.log('ERROR', 'ROLAR_DADO_INICIAL_SESSAO_NOT_FOUND', socket.id, userId, {
+          roomId
+        });
+        return socket.emit('error', { message: 'Sessão não encontrada' });
+      }
+
+      // Verificar se jogador já rolou
+      const estadoJogo = sessao.estadoJogo || {};
+      const rolagemInicial = estadoJogo.rolagemInicial || {};
+      
+      if (rolagemInicial[userId]) {
+        this.log('WARN', 'ROLAR_DADO_INICIAL_JA_ROLOU', socket.id, userId, {
+          roomId,
+          valorAnterior: rolagemInicial[userId].valor
+        });
+        return socket.emit('erro_dado_inicial', { 
+          message: 'Você já rolou o dado inicial',
+          valorAnterior: rolagemInicial[userId].valor
+        });
+      }
+
+      // ⚡ GERAR VALOR DO DADO NO BACKEND (1-20)
+      const valorDado = Math.floor(Math.random() * 20) + 1;
+
+      this.log('SUCCESS', 'ROLAR_DADO_INICIAL_VALOR_GERADO', socket.id, userId, {
+        roomId,
+        username,
+        valorDado
+      });
+
+      // Registrar rolagem no Redis
+      await this.gerenciadorSessoes.registrarRolagemDado(roomId, userId, valorDado);
+
+      // Obter informações do personagem
+      const jogadores = sessao.jogadores || {};
+      const jogador = jogadores[userId] || {};
+      const personagemNome = jogador.personagemNome || null;
+
+      // Emitir resultado para toda a sala
+      const resultadoData = {
+        userId,
+        username,
+        personagemNome,
+        valor: valorDado,
+        timestamp: Date.now()
+      };
+
+      this.log('INFO', 'ROLAR_DADO_INICIAL_BROADCASTING', socket.id, userId, {
+        roomId,
+        resultadoData
+      });
+
+      this.io.to(roomId).emit('resultado_dado_inicial', resultadoData);
+
+      // Verificar se todos jogadores rolaram
+      const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+      const estadoJogoAtualizado = sessaoAtualizada.estadoJogo || {};
+      const rolagemInicialAtualizada = estadoJogoAtualizado.rolagemInicial || {};
+      const totalJogadores = Object.keys(sessaoAtualizada.jogadores || {}).length;
+      const totalRolagens = Object.keys(rolagemInicialAtualizada).length;
+
+      this.log('INFO', 'ROLAR_DADO_INICIAL_CHECK_TODOS_ROLARAM', socket.id, userId, {
+        roomId,
+        totalJogadores,
+        totalRolagens
+      });
+
+      if (totalRolagens === totalJogadores && totalJogadores > 0) {
+        this.log('SUCCESS', 'ROLAR_DADO_INICIAL_TODOS_ROLARAM', socket.id, userId, {
+          roomId,
+          totalJogadores
+        });
+
+        // Definir ordem dos jogadores
+        await this.gerenciadorSessoes.definirOrdemJogadores(roomId);
+        
+        // Obter sessão com ordem definida
+        const sessaoComOrdem = await this.obterSessaoHistoria(roomId);
+        const ordemJogadores = sessaoComOrdem.estadoJogo.ordemJogadores || [];
+
+        this.log('SUCCESS', 'ROLAR_DADO_INICIAL_ORDEM_DEFINIDA', socket.id, userId, {
+          roomId,
+          ordemJogadores: ordemJogadores.map(j => `${j.username} (${j.valorDado})`)
+        });
+
+        // Emitir ordem definida para todos
+        this.io.to(roomId).emit('ordem_definida', {
+          ordemJogadores,
+          timestamp: Date.now()
+        });
+
+        // Atualizar fase para rodada em andamento
+        await this.gerenciadorSessoes.atualizarFaseJogo(roomId, 'rodada_em_andamento');
+
+        // Iniciar primeiro turno
+        await this.iniciarPrimeiroTurno(roomId);
+      }
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'ROLAR_DADO_INICIAL_COMPLETED', socket.id, userId, {
+        roomId,
+        username,
+        valorDado,
+        processingTimeMs: processingTime
+      });
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'ROLAR_DADO_INICIAL_ERROR', socket.id, socket.userId, {
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime
+      });
+      socket.emit('error', { message: 'Erro ao rolar dado inicial' });
+    }
+  }
+
+  /**
    * Handler para mensagem destinada ao Mestre (IA)
    */
   async handleMensagemParaMestre(socket, data) {
@@ -1186,7 +1395,45 @@ class SocketManager {
         totalMensagens: sessao.mensagens?.length || 0
       });
 
-      // 2. Obter histórico de mensagens
+      // 2. VERIFICAR SISTEMA DE TURNOS
+      const estadoJogo = sessao.estadoJogo || {};
+      const fase = estadoJogo.fase;
+      
+      // Se o jogo está em fase de rodadas, verificar turnos
+      if (fase === 'rodada_em_andamento') {
+        const turnoAtual = estadoJogo.turnoAtual || 0;
+        const ordemJogadores = estadoJogo.ordemJogadores || [];
+        
+        if (ordemJogadores.length === 0) {
+          this.log('ERROR', 'MENSAGEM_PARA_MESTRE_SEM_ORDEM', socket.id, userId, {
+            roomId
+          });
+          return socket.emit('error', { message: 'Ordem de jogadores não definida' });
+        }
+        
+        const jogadorDaVez = ordemJogadores[turnoAtual];
+        
+        // Verificar se é o turno do jogador
+        if (String(jogadorDaVez.userId) !== String(userId)) {
+          this.log('WARN', 'MENSAGEM_PARA_MESTRE_NAO_E_SEU_TURNO', socket.id, userId, {
+            roomId,
+            turnoAtual,
+            jogadorDaVez: jogadorDaVez.username
+          });
+          return socket.emit('erro_turno', { 
+            message: `Não é seu turno! Aguarde a vez de ${jogadorDaVez.username}`,
+            jogadorDaVez: jogadorDaVez.username
+          });
+        }
+        
+        this.log('INFO', 'MENSAGEM_PARA_MESTRE_TURNO_VALIDADO', socket.id, userId, {
+          roomId,
+          turnoAtual,
+          jogador: username
+        });
+      }
+
+      // 3. Obter histórico de mensagens
       const historico = sessao.mensagens || [];
 
       // 3. Criar instância do Mestre com temas e personagens da história
@@ -1274,6 +1521,30 @@ class SocketManager {
         timestamp: Date.now() + 1
       });
 
+      // 10. CONTROLE DE TURNOS: Incrementar contador e verificar se deve avançar
+      if (fase === 'rodada_em_andamento') {
+        const contador = await this.gerenciadorSessoes.incrementarContadorMensagensTurno(roomId);
+        
+        this.log('INFO', 'MENSAGEM_PARA_MESTRE_CONTADOR_INCREMENTADO', socket.id, userId, {
+          roomId,
+          contadorAtual: contador
+        });
+        
+        // Se atingiu o limite de mensagens (2-3), avançar turno
+        if (contador >= 2) {
+          this.log('INFO', 'MENSAGEM_PARA_MESTRE_FIM_TURNO', socket.id, userId, {
+            roomId,
+            contador,
+            jogador: username
+          });
+          
+          // Aguardar 2 segundos antes de avançar turno (para dar tempo de ler)
+          setTimeout(async () => {
+            await this.avancarProximoTurno(roomId);
+          }, 2000);
+        }
+      }
+
       const processingTime = Date.now() - startTime;
       this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_COMPLETED', socket.id, userId, {
         roomId,
@@ -1291,6 +1562,290 @@ class SocketManager {
         processingTimeMs: processingTime
       });
       socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
+    }
+  }
+
+  /**
+   * Handler para mensagem roleplay (jogadores fora do turno)
+   */
+  async handleMensagemRoleplay(socket, data) {
+    const startTime = Date.now();
+    this.log('INFO', 'MENSAGEM_ROLEPLAY_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: {
+        roomId: data?.roomId,
+        userId: data?.userId,
+        username: data?.username,
+        mensagemLength: data?.mensagem?.length
+      }
+    });
+
+    try {
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername, 
+        mensagem: rawMensagem
+      } = data || {};
+
+      if (!rawRoomId || !rawUserId || !rawMensagem) {
+        this.log('ERROR', 'MENSAGEM_ROLEPLAY_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId,
+            mensagem: !rawMensagem
+          }
+        });
+        socket.emit('error', { message: 'roomId, userId e mensagem são obrigatórios' });
+        return;
+      }
+
+      // Parsing dos dados
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
+      const mensagem = String(rawMensagem);
+
+      this.log('INFO', 'MENSAGEM_ROLEPLAY_DATA_PARSED', socket.id, userId, {
+        roomId,
+        username,
+        mensagemTruncated: mensagem.substring(0, 100)
+      });
+
+      // Obter sessão
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        this.log('ERROR', 'MENSAGEM_ROLEPLAY_SESSAO_NOT_FOUND', socket.id, userId, {
+          roomId
+        });
+        return socket.emit('error', { message: 'Sessão não encontrada' });
+      }
+
+      // Verificar cooldown de 12 segundos
+      const cooldownRestante = await this.gerenciadorSessoes.verificarCooldownRoleplay(roomId, userId);
+      
+      if (cooldownRestante > 0) {
+        this.log('WARN', 'MENSAGEM_ROLEPLAY_COOLDOWN_ATIVO', socket.id, userId, {
+          roomId,
+          cooldownRestante
+        });
+        return socket.emit('erro_cooldown_roleplay', { 
+          message: `Aguarde ${cooldownRestante} segundos antes de enviar outra mensagem roleplay`,
+          segundosRestantes: cooldownRestante
+        });
+      }
+
+      this.log('INFO', 'MENSAGEM_ROLEPLAY_COOLDOWN_OK', socket.id, userId, {
+        roomId
+      });
+
+      // Atualizar cooldown
+      await this.gerenciadorSessoes.atualizarCooldownRoleplay(roomId, userId);
+
+      // Salvar mensagem na sessão (marcada como roleplay)
+      const mensagemRoleplay = {
+        tipo: 'roleplay',
+        userId,
+        username,
+        mensagem,
+        timestamp: Date.now()
+      };
+
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+      sessao.mensagens.push(mensagemRoleplay);
+
+      // Atualizar sessão no Redis
+      sessao.atualizadaEm = new Date().toISOString();
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      this.log('SUCCESS', 'MENSAGEM_ROLEPLAY_SALVA', socket.id, userId, {
+        roomId,
+        totalMensagens: sessao.mensagens.length
+      });
+
+      // Enviar mensagem roleplay para todos na sala (NÃO vai para o Mestre IA)
+      this.io.to(roomId).emit('mensagem_roleplay', {
+        id: Date.now().toString(),
+        userId,
+        username,
+        message: mensagem,
+        tipo: 'roleplay',
+        timestamp: Date.now()
+      });
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'MENSAGEM_ROLEPLAY_COMPLETED', socket.id, userId, {
+        roomId,
+        jogador: username,
+        processingTimeMs: processingTime
+      });
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'MENSAGEM_ROLEPLAY_ERROR', socket.id, socket.userId, {
+        roomId: data?.roomId,
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime
+      });
+      socket.emit('error', { message: 'Erro ao processar mensagem roleplay' });
+    }
+  }
+
+  /**
+   * Handler para iniciar turno do jogador
+   * Gera mensagem inicial do Mestre direcionada ao jogador
+   */
+  async handleIniciarTurno(socket, data) {
+    const startTime = Date.now();
+    this.log('INFO', 'INICIAR_TURNO_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: data
+    });
+
+    try {
+      const { 
+        roomId: rawRoomId, 
+        userId: rawUserId, 
+        username: rawUsername 
+      } = data || {};
+
+      if (!rawRoomId || !rawUserId) {
+        this.log('ERROR', 'INICIAR_TURNO_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId
+          }
+        });
+        socket.emit('error', { message: 'roomId e userId são obrigatórios' });
+        return;
+      }
+
+      // Parsing dos dados
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
+
+      this.log('INFO', 'INICIAR_TURNO_DATA_PARSED', socket.id, userId, {
+        roomId,
+        username
+      });
+
+      // Obter sessão
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        this.log('ERROR', 'INICIAR_TURNO_SESSAO_NOT_FOUND', socket.id, userId, {
+          roomId
+        });
+        return socket.emit('error', { message: 'Sessão não encontrada' });
+      }
+
+      // Verificar se é o turno do jogador
+      const estadoJogo = sessao.estadoJogo || {};
+      const turnoAtual = estadoJogo.turnoAtual || 0;
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+      const jogadorDaVez = ordemJogadores[turnoAtual];
+      
+      if (!jogadorDaVez || String(jogadorDaVez.userId) !== String(userId)) {
+        this.log('WARN', 'INICIAR_TURNO_NAO_E_SEU_TURNO', socket.id, userId, {
+          roomId,
+          turnoAtual,
+          jogadorDaVez: jogadorDaVez?.username
+        });
+        return socket.emit('erro_turno', { 
+          message: 'Não é seu turno!' 
+        });
+      }
+
+      this.log('INFO', 'INICIAR_TURNO_VALIDADO', socket.id, userId, {
+        roomId,
+        turnoAtual,
+        jogador: username
+      });
+
+      // Criar instância do Mestre
+      const mestre = await criarMestreRPG(
+        sessao.historiaTemas || [],
+        sessao.jogadoresConectados || []
+      );
+
+      this.log('INFO', 'INICIAR_TURNO_GERANDO_MENSAGEM_MESTRE', socket.id, userId, {
+        jogador: username,
+        personagem: jogadorDaVez.personagemNome
+      });
+
+      // Gerar mensagem inicial do Mestre para o jogador
+      const mensagemInicial = await mestre.narrarTurnoJogador({
+        jogador: username,
+        personagem: jogadorDaVez.personagemNome || username,
+        mensagem: `Iniciar turno de ${jogadorDaVez.personagemNome || username}`,
+        rodada: estadoJogo.rodadaAtual || 1,
+        turno: turnoAtual,
+        contadorMensagens: 0,
+        chatHistory: sessao.mensagens || []
+      });
+
+      this.log('SUCCESS', 'INICIAR_TURNO_MENSAGEM_GERADA', socket.id, userId, {
+        respostaLength: mensagemInicial.resposta?.length || 0
+      });
+
+      // Salvar mensagem do Mestre
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+      
+      sessao.mensagens.push({
+        tipo: 'mestre',
+        userId: 'mestre',
+        username: 'Mestre',
+        mensagem: mensagemInicial.resposta,
+        timestamp: Date.now()
+      });
+
+      // Marcar que o turno foi iniciado
+      estadoJogo.turnoIniciado = true;
+      sessao.estadoJogo = estadoJogo;
+
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      this.log('SUCCESS', 'INICIAR_TURNO_SESSAO_ATUALIZADA', socket.id, userId, {
+        roomId
+      });
+
+      // Enviar mensagem do Mestre para todos
+      this.io.to(roomId).emit('mensagem_mestre', {
+        id: Date.now().toString(),
+        userId: 'mestre',
+        username: 'Mestre',
+        message: mensagemInicial.resposta,
+        tipo: 'mestre',
+        timestamp: Date.now()
+      });
+
+      // Emitir evento de turno iniciado
+      this.io.to(roomId).emit('turno_iniciado', {
+        userId,
+        username,
+        rodada: estadoJogo.rodadaAtual || 1,
+        turno: turnoAtual,
+        timestamp: Date.now()
+      });
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'INICIAR_TURNO_COMPLETED', socket.id, userId, {
+        roomId,
+        username,
+        processingTimeMs: processingTime
+      });
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'INICIAR_TURNO_ERROR', socket.id, socket.userId, {
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime
+      });
+      socket.emit('error', { message: 'Erro ao iniciar turno' });
     }
   }
 
@@ -1712,6 +2267,208 @@ class SocketManager {
         timestamp: Date.now()
       });
       console.log(`🎮 Notificação de início enviada para sala ${salaId}`);
+    }
+  }
+
+  /**
+   * Notificar mudança de fase para toda sala
+   */
+  notificarMudancaFase(salaId, fase, dadosAdicionais = {}) {
+    if (this.io) {
+      this.io.to(salaId).emit('fase_atualizada', {
+        fase,
+        ...dadosAdicionais,
+        timestamp: Date.now()
+      });
+      console.log(`🎮 Fase atualizada para "${fase}" na sala ${salaId}`);
+    }
+  }
+
+  // ===== FUNÇÕES AUXILIARES PARA SISTEMA DE TURNOS E RODADAS =====
+
+  /**
+   * Iniciar primeiro turno após definir ordem dos jogadores
+   */
+  async iniciarPrimeiroTurno(roomId) {
+    try {
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`❌ Sessão não encontrada ao iniciar primeiro turno: ${roomId}`);
+        return;
+      }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+      
+      if (ordemJogadores.length === 0) {
+        console.error(`❌ Nenhum jogador na ordem para iniciar turno: ${roomId}`);
+        return;
+      }
+
+      const primeiroJogador = ordemJogadores[0];
+      
+      console.log(`🎯 Iniciando primeiro turno para ${primeiroJogador.username} na sala ${roomId}`);
+
+      // Notificar mudança de fase
+      this.notificarMudancaFase(roomId, 'rodada_em_andamento', {
+        rodadaAtual: estadoJogo.rodadaAtual || 1
+      });
+
+      // Emitir evento de início de turno
+      this.io.to(roomId).emit('turno_alterado', {
+        rodadaAtual: estadoJogo.rodadaAtual || 1,
+        turnoAtual: 0,
+        jogadorAtual: primeiroJogador,
+        ordemCompleta: ordemJogadores,
+        timestamp: Date.now()
+      });
+
+      // Opcional: Mestre pode falar algo direto para o primeiro jogador
+      console.log(`✅ Primeiro turno iniciado com ${primeiroJogador.username}`);
+    } catch (error) {
+      console.error(`❌ Erro ao iniciar primeiro turno:`, error);
+    }
+  }
+
+  /**
+   * Avançar para o próximo turno
+   */
+  async avancarProximoTurno(roomId) {
+    try {
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`❌ Sessão não encontrada ao avançar turno: ${roomId}`);
+        return;
+      }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const turnoAtual = estadoJogo.turnoAtual || 0;
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+
+      // Resetar flag de turno iniciado ao avançar
+      estadoJogo.turnoIniciado = false;
+
+      // Avançar turno no Redis
+      await this.gerenciadorSessoes.avancarTurno(roomId);
+
+      const proximoTurno = turnoAtual + 1;
+
+      // Verificar se acabou a rodada
+      if (proximoTurno >= ordemJogadores.length) {
+        console.log(`🏁 Rodada finalizada na sala ${roomId}`);
+        await this.finalizarRodada(roomId);
+        return;
+      }
+
+      const proximoJogador = ordemJogadores[proximoTurno];
+      
+      console.log(`⏭️ Avançando para turno ${proximoTurno} - ${proximoJogador.username} na sala ${roomId}`);
+
+      // Emitir evento de mudança de turno
+      this.io.to(roomId).emit('turno_alterado', {
+        rodadaAtual: estadoJogo.rodadaAtual || 1,
+        turnoAtual: proximoTurno,
+        jogadorAtual: proximoJogador,
+        ordemCompleta: ordemJogadores,
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Turno avançado para ${proximoJogador.username}`);
+    } catch (error) {
+      console.error(`❌ Erro ao avançar turno:`, error);
+    }
+  }
+
+  /**
+   * Finalizar rodada atual e preparar próxima
+   */
+  async finalizarRodada(roomId) {
+    try {
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`❌ Sessão não encontrada ao finalizar rodada: ${roomId}`);
+        return;
+      }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const rodadaAtual = estadoJogo.rodadaAtual || 1;
+
+      console.log(`🏁 Finalizando rodada ${rodadaAtual} na sala ${roomId}`);
+
+      // Atualizar fase para entre rodadas
+      await this.gerenciadorSessoes.atualizarFaseJogo(roomId, 'entre_rodadas');
+
+      // Notificar mudança de fase
+      this.notificarMudancaFase(roomId, 'entre_rodadas', {
+        rodadaFinalizada: rodadaAtual
+      });
+
+      // Emitir evento de rodada finalizada
+      this.io.to(roomId).emit('rodada_finalizada', {
+        rodada: rodadaAtual,
+        timestamp: Date.now()
+      });
+
+      // Aguardar 5 segundos antes de iniciar nova rodada
+      setTimeout(async () => {
+        await this.iniciarNovaRodada(roomId);
+      }, 5000);
+
+      console.log(`✅ Rodada ${rodadaAtual} finalizada, próxima rodada em 5s`);
+    } catch (error) {
+      console.error(`❌ Erro ao finalizar rodada:`, error);
+    }
+  }
+
+  /**
+   * Iniciar nova rodada
+   */
+  async iniciarNovaRodada(roomId) {
+    try {
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`❌ Sessão não encontrada ao iniciar nova rodada: ${roomId}`);
+        return;
+      }
+
+      // Incrementar rodada e resetar turno
+      await this.gerenciadorSessoes.iniciarNovaRodada(roomId);
+
+      const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+      const estadoJogo = sessaoAtualizada.estadoJogo || {};
+      const novaRodada = estadoJogo.rodadaAtual || 2;
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+
+      console.log(`🔄 Iniciando rodada ${novaRodada} na sala ${roomId}`);
+
+      // Notificar mudança de fase
+      this.notificarMudancaFase(roomId, 'rodada_em_andamento', {
+        rodadaAtual: novaRodada
+      });
+
+      // Emitir evento de nova rodada iniciada
+      this.io.to(roomId).emit('nova_rodada_iniciada', {
+        rodada: novaRodada,
+        primeiroJogador: ordemJogadores[0],
+        timestamp: Date.now()
+      });
+
+      // Iniciar primeiro turno da nova rodada
+      if (ordemJogadores.length > 0) {
+        const primeiroJogador = ordemJogadores[0];
+        
+        this.io.to(roomId).emit('turno_alterado', {
+          rodadaAtual: novaRodada,
+          turnoAtual: 0,
+          jogadorAtual: primeiroJogador,
+          ordemCompleta: ordemJogadores,
+          timestamp: Date.now()
+        });
+      }
+
+      console.log(`✅ Rodada ${novaRodada} iniciada`);
+    } catch (error) {
+      console.error(`❌ Erro ao iniciar nova rodada:`, error);
     }
   }
 

@@ -9,7 +9,7 @@
  */
 
 //URL PARA SER USADA EM PRODUÇÃO https://lunaria-backend-3754d2d676ff.herokuapp.com/
-const API_URL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com/';
+const API_URL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com';
 // const API_URL = 'http://localhost:3001';
 
 import { getTemaStoreAPI } from '../../store/index.js';

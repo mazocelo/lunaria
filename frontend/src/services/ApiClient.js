@@ -10,7 +10,7 @@ import axios from 'axios';
 
 // const baseURL = 'http://localhost:3001/';
 
-const baseURL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com/';
+const baseURL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com';
 
 // Criação da instância do axios
 const axiosInstance = axios.create({

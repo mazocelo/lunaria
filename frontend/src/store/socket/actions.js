@@ -16,7 +16,7 @@ import io from 'socket.io-client';
 // Configuração de URLs
 // Nota: Domínios não configurados - usando localhost por padrão
 
-//URL PARA SER USADA EM PRODUÇÃO https://lunaria-backend-3754d2d676ff.herokuapp.com/
+//URL PARA SER USADA EM PRODUÇÃO https://lunaria-backend-3754d2d676ff.herokuapp.com
 
 let WS_BASE_URL= 'wss://lunaria-backend-3754d2d676ff.herokuapp.com'
 // const WS_BASE_URL =  'ws://localhost:3001'

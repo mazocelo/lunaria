@@ -60,6 +60,22 @@ export const socketInitialStates = {
   isTyping: false, // Se o usuário atual está digitando
   typingTimeout: null,
   
+  // ===== SISTEMA DE TURNOS E RODADAS =====
+  faseJogo: 'aguardando_inicio', // 'aguardando_inicio' | 'rolagem_inicial' | 'rodada_em_andamento' | 'entre_rodadas'
+  rodadaAtual: 1,
+  turnoAtual: 0,
+  jogadorAtual: null,
+  ordemJogadores: [],
+  ordemDefinida: false,
+  resultadosDados: {}, // {userId: {valor, username, personagemNome, timestamp}}
+  ehMeuTurno: false,
+  turnoIniciado: false, // Se o jogador já clicou em "Iniciar Turno"
+  cooldownRoleplay: 0,
+  contadorMensagensTurno: 0,
+  rodadaFinalizada: null,
+  estadoJogo: {},
+  erroMensagem: null,
+  
   // ===== CONFIGURAÇÕES E LOGS =====
   logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'info',
   configs: {

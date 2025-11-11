@@ -682,6 +682,24 @@ export class JogoViewModel {
   }
 
   /**
+   * Limpa mensagens de dados do chat (mantém apenas mensagens do Mestre)
+   * Usado quando a ordem de jogadores é definida
+   * @param {Array} mensagensFiltradas - Mensagens a manter (opcional)
+   */
+  limparMensagensDados(mensagensFiltradas = null) {
+    if (mensagensFiltradas) {
+      this.mensagens = mensagensFiltradas;
+    } else {
+      // Filtrar automaticamente para manter apenas mensagens do Mestre
+      this.mensagens = this.mensagens.filter(m => 
+        m.tipo === 'mestre' || m.tipo === 'entre_rodadas'
+      );
+    }
+    console.log(`🧹 JogoViewModel: Mensagens limpas. Total: ${this.mensagens.length}`);
+    this.notify();
+  }
+
+  /**
    * Carrega mensagens salvas do Redis
    * @param {number} historiaId - ID da história
    */

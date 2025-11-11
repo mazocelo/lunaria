@@ -18,11 +18,8 @@ import io from 'socket.io-client';
 
 //URL PARA SER USADA EM PRODUÇÃO https://lunaria-backend-3754d2d676ff.herokuapp.com/
 
-let simpleURL= 'lunaria-backend-3754d2d676ff.herokuapp.com'
-
-const WS_BASE_URL = process.env.NODE_ENV === 'production'
-  ? `wss://${simpleURL}` // TODO: Configurar domínio de produção quando disponível
-  : `wss://${simpleURL}`;
+// let WS_BASE_URL= 'wss://lunaria-backend-3754d2d676ff.herokuapp.com'
+const WS_BASE_URL =  'ws://localhost:3001'
 
 export const createSocketActions = (set, get) => ({
   
@@ -193,6 +190,135 @@ export const createSocketActions = (set, get) => ({
     socket.on('connection_error', (error) => {
       set({ error: error.message });
       get().log('Connection error', { error: error.message }, 'error');
+    });
+
+    // ===== LISTENERS DO SISTEMA DE TURNOS E RODADAS =====
+    
+    // Listener de fase atualizada
+    socket.on('fase_atualizada', (data) => {
+      console.log('📡 Fase atualizada:', data);
+      set({ 
+        faseJogo: data.fase,
+        estadoJogo: data.estadoJogo || get().estadoJogo
+      });
+      get().log('Fase atualizada', { fase: data.fase, success: true });
+    });
+
+    // Listener de resultado de dado inicial
+    socket.on('resultado_dado_inicial', (data) => {
+      console.log('🎲 Resultado dado inicial:', data);
+      
+      // Atualizar resultados dos dados no estado
+      const { resultadosDados = {} } = get();
+      resultadosDados[data.userId] = {
+        valor: data.valor,
+        username: data.username,
+        personagemNome: data.personagemNome,
+        timestamp: data.timestamp
+      };
+      
+      set({ resultadosDados: { ...resultadosDados } });
+      
+      get().log('Dado inicial rolado', { 
+        userId: data.userId, 
+        valor: data.valor,
+        success: true 
+      });
+    });
+
+    // Listener de ordem definida
+    socket.on('ordem_definida', (data) => {
+      console.log('📋 Ordem definida:', data);
+      set({ 
+        ordemJogadores: data.ordemJogadores || [],
+        ordemDefinida: true
+      });
+      get().log('Ordem de jogadores definida', { 
+        totalJogadores: data.ordemJogadores?.length,
+        success: true 
+      });
+    });
+
+    // Listener de turno alterado
+    socket.on('turno_alterado', (data) => {
+      console.log('🎯 Turno alterado:', data);
+      const currentUser = get().currentUser;
+      const ehMeuTurno = currentUser && String(data.jogadorAtual?.userId) === String(currentUser.id);
+      
+      set({ 
+        rodadaAtual: data.rodadaAtual,
+        turnoAtual: data.turnoAtual,
+        jogadorAtual: data.jogadorAtual,
+        ordemJogadores: data.ordemCompleta || get().ordemJogadores,
+        ehMeuTurno,
+        turnoIniciado: false  // Resetar ao mudar turno
+      });
+      
+      get().log('Turno alterado', { 
+        turno: data.turnoAtual,
+        jogador: data.jogadorAtual?.username,
+        ehMeuTurno,
+        success: true 
+      });
+    });
+
+    // Listener de turno iniciado
+    socket.on('turno_iniciado', (data) => {
+      console.log('🎯 Turno iniciado:', data);
+      const currentUser = get().currentUser;
+      const ehMeuTurno = currentUser && String(data.userId) === String(currentUser.id);
+      
+      if (ehMeuTurno) {
+        set({ turnoIniciado: true });
+      }
+      
+      get().log('Turno iniciado', { userId: data.userId, success: true });
+    });
+
+    // Listener de rodada finalizada
+    socket.on('rodada_finalizada', (data) => {
+      console.log('🏁 Rodada finalizada:', data);
+      set({ 
+        faseJogo: 'entre_rodadas',
+        rodadaFinalizada: data.rodada
+      });
+      get().log('Rodada finalizada', { rodada: data.rodada, success: true });
+    });
+
+    // Listener de nova rodada iniciada
+    socket.on('nova_rodada_iniciada', (data) => {
+      console.log('🔄 Nova rodada iniciada:', data);
+      set({ 
+        faseJogo: 'rodada_em_andamento',
+        rodadaAtual: data.rodada,
+        turnoAtual: 0,
+        rodadaFinalizada: null
+      });
+      get().log('Nova rodada iniciada', { rodada: data.rodada, success: true });
+    });
+
+    // Listener de erro de cooldown roleplay
+    socket.on('erro_cooldown_roleplay', (data) => {
+      console.log('⏱️ Erro cooldown roleplay:', data);
+      set({ 
+        cooldownRoleplay: data.segundosRestantes || 0,
+        erroMensagem: data.message
+      });
+      get().log('Cooldown roleplay ativo', { segundos: data.segundosRestantes });
+    });
+
+    // Listener de erro de turno
+    socket.on('erro_turno', (data) => {
+      console.log('⚠️ Erro turno:', data);
+      set({ erroMensagem: data.message });
+      get().log('Erro ao enviar mensagem fora do turno', { message: data.message });
+    });
+
+    // Listener de mensagem roleplay
+    socket.on('mensagem_roleplay', (data) => {
+      console.log('💬 Mensagem roleplay recebida:', data);
+      // Será tratado pela view que escuta mensagens
+      get().log('Mensagem roleplay recebida', { userId: data.userId });
     });
   },
 
@@ -526,6 +652,56 @@ export const createSocketActions = (set, get) => ({
       socket.once('start_session_error', onError);
       socket.emit('start_session', sessionData);
     });
+  },
+
+  // ===== AÇÕES DO SISTEMA DE TURNOS E RODADAS =====
+
+  // Usado por: InputArea - rolar dado inicial (d20)
+  rolarDadoInicial: () => {
+    const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
+    
+    if (!socket || !isConnected) {
+      log('Não conectado para rolar dado', {}, 'error');
+      return false;
+    }
+
+    if (!roomId || !currentUser) {
+      log('Faltam dados para rolar dado', { roomId: !!roomId, user: !!currentUser }, 'error');
+      return false;
+    }
+
+    const dadoData = {
+      roomId,
+      userId: currentUser.id,
+      username: currentUser.username || currentUser.nome
+    };
+
+    log('Rolando dado inicial', { userId: currentUser.id });
+    return safeEmit('rolar_dado_inicial', dadoData);
+  },
+
+  // Usado por: InputArea - iniciar turno (receber mensagem inicial do Mestre)
+  iniciarTurno: () => {
+    const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
+    
+    if (!socket || !isConnected) {
+      log('Não conectado para iniciar turno', {}, 'error');
+      return false;
+    }
+
+    if (!roomId || !currentUser) {
+      log('Faltam dados para iniciar turno', { roomId: !!roomId, user: !!currentUser }, 'error');
+      return false;
+    }
+
+    const turnoData = {
+      roomId,
+      userId: currentUser.id,
+      username: currentUser.username || currentUser.nome
+    };
+
+    log('Iniciando turno', { userId: currentUser.id });
+    return safeEmit('iniciar_turno', turnoData);
   },
 
   // ===== MÉTODOS UTILITÁRIOS =====

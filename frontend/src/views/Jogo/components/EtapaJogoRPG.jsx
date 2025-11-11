@@ -6,12 +6,15 @@ import PainelJogadores from './rpg/PainelJogadores';
 import ChatArea from './rpg/ChatArea';
 import InputArea from './rpg/InputArea';
 import StatusPersonagem from './rpg/StatusPersonagem';
+import RolagemDadosInicial from './rpg/RolagemDadosInicial';
+import IndicadorTurno from './rpg/IndicadorTurno';
 import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
 
 /**
  * Layout do jogo RPG ativo - Usando ViewModel específico
  * 📍 Usado por: JogoView (etapa 'jogo-ativo')
  * 🎯 MIGRADO: Agora usa ViewModel específico para lógica de negócio
+ * 🎲 SISTEMA DE TURNOS: Integrado com fases, rodadas e turnos
  */
 const EtapaJogoRPG = ({
   historia,
@@ -29,10 +32,110 @@ const EtapaJogoRPG = ({
   // 🎯 VIEWMODEL - Estado reativo
   const [viewModelState, setViewModelState] = useState(etapaJogoRPGViewModel.getState());
 
+  // 🎲 SOCKET STORE - Estado de turnos e rodadas
+  const [socketState, setSocketState] = useState({
+    faseJogo: 'aguardando_inicio',
+    rodadaAtual: 1,
+    turnoAtual: 0,
+    jogadorAtual: null,
+    ordemJogadores: [],
+    ordemDefinida: false,
+    resultadosDados: {},
+    ehMeuTurno: false,
+    turnoIniciado: false,
+    cooldownRoleplay: 0
+  });
+
+  // ⏱️ Timer local para cooldown roleplay
+  const [cooldownLocal, setCooldownLocal] = useState(0);
+  const cooldownIntervalRef = React.useRef(null);
+
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
     const unsubscribe = etapaJogoRPGViewModel.subscribe(setViewModelState);
     return unsubscribe;
+  }, []);
+
+  // 🔄 SUBSCRIBE AO SOCKET STORE (para estados de turnos)
+  useEffect(() => {
+    let unsubscribe;
+    
+    const setupSocketStoreSubscription = async () => {
+      try {
+        const { getSocketStoreAPI } = await import('../../../store/index.js');
+        const socketStore = getSocketStoreAPI();
+        
+        // Subscribe para mudanças no socket store
+        unsubscribe = socketStore.subscribe((state) => {
+          setSocketState({
+            faseJogo: state.faseJogo || 'aguardando_inicio',
+            rodadaAtual: state.rodadaAtual || 1,
+            turnoAtual: state.turnoAtual || 0,
+            jogadorAtual: state.jogadorAtual,
+            ordemJogadores: state.ordemJogadores || [],
+            ordemDefinida: state.ordemDefinida || false,
+            resultadosDados: state.resultadosDados || {},
+            ehMeuTurno: state.ehMeuTurno || false,
+            turnoIniciado: state.turnoIniciado || false,
+            cooldownRoleplay: state.cooldownRoleplay || 0
+          });
+        });
+      } catch (error) {
+        console.error('❌ Erro ao conectar ao socket store:', error);
+      }
+    };
+    
+    setupSocketStoreSubscription();
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // ⏱️ Timer para decrementar cooldown local
+  useEffect(() => {
+    if (cooldownLocal > 0) {
+      cooldownIntervalRef.current = setInterval(() => {
+        setCooldownLocal(prev => {
+          if (prev <= 1) {
+            if (cooldownIntervalRef.current) {
+              clearInterval(cooldownIntervalRef.current);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
+      }
+    };
+  }, [cooldownLocal]);
+
+  // 🧹 Listener para limpar mensagens de dados quando ordem definida
+  useEffect(() => {
+    const limparMensagensDados = async () => {
+      console.log('🧹 Evento de limpar mensagens recebido');
+      
+      // Filtrar mensagens para manter apenas a do Mestre
+      const { default: jogoViewModel } = await import('../../../viewmodels/Jogo/jogoViewModel.js');
+      const mensagensAtuais = jogoViewModel.getState().mensagens || [];
+      
+      // Manter apenas mensagens do tipo 'mestre'
+      const mensagensFiltradas = mensagensAtuais.filter(m => m.tipo === 'mestre' || m.tipo === 'entre_rodadas');
+      
+      jogoViewModel.limparMensagensDados(mensagensFiltradas);
+      console.log(`✅ Mensagens filtradas: ${mensagensAtuais.length} → ${mensagensFiltradas.length}`);
+    };
+
+    window.addEventListener('limparMensagensDados', limparMensagensDados);
+
+    return () => {
+      window.removeEventListener('limparMensagensDados', limparMensagensDados);
+    };
   }, []);
 
   // 📊 DESTRUCTURING DO ESTADO
@@ -85,9 +188,77 @@ const EtapaJogoRPG = ({
           }
         };
 
+        // Listener para resultados de dados
+        const handleResultadoDado = (data) => {
+          console.log('🎲 Resultado de dado recebido:', data);
+          
+          const mensagem = {
+            id: data.id || `dado_${Date.now()}`,
+            userId: data.userId,
+            username: data.username,
+            personagemNome: data.personagemNome,
+            valor: data.valor,
+            dice: 'd20',
+            tipo: 'dado',
+            timestamp: data.timestamp || Date.now()
+          };
+          
+          if (onAdicionarMensagem) {
+            onAdicionarMensagem(mensagem);
+          }
+        };
+
+        // Listener para mensagens roleplay
+        const handleMensagemRoleplay = (data) => {
+          console.log('💬 Mensagem roleplay recebida:', data);
+          
+          const mensagem = {
+            id: data.id || Date.now(),
+            userId: data.userId,
+            username: data.username,
+            message: data.message,
+            tipo: 'roleplay',
+            timestamp: data.timestamp || Date.now()
+          };
+          
+          if (onAdicionarMensagem) {
+            onAdicionarMensagem(mensagem);
+          }
+        };
+
+        // Listener para rodada finalizada (narrativa entre rodadas)
+        const handleRodadaFinalizada = (data) => {
+          console.log('🏁 Rodada finalizada:', data);
+          
+          const mensagem = {
+            id: `rodada_${data.rodada}_fim`,
+            tipo: 'entre_rodadas',
+            titulo: `Fim da Rodada ${data.rodada}`,
+            mensagem: `A rodada ${data.rodada} foi concluída. Preparando próxima rodada...`,
+            timestamp: data.timestamp || Date.now()
+          };
+          
+          if (onAdicionarMensagem) {
+            onAdicionarMensagem(mensagem);
+          }
+        };
+
+        // Listener para ordem definida - limpar chat de dados
+        const handleOrdemDefinida = (data) => {
+          console.log('📋 Ordem definida - limpando mensagens de dados:', data);
+          
+          // Emitir evento customizado para limpar mensagens
+          const event = new CustomEvent('limparMensagensDados');
+          window.dispatchEvent(event);
+        };
+
         // Adicionar listeners
         socketStore.on('mensagem_mestre', handleMensagemMestre);
         socketStore.on('chat_message', handleChatMessage);
+        socketStore.on('resultado_dado_inicial', handleResultadoDado);
+        socketStore.on('mensagem_roleplay', handleMensagemRoleplay);
+        socketStore.on('rodada_finalizada', handleRodadaFinalizada);
+        socketStore.on('ordem_definida', handleOrdemDefinida);
 
         console.log('📡 Listeners de mensagens configurados');
 
@@ -95,6 +266,10 @@ const EtapaJogoRPG = ({
         return () => {
           socketStore.off('mensagem_mestre', handleMensagemMestre);
           socketStore.off('chat_message', handleChatMessage);
+          socketStore.off('resultado_dado_inicial', handleResultadoDado);
+          socketStore.off('mensagem_roleplay', handleMensagemRoleplay);
+          socketStore.off('rodada_finalizada', handleRodadaFinalizada);
+          socketStore.off('ordem_definida', handleOrdemDefinida);
           console.log('🧹 Listeners de mensagens removidos');
         };
       } catch (error) {
@@ -153,28 +328,54 @@ const EtapaJogoRPG = ({
       const roomId = `historia_${historia?.id}`;
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-      // Enviar mensagem para o Mestre via WebSocket
-      const enviado = socketStore.safeEmit('mensagem_para_mestre', {
-        roomId,
-        userId: String(user.id),
-        username: user.nome || user.name,
-        mensagem: mensagemAtual,
-        personagem: {
-          nome: personagemSelecionado?.nome || 'Aventureiro',
-          classe: personagemSelecionado?.classe_nome || '',
-          nivel: personagemSelecionado?.nivel || 1
-        }
-      });
+      // Verificar se é mensagem roleplay (não é o turno do jogador)
+      const ehMensagemRoleplay = socketState.faseJogo === 'rodada_em_andamento' && !socketState.ehMeuTurno;
 
-      if (enviado) {
-        // Limpar input apenas se enviou com sucesso
-        etapaJogoRPGViewModel.clearMensagemAtual();
-        console.log('✅ Mensagem enviada para o Mestre com sucesso');
+      if (ehMensagemRoleplay) {
+        // Verificar cooldown local antes de enviar
+        if (cooldownLocal > 0) {
+          console.log(`⏱️ Cooldown ativo: ${cooldownLocal}s restantes`);
+          return;
+        }
+
+        // Enviar mensagem roleplay
+        const enviado = socketStore.safeEmit('mensagem_roleplay', {
+          roomId,
+          userId: String(user.id),
+          username: user.nome || user.name,
+          mensagem: mensagemAtual
+        });
+
+        if (enviado) {
+          // Iniciar cooldown local de 12 segundos
+          setCooldownLocal(12);
+          etapaJogoRPGViewModel.clearMensagemAtual();
+          console.log('✅ Mensagem roleplay enviada, cooldown de 12s iniciado');
+        }
       } else {
-        console.log('❌ Falha ao enviar mensagem (socket desconectado)');
+        // Enviar mensagem para o Mestre via WebSocket (turno do jogador)
+        const enviado = socketStore.safeEmit('mensagem_para_mestre', {
+          roomId,
+          userId: String(user.id),
+          username: user.nome || user.name,
+          mensagem: mensagemAtual,
+          personagem: {
+            nome: personagemSelecionado?.nome || 'Aventureiro',
+            classe: personagemSelecionado?.classe_nome || '',
+            nivel: personagemSelecionado?.nivel || 1
+          }
+        });
+
+        if (enviado) {
+          // Limpar input apenas se enviou com sucesso
+          etapaJogoRPGViewModel.clearMensagemAtual();
+          console.log('✅ Mensagem enviada para o Mestre com sucesso');
+        } else {
+          console.log('❌ Falha ao enviar mensagem (socket desconectado)');
+        }
       }
     } catch (error) {
-      console.error('❌ Erro ao enviar mensagem para o Mestre:', error);
+      console.error('❌ Erro ao enviar mensagem:', error);
     } finally {
       // Resetar flag após um pequeno delay para evitar duplo clique
       setTimeout(() => {
@@ -188,6 +389,42 @@ const EtapaJogoRPG = ({
     onAdicionarMensagem(resultado.mensagem);
   };
 
+  // 🎲 Handler para rolar dado inicial (d20)
+  const handleRolarDadoInicial = async () => {
+    try {
+      const { getSocketStoreAPI } = await import('../../../store/index.js');
+      const socketStore = getSocketStoreAPI();
+      
+      const sucesso = socketStore.getState().rolarDadoInicial();
+      
+      if (sucesso) {
+        console.log('✅ Evento de rolar dado inicial emitido');
+      } else {
+        console.error('❌ Falha ao emitir evento de rolar dado inicial');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao rolar dado inicial:', error);
+    }
+  };
+
+  // ⚡ Handler para iniciar turno (receber mensagem inicial do Mestre)
+  const handleIniciarTurno = async () => {
+    try {
+      const { getSocketStoreAPI } = await import('../../../store/index.js');
+      const socketStore = getSocketStoreAPI();
+      
+      const sucesso = socketStore.getState().iniciarTurno();
+      
+      if (sucesso) {
+        console.log('✅ Turno iniciado com sucesso');
+      } else {
+        console.error('❌ Falha ao iniciar turno');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao iniciar turno:', error);
+    }
+  };
+
   const handleExecutarAcao = (acao, target = null, description = null) => {
     // Se description foi fornecida, usar ela; caso contrário, formatar a ação
     const textoAcao = description || acao;
@@ -198,6 +435,10 @@ const EtapaJogoRPG = ({
   const toggleActions = () => {
     etapaJogoRPGViewModel.toggleActions();
   };
+
+  // 📊 Preparar dados para componentes
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const jaRolouDadoInicial = !!socketState.resultadosDados[user?.id];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
@@ -218,10 +459,43 @@ const EtapaJogoRPG = ({
         {/* Main Game Layout */}
         <div className="flex-1 flex overflow-hidden">
           {/* Painel Lateral Esquerdo - Outros Jogadores */}
-          <PainelJogadores participantes={participantesFormatados} />
+          <PainelJogadores 
+            participantes={participantesFormatados}
+            ordemJogadores={socketState.ordemJogadores}
+            resultadosDados={socketState.resultadosDados}
+            turnoAtual={socketState.turnoAtual}
+            faseJogo={socketState.faseJogo}
+          />
 
           {/* Área Central - Chat do Mestre */}
           <div className="flex-1 flex flex-col">
+            {/* Componente de Rolagem de Dados Inicial */}
+            {socketState.faseJogo === 'rolagem_inicial' && (
+              <div className="p-6">
+                <RolagemDadosInicial
+                  jogadores={Object.values(participantes || {})}
+                  resultados={socketState.resultadosDados}
+                  ordemDefinida={socketState.ordemDefinida}
+                  ordemJogadores={socketState.ordemJogadores}
+                  usuarioAtual={user}
+                  onRolarDado={handleRolarDadoInicial}
+                />
+              </div>
+            )}
+
+            {/* Indicador de Turno (durante o jogo) */}
+            {socketState.faseJogo === 'rodada_em_andamento' && socketState.ordemJogadores.length > 0 && (
+              <div className="p-6 pb-0">
+                <IndicadorTurno
+                  rodadaAtual={socketState.rodadaAtual}
+                  turnoAtual={socketState.turnoAtual}
+                  jogadorAtual={socketState.jogadorAtual}
+                  ordemJogadores={socketState.ordemJogadores}
+                  ehMeuTurno={socketState.ehMeuTurno}
+                />
+              </div>
+            )}
+
             <ChatArea 
               mensagens={mensagens}
               usuariosDigitando={isTyping || isTypingLocal}
@@ -236,6 +510,13 @@ const EtapaJogoRPG = ({
               onEnviarMensagem={handleEnviarMensagem}
               onRolarDados={handleRolarDados}
               onExecutarAcao={handleExecutarAcao}
+              faseJogo={socketState.faseJogo}
+              ehMeuTurno={socketState.ehMeuTurno}
+              turnoIniciado={socketState.turnoIniciado}
+              cooldownRoleplay={cooldownLocal}
+              onRolarDadoInicial={handleRolarDadoInicial}
+              onIniciarTurno={handleIniciarTurno}
+              jaRolouDadoInicial={jaRolouDadoInicial}
             />
           </div>
 

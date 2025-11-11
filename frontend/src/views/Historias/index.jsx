@@ -45,6 +45,11 @@ export const HistoriaView = () => {
   const [historiaParaConvite, setHistoriaParaConvite] = useState(null);
   const [conviteLoading, setConviteLoading] = useState(false);
 
+  // Estado para o modal de reset de sessão
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [historiaToReset, setHistoriaToReset] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+
   // Carrega histórias ao montar o componente
   useEffect(() => {
     loadHistorias();
@@ -141,6 +146,42 @@ export const HistoriaView = () => {
     setShowConviteModal(false);
     setHistoriaParaConvite(null);
     setConviteLoading(false);
+  };
+
+  // Função para abrir modal de reset
+  const handleResetarSessao = (historia) => {
+    setHistoriaToReset(historia);
+    setShowResetModal(true);
+  };
+
+  // Função para confirmar reset
+  const handleConfirmReset = async () => {
+    if (!historiaToReset) return;
+
+    setResetLoading(true);
+    try {
+      const response = await viewModel.resetarSessao(historiaToReset.id);
+      
+      if (response && response.success) {
+        // Recarregar lista de histórias
+        await loadHistorias();
+        setShowResetModal(false);
+        setHistoriaToReset(null);
+        
+        console.log('✅ Sessão resetada com sucesso');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao resetar sessão:', error);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Função para cancelar reset
+  const handleCancelReset = () => {
+    setShowResetModal(false);
+    setHistoriaToReset(null);
+    setResetLoading(false);
   };
 
   // Função para verificar se o usuário é dono da história
@@ -287,6 +328,13 @@ export const HistoriaView = () => {
     },
 
     {
+      label: 'Resetar Sessão',
+      icon: '🔄',
+      color: 'orange',
+      onClick: (row) => handleResetarSessao(row),
+      show: (row) => isOwner(row) && row.sessaoAtiva === true
+    },
+    {
       label: 'Deletar',
       icon: '🗑️',
       color: 'red',
@@ -398,6 +446,29 @@ export const HistoriaView = () => {
         onConfirm={handleEnviarConvite}
         historia={historiaParaConvite}
         loading={conviteLoading}
+      />
+
+      {/* Modal de Resetar Sessão */}
+      <ConfirmationModal
+        isOpen={showResetModal}
+        title="Resetar Sessão de Jogo"
+        message={`Tem certeza de que deseja resetar a sessão da história "${historiaToReset?.nome}"? 
+
+Esta ação irá:
+
+• Apagar todos os turnos e rodadas
+• Limpar todas as mensagens do chat
+• Remover a ordem dos jogadores
+• Desconectar todos os jogadores
+• Permitir reiniciar do zero
+
+Esta ação não pode ser desfeita.`}
+        confirmText="Resetar Sessão"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmReset}
+        onCancel={handleCancelReset}
+        loading={resetLoading}
+        variant="danger"
       />
     </div>
   );

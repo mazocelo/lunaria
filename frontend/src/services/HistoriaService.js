@@ -174,6 +174,33 @@ export class HistoriaService {
   }
 
   /**
+   * Resetar/zerar sessão de jogo ativa
+   * @param {number} historiaId - ID da história
+   * @returns {Promise<Object>} Resposta da API
+   */
+  async resetarSessao(historiaId) {
+    try {
+      const response = await this.apiClient.delete(`/api/jogo/reset/${historiaId}`);
+
+      // Verificação da estrutura de resposta
+      if (response.data) {
+        if (response.data.success !== undefined) {
+          if (response.data.success) {
+            return response.data;
+          } else {
+            throw new Error(response.data?.error || response.data?.message || 'Erro desconhecido');
+          }
+        }
+        return response.data;
+      }
+
+      return response;
+    } catch (error) {
+      throw new Error(`Erro ao resetar sessão: ${error.message}`);
+    }
+  }
+
+  /**
    * Busca histórias por tema
    * @param {number} temaId - ID do tema
    * @returns {Promise<Historia[]>} Lista de histórias do tema

@@ -273,6 +273,35 @@ export class HistoriaViewModel {
   }
 
   /**
+   * Resetar/zerar sessão de jogo ativa
+   * @param {number} historiaId - ID da história
+   */
+  resetarSessao = async (historiaId) => {
+    this.setLoading(true);
+    this.setError(null);
+
+    try {
+      const response = await historiaService.resetarSessao(historiaId);
+
+      if (response.success) {
+        console.log('✅ Sessão resetada com sucesso no ViewModel');
+        
+        // Recarregar histórias para atualizar status
+        await this.loadHistorias();
+      }
+
+      this.notify();
+      return response;
+    } catch (error) {
+      this.setError(error.message || 'Erro ao resetar sessão');
+      this.notify();
+      throw error;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  /**
    * 🎨 MIGRADO: Aplicar filtros com suporte a nomes de temas
    */
   aplicarFiltros = (filtros) => {

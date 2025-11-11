@@ -380,6 +380,31 @@ export const createSocketActions = (set, get) => ({
       // Será tratado pela view que escuta mensagens
       get().log('Mensagem roleplay recebida', { userId: data.userId });
     });
+
+    // Listener de sessão resetada
+    socket.on('sessao_resetada', (data) => {
+      console.log('🔄 Sessão resetada pelo dono:', data);
+      
+      // Resetar todos os estados de jogo
+      set({
+        faseJogo: 'aguardando_inicio',
+        rodadaAtual: 1,
+        turnoAtual: 0,
+        jogadorAtual: null,
+        ordemJogadores: [],
+        ordemDefinida: false,
+        resultadosDados: {},
+        ehMeuTurno: false,
+        turnoIniciado: false,
+        cooldownRoleplay: 0,
+        session: null
+      });
+      
+      get().log('Sessão resetada', { historiaId: data.historiaId, success: true });
+      
+      // Opcional: Mostrar notificação ou redirecionar
+      console.warn(`⚠️ A sessão foi resetada pelo dono da história: ${data.historiaNome}`);
+    });
   },
 
   // ===== MONITOR DE CONEXÃO =====

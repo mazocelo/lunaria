@@ -427,4 +427,92 @@ router.get('/status/:historiaId', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /jogo/reset/{historiaId}:
+ *   delete:
+ *     summary: Resetar/zerar sessão de jogo ativa
+ *     tags: [Jogo]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: historiaId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da história
+ *     responses:
+ *       200:
+ *         description: Sessão resetada com sucesso
+ *       403:
+ *         description: Apenas o dono pode resetar
+ *       404:
+ *         description: História ou sessão não encontrada
+ */
+router.delete('/reset/:historiaId', async (req, res, next) => {
+  try {
+    const { historiaId } = req.params;
+    const userId = req.user.id;
+
+    console.log(`🔄 Solicitação para resetar sessão - História: ${historiaId}, Usuário: ${userId}`);
+
+    // Verificar se a história existe
+    const historia = await db.Historia.findById(parseInt(historiaId));
+    
+    if (!historia) {
+      return res.status(404).json({
+        success: false,
+        error: 'História não encontrada'
+      });
+    }
+
+    // Verificar se o usuário é o dono da história
+    if (historia.id_usuario !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Apenas o dono da história pode resetar a sessão'
+      });
+    }
+
+    const salaId = `historia_${historiaId}`;
+
+    // Verificar se existe sessão ativa
+    const sessaoExistente = await gerenciadorSessoes.obterSessao(salaId);
+    
+    if (!sessaoExistente) {
+      return res.status(404).json({
+        success: false,
+        error: 'Nenhuma sessão ativa encontrada'
+      });
+    }
+
+    // Excluir sessão do Redis
+    await gerenciadorSessoes.excluirSessao(salaId);
+
+    // Notificar todos os jogadores conectados que a sessão foi resetada
+    socketManager.sendToRoom(salaId, 'sessao_resetada', {
+      historiaId: historia.id,
+      historiaNome: historia.nome,
+      motivo: 'Sessão resetada pelo dono da história',
+      timestamp: Date.now()
+    });
+
+    console.log(`✅ Sessão resetada com sucesso para história ${historia.id}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Sessão resetada com sucesso',
+      data: {
+        historiaId: historia.id,
+        historiaNome: historia.nome
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao resetar sessão:', error);
+    next(error);
+  }
+});
+
 export default router; 

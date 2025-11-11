@@ -3,12 +3,19 @@ import db from '../Model/index.js';
 
 /**
  * Middleware de autenticação JWT para rotas HTTP
+ * Lê o JWT do cookie HttpOnly
  */
 export const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-    // console.log('🔐 Token:', req.headers);
+    // Ler token do cookie (prioridade)
+    let token = req.cookies?.accessToken;
+    
+    // Fallback temporário: ler do header Authorization (compatibilidade)
+    if (!token) {
+      const authHeader = req.headers['authorization'];
+      token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    }
+    
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -136,6 +143,24 @@ export const generateRefreshToken = (userId, email, role = 'player', rememberMe 
  */
 export const generateToken = (userId, email, role = 'player') => {
   return generateAccessToken(userId, email, role);
+};
+
+/**
+ * Gerar socket token JWT (longa duração para WebSocket)
+ * Este token é usado exclusivamente para autenticação do Socket.IO
+ */
+export const generateSocketToken = (userId, email, role = 'player') => {
+  return jwt.sign(
+    { 
+      userId, 
+      email, 
+      role,
+      type: 'socket',
+      iat: Math.floor(Date.now() / 1000)
+    },
+    process.env.JWT_SECRET || 'rpg_chat_game_secret_key',
+    { expiresIn: '24h' } // Token do socket com 24 horas
+  );
 };
 
 /**

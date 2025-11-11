@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs';
 import db from '../../Model/index.js';
 import { 
   generateAccessToken, 
-  generateRefreshToken, 
+  generateRefreshToken,
+  generateSocketToken,
   refreshToken as renewToken,
   verifyRefreshToken 
 } from '../../middleware/authMiddleware.js';
@@ -71,6 +72,26 @@ class AuthController {
       // Gerar tokens JWT
       const accessToken = generateAccessToken(novoUsuario.id, novoUsuario.email);
       const refreshToken = generateRefreshToken(novoUsuario.id, novoUsuario.email);
+      const socketToken = generateSocketToken(novoUsuario.id, novoUsuario.email);
+
+      // Configurar cookies HttpOnly
+      const isProduction = process.env.NODE_ENV === 'production';
+      
+      // Cookie do access token (15 minutos)
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000 // 15 minutos
+      });
+      
+      // Cookie do refresh token (25 minutos por padrão no registro)
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 25 * 60 * 1000 // 25 minutos
+      });
 
       console.log('✅ Usuário registrado com sucesso:', novoUsuario.id);
 
@@ -78,8 +99,7 @@ class AuthController {
         success: true,
         message: 'Usuário registrado com sucesso',
         data: {
-          accessToken,
-          refreshToken,
+          socketToken, // Token para Socket.IO (no body, não no cookie)
           usuario: {
             id: novoUsuario.id,
             nome: novoUsuario.nome,
@@ -137,6 +157,30 @@ class AuthController {
       // Gerar tokens JWT
       const accessToken = generateAccessToken(usuario.id, usuario.email);
       const refreshToken = generateRefreshToken(usuario.id, usuario.email, 'player', lembrarDeMim);
+      const socketToken = generateSocketToken(usuario.id, usuario.email);
+
+      // Configurar cookies HttpOnly
+      const isProduction = process.env.NODE_ENV === 'production';
+      
+      // Cookie do access token (15 minutos)
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000 // 15 minutos
+      });
+      
+      // Cookie do refresh token - duração baseada em lembrarDeMim
+      const refreshMaxAge = lembrarDeMim 
+        ? 30 * 24 * 60 * 60 * 1000  // 30 dias
+        : 25 * 60 * 1000;             // 25 minutos
+        
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: refreshMaxAge
+      });
 
       console.log('✅ Login realizado com sucesso:', usuario.id, lembrarDeMim ? '(lembrar de mim ativado)' : '');
 
@@ -144,8 +188,7 @@ class AuthController {
         success: true,
         message: 'Login realizado com sucesso',
         data: {
-          accessToken,
-          refreshToken,
+          socketToken, // Token para Socket.IO (no body, não no cookie)
           lembrarDeMim,
           usuario: {
             id: usuario.id,
@@ -196,12 +239,13 @@ class AuthController {
    */
   async renovarToken(req, res) {
     try {
-      const { refreshToken } = req.body;
+      // Ler refresh token do cookie ao invés do body
+      const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
-        return res.status(400).json({
+        return res.status(401).json({
           success: false,
-          error: 'Refresh token é obrigatório'
+          error: 'Refresh token não encontrado'
         });
       }
 
@@ -216,14 +260,39 @@ class AuthController {
         });
       }
 
+      // Gerar novos tokens
       const novosTokens = renewToken(refreshToken);
+      const socketToken = generateSocketToken(decoded.userId, decoded.email, decoded.role);
+
+      // Configurar cookies HttpOnly
+      const isProduction = process.env.NODE_ENV === 'production';
+      
+      // Cookie do novo access token (15 minutos)
+      res.cookie('accessToken', novosTokens.accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000 // 15 minutos
+      });
+      
+      // Cookie do novo refresh token (25 minutos)
+      res.cookie('refreshToken', novosTokens.refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 25 * 60 * 1000 // 25 minutos
+      });
 
       res.status(200).json({
         success: true,
         message: 'Tokens renovados com sucesso',
         data: {
-          accessToken: novosTokens.accessToken,
-          refreshToken: novosTokens.refreshToken
+          socketToken, // Novo token para Socket.IO
+          usuario: {
+            id: usuario.id,
+            nome: usuario.nome,
+            email: usuario.email
+          }
         }
       });
 
@@ -243,8 +312,20 @@ class AuthController {
    */
   async logout(req, res) {
     try {
-      // No JWT stateless, o logout é feito no lado cliente
-      // Aqui poderíamos implementar uma blacklist de tokens se necessário
+      // Limpar cookies HttpOnly
+      res.cookie('accessToken', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 0 // Expirar imediatamente
+      });
+      
+      res.cookie('refreshToken', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 0 // Expirar imediatamente
+      });
       
       console.log('👋 Logout realizado:', req.user?.email);
 

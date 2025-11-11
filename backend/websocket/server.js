@@ -24,32 +24,26 @@ class WebSocketServer {
    */
   async initialize() {
     try {
-      // Configurar Socket.IO - CORS liberado para todas as origens (DESENVOLVIMENTO)
-      this.io = new Server(this.httpServer, {
-        cors: {
-          origin: "*", // Permite todas as origens
-          methods: ["GET", "POST"],
-          credentials: true
-        },
-        transports: ['websocket', 'polling'],
-        pingTimeout: 60000,
-        pingInterval: 25000
-      });
+    // Configurar Socket.IO - Detecta automaticamente dev/prod
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    this.io = new Server(this.httpServer, {
+      cors: {
+        origin: isProduction 
+          ? process.env.FRONTEND_URL || "https://lunaria-backend-3754d2d676ff.herokuapp.com"
+          : "*", // Em dev, permite todas as origens
+        methods: ["GET", "POST"],
+        credentials: true
+      },
+      transports: ['websocket', 'polling'],
+      pingTimeout: 60000,
+      pingInterval: 25000
+    });
 
-      // Configuração Socket.IO - Restrito apenas ao frontend (PRODUÇÃO)
-      // Descomente o código abaixo e comente o código acima para usar em produção
-      /*
-      this.io = new Server(this.httpServer, {
-        cors: {
-          origin: process.env.FRONTEND_URL || "http://localhost:3000",
-          methods: ["GET", "POST"],
-          credentials: true
-        },
-        transports: ['websocket', 'polling'],
-        pingTimeout: 60000,
-        pingInterval: 25000
-      });
-      */
+    console.log('🔌 Socket.IO configurado:', {
+      environment: isProduction ? 'production' : 'development',
+      cors: isProduction ? process.env.FRONTEND_URL : '*'
+    });
 
       // Configurar Redis Adapter para escalabilidade
       if (process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL) {

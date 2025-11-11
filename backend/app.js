@@ -15,26 +15,24 @@ const app = express();
 
 createExecutor()
 
-// Configuração CORS - Liberado para todas as origens (DESENVOLVIMENTO)
+// Configuração CORS - Detecta automaticamente dev/prod
+const isProduction = process.env.NODE_ENV === 'production';
+
 const corsOptions = {
-  origin: true, // Permite todas as origens
+  origin: isProduction 
+    ? process.env.FRONTEND_URL || 'https://lunaria-backend-3754d2d676ff.herokuapp.com'
+    : true, // Em dev, permite todas as origens
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
   optionsSuccessStatus: 200
 };
 
-// Configuração CORS - Restrito apenas ao frontend (PRODUÇÃO)
-// Descomente o código abaixo e comente o código acima para usar em produção
-/*
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-*/
+console.log('🌐 CORS configurado:', {
+  environment: isProduction ? 'production' : 'development',
+  origin: corsOptions.origin,
+  credentials: corsOptions.credentials
+});
 
 // view engine setup
 app.set('views', path.join(path.resolve(), 'views'));

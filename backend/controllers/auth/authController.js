@@ -9,6 +9,21 @@ import {
 } from '../../middleware/authMiddleware.js';
 
 /**
+ * Helper: Configuração de cookies baseada no ambiente
+ */
+const getCookieConfig = (maxAge) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  return {
+    httpOnly: true,
+    secure: isProduction, // Apenas HTTPS em produção
+    sameSite: isProduction ? 'none' : 'lax', // 'none' permite cross-domain em HTTPS
+    maxAge: maxAge,
+    ...(isProduction && { domain: '.herokuapp.com' }) // Domain para Heroku
+  };
+};
+
+/**
  * Controller para autenticação de usuários
  */
 class AuthController {
@@ -75,23 +90,11 @@ class AuthController {
       const socketToken = generateSocketToken(novoUsuario.id, novoUsuario.email);
 
       // Configurar cookies HttpOnly
-      const isProduction = process.env.NODE_ENV === 'production';
-      
       // Cookie do access token (15 minutos)
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000 // 15 minutos
-      });
+      res.cookie('accessToken', accessToken, getCookieConfig(15 * 60 * 1000));
       
       // Cookie do refresh token (25 minutos por padrão no registro)
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 25 * 60 * 1000 // 25 minutos
-      });
+      res.cookie('refreshToken', refreshToken, getCookieConfig(25 * 60 * 1000));
 
       console.log('✅ Usuário registrado com sucesso:', novoUsuario.id);
 
@@ -160,27 +163,16 @@ class AuthController {
       const socketToken = generateSocketToken(usuario.id, usuario.email);
 
       // Configurar cookies HttpOnly
-      const isProduction = process.env.NODE_ENV === 'production';
       
       // Cookie do access token (15 minutos)
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000 // 15 minutos
-      });
+      res.cookie('accessToken', accessToken, getCookieConfig(15 * 60 * 1000));
       
       // Cookie do refresh token - duração baseada em lembrarDeMim
       const refreshMaxAge = lembrarDeMim 
         ? 30 * 24 * 60 * 60 * 1000  // 30 dias
         : 25 * 60 * 1000;             // 25 minutos
         
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: refreshMaxAge
-      });
+      res.cookie('refreshToken', refreshToken, getCookieConfig(refreshMaxAge));
 
       console.log('✅ Login realizado com sucesso:', usuario.id, lembrarDeMim ? '(lembrar de mim ativado)' : '');
 
@@ -265,23 +257,12 @@ class AuthController {
       const socketToken = generateSocketToken(decoded.userId, decoded.email, decoded.role);
 
       // Configurar cookies HttpOnly
-      const isProduction = process.env.NODE_ENV === 'production';
       
       // Cookie do novo access token (15 minutos)
-      res.cookie('accessToken', novosTokens.accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000 // 15 minutos
-      });
+      res.cookie('accessToken', novosTokens.accessToken, getCookieConfig(15 * 60 * 1000));
       
       // Cookie do novo refresh token (25 minutos)
-      res.cookie('refreshToken', novosTokens.refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 25 * 60 * 1000 // 25 minutos
-      });
+      res.cookie('refreshToken', novosTokens.refreshToken, getCookieConfig(25 * 60 * 1000));
 
       res.status(200).json({
         success: true,
@@ -313,19 +294,8 @@ class AuthController {
   async logout(req, res) {
     try {
       // Limpar cookies HttpOnly
-      res.cookie('accessToken', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 0 // Expirar imediatamente
-      });
-      
-      res.cookie('refreshToken', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 0 // Expirar imediatamente
-      });
+      res.cookie('accessToken', '', getCookieConfig(0));
+      res.cookie('refreshToken', '', getCookieConfig(0));
       
       console.log('👋 Logout realizado:', req.user?.email);
 

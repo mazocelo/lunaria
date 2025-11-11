@@ -39,6 +39,7 @@ export const socketInitialStates = {
   // ===== INFORMAÇÕES DO USUÁRIO =====
   currentUser: null,
   userRole: null, // 'mestre' | 'jogador'
+  socketToken: null, // Token JWT para autenticação do Socket.IO
   
   // ===== ESTADO DA SALA/ROOM (TÉCNICO) =====
   roomId: null, // ID técnico da room WebSocket

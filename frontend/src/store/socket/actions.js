@@ -433,17 +433,20 @@ export const createSocketActions = (set, get) => ({
   // ===== CONEXÃO PRINCIPAL =====
   // Usado por: JogoView - quando entra na sala de espera
   connect: async (authData = null) => {
-    const { isConnected, isConnecting, socket, validateToken, log, setupInternalListeners, startConnectionMonitor, configs, connectionOptions } = get();
+    const { isConnected, isConnecting, socket, socketToken, validateToken, log, setupInternalListeners, startConnectionMonitor, configs, connectionOptions } = get();
 
     return new Promise((resolve, reject) => {
       try {
-        log('Connection starting', { hasAuth: !!authData?.token });
+        // Usar socketToken do estado se não for fornecido via parâmetro
+        const token = authData?.token || socketToken;
+        
+        log('Connection starting', { hasAuth: !!token });
 
         // Validação de token
-        if (authData?.token && !validateToken(authData.token)) {
+        if (token && !validateToken(token)) {
           // Token inválido ou expirado - fornecer informação detalhada
           try {
-            const payload = JSON.parse(atob(authData.token.split('.')[1]));
+            const payload = JSON.parse(atob(token.split('.')[1]));
             const expiryDate = new Date(payload.exp * 1000);
             const now = new Date();
             
@@ -471,9 +474,10 @@ export const createSocketActions = (set, get) => ({
           connectionStartTime: Date.now() 
         });
         
+        // Preparar opções de conexão com token
         const options = {
           ...connectionOptions,
-          auth: authData || {}
+          auth: token ? { token } : (authData || {})
         };
 
         const newSocket = io(WS_BASE_URL, options);
@@ -898,6 +902,19 @@ export const createSocketActions = (set, get) => ({
     }
   },
 
+  // ===== GERENCIAMENTO DE SOCKET TOKEN =====
+  // Armazenar token do socket (recebido do backend no login/refresh)
+  setSocketToken: (token) => {
+    set({ socketToken: token });
+    console.log('🔐 Socket token atualizado');
+  },
+
+  // Limpar token do socket (no logout)
+  clearSocketToken: () => {
+    set({ socketToken: null });
+    console.log('🔓 Socket token removido');
+  },
+
   // ===== DISCONNECT E CLEANUP =====
   // Usado por: Todas as views ao desmontar ou navegar
   disconnect: () => {
@@ -919,6 +936,7 @@ export const createSocketActions = (set, get) => ({
       session: null,
       currentUser: null,
       userRole: null,
+      socketToken: null, // Limpar token ao desconectar
       roomUsers: [],
       error: null
     });

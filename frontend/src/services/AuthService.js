@@ -15,26 +15,25 @@ export class AuthService {
    * @param {string} credentials.email - Email do usuário
    * @param {string} credentials.password - Senha do usuário
    * @param {boolean} credentials.lembrarDeMim - Se deve lembrar do usuário
-   * @returns {Promise<Object>} Resposta da API com tokens e dados do usuário
+   * @returns {Promise<Object>} Resposta da API com socketToken e dados do usuário
    */
   async login(credentials) {
     try {
       const response = await this.apiClient.post(`${this.baseEndpoint}/login`, credentials);
       
-      // A resposta agora vem no formato: { success: true, message: "...", data: { accessToken, refreshToken, ... } }
+      // A resposta vem no formato: { success: true, message: "...", data: { socketToken, usuario, lembrarDeMim } }
       const responseData = response.data || response;
       
-      // Armazenar tokens baseado no campo lembrarDeMim
-      if (responseData.accessToken && responseData.refreshToken) {
-        this.setTokens({
-          accessToken: responseData.accessToken,
-          refreshToken: responseData.refreshToken,
-          lembrarDeMim: responseData.lembrarDeMim || false
-        });
-        
+      // Armazenar apenas dados do usuário e preferência lembrarDeMim
+      if (responseData.usuario) {
         localStorage.setItem('user', JSON.stringify(responseData.usuario));
       }
       
+      if (responseData.lembrarDeMim !== undefined) {
+        localStorage.setItem('lembrarDeMim', String(responseData.lembrarDeMim));
+      }
+      
+      // Retornar socketToken para ser armazenado no Zustand
       return responseData;
     } catch (error) {
       console.error('Erro no login:', error);
@@ -48,13 +47,14 @@ export class AuthService {
    */
   async logout() {
     try {
-      // Tentar fazer logout no servidor
+      // Fazer logout no servidor (limpa cookies HttpOnly)
       await this.apiClient.post(`${this.baseEndpoint}/logout`);
     } catch (error) {
       console.error('Erro no logout:', error);
     } finally {
-      // Sempre limpar dados locais
-      this.clearTokens();
+      // Limpar dados locais (usuário e preferências)
+      localStorage.removeItem('user');
+      localStorage.removeItem('lembrarDeMim');
     }
   }
 
@@ -85,35 +85,13 @@ export class AuthService {
 
   /**
    * Verificar se o usuário está autenticado
+   * Agora verifica apenas a existência dos dados do usuário
+   * O token real está no cookie HttpOnly
    * @returns {boolean} True se autenticado
    */
   isAuthenticated() {
-    const accessToken = this.getAccessToken();
-    return !!accessToken;
-  }
-
-  /**
-   * Obter access token atual
-   * @returns {string|null} Access token de autenticação
-   */
-  getToken() {
-    return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-  }
-
-  /**
-   * Obter access token atual
-   * @returns {string|null} Access token de autenticação
-   */
-  getAccessToken() {
-    return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-  }
-
-  /**
-   * Obter refresh token atual
-   * @returns {string|null} Refresh token de autenticação
-   */
-  getRefreshToken() {
-    return localStorage.getItem('refreshToken');
+    const userData = this.getCurrentUser();
+    return !!userData;
   }
 
   /**
@@ -140,129 +118,31 @@ export class AuthService {
   }
 
   /**
-   * Renovar access token usando refresh token
-   * @returns {Promise<Object|null>} Nova resposta com tokens ou null se falhou
+   * Renovar tokens usando refresh token (via cookie HttpOnly)
+   * @returns {Promise<Object|null>} Nova resposta com socketToken ou null se falhou
    */
   async refreshAccessToken() {
     try {
-      const refreshToken = this.getRefreshToken();
-      
-      if (!refreshToken) {
-        console.warn('Refresh token não encontrado');
-        return null;
-      }
+      // O refreshToken é enviado automaticamente via cookie HttpOnly
+      const response = await this.apiClient.post(`${this.baseEndpoint}/renovar`);
 
-      const response = await this.apiClient.post(`${this.baseEndpoint}/renovar`, {
-        refreshToken
-      });
-
-      // A resposta vem no formato: { success: true, data: { accessToken, refreshToken } }
+      // A resposta vem no formato: { success: true, data: { socketToken, usuario } }
       const responseData = response.data || response;
       
-      // Armazenar novos tokens
-      if (responseData.accessToken) {
-        this.setTokens({
-          accessToken: responseData.accessToken,
-          refreshToken: responseData.refreshToken,
-          lembrarDeMim: false // Novos tokens sempre com duração padrão
-        });
-
-        // Atualizar dados do usuário se fornecidos
-        if (responseData.usuario) {
-          localStorage.setItem('user', JSON.stringify(responseData.usuario));
-        }
+      // Atualizar dados do usuário se fornecidos
+      if (responseData.usuario) {
+        localStorage.setItem('user', JSON.stringify(responseData.usuario));
       }
 
+      // Retornar socketToken para ser armazenado no Zustand
       return responseData;
     } catch (error) {
       console.error('Erro ao renovar token:', error);
-      // Se falhou ao renovar, limpar tokens
-      this.clearTokens();
+      // Se falhou ao renovar, limpar dados do usuário
+      localStorage.removeItem('user');
+      localStorage.removeItem('lembrarDeMim');
       return null;
     }
-  }
-
-  /**
-   * Armazenar tokens baseado na preferência do usuário
-   * @param {Object} tokenData - Dados dos tokens
-   * @param {string} tokenData.accessToken - Access token
-   * @param {string} tokenData.refreshToken - Refresh token
-   * @param {boolean} tokenData.lembrarDeMim - Se deve lembrar do usuário
-   */
-  setTokens({ accessToken, refreshToken, lembrarDeMim }) {
-    if (lembrarDeMim) {
-      // Lembrar de mim: usar localStorage para ambos
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('lembrarDeMim', 'true');
-    } else {
-      // Não lembrar: usar sessionStorage para accessToken
-      sessionStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('lembrarDeMim', 'false');
-    }
-  }
-
-  /**
-   * Limpar todos os tokens e dados do usuário
-   */
-  clearTokens() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('lembrarDeMim');
-    sessionStorage.removeItem('accessToken');
-  }
-
-  /**
-   * Decodificar JWT token para obter payload
-   * @param {string} token - Token JWT
-   * @returns {Object|null} Payload decodificado ou null se inválido
-   */
-  decodeJWT(token) {
-    try {
-      if (!token) return null;
-      
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      
-      const payload = parts[1];
-      const decoded = JSON.parse(atob(payload));
-      return decoded;
-    } catch (error) {
-      console.error('Erro ao decodificar JWT:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Verificar se o token está expirado
-   * @param {string} token - Token JWT
-   * @returns {boolean} True se expirado
-   */
-  isTokenExpired(token) {
-    const decoded = this.decodeJWT(token);
-    if (!decoded || !decoded.exp) return true;
-    
-    const currentTime = Math.floor(Date.now() / 1000);
-    return decoded.exp < currentTime;
-  }
-
-  /**
-   * Verificar se o access token está próximo do vencimento
-   * @param {number} bufferMinutes - Minutos de buffer antes do vencimento (padrão: 5)
-   * @returns {boolean} True se próximo do vencimento
-   */
-  isTokenNearExpiry(bufferMinutes = 5) {
-    const accessToken = this.getAccessToken();
-    const decoded = this.decodeJWT(accessToken);
-    
-    if (!decoded || !decoded.exp) return true;
-    
-    const currentTime = Math.floor(Date.now() / 1000);
-    const bufferSeconds = bufferMinutes * 60;
-    
-    return decoded.exp - currentTime < bufferSeconds;
   }
 
   /**
@@ -320,4 +200,5 @@ export class AuthService {
     
     return new Error('Erro de rede. Verifique sua conexão.');
   }
+} 
 } 

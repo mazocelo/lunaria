@@ -135,28 +135,13 @@ export class EtapaSalaEsperaViewModel {
     try {
       console.log('🚀 EtapaSalaEsperaViewModel: Iniciando partida via API...', { historiaId });
 
-      const token = localStorage.getItem('accessToken') || 
-                    localStorage.getItem('authToken') ||
-                    sessionStorage.getItem('accessToken') ||
-                    sessionStorage.getItem('authToken');
-
-      if (!token) {
-        console.error('❌ EtapaSalaEsperaViewModel: Token não encontrado em localStorage nem sessionStorage');
-        console.log('  - localStorage.accessToken:', !!localStorage.getItem('accessToken'));
-        console.log('  - localStorage.authToken:', !!localStorage.getItem('authToken'));
-        console.log('  - sessionStorage.accessToken:', !!sessionStorage.getItem('accessToken'));
-        console.log('  - sessionStorage.authToken:', !!sessionStorage.getItem('authToken'));
-        throw new Error('Token de autenticação não encontrado');
-      }
-
-      console.log('✅ EtapaSalaEsperaViewModel: Token encontrado para iniciar partida');
-
+      // Usar apiClient que já envia cookies automaticamente
       const response = await fetch(`${API_URL}/jogo/start`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include', // Enviar cookies automaticamente
         body: JSON.stringify({ 
           historiaId: parseInt(historiaId), 
           mensagemInicial: mensagemInicial || 'A aventura começa agora!' 

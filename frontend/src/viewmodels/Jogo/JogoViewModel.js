@@ -337,57 +337,24 @@ export class JogoViewModel {
   }
 
   /**
-   * Valida e renova token se necessário
-   * @returns {Promise<string>} Token válido
-   * @throws {Error} Se não houver token ou falhar ao renovar
+   * Valida autenticação (verifica dados do usuário)
+   * O token real está no cookie HttpOnly e é validado automaticamente pelo backend
+   * @returns {Promise<boolean>} Se o usuário está autenticado
+   * @throws {Error} Se não houver dados do usuário
    */
-  async validarERenovarToken() {
+  async validarAutenticacao() {
     try {
-      // 1. Buscar token de todas as fontes possíveis
-      let token = localStorage.getItem('accessToken') || 
-                  sessionStorage.getItem('accessToken') ||
-                  localStorage.getItem('authToken') ||
-                  sessionStorage.getItem('authToken');
-
-      if (!token) {
-        throw new Error('Token não encontrado. Por favor, faça login novamente.');
+      // Verificar se há dados do usuário (autenticação básica)
+      const userData = localStorage.getItem('user');
+      
+      if (!userData) {
+        throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
       }
 
-      // 2. Validar se token está expirado (mesma lógica do socket store)
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentTime = Math.floor(Date.now() / 1000);
-        const isExpired = !payload.exp || payload.exp <= currentTime;
-
-        console.log('🔍 JogoViewModel: Validando token:', {
-          expiresAt: new Date(payload.exp * 1000).toLocaleString(),
-          currentTime: new Date(currentTime * 1000).toLocaleString(),
-          isExpired
-        });
-
-        if (isExpired) {
-          console.log('⏰ JogoViewModel: Token expirado, tentando renovar...');
-          
-          // 3. Tentar renovar token
-          const novoToken = await authService.refreshToken();
-          
-          if (!novoToken) {
-            throw new Error('Falha ao renovar token. Por favor, faça login novamente.');
-          }
-
-          console.log('✅ JogoViewModel: Token renovado com sucesso!');
-          token = novoToken;
-        } else {
-          console.log('✅ JogoViewModel: Token válido, sem necessidade de renovação');
-        }
-
-        return token;
-      } catch (parseError) {
-        console.error('❌ JogoViewModel: Erro ao validar token:', parseError);
-        throw new Error('Token inválido. Por favor, faça login novamente.');
-      }
+      console.log('✅ JogoViewModel: Usuário autenticado (cookies HttpOnly gerenciados automaticamente)');
+      return true;
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao validar/renovar token:', error);
+      console.error('❌ JogoViewModel: Erro ao validar autenticação:', error);
       throw error;
     }
   }
@@ -406,16 +373,16 @@ export class JogoViewModel {
       this.clearErrors();
       this.notify();
 
-      // Validar e renovar token se necessário
-      const token = await this.validarERenovarToken();
+      // Validar autenticação
+      await this.validarAutenticacao();
 
-      console.log('🔌 JogoViewModel: Conectando ao WebSocket com token validado...');
+      console.log('🔌 JogoViewModel: Conectando ao WebSocket...');
       
       // Obter store dinamicamente
       const socketStore = getSocketStoreAPI();
       
-      // Conectar ao WebSocket
-      await socketStore.connect({ token });
+      // Conectar ao WebSocket (socketToken já está no store Zustand)
+      await socketStore.connect();
 
       console.log('✅ JogoViewModel: Conectado! Socket ID:', socketStore.getState().socket?.id);
 
@@ -590,17 +557,17 @@ export class JogoViewModel {
         totalJogadores: sessao.totalJogadores 
       });
 
-      // 2. Validar e renovar token se necessário
-      const token = await this.validarERenovarToken();
+      // 2. Validar autenticação
+      await this.validarAutenticacao();
 
       // 3. Obter store
       const { getSocketStoreAPI } = await import('../../store/index.js');
       const socketStore = getSocketStoreAPI();
 
-      // 4. Conectar ao WebSocket
-      console.log('🔌 JogoViewModel: Conectando convidado ao WebSocket com token validado...');
+      // 4. Conectar ao WebSocket (socketToken já está no store Zustand)
+      console.log('🔌 JogoViewModel: Conectando convidado ao WebSocket...');
       
-      await socketStore.connect({ token });
+      await socketStore.connect();
 
       console.log('✅ JogoViewModel: Convidado conectado! Socket ID:', socketStore.getState().socket?.id);
 
@@ -608,7 +575,6 @@ export class JogoViewModel {
       console.log('🔐 JogoViewModel: Autenticando convidado...');
       
       await socketStore.authenticate({
-        token,
         userId: String(user.id),
         username: user.nome || user.name,
         email: user.email

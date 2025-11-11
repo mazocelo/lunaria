@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthService } from '../services/AuthService';
 import { apiClient } from '../services/ApiClient';
+import { useSocketStore } from '../store/socket';
 
 const AuthContext = createContext();
 
@@ -11,6 +12,10 @@ export const AuthProvider = ({ children }) => {
   
   // Instância do AuthService
   const authService = new AuthService(apiClient);
+  
+  // Acesso ao socket store para gerenciar socketToken
+  const setSocketToken = useSocketStore(state => state.setSocketToken);
+  const clearSocketToken = useSocketStore(state => state.clearSocketToken);
 
   useEffect(() => {
     // Verificar se há usuário logado ao inicializar
@@ -24,27 +29,13 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      const accessToken = authService.getAccessToken();
       const userData = authService.getCurrentUser();
       
-      if (accessToken && userData) {
-        // Verificar se o token está expirado
-        if (authService.isTokenExpired(accessToken)) {
-          // Token expirado, tentar renovar
-          const refreshResult = await authService.refreshAccessToken();
-          
-          if (refreshResult) {
-            setUser(refreshResult.usuario || userData);
-            setIsAuthenticated(true);
-          } else {
-            // Falhou ao renovar, fazer logout
-            await logout();
-          }
-        } else {
-          // Token ainda válido
-          setUser(userData);
-          setIsAuthenticated(true);
-        }
+      if (userData) {
+        // Usuário existe no localStorage, considerar autenticado
+        // O backend validará o cookie HttpOnly automaticamente
+        setUser(userData);
+        setIsAuthenticated(true);
       }
     } catch (error) {
       console.error('Erro ao inicializar autenticação:', error);
@@ -64,8 +55,11 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const response = await authService.login(credentials);
       
-      // Verificar se recebemos os tokens necessários
-      if (response.accessToken && response.refreshToken && response.usuario) {
+      // Verificar se recebemos socketToken e dados do usuário
+      if (response.socketToken && response.usuario) {
+        // Armazenar socketToken no Zustand
+        setSocketToken(response.socketToken);
+        
         setUser(response.usuario);
         setIsAuthenticated(true);
         
@@ -98,6 +92,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Erro no logout:', error);
     } finally {
+      // Limpar socketToken do Zustand
+      clearSocketToken();
+      
       setUser(null);
       setIsAuthenticated(false);
       setLoading(false);
@@ -189,14 +186,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Renovar token de acesso
+   * Renovar token de acesso (via cookie HttpOnly)
    * @returns {Promise<boolean>} True se renovado com sucesso
    */
   const refreshToken = async () => {
     try {
       const result = await authService.refreshAccessToken();
       
-      if (result && result.usuario) {
+      if (result && result.socketToken && result.usuario) {
+        // Atualizar socketToken no Zustand
+        setSocketToken(result.socketToken);
+        
         setUser(result.usuario);
         return true;
       }
@@ -207,25 +207,6 @@ export const AuthProvider = ({ children }) => {
       await logout();
       return false;
     }
-  };
-
-  /**
-   * Verificar se o token está próximo do vencimento e renovar se necessário
-   * @returns {Promise<boolean>} True se token válido ou renovado
-   */
-  const ensureTokenValidity = async () => {
-    const accessToken = authService.getAccessToken();
-    
-    if (!accessToken) {
-      return false;
-    }
-
-    // Se o token está próximo do vencimento, renovar
-    if (authService.isTokenNearExpiry()) {
-      return await refreshToken();
-    }
-
-    return true;
   };
 
   const contextValue = {
@@ -239,7 +220,6 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     updateUser,
     refreshToken,
-    ensureTokenValidity,
     authService
   };
 

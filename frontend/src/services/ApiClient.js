@@ -2,12 +2,6 @@ import axios from 'axios';
 
 // Configuração da URL base da API
 
-// const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-//https://role-chat-play-backend-562ca33432b0.herokuapp.com/
-
-// const baseURL = 'https://role-chat-play-backend-562ca33432b0.herokuapp.com/';
-
 // const baseURL = 'http://localhost:3001/';
 
 const baseURL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com';
@@ -16,36 +10,25 @@ const baseURL = 'https://lunaria-backend-3754d2d676ff.herokuapp.com';
 const axiosInstance = axios.create({
   baseURL,
   timeout: 25000,
+  withCredentials: true, // Enviar cookies automaticamente
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Interceptor para requisições
-axiosInstance.interceptors.request.use(
-  (config) => {
-    // Adicionar access token de autenticação se disponível
-    const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Interceptor de requisições não é mais necessário
+// Os cookies HttpOnly são enviados automaticamente pelo navegador
 
 // Flag para evitar loop infinito de refresh
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error, token = null) => {
+const processQueue = (error, success = null) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve(success);
     }
   });
   
@@ -78,8 +61,8 @@ axiosInstance.interceptors.response.use(
           // Se já está renovando, adicionar à fila
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
-          }).then(token => {
-            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          }).then(() => {
+            // Cookie já foi atualizado, apenas repetir a requisição
             return axiosInstance(originalRequest);
           }).catch(err => {
             return Promise.reject(err);
@@ -89,63 +72,34 @@ axiosInstance.interceptors.response.use(
         originalRequest._retry = true;
         isRefreshing = true;
 
-        const refreshToken = localStorage.getItem('refreshToken');
-        
-        if (refreshToken) {
-          try {
-            // Tentar renovar o token
-            const response = await axiosInstance.post('/auth/renovar', {
-              refreshToken
-            });
+        try {
+          // Tentar renovar o token (refreshToken vem automaticamente do cookie)
+          const response = await axiosInstance.post('/auth/renovar');
 
-            // A resposta vem no formato: { success: true, data: { accessToken, refreshToken } }
-            const responseData = response.data.data || response.data;
-            const { accessToken } = responseData;
-            
-            // Armazenar novo access token
-            localStorage.setItem('accessToken', accessToken);
-            
-            // Atualizar refresh token se fornecido
-            if (responseData.refreshToken) {
-              localStorage.setItem('refreshToken', responseData.refreshToken);
-            }
-
-            // Processar fila de requisições pendentes
-            processQueue(null, accessToken);
-            
-            // Repetir requisição original com novo token
-            originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
-            return axiosInstance(originalRequest);
-            
-          } catch (refreshError) {
-            // Falhou ao renovar token, limpar dados e processar fila
-            processQueue(refreshError, null);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('user');
-            localStorage.removeItem('lembrarDeMim');
-            
-            // Redirecionar para login se necessário
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-            }
-            
-            throw new Error('Sessão expirada. Faça login novamente.');
-          } finally {
-            isRefreshing = false;
-          }
-        } else {
-          // Sem refresh token, limpar dados
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          // A resposta vem no formato: { success: true, data: { socketToken, usuario } }
+          const responseData = response.data.data || response.data;
+          
+          // Cookies são atualizados automaticamente pelo backend
+          // Processar fila de requisições pendentes
+          processQueue(null, true);
+          
+          // Repetir requisição original (cookie atualizado automaticamente)
+          return axiosInstance(originalRequest);
+          
+        } catch (refreshError) {
+          // Falhou ao renovar token, limpar dados e processar fila
+          processQueue(refreshError, null);
           localStorage.removeItem('user');
           localStorage.removeItem('lembrarDeMim');
           
+          // Redirecionar para login se necessário
           if (window.location.pathname !== '/login') {
             window.location.href = '/login';
           }
           
           throw new Error('Sessão expirada. Faça login novamente.');
+        } finally {
+          isRefreshing = false;
         }
       }
       

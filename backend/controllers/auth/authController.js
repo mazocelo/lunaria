@@ -90,10 +90,11 @@ class AuthController {
         senha: senhaHash
       });
 
-      // Gerar tokens JWT
-      const accessToken = generateAccessToken(novoUsuario.id, novoUsuario.email);
-      const refreshToken = generateRefreshToken(novoUsuario.id, novoUsuario.email);
-      const socketToken = generateSocketToken(novoUsuario.id, novoUsuario.email);
+      // Gerar tokens JWT (usar role do banco, padrão 'player')
+      const userRole = novoUsuario.role || 'player';
+      const accessToken = generateAccessToken(novoUsuario.id, novoUsuario.email, userRole);
+      const refreshToken = generateRefreshToken(novoUsuario.id, novoUsuario.email, userRole);
+      const socketToken = generateSocketToken(novoUsuario.id, novoUsuario.email, userRole);
 
       // Configurar cookies HttpOnly
       // Cookie do access token (15 minutos)
@@ -163,10 +164,11 @@ class AuthController {
         });
       }
 
-      // Gerar tokens JWT
-      const accessToken = generateAccessToken(usuario.id, usuario.email);
-      const refreshToken = generateRefreshToken(usuario.id, usuario.email, 'player', lembrarDeMim);
-      const socketToken = generateSocketToken(usuario.id, usuario.email);
+      // Gerar tokens JWT (usar role do banco, padrão 'player')
+      const userRole = usuario.role || 'player';
+      const accessToken = generateAccessToken(usuario.id, usuario.email, userRole);
+      const refreshToken = generateRefreshToken(usuario.id, usuario.email, userRole, lembrarDeMim);
+      const socketToken = generateSocketToken(usuario.id, usuario.email, userRole);
 
       // Configurar cookies HttpOnly
       

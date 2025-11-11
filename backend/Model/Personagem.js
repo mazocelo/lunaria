@@ -123,6 +123,11 @@ const Personagem = (prisma) => {
       });
     },
 
+    // Alias para findById (compatibilidade com middleware)
+    async findById(id) {
+      return await this.findPersonagemById(id);
+    },
+
     // Contar personagens
     async countPersonagens(where = {}) {
       return await prisma.personagem.count({ where });

@@ -1,6 +1,7 @@
 import express from 'express';
 import historiaController from '../controllers/historia/historiaController.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
+import { requireResourceOwnerOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -289,7 +290,8 @@ router.get('/:id', historiaController.obterHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', historiaController.atualizarHistoria);
+// PUT /:id - Atualizar história (OWNER OU ADMIN)
+router.put('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.atualizarHistoria);
 
 /**
  * @swagger
@@ -323,7 +325,8 @@ router.put('/:id', historiaController.atualizarHistoria);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', historiaController.excluirHistoria);
+// DELETE /:id - Excluir história (OWNER OU ADMIN)
+router.delete('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.excluirHistoria);
 
 /**
  * @swagger

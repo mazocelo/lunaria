@@ -445,6 +445,32 @@ class UsuarioController {
       });
     }
   }
+
+  /**
+   * Promover usuário a admin (apenas admin)
+   */
+  async promoverAdmin(req, res) {
+    try {
+      const { id } = req.params;
+      const usuarioId = parseInt(id);
+
+      console.log(`👑 Promovendo usuário ${usuarioId} a admin`);
+
+      const usuario = await db.Usuario.update(usuarioId, { role: 'admin' });
+
+      res.status(200).json({
+        success: true,
+        message: 'Usuário promovido a admin com sucesso',
+        data: usuario
+      });
+    } catch (error) {
+      console.error('❌ Erro ao promover usuário:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
 }
 
 export default new UsuarioController(); 

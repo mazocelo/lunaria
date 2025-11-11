@@ -56,12 +56,10 @@ router.use('/rpg', rpgRoutes);
 router.use('/temas', temasRoutes);
 router.use('/websocket', websocketRoutes);
 
-// Rotas com autenticação opcional (podem funcionar com ou sem token)
-router.use('/usuarios', optionalAuth, usuarioRoutes);
-
 // Rotas que requerem autenticação obrigatória
 router.use('/historias', authenticateToken, historiaRoutes);
 router.use('/personagens', authenticateToken, personagemRoutes);
+router.use('/usuarios', authenticateToken, usuarioRoutes);
 router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);

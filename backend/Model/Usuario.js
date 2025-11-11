@@ -22,6 +22,7 @@ export default function Usuario(prisma) {
           id: true,
           nome: true,
           email: true,
+          role: true,
           // Excluir senha por segurança
         },
         ...options,
@@ -38,6 +39,7 @@ export default function Usuario(prisma) {
           id: true,
           nome: true,
           email: true,
+          role: true,
           historias: {
             select: {
               id: true,
@@ -93,6 +95,7 @@ export default function Usuario(prisma) {
           id: true,
           nome: true,
           email: true,
+          role: true,
         },
       });
     },

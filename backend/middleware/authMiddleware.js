@@ -35,11 +35,12 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     // Adicionar informações do usuário à requisição
+    // Usar role do banco de dados (fonte de verdade), não do token
     req.user = {
       id: decoded.userId,
       nome: usuario.nome,
       email: usuario.email,
-      role: decoded.role || 'player'
+      role: usuario.role || decoded.role || 'player'
     };
 
     next();
@@ -209,4 +210,109 @@ export const verifyRefreshToken = (refreshTokenValue) => {
   } catch (error) {
     throw new Error('Refresh token inválido ou expirado');
   }
+};
+
+/**
+ * Middleware para verificar se usuário é admin
+ */
+export const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Autenticação requerida'
+    });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Acesso negado. Apenas administradores.'
+    });
+  }
+
+  next();
+};
+
+/**
+ * Middleware para verificar se usuário é dono do recurso ou admin
+ * @param {string} paramName - Nome do parâmetro que contém o ID do usuário
+ */
+export const requireOwnerOrAdmin = (paramName = 'id') => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Autenticação requerida'
+      });
+    }
+
+    // Admin passa sempre
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    // Verificar se é o dono do recurso
+    const resourceId = parseInt(req.params[paramName]);
+    const userId = parseInt(req.user.id);
+
+    if (resourceId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acesso negado. Você só pode acessar seus próprios recursos.'
+      });
+    }
+
+    next();
+  };
+};
+
+/**
+ * Middleware para verificar ownership de recursos indiretos (historias, personagens, etc)
+ */
+export const requireResourceOwnerOrAdmin = (modelName) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Autenticação requerida'
+      });
+    }
+
+    // Admin passa sempre
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    try {
+      const resourceId = parseInt(req.params.id);
+      const userId = parseInt(req.user.id);
+
+      // Buscar recurso e verificar id_usuario
+      const resource = await db[modelName].findById(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({
+          success: false,
+          error: 'Recurso não encontrado'
+        });
+      }
+
+      if (resource.id_usuario !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Acesso negado. Você não é o dono deste recurso.'
+        });
+      }
+
+      // Anexar recurso ao req para evitar busca duplicada
+      req.resource = resource;
+      next();
+    } catch (error) {
+      console.error('❌ Erro ao verificar ownership:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor'
+      });
+    }
+  };
 }; 

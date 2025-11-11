@@ -140,6 +140,7 @@ model usuarios {
   nome              String              @db.VarChar(100)
   email             String              @unique @db.VarChar(150)
   senha             String              @db.VarChar(255)
+  role              String?             @default("player") @db.VarChar(20)
   historias         historias[]
   historias_convite historias_convite[]
   personagens       personagens[]

@@ -1,6 +1,7 @@
 import express from 'express';
 import usuarioController from '../controllers/usuario/usuarioController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { authenticateToken, requireAdmin, requireOwnerOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -121,7 +122,8 @@ const router = express.Router();
  *                 limit:
  *                   type: integer
  */
-router.get('/', asyncHandler(usuarioController.listarUsuarios));
+// GET / - Listar todos (APENAS ADMIN)
+router.get('/', authenticateToken, requireAdmin, asyncHandler(usuarioController.listarUsuarios));
 
 /**
  * @swagger
@@ -180,7 +182,8 @@ router.get('/perfil', asyncHandler(usuarioController.obterPerfil));
  *       400:
  *         description: ID inválido
  */
-router.get('/:id', asyncHandler(usuarioController.obterUsuario));
+// GET /:id - Obter por ID (OWNER OU ADMIN)
+router.get('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.obterUsuario));
 
 /**
  * @swagger
@@ -233,7 +236,8 @@ router.get('/:id', asyncHandler(usuarioController.obterUsuario));
  *       404:
  *         description: Usuário não encontrado
  */
-router.put('/:id', asyncHandler(usuarioController.atualizarUsuario));
+// PUT /:id - Atualizar (OWNER OU ADMIN)
+router.put('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.atualizarUsuario));
 
 /**
  * @swagger
@@ -269,7 +273,8 @@ router.put('/:id', asyncHandler(usuarioController.atualizarUsuario));
  *       404:
  *         description: Usuário não encontrado
  */
-router.delete('/:id', asyncHandler(usuarioController.deletarUsuario));
+// DELETE /:id - Deletar (OWNER OU ADMIN)
+router.delete('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.deletarUsuario));
 
 /**
  * @swagger
@@ -324,7 +329,33 @@ router.delete('/:id', asyncHandler(usuarioController.deletarUsuario));
  *       404:
  *         description: Usuário não encontrado
  */
-router.get('/:id/estatisticas', asyncHandler(usuarioController.obterEstatisticas));
+// GET /:id/estatisticas - Estatísticas (OWNER OU ADMIN)
+router.get('/:id/estatisticas', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.obterEstatisticas));
 
+/**
+ * @swagger
+ * /usuarios/{id}/promover:
+ *   post:
+ *     summary: Promover usuário a administrador
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do usuário a ser promovido
+ *     responses:
+ *       200:
+ *         description: Usuário promovido com sucesso
+ *       401:
+ *         description: Token inválido
+ *       403:
+ *         description: Apenas administradores podem promover usuários
+ */
+// POST /:id/promover - Promover a admin (APENAS ADMIN)
+router.post('/:id/promover', authenticateToken, requireAdmin, asyncHandler(usuarioController.promoverAdmin));
 
 export default router; 

@@ -1,6 +1,7 @@
 import express from 'express';
 import personagemController from '../controllers/personagem/personagemController.js';
 import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
+import { requireResourceOwnerOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -386,7 +387,8 @@ router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem,
  *       404:
  *         description: Personagem não encontrado
  */
-router.put('/:id', asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
+// PUT /:id - Atualizar personagem (OWNER OU ADMIN)
+router.put('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -416,7 +418,8 @@ router.put('/:id', asyncHandlerWithContext(personagemController.atualizarPersona
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id', asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
+// DELETE /:id - Excluir personagem (OWNER OU ADMIN)
+router.delete('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
 
 /**
  * @swagger

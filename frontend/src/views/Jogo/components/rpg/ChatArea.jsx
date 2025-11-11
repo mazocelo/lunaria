@@ -152,7 +152,7 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
   };
 
   return (
-    <div className="flex-1 px-4 py-6 overflow-y-auto">
+    <div className="flex-1 px-4 pt-6 pb-6 overflow-y-auto">
       <div className="w-full">
         <div className="space-y-5 mb-6">
           {mensagens.length > 0 ? (

@@ -6,7 +6,6 @@ import ChatArea from './rpg/ChatArea';
 import InputArea from './rpg/InputArea';
 import StatusPersonagem from './rpg/StatusPersonagem';
 import RolagemDadosInicial from './rpg/RolagemDadosInicial';
-import IndicadorTurno from './rpg/IndicadorTurno';
 import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
 
 /**
@@ -615,8 +614,8 @@ const EtapaJogoRPG = ({
             onClick={toggleActions}
             className={`px-4 py-2 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2 ${
               showActions 
-                ? 'bg-purple-500/50 text-purple-200 border-2 border-purple-400' 
-                : 'bg-white/10 text-white hover:bg-white/20 border-2 border-white/20'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-2 border-purple-300' 
+                : 'bg-gradient-to-r from-purple-600/40 to-pink-600/40 text-purple-200 hover:from-purple-600/60 hover:to-pink-600/60 border-2 border-purple-500/30'
             }`}
           >
             <span>⚡</span>
@@ -656,19 +655,6 @@ const EtapaJogoRPG = ({
                   ordemJogadores={socketState.ordemJogadores}
                   usuarioAtual={user}
                   onRolarDado={handleRolarDadoInicial}
-                />
-              </div>
-            )}
-
-            {/* Indicador de Turno (durante o jogo) */}
-            {socketState.faseJogo === 'rodada_em_andamento' && socketState.ordemJogadores.length > 0 && (
-              <div className="p-6 pb-0">
-                <IndicadorTurno
-                  rodadaAtual={socketState.rodadaAtual}
-                  turnoAtual={socketState.turnoAtual}
-                  jogadorAtual={socketState.jogadorAtual}
-                  ordemJogadores={socketState.ordemJogadores}
-                  ehMeuTurno={socketState.ehMeuTurno}
                 />
               </div>
             )}

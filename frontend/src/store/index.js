@@ -802,6 +802,7 @@ export const getGameStoreAPI = () => {
     get iniciarJogo() { return store.getState().iniciarJogo; },
     get abrirSala() { return store.getState().abrirSala; },
     get adicionarMensagem() { return store.getState().adicionarMensagem; },
+    get setMensagens() { return store.getState().setMensagens; },
     get setStatusPersonagem() { return store.getState().setStatusPersonagem; },
     get resetGameState() { return store.getState().resetGameState; },
     get setIsDonoSala() { return store.getState().setIsDonoSala; },

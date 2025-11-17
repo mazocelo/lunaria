@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
-import ClasseViewModel from '../../viewmodels/Classes/ClasseViewModel';
+import { classeViewModel } from '../../viewmodels/Classes/ClasseViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
@@ -9,7 +9,6 @@ import InputSimples from '../../components/form/inputSimples';
 import { TabelaList } from '../components';
 
 const ClasseView = () => {
-  const classeViewModel = useMemo(() => new ClasseViewModel(), []);
   const vm = useViewModel(classeViewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();

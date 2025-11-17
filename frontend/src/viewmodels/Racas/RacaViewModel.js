@@ -1,6 +1,6 @@
 import { getRacaStoreAPI } from '../../store/index.js';
 
-export default class RacaViewModel {
+class RacaViewModel {
   constructor() {
     // 🧬 API direta para ViewModels - sem hooks!
     this.racaStore = getRacaStoreAPI();
@@ -217,4 +217,8 @@ export default class RacaViewModel {
   getFilteredRacas() {
     return this.state.filteredRacas;
   }
-} 
+}
+
+// Singleton instance
+export const racaViewModel = new RacaViewModel();
+export default RacaViewModel; 

@@ -1,3 +1,3 @@
 // ViewModels para Desvantagens
-export { default as DesvantagemViewModel } from './DesvantagemViewModel';
-// Adicione outros ViewModels de desvantagem aqui se existirem 
+export { default as DesvantagemViewModel, desvantagemViewModel } from './DesvantagemViewModel';
+export { default as EditarDesvantagemViewModel, editarDesvantagemViewModel } from './EditarDesvantagemViewModel'; 

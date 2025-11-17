@@ -1,7 +1,7 @@
 import { DesvantagemService } from '../../services/DesvantagemService';
 import { apiClient } from '../../services/ApiClient';
 
-export default class EditarDesvantagemViewModel {
+class EditarDesvantagemViewModel {
   constructor() {
     this.service = new DesvantagemService(apiClient);
     this.state = {
@@ -104,4 +104,8 @@ export default class EditarDesvantagemViewModel {
   get loading() { return this.state.loading; }
   get saving() { return this.state.saving; }
   get error() { return this.state.error; }
-} 
+}
+
+// Singleton instance
+export const editarDesvantagemViewModel = new EditarDesvantagemViewModel();
+export default EditarDesvantagemViewModel; 

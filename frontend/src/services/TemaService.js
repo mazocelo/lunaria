@@ -1,8 +1,9 @@
-import { Tema } from '../models/Tema';
-
 /**
  * Serviço para gerenciar operações de Tema
  * Responsável pela comunicação com a API
+ * 
+ * Nota: Temas são gerenciados pelo TemaStore (store/tema)
+ * Este service é usado apenas pelo store para comunicação com a API
  */
 export class TemaService {
   constructor(apiClient) {
@@ -12,7 +13,7 @@ export class TemaService {
 
   /**
    * Busca todos os temas
-   * @returns {Promise<Tema[]>} Lista de temas
+   * @returns {Promise<Object>} Response com lista de temas
    */
   async getAll() {
     try {
@@ -29,7 +30,7 @@ export class TemaService {
 
   /**
    * Busca temas ativos
-   * @returns {Promise<Tema[]>} Lista de temas ativos
+   * @returns {Promise<Object>} Response com lista de temas ativos
    */
   async getAtivos() {
     try {
@@ -47,7 +48,7 @@ export class TemaService {
   /**
    * Busca um tema por ID
    * @param {number} id - ID do tema
-   * @returns {Promise<Tema>} Tema encontrado
+   * @returns {Promise<Object>} Response com tema encontrado
    */
   async getById(id) {
     try {
@@ -64,18 +65,12 @@ export class TemaService {
 
   /**
    * Cria um novo tema
-   * @param {Tema} tema - Dados do tema
-   * @returns {Promise<Tema>} Tema criado
+   * @param {Object} temaData - Dados do tema
+   * @returns {Promise<Object>} Response com tema criado
    */
-  async create(tema) {
+  async create(temaData) {
     try {
-      // Validar antes de enviar
-      const validation = tema.validate();
-      if (!validation.isValid) {
-        throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
-      }
-
-      const response = await this.apiClient.post(this.baseUrl, tema.toJSON());
+      const response = await this.apiClient.post(this.baseUrl, temaData);
       if (response.success) {
         return response;
       } else {
@@ -89,18 +84,12 @@ export class TemaService {
   /**
    * Atualiza um tema existente
    * @param {number} id - ID do tema
-   * @param {Tema} tema - Dados atualizados
-   * @returns {Promise<Tema>} Tema atualizado
+   * @param {Object} temaData - Dados atualizados
+   * @returns {Promise<Object>} Response com tema atualizado
    */
-  async update(id, tema) {
+  async update(id, temaData) {
     try {
-      // Validar antes de enviar
-      const validation = tema.validate();
-      if (!validation.isValid) {
-        throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
-      }
-
-      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, tema.toJSON());
+      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, temaData);
       if (response.success) {
         return response;
       } else {
@@ -114,7 +103,7 @@ export class TemaService {
   /**
    * Remove um tema
    * @param {number} id - ID do tema
-   * @returns {Promise<void>}
+   * @returns {Promise<Object>} Response da operação
    */
   async delete(id) {
     try {
@@ -132,7 +121,7 @@ export class TemaService {
   /**
    * Ativa um tema
    * @param {number} id - ID do tema
-   * @returns {Promise<Tema>} Tema ativado
+   * @returns {Promise<Object>} Response com tema ativado
    */
   async ativar(id) {
     try {
@@ -150,7 +139,7 @@ export class TemaService {
   /**
    * Desativa um tema
    * @param {number} id - ID do tema
-   * @returns {Promise<Tema>} Tema desativado
+   * @returns {Promise<Object>} Response com tema desativado
    */
   async desativar(id) {
     try {
@@ -168,7 +157,7 @@ export class TemaService {
   /**
    * Busca temas por nome
    * @param {string} nome - Nome do tema
-   * @returns {Promise<Tema[]>} Lista de temas encontrados
+   * @returns {Promise<Object>} Response com lista de temas encontrados
    */
   async getByNome(nome) {
     try {

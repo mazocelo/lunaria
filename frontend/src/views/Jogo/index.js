@@ -1,2 +1,2 @@
-// 🎮 VIEW PRINCIPAL - Arquitetura Zustand otimizada
-export { default as JogoView } from './JogoView.jsx'; 
+// 🎮 COMPONENTES DAS ETAPAS - Reutilizados pelas páginas
+export * from './components'; 

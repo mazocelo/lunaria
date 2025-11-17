@@ -4,6 +4,8 @@ export { PersonagemViewModel, personagemViewModel } from './Personagens/Personag
 export { JogoViewModel, jogoViewModel } from './Jogo';
 export * from './Racas';
 export * from './Classes';
+export * from './Vantagens';
+export * from './Desvantagens';
 // Factory para criação de ViewModels
 export class ViewModelFactory {
   /**

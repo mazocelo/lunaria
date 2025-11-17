@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
-import DesvantagemViewModel from '../../viewmodels/Desvantagens/DesvantagemViewModel';
+import { desvantagemViewModel } from '../../viewmodels/Desvantagens/DesvantagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 import InputSimples from '../../components/form/inputSimples';
 
 const NovaDesvantagemView = () => {
-  const vm = useViewModel(new DesvantagemViewModel());
+  const vm = useViewModel(desvantagemViewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';

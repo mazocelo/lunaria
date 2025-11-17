@@ -88,8 +88,8 @@ const ConviteJogoView = () => {
     
     startTransition('convite', 'selecao-personagem');
     
-    // Redirecionar para a view principal do jogo
-    navigate(`/jogo/${historiaData.id}`, {
+    // Redirecionar para a view principal do jogo (seleção de personagem)
+    navigate(`/jogo/${historiaData.id}/selecao-personagem`, {
       state: {
         fromInvite: true,
         historia: historiaData,

@@ -87,7 +87,7 @@ function AppContent() {
   return (
     <GameLoadingProvider>
       <GameProvider>
-        <div className="w-screen min-h-screen">
+        <div className="w-screen h-screen overflow-hidden">
           {/* Fundo de partículas */}
           <ParticlesBackground />
 
@@ -105,9 +105,9 @@ function AppContent() {
             </div>
           )}
 
-          {/* Conteúdo principal com scroll independente */}
-          <div className={`${showSidebar ? 'ml-[260px]' : ''} flex flex-col min-h-screen`}>
-            {/* Header com toggle de tema */}
+          {/* Conteúdo principal com altura fixa */}
+          <div className={`${showSidebar ? 'ml-[260px]' : ''} flex flex-col h-screen`}>
+            {/* Header com toggle de tema - FIXO */}
             <header className={`border-b px-6 py-6 flex-shrink-0 z-10 ${
               isLight 
                 ? 'glass-strong-light border-slate-200/50' 
@@ -173,8 +173,8 @@ function AppContent() {
               </div>
             </header>
 
-            {/* Conteúdo principal com scroll vertical */}
-            <main className="flex-1 p-6 overflow-y-auto min-w-0 z-10">
+            {/* Conteúdo principal com scroll vertical - APENAS AQUI TEM SCROLL */}
+            <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 z-10">
               <div className="animate-fade-in">
                 {/* ✅ ROTAS CENTRALIZADAS EM ARQUIVO SEPARADO */}
                 <AppRoutes />

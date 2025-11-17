@@ -1,7 +1,6 @@
-// Exportação de todos os modelos
+// Exportação de todos os modelos de domínio compartilhados
 export { Historia } from './Historia';
 export { Personagem } from './Personagem';
-export { Tema } from './Tema';
 export { Raca } from './Raca';
 export { Classe } from './Classe';
 export { VantagemDesvantagem } from './VantagemDesvantagem';
@@ -10,7 +9,7 @@ export { VantagemDesvantagem } from './VantagemDesvantagem';
 export class ModelFactory {
   /**
    * Cria uma instância do modelo apropriado baseado no tipo
-   * @param {string} type - Tipo do modelo ('historia', 'personagem', 'tema')
+   * @param {string} type - Tipo do modelo ('historia', 'personagem', 'raca', 'classe', 'vantagem-desvantagem')
    * @param {Object} data - Dados para inicializar o modelo
    * @returns {Object} Instância do modelo
    */
@@ -20,8 +19,6 @@ export class ModelFactory {
         return new Historia(data);
       case 'personagem':
         return new Personagem(data);
-      case 'tema':
-        return new Tema(data);
       case 'raca':
         return new Raca(data);
       case 'classe':
@@ -45,8 +42,6 @@ export class ModelFactory {
         return Historia.fromAPI(apiData);
       case 'personagem':
         return Personagem.fromAPI(apiData);
-      case 'tema':
-        return Tema.fromAPI(apiData);
       case 'raca':
         return Raca.fromApi(apiData);
       case 'classe':

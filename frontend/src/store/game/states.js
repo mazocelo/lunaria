@@ -11,9 +11,6 @@
  */
 
 export const gameInitialStates = {
-  // ===== ETAPAS E NAVEGAÇÃO =====
-  etapaAtual: 'selecao-personagem', // 'selecao-personagem' | 'sala-espera' | 'jogo-ativo'
-  
   // ===== HISTÓRIA =====
   historiaAtual: null,
   loading: false,

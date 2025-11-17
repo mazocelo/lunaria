@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
-import DesvantagemViewModel from '../../viewmodels/Desvantagens/DesvantagemViewModel';
+import { desvantagemViewModel } from '../../viewmodels/Desvantagens/DesvantagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
@@ -11,7 +11,7 @@ import { TabelaList } from '../components';
 
 
 const DesvantagemView = () => {
-  const viewModel = useMemo(() => new DesvantagemViewModel(), []);
+  const viewModel = desvantagemViewModel;
   const vm = useViewModel(viewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();

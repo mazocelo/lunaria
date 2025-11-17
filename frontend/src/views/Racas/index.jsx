@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
-import RacaViewModel from '../../viewmodels/Racas/RacaViewModel';
+import { racaViewModel } from '../../viewmodels/Racas/RacaViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
@@ -9,7 +9,6 @@ import InputSimples from '../../components/form/inputSimples';
 import { TabelaList } from '../components';
 
 const RacaView = () => {
-  const racaViewModel = useMemo(() => new RacaViewModel(), []);
   const vm = useViewModel(racaViewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();

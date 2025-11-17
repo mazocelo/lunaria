@@ -1,7 +1,7 @@
 import { getVantagemStoreAPI } from '../../store/index.js';
 import { VantagemDesvantagem } from '../../models/VantagemDesvantagem';
 
-export default class VantagemViewModel {
+class VantagemViewModel {
   constructor() {
     // 🌟 API direta para ViewModels - sem hooks!
     this.vantagemStore = getVantagemStoreAPI();
@@ -218,4 +218,8 @@ export default class VantagemViewModel {
   getFilteredVantagens() {
     return this.state.filteredVantagens;
   }
-} 
+}
+
+// Singleton instance
+export const vantagemViewModel = new VantagemViewModel();
+export default VantagemViewModel; 

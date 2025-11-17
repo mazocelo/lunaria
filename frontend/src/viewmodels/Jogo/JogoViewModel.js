@@ -22,7 +22,6 @@ export class JogoViewModel {
     this.historiaAtual = null;
     this.personagensDaHistoria = [];
     this.personagemSelecionado = null;
-    this.etapaAtual = 'selecao-personagem';
     this.participantes = [];
     this.salaAberta = false;
     this.isDonoSala = false;
@@ -44,6 +43,10 @@ export class JogoViewModel {
     this.isTyping = false;
     this.roomUsers = [];
     this.isConnecting = false;
+    
+    // Flags de controle interno (não afetam loading global)
+    this.isInitializing = false;
+    this.isLoadingHistoria = false;
     
     // Observers para mudanças de estado
     this.observers = [];
@@ -79,7 +82,6 @@ export class JogoViewModel {
     historiaAtual: this.historiaAtual,
     personagensDaHistoria: this.personagensDaHistoria,
     personagemSelecionado: this.personagemSelecionado,
-    etapaAtual: this.etapaAtual,
     participantes: this.participantes,
     salaAberta: this.salaAberta,
     isDonoSala: this.isDonoSala,
@@ -109,25 +111,30 @@ export class JogoViewModel {
    * @param {Object} options - Opções de inicialização
    */
   async initializeGame(historiaId, options = {}) {
+    // Proteção contra inicializações duplicadas APENAS se já estiver inicializando
+    if (this.isInitializing) {
+      console.log('⏭️ JogoViewModel: Ignorando inicialização (já inicializando)');
+      return;
+    }
+
     try {
-      this.setLoading(true);
+      this.isInitializing = true;
       this.clearErrors();
       
-      // Carregar história
+      console.log('🚀 JogoViewModel: Iniciando jogo para história', historiaId);
+      
+      // Carregar história (usa sua própria flag de loading)
       await this.carregarHistoria(historiaId);
       
       // Inicializar ViewModels específicos
       await this.initializeEtapaViewModels();
       
-      // Definir etapa inicial
-      this.mudarEtapa('selecao-personagem');
-      
-      this.setLoading(false);
+      this.isInitializing = false;
       this.notify();
     } catch (error) {
       console.error('❌ JogoViewModel: Erro ao inicializar jogo:', error);
       this.setError('Erro ao inicializar jogo: ' + error.message);
-      this.setLoading(false);
+      this.isInitializing = false;
       this.notify();
     }
   }
@@ -159,27 +166,34 @@ export class JogoViewModel {
    * @param {string} historiaId - ID da história
    */
   async carregarHistoria(historiaId) {
+    // Proteção APENAS contra carregamento simultâneo da história
+    if (this.isLoadingHistoria) {
+      console.log('⏭️ JogoViewModel: Ignorando carregamento de história (já carregando)');
+      return;
+    }
+
     try {
+      this.isLoadingHistoria = true;
       this.setLoading(true);
       this.clearErrors();
       
+      console.log('📖 JogoViewModel: Carregando história', historiaId);
       const historia = await historiaService.getById(historiaId);
       this.historiaAtual = historia;
       
-      // LOG COMPLETO para verificar campos
-      console.log('📖 JogoViewModel: História carregada COMPLETA:');
-      console.log('  - Object.keys:', Object.keys(historia));
-      console.log('  - id:', historia.id);
-      console.log('  - nome:', historia.nome);
-      console.log('  - id_usuario:', historia.id_usuario, '| tipo:', typeof historia.id_usuario);
-      console.log('  - Historia completa:', historia);
+      // ✅ SINCRONIZAR COM GAMESTORE
+      const gameStore = getGameStoreAPI();
+      gameStore.setHistoriaAtual(historia);
+      console.log('✅ JogoViewModel: História sincronizada com GameStore:', historia.nome);
       
       this.setLoading(false);
+      this.isLoadingHistoria = false;
       this.notify();
     } catch (error) {
       console.error('❌ JogoViewModel: Erro ao carregar história:', error);
       this.setError('Erro ao carregar história: ' + error.message);
       this.setLoading(false);
+      this.isLoadingHistoria = false;
       this.notify();
     }
   }
@@ -189,9 +203,11 @@ export class JogoViewModel {
    * @param {string} userId - ID do usuário
    */
   async carregarPersonagens(userId) {
-    // if (!this.historiaAtual || !userId || this.personagensDaHistoria.length > 0 || this.loadingPersonagens) {
-    //   return;
-    // }
+    // Proteção contra carregamentos duplicados
+    if (!this.historiaAtual || !userId || this.loadingPersonagens) {
+      console.log('⏭️ JogoViewModel: Ignorando carregamento de personagens (já carregando ou sem dados)');
+      return;
+    }
 
     try {
       this.setLoadingPersonagens(true);
@@ -268,6 +284,13 @@ export class JogoViewModel {
     console.log('  - userId:', user?.id, '| tipo:', typeof user?.id);
     console.log('  - isDonoSala:', this.isDonoSala);
     
+    // ✅ SINCRONIZAR COM GAMESTORE
+    const gameStore = getGameStoreAPI();
+    gameStore.selecionarPersonagem(personagem);
+    gameStore.setIsDonoSala(this.isDonoSala);
+    gameStore.abrirSala();
+    console.log('✅ JogoViewModel: Personagem sincronizado com GameStore:', personagem.nome);
+    
     // Adicionar o usuário atual como participante
     const novoParticipante = {
       userId: user?.id,
@@ -288,8 +311,6 @@ export class JogoViewModel {
       await this.recarregarPersonagens(user.id);
     }
     
-    this.mudarEtapa('sala-espera');
-    
     // Inicializar sala de espera (recarregar personagens novamente se necessário)
     if (user?.id) {
       await etapaSalaEsperaViewModel.inicializarSala(user.id);
@@ -303,7 +324,6 @@ export class JogoViewModel {
    */
   iniciarJogo() {
     this.salaAberta = true;
-    this.mudarEtapa('jogo-ativo');
     this.notify();
   }
 
@@ -317,23 +337,12 @@ export class JogoViewModel {
   }
 
   /**
-   * Volta para a etapa anterior
+   * Retorna para onde voltar (usado pelas views para navegação)
+   * @deprecated Use navegação direta nas views
    */
   voltarEtapa() {
-    switch (this.etapaAtual) {
-      case 'selecao-personagem':
-        // Volta para histórias (será tratado na View)
-        return 'historias';
-      case 'sala-espera':
-        this.mudarEtapa('selecao-personagem');
-        break;
-      case 'jogo-ativo':
-        this.mudarEtapa('sala-espera');
-        break;
-      default:
-        return 'historias';
-    }
-    this.notify();
+    // Sempre volta para histórias
+    return 'historias';
   }
 
   /**
@@ -651,6 +660,13 @@ export class JogoViewModel {
    */
   adicionarMensagem(mensagem) {
     this.mensagens = [...this.mensagens, mensagem];
+    
+    // ✅ SINCRONIZAR COM GAMESTORE
+    const gameStore = getGameStoreAPI();
+    gameStore.adicionarMensagem(mensagem);
+    
+    console.log('💬 JogoViewModel: Mensagem adicionada e sincronizada:', mensagem.tipo, mensagem.message?.substring(0, 50));
+    
     this.notify();
   }
 
@@ -668,7 +684,12 @@ export class JogoViewModel {
         m.tipo === 'mestre' || m.tipo === 'entre_rodadas'
       );
     }
-    console.log(`🧹 JogoViewModel: Mensagens limpas. Total: ${this.mensagens.length}`);
+    
+    // ✅ SINCRONIZAR COM GAMESTORE
+    const gameStore = getGameStoreAPI();
+    gameStore.setMensagens(this.mensagens);
+    
+    console.log(`🧹 JogoViewModel: Mensagens limpas e sincronizadas. Total: ${this.mensagens.length}`);
     this.notify();
   }
 
@@ -684,10 +705,18 @@ export class JogoViewModel {
       const statusData = await historiaService.getStatusJogo(historiaId);
       const { sessao } = statusData || {};
       
+      console.log('🔍 JogoViewModel: Dados da sessão recebidos:', {
+        temSessao: !!sessao,
+        temMensagens: !!sessao?.mensagens,
+        ehArray: Array.isArray(sessao?.mensagens),
+        quantidade: sessao?.mensagens?.length || 0
+      });
+      
       if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
         console.log(`✅ JogoViewModel: ${sessao.mensagens.length} mensagens carregadas do Redis`);
+        console.log('📋 JogoViewModel: Primeiras mensagens:', sessao.mensagens.slice(0, 2));
         
-        this.mensagens = sessao.mensagens.map(m => ({
+        const mensagensFormatadas = sessao.mensagens.map(m => ({
           id: m.timestamp || Date.now(),
           userId: m.userId,
           username: m.username,
@@ -696,10 +725,20 @@ export class JogoViewModel {
           timestamp: m.timestamp
         }));
         
+        this.mensagens = mensagensFormatadas;
+        
+        // ✅ SINCRONIZAR COM GAMESTORE
+        const gameStore = getGameStoreAPI();
+        gameStore.setMensagens(mensagensFormatadas);
+        
+        console.log(`✅ JogoViewModel: ${mensagensFormatadas.length} mensagens sincronizadas com GameStore`);
+        console.log('📋 JogoViewModel: Mensagens formatadas (primeiras 2):', mensagensFormatadas.slice(0, 2));
+        
         this.notify();
         return sessao.mensagens.length;
       } else {
-        console.log('ℹ️ JogoViewModel: Nenhuma mensagem salva encontrada');
+        console.log('ℹ️ JogoViewModel: Nenhuma mensagem salva encontrada ou formato inválido');
+        console.log('🔍 JogoViewModel: sessao completa:', sessao);
         return 0;
       }
     } catch (error) {
@@ -776,39 +815,28 @@ export class JogoViewModel {
             isDonoSala: this.isDonoSala
           });
           
-          // Sincronizar com GameStore (se métodos existirem)
-          try {
-            const gameStore = getGameStoreAPI();
-            
-            // Verificar se métodos existem antes de chamar
-            if (typeof gameStore.setHistoriaAtual === 'function') {
-              gameStore.setHistoriaAtual(this.historiaAtual);
-            }
-            
-            if (typeof gameStore.setPersonagemSelecionado === 'function') {
-              gameStore.setPersonagemSelecionado(this.personagemSelecionado);
-            }
-            
-            console.log('✅ JogoViewModel: GameStore sincronizado');
-          } catch (gsError) {
-            console.log('⚠️ JogoViewModel: GameStore sync opcional não disponível');
-          }
+          // ✅ SINCRONIZAR COM GAMESTORE
+          const gameStore = getGameStoreAPI();
+          gameStore.setHistoriaAtual(this.historiaAtual);
+          gameStore.selecionarPersonagem(this.personagemSelecionado);
+          gameStore.setIsDonoSala(this.isDonoSala);
+          gameStore.abrirSala(); // Sala está aberta se está retomando
+          
+          console.log('✅ JogoViewModel: GameStore sincronizado para retomada de jogo');
           
         } catch (error) {
           console.error('❌ JogoViewModel: Erro ao carregar personagem:', error);
-          // Continuar sem personagem - vai para sala de espera para escolher
-          console.log('⚠️ JogoViewModel: Redirecionando para sala de espera para escolher personagem');
-          this.mudarEtapa('sala-espera');
+          // Continuar sem personagem - carregar lista para escolher
+          if (user?.id) {
+            await this.carregarPersonagens(user.id);
+          }
           this.setLoading(false);
           this.notify();
           return;
         }
       } else {
         console.log('⚠️ JogoViewModel: Usuário não tem personagem selecionado na sessão');
-        // Sem personagem - ir para sala de espera
-        this.mudarEtapa('sala-espera');
-        
-        // Carregar personagens do usuário
+        // Sem personagem - carregar lista para escolher
         if (user?.id) {
           await this.carregarPersonagens(user.id);
         }
@@ -836,7 +864,6 @@ export class JogoViewModel {
       
       // 5. Ir direto para jogo ativo (só se personagem foi encontrado e selecionado)
       console.log('🎮 JogoViewModel: Retomando jogo ativo diretamente com personagem...');
-      this.mudarEtapa('jogo-ativo');
       
       // Carregar mensagens salvas
       await this.carregarMensagensSalvas(historiaId);
@@ -907,12 +934,12 @@ export class JogoViewModel {
   // ===== MÉTODOS DE CONTROLE DE ESTADO =====
 
   /**
-   * Muda a etapa atual do jogo
-   * @param {string} etapa - Nova etapa
+   * @deprecated Etapas agora são gerenciadas por rotas React Router
+   * Mantido para compatibilidade temporária, mas não faz nada
    */
   mudarEtapa(etapa) {
-    this.etapaAtual = etapa;
-    this.notify();
+    // Deprecated - rotas gerenciam navegação
+    console.warn('⚠️ JogoViewModel.mudarEtapa() está deprecated. Use navegação por rotas.');
   }
 
   /**
@@ -975,7 +1002,6 @@ export class JogoViewModel {
     this.historiaAtual = null;
     this.personagensDaHistoria = [];
     this.personagemSelecionado = null;
-    this.etapaAtual = 'selecao-personagem';
     this.participantes = [];
     this.salaAberta = false;
     this.isDonoSala = false;
@@ -985,6 +1011,8 @@ export class JogoViewModel {
     this.error = null;
     this.loadingPersonagens = false;
     this.errorPersonagens = null;
+    this.isInitializing = false;
+    this.isLoadingHistoria = false;
     
     // Resetar ViewModels específicos
     this.resetEtapaViewModels();

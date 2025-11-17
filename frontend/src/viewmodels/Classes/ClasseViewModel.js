@@ -1,7 +1,7 @@
 import { getClasseStoreAPI } from '../../store/index.js';
 import { Classe } from '../../models/Classe';
 
-export default class ClasseViewModel {
+class ClasseViewModel {
   constructor() {
     // 🏛️ API direta para ViewModels - sem hooks!
     this.classeStore = getClasseStoreAPI();
@@ -224,4 +224,8 @@ export default class ClasseViewModel {
   getFilteredClasses() {
     return this.state.filteredClasses;
   }
-} 
+}
+
+// Singleton instance
+export const classeViewModel = new ClasseViewModel();
+export default ClasseViewModel; 

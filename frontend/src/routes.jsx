@@ -1,27 +1,28 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { 
-  HistoriaView, 
-  NovaHistoriaView, 
-  VerHistoriaView, 
-  PersonagemView, 
-  NovoPersonagemView, 
-  EditarPersonagemView, 
-  VerPersonagemView, 
-  RacaView, 
-  VerRacaView, 
-  ClasseView, 
-  VerClasseView, 
-  VantagemView, 
-  VerVantagemView, 
-  DesvantagemView, 
-  NovaDesvantagemView, 
-  EditarDesvantagemView, 
-  VerDesvantagemView 
-} from './views';
-// 🎮 Arquitetura Zustand otimizada - View principal integrada
-import { JogoView } from './views/Jogo';
-// 🎮 View de convite para redirecionamento
-import { ConviteJogoView } from './views/ConviteJogo';
+  HistoriaListaPage, 
+  NovaHistoriaPage, 
+  VerHistoriaPage, 
+  PersonagemListaPage, 
+  NovoPersonagemPage, 
+  EditarPersonagemPage, 
+  VerPersonagemPage, 
+  RacaPage, 
+  VerRacaPage, 
+  ClassePage, 
+  VerClassePage, 
+  VantagemPage, 
+  VerVantagemPage, 
+  DesvantagemPage, 
+  NovaDesvantagemPage, 
+  EditarDesvantagemPage, 
+  VerDesvantagemPage,
+  // Jogo - 3 rotas separadas
+  SelecaoPersonagemPage,
+  SalaEsperaPage,
+  JogoAtivoPage,
+  ConviteJogoPage
+} from './Pages';
 
 /**
  * ============================================================================
@@ -49,7 +50,9 @@ export const ROUTES = {
   VER_HISTORIA: '/historias/:id',
   
   // ===== JOGO =====
-  JOGO: '/jogo/:id', // 🎮 Arquitetura Zustand - gerencia todas as etapas
+  JOGO_SELECAO_PERSONAGEM: '/jogo/:id/selecao-personagem',
+  JOGO_SALA_ESPERA: '/jogo/:id/sala-espera',
+  JOGO_ATIVO: '/jogo/:id/jogo-ativo',
   CONVITE_JOGO: '/convite-jogo/:id', // 🎮 Rota de convite para redirecionamento
   
   // ===== PERSONAGENS =====
@@ -94,11 +97,10 @@ export const generateRoute = {
   verHistoria: (id) => `/historias/${id}`,
   
   // Jogo
-  jogo: (id) => `/jogo/${id}`,
-  conviteJogo: (id) => `/convite-jogo/${id}`,
-  jogoPreparacao: (id) => `/jogo/${id}/preparacao`,
+  jogoSelecaoPersonagem: (id) => `/jogo/${id}/selecao-personagem`,
   jogoSalaEspera: (id) => `/jogo/${id}/sala-espera`,
-  jogoAtivo: (id) => `/jogo/${id}/jogo`,
+  jogoAtivo: (id) => `/jogo/${id}/jogo-ativo`,
+  conviteJogo: (id) => `/convite-jogo/${id}`,
   
   // Personagens
   editarPersonagem: (id) => `/editar-personagem/${id}`,
@@ -153,7 +155,9 @@ export const ROUTE_CATEGORIES = {
     title: 'Jogo',
     icon: '🎲',
     routes: [
-      { path: ROUTES.JOGO, name: 'Jogo RPG', exact: false }
+      { path: ROUTES.JOGO_SELECAO_PERSONAGEM, name: 'Seleção de Personagem', exact: false },
+      { path: ROUTES.JOGO_SALA_ESPERA, name: 'Sala de Espera', exact: false },
+      { path: ROUTES.JOGO_ATIVO, name: 'Jogo Ativo', exact: false }
     ]
   }
 };
@@ -169,13 +173,13 @@ const ROUTE_CONFIG = [
   // ===== ROTAS PRINCIPAIS =====
   {
     path: ROUTES.HOME,
-    component: HistoriaView,
+    component: HistoriaListaPage,
     name: 'Home',
     category: 'HISTORIAS'
   },
   {
     path: ROUTES.HISTORIAS,
-    component: HistoriaView,
+    component: HistoriaListaPage,
     name: 'Histórias',
     category: 'HISTORIAS'
   },
@@ -183,29 +187,55 @@ const ROUTE_CONFIG = [
   // ===== HISTÓRIAS =====
   {
     path: ROUTES.NOVA_HISTORIA,
-    component: NovaHistoriaView,
+    component: NovaHistoriaPage,
     name: 'Nova História',
     category: 'HISTORIAS'
   },
   {
     path: ROUTES.VER_HISTORIA,
-    component: VerHistoriaView,
+    component: VerHistoriaPage,
     name: 'Ver História',
     category: 'HISTORIAS',
     hasParams: true
   },
 
-  // ===== JOGO - Arquitetura Zustand Otimizada =====
+  // ===== JOGO - Redirecionamento de Compatibilidade =====
   {
-    path: ROUTES.JOGO,
-    component: JogoView, // 🎮 View principal que gerencia todas as etapas
-    name: 'Jogo',
+    path: '/jogo/:id',
+    component: () => {
+      const id = window.location.pathname.split('/')[2];
+      return <Navigate to={`/jogo/${id}/selecao-personagem`} replace />;
+    },
+    name: 'Redirect Jogo',
+    category: 'JOGO',
+    hasParams: true
+  },
+  
+  // ===== JOGO - 3 Rotas Separadas =====
+  {
+    path: ROUTES.JOGO_SELECAO_PERSONAGEM,
+    component: SelecaoPersonagemPage,
+    name: 'Seleção de Personagem',
+    category: 'JOGO',
+    hasParams: true
+  },
+  {
+    path: ROUTES.JOGO_SALA_ESPERA,
+    component: SalaEsperaPage,
+    name: 'Sala de Espera',
+    category: 'JOGO',
+    hasParams: true
+  },
+  {
+    path: ROUTES.JOGO_ATIVO,
+    component: JogoAtivoPage,
+    name: 'Jogo Ativo',
     category: 'JOGO',
     hasParams: true
   },
   {
     path: ROUTES.CONVITE_JOGO,
-    component: ConviteJogoView, // 🎮 View de convite para redirecionamento
+    component: ConviteJogoPage,
     name: 'Convite Jogo',
     category: 'JOGO',
     hasParams: true
@@ -214,26 +244,26 @@ const ROUTE_CONFIG = [
   // ===== PERSONAGENS =====
   {
     path: ROUTES.PERSONAGENS,
-    component: PersonagemView,
+    component: PersonagemListaPage,
     name: 'Personagens',
     category: 'PERSONAGENS'
   },
   {
     path: ROUTES.NOVO_PERSONAGEM,
-    component: NovoPersonagemView,
+    component: NovoPersonagemPage,
     name: 'Novo Personagem',
     category: 'PERSONAGENS'
   },
   {
     path: ROUTES.EDITAR_PERSONAGEM,
-    component: EditarPersonagemView,
+    component: EditarPersonagemPage,
     name: 'Editar Personagem',
     category: 'PERSONAGENS',
     hasParams: true
   },
   {
     path: ROUTES.VER_PERSONAGEM,
-    component: VerPersonagemView,
+    component: VerPersonagemPage,
     name: 'Ver Personagem',
     category: 'PERSONAGENS',
     hasParams: true
@@ -242,13 +272,13 @@ const ROUTE_CONFIG = [
   // ===== RAÇAS =====
   {
     path: ROUTES.RACAS,
-    component: RacaView,
+    component: RacaPage,
     name: 'Raças',
     category: 'SISTEMA'
   },
   {
     path: ROUTES.VER_RACA,
-    component: VerRacaView,
+    component: VerRacaPage,
     name: 'Ver Raça',
     category: 'SISTEMA',
     hasParams: true
@@ -257,13 +287,13 @@ const ROUTE_CONFIG = [
   // ===== CLASSES =====
   {
     path: ROUTES.CLASSES,
-    component: ClasseView,
+    component: ClassePage,
     name: 'Classes',
     category: 'SISTEMA'
   },
   {
     path: ROUTES.VER_CLASSE,
-    component: VerClasseView,
+    component: VerClassePage,
     name: 'Ver Classe',
     category: 'SISTEMA',
     hasParams: true
@@ -272,13 +302,13 @@ const ROUTE_CONFIG = [
   // ===== VANTAGENS =====
   {
     path: ROUTES.VANTAGENS,
-    component: VantagemView,
+    component: VantagemPage,
     name: 'Vantagens',
     category: 'SISTEMA'
   },
   {
     path: ROUTES.VER_VANTAGEM,
-    component: VerVantagemView,
+    component: VerVantagemPage,
     name: 'Ver Vantagem',
     category: 'SISTEMA',
     hasParams: true
@@ -287,26 +317,26 @@ const ROUTE_CONFIG = [
   // ===== DESVANTAGENS =====
   {
     path: ROUTES.DESVANTAGENS,
-    component: DesvantagemView,
+    component: DesvantagemPage,
     name: 'Desvantagens',
     category: 'SISTEMA'
   },
   {
     path: ROUTES.NOVA_DESVANTAGEM,
-    component: NovaDesvantagemView,
+    component: NovaDesvantagemPage,
     name: 'Nova Desvantagem',
     category: 'SISTEMA'
   },
   {
     path: ROUTES.EDITAR_DESVANTAGEM,
-    component: EditarDesvantagemView,
+    component: EditarDesvantagemPage,
     name: 'Editar Desvantagem',
     category: 'SISTEMA',
     hasParams: true
   },
   {
     path: ROUTES.VER_DESVANTAGEM,
-    component: VerDesvantagemView,
+    component: VerDesvantagemPage,
     name: 'Ver Desvantagem',
     category: 'SISTEMA',
     hasParams: true

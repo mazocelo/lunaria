@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useViewModel } from '../../shared/hooks/useViewModel';
-import DesvantagemViewModel from '../../viewmodels/Desvantagens/DesvantagemViewModel';
+import { desvantagemViewModel } from '../../viewmodels/Desvantagens/DesvantagemViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
 
 const VerDesvantagemView = () => {
-  const vm = useViewModel(new DesvantagemViewModel());
+  const vm = useViewModel(desvantagemViewModel);
   const navigate = useNavigate();
   const { id } = useParams();
   const { theme } = useTheme();

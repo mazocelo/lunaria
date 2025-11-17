@@ -5,10 +5,10 @@ import { useViewModel } from '../../shared/hooks/useViewModel';
 import { useTheme } from '../../contexts/theme.jsx';
 import RPGCard from '../../components/RPGCard.jsx';
 import Button from '../../components/form/button';
-import ClasseViewModel from '../../viewmodels/Classes/ClasseViewModel';
+import { classeViewModel } from '../../viewmodels/Classes/ClasseViewModel';
 
 const VerClasseView = () => {
-  const vm = useViewModel(new ClasseViewModel());
+  const vm = useViewModel(classeViewModel);
   const navigate = useNavigate();
   const { id } = useParams();
   const { theme } = useTheme();

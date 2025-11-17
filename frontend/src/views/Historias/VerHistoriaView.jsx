@@ -112,7 +112,7 @@ export const VerHistoriaView = () => {
             </button>
           </Link>
           <button 
-            onClick={() => navigate(`/jogo/${historiaAtual.id}`)}
+            onClick={() => navigate(`/jogo/${historiaAtual.id}/selecao-personagem`)}
             className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer"
           >
             <span>🎮</span>
@@ -261,7 +261,7 @@ export const VerHistoriaView = () => {
             </h3>
             <div className="space-y-3">
               <button 
-                onClick={() => navigate(`/jogo/${historiaAtual.id}`)}
+                onClick={() => navigate(`/jogo/${historiaAtual.id}/selecao-personagem`)}
                 className="w-full btn-rpg hover-lift flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <span>🎮</span>

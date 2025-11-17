@@ -1,2 +1,2 @@
 // ViewModels para Raças
-export { default as RacaViewModel } from './RacaViewModel'; 
+export { default as RacaViewModel, racaViewModel } from './RacaViewModel'; 

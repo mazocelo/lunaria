@@ -113,7 +113,7 @@ export const HistoriaView = () => {
 
   // ✅ Função para iniciar sessão usando constantes
   const handlePlayHistoria = (historia) => {
-    navigate(generateRoute.jogo(historia.id));
+    navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
   };
 
   // Função para abrir modal de convite
@@ -285,7 +285,7 @@ export const HistoriaView = () => {
   // Handler para entrar em partida ativa
   const handleEntrarPartida = (historia) => {
     console.log('🎮 Entrando em partida ativa da história:', historia.id);
-    navigate(generateRoute.jogo(historia.id));
+    navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
   };
 
   // Ações que incluem verificação de propriedade dentro do onClick

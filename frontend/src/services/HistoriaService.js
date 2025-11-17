@@ -180,7 +180,7 @@ export class HistoriaService {
    */
   async resetarSessao(historiaId) {
     try {
-      const response = await this.apiClient.delete(`/api/jogo/reset/${historiaId}`);
+      const response = await this.apiClient.delete(`/jogo/reset/${historiaId}`);
 
       // Verificação da estrutura de resposta
       if (response.data) {

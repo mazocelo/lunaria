@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/theme.jsx';
 import { useViewModel } from '../../shared/hooks/useViewModel.js';
-import EditarDesvantagemViewModel from '../../viewmodels/Desvantagens/EditarDesvantagemViewModel.js';
+import { editarDesvantagemViewModel } from '../../viewmodels/Desvantagens/EditarDesvantagemViewModel.js';
 import RPGCard from '../../components/RPGCard.jsx';
 import InputSimples from '../../components/form/inputSimples.jsx';
 import FormTextarea from '../../components/form/FormTextarea.jsx';
@@ -14,7 +14,7 @@ const EditarDesvantagemView = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const vm = useViewModel(EditarDesvantagemViewModel);
+  const vm = useViewModel(editarDesvantagemViewModel);
 
   useEffect(() => {
     if (id) {

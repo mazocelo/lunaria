@@ -11,45 +11,6 @@
  */
 
 export const createGameActions = (set, get) => ({
-  // ===== ACTIONS - ETAPAS =====
-  mudarEtapa: (novaEtapa) => {
-    const { etapaAtual, personagemSelecionado, historiaAtual, salaAberta } = get();
-    
-    const etapasValidas = ['selecao-personagem', 'sala-espera', 'jogo-ativo'];
-    
-    if (!etapasValidas.includes(novaEtapa)) {
-      console.warn(`🚫 GameStore: Etapa inválida: ${novaEtapa}`);
-      return false;
-    }
-
-    // Validações específicas por etapa
-    switch (novaEtapa) {
-      case 'selecao-personagem':
-        if (!historiaAtual) {
-          console.warn('🚫 GameStore: História deve estar carregada antes de selecionar personagem');
-          return false;
-        }
-        break;
-        
-      case 'sala-espera':
-        if (!personagemSelecionado || !historiaAtual) {
-          console.warn('🚫 GameStore: Personagem e história devem estar selecionados para ir para sala de espera');
-          return false;
-        }
-        break;
-        
-      case 'jogo-ativo':
-        if (!salaAberta || !personagemSelecionado) {
-          console.warn('🚫 GameStore: Sala deve estar aberta e personagem selecionado para iniciar o jogo');
-          return false;
-        }
-        break;
-    }
-
-    set({ etapaAtual: novaEtapa });
-    return true;
-  },
-  
   // ===== ACTIONS - HISTÓRIA =====
   setHistoriaAtual: (historia) => {
     set({ historiaAtual: historia });
@@ -243,7 +204,6 @@ export const createGameActions = (set, get) => ({
     
     // Resetar estado do Zustand
     set({
-      etapaAtual: 'selecao-personagem',
       historiaAtual: null,
       loading: false,
       error: null,

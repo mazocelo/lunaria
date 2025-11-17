@@ -71,11 +71,10 @@ export const useGameSelectors = {
 
   // Dados para persistência (apenas dados críticos)
   dadosParaPersistir: () => {
-    const { personagemSelecionado, historiaAtual, etapaAtual } = useGameStore.getState();
+    const { personagemSelecionado } = useGameStore.getState();
     return {
       personagemSelecionado, // Mais crítico - escolha do usuário
       // historiaAtual,       // Pode ser recuperado via API
-      // etapaAtual          // Pode ser derivado do contexto
     };
   },
   

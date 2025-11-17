@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { RPGMessage } from '../../../../components/RPGMessage';
+import MarkdownRenderer from '../../../../components/MarkdownRenderer';
 
 /**
  * Área central do chat do jogo RPG
@@ -94,9 +95,9 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
               <span className="text-4xl drop-shadow-lg">🎭</span>
               <div className="flex-1">
                 <p className="text-purple-300 font-bold text-lg mb-2">Mestre</p>
-                <p className="text-white text-lg leading-relaxed">
+                <MarkdownRenderer className="text-white text-lg leading-relaxed">
                   {mensagem.message || mensagem.mensagem}
-                </p>
+                </MarkdownRenderer>
               </div>
             </div>
           </div>

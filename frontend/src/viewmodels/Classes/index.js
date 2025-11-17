@@ -1,2 +1,2 @@
 // ViewModels para Classes
-export { default as ClasseViewModel } from './ClasseViewModel'; 
+export { default as ClasseViewModel, classeViewModel } from './ClasseViewModel'; 

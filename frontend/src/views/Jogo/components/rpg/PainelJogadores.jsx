@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 
 /**
@@ -13,6 +13,9 @@ const PainelJogadores = ({
   faseJogo = 'aguardando_inicio'
 }) => {
   const { user } = useAuth();
+  
+  // 🎨 Estado do collapse
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // Se já temos ordem definida, usar ela para exibir os jogadores
   const jogadoresParaExibir = ordemJogadores.length > 0 
@@ -107,42 +110,89 @@ const PainelJogadores = ({
   };
 
   return (
-    <div className="w-80 bg-black/20 backdrop-blur-sm border-r border-purple-500/20 p-4 overflow-y-auto">
-      <h3 className="text-lg font-fantasy font-bold text-white mb-2 flex items-center">
-        👥 Aventureiros
-      </h3>
-
-      {/* Indicador de fase */}
-      {faseJogo && (
-        <div className="mb-4 text-xs text-center">
-          <span className={`px-2 py-1 rounded-full ${
-            faseJogo === 'rolagem_inicial' 
-              ? 'bg-amber-900/30 text-amber-400 border border-amber-500/30' 
-              : faseJogo === 'rodada_em_andamento'
-              ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30'
-              : 'bg-purple-900/30 text-purple-400 border border-purple-500/30'
-          }`}>
-            {faseJogo === 'rolagem_inicial' && '🎲 Rolagem Inicial'}
-            {faseJogo === 'rodada_em_andamento' && '⚔️ Em Jogo'}
-            {faseJogo === 'entre_rodadas' && '⏸️ Entre Rodadas'}
-            {faseJogo === 'aguardando_inicio' && '⏳ Aguardando'}
-          </span>
-        </div>
-      )}
-      
-      <div className="space-y-3">
-        {jogadoresParaExibir.length > 0 ? (
-          jogadoresParaExibir.map((jogador, index) => renderJogador(jogador, index))
-        ) : (
-          <div className="text-center py-8 text-purple-400">
-            <div className="text-2xl mb-2">👻</div>
-            <p className="text-sm">Aguardando jogadores...</p>
-          </div>
+    <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-r border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden ${
+      isExpanded ? 'w-80' : 'w-16'
+    }`}>
+      {/* Header com botão de collapse */}
+      <div className={`flex items-center mb-2 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
+        {isExpanded && (
+          <h3 className="text-lg font-fantasy font-bold text-white flex items-center">
+            👥 Aventureiros
+          </h3>
         )}
+        
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-all transform hover:scale-105 flex-shrink-0"
+          title={isExpanded ? 'Retrair painel' : 'Expandir painel'}
+        >
+          <span className="text-lg">
+            {isExpanded ? '◀' : '▶'}
+          </span>
+        </button>
       </div>
 
-      {/* Legenda */}
-      {ordemJogadores.length > 0 && (
+      {/* Conteúdo (só mostra quando expandido) */}
+      {isExpanded && (
+        <>
+          {/* Indicador de fase */}
+          {faseJogo && (
+            <div className="mb-4 text-xs text-center">
+              <span className={`px-2 py-1 rounded-full ${
+                faseJogo === 'rolagem_inicial' 
+                  ? 'bg-amber-900/30 text-amber-400 border border-amber-500/30' 
+                  : faseJogo === 'rodada_em_andamento'
+                  ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30'
+                  : 'bg-purple-900/30 text-purple-400 border border-purple-500/30'
+              }`}>
+                {faseJogo === 'rolagem_inicial' && '🎲 Rolagem Inicial'}
+                {faseJogo === 'rodada_em_andamento' && '⚔️ Em Jogo'}
+                {faseJogo === 'entre_rodadas' && '⏸️ Entre Rodadas'}
+                {faseJogo === 'aguardando_inicio' && '⏳ Aguardando'}
+              </span>
+            </div>
+          )}
+          
+          <div className="space-y-3">
+            {jogadoresParaExibir.length > 0 ? (
+              jogadoresParaExibir.map((jogador, index) => renderJogador(jogador, index))
+            ) : (
+              <div className="text-center py-8 text-purple-400">
+                <div className="text-2xl mb-2">👻</div>
+                <p className="text-sm">Aguardando jogadores...</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      
+      {/* Versão compacta quando colapsado */}
+      {!isExpanded && (
+        <div className="flex flex-col items-center space-y-2 mt-4">
+          {jogadoresParaExibir.slice(0, 3).map((jogador, index) => {
+            const ehTurnoAtual = turnoAtual === index;
+            return (
+              <div 
+                key={jogador.userId || index}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${
+                  ehTurnoAtual
+                    ? 'bg-gradient-to-r from-cyan-500 to-purple-500 animate-pulse ring-2 ring-cyan-500'
+                    : 'bg-gradient-to-r from-green-500 to-blue-500'
+                }`}
+                title={jogador.username}
+              >
+                {index + 1}
+              </div>
+            );
+          })}
+          {jogadoresParaExibir.length > 3 && (
+            <div className="text-purple-400 text-xs">+{jogadoresParaExibir.length - 3}</div>
+          )}
+        </div>
+      )}
+
+      {/* Legenda (só quando expandido e ordem definida) */}
+      {isExpanded && ordemJogadores.length > 0 && (
         <div className="mt-4 pt-4 border-t border-purple-500/20">
           <p className="text-purple-300 text-xs text-center mb-2">Legenda:</p>
           <div className="space-y-1 text-xs">

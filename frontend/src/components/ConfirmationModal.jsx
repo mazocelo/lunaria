@@ -3,15 +3,21 @@ import { useTheme } from '../contexts/theme.jsx';
 
 const ConfirmationModal = ({ 
     isOpen, 
-    onClose, 
+    onClose,
+    onCancel, // Aceitar ambas props para compatibilidade
     onConfirm, 
     title = "Confirmar Ação", 
     message = "Tem certeza que deseja realizar esta ação?",
     confirmText = "Confirmar",
     cancelText = "Cancelar",
     type = "danger",
+    variant, // Alias para type
     loading = false
 }) => {
+    // Usar onCancel se fornecido, senão usar onClose
+    const handleClose = onCancel || onClose;
+    // Usar variant se fornecido, senão usar type
+    const modalType = variant || type;
     const { theme } = useTheme();
     const isLight = theme === 'light';
 
@@ -47,14 +53,14 @@ const ConfirmationModal = ({
         }
     };
 
-    const currentType = typeClasses[type];
+    const currentType = typeClasses[modalType] || typeClasses['danger'];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={onClose}
+                onClick={handleClose}
             />
             
             {/* Modal */}
@@ -84,9 +90,9 @@ const ConfirmationModal = ({
                     {/* Actions */}
                     <div className="flex space-x-3 pt-4">
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             disabled={loading}
-                            className={`flex-1 px-4 py-2 rounded-lg font-modern transition-all duration-200 ${
+                            className={`flex-1 px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
                                 isLight 
                                     ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' 
                                     : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
@@ -97,7 +103,7 @@ const ConfirmationModal = ({
                         <button
                             onClick={onConfirm}
                             disabled={loading}
-                            className={`flex-1 px-4 py-2 rounded-lg font-modern transition-all duration-200 ${currentType.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`flex-1 px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${currentType.button} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {loading ? (
                                 <div className="flex items-center justify-center space-x-2">

@@ -1266,6 +1266,26 @@ class SocketManager {
 
       this.io.to(roomId).emit('resultado_dado_inicial', resultadoData);
 
+      // ✅ SALVAR MENSAGEM DE DADO ROLADO NO REDIS
+      const sessaoParaDado = await this.obterSessaoHistoria(roomId);
+      const mensagemDado = {
+        tipo: 'dado',
+        userId: resultadoData.userId,
+        username: resultadoData.username,
+        personagemNome: resultadoData.personagemNome,
+        mensagem: `🎲 Rolou ${resultadoData.valor}`,
+        valorDado: resultadoData.valor,
+        timestamp: Date.now()
+      };
+      
+      if (!sessaoParaDado.mensagens) {
+        sessaoParaDado.mensagens = [];
+      }
+      sessaoParaDado.mensagens.push(mensagemDado);
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaDado);
+      
+      console.log(`💬 Mensagem de dado salva no Redis: ${resultadoData.username} rolou ${resultadoData.valor}`);
+
       // Verificar se todos jogadores rolaram
       const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
       const estadoJogoAtualizado = sessaoAtualizada.estadoJogo || {};
@@ -1302,6 +1322,23 @@ class SocketManager {
           ordemJogadores,
           timestamp: Date.now()
         });
+
+        // ✅ SALVAR MENSAGEM DE ORDEM DEFINIDA NO REDIS
+        const mensagemOrdem = {
+          tipo: 'sistema',
+          userId: 'sistema',
+          username: 'Sistema',
+          mensagem: `Ordem de jogadores definida: ${ordemJogadores.map(j => j.username).join(', ')}`,
+          timestamp: Date.now()
+        };
+        
+        if (!sessaoComOrdem.mensagens) {
+          sessaoComOrdem.mensagens = [];
+        }
+        sessaoComOrdem.mensagens.push(mensagemOrdem);
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoComOrdem);
+        
+        console.log(`💬 Mensagem de ordem definida salva no Redis`);
 
         // Atualizar fase para rodada em andamento
         await this.gerenciadorSessoes.atualizarFaseJogo(roomId, 'rodada_em_andamento');
@@ -2408,6 +2445,24 @@ class SocketManager {
         rodada: rodadaAtual,
         timestamp: Date.now()
       });
+
+      // ✅ SALVAR MENSAGEM DE FIM DE RODADA NO REDIS
+      const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+      const mensagemRodada = {
+        tipo: 'entre_rodadas',
+        userId: 'sistema',
+        username: 'Sistema',
+        mensagem: `A rodada ${rodadaAtual} foi concluída. Preparando próxima rodada...`,
+        timestamp: Date.now()
+      };
+      
+      if (!sessaoAtualizada.mensagens) {
+        sessaoAtualizada.mensagens = [];
+      }
+      sessaoAtualizada.mensagens.push(mensagemRodada);
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+      
+      console.log(`💬 Mensagem de fim de rodada salva no Redis`);
 
       // Aguardar 5 segundos antes de iniciar nova rodada
       setTimeout(async () => {

@@ -640,6 +640,80 @@ class SessaoRPG {
       throw error;
     }
   }
+
+  /**
+   * Verificar se precisa gerar resumo
+   * @param {string} salaId - ID da sala
+   * @returns {Promise<boolean>} - True se precisa resumir
+   */
+  async precisaResumir(salaId) {
+    try {
+      const sessao = await this.obterSessao(salaId);
+      if (!sessao) return false;
+
+      const rodadas = sessao.estadoJogo?.rodadaAtual || 0;
+      const mensagens = (sessao.mensagens || []).length;
+      const ultimoResumoRodada = sessao.ultimoResumoRodada || 0;
+      const ultimoResumoMensagens = sessao.ultimoResumoMensagens || 0;
+
+      // A cada 5 rodadas OU a cada 25 mensagens
+      const precisaPorRodadas = rodadas > 0 && rodadas % 5 === 0 && rodadas > ultimoResumoRodada;
+      const precisaPorMensagens = mensagens >= 25 && mensagens - ultimoResumoMensagens >= 25;
+
+      return precisaPorRodadas || precisaPorMensagens;
+    } catch (error) {
+      console.error('Erro ao verificar se precisa resumir:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Salvar resumo na sessão
+   * @param {string} salaId - ID da sala
+   * @param {Object} resumo - Dados do resumo
+   * @returns {Promise<Object>} - Sessão atualizada
+   */
+  async salvarResumo(salaId, resumo) {
+    try {
+      const sessao = await this.obterSessao(salaId);
+      
+      if (!sessao.resumos) {
+        sessao.resumos = [];
+      }
+
+      sessao.resumos.push(resumo);
+      sessao.ultimoResumoRodada = sessao.estadoJogo?.rodadaAtual || 0;
+      sessao.ultimoResumoMensagens = (sessao.mensagens || []).length;
+      sessao.atualizadaEm = new Date().toISOString();
+
+      console.log(`📝 Resumo salvo - Rodada ${sessao.ultimoResumoRodada}, ${sessao.ultimoResumoMensagens} mensagens`);
+      
+      return await this.atualizarSessao(salaId, sessao);
+    } catch (error) {
+      console.error('Erro ao salvar resumo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obter último resumo
+   * @param {string} salaId - ID da sala
+   * @returns {Promise<Object|null>} - Último resumo ou null
+   */
+  async obterUltimoResumo(salaId) {
+    try {
+      const sessao = await this.obterSessao(salaId);
+      
+      if (!sessao || !sessao.resumos || sessao.resumos.length === 0) {
+        return null;
+      }
+
+      return sessao.resumos[sessao.resumos.length - 1];
+    } catch (error) {
+      console.error('Erro ao obter último resumo:', error);
+      return null;
+    }
+  }
 }
 
 // Instância singleton do gerenciador de sessões

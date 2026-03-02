@@ -421,6 +421,9 @@ router.put('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithCo
 // DELETE /:id - Excluir personagem (OWNER OU ADMIN)
 router.delete('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
 
+// PATCH /:id/restore - Restaurar personagem soft-deleted (OWNER OU ADMIN)
+router.patch('/:id/restore', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.restaurarPersonagem, personagemController));
+
 /**
  * @swagger
  * /api/personagens/{id}/background:

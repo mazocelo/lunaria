@@ -2,6 +2,21 @@ import { Server } from 'socket.io';
 import { createClient } from 'redis';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import criarMestreRPG from '../agents/Mestre/index.js';
+import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.js';
+import { formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
+import db from '../Model/index.js';
+import {
+  calcularStatsEfetivos,
+  calcularHP,
+  calcularCA,
+  verificarAcerto,
+  calcularDano,
+  rolarDado,
+  selecionarHabilidadeMonstro,
+  gerarInstanciasCombate,
+  verificarFimCombate,
+  formatarContextoCombate
+} from '../helpers/combateHelper.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -13,6 +28,7 @@ class SocketManager {
     this.gerenciadorSessoes = gerenciadorSessoes;
     this.connectedUsers = new Map(); // userId -> socket
     this.roomUsers = new Map(); // roomId -> Set of userIds
+    this.mestresCache = new Map(); // salaId -> { mestre, criadoEm, ultimoUso, rodadaInicial }
   }
 
   /**
@@ -44,6 +60,11 @@ class SocketManager {
 
     // Configurar eventos
     this.setupEventHandlers();
+
+    // Timer para limpar cache de mestres a cada 10 minutos
+    setInterval(() => {
+      this.limparCacheMestres();
+    }, 600000);
 
     console.log('✅ WebSocket inicializado com sucesso');
   }
@@ -257,6 +278,23 @@ class SocketManager {
           await this.handleIniciarTurno(socket, data);
         } catch (error) {
           this.log('ERROR', 'INICIAR_TURNO_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
+          });
+        }
+      });
+
+      // Evento de solicitar rolagem de dados
+      socket.on('solicitar_dados', async (data) => {
+        this.log('INFO', 'SOLICITAR_DADOS_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          motivo: data?.motivo,
+          tipoTeste: data?.tipoTeste
+        });
+        try {
+          await this.handleSolicitarDados(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'SOLICITAR_DADOS_FAILED', socket.id, socket.userId, {
             error: error.message,
             stack: error.stack
           });
@@ -527,6 +565,9 @@ class SocketManager {
         await this.handleLeaveRoom(socket, { roomId: socket.currentRoom });
       }
 
+      // ✅ Declarar sessao fora do bloco para uso posterior
+      let sessao = null;
+      
       // Verificar se é uma sala de história
       if (roomId.startsWith('historia_')) {
         this.log('INFO', 'JOIN_ROOM_HISTORIA_TYPE', socket.id, userId, {
@@ -535,7 +576,7 @@ class SocketManager {
         });
 
         // Obter ou criar sessão da história (isso também valida se a história existe)
-        const sessao = await this.obterSessaoHistoria(roomId);
+        sessao = await this.obterSessaoHistoria(roomId);
         
         if (!sessao) {
           this.log('ERROR', 'JOIN_ROOM_SESSAO_NOT_FOUND', socket.id, userId, {
@@ -558,13 +599,14 @@ class SocketManager {
           donoId: sessao.donoId
         });
 
-        // Se a sessão foi iniciada, bloquear entrada de novos usuários
-        if (sessao.status === 'iniciada') {
+        // ✅ VALIDAR ENTRADA BASEADO EM statusJogo
+        if (sessao.statusJogo === 'iniciado') {
           // Verificar se o usuário está no mapa de jogadores (participou do início)
           const estaNoMapaJogadores = sessao.jogadores && sessao.jogadores[String(userId)];
           
           this.log('INFO', 'JOIN_ROOM_AVENTURA_INICIADA_CHECK', socket.id, userId, {
             sessaoStatus: sessao.status,
+            statusJogo: sessao.statusJogo,
             userId: userId,
             userIdTipo: typeof userId,
             estaNoMapaJogadores: !!estaNoMapaJogadores,
@@ -573,18 +615,19 @@ class SocketManager {
           });
           
           if (!estaNoMapaJogadores) {
-            this.log('ERROR', 'JOIN_ROOM_AVENTURA_INICIADA_BLOCKED', socket.id, userId, {
+            this.log('ERROR', 'JOIN_ROOM_JOGO_INICIADO_BLOCKED', socket.id, userId, {
               roomId: roomId,
               sessaoStatus: sessao.status,
-              motivo: 'Usuário não está no mapa de jogadores'
+              statusJogo: sessao.statusJogo,
+              motivo: 'O jogo já iniciou - usuário não está no mapa de jogadores'
             });
             socket.emit('error', { 
-              message: 'A aventura já foi iniciada. Não é possível entrar agora.',
-              code: 'AVENTURA_INICIADA'
+              message: 'O jogo já foi iniciado. Não é possível entrar agora.',
+              code: 'JOGO_INICIADO'
             });
             return;
           } else {
-            console.log('✅ Permitindo reconexão de jogador existente na sessão iniciada:', {
+            console.log('✅ Permitindo reconexão de jogador existente no jogo iniciado:', {
               userId,
               username: socket.username,
               personagem: estaNoMapaJogadores.personagemNome
@@ -592,8 +635,27 @@ class SocketManager {
             this.log('INFO', 'JOIN_ROOM_RECONNECTION_ALLOWED', socket.id, userId, {
               username: username,
               sessaoStatus: sessao.status,
+              statusJogo: sessao.statusJogo,
               personagem: estaNoMapaJogadores.personagemNome
             });
+          }
+        }
+        
+        // ✅ VALIDAÇÃO EXTRA: Bloquear entrada se status antigo 'iniciada' mas sem statusJogo
+        if (sessao.status === 'iniciada' && !sessao.statusJogo) {
+          // Sessão antiga sem statusJogo - tratar como iniciado
+          const estaNoMapaJogadores = sessao.jogadores && sessao.jogadores[String(userId)];
+          
+          if (!estaNoMapaJogadores) {
+            this.log('WARN', 'JOIN_ROOM_SESSAO_ANTIGA_BLOCKED', socket.id, userId, {
+              roomId: roomId,
+              motivo: 'Sessão antiga (sem statusJogo) mas status=iniciada'
+            });
+            socket.emit('error', { 
+              message: 'A aventura já foi iniciada. Não é possível entrar agora.',
+              code: 'AVENTURA_INICIADA'
+            });
+            return;
           }
         }
         
@@ -658,11 +720,14 @@ class SocketManager {
       let isGuest = false;
       
       if (roomId.startsWith('historia_')) {
-        // Buscar sessão se já não estiver disponível neste escopo
-        const sessaoParaDeteccao = await this.obterSessaoHistoria(roomId);
+        // ✅ USAR SESSÃO JÁ OBTIDA ao invés de buscar novamente (prevenir loop)
+        const sessaoParaDeteccao = sessao; // Reusar sessão da linha 563
         if (sessaoParaDeteccao) {
           isOwner = sessaoParaDeteccao.donoId === userId;
           isGuest = !isOwner && !wasAlreadyInRoom;
+          
+          // ✅ Log do status atual para debugging
+          console.log(`📊 Status da sala: ${sessaoParaDeteccao.statusJogo || 'null'} | Status sessão: ${sessaoParaDeteccao.status}`);
         }
       }
 
@@ -1122,6 +1187,8 @@ class SocketManager {
    * Handler para rolagem de dados
    */
   async handleDiceRoll(socket, data) {
+    const startTime = Date.now();
+    
     try {
       const { 
         roomId: rawRoomId, 
@@ -1145,6 +1212,11 @@ class SocketManager {
       const result = String(rawResult);
       const description = rawDescription ? String(rawDescription) : null;
 
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        return socket.emit('error', { message: 'Sessão não encontrada' });
+      }
+
       const rollData = {
         id: Date.now().toString(),
         userId,
@@ -1153,21 +1225,134 @@ class SocketManager {
         result,
         description,
         roomId,
-        timestamp: Date.now().toString()
+        timestamp: Date.now()
       };
 
-      // Salvar rolagem na sessão unificada
+      // 1. Salvar rolagem na sessão unificada
       if (roomId.startsWith('historia_')) {
         await this.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
       }
 
-      // Enviar para todos na sala
+      // ✅ 1.5. SALVAR MENSAGEM DE DADO NO REDIS
+      const mensagemDado = {
+        tipo: 'dado',
+        userId,
+        username,
+        dice,
+        result,
+        description,
+        timestamp: Date.now()
+      };
+
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+      sessao.mensagens.push(mensagemDado);
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      console.log(`💬 Mensagem de dado salva no Redis: ${username} rolou ${dice} = ${result}`);
+
+      // 2. Broadcast do resultado do dado para todos
       this.io.to(roomId).emit('dice_roll', rollData);
 
       console.log(`🎲 ${username} rolou ${dice}: ${result} (sala ${roomId})`);
 
+      // 3. ✅ VERIFICAR SE MESTRE SOLICITOU DADOS (só processar se solicitou)
+      const estadoJogo = sessao.estadoJogo || {};
+      const dadosSolicitados = estadoJogo.dadosSolicitados || false;
+      
+      if (dadosSolicitados) {
+        console.log('✅ Dados foram solicitados pelo Mestre, processando com IA...');
+        
+        // ENVIAR RESULTADO PARA O MESTRE PROCESSAR (COM FALLBACK)
+        try {
+          const personagem = sessao.jogadores?.[userId];
+          const personagemNome = personagem?.personagemNome || username;
+
+          const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao);
+
+          const interpretacao = await mestre.narrarAcao({
+            jogador: username,
+            personagem: personagemNome,
+            acao: `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`,
+            chatHistory: sessao.mensagens || []
+          });
+
+          // Salvar interpretação do Mestre
+          if (!sessao.mensagens) {
+            sessao.mensagens = [];
+          }
+          
+          sessao.mensagens.push({
+            tipo: 'mestre',
+            userId: 'mestre',
+            username: 'Mestre',
+            mensagem: interpretacao.narracao,
+            timestamp: Date.now()
+          });
+
+          // ✅ Limpar flag de dados solicitados
+          estadoJogo.dadosSolicitados = false;
+          sessao.estadoJogo = estadoJogo;
+          
+          await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+          // Enviar interpretação do Mestre
+          this.io.to(roomId).emit('mensagem_mestre', {
+            id: (Date.now() + 1).toString(),
+            userId: 'mestre',
+            username: 'Mestre',
+            message: interpretacao.narracao,
+            tipo: 'mestre',
+            timestamp: Date.now()
+          });
+
+          console.log(`✅ Resultado do dado processado pelo Mestre`);
+        } catch (errorIA) {
+          console.error('❌ Erro ao processar dado com Mestre IA:', errorIA);
+          
+          // ✅ FALLBACK: Mensagem simples sem IA
+          const personagem = sessao.jogadores?.[userId];
+          const personagemNome = personagem?.personagemNome || username;
+          
+          const mensagemFallback = {
+            tipo: 'mestre',
+            userId: 'mestre',
+            username: 'Mestre',
+            mensagem: `${personagemNome} rolou ${dice} e obteve **${result}**${description ? ` para ${description}` : ''}. Continue a aventura!`,
+            timestamp: Date.now()
+          };
+          
+          if (!sessao.mensagens) {
+            sessao.mensagens = [];
+          }
+          sessao.mensagens.push(mensagemFallback);
+          
+          // ✅ Limpar flag mesmo com erro
+          estadoJogo.dadosSolicitados = false;
+          sessao.estadoJogo = estadoJogo;
+          
+          await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+          
+          this.io.to(roomId).emit('mensagem_mestre', {
+            id: (Date.now() + 1).toString(),
+            userId: 'mestre',
+            username: 'Mestre',
+            message: mensagemFallback.mensagem,
+            tipo: 'mestre',
+            timestamp: Date.now()
+          });
+          
+          console.log(`✅ Resultado do dado processado com mensagem fallback (IA falhou)`);
+        }
+      } else {
+        console.log('ℹ️ Dados rolados sem solicitação do Mestre - apenas broadcast do resultado');
+        // Apenas salvar mensagem de dado (sem processar com IA)
+        // Mensagem já foi salva acima (linha ~1220)
+      }
+
     } catch (error) {
-      console.error('❌ Erro ao processar rolagem:', error);
+      console.error('❌ Erro ao processar dice_roll:', error);
       socket.emit('error', { message: 'Erro ao processar rolagem' });
     }
   }
@@ -1473,34 +1658,77 @@ class SocketManager {
       // 3. Obter histórico de mensagens
       const historico = sessao.mensagens || [];
 
+      // ✅ Obter último resumo se disponível
+      const resumoMaisRecente = await this.gerenciadorSessoes.obterUltimoResumo(roomId);
+
       // 3. Criar instância do Mestre com temas e personagens da história
       this.log('INFO', 'MENSAGEM_PARA_MESTRE_CREATING_MESTRE', socket.id, userId, {
         temas: sessao.historiaTemas,
-        jogadoresCount: sessao.jogadoresConectados?.length || 0
+        jogadoresCount: sessao.jogadoresConectados?.length || 0,
+        temResumo: !!resumoMaisRecente
       });
 
-      const mestre = await criarMestreRPG(
+      // Obter Mestre (com cache)
+      const mestre = await this.obterMestre(
+        roomId,
         sessao.historiaTemas || [],
-        sessao.jogadoresConectados || []
+        sessao
       );
 
-      // 4. Narrar ação do jogador
+      // 4. Injetar contexto de combate na ação (se combate ativo)
+      let acaoComContexto = mensagem;
+      const combateAtivo = estadoJogo.combate?.ativo;
+      if (combateAtivo) {
+        const contextoCombate = formatarContextoCombate(estadoJogo.combate, userId);
+        acaoComContexto = `${contextoCombate}\nAção do jogador: "${mensagem}"`;
+        this.log('INFO', 'MENSAGEM_PARA_MESTRE_COMBATE_CONTEXTO', socket.id, userId, {
+          roomId,
+          monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length
+        });
+      }
+
+      // 5. Narrar ação do jogador (COM FALLBACK SE IA FALHAR)
       this.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {
         jogador: username,
         personagem: personagem.nome,
-        historicoLength: historico.length
+        historicoLength: historico.length,
+        usandoResumo: !!resumoMaisRecente,
+        combateAtivo: !!combateAtivo
       });
 
-      const resposta = await mestre.narrarAcao({
-        jogador: username,
-        personagem: personagem.nome,
-        acao: mensagem,
-        chatHistory: historico
-      });
+      let resposta;
+      try {
+        resposta = await mestre.narrarAcao({
+          jogador: username,
+          personagem: personagem.nome,
+          acao: acaoComContexto,
+          chatHistory: historico,
+          resumo: resumoMaisRecente?.resumo || null
+        });
 
-      this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_IA_RESPONDED', socket.id, userId, {
-        narracaoLength: resposta.narracao?.length || 0
-      });
+        this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_IA_RESPONDED', socket.id, userId, {
+          narracaoLength: resposta.narracao?.length || 0
+        });
+      } catch (errorIA) {
+        console.error('❌ Erro na IA ao narrar ação:', errorIA);
+        
+        this.log('ERROR', 'MENSAGEM_PARA_MESTRE_IA_FAILED', socket.id, userId, {
+          error: errorIA.message,
+          stack: errorIA.stack
+        });
+        
+        // ✅ FALLBACK: Resposta simples
+        resposta = {
+          narracao: `**${personagem.nome}** ${mensagem}.\n\nO que acontece a seguir?`,
+          fimDeTurno: false,
+          solicitaDados: { solicita: false },
+          acaoCompleta: false
+        };
+        
+        this.log('INFO', 'MENSAGEM_PARA_MESTRE_USANDO_FALLBACK', socket.id, userId, {
+          mensagemFallback: resposta.narracao
+        });
+      }
 
       // 5. Salvar mensagem do jogador na sessão
       const mensagemJogador = {
@@ -1558,6 +1786,80 @@ class SocketManager {
         timestamp: Date.now() + 1
       });
 
+      // ✅ DETECTAR INICIO DE COMBATE (VIA JSON da IA)
+      if (resposta.combate?.iniciado && !combateAtivo) {
+        this.log('INFO', 'COMBATE_DETECTADO_PELA_IA', socket.id, userId, {
+          roomId,
+          monstros: resposta.combate.monstros,
+          motivo: resposta.combate.motivo,
+          dificuldade: resposta.combate.dificuldade
+        });
+        await this.iniciarCombate(roomId, resposta.combate, sessao, userId);
+      }
+
+      // ✅ PROCESSAR AÇÃO DE COMBATE (se combate já ativo)
+      if (combateAtivo) {
+        await this.processarAcaoCombate(roomId, userId, username, personagem, mensagem, resposta, sessao);
+      }
+
+      // ✅ DETECTAR FUGA DE COMBATE
+      if (combateAtivo && resposta.combate?.fuga) {
+        await this.finalizarCombate(roomId, 'fuga');
+      }
+
+      // ✅ DETECTAR SE MESTRE SOLICITOU ROLAGEM DE DADOS (VIA JSON)
+      const solicitouDados = resposta.solicitaDados?.solicita || false;
+
+      if (solicitouDados) {
+        this.log('INFO', 'MENSAGEM_PARA_MESTRE_DADOS_SOLICITADOS_JSON', socket.id, userId, {
+          roomId,
+          teste: resposta.solicitaDados.teste,
+          tipo: resposta.solicitaDados.tipo,
+          dificuldade: resposta.solicitaDados.dificuldade
+        });
+        console.log('🎲 Mestre solicitou dados (JSON):', resposta.solicitaDados);
+        
+        // ✅ MARCAR QUE DADOS FORAM SOLICITADOS (para handleDiceRoll saber)
+        const estadoJogoAtual = sessao.estadoJogo || {};
+        estadoJogoAtual.dadosSolicitados = true;
+        sessao.estadoJogo = estadoJogoAtual;
+        
+        // ✅ SALVAR MENSAGEM DE AGUARDANDO DADOS NO REDIS
+        const mensagemAguardando = {
+          tipo: 'aguardando_dados',
+          userId: 'sistema',
+          username: 'Sistema',
+          mensagem: `⏳ Aguardando ${username} rolar ${resposta.solicitaDados.tipo} para ${resposta.solicitaDados.teste}`,
+          jogadorAguardando: username,
+          dadoSolicitado: resposta.solicitaDados.tipo,
+          teste: resposta.solicitaDados.teste,
+          timestamp: Date.now()
+        };
+        
+        sessao.mensagens.push(mensagemAguardando);
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        
+        console.log(`💬 Mensagem de aguardando dados salva no Redis + flag dadosSolicitados = true`);
+        
+        // Emitir evento com mais informações
+        this.io.to(roomId).emit('mestre_solicita_dados', {
+          narrativa: resposta.narracao,
+          tipoDado: resposta.solicitaDados.tipo,
+          teste: resposta.solicitaDados.teste,
+          dificuldade: resposta.solicitaDados.dificuldade,
+          timestamp: Date.now()
+        });
+      } else {
+        // ✅ GARANTIR QUE FLAG É LIMPA quando Mestre NÃO solicita dados
+        const estadoJogoAtual = sessao.estadoJogo || {};
+        if (estadoJogoAtual.dadosSolicitados) {
+          estadoJogoAtual.dadosSolicitados = false;
+          sessao.estadoJogo = estadoJogoAtual;
+          await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+          console.log(`🔄 Flag dadosSolicitados limpa (Mestre não solicitou)`);
+        }
+      }
+
       // 10. CONTROLE DE TURNOS: Incrementar contador e verificar se deve avançar
       if (fase === 'rodada_em_andamento') {
         const contador = await this.gerenciadorSessoes.incrementarContadorMensagensTurno(roomId);
@@ -1567,18 +1869,41 @@ class SocketManager {
           contadorAtual: contador
         });
         
-        // Se atingiu o limite de mensagens (2-3), avançar turno
-        if (contador >= 2) {
+        // ✅ Detectar se Mestre sinalizou fim de turno (VIA JSON)
+        const mestreSinalizouFim = resposta.fimDeTurno || false;
+        
+        if (mestreSinalizouFim) {
+          console.log(`🎭 Mestre sinalizou fim de turno via JSON (fimDeTurno: true)`);
+          
+          // ✅ Aguardar 500ms antes de emitir evento (dar tempo para mensagem chegar no front)
+          setTimeout(() => {
+            this.io.to(roomId).emit('mestre_finalizou_turno', {
+              jogador: username,
+              contador: contador,
+              timestamp: Date.now()
+            });
+            console.log('✅ Evento mestre_finalizou_turno emitido após 500ms');
+          }, 500);
+        }
+        
+        // ✅ Avançar se: Mestre sinalizou OU atingiu limite flexível (4 mensagens)
+        if (mestreSinalizouFim || contador >= 4) {
+          const motivo = mestreSinalizouFim ? 'mestre_sinalizou' : 'limite_atingido';
+          
           this.log('INFO', 'MENSAGEM_PARA_MESTRE_FIM_TURNO', socket.id, userId, {
             roomId,
             contador,
+            motivo,
             jogador: username
           });
           
-          // Aguardar 2 segundos antes de avançar turno (para dar tempo de ler)
+          console.log(`🏁 Fim de turno detectado (${motivo}) - Aguardando 500ms para avançar`);
+          
+          // ✅ Aguardar 500ms antes de avançar turno
           setTimeout(async () => {
             await this.avancarProximoTurno(roomId);
-          }, 2000);
+            console.log('✅ Turno avançado após 500ms');
+          }, 500);
         }
       }
 
@@ -1800,10 +2125,11 @@ class SocketManager {
         jogador: username
       });
 
-      // Criar instância do Mestre
-      const mestre = await criarMestreRPG(
+      // Obter Mestre (com cache)
+      const mestre = await this.obterMestre(
+        roomId,
         sessao.historiaTemas || [],
-        sessao.jogadoresConectados || []
+        sessao
       );
 
       this.log('INFO', 'INICIAR_TURNO_GERANDO_MENSAGEM_MESTRE', socket.id, userId, {
@@ -1811,20 +2137,39 @@ class SocketManager {
         personagem: jogadorDaVez.personagemNome
       });
 
-      // Gerar mensagem inicial do Mestre para o jogador
-      const mensagemInicial = await mestre.narrarTurnoJogador({
-        jogador: username,
-        personagem: jogadorDaVez.personagemNome || username,
-        mensagem: `Iniciar turno de ${jogadorDaVez.personagemNome || username}`,
-        rodada: estadoJogo.rodadaAtual || 1,
-        turno: turnoAtual,
-        contadorMensagens: 0,
-        chatHistory: sessao.mensagens || []
-      });
+      // Gerar mensagem inicial do Mestre para o jogador (COM FALLBACK)
+      let mensagemInicial;
+      try {
+        mensagemInicial = await mestre.narrarTurnoJogador({
+          jogador: username,
+          personagem: jogadorDaVez.personagemNome || username,
+          mensagem: `Iniciar turno de ${jogadorDaVez.personagemNome || username}`,
+          rodada: estadoJogo.rodadaAtual || 1,
+          turno: turnoAtual,
+          contadorMensagens: 0,
+          chatHistory: sessao.mensagens || []
+        });
 
-      this.log('SUCCESS', 'INICIAR_TURNO_MENSAGEM_GERADA', socket.id, userId, {
-        respostaLength: mensagemInicial.resposta?.length || 0
-      });
+        this.log('SUCCESS', 'INICIAR_TURNO_MENSAGEM_GERADA', socket.id, userId, {
+          respostaLength: mensagemInicial.resposta?.length || 0
+        });
+      } catch (errorIA) {
+        console.error('❌ Erro na IA ao iniciar turno:', errorIA);
+        
+        this.log('ERROR', 'INICIAR_TURNO_IA_FAILED', socket.id, userId, {
+          error: errorIA.message,
+          stack: errorIA.stack
+        });
+        
+        // ✅ FALLBACK: Mensagem simples
+        mensagemInicial = {
+          resposta: `E agora, **${jogadorDaVez.personagemNome || username}**, o que você faz?`
+        };
+        
+        this.log('INFO', 'INICIAR_TURNO_USANDO_FALLBACK', socket.id, userId, {
+          mensagemFallback: mensagemInicial.resposta
+        });
+      }
 
       // Salvar mensagem do Mestre
       if (!sessao.mensagens) {
@@ -1883,6 +2228,112 @@ class SocketManager {
         processingTimeMs: processingTime
       });
       socket.emit('error', { message: 'Erro ao iniciar turno' });
+    }
+  }
+
+  /**
+   * Handler para Mestre solicitar rolagem de dados
+   */
+  async handleSolicitarDados(socket, data) {
+    const startTime = Date.now();
+    this.log('INFO', 'SOLICITAR_DADOS_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: data
+    });
+
+    try {
+      const { roomId, motivo, tipoTeste, dificuldade, jogadores } = data || {};
+
+      if (!roomId || !motivo) {
+        this.log('ERROR', 'SOLICITAR_DADOS_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !roomId,
+            motivo: !motivo
+          }
+        });
+        return socket.emit('error', { message: 'roomId e motivo são obrigatórios' });
+      }
+
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        this.log('ERROR', 'SOLICITAR_DADOS_SESSAO_NOT_FOUND', socket.id, socket.userId, {
+          roomId
+        });
+        return socket.emit('error', { message: 'Sessão não encontrada' });
+      }
+
+      this.log('INFO', 'SOLICITAR_DADOS_OBTENDO_MESTRE', socket.id, socket.userId, {
+        roomId
+      });
+
+      // Obter mestre com cache
+      const mestre = await this.obterMestre(
+        roomId, 
+        sessao.historiaTemas || [], 
+        sessao.jogadoresConectados || []
+      );
+
+      this.log('INFO', 'SOLICITAR_DADOS_GERANDO_NARRATIVA', socket.id, socket.userId, {
+        motivo,
+        tipoTeste: tipoTeste || 'd20'
+      });
+
+      const solicitacao = await mestre.solicitarRolagemDados({
+        motivo,
+        tipoTeste: tipoTeste || 'd20',
+        dificuldade: dificuldade || 'Média',
+        jogadores: jogadores || [],
+        chatHistory: sessao.mensagens || []
+      });
+
+      this.log('SUCCESS', 'SOLICITAR_DADOS_NARRATIVA_GERADA', socket.id, socket.userId, {
+        narrativaLength: solicitacao.narrativa?.length || 0
+      });
+
+      // Salvar mensagem do Mestre no Redis
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+
+      sessao.mensagens.push({
+        tipo: 'solicitacao_dados',
+        userId: 'mestre',
+        username: 'Mestre',
+        mensagem: solicitacao.narrativa,
+        tipoTeste: solicitacao.tipoTeste,
+        dificuldade: solicitacao.dificuldade,
+        timestamp: Date.now()
+      });
+
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      this.log('SUCCESS', 'SOLICITAR_DADOS_SESSAO_UPDATED', socket.id, socket.userId, {
+        roomId
+      });
+
+      // Emitir para todos na sala
+      this.io.to(roomId).emit('solicitacao_dados', {
+        narrativa: solicitacao.narrativa,
+        tipoTeste: solicitacao.tipoTeste,
+        dificuldade: solicitacao.dificuldade,
+        jogadores: solicitacao.jogadores,
+        timestamp: Date.now()
+      });
+
+      const processingTime = Date.now() - startTime;
+      this.log('SUCCESS', 'SOLICITAR_DADOS_COMPLETED', socket.id, socket.userId, {
+        roomId,
+        processingTimeMs: processingTime
+      });
+
+      console.log(`🎲 Solicitação de dados enviada para sala ${roomId}`);
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.log('ERROR', 'SOLICITAR_DADOS_ERROR', socket.id, socket.userId, {
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime
+      });
+      socket.emit('error', { message: 'Erro ao solicitar dados' });
     }
   }
 
@@ -2166,16 +2617,21 @@ class SocketManager {
         }
       }
 
+      // Buscar temas completos antes de criar sessão
+      const temasCompletos = await buscarTemasCompletos(historia.temas || []);
+      console.log(`🎨 Temas completos para sessão:`, temasCompletos);
+      
       // Criar dados da sessão
       const dadosSessao = {
         historiaId: historia.id,
         historiaNome: historia.nome,
-        historiaTemas: historia.temas || [],
+        historiaTemas: temasCompletos, // Salvar temas completos (id + nome)
         historiaPrologo: historia.prologo || '',
         donoId: historia.id_usuario ? String(historia.id_usuario) : null,
         donoNome: donoNome,
         maxJogadores: historia.maximo_de_participantes || 5,
-        status: 'aberta', // Status inicial
+        status: 'aberta', // Status inicial (sessão criada mas ninguém entrou)
+        statusJogo: null, // ✅ NOVO: null = ninguém entrou ainda
         jogadoresConectados: [], // Lista vazia inicialmente
         estadoJogo: {
           fase: 'preparacao',
@@ -2238,10 +2694,31 @@ class SocketManager {
             // Adicionar novo jogador com dados completos
             jogadoresAtuais.push(dadosJogador);
             sessao.jogadoresConectados = jogadoresAtuais;
+            
+            // ✅ ATUALIZAR statusJogo baseado na quantidade de jogadores
+            const statusAnterior = sessao.statusJogo;
+            if (jogadoresAtuais.length === 1) {
+              sessao.statusJogo = 'esperando'; // Primeiro jogador entrou
+              console.log(`🎮 Primeiro jogador entrou, status: esperando`);
+            } else if (jogadoresAtuais.length > 1) {
+              sessao.statusJogo = 'esperando'; // Mais jogadores, ainda esperando
+              console.log(`🎮 ${jogadoresAtuais.length} jogadores esperando`);
+            }
+            
             sessao.atualizadaEm = new Date().toISOString();
             
             await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
             console.log(`👤 Jogador ${dadosJogador.username} adicionado à sessão ${salaId}`);
+            
+            // ✅ EMITIR EVENTO DE MUDANÇA DE STATUS
+            if (statusAnterior !== sessao.statusJogo && this.io) {
+              this.io.to(salaId).emit('status_jogo_alterado', {
+                statusJogo: sessao.statusJogo,
+                totalJogadores: jogadoresAtuais.length,
+                timestamp: Date.now()
+              });
+              console.log(`📢 Evento status_jogo_alterado emitido: ${statusAnterior} → ${sessao.statusJogo}`);
+            }
           } else {
             // Atualizar dados do jogador existente (reconexão)
             Object.assign(jaExiste, dadosJogador);
@@ -2382,11 +2859,18 @@ class SocketManager {
       const turnoAtual = estadoJogo.turnoAtual || 0;
       const ordemJogadores = estadoJogo.ordemJogadores || [];
 
+      // ✅ JOGO SOLO: Se só 1 jogador, apenas resetar contador
+      if (ordemJogadores.length === 1) {
+        console.log(`🔄 Jogo solo detectado: resetando contador para continuar`);
+        estadoJogo.contadorMensagensTurno = 0;
+        estadoJogo.turnoIniciado = false; // Permitir re-iniciar turno
+        await this.gerenciadorSessoes.atualizarSessao(roomId, { estadoJogo });
+        return; // Não avançar turno (não há próximo jogador)
+      }
+
       // Resetar flag de turno iniciado ao avançar
       estadoJogo.turnoIniciado = false;
-
-      // Avançar turno no Redis
-      await this.gerenciadorSessoes.avancarTurno(roomId);
+      estadoJogo.contadorMensagensTurno = 0; // Resetar contador
 
       const proximoTurno = turnoAtual + 1;
 
@@ -2398,10 +2882,33 @@ class SocketManager {
       }
 
       const proximoJogador = ordemJogadores[proximoTurno];
+      const jogadorAnterior = ordemJogadores[turnoAtual];
       
       console.log(`⏭️ Avançando para turno ${proximoTurno} - ${proximoJogador.username} na sala ${roomId}`);
 
-      // Emitir evento de mudança de turno
+      // ✅ 1. SALVAR MENSAGEM DE TRANSIÇÃO PRIMEIRO (antes de avançar turno)
+      if (!sessao.mensagens) {
+        sessao.mensagens = [];
+      }
+      
+      sessao.mensagens.push({
+        tipo: 'transicao_turno',
+        userId: 'sistema',
+        username: 'Sistema',
+        mensagem: `🏁 Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
+        timestamp: Date.now()
+      });
+
+      // ✅ 2. ATUALIZAR ESTADO DO JOGO (avançar turno)
+      estadoJogo.turnoAtual = proximoTurno;
+      sessao.estadoJogo = estadoJogo;
+      
+      // ✅ 3. SALVAR TUDO DE UMA VEZ NO REDIS
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      console.log(`💾 Turno ${proximoTurno} e mensagem de transição salvos no Redis`);
+
+      // ✅ 4. EMITIR EVENTO DE MUDANÇA DE TURNO
       this.io.to(roomId).emit('turno_alterado', {
         rodadaAtual: estadoJogo.rodadaAtual || 1,
         turnoAtual: proximoTurno,
@@ -2429,6 +2936,7 @@ class SocketManager {
 
       const estadoJogo = sessao.estadoJogo || {};
       const rodadaAtual = estadoJogo.rodadaAtual || 1;
+      const proximaRodada = rodadaAtual + 1;
 
       console.log(`🏁 Finalizando rodada ${rodadaAtual} na sala ${roomId}`);
 
@@ -2446,23 +2954,100 @@ class SocketManager {
         timestamp: Date.now()
       });
 
-      // ✅ SALVAR MENSAGEM DE FIM DE RODADA NO REDIS
-      const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
-      const mensagemRodada = {
-        tipo: 'entre_rodadas',
-        userId: 'sistema',
-        username: 'Sistema',
-        mensagem: `A rodada ${rodadaAtual} foi concluída. Preparando próxima rodada...`,
-        timestamp: Date.now()
-      };
-      
-      if (!sessaoAtualizada.mensagens) {
-        sessaoAtualizada.mensagens = [];
+      // Coletar resumo das ações da rodada
+      const historicoTurnos = estadoJogo.historicoTurnos || [];
+      const acoesRodada = historicoTurnos
+        .filter(t => t.rodada === rodadaAtual)
+        .map(t => `${t.personagem || t.username}: ${t.acao || t.resumo || 'Ação realizada'}`);
+
+      console.log(`📝 Coletadas ${acoesRodada.length} ações da rodada ${rodadaAtual}`);
+
+      // Gerar narrativa do Mestre entre rodadas
+      try {
+        console.log(`🎭 Gerando narrativa entre rodadas ${rodadaAtual} → ${proximaRodada}...`);
+        
+        // Obter Mestre (com cache)
+        const mestre = await this.obterMestre(
+          roomId,
+          sessao.historiaTemas || [],
+          sessao.jogadoresConectados || []
+        );
+
+        const narrativa = await mestre.narrarEntreRodadas({
+          rodadaAnterior: rodadaAtual,
+          proximaRodada: proximaRodada,
+          resumoAcoes: acoesRodada,
+          chatHistory: sessao.mensagens || []
+        });
+
+        console.log(`✅ Narrativa entre rodadas gerada com sucesso`);
+
+        // ✅ VERIFICAR SE PRECISA GERAR RESUMO
+        const precisaResumir = await this.gerenciadorSessoes.precisaResumir(roomId);
+
+        if (precisaResumir) {
+          console.log(`📝 Gerando resumo automático da aventura...`);
+          
+          try {
+            const resumoAgent = (await import('../agents/Resumo/index.js')).default;
+            const sessaoParaResumo = await this.obterSessaoHistoria(roomId);
+            
+            const resumo = await resumoAgent.resumirAventura({
+              mensagens: sessaoParaResumo.mensagens || [],
+              temas: extrairNomesTemas(sessaoParaResumo.historiaTemas || []),
+              personagens: Object.values(sessaoParaResumo.jogadores || {}),
+              rodadasJogadas: rodadaAtual
+            });
+
+            await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
+            
+            console.log(`✅ Resumo gerado e salvo (${resumo.mensagensResumiadas} msgs resumidas)`);
+            
+            // ✅ INVALIDAR CACHE DO MESTRE APÓS RESUMO
+            this.invalidarMestreSeNecessario(roomId, proximaRodada);
+          } catch (error) {
+            console.error(`❌ Erro ao gerar resumo:`, error);
+          }
+        }
+
+        // Salvar narrativa do Mestre no Redis
+        const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+        const mensagemMestre = {
+          tipo: 'entre_rodadas',
+          userId: 'mestre',
+          username: 'Mestre',
+          mensagem: narrativa.narrativa || narrativa.novoDesafio,
+          rodadaAnterior: rodadaAtual,
+          proximaRodada: proximaRodada,
+          timestamp: Date.now()
+        };
+
+        if (!sessaoAtualizada.mensagens) {
+          sessaoAtualizada.mensagens = [];
+        }
+        sessaoAtualizada.mensagens.push(mensagemMestre);
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+
+        console.log(`💬 Narrativa entre rodadas salva no Redis (será carregada via HTTP pelo frontend)`);
+      } catch (error) {
+        console.error(`❌ Erro ao gerar narrativa entre rodadas:`, error);
+        
+        // Fallback: mensagem simples se a IA falhar
+        const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+        const mensagemFallback = {
+          tipo: 'entre_rodadas',
+          userId: 'sistema',
+          username: 'Sistema',
+          mensagem: `A rodada ${rodadaAtual} foi concluída. Preparando rodada ${proximaRodada}...`,
+          timestamp: Date.now()
+        };
+        
+        if (!sessaoAtualizada.mensagens) {
+          sessaoAtualizada.mensagens = [];
+        }
+        sessaoAtualizada.mensagens.push(mensagemFallback);
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
       }
-      sessaoAtualizada.mensagens.push(mensagemRodada);
-      await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
-      
-      console.log(`💬 Mensagem de fim de rodada salva no Redis`);
 
       // Aguardar 5 segundos antes de iniciar nova rodada
       setTimeout(async () => {
@@ -2524,6 +3109,468 @@ class SocketManager {
       console.log(`✅ Rodada ${novaRodada} iniciada`);
     } catch (error) {
       console.error(`❌ Erro ao iniciar nova rodada:`, error);
+    }
+  }
+
+  /**
+   * Obter ou criar Mestre para uma sessão (com cache)
+   */
+  // ============================================================
+  // SISTEMA DE COMBATE
+  // ============================================================
+
+  /**
+   * Iniciar combate baseado na sinalização da IA
+   * @param {string} roomId - ID da sala
+   * @param {Object} combateData - Dados de combate da IA { monstros, motivo, dificuldade }
+   * @param {Object} sessao - Sessão atual
+   * @param {string} userId - ID do jogador que provocou o combate
+   */
+  async iniciarCombate(roomId, combateData, sessao, userId) {
+    try {
+      console.log(`⚔️ Iniciando combate na sala ${roomId}: ${combateData.motivo}`);
+
+      const monstrosIA = combateData.monstros || [];
+      const dificuldade = combateData.dificuldade || 'media';
+
+      // Calcular nível médio dos jogadores
+      const jogadores = Array.isArray(sessao.jogadoresConectados)
+        ? sessao.jogadoresConectados
+        : Object.values(sessao.jogadores || {});
+      const personagensCompletos = sessao.personagensCompletos || {};
+
+      let somaLevels = 0;
+      let countLevels = 0;
+      for (const jogador of jogadores) {
+        const pId = String(jogador.personagemId || jogador.personagem_id);
+        const p = personagensCompletos[pId];
+        if (p?.nivel) {
+          somaLevels += p.nivel;
+          countLevels++;
+        }
+      }
+      const nivelMedio = countLevels > 0 ? Math.round(somaLevels / countLevels) : 1;
+
+      // Buscar monstros no banco
+      const monstrosBanco = [];
+      for (const sugestao of monstrosIA) {
+        const encontrado = await db.Monstro.buscarPorNomeSimilar(sugestao.nome);
+        if (encontrado) {
+          monstrosBanco.push(encontrado);
+        }
+      }
+
+      console.log(`📦 ${monstrosBanco.length}/${monstrosIA.length} monstros encontrados no banco`);
+
+      // Gerar instâncias de combate
+      const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio);
+
+      // Calcular HP/CA dos jogadores
+      const jogadoresCombate = {};
+      for (const jogador of jogadores) {
+        const jUserId = String(jogador.userId || jogador.id);
+        const pId = String(jogador.personagemId || jogador.personagem_id);
+        const p = personagensCompletos[pId];
+
+        if (p) {
+          const attrs = p.atributos || {};
+          const personagemStats = {
+            constituicao: attrs.constituicao || 10,
+            destreza: attrs.destreza || 10,
+            nivel: p.nivel || 1
+          };
+          jogadoresCombate[jUserId] = {
+            hp_max: calcularHP(personagemStats),
+            hp_atual: calcularHP(personagemStats),
+            ca: calcularCA(personagemStats),
+            status: 'vivo',
+            personagemNome: p.nome || jogador.username
+          };
+        } else {
+          jogadoresCombate[jUserId] = {
+            hp_max: 15,
+            hp_atual: 15,
+            ca: 10,
+            status: 'vivo',
+            personagemNome: jogador.username || 'Jogador'
+          };
+        }
+      }
+
+      // Montar estado de combate
+      const combateState = {
+        ativo: true,
+        rodadaCombate: 1,
+        motivo: combateData.motivo,
+        dificuldade,
+        monstros: instancias,
+        jogadores: jogadoresCombate,
+        log: [],
+        resultado: null
+      };
+
+      // Salvar no estadoJogo
+      const estadoJogo = sessao.estadoJogo || {};
+      estadoJogo.combate = combateState;
+      sessao.estadoJogo = estadoJogo;
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      console.log(`✅ Combate iniciado: ${instancias.length} monstros vs ${Object.keys(jogadoresCombate).length} jogadores`);
+
+      // Emitir evento de combate iniciado
+      this.io.to(roomId).emit('combate_iniciado', {
+        monstros: instancias,
+        jogadores: jogadoresCombate,
+        rodada: 1,
+        motivo: combateData.motivo,
+        dificuldade,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao iniciar combate:', error);
+    }
+  }
+
+  /**
+   * Processar ação de combate de um jogador
+   */
+  async processarAcaoCombate(roomId, userId, username, personagem, mensagem, respostaIA, sessao) {
+    try {
+      const estadoJogo = sessao.estadoJogo || {};
+      const combate = estadoJogo.combate;
+      if (!combate?.ativo) return;
+
+      const jogadorStats = combate.jogadores[userId];
+      if (!jogadorStats || jogadorStats.status !== 'vivo') return;
+
+      // --- ATAQUE DO JOGADOR ---
+      // Determinar alvo (primeiro monstro vivo)
+      const monstroAlvo = combate.monstros.find(m => m.status === 'vivo');
+      if (!monstroAlvo) return;
+
+      // Rolar ataque do jogador (d20)
+      const rolagemAtaque = Math.floor(Math.random() * 20) + 1;
+      const personagemCompleto = sessao.personagensCompletos?.[String(personagem.id)] || {};
+      const attrs = personagemCompleto.atributos || {};
+      const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
+      const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7);
+
+      const { acertou, critico } = verificarAcerto(rolagemAtaque, bonusAtaque, monstroAlvo.defesa);
+
+      let danoTotal = 0;
+      if (acertou) {
+        const danoBase = personagemCompleto.nivel >= 5 ? '1d8' : '1d6';
+        danoTotal = calcularDano(danoBase, modForca, critico);
+        monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
+
+        if (monstroAlvo.hp_atual <= 0) {
+          monstroAlvo.status = 'derrotado';
+        }
+      }
+
+      // Log do ataque do jogador
+      const logAtaque = {
+        tipo: 'ataque_jogador',
+        atacante: personagem.nome,
+        alvo: monstroAlvo.nome,
+        rolagem: rolagemAtaque,
+        bonus: bonusAtaque,
+        acertou,
+        critico,
+        dano: danoTotal,
+        hpRestante: monstroAlvo.hp_atual,
+        timestamp: Date.now()
+      };
+      combate.log.push(logAtaque);
+
+      // Emitir resultado do ataque do jogador
+      this.io.to(roomId).emit('combate_resultado_acao', {
+        tipo: 'ataque_jogador',
+        atacante: { userId, nome: personagem.nome },
+        alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
+        rolagem: rolagemAtaque,
+        bonus: bonusAtaque,
+        acertou,
+        critico,
+        dano: danoTotal,
+        hpRestante: monstroAlvo.hp_atual,
+        hpMax: monstroAlvo.hp_max,
+        timestamp: Date.now()
+      });
+
+      // Se monstro derrotado
+      if (monstroAlvo.status === 'derrotado') {
+        this.io.to(roomId).emit('combate_monstro_derrotado', {
+          monstro: { id: monstroAlvo.id, nome: monstroAlvo.nome },
+          xp: monstroAlvo.xp || 0,
+          timestamp: Date.now()
+        });
+      }
+
+      // --- CONTRA-ATAQUE DOS MONSTROS ---
+      const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
+      for (const monstro of monstrosVivos) {
+        // Selecionar habilidade ou ataque básico
+        const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
+
+        // Rolar ataque do monstro
+        const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
+        const { acertou: monstroAcertou, critico: monstroCritico } = verificarAcerto(
+          rolagemMonstro, monstro.ataque, jogadorStats.ca
+        );
+
+        let danoMonstro = 0;
+        if (monstroAcertou) {
+          const danoNotacao = habilidade?.dano || monstro.dano_base;
+          const modForcaMonstro = Math.floor(((monstro.forca || 10) - 10) / 2);
+          danoMonstro = calcularDano(danoNotacao, modForcaMonstro, monstroCritico);
+          jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoMonstro);
+
+          if (jogadorStats.hp_atual <= 0) {
+            jogadorStats.status = 'derrotado';
+          }
+        }
+
+        // Atualizar cooldown da habilidade usada
+        if (habilidade) {
+          monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
+        }
+
+        // Log do ataque do monstro
+        combate.log.push({
+          tipo: 'ataque_monstro',
+          atacante: monstro.nome,
+          alvo: personagem.nome,
+          habilidade: habilidade?.nome || 'Ataque básico',
+          rolagem: rolagemMonstro,
+          acertou: monstroAcertou,
+          critico: monstroCritico,
+          dano: danoMonstro,
+          hpRestante: jogadorStats.hp_atual,
+          timestamp: Date.now()
+        });
+
+        // Emitir resultado do ataque do monstro
+        this.io.to(roomId).emit('combate_resultado_acao', {
+          tipo: 'ataque_monstro',
+          atacante: { id: monstro.id, nome: monstro.nome },
+          alvo: { userId, nome: personagem.nome },
+          habilidade: habilidade?.nome || 'Ataque básico',
+          rolagem: rolagemMonstro,
+          acertou: monstroAcertou,
+          critico: monstroCritico,
+          dano: danoMonstro,
+          hpRestante: jogadorStats.hp_atual,
+          hpMax: jogadorStats.hp_max,
+          timestamp: Date.now()
+        });
+
+        if (jogadorStats.status === 'derrotado') {
+          this.io.to(roomId).emit('combate_jogador_ferido', {
+            userId,
+            nome: personagem.nome,
+            hp_atual: 0,
+            hp_max: jogadorStats.hp_max,
+            derrotado: true,
+            timestamp: Date.now()
+          });
+          break; // Jogador caiu, parar ataques
+        }
+      }
+
+      // Verificar fim de combate
+      const { finalizado, resultado } = verificarFimCombate(combate);
+      if (finalizado) {
+        await this.finalizarCombate(roomId, resultado);
+        return;
+      }
+
+      // Salvar estado atualizado no Redis
+      sessao.estadoJogo = estadoJogo;
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      // Emitir estado atualizado
+      this.io.to(roomId).emit('combate_estado', {
+        monstros: combate.monstros,
+        jogadores: combate.jogadores,
+        rodada: combate.rodadaCombate,
+        log: combate.log.slice(-5),
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao processar ação de combate:', error);
+    }
+  }
+
+  /**
+   * Finalizar combate
+   * @param {string} roomId - ID da sala
+   * @param {string} resultado - 'vitoria' | 'derrota' | 'fuga'
+   */
+  async finalizarCombate(roomId, resultado) {
+    try {
+      console.log(`🏁 Finalizando combate na sala ${roomId}: ${resultado}`);
+
+      const sessao = await this.obterSessaoHistoria(roomId);
+      if (!sessao) return;
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const combate = estadoJogo.combate;
+      if (!combate) return;
+
+      // Calcular XP total
+      let xpTotal = 0;
+      if (resultado === 'vitoria') {
+        xpTotal = combate.monstros
+          .filter(m => m.status === 'derrotado')
+          .reduce((total, m) => total + (m.xp || 0), 0);
+      }
+
+      // Desativar combate
+      combate.ativo = false;
+      combate.resultado = resultado;
+
+      sessao.estadoJogo = estadoJogo;
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      // Emitir evento de combate finalizado
+      this.io.to(roomId).emit('combate_finalizado', {
+        resultado,
+        xpTotal,
+        monstrosDerrotados: combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome),
+        jogadoresSobreviventes: Object.entries(combate.jogadores)
+          .filter(([, j]) => j.status === 'vivo')
+          .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, hp_atual: j.hp_atual })),
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Combate finalizado: ${resultado} | XP: ${xpTotal}`);
+
+      // Narrar desfecho via IA
+      try {
+        const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao);
+        const desfecho = resultado === 'vitoria'
+          ? `Os monstros foram derrotados! Os jogadores ganham ${xpTotal} XP. Narre o desfecho da batalha de forma épica.`
+          : resultado === 'derrota'
+            ? `Os jogadores foram derrotados em combate. Narre a consequência dessa derrota de forma dramática, mas não mate os personagens.`
+            : `Os jogadores fugiram do combate. Narre a fuga de forma tensa.`;
+
+        const respostaDesfecho = await mestre.narrarAcao({
+          jogador: 'Sistema',
+          personagem: 'Narrador',
+          acao: desfecho,
+          chatHistory: sessao.mensagens || [],
+          resumo: null
+        });
+
+        // Emitir narração do desfecho
+        this.io.to(roomId).emit('mensagem_mestre', {
+          id: Date.now().toString(),
+          userId: 'mestre',
+          username: 'Mestre',
+          message: respostaDesfecho.narracao,
+          tipo: 'mestre',
+          timestamp: Date.now()
+        });
+
+        // Salvar no histórico
+        sessao.mensagens = sessao.mensagens || [];
+        sessao.mensagens.push({
+          tipo: 'mestre',
+          userId: 'mestre',
+          username: 'Mestre',
+          mensagem: respostaDesfecho.narracao,
+          timestamp: Date.now()
+        });
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      } catch (errIA) {
+        console.error('❌ Erro ao narrar desfecho do combate:', errIA);
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao finalizar combate:', error);
+    }
+  }
+
+  // ============================================================
+  // FIM SISTEMA DE COMBATE
+  // ============================================================
+
+  async obterMestre(salaId, temas, sessao) {
+    // Verificar se já existe no cache
+    if (this.mestresCache.has(salaId)) {
+      const cache = this.mestresCache.get(salaId);
+      cache.ultimoUso = Date.now();
+      console.log(`♻️ Mestre reutilizado do cache para sala ${salaId}`);
+      return cache.mestre;
+    }
+
+    // Criar novo mestre
+    console.log(`🆕 Criando novo Mestre para sala ${salaId}`);
+    const nomesTemas = extrairNomesTemas(temas);
+    
+    // Formatar personagens com dados completos
+    const jogadoresConectados = Array.isArray(sessao.jogadoresConectados) 
+      ? sessao.jogadoresConectados 
+      : Object.values(sessao.jogadores || {});
+    
+    const personagensFormatados = formatarPersonagensParaMestre(
+      jogadoresConectados,
+      sessao.personagensCompletos || {}
+    );
+    
+    console.log(`🎭 Criando Mestre com ${personagensFormatados.length} personagens formatados`);
+    
+    const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null);
+
+    // Salvar no cache
+    this.mestresCache.set(salaId, {
+      mestre,
+      criadoEm: Date.now(),
+      ultimoUso: Date.now(),
+      rodadaInicial: 1
+    });
+
+    return mestre;
+  }
+
+  /**
+   * Invalidar cache do Mestre (a cada 5 rodadas)
+   */
+  invalidarMestreSeNecessario(salaId, rodadaAtual) {
+    if (!this.mestresCache.has(salaId)) return false;
+
+    const cache = this.mestresCache.get(salaId);
+    
+    // Invalidar a cada 5 rodadas
+    if (rodadaAtual - cache.rodadaInicial >= 5) {
+      console.log(`♻️ Invalidando cache do Mestre (5 rodadas completas)`);
+      this.mestresCache.delete(salaId);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Limpar cache de mestres antigos (> 1h sem uso)
+   */
+  limparCacheMestres() {
+    const agora = Date.now();
+    let removidos = 0;
+
+    for (const [salaId, cache] of this.mestresCache.entries()) {
+      if (agora - cache.ultimoUso > 3600000) { // 1 hora
+        this.mestresCache.delete(salaId);
+        removidos++;
+      }
+    }
+
+    if (removidos > 0) {
+      console.log(`🧹 Removidos ${removidos} mestres inativos do cache`);
     }
   }
 

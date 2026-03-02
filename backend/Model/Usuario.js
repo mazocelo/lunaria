@@ -101,11 +101,22 @@ export default function Usuario(prisma) {
     },
 
     /**
-     * Deletar usuário
+     * Soft delete usuário
      */
     async delete(id) {
-      return await prisma.usuarios.delete({
+      return await prisma.usuarios.update({
         where: { id },
+        data: { deleted_at: new Date() },
+      });
+    },
+
+    /**
+     * Restaurar usuário soft-deleted
+     */
+    async restore(id) {
+      return await prisma.usuarios.update({
+        where: { id, deleted_at: { not: null } },
+        data: { deleted_at: null },
       });
     },
 

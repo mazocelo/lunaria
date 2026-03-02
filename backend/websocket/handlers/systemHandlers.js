@@ -95,15 +95,6 @@ export class SystemHandlers {
    * Handler para ping/pong
    */
   handlePing(socket, data, callback) {
-    const startTime = Date.now();
-    const socketId = socket.id;
-    const userId = socket.userId;
-
-    this.log('INFO', 'SYSTEM_PING_RECEIVED', socketId, userId, {
-      clientTimestamp: data?.timestamp,
-      hasCallback: !!callback
-    });
-
     try {
       const pongData = {
         timestamp: new Date(),
@@ -114,31 +105,11 @@ export class SystemHandlers {
 
       if (callback) {
         callback(pongData);
-        this.log('SUCCESS', 'SYSTEM_PING_CALLBACK_SENT', socketId, userId, {
-          latency: pongData.latency,
-          serverTime: pongData.serverTime
-        });
       } else {
         this.eventEmitter.emitToSocket(SYSTEM_EVENTS.PONG, pongData);
-        this.log('SUCCESS', 'SYSTEM_PING_PONG_EMITTED', socketId, userId, {
-          latency: pongData.latency,
-          serverTime: pongData.serverTime
-        });
       }
-
-      const processingTime = Date.now() - startTime;
-      this.log('SUCCESS', 'SYSTEM_PING_COMPLETED', socketId, userId, {
-        latency: pongData.latency,
-        processingTimeMs: processingTime
-      });
-
     } catch (error) {
-      const processingTime = Date.now() - startTime;
-      this.log('ERROR', 'SYSTEM_PING_ERROR', socketId, userId, {
-        error: error.message,
-        stack: error.stack,
-        processingTimeMs: processingTime
-      });
+      console.error('❌ PING Error:', error.message);
     }
   }
 

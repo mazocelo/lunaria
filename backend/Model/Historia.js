@@ -97,10 +97,19 @@ const Historia = (prisma) => {
       });
     },
 
-    // Deletar história
+    // Soft delete história
     async deleteHistoria(id) {
-      return await prisma.historias.delete({
-        where: { id }
+      return await prisma.historias.update({
+        where: { id },
+        data: { deleted_at: new Date() }
+      });
+    },
+
+    // Restaurar história soft-deleted
+    async restoreHistoria(id) {
+      return await prisma.historias.update({
+        where: { id, deleted_at: { not: null } },
+        data: { deleted_at: null }
       });
     },
 
@@ -111,10 +120,11 @@ const Historia = (prisma) => {
       });
     },
 
-    // Buscar por ID
+    // Buscar por ID (inclui mestre se vinculado)
     async findById(id) {
       return await prisma.historias.findUnique({
-        where: { id }
+        where: { id },
+        include: { mestres: true }
       });
     },
 

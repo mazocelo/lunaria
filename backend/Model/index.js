@@ -8,6 +8,8 @@ import Raca from './Raca.js';
 import Classe from './Classe.js';
 import Equipamento from './Equipamento.js';
 import Usuario from './Usuario.js';
+import Mestre from './Mestre.js';
+import Monstro from './Monstro.js';
 
 // Exportar o cliente Prisma e todos os modelos
 const db = {
@@ -20,7 +22,9 @@ const db = {
   Raca: Raca(prisma),
   Classe: Classe(prisma),
   Equipamento: Equipamento(prisma),
-  Usuario: Usuario(prisma)
+  Usuario: Usuario(prisma),
+  Mestre: Mestre(prisma),
+  Monstro: Monstro(prisma)
 };
 
 export default db;

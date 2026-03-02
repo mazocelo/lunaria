@@ -287,6 +287,29 @@ class UsuarioController {
   }
 
   /**
+   * Restaurar um usuário soft-deleted
+   */
+  async restaurarUsuario(req, res) {
+    try {
+      const { id } = req.params;
+
+      const usuario = await db.Usuario.restore(parseInt(id));
+
+      res.status(200).json({
+        success: true,
+        message: 'Usuário restaurado com sucesso',
+        data: usuario
+      });
+    } catch (error) {
+      console.error('Erro ao restaurar usuário:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
    * Obter estatísticas do usuário
    * @param {Object} req - Request object
    * @param {Object} res - Response object

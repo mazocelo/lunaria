@@ -3,6 +3,8 @@ import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import criarMestreRPG from '../agents/Mestre/index.js';
 import socketManager from '../websocket/socketManager.js';
+import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.js';
+import { buscarPersonagensCompletos, formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
 
 const router = express.Router();
 
@@ -94,6 +96,15 @@ router.post('/start', async (req, res, next) => {
       });
     }
 
+    // Carregar config do mestre customizado (se vinculado à história)
+    let mestreConfig = null;
+    if (historia.mestre_id) {
+      mestreConfig = await db.Mestre.findById(historia.mestre_id);
+      if (mestreConfig) {
+        console.log(`🧙‍♂️ Mestre customizado carregado: "${mestreConfig.nome}"`);
+      }
+    }
+
     // ID da sala será baseado na história
     const salaId = `historia_${historiaId}`;
 
@@ -113,12 +124,31 @@ router.post('/start', async (req, res, next) => {
       console.log(`📝 Atualizando sessão existente para história ${historia.id}`);
       console.log(`👥 Jogadores conectados na sala de espera:`, sessaoExistente.jogadoresConectados);
       
+      // Buscar temas completos
+      const temasCompletos = await buscarTemasCompletos(historia.temas || []);
+      console.log(`🎨 Temas completos obtidos:`, temasCompletos);
+
+      // Buscar personagens completos do banco
+      const personagensIds = (sessaoExistente.jogadoresConectados || [])
+        .map(j => j.personagemId)
+        .filter(Boolean);
+      
+      const personagensCompletos = await buscarPersonagensCompletos(personagensIds);
+      const personagensMap = {};
+      personagensCompletos.forEach(p => {
+        personagensMap[p.id] = p;
+      });
+      
+      console.log(`🎭 Personagens completos obtidos: ${personagensCompletos.length}`);
+      
       const dadosAtualizacao = {
         status: 'iniciada',
+        statusJogo: 'iniciado',
         iniciadaEm: new Date().toISOString(),
-        // ✅ Criar mapa IMUTÁVEL de jogadores que participam
+        historiaTemas: temasCompletos,
+        personagensCompletos: personagensMap,
+        mestreConfig: mestreConfig || null,
         jogadores: converterJogadoresParaMapa(sessaoExistente.jogadoresConectados || []),
-        // ✅ Converter para array de IDs (dinâmico)
         jogadoresConectados: (sessaoExistente.jogadoresConectados || []).map(j => String(j.userId)),
         estadoJogo: {
           ...sessaoExistente.estadoJogo,
@@ -136,49 +166,63 @@ router.post('/start', async (req, res, next) => {
 
       const sessao = await gerenciadorSessoes.atualizarSessao(salaId, dadosAtualizacao);
 
-      // Gerar mensagem de boas-vindas do Mestre IA
-      try {
-        console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
-        
-        const mestre = await criarMestreRPG(historia.temas || [], sessao.jogadoresConectados || []);
-        const boasVindas = await mestre.iniciarSessao({
-          historiaNome: historia.nome,
-          tema: historia.temas?.join(', '),
-          personagens: sessao.jogadoresConectados || [],
-          cenaInicial: mensagemInicial || dadosAtualizacao.estadoJogo.mensagemMestre
-        });
+      // Determinar mensagem introdutória (Prólogo ou IA)
+      let mensagemIntrodutoria = '';
 
-        console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+      // 1. Tentar usar o prólogo da história se existir
+      if (historia.prologo && historia.prologo.trim().length > 0) {
+        console.log(`📜 Usando prólogo da história como mensagem inicial`);
+        mensagemIntrodutoria = historia.prologo;
+      } else {
+        // 2. Fallback: Gerar mensagem de boas-vindas do Mestre IA
+        try {
+          console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
+          
+          // Extrair apenas os nomes dos temas para o Mestre
+          const nomesTemas = extrairNomesTemas(temasCompletos);
+          
+          // Formatar personagens para o Mestre
+          const personagensFormatados = formatarPersonagensParaMestre(
+            sessaoExistente.jogadoresConectados || [],
+            personagensMap
+          );
+          
+          const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, mestreConfig);
+          const boasVindas = await mestre.iniciarSessao({
+            historiaNome: historia.nome,
+            tema: nomesTemas.join(', '),
+            personagens: personagensFormatados,
+            cenaInicial: mensagemInicial || dadosAtualizacao.estadoJogo.mensagemMestre
+          });
 
-        // Salvar mensagem inicial do Mestre na sessão
+          mensagemIntrodutoria = boasVindas.introducao;
+          console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+        } catch (error) {
+          console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
+          mensagemIntrodutoria = mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`;
+        }
+      }
+
+      // Salvar mensagem inicial na sessão e no Redis
+      if (mensagemIntrodutoria) {
         if (!sessao.mensagens) {
           sessao.mensagens = [];
         }
-        
+
         sessao.mensagens.push({
           tipo: 'mestre',
           userId: 'mestre',
           username: 'Mestre',
-          mensagem: boasVindas.introducao,
+          mensagem: mensagemIntrodutoria,
           timestamp: Date.now()
         });
+
+        if (sessao.estadoJogo) {
+          sessao.estadoJogo.mensagemMestre = mensagemIntrodutoria;
+        }
 
         await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-
-        // Enviar mensagem de boas-vindas via WebSocket para todos na sala
-        socketManager.sendToRoom(salaId, 'mensagem_mestre', {
-          id: Date.now().toString(),
-          userId: 'mestre',
-          username: 'Mestre',
-          message: boasVindas.introducao,
-          tipo: 'mestre',
-          timestamp: Date.now()
-        });
-
-        console.log(`🎭 Mensagem de boas-vindas enviada para sala ${salaId}`);
-      } catch (error) {
-        console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
-        // Continuar mesmo se falhar a geração da mensagem
+        console.log(`🎭 Mensagem inicial salva no Redis (Prólogo/IA)`);
       }
 
       // Notificar via WebSocket
@@ -186,7 +230,7 @@ router.post('/start', async (req, res, next) => {
         historiaId: historia.id,
         historiaNome: historia.nome,
         donoNome: req.user.nome,
-        mensagemInicial: dadosAtualizacao.estadoJogo.mensagemMestre,
+        mensagemInicial: mensagemIntrodutoria,
         iniciadaEm: dadosAtualizacao.iniciadaEm
       });
 
@@ -235,16 +279,36 @@ router.post('/start', async (req, res, next) => {
       console.log(`✅ Preservando ${jogadoresDaSalaEspera.length} jogadores da sala de espera`);
     }
 
+    // Buscar temas completos
+    const temasCompletos = await buscarTemasCompletos(historia.temas || []);
+    console.log(`🎨 Temas completos obtidos:`, temasCompletos);
+
+    // Buscar personagens completos do banco
+    const personagensIds = jogadoresDaSalaEspera
+      .map(j => j.personagemId)
+      .filter(Boolean);
+    
+    const personagensCompletos = await buscarPersonagensCompletos(personagensIds);
+    const personagensMap = {};
+    personagensCompletos.forEach(p => {
+      personagensMap[p.id] = p;
+    });
+    
+    console.log(`🎭 Personagens completos obtidos: ${personagensCompletos.length}`);
+
     // Criar/atualizar sessão no Redis
     const dadosSessao = {
       historiaId: historia.id,
       historiaNome: historia.nome,
-      historiaTemas: historia.temas,
+      historiaTemas: temasCompletos,
+      personagensCompletos: personagensMap,
+      mestreConfig: mestreConfig || null,
       historiaPrologo: historia.prologo,
       donoId: userId,
       donoNome: req.user.nome,
       maxJogadores: historia.maximo_de_participantes,
       status: 'iniciada', // Marca como iniciada para bloquear novas entradas
+      statusJogo: 'iniciado', // ✅ NOVO: Atualizar statusJogo para iniciado
       // ✅ Criar mapa IMUTÁVEL de jogadores que participam
       jogadores: converterJogadoresParaMapa(jogadoresDaSalaEspera),
       // ✅ Array dinâmico de IDs dos jogadores conectados
@@ -270,21 +334,44 @@ router.post('/start', async (req, res, next) => {
 
     const sessao = await gerenciadorSessoes.criarSessao(salaId, dadosSessao);
 
-    // Gerar mensagem de boas-vindas do Mestre IA
-    try {
-      console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
-      
-      const mestre = await criarMestreRPG(historia.temas || [], sessao.jogadoresConectados || []);
-      const boasVindas = await mestre.iniciarSessao({
-        historiaNome: historia.nome,
-        tema: historia.temas?.join(', '),
-        personagens: sessao.jogadoresConectados || [],
-        cenaInicial: mensagemInicial || dadosSessao.estadoJogo.mensagemMestre
-      });
+    // Determinar mensagem introdutória (Prólogo ou IA)
+    let mensagemIntrodutoria = '';
 
-      console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+    if (historia.prologo && historia.prologo.trim().length > 0) {
+      console.log(`📜 Usando prólogo da história como mensagem inicial`);
+      mensagemIntrodutoria = historia.prologo;
+    } else {
+      // Fallback: Gerar mensagem de boas-vindas do Mestre IA
+      try {
+        console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
+        
+        // Extrair apenas os nomes dos temas para o Mestre
+        const nomesTemas = extrairNomesTemas(temasCompletos);
+        
+        // Formatar personagens para o Mestre
+        const personagensFormatados = formatarPersonagensParaMestre(
+          jogadoresDaSalaEspera,
+          personagensMap
+        );
+        
+        const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, mestreConfig);
+        const boasVindas = await mestre.iniciarSessao({
+          historiaNome: historia.nome,
+          tema: nomesTemas.join(', '),
+          personagens: personagensFormatados,
+          cenaInicial: mensagemInicial || dadosSessao.estadoJogo.mensagemMestre
+        });
 
-      // Salvar mensagem inicial do Mestre na sessão
+        mensagemIntrodutoria = boasVindas.introducao;
+        console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+      } catch (error) {
+        console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
+        mensagemIntrodutoria = mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`;
+      }
+    }
+
+    // Salvar mensagem inicial na sessão e no Redis
+    if (mensagemIntrodutoria) {
       if (!sessao.mensagens) {
         sessao.mensagens = [];
       }
@@ -293,26 +380,17 @@ router.post('/start', async (req, res, next) => {
         tipo: 'mestre',
         userId: 'mestre',
         username: 'Mestre',
-        mensagem: boasVindas.introducao,
+        mensagem: mensagemIntrodutoria,
         timestamp: Date.now()
       });
+      
+      // Atualizar mensagemMestre no estado do jogo também
+      if (sessao.estadoJogo) {
+        sessao.estadoJogo.mensagemMestre = mensagemIntrodutoria;
+      }
 
       await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-
-      // Enviar mensagem de boas-vindas via WebSocket para todos na sala
-      socketManager.sendToRoom(salaId, 'mensagem_mestre', {
-        id: Date.now().toString(),
-        userId: 'mestre',
-        username: 'Mestre',
-        message: boasVindas.introducao,
-        tipo: 'mestre',
-        timestamp: Date.now()
-      });
-
-      console.log(`🎭 Mensagem de boas-vindas enviada para sala ${salaId}`);
-    } catch (error) {
-      console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
-      // Continuar mesmo se falhar a geração da mensagem
+      console.log(`🎭 Mensagem inicial salva no Redis (Prólogo/IA)`);
     }
 
     // Notificar via WebSocket todos os usuários conectados à sala sobre o início
@@ -320,7 +398,7 @@ router.post('/start', async (req, res, next) => {
       historiaId: historia.id,
       historiaNome: historia.nome,
       donoNome: req.user.nome,
-      mensagemInicial: dadosSessao.estadoJogo.mensagemMestre,
+      mensagemInicial: mensagemIntrodutoria,
       iniciadaEm: dadosSessao.iniciadaEm
     });
 

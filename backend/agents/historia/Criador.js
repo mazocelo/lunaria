@@ -3,7 +3,8 @@ import { RunnableSequence } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import dotenv from 'dotenv'
 import { criarGeradorPrologo } from './prologo/index.js'
-import criarMestreRPG from './MestreRPG.js'
+import criarMestreRPG from '../Mestre/index.js'
+import { extrairNomesTemas } from '../../helpers/temasHelper.js'
 
 dotenv.config();
 
@@ -74,10 +75,20 @@ async function criadorDeHistoria() {
 // Função principal que combina todos os agentes
 async function criadorCompleto(temas = [], personagens = []) {
     try {
+        // Garantir que temas sejam sempre strings (nomes)
+        // Se receber objetos {id, nome}, extrai os nomes
+        // Se receber strings, mantém como está
+        const nomesTemas = extrairNomesTemas(temas);
+        
+        console.log(`🎨 CriadorCompleto: Convertendo temas para nomes:`, {
+            temasOriginais: temas,
+            nomesTemas: nomesTemas
+        });
+        
         // Criar os agentes separados
         const agenteHistoria = await criadorDeHistoria();
-        const agentePrologo = await criarGeradorPrologo(temas);
-        const agenteMestre = await criarMestreRPG(temas, personagens);
+        const agentePrologo = await criarGeradorPrologo(nomesTemas);
+        const agenteMestre = await criarMestreRPG(nomesTemas, personagens);
 
         return {
             // Agente original para perguntas

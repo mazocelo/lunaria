@@ -276,6 +276,9 @@ router.put('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(us
 // DELETE /:id - Deletar (OWNER OU ADMIN)
 router.delete('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.deletarUsuario));
 
+// PATCH /:id/restore - Restaurar usuário soft-deleted (ADMIN)
+router.patch('/:id/restore', authenticateToken, requireAdmin, asyncHandler(usuarioController.restaurarUsuario));
+
 /**
  * @swagger
  * /usuarios/{id}/estatisticas:

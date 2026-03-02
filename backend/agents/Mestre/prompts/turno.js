@@ -7,18 +7,18 @@
  */
 export function criarPromptTurno(jogador, personagem, mensagem, rodada, turno, contadorMensagens) {
   let prompt = `TURNO DO JOGADOR ${personagem} (Jogador: ${jogador})
-Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/3
+Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/4
 
 Mensagem do Jogador:
 "${mensagem}"
 
 `;
 
-  // Se já houve 2 mensagens, avisar que é hora de finalizar
-  if (contadorMensagens >= 2) {
-    prompt += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e prepare para passar para o próximo jogador.\n`;
+  // Se já houve 3 mensagens, avisar que é hora de finalizar
+  if (contadorMensagens >= 3) {
+    prompt += `\n⚠️ LIMITE ALCANÇADO: Finalize e sinalize "Próximo jogador!"\n`;
   } else {
-    prompt += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você pode fazer até ${3 - contadorMensagens - 1} resposta(s) adicionais antes de finalizar o turno.\n`;
+    prompt += `\nVocê tem ${4 - contadorMensagens - 1} resposta(s) restantes. Se a ação estiver completa, sinalize "Próximo jogador!" para avançar.\n`;
   }
 
   return prompt;
@@ -36,6 +36,7 @@ Como Mestre, dirija-se diretamente a ${personagem} e:
 2. Apresente um desafio, obstáculo ou situação interessante
 3. Faça perguntas diretas que demandem ação do jogador
 4. Mantenha a narrativa dinâmica e envolvente
+5. **IMPORTANTE:** Se a situação exigir teste de habilidade, perícia, ataque, sorte ou talento, solicite rolagem de dados usando 🎲 e explicando as consequências
 
 O que acontece com ${personagem}? O que ${personagem} vê e percebe?`;
 }

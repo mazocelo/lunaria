@@ -11,9 +11,10 @@ import usuarioRoutes from './usuarios.js';
 import jogoRoutes from './jogo.js';
 import conviteRoutes from './convites.js';
 import novidadesRoutes from './novidades.js';
-import rpgRoutes from './rpg.js';
 import temasRoutes from './temas.js';
 import websocketRoutes from './websocket.js';
+import mestreRoutes from './mestres.js';
+import monstroRoutes from './monstro.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -37,8 +38,9 @@ router.get('/', async (req, res, next) => {
       jogo: '/jogo',
       convites: '/convites',
       novidades: '/novidades',
-      rpg: '/rpg',
       temas: '/temas',
+      mestres: '/mestres',
+      monstros: '/monstros',
       websocket: '/websocket'
     }
   });
@@ -52,7 +54,6 @@ router.use('/racas',authenticateToken, racaRoutes);
 router.use('/classes',authenticateToken, classeRoutes);
 router.use('/vantagens',authenticateToken, vantagemRoutes);
 router.use('/desvantagens',authenticateToken, desvantagemRoutes);
-router.use('/rpg',authenticateToken, rpgRoutes);
 router.use('/temas',authenticateToken, temasRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
@@ -63,8 +64,12 @@ router.use('/usuarios', authenticateToken, usuarioRoutes);
 router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);
+router.use('/mestres', authenticateToken, mestreRoutes);
 
 // Rotas de sessão (sem middleware global, aplicado individualmente)
 router.use('/sessoes', sessaoRoutes);
+
+// Rotas de monstro (auth aplicado individualmente em POST/PUT/DELETE)
+router.use('/monstros', monstroRoutes);
 
 export default router;

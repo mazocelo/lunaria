@@ -98,10 +98,19 @@ const Personagem = (prisma) => {
       });
     },
 
-    // Deletar personagem
+    // Soft delete personagem
     async deletePersonagem(id) {
-      return await model.delete({
-        where: { id }
+      return await model.update({
+        where: { id },
+        data: { deleted_at: new Date() }
+      });
+    },
+
+    // Restaurar personagem soft-deleted
+    async restorePersonagem(id) {
+      return await prisma.personagens.update({
+        where: { id, deleted_at: { not: null } },
+        data: { deleted_at: null }
       });
     },
 

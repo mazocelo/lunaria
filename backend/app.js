@@ -8,12 +8,9 @@ import swaggerUi from 'swagger-ui-express';
 
 import indexRouter from './routes/index.js';
 
-import { createExecutor } from './tools/master.js';
 import specs from './swagger-config.js';
 
 const app = express();
-
-createExecutor()
 
 // Configuração CORS - Detecta automaticamente dev/prod
 const isProduction = process.env.NODE_ENV === 'production';

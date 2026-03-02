@@ -328,6 +328,9 @@ router.put('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.a
 // DELETE /:id - Excluir história (OWNER OU ADMIN)
 router.delete('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.excluirHistoria);
 
+// PATCH /:id/restore - Restaurar história soft-deleted (OWNER OU ADMIN)
+router.patch('/:id/restore', requireResourceOwnerOrAdmin('Historia'), historiaController.restaurarHistoria);
+
 /**
  * @swagger
  * /historias/gerar-ia:
@@ -579,23 +582,26 @@ router.get('/:id/sessao-ativa', async (req, res, next) => {
       });
     }
     
-    // Verificar se usuário está jogando:
-    // 1. Se está no mapa de jogadores (participou do início)
-    // 2. Se é o dono da história
+    // ✅ VERIFICAR SE USUÁRIO ESTÁ JOGANDO (baseado em statusJogo)
+    // isPlaying SÓ É TRUE se o jogo foi efetivamente INICIADO
     const estaEmJogadores = sessao.jogadores && sessao.jogadores[String(userId)];
     const ehDono = String(sessao.donoId) === String(userId);
     const estaConectado = Array.isArray(sessao.jogadoresConectados) && 
       sessao.jogadoresConectados.some(id => String(id) === String(userId));
     
-    const estaJogando = !!estaEmJogadores || ehDono;
+    // ✅ NOVO: isPlaying só é true se statusJogo === 'iniciado'
+    const jogoIniciado = sessao.statusJogo === 'iniciado';
+    const estaJogando = jogoIniciado && (!!estaEmJogadores || ehDono);
     
     console.log(`📋 Sessão encontrada:`, {
       status: sessao.status,
+      statusJogo: sessao.statusJogo,
       totalJogadores: sessao.jogadores ? Object.keys(sessao.jogadores).length : 0,
       jogadoresConectadosAgora: sessao.jogadoresConectados?.length || 0,
       estaEmJogadores: !!estaEmJogadores,
       ehDono,
       estaConectado,
+      jogoIniciado,
       estaJogando
     });
     
@@ -603,9 +609,10 @@ router.get('/:id/sessao-ativa', async (req, res, next) => {
       success: true,
       data: {
         hasActiveSession: true,
-        isPlaying: estaJogando,
+        isPlaying: estaJogando, // ✅ Só true se jogo INICIADO e usuário participando
         sessao: {
           status: sessao.status,
+          statusJogo: sessao.statusJogo, // ✅ Incluir statusJogo na resposta
           totalJogadores: sessao.jogadoresConectados?.length || 0,
           totalMensagens: sessao.mensagens?.length || 0,
           iniciadaEm: sessao.iniciadaEm

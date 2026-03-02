@@ -64,7 +64,10 @@ model historias {
   atualizada_em           DateTime?               @db.Timestamptz(6)
   id_usuario              Int?
   temas                   Int[]
+  mestre_id               Int?
+  deleted_at              DateTime?               @db.Timestamptz(6)
   usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
+  mestres                 mestres?                @relation(fields: [mestre_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_historias_mestre_id")
   historias_convite       historias_convite[]
   historias_personagens   historias_personagens[]
 }
@@ -111,6 +114,7 @@ model personagens {
   criado_em              DateTime?                @db.Timestamptz(6)
   atualizado_em          DateTime?                @db.Timestamptz(6)
   id_usuario             Int?
+  deleted_at             DateTime?                @db.Timestamptz(6)
   historias_personagens  historias_personagens[]
   personagem_desvantagem personagem_desvantagem[]
   personagem_equipamento personagem_equipamento[]
@@ -141,9 +145,11 @@ model usuarios {
   email             String              @unique @db.VarChar(150)
   senha             String              @db.VarChar(255)
   role              String?             @default("player") @db.VarChar(20)
+  deleted_at        DateTime?           @db.Timestamptz(6)
   historias         historias[]
   historias_convite historias_convite[]
   personagens       personagens[]
+  mestres           mestres[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -192,6 +198,54 @@ model historias_convite {
   usuarios      usuarios  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_usuario")
 
   @@unique([historia_id, usuario_id], map: "unq_convite")
+}
+
+model mestres {
+  id               Int        @id @default(autoincrement())
+  nome             String     @db.VarChar(100)
+  descricao        String?
+  personalidade    String?
+  modelo           String?    @default("openai/gpt-oss-120b") @db.VarChar(100)
+  temperatura      Float?     @default(0.9)
+  max_tokens       Int?       @default(8000)
+  tom_narrativo    String?    @db.VarChar(50)
+  regras_especiais String?
+  imagem           String?    @db.VarChar(500)
+  id_usuario       Int
+  criado_em        DateTime?  @default(now()) @db.Timestamptz(6)
+  atualizado_em    DateTime?  @db.Timestamptz(6)
+  deleted_at       DateTime?  @db.Timestamptz(6)
+  usuarios         usuarios   @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_mestres_id_usuario")
+  historias        historias[]
+}
+
+model monstros {
+  id             Int       @id @default(autoincrement())
+  nome           String    @unique @db.VarChar(150)
+  descricao      String?
+  tipo           String[]  @default(["besta"]) @db.VarChar(50)
+  raridade       String    @default("comum") @db.VarChar(20)
+  nivel_min      Int       @default(1)
+  nivel_max      Int       @default(10)
+  hp_base        Int       @default(15)
+  forca          Int       @default(10)
+  inteligencia   Int       @default(8)
+  destreza       Int       @default(10)
+  constituicao   Int       @default(10)
+  agilidade      Int       @default(10)
+  carisma        Int       @default(5)
+  ataque_base    Int       @default(2)
+  defesa_base    Int       @default(10)
+  dano_base      String    @default("1d6") @db.VarChar(20)
+  habilidades    Json?     @default("[]")
+  elemento       String[]  @default([]) @db.VarChar(50)
+  temas          String[]  @default([]) @db.VarChar(50)
+  xp_base        Int       @default(50)
+  criado_em      DateTime? @default(now()) @db.Timestamptz(6)
+  atualizado_em  DateTime? @db.Timestamptz(6)
+
+  @@index([nivel_min, nivel_max], map: "idx_monstro_nivel")
+  @@index([raridade], map: "idx_monstro_raridade")
 }
 
 enum enum_habilidades_categoria {

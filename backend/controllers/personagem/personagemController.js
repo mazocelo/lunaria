@@ -679,17 +679,6 @@ class PersonagemController {
         });
       }
 
-      // Remover vínculos com histórias antes de excluir o personagem
-      const vinculosHistorias = await db.Personagem.listarHistoriasPersonagem(parseInt(id));
-      for (const vinculo of vinculosHistorias) {
-        try {
-          await db.Personagem.desvincularHistoria(parseInt(id), vinculo.historia_id);
-          console.log(`🔗 Vínculo removido da história ${vinculo.historia_id}`);
-        } catch (error) {
-          console.warn(`⚠️ Erro ao remover vínculo da história ${vinculo.historia_id}:`, error.message);
-        }
-      }
-
       await db.Personagem.deletePersonagem(parseInt(id));
 
       console.log('✅ Personagem excluído com sucesso');
@@ -702,6 +691,29 @@ class PersonagemController {
     } catch (error) {
       console.error('❌ Erro ao excluir personagem:', error);
       res.status(500).json({
+        error: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Restaurar um personagem soft-deleted
+   */
+  restaurarPersonagem = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const personagem = await db.Personagem.restorePersonagem(parseInt(id));
+
+      res.status(200).json({
+        success: true,
+        message: 'Personagem restaurado com sucesso',
+        data: personagem
+      });
+    } catch (error) {
+      console.error('Erro ao restaurar personagem:', error);
+      res.status(500).json({
+        success: false,
         error: 'Erro interno do servidor'
       });
     }

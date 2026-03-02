@@ -72,6 +72,17 @@ export const GAME_EVENTS = {
   SCENE_UPDATE: 'scene_update'
 };
 
+// Eventos de combate
+export const COMBAT_EVENTS = {
+  COMBATE_INICIADO: 'combate_iniciado',
+  COMBATE_ACAO: 'combate_acao',
+  COMBATE_RESULTADO_ACAO: 'combate_resultado_acao',
+  COMBATE_MONSTRO_DERROTADO: 'combate_monstro_derrotado',
+  COMBATE_JOGADOR_FERIDO: 'combate_jogador_ferido',
+  COMBATE_FINALIZADO: 'combate_finalizado',
+  COMBATE_ESTADO: 'combate_estado'
+};
+
 // Eventos de sistema
 export const SYSTEM_EVENTS = {
   PING: 'ping',
@@ -110,6 +121,7 @@ export const SOCKET_EVENTS = {
   ...ROOM_EVENTS,
   ...CHAT_EVENTS,
   ...GAME_EVENTS,
+  ...COMBAT_EVENTS,
   ...SYSTEM_EVENTS,
   ...NOTIFICATION_EVENTS,
   ...MEDIA_EVENTS

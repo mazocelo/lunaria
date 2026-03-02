@@ -9,6 +9,7 @@ import { criarPromptNarracao } from './prompts/narracao.js';
 import { criarPromptInicio, criarPromptBoasVindas } from './prompts/inicio.js';
 import { formatarMensagemJogador, formatarRespostaMestre, extrairInfoPersonagem } from './utils/formatacao.js';
 import { converterHistoricoParaLangChain, adicionarMensagem } from './utils/historico.js';
+import { extrairNomesTemas } from '../../helpers/temasHelper.js';
 
 dotenv.config();
 
@@ -17,13 +18,22 @@ dotenv.config();
  * Gerencia toda a interação com o modelo de IA e o contexto da aventura
  */
 export class MestreAgent {
-  constructor(temas = [], personagens = []) {
-    this.temas = temas;
+  constructor(temas = [], personagens = [], configOverride = null) {
+    // Garantir que temas sejam sempre strings (nomes)
+    // Validação de segurança caso alguém passe IDs ou objetos por engano
+    this.temas = extrairNomesTemas(temas);
+
+    // Log de validação se necessário
+    if (Array.isArray(temas) && temas.length > 0 && typeof temas[0] === 'number') {
+      console.warn('⚠️ MestreAgent: Recebidos temas como IDs numéricos. Convertendo para nomes...');
+    }
+
     this.personagens = personagens.map(p => extrairInfoPersonagem(p));
+    this.configOverride = configOverride;
     this.historico = [];
     this.model = null;
     this.chain = null;
-    
+
     this._inicializarModelo();
   }
 
@@ -32,17 +42,22 @@ export class MestreAgent {
    */
   _inicializarModelo() {
     try {
+      // Merge config customizada com defaults
+      const modelName = this.configOverride?.modelo || MESTRE_CONFIG.model.name;
+      const temperature = this.configOverride?.temperatura ?? MESTRE_CONFIG.model.temperature;
+      const maxTokens = this.configOverride?.max_tokens ?? MESTRE_CONFIG.model.maxTokens;
+
       // Criar modelo Groq
       this.model = new ChatGroq({
         apiKey: process.env.GROQ_API_KEY,
-        model: MESTRE_CONFIG.model.name,
-        temperature: MESTRE_CONFIG.model.temperature,
-        maxTokens: MESTRE_CONFIG.model.maxTokens,
+        model: modelName,
+        temperature,
+        maxTokens,
         topP: MESTRE_CONFIG.model.topP
       });
 
-      // Criar prompt template
-      const promptSistema = criarPromptSistema(this.temas, this.personagens);
+      // Criar prompt template (com personalidade custom se houver)
+      const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride);
       const prompt = ChatPromptTemplate.fromMessages([
         ['system', promptSistema],
         new MessagesPlaceholder('chat_history'),
@@ -69,7 +84,7 @@ export class MestreAgent {
   /**
    * Narra uma ação do jogador
    */
-  async narrarAcao({ jogador, personagem, acao, chatHistory = [] }) {
+  async narrarAcao({ jogador, personagem, acao, chatHistory = [], resumo = null }) {
     try {
       console.log(`🎭 MestreAgent: Narrando ação de ${personagem}...`);
 
@@ -77,7 +92,19 @@ export class MestreAgent {
       const input = criarPromptNarracao(jogador, personagem, acao);
 
       // Converter histórico
-      const historico = converterHistoricoParaLangChain(chatHistory);
+      let historico = converterHistoricoParaLangChain(chatHistory);
+
+      // ✅ Se houver resumo, adicionar como contexto do sistema
+      if (resumo) {
+        console.log(`📖 MestreAgent: Usando resumo da aventura no contexto`);
+        historico = [
+          {
+            role: 'system',
+            content: `RESUMO DA AVENTURA ATÉ AGORA:\n${resumo}\n\nContinue a aventura considerando este contexto.`
+          },
+          ...historico.slice(-20) // Últimas 20 mensagens + resumo
+        ];
+      }
 
       // Invocar chain
       const response = await this.chain.invoke({
@@ -85,17 +112,36 @@ export class MestreAgent {
         chat_history: historico
       });
 
+      // ✅ Parsear JSON da resposta
+      let respostaJSON;
+      try {
+        respostaJSON = JSON.parse(response.content);
+        console.log('✅ MestreAgent: Resposta JSON parseada com sucesso');
+      } catch (error) {
+        console.warn('⚠️ MestreAgent: Resposta não é JSON válido, usando fallback');
+        // Fallback se não for JSON
+        respostaJSON = {
+          narrativa: response.content,
+          fimDeTurno: false,
+          solicitaDados: { solicita: false },
+          acaoCompleta: false
+        };
+      }
+
       // Adicionar ao histórico local
       const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
       this.historico = adicionarMensagem(this.historico, mensagemJogador);
 
-      const respostaMestre = formatarRespostaMestre(response.content);
+      const respostaMestre = formatarRespostaMestre(respostaJSON.narrativa);
       this.historico = adicionarMensagem(this.historico, respostaMestre);
 
       console.log('✅ MestreAgent: Ação narrada com sucesso');
 
       return {
-        narracao: response.content,
+        narracao: respostaJSON.narrativa,
+        fimDeTurno: respostaJSON.fimDeTurno || false,
+        solicitaDados: respostaJSON.solicitaDados || { solicita: false },
+        acaoCompleta: respostaJSON.acaoCompleta || false,
         jogador,
         personagem,
         acao,
@@ -138,8 +184,22 @@ export class MestreAgent {
         chat_history: []
       });
 
+      // ✅ Parsear JSON
+      let respostaJSON;
+      try {
+        respostaJSON = JSON.parse(response.content);
+      } catch (error) {
+        console.warn('⚠️ Resposta iniciarSessao não é JSON, usando fallback');
+        respostaJSON = {
+          narrativa: response.content,
+          fimDeTurno: false,
+          solicitaDados: { solicita: false },
+          acaoCompleta: false
+        };
+      }
+
       // Adicionar ao histórico
-      const respostaMestre = formatarRespostaMestre(response.content, {
+      const respostaMestre = formatarRespostaMestre(respostaJSON.narrativa, {
         tipo: 'inicio_sessao',
         tema: tema || this.temas.join(', ')
       });
@@ -148,7 +208,7 @@ export class MestreAgent {
       console.log('✅ MestreAgent: Sessão iniciada com sucesso');
 
       return {
-        introducao: response.content,
+        introducao: respostaJSON.narrativa,
         tema: tema || this.temas.join(', '),
         personagens: personagensCustom || this.personagens,
         timestamp: new Date().toISOString()
@@ -195,29 +255,42 @@ export class MestreAgent {
     rodada, 
     turno, 
     contadorMensagens = 0,
-    chatHistory = [] 
+    chatHistory = [],
+    resumo = null
   }) {
     try {
       console.log(`🎯 MestreAgent: Narrando turno ${turno} de ${personagem} (rodada ${rodada})...`);
 
       // Criar prompt específico para turno
       let input = `TURNO DO JOGADOR ${personagem} (Jogador: ${jogador})
-Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/3
+Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/4
 
 Mensagem do Jogador:
 "${mensagem}"
 
 `;
 
-      // Se já houve 2 mensagens, avisar que é hora de finalizar
-      if (contadorMensagens >= 2) {
-        input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e prepare para passar para o próximo jogador.\n`;
+      // Se já houve 3 mensagens, avisar que é hora de finalizar
+      if (contadorMensagens >= 3) {
+        input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e sinalize "Próximo jogador!" para passar a vez.\n`;
       } else {
-        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você pode fazer até ${3 - contadorMensagens - 1} resposta(s) adicionais antes de finalizar o turno.\n`;
+        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você ainda tem ${4 - contadorMensagens - 1} resposta(s) disponíveis.\n\nSe a ação estiver completamente resolvida, você pode sinalizar "Próximo jogador!" para avançar antes do limite.\n`;
       }
 
       // Converter histórico
-      const historico = converterHistoricoParaLangChain(chatHistory);
+      let historico = converterHistoricoParaLangChain(chatHistory);
+
+      // ✅ Se houver resumo, adicionar como contexto do sistema
+      if (resumo) {
+        console.log(`📖 MestreAgent: Usando resumo no turno`);
+        historico = [
+          {
+            role: 'system',
+            content: `RESUMO DA AVENTURA:\n${resumo}`
+          },
+          ...historico.slice(-15) // Últimas 15 mensagens + resumo
+        ];
+      }
 
       // Invocar chain
       const response = await this.chain.invoke({
@@ -225,13 +298,30 @@ Mensagem do Jogador:
         chat_history: historico
       });
 
+      // ✅ Parsear JSON
+      let respostaJSON;
+      try {
+        respostaJSON = JSON.parse(response.content);
+      } catch (error) {
+        console.warn('⚠️ Resposta narrarTurnoJogador não é JSON, usando fallback');
+        respostaJSON = {
+          narrativa: response.content,
+          fimDeTurno: false,
+          solicitaDados: { solicita: false },
+          acaoCompleta: false
+        };
+      }
+
       // Determinar se deve finalizar o turno
-      const deveFinalizarTurno = contadorMensagens >= 2;
+      const deveFinalizarTurno = respostaJSON.fimDeTurno || contadorMensagens >= 3;
 
       console.log(`✅ MestreAgent: Turno narrado (deve finalizar: ${deveFinalizarTurno})`);
 
       return {
-        resposta: response.content,
+        resposta: respostaJSON.narrativa,
+        fimDeTurno: respostaJSON.fimDeTurno || false,
+        solicitaDados: respostaJSON.solicitaDados || { solicita: false },
+        acaoCompleta: respostaJSON.acaoCompleta || false,
         deveFinalizarTurno,
         rodada,
         turno,
@@ -252,7 +342,8 @@ Mensagem do Jogador:
     rodadaAnterior, 
     proximaRodada, 
     resumoAcoes = [],
-    chatHistory = [] 
+    chatHistory = [],
+    resumo = null
   }) {
     try {
       console.log(`🔄 MestreAgent: Narrando transição da rodada ${rodadaAnterior} para ${proximaRodada}...`);
@@ -276,7 +367,19 @@ Como Mestre, você deve:
 Narre a transição e apresente o novo desafio:`;
 
       // Converter histórico
-      const historico = converterHistoricoParaLangChain(chatHistory);
+      let historico = converterHistoricoParaLangChain(chatHistory);
+
+      // ✅ Se houver resumo, adicionar como contexto do sistema
+      if (resumo) {
+        console.log(`📖 MestreAgent: Usando resumo entre rodadas`);
+        historico = [
+          {
+            role: 'system',
+            content: `RESUMO DA AVENTURA:\n${resumo}`
+          },
+          ...historico.slice(-10) // Últimas 10 mensagens + resumo
+        ];
+      }
 
       // Invocar chain
       const response = await this.chain.invoke({
@@ -284,18 +387,87 @@ Narre a transição e apresente o novo desafio:`;
         chat_history: historico
       });
 
+      // ✅ Parsear JSON
+      let respostaJSON;
+      try {
+        respostaJSON = JSON.parse(response.content);
+      } catch (error) {
+        console.warn('⚠️ Resposta narrarEntreRodadas não é JSON, usando fallback');
+        respostaJSON = {
+          narrativa: response.content,
+          fimDeTurno: false,
+          solicitaDados: { solicita: false },
+          acaoCompleta: false
+        };
+      }
+
       console.log(`✅ MestreAgent: Narrativa entre rodadas gerada`);
 
       return {
-        narrativa: response.content,
+        narrativa: respostaJSON.narrativa,
         rodadaAnterior,
         proximaRodada,
-        novoDesafio: response.content,
+        novoDesafio: respostaJSON.narrativa,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error('❌ MestreAgent: Erro ao narrar entre rodadas:', error);
       throw new Error(`Erro ao narrar entre rodadas: ${error.message}`);
+    }
+  }
+
+  /**
+   * Solicitar rolagem de dados dos jogadores
+   */
+  async solicitarRolagemDados({ 
+    motivo, 
+    tipoTeste = 'd20', 
+    dificuldade = 'Média',
+    jogadores = [],
+    chatHistory = [] 
+  }) {
+    try {
+      console.log(`🎲 MestreAgent: Solicitando rolagem - ${tipoTeste}`);
+
+      const jogadoresTexto = jogadores.length > 0 
+        ? jogadores.join(', ') 
+        : 'todos os jogadores';
+
+      const input = `SOLICITAÇÃO DE ROLAGEM DE DADOS
+
+Motivo: ${motivo}
+Tipo de Dado: ${tipoTeste}
+Dificuldade: ${dificuldade}
+Jogadores: ${jogadoresTexto}
+
+Como Mestre, explique de forma BREVE e DRAMÁTICA:
+- Por que essa rolagem é necessária agora
+- O que está em jogo (sucesso vs falha)
+- Como os jogadores devem proceder
+
+Termine com "🎲 Rolem seus dados!"
+
+Seja conciso (máximo 100 palavras).`;
+
+      const historico = converterHistoricoParaLangChain(chatHistory);
+
+      const response = await this.chain.invoke({
+        input,
+        chat_history: historico.slice(-10) // Só últimas 10 msgs
+      });
+
+      console.log('✅ MestreAgent: Solicitação de dados gerada');
+
+      return {
+        narrativa: response.content,
+        tipoTeste,
+        dificuldade,
+        jogadores,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('❌ MestreAgent: Erro ao solicitar dados:', error);
+      throw new Error(`Erro ao solicitar dados: ${error.message}`);
     }
   }
 
@@ -333,9 +505,9 @@ Narre a transição e apresente o novo desafio:`;
 /**
  * Factory function para criar instância do Mestre
  */
-export async function criarMestreRPG(temas = [], personagens = []) {
+export async function criarMestreRPG(temas = [], personagens = [], configOverride = null) {
   try {
-    const mestre = new MestreAgent(temas, personagens);
+    const mestre = new MestreAgent(temas, personagens, configOverride);
     return mestre;
   } catch (error) {
     console.error('❌ Erro ao criar mestre de RPG:', error);

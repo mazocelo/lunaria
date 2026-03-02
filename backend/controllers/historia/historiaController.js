@@ -2,7 +2,6 @@ import db from '../../Model/index.js';
 import criadorCompleto from '../../agents/historia/Criador.js';
 import { criarGeradorPrologo } from '../../agents/historia/prologo/index.js';
 import { criarGeradorTitulo } from '../../agents/historia/titulos/aleatorios/index.js';
-import criarMestreRPG from '../../agents/historia/MestreRPG.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import gerenciadorSessoes from '../../redis/sessoes.js';
 
@@ -21,7 +20,7 @@ class HistoriaController {
     try {
       console.log('📝 Criando nova história:', req.body);
       
-      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis } = req.body;
+      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id } = req.body;
       
       // Validações básicas
       if (!temas) {
@@ -69,7 +68,8 @@ class HistoriaController {
         descricao: descricao || '',
         prologo: resultadoPrologo.prologo,
         status: 'ativa',
-        id_usuario: req.user?.id || 1 // Vincular ao usuário logado
+        id_usuario: req.user?.id || 1, // Vincular ao usuário logado
+        mestre_id: mestre_id ? parseInt(mestre_id) : null
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
@@ -347,6 +347,26 @@ class HistoriaController {
     }
   }
   
+  /**
+   * Restaurar uma história soft-deleted
+   */
+  async restaurarHistoria(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const historia = await db.Historia.restoreHistoria(parseInt(id));
+
+      res.status(200).json({
+        success: true,
+        message: 'História restaurada com sucesso',
+        data: historia
+      });
+    } catch (error) {
+      console.error('Erro ao restaurar história:', error);
+      next(error);
+    }
+  }
+
   /**
    * Gerar história com prólogo usando IA
    * @param {Object} req - Request object

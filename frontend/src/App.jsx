@@ -7,7 +7,7 @@ import Sidebar from './components/sidebar'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
 import LoadingSpinner from './components/LoadingSpinner'
 import NotificationsModal from './components/NotificationsModal'
-import { AuthContainer } from './views/Auth'
+import { AuthContainer } from './components/Auth'
 import AppRoutes from './routes.jsx'
 
 // 🚀 STORE INITIALIZATION - Cache de dados estáticos em background

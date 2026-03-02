@@ -4,9 +4,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLayout } from '../../../contexts/LayoutContext';
 import { useGameLoading } from '../../../contexts/GameLoadingContext';
 import Notification from '../../../components/Notification.jsx';
-import { EtapaSelecaoPersonagem } from '../../../views/Jogo/components';
-import { AuthLoading, AuthError } from '../../../views/Jogo/components/shared/LoadingStates';
-import HistoriaNotFound from '../../../views/Jogo/components/shared/HistoriaNotFound';
+import { EtapaSelecaoPersonagem } from '../../../components/Jogo';
+import { AuthLoading, AuthError } from '../../../components/Jogo/Shared/LoadingStates';
+import HistoriaNotFound from '../../../components/Jogo/Shared/HistoriaNotFound';
 import { jogoViewModel } from '../../../viewmodels/Jogo';
 import useGameStore from '../../../store/game';
 

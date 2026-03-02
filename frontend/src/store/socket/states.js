@@ -46,6 +46,7 @@ export const socketInitialStates = {
   inRoom: false, // Se está conectado tecnicamente à room
   roomUsers: [], // Todos os usuários conectados à room (técnico, não necessariamente jogando)
   session: null, // Dados da sessão atual
+  participantes: [], // ✅ NOVO: Lista de participantes da sala (atualizada em tempo real)
   
   // ===== CONTROLE E RATE LIMITING =====
   rateLimitExceeded: false,
@@ -77,6 +78,15 @@ export const socketInitialStates = {
   estadoJogo: {},
   erroMensagem: null,
   
+  // ===== SISTEMA DE COMBATE =====
+  combateAtivo: false,
+  combateMonstros: [],       // Instâncias de monstros com HP atual
+  combateJogadores: {},      // HP dos jogadores { [userId]: { hp_max, hp_atual, ca, status } }
+  combateRodada: 0,
+  combateResultado: null,    // null | 'vitoria' | 'derrota' | 'fuga'
+  combateLog: [],            // Últimas ações do combate
+  combateXpGanho: 0,
+
   // ===== CONFIGURAÇÕES E LOGS =====
   logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'info',
   configs: {

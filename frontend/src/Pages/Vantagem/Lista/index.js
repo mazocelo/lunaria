@@ -1,3 +1,3 @@
-export { default as VantagemView } from '../../../views/Vantagens/index.jsx';
+export { default } from './view';
 export { vantagemViewModel } from '../../../viewmodels/Vantagens/VantagemViewModel';
 

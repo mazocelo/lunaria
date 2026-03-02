@@ -199,7 +199,6 @@ export class NotificationService {
    */
   async getUnreadCount() {
     try {
-
       // Usar o endpoint principal com limite mínimo para otimizar
       const response = await this.fetchNotifications({ limit: 1 });
 

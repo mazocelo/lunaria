@@ -206,7 +206,17 @@ export const createSocketActions = (set, get) => ({
           updateData.resultadosDados = estadoJogo.rolagemInicial;
           console.log('  ✓ Resultados dados:', Object.keys(estadoJogo.rolagemInicial).length);
         }
-        
+
+        // Restaurar estado de combate
+        if (estadoJogo.combate?.ativo) {
+          updateData.combateAtivo = true;
+          updateData.combateMonstros = estadoJogo.combate.monstros || [];
+          updateData.combateJogadores = estadoJogo.combate.jogadores || {};
+          updateData.combateRodada = estadoJogo.combate.rodadaCombate || 1;
+          updateData.combateLog = (estadoJogo.combate.log || []).slice(-10);
+          console.log('  ✓ Combate ativo restaurado:', estadoJogo.combate.monstros?.length, 'monstros');
+        }
+
         // Aplicar todas as atualizações
         set(updateData);
         console.log('✅ Estado do jogo restaurado com sucesso');
@@ -259,6 +269,20 @@ export const createSocketActions = (set, get) => ({
       get().log('Fase atualizada', { fase: data.fase, success: true });
     });
 
+    // ✅ NOVO: Listener para aventura iniciada
+    socket.on('aventura_iniciada', (data) => {
+      console.log('🎮 Aventura iniciada:', data);
+      set({
+        faseJogo: 'rolagem_inicial',
+        aventuraIniciada: true
+      });
+      get().log('Aventura iniciada', { 
+        historiaId: data.historiaId,
+        historiaNome: data.historiaNome,
+        success: true 
+      });
+    });
+
     // Listener de resultado de dado inicial
     socket.on('resultado_dado_inicial', (data) => {
       console.log('🎲 Resultado dado inicial:', data);
@@ -309,10 +333,27 @@ export const createSocketActions = (set, get) => ({
         turnoIniciado: false  // Resetar ao mudar turno
       });
       
+      // ✅ Mostrar notificação
+      if (typeof window !== 'undefined' && window.showGameNotification) {
+        if (ehMeuTurno) {
+          window.showGameNotification(`⚡ É SUA VEZ!`, 'success');
+        }
+      }
+      
       get().log('Turno alterado', { 
         turno: data.turnoAtual,
         jogador: data.jogadorAtual?.username,
         ehMeuTurno,
+        success: true 
+      });
+    });
+
+    // Listener de mestre finalizou turno
+    socket.on('mestre_finalizou_turno', (data) => {
+      console.log('🏁 Mestre finalizou turno:', data);
+      get().log('Mestre finalizou turno', { 
+        jogador: data.jogador,
+        contador: data.contador,
         success: true 
       });
     });
@@ -392,13 +433,161 @@ export const createSocketActions = (set, get) => ({
         ehMeuTurno: false,
         turnoIniciado: false,
         cooldownRoleplay: 0,
-        session: null
+        session: null,
+        combateAtivo: false,
+        combateMonstros: [],
+        combateJogadores: {},
+        combateRodada: 0,
+        combateResultado: null,
+        combateLog: [],
+        combateXpGanho: 0
       });
       
       get().log('Sessão resetada', { historiaId: data.historiaId, success: true });
       
       // Opcional: Mostrar notificação ou redirecionar
       console.warn(`⚠️ A sessão foi resetada pelo dono da história: ${data.historiaNome}`);
+    });
+
+    // ===== LISTENERS DO SISTEMA DE COMBATE =====
+
+    socket.on('combate_iniciado', (data) => {
+      console.log('⚔️ Combate iniciado:', data);
+      set({
+        combateAtivo: true,
+        combateMonstros: data.monstros || [],
+        combateJogadores: data.jogadores || {},
+        combateRodada: data.rodada || 1,
+        combateResultado: null,
+        combateLog: [],
+        combateXpGanho: 0
+      });
+      get().log('Combate iniciado', { monstros: data.monstros?.length, success: true });
+    });
+
+    socket.on('combate_resultado_acao', (data) => {
+      console.log('🗡️ Resultado ação combate:', data);
+      const { combateMonstros, combateJogadores, combateLog } = get();
+
+      // Atualizar HP do alvo
+      if (data.tipo === 'ataque_jogador' && data.alvo?.id) {
+        const monstrosAtualizados = combateMonstros.map(m => {
+          if (m.id === data.alvo.id) {
+            return { ...m, hp_atual: data.hpRestante, status: data.hpRestante <= 0 ? 'derrotado' : m.status };
+          }
+          return m;
+        });
+        set({ combateMonstros: monstrosAtualizados });
+      }
+
+      if (data.tipo === 'ataque_monstro' && data.alvo?.userId) {
+        const jogadoresAtualizados = { ...combateJogadores };
+        if (jogadoresAtualizados[data.alvo.userId]) {
+          jogadoresAtualizados[data.alvo.userId] = {
+            ...jogadoresAtualizados[data.alvo.userId],
+            hp_atual: data.hpRestante,
+            status: data.hpRestante <= 0 ? 'derrotado' : 'vivo'
+          };
+        }
+        set({ combateJogadores: jogadoresAtualizados });
+      }
+
+      // Adicionar ao log
+      set({ combateLog: [...combateLog.slice(-9), data] });
+      get().log('Ação combate processada', { tipo: data.tipo, acertou: data.acertou });
+    });
+
+    socket.on('combate_monstro_derrotado', (data) => {
+      console.log('💀 Monstro derrotado:', data);
+      const { combateMonstros } = get();
+      const monstrosAtualizados = combateMonstros.map(m => {
+        if (m.id === data.monstro?.id) {
+          return { ...m, status: 'derrotado', hp_atual: 0 };
+        }
+        return m;
+      });
+      set({ combateMonstros: monstrosAtualizados });
+      get().log('Monstro derrotado', { nome: data.monstro?.nome, xp: data.xp });
+    });
+
+    socket.on('combate_jogador_ferido', (data) => {
+      console.log('💔 Jogador ferido:', data);
+      const { combateJogadores } = get();
+      const jogadoresAtualizados = { ...combateJogadores };
+      if (jogadoresAtualizados[data.userId]) {
+        jogadoresAtualizados[data.userId] = {
+          ...jogadoresAtualizados[data.userId],
+          hp_atual: data.hp_atual,
+          status: data.derrotado ? 'derrotado' : 'vivo'
+        };
+      }
+      set({ combateJogadores: jogadoresAtualizados });
+      get().log('Jogador ferido', { nome: data.nome, hp: data.hp_atual });
+    });
+
+    socket.on('combate_finalizado', (data) => {
+      console.log('🏁 Combate finalizado:', data);
+      set({
+        combateAtivo: false,
+        combateResultado: data.resultado,
+        combateXpGanho: data.xpTotal || 0
+      });
+      get().log('Combate finalizado', { resultado: data.resultado, xp: data.xpTotal, success: true });
+    });
+
+    socket.on('combate_estado', (data) => {
+      console.log('📊 Estado combate atualizado:', data);
+      set({
+        combateMonstros: data.monstros || get().combateMonstros,
+        combateJogadores: data.jogadores || get().combateJogadores,
+        combateRodada: data.rodada || get().combateRodada,
+        combateLog: data.log || get().combateLog
+      });
+    });
+
+    // ✅ NOVO: Listener para usuário entrando na sala
+    socket.on('user_joined', (data) => {
+      console.log('👤 Usuário entrou na sala:', data);
+      
+      // Atualizar lista de participantes
+      const { participantes = [] } = get();
+      
+      // Verificar se já existe
+      const jaExiste = participantes.find(p => String(p.userId) === String(data.userId));
+      
+      if (!jaExiste) {
+        const novoParticipante = {
+          userId: data.userId,
+          username: data.username,
+          personagemId: data.personagemId,
+          personagemNome: data.personagemNome,
+          status: data.status || 'selecionando',
+          isReconnection: data.isReconnection
+        };
+        
+        set({ participantes: [...participantes, novoParticipante] });
+        console.log('✅ Participante adicionado ao store:', novoParticipante);
+      } else {
+        console.log('ℹ️ Participante já existe na lista:', data.username);
+      }
+      
+      get().log('Usuario entrou', { username: data.username, success: true });
+    });
+
+    // ✅ NOVO: Listener para usuário saindo da sala
+    socket.on('user_left', (data) => {
+      console.log('👋 Usuário saiu da sala:', data);
+      
+      // Remover da lista de participantes
+      const { participantes = [] } = get();
+      const participantesAtualizados = participantes.filter(
+        p => String(p.userId) !== String(data.userId)
+      );
+      
+      set({ participantes: participantesAtualizados });
+      console.log('✅ Participante removido do store:', data.username);
+      
+      get().log('Usuario saiu', { username: data.username, success: true });
     });
   },
 
@@ -592,6 +781,23 @@ export const createSocketActions = (set, get) => ({
       const onJoined = (data) => {
         cleanup();
         log('Room joined', { roomId: data.roomId, users: data.users?.length, success: true });
+        
+        // ✅ ATUALIZAR PARTICIPANTES DA SESSÃO
+        if (data.sessao?.jogadoresConectados) {
+          console.log('📋 Socket Store: Atualizando participantes do room_joined:', data.sessao.jogadoresConectados);
+          
+          const participantesFormatados = data.sessao.jogadoresConectados.map(j => ({
+            userId: j.userId,
+            username: j.username,
+            personagemId: j.personagemId,
+            personagemNome: j.personagemNome,
+            status: j.status || 'selecionando'
+          }));
+          
+          set({ participantes: participantesFormatados });
+          console.log('✅ Socket Store: Participantes atualizados:', participantesFormatados.length);
+        }
+        
         resolve(data);
       };
 

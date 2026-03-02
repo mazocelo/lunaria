@@ -1,4 +1,3 @@
-// Reutiliza o viewmodel da Lista para operações de criação
-export { default as NovoPersonagemView } from '../../../views/Personagem/NovoPersonagemView.jsx';
+export { default } from './view';
 export { personagemViewModel } from '../Lista/viewmodel';
 

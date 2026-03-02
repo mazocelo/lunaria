@@ -5,31 +5,31 @@ export { default as VerHistoriaPage } from './Historia/Ver';
 
 // Personagem
 export { default as PersonagemListaPage } from './Personagem/Lista';
-export { NovoPersonagemView as NovoPersonagemPage } from './Personagem/Novo';
-export { EditarPersonagemView as EditarPersonagemPage } from './Personagem/Editar';
-export { VerPersonagemView as VerPersonagemPage } from './Personagem/Ver';
+export { default as NovoPersonagemPage } from './Personagem/Novo';
+export { default as EditarPersonagemPage } from './Personagem/Editar';
+export { default as VerPersonagemPage } from './Personagem/Ver';
 
 // Raça
-export { RacaView as RacaPage } from './Raca/Lista';
-export { VerRacaView as VerRacaPage } from './Raca/Ver';
+export { default as RacaPage } from './Raca/Lista';
+export { default as VerRacaPage } from './Raca/Ver';
 
 // Classe
-export { ClasseView as ClassePage } from './Classe/Lista';
-export { VerClasseView as VerClassePage } from './Classe/Ver';
+export { default as ClassePage } from './Classe/Lista';
+export { default as VerClassePage } from './Classe/Ver';
 
 // Vantagem
-export { VantagemView as VantagemPage } from './Vantagem/Lista';
-export { VerVantagemView as VerVantagemPage } from './Vantagem/Ver';
+export { default as VantagemPage } from './Vantagem/Lista';
+export { default as VerVantagemPage } from './Vantagem/Ver';
 
 // Desvantagem
-export { DesvantagemView as DesvantagemPage } from './Desvantagem/Lista';
-export { NovaDesvantagemView as NovaDesvantagemPage } from './Desvantagem/Nova';
-export { EditarDesvantagemView as EditarDesvantagemPage } from './Desvantagem/Editar';
-export { VerDesvantagemView as VerDesvantagemPage } from './Desvantagem/Ver';
+export { default as DesvantagemPage } from './Desvantagem/Lista';
+export { default as NovaDesvantagemPage } from './Desvantagem/Nova';
+export { default as EditarDesvantagemPage } from './Desvantagem/Editar';
+export { default as VerDesvantagemPage } from './Desvantagem/Ver';
 
 // Auth
-export { LoginView as LoginPage } from './Login';
-export { RegisterView as RegisterPage } from './Register';
+export { default as LoginPage } from './Login';
+export { default as RegisterPage } from './Register';
 
 // Jogo
 export { default as SelecaoPersonagemPage } from './Jogo/SelecaoPersonagem';

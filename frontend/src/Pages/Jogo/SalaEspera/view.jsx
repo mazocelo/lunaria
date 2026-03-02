@@ -4,8 +4,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLayout } from '../../../contexts/LayoutContext';
 import { useGameLoading } from '../../../contexts/GameLoadingContext';
 import Notification from '../../../components/Notification.jsx';
-import { EtapaSalaEspera } from '../../../views/Jogo/components';
-import { AuthLoading } from '../../../views/Jogo/components/shared/LoadingStates';
+import { EtapaSalaEspera } from '../../../components/Jogo';
+import { AuthLoading } from '../../../components/Jogo/Shared/LoadingStates';
 import { jogoViewModel } from '../../../viewmodels/Jogo';
 import useGameStore from '../../../store/game';
 import { useJogoGuard } from '../hooks';
@@ -144,9 +144,15 @@ export const SalaEsperaView = () => {
   }, [historiaAtual, id, navigate]);
 
   // 🎯 HANDLERS
-  const handleIniciarJogo = () => {
-    jogoViewModel.iniciarJogo();
-    // Navegação será feita pelo listener aventura_iniciada
+  const handleIniciarJogo = async () => {
+    try {
+      console.log('🎮 SalaEspera: Handler iniciar jogo chamado');
+      await jogoViewModel.iniciarJogo();
+      console.log('✅ SalaEspera: Jogo iniciado, aguardando evento aventura_iniciada...');
+      // Navegação será feita pelo listener aventura_iniciada
+    } catch (error) {
+      console.error('❌ SalaEspera: Erro ao iniciar jogo:', error);
+    }
   };
 
   const handleSair = () => {

@@ -7,7 +7,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import ConviteModal from '../../../components/ConviteModal.jsx';
-import { TabelaList } from '../../../views/components';
+import { TabelaList } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { ROUTES, generateRoute } from '../../../routes.jsx';

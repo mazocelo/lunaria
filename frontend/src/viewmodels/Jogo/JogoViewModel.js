@@ -48,6 +48,9 @@ export class JogoViewModel {
     this.isInitializing = false;
     this.isLoadingHistoria = false;
     
+    // ✅ Cleanup de subscriptions
+    this.socketStoreUnsubscribe = null;
+    
     // Observers para mudanças de estado
     this.observers = [];
   }
@@ -320,11 +323,31 @@ export class JogoViewModel {
   }
 
   /**
-   * Inicia o jogo ativo
+   * Inicia o jogo ativo (chama API para iniciar aventura)
    */
-  iniciarJogo() {
-    this.salaAberta = true;
-    this.notify();
+  async iniciarJogo() {
+    try {
+      console.log('🚀 JogoViewModel: Iniciando jogo via API...', {
+        historiaId: this.historiaAtual?.id
+      });
+      
+      // ✅ Chamar API para iniciar partida (isso emitirá aventura_iniciada via WebSocket)
+      await etapaSalaEsperaViewModel.iniciarPartidaViaAPI(
+        this.historiaAtual?.id,
+        `Bem-vindos à aventura "${this.historiaAtual?.nome}"! Que a jornada comece!`
+      );
+      
+      console.log('✅ JogoViewModel: Jogo iniciado com sucesso via API');
+      
+      // Atualizar estado local
+      this.salaAberta = true;
+      this.notify();
+      
+    } catch (error) {
+      console.error('❌ JogoViewModel: Erro ao iniciar jogo:', error);
+      this.setError(error.message || 'Erro ao iniciar jogo');
+      throw error;
+    }
   }
 
   /**
@@ -501,6 +524,30 @@ export class JogoViewModel {
         } else {
           console.log('⚠️ JogoViewModel: Sessão não contém jogadoresConectados ou está vazia');
         }
+        
+        // ✅ SINCRONIZAR COM SOCKET STORE (atualização em tempo real)
+        console.log('🔗 JogoViewModel: Configurando sincronização automática com socket store...');
+        
+        // Se já existir um unsubscribe anterior, chamar primeiro
+        if (this.socketStoreUnsubscribe) {
+          this.socketStoreUnsubscribe();
+        }
+        
+        // Adicionar listener para mudanças de participantes no socket store
+        const unsubscribe = socketStore.subscribe((state, prevState) => {
+          // Verificar se participantes mudaram
+          if (state.participantes && state.participantes.length !== prevState?.participantes?.length) {
+            console.log('🔄 JogoViewModel: Participantes atualizados no socket store, sincronizando...', {
+              total: state.participantes.length,
+              participantes: state.participantes
+            });
+            this.atualizarParticipantes(state.participantes);
+          }
+        });
+        
+        // Guardar para cleanup posterior
+        this.socketStoreUnsubscribe = unsubscribe;
+        console.log('✅ JogoViewModel: Sincronização automática configurada!');
         
         // ✅ VERIFICAR SE SESSÃO FOI INICIADA - Redirecionar para jogo ativo
         if (roomState.session?.status === 'iniciada') {
@@ -709,8 +756,25 @@ export class JogoViewModel {
         temSessao: !!sessao,
         temMensagens: !!sessao?.mensagens,
         ehArray: Array.isArray(sessao?.mensagens),
-        quantidade: sessao?.mensagens?.length || 0
+        quantidade: sessao?.mensagens?.length || 0,
+        temJogadores: !!sessao?.jogadores
       });
+      
+      // ✅ Carregar participantes da sessão
+      if (sessao?.jogadores) {
+        const jogadoresArray = Object.values(sessao.jogadores);
+        if (jogadoresArray.length > 0) {
+          console.log('👥 JogoViewModel: Carregando participantes da sessão:', jogadoresArray);
+          const participantesFormatados = jogadoresArray.map(j => ({
+            userId: j.id,
+            username: j.nome,
+            personagem: j.personagemNome,
+            personagemId: j.personagemId,
+            personagemNome: j.personagemNome
+          }));
+          this.atualizarParticipantes(participantesFormatados);
+        }
+      }
       
       if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
         console.log(`✅ JogoViewModel: ${sessao.mensagens.length} mensagens carregadas do Redis`);
@@ -928,6 +992,11 @@ export class JogoViewModel {
   atualizarParticipantes(listaCompleta) {
     console.log('📋 JogoViewModel: Atualizando lista completa de participantes:', listaCompleta);
     this.participantes = listaCompleta;
+    
+    // ✅ SINCRONIZAR COM GAMESTORE
+    const gameStore = getGameStoreAPI();
+    gameStore.setParticipantes(listaCompleta);
+    
     this.notify();
   }
 
@@ -1045,88 +1114,6 @@ export class JogoViewModel {
     this.roomUsers = [];
     this.isConnecting = false;
     this.notify();
-  }
-
-  // ===== MÉTODOS DE VALIDAÇÃO =====
-
-  /**
-   * Verifica se o usuário está autenticado
-   * @param {Object} user - Usuário atual
-   * @returns {boolean} - Se está autenticado
-   */
-  isUserAuthenticated(user) {
-    return !!user;
-  }
-
-  /**
-   * Verifica se a história foi carregada
-   * @returns {boolean} - Se a história foi carregada
-   */
-  isHistoriaLoaded() {
-    return !!this.historiaAtual;
-  }
-
-  /**
-   * Verifica se há erros
-   * @returns {boolean} - Se há erros
-   */
-  hasErrors() {
-    return !!(this.error || this.socketError || this.errorPersonagens);
-  }
-
-  /**
-   * Verifica se está carregando
-   * @returns {boolean} - Se está carregando
-   */
-  isLoading() {
-    return this.loading || this.loadingPersonagens;
-  }
-
-  // ===== MÉTODOS DE ACESSO AOS VIEWMODELS ESPECÍFICOS =====
-
-  /**
-   * Obtém o ViewModel de seleção de personagem
-   * @returns {EtapaSelecaoPersonagemViewModel} ViewModel da etapa
-   */
-  getEtapaSelecaoPersonagemViewModel() {
-    return etapaSelecaoPersonagemViewModel;
-  }
-
-  /**
-   * Obtém o ViewModel de sala de espera
-   * @returns {EtapaSalaEsperaViewModel} ViewModel da etapa
-   */
-  getEtapaSalaEsperaViewModel() {
-    return etapaSalaEsperaViewModel;
-  }
-
-  /**
-   * Obtém o ViewModel de jogo RPG
-   * @returns {EtapaJogoRPGViewModel} ViewModel da etapa
-   */
-  getEtapaJogoRPGViewModel() {
-    return etapaJogoRPGViewModel;
-  }
-
-  /**
-   * Obtém o ViewModel de input
-   * @returns {InputAreaViewModel} ViewModel do input
-   */
-  getInputAreaViewModel() {
-    return inputAreaViewModel;
-  }
-
-  /**
-   * Obtém todos os ViewModels específicos
-   * @returns {Object} Objeto com todos os ViewModels
-   */
-  getAllEtapaViewModels() {
-    return {
-      selecaoPersonagem: etapaSelecaoPersonagemViewModel,
-      salaEspera: etapaSalaEsperaViewModel,
-      jogoRPG: etapaJogoRPGViewModel,
-      inputArea: inputAreaViewModel
-    };
   }
 
   // ===== MÉTODOS DE VALIDAÇÃO =====

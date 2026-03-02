@@ -1,3 +1,3 @@
-export { default as VerRacaView } from '../../../views/Racas/VerRacaView.jsx';
+export { default } from './view';
 export { racaViewModel } from '../../../viewmodels/Racas/RacaViewModel';
 

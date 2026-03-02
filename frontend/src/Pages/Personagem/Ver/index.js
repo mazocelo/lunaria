@@ -1,4 +1,3 @@
-// Reutiliza o viewmodel da Lista para visualização
-export { default as VerPersonagemView } from '../../../views/Personagem/VerPersonagemView.jsx';
+export { default } from './view';
 export { personagemViewModel } from '../Lista/viewmodel';
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { personagemViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { TabelaList } from '../../../views/components';
+import { TabelaList } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 
 const PersonagemListaView = () => {

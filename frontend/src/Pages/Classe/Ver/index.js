@@ -1,3 +1,3 @@
-export { default as VerClasseView } from '../../../views/Classes/VerClasseView.jsx';
+export { default } from './view';
 export { classeViewModel } from '../../../viewmodels/Classes/ClasseViewModel';
 

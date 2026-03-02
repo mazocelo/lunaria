@@ -270,28 +270,12 @@
   @apply bg-white/5 backdrop-blur-md border border-white/10;
 }
 
-/* Animações */
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Responsividade */
 @media (max-width: 768px) {
   .glass {
     backdrop-filter: blur(10px);
   }
-  
+
   .card-rpg {
     @apply p-4;
   }

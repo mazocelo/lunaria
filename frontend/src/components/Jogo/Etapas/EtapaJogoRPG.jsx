@@ -11,6 +11,7 @@ import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
 import NotificationManager from '../NotificationManager';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
 import { personagemService } from '../../../services';
+import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS, PARTICLES } from '../../../constants/game';
 
 /**
  * Layout do jogo RPG ativo - Usando ViewModel específico
@@ -137,7 +138,7 @@ const EtapaJogoRPG = ({
           }
           return prev - 1;
         });
-      }, 1000);
+      }, TIMEOUTS.COOLDOWN_TICK);
     }
 
     return () => {
@@ -457,10 +458,8 @@ const EtapaJogoRPG = ({
         });
 
         if (enviado) {
-          // Iniciar cooldown local de 12 segundos
-          setCooldownLocal(12);
+          setCooldownLocal(ROLEPLAY_COOLDOWN_SECONDS);
           etapaJogoRPGViewModel.clearMensagemAtual();
-          console.log('✅ Mensagem roleplay enviada, cooldown de 12s iniciado');
         }
       } else {
         // ✅ Ativar loading
@@ -506,7 +505,7 @@ const EtapaJogoRPG = ({
       // Resetar flag após um pequeno delay para evitar duplo clique
       setTimeout(() => {
         enviandoRef.current = false;
-      }, 500);
+      }, TIMEOUTS.FLAG_RESET_DELAY);
     }
   };
 
@@ -694,7 +693,7 @@ const EtapaJogoRPG = ({
       <NotificationManager />
       
       {/* Background effects */}
-      <BackgroundEffects particleCount={50} />
+      <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
 
       <div className="relative z-10 h-screen flex flex-col">
         {/* Barra de Controle - Botões Fixos */}

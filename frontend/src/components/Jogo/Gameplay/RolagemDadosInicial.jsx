@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DICE_ANIMATION } from '../../../constants/game';
 
 /**
  * Componente para rolagem de dados inicial (d20) para definir ordem de jogadores
@@ -30,13 +31,13 @@ const RolagemDadosInicial = ({
     const intervalo = setInterval(() => {
       setDadoLocal(Math.floor(Math.random() * 20) + 1);
       contador++;
-      if (contador >= 10) {
+      if (contador >= DICE_ANIMATION.TOTAL_FRAMES) {
         clearInterval(intervalo);
         setAnimando(false);
         setDadoLocal(null);
         onRolarDado();
       }
-    }, 100);
+    }, DICE_ANIMATION.FRAME_INTERVAL);
   };
 
   if (jaRolou) {

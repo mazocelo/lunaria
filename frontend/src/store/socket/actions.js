@@ -12,6 +12,7 @@
  * - Funções utilitárias
  */
 import io from 'socket.io-client';
+import { COMBAT } from '../../constants/game';
 
 // Configuração de URLs via variáveis de ambiente
 const WS_BASE_URL = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:3001';
@@ -213,7 +214,7 @@ export const createSocketActions = (set, get) => ({
           updateData.combateMonstros = estadoJogo.combate.monstros || [];
           updateData.combateJogadores = estadoJogo.combate.jogadores || {};
           updateData.combateRodada = estadoJogo.combate.rodadaCombate || 1;
-          updateData.combateLog = (estadoJogo.combate.log || []).slice(-10);
+          updateData.combateLog = (estadoJogo.combate.log || []).slice(-COMBAT.LOG_MAX_ENTRIES);
           console.log('  ✓ Combate ativo restaurado:', estadoJogo.combate.monstros?.length, 'monstros');
         }
 
@@ -493,7 +494,7 @@ export const createSocketActions = (set, get) => ({
       }
 
       // Adicionar ao log
-      set({ combateLog: [...combateLog.slice(-9), data] });
+      set({ combateLog: [...combateLog.slice(-(COMBAT.LOG_MAX_ENTRIES - 1)), data] });
       get().log('Ação combate processada', { tipo: data.tipo, acertou: data.acertou });
     });
 

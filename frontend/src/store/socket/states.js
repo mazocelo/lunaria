@@ -1,27 +1,18 @@
+import { SOCKET_TIMEOUTS } from '../../constants/game';
+
 /**
  * 🌐 SOCKET STATES - Estados iniciais da conexão WebSocket
- * 
- * Contém todos os estados iniciais do socket:
- * - Instância do Socket.io e configurações
- * - Status da conexão WebSocket
- * - Estado de autenticação
- * - Informações do usuário conectado
- * - Estado da sala/room (conexão técnica)
- * - Controle de rate limiting
- * - Status de conectividade e latência
- * - Status de digitação (typing indicators)
- * - Sistema de listeners e logs
  */
 
 export const socketInitialStates = {
   // ===== INSTÂNCIA E CONFIGURAÇÕES =====
-  socket: null, // Instância do socket.io
-  listeners: new Map(), // Map para controlar listeners
+  socket: null,
+  listeners: new Map(),
   connectionOptions: {
     transports: ['websocket', 'polling'],
     upgrade: true,
-    timeout: 60000,
-    pingTimeout: 120000,
+    timeout: SOCKET_TIMEOUTS.CONNECTION,
+    pingTimeout: SOCKET_TIMEOUTS.PING,
     autoConnect: false,
     forceNew: false
   },
@@ -90,11 +81,11 @@ export const socketInitialStates = {
   // ===== CONFIGURAÇÕES E LOGS =====
   logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'info',
   configs: {
-    CONNECTION_TIMEOUT: 60000,
-    AUTH_TIMEOUT: 10000,
-    ROOM_TIMEOUT: 10000,
-    SESSION_TIMEOUT: 10000,
-    MONITOR_INTERVAL: 30000,
+    CONNECTION_TIMEOUT: SOCKET_TIMEOUTS.CONNECTION,
+    AUTH_TIMEOUT: SOCKET_TIMEOUTS.AUTHENTICATION,
+    ROOM_TIMEOUT: SOCKET_TIMEOUTS.ROOM_JOIN_LEAVE,
+    SESSION_TIMEOUT: SOCKET_TIMEOUTS.SESSION_START,
+    MONITOR_INTERVAL: SOCKET_TIMEOUTS.MONITOR_INTERVAL,
   }
 };
 

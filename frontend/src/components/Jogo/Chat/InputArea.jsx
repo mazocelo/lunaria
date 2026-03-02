@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MessageTypeSelector } from '../../MessageTypeSelector';
 import { inputAreaViewModel } from '../../../viewmodels/Jogo';
 import CooldownRoleplay from '../Gameplay/CooldownRoleplay';
+import { TIMEOUTS } from '../../../constants/game';
 
 /**
  * Área de input de mensagens do jogo RPG
@@ -56,27 +57,14 @@ const InputArea = ({
 
   // 🎯 HANDLERS: Usando ViewModel
   const handleMessageTypeChange = (type) => {
-    console.log('📝 [InputArea] Tipo de mensagem alterado:', type);
-    console.log('📝 [InputArea] Estado anterior:', messageType);
     inputAreaViewModel.setMessageType(type);
-    console.log('✅ [InputArea] Novo tipo definido no ViewModel:', inputAreaViewModel.messageType);
   };
 
   const enviarMensagemComTipo = async () => {
-    console.log('📤 [InputArea] Tentando enviar mensagem:');
-    console.log('   ├─ Tipo:', messageType);
-    console.log('   ├─ Conteúdo:', mensagemAtual);
-    console.log('   └─ Dados completos:', { message: mensagemAtual, type: messageType });
-    
     const sucesso = await inputAreaViewModel.enviarMensagem(mensagemAtual, onEnviarMensagem);
-    
-    if (sucesso) {
-      console.log('✅ [InputArea] Mensagem enviada com sucesso!');
-      if (onEnviarMensagem) {
-        onEnviarMensagem();
-      }
-    } else {
-      console.error('❌ [InputArea] Falha ao enviar mensagem');
+
+    if (sucesso && onEnviarMensagem) {
+      onEnviarMensagem();
     }
   };
 
@@ -150,19 +138,19 @@ const InputArea = ({
             {faseJogo === 'rodada_em_andamento' && (
               <div className="flex items-center gap-2">
                 {[
-                  { tipo: 'd4', emoji: '🔺', cor: 'purple' },
-                  { tipo: 'd6', emoji: '🎲', cor: 'blue' },
-                  { tipo: 'd8', emoji: '🔶', cor: 'green' },
-                  { tipo: 'd10', emoji: '🔟', cor: 'yellow' },
-                  { tipo: 'd12', emoji: '🌟', cor: 'orange' },
-                  { tipo: 'd20', emoji: '⭐', cor: 'cyan' },
-                  { tipo: 'd100', emoji: '💯', cor: 'pink' }
+                  { tipo: 'd4', emoji: '🔺', classes: 'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600' },
+                  { tipo: 'd6', emoji: '🎲', classes: 'bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600' },
+                  { tipo: 'd8', emoji: '🔶', classes: 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' },
+                  { tipo: 'd10', emoji: '🔟', classes: 'bg-gradient-to-br from-yellow-500 to-yellow-700 hover:from-yellow-400 hover:to-yellow-600' },
+                  { tipo: 'd12', emoji: '🌟', classes: 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600' },
+                  { tipo: 'd20', emoji: '⭐', classes: 'bg-gradient-to-br from-cyan-500 to-cyan-700 hover:from-cyan-400 hover:to-cyan-600' },
+                  { tipo: 'd100', emoji: '💯', classes: 'bg-gradient-to-br from-pink-500 to-pink-700 hover:from-pink-400 hover:to-pink-600' }
                 ].map((dado) => (
                   <button
                     key={dado.tipo}
                     onClick={() => onRolarDados && onRolarDados(dado.tipo, '')}
                     disabled={connectionStatus.status === 'error'}
-                    className={`px-3 py-2 text-xl rounded-lg font-bold transition-all shadow-md hover:shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-br from-${dado.cor}-500 to-${dado.cor}-700 hover:from-${dado.cor}-400 hover:to-${dado.cor}-600 ${
+                    className={`px-3 py-2 text-xl rounded-lg font-bold transition-all shadow-md hover:shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${dado.classes} ${
                       dadosSolicitados ? 'ring-2 ring-amber-400' : ''
                     }`}
                     title={`Rolar ${dado.tipo.toUpperCase()}`}
@@ -201,7 +189,7 @@ const InputArea = ({
                   if (onIniciarTurno) {
                     await onIniciarTurno();
                   }
-                  setTimeout(() => setIniciandoTurno(false), 10000);
+                  setTimeout(() => setIniciandoTurno(false), TIMEOUTS.INICIAR_TURNO_RESET);
                 }}
                 disabled={iniciandoTurno}
                 className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { ROLEPLAY_COOLDOWN_SECONDS, TIMEOUTS } from '../../../constants/game';
 
 /**
- * Componente para exibir cooldown de mensagens roleplay (12 segundos)
+ * Componente para exibir cooldown de mensagens roleplay
  */
 const CooldownRoleplay = ({ 
   segundosRestantes = 0, 
@@ -24,14 +25,14 @@ const CooldownRoleplay = ({
         }
         return prev - 1;
       });
-    }, 1000);
+    }, TIMEOUTS.COOLDOWN_TICK);
 
     return () => clearInterval(intervalo);
   }, [ativo, segundos]);
 
   if (!ativo || segundos <= 0) return null;
 
-  const porcentagem = (segundos / 12) * 100;
+  const porcentagem = (segundos / ROLEPLAY_COOLDOWN_SECONDS) * 100;
 
   return (
     <div className="bg-amber-900/30 border-2 border-amber-600/50 rounded-xl px-4 py-2.5 shadow-lg inline-flex items-center space-x-3">

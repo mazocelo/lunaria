@@ -10,7 +10,7 @@ import { ROUTES } from '../../routes';
 import { Eye, EyeOff } from 'lucide-react';
 
 const LoginView = ({ onSwitchToRegister }) => {
-  const { login, forgotPassword, loading, isAuthenticated } = useAuth();
+  const { login, authService, loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -157,7 +157,7 @@ const LoginView = ({ onSwitchToRegister }) => {
     }
     setForgotLoading(true);
     try {
-      await forgotPassword(forgotEmail);
+      await authService.forgotPassword(forgotEmail);
       setNotification({
         type: 'success',
         message: 'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.'

@@ -49,10 +49,6 @@ export { default as NovoMestrePage } from './Mestre/Nova';
 export { default as EditarMestrePage } from './Mestre/Editar';
 export { default as VerMestrePage } from './Mestre/Ver';
 
-// Auth
-export { default as LoginPage } from './Login';
-export { default as RegisterPage } from './Register';
-
 // Jogo
 export { default as SelecaoPersonagemPage } from './Jogo/SelecaoPersonagem';
 export { default as SalaEsperaPage } from './Jogo/SalaEspera';

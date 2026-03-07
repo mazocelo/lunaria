@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/theme.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocketStore } from '../../store';
-import { WebSocketStatusCompact } from '../WebSocketStatus';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -107,14 +106,6 @@ const Sidebar = () => {
                             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                                 Lunaria
                             </h2>
-                            {/* Indicador WebSocket */}
-                            {/* <WebSocketStatusCompact 
-                                isConnected={isConnected}
-                                isAuthenticated={isAuthenticated}
-                                isConnecting={isConnecting}
-                                error={error}
-                                className="flex-shrink-0"
-                            /> */}
                         </div>
                         <p className={`text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'
                             }`}>

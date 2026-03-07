@@ -413,13 +413,6 @@ export const HistoriaListaView = () => {
           icon="🎭"
           variant="secondary"
         />
-
-        {/* <StatCard
-          title="Com Temas"
-          value={estatisticas?.comTemas || 0}
-          icon="⚡"
-          variant="accent"
-        /> */}
       </div>
 
       {/* Busca */}

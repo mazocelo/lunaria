@@ -1,5 +1,6 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
-import { 
+import SuperAdminRoute from './components/SuperAdminRoute';
+import {
   HistoriaListaPage, 
   NovaHistoriaPage, 
   VerHistoriaPage, 
@@ -165,57 +166,6 @@ export const generateRoute = {
 
 /**
  * ============================================================================
- * CATEGORIAS DE ROTAS
- * ============================================================================
- * Configurações organizadas por categoria para navegação dinâmica
- * Útil para gerar menus, breadcrumbs ou sidebars
- */
-export const ROUTE_CATEGORIES = {
-  HISTORIAS: {
-    title: 'Histórias',
-    icon: '📚',
-    routes: [
-      { path: ROUTES.HISTORIAS, name: 'Histórias', exact: true },
-      { path: ROUTES.NOVA_HISTORIA, name: 'Nova História', exact: true }
-    ]
-  },
-  
-  PERSONAGENS: {
-    title: 'Personagens',
-    icon: '👤',
-    routes: [
-      { path: ROUTES.PERSONAGENS, name: 'Personagens', exact: true },
-      { path: ROUTES.NOVO_PERSONAGEM, name: 'Novo Personagem', exact: true }
-    ]
-  },
-  
-  SISTEMA: {
-    title: 'Sistema',
-    icon: '⚙️',
-    routes: [
-      { path: ROUTES.RACAS, name: 'Raças', exact: true },
-      { path: ROUTES.CLASSES, name: 'Classes', exact: true },
-      { path: ROUTES.VANTAGENS, name: 'Vantagens', exact: true },
-      { path: ROUTES.DESVANTAGENS, name: 'Desvantagens', exact: true },
-      { path: ROUTES.MONSTROS, name: 'Monstros', exact: true },
-      { path: ROUTES.MESTRES, name: 'Mestres', exact: true },
-      { path: ROUTES.TEMAS, name: 'Temas', exact: true }
-    ]
-  },
-  
-  JOGO: {
-    title: 'Jogo',
-    icon: '🎲',
-    routes: [
-      { path: ROUTES.JOGO_SELECAO_PERSONAGEM, name: 'Seleção de Personagem', exact: false },
-      { path: ROUTES.JOGO_SALA_ESPERA, name: 'Sala de Espera', exact: false },
-      { path: ROUTES.JOGO_ATIVO, name: 'Jogo Ativo', exact: false }
-    ]
-  }
-};
-
-/**
- * ============================================================================
  * CONFIGURAÇÃO DECLARATIVA DE ROTAS
  * ============================================================================
  * Definição centralizada de todas as rotas da aplicação
@@ -332,14 +282,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVA_RACA,
     component: NovaRacaPage,
     name: 'Nova Raça',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_RACA,
     component: EditarRacaPage,
     name: 'Editar Raça',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.VER_RACA,
@@ -360,14 +312,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVA_CLASSE,
     component: NovaClassePage,
     name: 'Nova Classe',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_CLASSE,
     component: EditarClassePage,
     name: 'Editar Classe',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.VER_CLASSE,
@@ -388,14 +342,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVA_VANTAGEM,
     component: NovaVantagemPage,
     name: 'Nova Vantagem',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_VANTAGEM,
     component: EditarVantagemPage,
     name: 'Editar Vantagem',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.VER_VANTAGEM,
@@ -416,14 +372,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVO_TEMA,
     component: NovoTemaPage,
     name: 'Novo Tema',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_TEMA,
     component: EditarTemaPage,
     name: 'Editar Tema',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
 
   // ===== DESVANTAGENS =====
@@ -437,14 +395,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVA_DESVANTAGEM,
     component: NovaDesvantagemPage,
     name: 'Nova Desvantagem',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_DESVANTAGEM,
     component: EditarDesvantagemPage,
     name: 'Editar Desvantagem',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.VER_DESVANTAGEM,
@@ -465,14 +425,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVO_MONSTRO,
     component: NovoMonstroPage,
     name: 'Novo Monstro',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_MONSTRO,
     component: EditarMonstroPage,
     name: 'Editar Monstro',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
 
   // ===== MESTRES =====
@@ -486,14 +448,16 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVO_MESTRE,
     component: NovoMestrePage,
     name: 'Novo Mestre',
-    category: 'SISTEMA'
+    category: 'SISTEMA',
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.EDITAR_MESTRE,
     component: EditarMestrePage,
     name: 'Editar Mestre',
     category: 'SISTEMA',
-    hasParams: true
+    hasParams: true,
+    requireSuperAdmin: true
   },
   {
     path: ROUTES.VER_MESTRE,
@@ -524,11 +488,14 @@ const AppRoutes = () => {
     <Routes>
       {ROUTE_CONFIG.map((route, index) => {
         const Component = route.component;
+        const element = route.requireSuperAdmin
+          ? <SuperAdminRoute><Component /></SuperAdminRoute>
+          : <Component />;
         return (
-          <Route 
+          <Route
             key={`${route.path}-${index}`}
-            path={route.path} 
-            element={<Component />} 
+            path={route.path}
+            element={element}
           />
         );
       })}
@@ -536,30 +503,4 @@ const AppRoutes = () => {
   );
 };
 
-/**
- * ============================================================================
- * UTILITÁRIOS ADICIONAIS
- * ============================================================================
- */
-
-// Função para buscar rota por path
-export const findRouteByPath = (path) => {
-  return ROUTE_CONFIG.find(route => route.path === path);
-};
-
-// Função para buscar rotas por categoria
-export const getRoutesByCategory = (category) => {
-  return ROUTE_CONFIG.filter(route => route.category === category);
-};
-
-// Função para verificar se uma rota tem parâmetros
-export const hasRouteParams = (path) => {
-  const route = findRouteByPath(path);
-  return route?.hasParams || false;
-};
-
-// Export principal
-export default AppRoutes;
-
-// Export da configuração para casos específicos
-export { ROUTE_CONFIG }; 
+export default AppRoutes; 

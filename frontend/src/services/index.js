@@ -28,44 +28,6 @@ export { MestreService } from './MestreService';
 export { MonstroService } from './MonstroService';
 export { AuthService } from './AuthService';
 
-// Factory para criação de serviços
-export class ServiceFactory {
-  /**
-   * Cria uma instância do serviço apropriado
-   * @param {string} type - Tipo do serviço ('historia', 'personagem', 'tema', 'vantagem')
-   * @param {ApiClient} apiClient - Cliente API
-   * @returns {Object} Instância do serviço
-   */
-  static create(type, apiClient) {
-    switch (type.toLowerCase()) {
-      case 'historia':
-        return new HistoriaService(apiClient);
-      case 'personagem':
-        return new PersonagemService(apiClient);
-      case 'tema':
-        return new TemaService(apiClient);
-      case 'vantagem':
-        return new VantagemService(apiClient);
-      case 'raca':
-        return new RacaService(apiClient);
-      case 'classe':
-        return new ClasseService(apiClient);
-      case 'desvantagem':
-        return new DesvantagemService(apiClient);
-      case 'mestre':
-        return new MestreService(apiClient);
-      case 'monstro':
-        return new MonstroService(apiClient);
-      case 'auth':
-        return new AuthService(apiClient);
-      case 'notification':
-        return new NotificationService(apiClient);
-      default:
-        throw new Error(`Tipo de serviço desconhecido: ${type}`);
-    }
-  }
-}
-
 // Instâncias padrão dos serviços
 export const historiaService = new HistoriaService(apiClient);
 export const personagemService = new PersonagemService(apiClient);

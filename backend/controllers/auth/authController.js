@@ -360,12 +360,7 @@ class AuthController {
         await enviarEmailResetSenha(usuario.email, usuario.nome, resetToken);
       } catch (emailError) {
         console.error('Erro ao enviar email de reset:', emailError);
-        // Limpar token se o email falhar
-        await db.prisma.usuarios.update({
-          where: { id: usuario.id },
-          data: { reset_token: null, reset_token_expires: null }
-        });
-        return res.status(500).json({ success: false, error: 'Erro ao enviar email. Tente novamente.' });
+        // Não revelar falha de email ao usuário (segurança + SMTP pode não estar configurado)
       }
 
       res.status(200).json({

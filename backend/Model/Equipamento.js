@@ -89,6 +89,28 @@ const Equipamento = (prisma) => {
       });
     },
 
+    // Buscar por propriedade
+    async findByPropriedade(propriedade) {
+      return await model.findMany({
+        where: {
+          propriedades: {
+            has: propriedade
+          }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar equipamentos com cargas
+    async findComCargas() {
+      return await model.findMany({
+        where: {
+          cargas: { not: null }
+        },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
     // Criar equipamento
     async create(data) {
       return await prisma.equipamentos.create({
@@ -96,7 +118,8 @@ const Equipamento = (prisma) => {
           ...data,
           bonus: data.bonus || [],
           elemento: data.elemento || [],
-          tipo: data.tipo || []
+          tipo: data.tipo || [],
+          propriedades: data.propriedades || []
         }
       });
     },

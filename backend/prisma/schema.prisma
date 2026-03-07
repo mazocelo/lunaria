@@ -45,9 +45,7 @@ model equipamentos {
   descricao              String?
   tipo                   String[]
   bonus                  Json?                    @default("[]")
-  restricao              Json?
   dano_base              String?
-  efeito                 Json?
   elemento               String[]                 @default([])
   requisitos             Json?
   numero                 Int?
@@ -56,6 +54,9 @@ model equipamentos {
   sintonizacao           Boolean                  @default(false)
   sintonizacao_restricao String?
   categoria              String                   @default("Miscelanea Magica") @db.VarChar(100)
+  propriedades           String[]                 @default([])
+  cargas                 Int?
+  usos_por_dia           Int?
   personagem_equipamento personagem_equipamento[]
 
   @@index([categoria], map: "idx_equipamento_categoria")

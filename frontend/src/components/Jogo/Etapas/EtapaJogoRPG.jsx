@@ -73,6 +73,7 @@ const EtapaJogoRPG = ({
 
   // 🎲 Estado para controlar solicitação de dados do Mestre
   const [dadosSolicitados, setDadosSolicitados] = useState(false);
+  const [dadoSolicitadoInfo, setDadoSolicitadoInfo] = useState(null);
   const [aguardandoMestre, setAguardandoMestre] = useState(false);
   const [fichaModalAberta, setFichaModalAberta] = useState(false);
   const [fichaSelecionada, setFichaSelecionada] = useState(null);
@@ -231,8 +232,10 @@ const EtapaJogoRPG = ({
             console.error('Erro ao limpar loading:', error);
           }
           
-          // ✅ Desativar loading
+          // ✅ Desativar loading e limpar estado de dados solicitados
           setAguardandoMestre(false);
+          setDadosSolicitados(false);
+          setDadoSolicitadoInfo(null);
           
           const mensagem = {
             id: data.id || Date.now(),
@@ -328,11 +331,13 @@ const EtapaJogoRPG = ({
         const handleDiceRoll = (data) => {
           console.log('🎲 Dado rolado - data recebido:', data);
           
-          // ✅ Se era o usuário atual que rolou, desbloquear input
+          // ✅ Se era o usuário atual que rolou, transição: dado → aguardando mestre
           const user = JSON.parse(localStorage.getItem('user') || '{}');
           if (String(data.userId) === String(user.id)) {
             setDadosSolicitados(false);
-            console.log('✅ Input desbloqueado - dado rolado');
+            setDadoSolicitadoInfo(null);
+            setAguardandoMestre(true);
+            console.log('✅ Dado rolado - aguardando resposta do Mestre...');
           }
           
           const mensagem = {
@@ -360,9 +365,14 @@ const EtapaJogoRPG = ({
         // Listener para solicitação de dados do Mestre
         const handleMestreSolicitaDados = (data) => {
           console.log('🎲 Mestre solicitou dados:', data);
-          
-          // ✅ Ativar estado de dados solicitados
+
+          // ✅ Ativar estado de dados solicitados com info completa
           setDadosSolicitados(true);
+          setDadoSolicitadoInfo({
+            tipoDado: data.tipoDado || 'd20',
+            teste: data.teste || '',
+            dificuldade: data.dificuldade || 'Média'
+          });
         };
 
         // Adicionar listeners
@@ -517,8 +527,12 @@ const EtapaJogoRPG = ({
 
   const handleRolarDados = async (tipoDado = 'd20', descricao = '') => {
     try {
-      console.log('🎲 handleRolarDados chamado com:', { tipoDado, descricao });
-      
+      // Usar info do dado solicitado pelo Mestre se disponível
+      const dadoFinal = dadoSolicitadoInfo?.tipoDado || tipoDado;
+      const descricaoFinal = descricao || dadoSolicitadoInfo?.teste || '';
+
+      console.log('🎲 handleRolarDados chamado com:', { dadoFinal, descricaoFinal });
+
       // Durante o jogo, emitir para o backend ao invés de adicionar localmente
       const { getSocketStoreAPI } = await import('../../../store/index.js');
       const socketStore = getSocketStoreAPI();
@@ -526,7 +540,7 @@ const EtapaJogoRPG = ({
       const roomId = `historia_${historia?.id}`;
 
       // Rolar dados localmente para obter resultado
-      const resultado = etapaJogoRPGViewModel.rolarDados(tipoDado, descricao);
+      const resultado = etapaJogoRPGViewModel.rolarDados(dadoFinal, descricaoFinal);
       console.log('🎲 Resultado local:', resultado);
 
       // Emitir para o backend (backend irá distribuir para todos)
@@ -534,9 +548,9 @@ const EtapaJogoRPG = ({
         roomId: roomId,
         userId: String(user.id),
         username: user.nome || user.name,
-        dice: String(tipoDado),
+        dice: String(dadoFinal),
         result: String(resultado.resultado),
-        description: descricao || ''
+        description: descricaoFinal
       });
 
       if (enviado) {
@@ -919,6 +933,7 @@ const EtapaJogoRPG = ({
               onIniciarTurno={handleIniciarTurno}
               jaRolouDadoInicial={jaRolouDadoInicial}
               dadosSolicitados={dadosSolicitados}
+              dadoSolicitadoInfo={dadoSolicitadoInfo}
               aguardandoMestre={aguardandoMestre}
               combateAtivo={socketState.combateAtivo}
             />

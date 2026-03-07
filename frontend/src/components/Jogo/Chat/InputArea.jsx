@@ -26,6 +26,7 @@ const InputArea = ({
   onIniciarTurno,
   jaRolouDadoInicial = false,
   dadosSolicitados = false,
+  dadoSolicitadoInfo = null,
   aguardandoMestre = false,
   // Props de combate
   combateAtivo = false
@@ -151,16 +152,14 @@ const InputArea = ({
               </div>
             )}
             
-            {/* Botão de Dados RPG - popover */}
-            {faseJogo === 'rodada_em_andamento' && (
+            {/* Botão de Dados RPG - popover (esconde quando Mestre solicitou dado específico) */}
+            {faseJogo === 'rodada_em_andamento' && !dadosSolicitados && (
               <div className="relative" ref={dicePopoverRef}>
                 <button
                   onClick={() => setShowDicePopover(!showDicePopover)}
                   className={`px-3 py-2.5 text-xl rounded-xl font-bold transition-all shadow-md bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 ${
-                    dadosSolicitados
-                      ? 'ring-2 ring-amber-400 animate-pulse shadow-amber-500/50'
-                      : ''
-                  } ${showDicePopover ? 'ring-2 ring-purple-300' : ''}`}
+                    showDicePopover ? 'ring-2 ring-purple-300' : ''
+                  }`}
                   title="Rolar Dados"
                 >
                   🎲
@@ -266,6 +265,50 @@ const InputArea = ({
           </div>
         </div>
           
+        {/* BANNER: Mestre solicitou dado específico */}
+        {dadosSolicitados && dadoSolicitadoInfo && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-gradient-to-r from-amber-900/50 to-orange-900/40 border-2 border-amber-400/60 rounded-xl shadow-lg shadow-amber-500/10">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl animate-bounce">🎲</span>
+                <div>
+                  <p className="text-amber-100 font-bold text-sm">
+                    O Mestre pede: {dadoSolicitadoInfo.teste || 'Rolagem'}
+                  </p>
+                  <p className="text-amber-300/80 text-xs">
+                    {dadoSolicitadoInfo.tipoDado?.toUpperCase()} &middot; Dificuldade {dadoSolicitadoInfo.dificuldade}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  onRolarDados && onRolarDados(dadoSolicitadoInfo.tipoDado, dadoSolicitadoInfo.teste);
+                }}
+                disabled={connectionStatus.status === 'error'}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold shadow-lg transition-all hover:scale-105 animate-pulse disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Rolar {dadoSolicitadoInfo.tipoDado?.toUpperCase()}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* BANNER: Aguardando resposta do Mestre após rolar dado */}
+        {aguardandoMestre && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-center gap-3 px-5 py-3.5 bg-gradient-to-r from-purple-900/50 to-indigo-900/40 border-2 border-purple-400/50 rounded-xl shadow-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 bg-purple-400 rounded-full animate-bounce" />
+                <div className="w-2.5 h-2.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.15s'}} />
+                <div className="w-2.5 h-2.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.3s'}} />
+              </div>
+              <p className="text-purple-200 font-semibold text-sm">
+                O Mestre esta interpretando o resultado...
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* COMBATE: Botões de ação rápida */}
         {combateAtivo && ehMeuTurno && turnoIniciado && (
           <div className="flex items-center gap-2 flex-wrap">

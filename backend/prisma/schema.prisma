@@ -224,7 +224,7 @@ model mestres {
   modelo           String?    @default("openai/gpt-oss-120b") @db.VarChar(100)
   temperatura      Float?     @default(0.9)
   max_tokens       Int?       @default(8000)
-  tom_narrativo    String?    @db.VarChar(50)
+  tom_narrativo    String?    @db.VarChar(255)
   regras_especiais String?
   imagem           String?    @db.VarChar(500)
   id_usuario       Int

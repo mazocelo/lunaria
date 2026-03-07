@@ -5,7 +5,10 @@ import jwt from 'jsonwebtoken';
  */
 export class AuthMiddleware {
   constructor() {
-    this.secretKey = process.env.JWT_SECRET || 'rpg_chat_game_secret_key';
+    this.secretKey = process.env.JWT_SECRET;
+    if (!this.secretKey) {
+      throw new Error('JWT_SECRET environment variable is required for WebSocket auth');
+    }
   }
 
   /**

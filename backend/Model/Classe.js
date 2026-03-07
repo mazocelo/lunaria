@@ -86,7 +86,6 @@ const Classe = (prisma) => {
     async findWithPersonagens() {
       return await model.findMany({
         include: {
-          personagem: true,
           personagens: true
         },
         orderBy: { nome: 'asc' }
@@ -98,7 +97,6 @@ const Classe = (prisma) => {
       return await model.findUnique({
         where: { id },
         include: {
-          personagem: true,
           personagens: true
         }
       });
@@ -106,7 +104,7 @@ const Classe = (prisma) => {
 
     // Contar classes
     async count(where = {}) {
-      return await prisma.classe.count({ where });
+      return await prisma.classes.count({ where });
     },
 
     // Buscar classes gratuitas

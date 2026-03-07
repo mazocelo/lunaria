@@ -147,7 +147,7 @@ class MonstroController {
    */
   criar = async (req, res, next) => {
     try {
-      console.log('👹 Criando novo monstro:', req.body);
+      console.log('Criando novo monstro');
 
       const {
         nome, descricao, tipo, raridade, nivel_min, nivel_max,
@@ -293,12 +293,7 @@ class MonstroController {
 
       await db.Monstro.delete(parseInt(id));
 
-      console.log('✅ Monstro deletado:', id);
-
-      res.status(200).json({
-        success: true,
-        message: 'Monstro deletado com sucesso'
-      });
+      res.status(204).send();
 
     } catch (error) {
       console.error('❌ Erro ao deletar monstro:', error);

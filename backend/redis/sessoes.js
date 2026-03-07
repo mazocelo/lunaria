@@ -7,7 +7,7 @@ class SessaoRPG {
   constructor() {
     this.client = redisClient;
     this.prefix = 'rpg_session:';
-    this.ttl = 3600; // 1 hora em segundos
+    this.ttl = 7200; // 2 horas em segundos
     this.initialized = false;
   }
 
@@ -55,20 +55,15 @@ class SessaoRPG {
    */
   async obterSessao(salaId) {
     try {
-      console.log('salaId', salaId);
       const sessionId = `${this.prefix}${salaId}`;
-      const sessao = await this.client.get(sessionId);
-      console.log('sessao', sessao);
+      // GETEX: GET + renew TTL in a single command
+      const sessao = await this.client.getEx(sessionId, { EX: this.ttl });
+
       if (!sessao) {
         return null;
       }
 
-      const dadosSessao = JSON.parse(sessao);
-      
-      // Renovar TTL ao acessar
-      await this.client.expire(sessionId, this.ttl);
-      
-      return dadosSessao;
+      return JSON.parse(sessao);
     } catch (error) {
       console.error('Erro ao obter sessão:', error);
       throw error;
@@ -81,27 +76,45 @@ class SessaoRPG {
    * @param {Object} novosDados - Novos dados da sessão
    * @returns {Promise<Object>} - Dados atualizados da sessão
    */
-  async atualizarSessao(salaId, novosDados) {
-    try {
-      const sessionId = `${this.prefix}${salaId}`;
-      const sessaoAtual = await this.obterSessao(salaId);
-      
-      if (!sessaoAtual) {
-        throw new Error('Sessão não encontrada');
+  async atualizarSessao(salaId, novosDados, maxRetries = 3) {
+    const sessionId = `${this.prefix}${salaId}`;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Atomic update: WATCH + GET + MULTI/EXEC
+        await this.client.watch(sessionId);
+
+        const sessaoRaw = await this.client.get(sessionId);
+        if (!sessaoRaw) {
+          await this.client.unwatch();
+          throw new Error('Sessão não encontrada');
+        }
+
+        const sessaoAtual = JSON.parse(sessaoRaw);
+        const sessaoAtualizada = {
+          ...sessaoAtual,
+          ...novosDados,
+          atualizadaEm: new Date().toISOString()
+        };
+
+        const multi = this.client.multi();
+        multi.setEx(sessionId, this.ttl, JSON.stringify(sessaoAtualizada));
+        const results = await multi.exec();
+
+        // If EXEC returns null, the key was modified by another client (race condition)
+        if (results === null) {
+          if (attempt < maxRetries - 1) continue;
+          throw new Error('Conflito de concorrencia ao atualizar sessao');
+        }
+
+        return sessaoAtualizada;
+      } catch (error) {
+        if (error.message === 'Sessão não encontrada' || error.message.includes('Conflito')) {
+          throw error;
+        }
+        console.error('Erro ao atualizar sessão:', error);
+        throw error;
       }
-
-      const sessaoAtualizada = {
-        ...sessaoAtual,
-        ...novosDados,
-        atualizadaEm: new Date().toISOString()
-      };
-
-      await this.client.setEx(sessionId, this.ttl, JSON.stringify(sessaoAtualizada));
-      console.log(`Sessão atualizada para sala ${salaId}`);
-      return sessaoAtualizada;
-    } catch (error) {
-      console.error('Erro ao atualizar sessão:', error);
-      throw error;
     }
   }
 
@@ -264,11 +277,12 @@ class SessaoRPG {
    */
   async listarSessoesAtivas() {
     try {
-      const chaves = await this.client.keys(`${this.prefix}*`);
       const sessoes = [];
+      const pattern = `${this.prefix}*`;
 
-      for (const chave of chaves) {
-        const sessao = await this.client.get(chave);
+      // Use SCAN instead of KEYS to avoid blocking Redis
+      for await (const key of this.client.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+        const sessao = await this.client.get(key);
         if (sessao) {
           const dadosSessao = JSON.parse(sessao);
           if (dadosSessao.status === 'ativa') {
@@ -438,25 +452,35 @@ class SessaoRPG {
    */
   async avancarTurno(salaId) {
     try {
-      const sessao = await this.obterSessao(salaId);
-      
-      if (!sessao) {
-        throw new Error('Sessão não encontrada');
+      // Distributed lock to prevent concurrent turn advances
+      const lockKey = `${this.prefix}lock:turno:${salaId}`;
+      const lockAcquired = await this.client.set(lockKey, '1', { NX: true, EX: 5 });
+
+      if (!lockAcquired) {
+        throw new Error('Turno ja esta sendo avancado por outro jogador');
       }
 
-      const estadoJogo = sessao.estadoJogo || {};
-      const turnoAtual = estadoJogo.turnoAtual || 0;
-      const ordemJogadores = estadoJogo.ordemJogadores || [];
+      try {
+        const sessao = await this.obterSessao(salaId);
 
-      // Resetar contador de mensagens do turno
-      estadoJogo.contadorMensagensTurno = 0;
+        if (!sessao) {
+          throw new Error('Sessão não encontrada');
+        }
 
-      // Avançar turno
-      const proximoTurno = turnoAtual + 1;
-      estadoJogo.turnoAtual = proximoTurno;
+        const estadoJogo = sessao.estadoJogo || {};
+        const turnoAtual = estadoJogo.turnoAtual || 0;
+        const ordemJogadores = estadoJogo.ordemJogadores || [];
 
-      console.log(`⏭️ Avançando turno na sala ${salaId}: ${turnoAtual} -> ${proximoTurno}`);
-      return await this.atualizarSessao(salaId, { estadoJogo });
+        estadoJogo.contadorMensagensTurno = 0;
+
+        const proximoTurno = turnoAtual + 1;
+        estadoJogo.turnoAtual = proximoTurno;
+
+        console.log(`Avancando turno na sala ${salaId}: ${turnoAtual} -> ${proximoTurno}`);
+        return await this.atualizarSessao(salaId, { estadoJogo });
+      } finally {
+        await this.client.del(lockKey);
+      }
     } catch (error) {
       console.error('Erro ao avançar turno:', error);
       throw error;

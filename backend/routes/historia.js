@@ -205,6 +205,226 @@ router.get('/', historiaController.listarHistorias);
 
 /**
  * @swagger
+ * /historias/minhas:
+ *   get:
+ *     summary: Listar apenas histórias criadas por mim
+ *     tags: [Histórias]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filtrar por status
+ *       - in: query
+ *         name: tema
+ *         schema:
+ *           type: string
+ *         description: Filtrar por tema
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Número máximo de resultados
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Número de resultados para pular
+ *     responses:
+ *       200:
+ *         description: Lista de histórias criadas pelo usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Historia'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     hasMore:
+ *                       type: boolean
+ */
+router.get('/minhas', historiaController.listarMinhasHistorias);
+
+/**
+ * @swagger
+ * /historias/com-personagens:
+ *   get:
+ *     summary: Listar histórias onde meus personagens participam
+ *     tags: [Histórias]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filtrar por status
+ *       - in: query
+ *         name: tema
+ *         schema:
+ *           type: string
+ *         description: Filtrar por tema
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Número máximo de resultados
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Número de resultados para pular
+ *     responses:
+ *       200:
+ *         description: Lista de histórias onde personagens do usuário participam
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Historia'
+ *                       - type: object
+ *                         properties:
+ *                           personagem_participante:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               nome:
+ *                                 type: string
+ *                               papel:
+ *                                 type: string
+ *                             description: Informações do personagem participante
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     hasMore:
+ *                       type: boolean
+ */
+router.get('/com-personagens', historiaController.listarHistoriasComPersonagens);
+
+/**
+ * @swagger
+ * /historias/gerar-ia:
+ *   post:
+ *     summary: Gerar história com IA
+ *     tags: [Histórias]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tema
+ *             properties:
+ *               tema:
+ *                 type: string
+ *                 description: Tema para geração da história
+ *               genero:
+ *                 type: string
+ *                 description: Gênero da história
+ *     responses:
+ *       200:
+ *         description: História gerada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Historia'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
+
+/**
+ * @swagger
+ * /historias/gerar-aventura-completa:
+ *   post:
+ *     summary: Gerar aventura completa com IA
+ *     tags: [Histórias]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tema
+ *             properties:
+ *               tema:
+ *                 type: string
+ *                 description: Tema da aventura
+ *               genero:
+ *                 type: string
+ *                 description: Gênero da aventura
+ *     responses:
+ *       200:
+ *         description: Aventura gerada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 aventura:
+ *                   type: object
+ *                   properties:
+ *                     titulo:
+ *                       type: string
+ *                     descricao:
+ *                       type: string
+ *                     objetivos:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/gerar-aventura-completa', historiaController.gerarAventuraCompleta);
+
+/**
+ * @swagger
  * /historias/{id}:
  *   get:
  *     summary: Obter uma história específica
@@ -332,228 +552,6 @@ router.delete('/:id', requireResourceOwnerOrAdmin('Historia'), historiaControlle
 router.patch('/:id/restore', requireResourceOwnerOrAdmin('Historia'), historiaController.restaurarHistoria);
 
 /**
- * @swagger
- * /historias/gerar-ia:
- *   post:
- *     summary: Gerar história com IA
- *     tags: [Histórias]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - tema
- *             properties:
- *               tema:
- *                 type: string
- *                 description: Tema para geração da história
- *               genero:
- *                 type: string
- *                 description: Gênero da história
- *     responses:
- *       200:
- *         description: História gerada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/Historia'
- *       400:
- *         description: Dados inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
-
-
-
-/**
- * @swagger
- * /historias/gerar-aventura-completa:
- *   post:
- *     summary: Gerar aventura completa com IA
- *     tags: [Histórias]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - tema
- *             properties:
- *               tema:
- *                 type: string
- *                 description: Tema da aventura
- *               genero:
- *                 type: string
- *                 description: Gênero da aventura
- *     responses:
- *       200:
- *         description: Aventura gerada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 aventura:
- *                   type: object
- *                   properties:
- *                     titulo:
- *                       type: string
- *                     descricao:
- *                       type: string
- *                     objetivos:
- *                       type: array
- *                       items:
- *                         type: string
- *       400:
- *         description: Dados inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.post('/gerar-aventura-completa', historiaController.gerarAventuraCompleta);
-
-/**
- * @swagger
- * /historias/minhas:
- *   get:
- *     summary: Listar apenas histórias criadas por mim
- *     tags: [Histórias]
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *         description: Filtrar por status
- *       - in: query
- *         name: tema
- *         schema:
- *           type: string
- *         description: Filtrar por tema
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: Número máximo de resultados
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Número de resultados para pular
- *     responses:
- *       200:
- *         description: Lista de histórias criadas pelo usuário
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Historia'
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *                     offset:
- *                       type: integer
- *                     hasMore:
- *                       type: boolean
- */
-router.get('/minhas', historiaController.listarMinhasHistorias);
-
-/**
- * @swagger
- * /historias/com-personagens:
- *   get:
- *     summary: Listar histórias onde meus personagens participam
- *     tags: [Histórias]
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *         description: Filtrar por status
- *       - in: query
- *         name: tema
- *         schema:
- *           type: string
- *         description: Filtrar por tema
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: Número máximo de resultados
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Número de resultados para pular
- *     responses:
- *       200:
- *         description: Lista de histórias onde personagens do usuário participam
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     allOf:
- *                       - $ref: '#/components/schemas/Historia'
- *                       - type: object
- *                         properties:
- *                           personagem_participante:
- *                             type: object
- *                             properties:
- *                               id:
- *                                 type: integer
- *                               nome:
- *                                 type: string
- *                               papel:
- *                                 type: string
- *                             description: Informações do personagem participante
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *                     offset:
- *                       type: integer
- *                     hasMore:
- *                       type: boolean
- */
-router.get('/com-personagens', historiaController.listarHistoriasComPersonagens);
-
-/**
  * Verificar se há sessão ativa para uma história
  */
 router.get('/:id/sessao-ativa', async (req, res, next) => {
@@ -561,9 +559,9 @@ router.get('/:id/sessao-ativa', async (req, res, next) => {
     const { id } = req.params;
     const userId = req.user?.id;
     const salaId = `historia_${id}`;
-    
+
     console.log(`🔍 Verificando sessão ativa para história ${id} (usuário: ${userId})`);
-    
+
     // Verificar se há sessão no Redis
     const sessao = await gerenciadorSessoes.obterSessao(salaId);
     console.log('📊 Sessão obtida do Redis:', {
@@ -573,26 +571,26 @@ router.get('/:id/sessao-ativa', async (req, res, next) => {
       jogadoresConectados: sessao?.jogadoresConectados,
       donoId: sessao?.donoId
     });
-    
+
     if (!sessao) {
       console.log(`📭 Nenhuma sessão ativa encontrada para história ${id}`);
-      return res.json({ 
-        success: true, 
-        data: { hasActiveSession: false } 
+      return res.json({
+        success: true,
+        data: { hasActiveSession: false }
       });
     }
-    
+
     // ✅ VERIFICAR SE USUÁRIO ESTÁ JOGANDO (baseado em statusJogo)
     // isPlaying SÓ É TRUE se o jogo foi efetivamente INICIADO
     const estaEmJogadores = sessao.jogadores && sessao.jogadores[String(userId)];
     const ehDono = String(sessao.donoId) === String(userId);
-    const estaConectado = Array.isArray(sessao.jogadoresConectados) && 
+    const estaConectado = Array.isArray(sessao.jogadoresConectados) &&
       sessao.jogadoresConectados.some(id => String(id) === String(userId));
-    
+
     // ✅ NOVO: isPlaying só é true se statusJogo === 'iniciado'
     const jogoIniciado = sessao.statusJogo === 'iniciado';
     const estaJogando = jogoIniciado && (!!estaEmJogadores || ehDono);
-    
+
     console.log(`📋 Sessão encontrada:`, {
       status: sessao.status,
       statusJogo: sessao.statusJogo,
@@ -604,7 +602,7 @@ router.get('/:id/sessao-ativa', async (req, res, next) => {
       jogoIniciado,
       estaJogando
     });
-    
+
     res.json({
       success: true,
       data: {

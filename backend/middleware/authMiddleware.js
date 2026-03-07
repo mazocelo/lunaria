@@ -23,7 +23,7 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rpg_chat_game_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Verificar se usuário ainda existe
     const usuario = await db.Usuario.findById(decoded.userId);
@@ -73,23 +73,29 @@ export const authenticateToken = async (req, res, next) => {
  */
 export const optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Ler token do cookie (prioridade), igual ao authenticateToken
+    let token = req.cookies?.accessToken;
+
+    // Fallback: ler do header Authorization
+    if (!token) {
+      const authHeader = req.headers['authorization'];
+      token = authHeader && authHeader.split(' ')[1];
+    }
 
     if (!token) {
       req.user = null;
       return next();
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rpg_chat_game_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const usuario = await db.Usuario.findById(decoded.userId);
-    
+
     if (usuario) {
       req.user = {
         id: decoded.userId,
         nome: usuario.nome,
         email: usuario.email,
-        role: decoded.role || 'player'
+        role: usuario.role || decoded.role || 'player'
       };
     } else {
       req.user = null;
@@ -115,7 +121,7 @@ export const generateAccessToken = (userId, email, role = 'player') => {
       type: 'access',
       iat: Math.floor(Date.now() / 1000)
     },
-    process.env.JWT_SECRET || 'rpg_chat_game_secret_key',
+    process.env.JWT_SECRET,
     { expiresIn: '15m' } // Token de acesso com 15 minutos
   );
 };
@@ -134,7 +140,7 @@ export const generateRefreshToken = (userId, email, role = 'player', rememberMe 
       type: 'refresh',
       iat: Math.floor(Date.now() / 1000)
     },
-    process.env.JWT_REFRESH_SECRET || 'rpg_chat_game_refresh_secret_key',
+    process.env.JWT_REFRESH_SECRET,
     { expiresIn }
   );
 };
@@ -159,7 +165,7 @@ export const generateSocketToken = (userId, email, role = 'player') => {
       type: 'socket',
       iat: Math.floor(Date.now() / 1000)
     },
-    process.env.JWT_SECRET || 'rpg_chat_game_secret_key',
+    process.env.JWT_SECRET,
     { expiresIn: '24h' } // Token do socket com 24 horas
   );
 };
@@ -171,7 +177,7 @@ export const refreshToken = (refreshTokenValue) => {
   try {
     const decoded = jwt.verify(
       refreshTokenValue, 
-      process.env.JWT_REFRESH_SECRET || 'rpg_chat_game_refresh_secret_key'
+      process.env.JWT_REFRESH_SECRET
     );
     
     // Verificar se é um refresh token
@@ -199,7 +205,7 @@ export const verifyRefreshToken = (refreshTokenValue) => {
   try {
     const decoded = jwt.verify(
       refreshTokenValue, 
-      process.env.JWT_REFRESH_SECRET || 'rpg_chat_game_refresh_secret_key'
+      process.env.JWT_REFRESH_SECRET
     );
     
     if (decoded.type !== 'refresh') {

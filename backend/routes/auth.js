@@ -1,7 +1,15 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import authController from '../controllers/auth/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { validateRegistro, validateLogin, handleValidationErrors } from '../helpers/validators.js';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: { code: 'RATE_LIMIT', message: 'Muitas tentativas. Tente novamente em 15 minutos.' } }
+});
 
 const router = express.Router();
 
@@ -123,7 +131,7 @@ const router = express.Router();
  *                   type: string
  *                   example: "Este email já está cadastrado"
  */
-router.post('/registro', asyncHandler(authController.registrar));
+router.post('/registro', authLimiter, validateRegistro, handleValidationErrors, asyncHandler(authController.registrar));
 
 /**
  * @swagger
@@ -158,7 +166,7 @@ router.post('/registro', asyncHandler(authController.registrar));
  *                   type: string
  *                   example: "Email ou senha incorretos"
  */
-router.post('/login', asyncHandler(authController.login));
+router.post('/login', authLimiter, validateLogin, handleValidationErrors, asyncHandler(authController.login));
 
 /**
  * @swagger
@@ -243,7 +251,7 @@ router.get('/verificar', authenticateToken, asyncHandler(authController.verifica
  *       401:
  *         description: Refresh token inválido ou expirado
  */
-router.post('/renovar', asyncHandler(authController.renovarToken));
+router.post('/renovar', authLimiter, asyncHandler(authController.renovarToken));
 
 /**
  * @swagger
@@ -271,5 +279,9 @@ router.post('/renovar', asyncHandler(authController.renovarToken));
  *         description: Token inválido
  */
 router.post('/logout', authenticateToken, asyncHandler(authController.logout));
+
+// Forgot password & reset password
+router.post('/forgot-password', authLimiter, asyncHandler(authController.forgotPassword));
+router.post('/reset-password', authLimiter, asyncHandler(authController.resetPassword));
 
 export default router; 

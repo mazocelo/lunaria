@@ -4,6 +4,14 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import dotenv from 'dotenv';
 
 import { MESTRE_CONFIG } from './config.js';
+
+// Timeout wrapper for AI calls
+function withTimeout(promise, ms = 30000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), ms))
+  ]);
+}
 import { criarPromptSistema } from './prompts/sistema.js';
 import { criarPromptNarracao } from './prompts/narracao.js';
 import { criarPromptInicio, criarPromptBoasVindas } from './prompts/inicio.js';
@@ -42,10 +50,12 @@ export class MestreAgent {
    */
   _inicializarModelo() {
     try {
-      // Merge config customizada com defaults
+      // Merge config customizada com defaults + clamp values
       const modelName = this.configOverride?.modelo || MESTRE_CONFIG.model.name;
-      const temperature = this.configOverride?.temperatura ?? MESTRE_CONFIG.model.temperature;
-      const maxTokens = this.configOverride?.max_tokens ?? MESTRE_CONFIG.model.maxTokens;
+      const rawTemp = this.configOverride?.temperatura ?? MESTRE_CONFIG.model.temperature;
+      const rawTokens = this.configOverride?.max_tokens ?? MESTRE_CONFIG.model.maxTokens;
+      const temperature = Math.min(2, Math.max(0, rawTemp));
+      const maxTokens = Math.min(32000, Math.max(100, rawTokens));
 
       // Criar modelo Groq
       this.model = new ChatGroq({
@@ -76,8 +86,9 @@ export class MestreAgent {
 
       console.log('✅ MestreAgent: Modelo inicializado com sucesso');
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao inicializar modelo:', error);
-      throw error;
+      console.error('MestreAgent: Erro ao inicializar modelo:', error.message);
+      this.model = null;
+      this.chain = null;
     }
   }
 
@@ -106,20 +117,21 @@ export class MestreAgent {
         ];
       }
 
-      // Invocar chain
-      const response = await this.chain.invoke({
+      if (!this.chain) {
+        throw new Error('Modelo de IA nao inicializado');
+      }
+
+      // Invocar chain with timeout
+      const response = await withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      });
+      }));
 
-      // ✅ Parsear JSON da resposta
+      // Parsear JSON da resposta
       let respostaJSON;
       try {
         respostaJSON = JSON.parse(response.content);
-        console.log('✅ MestreAgent: Resposta JSON parseada com sucesso');
       } catch (error) {
-        console.warn('⚠️ MestreAgent: Resposta não é JSON válido, usando fallback');
-        // Fallback se não for JSON
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,
@@ -128,14 +140,12 @@ export class MestreAgent {
         };
       }
 
-      // Adicionar ao histórico local
+      // Adicionar ao historico local
       const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
       this.historico = adicionarMensagem(this.historico, mensagemJogador);
 
       const respostaMestre = formatarRespostaMestre(respostaJSON.narrativa);
       this.historico = adicionarMensagem(this.historico, respostaMestre);
-
-      console.log('✅ MestreAgent: Ação narrada com sucesso');
 
       return {
         narracao: respostaJSON.narrativa,
@@ -148,8 +158,18 @@ export class MestreAgent {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao narrar ação:', error);
-      throw new Error(`Erro ao narrar ação: ${error.message}`);
+      console.error('MestreAgent: Erro ao narrar acao:', error.message);
+      // Fallback narrative instead of crashing the game
+      return {
+        narracao: '*O Mestre faz uma pausa dramatica...* A magia que conecta os mundos vacila por um instante. (Erro temporario no servico de IA - tente novamente)',
+        fimDeTurno: false,
+        solicitaDados: { solicita: false },
+        acaoCompleta: false,
+        jogador,
+        personagem,
+        acao,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -178,13 +198,17 @@ export class MestreAgent {
         );
       }
 
-      // Invocar chain sem histórico
-      const response = await this.chain.invoke({
+      if (!this.chain) {
+        throw new Error('Modelo de IA nao inicializado');
+      }
+
+      // Invocar chain with timeout
+      const response = await withTimeout(this.chain.invoke({
         input,
         chat_history: []
-      });
+      }));
 
-      // ✅ Parsear JSON
+      // Parsear JSON
       let respostaJSON;
       try {
         respostaJSON = JSON.parse(response.content);
@@ -214,8 +238,14 @@ export class MestreAgent {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao iniciar sessão:', error);
-      throw new Error(`Erro ao iniciar sessão: ${error.message}`);
+      console.error('MestreAgent: Erro ao iniciar sessao:', error.message);
+      // Fallback intro
+      return {
+        introducao: '*Uma nevoa mistica se dissipa lentamente...* A aventura esta prestes a comecar! (Erro temporario no servico de IA)',
+        tema: tema || this.temas.join(', '),
+        personagens: personagensCustom || this.personagens,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -224,24 +254,27 @@ export class MestreAgent {
    */
   async processarResposta({ input, chatHistory = [] }) {
     try {
-      console.log('💬 MestreAgent: Processando resposta...');
+      if (!this.chain) {
+        throw new Error('Modelo de IA nao inicializado');
+      }
 
       const historico = converterHistoricoParaLangChain(chatHistory);
 
-      const response = await this.chain.invoke({
+      const response = await withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      });
-
-      console.log('✅ MestreAgent: Resposta processada');
+      }));
 
       return {
         resposta: response.content,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao processar resposta:', error);
-      throw new Error(`Erro ao processar resposta: ${error.message}`);
+      console.error('MestreAgent: Erro ao processar resposta:', error.message);
+      return {
+        resposta: '*O Mestre pondera em silencio...* (Erro temporario no servico de IA)',
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -292,18 +325,20 @@ Mensagem do Jogador:
         ];
       }
 
-      // Invocar chain
-      const response = await this.chain.invoke({
+      if (!this.chain) {
+        throw new Error('Modelo de IA nao inicializado');
+      }
+
+      // Invocar chain with timeout
+      const response = await withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      });
+      }));
 
-      // ✅ Parsear JSON
       let respostaJSON;
       try {
         respostaJSON = JSON.parse(response.content);
       } catch (error) {
-        console.warn('⚠️ Resposta narrarTurnoJogador não é JSON, usando fallback');
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,
@@ -312,10 +347,7 @@ Mensagem do Jogador:
         };
       }
 
-      // Determinar se deve finalizar o turno
       const deveFinalizarTurno = respostaJSON.fimDeTurno || contadorMensagens >= 3;
-
-      console.log(`✅ MestreAgent: Turno narrado (deve finalizar: ${deveFinalizarTurno})`);
 
       return {
         resposta: respostaJSON.narrativa,
@@ -330,8 +362,19 @@ Mensagem do Jogador:
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao narrar turno:', error);
-      throw new Error(`Erro ao narrar turno: ${error.message}`);
+      console.error('MestreAgent: Erro ao narrar turno:', error.message);
+      return {
+        resposta: '*O Mestre faz uma pausa...* (Erro temporario no servico de IA - tente novamente)',
+        fimDeTurno: false,
+        solicitaDados: { solicita: false },
+        acaoCompleta: false,
+        deveFinalizarTurno: false,
+        rodada,
+        turno,
+        jogador,
+        personagem,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -381,18 +424,19 @@ Narre a transição e apresente o novo desafio:`;
         ];
       }
 
-      // Invocar chain
-      const response = await this.chain.invoke({
+      if (!this.chain) {
+        throw new Error('Modelo de IA nao inicializado');
+      }
+
+      const response = await withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      });
+      }));
 
-      // ✅ Parsear JSON
       let respostaJSON;
       try {
         respostaJSON = JSON.parse(response.content);
       } catch (error) {
-        console.warn('⚠️ Resposta narrarEntreRodadas não é JSON, usando fallback');
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,
@@ -400,8 +444,6 @@ Narre a transição e apresente o novo desafio:`;
           acaoCompleta: false
         };
       }
-
-      console.log(`✅ MestreAgent: Narrativa entre rodadas gerada`);
 
       return {
         narrativa: respostaJSON.narrativa,
@@ -411,8 +453,14 @@ Narre a transição e apresente o novo desafio:`;
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao narrar entre rodadas:', error);
-      throw new Error(`Erro ao narrar entre rodadas: ${error.message}`);
+      console.error('MestreAgent: Erro ao narrar entre rodadas:', error.message);
+      return {
+        narrativa: '*O mundo estremece brevemente...* Uma nova rodada se inicia! (Erro temporario no servico de IA)',
+        rodadaAnterior,
+        proximaRodada,
+        novoDesafio: 'Nova rodada iniciada',
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -449,14 +497,16 @@ Termine com "🎲 Rolem seus dados!"
 
 Seja conciso (máximo 100 palavras).`;
 
+      if (!this.chain) {
+        throw new Error('Modelo de IA nao inicializado');
+      }
+
       const historico = converterHistoricoParaLangChain(chatHistory);
 
-      const response = await this.chain.invoke({
+      const response = await withTimeout(this.chain.invoke({
         input,
-        chat_history: historico.slice(-10) // Só últimas 10 msgs
-      });
-
-      console.log('✅ MestreAgent: Solicitação de dados gerada');
+        chat_history: historico.slice(-10)
+      }));
 
       return {
         narrativa: response.content,
@@ -466,8 +516,14 @@ Seja conciso (máximo 100 palavras).`;
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ MestreAgent: Erro ao solicitar dados:', error);
-      throw new Error(`Erro ao solicitar dados: ${error.message}`);
+      console.error('MestreAgent: Erro ao solicitar dados:', error.message);
+      return {
+        narrativa: 'O destino aguarda sua rolagem de dados!',
+        tipoTeste,
+        dificuldade,
+        jogadores,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 

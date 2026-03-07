@@ -3,74 +3,63 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configuração do cliente Redis
-// Prioriza UPSTASH_REDIS_URL (Upstash), depois REDIS_URL, e por último localhost
+// Configuracao do cliente Redis com timeout e retry
 const redisClient = createClient({
-  url: process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379'
+  url: process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379',
+  socket: {
+    connectTimeout: 10000,
+    reconnectStrategy: (retries) => {
+      if (retries > 10) {
+        console.error('Redis: max reconnect attempts reached');
+        return new Error('Redis max retries exceeded');
+      }
+      // Exponential backoff: 100ms, 200ms, 400ms... max 5s
+      return Math.min(100 * Math.pow(2, retries), 5000);
+    }
+  }
 });
 
-// Event listeners para conexão
+// Event listeners para conexao
 redisClient.on('error', (err) => {
-  console.error('❌ Erro na conexão com Redis:', err);
+  console.error('Erro na conexao com Redis:', err.message);
 });
 
 redisClient.on('connect', () => {
-  console.log('✅ Conectado ao Redis com sucesso');
+  console.log('Conectado ao Redis com sucesso');
 });
 
 redisClient.on('ready', () => {
-  console.log('🚀 Redis está pronto para uso');
+  console.log('Redis esta pronto para uso');
 });
 
 redisClient.on('end', () => {
-  console.log('🔌 Conexão com Redis encerrada');
+  console.log('Conexao com Redis encerrada');
 });
 
-// Função para inicializar a conexão
+// Funcao para inicializar a conexao
 async function inicializarRedis() {
   try {
     await redisClient.connect();
     return redisClient;
   } catch (error) {
-    console.error('❌ Falha ao conectar com Redis:', error);
+    console.error('Falha ao conectar com Redis:', error.message);
     throw error;
   }
 }
 
-// Função para fechar a conexão
+// Funcao para fechar a conexao
 async function fecharConexaoRedis() {
   try {
-    await redisClient.quit();
-    console.log('🔌 Conexão com Redis fechada adequadamente');
+    if (redisClient.isOpen) {
+      await redisClient.quit();
+      console.log('Conexao com Redis fechada adequadamente');
+    }
   } catch (error) {
-    console.error('❌ Erro ao fechar conexão com Redis:', error);
+    console.error('Erro ao fechar conexao com Redis:', error.message);
   }
 }
 
-// Tratamento de sinais para fechar conexão adequadamente
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Recebido SIGINT, fechando conexão Redis...');
-  await fecharConexaoRedis();
-  process.exit(0);
-});
+// Signal handlers are centralized in bin/www (graceful shutdown)
+// Removed process.exit handlers from here to avoid multiple competing handlers
 
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 Recebido SIGTERM, fechando conexão Redis...');
-  await fecharConexaoRedis();
-  process.exit(0);
-});
-
-// Tratamento de erros não capturados
-process.on('uncaughtException', async (error) => {
-  console.error('❌ Erro não capturado:', error);
-  await fecharConexaoRedis();
-  process.exit(1);
-});
-
-process.on('unhandledRejection', async (reason, promise) => {
-  console.error('❌ Promise rejeitada não tratada:', reason);
-  await fecharConexaoRedis();
-  process.exit(1);
-});
-
-export { redisClient, inicializarRedis, fecharConexaoRedis }; 
+export { redisClient, inicializarRedis, fecharConexaoRedis };

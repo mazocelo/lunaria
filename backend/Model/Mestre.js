@@ -17,17 +17,33 @@ const Mestre = (prisma) => {
       });
     },
 
-    async findByUsuario(id_usuario) {
-      return await model.findMany({
-        where: { id_usuario: parseInt(id_usuario) },
-        orderBy: { criado_em: 'desc' }
-      });
+    async findByUsuario(id_usuario, { limit = 50, offset = 0 } = {}) {
+      const where = { id_usuario: parseInt(id_usuario) };
+      const [mestres, total] = await Promise.all([
+        model.findMany({
+          where,
+          orderBy: { criado_em: 'desc' },
+          take: limit,
+          skip: offset
+        }),
+        model.count({ where })
+      ]);
+      return { data: mestres, total };
     },
 
     async createMestre(data) {
       return await model.create({
         data: {
-          ...data,
+          nome: data.nome,
+          descricao: data.descricao,
+          personalidade: data.personalidade,
+          modelo: data.modelo,
+          temperatura: data.temperatura,
+          max_tokens: data.max_tokens,
+          tom_narrativo: data.tom_narrativo,
+          regras_especiais: data.regras_especiais,
+          imagem: data.imagem,
+          id_usuario: data.id_usuario,
           criado_em: new Date(),
           atualizado_em: new Date()
         }
@@ -38,7 +54,15 @@ const Mestre = (prisma) => {
       return await model.update({
         where: { id },
         data: {
-          ...data,
+          ...(data.nome !== undefined && { nome: data.nome }),
+          ...(data.descricao !== undefined && { descricao: data.descricao }),
+          ...(data.personalidade !== undefined && { personalidade: data.personalidade }),
+          ...(data.modelo !== undefined && { modelo: data.modelo }),
+          ...(data.temperatura !== undefined && { temperatura: data.temperatura }),
+          ...(data.max_tokens !== undefined && { max_tokens: data.max_tokens }),
+          ...(data.tom_narrativo !== undefined && { tom_narrativo: data.tom_narrativo }),
+          ...(data.regras_especiais !== undefined && { regras_especiais: data.regras_especiais }),
+          ...(data.imagem !== undefined && { imagem: data.imagem }),
           atualizado_em: new Date()
         }
       });

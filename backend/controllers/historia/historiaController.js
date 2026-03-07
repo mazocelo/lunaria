@@ -18,7 +18,7 @@ class HistoriaController {
    */
   async criarHistoria(req, res, next) {
     try {
-      console.log('📝 Criando nova história:', req.body);
+      console.log('Criando nova historia');
       
       const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id } = req.body;
       
@@ -58,8 +58,14 @@ class HistoriaController {
       // Gerar prólogo automaticamente
       const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
       const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas });
-      console.log('resultadoPrologo', resultadoPrologo);
+      // prologo generated
       
+      // Verificar autenticação
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Autenticação necessária para criar história' });
+      }
+
       // Criar história no banco com prólogo
       const novaHistoria = await db.Historia.createHistoria({
         nome: nomeHistoria,
@@ -68,7 +74,7 @@ class HistoriaController {
         descricao: descricao || '',
         prologo: resultadoPrologo.prologo,
         status: 'ativa',
-        id_usuario: req.user?.id || 1, // Vincular ao usuário logado
+        id_usuario: userId,
         mestre_id: mestre_id ? parseInt(mestre_id) : null
       });
       
@@ -148,7 +154,6 @@ class HistoriaController {
         historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
           try {
             const sessao = await gerenciadorSessoes.obterSessao(`historia_${historia.id}`);
-            console.log('sessao', sessao);
             if (sessao) {
               // Verificar se o usuário está na sessão
               const usuarioNaSessao = sessao.jogadoresConectados?.some(
@@ -256,35 +261,32 @@ class HistoriaController {
   async atualizarHistoria(req, res, next) {
     try {
       const { id } = req.params;
-      const dadosAtualizacao = req.body;
-      
-      console.log(`📝 Atualizando história ID: ${id}`, dadosAtualizacao);
-      
+
+      console.log(`📝 Atualizando história ID: ${id}`);
+
       const historia = await db.Historia.findById(parseInt(id));
-      
+
       if (!historia) {
         return res.status(404).json({
           success: false,
           error: 'História não encontrada'
         });
       }
-      
-      // Verificar se usuário tem permissão para atualizar esta história
-      if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Você só pode atualizar suas próprias histórias'
-        });
-      }
-      
-      // Remover id_usuario dos dados de atualização para evitar alteração
-      delete dadosAtualizacao.id_usuario;
-      
-      // Atualizar dados usando o método update do Prisma
-      await db.Historia.updateHistoria(parseInt(id), {
-        ...dadosAtualizacao,
-        atualizada_em: new Date()
-      });
+
+      // Ownership já verificado pelo middleware requireResourceOwnerOrAdmin
+
+      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id } = req.body;
+      const dadosSeguros = {};
+      if (nome !== undefined) dadosSeguros.nome = nome;
+      if (temas !== undefined) dadosSeguros.temas = temas;
+      if (descricao !== undefined) dadosSeguros.descricao = descricao;
+      if (maximo_de_participantes !== undefined) dadosSeguros.maximo_de_participantes = maximo_de_participantes;
+      if (status !== undefined) dadosSeguros.status = status;
+      if (prologo !== undefined) dadosSeguros.prologo = prologo;
+      if (mestre_id !== undefined) dadosSeguros.mestre_id = parseInt(mestre_id);
+      dadosSeguros.atualizada_em = new Date();
+
+      await db.Historia.updateHistoria(parseInt(id), dadosSeguros);
       
       // Buscar a história atualizada
       const historiaAtualizada = await db.Historia.findById(parseInt(id));
@@ -324,22 +326,11 @@ class HistoriaController {
         });
       }
       
-      // Verificar se usuário tem permissão para excluir esta história
-      if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Você só pode excluir suas próprias histórias'
-        });
-      }
+      // Ownership já verificado pelo middleware requireResourceOwnerOrAdmin
       
       await db.Historia.deleteHistoria(parseInt(id));
-      
-      console.log('✅ História excluída com sucesso');
-      
-      res.status(200).json({
-        success: true,
-        message: 'História excluída com sucesso'
-      });
+
+      res.status(204).send();
       
     } catch (error) {
       console.error('❌ Erro ao excluir história:', error);
@@ -406,6 +397,12 @@ class HistoriaController {
         descricao: descricao || ''
       });
       
+      // Verificar autenticação
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar história' });
+      }
+
       // Salvar no banco de dados
       const novaHistoria = await db.Historia.createHistoria({
         nome: historiaGerada.nome,
@@ -414,7 +411,7 @@ class HistoriaController {
         prologo: historiaGerada.prologo,
         maximo_de_participantes: maximo_de_participantes || 5,
         status: 'ativa',
-        id_usuario: req.user?.id || 1 // Vincular ao usuário logado
+        id_usuario: userId
       });
       
       console.log('✅ História gerada com IA e salva:', novaHistoria.id);
@@ -478,6 +475,12 @@ class HistoriaController {
         personagens: personagens || []
       });
       
+      // Verificar autenticação
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar aventura' });
+      }
+
       // Salvar no banco de dados
       const novaHistoria = await db.Historia.createHistoria({
         nome: aventuraCompleta.nome,
@@ -486,7 +489,7 @@ class HistoriaController {
         prologo: aventuraCompleta.prologo,
         maximo_de_participantes: personagens?.length || 5,
         status: 'ativa',
-        id_usuario: req.user?.id || 1 // Vincular ao usuário logado
+        id_usuario: userId
       });
       
       console.log('✅ Aventura completa gerada e salva:', novaHistoria.id);

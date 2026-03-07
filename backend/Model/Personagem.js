@@ -139,7 +139,7 @@ const Personagem = (prisma) => {
 
     // Contar personagens
     async countPersonagens(where = {}) {
-      return await prisma.personagem.count({ where });
+      return await prisma.personagens.count({ where });
     },
 
     // Métodos para gerenciar vínculos com vantagens
@@ -165,19 +165,16 @@ const Personagem = (prisma) => {
       const vinculos = await prisma.personagem_vantagem.findMany({
         where: { personagem_id: parseInt(personagem_id) }
       });
-      
-      // Buscar as vantagens separadamente
-      const vantagens = await Promise.all(
-        vinculos.map(vinculo => 
-          prisma.vantagens.findUnique({
-            where: { id: vinculo.desvantagem_id }
-          })
-        )
-      );
-      
-      return vantagens.filter(v => v !== null).map(vantagem => ({
-        vantagem
-      }));
+
+      if (vinculos.length === 0) return [];
+
+      // Batch query: 1 query instead of N
+      const ids = vinculos.map(v => v.desvantagem_id);
+      const vantagens = await prisma.vantagens.findMany({
+        where: { id: { in: ids } }
+      });
+
+      return vantagens.map(vantagem => ({ vantagem }));
     },
 
     // Métodos para gerenciar vínculos com desvantagens
@@ -203,19 +200,16 @@ const Personagem = (prisma) => {
       const vinculos = await prisma.personagem_desvantagem.findMany({
         where: { personagem_id: parseInt(personagem_id) }
       });
-      
-      // Buscar as desvantagens separadamente
-      const desvantagens = await Promise.all(
-        vinculos.map(vinculo => 
-          prisma.desvantagens.findUnique({
-            where: { id: vinculo.habilidade_id }
-          })
-        )
-      );
-      
-      return desvantagens.filter(d => d !== null).map(desvantagem => ({
-        desvantagem
-      }));
+
+      if (vinculos.length === 0) return [];
+
+      // Batch query: 1 query instead of N
+      const ids = vinculos.map(v => v.habilidade_id);
+      const desvantagens = await prisma.desvantagens.findMany({
+        where: { id: { in: ids } }
+      });
+
+      return desvantagens.map(desvantagem => ({ desvantagem }));
     },
 
     // Métodos para gerenciar vínculos com equipamentos
@@ -243,19 +237,16 @@ const Personagem = (prisma) => {
       const vinculos = await prisma.personagem_equipamento.findMany({
         where: { personagem_id: parseInt(personagem_id) }
       });
-      
-      // Buscar os equipamentos separadamente
-      const equipamentos = await Promise.all(
-        vinculos.map(vinculo => 
-          prisma.equipamentos.findUnique({
-            where: { id: vinculo.equipamento_id }
-          })
-        )
-      );
-      
-      return equipamentos.filter(e => e !== null).map(equipamento => ({
-        equipamento
-      }));
+
+      if (vinculos.length === 0) return [];
+
+      // Batch query: 1 query instead of N
+      const ids = vinculos.map(v => v.equipamento_id);
+      const equipamentos = await prisma.equipamentos.findMany({
+        where: { id: { in: ids } }
+      });
+
+      return equipamentos.map(equipamento => ({ equipamento }));
     },
 
     // Métodos para gerenciar vínculos com histórias

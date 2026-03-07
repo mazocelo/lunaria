@@ -66,8 +66,8 @@ router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);
 router.use('/mestres', authenticateToken, mestreRoutes);
 
-// Rotas de sessão (sem middleware global, aplicado individualmente)
-router.use('/sessoes', sessaoRoutes);
+// Rotas de sessão
+router.use('/sessoes', authenticateToken, sessaoRoutes);
 
 // Rotas de monstro (auth aplicado individualmente em POST/PUT/DELETE)
 router.use('/monstros', monstroRoutes);

@@ -136,7 +136,7 @@ class UsuarioController {
     try {
       const { id } = req.params;
       const usuarioId = parseInt(id);
-      const { nome, email, senha } = req.body;
+      const { nome, email, senha, senha_atual } = req.body;
 
       console.log(`✏️ Atualizando usuário ID: ${usuarioId}`);
 
@@ -199,10 +199,27 @@ class UsuarioController {
       }
 
       if (senha !== undefined) {
-        if (senha.length < 6) {
+        // Exigir senha atual para segurança
+        if (!senha_atual) {
           return res.status(400).json({
             success: false,
-            error: 'Senha deve ter no mínimo 6 caracteres'
+            error: 'Senha atual é obrigatória para alterar a senha'
+          });
+        }
+
+        // Verificar senha atual
+        const senhaValida = await bcrypt.compare(senha_atual, usuarioExistente.senha);
+        if (!senhaValida) {
+          return res.status(401).json({
+            success: false,
+            error: 'Senha atual incorreta'
+          });
+        }
+
+        if (senha.length < 8) {
+          return res.status(400).json({
+            success: false,
+            error: 'Senha deve ter no mínimo 8 caracteres'
           });
         }
 
@@ -267,15 +284,10 @@ class UsuarioController {
         });
       }
 
-      // Deletar usuário (cascade configurado no schema)
+      // Deletar usuario (cascade configurado no schema)
       await db.Usuario.delete(usuarioId);
 
-      console.log('✅ Usuário deletado com sucesso:', usuarioId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Usuário deletado com sucesso'
-      });
+      res.status(204).send();
 
     } catch (error) {
       console.error('❌ Erro ao deletar usuário:', error);

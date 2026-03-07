@@ -86,7 +86,6 @@ const Raca = (prisma) => {
     async findWithPersonagens() {
       return await model.findMany({
         include: {
-          personagem: true,
           personagens: true
         },
         orderBy: { nome: 'asc' }
@@ -98,7 +97,6 @@ const Raca = (prisma) => {
       return await model.findUnique({
         where: { id },
         include: {
-          personagem: true,
           personagens: true
         }
       });
@@ -106,7 +104,7 @@ const Raca = (prisma) => {
 
     // Contar raças
     async count(where = {}) {
-      return await prisma.raca.count({ where });
+      return await model.count({ where });
     },
 
     // Buscar raças gratuitas

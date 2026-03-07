@@ -3,6 +3,8 @@
  * Define o comportamento fundamental e as regras do mestre
  */
 
+import { sanitizePromptInput } from '../../../helpers/sanitize.js';
+
 export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null) {
   // Personalidade customizada do mestre (se houver)
   let personalidadeContexto = '';
@@ -10,19 +12,19 @@ export function criarPromptSistema(temas = [], personagens = [], mestreConfig = 
     const parts = [];
 
     if (mestreConfig.nome) {
-      parts.push(`Seu nome como Mestre é "${mestreConfig.nome}".`);
+      parts.push(`Seu nome como Mestre é "${sanitizePromptInput(mestreConfig.nome, 100)}".`);
     }
 
     if (mestreConfig.personalidade) {
-      parts.push(`### PERSONALIDADE DO MESTRE:\n${mestreConfig.personalidade}`);
+      parts.push(`PERSONALIDADE DO MESTRE:\n${sanitizePromptInput(mestreConfig.personalidade, 1000)}`);
     }
 
     if (mestreConfig.tom_narrativo) {
-      parts.push(`### TOM NARRATIVO:\nAdote um tom ${mestreConfig.tom_narrativo} em todas as suas narrações.`);
+      parts.push(`TOM NARRATIVO:\nAdote um tom ${sanitizePromptInput(mestreConfig.tom_narrativo, 100)} em todas as suas narrações.`);
     }
 
     if (mestreConfig.regras_especiais) {
-      parts.push(`### REGRAS ESPECIAIS:\n${mestreConfig.regras_especiais}`);
+      parts.push(`REGRAS ESPECIAIS:\n${sanitizePromptInput(mestreConfig.regras_especiais, 1000)}`);
     }
 
     if (parts.length > 0) {
@@ -33,8 +35,8 @@ export function criarPromptSistema(temas = [], personagens = [], mestreConfig = 
   let temasContexto = '';
   if (temas && temas.length > 0) {
     temasContexto = `
-    ### TEMAS DA CAMPANHA:
-    ${temas.map((tema, index) => `${index + 1}. ${tema}`).join('\n')}
+    TEMAS DA CAMPANHA:
+    ${temas.map((tema, index) => `${index + 1}. ${sanitizePromptInput(String(tema), 200)}`).join('\n')}
     Use esses temas para compor o cenário, o clima, as criaturas, os eventos e as ameaças que surgem ao longo da aventura. Misture os temas com criatividade.
     `;
   }
@@ -42,10 +44,10 @@ export function criarPromptSistema(temas = [], personagens = [], mestreConfig = 
   let personagensContexto = '';
   if (personagens && personagens.length > 0) {
     personagensContexto = `
-    ### PERSONAGENS JOGANDO:
+    PERSONAGENS JOGANDO:
     ${personagens.map((personagem, index) => {
       const info = [];
-      info.push(`${index + 1}. **${personagem.nome || personagem}**`);
+      info.push(`${index + 1}. **${sanitizePromptInput(personagem.nome || String(personagem), 100)}**`);
       
       if (personagem.raca && personagem.classe) {
         info.push(`${personagem.raca} ${personagem.classe}`);
@@ -84,7 +86,7 @@ export function criarPromptSistema(temas = [], personagens = [], mestreConfig = 
       }
       
       if (personagem.background) {
-        info.push(`- Background: ${personagem.background}`);
+        info.push(`- Background: ${sanitizePromptInput(personagem.background, 500)}`);
       }
       
       return info.join(' ');

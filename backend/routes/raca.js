@@ -1,6 +1,7 @@
 import express from 'express';
 import racaController from '../controllers/raca/racaController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { requireAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ const router = express.Router();
  *       400:
  *         description: Dados inválidos
  */
-router.post('/', asyncHandler(racaController.criarRaca));
+router.post('/', requireAdmin, asyncHandler(racaController.criarRaca));
 
 /**
  * @swagger

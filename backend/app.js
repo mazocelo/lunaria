@@ -4,6 +4,8 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 
 import indexRouter from './routes/index.js';
@@ -17,7 +19,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const corsOptions = {
   origin: isProduction 
-    ? process.env.FRONTEND_URL || 'https://lunaria-backend-3754d2d676ff.herokuapp.com'
+    ? process.env.FRONTEND_URL || 'https://lunaria-frontend.herokuapp.com'
     : true, // Em dev, permite todas as origens
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
@@ -35,9 +37,19 @@ console.log('🌐 CORS configurado:', {
 app.set('views', path.join(path.resolve(), 'views'));
 app.set('view engine', 'jade');
 
+app.use(helmet());
 app.use(logger('dev'));
 app.use(cors(corsOptions));
-app.use(express.json());
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use(globalLimiter);
+
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(), 'public')));
@@ -58,13 +70,15 @@ app.use((req, res, next) => {
 
 // error handler
 app.use((err, req, res, next) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({
+    success: false,
+    error: {
+      code: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'Erro interno do servidor',
+      ...(req.app.get('env') === 'development' && { stack: err.stack })
+    }
+  });
 });
 
 export default app;

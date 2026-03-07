@@ -129,7 +129,7 @@ class PersonagemController {
    */
   criarPersonagem = async (req, res, next) => {
     try {
-      console.log('👤 Criando novo personagem:', req.body);
+      console.log('Criando novo personagem');
 
       const {
         nome,
@@ -151,8 +151,6 @@ class PersonagemController {
         sugestao_background = '',
         historias // Array de IDs de histórias para vincular
       } = req.body;
-      console.log('👤 Dados do personagem:', req.body);
-
       // Validações básicas
       if (!nome) {
         return res.status(400).json({
@@ -681,12 +679,7 @@ class PersonagemController {
 
       await db.Personagem.deletePersonagem(parseInt(id));
 
-      console.log('✅ Personagem excluído com sucesso');
-
-      res.status(200).json({
-        success: true,
-        message: 'Personagem excluído com sucesso'
-      });
+      res.status(204).send();
 
     } catch (error) {
       console.error('❌ Erro ao excluir personagem:', error);

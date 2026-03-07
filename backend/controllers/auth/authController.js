@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import db from '../../Model/index.js';
+import { enviarEmailResetSenha } from '../../services/emailService.js';
 import { 
   generateAccessToken, 
   generateRefreshToken,
@@ -24,8 +26,6 @@ const getCookieConfig = (maxAge) => {
   // NÃO definir domínio - deixar o navegador gerenciar automaticamente
   // Isso funciona melhor para cross-domain (frontend e backend em domínios diferentes)
   
-  console.log('🍪 Cookie config:', { isProduction, sameSite: config.sameSite, secure: config.secure });
-  
   return config;
 };
 
@@ -41,7 +41,7 @@ class AuthController {
    */
   async registrar(req, res) {
     try {
-      console.log('👤 Registrando novo usuário:', req.body.email);
+      console.log('Registrando novo usuario');
 
       const { nome, email, senha } = req.body;
 
@@ -62,11 +62,11 @@ class AuthController {
         });
       }
 
-      // Validar senha (mínimo 6 caracteres)
-      if (senha.length < 6) {
+      // Validar senha (backup — validacao principal via express-validator na rota)
+      if (senha.length < 8) {
         return res.status(400).json({
           success: false,
-          error: 'Senha deve ter no mínimo 6 caracteres'
+          error: 'Senha deve ter no minimo 8 caracteres, com maiuscula, numero e caractere especial'
         });
       }
 
@@ -134,7 +134,7 @@ class AuthController {
    */
   async login(req, res) {
     try {
-      console.log('🔐 Tentativa de login:', req.body.email);
+      console.log('Tentativa de login recebida');
 
       const { email, senha, lembrarDeMim = false } = req.body;
 
@@ -305,7 +305,7 @@ class AuthController {
       res.cookie('accessToken', '', getCookieConfig(0));
       res.cookie('refreshToken', '', getCookieConfig(0));
       
-      console.log('👋 Logout realizado:', req.user?.email);
+      console.log('Logout realizado:', req.user?.id);
 
       res.status(200).json({
         success: true,
@@ -318,6 +318,117 @@ class AuthController {
         success: false,
         error: 'Erro interno do servidor'
       });
+    }
+  }
+  /**
+   * Solicitar redefinição de senha
+   */
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ success: false, error: 'Email é obrigatório' });
+      }
+
+      const usuario = await db.Usuario.findByEmail(email.toLowerCase().trim());
+
+      // Sempre retornar sucesso para não revelar se o email existe
+      if (!usuario) {
+        return res.status(200).json({
+          success: true,
+          message: 'Se o email estiver cadastrado, enviaremos instruções de redefinição.'
+        });
+      }
+
+      // Gerar token aleatório
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+      // Salvar hash do token no banco
+      await db.prisma.usuarios.update({
+        where: { id: usuario.id },
+        data: {
+          reset_token: resetTokenHash,
+          reset_token_expires: resetTokenExpires
+        }
+      });
+
+      // Enviar email
+      try {
+        await enviarEmailResetSenha(usuario.email, usuario.nome, resetToken);
+      } catch (emailError) {
+        console.error('Erro ao enviar email de reset:', emailError);
+        // Limpar token se o email falhar
+        await db.prisma.usuarios.update({
+          where: { id: usuario.id },
+          data: { reset_token: null, reset_token_expires: null }
+        });
+        return res.status(500).json({ success: false, error: 'Erro ao enviar email. Tente novamente.' });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Se o email estiver cadastrado, enviaremos instruções de redefinição.'
+      });
+
+    } catch (error) {
+      console.error('Erro em forgotPassword:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
+   * Redefinir senha com token
+   */
+  async resetPassword(req, res) {
+    try {
+      const { token, senha } = req.body;
+
+      if (!token || !senha) {
+        return res.status(400).json({ success: false, error: 'Token e nova senha são obrigatórios' });
+      }
+
+      if (senha.length < 8) {
+        return res.status(400).json({ success: false, error: 'Senha deve ter no mínimo 8 caracteres' });
+      }
+
+      // Hash do token recebido para comparar com o banco
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Buscar usuário com token válido e não expirado
+      const usuario = await db.prisma.usuarios.findFirst({
+        where: {
+          reset_token: tokenHash,
+          reset_token_expires: { gt: new Date() },
+          deleted_at: null
+        }
+      });
+
+      if (!usuario) {
+        return res.status(400).json({ success: false, error: 'Token inválido ou expirado' });
+      }
+
+      // Atualizar senha e limpar token
+      const senhaHash = await bcrypt.hash(senha, 12);
+      await db.prisma.usuarios.update({
+        where: { id: usuario.id },
+        data: {
+          senha: senhaHash,
+          reset_token: null,
+          reset_token_expires: null
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Senha redefinida com sucesso'
+      });
+
+    } catch (error) {
+      console.error('Erro em resetPassword:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 }

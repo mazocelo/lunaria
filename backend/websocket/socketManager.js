@@ -29,6 +29,8 @@ class SocketManager {
     this.connectedUsers = new Map(); // userId -> socket
     this.roomUsers = new Map(); // roomId -> Set of userIds
     this.mestresCache = new Map(); // salaId -> { mestre, criadoEm, ultimoUso, rodadaInicial }
+    this._cacheCleaner = null; // interval reference for cleanup
+    this._disconnectTimers = new Map(); // userId -> timeout for grace period
   }
 
   /**
@@ -39,10 +41,12 @@ class SocketManager {
     console.log('🔌 Inicializando WebSocket...');
     
     // Criar servidor Socket.IO
+    const isProduction = process.env.NODE_ENV === 'production';
     this.io = new Server(server, {
       cors: {
-        origin: "*", // Em produção, especificar domínios permitidos
-        methods: ["GET", "POST"]
+        origin: isProduction ? (process.env.FRONTEND_URL || false) : "*",
+        methods: ["GET", "POST"],
+        credentials: isProduction
       },
       transports: ['websocket', 'polling']
     });
@@ -61,8 +65,8 @@ class SocketManager {
     // Configurar eventos
     this.setupEventHandlers();
 
-    // Timer para limpar cache de mestres a cada 10 minutos
-    setInterval(() => {
+    // Timer para limpar cache de mestres a cada 10 minutos (store reference for cleanup)
+    this._cacheCleaner = setInterval(() => {
       this.limparCacheMestres();
     }, 600000);
 
@@ -1069,6 +1073,13 @@ class SocketManager {
         return;
       }
 
+      // Validar tamanho da mensagem
+      const MAX_MESSAGE_LENGTH = 5000;
+      if (rawMessage && String(rawMessage).length > MAX_MESSAGE_LENGTH) {
+        socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
+        return;
+      }
+
       // Fazer parsing dos dados para tipos corretos
       const roomId = String(rawRoomId);
       const userId = String(rawUserId);
@@ -1588,6 +1599,13 @@ class SocketManager {
         return;
       }
 
+      // Validar tamanho da mensagem
+      const MAX_MESSAGE_LENGTH = 5000;
+      if (rawMensagem && String(rawMensagem).length > MAX_MESSAGE_LENGTH) {
+        socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
+        return;
+      }
+
       // Parsing dos dados
       const roomId = String(rawRoomId);
       const userId = String(rawUserId);
@@ -1717,12 +1735,14 @@ class SocketManager {
           stack: errorIA.stack
         });
         
-        // ✅ FALLBACK: Resposta simples
+        // ✅ FALLBACK: Resposta simples — auto-avançar turno se já houve 2+ mensagens
+        const estadoJogoFallback = sessao.estadoJogo || {};
+        const contadorFallback = estadoJogoFallback.contadorMensagensTurno || 0;
         resposta = {
-          narracao: `**${personagem.nome}** ${mensagem}.\n\nO que acontece a seguir?`,
-          fimDeTurno: false,
+          narracao: `**${personagem.nome}** ${mensagem}.\n\n*O Mestre faz uma pausa...* O que acontece a seguir?`,
+          fimDeTurno: contadorFallback >= 2,
           solicitaDados: { solicita: false },
-          acaoCompleta: false
+          acaoCompleta: contadorFallback >= 2
         };
         
         this.log('INFO', 'MENSAGEM_PARA_MESTRE_USANDO_FALLBACK', socket.id, userId, {
@@ -1901,8 +1921,13 @@ class SocketManager {
           
           // ✅ Aguardar 500ms antes de avançar turno
           setTimeout(async () => {
-            await this.avancarProximoTurno(roomId);
-            console.log('✅ Turno avançado após 500ms');
+            try {
+              await this.avancarProximoTurno(roomId);
+              console.log('✅ Turno avançado após 500ms');
+            } catch (error) {
+              console.error('❌ Erro ao avançar turno:', error);
+              this.io.to(roomId).emit('erro_sistema', { message: 'Erro ao avançar turno. Tente novamente.' });
+            }
           }, 500);
         }
       }
@@ -2405,13 +2430,23 @@ class SocketManager {
 
     if (socket.userId) {
       const username = socket.username || 'Usuario';
-      
+
       this.log('INFO', 'DISCONNECT_AUTHENTICATED_USER', socket.id, socket.userId, {
         username: username,
         connectedUsersBeforeRemoval: this.connectedUsers.size
       });
-      
-      // Remover usuário da lista de conectados
+
+      // Check if the user already reconnected with a different socket
+      const currentSocket = this.connectedUsers.get(socket.userId);
+      if (currentSocket && currentSocket.id !== socket.id) {
+        // User already reconnected with a new socket, skip cleanup
+        this.log('INFO', 'DISCONNECT_SKIPPED_USER_RECONNECTED', socket.id, socket.userId, {
+          newSocketId: currentSocket.id
+        });
+        return;
+      }
+
+      // Remover usuario da lista de conectados
       this.connectedUsers.delete(socket.userId);
 
       this.log('SUCCESS', 'DISCONNECT_REMOVED_FROM_CONNECTED_USERS', socket.id, socket.userId, {
@@ -3051,7 +3086,12 @@ class SocketManager {
 
       // Aguardar 5 segundos antes de iniciar nova rodada
       setTimeout(async () => {
-        await this.iniciarNovaRodada(roomId);
+        try {
+          await this.iniciarNovaRodada(roomId);
+        } catch (error) {
+          console.error('❌ Erro ao iniciar nova rodada:', error);
+          this.io.to(roomId).emit('erro_sistema', { message: 'Erro ao iniciar nova rodada. Tente novamente.' });
+        }
       }, 5000);
 
       console.log(`✅ Rodada ${rodadaAtual} finalizada, próxima rodada em 5s`);
@@ -3526,6 +3566,22 @@ class SocketManager {
     
     const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null);
 
+    // Limitar tamanho do cache (LRU eviction)
+    const MAX_CACHE_SIZE = 30;
+    if (this.mestresCache.size >= MAX_CACHE_SIZE) {
+      let oldestKey = null, oldestTime = Number.POSITIVE_INFINITY;
+      for (const [key, cache] of this.mestresCache.entries()) {
+        if (cache.ultimoUso < oldestTime) {
+          oldestTime = cache.ultimoUso;
+          oldestKey = key;
+        }
+      }
+      if (oldestKey) {
+        this.mestresCache.delete(oldestKey);
+        console.log(`🧹 Cache de mestre evicted (LRU): ${oldestKey}`);
+      }
+    }
+
     // Salvar no cache
     this.mestresCache.set(salaId, {
       mestre,
@@ -3578,9 +3634,33 @@ class SocketManager {
    * Fechar conexões
    */
   async close() {
-    if (this.redis) {
-      await this.redis.quit();
+    // Clear interval timer
+    if (this._cacheCleaner) {
+      clearInterval(this._cacheCleaner);
+      this._cacheCleaner = null;
     }
+
+    // Clear all disconnect grace period timers
+    for (const [userId, timer] of this._disconnectTimers.entries()) {
+      clearTimeout(timer);
+    }
+    this._disconnectTimers.clear();
+
+    // Clear in-memory caches
+    this.connectedUsers.clear();
+    this.roomUsers.clear();
+    this.mestresCache.clear();
+
+    // Close Redis connection
+    if (this.redis) {
+      try {
+        await this.redis.quit();
+      } catch (error) {
+        console.error('Erro ao fechar Redis do WebSocket:', error.message);
+      }
+    }
+
+    // Close Socket.IO
     if (this.io) {
       this.io.close();
     }

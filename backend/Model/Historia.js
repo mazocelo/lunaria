@@ -128,46 +128,48 @@ const Historia = (prisma) => {
       });
     },
 
-    // Adicionar participante (personagem) à história
+    // Adicionar participante (personagem) à história — com transaction para evitar race condition
     async addParticipante(historiaId, personagemId, papel = 'jogador') {
-      const historia = await prisma.historias.findUnique({
-        where: { id: historiaId }
-      });
-
-      if (!historia) {
-        throw new Error('História não encontrada');
-      }
-
-      // Verificar se personagem já está na história
-      const jaParticipa = await prisma.historias_personagens.findFirst({
-        where: {
-          historia_id: historiaId,
-          personagem_id: personagemId
-        }
-      });
-
-      if (jaParticipa) {
-        throw new Error('Personagem já está na história');
-      }
-
-      // Verificar máximo de participantes
-      if (historia.maximo_de_participantes) {
-        const participantesAtuais = await prisma.historias_personagens.count({
-          where: { historia_id: historiaId }
+      return await prisma.$transaction(async (tx) => {
+        const historia = await tx.historias.findUnique({
+          where: { id: historiaId }
         });
 
-        if (participantesAtuais >= historia.maximo_de_participantes) {
-          throw new Error('Máximo de participantes atingido');
+        if (!historia) {
+          throw new Error('História não encontrada');
         }
-      }
 
-      // Adicionar personagem à história
-      return await prisma.historias_personagens.create({
-        data: {
-          historia_id: historiaId,
-          personagem_id: personagemId,
-          papel: papel
+        // Verificar se personagem já está na história
+        const jaParticipa = await tx.historias_personagens.findFirst({
+          where: {
+            historia_id: historiaId,
+            personagem_id: personagemId
+          }
+        });
+
+        if (jaParticipa) {
+          throw new Error('Personagem já está na história');
         }
+
+        // Verificar máximo de participantes
+        if (historia.maximo_de_participantes) {
+          const participantesAtuais = await tx.historias_personagens.count({
+            where: { historia_id: historiaId }
+          });
+
+          if (participantesAtuais >= historia.maximo_de_participantes) {
+            throw new Error('Máximo de participantes atingido');
+          }
+        }
+
+        // Adicionar personagem à história
+        return await tx.historias_personagens.create({
+          data: {
+            historia_id: historiaId,
+            personagem_id: personagemId,
+            papel: papel
+          }
+        });
       });
     },
 
@@ -198,21 +200,17 @@ const Historia = (prisma) => {
 
     // Buscar histórias com vagas disponíveis
     async findWithVagas() {
-      // Buscar todas as histórias ativas
       const historias = await prisma.historias.findMany({
-        where: {
-          status: 'ativa'
-        },
+        where: { status: 'ativa' },
         include: {
-          historias_personagens: true
+          _count: { select: { historias_personagens: true } }
         },
         orderBy: { nome: 'asc' }
       });
 
-      // Filtrar as que têm vagas
       return historias.filter(historia => {
-        if (!historia.maximo_de_participantes) return true; // Sem limite
-        return historia.historias_personagens.length < historia.maximo_de_participantes;
+        if (!historia.maximo_de_participantes) return true;
+        return historia._count.historias_personagens < historia.maximo_de_participantes;
       });
     },
 
@@ -289,49 +287,44 @@ const Historia = (prisma) => {
       // Buscar histórias onde o usuário tem convites (pendentes, aceitos ou null)
       const historiasComConvites = await this.findByConvites(usuario_id);
       
-      // Combinar e remover duplicatas (caso o usuário tenha criado uma história e também tenha personagens nela ou convites)
+      // O(n) dedup using Maps instead of O(n²) with nested find()
+      const criadasMap = new Map(historiasCriadas.map(h => [h.id, h]));
+      const personagensMap = new Map(historiasComPersonagens.map(h => [h.id, h]));
+      const convitesMap = new Map(historiasComConvites.map(h => [h.id, h]));
+
       const todasHistorias = [...historiasCriadas, ...historiasComPersonagens, ...historiasComConvites];
-      const historiasUnicas = todasHistorias.reduce((acc, historia) => {
-        const existe = acc.find(h => h.id === historia.id);
-        if (!existe) {
-          // Determinar o tipo de relação baseado na origem
+      const historiasMap = new Map();
+
+      for (const historia of todasHistorias) {
+        if (!historiasMap.has(historia.id)) {
           let tipoRelacao = 'participante';
-          if (historiasCriadas.find(h => h.id === historia.id)) {
+          if (criadasMap.has(historia.id)) {
             tipoRelacao = 'criador';
-          } else if (historiasComConvites.find(h => h.id === historia.id)) {
-            tipoRelacao = historia.tipo_relacao; // Já vem com convite_pendente, convite_aceito, etc.
+          } else if (convitesMap.has(historia.id)) {
+            tipoRelacao = historia.tipo_relacao;
           }
-          
-          acc.push({
-            ...historia,
-            tipo_relacao: tipoRelacao
-          });
+
+          historiasMap.set(historia.id, { ...historia, tipo_relacao: tipoRelacao });
         } else {
-          // Se já existe, combinar os tipos de relação
+          const existe = historiasMap.get(historia.id);
           const tiposRelacao = [];
-          if (historiasCriadas.find(h => h.id === historia.id)) {
-            tiposRelacao.push('criador');
+          if (criadasMap.has(historia.id)) tiposRelacao.push('criador');
+          if (personagensMap.has(historia.id)) tiposRelacao.push('participante');
+          if (convitesMap.has(historia.id)) {
+            tiposRelacao.push(convitesMap.get(historia.id).tipo_relacao);
           }
-          if (historiasComPersonagens.find(h => h.id === historia.id)) {
-            tiposRelacao.push('participante');
-          }
-          if (historiasComConvites.find(h => h.id === historia.id)) {
-            const conviteHistoria = historiasComConvites.find(h => h.id === historia.id);
-            tiposRelacao.push(conviteHistoria.tipo_relacao);
-          }
-          
           existe.tipo_relacao = tiposRelacao.join('_e_');
-          
-          // Preservar informações do convite se existir
-          const conviteHistoria = historiasComConvites.find(h => h.id === historia.id);
+
+          const conviteHistoria = convitesMap.get(historia.id);
           if (conviteHistoria) {
             existe.convite_status = conviteHistoria.convite_status;
             existe.convite_criado_em = conviteHistoria.convite_criado_em;
             existe.convite_respondido_em = conviteHistoria.convite_respondido_em;
           }
         }
-        return acc;
-      }, []);
+      }
+
+      const historiasUnicas = Array.from(historiasMap.values());
       
       // Ordenar por data de criação (mais recente primeiro)
       return historiasUnicas.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));

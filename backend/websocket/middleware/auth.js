@@ -2,56 +2,33 @@ import jwt from 'jsonwebtoken';
 
 /**
  * Middleware de autenticação para WebSocket
+ * Requer token JWT valido — conexoes sem token sao rejeitadas
  */
 export const authMiddleware = (socket, next) => {
   try {
-    // Extrair token da query string ou headers
-    const token = socket.handshake.auth?.token || 
+    const token = socket.handshake.auth?.token ||
                   socket.handshake.query?.token ||
                   socket.handshake.headers?.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      // Permitir conexões sem autenticação para modo visitante
-      socket.userId = null;
-      socket.username = 'Visitante';
-      socket.isAuthenticated = false;
-      socket.role = 'guest';
-      
-      console.log(`🔓 Conexão não autenticada: ${socket.id}`);
-      return next();
+      const error = new Error('Token de autenticacao requerido');
+      error.code = 'AUTH_REQUIRED';
+      return next(error);
     }
 
-    // Verificar token JWT (se você estiver usando JWT)
-    if (process.env.JWT_SECRET) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.userId; // Corrigido: usar userId do token HTTP
-      socket.username = decoded.nome || decoded.username || `User_${decoded.userId}`; // Usar nome do token HTTP
-      socket.email = decoded.email;
-      socket.role = decoded.role || 'player';
-      socket.isAuthenticated = true;
-      
-      console.log(`🔐 Usuário autenticado: ${socket.username} (${socket.userId})`);
-    } else {
-      // Modo de desenvolvimento - aceitar qualquer token
-      socket.userId = token;
-      socket.username = `User_${token}`;
-      socket.isAuthenticated = true;
-      socket.role = 'player';
-      
-      console.log(`🔧 Modo dev - Usuário: ${socket.username}`);
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.userId;
+    socket.username = decoded.nome || decoded.username || `User_${decoded.userId}`;
+    socket.email = decoded.email;
+    socket.role = decoded.role || 'player';
+    socket.isAuthenticated = true;
 
     next();
   } catch (error) {
-    console.error('❌ Erro na autenticação WebSocket:', error);
-    
-    // Em caso de erro, permitir como visitante
-    socket.userId = null;
-    socket.username = 'Visitante';
-    socket.isAuthenticated = false;
-    socket.role = 'guest';
-    
-    next();
+    console.error('Erro na autenticacao WebSocket:', error.message);
+    const authError = new Error('Token invalido ou expirado');
+    authError.code = 'AUTH_FAILED';
+    return next(authError);
   }
 };
 
@@ -86,4 +63,4 @@ export const requireGM = (socket, next) => {
   next();
 };
 
-export default authMiddleware; 
+export default authMiddleware;

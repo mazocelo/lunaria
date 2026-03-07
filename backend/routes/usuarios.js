@@ -150,7 +150,7 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(usuarioController.
  *       404:
  *         description: Usuário não encontrado
  */
-router.get('/perfil', asyncHandler(usuarioController.obterPerfil));
+router.get('/perfil', authenticateToken, asyncHandler(usuarioController.obterPerfil));
 
 /**
  * @swagger

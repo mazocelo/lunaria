@@ -1,5 +1,6 @@
 import express from 'express';
 import vantagemController from '../controllers/vantagens/vantagensController.js';
+import { requireAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -159,7 +160,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', vantagemController.criarVantagem);
+router.post('/', requireAdmin, vantagemController.criarVantagem);
 
 /**
  * @swagger

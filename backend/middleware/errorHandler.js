@@ -25,34 +25,36 @@ export const errorHandler = (err, req, res, next) => {
     console.error('Stack trace:', err.stack);
   }
   
-  // Erros de validação do Sequelize
-  if (err.name === 'SequelizeValidationError') {
-    const errors = err.errors.map(e => ({
-      field: e.path,
-      message: e.message
-    }));
-    
-    return res.status(400).json({
-      success: false,
-      error: 'Erro de validação',
-      details: errors
-    });
-  }
-  
-  // Erros de conexão com banco
-  if (err.name === 'SequelizeConnectionError') {
-    return res.status(503).json({
-      success: false,
-      error: 'Erro de conexão com banco de dados',
-      message: 'Serviço temporariamente indisponível'
-    });
-  }
-  
-  // Erros de registro não encontrado
-  if (err.name === 'SequelizeEmptyResultError') {
+  // Prisma: record not found (P2025)
+  if (err.code === 'P2025') {
     return res.status(404).json({
       success: false,
       error: 'Registro não encontrado'
+    });
+  }
+
+  // Prisma: unique constraint violation (P2002)
+  if (err.code === 'P2002') {
+    const field = err.meta?.target?.join(', ') || 'campo';
+    return res.status(409).json({
+      success: false,
+      error: `Registro duplicado no campo: ${field}`
+    });
+  }
+
+  // Prisma: validation error
+  if (err.name === 'PrismaClientValidationError') {
+    return res.status(400).json({
+      success: false,
+      error: 'Erro de validação nos dados enviados'
+    });
+  }
+
+  // Prisma: connection error
+  if (err.name === 'PrismaClientInitializationError' || err.name === 'PrismaClientRustPanicError') {
+    return res.status(503).json({
+      success: false,
+      error: 'Serviço temporariamente indisponível'
     });
   }
   
@@ -83,28 +85,6 @@ export const notFoundHandler = (req, res, next) => {
     error: 'Rota não encontrada',
     message: `A rota ${req.method} ${req.originalUrl} não existe`
   });
-};
-
-// Middleware para validar dados de entrada
-export const validateRequest = (schema) => {
-  return (req, res, next) => {
-    try {
-      const { error } = schema.validate(req.body);
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          error: 'Dados inválidos',
-          details: error.details.map(d => ({
-            field: d.path.join('.'),
-            message: d.message
-          }))
-        });
-      }
-      next();
-    } catch (err) {
-      next(err);
-    }
-  };
 };
 
 // Middleware para logging de requisições

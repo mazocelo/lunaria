@@ -28,7 +28,7 @@ const MonstroListaView = () => {
   const raridadeColors = {
     comum: isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300',
     incomum: isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
-    rara: isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
+    rara: isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400',
     epica: isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
     lendaria: isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400'
   };

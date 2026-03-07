@@ -151,13 +151,26 @@ const EditarMestreView = () => {
             Configurações Técnicas
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InputSimples
-              label="Modelo de IA"
-              name="modelo"
-              value={vm.modelo}
-              onChange={e => vm.setField('modelo', e.target.value)}
-              placeholder="openai/gpt-oss-120b"
-            />
+            <div>
+              <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+                Modelo de IA
+              </label>
+              <select
+                name="modelo"
+                value={vm.modelo}
+                onChange={e => vm.setField('modelo', e.target.value)}
+                className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 ${
+                  isLight
+                    ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500'
+                    : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
+                } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+              >
+                <option value="openai/gpt-oss-120b">GPT OSS 120B (Recomendado)</option>
+                <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                <option value="openai/gpt-oss-20b">GPT OSS 20B (Rápido)</option>
+                <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+              </select>
+            </div>
             <InputSimples
               label="Temperatura"
               name="temperatura"

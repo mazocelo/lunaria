@@ -38,6 +38,12 @@ export { default as NovaDesvantagemPage } from './Desvantagem/Nova';
 export { default as EditarDesvantagemPage } from './Desvantagem/Editar';
 export { default as VerDesvantagemPage } from './Desvantagem/Ver';
 
+// Equipamento
+export { default as EquipamentoPage } from './Equipamento/Lista';
+export { default as NovoEquipamentoPage } from './Equipamento/Nova';
+export { default as EditarEquipamentoPage } from './Equipamento/Editar';
+export { default as VerEquipamentoPage } from './Equipamento/Ver';
+
 // Monstro
 export { default as MonstroListaPage } from './Monstro/Lista';
 export { default as NovoMonstroPage } from './Monstro/Nova';

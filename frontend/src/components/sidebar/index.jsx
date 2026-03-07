@@ -60,6 +60,12 @@ const Sidebar = () => {
             description: 'Gerencie as desvantagens'
         },
         {
+            path: '/equipamentos',
+            label: 'Equipamentos',
+            icon: '⚔️',
+            description: 'Armas e itens magicos'
+        },
+        {
             path: '/monstros',
             label: 'Monstros',
             icon: '👹',

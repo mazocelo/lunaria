@@ -27,6 +27,10 @@ import {
   NovaDesvantagemPage, 
   EditarDesvantagemPage, 
   VerDesvantagemPage,
+  EquipamentoPage,
+  NovoEquipamentoPage,
+  EditarEquipamentoPage,
+  VerEquipamentoPage,
   MonstroListaPage,
   NovoMonstroPage,
   EditarMonstroPage,
@@ -108,6 +112,12 @@ export const ROUTES = {
   EDITAR_DESVANTAGEM: '/editar-desvantagem/:id',
   VER_DESVANTAGEM: '/ver-desvantagem/:id',
 
+  // ===== EQUIPAMENTOS =====
+  EQUIPAMENTOS: '/equipamentos',
+  NOVO_EQUIPAMENTO: '/criar-equipamento',
+  EDITAR_EQUIPAMENTO: '/editar-equipamento/:id',
+  VER_EQUIPAMENTO: '/ver-equipamento/:id',
+
   // ===== MONSTROS =====
   MONSTROS: '/monstros',
   NOVO_MONSTRO: '/criar-monstro',
@@ -159,6 +169,8 @@ export const generateRoute = {
   editarTema: (id) => `/editar-tema/${id}`,
   editarDesvantagem: (id) => `/editar-desvantagem/${id}`,
   verDesvantagem: (id) => `/ver-desvantagem/${id}`,
+  editarEquipamento: (id) => `/editar-equipamento/${id}`,
+  verEquipamento: (id) => `/ver-equipamento/${id}`,
   editarMonstro: (id) => `/editar-monstro/${id}`,
   editarMestre: (id) => `/editar-mestre/${id}`,
   verMestre: (id) => `/ver-mestre/${id}`
@@ -410,6 +422,36 @@ const ROUTE_CONFIG = [
     path: ROUTES.VER_DESVANTAGEM,
     component: VerDesvantagemPage,
     name: 'Ver Desvantagem',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+
+  // ===== EQUIPAMENTOS =====
+  {
+    path: ROUTES.EQUIPAMENTOS,
+    component: EquipamentoPage,
+    name: 'Equipamentos',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVO_EQUIPAMENTO,
+    component: NovoEquipamentoPage,
+    name: 'Novo Equipamento',
+    category: 'SISTEMA',
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.EDITAR_EQUIPAMENTO,
+    component: EditarEquipamentoPage,
+    name: 'Editar Equipamento',
+    category: 'SISTEMA',
+    hasParams: true,
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.VER_EQUIPAMENTO,
+    component: VerEquipamentoPage,
+    name: 'Ver Equipamento',
     category: 'SISTEMA',
     hasParams: true
   },

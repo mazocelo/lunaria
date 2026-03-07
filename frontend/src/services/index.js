@@ -9,6 +9,7 @@ import { ClasseService } from './ClasseService';
 import { DesvantagemService } from './DesvantagemService';
 import { MestreService } from './MestreService';
 import { MonstroService } from './MonstroService';
+import { EquipamentoService } from './EquipamentoService';
 import { AuthService } from './AuthService';
 import { NotificationService } from './NotificationService';
 
@@ -26,6 +27,7 @@ export { ClasseService } from './ClasseService';
 export { DesvantagemService } from './DesvantagemService';
 export { MestreService } from './MestreService';
 export { MonstroService } from './MonstroService';
+export { EquipamentoService } from './EquipamentoService';
 export { AuthService } from './AuthService';
 
 // Instâncias padrão dos serviços
@@ -38,5 +40,6 @@ export const classeService = new ClasseService(apiClient);
 export const desvantagemService = new DesvantagemService(apiClient);
 export const mestreService = new MestreService(apiClient);
 export const monstroService = new MonstroService(apiClient);
+export const equipamentoService = new EquipamentoService(apiClient);
 export const authService = new AuthService(apiClient);
 export const notificationService = new NotificationService(apiClient); 

@@ -3705,6 +3705,48 @@ class SocketManager {
   }
 
   /**
+   * Limpeza completa de uma sessao: mestresCache, roomUsers, snapshotCounters, sockets
+   * Usado ao encerrar sessao via admin
+   */
+  limparSessaoCompleta(salaId) {
+    // 1. Limpar cache de mestres
+    if (this.mestresCache) {
+      this.mestresCache.delete(salaId);
+    }
+
+    // 2. Limpar contador de snapshots
+    if (this._snapshotCounters) {
+      this._snapshotCounters.delete(salaId);
+    }
+
+    // 3. Emitir evento e forcar todos os sockets a sairem da room
+    if (this.io) {
+      this.io.to(salaId).emit('sessao_encerrada', {
+        salaId,
+        motivo: 'Sessão encerrada pelo administrador',
+        timestamp: Date.now()
+      });
+
+      const room = this.io.sockets.adapter.rooms.get(salaId);
+      if (room) {
+        for (const socketId of room) {
+          const socket = this.io.sockets.sockets.get(socketId);
+          if (socket) {
+            socket.leave(salaId);
+          }
+        }
+      }
+    }
+
+    // 4. Limpar roomUsers
+    if (this.roomUsers) {
+      this.roomUsers.delete(salaId);
+    }
+
+    console.log(`🧹 Sessão ${salaId} limpa completamente (cache, room, sockets)`);
+  }
+
+  /**
    * Fechar conexões
    */
   async close() {

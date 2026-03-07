@@ -34,12 +34,17 @@ export function extrairInfoPersonagem(personagem) {
   if (typeof personagem === 'string') {
     return { nome: personagem };
   }
-  
+
   return {
     nome: personagem.nome || personagem.personagemNome || 'Aventureiro',
     classe: personagem.classe || personagem.classe_nome || '',
     raca: personagem.raca || personagem.raca_nome || '',
-    nivel: personagem.nivel || 1
+    nivel: personagem.nivel || 1,
+    atributos: personagem.atributos || null,
+    vantagens: personagem.vantagens || [],
+    desvantagens: personagem.desvantagens || [],
+    equipamentos: personagem.equipamentos || [],
+    background: personagem.background || ''
   };
 }
 

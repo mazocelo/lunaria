@@ -608,4 +608,81 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
   }
 });
 
-export default router; 
+/**
+ * @swagger
+ * /jogo/encerrar/{historiaId}:
+ *   delete:
+ *     summary: Encerrar sessão (dono ou superadmin) - limpeza completa
+ *     tags: [Jogo]
+ *     parameters:
+ *       - in: path
+ *         name: historiaId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sessão encerrada com sucesso
+ *       403:
+ *         description: Sem permissão
+ *       404:
+ *         description: História não encontrada
+ */
+router.delete('/encerrar/:historiaId', async (req, res, next) => {
+  try {
+    const { historiaId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    console.log(`⛔ Solicitação para encerrar sessão - História: ${historiaId}, Usuário: ${userId}, Role: ${userRole}`);
+
+    const historia = await db.Historia.findById(parseInt(historiaId));
+
+    if (!historia) {
+      return res.status(404).json({
+        success: false,
+        error: 'História não encontrada'
+      });
+    }
+
+    // Auth: dono OU superadmin
+    if (historia.id_usuario !== userId && userRole !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Sem permissão para encerrar esta sessão'
+      });
+    }
+
+    const salaId = `historia_${historiaId}`;
+
+    // 1. Excluir sessão do Redis
+    try {
+      await gerenciadorSessoes.excluirSessao(salaId);
+    } catch (_) { /* sessão pode não existir no Redis */ }
+
+    // 2. Finalizar snapshot no DB
+    try {
+      await sessaoSnapshotService.finalizarSnapshot(salaId);
+    } catch (_) { /* snapshot pode não existir */ }
+
+    // 3. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
+    socketManager.limparSessaoCompleta(salaId);
+
+    console.log(`✅ Sessão encerrada com sucesso para história ${historia.id}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Sessão da história "${historia.nome}" encerrada com sucesso`,
+      data: {
+        historiaId: historia.id,
+        historiaNome: historia.nome
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao encerrar sessão:', error);
+    next(error);
+  }
+});
+
+export default router;

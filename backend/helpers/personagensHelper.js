@@ -45,17 +45,25 @@ export async function buscarPersonagensCompletos(personagensIds) {
               nome: v.vantagem?.nome || v.nome,
               descricao: v.vantagem?.descricao || v.descricao,
               tipo: v.vantagem?.tipo || v.tipo,
-              elemento: v.vantagem?.elemento || v.elemento
+              elemento: v.vantagem?.elemento || v.elemento,
+              usar: v.vantagem?.usar ?? v.usar ?? 0,
+              dano_base: v.vantagem?.dano_base || v.dano_base || null,
+              efeito: v.vantagem?.efeito || v.efeito || null
             })),
             desvantagens: desvantagens.map(d => ({
               nome: d.desvantagem?.nome || d.nome,
               descricao: d.desvantagem?.descricao || d.descricao,
-              tipo: d.desvantagem?.tipo || d.tipo
+              tipo: d.desvantagem?.tipo || d.tipo,
+              elemento: d.desvantagem?.elemento || d.elemento,
+              efeito: d.desvantagem?.efeito || d.efeito || null
             })),
             equipamentos: equipamentos.map(e => ({
               nome: e.equipamento?.nome || e.nome,
               tipo: e.equipamento?.tipo || e.tipo,
-              descricao: e.equipamento?.descricao || e.descricao
+              descricao: e.equipamento?.descricao || e.descricao,
+              dano_base: e.equipamento?.dano_base || e.dano_base || null,
+              efeito: e.equipamento?.efeito || e.efeito || null,
+              elemento: e.equipamento?.elemento || e.elemento
             })),
             // Informações para o Mestre (formato texto)
             descricaoCompleta: `${personagem.nome} - ${personagem.racas?.nome || 'Humano'} ${personagem.classes?.nome || 'Aventureiro'} Nível ${personagem.nivel || 1}`

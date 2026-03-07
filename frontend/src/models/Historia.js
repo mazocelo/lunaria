@@ -9,6 +9,8 @@ export class Historia {
     this.temas = data.temas || [];
     this.maximo_de_participantes = data.maximo_de_participantes || 3;
     this.prologo = data.prologo || '';
+    this.mestre_id = data.mestre_id || null;
+    this.mestre = data.mestre || null;
     this.id_usuario = data.id_usuario || null;  // ID do usuário dono da história
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
@@ -54,6 +56,7 @@ export class Historia {
       temas: this.temas,
       maximo_de_participantes: this.maximo_de_participantes,
       prologo: this.prologo,
+      mestre_id: this.mestre_id,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
@@ -71,6 +74,8 @@ export class Historia {
       temas: apiData.temas || [],
       maximo_de_participantes: apiData.maximo_de_participantes,
       prologo: apiData.prologo || '',
+      mestre_id: apiData.mestre_id || null,
+      mestre: apiData.mestres || apiData.mestre || null,
       id_usuario: apiData.id_usuario,  // ID do usuário dono da história
       created_at: apiData.created_at,
       updated_at: apiData.updated_at

@@ -87,6 +87,42 @@ class EditarDesvantagemViewModel {
     }
   };
 
+  criarDesvantagem = async () => {
+    if (!this.state.nome.trim()) {
+      this.setState({ error: 'Nome e obrigatorio' });
+      return { success: false };
+    }
+    this.setState({ saving: true, error: null });
+    try {
+      const desvantagemData = {
+        nome: this.state.nome,
+        descricao: this.state.descricao,
+        custo: this.state.custo,
+        tipo: this.state.tipo,
+        elemento: this.state.elemento,
+        nivel: this.state.nivel,
+        usar: this.state.usar,
+        dano_base: this.state.dano_base
+      };
+      await this.service.create(desvantagemData);
+      this.setState({ saving: false });
+      return { success: true };
+    } catch (error) {
+      this.setState({
+        saving: false,
+        error: `Erro ao criar desvantagem: ${error.message}`
+      });
+      return { success: false };
+    }
+  };
+
+  reset = () => {
+    this.setState({
+      id: null, nome: '', descricao: '', custo: 0, tipo: '', elemento: '',
+      nivel: 1, usar: 0, dano_base: '', loading: false, saving: false, error: null
+    });
+  };
+
   clearError = () => {
     this.setState({ error: null });
   };

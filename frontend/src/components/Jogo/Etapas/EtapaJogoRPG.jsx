@@ -12,6 +12,7 @@ import NotificationManager from '../NotificationManager';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
 import { personagemService } from '../../../services';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS, PARTICLES } from '../../../constants/game';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 /**
  * Layout do jogo RPG ativo - Usando ViewModel específico
@@ -32,6 +33,9 @@ const EtapaJogoRPG = ({
   onAtualizarStatus,
   onSair
 }) => {
+  // 🎨 THEME
+  const { theme, toggleTheme } = useTheme();
+
   // 🎯 VIEWMODEL - Estado reativo
   const [viewModelState, setViewModelState] = useState(etapaJogoRPGViewModel.getState());
 
@@ -699,10 +703,14 @@ const EtapaJogoRPG = ({
       <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
 
       <div className="relative z-10 h-screen flex flex-col">
-        {/* Barra de Controle - Toolbar Fixa */}
+        {/* Barra de Controle Unificada - Header unico do jogo */}
         <div className="flex-shrink-0 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm border-b border-purple-500/20 z-40">
-          {/* Lado esquerdo: Info da fase e turno */}
-          <div className="flex items-center space-x-3">
+          {/* Lado esquerdo: Logo + Info da fase */}
+          <div className="flex items-center space-x-4">
+            <h1 className="text-lg font-fantasy font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent hidden sm:block">
+              The Fable Forge
+            </h1>
+            <span className="text-purple-500/30 hidden sm:inline">|</span>
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${
                 socketState.faseJogo === 'rodada_em_andamento' ? 'bg-green-400 animate-pulse' : 'bg-purple-400'
@@ -826,6 +834,15 @@ const EtapaJogoRPG = ({
               <span>ACOES</span>
             </button>
 
+            {/* Botão TEMA */}
+            <button
+              onClick={toggleTheme}
+              className="px-3 py-1.5 bg-purple-600/30 text-purple-200 border border-purple-500/50 rounded-lg hover:bg-purple-600/50 transition-all font-bold shadow-md flex items-center space-x-1.5 text-sm"
+              aria-label="Alternar tema"
+            >
+              <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
+            </button>
+
             {/* Botão SAIR */}
             <button
               onClick={onSair}
@@ -939,6 +956,9 @@ const EtapaJogoRPG = ({
                       personagemSelecionado={infoPersonagem}
                       onRolarDados={handleRolarDados}
                       compact={true}
+                      combateAtivo={socketState.combateAtivo}
+                      combateJogadores={socketState.combateJogadores}
+                      userId={String(user.id)}
                     />
                   </div>
                 </div>

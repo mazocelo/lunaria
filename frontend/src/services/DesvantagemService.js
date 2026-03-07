@@ -100,6 +100,19 @@ export class DesvantagemService {
     }
   }
 
+  async create(data) {
+    try {
+      const response = await this.apiClient.post(this.baseUrl, data);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao criar desvantagem: ${error.message}`);
+    }
+  }
+
   /**
    * Atualiza uma desvantagem
    * @param {number} id - ID da desvantagem

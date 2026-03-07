@@ -5,9 +5,19 @@ import React from 'react';
  * @param {Object} personagemSelecionado - Dados do personagem
  * @param {Function} onRolarDados - Callback para rolar dados
  * @param {boolean} compact - Se true, usa layout compacto para painel lateral
+ * @param {boolean} combateAtivo - Se combate esta ativo
+ * @param {Object} combateJogadores - HP live dos jogadores { [userId]: { hp_max, hp_atual, ca, status } }
+ * @param {string} userId - ID do usuario atual
  */
-const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false }) => {
-  // Validação: garantir que personagemSelecionado existe
+const StatusPersonagem = ({
+  personagemSelecionado,
+  onRolarDados,
+  compact = false,
+  combateAtivo = false,
+  combateJogadores = {},
+  userId
+}) => {
+  // Validacao: garantir que personagemSelecionado existe
   if (!personagemSelecionado) {
     return (
       <div className={compact ? "p-3" : "p-4 bg-black/20 backdrop-blur-sm border-t border-purple-500/20"}>
@@ -22,13 +32,23 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
     );
   }
 
+  // Determinar HP/HP_max a exibir: combate live ou DB estatico
+  const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
+  const hpDisplay = combateStats ? `${combateStats.hp_atual}/${combateStats.hp_max}` : (personagemSelecionado.hp || '???');
+  const hpBaixo = combateStats ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
+  const derrotado = combateStats?.status === 'derrotado';
+
   // Layout compacto para painel lateral
   if (compact) {
     return (
-      <div className="glass p-3 rounded-lg border border-cyan-500/20">
+      <div className={`glass p-3 rounded-lg border ${combateAtivo ? 'border-red-500/40' : 'border-cyan-500/20'}`}>
         <div className="flex items-start space-x-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center text-base flex-shrink-0">
-            ⚔️
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base flex-shrink-0 ${
+            derrotado ? 'bg-gradient-to-r from-gray-600 to-gray-700' :
+            combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+            'bg-gradient-to-r from-cyan-500 to-purple-500'
+          }`}>
+            {derrotado ? '💀' : combateAtivo ? '⚔️' : '⚔️'}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-fantasy font-bold text-white truncate">
@@ -40,8 +60,12 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center space-x-3">
                 <div className="text-center">
-                  <div className="text-base font-bold text-red-400">
-                    {personagemSelecionado.hp || '???'}
+                  <div className={`text-base font-bold ${
+                    derrotado ? 'text-gray-500' :
+                    hpBaixo ? 'text-red-400 animate-pulse' :
+                    combateStats ? 'text-red-300' : 'text-red-400'
+                  }`}>
+                    {hpDisplay}
                   </div>
                   <div className="text-xs text-red-300">HP</div>
                 </div>
@@ -57,6 +81,14 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
                   </div>
                   <div className="text-xs text-yellow-300">XP</div>
                 </div>
+                {combateStats && (
+                  <div className="text-center">
+                    <div className="text-base font-bold text-green-400">
+                      {combateStats.ca}
+                    </div>
+                    <div className="text-xs text-green-300">CA</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -69,11 +101,15 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
   return (
     <div className="p-4 bg-black/20 backdrop-blur-sm border-t border-purple-500/20">
       <div className="max-w-6xl mx-auto">
-        <div className="glass p-4 rounded-lg border border-cyan-500/20">
+        <div className={`glass p-4 rounded-lg border ${combateAtivo ? 'border-red-500/40' : 'border-cyan-500/20'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center text-lg">
-                ⚔️
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${
+                derrotado ? 'bg-gradient-to-r from-gray-600 to-gray-700' :
+                combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                'bg-gradient-to-r from-cyan-500 to-purple-500'
+              }`}>
+                {derrotado ? '💀' : '⚔️'}
               </div>
               <div>
                 <h3 className="text-lg font-fantasy font-bold text-white">
@@ -84,13 +120,17 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-6">
               {/* Status principais */}
               <div className="flex items-center space-x-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-red-400">
-                    {personagemSelecionado.hp || '???'}
+                  <div className={`text-lg font-bold ${
+                    derrotado ? 'text-gray-500' :
+                    hpBaixo ? 'text-red-400 animate-pulse' :
+                    combateStats ? 'text-red-300' : 'text-red-400'
+                  }`}>
+                    {hpDisplay}
                   </div>
                   <div className="text-xs text-red-300">HP</div>
                 </div>
@@ -106,9 +146,17 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
                   </div>
                   <div className="text-xs text-yellow-300">XP</div>
                 </div>
+                {combateStats && (
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-400">
+                      {combateStats.ca}
+                    </div>
+                    <div className="text-xs text-green-300">CA</div>
+                  </div>
+                )}
               </div>
-              
-              {/* Ações rápidas */}
+
+              {/* Acoes rapidas */}
               {onRolarDados && (
                 <div className="flex items-center space-x-2">
                   <button
@@ -133,4 +181,4 @@ const StatusPersonagem = ({ personagemSelecionado, onRolarDados, compact = false
   );
 };
 
-export default StatusPersonagem; 
+export default StatusPersonagem;

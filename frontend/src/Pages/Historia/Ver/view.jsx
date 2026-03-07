@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { historiaViewModel } from '../Lista/viewmodel.js';
+import { useMestreStore } from '../../../store/mestre/index.js';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
@@ -26,11 +27,18 @@ export const VerHistoriaView = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
+  const mestresAtivos = useMestreStore(s => s.mestresAtivos);
+  const carregarMestres = useMestreStore(s => s.carregarMestres);
+  const [editandoMestre, setEditandoMestre] = useState(false);
+  const [mestreSelecionadoId, setMestreSelecionadoId] = useState(null);
+  const [salvandoMestre, setSalvandoMestre] = useState(false);
+
   // Carrega a história ao montar o componente
   useEffect(() => {
     if (id) {
       loadHistoria(parseInt(id));
     }
+    carregarMestres();
   }, [id]);
 
   // Limpa erro quando componente desmonta
@@ -227,6 +235,78 @@ export const VerHistoriaView = () => {
                 </span>
               </div>
             </div>
+          </RPGCard>
+
+          {/* Mestre */}
+          <RPGCard className="p-6">
+            <h3 className={`text-lg font-semibold font-fantasy mb-4 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+              🧙 Mestre
+            </h3>
+            {editandoMestre ? (
+              <div className="space-y-3">
+                <select
+                  value={mestreSelecionadoId || ''}
+                  onChange={(e) => setMestreSelecionadoId(e.target.value ? parseInt(e.target.value) : null)}
+                  className={`w-full px-3 py-2 rounded-lg font-modern text-sm transition-all duration-200 ${
+                    isLight
+                      ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500'
+                      : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
+                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                >
+                  <option value="">Mestre Padrao</option>
+                  {mestresAtivos?.map((m) => (
+                    <option key={m.id} value={m.id}>{m.nome}</option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    disabled={salvandoMestre}
+                    onClick={async () => {
+                      setSalvandoMestre(true);
+                      try {
+                        await viewModel.atualizarMestre(historiaAtual.id, mestreSelecionadoId);
+                        setEditandoMestre(false);
+                      } catch (_) {}
+                      setSalvandoMestre(false);
+                    }}
+                    className="flex-1 px-3 py-1.5 rounded-lg font-modern text-sm bg-purple-600 hover:bg-purple-700 text-white transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {salvandoMestre ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    onClick={() => setEditandoMestre(false)}
+                    className={`flex-1 px-3 py-1.5 rounded-lg font-modern text-sm transition-all cursor-pointer ${
+                      isLight
+                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                    }`}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                    {viewModel.getMestreNome(historiaAtual)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setMestreSelecionadoId(historiaAtual.mestre_id || historiaAtual.mestres?.id || null);
+                    setEditandoMestre(true);
+                  }}
+                  className={`w-full px-3 py-1.5 rounded-lg font-modern text-sm transition-all cursor-pointer ${
+                    isLight
+                      ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                  }`}
+                >
+                  Trocar Mestre
+                </button>
+              </div>
+            )}
           </RPGCard>
 
           {/* Informações do sistema */}

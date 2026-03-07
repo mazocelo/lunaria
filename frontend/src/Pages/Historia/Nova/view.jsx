@@ -16,6 +16,7 @@ const NovaHistoriaView = () => {
 
   useEffect(() => {
     vm.loadTemas();
+    vm.loadMestres();
     vm.clearError();
   }, []);
 
@@ -96,6 +97,18 @@ const NovaHistoriaView = () => {
         />
         <p className="text-xs text-slate-400 mt-2 font-modern">
           Recomendamos entre 2 e 10 jogadores para uma experiência ideal
+        </p>
+
+        <Selector
+          label="Mestre (opcional)"
+          options={vm.mestres?.map((m) => ({ value: m.id, label: m.nome })) || []}
+          selected={vm.mestreSelecionado}
+          onChange={(id) => vm.setMestreSelecionado(id)}
+          type="single"
+          containerClass="mb-2"
+        />
+        <p className="text-xs text-slate-400 mt-2 font-modern">
+          Se nenhum mestre for selecionado, sera usado um mestre padrao
         </p>
 
         {/* Botões de ação */}

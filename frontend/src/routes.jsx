@@ -7,17 +7,28 @@ import {
   NovoPersonagemPage, 
   EditarPersonagemPage, 
   VerPersonagemPage, 
-  RacaPage, 
-  VerRacaPage, 
-  ClassePage, 
-  VerClassePage, 
-  VantagemPage, 
-  VerVantagemPage, 
+  RacaPage,
+  NovaRacaPage,
+  EditarRacaPage,
+  VerRacaPage,
+  ClassePage,
+  NovaClassePage,
+  EditarClassePage,
+  VerClassePage,
+  VantagemPage,
+  NovaVantagemPage,
+  EditarVantagemPage,
+  VerVantagemPage,
+  TemaListaPage,
+  NovoTemaPage,
+  EditarTemaPage,
   DesvantagemPage, 
   NovaDesvantagemPage, 
   EditarDesvantagemPage, 
   VerDesvantagemPage,
   MonstroListaPage,
+  NovoMonstroPage,
+  EditarMonstroPage,
   MestreListaPage,
   NovoMestrePage,
   EditarMestrePage,
@@ -69,15 +80,26 @@ export const ROUTES = {
   
   // ===== RAÇAS =====
   RACAS: '/racas',
+  NOVA_RACA: '/criar-raca',
+  EDITAR_RACA: '/editar-raca/:id',
   VER_RACA: '/ver-raca/:id',
-  
+
   // ===== CLASSES =====
   CLASSES: '/classes',
+  NOVA_CLASSE: '/criar-classe',
+  EDITAR_CLASSE: '/editar-classe/:id',
   VER_CLASSE: '/ver-classe/:id',
   
   // ===== VANTAGENS =====
   VANTAGENS: '/vantagens',
+  NOVA_VANTAGEM: '/criar-vantagem',
+  EDITAR_VANTAGEM: '/editar-vantagem/:id',
   VER_VANTAGEM: '/ver-vantagem/:id',
+
+  // ===== TEMAS =====
+  TEMAS: '/temas',
+  NOVO_TEMA: '/criar-tema',
+  EDITAR_TEMA: '/editar-tema/:id',
   
   // ===== DESVANTAGENS =====
   DESVANTAGENS: '/desvantagens',
@@ -87,6 +109,8 @@ export const ROUTES = {
 
   // ===== MONSTROS =====
   MONSTROS: '/monstros',
+  NOVO_MONSTRO: '/criar-monstro',
+  EDITAR_MONSTRO: '/editar-monstro/:id',
 
   // ===== MESTRES =====
   MESTRES: '/mestres',
@@ -125,11 +149,16 @@ export const generateRoute = {
   verPersonagem: (id) => `/ver-personagem/${id}`,
   
   // Sistema
+  editarRaca: (id) => `/editar-raca/${id}`,
   verRaca: (id) => `/ver-raca/${id}`,
+  editarClasse: (id) => `/editar-classe/${id}`,
   verClasse: (id) => `/ver-classe/${id}`,
   verVantagem: (id) => `/ver-vantagem/${id}`,
+  editarVantagem: (id) => `/editar-vantagem/${id}`,
+  editarTema: (id) => `/editar-tema/${id}`,
   editarDesvantagem: (id) => `/editar-desvantagem/${id}`,
   verDesvantagem: (id) => `/ver-desvantagem/${id}`,
+  editarMonstro: (id) => `/editar-monstro/${id}`,
   editarMestre: (id) => `/editar-mestre/${id}`,
   verMestre: (id) => `/ver-mestre/${id}`
 };
@@ -169,7 +198,8 @@ export const ROUTE_CATEGORIES = {
       { path: ROUTES.VANTAGENS, name: 'Vantagens', exact: true },
       { path: ROUTES.DESVANTAGENS, name: 'Desvantagens', exact: true },
       { path: ROUTES.MONSTROS, name: 'Monstros', exact: true },
-      { path: ROUTES.MESTRES, name: 'Mestres', exact: true }
+      { path: ROUTES.MESTRES, name: 'Mestres', exact: true },
+      { path: ROUTES.TEMAS, name: 'Temas', exact: true }
     ]
   },
   
@@ -299,6 +329,19 @@ const ROUTE_CONFIG = [
     category: 'SISTEMA'
   },
   {
+    path: ROUTES.NOVA_RACA,
+    component: NovaRacaPage,
+    name: 'Nova Raça',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.EDITAR_RACA,
+    component: EditarRacaPage,
+    name: 'Editar Raça',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+  {
     path: ROUTES.VER_RACA,
     component: VerRacaPage,
     name: 'Ver Raça',
@@ -312,6 +355,19 @@ const ROUTE_CONFIG = [
     component: ClassePage,
     name: 'Classes',
     category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVA_CLASSE,
+    component: NovaClassePage,
+    name: 'Nova Classe',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.EDITAR_CLASSE,
+    component: EditarClassePage,
+    name: 'Editar Classe',
+    category: 'SISTEMA',
+    hasParams: true
   },
   {
     path: ROUTES.VER_CLASSE,
@@ -329,9 +385,43 @@ const ROUTE_CONFIG = [
     category: 'SISTEMA'
   },
   {
+    path: ROUTES.NOVA_VANTAGEM,
+    component: NovaVantagemPage,
+    name: 'Nova Vantagem',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.EDITAR_VANTAGEM,
+    component: EditarVantagemPage,
+    name: 'Editar Vantagem',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+  {
     path: ROUTES.VER_VANTAGEM,
     component: VerVantagemPage,
     name: 'Ver Vantagem',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+
+  // ===== TEMAS =====
+  {
+    path: ROUTES.TEMAS,
+    component: TemaListaPage,
+    name: 'Temas',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVO_TEMA,
+    component: NovoTemaPage,
+    name: 'Novo Tema',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.EDITAR_TEMA,
+    component: EditarTemaPage,
+    name: 'Editar Tema',
     category: 'SISTEMA',
     hasParams: true
   },
@@ -370,6 +460,19 @@ const ROUTE_CONFIG = [
     component: MonstroListaPage,
     name: 'Monstros',
     category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVO_MONSTRO,
+    component: NovoMonstroPage,
+    name: 'Novo Monstro',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.EDITAR_MONSTRO,
+    component: EditarMonstroPage,
+    name: 'Editar Monstro',
+    category: 'SISTEMA',
+    hasParams: true
   },
 
   // ===== MESTRES =====

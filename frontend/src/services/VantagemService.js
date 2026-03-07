@@ -115,4 +115,43 @@ export class VantagemService {
       throw new Error(`Erro ao buscar vantagens/desvantagens por nome: ${error.message}`);
     }
   }
-} 
+
+  async create(data) {
+    try {
+      const response = await this.apiClient.post(this.baseUrl, data);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao criar vantagem: ${error.message}`);
+    }
+  }
+
+  async update(id, data) {
+    try {
+      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, data);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao atualizar vantagem: ${error.message}`);
+    }
+  }
+
+  async delete(id) {
+    try {
+      const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.data?.message || 'Erro desconhecido');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao excluir vantagem: ${error.message}`);
+    }
+  }
+}

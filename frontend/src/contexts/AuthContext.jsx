@@ -209,10 +209,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const isSuperAdmin = user?.role === 'superadmin';
+
   const contextValue = {
     user,
     loading,
     isAuthenticated,
+    isSuperAdmin,
     login,
     logout,
     register,

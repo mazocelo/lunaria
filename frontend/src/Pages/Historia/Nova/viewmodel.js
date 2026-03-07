@@ -1,6 +1,6 @@
 import { HistoriaService } from '../../../services/HistoriaService';
 import { apiClient } from '../../../services/ApiClient';
-import { getTemaStoreAPI } from '../../../store/index.js';
+import { getTemaStoreAPI, getMestreStoreAPI } from '../../../store/index.js';
 import { runInAction } from '../../../utils/EventEmitter.js';
 import { Historia } from '../../../models/Historia.js';
 
@@ -14,12 +14,14 @@ export class NovaHistoriaViewModel {
     this.temasSelecionados = [];
     this.maximo_de_participantes = 4;
     this.descricao = '';
+    this.mestreSelecionado = null;
     this.loading = false;
     this.error = null;
     this.subscribers = [];
-    
+
     // 🎨 TEMA STORE - API direta (sem hooks) para ViewModels
     this.temaStore = getTemaStoreAPI();
+    this.mestreStore = getMestreStoreAPI();
     this.historiaService = new HistoriaService(apiClient);
   }
 
@@ -38,8 +40,13 @@ export class NovaHistoriaViewModel {
     this.notify();
   };
 
-  setDescricao = (descricao) => { 
-    this.descricao = descricao; 
+  setDescricao = (descricao) => {
+    this.descricao = descricao;
+    this.notify();
+  };
+
+  setMestreSelecionado = (id) => {
+    this.mestreSelecionado = id;
     this.notify();
   };
 
@@ -77,6 +84,14 @@ export class NovaHistoriaViewModel {
     return this.temaStore.getTemasParaSelecao();
   }
 
+  get mestres() {
+    return this.mestreStore.mestresAtivos || [];
+  }
+
+  loadMestres = async () => {
+    await this.mestreStore.carregarMestres();
+  };
+
   /**
    * 🎨 GETTER: Status de loading dos temas
    */
@@ -92,9 +107,10 @@ export class NovaHistoriaViewModel {
     try {
       const historiaData = {
         nome: this.nome,
-        temas: this.temasSelecionados, // IDs dos temas selecionados
+        temas: this.temasSelecionados,
         maximo_de_participantes: this.maximo_de_participantes,
-        prologo: this.descricao // Mapear descricao para prologo
+        prologo: this.descricao,
+        mestre_id: this.mestreSelecionado
       };
 
       // Criar instância da classe Historia
@@ -153,7 +169,9 @@ export class NovaHistoriaViewModel {
       temasSelecionados: this.temasSelecionados,
       maximo_de_participantes: this.maximo_de_participantes,
       descricao: this.descricao,
-      temas: this.temas, // ✅ AGORA VIA GETTER DO STORE
+      mestreSelecionado: this.mestreSelecionado,
+      mestres: this.mestres,
+      temas: this.temas,
       loading: this.loading,
       temasLoading: this.temasLoading, // ✅ NOVO: Loading específico dos temas
       error: this.error

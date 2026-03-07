@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/theme.jsx';
+import { useAuth } from '../../contexts/AuthContext';
 import { useSocketStore } from '../../store';
 import { WebSocketStatusCompact } from '../WebSocketStatus';
 
 const Sidebar = () => {
     const location = useLocation();
     const { theme } = useTheme();
+    const { isSuperAdmin } = useAuth();
     const isLight = theme === 'light';
 
     // 🌐 SOCKET STORE - Usando o store Zustand integrado
@@ -18,10 +20,10 @@ const Sidebar = () => {
         connectToSocket
     } = useSocketStore();
 
-    const menuItems = [
+    const playerItems = [
         {
             path: '/historias',
-            label: 'Histórias',
+            label: 'Historias',
             icon: '📚',
             description: 'Gerencie suas aventuras'
         },
@@ -30,36 +32,45 @@ const Sidebar = () => {
             label: 'Personagens',
             icon: '⚔️',
             description: 'Crie e edite personagens'
-        },
+        }
+    ];
+
+    const catalogItems = [
         {
             path: '/racas',
-            label: 'Raças',
+            label: 'Racas',
             icon: '🧬',
-            description: 'Gerencie as raças disponíveis'
+            description: 'Gerencie as racas'
         },
         {
             path: '/classes',
             label: 'Classes',
             icon: '🛡️',
-            description: 'Gerencie as classes disponíveis'
+            description: 'Gerencie as classes'
         },
         {
             path: '/vantagens',
             label: 'Vantagens',
             icon: '⭐',
-            description: 'Gerencie as vantagens disponíveis'
+            description: 'Gerencie as vantagens'
         },
         {
             path: '/desvantagens',
             label: 'Desvantagens',
             icon: '⚠️',
-            description: 'Gerencie as desvantagens disponíveis'
+            description: 'Gerencie as desvantagens'
         },
         {
             path: '/monstros',
             label: 'Monstros',
             icon: '👹',
-            description: 'Bestiário do mundo de Lunaria'
+            description: 'Bestiario de Lunaria'
+        },
+        {
+            path: '/temas',
+            label: 'Temas',
+            icon: '🎨',
+            description: 'Gerencie os temas'
         },
         {
             path: '/mestres',
@@ -68,6 +79,10 @@ const Sidebar = () => {
             description: 'Gerencie seus mestres'
         }
     ];
+
+    const menuItems = isSuperAdmin
+        ? [...playerItems, ...catalogItems]
+        : playerItems;
 
     const isActive = (path) => location.pathname === path;
 
@@ -112,7 +127,7 @@ const Sidebar = () => {
             {/* Menu de navegação */}
             <nav className="flex-1 p-6 overflow-y-auto">
                 <div className="space-y-2">
-                    {menuItems.map((item) => (
+                    {playerItems.map((item) => (
                         <Link
                             key={item.path}
                             to={item.path}
@@ -139,13 +154,53 @@ const Sidebar = () => {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Efeito de brilho no hover */}
                             {!isActive(item.path) && (
                                 <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-500/10 to-cyan-500/10" />
                             )}
                         </Link>
                     ))}
+
+                    {isSuperAdmin && (
+                        <>
+                            <div className={`flex items-center gap-2 pt-4 pb-2 px-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                                <div className={`flex-1 h-px ${isLight ? 'bg-slate-300/50' : 'bg-slate-600/50'}`} />
+                                <span className="text-xs font-semibold uppercase tracking-wider">Catalogo</span>
+                                <div className={`flex-1 h-px ${isLight ? 'bg-slate-300/50' : 'bg-slate-600/50'}`} />
+                            </div>
+                            {catalogItems.map((item) => (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    className={`group relative block p-4 rounded-xl transition-all duration-300 hover-lift ${isActive(item.path)
+                                        ? 'gradient-primary text-slate-700 shadow-lg'
+                                        : isLight
+                                            ? 'glass-light text-slate-700 hover:text-slate-900 hover:bg-slate-100/50'
+                                            : 'glass text-slate-300 hover:text-white hover:bg-slate-700/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <span className="text-2xl flex-shrink-0">{item.icon}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-semibold font-modern">
+                                                {item.label}
+                                            </div>
+                                            <div className={`text-xs ${isActive(item.path)
+                                                ? 'text-slate-700'
+                                                : isLight
+                                                    ? 'text-slate-500'
+                                                    : 'text-slate-400'
+                                                }`}>
+                                                {item.description}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {!isActive(item.path) && (
+                                        <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-500/10 to-cyan-500/10" />
+                                    )}
+                                </Link>
+                            ))}
+                        </>
+                    )}
                 </div>
 
 

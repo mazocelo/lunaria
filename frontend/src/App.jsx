@@ -21,7 +21,7 @@ import { notificationService } from './services'
 function AppContent() {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, loading, logout } = useAuth();
-  const { showSidebar } = useLayout();
+  const { showSidebar, isFullscreen } = useLayout();
   const location = useLocation();
   
   // Estado local para notificações
@@ -115,71 +115,73 @@ function AppContent() {
 
           {/* Conteúdo principal com altura fixa */}
           <div className={`${showSidebar ? 'ml-[260px]' : ''} flex flex-col h-screen`}>
-            {/* Header com toggle de tema - FIXO */}
-            <header className={`border-b px-6 py-6 flex-shrink-0 z-10 ${
-              isLight 
-                ? 'glass-strong-light border-slate-200/50' 
-                : 'glass-strong border-slate-700/50'
-            }`} style={{height: '8vh'}}>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-4">
-                  <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                    The Fable Forge
-                  </h1>
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
+            {/* Header com toggle de tema - OCULTO quando em tela de jogo (fullscreen) */}
+            {!isFullscreen && (
+              <header className={`border-b px-6 py-6 flex-shrink-0 z-10 ${
+                isLight
+                  ? 'glass-strong-light border-slate-200/50'
+                  : 'glass-strong border-slate-700/50'
+              }`} style={{height: '8vh'}}>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-4">
+                    <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                      The Fable Forge
+                    </h1>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={toggleTheme}
+                      className={`hover-lift cursor-pointer ${
+                        isLight ? 'btn-rpg-light' : 'btn-rpg'
+                      }`}
+                      aria-label="Alternar tema"
+                    >
+                      {theme === 'dark' ? '🌙' : '☀️'}
+                      <span className="ml-2 font-modern">
+                        {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsNotificationsOpen(true)}
+                      className={`hover-lift cursor-pointer px-4 py-2 rounded-md transition-all relative ${
+                        isLight
+                          ? 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                          : 'bg-purple-900/50 text-purple-400 hover:bg-purple-800/50'
+                      }`}
+                      aria-label="Notificações"
+                    >
+                      <span className={`inline-block ${notificationCount > 0 ? 'animate-bounce' : ''}`}>
+                        🔔
+                      </span>
+                      <span className="ml-2 font-modern">Notificações</span>
+                      {/* Badge de notificações não lidas */}
+                      {notificationCount > 0 && (
+                        <div className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 bg-red-500 rounded-full animate-pulse flex items-center justify-center">
+                          <span className="text-white text-xs font-bold px-1">
+                            {notificationCount > 99 ? '99+' : notificationCount}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={logout}
+                      className={`hover-lift cursor-pointer px-4 py-2 rounded-md transition-all ${
+                        isLight
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                          : 'bg-red-900/50 text-red-400 hover:bg-red-800/50'
+                      }`}
+                      aria-label="Fazer logout"
+                    >
+                      <span className="font-modern">Sair</span>
+                    </button>
+                  </div>
                 </div>
-
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={toggleTheme}
-                    className={`hover-lift cursor-pointer ${
-                      isLight ? 'btn-rpg-light' : 'btn-rpg'
-                    }`}
-                    aria-label="Alternar tema"
-                  >
-                    {theme === 'dark' ? '🌙' : '☀️'}
-                    <span className="ml-2 font-modern">
-                      {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsNotificationsOpen(true)}
-                    className={`hover-lift cursor-pointer px-4 py-2 rounded-md transition-all relative ${
-                      isLight 
-                        ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
-                        : 'bg-purple-900/50 text-purple-400 hover:bg-purple-800/50'
-                    }`}
-                    aria-label="Notificações"
-                  >
-                    <span className={`inline-block ${notificationCount > 0 ? 'animate-bounce' : ''}`}>
-                      🔔
-                    </span>
-                    <span className="ml-2 font-modern">Notificações</span>
-                    {/* Badge de notificações não lidas */}
-                    {notificationCount > 0 && (
-                      <div className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 bg-red-500 rounded-full animate-pulse flex items-center justify-center">
-                        <span className="text-white text-xs font-bold px-1">
-                          {notificationCount > 99 ? '99+' : notificationCount}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={logout}
-                    className={`hover-lift cursor-pointer px-4 py-2 rounded-md transition-all ${
-                      isLight 
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                        : 'bg-red-900/50 text-red-400 hover:bg-red-800/50'
-                    }`}
-                    aria-label="Fazer logout"
-                  >
-                    <span className="font-modern">Sair</span>
-                  </button>
-                </div>
-              </div>
-            </header>
+              </header>
+            )}
 
             {/* Conteúdo principal com scroll vertical - APENAS AQUI TEM SCROLL */}
             <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 z-10">

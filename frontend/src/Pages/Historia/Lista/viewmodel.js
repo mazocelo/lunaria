@@ -1,6 +1,6 @@
 import { Historia } from '../../../models/Historia';
 import { HistoriaService } from '../../../services/HistoriaService';
-import { getTemaStoreAPI } from '../../../store/index.js';
+import { getTemaStoreAPI, getMestreStoreAPI } from '../../../store/index.js';
 import { apiClient } from '../../../services/ApiClient';
 
 const historiaService = new HistoriaService(apiClient);
@@ -19,6 +19,7 @@ export class HistoriaViewModel {
 
     // 🎨 TEMA STORE - API direta (sem hooks) para ViewModels
     this.temaStore = getTemaStoreAPI();
+    this.mestreStore = getMestreStoreAPI();
 
     this.filtros = {
       tema: null,
@@ -162,8 +163,9 @@ export class HistoriaViewModel {
     this.setError(null);
 
     try {
-      // Garantir que os temas estejam carregados
+      // Garantir que os temas e mestres estejam carregados
       await this.temaStore.carregarTemas();
+      await this.mestreStore.carregarMestres();
 
       // Carregar a história
       const historia = await historiaService.getById(id);
@@ -361,6 +363,47 @@ export class HistoriaViewModel {
    */
   clearError = () => {
     this.setError(null);
+  }
+
+  /**
+   * Obter nome do mestre atribuido a uma historia
+   */
+  getMestreNome = (historia) => {
+    if (!historia) return 'Mestre Padrao';
+    if (historia.mestre?.nome) return historia.mestre.nome;
+    if (historia.mestres?.nome) return historia.mestres.nome;
+    return 'Mestre Padrao';
+  }
+
+  /**
+   * Atualizar o mestre atribuido a uma historia
+   */
+  atualizarMestre = async (historiaId, mestreId) => {
+    this.setLoading(true);
+    this.setError(null);
+    try {
+      await historiaService.update(historiaId, { mestre_id: mestreId });
+      await this.loadHistoria(historiaId);
+    } catch (error) {
+      this.setError(error.message);
+      throw error;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  /**
+   * Obter lista de mestres ativos para selecao
+   */
+  get mestresAtivos() {
+    return this.mestreStore.mestresAtivos || [];
+  }
+
+  /**
+   * Carregar mestres se necessario
+   */
+  loadMestres = async () => {
+    await this.mestreStore.carregarMestres();
   }
 
   /**

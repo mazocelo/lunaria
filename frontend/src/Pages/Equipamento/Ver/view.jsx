@@ -108,7 +108,7 @@ const VerEquipamentoView = () => {
               {eq.numero && <span className="font-mono text-purple-400 text-sm">#{eq.numero}</span>}
               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${raridadeColors(eq.raridade, isLight)}`}>{eq.raridade || 'Comum'}</span>
               {eq.categoria && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'}`}>{eq.categoria}</span>}
-              {eq.sintonizacao && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'✨'} Vinculo Magico</span>}
+              {eq.vinculo?.requer && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'✨'} Vinculo Magico</span>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -132,15 +132,17 @@ const VerEquipamentoView = () => {
         </div>
       )}
 
-      {/* Sintonizacao */}
-      {eq.sintonizacao && (
+      {/* Vinculo Magico */}
+      {eq.vinculo?.requer && (
         <div className="card-rpg">
           <SectionTitle>Vinculo Magico</SectionTitle>
           <p className={`text-xs font-modern mb-3 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Este item requer um vinculo magico com o portador para ativar seus poderes. Um personagem pode manter vinculo com no maximo 3 itens.
           </p>
           <InfoRow label="Requer Vinculo" value="Sim" />
-          {eq.sintonizacao_restricao && <InfoRow label="Restricao" value={eq.sintonizacao_restricao} />}
+          {eq.vinculo.restricao_tipo && <InfoRow label="Tipo de Restricao" value={eq.vinculo.restricao_tipo.charAt(0).toUpperCase() + eq.vinculo.restricao_tipo.slice(1)} />}
+          {eq.vinculo.restricao?.length > 0 && <InfoRow label="Restricao" value={eq.vinculo.restricao.join(', ')} />}
+          {eq.vinculo.descricao && <InfoRow label="Efeito do Vinculo" value={eq.vinculo.descricao} />}
         </div>
       )}
 

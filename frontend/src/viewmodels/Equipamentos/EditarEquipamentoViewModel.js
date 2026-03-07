@@ -6,7 +6,8 @@ class EditarEquipamentoViewModel {
     this.state = {
       id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '',
       dano_base: '', requisitos: '', numero: '', raridade: 'Comum',
-      origem_lore: '', sintonizacao: false, sintonizacao_restricao: '', categoria: 'Miscelanea Magica',
+      origem_lore: '', categoria: 'Miscelanea Magica',
+      vinculo_requer: false, vinculo_restricao_tipo: '', vinculo_restricao: '', vinculo_descricao: '',
       propriedades: '', cargas: '', usos_por_dia: '',
       loading: false, saving: false, error: null,
     };
@@ -24,6 +25,26 @@ class EditarEquipamentoViewModel {
   _parseJson(str) { if (!str) return null; try { return JSON.parse(str); } catch { return str; } }
   _parseArr(str) { if (!str) return []; return str.split(',').map(s => s.trim()).filter(Boolean); }
 
+  _loadVinculo(vinculo) {
+    if (!vinculo) return { vinculo_requer: false, vinculo_restricao_tipo: '', vinculo_restricao: '', vinculo_descricao: '' };
+    return {
+      vinculo_requer: vinculo.requer || false,
+      vinculo_restricao_tipo: vinculo.restricao_tipo || '',
+      vinculo_restricao: Array.isArray(vinculo.restricao) ? vinculo.restricao.join(', ') : '',
+      vinculo_descricao: vinculo.descricao || '',
+    };
+  }
+
+  _buildVinculo() {
+    if (!this.state.vinculo_requer) return null;
+    const vinculo = { requer: true };
+    if (this.state.vinculo_restricao_tipo) vinculo.restricao_tipo = this.state.vinculo_restricao_tipo;
+    const restricao = this.state.vinculo_restricao ? this.state.vinculo_restricao.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (restricao.length > 0) vinculo.restricao = restricao;
+    if (this.state.vinculo_descricao) vinculo.descricao = this.state.vinculo_descricao;
+    return vinculo;
+  }
+
   loadEquipamento = async (id) => {
     this.setState({ loading: true, error: null });
     try {
@@ -37,8 +58,7 @@ class EditarEquipamentoViewModel {
         propriedades: this._arrToStr(data.propriedades),
         cargas: data.cargas ?? '', usos_por_dia: data.usos_por_dia ?? '',
         raridade: data.raridade || 'Comum', origem_lore: data.origem_lore || '',
-        sintonizacao: data.sintonizacao || false,
-        sintonizacao_restricao: data.sintonizacao_restricao || '',
+        ...this._loadVinculo(data.vinculo),
         categoria: data.categoria || 'Miscelanea Magica',
         loading: false,
       });
@@ -59,8 +79,7 @@ class EditarEquipamentoViewModel {
       usos_por_dia: this.state.usos_por_dia ? parseInt(this.state.usos_por_dia) : null,
       numero: this.state.numero ? parseInt(this.state.numero) : null,
       raridade: this.state.raridade, origem_lore: this.state.origem_lore || null,
-      sintonizacao: this.state.sintonizacao,
-      sintonizacao_restricao: this.state.sintonizacao_restricao || null,
+      vinculo: this._buildVinculo(),
       categoria: this.state.categoria,
     };
   }
@@ -95,7 +114,8 @@ class EditarEquipamentoViewModel {
     this.setState({
       id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '',
       dano_base: '', requisitos: '', numero: '', raridade: 'Comum',
-      origem_lore: '', sintonizacao: false, sintonizacao_restricao: '', categoria: 'Miscelanea Magica',
+      origem_lore: '', categoria: 'Miscelanea Magica',
+      vinculo_requer: false, vinculo_restricao_tipo: '', vinculo_restricao: '', vinculo_descricao: '',
       propriedades: '', cargas: '', usos_por_dia: '',
       loading: false, saving: false, error: null,
     });
@@ -117,8 +137,10 @@ class EditarEquipamentoViewModel {
   get numero() { return this.state.numero; }
   get raridade() { return this.state.raridade; }
   get origem_lore() { return this.state.origem_lore; }
-  get sintonizacao() { return this.state.sintonizacao; }
-  get sintonizacao_restricao() { return this.state.sintonizacao_restricao; }
+  get vinculo_requer() { return this.state.vinculo_requer; }
+  get vinculo_restricao_tipo() { return this.state.vinculo_restricao_tipo; }
+  get vinculo_restricao() { return this.state.vinculo_restricao; }
+  get vinculo_descricao() { return this.state.vinculo_descricao; }
   get categoria() { return this.state.categoria; }
   get loading() { return this.state.loading; }
   get saving() { return this.state.saving; }

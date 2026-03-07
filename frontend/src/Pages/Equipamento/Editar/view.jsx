@@ -87,18 +87,38 @@ const EditarEquipamentoView = () => {
           <div className="mt-4"><label className={labelCls}>Origem / Lore</label><textarea name="origem_lore" value={vm.origem_lore} onChange={e => vm.setField('origem_lore', e.target.value)} placeholder="Historia e origem do item..." rows={3} className={inputCls} /></div>
         </div>
 
-        {/* Secao: Sintonizacao */}
+        {/* Secao: Vinculo Magico */}
         <div>
-          <h3 className={sectionCls}>Vinculo Magico (Sintonizacao)</h3>
+          <h3 className={sectionCls}>Vinculo Magico</h3>
           <p className={`text-xs font-modern mb-3 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Itens com vinculo criam uma conexao magica com o portador. Um personagem pode manter vinculo com no maximo 3 itens simultaneamente.
           </p>
           <div className="flex items-center space-x-3 mb-4">
-            <input type="checkbox" id="sintonizacao" checked={vm.sintonizacao} onChange={e => vm.setField('sintonizacao', e.target.checked)} className="w-5 h-5 rounded border-slate-600 text-purple-500 focus:ring-purple-500" />
-            <label htmlFor="sintonizacao" className={`font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Requer Vinculo Magico</label>
+            <input type="checkbox" id="vinculo_requer" checked={vm.vinculo_requer} onChange={e => vm.setField('vinculo_requer', e.target.checked)} className="w-5 h-5 rounded border-slate-600 text-purple-500 focus:ring-purple-500" />
+            <label htmlFor="vinculo_requer" className={`font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Requer Vinculo Magico</label>
           </div>
-          {vm.sintonizacao && (
-            <InputSimples label="Restricao de Sintonizacao" name="sintonizacao_restricao" value={vm.sintonizacao_restricao} onChange={e => vm.setField('sintonizacao_restricao', e.target.value)} placeholder="Ex: Somente magos, Somente elfos..." />
+          {vm.vinculo_requer && (
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>Tipo de Restricao</label>
+                <select name="vinculo_restricao_tipo" value={vm.vinculo_restricao_tipo} onChange={e => vm.setField('vinculo_restricao_tipo', e.target.value)} className={inputCls}>
+                  <option value="">Sem restricao (livre)</option>
+                  <option value="classe">Classe</option>
+                  <option value="alinhamento">Alinhamento</option>
+                  <option value="raca">Raca</option>
+                  <option value="maldicao">Maldicao</option>
+                  <option value="especial">Especial</option>
+                  <option value="misto">Misto</option>
+                </select>
+              </div>
+              {vm.vinculo_restricao_tipo && (
+                <InputSimples label="Restricoes (separado por virgula)" name="vinculo_restricao" value={vm.vinculo_restricao} onChange={e => vm.setField('vinculo_restricao', e.target.value)} placeholder="Ex: paladino, clerigo" />
+              )}
+              <div>
+                <label className={labelCls}>Descricao do Vinculo</label>
+                <textarea name="vinculo_descricao" value={vm.vinculo_descricao} onChange={e => vm.setField('vinculo_descricao', e.target.value)} placeholder="Efeito principal ao vincular-se ao item..." rows={2} className={inputCls} />
+              </div>
+            </div>
           )}
         </div>
 

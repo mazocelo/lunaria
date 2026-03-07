@@ -91,14 +91,14 @@ const EquipamentoListaView = () => {
       )
     },
     {
-      key: 'sintonizacao',
+      key: 'vinculo',
       label: 'Vinculo',
       align: 'center',
-      render: (row) => row.sintonizacao ? (
+      render: (row) => row.vinculo?.requer ? (
         <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
           isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'
-        }`} title="Requer sintonizacao magica (max. 3 por personagem)">
-          ✨ Vinculo
+        }`} title={row.vinculo.restricao_tipo ? `Tipo: ${row.vinculo.restricao_tipo}${row.vinculo.restricao ? ' — ' + row.vinculo.restricao.join(', ') : ''}` : 'Requer vinculo magico (max. 3 por personagem)'}>
+          {"✨"} {row.vinculo.restricao_tipo || 'Livre'}
         </span>
       ) : (
         <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>—</span>

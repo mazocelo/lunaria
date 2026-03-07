@@ -150,7 +150,7 @@ class MonstroController {
       console.log('Criando novo monstro');
 
       const {
-        nome, descricao, tipo, raridade_id, nivel_min, nivel_max,
+        nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max,
         hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma,
         ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base
       } = req.body;
@@ -166,6 +166,7 @@ class MonstroController {
       if (descricao !== undefined) dados.descricao = descricao;
       if (tipo !== undefined) dados.tipo = tipo;
       if (raridade_id !== undefined) dados.raridade_id = parseInt(raridade_id);
+      if (categoria_id !== undefined) dados.categoria_id = parseInt(categoria_id);
       if (nivel_min !== undefined) dados.nivel_min = parseInt(nivel_min);
       if (nivel_max !== undefined) dados.nivel_max = parseInt(nivel_max);
       if (hp_base !== undefined) dados.hp_base = parseInt(hp_base);
@@ -224,7 +225,7 @@ class MonstroController {
       }
 
       const {
-        nome, descricao, tipo, raridade_id, nivel_min, nivel_max,
+        nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max,
         hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma,
         ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base
       } = req.body;
@@ -234,6 +235,7 @@ class MonstroController {
       if (descricao !== undefined) dadosAtualizacao.descricao = descricao;
       if (tipo !== undefined) dadosAtualizacao.tipo = tipo;
       if (raridade_id !== undefined) dadosAtualizacao.raridade_id = parseInt(raridade_id);
+      if (categoria_id !== undefined) dadosAtualizacao.categoria_id = parseInt(categoria_id);
       if (nivel_min !== undefined) dadosAtualizacao.nivel_min = parseInt(nivel_min);
       if (nivel_max !== undefined) dadosAtualizacao.nivel_max = parseInt(nivel_max);
       if (hp_base !== undefined) dadosAtualizacao.hp_base = parseInt(hp_base);

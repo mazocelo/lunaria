@@ -5,7 +5,7 @@
 const Monstro = (prisma) => {
   const model = prisma.monstros;
 
-  const includeRels = { raridade_rel: true };
+  const includeRels = { raridade_rel: true, categoria_rel: true };
 
   const MonstroMethods = {
     // Buscar por ID

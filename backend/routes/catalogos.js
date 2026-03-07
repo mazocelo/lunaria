@@ -23,4 +23,14 @@ router.get('/categorias-equipamento', async (req, res) => {
   }
 });
 
+// GET /catalogos/categorias-monstro
+router.get('/categorias-monstro', async (req, res) => {
+  try {
+    const categorias = await db.prisma.categorias_monstro.findMany({ orderBy: { ordem: 'asc' } });
+    res.json({ success: true, data: categorias });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

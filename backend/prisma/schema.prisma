@@ -56,6 +56,14 @@ model categorias_equipamento {
   equipamentos equipamentos[]
 }
 
+model categorias_monstro {
+  id       Int        @id @default(autoincrement())
+  nome     String     @unique @db.VarChar(100)
+  icone    String?    @db.VarChar(10)
+  ordem    Int        @default(0)
+  monstros monstros[]
+}
+
 model equipamentos {
   id                     Int                      @id(map: "equipamento_pkey") @default(autoincrement())
   nome                   String
@@ -274,6 +282,7 @@ model monstros {
   descricao      String?
   tipo           String[]   @default(["besta"]) @db.VarChar(50)
   raridade_id    Int?
+  categoria_id   Int?
   nivel_min      Int        @default(1)
   nivel_max      Int        @default(10)
   hp_base        Int        @default(15)
@@ -292,10 +301,12 @@ model monstros {
   xp_base        Int        @default(50)
   criado_em      DateTime?  @default(now()) @db.Timestamptz(6)
   atualizado_em  DateTime?  @db.Timestamptz(6)
-  raridade_rel   raridades? @relation(fields: [raridade_id], references: [id])
+  raridade_rel   raridades?          @relation(fields: [raridade_id], references: [id])
+  categoria_rel  categorias_monstro? @relation(fields: [categoria_id], references: [id])
 
   @@index([nivel_min, nivel_max], map: "idx_monstro_nivel")
   @@index([raridade_id], map: "idx_monstro_raridade")
+  @@index([categoria_id], map: "idx_monstro_categoria")
 }
 
 model sessoes_jogo {

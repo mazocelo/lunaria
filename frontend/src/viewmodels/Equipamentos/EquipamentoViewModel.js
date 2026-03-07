@@ -86,11 +86,11 @@ class EquipamentoViewModel {
     }
 
     if (categoriaFilter) {
-      filtered = filtered.filter(eq => eq.categoria === categoriaFilter);
+      filtered = filtered.filter(eq => eq.categoria_rel?.nome === categoriaFilter);
     }
 
     if (raridadeFilter) {
-      filtered = filtered.filter(eq => eq.raridade === raridadeFilter);
+      filtered = filtered.filter(eq => eq.raridade_rel?.nome === raridadeFilter);
     }
 
     this.setState({ filteredEquipamentos: filtered });

@@ -106,8 +106,8 @@ const VerEquipamentoView = () => {
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {eq.numero && <span className="font-mono text-purple-400 text-sm">#{eq.numero}</span>}
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${raridadeColors(eq.raridade, isLight)}`}>{eq.raridade || 'Comum'}</span>
-              {eq.categoria && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'}`}>{eq.categoria}</span>}
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${raridadeColors(eq.raridade_rel?.nome, isLight)}`}>{eq.raridade_rel?.nome || 'Comum'}</span>
+              {eq.categoria_rel?.nome && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'}`}>{eq.categoria_rel.nome}</span>}
               {eq.vinculo?.requer && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'✨'} Vinculo Magico</span>}
             </div>
           </div>

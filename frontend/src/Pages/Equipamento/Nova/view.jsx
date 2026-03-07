@@ -7,15 +7,6 @@ import { editarEquipamentoViewModel } from '../../../viewmodels/Equipamentos';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { ROUTES } from '../../../routes.jsx';
 
-const CATEGORIAS = [
-  'Espadas e Laminas', 'Machados, Martelos e Contundentes', 'Lancas, Alabardas e Armas de Haste',
-  'Armas de Alcance', 'Armaduras e Escudos', 'Aneis Magicos', 'Amuletos e Colares',
-  'Cajados, Varinhas e Orbes', 'Pocoes e Elixires', 'Itens de Uso e Ferramentas Magicas',
-  'Artefatos Lendarios', 'Miscelanea Magica'
-];
-
-const RARIDADES = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendario', 'Artefato', 'Variavel'];
-
 const NovoEquipamentoView = () => {
   const vm = useViewModel(editarEquipamentoViewModel);
   const navigate = useNavigate();
@@ -25,7 +16,7 @@ const NovoEquipamentoView = () => {
   const labelCls = `block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`;
   const sectionCls = `text-lg font-fantasy font-bold mb-4 ${isLight ? 'text-slate-700' : 'text-slate-200'}`;
 
-  useEffect(() => { vm.reset(); return () => vm.clearError(); }, []);
+  useEffect(() => { vm.reset(); vm.loadCatalogos(); return () => vm.clearError(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,14 +44,16 @@ const NovoEquipamentoView = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className={labelCls}>Categoria</label>
-              <select name="categoria" value={vm.categoria} onChange={e => vm.setField('categoria', e.target.value)} className={inputCls}>
-                {CATEGORIAS.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              <select name="categoria_id" value={vm.categoria_id} onChange={e => vm.setField('categoria_id', e.target.value)} className={inputCls}>
+                <option value="">Selecione...</option>
+                {vm.categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nome}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Raridade</label>
-              <select name="raridade" value={vm.raridade} onChange={e => vm.setField('raridade', e.target.value)} className={inputCls}>
-                {RARIDADES.map(rar => <option key={rar} value={rar}>{rar}</option>)}
+              <select name="raridade_id" value={vm.raridade_id} onChange={e => vm.setField('raridade_id', e.target.value)} className={inputCls}>
+                <option value="">Selecione...</option>
+                {vm.raridades.map(rar => <option key={rar.id} value={rar.id}>{rar.nome}</option>)}
               </select>
             </div>
           </div>

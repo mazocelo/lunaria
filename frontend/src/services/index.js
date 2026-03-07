@@ -42,4 +42,10 @@ export const mestreService = new MestreService(apiClient);
 export const monstroService = new MonstroService(apiClient);
 export const equipamentoService = new EquipamentoService(apiClient);
 export const authService = new AuthService(apiClient);
-export const notificationService = new NotificationService(apiClient); 
+export const notificationService = new NotificationService(apiClient);
+
+// Catalogos (raridades, categorias)
+export const catalogoService = {
+  getRaridades: () => apiClient.get('/catalogos/raridades'),
+  getCategoriasEquipamento: () => apiClient.get('/catalogos/categorias-equipamento'),
+};

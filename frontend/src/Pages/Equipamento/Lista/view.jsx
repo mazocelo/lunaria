@@ -1,21 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { equipamentoViewModel } from '../../../viewmodels/Equipamentos/EquipamentoViewModel';
+import { catalogoService } from '../../../services/index.js';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
-
-const CATEGORIAS = [
-  'Espadas e Laminas', 'Machados, Martelos e Contundentes', 'Lancas, Alabardas e Armas de Haste',
-  'Armas de Alcance', 'Armaduras e Escudos', 'Aneis Magicos', 'Amuletos e Colares',
-  'Cajados, Varinhas e Orbes', 'Pocoes e Elixires', 'Itens de Uso e Ferramentas Magicas',
-  'Artefatos Lendarios', 'Miscelanea Magica'
-];
-
-const RARIDADES = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendario', 'Artefato', 'Variavel'];
 
 const raridadeColors = (raridade, isLight) => {
   const map = {
@@ -34,9 +26,13 @@ const EquipamentoListaView = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const [raridades, setRaridades] = useState([]);
+  const [categorias, setCategorias] = useState([]);
 
   useEffect(() => {
     vm.loadEquipamentos();
+    catalogoService.getRaridades().then(r => setRaridades(r.data || [])).catch(() => {});
+    catalogoService.getCategoriasEquipamento().then(r => setCategorias(r.data || [])).catch(() => {});
   }, []);
 
   if (vm.loading && vm.equipamentos.length === 0) {
@@ -49,7 +45,7 @@ const EquipamentoListaView = () => {
     );
   }
 
-  const countByRaridade = (raridade) => (vm.equipamentos || []).filter(e => e.raridade === raridade).length;
+  const countByRaridade = (nome) => (vm.equipamentos || []).filter(e => e.raridade_rel?.nome === nome).length;
 
   const columns = [
     {
@@ -76,7 +72,7 @@ const EquipamentoListaView = () => {
         <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
           isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'
         }`}>
-          {row.categoria || '-'}
+          {row.categoria_rel?.nome || '-'}
         </span>
       )
     },
@@ -84,11 +80,14 @@ const EquipamentoListaView = () => {
       key: 'raridade',
       label: 'Raridade',
       align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${raridadeColors(row.raridade, isLight)}`}>
-          {row.raridade || 'Comum'}
-        </span>
-      )
+      render: (row) => {
+        const nome = row.raridade_rel?.nome || 'Comum';
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${raridadeColors(nome, isLight)}`}>
+            {nome}
+          </span>
+        );
+      }
     },
     {
       key: 'vinculo',
@@ -97,11 +96,11 @@ const EquipamentoListaView = () => {
       render: (row) => row.vinculo?.requer ? (
         <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
           isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'
-        }`} title={row.vinculo.restricao_tipo ? `Tipo: ${row.vinculo.restricao_tipo}${row.vinculo.restricao ? ' — ' + row.vinculo.restricao.join(', ') : ''}` : 'Requer vinculo magico (max. 3 por personagem)'}>
+        }`} title={row.vinculo.restricao_tipo ? `Tipo: ${row.vinculo.restricao_tipo}${row.vinculo.restricao ? ' \u2014 ' + row.vinculo.restricao.join(', ') : ''}` : 'Requer vinculo magico (max. 3 por personagem)'}>
           {"✨"} {row.vinculo.restricao_tipo || 'Livre'}
         </span>
       ) : (
-        <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>—</span>
+        <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>{"\u2014"}</span>
       )
     }
   ];
@@ -170,8 +169,8 @@ const EquipamentoListaView = () => {
           className={selectCls}
         >
           <option value="">Todas as Categorias</option>
-          {CATEGORIAS.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
+          {categorias.map(cat => (
+            <option key={cat.id} value={cat.nome}>{cat.nome}</option>
           ))}
         </select>
 
@@ -181,8 +180,8 @@ const EquipamentoListaView = () => {
           className={selectCls}
         >
           <option value="">Todas as Raridades</option>
-          {RARIDADES.map(rar => (
-            <option key={rar} value={rar}>{rar}</option>
+          {raridades.map(rar => (
+            <option key={rar.id} value={rar.nome}>{rar.nome}</option>
           ))}
         </select>
       </div>

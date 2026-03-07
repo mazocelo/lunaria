@@ -1,14 +1,15 @@
-import { equipamentoService } from '../../services/index.js';
+import { equipamentoService, catalogoService } from '../../services/index.js';
 
 class EditarEquipamentoViewModel {
   constructor() {
     this.service = equipamentoService;
     this.state = {
       id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '',
-      dano_base: '', requisitos: '', numero: '', raridade: 'Comum',
-      origem_lore: '', categoria: 'Miscelanea Magica',
+      dano_base: '', requisitos: '', numero: '', raridade_id: '',
+      origem_lore: '', categoria_id: '',
       vinculo_requer: false, vinculo_restricao_tipo: '', vinculo_restricao: '', vinculo_descricao: '',
       propriedades: '', cargas: '', usos_por_dia: '',
+      raridades: [], categorias: [],
       loading: false, saving: false, error: null,
     };
     this.subscribers = [];
@@ -45,9 +46,25 @@ class EditarEquipamentoViewModel {
     return vinculo;
   }
 
+  loadCatalogos = async () => {
+    try {
+      const [rarRes, catRes] = await Promise.all([
+        catalogoService.getRaridades(),
+        catalogoService.getCategoriasEquipamento(),
+      ]);
+      this.setState({
+        raridades: rarRes.data || [],
+        categorias: catRes.data || [],
+      });
+    } catch (e) {
+      console.error('Erro ao carregar catalogos:', e.message);
+    }
+  };
+
   loadEquipamento = async (id) => {
     this.setState({ loading: true, error: null });
     try {
+      await this.loadCatalogos();
       const { data } = await this.service.getById(id);
       this.setState({
         id: data.id, nome: data.nome || '', descricao: data.descricao || '',
@@ -57,9 +74,9 @@ class EditarEquipamentoViewModel {
         requisitos: this._jsonToStr(data.requisitos), numero: data.numero ?? '',
         propriedades: this._arrToStr(data.propriedades),
         cargas: data.cargas ?? '', usos_por_dia: data.usos_por_dia ?? '',
-        raridade: data.raridade || 'Comum', origem_lore: data.origem_lore || '',
+        raridade_id: data.raridade_id ?? '', origem_lore: data.origem_lore || '',
         ...this._loadVinculo(data.vinculo),
-        categoria: data.categoria || 'Miscelanea Magica',
+        categoria_id: data.categoria_id ?? '',
         loading: false,
       });
     } catch (error) {
@@ -78,9 +95,10 @@ class EditarEquipamentoViewModel {
       cargas: this.state.cargas ? parseInt(this.state.cargas) : null,
       usos_por_dia: this.state.usos_por_dia ? parseInt(this.state.usos_por_dia) : null,
       numero: this.state.numero ? parseInt(this.state.numero) : null,
-      raridade: this.state.raridade, origem_lore: this.state.origem_lore || null,
+      raridade_id: this.state.raridade_id ? parseInt(this.state.raridade_id) : null,
+      origem_lore: this.state.origem_lore || null,
       vinculo: this._buildVinculo(),
-      categoria: this.state.categoria,
+      categoria_id: this.state.categoria_id ? parseInt(this.state.categoria_id) : null,
     };
   }
 
@@ -113,8 +131,8 @@ class EditarEquipamentoViewModel {
   reset = () => {
     this.setState({
       id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '',
-      dano_base: '', requisitos: '', numero: '', raridade: 'Comum',
-      origem_lore: '', categoria: 'Miscelanea Magica',
+      dano_base: '', requisitos: '', numero: '', raridade_id: '',
+      origem_lore: '', categoria_id: '',
       vinculo_requer: false, vinculo_restricao_tipo: '', vinculo_restricao: '', vinculo_descricao: '',
       propriedades: '', cargas: '', usos_por_dia: '',
       loading: false, saving: false, error: null,
@@ -135,13 +153,15 @@ class EditarEquipamentoViewModel {
   get cargas() { return this.state.cargas; }
   get usos_por_dia() { return this.state.usos_por_dia; }
   get numero() { return this.state.numero; }
-  get raridade() { return this.state.raridade; }
+  get raridade_id() { return this.state.raridade_id; }
   get origem_lore() { return this.state.origem_lore; }
   get vinculo_requer() { return this.state.vinculo_requer; }
   get vinculo_restricao_tipo() { return this.state.vinculo_restricao_tipo; }
   get vinculo_restricao() { return this.state.vinculo_restricao; }
   get vinculo_descricao() { return this.state.vinculo_descricao; }
-  get categoria() { return this.state.categoria; }
+  get categoria_id() { return this.state.categoria_id; }
+  get raridades() { return this.state.raridades; }
+  get categorias() { return this.state.categorias; }
   get loading() { return this.state.loading; }
   get saving() { return this.state.saving; }
   get error() { return this.state.error; }

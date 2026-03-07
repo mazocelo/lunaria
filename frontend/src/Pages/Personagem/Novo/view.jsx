@@ -1,5 +1,347 @@
-import React from 'react';
-import PageStub from '../../../components/PageStub';
+import React, { useEffect } from 'react';
+import InputSimples from '../../../components/form/inputSimples';
+import Button from '../../../components/form/button';
+import Selector from '../../../components/form/Selector';
+import { useNavigate } from 'react-router-dom';
+import { useViewModel } from '../../../shared/hooks/useViewModel';
+import { novoPersonagemViewModel } from './viewmodel';
+import { useTheme } from '../../../contexts/theme.jsx';
 
-export default () => <PageStub title="Novo Personagem" />;
+const PONTOS_MAXIMO = 75;
 
+const atributosConfig = [
+  { key: 'forca', label: 'Força', icon: '💪' },
+  { key: 'inteligencia', label: 'Inteligência', icon: '🧠' },
+  { key: 'constituicao', label: 'Constituição', icon: '🛡️' },
+  { key: 'agilidade', label: 'Agilidade', icon: '⚡' },
+  { key: 'destreza', label: 'Destreza', icon: '🎯' },
+  { key: 'carisma', label: 'Carisma', icon: '✨' },
+];
+
+const NovoPersonagemView = () => {
+  const vm = useViewModel(novoPersonagemViewModel);
+  const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  useEffect(() => {
+    vm.loadOpcoes();
+    vm.loadVantagens();
+    vm.loadHistorias();
+    vm.clearError();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await vm.criarPersonagem(() => navigate('/personagens'));
+  };
+
+  return (
+    <div className="animate-fade-in max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span className="text-3xl">⚔️</span>
+        </div>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
+          Criar Novo Personagem
+        </h1>
+        <p className="text-slate-400 font-modern">
+          Dê vida a um novo herói épico
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Error */}
+        {vm.error && (
+          <div className="card-rpg p-4 bg-red-500/20 border border-red-500/30">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-sm">!</span>
+              </div>
+              <div>
+                <div className="font-semibold text-red-400 font-modern">Erro</div>
+                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section 1: Basic Info */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <span className="text-sm">👤</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Informações Básicas
+            </h2>
+          </div>
+
+          <InputSimples
+            label="Nome do Personagem"
+            name="nome"
+            onChange={e => vm.setNome(e.target.value)}
+            value={vm.nome}
+            placeholder="Digite o nome do seu herói..."
+            required
+          />
+
+          {vm.loadingOpcoes ? (
+            <div className="flex items-center space-x-2 py-4">
+              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <span className="text-slate-400 font-modern text-sm">Carregando opções...</span>
+            </div>
+          ) : (
+            <>
+              <Selector
+                label="Raça"
+                options={(vm.racasDisponiveis || []).map(r => ({ value: String(r.id), label: r.nome }))}
+                selected={vm.raca}
+                onChange={(value) => vm.setRaca(value)}
+                type="single"
+              />
+
+              <Selector
+                label="Classe"
+                options={(vm.classesDisponiveis || []).map(c => ({ value: String(c.id), label: c.nome }))}
+                selected={vm.classe}
+                onChange={(value) => vm.setClasse(value)}
+                type="single"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Section 2: Attributes */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+                <span className="text-sm">📊</span>
+              </div>
+              <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                Atributos
+              </h2>
+            </div>
+            <div className={`font-modern text-sm font-semibold ${
+              vm.pontosDistribuidos > PONTOS_MAXIMO
+                ? 'text-red-400'
+                : vm.pontosDistribuidos === PONTOS_MAXIMO
+                  ? 'text-green-400'
+                  : 'text-cyan-400'
+            }`}>
+              {vm.pontosDistribuidos || 0} / {PONTOS_MAXIMO} pontos
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {atributosConfig.map(attr => (
+              <InputSimples
+                key={attr.key}
+                label={`${attr.icon} ${attr.label}`}
+                type="number"
+                name={attr.key}
+                value={vm.atributos?.[attr.key] ?? ''}
+                onChange={e => vm.setAtributo(attr.key, e.target.value)}
+                min={1}
+                max={20}
+                placeholder="10"
+              />
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 font-modern">
+            Distribua pontos entre 1 e 20 para cada atributo (máximo {PONTOS_MAXIMO} pontos no total)
+          </p>
+        </div>
+
+        {/* Section 3: Vantagens & Desvantagens */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+              <span className="text-sm">⭐</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Vantagens & Desvantagens
+            </h2>
+          </div>
+
+          {vm.loadingVantagens ? (
+            <div className="flex items-center space-x-2 py-4">
+              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <span className="text-slate-400 font-modern text-sm">Carregando vantagens...</span>
+            </div>
+          ) : (
+            <Selector
+              label="Selecione Vantagens e Desvantagens"
+              options={(vm.vantagensDisponiveis || []).map(v => ({
+                value: String(v.id),
+                label: `${v.nome} (${v.custo > 0 ? '+' : ''}${v.custo})`
+              }))}
+              selected={vm.vantagens || []}
+              onChange={(selected) => vm.setVantagens(Array.isArray(selected) ? selected : [])}
+              type="multiple"
+              max={5}
+            />
+          )}
+          <p className="text-xs text-slate-400 font-modern">
+            Selecione até 5 vantagens e desvantagens para personalizar seu personagem
+          </p>
+        </div>
+
+        {/* Section 4: Background */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <span className="text-sm">📜</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Background
+            </h2>
+          </div>
+
+          <div className="flex space-x-4 mb-4">
+            <button
+              type="button"
+              onClick={() => vm.setBackgroundTipo('guiado')}
+              className={`px-4 py-2 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer ${
+                vm.backgroundTipo === 'guiado'
+                  ? 'gradient-primary text-white'
+                  : isLight
+                    ? 'glass-light text-slate-600 hover:bg-slate-100/50'
+                    : 'glass text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              Guiado
+            </button>
+            <button
+              type="button"
+              onClick={() => vm.setBackgroundTipo('personalizado')}
+              className={`px-4 py-2 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer ${
+                vm.backgroundTipo === 'personalizado'
+                  ? 'gradient-primary text-white'
+                  : isLight
+                    ? 'glass-light text-slate-600 hover:bg-slate-100/50'
+                    : 'glass text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              Personalizado
+            </button>
+          </div>
+
+          {vm.backgroundTipo === 'guiado' ? (
+            <Selector
+              label="Escolha um Background"
+              options={(vm.backgroundsGuiados || []).map(bg => ({ value: bg, label: bg }))}
+              selected={vm.background}
+              onChange={(value) => vm.setBackground(value)}
+              type="single"
+            />
+          ) : (
+            <div className="flex flex-col mb-4">
+              <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-200' : 'text-white'} drop-shadow`}>
+                Descreva o Background
+              </label>
+              <textarea
+                value={vm.background}
+                onChange={e => vm.setBackground(e.target.value)}
+                placeholder="Conte a história de origem do seu personagem..."
+                rows={4}
+                className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all resize-none
+                  ${isLight ? 'bg-white/20 border-slate-400 text-slate-100' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
+                  placeholder:text-slate-400`}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Section 5: Histórias */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+              <span className="text-sm">📚</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Histórias
+            </h2>
+          </div>
+
+          {vm.loadingHistorias ? (
+            <div className="flex items-center space-x-2 py-4">
+              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <span className="text-slate-400 font-modern text-sm">Carregando histórias...</span>
+            </div>
+          ) : (vm.historiasDisponiveis || []).length > 0 ? (
+            <Selector
+              label="Vincular a Histórias (opcional)"
+              options={vm.historiasDisponiveis.map(h => ({ value: String(h.id), label: h.nome }))}
+              selected={vm.historias || []}
+              onChange={(selected) => vm.setHistorias(Array.isArray(selected) ? selected : [])}
+              type="multiple"
+              max={3}
+            />
+          ) : (
+            <p className={`${isLight ? 'text-slate-500' : 'text-slate-400'} font-modern text-sm italic`}>
+              Nenhuma história disponível. Crie uma história primeiro.
+            </p>
+          )}
+          <p className="text-xs text-slate-400 font-modern">
+            Vincule seu personagem a até 3 histórias existentes
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex space-x-4 pt-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/personagens')}
+            className="flex-1"
+            type="button"
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={vm.loading}
+            className="flex-1"
+          >
+            {vm.loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Criando...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <span>⚔️</span>
+                <span>Criar Personagem</span>
+              </div>
+            )}
+          </Button>
+        </div>
+      </form>
+
+      {/* Tips */}
+      <div className="mt-6 card-rpg">
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
+            <span className="text-sm">💡</span>
+          </div>
+          <div>
+            <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+              Dicas para criar seu herói
+            </h3>
+            <ul className="text-sm text-slate-400 space-y-1 font-modern">
+              <li>• Escolha um nome memorável para seu personagem</li>
+              <li>• Distribua os atributos de acordo com a classe escolhida</li>
+              <li>• Equilibre vantagens e desvantagens para um personagem interessante</li>
+              <li>• Um bom background enriquece a experiência de jogo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NovoPersonagemView;

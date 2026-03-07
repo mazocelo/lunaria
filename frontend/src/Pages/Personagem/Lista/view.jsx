@@ -1,16 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { personagemViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { TabelaList } from '../../../components/shared';
+import SearchBar from '../../../components/shared/SearchBar.jsx';
 import StatCard from '../../../components/StatCard.jsx';
+import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 
 const PersonagemListaView = () => {
   const vm = useViewModel(personagemViewModel);
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  // Estado para bulk delete
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   useEffect(() => {
     vm.loadPersonagens();
@@ -22,6 +29,26 @@ const PersonagemListaView = () => {
       await vm.deletePersonagem(id);
     } catch (error) {
       console.error("Erro ao deletar personagem:", error);
+    }
+  };
+
+  const handleBulkDeleteClick = (ids) => {
+    setBulkDeleteIds(ids);
+    setShowBulkDeleteModal(true);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    try {
+      for (const id of bulkDeleteIds) {
+        await vm.deletePersonagem(id);
+      }
+      setShowBulkDeleteModal(false);
+      setBulkDeleteIds([]);
+    } catch (error) {
+      console.error('Erro ao deletar personagens em lote:', error);
+    } finally {
+      setBulkDeleteLoading(false);
     }
   };
 
@@ -231,6 +258,13 @@ const PersonagemListaView = () => {
         />
       </div>
 
+      {/* Busca */}
+      <SearchBar
+        placeholder="Buscar personagens por nome..."
+        onChange={(texto) => vm.buscarPersonagens(texto)}
+        className="mb-4"
+      />
+
       {/* Tabela de personagens */}
       <TabelaList
         header="Lista de Personagens"
@@ -244,6 +278,23 @@ const PersonagemListaView = () => {
         emptyMessage="Nenhum personagem encontrado"
         emptyIcon="⚔️"
         hoverable={true}
+        selectable={true}
+        bulkActions={[
+          { label: 'Deletar Selecionados', icon: '🗑️', color: 'red', onClick: handleBulkDeleteClick }
+        ]}
+      />
+
+      {/* Modal de Bulk Delete */}
+      <ConfirmationModal
+        isOpen={showBulkDeleteModal}
+        title="Deletar Personagens Selecionados"
+        message={`Tem certeza de que deseja deletar ${bulkDeleteIds.length} personagem(ns)? Esta acao nao pode ser desfeita.`}
+        confirmText="Deletar Todos"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmBulkDelete}
+        onCancel={() => { setShowBulkDeleteModal(false); setBulkDeleteIds([]); setBulkDeleteLoading(false); }}
+        loading={bulkDeleteLoading}
+        variant="danger"
       />
     </div>
   );

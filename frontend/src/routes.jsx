@@ -17,11 +17,17 @@ import {
   NovaDesvantagemPage, 
   EditarDesvantagemPage, 
   VerDesvantagemPage,
+  MonstroListaPage,
+  MestreListaPage,
+  NovoMestrePage,
+  EditarMestrePage,
+  VerMestrePage,
   // Jogo - 3 rotas separadas
   SelecaoPersonagemPage,
   SalaEsperaPage,
   JogoAtivoPage,
-  ConviteJogoPage
+  ConviteJogoPage,
+  PerfilPage
 } from './Pages';
 
 /**
@@ -77,7 +83,19 @@ export const ROUTES = {
   DESVANTAGENS: '/desvantagens',
   NOVA_DESVANTAGEM: '/criar-desvantagem',
   EDITAR_DESVANTAGEM: '/editar-desvantagem/:id',
-  VER_DESVANTAGEM: '/ver-desvantagem/:id'
+  VER_DESVANTAGEM: '/ver-desvantagem/:id',
+
+  // ===== MONSTROS =====
+  MONSTROS: '/monstros',
+
+  // ===== MESTRES =====
+  MESTRES: '/mestres',
+  NOVO_MESTRE: '/criar-mestre',
+  EDITAR_MESTRE: '/editar-mestre/:id',
+  VER_MESTRE: '/ver-mestre/:id',
+
+  // ===== PERFIL =====
+  PERFIL: '/perfil'
 };
 
 /**
@@ -111,7 +129,9 @@ export const generateRoute = {
   verClasse: (id) => `/ver-classe/${id}`,
   verVantagem: (id) => `/ver-vantagem/${id}`,
   editarDesvantagem: (id) => `/editar-desvantagem/${id}`,
-  verDesvantagem: (id) => `/ver-desvantagem/${id}`
+  verDesvantagem: (id) => `/ver-desvantagem/${id}`,
+  editarMestre: (id) => `/editar-mestre/${id}`,
+  verMestre: (id) => `/ver-mestre/${id}`
 };
 
 /**
@@ -147,7 +167,9 @@ export const ROUTE_CATEGORIES = {
       { path: ROUTES.RACAS, name: 'Raças', exact: true },
       { path: ROUTES.CLASSES, name: 'Classes', exact: true },
       { path: ROUTES.VANTAGENS, name: 'Vantagens', exact: true },
-      { path: ROUTES.DESVANTAGENS, name: 'Desvantagens', exact: true }
+      { path: ROUTES.DESVANTAGENS, name: 'Desvantagens', exact: true },
+      { path: ROUTES.MONSTROS, name: 'Monstros', exact: true },
+      { path: ROUTES.MESTRES, name: 'Mestres', exact: true }
     ]
   },
   
@@ -340,6 +362,50 @@ const ROUTE_CONFIG = [
     name: 'Ver Desvantagem',
     category: 'SISTEMA',
     hasParams: true
+  },
+
+  // ===== MONSTROS =====
+  {
+    path: ROUTES.MONSTROS,
+    component: MonstroListaPage,
+    name: 'Monstros',
+    category: 'SISTEMA'
+  },
+
+  // ===== MESTRES =====
+  {
+    path: ROUTES.MESTRES,
+    component: MestreListaPage,
+    name: 'Mestres',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVO_MESTRE,
+    component: NovoMestrePage,
+    name: 'Novo Mestre',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.EDITAR_MESTRE,
+    component: EditarMestrePage,
+    name: 'Editar Mestre',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+  {
+    path: ROUTES.VER_MESTRE,
+    component: VerMestrePage,
+    name: 'Ver Mestre',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+
+  // ===== PERFIL =====
+  {
+    path: ROUTES.PERFIL,
+    component: PerfilPage,
+    name: 'Meu Perfil',
+    category: 'USUARIO'
   }
 ];
 

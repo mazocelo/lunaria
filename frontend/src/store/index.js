@@ -17,6 +17,7 @@ export { useClasseStore, initializeClasseStore, useClasseSelectors } from './cla
 export { useRacaStore, initializeRacaStore, useRacaSelectors } from './raca/index.js';
 export { useVantagemStore, initializeVantagemStore, useVantagemSelectors } from './vantagem/index.js';
 export { useDesvantagemStore, initializeDesvantagemStore, useDesvantagemSelectors } from './desvantagem/index.js';
+export { useMestreStore, initializeMestreStore, useMestreSelectors } from './mestre/index.js';
 
 // ===== UTILITÁRIOS DE INICIALIZAÇÃO =====
 export { initializeGameStore } from './game/index.js';
@@ -29,6 +30,7 @@ import { useClasseStore } from './classe/index.js';
 import { useRacaStore } from './raca/index.js';
 import { useVantagemStore } from './vantagem/index.js';
 import { useDesvantagemStore } from './desvantagem/index.js';
+import { useMestreStore } from './mestre/index.js';
 import { initializeGameStore } from './game/index.js';
 
 // ===== IMPORTS INTERNOS PARA INICIALIZAÇÃO =====
@@ -37,6 +39,7 @@ import { initializeClasseStore } from './classe/index.js';
 import { initializeRacaStore } from './raca/index.js';
 import { initializeVantagemStore } from './vantagem/index.js';
 import { initializeDesvantagemStore } from './desvantagem/index.js';
+import { initializeMestreStore } from './mestre/index.js';
 
 // ===== UTILITÁRIOS GLOBAIS =====
 
@@ -72,9 +75,10 @@ export const initializeAllStores = async () => {
         initializeClasseStore(),
         initializeRacaStore(),
         initializeVantagemStore(),
-        initializeDesvantagemStore()
+        initializeDesvantagemStore(),
+        initializeMestreStore()
       ]);
-      
+
       storesInitialized = true;
     } catch (error) {
       console.error('❌ Erro ao inicializar stores:', error);
@@ -112,14 +116,16 @@ export const areStaticStoresLoaded = () => {
   const racaState = useRacaStore.getState();
   const vantagemState = useVantagemStore.getState();
   const desvantagemState = useDesvantagemStore.getState();
-  
+  const mestreState = useMestreStore.getState();
+
   return {
-    allLoaded: temaState.temasCarregados && classeState.classesCarregadas && racaState.racasCarregadas && vantagemState.vantagensCarregadas && desvantagemState.desvantagensCarregadas,
+    allLoaded: temaState.temasCarregados && classeState.classesCarregadas && racaState.racasCarregadas && vantagemState.vantagensCarregadas && desvantagemState.desvantagensCarregadas && mestreState.mestresCarregados,
     temas: { loaded: temaState.temasCarregados, count: temaState.temas.length },
     classes: { loaded: classeState.classesCarregadas, count: classeState.classes.length },
     racas: { loaded: racaState.racasCarregadas, count: racaState.racas.length },
     vantagens: { loaded: vantagemState.vantagensCarregadas, count: vantagemState.vantagens.length },
-    desvantagens: { loaded: desvantagemState.desvantagensCarregadas, count: desvantagemState.desvantagens.length }
+    desvantagens: { loaded: desvantagemState.desvantagensCarregadas, count: desvantagemState.desvantagens.length },
+    mestres: { loaded: mestreState.mestresCarregados, count: mestreState.mestres.length }
   };
 };
 
@@ -137,10 +143,11 @@ export const reloadStaticStores = async () => {
     // Recarregar todos
     await Promise.all([
       initializeTemaStore(),
-      initializeClasseStore(), 
+      initializeClasseStore(),
       initializeRacaStore(),
       initializeVantagemStore(),
-      initializeDesvantagemStore()
+      initializeDesvantagemStore(),
+      initializeMestreStore()
     ]);
     
     storesInitialized = true;
@@ -168,7 +175,8 @@ export const resetAllStores = () => {
     const { resetRacaState } = useRacaStore.getState();
     const { resetVantagemState } = useVantagemStore.getState();
     const { resetDesvantagemState } = useDesvantagemStore.getState();
-    
+    const { resetMestreState } = useMestreStore.getState();
+
     resetGameState();
     resetSocketState();
     resetTemaState();
@@ -176,6 +184,7 @@ export const resetAllStores = () => {
     resetRacaState();
     resetVantagemState();
     resetDesvantagemState();
+    resetMestreState();
   } catch (error) {
     console.error('❌ Erro ao resetar stores:', error);
   }
@@ -853,4 +862,32 @@ export const getSocketStoreAPI = () => {
     // Método para subscribir a mudanças (obrigatório para ViewModels)
     subscribe: (callback) => store.subscribe(callback)
   };
-}; 
+};
+
+/**
+ * 🔧 API DIRETA para ViewModels de Mestres (sem hooks)
+ * Usado por: MestreViewModel (classes JavaScript)
+ */
+export const getMestreStoreAPI = () => {
+  const store = useMestreStore.getState();
+
+  return {
+    getState: () => useMestreStore.getState(),
+
+    get mestres() { return useMestreStore.getState().mestres; },
+    get mestresAtivos() { return useMestreStore.getState().mestresAtivos; },
+    get loading() { return useMestreStore.getState().loading; },
+    get mestresCarregados() { return useMestreStore.getState().mestresCarregados; },
+    get total() { return useMestreStore.getState().total; },
+    get hasMore() { return useMestreStore.getState().hasMore; },
+    get error() { return useMestreStore.getState().error; },
+
+    carregarMestres: store.carregarMestres,
+    getMestreById: store.getMestreById,
+    getMestreByNome: store.getMestreByNome,
+    recarregarMestres: store.recarregarMestres,
+    resetMestreState: store.resetMestreState,
+
+    subscribe: (callback) => useMestreStore.subscribe(callback)
+  };
+};

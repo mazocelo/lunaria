@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageTypeSelector } from '../../MessageTypeSelector';
 import { inputAreaViewModel } from '../../../viewmodels/Jogo';
 import CooldownRoleplay from '../Gameplay/CooldownRoleplay';
@@ -36,6 +36,10 @@ const InputArea = ({
   // ⏳ Estado de loading para botão iniciar turno
   const [iniciandoTurno, setIniciandoTurno] = useState(false);
 
+  // 🎲 Popover de dados
+  const [showDicePopover, setShowDicePopover] = useState(false);
+  const dicePopoverRef = useRef(null);
+
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
     const unsubscribe = inputAreaViewModel.subscribe(setViewModelState);
@@ -54,6 +58,19 @@ const InputArea = ({
       inputAreaViewModel.destroy();
     };
   }, []);
+
+  // 🎲 Click-outside para fechar popover de dados
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dicePopoverRef.current && !dicePopoverRef.current.contains(event.target)) {
+        setShowDicePopover(false);
+      }
+    };
+    if (showDicePopover) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDicePopover]);
 
   // 🎯 HANDLERS: Usando ViewModel
   const handleMessageTypeChange = (type) => {
@@ -134,30 +151,53 @@ const InputArea = ({
               </div>
             )}
             
-            {/* Botões de Dados RPG - ao lado do seletor */}
+            {/* Botão de Dados RPG - popover */}
             {faseJogo === 'rodada_em_andamento' && (
-              <div className="flex items-center gap-2">
-                {[
-                  { tipo: 'd4', emoji: '🔺', classes: 'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600' },
-                  { tipo: 'd6', emoji: '🎲', classes: 'bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600' },
-                  { tipo: 'd8', emoji: '🔶', classes: 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' },
-                  { tipo: 'd10', emoji: '🔟', classes: 'bg-gradient-to-br from-yellow-500 to-yellow-700 hover:from-yellow-400 hover:to-yellow-600' },
-                  { tipo: 'd12', emoji: '🌟', classes: 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600' },
-                  { tipo: 'd20', emoji: '⭐', classes: 'bg-gradient-to-br from-cyan-500 to-cyan-700 hover:from-cyan-400 hover:to-cyan-600' },
-                  { tipo: 'd100', emoji: '💯', classes: 'bg-gradient-to-br from-pink-500 to-pink-700 hover:from-pink-400 hover:to-pink-600' }
-                ].map((dado) => (
-                  <button
-                    key={dado.tipo}
-                    onClick={() => onRolarDados && onRolarDados(dado.tipo, '')}
-                    disabled={connectionStatus.status === 'error'}
-                    className={`px-3 py-2 text-xl rounded-lg font-bold transition-all shadow-md hover:shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${dado.classes} ${
-                      dadosSolicitados ? 'ring-2 ring-amber-400' : ''
-                    }`}
-                    title={`Rolar ${dado.tipo.toUpperCase()}`}
-                  >
-                    {dado.emoji}
-                  </button>
-                ))}
+              <div className="relative" ref={dicePopoverRef}>
+                <button
+                  onClick={() => setShowDicePopover(!showDicePopover)}
+                  className={`px-3 py-2.5 text-xl rounded-xl font-bold transition-all shadow-md bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 ${
+                    dadosSolicitados
+                      ? 'ring-2 ring-amber-400 animate-pulse shadow-amber-500/50'
+                      : ''
+                  } ${showDicePopover ? 'ring-2 ring-purple-300' : ''}`}
+                  title="Rolar Dados"
+                >
+                  🎲
+                </button>
+
+                {showDicePopover && (
+                  <div className="absolute bottom-full left-0 mb-2 p-3 glass rounded-xl border-2 border-purple-500/50 shadow-2xl animate-scale-in z-50 min-w-[240px]">
+                    <p className="text-purple-300 text-xs font-semibold mb-2">Rolar Dados</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { tipo: 'd4', emoji: '🔺', classes: 'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600' },
+                        { tipo: 'd6', emoji: '🎲', classes: 'bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600' },
+                        { tipo: 'd8', emoji: '🔶', classes: 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' },
+                        { tipo: 'd10', emoji: '🔟', classes: 'bg-gradient-to-br from-yellow-500 to-yellow-700 hover:from-yellow-400 hover:to-yellow-600' },
+                        { tipo: 'd12', emoji: '🌟', classes: 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600' },
+                        { tipo: 'd20', emoji: '⭐', classes: 'bg-gradient-to-br from-cyan-500 to-cyan-700 hover:from-cyan-400 hover:to-cyan-600' },
+                        { tipo: 'd100', emoji: '💯', classes: 'bg-gradient-to-br from-pink-500 to-pink-700 hover:from-pink-400 hover:to-pink-600' }
+                      ].map((dado) => (
+                        <button
+                          key={dado.tipo}
+                          onClick={() => {
+                            onRolarDados && onRolarDados(dado.tipo, '');
+                            setShowDicePopover(false);
+                          }}
+                          disabled={connectionStatus.status === 'error'}
+                          className={`px-2 py-2 rounded-lg font-bold transition-all shadow-md hover:shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${dado.classes}`}
+                          title={`Rolar ${dado.tipo.toUpperCase()}`}
+                        >
+                          <div className="flex flex-col items-center">
+                            <span className="text-lg">{dado.emoji}</span>
+                            <span className="text-[10px] text-white/80 mt-0.5">{dado.tipo}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -251,32 +291,29 @@ const InputArea = ({
           </div>
         )}
 
-        {/* LINHA 2: Input + Botões */}
-        <div className="grid grid-cols-12 gap-3">
-          {/* Input ocupa maior parte do espaço */}
-          <input 
-            type="text" 
+        {/* LINHA 2: Input + Botão Enviar */}
+        <div className="flex gap-3">
+          <input
+            type="text"
             placeholder={getPlaceholderDinamico()}
             value={mensagemAtual || ''}
             onChange={onMensagemChange}
             onKeyPress={handleKeyPress}
             disabled={connectionStatus.status === 'error' || isSending || inputDesabilitado}
-            className={`col-span-9 px-5 py-4 text-base rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg ${
+            className={`flex-1 min-w-0 px-5 py-3 text-base rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg ${
               ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado
                 ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-cyan-500/30'
                 : 'border-purple-500/40'
             } text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-all`}
           />
-          
-          {/* Botão Enviar */}
-          <button 
+
+          <button
             onClick={enviarMensagemComTipo}
             disabled={connectionStatus.status === 'error' || !mensagemAtual?.trim() || isSending || inputDesabilitado}
-            className="col-span-3 px-4 py-4 text-base bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="flex-shrink-0 w-28 py-3 text-sm bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
           >
             {isSending ? 'Enviando...' : 'Enviar'}
           </button>
-          
         </div>
         
         {/* Status de conexão */}

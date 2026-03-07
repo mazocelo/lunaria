@@ -8,6 +8,7 @@ import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import ConviteModal from '../../../components/ConviteModal.jsx';
 import { TabelaList } from '../../../components/shared';
+import SearchBar from '../../../components/shared/SearchBar.jsx';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { ROUTES, generateRoute } from '../../../routes.jsx';
@@ -29,7 +30,9 @@ export const HistoriaListaView = () => {
     clearError,
     deleteHistoria,
     getNomesTemas,
-    enviarConvite
+    enviarConvite,
+    aplicarFiltros,
+    historiasFiltradasComTemas
   } = viewModel;
 
   const { theme } = useTheme();
@@ -50,25 +53,15 @@ export const HistoriaListaView = () => {
   const [historiaToReset, setHistoriaToReset] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Estado para bulk delete
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
   // Carrega histórias ao montar o componente
   useEffect(() => {
     loadHistorias();
   }, []);
-
-  // Debug: Verificar dados das histórias
-  useEffect(() => {
-    if (historias.length > 0) {
-      console.log('📊 HistoriaView: Histórias carregadas:', historias);
-      console.log('📊 HistoriaView: Primeira história:', historias[0]);
-      console.log('📊 HistoriaView: sessaoAtiva?', historias.map(h => ({
-        id: h.id,
-        nome: h.nome,
-        sessaoAtiva: h.sessaoAtiva,
-        statusSessao: h.statusSessao,
-        totalJogadores: h.totalJogadores
-      })));
-    }
-  }, [historias]);
 
   // Limpa erro quando componente desmonta
   useEffect(() => {
@@ -167,8 +160,6 @@ export const HistoriaListaView = () => {
         await loadHistorias();
         setShowResetModal(false);
         setHistoriaToReset(null);
-        
-        console.log('✅ Sessão resetada com sucesso');
       }
     } catch (error) {
       console.error('❌ Erro ao resetar sessão:', error);
@@ -182,6 +173,33 @@ export const HistoriaListaView = () => {
     setShowResetModal(false);
     setHistoriaToReset(null);
     setResetLoading(false);
+  };
+
+  // Funções de bulk delete
+  const handleBulkDeleteClick = (ids) => {
+    setBulkDeleteIds(ids);
+    setShowBulkDeleteModal(true);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    try {
+      for (const id of bulkDeleteIds) {
+        await deleteHistoria(id);
+      }
+      setShowBulkDeleteModal(false);
+      setBulkDeleteIds([]);
+    } catch (error) {
+      console.error('Erro ao deletar historias em lote:', error);
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
+  const handleCancelBulkDelete = () => {
+    setShowBulkDeleteModal(false);
+    setBulkDeleteIds([]);
+    setBulkDeleteLoading(false);
   };
 
   // Função para verificar se o usuário é dono da história
@@ -284,7 +302,6 @@ export const HistoriaListaView = () => {
 
   // Handler para entrar em partida ativa
   const handleEntrarPartida = (historia) => {
-    console.log('🎮 Entrando em partida ativa da história:', historia.id);
     navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
   };
 
@@ -295,20 +312,14 @@ export const HistoriaListaView = () => {
       icon: '🎯',
       color: 'orange',
       onClick: (row) => handleEntrarPartida(row),
-      show: (row) => {
-        console.log('🔍 Verificando se deve mostrar "Entrar na Partida" para:', row.nome, 'sessaoAtiva:', row.sessaoAtiva, 'tipo:', typeof row.sessaoAtiva);
-        return row.sessaoAtiva === true;
-      }
+      show: (row) => row.sessaoAtiva === true
     },
     {
       label: 'Iniciar Sessão',
       icon: '🎮',
       color: 'green',
       onClick: (row) => handlePlayHistoria(row),
-      show: (row) => {
-        console.log('🔍 Verificando se deve mostrar "Iniciar Sessão" para:', row.nome, 'sessaoAtiva:', row.sessaoAtiva);
-        return !row.sessaoAtiva;
-      }
+      show: (row) => !row.sessaoAtiva
     },
     {
       label: 'Ver',
@@ -411,11 +422,18 @@ export const HistoriaListaView = () => {
         /> */}
       </div>
 
+      {/* Busca */}
+      <SearchBar
+        placeholder="Buscar histórias por nome..."
+        onChange={(texto) => aplicarFiltros({ busca: texto })}
+        className="mb-4"
+      />
+
       {/* Tabela de histórias */}
       <TabelaList
         header="Lista de Histórias"
         columns={columns}
-        data={historias}
+        data={historiasFiltradasComTemas || historias}
         actions={actions}
         loading={loading}
         pagination={true}
@@ -424,6 +442,10 @@ export const HistoriaListaView = () => {
         emptyMessage="Nenhuma história encontrada"
         emptyIcon="📖"
         hoverable={true}
+        selectable={true}
+        bulkActions={[
+          { label: 'Deletar Selecionados', icon: '🗑️', color: 'red', onClick: handleBulkDeleteClick }
+        ]}
       />
 
       {/* Modal de Confirmação */}
@@ -446,6 +468,19 @@ export const HistoriaListaView = () => {
         onConfirm={handleEnviarConvite}
         historia={historiaParaConvite}
         loading={conviteLoading}
+      />
+
+      {/* Modal de Bulk Delete */}
+      <ConfirmationModal
+        isOpen={showBulkDeleteModal}
+        title="Deletar Historias Selecionadas"
+        message={`Tem certeza de que deseja deletar ${bulkDeleteIds.length} historia(s)? Esta acao nao pode ser desfeita.`}
+        confirmText="Deletar Todos"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmBulkDelete}
+        onCancel={handleCancelBulkDelete}
+        loading={bulkDeleteLoading}
+        variant="danger"
       />
 
       {/* Modal de Resetar Sessão */}

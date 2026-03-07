@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
@@ -12,6 +12,7 @@ const NovaHistoriaView = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const [nomeError, setNomeError] = useState('');
 
   useEffect(() => {
     vm.loadTemas();
@@ -62,9 +63,12 @@ const NovaHistoriaView = () => {
         <InputSimples
           label="Nome da História"
           name="nome"
-          onChange={e => vm.setNome(e.target.value)}
+          onChange={e => { vm.setNome(e.target.value); if (nomeError) setNomeError(''); }}
+          onBlur={() => { if (vm.nome && vm.nome.trim().length < 2) setNomeError('Nome deve ter pelo menos 2 caracteres'); }}
           value={vm.nome}
           placeholder="Digite o nome da sua aventura..."
+          error={nomeError}
+          required
         />
 
         <Selector

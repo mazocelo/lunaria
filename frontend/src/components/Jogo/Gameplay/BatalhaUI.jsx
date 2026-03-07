@@ -102,8 +102,8 @@ const BatalhaUI = ({
       {/* Log de combate (últimas ações) */}
       {log.length > 0 && (
         <div className="border-t border-red-500/20 pt-2 mt-3">
-          <div className="space-y-1 max-h-24 overflow-y-auto">
-            {log.slice(-3).map((entry, i) => (
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {log.slice(-5).map((entry, i) => (
               <div key={i} className="text-xs text-gray-400 flex items-center space-x-1">
                 <span>{entry.acertou ? '🗡️' : '❌'}</span>
                 <span>

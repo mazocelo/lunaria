@@ -284,8 +284,6 @@ export class HistoriaViewModel {
       const response = await historiaService.resetarSessao(historiaId);
 
       if (response.success) {
-        console.log('✅ Sessão resetada com sucesso no ViewModel');
-        
         // Recarregar histórias para atualizar status
         await this.loadHistorias();
       }

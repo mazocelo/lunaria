@@ -1,14 +1,27 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
+import { ROUTES } from '../../routes';
 import { Eye, EyeOff } from 'lucide-react';
+
+const getPasswordStrength = (password) => {
+  if (!password || password.length === 0) return null;
+  const hasLetters = /[a-zA-Z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+  if (password.length >= 8 && hasLetters && hasNumbers && hasSpecial) return { level: 3, label: 'Forte', color: 'green' };
+  if (password.length >= 8 && hasLetters && hasNumbers) return { level: 2, label: 'Média', color: 'yellow' };
+  return { level: 1, label: 'Fraca', color: 'red' };
+};
 
 const RegisterView = ({ onSwitchToLogin }) => {
   const { register, loading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -46,9 +59,41 @@ const RegisterView = ({ onSwitchToLogin }) => {
     }
   };
 
-  /**
-   * Validar formulário
-   */
+  const validateField = (name) => {
+    setErrors(prev => {
+      const next = { ...prev };
+      if (name === 'nome') {
+        if (formData.nome && formData.nome.trim().length > 0 && formData.nome.trim().length < 2) {
+          next.nome = 'Nome deve ter pelo menos 2 caracteres';
+        } else {
+          delete next.nome;
+        }
+      }
+      if (name === 'email') {
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          next.email = 'Email inválido';
+        } else {
+          delete next.email;
+        }
+      }
+      if (name === 'senha') {
+        if (formData.senha && formData.senha.length > 0 && formData.senha.length < 6) {
+          next.senha = 'Senha deve ter pelo menos 6 caracteres';
+        } else {
+          delete next.senha;
+        }
+      }
+      if (name === 'confirmSenha') {
+        if (formData.confirmSenha && formData.senha !== formData.confirmSenha) {
+          next.confirmSenha = 'Senhas não conferem';
+        } else {
+          delete next.confirmSenha;
+        }
+      }
+      return next;
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -106,9 +151,9 @@ const RegisterView = ({ onSwitchToLogin }) => {
       if (result.success) {
         setNotification({
           type: 'success',
-          message: 'Conta criada com sucesso!'
+          message: `Conta criada com sucesso! Bem-vindo, ${result.user?.nome || formData.nome}!`
         });
-        
+
         // Limpar formulário após sucesso
         setFormData({
           nome: '',
@@ -117,12 +162,10 @@ const RegisterView = ({ onSwitchToLogin }) => {
           confirmSenha: ''
         });
 
-        // Redirecionar para login após 2 segundos se não foi autenticado automaticamente
-        if (!result.user) {
-          setTimeout(() => {
-            onSwitchToLogin();
-          }, 2000);
-        }
+        // Auto-login: redirecionar diretamente para histórias
+        setTimeout(() => {
+          navigate(ROUTES.HISTORIAS);
+        }, 800);
       } else {
         setNotification({
           type: 'error',
@@ -202,6 +245,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 type="text"
                 value={formData.nome}
                 onChange={handleInputChange}
+                onBlur={() => validateField('nome')}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="Seu nome completo"
                 disabled={loading}
@@ -222,6 +266,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                onBlur={() => validateField('email')}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="seu@email.com"
                 disabled={loading}
@@ -244,6 +289,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                   type={showPassword ? "text" : "password"}
                   value={formData.senha}
                   onChange={handleInputChange}
+                  onBlur={() => validateField('senha')}
                   className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
                   placeholder="••••••••"
                   disabled={loading}
@@ -265,6 +311,23 @@ const RegisterView = ({ onSwitchToLogin }) => {
               {errors.senha && (
                 <p className="text-red-400 text-xs mt-1">{errors.senha}</p>
               )}
+              {/* Indicador de força de senha */}
+              {formData.senha && (() => {
+                const strength = getPasswordStrength(formData.senha);
+                if (!strength) return null;
+                const colors = { red: 'bg-red-500', yellow: 'bg-yellow-500', green: 'bg-green-500' };
+                const textColors = { red: 'text-red-400', yellow: 'text-yellow-400', green: 'text-green-400' };
+                return (
+                  <div className="mt-2">
+                    <div className="flex gap-1 h-1.5 rounded-full overflow-hidden">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className={`flex-1 rounded-full transition-colors duration-300 ${i <= strength.level ? colors[strength.color] : 'bg-slate-600/50'}`} />
+                      ))}
+                    </div>
+                    <p className={`text-xs mt-1 ${textColors[strength.color]}`}>{strength.label}</p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Campo Confirmação de Senha */}
@@ -279,6 +342,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmSenha}
                   onChange={handleInputChange}
+                  onBlur={() => validateField('confirmSenha')}
                   className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
                   placeholder="••••••••"
                   disabled={loading}

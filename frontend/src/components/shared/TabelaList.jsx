@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
 
 /**
@@ -25,6 +25,8 @@ import { useTheme } from '../../contexts/theme.jsx';
  * @param {Function} props.onPageSizeChange - Callback para mudança de tamanho (opcional)
  * @param {boolean} props.showPageSizeSelector - Mostrar seletor de tamanho de página (padrão: true)
  * @param {boolean} props.showPaginationInfo - Mostrar informações de paginação (padrão: true)
+ * @param {boolean} props.selectable - Habilitar checkboxes de seleção (opcional)
+ * @param {Array} props.bulkActions - Ações em lote [{label, icon?, onClick, color?}] (opcional)
  */
 const TabelaList = ({
   columns = [],
@@ -46,7 +48,9 @@ const TabelaList = ({
   onPageChange,
   onPageSizeChange,
   showPageSizeSelector = true,
-  showPaginationInfo = true
+  showPaginationInfo = true,
+  selectable = false,
+  bulkActions = []
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -58,6 +62,9 @@ const TabelaList = ({
   // Usar estados externos se fornecidos, senão usar internos
   const currentPage = externalCurrentPage ?? internalCurrentPage;
   const pageSize = externalPageSize ?? internalPageSize;
+
+  // Estado de seleção para bulk actions
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   // Calcular dados paginados
   const paginatedData = useMemo(() => {
@@ -125,6 +132,41 @@ const TabelaList = ({
     
     return pages;
   };
+
+  // Handlers de seleção
+  const toggleSelectAll = useCallback(() => {
+    const currentData = pagination ? paginatedData : data;
+    const allIds = currentData.map(row => row[keyField]);
+    const allSelected = allIds.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        allIds.forEach(id => next.delete(id));
+      } else {
+        allIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  }, [data, paginatedData, pagination, keyField, selectedIds]);
+
+  const toggleSelectRow = useCallback((id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const isAllSelected = useMemo(() => {
+    const currentData = pagination ? paginatedData : data;
+    return currentData.length > 0 && currentData.every(row => selectedIds.has(row[keyField]));
+  }, [data, paginatedData, pagination, keyField, selectedIds]);
 
   // Função para obter classes de alinhamento
   const getAlignmentClass = (align) => {
@@ -219,6 +261,17 @@ const TabelaList = ({
               {/* Cabeçalho da tabela */}
               <thead>
                 <tr>
+                  {selectable && (
+                    <th className="px-3 py-3 w-10" role="columnheader">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 text-purple-600 bg-slate-800/50 border-purple-500/30 rounded focus:ring-purple-400 cursor-pointer"
+                        aria-label="Selecionar todos"
+                      />
+                    </th>
+                  )}
                   {columns.map((column, index) => (
                     <th
                       key={column.key || index}
@@ -252,6 +305,18 @@ const TabelaList = ({
                     className={`${hoverable ? 'hover-lift' : ''}`}
                     role="row"
                   >
+                    {/* Checkbox de seleção */}
+                    {selectable && (
+                      <td className="px-3 py-3 w-10" role="cell">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(row[keyField])}
+                          onChange={() => toggleSelectRow(row[keyField])}
+                          className="w-4 h-4 text-purple-600 bg-slate-800/50 border-purple-500/30 rounded focus:ring-purple-400 cursor-pointer"
+                          aria-label={`Selecionar ${row.nome || row.title || `item ${rowIndex + 1}`}`}
+                        />
+                      </td>
+                    )}
                     {/* Células de dados */}
                     {columns.map((column, colIndex) => (
                       <td
@@ -269,7 +334,7 @@ const TabelaList = ({
                     {/* Célula de ações */}
                     {actions.length > 0 && (
                       <td
-                        className="px-4 py-3 text-center"
+                        className="px-4 py-3 text-center whitespace-nowrap"
                         role="cell"
                       >
                         <div 
@@ -303,6 +368,54 @@ const TabelaList = ({
               </tbody>
             </table>
           </div>
+
+          {/* Barra de ações em lote */}
+          {selectable && selectedIds.size > 0 && bulkActions.length > 0 && (
+            <div className={`mt-4 p-3 rounded-lg flex items-center justify-between ${
+              isLight
+                ? 'bg-purple-50 border border-purple-200'
+                : 'bg-purple-900/30 border border-purple-500/30'
+            }`}>
+              <span className={`text-sm font-modern ${isLight ? 'text-purple-700' : 'text-purple-300'}`}>
+                {selectedIds.size} {selectedIds.size === 1 ? 'item selecionado' : 'itens selecionados'}
+              </span>
+              <div className="flex items-center gap-2">
+                {bulkActions.map((action, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      action.onClick(Array.from(selectedIds));
+                      clearSelection();
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-modern transition-colors ${
+                      action.color === 'red' || action.color === 'danger'
+                        ? isLight
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                          : 'bg-red-900/50 text-red-300 hover:bg-red-800/50'
+                        : isLight
+                          ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          : 'bg-purple-800/50 text-purple-300 hover:bg-purple-700/50'
+                    }`}
+                  >
+                    {action.icon && <span className="mr-1">{action.icon}</span>}
+                    {action.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-modern transition-colors ${
+                    isLight
+                      ? 'text-slate-600 hover:bg-slate-200'
+                      : 'text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Controles de paginação */}
           {pagination && data.length > 0 && (

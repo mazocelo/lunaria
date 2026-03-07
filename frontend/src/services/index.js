@@ -7,6 +7,8 @@ import { VantagemService } from './VantagemService';
 import { RacaService } from './RacaService';
 import { ClasseService } from './ClasseService';
 import { DesvantagemService } from './DesvantagemService';
+import { MestreService } from './MestreService';
+import { MonstroService } from './MonstroService';
 import { AuthService } from './AuthService';
 import { NotificationService } from './NotificationService';
 
@@ -22,6 +24,8 @@ export { VantagemService } from './VantagemService';
 export { RacaService } from './RacaService';
 export { ClasseService } from './ClasseService';
 export { DesvantagemService } from './DesvantagemService';
+export { MestreService } from './MestreService';
+export { MonstroService } from './MonstroService';
 export { AuthService } from './AuthService';
 
 // Factory para criação de serviços
@@ -48,6 +52,10 @@ export class ServiceFactory {
         return new ClasseService(apiClient);
       case 'desvantagem':
         return new DesvantagemService(apiClient);
+      case 'mestre':
+        return new MestreService(apiClient);
+      case 'monstro':
+        return new MonstroService(apiClient);
       case 'auth':
         return new AuthService(apiClient);
       case 'notification':
@@ -66,5 +74,7 @@ export const vantagemService = new VantagemService(apiClient);
 export const racaService = new RacaService(apiClient);
 export const classeService = new ClasseService(apiClient);
 export const desvantagemService = new DesvantagemService(apiClient);
+export const mestreService = new MestreService(apiClient);
+export const monstroService = new MonstroService(apiClient);
 export const authService = new AuthService(apiClient);
 export const notificationService = new NotificationService(apiClient); 

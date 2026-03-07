@@ -27,6 +27,15 @@ export { default as NovaDesvantagemPage } from './Desvantagem/Nova';
 export { default as EditarDesvantagemPage } from './Desvantagem/Editar';
 export { default as VerDesvantagemPage } from './Desvantagem/Ver';
 
+// Monstro
+export { default as MonstroListaPage } from './Monstro/Lista';
+
+// Mestre
+export { default as MestreListaPage } from './Mestre/Lista';
+export { default as NovoMestrePage } from './Mestre/Nova';
+export { default as EditarMestrePage } from './Mestre/Editar';
+export { default as VerMestrePage } from './Mestre/Ver';
+
 // Auth
 export { default as LoginPage } from './Login';
 export { default as RegisterPage } from './Register';
@@ -38,4 +47,7 @@ export { default as JogoAtivoPage } from './Jogo/JogoAtivo';
 
 // ConviteJogo
 export { ConviteJogoView as ConviteJogoPage } from './ConviteJogo';
+
+// Perfil
+export { default as PerfilPage } from './Perfil';
 

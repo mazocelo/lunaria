@@ -54,6 +54,18 @@ const Sidebar = () => {
             label: 'Desvantagens',
             icon: '⚠️',
             description: 'Gerencie as desvantagens disponíveis'
+        },
+        {
+            path: '/monstros',
+            label: 'Monstros',
+            icon: '👹',
+            description: 'Bestiário do mundo de Lunaria'
+        },
+        {
+            path: '/mestres',
+            label: 'Mestres',
+            icon: '🧙',
+            description: 'Gerencie seus mestres'
         }
     ];
 
@@ -166,9 +178,37 @@ const Sidebar = () => {
                 )}
             </nav>
 
+            {/* Perfil link */}
+            <div className={`px-6 pb-2 pt-4 border-t ${isLight ? 'border-slate-200/50' : 'border-slate-700/50'}`}>
+                <Link
+                    to="/perfil"
+                    className={`group relative block p-4 rounded-xl transition-all duration-300 hover-lift ${isActive('/perfil')
+                        ? 'gradient-primary text-slate-700 shadow-lg'
+                        : isLight
+                            ? 'glass-light text-slate-700 hover:text-slate-900 hover:bg-slate-100/50'
+                            : 'glass text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                >
+                    <div className="flex items-center space-x-3">
+                        <span className="text-2xl flex-shrink-0">👤</span>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-semibold font-modern">Meu Perfil</div>
+                            <div className={`text-xs ${isActive('/perfil')
+                                ? 'text-slate-700'
+                                : isLight ? 'text-slate-500' : 'text-slate-400'
+                            }`}>
+                                Configurações da conta
+                            </div>
+                        </div>
+                    </div>
+                    {!isActive('/perfil') && (
+                        <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-500/10 to-cyan-500/10" />
+                    )}
+                </Link>
+            </div>
+
             {/* Footer da sidebar */}
-            <div className={`p-6 border-t ${isLight ? 'border-slate-200/50' : 'border-slate-700/50'
-                }`}>
+            <div className={`px-6 pb-6 pt-2`}>
                 <div className="text-center">
                     <div className={`w-8 h-8 gradient-accent rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
                         🎯

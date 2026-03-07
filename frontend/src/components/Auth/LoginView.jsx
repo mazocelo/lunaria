@@ -10,7 +10,7 @@ import { ROUTES } from '../../routes';
 import { Eye, EyeOff } from 'lucide-react';
 
 const LoginView = ({ onSwitchToRegister }) => {
-  const { login, loading, isAuthenticated } = useAuth();
+  const { login, forgotPassword, loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -56,9 +56,27 @@ const LoginView = ({ onSwitchToRegister }) => {
     }
   };
 
-  /**
-   * Validar formulário
-   */
+  const validateField = (name) => {
+    setErrors(prev => {
+      const next = { ...prev };
+      if (name === 'email') {
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          next.email = 'Email inválido';
+        } else {
+          delete next.email;
+        }
+      }
+      if (name === 'senha') {
+        if (formData.senha && formData.senha.length > 0 && formData.senha.length < 6) {
+          next.senha = 'Senha deve ter pelo menos 6 caracteres';
+        } else {
+          delete next.senha;
+        }
+      }
+      return next;
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -99,9 +117,8 @@ const LoginView = ({ onSwitchToRegister }) => {
         message: `Bem-vindo, ${result.user.nome}! Redirecionando...`
       });
       
-      // Aguardar um pouco antes de redirecionar para mostrar a mensagem
+      // Redirect rápido após mostrar toast de sucesso
       setTimeout(() => {
-        // Verificar se há URL de redirecionamento salva
         const redirectUrl = localStorage.getItem('redirectAfterLogin');
         if (redirectUrl) {
           localStorage.removeItem('redirectAfterLogin');
@@ -109,7 +126,7 @@ const LoginView = ({ onSwitchToRegister }) => {
         } else {
           navigate(ROUTES.HISTORIAS);
         }
-      }, 1500);
+      }, 500);
     } else {
       setNotification({
         type: 'error',
@@ -118,15 +135,43 @@ const LoginView = ({ onSwitchToRegister }) => {
     }
   };
 
+  const [forgotLoading, setForgotLoading] = useState(false);
+
   /**
    * Lidar com esqueci a senha
    */
   const handleForgotPassword = () => {
-    // Implementar lógica de recuperação de senha
-    setNotification({
-      type: 'info',
-      message: 'Funcionalidade em desenvolvimento'
-    });
+    setShowForgotPassword(true);
+    setForgotEmail('');
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setNotification({ type: 'error', message: 'Informe seu email' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
+      setNotification({ type: 'error', message: 'Email inválido' });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await forgotPassword(forgotEmail);
+      setNotification({
+        type: 'success',
+        message: 'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.'
+      });
+      setShowForgotPassword(false);
+    } catch {
+      setNotification({
+        type: 'success',
+        message: 'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.'
+      });
+      setShowForgotPassword(false);
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -187,6 +232,7 @@ const LoginView = ({ onSwitchToRegister }) => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                onBlur={() => validateField('email')}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="seu@email.com"
                 disabled={loading}
@@ -209,6 +255,7 @@ const LoginView = ({ onSwitchToRegister }) => {
                   type={showPassword ? "text" : "password"}
                   value={formData.senha}
                   onChange={handleInputChange}
+                  onBlur={() => validateField('senha')}
                   className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
                   placeholder="••••••••"
                   disabled={loading}
@@ -327,6 +374,60 @@ const LoginView = ({ onSwitchToRegister }) => {
           onClose={() => setNotification(null)}
           autoClose={notification.type === 'success' ? false : 5000}
         />
+      )}
+
+      {/* Modal Esqueci a Senha */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm glass p-6 rounded-2xl border border-purple-500/20">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(false)}
+              className="absolute top-3 right-3 text-purple-300 hover:text-white transition-colors text-xl leading-none"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-xl font-fantasy text-white mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              Recuperar Senha
+            </h2>
+            <p className="text-purple-200/70 text-sm mb-4 font-modern">
+              Informe seu email e enviaremos instruções para redefinir sua senha.
+            </p>
+
+            <form onSubmit={handleForgotSubmit} className="space-y-4">
+              <InputSimples
+                id="forgot-email"
+                name="forgotEmail"
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
+                placeholder="seu@email.com"
+                disabled={forgotLoading}
+                autoComplete="email"
+              />
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 transition-colors"
+                  disabled={forgotLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-semibold transition-all"
+                >
+                  {forgotLoading ? 'Enviando...' : 'Enviar'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Efeitos visuais adicionais */}

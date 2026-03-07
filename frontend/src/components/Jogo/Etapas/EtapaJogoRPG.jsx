@@ -63,6 +63,8 @@ const EtapaJogoRPG = ({
 
   // 📊 Estado para dropdown de informações da rodada
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
+  // 🎯 Estado para collapse do painel direito
+  const [rightPanelExpanded, setRightPanelExpanded] = useState(true);
   const rodadaDropdownRef = React.useRef(null);
 
   // 🎲 Estado para controlar solicitação de dados do Mestre
@@ -593,6 +595,7 @@ const EtapaJogoRPG = ({
 
   const toggleActions = () => {
     etapaJogoRPGViewModel.toggleActions();
+    setRightPanelExpanded(true);
   };
 
 
@@ -696,118 +699,142 @@ const EtapaJogoRPG = ({
       <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
 
       <div className="relative z-10 h-screen flex flex-col">
-        {/* Barra de Controle - Botões Fixos */}
-        <div className="absolute top-4 right-4 z-50 flex items-center space-x-3">
-          {/* Botão RODADA com dropdown */}
-          <div className="relative" ref={rodadaDropdownRef}>
-            <button
-              onClick={() => setShowRodadaInfo(!showRodadaInfo)}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
-            >
-              <span>📊</span>
-              <span>RODADA</span>
-            </button>
-            
-            {/* Dropdown de informações */}
-            {showRodadaInfo && (
-              <div className="absolute right-0 mt-2 w-80 glass p-4 rounded-xl border-2 border-purple-500/50 shadow-2xl animate-fade-in max-h-96 overflow-y-auto">
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-purple-300 text-xs font-semibold mb-1">História</p>
-                    <p className="text-white font-bold text-lg">{historia?.nome || historia?.titulo || 'Aventura RPG'}</p>
-                  </div>
-                  
-                  <div className="border-t border-purple-500/20 pt-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-purple-300 text-xs font-semibold mb-1">Rodada Atual</p>
-                        <p className="text-cyan-400 font-bold text-2xl">{socketState.rodadaAtual}</p>
-                      </div>
-                      <div>
-                        <p className="text-purple-300 text-xs font-semibold mb-1">Jogadores</p>
-                        <p className="text-cyan-400 font-bold text-2xl">{jogadoresExibir.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-purple-500/20 pt-3">
-                    <p className="text-purple-300 text-xs font-semibold mb-1">Status</p>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-green-300 text-sm font-semibold">
-                        {socketState.faseJogo === 'rolagem_inicial' ? 'Rolagem Inicial' : 
-                         socketState.faseJogo === 'rodada_em_andamento' ? 'Jogo Ativo' : 
-                         'Aguardando Início'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Ordem de Jogadores */}
-                  {socketState.ordemJogadores.length > 0 && (
-                    <div className="border-t border-purple-500/20 pt-3">
-                      <p className="text-purple-300 text-xs font-semibold mb-2">Ordem de Jogadores</p>
-                      <div className="space-y-2">
-                        {socketState.ordemJogadores.map((jogador, index) => (
-                          <div 
-                            key={jogador.userId}
-                            className={`flex items-center justify-between p-2 rounded-lg ${
-                              index === socketState.turnoAtual && socketState.faseJogo === 'rodada_em_andamento'
-                                ? 'bg-cyan-500/20 border border-cyan-400/50'
-                                : 'bg-white/5'
-                            }`}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <span className="text-purple-400 font-bold text-sm">#{index + 1}</span>
-                              <div>
-                                <p className="text-white text-sm font-semibold">{jogador.username}</p>
-                                {jogador.personagemNome && (
-                                  <p className="text-purple-300 text-xs">{jogador.personagemNome}</p>
-                                )}
-                              </div>
-                            </div>
-                            {index === socketState.turnoAtual && socketState.faseJogo === 'rodada_em_andamento' && (
-                              <span className="text-cyan-400 text-xs font-bold">⚡ TURNO</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+        {/* Barra de Controle - Toolbar Fixa */}
+        <div className="flex-shrink-0 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm border-b border-purple-500/20 z-40">
+          {/* Lado esquerdo: Info da fase e turno */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${
+                socketState.faseJogo === 'rodada_em_andamento' ? 'bg-green-400 animate-pulse' : 'bg-purple-400'
+              }`} />
+              <span className="text-sm font-semibold text-purple-200">
+                {socketState.faseJogo === 'rolagem_inicial' ? 'Rolagem Inicial' :
+                 socketState.faseJogo === 'rodada_em_andamento' ? `Rodada ${socketState.rodadaAtual}` :
+                 'Aguardando'}
+              </span>
+            </div>
+            {socketState.ehMeuTurno && socketState.faseJogo === 'rodada_em_andamento' && (
+              <span className="px-2 py-0.5 bg-cyan-500/20 border border-cyan-400/50 rounded-full text-cyan-300 text-xs font-bold animate-pulse">
+                Seu Turno
+              </span>
             )}
+            <span className="text-purple-500/50 text-xs hidden sm:inline">|</span>
+            <span className="text-purple-300/70 text-xs hidden sm:inline">{jogadoresExibir.length} jogadores</span>
           </div>
-          
-          {/* Botão FICHA */}
-          <button
-            onClick={handleVerMinhaFicha}
-            className="px-4 py-2 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2 bg-gradient-to-r from-cyan-600/70 to-purple-600/70 text-white border-2 border-cyan-300/40 hover:from-cyan-500/80 hover:to-purple-500/80"
-          >
-            <span>📜</span>
-            <span>MINHA FICHA</span>
-          </button>
-          
-          {/* Botão AÇÕES */}
-          <button
-            onClick={toggleActions}
-            className={`px-4 py-2 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2 ${
-              showActions 
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-2 border-purple-300' 
-                : 'bg-gradient-to-r from-purple-600/40 to-pink-600/40 text-purple-200 hover:from-purple-600/60 hover:to-pink-600/60 border-2 border-purple-500/30'
-            }`}
-          >
-            <span>⚡</span>
-            <span>AÇÕES</span>
-          </button>
-          
-          {/* Botão SAIR */}
-          <button
-            onClick={onSair}
-            className="px-4 py-2 bg-red-500/30 text-red-200 border-2 border-red-500/50 rounded-xl hover:bg-red-500/40 transition-all font-bold shadow-lg transform hover:scale-105 flex items-center space-x-2"
-          >
-            <span>🚪</span>
-            <span>SAIR</span>
-          </button>
+
+          {/* Lado direito: Botões de controle */}
+          <div className="flex items-center space-x-2">
+            {/* Botão RODADA com dropdown */}
+            <div className="relative" ref={rodadaDropdownRef}>
+              <button
+                onClick={() => setShowRodadaInfo(!showRodadaInfo)}
+                className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-lg font-bold shadow-md transition-all flex items-center space-x-1.5 text-sm"
+              >
+                <span>📊</span>
+                <span>RODADA</span>
+              </button>
+
+              {/* Dropdown de informações */}
+              {showRodadaInfo && (
+                <div className="absolute right-0 top-full mt-1 w-80 glass p-4 rounded-xl border-2 border-purple-500/50 shadow-2xl animate-scale-in max-h-96 overflow-y-auto z-50">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-purple-300 text-xs font-semibold mb-1">Historia</p>
+                      <p className="text-white font-bold text-lg">{historia?.nome || historia?.titulo || 'Aventura RPG'}</p>
+                    </div>
+
+                    <div className="border-t border-purple-500/20 pt-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-purple-300 text-xs font-semibold mb-1">Rodada Atual</p>
+                          <p className="text-cyan-400 font-bold text-2xl">{socketState.rodadaAtual}</p>
+                        </div>
+                        <div>
+                          <p className="text-purple-300 text-xs font-semibold mb-1">Jogadores</p>
+                          <p className="text-cyan-400 font-bold text-2xl">{jogadoresExibir.length}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-purple-500/20 pt-3">
+                      <p className="text-purple-300 text-xs font-semibold mb-1">Status</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        <span className="text-green-300 text-sm font-semibold">
+                          {socketState.faseJogo === 'rolagem_inicial' ? 'Rolagem Inicial' :
+                           socketState.faseJogo === 'rodada_em_andamento' ? 'Jogo Ativo' :
+                           'Aguardando Inicio'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Ordem de Jogadores */}
+                    {socketState.ordemJogadores.length > 0 && (
+                      <div className="border-t border-purple-500/20 pt-3">
+                        <p className="text-purple-300 text-xs font-semibold mb-2">Ordem de Jogadores</p>
+                        <div className="space-y-2">
+                          {socketState.ordemJogadores.map((jogador, index) => (
+                            <div
+                              key={jogador.userId}
+                              className={`flex items-center justify-between p-2 rounded-lg ${
+                                index === socketState.turnoAtual && socketState.faseJogo === 'rodada_em_andamento'
+                                  ? 'bg-cyan-500/20 border border-cyan-400/50'
+                                  : 'bg-white/5'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="text-purple-400 font-bold text-sm">#{index + 1}</span>
+                                <div>
+                                  <p className="text-white text-sm font-semibold">{jogador.username}</p>
+                                  {jogador.personagemNome && (
+                                    <p className="text-purple-300 text-xs">{jogador.personagemNome}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {index === socketState.turnoAtual && socketState.faseJogo === 'rodada_em_andamento' && (
+                                <span className="text-cyan-400 text-xs font-bold">TURNO</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Botão FICHA */}
+            <button
+              onClick={handleVerMinhaFicha}
+              className="px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center space-x-1.5 text-sm bg-gradient-to-r from-cyan-600/70 to-purple-600/70 text-white border border-cyan-300/40 hover:from-cyan-500/80 hover:to-purple-500/80"
+            >
+              <span>📜</span>
+              <span>FICHA</span>
+            </button>
+
+            {/* Botão AÇÕES */}
+            <button
+              onClick={toggleActions}
+              className={`px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center space-x-1.5 text-sm ${
+                showActions
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border border-purple-300'
+                  : 'bg-gradient-to-r from-purple-600/40 to-pink-600/40 text-purple-200 hover:from-purple-600/60 hover:to-pink-600/60 border border-purple-500/30'
+              }`}
+            >
+              <span>⚡</span>
+              <span>ACOES</span>
+            </button>
+
+            {/* Botão SAIR */}
+            <button
+              onClick={onSair}
+              className="px-3 py-1.5 bg-red-500/30 text-red-200 border border-red-500/50 rounded-lg hover:bg-red-500/40 transition-all font-bold shadow-md flex items-center space-x-1.5 text-sm"
+            >
+              <span>🚪</span>
+              <span>SAIR</span>
+            </button>
+          </div>
         </div>
 
         {/* Main Game Layout */}
@@ -880,26 +907,62 @@ const EtapaJogoRPG = ({
             />
           </div>
 
-          {/* Painel Lateral Direito - Ações RPG */}
+          {/* Painel Lateral Direito - Ações RPG (colapsável) */}
           {showActions && (
-            <div className="w-80 bg-black/20 backdrop-blur-sm border-l border-purple-500/20 p-4 overflow-y-auto">
-              <div className="space-y-4">
-                <h3 className="text-white font-bold text-lg">🎲 Ações RPG</h3>
-                <RPGActions
-                  onRollDice={handleRolarDados}
-                  onExecuteAction={handleExecutarAcao}
-                />
-                
-                {/* Status do personagem */}
-                <div className="border-t border-purple-500/20 pt-4">
-                  <h4 className="text-white font-semibold mb-2">📊 Status</h4>
-                  <StatusPersonagem
-                    personagemSelecionado={infoPersonagem}
-                    onRolarDados={handleRolarDados}
-                    compact={true}
-                  />
-                </div>
+            <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-l border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden ${
+              rightPanelExpanded ? 'w-80' : 'w-16'
+            }`}>
+              {/* Header com botão de collapse */}
+              <div className={`flex items-center mb-3 ${rightPanelExpanded ? 'justify-between' : 'justify-center'}`}>
+                {rightPanelExpanded && (
+                  <h3 className="text-white font-bold text-lg">Acoes RPG</h3>
+                )}
+                <button
+                  onClick={() => setRightPanelExpanded(!rightPanelExpanded)}
+                  className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-all flex-shrink-0"
+                  title={rightPanelExpanded ? 'Retrair painel' : 'Expandir painel'}
+                >
+                  <span className="text-lg">{rightPanelExpanded ? '▶' : '◀'}</span>
+                </button>
               </div>
+
+              {/* Conteúdo expandido */}
+              {rightPanelExpanded && (
+                <div className="space-y-4">
+                  <RPGActions
+                    onRollDice={handleRolarDados}
+                    onExecuteAction={handleExecutarAcao}
+                  />
+                  <div className="border-t border-purple-500/20 pt-4">
+                    <h4 className="text-white font-semibold mb-2">Status</h4>
+                    <StatusPersonagem
+                      personagemSelecionado={infoPersonagem}
+                      onRolarDados={handleRolarDados}
+                      compact={true}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Versão compacta quando colapsado */}
+              {!rightPanelExpanded && (
+                <div className="flex flex-col items-center space-y-3 mt-4">
+                  <button
+                    onClick={() => setRightPanelExpanded(true)}
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 flex items-center justify-center border border-purple-500/30 hover:bg-purple-500/40 transition-all"
+                    title="Acoes RPG"
+                  >
+                    <span className="text-lg">⚔️</span>
+                  </button>
+                  <button
+                    onClick={() => setRightPanelExpanded(true)}
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500/30 to-purple-500/30 flex items-center justify-center border border-cyan-500/30 hover:bg-cyan-500/40 transition-all"
+                    title="Status"
+                  >
+                    <span className="text-lg">📊</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

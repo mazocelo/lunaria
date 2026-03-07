@@ -8,10 +8,12 @@ import ParticlesBackground from './components/ParticlesBackground.jsx'
 import LoadingSpinner from './components/LoadingSpinner'
 import NotificationsModal from './components/NotificationsModal'
 import { AuthContainer } from './components/Auth'
+import ResetPasswordPage from './Pages/ResetPassword'
 import AppRoutes from './routes.jsx'
 
 // 🚀 STORE INITIALIZATION - Cache de dados estáticos em background
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { initializeAllStores } from './store/index.js'
 import { notificationService } from './services'
 
@@ -20,6 +22,7 @@ function AppContent() {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, loading, logout } = useAuth();
   const { showSidebar } = useLayout();
+  const location = useLocation();
   
   // Estado local para notificações
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -77,6 +80,11 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  // Rota pública: redefinição de senha (acessível sem autenticação)
+  if (location.pathname === '/reset-password') {
+    return <ResetPasswordPage />;
   }
 
   // Mostrar tela de login se não autenticado

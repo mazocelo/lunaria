@@ -1,11 +1,12 @@
 import React from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
 
-const InputSimples = ({ 
-    label, 
-    type = "text", 
-    value, 
-    onChange, 
+const InputSimples = ({
+    label,
+    type = "text",
+    value,
+    onChange,
+    onBlur,
     htmlFor,
     placeholder,
     required = false,
@@ -15,6 +16,7 @@ const InputSimples = ({
     name,
     min,
     max,
+    step,
     id,
     autoComplete
 }) => {
@@ -55,12 +57,14 @@ const InputSimples = ({
                 type={type}
                 value={value}
                 onChange={onChange}
+                onBlur={onBlur}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 required={required}
                 disabled={disabled}
                 min={min}
                 max={max}
+                step={step}
                 autoComplete={autoComplete}
                 className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all
                     ${isLight ? 'bg-white/20 border-slate-400 text-slate-100' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}

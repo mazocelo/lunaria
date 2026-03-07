@@ -231,8 +231,8 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
   };
 
   return (
-    <div className="flex-1 px-4 pt-6 pb-6 overflow-y-auto">
-      <div className="w-full">
+    <div className="flex-1 px-6 pt-6 pb-6 overflow-y-auto">
+      <div className="w-full max-w-4xl mx-auto">
         <div className="space-y-5 mb-6">
           {mensagens.length > 0 ? (
             mensagens.map((mensagem, index) => renderMensagem(mensagem, index))

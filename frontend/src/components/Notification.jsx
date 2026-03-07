@@ -50,7 +50,7 @@ const Notification = ({
     };
 
     return (
-        <div className={`fixed top-4 right-4 z-50 animate-slide-in-right`}>
+        <div className={`fixed top-4 right-4 z-50 animate-slide-in-right`} role="alert" aria-live="assertive" aria-atomic="true">
             <div className={`p-4 rounded-lg border backdrop-blur-lg ${typeClasses[type]} max-w-sm ${
                 isLight ? 'glass-light' : 'glass'
             }`}>

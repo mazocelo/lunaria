@@ -4,6 +4,11 @@
 const Equipamento = (prisma) => {
   const model = prisma.equipamentos;
 
+  const includeRels = {
+    raridade_rel: true,
+    categoria_rel: true,
+  };
+
   // Métodos customizados
   const EquipamentoMethods = {
     // Buscar equipamento com relacionamentos
@@ -11,9 +16,10 @@ const Equipamento = (prisma) => {
       return await model.findUnique({
         where: { id },
         include: {
+          ...includeRels,
           personagem_equipamento: {
             include: {
-              personagem: true
+              personagens: true
             }
           }
         }
@@ -23,11 +29,8 @@ const Equipamento = (prisma) => {
     // Buscar equipamentos por tipo
     async findByTipo(tipo) {
       return await model.findMany({
-        where: {
-          tipo: {
-            has: tipo
-          }
-        },
+        where: { tipo: { has: tipo } },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -35,27 +38,26 @@ const Equipamento = (prisma) => {
     // Buscar equipamentos por elemento
     async findByElemento(elemento) {
       return await model.findMany({
-        where: {
-          elemento: {
-            has: elemento
-          }
-        },
+        where: { elemento: { has: elemento } },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
-    // Buscar por raridade
-    async findByRaridade(raridade) {
+    // Buscar por raridade (by ID)
+    async findByRaridade(raridadeId) {
       return await model.findMany({
-        where: { raridade },
+        where: { raridade_id: raridadeId },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
-    // Buscar por categoria
-    async findByCategoria(categoria) {
+    // Buscar por categoria (by ID)
+    async findByCategoria(categoriaId) {
       return await model.findMany({
-        where: { categoria },
+        where: { categoria_id: categoriaId },
+        include: includeRels,
         orderBy: { numero: 'asc' }
       });
     },
@@ -63,28 +65,31 @@ const Equipamento = (prisma) => {
     // Buscar por numero
     async findByNumero(numero) {
       return await model.findFirst({
-        where: { numero }
+        where: { numero },
+        include: includeRels,
       });
     },
 
     // Buscar por nome exato
     async findByNome(nome) {
       return await model.findFirst({
-        where: { nome: { equals: nome, mode: 'insensitive' } }
+        where: { nome: { equals: nome, mode: 'insensitive' } },
+        include: includeRels,
       });
     },
 
-    // Buscar equipamentos por nome
+    // Buscar equipamentos por nome/descricao
     async search(termo) {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } },
-            { categoria: { contains: termo, mode: 'insensitive' } },
-            { raridade: { contains: termo, mode: 'insensitive' } }
+            { raridade_rel: { nome: { contains: termo, mode: 'insensitive' } } },
+            { categoria_rel: { nome: { contains: termo, mode: 'insensitive' } } },
           ]
         },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -92,11 +97,8 @@ const Equipamento = (prisma) => {
     // Buscar por propriedade
     async findByPropriedade(propriedade) {
       return await model.findMany({
-        where: {
-          propriedades: {
-            has: propriedade
-          }
-        },
+        where: { propriedades: { has: propriedade } },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -104,9 +106,8 @@ const Equipamento = (prisma) => {
     // Buscar equipamentos com cargas
     async findComCargas() {
       return await model.findMany({
-        where: {
-          cargas: { not: null }
-        },
+        where: { cargas: { not: null } },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -120,7 +121,8 @@ const Equipamento = (prisma) => {
           elemento: data.elemento || [],
           tipo: data.tipo || [],
           propriedades: data.propriedades || []
-        }
+        },
+        include: includeRels,
       });
     },
 
@@ -128,7 +130,8 @@ const Equipamento = (prisma) => {
     async update(id, data) {
       return await prisma.equipamentos.update({
         where: { id },
-        data
+        data,
+        include: includeRels,
       });
     },
 
@@ -142,6 +145,7 @@ const Equipamento = (prisma) => {
     // Listar todos os equipamentos
     async findAll() {
       return await model.findMany({
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -149,7 +153,8 @@ const Equipamento = (prisma) => {
     // Buscar por ID
     async findById(id) {
       return await model.findUnique({
-        where: { id }
+        where: { id },
+        include: includeRels,
       });
     },
 
@@ -163,4 +168,4 @@ const Equipamento = (prisma) => {
   return Object.assign(model, EquipamentoMethods);
 };
 
-export default Equipamento; 
+export default Equipamento;

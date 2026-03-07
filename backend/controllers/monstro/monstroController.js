@@ -15,13 +15,13 @@ class MonstroController {
     try {
       console.log('📋 Listando monstros');
 
-      const { tipo, raridade, nivel, tema, limit = 50, offset = 0 } = req.query;
+      const { tipo, raridade_id, nivel, tema, limit = 50, offset = 0 } = req.query;
 
       let monstros;
       if (tipo) {
         monstros = await db.Monstro.findByTipo(tipo);
-      } else if (raridade) {
-        monstros = await db.Monstro.findByRaridade(raridade);
+      } else if (raridade_id) {
+        monstros = await db.Monstro.findByRaridade(parseInt(raridade_id));
       } else if (nivel) {
         const n = parseInt(nivel);
         monstros = await db.Monstro.findByNivelRange(n, n);
@@ -150,7 +150,7 @@ class MonstroController {
       console.log('Criando novo monstro');
 
       const {
-        nome, descricao, tipo, raridade, nivel_min, nivel_max,
+        nome, descricao, tipo, raridade_id, nivel_min, nivel_max,
         hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma,
         ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base
       } = req.body;
@@ -165,7 +165,7 @@ class MonstroController {
       const dados = { nome };
       if (descricao !== undefined) dados.descricao = descricao;
       if (tipo !== undefined) dados.tipo = tipo;
-      if (raridade !== undefined) dados.raridade = raridade;
+      if (raridade_id !== undefined) dados.raridade_id = parseInt(raridade_id);
       if (nivel_min !== undefined) dados.nivel_min = parseInt(nivel_min);
       if (nivel_max !== undefined) dados.nivel_max = parseInt(nivel_max);
       if (hp_base !== undefined) dados.hp_base = parseInt(hp_base);
@@ -224,7 +224,7 @@ class MonstroController {
       }
 
       const {
-        nome, descricao, tipo, raridade, nivel_min, nivel_max,
+        nome, descricao, tipo, raridade_id, nivel_min, nivel_max,
         hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma,
         ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base
       } = req.body;
@@ -233,7 +233,7 @@ class MonstroController {
       if (nome !== undefined) dadosAtualizacao.nome = nome;
       if (descricao !== undefined) dadosAtualizacao.descricao = descricao;
       if (tipo !== undefined) dadosAtualizacao.tipo = tipo;
-      if (raridade !== undefined) dadosAtualizacao.raridade = raridade;
+      if (raridade_id !== undefined) dadosAtualizacao.raridade_id = parseInt(raridade_id);
       if (nivel_min !== undefined) dadosAtualizacao.nivel_min = parseInt(nivel_min);
       if (nivel_max !== undefined) dadosAtualizacao.nivel_max = parseInt(nivel_max);
       if (hp_base !== undefined) dadosAtualizacao.hp_base = parseInt(hp_base);

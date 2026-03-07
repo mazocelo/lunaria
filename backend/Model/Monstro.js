@@ -5,17 +5,21 @@
 const Monstro = (prisma) => {
   const model = prisma.monstros;
 
+  const includeRels = { raridade_rel: true };
+
   const MonstroMethods = {
     // Buscar por ID
     async findById(id) {
       return await model.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: parseInt(id) },
+        include: includeRels,
       });
     },
 
     // Listar todos
     async findAll() {
       return await model.findMany({
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -28,10 +32,11 @@ const Monstro = (prisma) => {
       });
     },
 
-    // Buscar por raridade
-    async findByRaridade(raridade) {
+    // Buscar por raridade (by ID)
+    async findByRaridade(raridadeId) {
       return await model.findMany({
-        where: { raridade },
+        where: { raridade_id: raridadeId },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },

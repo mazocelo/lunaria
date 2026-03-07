@@ -267,6 +267,40 @@ function arrayToSQL(arr) {
   return "ARRAY[" + arr.map(s => escapeSQL(s)).join(', ') + "]::text[]";
 }
 
+// Carregar mapas de IDs (gerados por seed_raridades_categorias.cjs)
+const rarIdMap = JSON.parse(fs.readFileSync(__dirname + '/raridade_map.json', 'utf8'));
+const catIdMap = JSON.parse(fs.readFileSync(__dirname + '/categoria_map.json', 'utf8'));
+
+// Mapear categoria JSON key -> ID
+const catKeyToId = {
+  'espadasLaminas': catIdMap['Espadas e Laminas'],
+  'machados': catIdMap['Machados, Martelos e Contundentes'],
+  'lancas': catIdMap['Lancas, Alabardas e Armas de Haste'],
+  'alcance': catIdMap['Armas de Alcance'],
+  'armaduras': catIdMap['Armaduras e Escudos'],
+  'aneis': catIdMap['Aneis Magicos'],
+  'amuletos': catIdMap['Amuletos e Colares'],
+  'cajadosVarinhas': catIdMap['Cajados, Varinhas e Orbes'],
+  'pocoes': catIdMap['Pocoes e Elixires'],
+  'itensDiversos': catIdMap['Itens de Uso e Ferramentas Magicas'],
+  'artefatos': catIdMap['Artefatos Lendarios'],
+  'miscMagico': catIdMap['Miscelanea Magica']
+};
+
+function mapRaridadeId(rarStr) {
+  if (!rarStr) return rarIdMap['comum'];
+  const lower = rarStr.toLowerCase().trim();
+  if (rarIdMap[lower]) return rarIdMap[lower];
+  if (lower.includes('artefato')) return rarIdMap['artefato'];
+  if (lower.includes('muito raro')) return rarIdMap['muito raro'];
+  if (lower.includes('raro') && (lower.includes('incomum') || lower.includes('lend'))) return rarIdMap['variavel'];
+  if (lower.includes('lend')) return rarIdMap['lendario'];
+  if (lower.includes('raro')) return rarIdMap['raro'];
+  if (lower.includes('incomum')) return rarIdMap['incomum'];
+  if (lower.includes('varia')) return rarIdMap['variavel'];
+  return rarIdMap['comum'];
+}
+
 // Processar todos os itens
 const rows = [];
 let stats = { bonus: 0, dano: 0, elem: 0, req: 0, props: 0, cargas: 0, usos: 0, vinculo: 0 };
@@ -291,23 +325,8 @@ itens.forEach(item => {
   if (usos) stats.usos++;
   if (vinculo) stats.vinculo++;
 
-  // Mapear categoria
-  const catMap = {
-    'espadasLaminas': 'Espadas e Laminas',
-    'machados': 'Machados, Martelos e Contundentes',
-    'lancas': 'Lancas, Alabardas e Armas de Haste',
-    'alcance': 'Armas de Alcance',
-    'armaduras': 'Armaduras e Escudos',
-    'aneis': 'Aneis Magicos',
-    'amuletos': 'Amuletos e Colares',
-    'cajadosVarinhas': 'Cajados, Varinhas e Orbes',
-    'pocoes': 'Pocoes e Elixires',
-    'itensDiversos': 'Itens de Uso e Ferramentas Magicas',
-    'artefatos': 'Artefatos Lendarios',
-    'miscMagico': 'Miscelanea Magica'
-  };
-
-  const categoria = catMap[item.categoria_id] || item.categoria_nome;
+  const raridadeId = mapRaridadeId(item.raridade);
+  const categoriaId = catKeyToId[item.categoria_id] || catIdMap['Miscelanea Magica'];
 
   const values = [
     item.id,                                          // numero
@@ -318,10 +337,10 @@ itens.forEach(item => {
     dano ? escapeSQL(dano) : 'NULL',                  // dano_base
     arrayToSQL(elementos),                            // elemento[]
     jsonToSQL(requisitos),                            // requisitos
-    escapeSQL(item.raridade),                         // raridade
+    raridadeId,                                       // raridade_id
     escapeSQL(item.origem_lore),                      // origem_lore
     jsonToSQL(vinculo),                               // vinculo
-    escapeSQL(categoria),                             // categoria
+    categoriaId,                                      // categoria_id
     arrayToSQL(propriedades),                         // propriedades[]
     cargas !== null ? cargas : 'NULL',                // cargas
     usos !== null ? usos : 'NULL'                     // usos_por_dia
@@ -362,8 +381,8 @@ DELETE FROM public.equipamentos;
 -- Inserir todos os equipamentos
 INSERT INTO public.equipamentos (
   numero, nome, descricao, tipo, bonus, dano_base, elemento,
-  requisitos, raridade, origem_lore, vinculo,
-  categoria, propriedades, cargas, usos_por_dia
+  requisitos, raridade_id, origem_lore, vinculo,
+  categoria_id, propriedades, cargas, usos_por_dia
 ) VALUES
 `;
 

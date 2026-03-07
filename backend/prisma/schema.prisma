@@ -39,6 +39,23 @@ model desvantagens {
   @@index([usar], map: "idx_desvantagem_usar")
 }
 
+model raridades {
+  id           Int            @id @default(autoincrement())
+  nome         String         @unique @db.VarChar(50)
+  cor          String?        @db.VarChar(30)
+  ordem        Int            @default(0)
+  equipamentos equipamentos[]
+  monstros     monstros[]
+}
+
+model categorias_equipamento {
+  id           Int            @id @default(autoincrement())
+  nome         String         @unique @db.VarChar(100)
+  icone        String?        @db.VarChar(10)
+  ordem        Int            @default(0)
+  equipamentos equipamentos[]
+}
+
 model equipamentos {
   id                     Int                      @id(map: "equipamento_pkey") @default(autoincrement())
   nome                   String
@@ -49,17 +66,19 @@ model equipamentos {
   elemento               String[]                 @default([])
   requisitos             Json?
   numero                 Int?
-  raridade               String                   @default("Comum") @db.VarChar(50)
+  raridade_id            Int?
   origem_lore            String?
   vinculo                Json?
-  categoria              String                   @default("Miscelanea Magica") @db.VarChar(100)
+  categoria_id           Int?
   propriedades           String[]                 @default([])
   cargas                 Int?
   usos_por_dia           Int?
+  raridade_rel           raridades?               @relation(fields: [raridade_id], references: [id])
+  categoria_rel          categorias_equipamento?  @relation(fields: [categoria_id], references: [id])
   personagem_equipamento personagem_equipamento[]
 
-  @@index([categoria], map: "idx_equipamento_categoria")
-  @@index([raridade], map: "idx_equipamento_raridade")
+  @@index([categoria_id], map: "idx_equipamento_categoria")
+  @@index([raridade_id], map: "idx_equipamento_raridade")
   @@index([numero], map: "idx_equipamento_numero")
 }
 
@@ -250,32 +269,33 @@ model mestres {
 }
 
 model monstros {
-  id             Int       @id @default(autoincrement())
-  nome           String    @unique @db.VarChar(150)
+  id             Int        @id @default(autoincrement())
+  nome           String     @unique @db.VarChar(150)
   descricao      String?
-  tipo           String[]  @default(["besta"]) @db.VarChar(50)
-  raridade       String    @default("comum") @db.VarChar(20)
-  nivel_min      Int       @default(1)
-  nivel_max      Int       @default(10)
-  hp_base        Int       @default(15)
-  forca          Int       @default(10)
-  inteligencia   Int       @default(8)
-  destreza       Int       @default(10)
-  constituicao   Int       @default(10)
-  agilidade      Int       @default(10)
-  carisma        Int       @default(5)
-  ataque_base    Int       @default(2)
-  defesa_base    Int       @default(10)
-  dano_base      String    @default("1d6") @db.VarChar(20)
-  habilidades    Json?     @default("[]")
-  elemento       String[]  @default([]) @db.VarChar(50)
-  temas          String[]  @default([]) @db.VarChar(50)
-  xp_base        Int       @default(50)
-  criado_em      DateTime? @default(now()) @db.Timestamptz(6)
-  atualizado_em  DateTime? @db.Timestamptz(6)
+  tipo           String[]   @default(["besta"]) @db.VarChar(50)
+  raridade_id    Int?
+  nivel_min      Int        @default(1)
+  nivel_max      Int        @default(10)
+  hp_base        Int        @default(15)
+  forca          Int        @default(10)
+  inteligencia   Int        @default(8)
+  destreza       Int        @default(10)
+  constituicao   Int        @default(10)
+  agilidade      Int        @default(10)
+  carisma        Int        @default(5)
+  ataque_base    Int        @default(2)
+  defesa_base    Int        @default(10)
+  dano_base      String     @default("1d6") @db.VarChar(20)
+  habilidades    Json?      @default("[]")
+  elemento       String[]   @default([]) @db.VarChar(50)
+  temas          String[]   @default([]) @db.VarChar(50)
+  xp_base        Int        @default(50)
+  criado_em      DateTime?  @default(now()) @db.Timestamptz(6)
+  atualizado_em  DateTime?  @db.Timestamptz(6)
+  raridade_rel   raridades? @relation(fields: [raridade_id], references: [id])
 
   @@index([nivel_min, nivel_max], map: "idx_monstro_nivel")
-  @@index([raridade], map: "idx_monstro_raridade")
+  @@index([raridade_id], map: "idx_monstro_raridade")
 }
 
 model sessoes_jogo {

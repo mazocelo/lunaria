@@ -29,7 +29,7 @@ const Sidebar = () => {
         {
             path: '/personagens',
             label: 'Personagens',
-            icon: '⚔️',
+            icon: '🧝',
             description: 'Crie e edite personagens'
         }
     ];

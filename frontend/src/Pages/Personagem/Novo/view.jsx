@@ -41,7 +41,7 @@ const NovoPersonagemView = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">⚔️</span>
+          <span className="text-3xl">🧝</span>
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Criar Novo Personagem
@@ -313,7 +313,7 @@ const NovoPersonagemView = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <span>⚔️</span>
+                <span>🧝</span>
                 <span>Criar Personagem</span>
               </div>
             )}

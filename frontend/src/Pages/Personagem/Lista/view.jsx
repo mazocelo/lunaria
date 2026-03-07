@@ -59,7 +59,7 @@ const PersonagemListaView = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <span className="text-2xl">⚔️</span>
+                <span className="text-2xl">🧝</span>
               </div>
               <div className="text-slate-300 font-modern">Carregando personagens...</div>
             </div>
@@ -239,7 +239,7 @@ const PersonagemListaView = () => {
         <StatCard
           title="Total de Personagens"
           value={vm.estatisticas?.total || 0}
-          icon="⚔️"
+          icon="🧝"
           variant="primary"
         />
 
@@ -276,7 +276,7 @@ const PersonagemListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhum personagem encontrado"
-        emptyIcon="⚔️"
+        emptyIcon="🧝"
         hoverable={true}
         selectable={true}
         bulkActions={[

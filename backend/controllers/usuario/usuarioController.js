@@ -414,7 +414,13 @@ class UsuarioController {
               descricao: true,
               temas: true,
               maximo_de_participantes: true,
-              prologo: true
+              prologo: true,
+              usuarios: {
+                select: {
+                  id: true,
+                  nome: true
+                }
+              }
             }
           },
           usuarios: {
@@ -449,10 +455,9 @@ class UsuarioController {
             id: convite.id,
             tipo: 'convite_historia',
             historia: convite.historias,
-            remetente: {
-              id: convite.historias.usuarios?.id,
-              nome: convite.historias.usuarios?.nome
-            },
+            remetente: convite.historias.usuarios
+              ? { id: convite.historias.usuarios.id, nome: convite.historias.usuarios.nome }
+              : { id: null, nome: 'Desconhecido' },
             status: convite.status,
             criado_em: convite.criado_em
           })),

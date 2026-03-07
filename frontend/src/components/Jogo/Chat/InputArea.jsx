@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageTypeSelector } from '../../MessageTypeSelector';
 import { inputAreaViewModel } from '../../../viewmodels/Jogo';
 import CooldownRoleplay from '../Gameplay/CooldownRoleplay';
 import { TIMEOUTS } from '../../../constants/game';
@@ -37,10 +36,6 @@ const InputArea = ({
   // ⏳ Estado de loading para botão iniciar turno
   const [iniciandoTurno, setIniciandoTurno] = useState(false);
 
-  // 🎲 Popover de dados
-  const [showDicePopover, setShowDicePopover] = useState(false);
-  const dicePopoverRef = useRef(null);
-
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
     const unsubscribe = inputAreaViewModel.subscribe(setViewModelState);
@@ -48,7 +43,7 @@ const InputArea = ({
   }, []);
 
   // 📊 DESTRUCTURING DO ESTADO
-  const { messageType, isSending } = viewModelState;
+  const { isSending } = viewModelState;
 
   // 🚀 INICIALIZAÇÃO
   useEffect(() => {
@@ -59,24 +54,6 @@ const InputArea = ({
       inputAreaViewModel.destroy();
     };
   }, []);
-
-  // 🎲 Click-outside para fechar popover de dados
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dicePopoverRef.current && !dicePopoverRef.current.contains(event.target)) {
-        setShowDicePopover(false);
-      }
-    };
-    if (showDicePopover) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showDicePopover]);
-
-  // 🎯 HANDLERS: Usando ViewModel
-  const handleMessageTypeChange = (type) => {
-    inputAreaViewModel.setMessageType(type);
-  };
 
   const enviarMensagemComTipo = async () => {
     const sucesso = await inputAreaViewModel.enviarMensagem(mensagemAtual, onEnviarMensagem);
@@ -101,7 +78,6 @@ const InputArea = ({
   // 📋 HELPERS: Via ViewModel
   const placeholder = inputAreaViewModel.getPlaceholder();
   const connectionStatus = inputAreaViewModel.getConnectionStatus();
-  const messageTypeOptions = inputAreaViewModel.getMessageTypeOptions();
 
   // 🎲 CONTROLE DE FASE
   const inputDesabilitado = 
@@ -139,69 +115,8 @@ const InputArea = ({
     <div className="px-4 py-4 bg-black/30 backdrop-blur-sm border-t-2 border-purple-500/30 shadow-2xl">
       <div className="w-full space-y-3">
         
-        {/* LINHA 1: Message Type Selector + Status/Avisos */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Seletor de tipo de mensagem - à esquerda */}
-          <div className="flex items-center gap-3">
-            {faseJogo === 'rodada_em_andamento' && (
-              <div className="bg-black/50 backdrop-blur-sm border-2 border-purple-500/40 rounded-xl px-4 py-2.5 shadow-lg">
-                <MessageTypeSelector 
-                  selectedType={messageType}
-                  onTypeChange={handleMessageTypeChange}
-                />
-              </div>
-            )}
-            
-            {/* Botão de Dados RPG - popover (esconde quando Mestre solicitou dado específico) */}
-            {faseJogo === 'rodada_em_andamento' && !dadosSolicitados && (
-              <div className="relative" ref={dicePopoverRef}>
-                <button
-                  onClick={() => setShowDicePopover(!showDicePopover)}
-                  className={`px-3 py-2.5 text-xl rounded-xl font-bold transition-all shadow-md bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 ${
-                    showDicePopover ? 'ring-2 ring-purple-300' : ''
-                  }`}
-                  title="Rolar Dados"
-                >
-                  🎲
-                </button>
-
-                {showDicePopover && (
-                  <div className="absolute bottom-full left-0 mb-2 p-3 glass rounded-xl border-2 border-purple-500/50 shadow-2xl animate-scale-in z-50 min-w-[240px]">
-                    <p className="text-purple-300 text-xs font-semibold mb-2">Rolar Dados</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { tipo: 'd4', emoji: '🔺', classes: 'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600' },
-                        { tipo: 'd6', emoji: '🎲', classes: 'bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600' },
-                        { tipo: 'd8', emoji: '🔶', classes: 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-600' },
-                        { tipo: 'd10', emoji: '🔟', classes: 'bg-gradient-to-br from-yellow-500 to-yellow-700 hover:from-yellow-400 hover:to-yellow-600' },
-                        { tipo: 'd12', emoji: '🌟', classes: 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600' },
-                        { tipo: 'd20', emoji: '⭐', classes: 'bg-gradient-to-br from-cyan-500 to-cyan-700 hover:from-cyan-400 hover:to-cyan-600' },
-                        { tipo: 'd100', emoji: '💯', classes: 'bg-gradient-to-br from-pink-500 to-pink-700 hover:from-pink-400 hover:to-pink-600' }
-                      ].map((dado) => (
-                        <button
-                          key={dado.tipo}
-                          onClick={() => {
-                            onRolarDados && onRolarDados(dado.tipo, '');
-                            setShowDicePopover(false);
-                          }}
-                          disabled={connectionStatus.status === 'error'}
-                          className={`px-2 py-2 rounded-lg font-bold transition-all shadow-md hover:shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${dado.classes}`}
-                          title={`Rolar ${dado.tipo.toUpperCase()}`}
-                        >
-                          <div className="flex flex-col items-center">
-                            <span className="text-lg">{dado.emoji}</span>
-                            <span className="text-[10px] text-white/80 mt-0.5">{dado.tipo}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Mensagens de status/avisos - à direita */}
+        {/* LINHA 1: Status/Avisos */}
+        <div className="flex items-center justify-end gap-4">
           <div className="flex-1 flex justify-end">
             {/* Cooldown de mensagens roleplay */}
             {mostrarCooldown && (

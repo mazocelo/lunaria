@@ -450,6 +450,34 @@ export const createSocketActions = (set, get) => ({
       console.warn(`⚠️ A sessão foi resetada pelo dono da história: ${data.historiaNome}`);
     });
 
+    socket.on('sessao_encerrada', (data) => {
+      console.log('⛔ Sessão encerrada pelo administrador:', data);
+
+      set({
+        faseJogo: 'aguardando_inicio',
+        rodadaAtual: 1,
+        turnoAtual: 0,
+        jogadorAtual: null,
+        ordemJogadores: [],
+        ordemDefinida: false,
+        resultadosDados: {},
+        ehMeuTurno: false,
+        turnoIniciado: false,
+        cooldownRoleplay: 0,
+        session: null,
+        combateAtivo: false,
+        combateMonstros: [],
+        combateJogadores: {},
+        combateRodada: 0,
+        combateResultado: null,
+        combateLog: [],
+        combateXpGanho: 0
+      });
+
+      get().log('Sessão encerrada', { salaId: data.salaId, success: true });
+      console.warn(`⚠️ Sessão encerrada: ${data.motivo}`);
+    });
+
     // ===== LISTENERS DO SISTEMA DE COMBATE =====
 
     socket.on('combate_iniciado', (data) => {

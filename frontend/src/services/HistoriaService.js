@@ -200,6 +200,27 @@ export class HistoriaService {
     }
   }
 
+  async encerrarSessao(historiaId) {
+    try {
+      const response = await this.apiClient.delete(`/jogo/encerrar/${historiaId}`);
+
+      if (response.data) {
+        if (response.data.success !== undefined) {
+          if (response.data.success) {
+            return response.data;
+          } else {
+            throw new Error(response.data?.error || response.data?.message || 'Erro desconhecido');
+          }
+        }
+        return response.data;
+      }
+
+      return response;
+    } catch (error) {
+      throw new Error(`Erro ao encerrar sessão: ${error.message}`);
+    }
+  }
+
   /**
    * Busca histórias por tema
    * @param {number} temaId - ID do tema

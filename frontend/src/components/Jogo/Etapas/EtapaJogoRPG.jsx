@@ -611,6 +611,78 @@ const EtapaJogoRPG = ({
     onAdicionarMensagem(mensagemAcao);
   };
 
+  const handleUsarHabilidade = async (vantagem) => {
+    try {
+      const { getSocketStoreAPI } = await import('../../../store/index.js');
+      const socketStore = getSocketStoreAPI();
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const roomId = `historia_${historia?.id}`;
+
+      const descricao = `[USA HABILIDADE: ${vantagem.nome}]${vantagem.dano_base ? ` Dano base: ${vantagem.dano_base}` : ''}${vantagem.elemento?.length ? ` Elemento: ${vantagem.elemento.join(', ')}` : ''} - ${vantagem.descricao || ''}`;
+
+      setAguardandoMestre(true);
+      onAdicionarMensagem({
+        id: `loading_${Date.now()}`,
+        userId: 'sistema',
+        username: 'Sistema',
+        message: '⏳ O Mestre está pensando...',
+        tipo: 'loading',
+        timestamp: Date.now()
+      });
+
+      socketStore.safeEmit('mensagem_para_mestre', {
+        roomId,
+        userId: String(user.id),
+        username: user.nome || user.name,
+        mensagem: descricao,
+        personagem: {
+          nome: personagemSelecionado?.nome || 'Aventureiro',
+          classe: personagemSelecionado?.classe_nome || '',
+          nivel: personagemSelecionado?.nivel || 1
+        }
+      });
+    } catch (error) {
+      console.error('❌ Erro ao usar habilidade:', error);
+      setAguardandoMestre(false);
+    }
+  };
+
+  const handleUsarEquipamento = async (equipamento) => {
+    try {
+      const { getSocketStoreAPI } = await import('../../../store/index.js');
+      const socketStore = getSocketStoreAPI();
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const roomId = `historia_${historia?.id}`;
+
+      const descricao = `[USA EQUIPAMENTO: ${equipamento.nome}]${equipamento.dano_base ? ` Dano: ${equipamento.dano_base}` : ''}${equipamento.elemento?.length ? ` Elemento: ${equipamento.elemento.join(', ')}` : ''} - ${equipamento.descricao || ''}`;
+
+      setAguardandoMestre(true);
+      onAdicionarMensagem({
+        id: `loading_${Date.now()}`,
+        userId: 'sistema',
+        username: 'Sistema',
+        message: '⏳ O Mestre está pensando...',
+        tipo: 'loading',
+        timestamp: Date.now()
+      });
+
+      socketStore.safeEmit('mensagem_para_mestre', {
+        roomId,
+        userId: String(user.id),
+        username: user.nome || user.name,
+        mensagem: descricao,
+        personagem: {
+          nome: personagemSelecionado?.nome || 'Aventureiro',
+          classe: personagemSelecionado?.classe_nome || '',
+          nivel: personagemSelecionado?.nivel || 1
+        }
+      });
+    } catch (error) {
+      console.error('❌ Erro ao usar equipamento:', error);
+      setAguardandoMestre(false);
+    }
+  };
+
   const toggleActions = () => {
     etapaJogoRPGViewModel.toggleActions();
     setRightPanelExpanded(true);
@@ -963,7 +1035,9 @@ const EtapaJogoRPG = ({
                 <div className="space-y-4">
                   <RPGActions
                     onRollDice={handleRolarDados}
-                    onExecuteAction={handleExecutarAcao}
+                    onUsarHabilidade={handleUsarHabilidade}
+                    onUsarEquipamento={handleUsarEquipamento}
+                    personagem={personagemSelecionado}
                   />
                   <div className="border-t border-purple-500/20 pt-4">
                     <h4 className="text-white font-semibold mb-2">Status</h4>

@@ -53,6 +53,11 @@ export const HistoriaListaView = () => {
   const [historiaToReset, setHistoriaToReset] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Estado para o modal de encerrar sessão
+  const [showEncerrarModal, setShowEncerrarModal] = useState(false);
+  const [historiaToEncerrar, setHistoriaToEncerrar] = useState(null);
+  const [encerrarLoading, setEncerrarLoading] = useState(false);
+
   // Estado para bulk delete
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
@@ -173,6 +178,37 @@ export const HistoriaListaView = () => {
     setShowResetModal(false);
     setHistoriaToReset(null);
     setResetLoading(false);
+  };
+
+  // Função para abrir modal de encerrar sessão
+  const handleEncerrarSessao = (historia) => {
+    setHistoriaToEncerrar(historia);
+    setShowEncerrarModal(true);
+  };
+
+  const handleConfirmEncerrar = async () => {
+    if (!historiaToEncerrar) return;
+
+    setEncerrarLoading(true);
+    try {
+      const response = await viewModel.encerrarSessao(historiaToEncerrar.id);
+
+      if (response && response.success) {
+        await loadHistorias();
+        setShowEncerrarModal(false);
+        setHistoriaToEncerrar(null);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao encerrar sessão:', error);
+    } finally {
+      setEncerrarLoading(false);
+    }
+  };
+
+  const handleCancelEncerrar = () => {
+    setShowEncerrarModal(false);
+    setHistoriaToEncerrar(null);
+    setEncerrarLoading(false);
   };
 
   // Funções de bulk delete
@@ -346,6 +382,13 @@ export const HistoriaListaView = () => {
       show: (row) => isOwner(row) && row.sessaoAtiva === true
     },
     {
+      label: 'Encerrar Sessão',
+      icon: '⛔',
+      color: 'red',
+      onClick: (row) => handleEncerrarSessao(row),
+      show: (row) => row.sessaoAtiva === true
+    },
+    {
       label: 'Deletar',
       icon: '🗑️',
       color: 'red',
@@ -496,6 +539,28 @@ Esta ação não pode ser desfeita.`}
         onConfirm={handleConfirmReset}
         onCancel={handleCancelReset}
         loading={resetLoading}
+        variant="danger"
+      />
+
+      {/* Modal de Encerrar Sessão */}
+      <ConfirmationModal
+        isOpen={showEncerrarModal}
+        title="Encerrar Sessão de Jogo"
+        message={`Deseja encerrar permanentemente a sessão da história "${historiaToEncerrar?.nome}"?
+
+Esta ação irá:
+
+• Encerrar a sessão e limpar todos os dados
+• Desconectar todos os jogadores da sala
+• Limpar cache do Mestre e dados em memória
+• Finalizar o registro no banco de dados
+
+Esta ação não pode ser desfeita.`}
+        confirmText="Encerrar Sessão"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmEncerrar}
+        onCancel={handleCancelEncerrar}
+        loading={encerrarLoading}
         variant="danger"
       />
     </div>

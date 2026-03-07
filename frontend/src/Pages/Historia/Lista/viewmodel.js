@@ -301,6 +301,28 @@ export class HistoriaViewModel {
     }
   }
 
+  encerrarSessao = async (historiaId) => {
+    this.setLoading(true);
+    this.setError(null);
+
+    try {
+      const response = await historiaService.encerrarSessao(historiaId);
+
+      if (response.success) {
+        await this.loadHistorias();
+      }
+
+      this.notify();
+      return response;
+    } catch (error) {
+      this.setError(error.message || 'Erro ao encerrar sessão');
+      this.notify();
+      throw error;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
   /**
    * 🎨 MIGRADO: Aplicar filtros com suporte a nomes de temas
    */

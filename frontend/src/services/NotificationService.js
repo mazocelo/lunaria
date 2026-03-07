@@ -65,19 +65,10 @@ export class NotificationService {
 
       const response = await this.apiClient.patch(`${this.baseUrl}/${notificationId}/lida`);
 
-      // Verificação mais robusta da estrutura de resposta - PADRÃO UNIFICADO
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return { success: true, data: response.data.data };
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return { success: true, data: response.data };
-        }
+      if (response.success) {
+        return { success: true, data: response.data };
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.message || 'Erro ao marcar como lida');
       }
     } catch (error) {
       console.error('❌ NotificationService: Erro ao marcar como lida:', error);
@@ -94,19 +85,10 @@ export class NotificationService {
 
       const response = await this.apiClient.patch(`${this.baseUrl}/marcar-todas-lidas`);
 
-      // Verificação mais robusta da estrutura de resposta - PADRÃO UNIFICADO
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return { success: true, data: response.data.data };
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return { success: true, data: response.data };
-        }
+      if (response.success) {
+        return { success: true, data: response.data };
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.message || 'Erro ao marcar todas como lidas');
       }
     } catch (error) {
       console.error('❌ NotificationService: Erro ao marcar todas como lidas:', error);
@@ -131,31 +113,10 @@ export class NotificationService {
         personagem_id: personagemId
       });
 
-      // Verificação mais robusta da estrutura de resposta - PADRÃO UNIFICADO
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return {
-              success: true,
-              data: response.data.data || {
-                historiaId: conviteId,
-                redirectTo: `/jogo/${conviteId}`
-              }
-            };
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return {
-            success: true,
-            data: response.data || {
-              historiaId: conviteId,
-              redirectTo: `/jogo/${conviteId}`
-            }
-          };
-        }
+      if (response.success) {
+        return { success: true, data: response.data };
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.message || 'Erro ao aceitar convite');
       }
     } catch (error) {
       console.error('❌ NotificationService: Erro ao aceitar convite:', error);
@@ -171,21 +132,12 @@ export class NotificationService {
   async rejectInvite(conviteId) {
     try {
 
-      const response = await this.apiClient.put(`/convites/${conviteId}/rejeitar`);
+      const response = await this.apiClient.put(`/convites/${conviteId}/recusar`);
 
-      // Verificação mais robusta da estrutura de resposta - PADRÃO UNIFICADO
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return { success: true, data: response.data.data };
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return { success: true, data: response.data };
-        }
+      if (response.success) {
+        return { success: true, data: response.data };
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(response.message || 'Erro ao recusar convite');
       }
     } catch (error) {
       console.error('❌ NotificationService: Erro ao rejeitar convite:', error);

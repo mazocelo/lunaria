@@ -97,7 +97,8 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
   };
 
   const handleGoToGame = (convite) => {
-    // TODO: Implementar navegação para o jogo
+    onClose();
+    navigate(`/jogo/sala-espera/${convite.historia.id}`);
   };
 
   // 🎯 NAVEGAR PARA CRIAR NOVO PERSONAGEM
@@ -109,12 +110,13 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-start justify-end pt-20 pr-6 pointer-events-none"
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-end pt-20 pr-6"
+      onClick={onClose}
     >
       {/* Modal */}
       <div 
-        className={`relative w-96 max-h-[70vh] rounded-lg shadow-2xl border animate-slide-in-right pointer-events-auto ${
+        className={`relative w-96 max-h-[70vh] rounded-lg shadow-2xl border animate-slide-in-right ${
           isLight 
             ? 'bg-white border-slate-200' 
             : 'bg-slate-800 border-slate-600'

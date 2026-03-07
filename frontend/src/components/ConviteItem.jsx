@@ -322,7 +322,7 @@ const ConviteItem = ({
                           name="personagem"
                           value={personagem.id}
                           checked={selectedPersonagem === personagem.id}
-                          onChange={(e) => setSelectedPersonagem(e.target.value)}
+                          onChange={(e) => setSelectedPersonagem(parseInt(e.target.value))}
                           className="mr-3"
                         />
                         <div>

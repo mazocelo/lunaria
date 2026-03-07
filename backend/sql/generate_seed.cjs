@@ -166,30 +166,74 @@ function extrairUsosPorDia(efeitos) {
   return m ? parseInt(m[1]) : null;
 }
 
-function extrairSintonizacao(reqText) {
-  // "Nenhum" ou "sem attuning" = sem sintonização
+function extrairVinculo(reqText, efeitos) {
+  // "Nenhum" ou "sem attuning" = sem vinculo
   if (reqText.startsWith('Nenhum') || /sem\s+attuning/i.test(reqText)) {
-    return { sintonizacao: false, restricao: null };
+    return null;
   }
   if (!reqText.includes('sintonização') && !reqText.includes('Requer')) {
-    return { sintonizacao: false, restricao: null };
+    return null;
   }
 
-  // Extrair restrição do parênteses
+  const vinculo = { requer: true };
+
+  // Extrair texto da restrição
   const m = reqText.match(/sintonização\s*\(([^)]+)\)/i)
          || reqText.match(/sintonização\s+por\s+(?:um\s+)?(.+?)(?:\.|$)/i);
+  let restricaoRaw = m ? m[1].trim() : null;
 
-  let restricao = m ? m[1].trim() : null;
-
-  // Limpar "Requer sintonização. Prefere adoradores do mar."
-  if (!restricao) {
+  if (!restricaoRaw) {
     const after = reqText.match(/sintonização\.\s*(.+)/i);
     if (after && !after[1].startsWith('A espada')) {
-      restricao = after[1].trim().replace(/\.$/, '');
+      restricaoRaw = after[1].trim().replace(/\.$/, '');
     }
   }
 
-  return { sintonizacao: true, restricao };
+  // Classificar tipo de restrição
+  if (restricaoRaw) {
+    const r = restricaoRaw.toLowerCase();
+    const classes = ['paladino', 'clerigo', 'clérigo', 'mago', 'feiticeiro', 'bruxo', 'druida', 'bardo', 'guerreiro', 'ladino', 'bárbaro', 'barbaro', 'conjurador', 'assassino', 'cavaleiro', 'patrulheiro', 'caçador'];
+    const alinhamentos = ['bom', 'mau', 'maligno', 'caótico', 'caotico', 'lawful', 'neutro', 'sagrado', 'não bom', 'não-bom', 'não bom', 'qualquer não bom', 'qualquer não-bom'];
+    const racas = ['anão', 'anao', 'elfo', 'elfos', 'meio-elfo', 'humano', 'élfico'];
+
+    const classeMatch = classes.filter(c => r.includes(c));
+    const alinhMatch = alinhamentos.filter(a => r.includes(a));
+    const racaMatch = racas.filter(rc => r.includes(rc));
+
+    if (/amaldiçoad|cursed|corrompid|item amaldiçoado|item corrompido/.test(r)) {
+      vinculo.restricao_tipo = 'maldicao';
+      vinculo.restricao = [restricaoRaw];
+    } else if (/for\s*\d|str\s*\d|território|envelhece|dependência|complexo|perigoso|7 dias|cada uso|coroa de estrelas|nível/i.test(r)) {
+      vinculo.restricao_tipo = 'especial';
+      vinculo.restricao = [restricaoRaw];
+    } else if (classeMatch.length > 0 && alinhMatch.length === 0 && racaMatch.length === 0) {
+      vinculo.restricao_tipo = 'classe';
+      vinculo.restricao = classeMatch.map(c => c.replace('clérigo', 'clerigo').replace('bárbaro', 'barbaro'));
+    } else if (alinhMatch.length > 0 && classeMatch.length === 0) {
+      vinculo.restricao_tipo = 'alinhamento';
+      vinculo.restricao = alinhMatch;
+    } else if (racaMatch.length > 0 && classeMatch.length === 0) {
+      vinculo.restricao_tipo = 'raca';
+      vinculo.restricao = racaMatch.map(rc => rc.replace('élfico', 'elfo').replace('anão', 'anao'));
+    } else if (classeMatch.length > 0 && (alinhMatch.length > 0 || racaMatch.length > 0)) {
+      vinculo.restricao_tipo = 'misto';
+      vinculo.restricao = [restricaoRaw];
+    } else {
+      vinculo.restricao_tipo = 'especial';
+      vinculo.restricao = [restricaoRaw];
+    }
+  }
+
+  // Extrair descricao do efeito do vinculo (resumo do que o item faz quando vinculado)
+  // Pegar as primeiras frases significativas do efeito
+  if (efeitos) {
+    const frases = efeitos.split(/[.!]/).map(s => s.trim()).filter(s => s.length > 10);
+    // Pegar ate 2 frases que descrevem o efeito principal
+    const desc = frases.slice(0, 2).join('. ');
+    if (desc) vinculo.descricao = desc;
+  }
+
+  return vinculo;
 }
 
 function extrairTipo(tipoStr) {
@@ -225,7 +269,7 @@ function arrayToSQL(arr) {
 
 // Processar todos os itens
 const rows = [];
-let stats = { bonus: 0, dano: 0, elem: 0, req: 0, props: 0, cargas: 0, usos: 0 };
+let stats = { bonus: 0, dano: 0, elem: 0, req: 0, props: 0, cargas: 0, usos: 0, vinculo: 0 };
 
 itens.forEach(item => {
   const tipo = extrairTipo(item.tipo);
@@ -233,7 +277,7 @@ itens.forEach(item => {
   const dano = extrairDanoBase(item.efeitos_stats);
   const elementos = extrairElementos(item.efeitos_stats);
   const requisitos = extrairRequisitos(item.requisitos, item.efeitos_stats);
-  const sint = extrairSintonizacao(item.requisitos);
+  const vinculo = extrairVinculo(item.requisitos, item.efeitos_stats);
   const propriedades = extrairPropriedades(item.efeitos_stats, item.requisitos);
   const cargas = extrairCargas(item.efeitos_stats);
   const usos = extrairUsosPorDia(item.efeitos_stats);
@@ -245,6 +289,7 @@ itens.forEach(item => {
   if (propriedades.length > 0) stats.props++;
   if (cargas) stats.cargas++;
   if (usos) stats.usos++;
+  if (vinculo) stats.vinculo++;
 
   // Mapear categoria
   const catMap = {
@@ -275,8 +320,7 @@ itens.forEach(item => {
     jsonToSQL(requisitos),                            // requisitos
     escapeSQL(item.raridade),                         // raridade
     escapeSQL(item.origem_lore),                      // origem_lore
-    sint.sintonizacao,                                // sintonizacao
-    sint.restricao ? escapeSQL(sint.restricao) : 'NULL', // sintonizacao_restricao
+    jsonToSQL(vinculo),                               // vinculo
     escapeSQL(categoria),                             // categoria
     arrayToSQL(propriedades),                         // propriedades[]
     cargas !== null ? cargas : 'NULL',                // cargas
@@ -300,6 +344,7 @@ let sql = `-- ==================================================================
 --   propriedades populado: ${stats.props}/${itens.length} (${Math.round(stats.props/itens.length*100)}%)
 --   cargas populado: ${stats.cargas}/${itens.length} (${Math.round(stats.cargas/itens.length*100)}%)
 --   usos_por_dia populado: ${stats.usos}/${itens.length} (${Math.round(stats.usos/itens.length*100)}%)
+--   vinculo populado: ${stats.vinculo}/${itens.length} (${Math.round(stats.vinculo/itens.length*100)}%)
 -- =============================================================================
 
 -- Limpar dados existentes
@@ -317,8 +362,8 @@ DELETE FROM public.equipamentos;
 -- Inserir todos os equipamentos
 INSERT INTO public.equipamentos (
   numero, nome, descricao, tipo, bonus, dano_base, elemento,
-  requisitos, raridade, origem_lore, sintonizacao,
-  sintonizacao_restricao, categoria, propriedades, cargas, usos_por_dia
+  requisitos, raridade, origem_lore, vinculo,
+  categoria, propriedades, cargas, usos_por_dia
 ) VALUES
 `;
 
@@ -337,3 +382,6 @@ console.log('  requisitos populado:', stats.req + '/' + itens.length, '(' + Math
 console.log('  propriedades populado:', stats.props + '/' + itens.length, '(' + Math.round(stats.props/itens.length*100) + '%)');
 console.log('  cargas populado:', stats.cargas + '/' + itens.length, '(' + Math.round(stats.cargas/itens.length*100) + '%)');
 console.log('  usos_por_dia populado:', stats.usos + '/' + itens.length, '(' + Math.round(stats.usos/itens.length*100) + '%)');
+console.log('  vinculo populado:', stats.vinculo + '/' + itens.length, '(' + Math.round(stats.vinculo/itens.length*100) + '%)');
+console.log('');
+console.log('Arquivo gerado: seed_equipamentos.sql');

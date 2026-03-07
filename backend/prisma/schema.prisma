@@ -51,8 +51,7 @@ model equipamentos {
   numero                 Int?
   raridade               String                   @default("Comum") @db.VarChar(50)
   origem_lore            String?
-  sintonizacao           Boolean                  @default(false)
-  sintonizacao_restricao String?
+  vinculo                Json?
   categoria              String                   @default("Miscelanea Magica") @db.VarChar(100)
   propriedades           String[]                 @default([])
   cargas                 Int?

@@ -113,7 +113,8 @@ class AuthController {
           usuario: {
             id: novoUsuario.id,
             nome: novoUsuario.nome,
-            email: novoUsuario.email
+            email: novoUsuario.email,
+            role: userRole
           }
         }
       });
@@ -193,7 +194,8 @@ class AuthController {
           usuario: {
             id: usuario.id,
             nome: usuario.nome,
-            email: usuario.email
+            email: usuario.email,
+            role: userRole
           }
         }
       });
@@ -280,7 +282,8 @@ class AuthController {
           usuario: {
             id: usuario.id,
             nome: usuario.nome,
-            email: usuario.email
+            email: usuario.email,
+            role: usuario.role || 'player'
           }
         }
       });

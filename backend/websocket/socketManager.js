@@ -17,6 +17,8 @@ import {
   verificarFimCombate,
   formatarContextoCombate
 } from '../helpers/combateHelper.js';
+import { COMBAT_EVENTS } from './events/eventTypes.js';
+import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -31,6 +33,26 @@ class SocketManager {
     this.mestresCache = new Map(); // salaId -> { mestre, criadoEm, ultimoUso, rodadaInicial }
     this._cacheCleaner = null; // interval reference for cleanup
     this._disconnectTimers = new Map(); // userId -> timeout for grace period
+    this._snapshotCounters = new Map(); // roomId -> mensagens count since last snapshot
+  }
+
+  /**
+   * Salvar snapshot periodico (fire-and-forget, nao-bloqueante)
+   * Chamado a cada 10 mensagens, mudanca de rodada, fim de combate, ou fim de sessao
+   * @param {string} roomId - ID da sala
+   * @param {Object} sessao - Sessao Redis atual
+   * @param {boolean} force - Forcar snapshot independente do contador
+   */
+  _tentarSnapshot(roomId, sessao, force = false) {
+    if (!force) {
+      const count = (this._snapshotCounters.get(roomId) || 0) + 1;
+      this._snapshotCounters.set(roomId, count);
+      if (count < 10) return; // Salvar a cada 10 mensagens
+    }
+    this._snapshotCounters.set(roomId, 0);
+    sessaoSnapshotService.salvarSnapshot(roomId, sessao).catch(err =>
+      console.error(`❌ Erro ao salvar snapshot para ${roomId}:`, err.message)
+    );
   }
 
   /**
@@ -1780,6 +1802,9 @@ class SocketManager {
       sessao.atualizadaEm = new Date().toISOString();
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
+      // Snapshot periodico (a cada 10 mensagens)
+      this._tentarSnapshot(roomId, sessao);
+
       this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_SESSAO_UPDATED', socket.id, userId, {
         roomId,
         totalMensagens: sessao.mensagens.length
@@ -2656,6 +2681,17 @@ class SocketManager {
       const temasCompletos = await buscarTemasCompletos(historia.temas || []);
       console.log(`🎨 Temas completos para sessão:`, temasCompletos);
       
+      // Montar mestreConfig a partir do mestre atribuido (se existir)
+      const mestreConfig = historia.mestres ? {
+        nome: historia.mestres.nome,
+        personalidade: historia.mestres.personalidade,
+        tom_narrativo: historia.mestres.tom_narrativo,
+        regras_especiais: historia.mestres.regras_especiais,
+        modelo: historia.mestres.modelo,
+        temperatura: historia.mestres.temperatura,
+        max_tokens: historia.mestres.max_tokens
+      } : null;
+
       // Criar dados da sessão
       const dadosSessao = {
         historiaId: historia.id,
@@ -2665,6 +2701,7 @@ class SocketManager {
         donoId: historia.id_usuario ? String(historia.id_usuario) : null,
         donoNome: donoNome,
         maxJogadores: historia.maximo_de_participantes || 5,
+        mestreConfig, // Config do mestre atribuido a historia
         status: 'aberta', // Status inicial (sessão criada mas ninguém entrou)
         statusJogo: null, // ✅ NOVO: null = ninguém entrou ainda
         jogadoresConectados: [], // Lista vazia inicialmente
@@ -3146,6 +3183,9 @@ class SocketManager {
         });
       }
 
+      // Snapshot forçado na mudança de rodada
+      this._tentarSnapshot(roomId, sessaoAtualizada, true);
+
       console.log(`✅ Rodada ${novaRodada} iniciada`);
     } catch (error) {
       console.error(`❌ Erro ao iniciar nova rodada:`, error);
@@ -3258,7 +3298,7 @@ class SocketManager {
       console.log(`✅ Combate iniciado: ${instancias.length} monstros vs ${Object.keys(jogadoresCombate).length} jogadores`);
 
       // Emitir evento de combate iniciado
-      this.io.to(roomId).emit('combate_iniciado', {
+      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_INICIADO, {
         monstros: instancias,
         jogadores: jogadoresCombate,
         rodada: 1,
@@ -3282,7 +3322,16 @@ class SocketManager {
       if (!combate?.ativo) return;
 
       const jogadorStats = combate.jogadores[userId];
-      if (!jogadorStats || jogadorStats.status !== 'vivo') return;
+      if (!jogadorStats) return;
+
+      // Etapa 1.4: Bloquear jogador derrotado de agir
+      if (jogadorStats.status === 'derrotado') {
+        this.io.to(roomId).emit('server_message', {
+          userId,
+          mensagem: `💀 ${personagem.nome} foi derrotado e não pode agir neste combate.`
+        });
+        return;
+      }
 
       // --- ATAQUE DO JOGADOR ---
       // Determinar alvo (primeiro monstro vivo)
@@ -3325,7 +3374,7 @@ class SocketManager {
       combate.log.push(logAtaque);
 
       // Emitir resultado do ataque do jogador
-      this.io.to(roomId).emit('combate_resultado_acao', {
+      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
         tipo: 'ataque_jogador',
         atacante: { userId, nome: personagem.nome },
         alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
@@ -3341,7 +3390,7 @@ class SocketManager {
 
       // Se monstro derrotado
       if (monstroAlvo.status === 'derrotado') {
-        this.io.to(roomId).emit('combate_monstro_derrotado', {
+        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
           monstro: { id: monstroAlvo.id, nome: monstroAlvo.nome },
           xp: monstroAlvo.xp || 0,
           timestamp: Date.now()
@@ -3349,15 +3398,23 @@ class SocketManager {
       }
 
       // --- CONTRA-ATAQUE DOS MONSTROS ---
+      // Etapa 1.2: Selecionar alvo aleatório entre jogadores vivos (multi-player)
       const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
       for (const monstro of monstrosVivos) {
+        // Selecionar alvo aleatório entre jogadores vivos
+        const jogadoresVivos = Object.entries(combate.jogadores)
+          .filter(([_, j]) => j.status !== 'derrotado');
+        if (jogadoresVivos.length === 0) break;
+
+        const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
+
         // Selecionar habilidade ou ataque básico
         const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
 
         // Rolar ataque do monstro
         const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
         const { acertou: monstroAcertou, critico: monstroCritico } = verificarAcerto(
-          rolagemMonstro, monstro.ataque, jogadorStats.ca
+          rolagemMonstro, monstro.ataque, alvoStats.ca
         );
 
         let danoMonstro = 0;
@@ -3365,10 +3422,10 @@ class SocketManager {
           const danoNotacao = habilidade?.dano || monstro.dano_base;
           const modForcaMonstro = Math.floor(((monstro.forca || 10) - 10) / 2);
           danoMonstro = calcularDano(danoNotacao, modForcaMonstro, monstroCritico);
-          jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoMonstro);
+          alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
 
-          if (jogadorStats.hp_atual <= 0) {
-            jogadorStats.status = 'derrotado';
+          if (alvoStats.hp_atual <= 0) {
+            alvoStats.status = 'derrotado';
           }
         }
 
@@ -3381,42 +3438,56 @@ class SocketManager {
         combate.log.push({
           tipo: 'ataque_monstro',
           atacante: monstro.nome,
-          alvo: personagem.nome,
+          alvo: alvoStats.personagemNome,
           habilidade: habilidade?.nome || 'Ataque básico',
           rolagem: rolagemMonstro,
           acertou: monstroAcertou,
           critico: monstroCritico,
           dano: danoMonstro,
-          hpRestante: jogadorStats.hp_atual,
+          hpRestante: alvoStats.hp_atual,
           timestamp: Date.now()
         });
 
         // Emitir resultado do ataque do monstro
-        this.io.to(roomId).emit('combate_resultado_acao', {
+        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
           tipo: 'ataque_monstro',
           atacante: { id: monstro.id, nome: monstro.nome },
-          alvo: { userId, nome: personagem.nome },
+          alvo: { userId: alvoId, nome: alvoStats.personagemNome },
           habilidade: habilidade?.nome || 'Ataque básico',
           rolagem: rolagemMonstro,
           acertou: monstroAcertou,
           critico: monstroCritico,
           dano: danoMonstro,
-          hpRestante: jogadorStats.hp_atual,
-          hpMax: jogadorStats.hp_max,
+          hpRestante: alvoStats.hp_atual,
+          hpMax: alvoStats.hp_max,
           timestamp: Date.now()
         });
 
-        if (jogadorStats.status === 'derrotado') {
-          this.io.to(roomId).emit('combate_jogador_ferido', {
-            userId,
-            nome: personagem.nome,
+        if (alvoStats.status === 'derrotado') {
+          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+            userId: alvoId,
+            nome: alvoStats.personagemNome,
             hp_atual: 0,
-            hp_max: jogadorStats.hp_max,
+            hp_max: alvoStats.hp_max,
             derrotado: true,
             timestamp: Date.now()
           });
-          break; // Jogador caiu, parar ataques
         }
+      }
+
+      // Etapa 1.1: Rastrear jogadores que agiram e incrementar rodada
+      if (!combate.jogadoresQueAgiram) {
+        combate.jogadoresQueAgiram = [];
+      }
+      if (!combate.jogadoresQueAgiram.includes(userId)) {
+        combate.jogadoresQueAgiram.push(userId);
+      }
+      const totalJogadoresVivos = Object.entries(combate.jogadores)
+        .filter(([_, j]) => j.status !== 'derrotado').length;
+      if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
+        combate.rodadaCombate++;
+        combate.jogadoresQueAgiram = [];
+        console.log(`🔄 Combate rodada ${combate.rodadaCombate} na sala ${roomId}`);
       }
 
       // Verificar fim de combate
@@ -3431,7 +3502,7 @@ class SocketManager {
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       // Emitir estado atualizado
-      this.io.to(roomId).emit('combate_estado', {
+      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_ESTADO, {
         monstros: combate.monstros,
         jogadores: combate.jogadores,
         rodada: combate.rodadaCombate,
@@ -3476,7 +3547,7 @@ class SocketManager {
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       // Emitir evento de combate finalizado
-      this.io.to(roomId).emit('combate_finalizado', {
+      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
         resultado,
         xpTotal,
         monstrosDerrotados: combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome),
@@ -3529,6 +3600,9 @@ class SocketManager {
       } catch (errIA) {
         console.error('❌ Erro ao narrar desfecho do combate:', errIA);
       }
+
+      // Snapshot forçado ao finalizar combate
+      this._tentarSnapshot(roomId, sessao, true);
 
     } catch (error) {
       console.error('❌ Erro ao finalizar combate:', error);

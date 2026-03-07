@@ -1,7 +1,7 @@
 import express from 'express';
 import personagemController from '../controllers/personagem/personagemController.js';
 import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
-import { requireResourceOwnerOrAdmin } from '../middleware/authMiddleware.js';
+import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -388,7 +388,7 @@ router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem,
  *         description: Personagem não encontrado
  */
 // PUT /:id - Atualizar personagem (OWNER OU ADMIN)
-router.put('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
+router.put('/:id', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -419,10 +419,10 @@ router.put('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithCo
  *         description: Personagem não encontrado
  */
 // DELETE /:id - Excluir personagem (OWNER OU ADMIN)
-router.delete('/:id', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
+router.delete('/:id', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.excluirPersonagem, personagemController));
 
 // PATCH /:id/restore - Restaurar personagem soft-deleted (OWNER OU ADMIN)
-router.patch('/:id/restore', requireResourceOwnerOrAdmin('Personagem'), asyncHandlerWithContext(personagemController.restaurarPersonagem, personagemController));
+router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.restaurarPersonagem, personagemController));
 
 /**
  * @swagger

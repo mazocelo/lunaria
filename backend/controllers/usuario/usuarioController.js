@@ -157,7 +157,7 @@ class UsuarioController {
       }
 
       // Verificar permissões (usuário só pode editar o próprio perfil, exceto admin)
-      if (req.user.id !== usuarioId && req.user.role !== 'admin') {
+      if (req.user.id !== usuarioId && req.user.role !== 'superadmin') {
         return res.status(403).json({
           success: false,
           error: 'Você só pode editar seu próprio perfil'
@@ -277,7 +277,7 @@ class UsuarioController {
       }
 
       // Verificar permissões (usuário só pode deletar própria conta, exceto admin)
-      if (req.user.id !== usuarioId && req.user.role !== 'admin') {
+      if (req.user.id !== usuarioId && req.user.role !== 'superadmin') {
         return res.status(403).json({
           success: false,
           error: 'Você só pode deletar sua própria conta'
@@ -341,7 +341,7 @@ class UsuarioController {
       }
 
       // Verificar permissões
-      if (req.user.id !== usuarioId && req.user.role !== 'admin') {
+      if (req.user.id !== usuarioId && req.user.role !== 'superadmin') {
         return res.status(403).json({
           success: false,
           error: 'Você só pode ver suas próprias estatísticas'
@@ -484,18 +484,18 @@ class UsuarioController {
   /**
    * Promover usuário a admin (apenas admin)
    */
-  async promoverAdmin(req, res) {
+  async promoverSuperAdmin(req, res) {
     try {
       const { id } = req.params;
       const usuarioId = parseInt(id);
 
-      console.log(`👑 Promovendo usuário ${usuarioId} a admin`);
+      console.log(`👑 Promovendo usuário ${usuarioId} a superadmin`);
 
-      const usuario = await db.Usuario.update(usuarioId, { role: 'admin' });
+      const usuario = await db.Usuario.update(usuarioId, { role: 'superadmin' });
 
       res.status(200).json({
         success: true,
-        message: 'Usuário promovido a admin com sucesso',
+        message: 'Usuário promovido a super admin com sucesso',
         data: usuario
       });
     } catch (error) {

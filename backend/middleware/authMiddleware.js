@@ -219,9 +219,9 @@ export const verifyRefreshToken = (refreshTokenValue) => {
 };
 
 /**
- * Middleware para verificar se usuário é admin
+ * Middleware para verificar se usuário é superadmin
  */
-export const requireAdmin = (req, res, next) => {
+export const requireSuperAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -229,10 +229,10 @@ export const requireAdmin = (req, res, next) => {
     });
   }
 
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'superadmin') {
     return res.status(403).json({
       success: false,
-      error: 'Acesso negado. Apenas administradores.'
+      error: 'Acesso negado. Apenas super administradores.'
     });
   }
 
@@ -240,10 +240,10 @@ export const requireAdmin = (req, res, next) => {
 };
 
 /**
- * Middleware para verificar se usuário é dono do recurso ou admin
+ * Middleware para verificar se usuário é dono do recurso ou superadmin
  * @param {string} paramName - Nome do parâmetro que contém o ID do usuário
  */
-export const requireOwnerOrAdmin = (paramName = 'id') => {
+export const requireOwnerOrSuperAdmin = (paramName = 'id') => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -252,8 +252,8 @@ export const requireOwnerOrAdmin = (paramName = 'id') => {
       });
     }
 
-    // Admin passa sempre
-    if (req.user.role === 'admin') {
+    // SuperAdmin passa sempre
+    if (req.user.role === 'superadmin') {
       return next();
     }
 
@@ -275,7 +275,7 @@ export const requireOwnerOrAdmin = (paramName = 'id') => {
 /**
  * Middleware para verificar ownership de recursos indiretos (historias, personagens, etc)
  */
-export const requireResourceOwnerOrAdmin = (modelName) => {
+export const requireResourceOwnerOrSuperAdmin = (modelName) => {
   return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -284,8 +284,8 @@ export const requireResourceOwnerOrAdmin = (modelName) => {
       });
     }
 
-    // Admin passa sempre
-    if (req.user.role === 'admin') {
+    // SuperAdmin passa sempre
+    if (req.user.role === 'superadmin') {
       return next();
     }
 

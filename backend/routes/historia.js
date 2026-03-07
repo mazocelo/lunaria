@@ -1,7 +1,7 @@
 import express from 'express';
 import historiaController from '../controllers/historia/historiaController.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
-import { requireResourceOwnerOrAdmin } from '../middleware/authMiddleware.js';
+import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -511,7 +511,7 @@ router.get('/:id', historiaController.obterHistoria);
  *               $ref: '#/components/schemas/Error'
  */
 // PUT /:id - Atualizar história (OWNER OU ADMIN)
-router.put('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.atualizarHistoria);
+router.put('/:id', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarHistoria);
 
 /**
  * @swagger
@@ -546,10 +546,10 @@ router.put('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.a
  *               $ref: '#/components/schemas/Error'
  */
 // DELETE /:id - Excluir história (OWNER OU ADMIN)
-router.delete('/:id', requireResourceOwnerOrAdmin('Historia'), historiaController.excluirHistoria);
+router.delete('/:id', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.excluirHistoria);
 
 // PATCH /:id/restore - Restaurar história soft-deleted (OWNER OU ADMIN)
-router.patch('/:id/restore', requireResourceOwnerOrAdmin('Historia'), historiaController.restaurarHistoria);
+router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.restaurarHistoria);
 
 /**
  * Verificar se há sessão ativa para uma história

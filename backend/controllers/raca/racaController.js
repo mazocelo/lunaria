@@ -172,6 +172,43 @@ class RacaController {
       });
     }
   }
+  async atualizarRaca(req, res) {
+    try {
+      const { id } = req.params;
+      const raca = await db.Raca.findById(parseInt(id));
+      if (!raca) {
+        return res.status(404).json({ success: false, error: 'Raça não encontrada' });
+      }
+
+      const { nome, custo, descricao, bonus } = req.body;
+      const dados = {};
+      if (nome !== undefined) dados.nome = nome;
+      if (custo !== undefined) dados.custo = custo;
+      if (descricao !== undefined) dados.descricao = descricao;
+      if (bonus !== undefined) dados.bonus = bonus ? JSON.stringify(bonus) : null;
+
+      const atualizada = await db.Raca.update(parseInt(id), dados);
+      res.json({ success: true, message: 'Raça atualizada com sucesso', data: atualizada });
+    } catch (error) {
+      console.error('❌ Erro ao atualizar raça:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  async deletarRaca(req, res) {
+    try {
+      const { id } = req.params;
+      const raca = await db.Raca.findById(parseInt(id));
+      if (!raca) {
+        return res.status(404).json({ success: false, error: 'Raça não encontrada' });
+      }
+      await db.Raca.delete(parseInt(id));
+      res.status(204).send();
+    } catch (error) {
+      console.error('❌ Erro ao deletar raça:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
 }
 
 export default new RacaController(); 

@@ -170,6 +170,43 @@ class ClasseController {
       });
     }
   }
+  async atualizarClasse(req, res) {
+    try {
+      const { id } = req.params;
+      const classe = await db.Classe.findById(parseInt(id));
+      if (!classe) {
+        return res.status(404).json({ success: false, error: 'Classe não encontrada' });
+      }
+
+      const { nome, custo, descricao, bonus } = req.body;
+      const dados = {};
+      if (nome !== undefined) dados.nome = nome;
+      if (custo !== undefined) dados.custo = custo;
+      if (descricao !== undefined) dados.descricao = descricao;
+      if (bonus !== undefined) dados.bonus = bonus ? JSON.stringify(bonus) : null;
+
+      const atualizada = await db.Classe.update(parseInt(id), dados);
+      res.json({ success: true, message: 'Classe atualizada com sucesso', data: atualizada });
+    } catch (error) {
+      console.error('❌ Erro ao atualizar classe:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  async deletarClasse(req, res) {
+    try {
+      const { id } = req.params;
+      const classe = await db.Classe.findById(parseInt(id));
+      if (!classe) {
+        return res.status(404).json({ success: false, error: 'Classe não encontrada' });
+      }
+      await db.Classe.delete(parseInt(id));
+      res.status(204).send();
+    } catch (error) {
+      console.error('❌ Erro ao deletar classe:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
 }
 
 export default new ClasseController(); 

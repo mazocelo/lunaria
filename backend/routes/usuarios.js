@@ -1,7 +1,7 @@
 import express from 'express';
 import usuarioController from '../controllers/usuario/usuarioController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { authenticateToken, requireAdmin, requireOwnerOrAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin, requireOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -123,7 +123,7 @@ const router = express.Router();
  *                   type: integer
  */
 // GET / - Listar todos (APENAS ADMIN)
-router.get('/', authenticateToken, requireAdmin, asyncHandler(usuarioController.listarUsuarios));
+router.get('/', authenticateToken, requireSuperAdmin, asyncHandler(usuarioController.listarUsuarios));
 
 /**
  * @swagger
@@ -183,7 +183,7 @@ router.get('/perfil', authenticateToken, asyncHandler(usuarioController.obterPer
  *         description: ID inválido
  */
 // GET /:id - Obter por ID (OWNER OU ADMIN)
-router.get('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.obterUsuario));
+router.get('/:id', authenticateToken, requireOwnerOrSuperAdmin('id'), asyncHandler(usuarioController.obterUsuario));
 
 /**
  * @swagger
@@ -237,7 +237,7 @@ router.get('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(us
  *         description: Usuário não encontrado
  */
 // PUT /:id - Atualizar (OWNER OU ADMIN)
-router.put('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.atualizarUsuario));
+router.put('/:id', authenticateToken, requireOwnerOrSuperAdmin('id'), asyncHandler(usuarioController.atualizarUsuario));
 
 /**
  * @swagger
@@ -274,10 +274,10 @@ router.put('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(us
  *         description: Usuário não encontrado
  */
 // DELETE /:id - Deletar (OWNER OU ADMIN)
-router.delete('/:id', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.deletarUsuario));
+router.delete('/:id', authenticateToken, requireOwnerOrSuperAdmin('id'), asyncHandler(usuarioController.deletarUsuario));
 
 // PATCH /:id/restore - Restaurar usuário soft-deleted (ADMIN)
-router.patch('/:id/restore', authenticateToken, requireAdmin, asyncHandler(usuarioController.restaurarUsuario));
+router.patch('/:id/restore', authenticateToken, requireSuperAdmin, asyncHandler(usuarioController.restaurarUsuario));
 
 /**
  * @swagger
@@ -333,7 +333,7 @@ router.patch('/:id/restore', authenticateToken, requireAdmin, asyncHandler(usuar
  *         description: Usuário não encontrado
  */
 // GET /:id/estatisticas - Estatísticas (OWNER OU ADMIN)
-router.get('/:id/estatisticas', authenticateToken, requireOwnerOrAdmin('id'), asyncHandler(usuarioController.obterEstatisticas));
+router.get('/:id/estatisticas', authenticateToken, requireOwnerOrSuperAdmin('id'), asyncHandler(usuarioController.obterEstatisticas));
 
 /**
  * @swagger
@@ -359,6 +359,6 @@ router.get('/:id/estatisticas', authenticateToken, requireOwnerOrAdmin('id'), as
  *         description: Apenas administradores podem promover usuários
  */
 // POST /:id/promover - Promover a admin (APENAS ADMIN)
-router.post('/:id/promover', authenticateToken, requireAdmin, asyncHandler(usuarioController.promoverAdmin));
+router.post('/:id/promover', authenticateToken, requireSuperAdmin, asyncHandler(usuarioController.promoverSuperAdmin));
 
 export default router; 

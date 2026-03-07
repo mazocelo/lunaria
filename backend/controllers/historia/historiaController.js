@@ -283,14 +283,54 @@ class HistoriaController {
       if (maximo_de_participantes !== undefined) dadosSeguros.maximo_de_participantes = maximo_de_participantes;
       if (status !== undefined) dadosSeguros.status = status;
       if (prologo !== undefined) dadosSeguros.prologo = prologo;
-      if (mestre_id !== undefined) dadosSeguros.mestre_id = parseInt(mestre_id);
+      if (mestre_id !== undefined) dadosSeguros.mestre_id = mestre_id ? parseInt(mestre_id) : null;
       dadosSeguros.atualizada_em = new Date();
 
       await db.Historia.updateHistoria(parseInt(id), dadosSeguros);
-      
+
+      // Se mestre_id mudou, invalidar sessao Redis e cache em memoria
+      if (mestre_id !== undefined) {
+        const salaId = `historia_${id}`;
+        try {
+          // Montar novo mestreConfig
+          let novoMestreConfig = null;
+          const parsedMestreId = mestre_id ? parseInt(mestre_id) : null;
+          if (parsedMestreId) {
+            const novoMestre = await db.Mestre.findById(parsedMestreId);
+            if (novoMestre) {
+              novoMestreConfig = {
+                nome: novoMestre.nome,
+                personalidade: novoMestre.personalidade,
+                tom_narrativo: novoMestre.tom_narrativo,
+                regras_especiais: novoMestre.regras_especiais,
+                modelo: novoMestre.modelo,
+                temperatura: novoMestre.temperatura,
+                max_tokens: novoMestre.max_tokens
+              };
+            }
+          }
+
+          // Atualizar sessao Redis se existir
+          const sessao = await gerenciadorSessoes.obterSessao(salaId);
+          if (sessao) {
+            await gerenciadorSessoes.atualizarSessao(salaId, { mestreConfig: novoMestreConfig });
+            console.log(`🔄 mestreConfig atualizado no Redis para sala ${salaId}`);
+          }
+
+          // Invalidar cache em memoria do socketManager
+          const socketManager = (await import('../../websocket/socketManager.js')).default;
+          if (socketManager?.mestresCache) {
+            socketManager.mestresCache.delete(salaId);
+            console.log(`🗑️ mestresCache invalidado para sala ${salaId}`);
+          }
+        } catch (cacheError) {
+          console.warn('⚠️ Erro ao invalidar cache de mestre (nao critico):', cacheError.message);
+        }
+      }
+
       // Buscar a história atualizada
       const historiaAtualizada = await db.Historia.findById(parseInt(id));
-      
+
       console.log('✅ História atualizada com sucesso');
       
       res.status(200).json({

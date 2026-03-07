@@ -1,7 +1,7 @@
 import express from 'express';
 import racaController from '../controllers/raca/racaController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { requireAdmin } from '../middleware/authMiddleware.js';
+import { requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -65,7 +65,7 @@ const router = express.Router();
  *       400:
  *         description: Dados inválidos
  */
-router.post('/', requireAdmin, asyncHandler(racaController.criarRaca));
+router.post('/', requireSuperAdmin, asyncHandler(racaController.criarRaca));
 
 /**
  * @swagger
@@ -133,5 +133,7 @@ router.get('/buscar', asyncHandler(racaController.buscarRacas));
  *         description: Raça não encontrada
  */
 router.get('/:id', asyncHandler(racaController.obterRaca));
+router.put('/:id', requireSuperAdmin, asyncHandler(racaController.atualizarRaca));
+router.delete('/:id', requireSuperAdmin, asyncHandler(racaController.deletarRaca));
 
 export default router; 

@@ -10,6 +10,7 @@ import Equipamento from './Equipamento.js';
 import Usuario from './Usuario.js';
 import Mestre from './Mestre.js';
 import Monstro from './Monstro.js';
+import SessaoJogo from './SessaoJogo.js';
 
 // Exportar o cliente Prisma e todos os modelos
 const db = {
@@ -24,7 +25,8 @@ const db = {
   Equipamento: Equipamento(prisma),
   Usuario: Usuario(prisma),
   Mestre: Mestre(prisma),
-  Monstro: Monstro(prisma)
+  Monstro: Monstro(prisma),
+  SessaoJogo: SessaoJogo(prisma)
 };
 
 export default db;

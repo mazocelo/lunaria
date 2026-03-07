@@ -1,7 +1,7 @@
 import express from 'express';
 import classeController from '../controllers/classe/classeController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { requireAdmin } from '../middleware/authMiddleware.js';
+import { requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -65,7 +65,7 @@ const router = express.Router();
  *       400:
  *         description: Dados inválidos
  */
-router.post('/', requireAdmin, asyncHandler(classeController.criarClasse));
+router.post('/', requireSuperAdmin, asyncHandler(classeController.criarClasse));
 
 /**
  * @swagger
@@ -133,5 +133,7 @@ router.get('/buscar', asyncHandler(classeController.buscarClasses));
  *         description: Classe não encontrada
  */
 router.get('/:id', asyncHandler(classeController.obterClasse));
+router.put('/:id', requireSuperAdmin, asyncHandler(classeController.atualizarClasse));
+router.delete('/:id', requireSuperAdmin, asyncHandler(classeController.deletarClasse));
 
 export default router; 

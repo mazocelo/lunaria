@@ -1,5 +1,7 @@
 import express from 'express';
 import sessaoController from '../controllers/sessao/sessaoController.js';
+import sessaoSnapshotService from '../services/sessaoSnapshot.js';
+import gerenciadorSessoes from '../redis/sessoes.js';
 
 const router = express.Router();
 
@@ -73,6 +75,35 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+// IMPORTANTE: rotas estaticas ANTES de /:salaId para evitar conflito
+router.get('/salvas', async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    let sessoes;
+    if (userId) {
+      sessoes = await (await import('../Model/index.js')).default.SessaoJogo.findByUsuarioId(userId);
+    } else {
+      sessoes = await (await import('../Model/index.js')).default.SessaoJogo.findActive();
+    }
+    res.json({
+      success: true,
+      data: sessoes.map(s => ({
+        id: s.id,
+        sala_id: s.sala_id,
+        historia_id: s.historia_id,
+        historia_nome: s.historia?.nome,
+        status: s.status,
+        rodada_atual: s.rodada_atual,
+        fase: s.fase,
+        ultimo_snapshot: s.ultimo_snapshot,
+        iniciada_em: s.iniciada_em
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/:historiaId/iniciar', sessaoController.iniciarSessao);
 
 /**
@@ -438,5 +469,72 @@ router.get('/:salaId/estatisticas', sessaoController.obterEstatisticas);
  *                     $ref: '#/components/schemas/Sessao'
  */
 router.get('/', sessaoController.listarSessoesAtivas);
+
+// ============================================================
+// ENDPOINTS DE SNAPSHOT (Persistencia PostgreSQL)
+// ============================================================
+
+/**
+ * @swagger
+ * /sessoes/{salaId}/snapshot:
+ *   post:
+ *     summary: Forcar snapshot manual de uma sessao ativa
+ *     tags: [Sessões]
+ *     parameters:
+ *       - in: path
+ *         name: salaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Snapshot salvo com sucesso
+ *       404:
+ *         description: Sessao nao encontrada no Redis
+ */
+router.post('/:salaId/snapshot', async (req, res, next) => {
+  try {
+    const { salaId } = req.params;
+    const sessaoRedis = await gerenciadorSessoes.obterSessao(salaId);
+    if (!sessaoRedis) {
+      return res.status(404).json({ success: false, error: 'Sessão não encontrada no Redis' });
+    }
+    const result = await sessaoSnapshotService.salvarSnapshot(salaId, sessaoRedis);
+    res.json({ success: true, message: 'Snapshot salvo', data: { sala_id: result.sala_id, ultimo_snapshot: result.ultimo_snapshot } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /sessoes/{salaId}/restaurar:
+ *   post:
+ *     summary: Restaurar sessao do PostgreSQL para Redis
+ *     tags: [Sessões]
+ *     parameters:
+ *       - in: path
+ *         name: salaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sessao restaurada com sucesso
+ *       404:
+ *         description: Snapshot nao encontrado
+ */
+router.post('/:salaId/restaurar', async (req, res, next) => {
+  try {
+    const { salaId } = req.params;
+    const sessao = await sessaoSnapshotService.restaurarSessao(salaId);
+    if (!sessao) {
+      return res.status(404).json({ success: false, error: 'Snapshot não encontrado ou sessão já finalizada' });
+    }
+    res.json({ success: true, message: 'Sessão restaurada do banco de dados', data: { salaId, status: sessao.status } });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router; 

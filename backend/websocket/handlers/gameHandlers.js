@@ -405,7 +405,12 @@ export class GameHandlers {
         break;
       
       case 'attack':
-        result = await this.handleAttack(session, socket, actionData);
+        // Combate real e processado pelo socketManager.processarAcaoCombate
+        result = {
+          success: false,
+          publicResult: { message: 'Ataques são processados automaticamente durante combate ativo.' },
+          updateGameState: false
+        };
         break;
       
       case 'move':
@@ -528,60 +533,6 @@ export class GameHandlers {
           tipo: 'skill_use',
           jogador: socket.userId,
           skillId,
-          timestamp: new Date().toISOString()
-        }
-      }
-    };
-  }
-
-  /**
-   * Handler para ataque
-   */
-  async handleAttack(session, socket, actionData) {
-    const socketId = socket.id;
-    const userId = socket.userId;
-    
-    this.log('INFO', 'GAME_ATTACK_START', socketId, userId, {
-      target: actionData?.target,
-      weapon: actionData?.weapon,
-      attackType: actionData?.attackType
-    });
-
-    const { target, weapon, attackType } = actionData;
-
-    // Simular ataque
-    const attackRoll = this.rollDice('1d20');
-    const damageRoll = this.rollDice('1d8');
-    const hit = attackRoll.total >= 12; // AC exemplo
-
-    this.log('SUCCESS', 'GAME_ATTACK_COMPLETED', socketId, userId, {
-      target: target,
-      weapon: weapon,
-      attackRoll: attackRoll.total,
-      damage: damageRoll.total,
-      hit: hit,
-      attacker: socket.username
-    });
-
-    return {
-      success: true,
-      publicResult: {
-        type: 'attack',
-        attacker: socket.username,
-        target,
-        weapon,
-        attackType,
-        attackRoll: attackRoll.total,
-        damage: damageRoll.total,
-        hit: hit
-      },
-      updateGameState: true,
-      gameState: {
-        ...session.estadoJogo,
-        ultimaAcao: {
-          tipo: 'attack',
-          jogador: socket.userId,
-          target,
           timestamp: new Date().toISOString()
         }
       }

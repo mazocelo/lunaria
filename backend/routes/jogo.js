@@ -5,6 +5,7 @@ import criarMestreRPG from '../agents/Mestre/index.js';
 import socketManager from '../websocket/socketManager.js';
 import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.js';
 import { buscarPersonagensCompletos, formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
+import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 
 const router = express.Router();
 
@@ -108,10 +109,21 @@ router.post('/start', async (req, res, next) => {
     // ID da sala será baseado na história
     const salaId = `historia_${historiaId}`;
 
-    // Verificar se já existe uma sessão ativa
-    const sessaoExistente = await gerenciadorSessoes.obterSessao(salaId);
-    
-    
+    // Verificar se já existe uma sessão ativa no Redis
+    let sessaoExistente = await gerenciadorSessoes.obterSessao(salaId);
+
+    // Se não existe no Redis, tentar restaurar do PostgreSQL (snapshot)
+    if (!sessaoExistente) {
+      const snapshot = await sessaoSnapshotService.obterSnapshot(salaId);
+      if (snapshot && snapshot.status === 'ativa') {
+        console.log(`♻️ Restaurando sessão do PostgreSQL para ${salaId}`);
+        sessaoExistente = await sessaoSnapshotService.restaurarSessao(salaId);
+        if (sessaoExistente) {
+          console.log(`✅ Sessão restaurada do banco de dados`);
+        }
+      }
+    }
+
     if (sessaoExistente && sessaoExistente.status === 'iniciada') {
       return res.status(400).json({
         success: false,
@@ -567,6 +579,9 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
 
     // Excluir sessão do Redis
     await gerenciadorSessoes.excluirSessao(salaId);
+
+    // Marcar snapshot como finalizado no PostgreSQL
+    await sessaoSnapshotService.finalizarSnapshot(salaId);
 
     // Notificar todos os jogadores conectados que a sessão foi resetada
     socketManager.sendToRoom(salaId, 'sessao_resetada', {

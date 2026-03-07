@@ -360,6 +360,51 @@ class DesvantagemController {
       next(error);
     }
   }
+  async atualizarDesvantagem(req, res) {
+    try {
+      const { id } = req.params;
+      const desvantagem = await db.Desvantagem.findById(parseInt(id));
+      if (!desvantagem) {
+        return res.status(404).json({ success: false, error: 'Desvantagem não encontrada' });
+      }
+
+      const { nome, descricao, custo, tipo, bonus, restricao, dano_base, efeito, usar, elemento, nivel, requisitos } = req.body;
+      const dados = {};
+      if (nome !== undefined) dados.nome = nome;
+      if (descricao !== undefined) dados.descricao = descricao;
+      if (custo !== undefined) dados.custo = parseInt(custo);
+      if (tipo !== undefined) dados.tipo = tipo;
+      if (bonus !== undefined) dados.bonus = bonus;
+      if (restricao !== undefined) dados.restricao = restricao;
+      if (dano_base !== undefined) dados.dano_base = dano_base;
+      if (efeito !== undefined) dados.efeito = efeito;
+      if (usar !== undefined) dados.usar = parseInt(usar);
+      if (elemento !== undefined) dados.elemento = elemento;
+      if (nivel !== undefined) dados.nivel = parseInt(nivel);
+      if (requisitos !== undefined) dados.requisitos = requisitos;
+
+      const atualizada = await db.Desvantagem.update(parseInt(id), dados);
+      res.json({ success: true, message: 'Desvantagem atualizada com sucesso', data: atualizada });
+    } catch (error) {
+      console.error('❌ Erro ao atualizar desvantagem:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  async deletarDesvantagem(req, res) {
+    try {
+      const { id } = req.params;
+      const desvantagem = await db.Desvantagem.findById(parseInt(id));
+      if (!desvantagem) {
+        return res.status(404).json({ success: false, error: 'Desvantagem não encontrada' });
+      }
+      await db.Desvantagem.delete(parseInt(id));
+      res.status(204).send();
+    } catch (error) {
+      console.error('❌ Erro ao deletar desvantagem:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
 }
 
 export default new DesvantagemController(); 

@@ -1,6 +1,6 @@
 import express from 'express';
 import monstroController from '../controllers/monstro/monstroController.js';
-import { authenticateToken, requireAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -182,7 +182,7 @@ router.get('/:id', asyncHandler(monstroController.buscarPorId));
  *       400:
  *         description: Dados invalidos
  */
-router.post('/', authenticateToken, requireAdmin, asyncHandler(monstroController.criar));
+router.post('/', authenticateToken, requireSuperAdmin, asyncHandler(monstroController.criar));
 
 /**
  * @swagger
@@ -211,7 +211,7 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(monstroController
  *       404:
  *         description: Monstro nao encontrado
  */
-router.put('/:id', authenticateToken, requireAdmin, asyncHandler(monstroController.atualizar));
+router.put('/:id', authenticateToken, requireSuperAdmin, asyncHandler(monstroController.atualizar));
 
 /**
  * @swagger
@@ -234,6 +234,6 @@ router.put('/:id', authenticateToken, requireAdmin, asyncHandler(monstroControll
  *       404:
  *         description: Monstro nao encontrado
  */
-router.delete('/:id', authenticateToken, requireAdmin, asyncHandler(monstroController.deletar));
+router.delete('/:id', authenticateToken, requireSuperAdmin, asyncHandler(monstroController.deletar));
 
 export default router;

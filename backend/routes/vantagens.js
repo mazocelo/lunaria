@@ -1,6 +1,6 @@
 import express from 'express';
 import vantagemController from '../controllers/vantagens/vantagensController.js';
-import { requireAdmin } from '../middleware/authMiddleware.js';
+import { requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -160,7 +160,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', requireAdmin, vantagemController.criarVantagem);
+router.post('/', requireSuperAdmin, vantagemController.criarVantagem);
 
 /**
  * @swagger
@@ -438,5 +438,7 @@ router.get('/buscar', vantagemController.buscarVantagens);
  *                             type: integer
  */
 router.get('/estatisticas', vantagemController.obterEstatisticas);
+router.put('/:id', requireSuperAdmin, vantagemController.atualizarVantagem);
+router.delete('/:id', requireSuperAdmin, vantagemController.deletarVantagem);
 
 export default router; 

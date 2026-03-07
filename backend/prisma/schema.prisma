@@ -50,7 +50,17 @@ model equipamentos {
   efeito                 Json?
   elemento               String[]                 @default([])
   requisitos             Json?
+  numero                 Int?
+  raridade               String                   @default("Comum") @db.VarChar(50)
+  origem_lore            String?
+  sintonizacao           Boolean                  @default(false)
+  sintonizacao_restricao String?
+  categoria              String                   @default("Miscelanea Magica") @db.VarChar(100)
   personagem_equipamento personagem_equipamento[]
+
+  @@index([categoria], map: "idx_equipamento_categoria")
+  @@index([raridade], map: "idx_equipamento_raridade")
+  @@index([numero], map: "idx_equipamento_numero")
 }
 
 model historias {

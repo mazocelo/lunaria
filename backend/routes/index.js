@@ -15,6 +15,7 @@ import temasRoutes from './temas.js';
 import websocketRoutes from './websocket.js';
 import mestreRoutes from './mestres.js';
 import monstroRoutes from './monstro.js';
+import equipamentoRoutes from './equipamento.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -41,6 +42,7 @@ router.get('/', async (req, res, next) => {
       temas: '/temas',
       mestres: '/mestres',
       monstros: '/monstros',
+      equipamentos: '/equipamentos',
       websocket: '/websocket'
     }
   });
@@ -55,6 +57,7 @@ router.use('/classes',authenticateToken, classeRoutes);
 router.use('/vantagens',authenticateToken, vantagemRoutes);
 router.use('/desvantagens',authenticateToken, desvantagemRoutes);
 router.use('/temas',authenticateToken, temasRoutes);
+router.use('/equipamentos', authenticateToken, equipamentoRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória

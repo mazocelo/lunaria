@@ -44,13 +44,45 @@ const Equipamento = (prisma) => {
       });
     },
 
+    // Buscar por raridade
+    async findByRaridade(raridade) {
+      return await model.findMany({
+        where: { raridade },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por categoria
+    async findByCategoria(categoria) {
+      return await model.findMany({
+        where: { categoria },
+        orderBy: { numero: 'asc' }
+      });
+    },
+
+    // Buscar por numero
+    async findByNumero(numero) {
+      return await model.findFirst({
+        where: { numero }
+      });
+    },
+
+    // Buscar por nome exato
+    async findByNome(nome) {
+      return await model.findFirst({
+        where: { nome: { equals: nome, mode: 'insensitive' } }
+      });
+    },
+
     // Buscar equipamentos por nome
     async search(termo) {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
-            { descricao: { contains: termo, mode: 'insensitive' } }
+            { descricao: { contains: termo, mode: 'insensitive' } },
+            { categoria: { contains: termo, mode: 'insensitive' } },
+            { raridade: { contains: termo, mode: 'insensitive' } }
           ]
         },
         orderBy: { nome: 'asc' }

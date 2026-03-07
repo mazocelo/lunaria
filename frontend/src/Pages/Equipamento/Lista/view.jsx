@@ -92,10 +92,16 @@ const EquipamentoListaView = () => {
     },
     {
       key: 'sintonizacao',
-      label: 'Sintonizacao',
+      label: 'Vinculo',
       align: 'center',
-      render: (row) => (
-        <span className="text-lg">{row.sintonizacao ? '✨' : '—'}</span>
+      render: (row) => row.sintonizacao ? (
+        <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
+          isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'
+        }`} title="Requer sintonizacao magica (max. 3 por personagem)">
+          ✨ Vinculo
+        </span>
+      ) : (
+        <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>—</span>
       )
     }
   ];

@@ -108,7 +108,7 @@ const VerEquipamentoView = () => {
               {eq.numero && <span className="font-mono text-purple-400 text-sm">#{eq.numero}</span>}
               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${raridadeColors(eq.raridade, isLight)}`}>{eq.raridade || 'Comum'}</span>
               {eq.categoria && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'}`}>{eq.categoria}</span>}
-              {eq.sintonizacao && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'✨'} Sintonizacao</span>}
+              {eq.sintonizacao && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'✨'} Vinculo Magico</span>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -135,8 +135,11 @@ const VerEquipamentoView = () => {
       {/* Sintonizacao */}
       {eq.sintonizacao && (
         <div className="card-rpg">
-          <SectionTitle>Sintonizacao</SectionTitle>
-          <InfoRow label="Requer Sintonizacao" value="Sim" />
+          <SectionTitle>Vinculo Magico</SectionTitle>
+          <p className={`text-xs font-modern mb-3 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            Este item requer um vinculo magico com o portador para ativar seus poderes. Um personagem pode manter vinculo com no maximo 3 itens.
+          </p>
+          <InfoRow label="Requer Vinculo" value="Sim" />
           {eq.sintonizacao_restricao && <InfoRow label="Restricao" value={eq.sintonizacao_restricao} />}
         </div>
       )}

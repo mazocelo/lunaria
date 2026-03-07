@@ -22,26 +22,26 @@ export const validatePagination = [
 
 export const validateMestreCriacao = [
   body('nome').trim().notEmpty().withMessage('Nome e obrigatorio').isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
-  body('descricao').optional().isString(),
-  body('personalidade').optional().isString(),
-  body('modelo').optional().isString(),
-  body('temperatura').optional().isFloat({ min: 0, max: 2 }).withMessage('Temperatura deve ser entre 0 e 2'),
-  body('max_tokens').optional().isInt({ min: 100, max: 32000 }).withMessage('Max tokens deve ser entre 100 e 32000'),
-  body('tom_narrativo').optional().isString(),
-  body('regras_especiais').optional().isString(),
-  body('imagem').optional().isString()
+  body('descricao').optional({ values: 'null' }).isString(),
+  body('personalidade').optional({ values: 'null' }).isString(),
+  body('modelo').optional({ values: 'null' }).isString(),
+  body('temperatura').optional({ values: 'null' }).toFloat().isFloat({ min: 0, max: 2 }).withMessage('Temperatura deve ser entre 0 e 2'),
+  body('max_tokens').optional({ values: 'null' }).toInt().isInt({ min: 100, max: 32000 }).withMessage('Max tokens deve ser entre 100 e 32000'),
+  body('tom_narrativo').optional({ values: 'null' }).isString(),
+  body('regras_especiais').optional({ values: 'null' }).isString(),
+  body('imagem').optional({ values: 'null' }).isString()
 ];
 
 export const validateMestreAtualizacao = [
   body('nome').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
-  body('descricao').optional().isString(),
-  body('personalidade').optional().isString(),
-  body('modelo').optional().isString(),
-  body('temperatura').optional().isFloat({ min: 0, max: 2 }).withMessage('Temperatura deve ser entre 0 e 2'),
-  body('max_tokens').optional().isInt({ min: 100, max: 32000 }).withMessage('Max tokens deve ser entre 100 e 32000'),
-  body('tom_narrativo').optional().isString(),
-  body('regras_especiais').optional().isString(),
-  body('imagem').optional().isString()
+  body('descricao').optional({ values: 'null' }).isString(),
+  body('personalidade').optional({ values: 'null' }).isString(),
+  body('modelo').optional({ values: 'null' }).isString(),
+  body('temperatura').optional({ values: 'null' }).toFloat().isFloat({ min: 0, max: 2 }).withMessage('Temperatura deve ser entre 0 e 2'),
+  body('max_tokens').optional({ values: 'null' }).toInt().isInt({ min: 100, max: 32000 }).withMessage('Max tokens deve ser entre 100 e 32000'),
+  body('tom_narrativo').optional({ values: 'null' }).isString(),
+  body('regras_especiais').optional({ values: 'null' }).isString(),
+  body('imagem').optional({ values: 'null' }).isString()
 ];
 
 export function handleValidationErrors(req, res, next) {

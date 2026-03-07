@@ -48,4 +48,5 @@ export const notificationService = new NotificationService(apiClient);
 export const catalogoService = {
   getRaridades: () => apiClient.get('/catalogos/raridades'),
   getCategoriasEquipamento: () => apiClient.get('/catalogos/categorias-equipamento'),
+  getCategoriasMonstro: () => apiClient.get('/catalogos/categorias-monstro'),
 };

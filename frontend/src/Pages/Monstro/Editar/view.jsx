@@ -33,10 +33,13 @@ const EditarMonstroView = () => {
         {vm.error && (<div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg"><div className="flex items-start space-x-3"><div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-white text-sm">!</span></div><div><div className="font-semibold text-red-400 font-modern">Erro</div><p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p></div></div></div>)}
         <InputSimples label="Nome" name="nome" value={vm.nome} onChange={e => vm.setField('nome', e.target.value)} placeholder="Nome do monstro" required />
         <div><label className={labelCls}>Descricao</label><textarea name="descricao" value={vm.descricao} onChange={e => vm.setField('descricao', e.target.value)} placeholder="Descricao do monstro..." rows={3} className={inputCls} /></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputSimples label="Tipo" name="tipo" value={vm.tipo} onChange={e => vm.setField('tipo', e.target.value)} placeholder="bestial, magico" />
-          <div><label className={labelCls}>Raridade</label><select name="raridade" value={vm.raridade} onChange={e => vm.setField('raridade', e.target.value)} className={inputCls}><option value="comum">Comum</option><option value="incomum">Incomum</option><option value="raro">Raro</option><option value="epico">Epico</option><option value="lendario">Lendario</option></select></div>
           <InputSimples label="Elemento" name="elemento" value={vm.elemento} onChange={e => vm.setField('elemento', e.target.value)} placeholder="fogo, trevas" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label className={labelCls}>Categoria</label><select name="categoria_id" value={vm.categoria_id} onChange={e => vm.setField('categoria_id', e.target.value)} className={inputCls}><option value="">Selecione...</option>{vm.categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+          <div><label className={labelCls}>Raridade</label><select name="raridade_id" value={vm.raridade_id} onChange={e => vm.setField('raridade_id', e.target.value)} className={inputCls}><option value="">Selecione...</option>{vm.raridades.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}</select></div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <InputSimples label="Nivel Min" name="nivel_min" type="number" value={vm.nivel_min} onChange={e => vm.setField('nivel_min', e.target.value)} min={1} />

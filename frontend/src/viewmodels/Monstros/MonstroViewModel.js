@@ -71,7 +71,8 @@ class MonstroViewModel {
     return monstros.filter(m =>
       m.nome?.toLowerCase().includes(termLower) ||
       m.descricao?.toLowerCase().includes(termLower) ||
-      m.raridade?.toLowerCase().includes(termLower)
+      m.raridade_rel?.nome?.toLowerCase().includes(termLower) ||
+      m.categoria_rel?.nome?.toLowerCase().includes(termLower)
     );
   };
 

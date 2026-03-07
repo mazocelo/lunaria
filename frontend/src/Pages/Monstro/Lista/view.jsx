@@ -26,11 +26,13 @@ const MonstroListaView = () => {
   }
 
   const raridadeColors = {
-    comum: isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300',
-    incomum: isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
-    rara: isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400',
-    epica: isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
-    lendaria: isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400'
+    'Comum': isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300',
+    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
+    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
+    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
+    'Epico': isLight ? 'bg-pink-100 text-pink-800' : 'bg-pink-500/20 text-pink-400',
+    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
+    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
   };
 
   const renderTipo = (row) => {
@@ -88,16 +90,31 @@ const MonstroListaView = () => {
       render: renderTipo
     },
     {
+      key: 'categoria',
+      label: 'Categoria',
+      align: 'left',
+      render: (row) => {
+        const nome = row.categoria_rel?.nome;
+        if (!nome) return <span className="text-slate-500 text-xs">-</span>;
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
+            isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'
+          }`}>{nome}</span>
+        );
+      }
+    },
+    {
       key: 'raridade',
       label: 'Raridade',
       align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
-          raridadeColors[row.raridade] || raridadeColors.comum
-        }`}>
-          {row.raridade || 'comum'}
-        </span>
-      )
+      render: (row) => {
+        const nome = row.raridade_rel?.nome || 'Comum';
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+            raridadeColors[nome] || raridadeColors['Comum']
+          }`}>{nome}</span>
+        );
+      }
     },
     {
       key: 'nivel',
@@ -148,7 +165,8 @@ const MonstroListaView = () => {
     : vm.monstros;
 
   const raridades = (vm.monstros || []).reduce((acc, m) => {
-    acc[m.raridade] = (acc[m.raridade] || 0) + 1;
+    const r = m.raridade_rel?.nome || 'Comum';
+    acc[r] = (acc[r] || 0) + 1;
     return acc;
   }, {});
 
@@ -167,9 +185,9 @@ const MonstroListaView = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <StatCard title="Total" value={vm.monstros?.length || 0} icon="👹" variant="primary" />
-        <StatCard title="Comuns" value={raridades.comum || 0} icon="⚪" variant="secondary" />
-        <StatCard title="Raros+" value={(raridades.rara || 0) + (raridades.epica || 0) + (raridades.lendaria || 0)} icon="💎" variant="accent" />
-        <StatCard title="Incomuns" value={raridades.incomum || 0} icon="🟢" variant="secondary" />
+        <StatCard title="Comuns" value={raridades['Comum'] || 0} icon="⚪" variant="secondary" />
+        <StatCard title="Raros+" value={(raridades['Raro'] || 0) + (raridades['Epico'] || 0) + (raridades['Lendario'] || 0)} icon="💎" variant="accent" />
+        <StatCard title="Incomuns" value={raridades['Incomum'] || 0} icon="🟢" variant="secondary" />
       </div>
 
       <TabelaList

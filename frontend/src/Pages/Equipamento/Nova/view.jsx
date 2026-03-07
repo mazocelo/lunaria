@@ -8,11 +8,13 @@ import { useTheme } from '../../../contexts/theme.jsx';
 import { ROUTES } from '../../../routes.jsx';
 
 const CATEGORIAS = [
-  'Arma Simples', 'Arma Marcial', 'Armadura Leve', 'Armadura Media', 'Armadura Pesada',
-  'Escudo', 'Anel', 'Amuleto', 'Pocao', 'Pergaminho', 'Varinha', 'Miscelanea Magica'
+  'Espadas e Laminas', 'Machados, Martelos e Contundentes', 'Lancas, Alabardas e Armas de Haste',
+  'Armas de Alcance', 'Armaduras e Escudos', 'Aneis Magicos', 'Amuletos e Colares',
+  'Cajados, Varinhas e Orbes', 'Pocoes e Elixires', 'Itens de Uso e Ferramentas Magicas',
+  'Artefatos Lendarios', 'Miscelanea Magica'
 ];
 
-const RARIDADES = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendario', 'Artefato'];
+const RARIDADES = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendario', 'Artefato', 'Variavel'];
 
 const NovoEquipamentoView = () => {
   const vm = useViewModel(editarEquipamentoViewModel);
@@ -95,14 +97,24 @@ const NovoEquipamentoView = () => {
           </div>
         </div>
 
+        {/* Secao: Propriedades */}
+        <div>
+          <h3 className={sectionCls}>Propriedades</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputSimples label="Propriedades (separado por virgula)" name="propriedades" value={vm.propriedades} onChange={e => vm.setField('propriedades', e.target.value)} placeholder="cargas, senciente, voo, luminoso" />
+            <div className="grid grid-cols-2 gap-4">
+              <InputSimples label="Cargas" name="cargas" type="number" value={vm.cargas} onChange={e => vm.setField('cargas', e.target.value)} placeholder="Ex: 7" />
+              <InputSimples label="Usos/dia" name="usos_por_dia" type="number" value={vm.usos_por_dia} onChange={e => vm.setField('usos_por_dia', e.target.value)} placeholder="Ex: 3" />
+            </div>
+          </div>
+        </div>
+
         {/* Secao: Dados Avancados */}
         <div>
           <h3 className={sectionCls}>Dados Avancados</h3>
           <div className="space-y-4">
-            <div><label className={labelCls}>Bonus (JSON)</label><textarea name="bonus" value={vm.bonus} onChange={e => vm.setField('bonus', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{"forca": 2}' /></div>
-            <div><label className={labelCls}>Efeito (JSON)</label><textarea name="efeito" value={vm.efeito} onChange={e => vm.setField('efeito', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{}' /></div>
-            <div><label className={labelCls}>Restricao (JSON)</label><textarea name="restricao" value={vm.restricao} onChange={e => vm.setField('restricao', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{}' /></div>
-            <div><label className={labelCls}>Requisitos (JSON)</label><textarea name="requisitos" value={vm.requisitos} onChange={e => vm.setField('requisitos', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{}' /></div>
+            <div><label className={labelCls}>Bonus (JSON)</label><textarea name="bonus" value={vm.bonus} onChange={e => vm.setField('bonus', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{"ataque": 2, "dano": 2}' /></div>
+            <div><label className={labelCls}>Requisitos (JSON)</label><textarea name="requisitos" value={vm.requisitos} onChange={e => vm.setField('requisitos', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{"classe": ["paladino"], "stats": {"FOR": 18}}' /></div>
           </div>
         </div>
 

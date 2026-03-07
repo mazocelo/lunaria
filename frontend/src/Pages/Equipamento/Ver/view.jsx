@@ -77,9 +77,8 @@ const VerEquipamentoView = () => {
   const tipos = Array.isArray(eq.tipo) ? eq.tipo : [];
   const elementos = Array.isArray(eq.elemento) ? eq.elemento : [];
   const bonusStr = formatJson(eq.bonus);
-  const efeitoStr = formatJson(eq.efeito);
   const requisitosStr = formatJson(eq.requisitos);
-  const restricaoStr = formatJson(eq.restricao);
+  const propriedades = Array.isArray(eq.propriedades) ? eq.propriedades : [];
 
   const SectionTitle = ({ children }) => (
     <h3 className={`text-lg font-fantasy font-bold mb-3 pb-2 border-b ${isLight ? 'text-slate-700 border-slate-200' : 'text-slate-200 border-slate-700'}`}>{children}</h3>
@@ -170,8 +169,27 @@ const VerEquipamentoView = () => {
         </div>
       )}
 
+      {/* Propriedades */}
+      {(propriedades.length > 0 || eq.cargas || eq.usos_por_dia) && (
+        <div className="card-rpg">
+          <SectionTitle>Propriedades</SectionTitle>
+          {propriedades.length > 0 && (
+            <div className="py-2">
+              <span className={`text-sm font-semibold font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Tags</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {propriedades.map((p, i) => (
+                  <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-modern ${isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-500/20 text-emerald-400'}`}>{p}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {eq.cargas && <InfoRow label="Cargas" value={eq.cargas} />}
+          {eq.usos_por_dia && <InfoRow label="Usos por dia" value={eq.usos_por_dia} />}
+        </div>
+      )}
+
       {/* Dados Avancados */}
-      {(bonusStr || efeitoStr || requisitosStr || restricaoStr) && (
+      {(bonusStr || requisitosStr) && (
         <div className="card-rpg">
           <SectionTitle>Dados Avancados</SectionTitle>
           {bonusStr && (
@@ -180,22 +198,10 @@ const VerEquipamentoView = () => {
               <pre className={`mt-1 p-3 rounded-lg text-sm font-mono ${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-800/50 text-slate-300'}`}>{bonusStr}</pre>
             </div>
           )}
-          {efeitoStr && (
-            <div className="py-2">
-              <span className={`text-sm font-semibold font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Efeito</span>
-              <pre className={`mt-1 p-3 rounded-lg text-sm font-mono ${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-800/50 text-slate-300'}`}>{efeitoStr}</pre>
-            </div>
-          )}
           {requisitosStr && (
             <div className="py-2">
               <span className={`text-sm font-semibold font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Requisitos</span>
               <pre className={`mt-1 p-3 rounded-lg text-sm font-mono ${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-800/50 text-slate-300'}`}>{requisitosStr}</pre>
-            </div>
-          )}
-          {restricaoStr && (
-            <div className="py-2">
-              <span className={`text-sm font-semibold font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Restricao</span>
-              <pre className={`mt-1 p-3 rounded-lg text-sm font-mono ${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-800/50 text-slate-300'}`}>{restricaoStr}</pre>
             </div>
           )}
         </div>

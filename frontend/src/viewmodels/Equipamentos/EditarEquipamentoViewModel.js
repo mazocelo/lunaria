@@ -4,9 +4,10 @@ class EditarEquipamentoViewModel {
   constructor() {
     this.service = equipamentoService;
     this.state = {
-      id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '', restricao: '',
-      dano_base: '', efeito: '', requisitos: '', numero: '', raridade: 'Comum',
+      id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '',
+      dano_base: '', requisitos: '', numero: '', raridade: 'Comum',
       origem_lore: '', sintonizacao: false, sintonizacao_restricao: '', categoria: 'Miscelanea Magica',
+      propriedades: '', cargas: '', usos_por_dia: '',
       loading: false, saving: false, error: null,
     };
     this.subscribers = [];
@@ -30,9 +31,11 @@ class EditarEquipamentoViewModel {
       this.setState({
         id: data.id, nome: data.nome || '', descricao: data.descricao || '',
         tipo: this._arrToStr(data.tipo), elemento: this._arrToStr(data.elemento),
-        bonus: this._jsonToStr(data.bonus), restricao: this._jsonToStr(data.restricao),
-        dano_base: data.dano_base ?? '', efeito: this._jsonToStr(data.efeito),
+        bonus: this._jsonToStr(data.bonus),
+        dano_base: data.dano_base ?? '',
         requisitos: this._jsonToStr(data.requisitos), numero: data.numero ?? '',
+        propriedades: this._arrToStr(data.propriedades),
+        cargas: data.cargas ?? '', usos_por_dia: data.usos_por_dia ?? '',
         raridade: data.raridade || 'Comum', origem_lore: data.origem_lore || '',
         sintonizacao: data.sintonizacao || false,
         sintonizacao_restricao: data.sintonizacao_restricao || '',
@@ -48,9 +51,12 @@ class EditarEquipamentoViewModel {
     return {
       nome: this.state.nome, descricao: this.state.descricao || null,
       tipo: this._parseArr(this.state.tipo), elemento: this._parseArr(this.state.elemento),
-      bonus: this._parseJson(this.state.bonus), restricao: this._parseJson(this.state.restricao),
+      bonus: this._parseJson(this.state.bonus),
       dano_base: this.state.dano_base ? String(this.state.dano_base) : null,
-      efeito: this._parseJson(this.state.efeito), requisitos: this._parseJson(this.state.requisitos),
+      requisitos: this._parseJson(this.state.requisitos),
+      propriedades: this._parseArr(this.state.propriedades),
+      cargas: this.state.cargas ? parseInt(this.state.cargas) : null,
+      usos_por_dia: this.state.usos_por_dia ? parseInt(this.state.usos_por_dia) : null,
       numero: this.state.numero ? parseInt(this.state.numero) : null,
       raridade: this.state.raridade, origem_lore: this.state.origem_lore || null,
       sintonizacao: this.state.sintonizacao,
@@ -87,9 +93,10 @@ class EditarEquipamentoViewModel {
 
   reset = () => {
     this.setState({
-      id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '', restricao: '',
-      dano_base: '', efeito: '', requisitos: '', numero: '', raridade: 'Comum',
+      id: null, nome: '', descricao: '', tipo: '', elemento: '', bonus: '',
+      dano_base: '', requisitos: '', numero: '', raridade: 'Comum',
       origem_lore: '', sintonizacao: false, sintonizacao_restricao: '', categoria: 'Miscelanea Magica',
+      propriedades: '', cargas: '', usos_por_dia: '',
       loading: false, saving: false, error: null,
     });
   };
@@ -102,10 +109,11 @@ class EditarEquipamentoViewModel {
   get tipo() { return this.state.tipo; }
   get elemento() { return this.state.elemento; }
   get bonus() { return this.state.bonus; }
-  get restricao() { return this.state.restricao; }
   get dano_base() { return this.state.dano_base; }
-  get efeito() { return this.state.efeito; }
   get requisitos() { return this.state.requisitos; }
+  get propriedades() { return this.state.propriedades; }
+  get cargas() { return this.state.cargas; }
+  get usos_por_dia() { return this.state.usos_por_dia; }
   get numero() { return this.state.numero; }
   get raridade() { return this.state.raridade; }
   get origem_lore() { return this.state.origem_lore; }

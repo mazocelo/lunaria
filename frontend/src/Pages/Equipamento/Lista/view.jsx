@@ -9,11 +9,13 @@ import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 
 const CATEGORIAS = [
-  'Arma Simples', 'Arma Marcial', 'Armadura Leve', 'Armadura Media', 'Armadura Pesada',
-  'Escudo', 'Anel', 'Amuleto', 'Pocao', 'Pergaminho', 'Varinha', 'Miscelanea Magica'
+  'Espadas e Laminas', 'Machados, Martelos e Contundentes', 'Lancas, Alabardas e Armas de Haste',
+  'Armas de Alcance', 'Armaduras e Escudos', 'Aneis Magicos', 'Amuletos e Colares',
+  'Cajados, Varinhas e Orbes', 'Pocoes e Elixires', 'Itens de Uso e Ferramentas Magicas',
+  'Artefatos Lendarios', 'Miscelanea Magica'
 ];
 
-const RARIDADES = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendario', 'Artefato'];
+const RARIDADES = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendario', 'Artefato', 'Variavel'];
 
 const raridadeColors = (raridade, isLight) => {
   const map = {

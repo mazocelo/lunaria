@@ -33,6 +33,11 @@ console.log('🌐 CORS configurado:', {
   credentials: corsOptions.credentials
 });
 
+// Trust proxy (necessário para Heroku / reverse proxies)
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 // view engine setup
 app.set('views', path.join(path.resolve(), 'views'));
 app.set('view engine', 'jade');

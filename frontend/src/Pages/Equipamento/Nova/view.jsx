@@ -36,7 +36,7 @@ const NovoEquipamentoView = () => {
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><span className="text-3xl">{'\u2694\uFE0F'}</span></div>
+        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><span className="text-3xl">{'⚔️'}</span></div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Criar Novo Equipamento</h1>
         <p className="text-slate-400 font-modern">Adicione um novo equipamento ao catalogo</p>
       </div>
@@ -120,7 +120,7 @@ const NovoEquipamentoView = () => {
 
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={() => navigate(ROUTES.EQUIPAMENTOS)} className="flex-1" type="button">Cancelar</Button>
-          <Button variant="primary" type="submit" disabled={vm.saving} className="flex-1">{vm.saving ? (<div className="flex items-center space-x-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Criando...</span></div>) : (<div className="flex items-center space-x-2"><span>{'\u2694\uFE0F'}</span><span>Criar Equipamento</span></div>)}</Button>
+          <Button variant="primary" type="submit" disabled={vm.saving} className="flex-1">{vm.saving ? (<div className="flex items-center space-x-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Criando...</span></div>) : (<div className="flex items-center space-x-2"><span>{'⚔️'}</span><span>Criar Equipamento</span></div>)}</Button>
         </div>
       </form>
     </div>

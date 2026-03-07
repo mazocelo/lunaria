@@ -65,7 +65,7 @@ const VerEquipamentoView = () => {
     return (
       <div className="animate-fade-in max-w-4xl mx-auto">
         <div className="card-rpg text-center py-12">
-          <span className="text-4xl mb-4 block">{'\u274C'}</span>
+          <span className="text-4xl mb-4 block">{'❌'}</span>
           <p className="text-red-400 font-modern">{error || 'Equipamento nao encontrado'}</p>
           <Button variant="ghost" onClick={() => navigate(ROUTES.EQUIPAMENTOS)} className="mt-4">Voltar</Button>
         </div>
@@ -101,14 +101,14 @@ const VerEquipamentoView = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">{'\u2694\uFE0F'}</span>
+              <span className="text-3xl">{'⚔️'}</span>
               <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{eq.nome}</h1>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {eq.numero && <span className="font-mono text-purple-400 text-sm">#{eq.numero}</span>}
               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${raridadeColors(eq.raridade, isLight)}`}>{eq.raridade || 'Comum'}</span>
               {eq.categoria && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'}`}>{eq.categoria}</span>}
-              {eq.sintonizacao && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'\u2728'} Sintonizacao</span>}
+              {eq.sintonizacao && <span className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'}`}>{'✨'} Sintonizacao</span>}
             </div>
           </div>
           <div className="flex gap-2">

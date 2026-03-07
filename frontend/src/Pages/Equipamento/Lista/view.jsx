@@ -95,7 +95,7 @@ const EquipamentoListaView = () => {
       label: 'Sintonizacao',
       align: 'center',
       render: (row) => (
-        <span className="text-lg">{row.sintonizacao ? '\u2728' : '\u2014'}</span>
+        <span className="text-lg">{row.sintonizacao ? '✨' : '—'}</span>
       )
     }
   ];
@@ -103,19 +103,19 @@ const EquipamentoListaView = () => {
   const actions = [
     {
       label: 'Ver',
-      icon: '\uD83D\uDC41\uFE0F',
+      icon: '👁️',
       color: 'purple',
       onClick: (row) => navigate(generateRoute.verEquipamento(row.id))
     },
     {
       label: 'Editar',
-      icon: '\u270F\uFE0F',
+      icon: '✏️',
       color: 'blue',
       onClick: (row) => navigate(generateRoute.editarEquipamento(row.id))
     },
     {
       label: 'Deletar',
-      icon: '\uD83D\uDDD1\uFE0F',
+      icon: '🗑️',
       color: 'red',
       onClick: async (row) => {
         if (window.confirm(`Deseja realmente excluir "${row.nome}"?`)) {
@@ -150,10 +150,10 @@ const EquipamentoListaView = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total de Equipamentos" value={vm.equipamentos?.length || 0} icon="\u2694\uFE0F" variant="primary" />
-        <StatCard title="Raros" value={countByRaridade('Raro')} icon="\uD83D\uDC8E" variant="secondary" />
-        <StatCard title="Lendarios" value={countByRaridade('Lendario')} icon="\uD83C\uDFC6" variant="accent" />
-        <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon="\uD83D\uDD25" variant="primary" />
+        <StatCard title="Total de Equipamentos" value={vm.equipamentos?.length || 0} icon="⚔️" variant="primary" />
+        <StatCard title="Raros" value={countByRaridade('Raro')} icon="💎" variant="secondary" />
+        <StatCard title="Lendarios" value={countByRaridade('Lendario')} icon="🏆" variant="accent" />
+        <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon="🔥" variant="primary" />
       </div>
 
       {/* Filtros */}
@@ -191,7 +191,7 @@ const EquipamentoListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhum equipamento encontrado"
-        emptyIcon="\u2694\uFE0F"
+        emptyIcon="⚔️"
         hoverable={true}
       />
     </div>

@@ -55,6 +55,15 @@ export async function buscarPersonagensCompletos(personagensIds) {
           const bonusEquip = agregarBonusEquipamentos(equipamentosMapeados);
           const melhorArma = encontrarMelhorArma(equipamentosMapeados);
 
+          // Encontrar elemento da melhor arma
+          let elementoArma = null;
+          if (melhorArma) {
+            const armaEquip = equipamentosMapeados.find(e => e.dano_base === melhorArma);
+            if (armaEquip?.elemento?.length > 0) {
+              elementoArma = armaEquip.elemento[0];
+            }
+          }
+
           return {
             id: personagem.id,
             nome: personagem.nome,
@@ -64,6 +73,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
             atributos: atributosEfetivos,
             bonusEquip,
             melhorArma,
+            elementoArma,
             background: personagem.background || '',
             vantagens: vantagens.map(v => ({
               nome: v.vantagem?.nome || v.nome,

@@ -13,6 +13,7 @@ import {
   verificarEsquiva,
   verificarAcerto,
   calcularDano,
+  aplicarResistencias,
   rolarDado,
   selecionarHabilidadeMonstro,
   gerarInstanciasCombate,
@@ -3272,6 +3273,7 @@ class SocketManager {
             bonusAtaque: bonusEquip.ataque || 0,
             bonusDano: bonusEquip.dano || 0,
             dano_base: p.melhorArma || null,
+            elemento: p.elementoArma || null,
             status: 'vivo',
             personagemNome: p.nome || jogador.username
           };
@@ -3372,6 +3374,11 @@ class SocketManager {
           const bonusDanoEquip = jogadorStats.bonusDano || 0;
           const armaduraMonstro = monstroAlvo.armadura || 0;
           danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico, armaduraMonstro);
+          // Aplicar resistencias/imunidades do monstro
+          const elementoAtaque = jogadorStats.elemento || null;
+          if (elementoAtaque) {
+            danoTotal = aplicarResistencias(danoTotal, elementoAtaque, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
+          }
           monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
 
           if (monstroAlvo.hp_atual <= 0) {

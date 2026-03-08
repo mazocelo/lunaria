@@ -94,16 +94,49 @@ export function verificarEsquiva(taxaEsquiva) {
 export function calcularStatsEfetivos(monstro, nivel) {
   const n = Math.max(1, nivel);
   const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
+  const modTam = _getModTamanho(monstro.tamanho);
 
   return {
     hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
     ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.floor(n * 0.7)),
     defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
-    armadura: Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2)),
-    esquiva: Math.min(30, Math.max(0, modAgi * 3)),
+    armadura: Math.max(0, Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
+    esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
     dano_base: monstro.dano_base,
     xp: monstro.xp_base * n
   };
+}
+
+/**
+ * Modificadores de combate por tamanho do monstro
+ */
+function _getModTamanho(tamanho) {
+  const mods = {
+    minusculo:    { armadura: -2, esquiva: 10 },
+    pequeno:      { armadura: -1, esquiva: 5 },
+    medio:        { armadura: 0,  esquiva: 0 },
+    grande:       { armadura: 3,  esquiva: -5 },
+    enorme:       { armadura: 5,  esquiva: -10 },
+    gargantuesco: { armadura: 7,  esquiva: -13 },
+    colossal:     { armadura: 8,  esquiva: -15 },
+  };
+  return mods[tamanho] || mods.medio;
+}
+
+/**
+ * Aplica resistencias e imunidades elementais ao dano
+ * @param {number} dano - Dano base calculado
+ * @param {string|null} elemento - Elemento do ataque (ex: "fogo")
+ * @param {Object} resistencias - Multiplicadores (ex: { fogo: 0.5 })
+ * @param {Array} imunidades - Lista de imunidades (ex: ["veneno"])
+ * @returns {number} Dano ajustado
+ */
+export function aplicarResistencias(dano, elemento, resistencias = {}, imunidades = []) {
+  if (!elemento) return dano;
+  if (Array.isArray(imunidades) && imunidades.includes(elemento)) return 0;
+  const mult = resistencias[elemento];
+  if (mult != null) return Math.max(0, Math.round(dano * mult));
+  return dano;
 }
 
 /**
@@ -198,6 +231,7 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           monstroId: monstroBase.id,
           nome: quantidade > 1 ? `${monstroBase.nome} ${String.fromCharCode(64 + i + 1)}` : monstroBase.nome,
           tipo: monstroBase.tipo[0] || 'besta',
+          tamanho: monstroBase.tamanho || 'medio',
           nivel: nivelEfetivo,
           hp_max: stats.hp_max,
           hp_atual: stats.hp_max,
@@ -208,6 +242,8 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           dano_base: stats.dano_base,
           habilidades: monstroBase.habilidades || [],
           elemento: monstroBase.elemento || [],
+          resistencias: monstroBase.resistencias || {},
+          imunidades: monstroBase.imunidades || [],
           xp: stats.xp,
           status: 'vivo',
           cooldowns: {}
@@ -293,7 +329,7 @@ export function formatarContextoCombate(combateState, userId) {
 
   const monstrosInfo = combateState.monstros
     .filter(m => m.status === 'vivo')
-    .map(m => `${m.nome} (HP ${m.hp_atual}/${m.hp_max}, ATK ${m.ataque}, ARM ${m.armadura || 0}, ESQ ${m.esquiva || 0}%)`)
+    .map(m => `${m.nome} (HP ${m.hp_atual}/${m.hp_max}, ATK ${m.ataque}, ARM ${m.armadura || 0}, ESQ ${m.esquiva || 0}%${m.imunidades?.length ? `, Imune: ${m.imunidades.join(',')}` : ''})`)
     .join(', ');
 
   const monstrosDerrotados = combateState.monstros
@@ -323,6 +359,7 @@ export default {
   calcularStatsEfetivos,
   verificarAcerto,
   calcularDano,
+  aplicarResistencias,
   selecionarHabilidadeMonstro,
   gerarInstanciasCombate,
   verificarFimCombate,

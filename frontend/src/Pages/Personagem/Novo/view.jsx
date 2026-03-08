@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import Selector from '../../../components/form/Selector';
+import Combobox from '../../../components/form/Combobox';
+import MultiSelect from '../../../components/form/MultiSelect';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from './viewmodel';
@@ -106,20 +107,22 @@ const NovoPersonagemView = () => {
             </div>
           ) : (
             <>
-              <Selector
+              <Combobox
                 label="Raça"
                 options={(vm.racasDisponiveis || []).map(r => ({ value: String(r.id), label: r.nome }))}
                 selected={vm.raca}
                 onChange={(value) => vm.setRaca(value)}
-                type="single"
+                placeholder="Buscar raça..."
+                emptyText="Nenhuma raça encontrada."
               />
 
-              <Selector
+              <Combobox
                 label="Classe"
                 options={(vm.classesDisponiveis || []).map(c => ({ value: String(c.id), label: c.nome }))}
                 selected={vm.classe}
                 onChange={(value) => vm.setClasse(value)}
-                type="single"
+                placeholder="Buscar classe..."
+                emptyText="Nenhuma classe encontrada."
               />
             </>
           )}
@@ -184,7 +187,7 @@ const NovoPersonagemView = () => {
               <span className="text-slate-400 font-modern text-sm">Carregando vantagens...</span>
             </div>
           ) : (
-            <Selector
+            <MultiSelect
               label="Selecione Vantagens e Desvantagens"
               options={(vm.vantagensDisponiveis || []).map(v => ({
                 value: String(v.id),
@@ -192,8 +195,9 @@ const NovoPersonagemView = () => {
               }))}
               selected={vm.vantagens || []}
               onChange={(selected) => vm.setVantagens(Array.isArray(selected) ? selected : [])}
-              type="multiple"
               max={5}
+              placeholder="Buscar vantagens..."
+              emptyText="Nenhuma vantagem encontrada."
             />
           )}
           <p className="text-xs text-slate-400 font-modern">
@@ -291,13 +295,14 @@ const NovoPersonagemView = () => {
               <span className="text-slate-400 font-modern text-sm">Carregando histórias...</span>
             </div>
           ) : (vm.historiasDisponiveis || []).length > 0 ? (
-            <Selector
+            <MultiSelect
               label="Vincular a Histórias (opcional)"
               options={vm.historiasDisponiveis.map(h => ({ value: String(h.id), label: h.nome }))}
               selected={vm.historias || []}
               onChange={(selected) => vm.setHistorias(Array.isArray(selected) ? selected : [])}
-              type="multiple"
               max={3}
+              placeholder="Buscar histórias..."
+              emptyText="Nenhuma história encontrada."
             />
           ) : (
             <p className={`${isLight ? 'text-slate-500' : 'text-slate-400'} font-modern text-sm italic`}>

@@ -38,6 +38,28 @@ class SocketManager {
     this._cacheCleaner = null; // interval reference for cleanup
     this._disconnectTimers = new Map(); // userId -> timeout for grace period
     this._snapshotCounters = new Map(); // roomId -> mensagens count since last snapshot
+    this._roomLocks = new Map(); // roomId -> Promise (mutex por sala)
+  }
+
+  /**
+   * Mutex por sala - garante que apenas uma operação por vez modifique a sessão
+   * Previne race conditions quando múltiplos jogadores agem simultaneamente
+   */
+  async withRoomLock(roomId, fn) {
+    // Esperar lock anterior terminar
+    while (this._roomLocks.has(roomId)) {
+      await this._roomLocks.get(roomId).catch(() => {});
+    }
+    // Criar novo lock
+    let resolve;
+    const lockPromise = new Promise(r => { resolve = r; });
+    this._roomLocks.set(roomId, lockPromise);
+    try {
+      return await fn();
+    } finally {
+      this._roomLocks.delete(roomId);
+      resolve();
+    }
   }
 
   /**
@@ -1662,6 +1684,9 @@ class SocketManager {
       const mensagem = String(rawMensagem);
       const personagem = rawPersonagem;
 
+      // ✅ MUTEX: Garantir que apenas uma operação por vez na sala
+      return await this.withRoomLock(roomId, async () => {
+
       this.log('INFO', 'MENSAGEM_PARA_MESTRE_DATA_PARSED', socket.id, userId, {
         roomId,
         username,
@@ -1687,21 +1712,23 @@ class SocketManager {
       // 2. VERIFICAR SISTEMA DE TURNOS
       const estadoJogo = sessao.estadoJogo || {};
       const fase = estadoJogo.fase;
-      
+      const combateAtualAtivo = estadoJogo.combate?.ativo || false;
+
       // Se o jogo está em fase de rodadas, verificar turnos
-      if (fase === 'rodada_em_andamento') {
+      // EXCEÇÃO: durante combate ativo, qualquer jogador vivo pode agir (combate tem seu próprio tracking via jogadoresQueAgiram)
+      if (fase === 'rodada_em_andamento' && !combateAtualAtivo) {
         const turnoAtual = estadoJogo.turnoAtual || 0;
         const ordemJogadores = estadoJogo.ordemJogadores || [];
-        
+
         if (ordemJogadores.length === 0) {
           this.log('ERROR', 'MENSAGEM_PARA_MESTRE_SEM_ORDEM', socket.id, userId, {
             roomId
           });
           return socket.emit('error', { message: 'Ordem de jogadores não definida' });
         }
-        
+
         const jogadorDaVez = ordemJogadores[turnoAtual];
-        
+
         // Verificar se é o turno do jogador
         if (String(jogadorDaVez.userId) !== String(userId)) {
           this.log('WARN', 'MENSAGEM_PARA_MESTRE_NAO_E_SEU_TURNO', socket.id, userId, {
@@ -1945,7 +1972,8 @@ class SocketManager {
       }
 
       // 10. CONTROLE DE TURNOS: Incrementar contador e verificar se deve avançar
-      if (fase === 'rodada_em_andamento') {
+      // SKIP durante combate (combate tem próprio sistema de rodadas via jogadoresQueAgiram)
+      if (fase === 'rodada_em_andamento' && !combateAtivo) {
         const contador = await this.gerenciadorSessoes.incrementarContadorMensagensTurno(roomId);
         
         this.log('INFO', 'MENSAGEM_PARA_MESTRE_CONTADOR_INCREMENTADO', socket.id, userId, {
@@ -2003,6 +2031,8 @@ class SocketManager {
         personagem: personagem.nome,
         processingTimeMs: processingTime
       });
+
+      }); // fecha withRoomLock
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
@@ -3016,9 +3046,19 @@ class SocketManager {
       if (ordemJogadores.length === 1) {
         console.log(`🔄 Jogo solo detectado: resetando contador para continuar`);
         estadoJogo.contadorMensagensTurno = 0;
-        estadoJogo.turnoIniciado = false; // Permitir re-iniciar turno
-        await this.gerenciadorSessoes.atualizarSessao(roomId, { estadoJogo });
-        return; // Não avançar turno (não há próximo jogador)
+        estadoJogo.turnoIniciado = false;
+        // Tick down status effects fora de combate (solo)
+        if (!estadoJogo.combate?.ativo) {
+          for (const [pId, pCompleto] of Object.entries(sessao.personagensCompletos || {})) {
+            if (!pCompleto.status_efeitos || pCompleto.status_efeitos.length === 0) continue;
+            pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
+              e.duracao = (e.duracao || 1) - 1;
+              return e.duracao > 0;
+            });
+          }
+        }
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        return;
       }
 
       // Resetar flag de turno iniciado ao avançar
@@ -3038,6 +3078,27 @@ class SocketManager {
       const jogadorAnterior = ordemJogadores[turnoAtual];
       
       console.log(`⏭️ Avançando para turno ${proximoTurno} - ${proximoJogador.username} na sala ${roomId}`);
+
+      // ✅ 0.5. TICK DOWN STATUS EFFECTS fora de combate (a cada troca de turno)
+      if (!estadoJogo.combate?.ativo) {
+        for (const [pId, pCompleto] of Object.entries(sessao.personagensCompletos || {})) {
+          if (!pCompleto.status_efeitos || pCompleto.status_efeitos.length === 0) continue;
+          pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
+            e.duracao = (e.duracao || 1) - 1;
+            if (e.duracao <= 0) {
+              this.io.to(roomId).emit('acao_mestre', {
+                tipo: 'status_removido',
+                personagem: pCompleto.nome,
+                status: e.nome,
+                timestamp: Date.now()
+              });
+              console.log(`✨ Status expirado fora de combate: ${pCompleto.nome} ← ${e.nome}`);
+              return false;
+            }
+            return true;
+          });
+        }
+      }
 
       // ✅ 1. SALVAR MENSAGEM DE TRANSIÇÃO PRIMEIRO (antes de avançar turno)
       if (!sessao.mensagens) {

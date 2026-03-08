@@ -223,10 +223,14 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
     const quantidade = Math.min(sugestao.quantidade || 1, 5); // Max 5 por tipo
     const nivelEfetivo = sugestao.nivel_sugerido || nivelMedio;
 
-    // Encontrar monstro correspondente no banco
-    const monstroBase = monstrosBanco.find(m =>
-      m.nome.toLowerCase().includes(sugestao.nome.toLowerCase().split(' ')[0])
-    );
+    // Encontrar monstro correspondente no banco (3 tentativas: exato, contém nome completo, primeiro nome)
+    const nomeIA = sugestao.nome.toLowerCase().trim();
+    const monstroBase = monstrosBanco.find(m => m.nome.toLowerCase() === nomeIA)
+      || monstrosBanco.find(m => m.nome.toLowerCase().includes(nomeIA) || nomeIA.includes(m.nome.toLowerCase()))
+      || monstrosBanco.find(m => {
+        const palavras = nomeIA.split(' ');
+        return palavras.length > 0 && m.nome.toLowerCase().startsWith(palavras[0]) && palavras[0].length >= 4;
+      });
 
     for (let i = 0; i < quantidade; i++) {
       if (monstroBase) {

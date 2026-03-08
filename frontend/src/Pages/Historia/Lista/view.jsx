@@ -363,7 +363,7 @@ export const HistoriaListaView = () => {
       icon: <StopCircle size={18} />,
       color: 'red',
       onClick: (row) => handleEncerrarSessao(row),
-      show: (row) => row.sessaoAtiva === true
+      show: (row) => isOwner(row) && row.sessaoAtiva === true
     },
     {
       label: 'Deletar',

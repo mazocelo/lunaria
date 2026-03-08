@@ -121,7 +121,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listeners de reconexão automática (Socket.IO built-in)
     socket.io.on('reconnect', (attempt) => {
-      console.log(`♻️ Reconectado após ${attempt} tentativa(s)`);
       set({ isConnected: true, isReconnecting: false, error: null });
       if (window.showGameNotification) {
         window.showGameNotification('Reconectado com sucesso!', 'success');
@@ -135,7 +134,6 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.io.on('reconnect_attempt', (attempt) => {
-      console.log(`🔄 Tentativa de reconexão #${attempt}`);
       set({ isReconnecting: true, connectionAttempts: attempt });
     });
 
@@ -179,18 +177,11 @@ export const createSocketActions = (set, get) => ({
 
     // Listeners de room
     socket.on('room_joined', (data) => {
-      console.log('🏠 [SocketStore] room_joined recebido:', data);
-      console.log('  - roomId:', data.roomId);
-      console.log('  - users:', data.users);
-      console.log('  - sessao:', data.sessao);
-      console.log('  - session:', data.session);
-      console.log('  - jogadoresConectados:', data.sessao?.jogadoresConectados || data.session?.jogadoresConectados);
       
       // ✅ RECUPERAR ESTADO DO JOGO AO RECONECTAR
       const estadoJogo = data.sessao?.estadoJogo || data.session?.estadoJogo;
       
       if (estadoJogo) {
-        console.log('📊 Restaurando estadoJogo ao reconectar:', estadoJogo);
         
         const currentUser = get().currentUser;
         const updateData = {};
@@ -198,17 +189,14 @@ export const createSocketActions = (set, get) => ({
         // Restaurar fase
         if (estadoJogo.fase) {
           updateData.faseJogo = estadoJogo.fase;
-          console.log('  ✓ Fase:', estadoJogo.fase);
         }
         
         // Restaurar rodada e turno
         if (estadoJogo.rodadaAtual !== undefined) {
           updateData.rodadaAtual = estadoJogo.rodadaAtual;
-          console.log('  ✓ Rodada:', estadoJogo.rodadaAtual);
         }
         if (estadoJogo.turnoAtual !== undefined) {
           updateData.turnoAtual = estadoJogo.turnoAtual;
-          console.log('  ✓ Turno:', estadoJogo.turnoAtual);
         }
         
         // Restaurar ordem de jogadores
@@ -224,21 +212,16 @@ export const createSocketActions = (set, get) => ({
           updateData.jogadorAtual = jogadorAtual;
           updateData.ehMeuTurno = ehMeuTurno;
           
-          console.log('  ✓ Ordem jogadores:', ordemJogadores.length);
-          console.log('  ✓ Jogador atual:', jogadorAtual?.username);
-          console.log('  ✓ É meu turno:', ehMeuTurno);
         }
         
         // Restaurar turnoIniciado
         if (estadoJogo.turnoIniciado !== undefined) {
           updateData.turnoIniciado = estadoJogo.turnoIniciado;
-          console.log('  ✓ Turno iniciado:', estadoJogo.turnoIniciado);
         }
         
         // Restaurar resultados de dados iniciais
         if (estadoJogo.rolagemInicial) {
           updateData.resultadosDados = estadoJogo.rolagemInicial;
-          console.log('  ✓ Resultados dados:', Object.keys(estadoJogo.rolagemInicial).length);
         }
 
         // Restaurar estado de combate
@@ -248,12 +231,10 @@ export const createSocketActions = (set, get) => ({
           updateData.combateJogadores = estadoJogo.combate.jogadores || {};
           updateData.combateRodada = estadoJogo.combate.rodadaCombate || 1;
           updateData.combateLog = (estadoJogo.combate.log || []).slice(-COMBAT.LOG_MAX_ENTRIES);
-          console.log('  ✓ Combate ativo restaurado:', estadoJogo.combate.monstros?.length, 'monstros');
         }
 
         // Aplicar todas as atualizações
         set(updateData);
-        console.log('✅ Estado do jogo restaurado com sucesso');
       }
       
       set({
@@ -295,7 +276,6 @@ export const createSocketActions = (set, get) => ({
     
     // Listener de fase atualizada
     socket.on('fase_atualizada', (data) => {
-      console.log('📡 Fase atualizada:', data);
       set({ 
         faseJogo: data.fase,
         estadoJogo: data.estadoJogo || get().estadoJogo
@@ -305,7 +285,6 @@ export const createSocketActions = (set, get) => ({
 
     // ✅ NOVO: Listener para aventura iniciada
     socket.on('aventura_iniciada', (data) => {
-      console.log('🎮 Aventura iniciada:', data);
       set({
         faseJogo: 'rolagem_inicial',
         aventuraIniciada: true
@@ -319,7 +298,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de resultado de dado inicial
     socket.on('resultado_dado_inicial', (data) => {
-      console.log('🎲 Resultado dado inicial:', data);
       
       // Atualizar resultados dos dados no estado
       const { resultadosDados = {} } = get();
@@ -341,7 +319,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de ordem definida
     socket.on('ordem_definida', (data) => {
-      console.log('📋 Ordem definida:', data);
       set({ 
         ordemJogadores: data.ordemJogadores || [],
         ordemDefinida: true
@@ -354,7 +331,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de turno alterado
     socket.on('turno_alterado', (data) => {
-      console.log('🎯 Turno alterado:', data);
       const currentUser = get().currentUser;
       const ehMeuTurno = currentUser && String(data.jogadorAtual?.userId) === String(currentUser.id);
       
@@ -384,7 +360,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de mestre finalizou turno
     socket.on('mestre_finalizou_turno', (data) => {
-      console.log('🏁 Mestre finalizou turno:', data);
       get().log('Mestre finalizou turno', { 
         jogador: data.jogador,
         contador: data.contador,
@@ -394,7 +369,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de turno iniciado
     socket.on('turno_iniciado', (data) => {
-      console.log('🎯 Turno iniciado:', data);
       const currentUser = get().currentUser;
       const ehMeuTurno = currentUser && String(data.userId) === String(currentUser.id);
       
@@ -407,7 +381,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de rodada finalizada
     socket.on('rodada_finalizada', (data) => {
-      console.log('🏁 Rodada finalizada:', data);
       set({ 
         faseJogo: 'entre_rodadas',
         rodadaFinalizada: data.rodada
@@ -417,7 +390,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de nova rodada iniciada
     socket.on('nova_rodada_iniciada', (data) => {
-      console.log('🔄 Nova rodada iniciada:', data);
       set({ 
         faseJogo: 'rodada_em_andamento',
         rodadaAtual: data.rodada,
@@ -429,7 +401,6 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de erro de cooldown roleplay
     socket.on('erro_cooldown_roleplay', (data) => {
-      console.log('⏱️ Erro cooldown roleplay:', data);
       set({ 
         cooldownRoleplay: data.segundosRestantes || 0,
         erroMensagem: data.message
@@ -439,21 +410,18 @@ export const createSocketActions = (set, get) => ({
 
     // Listener de erro de turno
     socket.on('erro_turno', (data) => {
-      console.log('⚠️ Erro turno:', data);
       set({ erroMensagem: data.message });
       get().log('Erro ao enviar mensagem fora do turno', { message: data.message });
     });
 
     // Listener de mensagem roleplay
     socket.on('mensagem_roleplay', (data) => {
-      console.log('💬 Mensagem roleplay recebida:', data);
       // Será tratado pela view que escuta mensagens
       get().log('Mensagem roleplay recebida', { userId: data.userId });
     });
 
     // Listener de sessão resetada
     socket.on('sessao_resetada', (data) => {
-      console.log('🔄 Sessão resetada pelo dono:', data);
       
       // Resetar todos os estados de jogo
       set({
@@ -478,13 +446,13 @@ export const createSocketActions = (set, get) => ({
       });
       
       get().log('Sessão resetada', { historiaId: data.historiaId, success: true });
-      
-      // Opcional: Mostrar notificação ou redirecionar
-      console.warn(`⚠️ A sessão foi resetada pelo dono da história: ${data.historiaNome}`);
+
+      if (window.showGameNotification) {
+        window.showGameNotification(`Sessão resetada pelo dono da história: ${data.historiaNome || ''}`, 'warning');
+      }
     });
 
     socket.on('sessao_encerrada', (data) => {
-      console.log('⛔ Sessão encerrada pelo administrador:', data);
 
       set({
         faseJogo: 'aguardando_inicio',
@@ -508,13 +476,45 @@ export const createSocketActions = (set, get) => ({
       });
 
       get().log('Sessão encerrada', { salaId: data.salaId, success: true });
-      console.warn(`⚠️ Sessão encerrada: ${data.motivo}`);
+
+      if (window.showGameNotification) {
+        window.showGameNotification(`Sessão encerrada: ${data.motivo || 'Encerrada pelo administrador'}`, 'error');
+      }
+    });
+
+    // ===== LISTENERS DE ERROS DO SISTEMA =====
+
+    socket.on('erro_sistema', (data) => {
+      set({ erroMensagem: data.message || 'Erro do sistema' });
+      if (window.showGameNotification) {
+        window.showGameNotification(data.message || 'Erro do sistema', 'error');
+      }
+    });
+
+    socket.on('erro_mensagem', (data) => {
+      set({ erroMensagem: data.message || 'Erro ao enviar mensagem' });
+      if (window.showGameNotification) {
+        window.showGameNotification(data.message || 'Erro ao enviar mensagem', 'error');
+      }
+    });
+
+    socket.on('erro_dado_inicial', (data) => {
+      if (window.showGameNotification) {
+        window.showGameNotification(data.message || 'Erro ao rolar dado inicial', 'error');
+      }
+    });
+
+    socket.on('rate_limit_exceeded', (data) => {
+      set({ rateLimitExceeded: true });
+      if (window.showGameNotification) {
+        window.showGameNotification(data.message || 'Muitas mensagens! Aguarde um momento.', 'warning');
+      }
+      setTimeout(() => set({ rateLimitExceeded: false }), data.retryAfter || 5000);
     });
 
     // ===== LISTENERS DO SISTEMA DE COMBATE =====
 
     socket.on('combate_iniciado', (data) => {
-      console.log('⚔️ Combate iniciado:', data);
       set({
         combateAtivo: true,
         combateMonstros: data.monstros || [],
@@ -528,7 +528,6 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.on('combate_resultado_acao', (data) => {
-      console.log('🗡️ Resultado ação combate:', data);
       const { combateMonstros, combateJogadores, combateLog } = get();
 
       // Atualizar HP do alvo
@@ -560,7 +559,6 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.on('combate_monstro_derrotado', (data) => {
-      console.log('💀 Monstro derrotado:', data);
       const { combateMonstros } = get();
       const monstrosAtualizados = combateMonstros.map(m => {
         if (m.id === data.monstro?.id) {
@@ -573,7 +571,6 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.on('combate_jogador_ferido', (data) => {
-      console.log('💔 Jogador ferido:', data);
       const { combateJogadores } = get();
       const jogadoresAtualizados = { ...combateJogadores };
       if (jogadoresAtualizados[data.userId]) {
@@ -588,7 +585,6 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.on('combate_finalizado', (data) => {
-      console.log('🏁 Combate finalizado:', data);
       set({
         combateAtivo: false,
         combateResultado: data.resultado,
@@ -598,7 +594,6 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.on('combate_estado', (data) => {
-      console.log('📊 Estado combate atualizado:', data);
       set({
         combateMonstros: data.monstros || get().combateMonstros,
         combateJogadores: data.jogadores || get().combateJogadores,
@@ -609,7 +604,6 @@ export const createSocketActions = (set, get) => ({
 
     // ===== LISTENER DE AÇÕES MECÂNICAS DO MESTRE =====
     socket.on('acao_mestre', (data) => {
-      console.log('🎭 Ação do Mestre:', data);
       const { combateJogadores } = get();
       if (data.tipo === 'curado' && get().combateAtivo && data.userId && combateJogadores[data.userId]) {
         const updated = { ...combateJogadores };
@@ -626,7 +620,6 @@ export const createSocketActions = (set, get) => ({
 
     // ===== LISTENER DE LEVEL UP (store-level para não perder evento) =====
     socket.on('level_up', (data) => {
-      console.log('🎉 Level Up recebido (store):', data);
       set({
         lastLevelUp: {
           userId: data.userId,
@@ -641,7 +634,6 @@ export const createSocketActions = (set, get) => ({
 
     // ✅ NOVO: Listener para usuário entrando na sala
     socket.on('user_joined', (data) => {
-      console.log('👤 Usuário entrou na sala:', data);
       
       // Atualizar lista de participantes
       const { participantes = [] } = get();
@@ -660,9 +652,7 @@ export const createSocketActions = (set, get) => ({
         };
         
         set({ participantes: [...participantes, novoParticipante] });
-        console.log('✅ Participante adicionado ao store:', novoParticipante);
       } else {
-        console.log('ℹ️ Participante já existe na lista:', data.username);
       }
       
       get().log('Usuario entrou', { username: data.username, success: true });
@@ -670,7 +660,6 @@ export const createSocketActions = (set, get) => ({
 
     // ✅ NOVO: Listener para usuário saindo da sala
     socket.on('user_left', (data) => {
-      console.log('👋 Usuário saiu da sala:', data);
       
       // Remover da lista de participantes
       const { participantes = [] } = get();
@@ -679,7 +668,6 @@ export const createSocketActions = (set, get) => ({
       );
       
       set({ participantes: participantesAtualizados });
-      console.log('✅ Participante removido do store:', data.username);
       
       get().log('Usuario saiu', { username: data.username, success: true });
     });
@@ -878,7 +866,6 @@ export const createSocketActions = (set, get) => ({
         
         // ✅ ATUALIZAR PARTICIPANTES DA SESSÃO
         if (data.sessao?.jogadoresConectados) {
-          console.log('📋 Socket Store: Atualizando participantes do room_joined:', data.sessao.jogadoresConectados);
           
           const participantesFormatados = data.sessao.jogadoresConectados.map(j => ({
             userId: j.userId,
@@ -889,7 +876,6 @@ export const createSocketActions = (set, get) => ({
           }));
           
           set({ participantes: participantesFormatados });
-          console.log('✅ Socket Store: Participantes atualizados:', participantesFormatados.length);
         }
         
         resolve(data);
@@ -1201,13 +1187,11 @@ export const createSocketActions = (set, get) => ({
   // Armazenar token do socket (recebido do backend no login/refresh)
   setSocketToken: (token) => {
     set({ socketToken: token });
-    console.log('🔐 Socket token atualizado');
   },
 
   // Limpar token do socket (no logout)
   clearSocketToken: () => {
     set({ socketToken: null });
-    console.log('🔓 Socket token removido');
   },
 
   // ===== DISCONNECT E CLEANUP =====

@@ -21,9 +21,7 @@ const InputArea = ({
   ehMeuTurno = false,
   turnoIniciado = false,
   cooldownRoleplay = 0,
-  onRolarDadoInicial,
   onIniciarTurno,
-  jaRolouDadoInicial = false,
   dadosSolicitados = false,
   dadoSolicitadoInfo = null,
   aguardandoMestre = false,
@@ -56,11 +54,8 @@ const InputArea = ({
   }, []);
 
   const enviarMensagemComTipo = async () => {
-    const sucesso = await inputAreaViewModel.enviarMensagem(mensagemAtual, onEnviarMensagem);
-
-    if (sucesso && onEnviarMensagem) {
-      onEnviarMensagem();
-    }
+    // ViewModel já chama onEnviarMensagem internamente se sucesso
+    await inputAreaViewModel.enviarMensagem(mensagemAtual, onEnviarMensagem);
   };
 
   const handleKeyPress = (e) => {
@@ -256,7 +251,7 @@ const InputArea = ({
             placeholder={getPlaceholderDinamico()}
             value={mensagemAtual || ''}
             onChange={onMensagemChange}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             disabled={connectionStatus.status === 'error' || isSending || inputDesabilitado}
             className={`flex-1 min-w-0 px-5 py-3 text-base rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg ${
               ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado

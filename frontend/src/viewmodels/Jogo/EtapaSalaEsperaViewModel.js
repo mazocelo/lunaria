@@ -131,8 +131,6 @@ export class EtapaSalaEsperaViewModel {
    */
   async iniciarPartidaViaAPI(historiaId, mensagemInicial = null) {
     try {
-      console.log('🚀 EtapaSalaEsperaViewModel: Iniciando partida via API...', { historiaId });
-
       // Usar apiClient que já envia cookies automaticamente
       const response = await fetch(`${API_URL}/jogo/start`, {
         method: 'POST',
@@ -152,8 +150,6 @@ export class EtapaSalaEsperaViewModel {
       }
 
       const data = await response.json();
-      
-      console.log('✅ EtapaSalaEsperaViewModel: Partida iniciada com sucesso', data);
       
       return data;
     } catch (error) {
@@ -303,18 +299,9 @@ export class EtapaSalaEsperaViewModel {
       return [];
     }
 
-    console.log('🔧 EtapaSalaEsperaViewModel: Formatando', participantes.length, 'participantes');
-
     return participantes.map(participante => {
       const personagemExibicao = participante.personagem || participante.personagemNome || 'Selecionando personagem...';
-      
-      console.log('  - Participante:', participante.username, {
-        personagem: participante.personagem,
-        personagemNome: participante.personagemNome,
-        exibindo: personagemExibicao,
-        isOwner: participante.isOwner
-      });
-      
+
       return {
         ...participante,
         username: participante.username || 'Jogador Anônimo',

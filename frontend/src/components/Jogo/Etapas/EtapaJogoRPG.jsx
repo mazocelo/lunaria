@@ -87,6 +87,12 @@ const EtapaJogoRPG = ({
   const [inventarioAberto, setInventarioAberto] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
 
+  // Ref para evitar stale closure no onAdicionarMensagem
+  const onAdicionarMensagemRef = React.useRef(onAdicionarMensagem);
+  React.useEffect(() => {
+    onAdicionarMensagemRef.current = onAdicionarMensagem;
+  }, [onAdicionarMensagem]);
+
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
     const unsubscribe = etapaJogoRPGViewModel.subscribe(setViewModelState);
@@ -246,8 +252,8 @@ const EtapaJogoRPG = ({
             timestamp: data.timestamp || Date.now()
           };
           
-          if (onAdicionarMensagem) {
-            onAdicionarMensagem(mensagem);
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current(mensagem);
           }
         };
 
@@ -255,8 +261,8 @@ const EtapaJogoRPG = ({
         const handleChatMessage = (data) => {
           // Só adicionar se não for mestre (mensagens do mestre vêm pelo outro listener)
           if (data.userId !== 'mestre' && data.tipo !== 'mestre') {
-            if (onAdicionarMensagem) {
-              onAdicionarMensagem(data);
+            if (onAdicionarMensagemRef.current) {
+              onAdicionarMensagemRef.current(data);
             }
           }
         };
@@ -273,9 +279,9 @@ const EtapaJogoRPG = ({
             tipo: 'dado',
             timestamp: data.timestamp || Date.now()
           };
-          
-          if (onAdicionarMensagem) {
-            onAdicionarMensagem(mensagem);
+
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current(mensagem);
           }
         };
 
@@ -289,9 +295,9 @@ const EtapaJogoRPG = ({
             tipo: 'roleplay',
             timestamp: data.timestamp || Date.now()
           };
-          
-          if (onAdicionarMensagem) {
-            onAdicionarMensagem(mensagem);
+
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current(mensagem);
           }
         };
 
@@ -304,9 +310,9 @@ const EtapaJogoRPG = ({
             mensagem: `A rodada ${data.rodada} foi concluída. Preparando próxima rodada...`,
             timestamp: data.timestamp || Date.now()
           };
-          
-          if (onAdicionarMensagem) {
-            onAdicionarMensagem(mensagem);
+
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current(mensagem);
           }
         };
 
@@ -337,8 +343,8 @@ const EtapaJogoRPG = ({
             timestamp: data.timestamp || Date.now()
           };
 
-          if (onAdicionarMensagem) {
-            onAdicionarMensagem(mensagem);
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current(mensagem);
           }
         };
 
@@ -363,8 +369,8 @@ const EtapaJogoRPG = ({
               ganhos: data.ganhos || {}
             });
           }
-          if (onAdicionarMensagem) {
-            onAdicionarMensagem({
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current({
               id: `levelup_${Date.now()}`,
               tipo: 'mestre',
               userId: 'sistema',
@@ -376,21 +382,17 @@ const EtapaJogoRPG = ({
         };
 
         // Listener para acoes do mestre (itens, cura, etc)
+        // Nota: não mutamos props diretamente - apenas notificamos via toast
         const handleAcaoMestre = (data) => {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           if (data.tipo === 'item_recebido' && String(data.userId) === String(currentUser.id)) {
-            // Atualizar equipamentos localmente se disponivel
-            if (personagemSelecionado && data.item) {
-              personagemSelecionado.equipamentos = [
-                ...(personagemSelecionado.equipamentos || []),
-                data.item
-              ];
+            if (data.item) {
+              showGameNotification(`Item recebido: ${data.item.nome || 'Novo item'}`, 'success');
             }
           } else if (data.tipo === 'item_removido' && String(data.userId) === String(currentUser.id)) {
             const nomeItem = data.item?.nome || data.itemNome;
-            if (personagemSelecionado && nomeItem) {
-              personagemSelecionado.equipamentos = (personagemSelecionado.equipamentos || [])
-                .filter(e => e.nome !== nomeItem);
+            if (nomeItem) {
+              showGameNotification(`Item removido: ${nomeItem}`, 'warning');
             }
           }
         };
@@ -413,9 +415,9 @@ const EtapaJogoRPG = ({
           if (xpGanho > 0) {
             showGameNotification(`+${xpGanho} XP ganho no combate!`, 'success');
           }
-          if (onAdicionarMensagem) {
+          if (onAdicionarMensagemRef.current) {
             const resultado = data.resultado === 'vitoria' ? 'Vitoria!' : data.resultado === 'derrota' ? 'Derrota...' : 'Combate encerrado';
-            onAdicionarMensagem({
+            onAdicionarMensagemRef.current({
               id: `combate_fim_${Date.now()}`,
               tipo: 'mestre',
               userId: 'sistema',

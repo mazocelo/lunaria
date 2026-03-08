@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { X, Package, Sword, Shield, Zap, Gem } from 'lucide-react';
+import { agregarBonus } from '../../../utils/bonusHelper';
 
 const raridadeStyles = {
   comum: { border: 'border-slate-500/40', text: 'text-slate-400', label: 'Comum' },
@@ -30,20 +31,6 @@ const elementoColors = {
   cortante: 'bg-red-400/20 text-red-300',
   perfurante: 'bg-slate-400/20 text-slate-300',
 };
-
-function agregarBonus(equipamentos) {
-  if (!equipamentos?.length) return { ataque: 0, dano: 0, armadura: 0, esquiva_bonus: 0, esquiva_penalidade: 0 };
-  return equipamentos.reduce((acc, eq) => {
-    const b = eq.bonus || {};
-    return {
-      ataque: acc.ataque + (b.ataque || 0),
-      dano: acc.dano + (b.dano || 0),
-      armadura: acc.armadura + (b.armadura || 0),
-      esquiva_bonus: acc.esquiva_bonus + (b.esquiva_bonus || 0),
-      esquiva_penalidade: acc.esquiva_penalidade + (b.esquiva_penalidade || 0),
-    };
-  }, { ataque: 0, dano: 0, armadura: 0, esquiva_bonus: 0, esquiva_penalidade: 0 });
-}
 
 function getRaridadeFromEquip(equip) {
   const nome = equip.raridade?.nome?.toLowerCase() || equip.raridade_nome?.toLowerCase() || 'comum';
@@ -99,8 +86,8 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome })
             ) : (
               equipamentos.map((equip, i) => {
                 const raridade = getRaridadeFromEquip(equip);
-                const elementos = Array.isArray(equip.elemento) ? equip.elemento : [];
-                const tipos = Array.isArray(equip.tipo) ? equip.tipo : [];
+                const elementos = Array.isArray(equip.elemento) ? equip.elemento : (equip.elemento ? [equip.elemento] : []);
+                const tipos = Array.isArray(equip.tipo) ? equip.tipo : (equip.tipo ? [equip.tipo] : []);
                 const b = equip.bonus || {};
 
                 return (

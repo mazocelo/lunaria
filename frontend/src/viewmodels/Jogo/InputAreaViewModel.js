@@ -55,7 +55,8 @@ export class InputAreaViewModel {
    * Retorna o estado atual do ViewModel
    */
   getState = () => ({
-    messageType: this.messageType
+    messageType: this.messageType,
+    isSending: this.isSending || false
   });
 
   /**
@@ -74,10 +75,8 @@ export class InputAreaViewModel {
   setMessageType(type) {
     const validTypes = ['chat', 'ic', 'ooc', 'action', 'gm'];
     if (validTypes.includes(type)) {
-      console.log('🔄 [ViewModel] Alterando tipo de mensagem:', this.messageType, '→', type);
       this.messageType = type;
       this.notify();
-      console.log('✅ [ViewModel] Tipo atualizado e observers notificados');
     } else {
       console.warn('⚠️ [ViewModel] Tipo de mensagem inválido:', type);
     }
@@ -180,18 +179,10 @@ export class InputAreaViewModel {
         type: this.messageType
       };
       
-      console.log('📡 [ViewModel] Enviando via WebSocket:');
-      console.log('   ├─ Tipo:', payload.type);
-      console.log('   ├─ Mensagem:', payload.message);
-      console.log('   └─ Payload completo:', payload);
-      
       // Enviar via WebSocket
       const socketStore = this.getSocketStore();
       if (socketStore.sendMessage) {
         await socketStore.sendMessage(payload);
-        console.log('✅ [ViewModel] Mensagem enviada ao WebSocket com sucesso');
-      } else {
-        console.warn('⚠️ [ViewModel] sendMessage não está disponível no socketStore');
       }
       
       // Chamar callback adicional se existir

@@ -4,7 +4,7 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { desvantagemViewModel } from '../../../viewmodels/Desvantagens/DesvantagemViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 import { AlertTriangle, Eye, BarChart3, Tag } from 'lucide-react';
@@ -129,6 +129,11 @@ const DesvantagemListaView = () => {
         <StatCard title="Tipo Mais Comum" value={vm.tipoMaisComum || '-'} icon={Tag} variant="accent" />
       </div>
 
+      <SearchBar
+        placeholder="Buscar desvantagens..."
+        onChange={(texto) => vm.buscarDesvantagens?.(texto)}
+      />
+
       <TabelaList
         header="Lista de Desvantagens"
         columns={columns}
@@ -139,7 +144,7 @@ const DesvantagemListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhuma desvantagem encontrada"
-        emptyIcon="⚠️"
+        emptyIcon={<AlertTriangle size={32} />}
         hoverable={true}
       />
     </div>

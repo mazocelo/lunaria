@@ -54,9 +54,6 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
         carisma: Number(this.state.atributos.carisma) || 10,
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
-        equipamentos: Array.isArray(this.state.equipamentos)
-          ? this.state.equipamentos.map(id => Number(id))
-          : [],
         nivel: this.state.nivel || 1,
       };
 
@@ -70,6 +67,11 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
           await this.personagemService.gerarBackground(criado.id, this.state.background);
         } catch (bgError) {
           console.warn('Background IA não gerado:', bgError.message);
+          this.setState({
+            gerandoBackground: false,
+            error: 'Personagem criado com sucesso! Porém o background não pôde ser gerado pela IA. Você pode editá-lo depois.'
+          });
+          return; // Não navega, deixa o usuário ver a mensagem
         } finally {
           this.setState({ gerandoBackground: false });
         }
@@ -118,7 +120,6 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
       historias: [],
       atributos: { forca: '', inteligencia: '', constituicao: '', agilidade: '', destreza: '', carisma: '' },
       vantagens: [],
-      equipamentos: [],
       nivel: 1,
       hp: 100,
       loading: false,

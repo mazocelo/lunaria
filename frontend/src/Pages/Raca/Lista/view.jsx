@@ -4,7 +4,7 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { racaViewModel } from '../../../viewmodels/Racas/RacaViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader } from '../../../components/shared';
+import { TabelaList, PageHeader, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 import { Dna, Eye, Gift, Coins } from 'lucide-react';
@@ -23,7 +23,7 @@ const RacaListaView = () => {
     return (
       <div className="animate-fade-in">
         <div className="card-rpg">
-          <LoadingSpinner size="xl" text="Carregando racas..." variant="primary" />
+          <LoadingSpinner size="xl" text="Carregando raças..." variant="primary" />
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ const RacaListaView = () => {
     },
     {
       key: 'descricao',
-      label: 'Descricao',
+      label: 'Descrição',
       align: 'left',
       render: (row) => (
         <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern text-sm`}>
@@ -88,19 +88,24 @@ const RacaListaView = () => {
   return (
     <div className="animate-fade-in space-y-6">
       <PageHeader
-        title="Racas"
-        subtitle="Racas disponiveis para personagens"
+        title="Raças"
+        subtitle="Raças disponíveis para personagens"
         icon={Dna}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Total de Racas" value={vm.racas?.length || 0} icon={Dna} variant="primary" />
+        <StatCard title="Total de Raças" value={vm.racas?.length || 0} icon={Dna} variant="primary" />
         <StatCard title="Gratuitas" value={gratuitas} icon={Gift} variant="secondary" />
         <StatCard title="Com Custo" value={pagas} icon={Coins} variant="accent" />
       </div>
 
+      <SearchBar
+        placeholder="Buscar raças..."
+        onChange={(texto) => vm.buscarRacas?.(texto)}
+      />
+
       <TabelaList
-        header="Lista de Racas"
+        header="Lista de Raças"
         columns={columns}
         data={racas}
         actions={actions}
@@ -108,8 +113,8 @@ const RacaListaView = () => {
         pagination={true}
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
-        emptyMessage="Nenhuma raca encontrada"
-        emptyIcon="🧬"
+        emptyMessage="Nenhuma raça encontrada"
+        emptyIcon={<Dna size={32} />}
         hoverable={true}
       />
     </div>

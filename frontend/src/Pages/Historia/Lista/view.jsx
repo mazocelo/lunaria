@@ -447,11 +447,11 @@ export const HistoriaListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhuma história encontrada"
-        emptyIcon="📖"
+        emptyIcon={<BookOpen size={32} />}
         hoverable={true}
         selectable={true}
         bulkActions={[
-          { label: 'Deletar Selecionados', icon: '🗑️', color: 'red', onClick: handleBulkDeleteClick }
+          { label: 'Deletar Selecionados', icon: <Trash2 size={14} />, color: 'red', onClick: handleBulkDeleteClick }
         ]}
       />
 

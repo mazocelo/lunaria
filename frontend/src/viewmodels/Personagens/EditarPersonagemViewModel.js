@@ -1,6 +1,5 @@
 import { PersonagemService } from '../../services/PersonagemService';
 import { HistoriaService } from '../../services/HistoriaService';
-import { EquipamentoService } from '../../services/EquipamentoService';
 import { apiClient } from '../../services/ApiClient';
 import {
   getVantagemStoreAPI,
@@ -44,7 +43,6 @@ export class EditarPersonagemViewModel {
       historias: [], // Array de IDs de histórias selecionadas
       atributos: { ...atributosIniciais },
       vantagens: [], // Deve ser array, não string
-      equipamentos: [],
       nivel: 1,
       loading: false,
       error: null,
@@ -55,17 +53,13 @@ export class EditarPersonagemViewModel {
       loadingHistorias: false,
       racasDisponiveis: [],
       classesDisponiveis: [],
-      loadingOpcoes: false,
-      equipamentosDisponiveis: [],
-      loadingEquipamentos: false
+      loadingOpcoes: false
     };
     
     this.subscribers = [];
     
-    // 🎯 Services para CRUD de personagens, histórias e equipamentos
     this.personagemService = new PersonagemService(apiClient);
     this.historiaService = new HistoriaService(apiClient);
-    this.equipamentoService = new EquipamentoService(apiClient);
     
     // 🏪 APIs diretas dos stores para dados estáticos (sem hooks!)
     this.vantagemStore = getVantagemStoreAPI();
@@ -162,25 +156,6 @@ export class EditarPersonagemViewModel {
 
   setVantagens = (vantagens) => {
     this.setState({ vantagens });
-  };
-
-  setEquipamentos = (equipamentos) => {
-    this.setState({ equipamentos: Array.isArray(equipamentos) ? equipamentos : [] });
-  };
-
-  loadEquipamentos = async () => {
-    this.setState({ loadingEquipamentos: true });
-    try {
-      const response = await this.equipamentoService.getAll();
-      const lista = response?.data || response || [];
-      this.setState({
-        equipamentosDisponiveis: Array.isArray(lista) ? lista : [],
-        loadingEquipamentos: false
-      });
-    } catch (error) {
-      console.warn('Erro ao carregar equipamentos:', error.message);
-      this.setState({ equipamentosDisponiveis: [], loadingEquipamentos: false });
-    }
   };
 
   setNivel = (nivel) => {
@@ -345,16 +320,6 @@ export class EditarPersonagemViewModel {
         }
       }
       
-      // Mapear equipamentos: extrair IDs para array
-      let equipamentosMapeados = [];
-      if (personagem.equipamentos) {
-        if (Array.isArray(personagem.equipamentos)) {
-          equipamentosMapeados = personagem.equipamentos.map(e =>
-            typeof e === 'object' ? String(e.id) : String(e)
-          );
-        }
-      }
-      
       // Garantir que raça e classe sejam IDs numéricos
       // A API pode retornar raca_id/classe_id ou raca/classe (nomes)
       let racaId = personagem.raca_id || null;
@@ -397,7 +362,6 @@ export class EditarPersonagemViewModel {
         historias: historiasIds, // Array de IDs de histórias
         atributos: atributosMapeados,
         vantagens: vantagensMapeadas,
-        equipamentos: equipamentosMapeados,
         nivel: personagem.nivel || 1,
         loading: false
       });
@@ -463,9 +427,6 @@ export class EditarPersonagemViewModel {
         carisma: Number(this.state.atributos.carisma) || 10,
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
-        equipamentos: Array.isArray(this.state.equipamentos)
-          ? this.state.equipamentos.map(id => Number(id))
-          : [],
         nivel: this.state.nivel
       };
       

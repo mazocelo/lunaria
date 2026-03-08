@@ -59,9 +59,9 @@ const PersonagemListaView = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <span className="text-2xl">🧝</span>
+                <Users size={24} className="text-white" />
               </div>
-              <div className="text-slate-300 font-modern">Carregando personagens...</div>
+              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando personagens...</div>
             </div>
           </div>
         </div>
@@ -72,13 +72,10 @@ const PersonagemListaView = () => {
   // Renderizador para ícone da classe
   const renderClasseIcon = (personagem) => {
     const classe = personagem.classe || 'Aventureiro';
-    const icon = classe === 'Guerreiro' ? '⚔️' : 
-                 classe === 'Mago' ? '🔮' : 
-                 classe === 'Arqueiro' ? '🏹' : '👤';
     return (
       <div className="flex items-center space-x-3">
         <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-          <span className="text-sm">{icon}</span>
+          <Shield size={16} className="text-white" />
         </div>
         <div>
           <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
@@ -95,7 +92,7 @@ const PersonagemListaView = () => {
       <span className="text-cyan-400 font-semibold">
         {personagem.nivel || 1}
       </span>
-      <span className="text-slate-400 text-sm">nível</span>
+      <span className={`${isLight ? 'text-slate-500' : 'text-slate-400'} text-sm`}>nível</span>
     </div>
   );
 
@@ -105,7 +102,7 @@ const PersonagemListaView = () => {
       <span className="text-red-400 font-semibold">
         {personagem.hp || 100}
       </span>
-      <span className="text-slate-400 text-sm">HP</span>
+      <span className={`${isLight ? 'text-slate-500' : 'text-slate-400'} text-sm`}>HP</span>
     </div>
   );
 
@@ -137,7 +134,7 @@ const PersonagemListaView = () => {
       label: 'Raça', 
       align: 'left', 
       render: (row) => (
-        <span className="text-slate-300 font-modern">
+        <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern`}>
           {row.raca || 'Humano'}
         </span>
       )
@@ -247,11 +244,11 @@ const PersonagemListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhum personagem encontrado"
-        emptyIcon="🧝"
+        emptyIcon={<Users size={32} />}
         hoverable={true}
         selectable={true}
         bulkActions={[
-          { label: 'Deletar Selecionados', icon: '🗑️', color: 'red', onClick: handleBulkDeleteClick }
+          { label: 'Deletar Selecionados', icon: <Trash2 size={14} />, color: 'red', onClick: handleBulkDeleteClick }
         ]}
       />
 
@@ -259,7 +256,7 @@ const PersonagemListaView = () => {
       <ConfirmationModal
         isOpen={showBulkDeleteModal}
         title="Deletar Personagens Selecionados"
-        message={`Tem certeza de que deseja deletar ${bulkDeleteIds.length} personagem(ns)? Esta acao nao pode ser desfeita.`}
+        message={`Tem certeza de que deseja deletar ${bulkDeleteIds.length} personagem(ns)? Esta ação não pode ser desfeita.`}
         confirmText="Deletar Todos"
         cancelText="Cancelar"
         onConfirm={handleConfirmBulkDelete}

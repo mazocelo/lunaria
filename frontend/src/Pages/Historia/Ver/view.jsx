@@ -10,8 +10,11 @@ import { useTheme } from '../../../contexts/theme.jsx';
 import { Badge } from '../../../components/shared';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  Pencil, Calendar, RefreshCw
+  Pencil, Calendar, RefreshCw, ScrollText, Clock, MessageCircle, Loader2
 } from 'lucide-react';
+import { SessaoService } from '../../../services/SessaoService.js';
+import { apiClient } from '../../../services/ApiClient.js';
+import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 
 /**
  * View para visualização detalhada de uma História
@@ -38,9 +41,22 @@ export const VerHistoriaView = () => {
   const [mestreSelecionadoId, setMestreSelecionadoId] = useState(null);
   const [salvandoMestre, setSalvandoMestre] = useState(false);
 
+  // Sessoes anteriores
+  const [sessoes, setSessoes] = useState([]);
+  const [loadingSessoes, setLoadingSessoes] = useState(false);
+  const [sessaoSelecionada, setSessaoSelecionada] = useState(null);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const sessaoService = useState(() => new SessaoService(apiClient))[0];
+
   useEffect(() => {
     if (id) {
       loadHistoria(parseInt(id));
+      // Carregar sessoes anteriores
+      setLoadingSessoes(true);
+      sessaoService.getSessoesByHistoria(id)
+        .then(data => setSessoes(data || []))
+        .catch(() => setSessoes([]))
+        .finally(() => setLoadingSessoes(false));
     }
     carregarMestres();
   }, [id]);
@@ -89,6 +105,26 @@ export const VerHistoriaView = () => {
   }
 
   const nomesTemas = viewModel.getNomesTemas(historiaAtual);
+
+  const abrirHistorico = async (sessao) => {
+    setLoadingHistorico(true);
+    try {
+      const completa = await sessaoService.getSessaoHistorico(sessao.id);
+      setSessaoSelecionada(completa);
+    } catch (err) {
+      console.error('Erro ao carregar histórico:', err);
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
+
+  const formatSessaoDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  };
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -357,6 +393,80 @@ export const VerHistoriaView = () => {
           </RPGCard>
         </div>
       </div>
+
+      {/* Sessoes Anteriores */}
+      <RPGCard className="p-6">
+        <h3 className={`text-lg font-semibold font-fantasy mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+          <ScrollText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+          Sessões Anteriores
+        </h3>
+
+        {loadingSessoes ? (
+          <div className="flex items-center gap-2 py-4">
+            <Loader2 size={16} className="animate-spin text-purple-400" />
+            <span className="text-slate-400 font-modern text-sm">Carregando sessões...</span>
+          </div>
+        ) : sessoes.length === 0 ? (
+          <p className={`font-modern text-sm italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            Nenhuma sessão registrada para esta história.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {sessoes.map(sessao => {
+              const participantes = sessao.jogadores
+                ? Object.values(sessao.jogadores).map(j => j.personagemNome || j.username || 'Jogador')
+                : [];
+
+              return (
+                <button
+                  key={sessao.id}
+                  onClick={() => abrirHistorico(sessao)}
+                  disabled={loadingHistorico}
+                  className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      : 'glass border-slate-700/50 hover:border-purple-500/30'
+                  } ${loadingHistorico ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                      <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                        {formatSessaoDate(sessao.iniciada_em)}
+                      </span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded border font-modern ${
+                      sessao.status === 'finalizada'
+                        ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                        : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                    }`}>
+                      {sessao.status === 'finalizada' ? 'Finalizada' : 'Em andamento'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-slate-400 font-modern">
+                    <span className="flex items-center gap-1">
+                      <MessageCircle size={11} /> {sessao.totalMensagens || 0} msgs
+                    </span>
+                    <span>{sessao.rodada_atual || 0} rodadas</span>
+                    {participantes.length > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Users size={11} /> {participantes.length}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </RPGCard>
+
+      {/* Modal de Historico */}
+      <SessaoHistoricoModal
+        isOpen={!!sessaoSelecionada}
+        onClose={() => setSessaoSelecionada(null)}
+        sessao={sessaoSelecionada}
+      />
     </div>
   );
 };

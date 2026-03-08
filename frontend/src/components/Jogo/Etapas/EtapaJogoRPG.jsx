@@ -7,6 +7,8 @@ import InputArea from '../Chat/InputArea';
 import StatusPersonagem from '../Gameplay/StatusPersonagem';
 import RolagemDadosInicial from '../Gameplay/RolagemDadosInicial';
 import BatalhaUI from '../Gameplay/BatalhaUI';
+import InventarioPanel from '../Gameplay/InventarioPanel';
+import LevelUpCelebration from '../Gameplay/LevelUpCelebration';
 import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
 import NotificationManager from '../NotificationManager';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
@@ -81,6 +83,9 @@ const EtapaJogoRPG = ({
   const [fichaErro, setFichaErro] = useState(null);
   const [tituloFicha, setTituloFicha] = useState('Ficha do Personagem');
   const [fichasCache, setFichasCache] = useState({});
+  // 🎒 Inventario + Level Up
+  const [inventarioAberto, setInventarioAberto] = useState(false);
+  const [levelUpData, setLevelUpData] = useState(null);
 
   // 🔄 SUBSCRIBE AO VIEWMODEL
   useEffect(() => {
@@ -375,6 +380,48 @@ const EtapaJogoRPG = ({
           });
         };
 
+        // Listener para level up
+        const handleLevelUp = (data) => {
+          console.log('🎉 Level Up recebido:', data);
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          if (String(data.userId) === String(currentUser.id)) {
+            setLevelUpData({
+              novoNivel: data.novoNivel || data.nivel,
+              ganhos: data.ganhos || {}
+            });
+          }
+          if (onAdicionarMensagem) {
+            onAdicionarMensagem({
+              id: `levelup_${Date.now()}`,
+              tipo: 'mestre',
+              userId: 'sistema',
+              username: 'Sistema',
+              message: `🎉 **${data.username || 'Jogador'}** subiu para o **Nível ${data.novoNivel || data.nivel}**!`,
+              timestamp: Date.now()
+            });
+          }
+        };
+
+        // Listener para acoes do mestre (itens, cura, etc)
+        const handleAcaoMestre = (data) => {
+          console.log('🎯 Ação do Mestre recebida:', data);
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          if (data.tipo === 'item_recebido' && String(data.userId) === String(currentUser.id)) {
+            // Atualizar equipamentos localmente se disponivel
+            if (personagemSelecionado && data.item) {
+              personagemSelecionado.equipamentos = [
+                ...(personagemSelecionado.equipamentos || []),
+                data.item
+              ];
+            }
+          } else if (data.tipo === 'item_removido' && String(data.userId) === String(currentUser.id)) {
+            if (personagemSelecionado && data.itemNome) {
+              personagemSelecionado.equipamentos = (personagemSelecionado.equipamentos || [])
+                .filter(e => e.nome !== data.itemNome);
+            }
+          }
+        };
+
         // Adicionar listeners
         socketStore.on('mensagem_mestre', handleMensagemMestre);
         socketStore.on('chat_message', handleChatMessage);
@@ -384,6 +431,8 @@ const EtapaJogoRPG = ({
         socketStore.on('ordem_definida', handleOrdemDefinida);
         socketStore.on('dice_roll', handleDiceRoll);
         socketStore.on('mestre_solicita_dados', handleMestreSolicitaDados);
+        socketStore.on('level_up', handleLevelUp);
+        socketStore.on('acao_mestre', handleAcaoMestre);
 
         console.log('📡 Listeners de mensagens configurados');
 
@@ -397,6 +446,8 @@ const EtapaJogoRPG = ({
           socketStore.off('ordem_definida', handleOrdemDefinida);
           socketStore.off('dice_roll', handleDiceRoll);
           socketStore.off('mestre_solicita_dados', handleMestreSolicitaDados);
+          socketStore.off('level_up', handleLevelUp);
+          socketStore.off('acao_mestre', handleAcaoMestre);
           console.log('🧹 Listeners de mensagens removidos');
         };
       } catch (error) {
@@ -1044,6 +1095,7 @@ const EtapaJogoRPG = ({
                     <StatusPersonagem
                       personagemSelecionado={infoPersonagem}
                       onRolarDados={handleRolarDados}
+                      onToggleInventario={() => setInventarioAberto(!inventarioAberto)}
                       compact={true}
                       combateAtivo={socketState.combateAtivo}
                       combateJogadores={socketState.combateJogadores}
@@ -1084,6 +1136,20 @@ const EtapaJogoRPG = ({
         loading={fichaCarregando}
         error={fichaErro}
         titulo={tituloFicha}
+      />
+
+      <InventarioPanel
+        isOpen={inventarioAberto}
+        onClose={() => setInventarioAberto(false)}
+        equipamentos={personagemSelecionado?.equipamentos || []}
+        personagemNome={personagemSelecionado?.nome || 'Aventureiro'}
+      />
+
+      <LevelUpCelebration
+        isVisible={!!levelUpData}
+        novoNivel={levelUpData?.novoNivel}
+        ganhos={levelUpData?.ganhos}
+        onClose={() => setLevelUpData(null)}
       />
     </div>
   );

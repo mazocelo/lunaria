@@ -529,6 +529,19 @@
   @apply border-slate-100;
 }
 
+/* Card RPG - Light mode override */
+:root:not(.dark) .card-rpg {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+:root:not(.dark) .card-rpg:hover {
+  box-shadow: 0 8px 30px rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
 /* ============================================
    CARD VARIANTS
    ============================================ */

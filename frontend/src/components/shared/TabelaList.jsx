@@ -253,6 +253,8 @@ const TabelaList = ({
           }`}>
             {typeof emptyIcon === 'string' ? (
               <span className="text-3xl">{emptyIcon}</span>
+            ) : React.isValidElement(emptyIcon) ? (
+              emptyIcon
             ) : (
               <Inbox size={32} />
             )}

@@ -4,7 +4,7 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { vantagemViewModel } from '../../../viewmodels/Vantagens/VantagemViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 import { Sparkles, Eye, TrendingUp, TrendingDown } from 'lucide-react';
@@ -135,6 +135,11 @@ const VantagemListaView = () => {
         <StatCard title="Negativas" value={negativas} icon={TrendingDown} variant="accent" />
       </div>
 
+      <SearchBar
+        placeholder="Buscar vantagens..."
+        onChange={(texto) => vm.buscarVantagens?.(texto)}
+      />
+
       <TabelaList
         header="Lista de Vantagens"
         columns={columns}
@@ -145,7 +150,7 @@ const VantagemListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhuma vantagem encontrada"
-        emptyIcon="✨"
+        emptyIcon={<Sparkles size={32} />}
         hoverable={true}
       />
     </div>

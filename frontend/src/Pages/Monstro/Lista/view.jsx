@@ -3,7 +3,7 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { monstroViewModel } from '../../../viewmodels/Monstros/MonstroViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { Skull, Circle, Gem, Leaf } from 'lucide-react';
 
@@ -159,7 +159,7 @@ const MonstroListaView = () => {
     <div className="animate-fade-in space-y-6">
       <PageHeader
         title="Monstros"
-        subtitle="Bestiario do mundo de Lunaria"
+        subtitle="Bestiário do mundo de Lunária"
         icon={Skull}
       />
 
@@ -169,6 +169,11 @@ const MonstroListaView = () => {
         <StatCard title="Raros+" value={(raridades['Raro'] || 0) + (raridades['Epico'] || 0) + (raridades['Lendario'] || 0)} icon={Gem} variant="accent" />
         <StatCard title="Incomuns" value={raridades['Incomum'] || 0} icon={Leaf} variant="secondary" />
       </div>
+
+      <SearchBar
+        placeholder="Buscar monstros..."
+        onChange={(texto) => vm.buscarMonstros?.(texto)}
+      />
 
       <TabelaList
         header="Bestiario"
@@ -185,7 +190,7 @@ const MonstroListaView = () => {
         initialPageSize={25}
         pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Nenhum monstro encontrado"
-        emptyIcon="👹"
+        emptyIcon={<Skull size={32} />}
         hoverable={true}
       />
     </div>

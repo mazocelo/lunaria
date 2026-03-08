@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { mestreViewModel } from '../../../viewmodels/Mestres';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { TabelaList, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
@@ -162,6 +162,11 @@ const MestreListaView = () => {
         />
       </div>
 
+      <SearchBar
+        placeholder="Buscar mestres..."
+        onChange={(texto) => vm.buscarMestres?.(texto)}
+      />
+
       <TabelaList
         header="Lista de Mestres"
         columns={columns}
@@ -172,7 +177,7 @@ const MestreListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhum mestre encontrado"
-        emptyIcon="🧙"
+        emptyIcon={<Crown size={32} />}
         hoverable={true}
       />
 

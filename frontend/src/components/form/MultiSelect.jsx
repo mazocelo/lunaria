@@ -158,6 +158,11 @@ function MultiSelect({
           </Command>
         </PopoverContent>
       </Popover>
+      {atLimit && (
+        <p className={`text-xs ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
+          Limite máximo atingido ({max})
+        </p>
+      )}
     </div>
   );
 }

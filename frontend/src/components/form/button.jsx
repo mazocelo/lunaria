@@ -14,7 +14,7 @@ const Button = ({
     const { theme } = useTheme();
     const isLight = theme === 'light';
     
-    const baseClasses = `${isLight ? 'btn-rpg-light' : 'btn-rpg'} hover-lift font-modern transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed`;
+    const baseClasses = `${isLight ? 'btn-rpg-light' : 'btn-rpg'} hover-lift font-modern transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-purple-500/50 focus-visible:ring-offset-2`;
     
     // Adicionar cursor-pointer apenas para variantes que são clicáveis
     const cursorClass = variant === 'ghost' || variant === 'primary' || variant === 'secondary' || variant === 'accent' || variant === 'danger' ? 'cursor-pointer' : '';

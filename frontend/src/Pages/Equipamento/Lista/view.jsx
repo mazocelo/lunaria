@@ -8,7 +8,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList, PageHeader, Badge } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
-import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame } from 'lucide-react';
+import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame, Sparkles } from 'lucide-react';
 
 const raridadeColors = (raridade, isLight) => {
   const map = {
@@ -98,7 +98,7 @@ const EquipamentoListaView = () => {
         <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
           isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'
         }`} title={row.vinculo.restricao_tipo ? `Tipo: ${row.vinculo.restricao_tipo}${row.vinculo.restricao ? ' \u2014 ' + row.vinculo.restricao.join(', ') : ''}` : 'Requer vinculo magico (max. 3 por personagem)'}>
-          {"✨"} {row.vinculo.restricao_tipo || 'Livre'}
+          <Sparkles size={12} className="inline" /> {row.vinculo.restricao_tipo || 'Livre'}
         </span>
       ) : (
         <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>{"\u2014"}</span>
@@ -197,7 +197,7 @@ const EquipamentoListaView = () => {
         initialPageSize={25}
         pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Nenhum equipamento encontrado"
-        emptyIcon="⚔️"
+        emptyIcon={<Sword size={32} />}
         hoverable={true}
       />
     </div>

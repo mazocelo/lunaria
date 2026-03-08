@@ -4,7 +4,7 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { classeViewModel } from '../../../viewmodels/Classes/ClasseViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader } from '../../../components/shared';
+import { TabelaList, PageHeader, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 import { Shield, Eye, Gift, Coins } from 'lucide-react';
@@ -48,7 +48,7 @@ const ClasseListaView = () => {
     },
     {
       key: 'descricao',
-      label: 'Descricao',
+      label: 'Descrição',
       align: 'left',
       render: (row) => (
         <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern text-sm`}>
@@ -89,7 +89,7 @@ const ClasseListaView = () => {
     <div className="animate-fade-in space-y-6">
       <PageHeader
         title="Classes"
-        subtitle="Classes disponiveis para personagens"
+        subtitle="Classes disponíveis para personagens"
         icon={Shield}
       />
 
@@ -98,6 +98,11 @@ const ClasseListaView = () => {
         <StatCard title="Gratuitas" value={gratuitas} icon={Gift} variant="secondary" />
         <StatCard title="Com Custo" value={pagas} icon={Coins} variant="accent" />
       </div>
+
+      <SearchBar
+        placeholder="Buscar classes..."
+        onChange={(texto) => vm.buscarClasses?.(texto)}
+      />
 
       <TabelaList
         header="Lista de Classes"
@@ -109,7 +114,7 @@ const ClasseListaView = () => {
         initialPageSize={10}
         pageSizeOptions={[5, 10, 25, 50]}
         emptyMessage="Nenhuma classe encontrada"
-        emptyIcon="⚔️"
+        emptyIcon={<Shield size={32} />}
         hoverable={true}
       />
     </div>

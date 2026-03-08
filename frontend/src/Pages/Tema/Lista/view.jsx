@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Button from '../../../components/form/button';
+import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { temaViewModel } from '../../../viewmodels/Temas';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { ROUTES, generateRoute } from '../../../routes.jsx';
-import { PageHeader } from '../../../components/shared';
+import { TabelaList, PageHeader } from '../../../components/shared';
+import StatCard from '../../../components/StatCard.jsx';
+import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const TemaListaView = () => {
@@ -16,21 +17,77 @@ const TemaListaView = () => {
 
   useEffect(() => { vm.loadTemas(); }, []);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este tema?')) {
-      await vm.deleteTema(id);
+  if (vm.loading && vm.temas.length === 0) {
+    return (
+      <div className="animate-fade-in">
+        <div className="card-rpg">
+          <LoadingSpinner size="xl" text="Carregando temas..." variant="primary" />
+        </div>
+      </div>
+    );
+  }
+
+  const handleDelete = async (row) => {
+    if (window.confirm(`Tem certeza que deseja excluir o tema "${row.nome}"?`)) {
+      await vm.deleteTema(row.id);
     }
   };
 
-  if (vm.loading) {
-    return (<div className="animate-fade-in"><div className="card-rpg"><div className="flex items-center justify-center py-12"><div className="text-center"><div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow"><Palette size={24} className="text-white" /></div><div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando temas...</div></div></div></div></div>);
-  }
+  const columns = [
+    {
+      key: 'id',
+      label: 'ID',
+      align: 'left',
+      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
+    },
+    {
+      key: 'nome',
+      label: 'Nome',
+      align: 'left',
+      render: (row) => (
+        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
+          {row.nome}
+        </span>
+      )
+    },
+    {
+      key: 'descricao',
+      label: 'Descrição',
+      align: 'left',
+      render: (row) => (
+        <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern text-sm`}>
+          {row.descricao ? (row.descricao.length > 100 ? row.descricao.slice(0, 100) + '...' : row.descricao) : '-'}
+        </span>
+      )
+    }
+  ];
+
+  const actions = [
+    {
+      label: 'Editar',
+      icon: <Pencil size={18} />,
+      color: 'cyan',
+      onClick: (row) => navigate(generateRoute.editarTema(row.id))
+    },
+    {
+      label: 'Excluir',
+      icon: <Trash2 size={18} />,
+      color: 'red',
+      onClick: handleDelete
+    }
+  ];
 
   return (
     <div className="animate-fade-in space-y-6">
+      {vm.error && (
+        <div className={`mb-4 p-4 rounded-lg border ${isLight ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-500/20 border-red-500/30 text-red-300'}`}>
+          {vm.error}
+        </div>
+      )}
+
       <PageHeader
         title="Temas"
-        subtitle={`${vm.temas.length} temas cadastrados`}
+        subtitle="Temas de ambientação para histórias"
         icon={Palette}
         actions={
           <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer" onClick={() => navigate(ROUTES.NOVO_TEMA)}>
@@ -40,33 +97,23 @@ const TemaListaView = () => {
         }
       />
 
-      {vm.error && (<div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300">{vm.error}</div>)}
-      <div className="grid gap-4">
-        {vm.temas.map(tema => (
-          <div key={tema.id} className={`card-rpg p-4 flex items-center justify-between`}>
-            <div>
-              <h3 className={`font-semibold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{tema.nome}</h3>
-              {tema.descricao && <p className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{tema.descricao}</p>}
-            </div>
-            <div className="flex space-x-2">
-              <Button variant="ghost" onClick={() => navigate(generateRoute.editarTema(tema.id))}>
-                <span className="flex items-center gap-1"><Pencil size={14} /> Editar</span>
-              </Button>
-              <Button variant="ghost" onClick={() => handleDelete(tema.id)} className="text-red-400 hover:text-red-300">
-                <span className="flex items-center gap-1"><Trash2 size={14} /> Excluir</span>
-              </Button>
-            </div>
-          </div>
-        ))}
-        {vm.temas.length === 0 && (
-          <div className={`text-center py-12 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-slate-800/60 text-slate-500">
-              <Palette size={32} />
-            </div>
-            <p className="font-modern">Nenhum tema cadastrado</p>
-          </div>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total de Temas" value={vm.temas?.length || 0} icon={Palette} variant="primary" />
       </div>
+
+      <TabelaList
+        header="Lista de Temas"
+        columns={columns}
+        data={vm.temas}
+        actions={actions}
+        loading={vm.loading}
+        pagination={true}
+        initialPageSize={10}
+        pageSizeOptions={[5, 10, 25, 50]}
+        emptyMessage="Nenhum tema encontrado"
+        emptyIcon={<Palette size={32} />}
+        hoverable={true}
+      />
     </div>
   );
 };

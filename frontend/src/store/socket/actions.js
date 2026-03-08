@@ -574,6 +574,23 @@ export const createSocketActions = (set, get) => ({
       });
     });
 
+    // ===== LISTENER DE AÇÕES MECÂNICAS DO MESTRE =====
+    socket.on('acao_mestre', (data) => {
+      console.log('🎭 Ação do Mestre:', data);
+      const { combateJogadores } = get();
+      if (data.tipo === 'curado' && get().combateAtivo && data.userId && combateJogadores[data.userId]) {
+        const updated = { ...combateJogadores };
+        updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.hp_atual > 0 ? 'vivo' : updated[data.userId].status };
+        set({ combateJogadores: updated });
+      }
+      if (data.tipo === 'dano_recebido' && get().combateAtivo && data.userId && combateJogadores[data.userId]) {
+        const updated = { ...combateJogadores };
+        updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.derrotado ? 'derrotado' : 'vivo' };
+        set({ combateJogadores: updated });
+      }
+      get().log('Ação do Mestre', { tipo: data.tipo, personagem: data.personagem });
+    });
+
     // ✅ NOVO: Listener para usuário entrando na sala
     socket.on('user_joined', (data) => {
       console.log('👤 Usuário entrou na sala:', data);

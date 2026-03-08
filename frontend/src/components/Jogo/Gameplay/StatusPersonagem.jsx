@@ -1,4 +1,6 @@
 import React from 'react';
+import { Package } from 'lucide-react';
+import XPProgressBar from './XPProgressBar';
 
 /**
  * Barra inferior com status do personagem
@@ -12,6 +14,7 @@ import React from 'react';
 const StatusPersonagem = ({
   personagemSelecionado,
   onRolarDados,
+  onToggleInventario,
   compact = false,
   combateAtivo = false,
   combateJogadores = {},
@@ -75,12 +78,6 @@ const StatusPersonagem = ({
                   </div>
                   <div className="text-xs text-blue-300">MP</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-base font-bold text-yellow-400">
-                    {personagemSelecionado.xp || '0'}
-                  </div>
-                  <div className="text-xs text-yellow-300">XP</div>
-                </div>
                 {combateStats && (
                   <>
                     <div className="text-center">
@@ -99,6 +96,25 @@ const StatusPersonagem = ({
                 )}
               </div>
             </div>
+            {/* XP Bar */}
+            <div className="mt-2">
+              <XPProgressBar
+                compact
+                xpAtual={personagemSelecionado.xp_atual || personagemSelecionado.xp || 0}
+                xpProximoNivel={personagemSelecionado.xp_proximo_nivel}
+                nivel={personagemSelecionado.nivel || 1}
+              />
+            </div>
+            {/* Inventario button */}
+            {onToggleInventario && (
+              <button
+                onClick={onToggleInventario}
+                className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded hover:bg-amber-500/20 transition-colors text-xs font-modern"
+              >
+                <Package size={12} />
+                Inventário ({(personagemSelecionado.equipamentos || []).length})
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -148,11 +164,12 @@ const StatusPersonagem = ({
                   </div>
                   <div className="text-xs text-blue-300">MP</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-yellow-400">
-                    {personagemSelecionado.xp || '0'}
-                  </div>
-                  <div className="text-xs text-yellow-300">XP</div>
+                <div className="min-w-[120px]">
+                  <XPProgressBar
+                    xpAtual={personagemSelecionado.xp_atual || personagemSelecionado.xp || 0}
+                    xpProximoNivel={personagemSelecionado.xp_proximo_nivel}
+                    nivel={personagemSelecionado.nivel || 1}
+                  />
                 </div>
                 {combateStats && (
                   <>
@@ -173,22 +190,33 @@ const StatusPersonagem = ({
               </div>
 
               {/* Acoes rapidas */}
-              {onRolarDados && (
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                {onRolarDados && (
+                  <>
+                    <button
+                      onClick={() => onRolarDados('1d20', 'Teste rápido')}
+                      className="px-3 py-1 bg-green-500/20 text-green-300 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors text-sm"
+                    >
+                      🎲 d20
+                    </button>
+                    <button
+                      onClick={() => onRolarDados('1d6', 'Dado de 6')}
+                      className="px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors text-sm"
+                    >
+                      🎲 d6
+                    </button>
+                  </>
+                )}
+                {onToggleInventario && (
                   <button
-                    onClick={() => onRolarDados('1d20', 'Teste rápido')}
-                    className="px-3 py-1 bg-green-500/20 text-green-300 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors text-sm"
+                    onClick={onToggleInventario}
+                    className="px-3 py-1 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded hover:bg-amber-500/20 transition-colors text-sm flex items-center gap-1.5"
                   >
-                    🎲 d20
+                    <Package size={14} />
+                    ({(personagemSelecionado.equipamentos || []).length})
                   </button>
-                  <button
-                    onClick={() => onRolarDados('1d6', 'Dado de 6')}
-                    className="px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors text-sm"
-                  >
-                    🎲 d6
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

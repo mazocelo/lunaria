@@ -34,12 +34,13 @@ export function parsearBonusEntidade(bonusStr) {
 
 /**
  * Agrega bonus de todos os equipamentos do personagem
- * Formato bonus de equipamento (Json): { dano: 2, ataque: 2, ca: 1, ca_base: 18 }
+ * Formato bonus novo: { dano: 2, ataque: 2, armadura: 5, esquiva_bonus: 3, esquiva_penalidade: 5 }
+ * Fallback para formato antigo: { ca, ca_base } → convertido para armadura
  * @param {Array} equipamentos - Array de equipamentos com campo bonus
- * @returns {{ ataque: number, dano: number, ca: number, ca_base: number|null }}
+ * @returns {{ ataque: number, dano: number, armadura: number, esquiva_bonus: number, esquiva_penalidade: number }}
  */
 export function agregarBonusEquipamentos(equipamentos) {
-  const resultado = { ataque: 0, dano: 0, ca: 0, ca_base: null };
+  const resultado = { ataque: 0, dano: 0, armadura: 0, esquiva_bonus: 0, esquiva_penalidade: 0 };
 
   if (!Array.isArray(equipamentos)) return resultado;
 
@@ -49,12 +50,23 @@ export function agregarBonusEquipamentos(equipamentos) {
 
     resultado.ataque += bonus.ataque || 0;
     resultado.dano += bonus.dano || 0;
-    resultado.ca += bonus.ca || 0;
 
-    // ca_base: usa o maior valor encontrado (armaduras)
-    if (bonus.ca_base != null) {
-      resultado.ca_base = Math.max(resultado.ca_base || 0, bonus.ca_base);
+    // Novo formato: armadura direto
+    if (bonus.armadura != null) {
+      resultado.armadura += bonus.armadura;
     }
+    // Fallback formato antigo: ca_base → armadura (30% do valor)
+    else if (bonus.ca_base != null) {
+      resultado.armadura += Math.floor(bonus.ca_base * 0.3);
+    }
+
+    // Fallback: ca aditivo antigo → armadura
+    if (bonus.ca && !bonus.armadura) {
+      resultado.armadura += bonus.ca;
+    }
+
+    resultado.esquiva_bonus += bonus.esquiva_bonus || 0;
+    resultado.esquiva_penalidade += bonus.esquiva_penalidade || 0;
   }
 
   return resultado;

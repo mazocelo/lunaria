@@ -147,10 +147,13 @@ const Monstro = (prisma) => {
      */
     calcularStats(monstro, nivel) {
       const n = Math.max(1, nivel);
+      const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
       return {
         hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
         ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.floor(n * 0.7)),
-        defesa: Math.round(monstro.defesa_base + Math.floor((monstro.agilidade - 10) / 2) + Math.floor(n * 0.4)),
+        defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
+        armadura: Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2)),
+        esquiva: Math.min(30, Math.max(0, modAgi * 3)),
         dano_base: monstro.dano_base,
         xp: monstro.xp_base * n,
         forca: monstro.forca,

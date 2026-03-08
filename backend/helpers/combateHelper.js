@@ -1,6 +1,10 @@
 /**
  * Helper de Combate - Formulas, dados e logica mecanica
  * Usado pelo socketManager durante combates ativos
+ *
+ * Sistema de defesa em 2 camadas:
+ * - Esquiva: chance percentual de desviar completamente
+ * - Armadura: reducao flat de dano nos hits
  */
 
 /**
@@ -39,19 +43,46 @@ export function calcularHP(personagem) {
 }
 
 /**
- * Calcula Classe de Armadura de um personagem
+ * Calcula taxa de esquiva de um personagem (%)
+ * Formula: (ModAGI + floor(ModDEX/2)) * 5 + floor(nivel*0.5) + equip_bonus - equip_penalidade
+ * Cap: 0-50%
  * @param {Object} personagem - Dados do personagem
- * @param {Object} bonusEquip - Bonus agregados de equipamentos { ca, ca_base }
- * @returns {number} CA
+ * @param {Object} bonusEquip - Bonus agregados { esquiva_bonus, esquiva_penalidade }
+ * @returns {number} Taxa de esquiva em porcentagem (0-50)
  */
-export function calcularCA(personagem, bonusEquip = {}) {
+export function calcularEsquiva(personagem, bonusEquip = {}) {
+  const agilidade = personagem.agilidade || 10;
   const destreza = personagem.destreza || 10;
-  const modDestreza = Math.floor((destreza - 10) / 2);
+  const nivel = personagem.nivel || 1;
 
-  // Se tem ca_base de armadura, usa como base (sem mod destreza)
-  const caBase = bonusEquip.ca_base != null ? bonusEquip.ca_base : (10 + modDestreza);
-  // Adiciona bonus aditivo de CA (escudos, armas defensivas)
-  return caBase + (bonusEquip.ca || 0);
+  const modAgi = Math.floor((agilidade - 10) / 2);
+  const modDex = Math.floor((destreza - 10) / 2);
+
+  const baseEsquiva = (modAgi + Math.floor(modDex / 2)) * 5;
+  const bonusNivel = Math.floor(nivel * 0.5);
+  const bonusEquipamento = bonusEquip.esquiva_bonus || 0;
+  const penalidadeEquipamento = bonusEquip.esquiva_penalidade || 0;
+
+  const total = baseEsquiva + bonusNivel + bonusEquipamento - penalidadeEquipamento;
+  return Math.min(50, Math.max(0, total));
+}
+
+/**
+ * Calcula armadura total de equipamentos (reducao flat de dano)
+ * @param {Object} bonusEquip - Bonus agregados { armadura }
+ * @returns {number} Valor de armadura
+ */
+export function calcularArmadura(bonusEquip = {}) {
+  return bonusEquip.armadura || 0;
+}
+
+/**
+ * Verifica se o alvo esquivou do ataque
+ * @param {number} taxaEsquiva - Taxa de esquiva em % (0-50)
+ * @returns {boolean} true se esquivou
+ */
+export function verificarEsquiva(taxaEsquiva) {
+  return Math.random() * 100 < taxaEsquiva;
 }
 
 /**
@@ -62,42 +93,49 @@ export function calcularCA(personagem, bonusEquip = {}) {
  */
 export function calcularStatsEfetivos(monstro, nivel) {
   const n = Math.max(1, nivel);
+  const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
+
   return {
     hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
     ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.floor(n * 0.7)),
-    defesa: Math.round(monstro.defesa_base + Math.floor((monstro.agilidade - 10) / 2) + Math.floor(n * 0.4)),
+    defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
+    armadura: Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2)),
+    esquiva: Math.min(30, Math.max(0, modAgi * 3)),
     dano_base: monstro.dano_base,
     xp: monstro.xp_base * n
   };
 }
 
 /**
- * Verifica se ataque acertou
+ * Verifica acerto baseado na rolagem do d20
+ * Nat 1 = miss automatico, Nat 20 = critico
+ * Para rolagens normais, o ataque sempre "acerta" — esquiva eh checada separadamente
  * @param {number} rolagem - Resultado do d20
- * @param {number} bonusAtaque - Bonus de ataque do atacante
- * @param {number} defesaAlvo - CA/defesa do alvo
  * @returns {{ acertou: boolean, critico: boolean }}
  */
-export function verificarAcerto(rolagem, bonusAtaque, defesaAlvo) {
+export function verificarAcerto(rolagem) {
   if (rolagem === 20) return { acertou: true, critico: true };
   if (rolagem === 1) return { acertou: false, critico: false };
-  return {
-    acertou: (rolagem + bonusAtaque) >= defesaAlvo,
-    critico: false
-  };
+  return { acertou: true, critico: false };
 }
 
 /**
  * Calcula dano de um ataque
+ * Se critico, ignora armadura (dano cheio)
  * @param {string} dano_base - Notacao do dado (ex: "1d8+2")
  * @param {number} modForca - Modificador de forca
- * @param {boolean} critico - Se acerto critico (2x dano)
+ * @param {boolean} critico - Se acerto critico (2x dano, ignora armadura)
+ * @param {number} armadura - Reducao flat de dano do alvo
  * @returns {number} Dano total
  */
-export function calcularDano(dano_base, modForca = 0, critico = false) {
+export function calcularDano(dano_base, modForca = 0, critico = false, armadura = 0) {
   let dano = rolarDado(dano_base) + modForca;
-  if (critico) dano *= 2;
-  return Math.max(1, dano);
+  if (critico) {
+    dano *= 2;
+    // Critico ignora armadura
+    return Math.max(1, dano);
+  }
+  return Math.max(1, dano - armadura);
 }
 
 /**
@@ -165,6 +203,8 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           hp_atual: stats.hp_max,
           ataque: stats.ataque,
           defesa: stats.defesa,
+          armadura: stats.armadura,
+          esquiva: stats.esquiva,
           dano_base: stats.dano_base,
           habilidades: monstroBase.habilidades || [],
           elemento: monstroBase.elemento || [],
@@ -185,6 +225,8 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           hp_atual: stats.hp_max,
           ataque: stats.ataque,
           defesa: stats.defesa,
+          armadura: stats.armadura,
+          esquiva: stats.esquiva,
           dano_base: stats.dano_base,
           habilidades: [],
           elemento: [],
@@ -209,6 +251,8 @@ function _gerarStatsGenericos(nivel, tipo) {
     hp_max: Math.round(baseHP + (n * 5)),
     ataque: Math.round(2 + Math.floor(n * 0.7)),
     defesa: Math.round(10 + Math.floor(n * 0.4)),
+    armadura: Math.round(Math.floor(n * 0.3)),
+    esquiva: Math.min(20, Math.round(n * 1.5)),
     dano_base: n <= 3 ? '1d6' : n <= 6 ? '1d8' : '1d10',
     xp: 50 * n
   };
@@ -249,7 +293,7 @@ export function formatarContextoCombate(combateState, userId) {
 
   const monstrosInfo = combateState.monstros
     .filter(m => m.status === 'vivo')
-    .map(m => `${m.nome} (HP ${m.hp_atual}/${m.hp_max}, ATK ${m.ataque}, DEF ${m.defesa})`)
+    .map(m => `${m.nome} (HP ${m.hp_atual}/${m.hp_max}, ATK ${m.ataque}, ARM ${m.armadura || 0}, ESQ ${m.esquiva || 0}%)`)
     .join(', ');
 
   const monstrosDerrotados = combateState.monstros
@@ -259,7 +303,7 @@ export function formatarContextoCombate(combateState, userId) {
 
   const jogadorHP = combateState.jogadores[userId];
   const jogadorInfo = jogadorHP
-    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max} | CA ${jogadorHP.ca}`
+    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max} | Esquiva ${jogadorHP.esquiva || 0}% | Armadura ${jogadorHP.armadura || 0}`
     : 'HP desconhecido';
 
   let contexto = `\n[COMBATE ATIVO - Rodada ${combateState.rodadaCombate}]`;
@@ -273,7 +317,9 @@ export function formatarContextoCombate(combateState, userId) {
 export default {
   rolarDado,
   calcularHP,
-  calcularCA,
+  calcularEsquiva,
+  calcularArmadura,
+  verificarEsquiva,
   calcularStatsEfetivos,
   verificarAcerto,
   calcularDano,

@@ -8,7 +8,9 @@ import db from '../Model/index.js';
 import {
   calcularStatsEfetivos,
   calcularHP,
-  calcularCA,
+  calcularEsquiva,
+  calcularArmadura,
+  verificarEsquiva,
   verificarAcerto,
   calcularDano,
   rolarDado,
@@ -3246,7 +3248,7 @@ class SocketManager {
       // Gerar instâncias de combate
       const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio);
 
-      // Calcular HP/CA dos jogadores
+      // Calcular HP/Esquiva/Armadura dos jogadores
       const jogadoresCombate = {};
       for (const jogador of jogadores) {
         const jUserId = String(jogador.userId || jogador.id);
@@ -3259,12 +3261,14 @@ class SocketManager {
           const personagemStats = {
             constituicao: attrs.constituicao || 10,
             destreza: attrs.destreza || 10,
+            agilidade: attrs.agilidade || 10,
             nivel: p.nivel || 1
           };
           jogadoresCombate[jUserId] = {
             hp_max: calcularHP(personagemStats),
             hp_atual: calcularHP(personagemStats),
-            ca: calcularCA(personagemStats, bonusEquip),
+            esquiva: calcularEsquiva(personagemStats, bonusEquip),
+            armadura: calcularArmadura(bonusEquip),
             bonusAtaque: bonusEquip.ataque || 0,
             bonusDano: bonusEquip.dano || 0,
             dano_base: p.melhorArma || null,
@@ -3275,7 +3279,8 @@ class SocketManager {
           jogadoresCombate[jUserId] = {
             hp_max: 15,
             hp_atual: 15,
-            ca: 10,
+            esquiva: 5,
+            armadura: 0,
             bonusAtaque: 0,
             bonusDano: 0,
             dano_base: null,
@@ -3354,17 +3359,24 @@ class SocketManager {
       const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
       const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7) + bonusAtaqueEquip;
 
-      const { acertou, critico } = verificarAcerto(rolagemAtaque, bonusAtaque, monstroAlvo.defesa);
+      const { acertou, critico } = verificarAcerto(rolagemAtaque);
 
       let danoTotal = 0;
+      let esquivou = false;
       if (acertou) {
-        const danoBase = jogadorStats.dano_base || (personagemCompleto.nivel >= 5 ? '1d8' : '1d6');
-        const bonusDanoEquip = jogadorStats.bonusDano || 0;
-        danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico);
-        monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
+        // Critico ignora esquiva
+        if (!critico && verificarEsquiva(monstroAlvo.esquiva || 0)) {
+          esquivou = true;
+        } else {
+          const danoBase = jogadorStats.dano_base || (personagemCompleto.nivel >= 5 ? '1d8' : '1d6');
+          const bonusDanoEquip = jogadorStats.bonusDano || 0;
+          const armaduraMonstro = monstroAlvo.armadura || 0;
+          danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico, armaduraMonstro);
+          monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
 
-        if (monstroAlvo.hp_atual <= 0) {
-          monstroAlvo.status = 'derrotado';
+          if (monstroAlvo.hp_atual <= 0) {
+            monstroAlvo.status = 'derrotado';
+          }
         }
       }
 
@@ -3375,9 +3387,11 @@ class SocketManager {
         alvo: monstroAlvo.nome,
         rolagem: rolagemAtaque,
         bonus: bonusAtaque,
-        acertou,
+        acertou: acertou && !esquivou,
+        esquivou,
         critico,
         dano: danoTotal,
+        armaduraAlvo: monstroAlvo.armadura || 0,
         hpRestante: monstroAlvo.hp_atual,
         timestamp: Date.now()
       };
@@ -3390,9 +3404,11 @@ class SocketManager {
         alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
         rolagem: rolagemAtaque,
         bonus: bonusAtaque,
-        acertou,
+        acertou: acertou && !esquivou,
+        esquivou,
         critico,
         dano: danoTotal,
+        armaduraAlvo: monstroAlvo.armadura || 0,
         hpRestante: monstroAlvo.hp_atual,
         hpMax: monstroAlvo.hp_max,
         timestamp: Date.now()
@@ -3423,19 +3439,24 @@ class SocketManager {
 
         // Rolar ataque do monstro
         const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
-        const { acertou: monstroAcertou, critico: monstroCritico } = verificarAcerto(
-          rolagemMonstro, monstro.ataque, alvoStats.ca
-        );
+        const { acertou: monstroAcertou, critico: monstroCritico } = verificarAcerto(rolagemMonstro);
 
         let danoMonstro = 0;
+        let monstroEsquivou = false;
         if (monstroAcertou) {
-          const danoNotacao = habilidade?.dano || monstro.dano_base;
-          const modForcaMonstro = Math.floor(((monstro.forca || 10) - 10) / 2);
-          danoMonstro = calcularDano(danoNotacao, modForcaMonstro, monstroCritico);
-          alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
+          // Critico ignora esquiva
+          if (!monstroCritico && verificarEsquiva(alvoStats.esquiva || 0)) {
+            monstroEsquivou = true;
+          } else {
+            const danoNotacao = habilidade?.dano || monstro.dano_base;
+            const modForcaMonstro = Math.floor(((monstro.forca || 10) - 10) / 2);
+            const armaduraJogador = alvoStats.armadura || 0;
+            danoMonstro = calcularDano(danoNotacao, modForcaMonstro, monstroCritico, armaduraJogador);
+            alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
 
-          if (alvoStats.hp_atual <= 0) {
-            alvoStats.status = 'derrotado';
+            if (alvoStats.hp_atual <= 0) {
+              alvoStats.status = 'derrotado';
+            }
           }
         }
 
@@ -3451,9 +3472,11 @@ class SocketManager {
           alvo: alvoStats.personagemNome,
           habilidade: habilidade?.nome || 'Ataque básico',
           rolagem: rolagemMonstro,
-          acertou: monstroAcertou,
+          acertou: monstroAcertou && !monstroEsquivou,
+          esquivou: monstroEsquivou,
           critico: monstroCritico,
           dano: danoMonstro,
+          armaduraAlvo: alvoStats.armadura || 0,
           hpRestante: alvoStats.hp_atual,
           timestamp: Date.now()
         });
@@ -3465,9 +3488,11 @@ class SocketManager {
           alvo: { userId: alvoId, nome: alvoStats.personagemNome },
           habilidade: habilidade?.nome || 'Ataque básico',
           rolagem: rolagemMonstro,
-          acertou: monstroAcertou,
+          acertou: monstroAcertou && !monstroEsquivou,
+          esquivou: monstroEsquivou,
           critico: monstroCritico,
           dano: danoMonstro,
+          armaduraAlvo: alvoStats.armadura || 0,
           hpRestante: alvoStats.hp_atual,
           hpMax: alvoStats.hp_max,
           timestamp: Date.now()

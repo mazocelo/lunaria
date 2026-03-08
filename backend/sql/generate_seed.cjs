@@ -1,10 +1,13 @@
 /**
  * Script para gerar seed SQL enriquecido a partir do compendio JSON.
- * Extrai automaticamente: bonus, dano_base, elemento, requisitos, propriedades, cargas, usos_por_dia
+ * Extrai automaticamente: bonus, dano_base, elemento, requisitos, propriedades, cargas, usos_por_dia, peso, preco_sugerido
  */
 const fs = require('fs');
+const path = require('path');
 
-const data = JSON.parse(fs.readFileSync('./compendio_itens_magicos.json', 'utf8'));
+// Caminho relativo ao projeto (2 niveis acima de Backend/sql/)
+const projectRoot = path.resolve(__dirname, '..', '..');
+const data = JSON.parse(fs.readFileSync(path.join(projectRoot, 'compendio_itens_magicos.json'), 'utf8'));
 const itens = data.itens;
 
 // ========== FUNÇÕES DE EXTRAÇÃO ==========
@@ -22,38 +25,73 @@ function extrairBonus(efeitos) {
     result.dano = parseInt(m[1]);
   }
 
-  // CA bonus: "+2 em CA", "CA +1", "+1 em CA e salvaguardas"
-  let ca = efeitos.match(/\+(\d+)\s*(?:em\s+)?(?:CA|classe de armadura)/i)
-        || efeitos.match(/CA\s*\+(\d+)/i)
-        || efeitos.match(/\+(\d+)\s*(?:bônus|bonus)\s*(?:em\s+)?CA/i);
-  if (ca) {
-    result.ca = parseInt(ca[1]);
+  // Armadura: itens que mencionam CA base (armaduras) → converter para armadura
+  let caBase = efeitos.match(/(?:CA|TA)\s+(\d+)/i);
+  if (caBase) {
+    const caVal = parseInt(caBase[1]);
+    // Armaduras pesadas (ca_base >= 17): alta armadura, penalidade esquiva
+    if (caVal >= 17) {
+      result.armadura = Math.round(caVal * 0.45);
+      result.esquiva_penalidade = 10;
+    }
+    // Armaduras medias (14-16): armadura moderada, penalidade leve
+    else if (caVal >= 14) {
+      result.armadura = Math.round(caVal * 0.35);
+      result.esquiva_penalidade = 3;
+    }
+    // Armaduras leves (< 14): pouca armadura, bonus esquiva
+    else if (caVal >= 10) {
+      result.armadura = Math.round(caVal * 0.25);
+      result.esquiva_bonus = 3;
+    }
   }
 
-  // CA base para armaduras: "CA 18", "CA 14+Des"
-  let caBase = efeitos.match(/CA\s+(\d+)/i);
-  if (caBase && !result.ca) {
-    result.ca_base = parseInt(caBase[1]);
+  // Bonus de esquiva/armadura: "+2 em CA", "CA +1" → agora esquiva para itens leves
+  let caBonus = efeitos.match(/\+(\d+)\s*(?:em\s+)?(?:CA|TA|classe de armadura)/i)
+        || efeitos.match(/(?:CA|TA)\s*\+(\d+)/i);
+  if (caBonus && !caBase) {
+    // Itens de proteção gerais → esquiva
+    result.esquiva_bonus = parseInt(caBonus[1]) * 2;
   }
 
   return Object.keys(result).length > 0 ? result : null;
 }
 
 function extrairDanoBase(efeitos) {
-  // Primeiro dado de dano mencionado: "2d6 de fogo", "3d10 dano", "1d8+2"
-  const m = efeitos.match(/(\d+d\d+(?:\+\d+)?)/);
-  return m ? m[1] : null;
+  // Separar frases para analisar contexto
+  const frases = efeitos.split(/[.;]/).map(s => s.trim());
+
+  for (const frase of frases) {
+    const lower = frase.toLowerCase();
+
+    // Pular frases que são de cura, recarga ou recuperação
+    if (/recupera|cura|heal|regener|restaur/i.test(lower)) {
+      // Mas permitir se também menciona dano explicitamente
+      if (!/dano|damage|ataque|attack/i.test(lower)) continue;
+    }
+
+    // Pular frases de recarga de cargas ("recupera 1d3 cargas", "recupera 1d6+4 ao amanhecer")
+    if (/recupera\s+\d+d\d+.*(?:carga|amanhecer|descanso)/i.test(lower)) continue;
+
+    // Pular frases onde o dado é duração/tempo ("1d6+1 dias", "1d4 horas")
+    if (/\d+d\d+(?:\+\d+)?\s*(?:dias?|horas?|minutos?|rodadas?|turnos?)/i.test(lower)) continue;
+
+    // Procurar dado de dano nesta frase
+    const m = frase.match(/(\d+d\d+(?:\+\d+)?)/);
+    if (m) return m[1];
+  }
+
+  return null;
 }
 
 function extrairElementos(efeitos) {
   const elementosMap = {
     'fogo': 'fogo', 'fire': 'fogo',
     'gelo': 'gelo', 'frio': 'gelo', 'cold': 'gelo', 'frost': 'gelo',
-    'radiante': 'radiante', 'radiant': 'radiante', 'solar': 'radiante', 'luz': 'radiante',
+    'radiante': 'radiante', 'radiant': 'radiante',
     'necrótico': 'necrotico', 'necrotic': 'necrotico', 'necrotico': 'necrotico',
     'trovão': 'trovao', 'thunder': 'trovao', 'trovao': 'trovao',
     'relâmpago': 'relampago', 'lightning': 'relampago', 'elétrico': 'relampago', 'relampago': 'relampago',
-    'força': 'forca', 'force': 'forca', 'forca': 'forca',
     'ácido': 'acido', 'acid': 'acido', 'acido': 'acido',
     'veneno': 'veneno', 'poison': 'veneno',
     'psíquico': 'psiquico', 'psychic': 'psiquico', 'psiquico': 'psiquico',
@@ -66,6 +104,16 @@ function extrairElementos(efeitos) {
     if (lower.includes(keyword)) {
       found.add(normalized);
     }
+  }
+
+  // "solar" só conta como radiante se acompanhado de contexto de dano
+  if (/solar/.test(lower) && /dano|damage|sofre|extra|adicional/i.test(lower)) {
+    found.add('radiante');
+  }
+
+  // "força"/"force" só conta como elemento se em contexto de dano (evita confundir com atributo Força/Strength)
+  if (/dano\s+de\s+for[cç]a|force\s+damage|for[cç]a\s+(?:extra|adicional)/i.test(lower)) {
+    found.add('forca');
   }
 
   return [...found];
@@ -136,7 +184,7 @@ function extrairPropriedades(efeitos, reqText) {
   if (/vantagem/.test(e)) props.push('vantagem');
   if (/desvantagem/.test(e)) props.push('desvantagem');
   if (/resistência|resistencia/.test(e)) props.push('resistencia');
-  if (/\bca\b|classe de armadura/.test(e)) props.push('bonus_ca');
+  if (/\bca\b|\bta\b|classe de armadura|armadura/.test(e)) props.push('bonus_armadura');
   if (/cura|recupera|heal/.test(e)) props.push('cura');
   if (/visão no escuro|darkvision/.test(e)) props.push('visao_noturna');
   if (/voo|voar|fly/.test(e)) props.push('voo');
@@ -250,6 +298,70 @@ function extrairTipo(tipoStr) {
   return [tipoStr.toLowerCase()];
 }
 
+// ========== PESO E PREÇO SUGERIDO ==========
+
+// Peso em kg por categoria/tipo
+const pesosPorCategoria = {
+  'espadasLaminas': 1.5,
+  'machados': 2.5,
+  'lancas': 2.0,
+  'alcance': 1.0,
+  'armaduras': 10.0,
+  'aneis': 0.01,
+  'amuletos': 0.05,
+  'cajadosVarinhas': 1.0,
+  'pocoes': 0.25,
+  'itensDiversos': 0.5,
+  'artefatos': 1.0,
+  'miscMagico': 0.3
+};
+
+// Ajustes de peso por tipo específico
+const pesosPorTipo = {
+  'espada longa': 1.5, 'espada curta': 1.0, 'espada larga': 2.0, 'espada grande': 3.0,
+  'adaga': 0.5, 'cimitarra': 1.5, 'rapieira': 1.0, 'sabre': 1.2,
+  'martelo de guerra': 2.5, 'maça': 2.0, 'machado': 2.5, 'machado grande': 3.5,
+  'lança': 1.5, 'alabarda': 3.0, 'tridente': 2.0, 'glaive': 3.0,
+  'arco longo': 1.0, 'arco curto': 0.5, 'besta': 2.5, 'funda': 0.1,
+  'placas': 30.0, 'cota de malhas': 25.0, 'meia-placa': 18.0, 'couro': 5.0, 'escudo': 3.0,
+  'anel': 0.01, 'amuleto': 0.05, 'colar': 0.05, 'medalhão': 0.08,
+  'cajado': 2.0, 'varinha': 0.1, 'orbe': 1.5,
+  'poção': 0.25, 'elixir': 0.25, 'frasco': 0.25,
+  'capa': 0.5, 'manto': 0.5, 'botas': 1.0, 'luvas': 0.2, 'elmo': 1.5, 'cinturão': 0.5,
+};
+
+// Preço sugerido em PO (peças de ouro) por raridade
+const precosPorRaridade = {
+  'Comum': '50-100 PO',
+  'Incomum': '100-500 PO',
+  'Raro': '500-5.000 PO',
+  'Muito Raro': '5.000-50.000 PO',
+  'Épico': '50.000-100.000 PO',
+  'Epico': '50.000-100.000 PO',
+  'Lendário': '100.000-500.000 PO',
+  'Lendario': '100.000-500.000 PO',
+  'Artefato': 'Inestimável',
+  'Variável': 'Variável',
+  'Variavel': 'Variável',
+};
+
+function extrairPeso(categoriaId, tipos) {
+  // Tentar match por tipo específico primeiro
+  for (const t of tipos) {
+    for (const [key, peso] of Object.entries(pesosPorTipo)) {
+      if (t.includes(key) || key.includes(t)) {
+        return peso;
+      }
+    }
+  }
+  // Fallback: peso por categoria
+  return pesosPorCategoria[categoriaId] || 0.5;
+}
+
+function extrairPrecoSugerido(raridade) {
+  return precosPorRaridade[raridade] || precosPorRaridade['Comum'];
+}
+
 // ========== GERAR SQL ==========
 
 function escapeSQL(str) {
@@ -271,20 +383,20 @@ function arrayToSQL(arr) {
 const rarIdMap = JSON.parse(fs.readFileSync(__dirname + '/raridade_map.json', 'utf8'));
 const catIdMap = JSON.parse(fs.readFileSync(__dirname + '/categoria_map.json', 'utf8'));
 
-// Mapear categoria JSON key -> ID
+// Mapear categoria JSON key -> ID (com acentos, matching seed_raridades_categorias.cjs)
 const catKeyToId = {
-  'espadasLaminas': catIdMap['Espadas e Laminas'],
+  'espadasLaminas': catIdMap['Espadas e Lâminas'],
   'machados': catIdMap['Machados, Martelos e Contundentes'],
-  'lancas': catIdMap['Lancas, Alabardas e Armas de Haste'],
+  'lancas': catIdMap['Lanças, Alabardas e Armas de Haste'],
   'alcance': catIdMap['Armas de Alcance'],
   'armaduras': catIdMap['Armaduras e Escudos'],
-  'aneis': catIdMap['Aneis Magicos'],
+  'aneis': catIdMap['Anéis Mágicos'],
   'amuletos': catIdMap['Amuletos e Colares'],
   'cajadosVarinhas': catIdMap['Cajados, Varinhas e Orbes'],
-  'pocoes': catIdMap['Pocoes e Elixires'],
-  'itensDiversos': catIdMap['Itens de Uso e Ferramentas Magicas'],
-  'artefatos': catIdMap['Artefatos Lendarios'],
-  'miscMagico': catIdMap['Miscelanea Magica']
+  'pocoes': catIdMap['Poções e Elixires'],
+  'itensDiversos': catIdMap['Itens de Uso e Ferramentas Mágicas'],
+  'artefatos': catIdMap['Artefatos Lendários'],
+  'miscMagico': catIdMap['Miscelânea Mágica']
 };
 
 function mapRaridadeId(rarStr) {
@@ -315,6 +427,8 @@ itens.forEach(item => {
   const propriedades = extrairPropriedades(item.efeitos_stats, item.requisitos);
   const cargas = extrairCargas(item.efeitos_stats);
   const usos = extrairUsosPorDia(item.efeitos_stats);
+  const peso = extrairPeso(item.categoria_id, tipo);
+  const precoSugerido = extrairPrecoSugerido(item.raridade);
 
   if (bonus) stats.bonus++;
   if (dano) stats.dano++;
@@ -326,7 +440,7 @@ itens.forEach(item => {
   if (vinculo) stats.vinculo++;
 
   const raridadeId = mapRaridadeId(item.raridade);
-  const categoriaId = catKeyToId[item.categoria_id] || catIdMap['Miscelanea Magica'];
+  const categoriaId = catKeyToId[item.categoria_id] || catIdMap['Miscelânea Mágica'];
 
   const values = [
     item.id,                                          // numero
@@ -343,7 +457,9 @@ itens.forEach(item => {
     categoriaId,                                      // categoria_id
     arrayToSQL(propriedades),                         // propriedades[]
     cargas !== null ? cargas : 'NULL',                // cargas
-    usos !== null ? usos : 'NULL'                     // usos_por_dia
+    usos !== null ? usos : 'NULL',                    // usos_por_dia
+    peso,                                             // peso
+    escapeSQL(precoSugerido)                          // preco_sugerido
   ];
 
   rows.push('  (' + values.join(', ') + ')');
@@ -369,26 +485,18 @@ let sql = `-- ==================================================================
 -- Limpar dados existentes
 DELETE FROM public.equipamentos;
 
--- Remover colunas obsoletas (rodar apenas 1 vez)
--- ALTER TABLE public.equipamentos DROP COLUMN IF EXISTS efeito;
--- ALTER TABLE public.equipamentos DROP COLUMN IF EXISTS restricao;
-
--- Adicionar novas colunas (rodar apenas 1 vez)
--- ALTER TABLE public.equipamentos ADD COLUMN IF NOT EXISTS propriedades TEXT[] DEFAULT '{}';
--- ALTER TABLE public.equipamentos ADD COLUMN IF NOT EXISTS cargas INTEGER;
--- ALTER TABLE public.equipamentos ADD COLUMN IF NOT EXISTS usos_por_dia INTEGER;
-
 -- Inserir todos os equipamentos
 INSERT INTO public.equipamentos (
   numero, nome, descricao, tipo, bonus, dano_base, elemento,
   requisitos, raridade_id, origem_lore, vinculo,
-  categoria_id, propriedades, cargas, usos_por_dia
+  categoria_id, propriedades, cargas, usos_por_dia,
+  peso, preco_sugerido
 ) VALUES
 `;
 
 sql += rows.join(',\n') + ';\n';
 
-fs.writeFileSync('seed_equipamentos.sql', sql);
+fs.writeFileSync(__dirname + '/seed_equipamentos.sql', sql);
 
 console.log('=== SEED GERADO COM SUCESSO ===');
 console.log('Total itens:', itens.length);

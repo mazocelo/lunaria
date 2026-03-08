@@ -81,6 +81,8 @@ model equipamentos {
   propriedades           String[]                 @default([])
   cargas                 Int?
   usos_por_dia           Int?
+  peso                   Float?
+  preco_sugerido         String?
   raridade_rel           raridades?               @relation(fields: [raridade_id], references: [id])
   categoria_rel          categorias_equipamento?  @relation(fields: [categoria_id], references: [id])
   personagem_equipamento personagem_equipamento[]

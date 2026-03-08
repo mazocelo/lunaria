@@ -12,10 +12,10 @@ async function run() {
     { nome: 'Incomum',     cor: 'green',  ordem: 2 },
     { nome: 'Raro',        cor: 'blue',   ordem: 3 },
     { nome: 'Muito Raro',  cor: 'purple', ordem: 4 },
-    { nome: 'Epico',       cor: 'orange', ordem: 5 },
-    { nome: 'Lendario',    cor: 'amber',  ordem: 6 },
+    { nome: 'Épico',       cor: 'orange', ordem: 5 },
+    { nome: 'Lendário',    cor: 'amber',  ordem: 6 },
     { nome: 'Artefato',    cor: 'red',    ordem: 7 },
-    { nome: 'Variavel',    cor: 'slate',  ordem: 8 },
+    { nome: 'Variável',    cor: 'slate',  ordem: 8 },
   ];
 
   for (const r of raridades) {
@@ -33,18 +33,18 @@ async function run() {
   // 2. Seed categorias_equipamento
   console.log('\n2. Inserindo categorias...');
   const categorias = [
-    { nome: 'Espadas e Laminas',                    icone: 'swords',  ordem: 1 },
+    { nome: 'Espadas e Lâminas',                    icone: 'swords',  ordem: 1 },
     { nome: 'Machados, Martelos e Contundentes',    icone: 'hammer',  ordem: 2 },
-    { nome: 'Lancas, Alabardas e Armas de Haste',   icone: 'trident', ordem: 3 },
+    { nome: 'Lanças, Alabardas e Armas de Haste',   icone: 'trident', ordem: 3 },
     { nome: 'Armas de Alcance',                     icone: 'bow',     ordem: 4 },
     { nome: 'Armaduras e Escudos',                  icone: 'shield',  ordem: 5 },
-    { nome: 'Aneis Magicos',                        icone: 'ring',    ordem: 6 },
+    { nome: 'Anéis Mágicos',                        icone: 'ring',    ordem: 6 },
     { nome: 'Amuletos e Colares',                   icone: 'amulet',  ordem: 7 },
     { nome: 'Cajados, Varinhas e Orbes',            icone: 'wand',    ordem: 8 },
-    { nome: 'Pocoes e Elixires',                    icone: 'potion',  ordem: 9 },
-    { nome: 'Itens de Uso e Ferramentas Magicas',   icone: 'tools',   ordem: 10 },
-    { nome: 'Artefatos Lendarios',                  icone: 'crown',   ordem: 11 },
-    { nome: 'Miscelanea Magica',                    icone: 'sparkle', ordem: 12 },
+    { nome: 'Poções e Elixires',                    icone: 'potion',  ordem: 9 },
+    { nome: 'Itens de Uso e Ferramentas Mágicas',   icone: 'tools',   ordem: 10 },
+    { nome: 'Artefatos Lendários',                  icone: 'crown',   ordem: 11 },
+    { nome: 'Miscelânea Mágica',                    icone: 'sparkle', ordem: 12 },
   ];
 
   for (const c of categorias) {

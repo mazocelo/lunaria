@@ -583,6 +583,9 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
     // Marcar snapshot como finalizado no PostgreSQL
     await sessaoSnapshotService.finalizarSnapshot(salaId);
 
+    // Limpeza completa do socketManager (mestresCache, roomUsers, sockets)
+    socketManager.limparSessaoCompleta(salaId);
+
     // Notificar todos os jogadores conectados que a sessão foi resetada
     socketManager.sendToRoom(salaId, 'sessao_resetada', {
       historiaId: historia.id,

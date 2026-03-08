@@ -8,8 +8,8 @@ const Personagem = (prisma) => {
   const PersonagemMethods = {
     // Buscar personagem com relacionamentos
     async findByIdWithRelations(id) {
-      return await model.findUnique({
-        where: { id },
+      return await model.findFirst({
+        where: { id, deleted_at: null },
         include: {
           classes: true,
           racas: true,
@@ -87,7 +87,7 @@ const Personagem = (prisma) => {
 
     // Contar personagens
     async countPersonagens(where = {}) {
-      return await prisma.personagens.count({ where });
+      return await prisma.personagens.count({ where: { ...where, deleted_at: null } });
     },
 
     // Métodos para gerenciar vínculos com vantagens

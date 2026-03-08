@@ -10,6 +10,7 @@ const Historia = (prisma) => {
     async findByTema(tema) {
       return await prisma.historias.findMany({
         where: {
+          deleted_at: null,
           temas: {
             has: tema
           }
@@ -21,7 +22,7 @@ const Historia = (prisma) => {
     // Buscar histórias por status
     async findByStatus(status) {
       return await prisma.historias.findMany({
-        where: { status },
+        where: { status, deleted_at: null },
         orderBy: { nome: 'asc' }
       });
     },
@@ -29,23 +30,23 @@ const Historia = (prisma) => {
     // Buscar histórias ativas
     async findAtivas() {
       return await prisma.historias.findMany({
-        where: { status: 'ativa' },
+        where: { status: 'ativa', deleted_at: null },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar histórias por participante (personagem)
     async findByParticipante(personagemId) {
-      // Buscar através da tabela de relacionamento historias_personagens
       const historiasPersonagens = await prisma.historias_personagens.findMany({
         where: {
-          personagem_id: personagemId
+          personagem_id: personagemId,
+          historias: { deleted_at: null }
         },
         include: {
           historias: true
         }
       });
-      
+
       return historiasPersonagens.map(hp => hp.historias);
     },
 
@@ -53,6 +54,7 @@ const Historia = (prisma) => {
     async findByMaxParticipantes(max) {
       return await prisma.historias.findMany({
         where: {
+          deleted_at: null,
           maximo_de_participantes: {
             lte: max
           }
@@ -65,6 +67,7 @@ const Historia = (prisma) => {
     async search(termo) {
       return await prisma.historias.findMany({
         where: {
+          deleted_at: null,
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } },
@@ -116,14 +119,15 @@ const Historia = (prisma) => {
     // Listar todas as histórias
     async findAll() {
       return await prisma.historias.findMany({
+        where: { deleted_at: null },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por ID (inclui mestre se vinculado)
     async findById(id) {
-      return await prisma.historias.findUnique({
-        where: { id },
+      return await prisma.historias.findFirst({
+        where: { id, deleted_at: null },
         include: { mestres: true }
       });
     },
@@ -197,7 +201,7 @@ const Historia = (prisma) => {
     // Buscar histórias com vagas disponíveis
     async findWithVagas() {
       const historias = await prisma.historias.findMany({
-        where: { status: 'ativa' },
+        where: { status: 'ativa', deleted_at: null },
         include: {
           _count: { select: { historias_personagens: true } }
         },
@@ -213,7 +217,7 @@ const Historia = (prisma) => {
     // Buscar histórias por usuário (criadas por ele)
     async findByUsuario(usuario_id) {
       return await prisma.historias.findMany({
-        where: { id_usuario: parseInt(usuario_id) },
+        where: { id_usuario: parseInt(usuario_id), deleted_at: null },
         orderBy: { criada_em: 'desc' }
       });
     },
@@ -235,8 +239,10 @@ const Historia = (prisma) => {
       const historiasComPersonagens = await prisma.historias_personagens.findMany({
         where: {
           personagens: {
-            id_usuario: parseInt(usuario_id)
-          }
+            id_usuario: parseInt(usuario_id),
+            deleted_at: null
+          },
+          historias: { deleted_at: null }
         },
         include: {
           historias: true,

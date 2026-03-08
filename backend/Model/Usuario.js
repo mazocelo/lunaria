@@ -18,12 +18,12 @@ export default function Usuario(prisma) {
      */
     async findAll(options = {}) {
       return await prisma.usuarios.findMany({
+        where: { deleted_at: null, ...options.where },
         select: {
           id: true,
           nome: true,
           email: true,
           role: true,
-          // Excluir senha por segurança
         },
         ...options,
       });
@@ -33,8 +33,8 @@ export default function Usuario(prisma) {
      * Buscar usuário por ID
      */
     async findById(id) {
-      return await prisma.usuarios.findUnique({
-        where: { id },
+      return await prisma.usuarios.findFirst({
+        where: { id, deleted_at: null },
         select: {
           id: true,
           nome: true,
@@ -65,8 +65,8 @@ export default function Usuario(prisma) {
      * Buscar usuário por email (para login)
      */
     async findByEmail(email) {
-      return await prisma.usuarios.findUnique({
-        where: { email },
+      return await prisma.usuarios.findFirst({
+        where: { email, deleted_at: null },
       });
     },
 
@@ -74,8 +74,8 @@ export default function Usuario(prisma) {
      * Buscar usuário por email sem senha
      */
     async findByEmailPublic(email) {
-      return await prisma.usuarios.findUnique({
-        where: { email },
+      return await prisma.usuarios.findFirst({
+        where: { email, deleted_at: null },
         select: {
           id: true,
           nome: true,
@@ -124,11 +124,11 @@ export default function Usuario(prisma) {
      * Verificar se email já existe
      */
     async emailExists(email, excludeId = null) {
-      const where = { email };
+      const where = { email, deleted_at: null };
       if (excludeId) {
         where.NOT = { id: excludeId };
       }
-      
+
       const count = await prisma.usuarios.count({ where });
       return count > 0;
     },
@@ -137,7 +137,7 @@ export default function Usuario(prisma) {
      * Contar total de usuários
      */
     async count() {
-      return await prisma.usuarios.count();
+      return await prisma.usuarios.count({ where: { deleted_at: null } });
     },
   };
 } 

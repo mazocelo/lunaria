@@ -7,18 +7,19 @@ const Mestre = (prisma) => {
   const MestreMethods = {
     async findAll() {
       return await model.findMany({
+        where: { deleted_at: null },
         orderBy: { nome: 'asc' }
       });
     },
 
     async findById(id) {
-      return await model.findUnique({
-        where: { id }
+      return await model.findFirst({
+        where: { id, deleted_at: null }
       });
     },
 
     async findByUsuario(id_usuario, { limit, offset = 0 } = {}) {
-      const where = { id_usuario: parseInt(id_usuario) };
+      const where = { id_usuario: parseInt(id_usuario), deleted_at: null };
       const query = { where, orderBy: { criado_em: 'desc' } };
       if (limit !== undefined) {
         query.take = limit;

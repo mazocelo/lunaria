@@ -406,6 +406,7 @@ const EtapaJogoRPG = ({
         socketStore.on('ordem_definida', handleOrdemDefinida);
         socketStore.on('dice_roll', handleDiceRoll);
         socketStore.on('mestre_solicita_dados', handleMestreSolicitaDados);
+        socketStore.on('solicitacao_dados', handleMestreSolicitaDados);
         socketStore.on('level_up', handleLevelUp);
         socketStore.on('acao_mestre', handleAcaoMestre);
 
@@ -439,6 +440,7 @@ const EtapaJogoRPG = ({
           socketStore.off('ordem_definida', handleOrdemDefinida);
           socketStore.off('dice_roll', handleDiceRoll);
           socketStore.off('mestre_solicita_dados', handleMestreSolicitaDados);
+          socketStore.off('solicitacao_dados', handleMestreSolicitaDados);
           socketStore.off('level_up', handleLevelUp);
           socketStore.off('acao_mestre', handleAcaoMestre);
           socketStore.off('combate_finalizado', handleCombateFinalizado);

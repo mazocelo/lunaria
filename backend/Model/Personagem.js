@@ -19,59 +19,6 @@ const Personagem = (prisma) => {
       });
     },
 
-    // Buscar personagens por nível
-    async findByNivel(nivel) {
-      return await model.findMany({
-        where: { nivel },
-        include: {
-          classes: true,
-          racas: true
-        },
-        orderBy: { nome: 'asc' }
-      });
-    },
-
-    // Buscar personagens por classe
-    async findByClasse(classe_id) {
-      return await model.findMany({
-        where: { classe_id },
-        include: {
-          classes: true,
-          racas: true
-        },
-        orderBy: { nome: 'asc' }
-      });
-    },
-
-    // Buscar personagens por raça
-    async findByRaca(raca_id) {
-      return await model.findMany({
-        where: { raca_id },
-        include: {
-          classes: true,
-          racas: true
-        },
-        orderBy: { nome: 'asc' }
-      });
-    },
-
-    // Buscar personagens por nome
-    async search(termo) {
-      return await model.findMany({
-        where: {
-          OR: [
-            { nome: { contains: termo, mode: 'insensitive' } },
-            { background: { contains: termo, mode: 'insensitive' } }
-          ]
-        },
-        include: {
-          classes: true,
-          racas: true
-        },
-        orderBy: { nome: 'asc' }
-      });
-    },
-
     // Criar personagem
     async createPersonagem(data) {
       return await model.create({

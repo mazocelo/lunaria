@@ -263,60 +263,41 @@ class PersonagemController {
 
       console.log('✅ Personagem criado:', novoPersonagem.id);
 
-      // Criar vínculos com histórias se fornecidas
-      if (historias && Array.isArray(historias) && historias.length > 0) {
-        console.log('🔗 Criando vínculos com histórias:', historias);
-        for (const historia_id of historias) {
-          try {
-            // Verificar se a história existe
-            const historia = await db.Historia.findById(parseInt(historia_id));
+      // Criar vínculos em transação (atômico)
+      await db.prisma.$transaction(async (tx) => {
+        // Histórias
+        if (historias && Array.isArray(historias) && historias.length > 0) {
+          for (const historia_id of historias) {
+            const historia = await tx.historias.findUnique({ where: { id: parseInt(historia_id) } });
             if (historia) {
-              await db.Personagem.vincularHistoria(novoPersonagem.id, historia_id, 'jogador');
-              console.log(`✅ Vínculo criado com história ${historia.nome}`);
-            } else {
-              console.warn(`⚠️ História ${historia_id} não encontrada`);
+              await tx.historias_personagens.create({
+                data: { personagem_id: novoPersonagem.id, historia_id: parseInt(historia_id), papel: 'jogador' }
+              });
             }
-          } catch (error) {
-            console.warn(`⚠️ Erro ao vincular história ${historia_id}:`, error.message);
           }
         }
-      }
 
-      // Criar vínculos com vantagens se fornecidas
-      if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
-        console.log('🔗 Criando vínculos com vantagens:', vantagens);
-        for (const vantagem_id of vantagens) {
-          try {
-            await db.Personagem.adicionarVantagem(novoPersonagem.id, vantagem_id);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao adicionar vantagem ${vantagem_id}:`, error.message);
-          }
+        // Vantagens
+        if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
+          await tx.personagem_vantagem.createMany({
+            data: vantagens.map(vid => ({ personagem_id: novoPersonagem.id, desvantagem_id: parseInt(vid) }))
+          });
         }
-      }
 
-      // Criar vínculos com desvantagens se fornecidas
-      if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
-        console.log('🔗 Criando vínculos com desvantagens:', desvantagens);
-        for (const desvantagem_id of desvantagens) {
-          try {
-            await db.Personagem.adicionarDesvantagem(novoPersonagem.id, desvantagem_id);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao adicionar desvantagem ${desvantagem_id}:`, error.message);
-          }
+        // Desvantagens
+        if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
+          await tx.personagem_desvantagem.createMany({
+            data: desvantagens.map(did => ({ personagem_id: novoPersonagem.id, habilidade_id: parseInt(did) }))
+          });
         }
-      }
 
-      // Criar vínculos com equipamentos se fornecidos
-      if (equipamentos && Array.isArray(equipamentos) && equipamentos.length > 0) {
-        console.log('🔗 Criando vínculos com equipamentos:', equipamentos);
-        for (const equipamento_id of equipamentos) {
-          try {
-            await db.Personagem.adicionarEquipamento(novoPersonagem.id, equipamento_id);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao adicionar equipamento ${equipamento_id}:`, error.message);
-          }
+        // Equipamentos
+        if (equipamentos && Array.isArray(equipamentos) && equipamentos.length > 0) {
+          await tx.personagem_equipamento.createMany({
+            data: equipamentos.map(eid => ({ personagem_id: novoPersonagem.id, equipamento_id: parseInt(eid) }))
+          });
         }
-      }
+      });
 
       // Buscar o personagem recém-criado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(novoPersonagem.id);

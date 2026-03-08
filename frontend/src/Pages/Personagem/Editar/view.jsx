@@ -1,5 +1,489 @@
-import React from 'react';
-import PageStub from '../../../components/PageStub';
+import React, { useEffect, useState } from 'react';
+import InputSimples from '../../../components/form/inputSimples';
+import Button from '../../../components/form/button';
+import Selector from '../../../components/form/Selector';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useViewModel } from '../../../shared/hooks/useViewModel';
+import { editarPersonagemViewModel } from '../../../viewmodels/Personagens/EditarPersonagemViewModel';
+import { useTheme } from '../../../contexts/theme.jsx';
 
-export default () => <PageStub title="Editar Personagem" />;
+const PONTOS_MAXIMO = 75;
 
+const raridadeColors = (raridade, isLight) => {
+  const map = {
+    'Comum': isLight ? 'bg-gray-100 text-gray-800' : 'bg-gray-500/20 text-gray-400',
+    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
+    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
+    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
+    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
+    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
+  };
+  return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
+};
+
+const atributosConfig = [
+  { key: 'forca', label: 'Forca', icon: '💪' },
+  { key: 'inteligencia', label: 'Inteligencia', icon: '🧠' },
+  { key: 'constituicao', label: 'Constituicao', icon: '🛡️' },
+  { key: 'agilidade', label: 'Agilidade', icon: '⚡' },
+  { key: 'destreza', label: 'Destreza', icon: '🎯' },
+  { key: 'carisma', label: 'Carisma', icon: '✨' },
+];
+
+const EditarPersonagemView = () => {
+  const vm = useViewModel(editarPersonagemViewModel);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  useEffect(() => {
+    if (id) {
+      vm.loadPersonagem(id);
+      vm.loadVantagens();
+      vm.loadHistorias();
+      vm.loadEquipamentos();
+      vm.clearError();
+    }
+  }, [id]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await vm.atualizarPersonagem(() => navigate('/personagens'));
+  };
+
+  if (vm.loading && !vm.nome) {
+    return (
+      <div className="animate-fade-in max-w-4xl mx-auto flex flex-col items-center justify-center py-20">
+        <div className="w-8 h-8 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin mb-4" />
+        <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          Carregando personagem...
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-fade-in max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span className="text-3xl">✏️</span>
+        </div>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
+          Editar Personagem
+        </h1>
+        <p className="text-slate-400 font-modern">
+          Atualize a ficha do seu personagem
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Error */}
+        {vm.error && (
+          <div className="card-rpg p-4 bg-red-500/20 border border-red-500/30">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-sm">!</span>
+              </div>
+              <div>
+                <div className="font-semibold text-red-400 font-modern">Erro</div>
+                <p className="text-red-300 text-sm font-modern mt-1">{vm.error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section 1: Basic Info */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <span className="text-sm">👤</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Informacoes Basicas
+            </h2>
+          </div>
+
+          <InputSimples
+            label="Nome do Personagem"
+            name="nome"
+            onChange={e => vm.setNome(e.target.value)}
+            value={vm.nome}
+            placeholder="Digite o nome do seu heroi..."
+            required
+          />
+
+          {vm.loadingOpcoes ? (
+            <div className="flex items-center space-x-2 py-4">
+              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <span className="text-slate-400 font-modern text-sm">Carregando opcoes...</span>
+            </div>
+          ) : (
+            <>
+              <Selector
+                label="Raca"
+                options={(vm.racasDisponiveis || []).map(r => ({ value: String(r.id), label: r.nome }))}
+                selected={vm.raca}
+                onChange={(value) => vm.setRaca(value)}
+                type="single"
+              />
+
+              <Selector
+                label="Classe"
+                options={(vm.classesDisponiveis || []).map(c => ({ value: String(c.id), label: c.nome }))}
+                selected={vm.classe}
+                onChange={(value) => vm.setClasse(value)}
+                type="single"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Section 2: Attributes */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+                <span className="text-sm">📊</span>
+              </div>
+              <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                Atributos
+              </h2>
+            </div>
+            <div className={`font-modern text-sm font-semibold ${
+              vm.pontosDistribuidos > PONTOS_MAXIMO
+                ? 'text-red-400'
+                : vm.pontosDistribuidos === PONTOS_MAXIMO
+                  ? 'text-green-400'
+                  : 'text-cyan-400'
+            }`}>
+              {vm.pontosDistribuidos || 0} / {PONTOS_MAXIMO} pontos
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {atributosConfig.map(attr => (
+              <InputSimples
+                key={attr.key}
+                label={`${attr.icon} ${attr.label}`}
+                type="number"
+                name={attr.key}
+                value={vm.atributos?.[attr.key] ?? ''}
+                onChange={e => vm.setAtributo(attr.key, e.target.value)}
+                min={1}
+                max={20}
+                placeholder="10"
+              />
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 font-modern">
+            Distribua pontos entre 1 e 20 para cada atributo (maximo {PONTOS_MAXIMO} pontos no total)
+          </p>
+        </div>
+
+        {/* Section 3: Vantagens & Desvantagens */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+              <span className="text-sm">⭐</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Vantagens & Desvantagens
+            </h2>
+          </div>
+
+          {vm.loadingVantagens ? (
+            <div className="flex items-center space-x-2 py-4">
+              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <span className="text-slate-400 font-modern text-sm">Carregando vantagens...</span>
+            </div>
+          ) : (
+            <Selector
+              label="Selecione Vantagens e Desvantagens"
+              options={(vm.vantagensDisponiveis || []).map(v => ({
+                value: String(v.id),
+                label: `${v.nome} (${v.custo > 0 ? '+' : ''}${v.custo})`
+              }))}
+              selected={vm.vantagens || []}
+              onChange={(selected) => vm.setVantagens(Array.isArray(selected) ? selected : [])}
+              type="multiple"
+              max={5}
+            />
+          )}
+          <p className="text-xs text-slate-400 font-modern">
+            Selecione ate 5 vantagens e desvantagens para personalizar seu personagem
+          </p>
+        </div>
+
+        {/* Section 4: Equipamentos */}
+        <EquipamentoSelector vm={vm} isLight={isLight} />
+
+        {/* Section 5: Background */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <span className="text-sm">📜</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Background
+            </h2>
+          </div>
+
+          <div className="flex space-x-4 mb-4">
+            <button
+              type="button"
+              onClick={() => vm.setBackgroundTipo('guiado')}
+              className={`px-4 py-2 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer ${
+                vm.backgroundTipo === 'guiado'
+                  ? 'gradient-primary text-white'
+                  : isLight
+                    ? 'glass-light text-slate-600 hover:bg-slate-100/50'
+                    : 'glass text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              Gerar com IA
+            </button>
+            <button
+              type="button"
+              onClick={() => vm.setBackgroundTipo('personalizado')}
+              className={`px-4 py-2 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer ${
+                vm.backgroundTipo === 'personalizado'
+                  ? 'gradient-primary text-white'
+                  : isLight
+                    ? 'glass-light text-slate-600 hover:bg-slate-100/50'
+                    : 'glass text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              Personalizado
+            </button>
+          </div>
+
+          {vm.backgroundTipo === 'guiado' ? (
+            <div className="space-y-3">
+              <Selector
+                label="Tema do Background (a IA vai gerar baseado na ficha)"
+                options={(vm.backgroundsGuiados || []).map(bg => ({ value: bg, label: bg }))}
+                selected={vm.background}
+                onChange={(value) => vm.setBackground(value)}
+                type="single"
+              />
+              <p className="text-xs text-slate-400 font-modern">
+                A IA vai criar um background usando seus atributos, classe, raca, vantagens e equipamentos
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col mb-4">
+              <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-200' : 'text-white'} drop-shadow`}>
+                Descreva o Background
+              </label>
+              <textarea
+                value={vm.background}
+                onChange={e => vm.setBackground(e.target.value)}
+                placeholder="Conte a historia de origem do seu personagem..."
+                rows={4}
+                className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all resize-none
+                  ${isLight ? 'bg-white/20 border-slate-400 text-slate-100' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
+                  placeholder:text-slate-400`}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Section 6: Historias */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+              <span className="text-sm">📚</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Historias
+            </h2>
+          </div>
+
+          {vm.loadingHistorias ? (
+            <div className="flex items-center space-x-2 py-4">
+              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <span className="text-slate-400 font-modern text-sm">Carregando historias...</span>
+            </div>
+          ) : (vm.historiasDisponiveis || []).length > 0 ? (
+            <Selector
+              label="Vincular a Historias (opcional)"
+              options={vm.historiasDisponiveis.map(h => ({ value: String(h.id), label: h.nome }))}
+              selected={vm.historias || []}
+              onChange={(selected) => vm.setHistorias(Array.isArray(selected) ? selected : [])}
+              type="multiple"
+              max={3}
+            />
+          ) : (
+            <p className={`${isLight ? 'text-slate-500' : 'text-slate-400'} font-modern text-sm italic`}>
+              Nenhuma historia disponivel.
+            </p>
+          )}
+          <p className="text-xs text-slate-400 font-modern">
+            Vincule seu personagem a ate 3 historias existentes
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex space-x-4 pt-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/personagens')}
+            className="flex-1"
+            type="button"
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={vm.loading}
+            className="flex-1"
+          >
+            {vm.loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Salvando...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <span>💾</span>
+                <span>Salvar Alteracoes</span>
+              </div>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const EquipamentoSelector = ({ vm, isLight }) => {
+  const [busca, setBusca] = useState('');
+  const equipamentosDisponiveis = vm.equipamentosDisponiveis || [];
+  const selecionados = vm.equipamentos || [];
+  const selecionadosSet = new Set(selecionados.map(String));
+
+  const filtrados = equipamentosDisponiveis.filter(eq => {
+    if (busca) {
+      const termo = busca.toLowerCase();
+      return eq.nome?.toLowerCase().includes(termo) || eq.descricao?.toLowerCase().includes(termo);
+    }
+    return true;
+  });
+
+  const toggleEquipamento = (eqId) => {
+    const id = String(eqId);
+    if (selecionadosSet.has(id)) {
+      vm.setEquipamentos(selecionados.filter(s => String(s) !== id));
+    } else {
+      vm.setEquipamentos([...selecionados, id]);
+    }
+  };
+
+  const classeNome = (vm.classesDisponiveis || []).find(c => String(c.id) === String(vm.classe))?.nome?.toLowerCase();
+  const racaNome = (vm.racasDisponiveis || []).find(r => String(r.id) === String(vm.raca))?.nome?.toLowerCase();
+
+  return (
+    <div className="card-rpg space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+            <span className="text-sm">🗡️</span>
+          </div>
+          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            Equipamentos
+          </h2>
+        </div>
+        <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          {selecionados.length} selecionado{selecionados.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {vm.loadingEquipamentos ? (
+        <div className="flex items-center space-x-2 py-4">
+          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <span className="text-slate-400 font-modern text-sm">Carregando equipamentos...</span>
+        </div>
+      ) : (
+        <>
+          <input
+            type="text"
+            placeholder="Buscar equipamento..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className={`w-full px-3 py-2 rounded-lg text-sm font-modern border ${
+              isLight
+                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
+                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
+            }`}
+          />
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {filtrados.map(eq => {
+              const raridade = eq.raridade_rel?.nome || 'Comum';
+              const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
+              const selected = selecionadosSet.has(String(eq.id));
+              const reqClasse = eq.requisitos?.classe;
+              const reqRaca = eq.requisitos?.raca;
+              const classeOk = !reqClasse || (classeNome && reqClasse.some(c => c.toLowerCase() === classeNome));
+              const racaOk = !reqRaca || (racaNome && reqRaca.some(r => r.toLowerCase() === racaNome));
+              const compativel = classeOk && racaOk;
+
+              return (
+                <div
+                  key={eq.id}
+                  onClick={() => compativel && toggleEquipamento(eq.id)}
+                  className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${
+                    selected
+                      ? isLight ? 'bg-purple-100 border border-purple-300' : 'bg-purple-500/20 border border-purple-500/30'
+                      : !compativel
+                        ? isLight ? 'bg-slate-50 opacity-50' : 'bg-slate-800/30 opacity-50'
+                        : isLight ? 'bg-white border border-slate-200 hover:border-purple-300' : 'bg-slate-800/50 border border-slate-700 hover:border-purple-500/30'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className={`font-modern text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                        {eq.nome}
+                      </span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${raridadeColors(raridade, isLight)}`}>
+                        {raridade}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {tipo && <span className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{tipo}</span>}
+                      {eq.dano_base && <span className="text-[10px] font-modern text-red-400">Dano: {eq.dano_base}</span>}
+                    </div>
+                    {!compativel && (
+                      <span className="text-[10px] font-modern text-yellow-400">
+                        Incompativel com {!classeOk ? 'classe' : 'raca'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
+                    selected
+                      ? 'bg-purple-500 border-purple-500 text-white'
+                      : isLight ? 'border-slate-300' : 'border-slate-600'
+                  }`}>
+                    {selected && <span className="text-xs">✓</span>}
+                  </div>
+                </div>
+              );
+            })}
+            {filtrados.length === 0 && (
+              <p className={`text-sm font-modern italic py-2 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                Nenhum equipamento encontrado.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+      <p className="text-xs text-slate-400 font-modern">
+        Selecione os equipamentos do personagem
+      </p>
+    </div>
+  );
+};
+
+export default EditarPersonagemView;

@@ -46,7 +46,6 @@ export class EditarPersonagemViewModel {
       vantagens: [], // Deve ser array, não string
       equipamentos: [],
       nivel: 1,
-      hp: 100,
       loading: false,
       error: null,
       personagemId: null,
@@ -188,10 +187,6 @@ export class EditarPersonagemViewModel {
     this.setState({ nivel: Number(nivel) });
   };
 
-  setHP = (hp) => {
-    this.setState({ hp: Number(hp) });
-  };
-
   setAtributo = (atributo, valor) => {
     this.setState({
       atributos: { ...this.state.atributos, [atributo]: valor }
@@ -312,10 +307,7 @@ export class EditarPersonagemViewModel {
     try {
       // Garantir que as opções estejam carregadas antes de mapear
       await this.loadOpcoes();
-      
-      // Aguardar um pouco para garantir que o estado foi atualizado
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const personagem = await this.personagemService.getById(id);
       
       // Obter estado atual após carregar opções
@@ -407,7 +399,6 @@ export class EditarPersonagemViewModel {
         vantagens: vantagensMapeadas,
         equipamentos: equipamentosMapeados,
         nivel: personagem.nivel || 1,
-        hp: personagem.hp || 100,
         loading: false
       });
     } catch (error) {
@@ -424,7 +415,7 @@ export class EditarPersonagemViewModel {
       return;
     }
     
-    // historia_id não é validado pois não pode ser alterado após criação
+    // historias são gerenciadas via junction table e podem ser alteradas
     
     if (!this.state.personagemId) {
       this.setState({ error: 'ID do personagem não encontrado' });
@@ -476,7 +467,6 @@ export class EditarPersonagemViewModel {
           ? this.state.equipamentos.map(id => Number(id))
           : [],
         nivel: this.state.nivel
-        // hp não existe no schema do Prisma
       };
       
       // Enviar dados para atualização

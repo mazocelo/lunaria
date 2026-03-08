@@ -24,7 +24,7 @@ export class Personagem {
     this.background = data.background || '';
     this.vantagens = data.vantagens || [];
     this.desvantagens = data.desvantagens || [];
-    this.equipamentos = data.equipamentos || '';
+    this.equipamentos = data.equipamentos || [];
     this.xp_atual = data.xp_atual || 0;
     this.xp_proximo_nivel = data.xp_proximo_nivel || 100;
     this.pontos_atributo_pendentes = data.pontos_atributo_pendentes || 0;

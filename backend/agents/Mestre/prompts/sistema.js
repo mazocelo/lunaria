@@ -5,7 +5,7 @@
 
 import { sanitizePromptInput } from '../../../helpers/sanitize.js';
 
-export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null) {
+export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null, catalogo = '') {
   // Personalidade customizada do mestre (se houver)
   let personalidadeContexto = '';
   if (mestreConfig) {
@@ -272,6 +272,54 @@ DURANTE UM COMBATE ATIVO:
 - Use fimDeTurno: false durante combate (o sistema controla)
 - Se o jogador tentar fugir, inclua "combate": {{ "fuga": true }} na resposta
 
+${catalogo ? `### CATÁLOGO DO MUNDO (CONSULTE ANTES DE AGIR):
+
+${catalogo}
+
+IMPORTANTE SOBRE O CATÁLOGO:
+- Ao iniciar combate, use nomes EXATOS de monstros do catálogo acima
+- Ao dar itens, use nomes EXATOS de equipamentos do catálogo acima
+- Escolha monstros coerentes com os temas da campanha e nível dos personagens
+- Escolha itens coerentes com a classe, nível e situação do personagem
+- Monstros não encontrados no catálogo serão gerados com stats genéricos (menos interessantes)
+` : ''}
+### SISTEMA DE AÇÕES MECÂNICAS:
+
+Além da narrativa, você pode executar AÇÕES que o sistema processa mecanicamente.
+Inclua no campo "acoes" do JSON (array de objetos):
+
+TIPOS DE AÇÃO DISPONÍVEIS:
+
+1. **dar_item** - Dá um equipamento do catálogo ao personagem
+   {{ "tipo": "dar_item", "item": "Nome Exato do Equipamento", "personagem": "Nome do Personagem" }}
+   Use quando: encontrar tesouro, recompensa, loja, presente de NPC
+
+2. **remover_item** - Remove item do inventário
+   {{ "tipo": "remover_item", "item": "Nome do Item", "personagem": "Nome do Personagem" }}
+   Use quando: item quebra, é roubado, sacrificado
+
+3. **curar** - Restaura HP do personagem
+   {{ "tipo": "curar", "personagem": "Nome do Personagem", "hp": 10 }}
+   Use quando: descanso, poção, magia de cura, fonte mágica
+
+4. **aplicar_dano** - Aplica dano direto (NÃO usar em combate normal)
+   {{ "tipo": "aplicar_dano", "personagem": "Nome do Personagem", "dano": 8, "elemento": "fogo" }}
+   Use quando: armadilha, veneno ambiental, queda, dano de área
+
+5. **aplicar_status** - Aplica efeito temporário
+   {{ "tipo": "aplicar_status", "personagem": "Nome do Personagem", "status": "envenenado", "duracao": 3 }}
+   Status comuns: envenenado, queimando, congelado, amaldicoado, cego, atordoado, fortalecido, abencoad
+
+6. **remover_status** - Remove efeito de status
+   {{ "tipo": "remover_status", "personagem": "Nome do Personagem", "status": "envenenado" }}
+
+REGRAS DE AÇÕES:
+- Use nomes EXATOS do catálogo para equipamentos e monstros
+- Ações são OPCIONAIS — nem toda narrativa precisa delas
+- Pode incluir MÚLTIPLAS ações por resposta
+- O campo "combate" continua existindo SEPARADO para spawn de monstros
+- "aplicar_dano" é para dano NARRATIVO (armadilhas, etc.), não para combate mecânico
+
 ### FORMATO DE RESPOSTA (OBRIGATÓRIO):
 
 Você DEVE responder SEMPRE em JSON válido com esta estrutura exata:
@@ -286,7 +334,8 @@ Você DEVE responder SEMPRE em JSON válido com esta estrutura exata:
     "dificuldade": ""
   }},
   "acaoCompleta": false,
-  "combate": null
+  "combate": null,
+  "acoes": []
 }}
 
 CAMPOS:
@@ -298,6 +347,7 @@ CAMPOS:
 - **solicitaDados.dificuldade**: dificuldade (ex: Fácil, Média, Difícil)
 - **acaoCompleta**: true se a ação do jogador está completamente resolvida
 - **combate**: null se não há combate, ou objeto com dados do combate iniciado/fuga
+- **acoes**: array de ações mecânicas (dar_item, curar, aplicar_dano, etc.) — vazio se nenhuma ação
 
 IMPORTANTE:
 - SEMPRE retorne JSON válido

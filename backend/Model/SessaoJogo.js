@@ -112,6 +112,15 @@ const SessaoJogo = (prisma) => {
     },
 
     /**
+     * Buscar sessao por ID numerico
+     */
+    async findById(id) {
+      return await model.findUnique({
+        where: { id: parseInt(id) }
+      });
+    },
+
+    /**
      * Hard delete de sessao
      */
     async delete(salaId) {

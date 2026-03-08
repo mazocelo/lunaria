@@ -104,6 +104,48 @@ router.get('/salvas', async (req, res, next) => {
   }
 });
 
+// Listar sessoes de uma historia (para historico)
+router.get('/historia/:historiaId', async (req, res, next) => {
+  try {
+    const { historiaId } = req.params;
+    const db = (await import('../Model/index.js')).default;
+    const sessoes = await db.SessaoJogo.findByHistoriaId(parseInt(historiaId));
+    res.json({
+      success: true,
+      data: sessoes.map(s => ({
+        id: s.id,
+        sala_id: s.sala_id,
+        historia_id: s.historia_id,
+        status: s.status,
+        rodada_atual: s.rodada_atual,
+        fase: s.fase,
+        jogadores: s.jogadores,
+        totalMensagens: Array.isArray(s.mensagens) ? s.mensagens.length : 0,
+        iniciada_em: s.iniciada_em,
+        finalizada_em: s.finalizada_em,
+        ultimo_snapshot: s.ultimo_snapshot
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Buscar historico completo de uma sessao (com mensagens)
+router.get('/historico/:sessaoId', async (req, res, next) => {
+  try {
+    const { sessaoId } = req.params;
+    const db = (await import('../Model/index.js')).default;
+    const sessao = await db.SessaoJogo.findById(sessaoId);
+    if (!sessao) {
+      return res.status(404).json({ success: false, error: 'Sessão não encontrada' });
+    }
+    res.json({ success: true, data: sessao });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/:historiaId/iniciar', sessaoController.iniciarSessao);
 
 /**

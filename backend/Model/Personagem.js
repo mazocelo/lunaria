@@ -64,6 +64,7 @@ const Personagem = (prisma) => {
     // Listar todos os personagens
     async findAllPersonagens() {
       return await model.findMany({
+        where: { deleted_at: null },
         include: {
           classes: true,
           racas: true
@@ -74,8 +75,8 @@ const Personagem = (prisma) => {
 
     // Buscar por ID
     async findPersonagemById(id) {
-      return await model.findUnique({
-        where: { id }
+      return await model.findFirst({
+        where: { id, deleted_at: null }
       });
     },
 

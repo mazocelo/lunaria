@@ -1856,6 +1856,18 @@ class SocketManager {
         await this.finalizarCombate(roomId, 'fuga');
       }
 
+      // ✅ PROCESSAR AÇÕES MECÂNICAS DO MESTRE (dar_item, curar, dano, status)
+      if (resposta.acoes && Array.isArray(resposta.acoes) && resposta.acoes.length > 0) {
+        try {
+          const { processarAcoes } = await import('../helpers/acoesProcessor.js');
+          await processarAcoes(resposta.acoes, sessao, roomId, this.io);
+          // Salvar sessão atualizada (ações podem modificar HP, inventário, etc.)
+          await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        } catch (acoesError) {
+          console.error('⚠️ Erro ao processar ações do Mestre:', acoesError.message);
+        }
+      }
+
       // ✅ DETECTAR SE MESTRE SOLICITOU ROLAGEM DE DADOS (VIA JSON)
       const solicitouDados = resposta.solicitaDados?.solicita || false;
 
@@ -2242,6 +2254,16 @@ class SocketManager {
       estadoJogo.turnoIniciado = true;
       sessao.estadoJogo = estadoJogo;
 
+      // Processar ações mecânicas do Mestre (dar_item, curar, etc.)
+      if (mensagemInicial.acoes && Array.isArray(mensagemInicial.acoes) && mensagemInicial.acoes.length > 0) {
+        try {
+          const { processarAcoes } = await import('../helpers/acoesProcessor.js');
+          await processarAcoes(mensagemInicial.acoes, sessao, roomId, this.io);
+        } catch (acoesError) {
+          console.error('⚠️ Erro ao processar ações no inicio de turno:', acoesError.message);
+        }
+      }
+
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       this.log('SUCCESS', 'INICIAR_TURNO_SESSAO_ATUALIZADA', socket.id, userId, {
@@ -2321,9 +2343,9 @@ class SocketManager {
 
       // Obter mestre com cache
       const mestre = await this.obterMestre(
-        roomId, 
-        sessao.historiaTemas || [], 
-        sessao.jogadoresConectados || []
+        roomId,
+        sessao.historiaTemas || [],
+        sessao
       );
 
       this.log('INFO', 'SOLICITAR_DADOS_GERANDO_NARRATIVA', socket.id, socket.userId, {
@@ -3046,7 +3068,7 @@ class SocketManager {
         const mestre = await this.obterMestre(
           roomId,
           sessao.historiaTemas || [],
-          sessao.jogadoresConectados || []
+          sessao
         );
 
         const narrativa = await mestre.narrarEntreRodadas({
@@ -3084,6 +3106,24 @@ class SocketManager {
           } catch (error) {
             console.error(`❌ Erro ao gerar resumo:`, error);
           }
+        }
+
+        // Processar ações mecânicas do Mestre entre rodadas (dar_item, curar, etc.)
+        if (narrativa.acoes && Array.isArray(narrativa.acoes) && narrativa.acoes.length > 0) {
+          try {
+            const { processarAcoes } = await import('../helpers/acoesProcessor.js');
+            const sessaoParaAcoes = await this.obterSessaoHistoria(roomId);
+            await processarAcoes(narrativa.acoes, sessaoParaAcoes, roomId, this.io);
+            await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaAcoes);
+          } catch (acoesError) {
+            console.error('⚠️ Erro ao processar ações entre rodadas:', acoesError.message);
+          }
+        }
+
+        // Detectar combate entre rodadas
+        if (narrativa.combate?.iniciado) {
+          const sessaoParaCombate = await this.obterSessaoHistoria(roomId);
+          await this.iniciarCombate(roomId, narrativa.combate, sessaoParaCombate, null);
         }
 
         // Salvar narrativa do Mestre no Redis
@@ -3745,7 +3785,16 @@ class SocketManager {
     
     console.log(`🎭 Criando Mestre com ${personagensFormatados.length} personagens formatados`);
     
-    const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null);
+    // Construir catálogo de monstros/equipamentos/elementos para o Mestre
+    let catalogo = '';
+    try {
+      const { buildCatalogo } = await import('../agents/Mestre/catalogo/catalogoMestre.js');
+      catalogo = await buildCatalogo();
+    } catch (error) {
+      console.warn('⚠️ Erro ao construir catálogo para Mestre:', error.message);
+    }
+
+    const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null, catalogo);
 
     // Limitar tamanho do cache (LRU eviction)
     const MAX_CACHE_SIZE = 30;

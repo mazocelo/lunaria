@@ -26,7 +26,7 @@ dotenv.config();
  * Gerencia toda a interação com o modelo de IA e o contexto da aventura
  */
 export class MestreAgent {
-  constructor(temas = [], personagens = [], configOverride = null) {
+  constructor(temas = [], personagens = [], configOverride = null, catalogo = '') {
     // Garantir que temas sejam sempre strings (nomes)
     // Validação de segurança caso alguém passe IDs ou objetos por engano
     this.temas = extrairNomesTemas(temas);
@@ -38,6 +38,7 @@ export class MestreAgent {
 
     this.personagens = personagens.map(p => extrairInfoPersonagem(p));
     this.configOverride = configOverride;
+    this.catalogo = catalogo;
     this.historico = [];
     this.model = null;
     this.chain = null;
@@ -67,7 +68,7 @@ export class MestreAgent {
       });
 
       // Criar prompt template (com personalidade custom se houver)
-      const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride);
+      const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride, this.catalogo);
       const prompt = ChatPromptTemplate.fromMessages([
         ['system', promptSistema],
         new MessagesPlaceholder('chat_history'),
@@ -152,6 +153,8 @@ export class MestreAgent {
         fimDeTurno: respostaJSON.fimDeTurno || false,
         solicitaDados: respostaJSON.solicitaDados || { solicita: false },
         acaoCompleta: respostaJSON.acaoCompleta || false,
+        combate: respostaJSON.combate || null,
+        acoes: respostaJSON.acoes || [],
         jogador,
         personagem,
         acao,
@@ -354,6 +357,8 @@ Mensagem do Jogador:
         fimDeTurno: respostaJSON.fimDeTurno || false,
         solicitaDados: respostaJSON.solicitaDados || { solicita: false },
         acaoCompleta: respostaJSON.acaoCompleta || false,
+        combate: respostaJSON.combate || null,
+        acoes: respostaJSON.acoes || [],
         deveFinalizarTurno,
         rodada,
         turno,
@@ -447,6 +452,8 @@ Narre a transição e apresente o novo desafio:`;
 
       return {
         narrativa: respostaJSON.narrativa,
+        combate: respostaJSON.combate || null,
+        acoes: respostaJSON.acoes || [],
         rodadaAnterior,
         proximaRodada,
         novoDesafio: respostaJSON.narrativa,
@@ -561,9 +568,9 @@ Seja conciso (máximo 100 palavras).`;
 /**
  * Factory function para criar instância do Mestre
  */
-export async function criarMestreRPG(temas = [], personagens = [], configOverride = null) {
+export async function criarMestreRPG(temas = [], personagens = [], configOverride = null, catalogo = '') {
   try {
-    const mestre = new MestreAgent(temas, personagens, configOverride);
+    const mestre = new MestreAgent(temas, personagens, configOverride, catalogo);
     return mestre;
   } catch (error) {
     console.error('❌ Erro ao criar mestre de RPG:', error);

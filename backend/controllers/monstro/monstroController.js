@@ -13,25 +13,33 @@ class MonstroController {
    */
   listar = async (req, res, next) => {
     try {
-      const { tipo, raridade_id, nivel, tema, limit = 50, offset = 0 } = req.query;
-      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
-      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+      const { tipo, raridade_id, nivel, tema, limit, offset } = req.query;
 
-      const result = await db.Monstro.findPaginated({
-        limit: parsedLimit,
-        offset: parsedOffset,
-        tipo, raridade_id, nivel, tema
-      });
-
-      res.status(200).json({
-        success: true,
-        data: result.data,
-        pagination: {
-          total: result.total,
+      if (limit !== undefined) {
+        const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+        const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+        const result = await db.Monstro.findPaginated({
           limit: parsedLimit,
           offset: parsedOffset,
-          hasMore: parsedOffset + result.data.length < result.total
-        }
+          tipo, raridade_id, nivel, tema
+        });
+        return res.status(200).json({
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            limit: parsedLimit,
+            offset: parsedOffset,
+            hasMore: parsedOffset + result.data.length < result.total
+          }
+        });
+      }
+
+      const data = await db.Monstro.findAll();
+      res.status(200).json({
+        success: true,
+        data,
+        pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
 
     } catch (error) {

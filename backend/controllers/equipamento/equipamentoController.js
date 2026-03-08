@@ -3,21 +3,30 @@ import db from '../../Model/index.js';
 class EquipamentoController {
   async listarEquipamentos(req, res) {
     try {
-      const { limit = 50, offset = 0 } = req.query;
-      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
-      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+      const { limit, offset } = req.query;
 
-      const result = await db.Equipamento.findPaginated({ limit: parsedLimit, offset: parsedOffset });
+      // Se limit foi enviado, paginar; senao retorna tudo
+      if (limit !== undefined) {
+        const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+        const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+        const result = await db.Equipamento.findPaginated({ limit: parsedLimit, offset: parsedOffset });
+        return res.json({
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            limit: parsedLimit,
+            offset: parsedOffset,
+            hasMore: parsedOffset + result.data.length < result.total
+          }
+        });
+      }
 
+      const data = await db.Equipamento.findAll();
       res.json({
         success: true,
-        data: result.data,
-        pagination: {
-          total: result.total,
-          limit: parsedLimit,
-          offset: parsedOffset,
-          hasMore: parsedOffset + result.data.length < result.total
-        }
+        data,
+        pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
     } catch (error) {
       console.error('Erro ao listar equipamentos:', error);

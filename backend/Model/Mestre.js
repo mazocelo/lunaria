@@ -17,15 +17,15 @@ const Mestre = (prisma) => {
       });
     },
 
-    async findByUsuario(id_usuario, { limit = 50, offset = 0 } = {}) {
+    async findByUsuario(id_usuario, { limit, offset = 0 } = {}) {
       const where = { id_usuario: parseInt(id_usuario) };
+      const query = { where, orderBy: { criado_em: 'desc' } };
+      if (limit !== undefined) {
+        query.take = limit;
+        query.skip = offset;
+      }
       const [mestres, total] = await Promise.all([
-        model.findMany({
-          where,
-          orderBy: { criado_em: 'desc' },
-          take: limit,
-          skip: offset
-        }),
+        model.findMany(query),
         model.count({ where })
       ]);
       return { data: mestres, total };

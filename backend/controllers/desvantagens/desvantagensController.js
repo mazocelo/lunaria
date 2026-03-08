@@ -89,28 +89,36 @@ class DesvantagemController {
    */
   async listarDesvantagens(req, res, next) {
     try {
-      const { tipo, elemento, nivel, usar, search, limit = 50, offset = 0 } = req.query;
-      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
-      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+      const { tipo, elemento, nivel, usar, search, limit, offset } = req.query;
 
-      const result = await db.Desvantagem.findPaginated({
-        limit: parsedLimit,
-        offset: parsedOffset,
-        tipo, elemento,
-        nivel: nivel ? parseInt(nivel) : undefined,
-        usar: usar ? parseInt(usar) : undefined,
-        search
-      });
-
-      res.status(200).json({
-        success: true,
-        data: result.data,
-        pagination: {
-          total: result.total,
+      if (limit !== undefined) {
+        const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+        const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+        const result = await db.Desvantagem.findPaginated({
           limit: parsedLimit,
           offset: parsedOffset,
-          hasMore: parsedOffset + result.data.length < result.total
-        }
+          tipo, elemento,
+          nivel: nivel ? parseInt(nivel) : undefined,
+          usar: usar ? parseInt(usar) : undefined,
+          search
+        });
+        return res.status(200).json({
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            limit: parsedLimit,
+            offset: parsedOffset,
+            hasMore: parsedOffset + result.data.length < result.total
+          }
+        });
+      }
+
+      const data = await db.Desvantagem.findAll();
+      res.status(200).json({
+        success: true,
+        data,
+        pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
       
     } catch (error) {

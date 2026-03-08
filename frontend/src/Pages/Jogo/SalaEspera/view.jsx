@@ -92,6 +92,9 @@ export const SalaEsperaView = () => {
 
   // 🎮 LISTENER PARA INÍCIO DA AVENTURA
   useEffect(() => {
+    let cleanupFn = null;
+    let unmounted = false;
+
     const setupListener = async () => {
       try {
         const { getSocketStoreAPI } = await import('../../../store/index.js');
@@ -115,12 +118,16 @@ export const SalaEsperaView = () => {
           }
         };
 
+        // Se desmontou enquanto setup era async, limpar imediatamente
+        if (unmounted) {
+          return;
+        }
+
         // Adicionar listeners
         socketStore.on('aventura_iniciada', handleAventuraIniciada);
         socketStore.on('room_joined', handleRoomJoined);
 
-        // Cleanup
-        return () => {
+        cleanupFn = () => {
           socketStore.off('aventura_iniciada', handleAventuraIniciada);
           socketStore.off('room_joined', handleRoomJoined);
         };
@@ -129,9 +136,12 @@ export const SalaEsperaView = () => {
       }
     };
 
-    let cleanupFn = null;
-    setupListener().then(fn => { cleanupFn = fn; });
-    return () => { if (cleanupFn) cleanupFn(); };
+    setupListener();
+
+    return () => {
+      unmounted = true;
+      if (cleanupFn) cleanupFn();
+    };
   }, [historiaAtual, id, navigate]);
 
   // 🎯 HANDLERS

@@ -131,7 +131,7 @@ function AppContent() {
             )}
 
             {/* Main content with scroll */}
-            <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 z-10">
+            <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0">
               <ScrollToTop />
               <div className="animate-fade-in">
                 <AppRoutes />

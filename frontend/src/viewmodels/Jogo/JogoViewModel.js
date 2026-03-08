@@ -892,6 +892,12 @@ export class JogoViewModel {
    * Reseta o estado do socket
    */
   resetSocketState() {
+    // Limpar subscription do socket store para evitar listeners órfãos
+    if (this.socketStoreUnsubscribe) {
+      this.socketStoreUnsubscribe();
+      this.socketStoreUnsubscribe = null;
+    }
+
     this.isConnected = false;
     this.socketError = null;
     this.latency = 0;

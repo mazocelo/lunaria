@@ -340,6 +340,8 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (socketStore.error) {
       setError(`Erro de conexão: ${socketStore.error}`);
+    } else {
+      setError(null);
     }
   }, [socketStore.error, setError]);
 

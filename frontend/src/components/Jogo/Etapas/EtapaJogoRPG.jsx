@@ -1001,7 +1001,7 @@ const EtapaJogoRPG = ({
 
             <ChatArea
               mensagens={mensagens}
-              usuariosDigitando={isTyping || isTypingLocal}
+              usuariosDigitando={[]}
               mensagensRef={null} // No longer needed
             />
 

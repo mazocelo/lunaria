@@ -72,8 +72,9 @@ export const SalaEsperaView = () => {
       if (fromInvite && historiaAtual?.id) {
         // Conectar como convidado
         jogoViewModel.conectarComoConvidado(historiaAtual.id, personagemSelecionado.id, user)
-          .catch(() => {
+          .catch((err) => {
             tentouConectarRef.current = false;
+            jogoViewModel.setError(err?.message || 'Erro ao conectar como convidado');
           });
       } else {
         // Conectar como anfitrião
@@ -81,8 +82,9 @@ export const SalaEsperaView = () => {
           userId: user?.id,
           username: user?.nome || user?.name,
           email: user?.email
-        }).catch(() => {
+        }).catch((err) => {
           tentouConectarRef.current = false;
+          jogoViewModel.setError(err?.message || 'Erro ao conectar ao servidor');
         });
       }
     }
@@ -127,7 +129,9 @@ export const SalaEsperaView = () => {
       }
     };
 
-    setupListener();
+    let cleanupFn = null;
+    setupListener().then(fn => { cleanupFn = fn; });
+    return () => { if (cleanupFn) cleanupFn(); };
   }, [historiaAtual, id, navigate]);
 
   // 🎯 HANDLERS

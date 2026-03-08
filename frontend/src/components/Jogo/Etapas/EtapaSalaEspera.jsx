@@ -54,6 +54,8 @@ const EtapaSalaEspera = ({
   useEffect(() => {
     if (!socketConnected) return;
 
+    let cleanupFn = null;
+
     const setupListeners = async () => {
       try {
         const { getSocketStoreAPI } = await import('../../../store/index.js');
@@ -74,7 +76,7 @@ const EtapaSalaEspera = ({
             status: data.status || 'selecionando',
             isOwner: isOwner  // Usar valor calculado baseado no USUÁRIO
           };
-          
+
           jogoViewModel.adicionarParticipante(novoParticipante);
         };
 
@@ -112,8 +114,8 @@ const EtapaSalaEspera = ({
         socketStore.on('user_left', handleUserLeft);
         socketStore.on('room_joined', handleRoomJoined);
 
-        // Cleanup
-        return () => {
+        // Guardar cleanup para o useEffect
+        cleanupFn = () => {
           socketStore.off('user_joined', handleUserJoined);
           socketStore.off('user_left', handleUserLeft);
           socketStore.off('room_joined', handleRoomJoined);
@@ -123,7 +125,11 @@ const EtapaSalaEspera = ({
       }
     };
 
-    setupListeners();
+    setupListeners().then(() => {});
+
+    return () => {
+      if (cleanupFn) cleanupFn();
+    };
   }, [socketConnected]);
 
   // 📋 HELPERS: Formatar dados via ViewModel

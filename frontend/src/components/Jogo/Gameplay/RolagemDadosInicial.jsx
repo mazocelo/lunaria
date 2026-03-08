@@ -1,19 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DICE_ANIMATION } from '../../../constants/game';
 
 /**
  * Componente para rolagem de dados inicial (d20) para definir ordem de jogadores
  */
-const RolagemDadosInicial = ({ 
-  jogadores = [], 
-  resultados = {}, 
-  ordemDefinida = false, 
+const RolagemDadosInicial = ({
+  jogadores = [],
+  resultados = {},
+  ordemDefinida = false,
   ordemJogadores = [],
   usuarioAtual,
-  onRolarDado 
+  onRolarDado
 }) => {
   const [animando, setAnimando] = useState(false);
   const [dadoLocal, setDadoLocal] = useState(null);
+  const intervaloRef = useRef(null);
+
+  // Cleanup do intervalo no unmount
+  useEffect(() => {
+    return () => {
+      if (intervaloRef.current) clearInterval(intervaloRef.current);
+    };
+  }, []);
 
   // Verificar se usuário já rolou
   const jaRolou = resultados[usuarioAtual?.id] !== undefined;
@@ -28,22 +36,18 @@ const RolagemDadosInicial = ({
     // Animação do dado
     setAnimando(true);
     let contador = 0;
-    const intervalo = setInterval(() => {
+    intervaloRef.current = setInterval(() => {
       setDadoLocal(Math.floor(Math.random() * 20) + 1);
       contador++;
       if (contador >= DICE_ANIMATION.TOTAL_FRAMES) {
-        clearInterval(intervalo);
+        clearInterval(intervaloRef.current);
+        intervaloRef.current = null;
         setAnimando(false);
         setDadoLocal(null);
         onRolarDado();
       }
     }, DICE_ANIMATION.FRAME_INTERVAL);
   };
-
-  if (jaRolou) {
-    // Esconder o componente se o jogador já rolou o dado
-    return null;
-  }
 
   if (ordemDefinida) {
     // Mostrar ordem final
@@ -63,7 +67,7 @@ const RolagemDadosInicial = ({
             <div 
               key={jogador.userId}
               className={`flex items-center justify-between p-4 rounded-lg border ${
-                jogador.userId === usuarioAtual?.userId
+                jogador.userId === usuarioAtual?.id
                   ? 'bg-purple-500/20 border-purple-400'
                   : 'bg-black/20 border-purple-500/20'
               }`}
@@ -104,32 +108,40 @@ const RolagemDadosInicial = ({
         </p>
       </div>
 
-      {/* Botão de rolar dado */}
+      {/* Botão de rolar dado ou mensagem de espera */}
       <div className="text-center mb-6">
-        <button
-          onClick={handleRolarDado}
-          disabled={animando}
-          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold text-lg shadow-lg transform transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-        >
-          {animando ? (
-            <span className="flex items-center space-x-2">
-              <span className="text-3xl animate-bounce">🎲</span>
-              <span>Rolando... {dadoLocal}</span>
-            </span>
-          ) : (
-            <span className="flex items-center space-x-2">
-              <span className="text-2xl">🎲</span>
-              <span>Rolar D20</span>
-            </span>
-          )}
-        </button>
+        {jaRolou ? (
+          <div className="p-4 bg-cyan-500/20 border border-cyan-400/30 rounded-lg">
+            <p className="text-cyan-300">
+              ✅ Você rolou <span className="font-bold text-cyan-200">{resultados[usuarioAtual.id]?.valor}</span>! Aguardando outros jogadores...
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={handleRolarDado}
+            disabled={animando}
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold text-lg shadow-lg transform transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {animando ? (
+              <span className="flex items-center space-x-2">
+                <span className="text-3xl animate-bounce">🎲</span>
+                <span>Rolando... {dadoLocal}</span>
+              </span>
+            ) : (
+              <span className="flex items-center space-x-2">
+                <span className="text-2xl">🎲</span>
+                <span>Rolar D20</span>
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Lista de resultados */}
       <div className="space-y-2">
         {jogadores.map((jogador) => {
           const resultado = resultados[jogador.userId];
-          const ehUsuarioAtual = jogador.userId === usuarioAtual?.userId;
+          const ehUsuarioAtual = jogador.userId === usuarioAtual?.id;
 
           return (
             <div
@@ -168,14 +180,6 @@ const RolagemDadosInicial = ({
         })}
       </div>
 
-      {/* Mensagem para usuário que já rolou */}
-      {jaRolou && (
-        <div className="mt-4 p-3 bg-cyan-500/20 border border-cyan-400/30 rounded-lg text-center">
-          <p className="text-cyan-300">
-            ✅ Você rolou <span className="font-bold">{resultados[usuarioAtual.userId].valor}</span>! Aguarde os outros jogadores.
-          </p>
-        </div>
-      )}
     </div>
   );
 };

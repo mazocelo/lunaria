@@ -411,7 +411,35 @@ export const createSocketActions = (set, get) => ({
     // Listener de erro de turno
     socket.on('erro_turno', (data) => {
       set({ erroMensagem: data.message });
+      if (window.showGameNotification) {
+        window.showGameNotification(data.message || 'Não é seu turno!', 'warning');
+      }
       get().log('Erro ao enviar mensagem fora do turno', { message: data.message });
+    });
+
+    // Listener de server_message (ex: jogador derrotado tentando agir)
+    socket.on('server_message', (data) => {
+      if (window.showGameNotification) {
+        window.showGameNotification(data.mensagem || data.message || 'Mensagem do servidor', 'warning');
+      }
+      get().log('Server message', { mensagem: data.mensagem });
+    });
+
+    // Listener de force_disconnect (outra aba abriu o jogo)
+    socket.on('force_disconnect', (data) => {
+      set({ isConnected: false });
+      if (window.showGameNotification) {
+        window.showGameNotification(data.reason || 'Conexão encerrada: você abriu o jogo em outra aba.', 'error');
+      }
+      get().log('Force disconnect', { reason: data.reason });
+    });
+
+    // Listener de solicitacao_dados (Mestre manual solicita dados)
+    socket.on('solicitacao_dados', (data) => {
+      if (window.showGameNotification) {
+        window.showGameNotification(`🎲 O Mestre solicita rolagem de dados!`, 'info');
+      }
+      get().log('Solicitação de dados manual', { data });
     });
 
     // Listener de mensagem roleplay

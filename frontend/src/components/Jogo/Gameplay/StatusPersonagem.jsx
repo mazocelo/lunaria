@@ -37,8 +37,8 @@ const StatusPersonagem = ({
 
   // Determinar HP/HP_max a exibir: combate live ou DB estatico
   const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
-  const hpDisplay = combateStats ? `${combateStats.hp_atual}/${combateStats.hp_max}` : (personagemSelecionado.hp || '???');
-  const hpBaixo = combateStats ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
+  const hpDisplay = combateStats ? `${combateStats.hp_atual}/${combateStats.hp_max}` : (personagemSelecionado.hp != null ? String(personagemSelecionado.hp) : '???');
+  const hpBaixo = combateStats && combateStats.hp_max > 0 ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
   const derrotado = combateStats?.status === 'derrotado';
 
   // Layout compacto para painel lateral
@@ -51,7 +51,7 @@ const StatusPersonagem = ({
             combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
             'bg-gradient-to-r from-cyan-500 to-purple-500'
           }`}>
-            {derrotado ? '💀' : combateAtivo ? '⚔️' : '⚔️'}
+            {derrotado ? '💀' : combateAtivo ? '⚔️' : '🛡️'}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-fantasy font-bold text-white truncate">

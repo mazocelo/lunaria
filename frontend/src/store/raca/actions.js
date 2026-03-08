@@ -30,16 +30,16 @@ export const createRacaActions = (set, get) => ({
       // Importar o service dinamicamente
       
       // Buscar raças do backend (carregar todas de uma vez)
-      const { data } = await racaService.getAll();
-      // A API retorna { success, data, total, offset, limit }
-      const racasData = data;
-      const total = data.total || racasData.length;
-      const offset = data.offset || 0;
-      const limit = data.limit || 50;
-      
+      const response = await racaService.getAll();
+      // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
+      const racasData = response.data || [];
+      const total = response.pagination?.total ?? racasData.length;
+      const offset = response.pagination?.offset ?? 0;
+      const limit = response.pagination?.limit ?? 50;
+
       // Processar e cachear os dados
       get().processarRacas(racasData, total, offset, limit);
-      
+
       return racasData;
     } catch (error) {
       console.error('❌ RacaStore: Erro ao carregar raças:', error);

@@ -29,11 +29,13 @@ export const createTemaActions = (set, get) => ({
       // Importar o service dinamicamente
 
       // Buscar temas do backend
-      const { data } = await temaService.getAll();
+      const response = await temaService.getAll();
+      // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
+      const temasData = response.data || [];
       // Processar e cachear os dados
-      get().processarTemas(data);
+      get().processarTemas(temasData);
 
-      return data;
+      return temasData;
     } catch (error) {
       console.error('❌ TemaStore: Erro ao carregar temas:', error);
       set({

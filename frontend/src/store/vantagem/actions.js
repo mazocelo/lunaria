@@ -32,14 +32,14 @@ export const createVantagemActions = (set, get) => ({
      
       
       // Buscar vantagens do backend (carregar todas de uma vez)
-      const { data } = await vantagemService.getAll();
-      
-      // A API retorna { success, data, total, offset, limit }
-      const vantagensData = data;
-      const total = data.total || vantagensData.length;
-      const offset = data.offset || 0;
-      const limit = data.limit || 50;
-      
+      const response = await vantagemService.getAll();
+
+      // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
+      const vantagensData = response.data || [];
+      const total = response.pagination?.total ?? vantagensData.length;
+      const offset = response.pagination?.offset ?? 0;
+      const limit = response.pagination?.limit ?? 50;
+
       // Processar e cachear os dados
       get().processarVantagens(vantagensData, total, offset, limit);
       

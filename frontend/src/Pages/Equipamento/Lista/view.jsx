@@ -151,7 +151,7 @@ const EquipamentoListaView = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="Total de Equipamentos" value={vm.equipamentos?.length || 0} icon={Sword} variant="primary" />
+        <StatCard title="Total de Equipamentos" value={vm.totalCount || vm.equipamentos?.length || 0} icon={Sword} variant="primary" />
         <StatCard title="Raros" value={countByRaridade('Raro')} icon={Gem} variant="secondary" />
         <StatCard title="Lendarios" value={countByRaridade('Lendario')} icon={Trophy} variant="accent" />
         <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon={Flame} variant="primary" />
@@ -189,8 +189,13 @@ const EquipamentoListaView = () => {
         actions={actions}
         loading={vm.loading}
         pagination={true}
-        initialPageSize={10}
-        pageSizeOptions={[5, 10, 25, 50]}
+        totalCount={vm.totalCount}
+        currentPage={vm.currentPage}
+        pageSize={vm.pageSize}
+        onPageChange={vm.handlePageChange}
+        onPageSizeChange={vm.handlePageSizeChange}
+        initialPageSize={25}
+        pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Nenhum equipamento encontrado"
         emptyIcon="⚔️"
         hoverable={true}

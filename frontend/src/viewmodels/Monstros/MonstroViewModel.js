@@ -8,7 +8,10 @@ class MonstroViewModel {
       loading: false,
       error: null,
       searchTerm: '',
-      filteredMonstros: []
+      filteredMonstros: [],
+      currentPage: 1,
+      pageSize: 25,
+      totalCount: 0,
     };
 
     this.subscribers = [];
@@ -37,16 +40,24 @@ class MonstroViewModel {
   }
 
   // ===== CARREGAMENTO DE DADOS =====
-  loadMonstros = async () => {
+  loadMonstros = async (page, size) => {
+    const currentPage = page ?? this.state.currentPage;
+    const pageSize = size ?? this.state.pageSize;
+    const offset = (currentPage - 1) * pageSize;
+
     this.setState({ loading: true, error: null });
 
     try {
-      const response = await monstroService.getAll();
+      const response = await monstroService.getAll({ limit: pageSize, offset });
       const monstros = response.data || [];
+      const totalCount = response.pagination?.total ?? monstros.length;
 
       this.setState({
         monstros,
         filteredMonstros: monstros,
+        totalCount,
+        currentPage,
+        pageSize,
         loading: false
       });
     } catch (error) {
@@ -55,6 +66,14 @@ class MonstroViewModel {
         loading: false
       });
     }
+  };
+
+  handlePageChange = (newPage) => {
+    this.loadMonstros(newPage);
+  };
+
+  handlePageSizeChange = (newSize) => {
+    this.loadMonstros(1, newSize);
   };
 
   // ===== FILTROS E BUSCA =====

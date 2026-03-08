@@ -51,7 +51,8 @@ const TabelaList = ({
   showPageSizeSelector = true,
   showPaginationInfo = true,
   selectable = false,
-  bulkActions = []
+  bulkActions = [],
+  totalCount,
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -67,17 +68,21 @@ const TabelaList = ({
   // Estado de seleção para bulk actions
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  // Modo server-side: quando totalCount é fornecido, o servidor já paginou os dados
+  const isServerSide = totalCount != null;
+
   // Calcular dados paginados
   const paginatedData = useMemo(() => {
     if (!pagination) return data;
-    
+    if (isServerSide) return data; // servidor já paginou
+
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return data.slice(startIndex, endIndex);
-  }, [data, currentPage, pageSize, pagination]);
+  }, [data, currentPage, pageSize, pagination, isServerSide]);
 
   // Calcular informações de paginação
-  const totalItems = data.length;
+  const totalItems = isServerSide ? totalCount : data.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
@@ -225,11 +230,11 @@ const TabelaList = ({
           ) : (
             header
           )}
-          {data.length > 0 && (
+          {(isServerSide ? totalCount : data.length) > 0 && (
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
               <span className="text-sm text-slate-400 font-modern">
-                {data.length} {data.length === 1 ? 'item encontrado' : 'itens encontrados'}
+                {isServerSide ? totalCount : data.length} {(isServerSide ? totalCount : data.length) === 1 ? 'item encontrado' : 'itens encontrados'}
               </span>
             </div>
           )}

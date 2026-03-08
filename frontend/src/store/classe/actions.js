@@ -30,17 +30,17 @@ export const createClasseActions = (set, get) => ({
       // Importar o service dinamicamente
       
       // Buscar classes do backend (carregar todas de uma vez)
-      const { data } = await classeService.getAll();
-      
-      // A API retorna { success, data, total, offset, limit }
-      const classesData = data;
-      const total = data.total || classesData.length;
-      const offset = data.offset || 0;
-      const limit = data.limit || 50;
-      
+      const response = await classeService.getAll();
+
+      // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
+      const classesData = response.data || [];
+      const total = response.pagination?.total ?? classesData.length;
+      const offset = response.pagination?.offset ?? 0;
+      const limit = response.pagination?.limit ?? 50;
+
       // Processar e cachear os dados
       get().processarClasses(classesData, total, offset, limit);
-      
+
       return classesData;
     } catch (error) {
       console.error('❌ ClasseStore: Erro ao carregar classes:', error);

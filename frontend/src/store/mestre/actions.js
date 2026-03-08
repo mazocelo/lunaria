@@ -11,11 +11,11 @@ export const createMestreActions = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const { data } = await mestreService.getAll();
-      const mestresData = Array.isArray(data) ? data : [];
-      const total = data.total || mestresData.length;
-      const offset = data.offset || 0;
-      const limit = data.limit || 50;
+      const response = await mestreService.getAll();
+      const mestresData = Array.isArray(response.data) ? response.data : [];
+      const total = response.pagination?.total ?? mestresData.length;
+      const offset = response.pagination?.offset ?? 0;
+      const limit = response.pagination?.limit ?? 50;
 
       get().processarMestres(mestresData, total, offset, limit);
       return mestresData;

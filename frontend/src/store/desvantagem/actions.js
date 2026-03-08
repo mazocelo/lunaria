@@ -31,13 +31,13 @@ export const createDesvantagemActions = (set, get) => ({
       // Importar o service dinamicamente
 
       // Buscar desvantagens do backend (carregar todas de uma vez)
-      const { data } = await desvantagemService.getAll();
+      const response = await desvantagemService.getAll();
 
-      // A API retorna { success, data, total, offset, limit }
-      const desvantagensData = data;
-      const total = data.total || desvantagensData.length;
-      const offset = data.offset || 0;
-      const limit = data.limit || 50;
+      // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
+      const desvantagensData = response.data || [];
+      const total = response.pagination?.total ?? desvantagensData.length;
+      const offset = response.pagination?.offset ?? 0;
+      const limit = response.pagination?.limit ?? 50;
 
       // Processar e cachear os dados
       get().processarDesvantagens(desvantagensData, total, offset, limit);

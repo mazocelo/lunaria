@@ -11,7 +11,10 @@ class EquipamentoViewModel {
       searchTerm: '',
       filteredEquipamentos: [],
       categoriaFilter: '',
-      raridadeFilter: ''
+      raridadeFilter: '',
+      currentPage: 1,
+      pageSize: 25,
+      totalCount: 0,
     };
 
     this.subscribers = [];
@@ -39,13 +42,22 @@ class EquipamentoViewModel {
   }
 
   // ===== CARREGAMENTO DE DADOS =====
-  loadEquipamentos = async () => {
+  loadEquipamentos = async (page, size) => {
+    const currentPage = page ?? this.state.currentPage;
+    const pageSize = size ?? this.state.pageSize;
+    const offset = (currentPage - 1) * pageSize;
+
     this.setState({ loading: true, error: null });
     try {
-      const response = await this.service.getAll();
+      const response = await this.service.getAll({ limit: pageSize, offset });
       const equipamentos = response.data || [];
+      const totalCount = response.pagination?.total ?? equipamentos.length;
+
       this.setState({
         equipamentos,
+        totalCount,
+        currentPage,
+        pageSize,
         loading: false
       });
       this.applyFilters();
@@ -55,6 +67,14 @@ class EquipamentoViewModel {
         loading: false
       });
     }
+  };
+
+  handlePageChange = (newPage) => {
+    this.loadEquipamentos(newPage);
+  };
+
+  handlePageSizeChange = (newSize) => {
+    this.loadEquipamentos(1, newSize);
   };
 
   // ===== FILTROS =====
@@ -122,6 +142,9 @@ class EquipamentoViewModel {
   get searchTerm() { return this.state.searchTerm; }
   get categoriaFilter() { return this.state.categoriaFilter; }
   get raridadeFilter() { return this.state.raridadeFilter; }
+  get currentPage() { return this.state.currentPage; }
+  get pageSize() { return this.state.pageSize; }
+  get totalCount() { return this.state.totalCount; }
 }
 
 // Singleton instance

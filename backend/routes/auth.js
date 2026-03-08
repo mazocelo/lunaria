@@ -278,7 +278,7 @@ router.post('/renovar', authLimiter, asyncHandler(authController.renovarToken));
  *       401:
  *         description: Token inválido
  */
-router.post('/logout', authenticateToken, asyncHandler(authController.logout));
+router.post('/logout', asyncHandler(authController.logout));
 
 // Forgot password & reset password
 router.post('/forgot-password', authLimiter, asyncHandler(authController.forgotPassword));

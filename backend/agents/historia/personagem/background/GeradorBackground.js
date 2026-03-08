@@ -25,12 +25,26 @@ async function criarGeradorBackground(temas = []) {
              * @param {string} params.classe - Classe do personagem
              * @param {string} params.raca - Raça do personagem
              * @param {string} params.tema - Tema da história
-             * @param {string} params.sugestao_background - Sugestão de background (ex: nobre, carpinteiro, aventureiro)
+             * @param {string} params.sugestao_background - Sugestão de background
              * @param {Array} params.vantagens - Lista de vantagens do personagem
              * @param {Array} params.desvantagens - Lista de desvantagens do personagem
+             * @param {number} params.nivel - Nível do personagem
+             * @param {number} params.forca - Força
+             * @param {number} params.inteligencia - Inteligência
+             * @param {number} params.carisma - Carisma
+             * @param {number} params.destreza - Destreza
+             * @param {number} params.constituicao - Constituição
+             * @param {number} params.agilidade - Agilidade
+             * @param {string} params.equipamentos - Equipamentos formatados
              * @returns {Object} Resultado da geração
              */
-            gerarBackground: async ({ nome, classe, raca, tema, sugestao_background = '', vantagens = [], desvantagens = [] }) => {
+            gerarBackground: async ({
+                nome, classe, raca, tema, sugestao_background = '',
+                vantagens = [], desvantagens = [],
+                nivel = 1, forca = 10, inteligencia = 10, carisma = 10,
+                destreza = 10, constituicao = 10, agilidade = 10,
+                equipamentos = 'Nenhum'
+            }) => {
                 try {
                     const response = await chain.invoke({
                         nome,
@@ -39,18 +53,26 @@ async function criarGeradorBackground(temas = []) {
                         tema,
                         sugestao_background,
                         vantagens,
-                        desvantagens
+                        desvantagens,
+                        nivel: String(nivel),
+                        forca: String(forca),
+                        inteligencia: String(inteligencia),
+                        carisma: String(carisma),
+                        destreza: String(destreza),
+                        constituicao: String(constituicao),
+                        agilidade: String(agilidade),
+                        equipamentos
                     });
 
                     console.log('👤 Background gerado para personagem:', nome);
 
                     return {
                         background: response.content.trim(),
-                        nome: nome,
-                        classe: classe,
-                        raca: raca,
-                        tema: tema,
-                        sugestao_background: sugestao_background,
+                        nome,
+                        classe,
+                        raca,
+                        tema,
+                        sugestao_background,
                         timestamp: new Date().toISOString(),
                         temasUtilizados: temas
                     };
@@ -66,4 +88,4 @@ async function criarGeradorBackground(temas = []) {
     }
 }
 
-export default criarGeradorBackground; 
+export default criarGeradorBackground;

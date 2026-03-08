@@ -1,4 +1,10 @@
 import db from '../Model/index.js';
+import {
+  parsearBonusEntidade,
+  agregarBonusEquipamentos,
+  calcularAtributosEfetivos,
+  encontrarMelhorArma
+} from './bonusHelper.js';
 
 /**
  * Busca informações completas dos personagens a partir de IDs
@@ -26,20 +32,38 @@ export async function buscarPersonagensCompletos(personagensIds) {
           const desvantagens = await db.Personagem.listarDesvantagens(personagem.id);
           const equipamentos = await db.Personagem.listarEquipamentos(personagem.id);
 
+          // Calcular atributos efetivos com bonus de raça e classe
+          const atributosEfetivos = calcularAtributosEfetivos(
+            personagem,
+            personagem.racas?.bonus,
+            personagem.classes?.bonus
+          );
+
+          // Mapear equipamentos com dados completos
+          const equipamentosMapeados = equipamentos.map(e => ({
+            nome: e.equipamento?.nome || e.nome,
+            tipo: e.equipamento?.tipo || e.tipo,
+            descricao: e.equipamento?.descricao || e.descricao,
+            dano_base: e.equipamento?.dano_base || e.dano_base || null,
+            bonus: e.equipamento?.bonus || e.bonus || null,
+            requisitos: e.equipamento?.requisitos || e.requisitos || null,
+            efeito: e.equipamento?.efeito || e.efeito || null,
+            elemento: e.equipamento?.elemento || e.elemento
+          }));
+
+          // Agregar bonus de equipamentos
+          const bonusEquip = agregarBonusEquipamentos(equipamentosMapeados);
+          const melhorArma = encontrarMelhorArma(equipamentosMapeados);
+
           return {
             id: personagem.id,
             nome: personagem.nome,
             nivel: personagem.nivel || 1,
             classe: personagem.classes?.nome || 'Aventureiro',
             raca: personagem.racas?.nome || 'Humano',
-            atributos: {
-              forca: personagem.forca || 10,
-              inteligencia: personagem.inteligencia || 10,
-              carisma: personagem.carisma || 10,
-              destreza: personagem.destreza || 10,
-              constituicao: personagem.constituicao || 10,
-              agilidade: personagem.agilidade || 10
-            },
+            atributos: atributosEfetivos,
+            bonusEquip,
+            melhorArma,
             background: personagem.background || '',
             vantagens: vantagens.map(v => ({
               nome: v.vantagem?.nome || v.nome,
@@ -57,14 +81,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
               elemento: d.desvantagem?.elemento || d.elemento,
               efeito: d.desvantagem?.efeito || d.efeito || null
             })),
-            equipamentos: equipamentos.map(e => ({
-              nome: e.equipamento?.nome || e.nome,
-              tipo: e.equipamento?.tipo || e.tipo,
-              descricao: e.equipamento?.descricao || e.descricao,
-              dano_base: e.equipamento?.dano_base || e.dano_base || null,
-              efeito: e.equipamento?.efeito || e.efeito || null,
-              elemento: e.equipamento?.elemento || e.elemento
-            })),
+            equipamentos: equipamentosMapeados,
             // Informações para o Mestre (formato texto)
             descricaoCompleta: `${personagem.nome} - ${personagem.racas?.nome || 'Humano'} ${personagem.classes?.nome || 'Aventureiro'} Nível ${personagem.nivel || 1}`
           };

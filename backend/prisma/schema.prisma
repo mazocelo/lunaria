@@ -156,6 +156,9 @@ model personagens {
   criado_em              DateTime?                @db.Timestamptz(6)
   atualizado_em          DateTime?                @db.Timestamptz(6)
   id_usuario             Int?
+  xp_atual               Int?                     @default(0)
+  xp_proximo_nivel       Int?                     @default(100)
+  pontos_atributo_pendentes Int?                  @default(0)
   deleted_at             DateTime?                @db.Timestamptz(6)
   historias_personagens  historias_personagens[]
   personagem_desvantagem personagem_desvantagem[]

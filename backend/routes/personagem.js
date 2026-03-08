@@ -1028,6 +1028,18 @@ router.delete('/:id/historias/:historia_id', asyncHandlerWithContext(personagemC
  */
 router.get('/:id/historias', asyncHandlerWithContext(personagemController.listarHistoriasPersonagem, personagemController));
 
+// ===== ROTAS DE EVOLUÇÃO =====
 
+// POST /:id/ganhar-xp - Adicionar XP ao personagem (pode triggerar level up)
+router.post('/:id/ganhar-xp', asyncHandlerWithContext(personagemController.ganharXP, personagemController));
 
-export default router; 
+// POST /:id/distribuir-pontos - Distribuir pontos de atributo pendentes
+router.post('/:id/distribuir-pontos', asyncHandlerWithContext(personagemController.distribuirPontos, personagemController));
+
+// GET /:id/evolucao - Obter status de evolução completo
+router.get('/:id/evolucao', asyncHandlerWithContext(personagemController.obterEvolucao, personagemController));
+
+// POST /:id/validar-coerencia - Validar coerência narrativa via IA
+router.post('/:id/validar-coerencia', asyncHandlerWithContext(personagemController.validarCoerencia, personagemController));
+
+export default router;

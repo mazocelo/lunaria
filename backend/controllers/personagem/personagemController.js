@@ -1,6 +1,19 @@
 
 import db from '../../Model/index.js';
 import { criarGeradorBackground } from '../../agents/historia/personagem/background/index.js';
+import { criarValidadorPersonagem } from '../../agents/historia/personagem/validacao/index.js';
+import {
+  validarAtributos,
+  validarVantagens,
+  validarDesvantagens,
+  calcularPontosVantagem,
+  pontosAtributoTotal,
+  xpParaNivel,
+  verificarLevelUp,
+  tierDesbloqueado,
+  maxCustoDesvantagem,
+  EVOLUCAO
+} from '../../helpers/evolucaoHelper.js';
 
 /**
  * Controller para gerenciar operações de personagem
@@ -25,7 +38,7 @@ class PersonagemController {
     const dadosConvertidos = { ...dados };
     
     // Converter campos que devem ser inteiros
-    const camposInteiros = ['nivel', 'pontos_totais', 'pontos_iniciais', 'raca_id', 'classe_id', 'forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+    const camposInteiros = ['nivel', 'pontos_totais', 'pontos_iniciais', 'raca_id', 'classe_id', 'forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade', 'xp_atual', 'xp_proximo_nivel', 'pontos_atributo_pendentes'];
     
     camposInteiros.forEach(campo => {
       if (dadosConvertidos[campo] !== undefined && dadosConvertidos[campo] !== null) {
@@ -151,99 +164,85 @@ class PersonagemController {
         sugestao_background = '',
         historias // Array de IDs de histórias para vincular
       } = req.body;
-      // Validações básicas
+      // Validacoes basicas
       if (!nome) {
-        return res.status(400).json({
-          error: 'Nome é obrigatório'
-        });
+        return res.status(400).json({ error: 'Nome e obrigatorio' });
       }
 
-      if (nivel && (nivel < 1 || nivel > 20)) {
-        return res.status(400).json({
-          error: 'Nível deve estar entre 1 e 20'
-        });
+      const nivelEfetivo = nivel || 1;
+      if (nivelEfetivo < 1 || nivelEfetivo > EVOLUCAO.NIVEL_MAX) {
+        return res.status(400).json({ error: `Nivel deve estar entre 1 e ${EVOLUCAO.NIVEL_MAX}` });
       }
 
-      // Validar atributos (1-20)
-      const atributos = { forca, inteligencia, carisma, destreza, constituicao, agilidade };
-      for (const [atributo, valor] of Object.entries(atributos)) {
-        if (valor && (valor < 1 || valor > 20)) {
-          return res.status(400).json({
-            error: `${atributo} deve estar entre 1 e 20`
-          });
-        }
+      // Validar atributos (range individual + total de pontos)
+      const atributos = {
+        forca: forca || 10, inteligencia: inteligencia || 10, carisma: carisma || 10,
+        destreza: destreza || 10, constituicao: constituicao || 10, agilidade: agilidade || 10
+      };
+      const validacaoAtributos = validarAtributos(atributos, nivelEfetivo);
+      if (!validacaoAtributos.valido) {
+        return res.status(400).json({ error: validacaoAtributos.erros.join('; ') });
       }
 
-      let backgroundFinal = background;
+      // Buscar raca e classe para validar orcamento de vantagens
+      let racaCusto = 0;
+      let classeCusto = 0;
+      if (raca_id) {
+        const raca = await db.Raca.findById(parseInt(raca_id));
+        if (!raca) return res.status(400).json({ error: `Raca com ID ${raca_id} nao encontrada` });
+        racaCusto = raca.custo || 0;
+      }
+      if (classe_id) {
+        const classe = await db.Classe.findById(parseInt(classe_id));
+        if (!classe) return res.status(400).json({ error: `Classe com ID ${classe_id} nao encontrada` });
+        classeCusto = classe.custo || 0;
+      }
 
-      // Gerar background automaticamente se solicitado
-      console.log('📝 Gerando background automático...', sugestao_background, background);
-      if (sugestao_background == 'guiado') {
-        console.log('📝 Gerando background automático...');
-
-        // Para background automático, usaremos temas genéricos já que não há história específica na criação
-        const historia = { temas: ['aventura', 'fantasia'], nome: 'Mundo Genérico' };
-
-        // Buscar informações da classe se disponível
-        let nomeClasse = 'Aventureiro';
-        if (classe_id) {
-          // Buscar classe no banco
-          const classe = await db.Classe.findById(parseInt(classe_id));
-          if (classe) {
-            nomeClasse = classe.nome;
-          }
-        }
-
-        let nomeRaca = 'Humano';
-        if (raca_id) {
-          const raca = await db.Raca.findById(parseInt(raca_id));
-          if (raca) {
-            nomeRaca = raca.nome;
-          }
-        }
-        let vantagensArray = [];
-        let desvantagensArray = [];
-        if(vantagens) {
-          // Buscar vantagens por IDs
-          vantagensArray = await Promise.all(
-            vantagens.map(id => db.Vantagem.findById(parseInt(id)))
-          );
-          vantagensArray = vantagensArray.filter(v => v !== null);
-        }
-        if(desvantagens) {
-          // Buscar desvantagens por IDs
-          desvantagensArray = await Promise.all(
-            desvantagens.map(id => db.Desvantagem.findById(parseInt(id)))
-          );
-          desvantagensArray = desvantagensArray.filter(d => d !== null);
-        }
-
-        // Buscar temas por nomes (historia.temas contém nomes, não IDs)
-        const temas = await Promise.all(
-          historia.temas.map(nome => db.Temas.findByNome(nome))
+      // Validar desvantagens (tier + limite de custo)
+      let custoDesvantagensAceitas = 0;
+      if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
+        const desvantagensObjetos = await Promise.all(
+          desvantagens.map(id => db.Desvantagem.findById(parseInt(id)))
         );
-        const temasFiltrados = temas.filter(t => t !== null);
-        const geradorBackground = await criarGeradorBackground();
-        const resultadoBackground = await geradorBackground.gerarBackground({
-          nome,
-          classe: nomeClasse,
-          raca: nomeRaca,
-          tema: temasFiltrados,
-          sugestao_background: sugestao_background || '',
-          vantagens: vantagensArray,
-          desvantagens: desvantagensArray
-        });
-
-        backgroundFinal = resultadoBackground.background;
+        const desvantagensValidas = desvantagensObjetos.filter(d => d !== null);
+        const idsNaoEncontrados = desvantagens.filter((id, i) => !desvantagensObjetos[i]);
+        if (idsNaoEncontrados.length > 0) {
+          return res.status(400).json({ error: `Desvantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
+        }
+        const validacaoDesv = validarDesvantagens(desvantagensValidas, nivelEfetivo);
+        if (!validacaoDesv.valido) {
+          return res.status(400).json({ error: validacaoDesv.erros.join('; ') });
+        }
+        custoDesvantagensAceitas = validacaoDesv.custoTotal;
       }
-      console.log('✅ Background gerado:', backgroundFinal.substring(0, 100) + '...');
+
+      // Validar vantagens (tier + orcamento)
+      if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
+        const vantagensObjetos = await Promise.all(
+          vantagens.map(id => db.Vantagem.findById(parseInt(id)))
+        );
+        const idsNaoEncontrados = vantagens.filter((id, i) => !vantagensObjetos[i]);
+        if (idsNaoEncontrados.length > 0) {
+          return res.status(400).json({ error: `Vantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
+        }
+        const vantagensValidas = vantagensObjetos.filter(v => v !== null);
+        const pontosDisponiveis = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, custoDesvantagensAceitas);
+        const validacaoVant = validarVantagens(vantagensValidas, pontosDisponiveis, nivelEfetivo);
+        if (!validacaoVant.valido) {
+          return res.status(400).json({ error: validacaoVant.erros.join('; ') });
+        }
+      }
+
+      // Background é enviado pelo frontend (pode ser vazio, será gerado sob demanda via POST /:id/background)
+      const backgroundFinal = background || '';
 
       // Preparar dados do personagem
+      const pontosIniciais = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, 0);
       const dadosPersonagem = this.converterCamposNumericos({
         nome,
-        nivel: nivel || 1,
-        pontos_totais: pontos_totais || 0,
-        pontos_iniciais: pontos_iniciais || 0,
+        nivel: nivelEfetivo,
+        pontos_totais: 0,
+        pontos_iniciais: pontosIniciais,
         background: backgroundFinal || '',
         raca_id: raca_id || null,
         classe_id: classe_id || null,
@@ -253,7 +252,10 @@ class PersonagemController {
         destreza: destreza || 10,
         constituicao: constituicao || 10,
         agilidade: agilidade || 10,
-        id_usuario: req.user?.id || null // Vincular ao usuário logado
+        xp_atual: 0,
+        xp_proximo_nivel: xpParaNivel(nivelEfetivo),
+        pontos_atributo_pendentes: 0,
+        id_usuario: req.user?.id || null
       });
 
       // Criar personagem no banco
@@ -517,116 +519,53 @@ class PersonagemController {
       // Os campos classe_id e raca_id são atualizados diretamente
       await db.Personagem.updatePersonagem(parseInt(id), dadosConvertidos);
 
-      // Gerenciar vínculos com vantagens se fornecidas
-      if (vantagens !== undefined) {
-        console.log('🔗 Atualizando vínculos com vantagens:', vantagens);
-        
-        // Remover todas as vantagens atuais
-        const vantagensAtuais = await db.Personagem.listarVantagens(id);
-        for (const vinculo of vantagensAtuais) {
-          try {
-            await db.Personagem.removerVantagem(id, vinculo.vantagem.id);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao remover vantagem ${vinculo.vantagem.id}:`, error.message);
+      // Gerenciar vinculos em transacao (atomico)
+      await db.prisma.$transaction(async (tx) => {
+        // Vantagens
+        if (vantagens !== undefined) {
+          await tx.personagem_vantagem.deleteMany({ where: { personagem_id: parseInt(id) } });
+          if (Array.isArray(vantagens) && vantagens.length > 0) {
+            await tx.personagem_vantagem.createMany({
+              data: vantagens.map(vid => ({ personagem_id: parseInt(id), desvantagem_id: parseInt(vid) }))
+            });
           }
         }
-        
-        // Adicionar novas vantagens
-        if (Array.isArray(vantagens) && vantagens.length > 0) {
-          for (const vantagem_id of vantagens) {
-            try {
-              await db.Personagem.adicionarVantagem(id, vantagem_id);
-            } catch (error) {
-              console.warn(`⚠️ Erro ao adicionar vantagem ${vantagem_id}:`, error.message);
-            }
-          }
-        }
-      }
 
-      // Gerenciar vínculos com desvantagens se fornecidas
-      if (desvantagens !== undefined) {
-        console.log('🔗 Atualizando vínculos com desvantagens:', desvantagens);
-        
-        // Remover todas as desvantagens atuais
-        const desvantagensAtuais = await db.Personagem.listarDesvantagens(id);
-        for (const vinculo of desvantagensAtuais) {
-          try {
-            await db.Personagem.removerDesvantagem(id, vinculo.desvantagem.id);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao remover desvantagem ${vinculo.desvantagem.id}:`, error.message);
+        // Desvantagens
+        if (desvantagens !== undefined) {
+          await tx.personagem_desvantagem.deleteMany({ where: { personagem_id: parseInt(id) } });
+          if (Array.isArray(desvantagens) && desvantagens.length > 0) {
+            await tx.personagem_desvantagem.createMany({
+              data: desvantagens.map(did => ({ personagem_id: parseInt(id), habilidade_id: parseInt(did) }))
+            });
           }
         }
-        
-        // Adicionar novas desvantagens
-        if (Array.isArray(desvantagens) && desvantagens.length > 0) {
-          for (const desvantagem_id of desvantagens) {
-            try {
-              await db.Personagem.adicionarDesvantagem(id, desvantagem_id);
-            } catch (error) {
-              console.warn(`⚠️ Erro ao adicionar desvantagem ${desvantagem_id}:`, error.message);
-            }
-          }
-        }
-      }
 
-      // Gerenciar vínculos com equipamentos se fornecidos
-      if (equipamentos !== undefined) {
-        console.log('🔗 Atualizando vínculos com equipamentos:', equipamentos);
-        
-        // Remover todos os equipamentos atuais
-        const equipamentosAtuais = await db.Personagem.listarEquipamentos(id);
-        for (const vinculo of equipamentosAtuais) {
-          try {
-            await db.Personagem.removerEquipamento(id, vinculo.equipamento.id);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao remover equipamento ${vinculo.equipamento.id}:`, error.message);
+        // Equipamentos
+        if (equipamentos !== undefined) {
+          await tx.personagem_equipamento.deleteMany({ where: { personagem_id: parseInt(id) } });
+          if (Array.isArray(equipamentos) && equipamentos.length > 0) {
+            await tx.personagem_equipamento.createMany({
+              data: equipamentos.map(eid => ({ personagem_id: parseInt(id), equipamento_id: parseInt(eid) }))
+            });
           }
         }
-        
-        // Adicionar novos equipamentos
-        if (Array.isArray(equipamentos) && equipamentos.length > 0) {
-          for (const equipamento_id of equipamentos) {
-            try {
-              await db.Personagem.adicionarEquipamento(id, equipamento_id);
-            } catch (error) {
-              console.warn(`⚠️ Erro ao adicionar equipamento ${equipamento_id}:`, error.message);
-            }
-          }
-        }
-      }
 
-      // Gerenciar vínculos com histórias se fornecidas
-      if (historias !== undefined) {
-        console.log('🔗 Atualizando vínculos com histórias:', historias);
-        
-        // Remover todos os vínculos atuais
-        const historiasAtuais = await db.Personagem.listarHistoriasPersonagem(id);
-        for (const vinculo of historiasAtuais) {
-          try {
-            await db.Personagem.desvincularHistoria(id, vinculo.historia_id);
-            console.log(`🔗 Vínculo removido da história ${vinculo.historia_id}`);
-          } catch (error) {
-            console.warn(`⚠️ Erro ao remover vínculo da história ${vinculo.historia_id}:`, error.message);
-          }
-        }
-        
-        // Adicionar novos vínculos
-        if (Array.isArray(historias) && historias.length > 0) {
-          for (const historia_id of historias) {
-            try {
-              const historia = await db.Historia.findById(parseInt(historia_id));
+        // Historias
+        if (historias !== undefined) {
+          await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
+          if (Array.isArray(historias) && historias.length > 0) {
+            for (const historia_id of historias) {
+              const historia = await tx.historias.findUnique({ where: { id: parseInt(historia_id) } });
               if (historia) {
-                await db.Personagem.vincularHistoria(id, historia_id, 'jogador');
-                console.log(`✅ Vínculo criado com história ${historia.nome}`);
-              } else {
-                console.warn(`⚠️ História ${historia_id} não encontrada`);
+                await tx.historias_personagens.create({
+                  data: { personagem_id: parseInt(id), historia_id: parseInt(historia_id), papel: 'jogador' }
+                });
               }
-            } catch (error) {
-              console.warn(`⚠️ Erro ao vincular história ${historia_id}:`, error.message);
             }
           }
         }
-      }
+      });
 
       // Buscar o personagem atualizado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
@@ -721,48 +660,68 @@ class PersonagemController {
   gerarBackground = async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { temas_disponiveis = [], sugestao_background = '' } = req.body;
+      const { sugestao_background = '' } = req.body;
 
       console.log(`📝 Gerando background para personagem ID: ${id}`);
 
-      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
-
-      if (!personagem) {
-        return res.status(404).json({
-          error: 'Personagem não encontrado'
-        });
+      // Buscar personagem completo com todos os relacionamentos
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
+      if (!personagemCompleto) {
+        return res.status(404).json({ error: 'Personagem não encontrado' });
       }
 
-      // Buscar histórias vinculadas ao personagem
+      const personagemData = await this.processarDadosPersonagem(personagemCompleto);
+
+      // Extrair nomes de raça e classe
+      const nomeRaca = personagemData.raca || personagemCompleto.racas?.nome || 'Humano';
+      const nomeClasse = personagemData.classe || personagemCompleto.classes?.nome || 'Aventureiro';
+
+      // Buscar temas das histórias vinculadas
       const historiasVinculadas = await db.Personagem.listarHistoriasPersonagem(parseInt(id));
       const historia = historiasVinculadas.length > 0 ? historiasVinculadas[0].historias : null;
+      const temas = historia?.temas || ['aventura', 'fantasia'];
 
-      // Buscar nome da classe
-      let nomeClasse = 'Aventureiro';
-      if (personagem.classe_id) {
-        const classe = await db.Classe.findById(parseInt(personagem.classe_id));
-        if (classe) {
-          nomeClasse = classe.nome;
-        }
-      }
+      // Buscar temas completos
+      const temasCompletos = await Promise.all(
+        (Array.isArray(temas) ? temas : []).map(t =>
+          typeof t === 'string' ? db.Temas.findByNome(t) : t
+        )
+      );
+      const temasFiltrados = temasCompletos.filter(t => t !== null);
 
-      // Buscar nome da raça
-      let nomeRaca = 'Humano';
-      if (personagem.raca_id) {
-        const raca = await db.Raca.findById(parseInt(personagem.raca_id));
-        if (raca) {
-          nomeRaca = raca.nome;
-        }
-      }
+      // Preparar vantagens e desvantagens completas
+      const vantagensCompletas = (personagemData.vantagens || []).map(v => ({
+        nome: v.nome,
+        descricao: v.descricao || ''
+      }));
+      const desvantagensCompletas = (personagemData.desvantagens || []).map(d => ({
+        nome: d.nome,
+        descricao: d.descricao || ''
+      }));
 
-      const geradorBackground = await criarGeradorBackground(temas_disponiveis);
+      // Preparar equipamentos
+      const equipamentosNomes = (personagemData.equipamentos || [])
+        .map(e => `${e.nome}${e.descricao ? ` (${e.descricao.substring(0, 80)})` : ''}`)
+        .join(', ') || 'Nenhum';
+
+      const geradorBackground = await criarGeradorBackground(temasFiltrados);
 
       const resultadoBackground = await geradorBackground.gerarBackground({
-        nome: personagem.nome,
+        nome: personagemCompleto.nome,
         classe: nomeClasse,
         raca: nomeRaca,
-        tema: historia.temas,
-        sugestao_background: sugestao_background
+        tema: temasFiltrados,
+        sugestao_background: sugestao_background || '',
+        vantagens: vantagensCompletas,
+        desvantagens: desvantagensCompletas,
+        nivel: personagemCompleto.nivel || 1,
+        forca: personagemCompleto.forca || 10,
+        inteligencia: personagemCompleto.inteligencia || 10,
+        carisma: personagemCompleto.carisma || 10,
+        destreza: personagemCompleto.destreza || 10,
+        constituicao: personagemCompleto.constituicao || 10,
+        agilidade: personagemCompleto.agilidade || 10,
+        equipamentos: equipamentosNomes
       });
 
       // Atualizar personagem com o novo background
@@ -771,9 +730,9 @@ class PersonagemController {
         atualizado_em: new Date()
       });
 
-      // Buscar o personagem atualizado com os relacionamentos
-      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
-      const personagemData = await this.processarDadosPersonagem(personagemCompleto);
+      // Buscar o personagem atualizado
+      const personagemAtualizado = await this.buscarPersonagemComRelacionamentos(parseInt(id));
+      const dadosFinais = await this.processarDadosPersonagem(personagemAtualizado);
 
       console.log('✅ Background gerado e salvo');
 
@@ -781,16 +740,14 @@ class PersonagemController {
         success: true,
         message: 'Background gerado com sucesso',
         data: {
-          ...personagemData,
+          ...dadosFinais,
           background_gerado: resultadoBackground.background
         }
       });
 
     } catch (error) {
       console.error('❌ Erro ao gerar background:', error);
-      res.status(500).json({
-        error: 'Erro interno do servidor'
-      });
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
 
@@ -1412,6 +1369,282 @@ class PersonagemController {
       });
     }
   };
+
+  // ===== SISTEMA DE EVOLUCAO =====
+
+  /**
+   * Adicionar XP a um personagem (chamado apos combate)
+   * POST /personagens/:id/ganhar-xp
+   * Body: { xp: number }
+   */
+  ganharXP = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { xp } = req.body;
+
+      if (!xp || xp <= 0) {
+        return res.status(400).json({ error: 'XP deve ser um numero positivo' });
+      }
+
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({ error: 'Personagem nao encontrado' });
+      }
+
+      const xpAtual = (personagem.xp_atual || 0) + parseInt(xp);
+      const nivelAtual = personagem.nivel || 1;
+
+      // Verificar se pode subir de nivel
+      const resultado = verificarLevelUp(nivelAtual, xpAtual);
+
+      if (resultado.podeEvoluir) {
+        const ganhos = resultado.ganhos;
+        await db.Personagem.updatePersonagem(parseInt(id), {
+          xp_atual: ganhos.xpRestante,
+          xp_proximo_nivel: ganhos.xpProximoNivel,
+          nivel: ganhos.novoNivel,
+          pontos_atributo_pendentes: (personagem.pontos_atributo_pendentes || 0) + ganhos.pontosAtributo,
+          pontos_totais: (personagem.pontos_totais || 0) + ganhos.pontosAtributo,
+          atualizado_em: new Date()
+        });
+
+        return res.status(200).json({
+          success: true,
+          levelUp: true,
+          message: `Level up! Nivel ${nivelAtual} -> ${ganhos.novoNivel}`,
+          data: {
+            novoNivel: ganhos.novoNivel,
+            xpRestante: ganhos.xpRestante,
+            xpProximoNivel: ganhos.xpProximoNivel,
+            pontosAtributoGanhos: ganhos.pontosAtributo,
+            pontosVantagemGanhos: ganhos.pontosVantagem,
+            novoTier: ganhos.novoTier,
+            tierMudou: ganhos.tierMudou,
+            novoMaxDesvantagem: ganhos.novoMaxDesvantagem
+          }
+        });
+      }
+
+      // Sem level up, so atualizar XP
+      await db.Personagem.updatePersonagem(parseInt(id), {
+        xp_atual: xpAtual,
+        atualizado_em: new Date()
+      });
+
+      return res.status(200).json({
+        success: true,
+        levelUp: false,
+        message: `+${xp} XP ganho`,
+        data: {
+          xpAtual,
+          xpProximoNivel: personagem.xp_proximo_nivel || xpParaNivel(nivelAtual),
+          nivelAtual
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao adicionar XP:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
+   * Distribuir pontos de atributo pendentes
+   * POST /personagens/:id/distribuir-pontos
+   * Body: { forca: +1, destreza: +1 } (incrementos, nao valores absolutos)
+   */
+  distribuirPontos = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const incrementos = req.body;
+
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({ error: 'Personagem nao encontrado' });
+      }
+
+      if (req.user && req.user.id && personagem.id_usuario && personagem.id_usuario !== req.user.id) {
+        return res.status(403).json({ error: 'Voce so pode atualizar seus proprios personagens' });
+      }
+
+      const pendentes = personagem.pontos_atributo_pendentes || 0;
+      if (pendentes <= 0) {
+        return res.status(400).json({ error: 'Nenhum ponto de atributo pendente para distribuir' });
+      }
+
+      const statsNomes = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+      let totalGasto = 0;
+      const novosStats = {};
+
+      for (const stat of statsNomes) {
+        const inc = parseInt(incrementos[stat]) || 0;
+        if (inc < 0) {
+          return res.status(400).json({ error: `Incremento de ${stat} nao pode ser negativo` });
+        }
+        if (inc > 0) {
+          const novoValor = (personagem[stat] || 10) + inc;
+          if (novoValor > EVOLUCAO.STAT_MAX) {
+            return res.status(400).json({ error: `${stat} excederia o maximo de ${EVOLUCAO.STAT_MAX} (atual: ${personagem[stat]}, incremento: ${inc})` });
+          }
+          novosStats[stat] = novoValor;
+          totalGasto += inc;
+        }
+      }
+
+      if (totalGasto === 0) {
+        return res.status(400).json({ error: 'Nenhum incremento fornecido' });
+      }
+
+      if (totalGasto > pendentes) {
+        return res.status(400).json({ error: `Pontos insuficientes: ${totalGasto} solicitados, ${pendentes} disponiveis` });
+      }
+
+      await db.Personagem.updatePersonagem(parseInt(id), {
+        ...novosStats,
+        pontos_atributo_pendentes: pendentes - totalGasto,
+        atualizado_em: new Date()
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `${totalGasto} pontos distribuidos`,
+        data: {
+          pontosRestantes: pendentes - totalGasto,
+          statsAtualizados: novosStats
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao distribuir pontos:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
+   * Obter informacoes de evolucao do personagem
+   * GET /personagens/:id/evolucao
+   */
+  obterEvolucao = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      if (!personagem) {
+        return res.status(404).json({ error: 'Personagem nao encontrado' });
+      }
+
+      const nivel = personagem.nivel || 1;
+      const xpAtual = personagem.xp_atual || 0;
+      const xpProximoNivel = personagem.xp_proximo_nivel || xpParaNivel(nivel);
+
+      // Buscar raca/classe para calcular orcamento
+      let racaCusto = 0, classeCusto = 0;
+      if (personagem.raca_id) {
+        const raca = await db.Raca.findById(personagem.raca_id);
+        racaCusto = raca?.custo || 0;
+      }
+      if (personagem.classe_id) {
+        const classe = await db.Classe.findById(personagem.classe_id);
+        classeCusto = classe?.custo || 0;
+      }
+
+      // Buscar vantagens e desvantagens atuais
+      const vantagensAtuais = await db.Personagem.listarVantagens(parseInt(id));
+      const desvantagensAtuais = await db.Personagem.listarDesvantagens(parseInt(id));
+      const custoVantagensUsado = vantagensAtuais.reduce((sum, v) => sum + Math.abs(v.vantagem.custo || 0), 0);
+      const custoDesvantagensUsado = desvantagensAtuais.reduce((sum, d) => sum + Math.abs(d.desvantagem.custo || 0), 0);
+
+      const pontosVantagemTotal = calcularPontosVantagem(nivel, racaCusto, classeCusto, custoDesvantagensUsado);
+      const maxDesv = maxCustoDesvantagem(nivel);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          nivel,
+          xpAtual,
+          xpProximoNivel,
+          progressoXP: Math.min(100, Math.round((xpAtual / xpProximoNivel) * 100)),
+          pontosAtributoPendentes: personagem.pontos_atributo_pendentes || 0,
+          pontosAtributoTotal: pontosAtributoTotal(nivel),
+          vantagens: {
+            pontosTotal: pontosVantagemTotal,
+            pontosUsados: custoVantagensUsado,
+            pontosDisponiveis: pontosVantagemTotal - custoVantagensUsado,
+            tier: tierDesbloqueado(nivel)
+          },
+          desvantagens: {
+            maxCusto: maxDesv,
+            custoUsado: custoDesvantagensUsado,
+            custoDisponivel: maxDesv - custoDesvantagensUsado,
+            tier: tierDesbloqueado(nivel)
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao obter evolucao:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
+   * Validar coerência narrativa do personagem via IA
+   * POST /:id/validar-coerencia
+   */
+  validarCoerencia = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
+      if (!personagemCompleto) {
+        return res.status(404).json({ error: 'Personagem não encontrado' });
+      }
+
+      const personagemData = await this.processarDadosPersonagem(personagemCompleto);
+
+      const nomeRaca = personagemData.raca || personagemCompleto.racas?.nome || 'Humano';
+      const nomeClasse = personagemData.classe || personagemCompleto.classes?.nome || 'Aventureiro';
+
+      const vantagensTexto = (personagemData.vantagens || [])
+        .map(v => `${v.nome}: ${v.descricao || ''}`)
+        .join('\n') || 'Nenhuma';
+
+      const desvantagensTexto = (personagemData.desvantagens || [])
+        .map(d => `${d.nome}: ${d.descricao || ''}`)
+        .join('\n') || 'Nenhuma';
+
+      const equipamentosTexto = (personagemData.equipamentos || [])
+        .map(e => e.nome)
+        .join(', ') || 'Nenhum';
+
+      const validador = await criarValidadorPersonagem();
+      const resultado = await validador.validar({
+        nome: personagemCompleto.nome,
+        classe: nomeClasse,
+        raca: nomeRaca,
+        nivel: personagemCompleto.nivel || 1,
+        forca: personagemCompleto.forca || 10,
+        inteligencia: personagemCompleto.inteligencia || 10,
+        carisma: personagemCompleto.carisma || 10,
+        destreza: personagemCompleto.destreza || 10,
+        constituicao: personagemCompleto.constituicao || 10,
+        agilidade: personagemCompleto.agilidade || 10,
+        vantagens: vantagensTexto,
+        desvantagens: desvantagensTexto,
+        equipamentos: equipamentosTexto,
+        background: personagemCompleto.background || ''
+      });
+
+      res.status(200).json({
+        success: true,
+        data: resultado
+      });
+
+    } catch (error) {
+      console.error('Erro ao validar coerência:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
 }
 
 export default new PersonagemController(); 

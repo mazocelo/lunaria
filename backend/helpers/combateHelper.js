@@ -41,12 +41,17 @@ export function calcularHP(personagem) {
 /**
  * Calcula Classe de Armadura de um personagem
  * @param {Object} personagem - Dados do personagem
+ * @param {Object} bonusEquip - Bonus agregados de equipamentos { ca, ca_base }
  * @returns {number} CA
  */
-export function calcularCA(personagem) {
+export function calcularCA(personagem, bonusEquip = {}) {
   const destreza = personagem.destreza || 10;
   const modDestreza = Math.floor((destreza - 10) / 2);
-  return 10 + modDestreza;
+
+  // Se tem ca_base de armadura, usa como base (sem mod destreza)
+  const caBase = bonusEquip.ca_base != null ? bonusEquip.ca_base : (10 + modDestreza);
+  // Adiciona bonus aditivo de CA (escudos, armas defensivas)
+  return caBase + (bonusEquip.ca || 0);
 }
 
 /**

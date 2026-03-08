@@ -19,6 +19,7 @@ import {
 } from '../helpers/combateHelper.js';
 import { COMBAT_EVENTS } from './events/eventTypes.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
+import { verificarLevelUp, xpParaNivel } from '../helpers/evolucaoHelper.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -3253,7 +3254,8 @@ class SocketManager {
         const p = personagensCompletos[pId];
 
         if (p) {
-          const attrs = p.atributos || {};
+          const attrs = p.atributos || {}; // já inclui bonus de raça/classe
+          const bonusEquip = p.bonusEquip || {};
           const personagemStats = {
             constituicao: attrs.constituicao || 10,
             destreza: attrs.destreza || 10,
@@ -3262,7 +3264,10 @@ class SocketManager {
           jogadoresCombate[jUserId] = {
             hp_max: calcularHP(personagemStats),
             hp_atual: calcularHP(personagemStats),
-            ca: calcularCA(personagemStats),
+            ca: calcularCA(personagemStats, bonusEquip),
+            bonusAtaque: bonusEquip.ataque || 0,
+            bonusDano: bonusEquip.dano || 0,
+            dano_base: p.melhorArma || null,
             status: 'vivo',
             personagemNome: p.nome || jogador.username
           };
@@ -3271,6 +3276,9 @@ class SocketManager {
             hp_max: 15,
             hp_atual: 15,
             ca: 10,
+            bonusAtaque: 0,
+            bonusDano: 0,
+            dano_base: null,
             status: 'vivo',
             personagemNome: jogador.username || 'Jogador'
           };
@@ -3343,14 +3351,16 @@ class SocketManager {
       const personagemCompleto = sessao.personagensCompletos?.[String(personagem.id)] || {};
       const attrs = personagemCompleto.atributos || {};
       const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
-      const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7);
+      const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
+      const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7) + bonusAtaqueEquip;
 
       const { acertou, critico } = verificarAcerto(rolagemAtaque, bonusAtaque, monstroAlvo.defesa);
 
       let danoTotal = 0;
       if (acertou) {
-        const danoBase = personagemCompleto.nivel >= 5 ? '1d8' : '1d6';
-        danoTotal = calcularDano(danoBase, modForca, critico);
+        const danoBase = jogadorStats.dano_base || (personagemCompleto.nivel >= 5 ? '1d8' : '1d6');
+        const bonusDanoEquip = jogadorStats.bonusDano || 0;
+        danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico);
         monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
 
         if (monstroAlvo.hp_atual <= 0) {
@@ -3558,6 +3568,71 @@ class SocketManager {
       });
 
       console.log(`✅ Combate finalizado: ${resultado} | XP: ${xpTotal}`);
+
+      // Persistir XP no banco para cada jogador sobrevivente
+      if (xpTotal > 0) {
+        try {
+          const jogadores = Array.isArray(sessao.jogadoresConectados)
+            ? sessao.jogadoresConectados
+            : Object.values(sessao.jogadores || {});
+
+          const xpPorJogador = Math.floor(xpTotal / Math.max(1,
+            Object.values(combate.jogadores).filter(j => j.status === 'vivo').length));
+
+          for (const jogador of jogadores) {
+            const jUserId = String(jogador.userId || jogador.id);
+            const jogadorCombate = combate.jogadores[jUserId];
+            if (!jogadorCombate || jogadorCombate.status !== 'vivo') continue;
+
+            const personagemId = parseInt(jogador.personagemId || jogador.personagem_id);
+            if (!personagemId || isNaN(personagemId)) continue;
+
+            const personagem = await db.prisma.personagens.findUnique({
+              where: { id: personagemId },
+              select: { id: true, nivel: true, xp_atual: true, xp_proximo_nivel: true, pontos_atributo_pendentes: true }
+            });
+            if (!personagem) continue;
+
+            const xpNovo = (personagem.xp_atual || 0) + xpPorJogador;
+            const levelUp = verificarLevelUp(personagem.nivel || 1, xpNovo);
+
+            if (levelUp.podeEvoluir) {
+              await db.prisma.personagens.update({
+                where: { id: personagemId },
+                data: {
+                  xp_atual: levelUp.ganhos.xpRestante,
+                  xp_proximo_nivel: levelUp.ganhos.xpProximoNivel,
+                  nivel: levelUp.ganhos.novoNivel,
+                  pontos_atributo_pendentes: (personagem.pontos_atributo_pendentes || 0) + levelUp.ganhos.pontosAtributo,
+                  atualizado_em: new Date()
+                }
+              });
+
+              this.io.to(roomId).emit('level_up', {
+                userId: jUserId,
+                personagemNome: jogadorCombate.personagemNome,
+                novoNivel: levelUp.ganhos.novoNivel,
+                ganhos: levelUp.ganhos,
+                timestamp: Date.now()
+              });
+
+              console.log(`🎉 ${jogadorCombate.personagemNome} subiu para nivel ${levelUp.ganhos.novoNivel}!`);
+            } else {
+              await db.prisma.personagens.update({
+                where: { id: personagemId },
+                data: {
+                  xp_atual: xpNovo,
+                  atualizado_em: new Date()
+                }
+              });
+            }
+          }
+
+          console.log(`💾 XP persistido: ${xpPorJogador} por jogador sobrevivente`);
+        } catch (errXP) {
+          console.error('❌ Erro ao persistir XP no banco:', errXP);
+        }
+      }
 
       // Narrar desfecho via IA
       try {

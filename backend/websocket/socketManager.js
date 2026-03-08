@@ -3062,7 +3062,7 @@ class SocketManager {
       console.log(`💾 Turno ${proximoTurno} e mensagem de transição salvos no Redis`);
 
       // ✅ 3.5. EMITIR MENSAGEM DE TRANSIÇÃO EM TEMPO REAL
-      this.io.to(roomId).emit('mensagem_mestre', {
+      this.io.to(roomId).emit('chat_message', {
         id: `transicao_${Date.now()}`,
         tipo: 'transicao_turno',
         userId: 'sistema',

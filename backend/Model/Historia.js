@@ -193,10 +193,6 @@ const Historia = (prisma) => {
       });
     },
 
-    // Contar histórias
-    async count(where = {}) {
-      return await prisma.historias.count({ where });
-    },
 
     // Buscar histórias com vagas disponíveis
     async findWithVagas() {
@@ -220,6 +216,17 @@ const Historia = (prisma) => {
         where: { id_usuario: parseInt(usuario_id) },
         orderBy: { criada_em: 'desc' }
       });
+    },
+
+    // Buscar histórias por usuário com paginação DB-level
+    async findByUsuarioPaginated(usuario_id, { limit = 20, offset = 0, status } = {}) {
+      const where = { id_usuario: parseInt(usuario_id), deleted_at: null };
+      if (status) where.status = status;
+      const [data, total] = await Promise.all([
+        model.findMany({ where, orderBy: { criada_em: 'desc' }, take: limit, skip: offset, include: { mestres: true } }),
+        model.count({ where })
+      ]);
+      return { data, total };
     },
 
     // Buscar histórias onde personagens do usuário participam

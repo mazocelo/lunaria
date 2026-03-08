@@ -102,6 +102,26 @@ const Desvantagem = (prisma) => {
       });
     },
 
+    // Listar desvantagens com paginação DB-level
+    async findPaginated({ limit = 50, offset = 0, tipo, elemento, nivel, usar, search } = {}) {
+      const where = {};
+      if (tipo) where.tipo = { has: tipo };
+      if (elemento) where.elemento = { has: elemento };
+      if (nivel !== undefined) where.nivel = parseInt(nivel);
+      if (usar !== undefined) where.usar = parseInt(usar);
+      if (search) {
+        where.OR = [
+          { nome: { contains: search, mode: 'insensitive' } },
+          { descricao: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+      const [data, total] = await Promise.all([
+        model.findMany({ where, orderBy: { nome: 'asc' }, take: limit, skip: offset }),
+        model.count({ where })
+      ]);
+      return { data, total };
+    },
+
     // Buscar por ID
     async findById(id) {
       return await model.findUnique({
@@ -139,11 +159,6 @@ const Desvantagem = (prisma) => {
         },
         orderBy: { nome: 'asc' }
       });
-    },
-
-    // Contar desvantagens
-    async count(where = {}) {
-      return await prisma.desvantagens.count({ where });
     },
 
     // Buscar desvantagens ativas

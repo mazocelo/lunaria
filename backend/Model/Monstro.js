@@ -24,6 +24,24 @@ const Monstro = (prisma) => {
       });
     },
 
+    // Listar monstros com paginação DB-level
+    async findPaginated({ limit = 50, offset = 0, tipo, raridade_id, nivel, tema } = {}) {
+      const where = {};
+      if (tipo) where.tipo = { has: tipo };
+      if (raridade_id) where.raridade_id = parseInt(raridade_id);
+      if (nivel) {
+        const n = parseInt(nivel);
+        where.nivel_min = { lte: n };
+        where.nivel_max = { gte: n };
+      }
+      if (tema) where.temas = { has: tema };
+      const [data, total] = await Promise.all([
+        model.findMany({ where, include: includeRels, orderBy: { nome: 'asc' }, take: limit, skip: offset }),
+        model.count({ where })
+      ]);
+      return { data, total };
+    },
+
     // Buscar por tipo (ex: 'besta', 'demonio')
     async findByTipo(tipo) {
       return await model.findMany({
@@ -77,6 +95,42 @@ const Monstro = (prisma) => {
     async findByElemento(elemento) {
       return await model.findMany({
         where: { elemento: { has: elemento } },
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por tamanho (ex: 'grande', 'pequeno')
+    async findByTamanho(tamanho) {
+      return await model.findMany({
+        where: { tamanho },
+        include: includeRels,
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por habitat (ex: 'floresta', 'caverna')
+    async findByHabitat(habitat) {
+      return await model.findMany({
+        where: { habitat: { has: habitat } },
+        include: includeRels,
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por imunidade (ex: 'veneno', 'fogo')
+    async findByImunidade(elemento) {
+      return await model.findMany({
+        where: { imunidades: { has: elemento } },
+        include: includeRels,
+        orderBy: { nome: 'asc' }
+      });
+    },
+
+    // Buscar por categoria
+    async findByCategoria(categoriaId) {
+      return await model.findMany({
+        where: { categoria_id: categoriaId },
+        include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
@@ -148,12 +202,13 @@ const Monstro = (prisma) => {
     calcularStats(monstro, nivel) {
       const n = Math.max(1, nivel);
       const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
+      const modTam = this._getModTamanho(monstro.tamanho);
       return {
         hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
         ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.floor(n * 0.7)),
         defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
-        armadura: Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2)),
-        esquiva: Math.min(30, Math.max(0, modAgi * 3)),
+        armadura: Math.max(0, Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
+        esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
         dano_base: monstro.dano_base,
         xp: monstro.xp_base * n,
         forca: monstro.forca,
@@ -163,6 +218,19 @@ const Monstro = (prisma) => {
         agilidade: monstro.agilidade,
         carisma: monstro.carisma
       };
+    },
+
+    _getModTamanho(tamanho) {
+      const mods = {
+        minusculo:    { armadura: -2, esquiva: 10 },
+        pequeno:      { armadura: -1, esquiva: 5 },
+        medio:        { armadura: 0,  esquiva: 0 },
+        grande:       { armadura: 3,  esquiva: -5 },
+        enorme:       { armadura: 5,  esquiva: -10 },
+        gargantuesco: { armadura: 7,  esquiva: -13 },
+        colossal:     { armadura: 8,  esquiva: -15 },
+      };
+      return mods[tamanho] || mods.medio;
     },
 
     // Ajusta nivel baseado na dificuldade
@@ -184,8 +252,14 @@ const Monstro = (prisma) => {
           tipo: data.tipo || ['besta'],
           elemento: data.elemento || [],
           temas: data.temas || [],
-          habilidades: data.habilidades || []
-        }
+          habilidades: data.habilidades || [],
+          tamanho: data.tamanho || 'medio',
+          habitat: data.habitat || [],
+          imunidades: data.imunidades || [],
+          resistencias: data.resistencias || {},
+          velocidade: data.velocidade || { terrestre: 30 }
+        },
+        include: includeRels
       });
     },
 
@@ -202,9 +276,6 @@ const Monstro = (prisma) => {
       });
     },
 
-    async count(where = {}) {
-      return await model.count({ where });
-    }
   };
 
   return Object.assign(model, MonstroMethods);

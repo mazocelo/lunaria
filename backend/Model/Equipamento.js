@@ -150,6 +150,22 @@ const Equipamento = (prisma) => {
       });
     },
 
+    // Listar equipamentos com paginação DB-level
+    async findPaginated({ limit = 50, offset = 0, search } = {}) {
+      const where = {};
+      if (search) {
+        where.OR = [
+          { nome: { contains: search, mode: 'insensitive' } },
+          { descricao: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+      const [data, total] = await Promise.all([
+        model.findMany({ where, include: includeRels, orderBy: { nome: 'asc' }, take: limit, skip: offset }),
+        model.count({ where })
+      ]);
+      return { data, total };
+    },
+
     // Buscar por ID
     async findById(id) {
       return await model.findUnique({
@@ -158,10 +174,6 @@ const Equipamento = (prisma) => {
       });
     },
 
-    // Contar equipamentos
-    async count(where = {}) {
-      return await model.count({ where });
-    }
   };
 
   // Retornar o modelo com métodos customizados

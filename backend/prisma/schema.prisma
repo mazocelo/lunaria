@@ -341,6 +341,15 @@ model sessoes_jogo {
   @@index([status])
 }
 
+model elementos {
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique @db.VarChar(30)
+  descricao String?
+  cor       String? @db.VarChar(30)
+  icone     String? @db.VarChar(10)
+  ordem     Int?    @default(0)
+}
+
 enum enum_habilidades_categoria {
   combate
   magia

@@ -178,9 +178,9 @@ function extrairResistenciasImunidades(habilidades) {
   const imunePatterns = [
     { regex: /imune?\s+a?\s*veneno/i, val: 'veneno' },
     { regex: /imune?\s+a?\s*fogo/i, val: 'fogo' },
-    { regex: /imune?\s+a?\s*frio/i, val: 'frio' },
+    { regex: /imune?\s+a?\s*frio/i, val: 'gelo' },
     { regex: /imune?\s+a?\s*gelo/i, val: 'gelo' },
-    { regex: /imune?\s+a?\s*relâmpago|imune?\s+a?\s*eletricidade|imune?\s+a?\s*raio/i, val: 'eletricidade' },
+    { regex: /imune?\s+a?\s*relâmpago|imune?\s+a?\s*eletricidade|imune?\s+a?\s*raio/i, val: 'eletrico' },
     { regex: /imune?\s+a?\s*ácido/i, val: 'acido' },
     { regex: /imune?\s+a?\s*necr[oó]tico/i, val: 'necrotico' },
     { regex: /imune?\s+a?\s*psíquico|imune?\s+a?\s*psiqu/i, val: 'psiquico' },
@@ -202,8 +202,8 @@ function extrairResistenciasImunidades(habilidades) {
   // Resistencias
   const resistPatterns = [
     { regex: /resist[eê]ncia?\s+a?\s*fogo/i, val: 'fogo' },
-    { regex: /resist[eê]ncia?\s+a?\s*frio|resist[eê]ncia?\s+a?\s*gelo/i, val: 'frio' },
-    { regex: /resist[eê]ncia?\s+a?\s*relâmpago|resist[eê]ncia?\s+a?\s*eletricidade/i, val: 'eletricidade' },
+    { regex: /resist[eê]ncia?\s+a?\s*frio|resist[eê]ncia?\s+a?\s*gelo/i, val: 'gelo' },
+    { regex: /resist[eê]ncia?\s+a?\s*relâmpago|resist[eê]ncia?\s+a?\s*eletricidade/i, val: 'eletrico' },
     { regex: /resist[eê]ncia?\s+a?\s*ácido/i, val: 'acido' },
     { regex: /resist[eê]ncia?\s+a?\s*necr[oó]tico/i, val: 'necrotico' },
     { regex: /resist[eê]ncia?\s+a?\s*dano não[- ]mágico|resist[eê]ncia?\s+a?\s*armas? não[- ]mágic/i, val: 'nao-magico' },
@@ -217,7 +217,7 @@ function extrairResistenciasImunidades(habilidades) {
 
   // Vulnerabilidades
   if (/vulnera\w+\s+a?\s*fogo/i.test(habilidades)) resistencias['fogo'] = 1.5;
-  if (/vulnera\w+\s+a?\s*frio|vulnera\w+\s+a?\s*gelo/i.test(habilidades)) resistencias['frio'] = 1.5;
+  if (/vulnera\w+\s+a?\s*frio|vulnera\w+\s+a?\s*gelo/i.test(habilidades)) resistencias['gelo'] = 1.5;
   if (/vulnera\w+\s+a?\s*contundente/i.test(habilidades)) resistencias['contundente'] = 1.5;
   if (/vulnera\w+\s+a?\s*radiante/i.test(habilidades)) resistencias['radiante'] = 1.5;
 
@@ -230,13 +230,13 @@ function extrairElementos(tipo, habilidades, categoriaId) {
 
   if (lower.includes('fogo') || lower.includes('fire') || lower.includes('chama') || lower.includes('flame')) elementos.push('fogo');
   if (lower.includes('frio') || lower.includes('gelo') || lower.includes('frost') || lower.includes('ice') || lower.includes('cold')) elementos.push('gelo');
-  if (lower.includes('relâmpago') || lower.includes('eletric') || lower.includes('lightning') || lower.includes('raio')) elementos.push('eletricidade');
+  if (lower.includes('relâmpago') || lower.includes('eletric') || lower.includes('lightning') || lower.includes('raio')) elementos.push('eletrico');
   if (lower.includes('ácido') || lower.includes('acid')) elementos.push('acido');
   if (lower.includes('veneno') || lower.includes('poison')) elementos.push('veneno');
   if (lower.includes('necr') || lower.includes('sombr') || lower.includes('shadow') || lower.includes('dark')) elementos.push('sombrio');
   if (lower.includes('radiante') || lower.includes('radiant') || lower.includes('luz') || lower.includes('light') || lower.includes('sagrado')) elementos.push('radiante');
   if (lower.includes('psíquic') || lower.includes('psychic') || lower.includes('ment') || lower.includes('telepa')) elementos.push('psiquico');
-  if (lower.includes('trovão') || lower.includes('thunder')) elementos.push('trovao');
+  if (lower.includes('trovão') || lower.includes('thunder')) elementos.push('sonico');
 
   if (categoriaId === 'mortosVivos' || categoriaId === 'undeadRaros') {
     if (!elementos.includes('sombrio')) elementos.push('sombrio');

@@ -52,16 +52,20 @@ const Temas = (prisma) => {
       });
     },
 
+    // Listar temas com paginação DB-level
+    async findPaginated({ limit = 50, offset = 0 } = {}) {
+      const [data, total] = await Promise.all([
+        model.findMany({ orderBy: { nome: 'asc' }, take: limit, skip: offset }),
+        model.count()
+      ]);
+      return { data, total };
+    },
+
     // Buscar por ID
     async findById(id) {
       return await model.findUnique({
         where: { id }
       });
-    },
-
-    // Contar temas
-    async count(where = {}) {
-      return await prisma.temas.count({ where });
     },
 
     // Verificar se tema existe

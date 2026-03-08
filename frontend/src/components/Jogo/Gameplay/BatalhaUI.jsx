@@ -99,6 +99,33 @@ const BatalhaUI = ({
               style={{ width: `${Math.max(0, (jogadorStats.hp_atual / jogadorStats.hp_max) * 100)}%` }}
             />
           </div>
+          {/* Status effects ativos */}
+          {jogadorStats.status_efeitos && jogadorStats.status_efeitos.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {jogadorStats.status_efeitos.map((efeito, i) => {
+                const cores = {
+                  envenenado: 'bg-green-900/50 text-green-300 border-green-500/40',
+                  queimando: 'bg-orange-900/50 text-orange-300 border-orange-500/40',
+                  atordoado: 'bg-yellow-900/50 text-yellow-300 border-yellow-500/40',
+                  paralizado: 'bg-purple-900/50 text-purple-300 border-purple-500/40',
+                  congelado: 'bg-blue-900/50 text-blue-300 border-blue-500/40',
+                  cego: 'bg-gray-800/50 text-gray-300 border-gray-500/40',
+                };
+                const icones = {
+                  envenenado: '🧪', queimando: '🔥', atordoado: '💫',
+                  paralizado: '⚡', congelado: '🧊', cego: '👁️',
+                };
+                return (
+                  <span
+                    key={i}
+                    className={`text-xs px-2 py-0.5 rounded border ${cores[efeito.nome] || 'bg-gray-800/50 text-gray-300 border-gray-500/40'}`}
+                  >
+                    {icones[efeito.nome] || '⚠️'} {efeito.nome} ({efeito.duracao}t)
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -106,24 +133,47 @@ const BatalhaUI = ({
       {log.length > 0 && (
         <div className="border-t border-red-500/20 pt-2 mt-3">
           <div className="space-y-1 max-h-40 overflow-y-auto">
-            {log.slice(-5).map((entry, i) => (
-              <div key={i} className="text-xs text-gray-400 flex items-center space-x-1">
-                <span>{entry.acertou ? '🗡️' : '❌'}</span>
-                <span>
-                  <span className={entry.tipo === 'ataque_jogador' ? 'text-cyan-400' : 'text-red-400'}>
-                    {entry.atacante?.nome || entry.atacante}
+            {log.slice(-5).map((entry, i) => {
+              // Status effect (impedimento)
+              if (entry.tipo === 'status_efeito') {
+                return (
+                  <div key={i} className="text-xs text-purple-400 flex items-center space-x-1">
+                    <span>💫</span>
+                    <span>{entry.personagem || entry.alvo?.nome} está <strong>{entry.status}</strong>!</span>
+                  </div>
+                );
+              }
+              // Status DoT damage
+              if (entry.tipo === 'status_dano') {
+                return (
+                  <div key={i} className="text-xs text-orange-400 flex items-center space-x-1">
+                    <span>{entry.status === 'queimando' ? '🔥' : '🧪'}</span>
+                    <span>
+                      {entry.alvo?.nome} sofre <span className="text-red-300">-{entry.dano} HP</span> de {entry.status}
+                    </span>
+                  </div>
+                );
+              }
+              // Ataques (jogador e monstro)
+              return (
+                <div key={i} className="text-xs text-gray-400 flex items-center space-x-1">
+                  <span>{entry.acertou ? '🗡️' : '❌'}</span>
+                  <span>
+                    <span className={entry.tipo === 'ataque_jogador' ? 'text-cyan-400' : 'text-red-400'}>
+                      {entry.atacante?.nome || entry.atacante}
+                    </span>
+                    {' '}{entry.acertou ? 'acertou' : 'errou'}{' '}
+                    <span className={entry.tipo === 'ataque_jogador' ? 'text-red-400' : 'text-cyan-400'}>
+                      {entry.alvo?.nome || entry.alvo}
+                    </span>
+                    {entry.acertou && entry.dano > 0 && (
+                      <span className="text-orange-300"> (-{entry.dano} HP)</span>
+                    )}
+                    {entry.critico && <span className="text-yellow-300"> CRIT!</span>}
                   </span>
-                  {' '}{entry.acertou ? 'acertou' : 'errou'}{' '}
-                  <span className={entry.tipo === 'ataque_jogador' ? 'text-red-400' : 'text-cyan-400'}>
-                    {entry.alvo?.nome || entry.alvo}
-                  </span>
-                  {entry.acertou && entry.dano > 0 && (
-                    <span className="text-orange-300"> (-{entry.dano} HP)</span>
-                  )}
-                  {entry.critico && <span className="text-yellow-300"> CRIT!</span>}
-                </span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

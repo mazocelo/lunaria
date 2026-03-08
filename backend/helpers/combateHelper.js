@@ -98,7 +98,7 @@ export function calcularStatsEfetivos(monstro, nivel) {
 
   return {
     hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
-    ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.floor(n * 0.7)),
+    ataque: Math.round(monstro.ataque_base + Math.floor(((monstro.forca || 10) - 10) / 2) + Math.floor(n * 0.7)),
     defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
     armadura: Math.max(0, Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
     esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
@@ -342,10 +342,21 @@ export function formatarContextoCombate(combateState, userId) {
     ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max} | Esquiva ${jogadorHP.esquiva || 0}% | Armadura ${jogadorHP.armadura || 0}`
     : 'HP desconhecido';
 
+  // Status effects ativos de todos os jogadores
+  const statusInfo = Object.entries(combateState.jogadores)
+    .map(([_, j]) => {
+      const efeitos = j.status_efeitos || [];
+      if (efeitos.length === 0) return null;
+      return `${j.personagemNome}: ${efeitos.map(e => `${e.nome}(${e.duracao}t)`).join(', ')}`;
+    })
+    .filter(Boolean)
+    .join(' | ');
+
   let contexto = `\n[COMBATE ATIVO - Rodada ${combateState.rodadaCombate}]`;
   contexto += `\n[Monstros vivos: ${monstrosInfo || 'nenhum'}]`;
   if (monstrosDerrotados) contexto += `\n[Monstros derrotados: ${monstrosDerrotados}]`;
   contexto += `\n[Seu status: ${jogadorInfo}]`;
+  if (statusInfo) contexto += `\n[Efeitos ativos: ${statusInfo}]`;
 
   return contexto;
 }

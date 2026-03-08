@@ -2549,6 +2549,21 @@ class SocketManager {
           userSet.delete(socket.userId);
           const shouldDeleteRoom = userSet.size === 0;
           
+          // Forçar snapshot quando último jogador desconecta de uma história
+          if (shouldDeleteRoom && roomId.startsWith('historia_')) {
+            try {
+              const sessaoParaSnapshot = await this.gerenciadorSessoes.obterSessao(roomId);
+              if (sessaoParaSnapshot) {
+                this._tentarSnapshot(roomId, sessaoParaSnapshot, true);
+                this.log('INFO', 'DISCONNECT_FORCED_SNAPSHOT', socket.id, socket.userId, { roomId });
+              }
+            } catch (snapErr) {
+              this.log('ERROR', 'DISCONNECT_SNAPSHOT_ERROR', socket.id, socket.userId, {
+                roomId, error: snapErr.message
+              });
+            }
+          }
+
           if (shouldDeleteRoom) {
             this.roomUsers.delete(roomId);
             this.log('INFO', 'DISCONNECT_DELETED_EMPTY_ROOM', socket.id, socket.userId, {
@@ -3340,6 +3355,7 @@ class SocketManager {
         dificuldade,
         monstros: instancias,
         jogadores: jogadoresCombate,
+        jogadoresQueAgiram: [],
         log: [],
         resultado: null
       };
@@ -3388,86 +3404,151 @@ class SocketManager {
         return;
       }
 
-      // --- ATAQUE DO JOGADOR ---
-      // Determinar alvo (primeiro monstro vivo)
-      const monstroAlvo = combate.monstros.find(m => m.status === 'vivo');
-      if (!monstroAlvo) return;
+      // --- PROCESSAR STATUS EFFECTS DO JOGADOR ---
+      const personagemCompleto_status = sessao.personagensCompletos?.[String(personagem.id)] || {};
+      const statusEfeitos = personagemCompleto_status.status_efeitos || [];
+      // Sync status_efeitos para combate.jogadores (para formatarContextoCombate ter visibilidade)
+      jogadorStats.status_efeitos = statusEfeitos;
+      let impedidoDeAgir = false;
 
-      // Rolar ataque do jogador (d20)
-      const rolagemAtaque = Math.floor(Math.random() * 20) + 1;
-      const personagemCompleto = sessao.personagensCompletos?.[String(personagem.id)] || {};
-      const attrs = personagemCompleto.atributos || {};
-      const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
-      const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
-      const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7) + bonusAtaqueEquip;
-
-      const { acertou, critico } = verificarAcerto(rolagemAtaque);
-
-      let danoTotal = 0;
-      let esquivou = false;
-      if (acertou) {
-        // Critico ignora esquiva
-        if (!critico && verificarEsquiva(monstroAlvo.esquiva || 0)) {
-          esquivou = true;
-        } else {
-          const danoBase = jogadorStats.dano_base || (personagemCompleto.nivel >= 5 ? '1d8' : '1d6');
-          const bonusDanoEquip = jogadorStats.bonusDano || 0;
-          const armaduraMonstro = monstroAlvo.armadura || 0;
-          danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico, armaduraMonstro);
-          // Aplicar resistencias/imunidades do monstro
-          const elementoAtaque = jogadorStats.elemento || null;
-          if (elementoAtaque) {
-            danoTotal = aplicarResistencias(danoTotal, elementoAtaque, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
+      for (const efeito of statusEfeitos) {
+        switch (efeito.nome) {
+          case 'atordoado':
+          case 'paralizado':
+          case 'congelado':
+            impedidoDeAgir = true;
+            this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+              tipo: 'status_efeito',
+              personagem: personagem.nome,
+              userId,
+              status: efeito.nome,
+              mensagem: `${personagem.nome} está ${efeito.nome} e não pode agir!`,
+              timestamp: Date.now()
+            });
+            break;
+          case 'envenenado':
+          case 'queimando': {
+            // Dano por turno: 1d4 para veneno, 1d6 para queimadura
+            const danoPorTurno = efeito.nome === 'envenenado' ? rolarDado('1d4') : rolarDado('1d6');
+            jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
+            if (jogadorStats.hp_atual <= 0) jogadorStats.status = 'derrotado';
+            this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+              tipo: 'status_dano',
+              alvo: { userId, nome: personagem.nome },
+              status: efeito.nome,
+              dano: danoPorTurno,
+              hpRestante: jogadorStats.hp_atual,
+              hpMax: jogadorStats.hp_max,
+              timestamp: Date.now()
+            });
+            if (jogadorStats.status === 'derrotado') {
+              impedidoDeAgir = true;
+              this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+                userId,
+                nome: personagem.nome,
+                hp_atual: 0,
+                hp_max: jogadorStats.hp_max,
+                derrotado: true,
+                timestamp: Date.now()
+              });
+            }
+            break;
           }
-          monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
-
-          if (monstroAlvo.hp_atual <= 0) {
-            monstroAlvo.status = 'derrotado';
-          }
+          case 'cego':
+            // Cego: penalidade de -5 no ataque (aplicado abaixo)
+            break;
         }
       }
 
-      // Log do ataque do jogador
-      const logAtaque = {
-        tipo: 'ataque_jogador',
-        atacante: personagem.nome,
-        alvo: monstroAlvo.nome,
-        rolagem: rolagemAtaque,
-        bonus: bonusAtaque,
-        acertou: acertou && !esquivou,
-        esquivou,
-        critico,
-        dano: danoTotal,
-        armaduraAlvo: monstroAlvo.armadura || 0,
-        hpRestante: monstroAlvo.hp_atual,
-        timestamp: Date.now()
-      };
-      combate.log.push(logAtaque);
+      if (impedidoDeAgir) {
+        // Mesmo impedido, conta como ação do turno e monstros contra-atacam
+        // (skip para seção de contra-ataque abaixo)
+      }
 
-      // Emitir resultado do ataque do jogador
-      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
-        tipo: 'ataque_jogador',
-        atacante: { userId, nome: personagem.nome },
-        alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
-        rolagem: rolagemAtaque,
-        bonus: bonusAtaque,
-        acertou: acertou && !esquivou,
-        esquivou,
-        critico,
-        dano: danoTotal,
-        armaduraAlvo: monstroAlvo.armadura || 0,
-        hpRestante: monstroAlvo.hp_atual,
-        hpMax: monstroAlvo.hp_max,
-        timestamp: Date.now()
-      });
+      // --- ATAQUE DO JOGADOR (só se não impedido por status) ---
+      if (!impedidoDeAgir) {
+        // Determinar alvo (primeiro monstro vivo)
+        const monstroAlvo = combate.monstros.find(m => m.status === 'vivo');
+        if (!monstroAlvo) return;
 
-      // Se monstro derrotado
-      if (monstroAlvo.status === 'derrotado') {
-        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
-          monstro: { id: monstroAlvo.id, nome: monstroAlvo.nome },
-          xp: monstroAlvo.xp || 0,
+        // Rolar ataque do jogador (d20)
+        const rolagemAtaque = Math.floor(Math.random() * 20) + 1;
+        const personagemCompleto = sessao.personagensCompletos?.[String(personagem.id)] || {};
+        const attrs = personagemCompleto.atributos || {};
+        const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
+        const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
+        // Penalidade de cego: -5 no ataque
+        const penalidadeCego = statusEfeitos.some(e => e.nome === 'cego') ? 5 : 0;
+        const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7) + bonusAtaqueEquip - penalidadeCego;
+
+        const { acertou, critico } = verificarAcerto(rolagemAtaque);
+
+        let danoTotal = 0;
+        let esquivou = false;
+        if (acertou) {
+          // Critico ignora esquiva
+          if (!critico && verificarEsquiva(monstroAlvo.esquiva || 0)) {
+            esquivou = true;
+          } else {
+            const danoBase = jogadorStats.dano_base || (personagemCompleto.nivel >= 5 ? '1d8' : '1d6');
+            const bonusDanoEquip = jogadorStats.bonusDano || 0;
+            const armaduraMonstro = monstroAlvo.armadura || 0;
+            danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico, armaduraMonstro);
+            // Aplicar resistencias/imunidades do monstro
+            const elementoAtaque = jogadorStats.elemento || null;
+            if (elementoAtaque) {
+              danoTotal = aplicarResistencias(danoTotal, elementoAtaque, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
+            }
+            monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
+
+            if (monstroAlvo.hp_atual <= 0) {
+              monstroAlvo.status = 'derrotado';
+            }
+          }
+        }
+
+        // Log do ataque do jogador
+        const logAtaque = {
+          tipo: 'ataque_jogador',
+          atacante: personagem.nome,
+          alvo: monstroAlvo.nome,
+          rolagem: rolagemAtaque,
+          bonus: bonusAtaque,
+          acertou: acertou && !esquivou,
+          esquivou,
+          critico,
+          dano: danoTotal,
+          armaduraAlvo: monstroAlvo.armadura || 0,
+          hpRestante: monstroAlvo.hp_atual,
+          timestamp: Date.now()
+        };
+        combate.log.push(logAtaque);
+
+        // Emitir resultado do ataque do jogador
+        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'ataque_jogador',
+          atacante: { userId, nome: personagem.nome },
+          alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
+          rolagem: rolagemAtaque,
+          bonus: bonusAtaque,
+          acertou: acertou && !esquivou,
+          esquivou,
+          critico,
+          dano: danoTotal,
+          armaduraAlvo: monstroAlvo.armadura || 0,
+          hpRestante: monstroAlvo.hp_atual,
+          hpMax: monstroAlvo.hp_max,
           timestamp: Date.now()
         });
+
+        // Se monstro derrotado
+        if (monstroAlvo.status === 'derrotado') {
+          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
+            monstro: { id: monstroAlvo.id, nome: monstroAlvo.nome },
+            xp: monstroAlvo.xp || 0,
+            timestamp: Date.now()
+          });
+        }
       }
 
       // --- CONTRA-ATAQUE DOS MONSTROS ---
@@ -3569,6 +3650,29 @@ class SocketManager {
       if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
         combate.rodadaCombate++;
         combate.jogadoresQueAgiram = [];
+
+        // Tick down status effects de todos os jogadores no fim da rodada
+        for (const [jId, jStats] of Object.entries(combate.jogadores)) {
+          const pCompleto = Object.values(sessao.personagensCompletos || {}).find(
+            p => p.nome === jStats.personagemNome
+          );
+          if (!pCompleto?.status_efeitos) continue;
+          pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
+            e.duracao = (e.duracao || 1) - 1;
+            if (e.duracao <= 0) {
+              this.io.to(roomId).emit('acao_mestre', {
+                tipo: 'status_removido',
+                personagem: jStats.personagemNome,
+                userId: jId,
+                status: e.nome,
+                timestamp: Date.now()
+              });
+              return false;
+            }
+            return true;
+          });
+        }
+
         console.log(`🔄 Combate rodada ${combate.rodadaCombate} na sala ${roomId}`);
       }
 
@@ -3628,20 +3732,9 @@ class SocketManager {
       sessao.estadoJogo = estadoJogo;
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
-      // Emitir evento de combate finalizado
-      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
-        resultado,
-        xpTotal,
-        monstrosDerrotados: combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome),
-        jogadoresSobreviventes: Object.entries(combate.jogadores)
-          .filter(([, j]) => j.status === 'vivo')
-          .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, hp_atual: j.hp_atual })),
-        timestamp: Date.now()
-      });
-
       console.log(`✅ Combate finalizado: ${resultado} | XP: ${xpTotal}`);
 
-      // Persistir XP no banco para cada jogador sobrevivente
+      // Persistir XP no banco ANTES de emitir o evento (garante dados corretos)
       if (xpTotal > 0) {
         try {
           const jogadores = Array.isArray(sessao.jogadoresConectados)
@@ -3705,6 +3798,17 @@ class SocketManager {
           console.error('❌ Erro ao persistir XP no banco:', errXP);
         }
       }
+
+      // Emitir evento de combate finalizado (após XP persistido)
+      this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
+        resultado,
+        xpTotal,
+        monstrosDerrotados: combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome),
+        jogadoresSobreviventes: Object.entries(combate.jogadores)
+          .filter(([, j]) => j.status === 'vivo')
+          .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, hp_atual: j.hp_atual })),
+        timestamp: Date.now()
+      });
 
       // Narrar desfecho via IA
       try {
@@ -3817,7 +3921,7 @@ class SocketManager {
       mestre,
       criadoEm: Date.now(),
       ultimoUso: Date.now(),
-      rodadaInicial: 1
+      rodadaInicial: sessao?.estadoJogo?.rodadaAtual || 1
     });
 
     return mestre;

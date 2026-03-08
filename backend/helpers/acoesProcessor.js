@@ -196,6 +196,13 @@ function processarAplicarDano(acao, sessao, roomId, io) {
   const combate = sessao.estadoJogo?.combate;
   let hpAnterior, hpNovo, hpMax;
 
+  // Aplicar resistências/imunidades elementais do personagem (se houver)
+  if (elemento && alvo.personagem) {
+    const resistencias = alvo.personagem.resistencias || {};
+    const imunidades = alvo.personagem.imunidades || [];
+    danoFinal = aplicarResistencias(danoFinal, elemento, resistencias, imunidades);
+  }
+
   if (combate?.ativo && alvo.userId && combate.jogadores[alvo.userId]) {
     const jogadorCombate = combate.jogadores[alvo.userId];
 

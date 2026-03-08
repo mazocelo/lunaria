@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   // Acesso ao socket store para gerenciar socketToken
   const setSocketToken = useSocketStore(state => state.setSocketToken);
   const clearSocketToken = useSocketStore(state => state.clearSocketToken);
+  const disconnectSocket = useSocketStore(state => state.disconnect);
 
   useEffect(() => {
     // Verificar se há usuário logado ao inicializar
@@ -92,9 +93,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Erro no logout:', error);
     } finally {
-      // Limpar socketToken do Zustand
+      // Desconectar WebSocket e limpar token
+      disconnectSocket();
       clearSocketToken();
-      
+
       setUser(null);
       setIsAuthenticated(false);
       setLoading(false);

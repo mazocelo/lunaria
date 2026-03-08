@@ -66,28 +66,22 @@ export const SalaEsperaView = () => {
     // Só conectar se tiver personagem e não estiver conectado
     if (personagemSelecionado && !isConnected && !isConnecting && !tentouConectarRef.current && user) {
       tentouConectarRef.current = true;
-      
-      console.log('🔒 SalaEspera: Iniciando conexão WebSocket...');
 
       const fromInvite = location.state?.fromInvite || getSelection('configuracoes')?.fromInvite;
-      
+
       if (fromInvite && historiaAtual?.id) {
         // Conectar como convidado
-        console.log('🎯 SalaEspera: Conectando como convidado...');
         jogoViewModel.conectarComoConvidado(historiaAtual.id, personagemSelecionado.id, user)
-          .catch(error => {
-            console.error('❌ SalaEspera: Erro ao conectar convidado:', error);
+          .catch(() => {
             tentouConectarRef.current = false;
           });
       } else {
         // Conectar como anfitrião
-        console.log('👑 SalaEspera: Conectando como anfitrião...');
         jogoViewModel.conectarSocket({
           userId: user?.id,
           username: user?.nome || user?.name,
           email: user?.email
-        }).catch(error => {
-          console.error('❌ SalaEspera: Erro ao conectar anfitrião:', error);
+        }).catch(() => {
           tentouConectarRef.current = false;
         });
       }
@@ -103,40 +97,33 @@ export const SalaEsperaView = () => {
 
         // Handler quando aventura é iniciada
         const handleAventuraIniciada = (data) => {
-          console.log('🎮 SalaEspera: Aventura iniciada!', data);
           navigate(`/jogo/${id}/jogo-ativo`);
         };
 
         // Handler quando entra na sala - verificar se já foi iniciada
         const handleRoomJoined = (data) => {
-          console.log('🏠 SalaEspera: Entrou na sala:', data);
-          
           if (data?.sessao?.status === 'iniciada') {
-            console.log('🎮 SalaEspera: Sessão já iniciada! Redirecionando...');
-            
             // Carregar mensagens se disponíveis
             if (historiaAtual?.id) {
               jogoViewModel.carregarMensagensSalvas(historiaAtual.id);
             }
-            
+
             // Ir para jogo ativo
             navigate(`/jogo/${id}/jogo-ativo`);
           }
         };
 
         // Adicionar listeners
-        console.log('📡 SalaEspera: Configurando listeners WebSocket');
         socketStore.on('aventura_iniciada', handleAventuraIniciada);
         socketStore.on('room_joined', handleRoomJoined);
 
         // Cleanup
         return () => {
-          console.log('🧹 SalaEspera: Removendo listeners WebSocket');
           socketStore.off('aventura_iniciada', handleAventuraIniciada);
           socketStore.off('room_joined', handleRoomJoined);
         };
       } catch (error) {
-        console.error('❌ SalaEspera: Erro ao configurar listeners:', error);
+        // silenced
       }
     };
 
@@ -146,12 +133,10 @@ export const SalaEsperaView = () => {
   // 🎯 HANDLERS
   const handleIniciarJogo = async () => {
     try {
-      console.log('🎮 SalaEspera: Handler iniciar jogo chamado');
       await jogoViewModel.iniciarJogo();
-      console.log('✅ SalaEspera: Jogo iniciado, aguardando evento aventura_iniciada...');
       // Navegação será feita pelo listener aventura_iniciada
     } catch (error) {
-      console.error('❌ SalaEspera: Erro ao iniciar jogo:', error);
+      // silenced
     }
   };
 

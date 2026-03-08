@@ -116,26 +116,22 @@ export class JogoViewModel {
   async initializeGame(historiaId, options = {}) {
     // Proteção contra inicializações duplicadas APENAS se já estiver inicializando
     if (this.isInitializing) {
-      console.log('⏭️ JogoViewModel: Ignorando inicialização (já inicializando)');
       return;
     }
 
     try {
       this.isInitializing = true;
       this.clearErrors();
-      
-      console.log('🚀 JogoViewModel: Iniciando jogo para história', historiaId);
-      
+
       // Carregar história (usa sua própria flag de loading)
       await this.carregarHistoria(historiaId);
-      
+
       // Inicializar ViewModels específicos
       await this.initializeEtapaViewModels();
-      
+
       this.isInitializing = false;
       this.notify();
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao inicializar jogo:', error);
       this.setError('Erro ao inicializar jogo: ' + error.message);
       this.isInitializing = false;
       this.notify();
@@ -159,7 +155,6 @@ export class JogoViewModel {
       // Inicializar ViewModel de input
       inputAreaViewModel.initialize(this.setLoading.bind(this));
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao inicializar ViewModels específicos:', error);
       throw error;
     }
   }
@@ -171,7 +166,6 @@ export class JogoViewModel {
   async carregarHistoria(historiaId) {
     // Proteção APENAS contra carregamento simultâneo da história
     if (this.isLoadingHistoria) {
-      console.log('⏭️ JogoViewModel: Ignorando carregamento de história (já carregando)');
       return;
     }
 
@@ -179,21 +173,18 @@ export class JogoViewModel {
       this.isLoadingHistoria = true;
       this.setLoading(true);
       this.clearErrors();
-      
-      console.log('📖 JogoViewModel: Carregando história', historiaId);
+
       const historia = await historiaService.getById(historiaId);
       this.historiaAtual = historia;
-      
+
       // ✅ SINCRONIZAR COM GAMESTORE
       const gameStore = getGameStoreAPI();
       gameStore.setHistoriaAtual(historia);
-      console.log('✅ JogoViewModel: História sincronizada com GameStore:', historia.nome);
-      
+
       this.setLoading(false);
       this.isLoadingHistoria = false;
       this.notify();
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao carregar história:', error);
       this.setError('Erro ao carregar história: ' + error.message);
       this.setLoading(false);
       this.isLoadingHistoria = false;
@@ -208,16 +199,14 @@ export class JogoViewModel {
   async carregarPersonagens(userId) {
     // Proteção contra carregamentos duplicados
     if (!this.historiaAtual || !userId || this.loadingPersonagens) {
-      console.log('⏭️ JogoViewModel: Ignorando carregamento de personagens (já carregando ou sem dados)');
       return;
     }
 
     try {
       this.setLoadingPersonagens(true);
       this.clearErrorPersonagens();
-      
+
       const response = await personagemService.getByUsuarioEHistoria(userId, this.historiaAtual.id);
-      console.log('🔄 JogoViewModel: Personagens carregados:', response.personagens);
       // Atualizar estado local
       const personagens = response.personagens || [];
       this.personagensDaHistoria = personagens;
@@ -227,7 +216,6 @@ export class JogoViewModel {
       this.setLoadingPersonagens(false);
       this.notify();
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao carregar personagens:', error);
       this.setErrorPersonagens(error.message);
       this.setLoadingPersonagens(false);
       this.notify();
@@ -246,13 +234,9 @@ export class JogoViewModel {
     try {
       this.setLoadingPersonagens(true);
       this.clearErrorPersonagens();
-      
-      console.log('🔄 JogoViewModel: Recarregando personagens...', { userId, historiaId: this.historiaAtual.id });
-      
+
       const response = await personagemService.getByUsuarioEHistoria(userId, this.historiaAtual.id);
-      
-      console.log('✅ JogoViewModel: Personagens recarregados:', response.personagens);
-      
+
       // Atualizar estado local (força atualização)
       const personagens = response.personagens || [];
       this.personagensDaHistoria = personagens;
@@ -262,7 +246,6 @@ export class JogoViewModel {
       this.setLoadingPersonagens(false);
       this.notify();
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao recarregar personagens:', error);
       this.setErrorPersonagens(error.message);
       this.setLoadingPersonagens(false);
       this.notify();
@@ -281,18 +264,12 @@ export class JogoViewModel {
     // Converter ambos para string para garantir comparação correta
     this.isDonoSala = String(this.historiaAtual?.id_usuario) === String(user?.id);
     this.salaAberta = true;
-    
-    console.log('👑 JogoViewModel: Verificando dono da sala (USUÁRIO, não personagem)');
-    console.log('  - historiaUsuarioId:', this.historiaAtual?.id_usuario, '| tipo:', typeof this.historiaAtual?.id_usuario);
-    console.log('  - userId:', user?.id, '| tipo:', typeof user?.id);
-    console.log('  - isDonoSala:', this.isDonoSala);
-    
+
     // ✅ SINCRONIZAR COM GAMESTORE
     const gameStore = getGameStoreAPI();
     gameStore.selecionarPersonagem(personagem);
     gameStore.setIsDonoSala(this.isDonoSala);
     gameStore.abrirSala();
-    console.log('✅ JogoViewModel: Personagem sincronizado com GameStore:', personagem.nome);
     
     // Adicionar o usuário atual como participante
     const novoParticipante = {
@@ -304,8 +281,6 @@ export class JogoViewModel {
       isOwner: this.isDonoSala,  // Usar valor calculado
       status: 'pronto'  // Já selecionou personagem
     };
-    
-    console.log('👤 JogoViewModel: Adicionando participante inicial (você mesmo):', novoParticipante);
     
     this.participantes = [novoParticipante];
     
@@ -327,24 +302,17 @@ export class JogoViewModel {
    */
   async iniciarJogo() {
     try {
-      console.log('🚀 JogoViewModel: Iniciando jogo via API...', {
-        historiaId: this.historiaAtual?.id
-      });
-      
       // ✅ Chamar API para iniciar partida (isso emitirá aventura_iniciada via WebSocket)
       await etapaSalaEsperaViewModel.iniciarPartidaViaAPI(
         this.historiaAtual?.id,
         `Bem-vindos à aventura "${this.historiaAtual?.nome}"! Que a jornada comece!`
       );
-      
-      console.log('✅ JogoViewModel: Jogo iniciado com sucesso via API');
-      
+
       // Atualizar estado local
       this.salaAberta = true;
       this.notify();
-      
+
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao iniciar jogo:', error);
       this.setError(error.message || 'Erro ao iniciar jogo');
       throw error;
     }
@@ -383,10 +351,8 @@ export class JogoViewModel {
         throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
       }
 
-      console.log('✅ JogoViewModel: Usuário autenticado (cookies HttpOnly gerenciados automaticamente)');
       return true;
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao validar autenticação:', error);
       throw error;
     }
   }
@@ -397,10 +363,6 @@ export class JogoViewModel {
    */
   async conectarSocket(connectionData) {
     try {
-      console.log('🔗 JogoViewModel: Conectando anfitrião ao WebSocket...');
-      console.log('  - userId:', connectionData.userId, '| tipo:', typeof connectionData.userId);
-      console.log('  - username:', connectionData.username);
-      
       this.isConnecting = true;
       this.clearErrors();
       this.notify();
@@ -408,22 +370,15 @@ export class JogoViewModel {
       // Validar autenticação
       await this.validarAutenticacao();
 
-      console.log('🔌 JogoViewModel: Conectando ao WebSocket...');
-      
       // Obter store dinamicamente
       const socketStore = getSocketStoreAPI();
-      
+
       // Conectar ao WebSocket (socketToken já está no store Zustand)
       await socketStore.connect();
 
-      console.log('✅ JogoViewModel: Conectado! Socket ID:', socketStore.getState().socket?.id);
-
-      // Autenticar
-      console.log('🔐 JogoViewModel: Autenticando...');
-      
       // Obter socketToken do Zustand store
       const socketToken = socketStore.getState().socketToken;
-      
+
       await socketStore.authenticate({
         token: socketToken,
         userId: String(connectionData.userId),
@@ -431,33 +386,11 @@ export class JogoViewModel {
         email: connectionData.email
       });
 
-      console.log('✅ JogoViewModel: Autenticado! User:', socketStore.getState().currentUser);
-
       // Aguardar um pouco para garantir que autenticação foi processada no backend
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Se tiver história, entrar na sala
       if (this.historiaAtual?.id && this.personagemSelecionado?.id) {
-        console.log('🚪 JogoViewModel: Entrando na sala...', { 
-          historiaId: this.historiaAtual.id,
-          personagemId: this.personagemSelecionado.id
-        });
-
-        const roomId = `historia_${this.historiaAtual.id}`;
-        
-        // Dados para join_room (backend espera: roomId, userId, username, historiaId)
-        const joinData = {
-          roomId: roomId,
-          userId: String(connectionData.userId),
-          username: connectionData.username,
-          historiaId: String(this.historiaAtual.id),
-          personagemId: String(this.personagemSelecionado.id),
-          personagemNome: this.personagemSelecionado.nome
-        };
-        
-        console.log('📤 JogoViewModel: Enviando dados para join_room:', joinData);
-        console.log('  - personagemSelecionado:', this.personagemSelecionado);
-        
         await socketStore.joinRoom({
           // Dados completos para prepareRoomData normalizar
           id: this.historiaAtual.id,
@@ -470,44 +403,26 @@ export class JogoViewModel {
           personagemNome: this.personagemSelecionado.nome || 'Personagem'
         });
         
-        console.log('✅ JogoViewModel: Entrou na sala com sucesso!');
-        
         // CARREGAR PARTICIPANTES IMEDIATAMENTE da sessão
         const roomState = socketStore.getState();
-        console.log('📊 JogoViewModel: Estado do socket após joinRoom:', {
-          inRoom: roomState.inRoom,
-          roomId: roomState.roomId,
-          hasSession: !!roomState.session,
-          sessionKeys: roomState.session ? Object.keys(roomState.session) : []
-        });
-        
+
         if (roomState.session?.jogadoresConectados) {
-          console.log('📋 JogoViewModel: Carregando participantes da sessão:', roomState.session.jogadoresConectados);
-          console.log('📋 JogoViewModel: Participantes locais existentes:', this.participantes);
-          
           const participantesFormatados = roomState.session.jogadoresConectados.map(j => {
             // Verificar se já existe este participante localmente
             const participanteExistente = this.participantes.find(p => String(p.userId) === String(j.userId));
-            
+
             const isOwner = String(j.userId) === String(this.historiaAtual?.id_usuario);
-            
-            console.log('  - Jogador:', j.username, '| userId:', j.userId);
-            console.log('    - Da sessão:', { personagemNome: j.personagemNome, personagemId: j.personagemId });
-            console.log('    - Local existente:', participanteExistente ? { personagem: participanteExistente.personagem, personagemNome: participanteExistente.personagemNome } : 'não existe');
-            console.log('    - isOwner:', isOwner);
-            
+
             // Se existe localmente, MESCLAR dados (preservar dados locais completos)
             if (participanteExistente) {
-              console.log('    → Mesclando com dados locais (preservando personagemNome local)');
               return {
                 ...j,                      // Dados da sessão
                 ...participanteExistente,  // Sobrescrever com dados locais (preserva personagemNome)
                 isOwner: isOwner           // Sempre atualizar isOwner com valor correto
               };
             }
-            
+
             // Se não existe, criar novo a partir da sessão
-            console.log('    → Criando novo participante da sessão');
             return {
               userId: j.userId,
               username: j.username,
@@ -519,14 +434,10 @@ export class JogoViewModel {
             };
           });
           
-          console.log('✅ JogoViewModel: Atualizando participantes com', participantesFormatados.length, 'jogadores (mesclados)');
           this.atualizarParticipantes(participantesFormatados);
-        } else {
-          console.log('⚠️ JogoViewModel: Sessão não contém jogadoresConectados ou está vazia');
         }
-        
+
         // ✅ SINCRONIZAR COM SOCKET STORE (atualização em tempo real)
-        console.log('🔗 JogoViewModel: Configurando sincronização automática com socket store...');
         
         // Se já existir um unsubscribe anterior, chamar primeiro
         if (this.socketStoreUnsubscribe) {
@@ -537,21 +448,15 @@ export class JogoViewModel {
         const unsubscribe = socketStore.subscribe((state, prevState) => {
           // Verificar se participantes mudaram
           if (state.participantes && state.participantes.length !== prevState?.participantes?.length) {
-            console.log('🔄 JogoViewModel: Participantes atualizados no socket store, sincronizando...', {
-              total: state.participantes.length,
-              participantes: state.participantes
-            });
             this.atualizarParticipantes(state.participantes);
           }
         });
-        
+
         // Guardar para cleanup posterior
         this.socketStoreUnsubscribe = unsubscribe;
-        console.log('✅ JogoViewModel: Sincronização automática configurada!');
-        
+
         // ✅ VERIFICAR SE SESSÃO FOI INICIADA - Redirecionar para jogo ativo
         if (roomState.session?.status === 'iniciada') {
-          console.log('🎮 JogoViewModel: Sessão já foi iniciada! Redirecionando para jogo ativo...');
           
           // Carregar mensagens
           await this.carregarMensagensSalvas(this.historiaAtual.id);
@@ -563,8 +468,6 @@ export class JogoViewModel {
           this.isConnecting = false;
           this.socketError = null;
           this.notify();
-          
-          console.log('✅ JogoViewModel: Redirecionado para jogo ativo com sucesso!');
           return;
         }
       }
@@ -573,13 +476,10 @@ export class JogoViewModel {
       this.isConnected = true;
       this.isConnecting = false;
       this.socketError = null;
-      
-      console.log('✅ JogoViewModel: Anfitrião conectado com sucesso!');
-      
+
       this.notify();
 
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao conectar WebSocket:', error);
       this.socketError = error.message || 'Erro ao conectar';
       this.isConnecting = false;
       this.isConnected = false;
@@ -596,8 +496,6 @@ export class JogoViewModel {
    */
   async conectarComoConvidado(historiaId, personagemId, user) {
     try {
-      console.log('🔗 JogoViewModel: Conectando convidado...', { historiaId, personagemId, userId: user?.id });
-      
       this.isConnecting = true;
       this.clearErrors();
       this.notify();
@@ -610,12 +508,6 @@ export class JogoViewModel {
         throw new Error('Sala não encontrada ou ainda não foi criada');
       }
 
-      console.log('✅ JogoViewModel: Dados da sessão obtidos', { 
-        salaId: sessao.salaId,
-        status: sessao.status,
-        totalJogadores: sessao.totalJogadores 
-      });
-
       // 2. Validar autenticação
       await this.validarAutenticacao();
 
@@ -624,18 +516,11 @@ export class JogoViewModel {
       const socketStore = getSocketStoreAPI();
 
       // 4. Conectar ao WebSocket (socketToken já está no store Zustand)
-      console.log('🔌 JogoViewModel: Conectando convidado ao WebSocket...');
-      
       await socketStore.connect();
 
-      console.log('✅ JogoViewModel: Convidado conectado! Socket ID:', socketStore.getState().socket?.id);
-
-      // 5. Autenticar
-      console.log('🔐 JogoViewModel: Autenticando convidado...');
-      
       // Obter socketToken do Zustand store
       const socketToken = socketStore.getState().socketToken;
-      
+
       await socketStore.authenticate({
         token: socketToken,
         userId: String(user.id),
@@ -643,31 +528,12 @@ export class JogoViewModel {
         email: user.email
       });
 
-      console.log('✅ JogoViewModel: Convidado autenticado! User:', socketStore.getState().currentUser);
-
       // Aguardar processamento no backend
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // 6. Entrar na sala
-      console.log('🚪 JogoViewModel: Convidado entrando na sala...', { 
-        roomId: sessao.salaId,
-        historiaId,
-        personagemId
-      });
-
       const personagem = this.personagemSelecionado;
-      const roomId = `historia_${historiaId}`;
-      
-      // Dados para join_room (backend espera: roomId, userId, username, historiaId)
-      const joinData = {
-        roomId: roomId,
-        userId: String(user.id),
-        username: user.nome || user.name,
-        historiaId: String(historiaId)
-      };
-      
-      console.log('📤 JogoViewModel: Convidado enviando dados para join_room:', joinData);
-      
+
       await socketStore.joinRoom({
         // Dados completos para prepareRoomData normalizar
         id: parseInt(historiaId),
@@ -680,19 +546,14 @@ export class JogoViewModel {
         personagemNome: personagem?.nome || 'Personagem'
       });
 
-      console.log('✅ JogoViewModel: Convidado entrou na sala com sucesso!');
-
       // 7. Atualizar estado local
       this.isConnected = true;
       this.isConnecting = false;
       this.socketError = null;
-      
-      console.log('✅ JogoViewModel: Convidado conectado com sucesso!');
-      
+
       this.notify();
 
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao conectar como convidado:', error);
       this.socketError = error.message || 'Erro ao conectar à sala';
       this.isConnecting = false;
       this.isConnected = false;
@@ -711,8 +572,6 @@ export class JogoViewModel {
     // ✅ SINCRONIZAR COM GAMESTORE
     const gameStore = getGameStoreAPI();
     gameStore.adicionarMensagem(mensagem);
-    
-    console.log('💬 JogoViewModel: Mensagem adicionada e sincronizada:', mensagem.tipo, mensagem.message?.substring(0, 50));
     
     this.notify();
   }
@@ -736,7 +595,6 @@ export class JogoViewModel {
     const gameStore = getGameStoreAPI();
     gameStore.setMensagens(this.mensagens);
     
-    console.log(`🧹 JogoViewModel: Mensagens limpas e sincronizadas. Total: ${this.mensagens.length}`);
     this.notify();
   }
 
@@ -746,25 +604,14 @@ export class JogoViewModel {
    */
   async carregarMensagensSalvas(historiaId) {
     try {
-      console.log('💬 JogoViewModel: Carregando mensagens salvas da história:', historiaId);
-      
       // Usar historiaService com token
       const statusData = await historiaService.getStatusJogo(historiaId);
       const { sessao } = statusData || {};
-      
-      console.log('🔍 JogoViewModel: Dados da sessão recebidos:', {
-        temSessao: !!sessao,
-        temMensagens: !!sessao?.mensagens,
-        ehArray: Array.isArray(sessao?.mensagens),
-        quantidade: sessao?.mensagens?.length || 0,
-        temJogadores: !!sessao?.jogadores
-      });
-      
+
       // ✅ Carregar participantes da sessão
       if (sessao?.jogadores) {
         const jogadoresArray = Object.values(sessao.jogadores);
         if (jogadoresArray.length > 0) {
-          console.log('👥 JogoViewModel: Carregando participantes da sessão:', jogadoresArray);
           const participantesFormatados = jogadoresArray.map(j => ({
             userId: j.id,
             username: j.nome,
@@ -777,9 +624,6 @@ export class JogoViewModel {
       }
       
       if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
-        console.log(`✅ JogoViewModel: ${sessao.mensagens.length} mensagens carregadas do Redis`);
-        console.log('📋 JogoViewModel: Primeiras mensagens:', sessao.mensagens.slice(0, 2));
-        
         const mensagensFormatadas = sessao.mensagens.map(m => ({
           id: m.timestamp || Date.now(),
           userId: m.userId,
@@ -794,19 +638,13 @@ export class JogoViewModel {
         // ✅ SINCRONIZAR COM GAMESTORE
         const gameStore = getGameStoreAPI();
         gameStore.setMensagens(mensagensFormatadas);
-        
-        console.log(`✅ JogoViewModel: ${mensagensFormatadas.length} mensagens sincronizadas com GameStore`);
-        console.log('📋 JogoViewModel: Mensagens formatadas (primeiras 2):', mensagensFormatadas.slice(0, 2));
-        
+
         this.notify();
         return sessao.mensagens.length;
       } else {
-        console.log('ℹ️ JogoViewModel: Nenhuma mensagem salva encontrada ou formato inválido');
-        console.log('🔍 JogoViewModel: sessao completa:', sessao);
         return 0;
       }
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao carregar mensagens salvas:', error);
       return 0;
     }
   }
@@ -818,8 +656,6 @@ export class JogoViewModel {
    */
   async retomarJogo(historiaId, user) {
     try {
-      console.log('🔄 JogoViewModel: Retomando jogo da história:', historiaId, 'User:', user);
-      
       this.setLoading(true);
       this.clearErrors();
       
@@ -834,35 +670,10 @@ export class JogoViewModel {
         throw new Error('Sessão não encontrada');
       }
       
-      console.log('📊 JogoViewModel: Sessão encontrada:', {
-        status: sessao.status,
-        totalJogadores: sessao.totalJogadores,
-        totalMensagens: sessao.mensagens?.length || 0,
-        jogadoresConectados: sessao.jogadoresConectados
-      });
-      
-      console.log('🔍 JogoViewModel: Buscando jogador na sessão...', {
-        userId: user?.id,
-        userIdTipo: typeof user?.id,
-        totalJogadores: sessao.jogadores ? Object.keys(sessao.jogadores).length : 0,
-        mapaJogadores: sessao.jogadores
-      });
-      
       // 3. Buscar personagem do usuário no mapa de jogadores (IMUTÁVEL)
       const dadosJogador = sessao.jogadores?.[String(user?.id)];
 
-      console.log('🔍 JogoViewModel: Resultado da busca no mapa:', {
-        encontrado: !!dadosJogador,
-        jogador: dadosJogador,
-        temPersonagemId: !!dadosJogador?.personagemId
-      });
-
       if (dadosJogador?.personagemId) {
-        console.log('🎭 JogoViewModel: Personagem encontrado no mapa de jogadores:', {
-          personagemId: dadosJogador.personagemId,
-          personagemNome: dadosJogador.personagemNome
-        });
-        
         try {
           // Buscar dados completos do personagem
           const personagem = await personagemService.getById(dadosJogador.personagemId);
@@ -872,13 +683,7 @@ export class JogoViewModel {
           
           // Definir se é dono da sala
           this.isDonoSala = String(this.historiaAtual?.id_usuario) === String(user?.id);
-          
-          console.log('✅ JogoViewModel: Personagem pré-selecionado:', {
-            nome: personagem.nome,
-            id: personagem.id,
-            isDonoSala: this.isDonoSala
-          });
-          
+
           // ✅ SINCRONIZAR COM GAMESTORE
           const gameStore = getGameStoreAPI();
           gameStore.setHistoriaAtual(this.historiaAtual);
@@ -886,10 +691,7 @@ export class JogoViewModel {
           gameStore.setIsDonoSala(this.isDonoSala);
           gameStore.abrirSala(); // Sala está aberta se está retomando
           
-          console.log('✅ JogoViewModel: GameStore sincronizado para retomada de jogo');
-          
         } catch (error) {
-          console.error('❌ JogoViewModel: Erro ao carregar personagem:', error);
           // Continuar sem personagem - carregar lista para escolher
           if (user?.id) {
             await this.carregarPersonagens(user.id);
@@ -899,7 +701,6 @@ export class JogoViewModel {
           return;
         }
       } else {
-        console.log('⚠️ JogoViewModel: Usuário não tem personagem selecionado na sessão');
         // Sem personagem - carregar lista para escolher
         if (user?.id) {
           await this.carregarPersonagens(user.id);
@@ -911,23 +712,15 @@ export class JogoViewModel {
       }
       
       // 4. Conectar ao WebSocket automaticamente com personagem já selecionado
-      console.log('🔌 JogoViewModel: Conectando ao WebSocket automaticamente...');
-      
       try {
         await this.conectarSocket({
           userId: user?.id,
           username: user?.nome || user?.name,
           email: user?.email
         });
-        
-        console.log('✅ JogoViewModel: Conectado e pronto para jogar!');
       } catch (error) {
-        console.error('❌ JogoViewModel: Erro ao conectar WebSocket:', error);
         // Continuar mesmo sem conexão - usuário pode tentar conectar manualmente
       }
-      
-      // 5. Ir direto para jogo ativo (só se personagem foi encontrado e selecionado)
-      console.log('🎮 JogoViewModel: Retomando jogo ativo diretamente com personagem...');
       
       // Carregar mensagens salvas
       await this.carregarMensagensSalvas(historiaId);
@@ -938,11 +731,9 @@ export class JogoViewModel {
       }
       
       this.setLoading(false);
-      console.log('✅ JogoViewModel: Jogo retomado com sucesso!');
-      
+
       this.notify();
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao retomar jogo:', error);
       this.setError('Erro ao retomar jogo: ' + error.message);
       this.setLoading(false);
       this.notify();
@@ -967,11 +758,8 @@ export class JogoViewModel {
     // Evitar duplicatas
     const jaExiste = this.participantes.find(p => p.userId === participante.userId);
     if (!jaExiste) {
-      console.log('👤 JogoViewModel: Adicionando participante:', participante);
       this.participantes = [...this.participantes, participante];
       this.notify();
-    } else {
-      console.log('⚠️ JogoViewModel: Participante já existe na lista:', participante.userId);
     }
   }
 
@@ -980,7 +768,6 @@ export class JogoViewModel {
    * @param {string} userId - ID do usuário a ser removido
    */
   removerParticipante(userId) {
-    console.log('👋 JogoViewModel: Removendo participante:', userId);
     this.participantes = this.participantes.filter(p => p.userId !== userId);
     this.notify();
   }
@@ -990,7 +777,6 @@ export class JogoViewModel {
    * @param {Array} listaCompleta - Nova lista de participantes
    */
   atualizarParticipantes(listaCompleta) {
-    console.log('📋 JogoViewModel: Atualizando lista completa de participantes:', listaCompleta);
     this.participantes = listaCompleta;
     
     // ✅ SINCRONIZAR COM GAMESTORE
@@ -1008,7 +794,6 @@ export class JogoViewModel {
    */
   mudarEtapa(etapa) {
     // Deprecated - rotas gerenciam navegação
-    console.warn('⚠️ JogoViewModel.mudarEtapa() está deprecated. Use navegação por rotas.');
   }
 
   /**
@@ -1099,7 +884,7 @@ export class JogoViewModel {
       etapaJogoRPGViewModel.reset();
       inputAreaViewModel.reset();
     } catch (error) {
-      console.error('❌ JogoViewModel: Erro ao resetar ViewModels específicos:', error);
+      // silenced
     }
   }
 

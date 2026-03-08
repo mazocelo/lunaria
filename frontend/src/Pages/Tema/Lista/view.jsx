@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { temaViewModel } from '../../../viewmodels/Temas';
 import { useTheme } from '../../../contexts/theme.jsx';
@@ -7,6 +7,8 @@ import { ROUTES, generateRoute } from '../../../routes.jsx';
 import { TabelaList, PageHeader } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
+import Notification from '../../../components/Notification.jsx';
+import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const TemaListaView = () => {
@@ -14,6 +16,10 @@ const TemaListaView = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [temaToDelete, setTemaToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => { vm.loadTemas(); }, []);
 
@@ -27,10 +33,29 @@ const TemaListaView = () => {
     );
   }
 
-  const handleDelete = async (row) => {
-    if (window.confirm(`Tem certeza que deseja excluir o tema "${row.nome}"?`)) {
-      await vm.deleteTema(row.id);
+  const handleDeleteClick = (row) => {
+    setTemaToDelete(row);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!temaToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await vm.deleteTema(temaToDelete.id);
+      setShowDeleteModal(false);
+      setTemaToDelete(null);
+    } catch (error) {
+      console.error('Erro ao deletar tema:', error);
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setTemaToDelete(null);
+    setDeleteLoading(false);
   };
 
   const columns = [
@@ -73,16 +98,14 @@ const TemaListaView = () => {
       label: 'Excluir',
       icon: <Trash2 size={18} />,
       color: 'red',
-      onClick: handleDelete
+      onClick: handleDeleteClick
     }
   ];
 
   return (
     <div className="animate-fade-in space-y-6">
       {vm.error && (
-        <div className={`mb-4 p-4 rounded-lg border ${isLight ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-500/20 border-red-500/30 text-red-300'}`}>
-          {vm.error}
-        </div>
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
       )}
 
       <PageHeader
@@ -113,6 +136,18 @@ const TemaListaView = () => {
         emptyMessage="Nenhum tema encontrado"
         emptyIcon={<Palette size={32} />}
         hoverable={true}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        title="Deletar Tema"
+        message={`Tem certeza de que deseja deletar o tema "${temaToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        loading={deleteLoading}
+        variant="danger"
       />
     </div>
   );

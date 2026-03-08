@@ -62,18 +62,9 @@ const EtapaSalaEspera = ({
 
         // Listener para quando um jogador entra na sala
         const handleUserJoined = (data) => {
-          console.log('👤 EtapaSalaEspera: Jogador (USUÁRIO) entrou na sala via WebSocket!');
-          console.log('  - userId:', data.userId);
-          console.log('  - username:', data.username);
-          console.log('  - personagemNome:', data.personagemNome);
-          console.log('  - personagemId:', data.personagemId);
-          console.log('  - status:', data.status);
-          
           // Verificar se é dono comparando userId com donoId da história (converter para string)
           const isOwner = historia?.id_usuario ? String(data.userId) === String(historia.id_usuario) : false;
-          
-          console.log('  - isOwner:', isOwner, '(historia.id_usuario:', historia?.id_usuario, ')');
-          
+
           const novoParticipante = {
             userId: data.userId,
             username: data.username,
@@ -84,29 +75,25 @@ const EtapaSalaEspera = ({
             isOwner: isOwner  // Usar valor calculado baseado no USUÁRIO
           };
           
-          console.log('➕ EtapaSalaEspera: Adicionando à lista:', novoParticipante);
           jogoViewModel.adicionarParticipante(novoParticipante);
         };
 
         // Listener para quando um jogador sai da sala
         const handleUserLeft = (data) => {
-          console.log('👋 EtapaSalaEspera: Jogador saiu da sala:', data);
           jogoViewModel.removerParticipante(data.userId);
         };
 
         // Listener para carregar lista inicial ao entrar na sala
         const handleRoomJoined = (data) => {
-          console.log('🏠 EtapaSalaEspera: Entrou na sala, carregando jogadores (USUÁRIOS):', data);
-          
           // Carregar lista inicial de jogadores já conectados
           if (data.sessao?.jogadoresConectados && Array.isArray(data.sessao.jogadoresConectados)) {
             // donoId vem da sessão (id do USUÁRIO que criou a história)
             const donoId = data.sessao.donoId;
-            
+
             const jogadoresFormatados = data.sessao.jogadoresConectados.map(j => {
               // Comparar userId do jogador com donoId da história (converter ambos para string)
               const isOwner = String(j.userId) === String(donoId);
-              
+
               return {
                 userId: j.userId,
                 username: j.username,
@@ -115,12 +102,7 @@ const EtapaSalaEspera = ({
                 isOwner: isOwner  // Baseado no USUÁRIO, não no personagem
               };
             });
-            
-            console.log('📋 EtapaSalaEspera: Jogadores formatados com verificação de dono:', {
-              donoId: donoId,
-              jogadores: jogadoresFormatados.map(j => ({ userId: j.userId, username: j.username, isOwner: j.isOwner }))
-            });
-            
+
             jogoViewModel.atualizarParticipantes(jogadoresFormatados);
           }
         };
@@ -130,17 +112,14 @@ const EtapaSalaEspera = ({
         socketStore.on('user_left', handleUserLeft);
         socketStore.on('room_joined', handleRoomJoined);
 
-        console.log('📡 EtapaSalaEspera: Listeners de jogadores configurados');
-
         // Cleanup
         return () => {
           socketStore.off('user_joined', handleUserJoined);
           socketStore.off('user_left', handleUserLeft);
           socketStore.off('room_joined', handleRoomJoined);
-          console.log('🧹 EtapaSalaEspera: Listeners de jogadores removidos');
         };
       } catch (error) {
-        console.error('❌ EtapaSalaEspera: Erro ao configurar listeners:', error);
+        // silenced
       }
     };
 
@@ -153,29 +132,17 @@ const EtapaSalaEspera = ({
   const participantesFormatados = etapaSalaEsperaViewModel.formatarParticipantes(participantes, user);
   const connectionStatus = etapaSalaEsperaViewModel.getConnectionStatus(socketConnected);
   
-  // 🔍 DEBUG: Estado da renderização
-  console.log('🎭 EtapaSalaEspera: Estado atual da renderização:');
-  console.log('  - participantes (raw):', participantes);
-  console.log('  - participantesFormatados:', participantesFormatados);
-  console.log('  - isDonoSala:', isDonoSala);
-  console.log('  - salaAberta:', salaAberta);
-  console.log('  - userId atual:', user?.id);
-  console.log('  - socketConnected:', socketConnected);
-  
   // 🎯 HANDLERS: Delegar para callback (view gerencia API)
   const handleIniciarJogo = async () => {
     if (!onIniciarJogo) {
-      console.warn('⚠️ EtapaSalaEspera: onIniciarJogo não definido');
       return;
     }
-    
+
     setIniciandoJogo(true);
     try {
-      console.log('🚀 EtapaSalaEspera: Chamando onIniciarJogo...');
       await onIniciarJogo();
-      console.log('✅ EtapaSalaEspera: onIniciarJogo concluído');
     } catch (error) {
-      console.error('❌ EtapaSalaEspera: Erro em onIniciarJogo:', error);
+      // silenced
     } finally {
       setIniciandoJogo(false);
     }

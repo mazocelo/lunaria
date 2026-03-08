@@ -5,6 +5,7 @@ import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
+import Notification from '../../../components/Notification.jsx';
 import { Skull, Circle, Gem, Leaf } from 'lucide-react';
 
 const MonstroListaView = () => {
@@ -157,6 +158,10 @@ const MonstroListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {vm.error && (
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
+      )}
+
       <PageHeader
         title="Monstros"
         subtitle="Bestiário do mundo de Lunária"
@@ -172,7 +177,7 @@ const MonstroListaView = () => {
 
       <SearchBar
         placeholder="Buscar monstros..."
-        onChange={(texto) => vm.buscarMonstros?.(texto)}
+        onChange={(texto) => vm.buscarMonstros(texto)}
       />
 
       <TabelaList

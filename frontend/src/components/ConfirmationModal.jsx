@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme } from '../contexts/theme.jsx';
+import { AlertTriangle, Info } from 'lucide-react';
 
 const ConfirmationModal = ({ 
     isOpen, 
@@ -25,30 +26,30 @@ const ConfirmationModal = ({
 
     const typeClasses = {
         danger: {
-            icon: '⚠️',
-            button: isLight 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
+            icon: <AlertTriangle size={20} className="text-red-500" />,
+            button: isLight
+                ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-red-600 hover:bg-red-700 text-white',
-            border: isLight 
-                ? 'border-red-500/20' 
+            border: isLight
+                ? 'border-red-500/20'
                 : 'border-red-500/30'
         },
         warning: {
-            icon: '⚠️',
-            button: isLight 
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+            icon: <AlertTriangle size={20} className="text-yellow-500" />,
+            button: isLight
+                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
                 : 'bg-yellow-600 hover:bg-yellow-700 text-white',
-            border: isLight 
-                ? 'border-yellow-500/20' 
+            border: isLight
+                ? 'border-yellow-500/20'
                 : 'border-yellow-500/30'
         },
         info: {
-            icon: 'ℹ️',
-            button: isLight 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+            icon: <Info size={20} className="text-blue-500" />,
+            button: isLight
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white',
-            border: isLight 
-                ? 'border-blue-500/20' 
+            border: isLight
+                ? 'border-blue-500/20'
                 : 'border-blue-500/30'
         }
     };
@@ -71,7 +72,7 @@ const ConfirmationModal = ({
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                             isLight ? 'bg-slate-100' : 'bg-slate-700'
                         }`}>
-                            <span className="text-lg">{currentType.icon}</span>
+                            {currentType.icon}
                         </div>
                         <div className="flex-1">
                             <h3 className={`text-lg font-semibold font-fantasy mb-1 ${

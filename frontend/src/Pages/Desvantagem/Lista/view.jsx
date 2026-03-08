@@ -7,6 +7,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import Notification from '../../../components/Notification.jsx';
 import { AlertTriangle, Eye, BarChart3, Tag } from 'lucide-react';
 
 const DesvantagemListaView = () => {
@@ -117,6 +118,10 @@ const DesvantagemListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {vm.error && (
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
+      )}
+
       <PageHeader
         title="Desvantagens"
         subtitle="Fraquezas e desvantagens para personagens"
@@ -131,7 +136,7 @@ const DesvantagemListaView = () => {
 
       <SearchBar
         placeholder="Buscar desvantagens..."
-        onChange={(texto) => vm.buscarDesvantagens?.(texto)}
+        onChange={(texto) => vm.buscarDesvantagens(texto)}
       />
 
       <TabelaList

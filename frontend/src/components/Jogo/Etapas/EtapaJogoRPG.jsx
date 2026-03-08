@@ -10,7 +10,7 @@ import BatalhaUI from '../Gameplay/BatalhaUI';
 import InventarioPanel from '../Gameplay/InventarioPanel';
 import LevelUpCelebration from '../Gameplay/LevelUpCelebration';
 import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
-import NotificationManager from '../NotificationManager';
+import NotificationManager, { showGameNotification } from '../NotificationManager';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
 import { personagemService } from '../../../services';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS, PARTICLES } from '../../../constants/game';
@@ -126,10 +126,10 @@ const EtapaJogoRPG = ({
           });
         });
       } catch (error) {
-        console.error('❌ Erro ao conectar ao socket store:', error);
+        // silenced
       }
     };
-    
+
     setupSocketStoreSubscription();
     
     return () => {
@@ -163,17 +163,14 @@ const EtapaJogoRPG = ({
   // 🧹 Listener para limpar mensagens de dados quando ordem definida
   useEffect(() => {
     const limparMensagensDados = async () => {
-      console.log('🧹 Evento de limpar mensagens recebido');
-      
       // Filtrar mensagens para manter apenas a do Mestre
       const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
       const mensagensAtuais = jogoViewModel.getState().mensagens || [];
-      
+
       // Manter apenas mensagens do tipo 'mestre'
       const mensagensFiltradas = mensagensAtuais.filter(m => m.tipo === 'mestre' || m.tipo === 'entre_rodadas');
-      
+
       jogoViewModel.limparMensagensDados(mensagensFiltradas);
-      console.log(`✅ Mensagens filtradas: ${mensagensAtuais.length} → ${mensagensFiltradas.length}`);
     };
 
     window.addEventListener('limparMensagensDados', limparMensagensDados);
@@ -222,19 +219,17 @@ const EtapaJogoRPG = ({
 
         // Listener para mensagens do Mestre
         const handleMensagemMestre = async (data) => {
-          console.log('🎭 Mensagem do Mestre recebida:', data);
-          
           // ✅ Remover mensagens de loading antes de adicionar resposta real
           try {
             const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
             const mensagensAtuais = jogoViewModel.getState().mensagens || [];
             const mensagensSemLoading = mensagensAtuais.filter(m => m.tipo !== 'loading');
-            
+
             if (mensagensAtuais.length !== mensagensSemLoading.length) {
               jogoViewModel.setMensagens(mensagensSemLoading);
             }
           } catch (error) {
-            console.error('Erro ao limpar loading:', error);
+            // silenced
           }
           
           // ✅ Desativar loading e limpar estado de dados solicitados
@@ -258,8 +253,6 @@ const EtapaJogoRPG = ({
 
         // Listener para mensagens de chat normais (eco dos jogadores)
         const handleChatMessage = (data) => {
-          console.log('💬 Mensagem de chat recebida:', data);
-          
           // Só adicionar se não for mestre (mensagens do mestre vêm pelo outro listener)
           if (data.userId !== 'mestre' && data.tipo !== 'mestre') {
             if (onAdicionarMensagem) {
@@ -270,8 +263,6 @@ const EtapaJogoRPG = ({
 
         // Listener para resultados de dados
         const handleResultadoDado = (data) => {
-          console.log('🎲 Resultado de dado recebido:', data);
-          
           const mensagem = {
             id: data.id || `dado_${Date.now()}`,
             userId: data.userId,
@@ -290,8 +281,6 @@ const EtapaJogoRPG = ({
 
         // Listener para mensagens roleplay
         const handleMensagemRoleplay = (data) => {
-          console.log('💬 Mensagem roleplay recebida:', data);
-          
           const mensagem = {
             id: data.id || Date.now(),
             userId: data.userId,
@@ -308,8 +297,6 @@ const EtapaJogoRPG = ({
 
         // Listener para rodada finalizada (narrativa entre rodadas)
         const handleRodadaFinalizada = (data) => {
-          console.log('🏁 Rodada finalizada:', data);
-          
           const mensagem = {
             id: `rodada_${data.rodada}_fim`,
             tipo: 'entre_rodadas',
@@ -325,8 +312,6 @@ const EtapaJogoRPG = ({
 
         // Listener para ordem definida - limpar chat de dados
         const handleOrdemDefinida = (data) => {
-          console.log('📋 Ordem definida - limpando mensagens de dados:', data);
-          
           // Emitir evento customizado para limpar mensagens
           const event = new CustomEvent('limparMensagensDados');
           window.dispatchEvent(event);
@@ -334,17 +319,14 @@ const EtapaJogoRPG = ({
 
         // Listener para dice_roll (dados normais durante o jogo)
         const handleDiceRoll = (data) => {
-          console.log('🎲 Dado rolado - data recebido:', data);
-          
           // ✅ Se era o usuário atual que rolou, transição: dado → aguardando mestre
           const user = JSON.parse(localStorage.getItem('user') || '{}');
           if (String(data.userId) === String(user.id)) {
             setDadosSolicitados(false);
             setDadoSolicitadoInfo(null);
             setAguardandoMestre(true);
-            console.log('✅ Dado rolado - aguardando resposta do Mestre...');
           }
-          
+
           const mensagem = {
             id: data.id || `dice_${Date.now()}`,
             userId: data.userId,
@@ -354,14 +336,7 @@ const EtapaJogoRPG = ({
             tipo: 'dado',
             timestamp: data.timestamp || Date.now()
           };
-          
-          console.log('🎲 Mensagem criada para adicionar:', {
-            tipo: mensagem.tipo,
-            result: mensagem.result,
-            dice: mensagem.dice,
-            username: mensagem.username
-          });
-          
+
           if (onAdicionarMensagem) {
             onAdicionarMensagem(mensagem);
           }
@@ -369,7 +344,6 @@ const EtapaJogoRPG = ({
 
         // Listener para solicitação de dados do Mestre
         const handleMestreSolicitaDados = (data) => {
-          console.log('🎲 Mestre solicitou dados:', data);
 
           // ✅ Ativar estado de dados solicitados com info completa
           setDadosSolicitados(true);
@@ -382,7 +356,6 @@ const EtapaJogoRPG = ({
 
         // Listener para level up
         const handleLevelUp = (data) => {
-          console.log('🎉 Level Up recebido:', data);
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           if (String(data.userId) === String(currentUser.id)) {
             setLevelUpData({
@@ -404,7 +377,6 @@ const EtapaJogoRPG = ({
 
         // Listener para acoes do mestre (itens, cura, etc)
         const handleAcaoMestre = (data) => {
-          console.log('🎯 Ação do Mestre recebida:', data);
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           if (data.tipo === 'item_recebido' && String(data.userId) === String(currentUser.id)) {
             // Atualizar equipamentos localmente se disponivel
@@ -415,9 +387,10 @@ const EtapaJogoRPG = ({
               ];
             }
           } else if (data.tipo === 'item_removido' && String(data.userId) === String(currentUser.id)) {
-            if (personagemSelecionado && data.itemNome) {
+            const nomeItem = data.item?.nome || data.itemNome;
+            if (personagemSelecionado && nomeItem) {
               personagemSelecionado.equipamentos = (personagemSelecionado.equipamentos || [])
-                .filter(e => e.nome !== data.itemNome);
+                .filter(e => e.nome !== nomeItem);
             }
           }
         };
@@ -434,8 +407,6 @@ const EtapaJogoRPG = ({
         socketStore.on('level_up', handleLevelUp);
         socketStore.on('acao_mestre', handleAcaoMestre);
 
-        console.log('📡 Listeners de mensagens configurados');
-
         // Cleanup
         return () => {
           socketStore.off('mensagem_mestre', handleMensagemMestre);
@@ -448,10 +419,9 @@ const EtapaJogoRPG = ({
           socketStore.off('mestre_solicita_dados', handleMestreSolicitaDados);
           socketStore.off('level_up', handleLevelUp);
           socketStore.off('acao_mestre', handleAcaoMestre);
-          console.log('🧹 Listeners de mensagens removidos');
         };
       } catch (error) {
-        console.error('❌ Erro ao configurar listeners de mensagens:', error);
+        // silenced
       }
     };
 
@@ -484,19 +454,16 @@ const EtapaJogoRPG = ({
 
   const handleEnviarMensagem = async () => {
     if (!mensagemAtual.trim()) {
-      console.log('⚠️ Mensagem vazia, não enviando');
       return;
     }
-    
+
     // Prevenir envios duplicados
     if (enviandoRef.current) {
-      console.log('⚠️ Já está enviando mensagem, aguarde...');
       return;
     }
-    
+
     try {
       enviandoRef.current = true;
-      console.log('📤 EtapaJogoRPG: Iniciando envio de mensagem:', mensagemAtual.substring(0, 50));
       
       // Importar socketStore dinamicamente
       const { getSocketStoreAPI } = await import('../../../store/index.js');

@@ -7,6 +7,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList, PageHeader, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import Notification from '../../../components/Notification.jsx';
 import { Shield, Eye, Gift, Coins } from 'lucide-react';
 
 const ClasseListaView = () => {
@@ -87,6 +88,10 @@ const ClasseListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {vm.error && (
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
+      )}
+
       <PageHeader
         title="Classes"
         subtitle="Classes disponíveis para personagens"
@@ -101,7 +106,7 @@ const ClasseListaView = () => {
 
       <SearchBar
         placeholder="Buscar classes..."
-        onChange={(texto) => vm.buscarClasses?.(texto)}
+        onChange={(texto) => vm.buscarClasses(texto)}
       />
 
       <TabelaList

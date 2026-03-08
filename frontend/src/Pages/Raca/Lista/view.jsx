@@ -7,6 +7,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList, PageHeader, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import Notification from '../../../components/Notification.jsx';
 import { Dna, Eye, Gift, Coins } from 'lucide-react';
 
 const RacaListaView = () => {
@@ -87,6 +88,10 @@ const RacaListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {vm.error && (
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
+      )}
+
       <PageHeader
         title="Raças"
         subtitle="Raças disponíveis para personagens"
@@ -101,7 +106,7 @@ const RacaListaView = () => {
 
       <SearchBar
         placeholder="Buscar raças..."
-        onChange={(texto) => vm.buscarRacas?.(texto)}
+        onChange={(texto) => vm.buscarRacas(texto)}
       />
 
       <TabelaList

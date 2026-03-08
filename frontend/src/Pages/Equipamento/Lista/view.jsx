@@ -5,6 +5,8 @@ import { equipamentoViewModel } from '../../../viewmodels/Equipamentos/Equipamen
 import { catalogoService } from '../../../services/index.js';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
+import Notification from '../../../components/Notification.jsx';
+import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { TabelaList, PageHeader, Badge } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
@@ -29,6 +31,10 @@ const EquipamentoListaView = () => {
   const isLight = theme === 'light';
   const [raridades, setRaridades] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [equipToDelete, setEquipToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
     vm.loadEquipamentos();
@@ -45,6 +51,34 @@ const EquipamentoListaView = () => {
       </div>
     );
   }
+
+  const handleDeleteClick = (row) => {
+    setEquipToDelete(row);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!equipToDelete) return;
+    setDeleteLoading(true);
+    try {
+      const result = await vm.deleteEquipamento(equipToDelete.id);
+      if (!result.success) {
+        setDeleteError(result.error);
+      }
+      setShowDeleteModal(false);
+      setEquipToDelete(null);
+    } catch (error) {
+      setDeleteError(`Erro ao deletar equipamento: ${error.message}`);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setEquipToDelete(null);
+    setDeleteLoading(false);
+  };
 
   const countByRaridade = (nome) => (vm.equipamentos || []).filter(e => e.raridade_rel?.nome === nome).length;
 
@@ -123,12 +157,7 @@ const EquipamentoListaView = () => {
       label: 'Deletar',
       icon: <Trash2 size={18} />,
       color: 'red',
-      onClick: async (row) => {
-        if (window.confirm(`Deseja realmente excluir "${row.nome}"?`)) {
-          const result = await vm.deleteEquipamento(row.id);
-          if (!result.success) alert(result.error);
-        }
-      }
+      onClick: handleDeleteClick
     }
   ];
 
@@ -144,20 +173,23 @@ const EquipamentoListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {(vm.error || deleteError) && (
+        <Notification message={vm.error || deleteError} type="error" onClose={() => { vm.clearError?.(); setDeleteError(null); }} />
+      )}
+
       <PageHeader
         title="Equipamentos"
-        subtitle="Armas, armaduras e itens magicos"
+        subtitle="Armas, armaduras e itens mágicos"
         icon={Sword}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Total de Equipamentos" value={vm.totalCount || vm.equipamentos?.length || 0} icon={Sword} variant="primary" />
         <StatCard title="Raros" value={countByRaridade('Raro')} icon={Gem} variant="secondary" />
-        <StatCard title="Lendarios" value={countByRaridade('Lendario')} icon={Trophy} variant="accent" />
+        <StatCard title="Lendários" value={countByRaridade('Lendario')} icon={Trophy} variant="accent" />
         <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon={Flame} variant="primary" />
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-wrap gap-4 mb-4">
         <select
           value={vm.categoriaFilter}
@@ -199,6 +231,18 @@ const EquipamentoListaView = () => {
         emptyMessage="Nenhum equipamento encontrado"
         emptyIcon={<Sword size={32} />}
         hoverable={true}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        title="Deletar Equipamento"
+        message={`Tem certeza de que deseja deletar "${equipToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        loading={deleteLoading}
+        variant="danger"
       />
     </div>
   );

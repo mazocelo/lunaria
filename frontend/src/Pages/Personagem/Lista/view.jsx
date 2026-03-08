@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { personagemViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { ROUTES, generateRoute } from '../../../routes.jsx';
 import { TabelaList, SearchBar, PageHeader, Badge } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import Notification from '../../../components/Notification.jsx';
 import { Users, Plus, Eye, Pencil, Trash2, Shield, Sparkles } from 'lucide-react';
 
 const PersonagemListaView = () => {
@@ -13,6 +15,11 @@ const PersonagemListaView = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  // Estado para delete individual
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [personagemToDelete, setPersonagemToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Estado para bulk delete
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -24,12 +31,29 @@ const PersonagemListaView = () => {
     vm.clearError();
   }, []);
 
-  const handleDeletePersonagem = async (id) => {
+  const handleDeleteClick = (row) => {
+    setPersonagemToDelete(row);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!personagemToDelete) return;
+    setDeleteLoading(true);
     try {
-      await vm.deletePersonagem(id);
+      await vm.deletePersonagem(personagemToDelete.id);
+      setShowDeleteModal(false);
+      setPersonagemToDelete(null);
     } catch (error) {
       console.error("Erro ao deletar personagem:", error);
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setPersonagemToDelete(null);
+    setDeleteLoading(false);
   };
 
   const handleBulkDeleteClick = (ids) => {
@@ -69,24 +93,19 @@ const PersonagemListaView = () => {
     );
   }
 
-  // Renderizador para ícone da classe
-  const renderClasseIcon = (personagem) => {
-    const classe = personagem.classe || 'Aventureiro';
-    return (
-      <div className="flex items-center space-x-3">
-        <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-          <Shield size={16} className="text-white" />
-        </div>
-        <div>
-          <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-            {personagem.nome}
-          </div>
+  const renderClasseIcon = (personagem) => (
+    <div className="flex items-center space-x-3">
+      <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+        <Shield size={16} className="text-white" />
+      </div>
+      <div>
+        <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
+          {personagem.nome}
         </div>
       </div>
-    );
-  };
+    </div>
+  );
 
-  // Renderizador para nível
   const renderNivel = (personagem) => (
     <div className="flex items-center space-x-2">
       <span className="text-cyan-400 font-semibold">
@@ -96,7 +115,6 @@ const PersonagemListaView = () => {
     </div>
   );
 
-  // Renderizador para HP
   const renderHP = (personagem) => (
     <div className="flex items-center space-x-2">
       <span className="text-red-400 font-semibold">
@@ -107,49 +125,49 @@ const PersonagemListaView = () => {
   );
 
   const columns = [
-    { 
-      key: 'id', 
-      label: 'ID', 
-      align: 'left', 
+    {
+      key: 'id',
+      label: 'ID',
+      align: 'left',
       render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
     },
-    { 
-      key: 'nome', 
-      label: 'Nome', 
-      align: 'left', 
+    {
+      key: 'nome',
+      label: 'Nome',
+      align: 'left',
       render: renderClasseIcon
     },
-    { 
-      key: 'classe', 
-      label: 'Classe', 
-      align: 'left', 
+    {
+      key: 'classe',
+      label: 'Classe',
+      align: 'left',
       render: (row) => (
         <span className={`${isLight ? 'text-slate-700' : 'text-white'} font-semibold font-modern`}>
           {row.classe || 'Aventureiro'}
         </span>
       )
     },
-    { 
-      key: 'raca', 
-      label: 'Raça', 
-      align: 'left', 
+    {
+      key: 'raca',
+      label: 'Raça',
+      align: 'left',
       render: (row) => (
         <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern`}>
           {row.raca || 'Humano'}
         </span>
       )
     },
-    { 
-      key: 'historias', 
-      label: 'Histórias', 
-      align: 'left', 
+    {
+      key: 'historias',
+      label: 'Histórias',
+      align: 'left',
       render: (row) => {
         const historias = Array.isArray(row.historias) && row.historias.length > 0
           ? row.historias
-          : row.historia_nome 
-            ? [{ nome: row.historia_nome }] 
+          : row.historia_nome
+            ? [{ nome: row.historia_nome }]
             : [];
-        
+
         if (historias.length === 0) {
           return (
             <span className={`${isLight ? 'text-slate-500' : 'text-slate-400'} font-modern text-sm italic`}>
@@ -157,7 +175,7 @@ const PersonagemListaView = () => {
             </span>
           );
         }
-        
+
         return (
           <div className="flex flex-wrap gap-1">
             {historias.map((historia, index) => (
@@ -167,16 +185,16 @@ const PersonagemListaView = () => {
         );
       }
     },
-    { 
-      key: 'nivel', 
-      label: 'Nível', 
-      align: 'left', 
+    {
+      key: 'nivel',
+      label: 'Nível',
+      align: 'left',
       render: renderNivel
     },
-    { 
-      key: 'hp', 
-      label: 'HP', 
-      align: 'left', 
+    {
+      key: 'hp',
+      label: 'HP',
+      align: 'left',
       render: renderHP
     }
   ];
@@ -186,31 +204,34 @@ const PersonagemListaView = () => {
       label: 'Ver',
       icon: <Eye size={18} />,
       color: 'purple',
-      onClick: (row) => navigate(`/ver-personagem/${row.id}`)
+      onClick: (row) => navigate(generateRoute.verPersonagem(row.id))
     },
     {
       label: 'Editar',
       icon: <Pencil size={18} />,
       color: 'cyan',
-      onClick: (row) => navigate(`/editar-personagem/${row.id}`)
+      onClick: (row) => navigate(generateRoute.editarPersonagem(row.id))
     },
     {
       label: 'Deletar',
       icon: <Trash2 size={18} />,
       color: 'red',
-      onClick: (row) => handleDeletePersonagem(row.id)
+      onClick: handleDeleteClick
     }
   ];
 
   return (
     <div className="animate-fade-in space-y-6">
-      {/* Header da página */}
+      {vm.error && (
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
+      )}
+
       <PageHeader
         title="Personagens & Heróis"
         subtitle="Gerencie seus personagens e heróis épicos"
         icon={Users}
         actions={
-          <Link to="/novo-personagem">
+          <Link to={ROUTES.NOVO_PERSONAGEM}>
             <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer">
               <Plus size={18} />
               <span>Novo Personagem</span>
@@ -219,21 +240,17 @@ const PersonagemListaView = () => {
         }
       />
 
-      {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard title="Total de Personagens" value={vm.estatisticas?.total || 0} icon={Users} variant="primary" />
         <StatCard title="Guerreiros" value={vm.estatisticas?.guerreiros || 0} icon={Shield} variant="secondary" />
         <StatCard title="Magos" value={vm.estatisticas?.magos || 0} icon={Sparkles} variant="accent" />
       </div>
 
-      {/* Busca */}
       <SearchBar
         placeholder="Buscar personagens por nome..."
         onChange={(texto) => vm.buscarPersonagens(texto)}
-        className="mb-4"
       />
 
-      {/* Tabela de personagens */}
       <TabelaList
         header="Lista de Personagens"
         columns={columns}
@@ -250,6 +267,19 @@ const PersonagemListaView = () => {
         bulkActions={[
           { label: 'Deletar Selecionados', icon: <Trash2 size={14} />, color: 'red', onClick: handleBulkDeleteClick }
         ]}
+      />
+
+      {/* Modal de Delete Individual */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        title="Deletar Personagem"
+        message={`Tem certeza de que deseja deletar "${personagemToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        loading={deleteLoading}
+        variant="danger"
       />
 
       {/* Modal de Bulk Delete */}
@@ -269,4 +299,3 @@ const PersonagemListaView = () => {
 };
 
 export default PersonagemListaView;
-

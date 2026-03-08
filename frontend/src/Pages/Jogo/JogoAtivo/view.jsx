@@ -60,18 +60,16 @@ export const JogoAtivoView = () => {
     const inicializarOuRetomar = async () => {
       // Se não tem história carregada, pode ser uma retomada de sessão
       if (!historiaAtual) {
-        console.log('🔄 JogoAtivo: Sem história carregada, tentando retomar sessão...');
         try {
           const { historiaService } = await import('../../../services/index.js');
           const sessaoData = await historiaService.verificarSessaoAtiva(id);
-          
+
           if (sessaoData && sessaoData.hasActiveSession) {
             // Retomar jogo com história e personagem da sessão
             await jogoViewModel.retomarJogo(id, user);
-            console.log('✅ JogoAtivo: Sessão retomada com sucesso!');
           }
         } catch (error) {
-          console.error('❌ JogoAtivo: Erro ao retomar sessão:', error);
+          // silenced
         }
       }
     };

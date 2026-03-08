@@ -7,6 +7,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import Notification from '../../../components/Notification.jsx';
 import { Sparkles, Eye, TrendingUp, TrendingDown } from 'lucide-react';
 
 const VantagemListaView = () => {
@@ -123,6 +124,10 @@ const VantagemListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {vm.error && (
+        <Notification message={vm.error} type="error" onClose={vm.clearError} />
+      )}
+
       <PageHeader
         title="Vantagens"
         subtitle="Habilidades e poderes para personagens"
@@ -137,7 +142,7 @@ const VantagemListaView = () => {
 
       <SearchBar
         placeholder="Buscar vantagens..."
-        onChange={(texto) => vm.buscarVantagens?.(texto)}
+        onChange={(texto) => vm.buscarVantagens(texto)}
       />
 
       <TabelaList

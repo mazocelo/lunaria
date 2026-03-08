@@ -48,7 +48,6 @@ export const MessageTypeSelector = ({ selectedType, onTypeChange, className = ''
   ];
 
   const handleTypeChange = (value) => {
-    console.log('🔘 [MessageTypeSelector] Botão clicado:', value);
     onTypeChange(value);
   };
 

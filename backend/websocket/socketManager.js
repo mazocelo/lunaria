@@ -46,8 +46,14 @@ class SocketManager {
    * Previne race conditions quando múltiplos jogadores agem simultaneamente
    */
   async withRoomLock(roomId, fn) {
-    // Esperar lock anterior terminar
+    // Esperar lock anterior terminar (max 10s para evitar deadlock)
+    const maxWait = Date.now() + 10000;
     while (this._roomLocks.has(roomId)) {
+      if (Date.now() > maxWait) {
+        console.warn(`⚠️ withRoomLock: timeout esperando lock da sala ${roomId}, forçando liberação`);
+        this._roomLocks.delete(roomId);
+        break;
+      }
       await this._roomLocks.get(roomId).catch(() => {});
     }
     // Criar novo lock
@@ -3053,7 +3059,17 @@ class SocketManager {
             if (!pCompleto.status_efeitos || pCompleto.status_efeitos.length === 0) continue;
             pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
               e.duracao = (e.duracao || 1) - 1;
-              return e.duracao > 0;
+              if (e.duracao <= 0) {
+                this.io.to(roomId).emit('acao_mestre', {
+                  tipo: 'status_removido',
+                  personagem: pCompleto.nome,
+                  status: e.nome,
+                  timestamp: Date.now()
+                });
+                console.log(`✨ Status expirado (solo): ${pCompleto.nome} ← ${e.nome}`);
+                return false;
+              }
+              return true;
             });
           }
         }

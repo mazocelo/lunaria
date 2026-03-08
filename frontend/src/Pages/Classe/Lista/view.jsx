@@ -4,9 +4,10 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { classeViewModel } from '../../../viewmodels/Classes/ClasseViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList } from '../../../components/shared';
+import { TabelaList, PageHeader } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import { Shield, Eye, Gift, Coins } from 'lucide-react';
 
 const ClasseListaView = () => {
   const vm = useViewModel(classeViewModel);
@@ -74,7 +75,7 @@ const ClasseListaView = () => {
   const actions = [
     {
       label: 'Ver',
-      icon: '👁️',
+      icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => navigate(generateRoute.verClasse(row.id))
     }
@@ -86,21 +87,16 @@ const ClasseListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            Classes
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Classes disponiveis para personagens
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Classes"
+        subtitle="Classes disponiveis para personagens"
+        icon={Shield}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Total de Classes" value={vm.classes?.length || 0} icon="⚔️" variant="primary" />
-        <StatCard title="Gratuitas" value={gratuitas} icon="🆓" variant="secondary" />
-        <StatCard title="Com Custo" value={pagas} icon="💰" variant="accent" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total de Classes" value={vm.classes?.length || 0} icon={Shield} variant="primary" />
+        <StatCard title="Gratuitas" value={gratuitas} icon={Gift} variant="secondary" />
+        <StatCard title="Com Custo" value={pagas} icon={Coins} variant="accent" />
       </div>
 
       <TabelaList

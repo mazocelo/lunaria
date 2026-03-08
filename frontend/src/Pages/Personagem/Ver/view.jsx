@@ -4,26 +4,25 @@ import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { verPersonagemViewModel } from './viewmodel';
 import Button from '../../../components/form/button';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { Badge } from '../../../components/shared';
+import {
+  User, ArrowLeft, Pencil, BarChart3, Star, ScrollText, Search,
+  Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
+  Package, Plus, X, Check, Loader2
+} from 'lucide-react';
 
 const atributosConfig = [
-  { key: 'forca', label: 'Forca', icon: '💪' },
-  { key: 'inteligencia', label: 'Inteligencia', icon: '🧠' },
-  { key: 'constituicao', label: 'Constituicao', icon: '🛡️' },
-  { key: 'agilidade', label: 'Agilidade', icon: '⚡' },
-  { key: 'destreza', label: 'Destreza', icon: '🎯' },
-  { key: 'carisma', label: 'Carisma', icon: '✨' },
+  { key: 'forca', label: 'Forca', icon: Swords },
+  { key: 'inteligencia', label: 'Inteligencia', icon: Brain },
+  { key: 'constituicao', label: 'Constituicao', icon: ShieldCheck },
+  { key: 'agilidade', label: 'Agilidade', icon: Zap },
+  { key: 'destreza', label: 'Destreza', icon: Target },
+  { key: 'carisma', label: 'Carisma', icon: Sparkles },
 ];
 
-const raridadeColors = (raridade, isLight) => {
-  const map = {
-    'Comum': isLight ? 'bg-gray-100 text-gray-800' : 'bg-gray-500/20 text-gray-400',
-    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
-    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
-    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
-    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
-    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
-  };
-  return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
+const raridadeVariant = {
+  'Comum': 'slate', 'Incomum': 'green', 'Raro': 'blue',
+  'Muito Raro': 'purple', 'Lendario': 'amber', 'Artefato': 'red',
 };
 
 const bonusLabels = {
@@ -56,7 +55,7 @@ const VerPersonagemView = () => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center space-x-3">
-          <div className="w-6 h-6 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <Loader2 size={24} className="animate-spin text-purple-400" />
           <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando personagem...</span>
         </div>
       </div>
@@ -67,7 +66,9 @@ const VerPersonagemView = () => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="card-rpg text-center p-8 max-w-md">
-          <span className="text-4xl mb-4 block">❌</span>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-500/20">
+            <X size={32} className="text-red-400" />
+          </div>
           <h2 className={`text-xl font-bold mb-2 ${isLight ? 'text-slate-800' : 'text-white'}`}>Erro</h2>
           <p className="text-slate-400 mb-4">{vm.error}</p>
           <Button variant="ghost" onClick={() => navigate('/personagens')}>Voltar</Button>
@@ -92,7 +93,7 @@ const VerPersonagemView = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center">
-              <span className="text-3xl">🧝</span>
+              <User size={32} className="text-white" />
             </div>
             <div>
               <h1 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
@@ -104,8 +105,24 @@ const VerPersonagemView = () => {
             </div>
           </div>
           <div className="flex space-x-2">
-            <Button variant="ghost" onClick={() => navigate('/personagens')}>Voltar</Button>
-            <Button variant="secondary" onClick={() => navigate(`/editar-personagem/${p.id}`)}>Editar</Button>
+            <button
+              onClick={() => navigate('/personagens')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
+                isLight
+                  ? 'border border-slate-300 text-slate-600 hover:bg-slate-50'
+                  : 'border border-slate-600 text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              <ArrowLeft size={16} />
+              Voltar
+            </button>
+            <button
+              onClick={() => navigate(`/editar-personagem/${p.id}`)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
+            >
+              <Pencil size={16} />
+              Editar
+            </button>
           </div>
         </div>
       </div>
@@ -143,7 +160,7 @@ const VerPersonagemView = () => {
       {pontosPendentes > 0 && (
         <div className="card-rpg border border-yellow-500/30 bg-yellow-500/10">
           <div className="flex items-center space-x-3 mb-4">
-            <span className="text-2xl">⬆️</span>
+            <ChevronUp size={24} className="text-yellow-400" />
             <div>
               <h2 className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 Pontos para Distribuir
@@ -154,30 +171,33 @@ const VerPersonagemView = () => {
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {atributosConfig.map(attr => (
-              <div key={attr.key} className={`flex items-center justify-between p-2 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
-                <span className={`font-modern text-sm ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                  {attr.icon} {attr.label}
-                </span>
-                <div className="flex items-center space-x-1">
-                  <button
-                    type="button"
-                    onClick={() => vm.setPontoAtributo(attr.key, (vm.pontosParaDistribuir?.[attr.key] || 0) - 1)}
-                    className="w-6 h-6 rounded bg-slate-600 text-white text-xs flex items-center justify-center hover:bg-slate-500"
-                    disabled={(vm.pontosParaDistribuir?.[attr.key] || 0) <= 0}
-                  >-</button>
-                  <span className="w-6 text-center font-modern text-sm text-cyan-400">
-                    {vm.pontosParaDistribuir?.[attr.key] || 0}
+            {atributosConfig.map(attr => {
+              const AttrIcon = attr.icon;
+              return (
+                <div key={attr.key} className={`flex items-center justify-between p-2 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
+                  <span className={`font-modern text-sm flex items-center gap-1.5 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                    <AttrIcon size={14} /> {attr.label}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => vm.setPontoAtributo(attr.key, (vm.pontosParaDistribuir?.[attr.key] || 0) + 1)}
-                    className="w-6 h-6 rounded bg-purple-600 text-white text-xs flex items-center justify-center hover:bg-purple-500"
-                    disabled={(vm.totalPontosDistribuir || 0) >= pontosPendentes}
-                  >+</button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => vm.setPontoAtributo(attr.key, (vm.pontosParaDistribuir?.[attr.key] || 0) - 1)}
+                      className="w-6 h-6 rounded bg-slate-600 text-white text-xs flex items-center justify-center hover:bg-slate-500"
+                      disabled={(vm.pontosParaDistribuir?.[attr.key] || 0) <= 0}
+                    >-</button>
+                    <span className="w-6 text-center font-modern text-sm text-cyan-400">
+                      {vm.pontosParaDistribuir?.[attr.key] || 0}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => vm.setPontoAtributo(attr.key, (vm.pontosParaDistribuir?.[attr.key] || 0) + 1)}
+                      className="w-6 h-6 rounded bg-purple-600 text-white text-xs flex items-center justify-center hover:bg-purple-500"
+                      disabled={(vm.totalPontosDistribuir || 0) >= pontosPendentes}
+                    >+</button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {(vm.totalPontosDistribuir || 0) > 0 && (
             <div className="mt-4">
@@ -198,7 +218,7 @@ const VerPersonagemView = () => {
       <div className="card-rpg">
         <div className="flex items-center space-x-3 mb-4">
           <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-            <span className="text-sm">📊</span>
+            <BarChart3 size={16} className="text-white" />
           </div>
           <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Atributos
@@ -208,9 +228,12 @@ const VerPersonagemView = () => {
           {atributosConfig.map(attr => {
             const valor = p[attr.key] || p.atributos?.[attr.key] || 10;
             const mod = Math.floor((valor - 10) / 2);
+            const AttrIcon = attr.icon;
             return (
               <div key={attr.key} className={`p-3 rounded-lg text-center ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
-                <div className="text-lg mb-1">{attr.icon}</div>
+                <div className="mb-1 flex justify-center">
+                  <AttrIcon size={20} className={isLight ? 'text-slate-500' : 'text-slate-400'} />
+                </div>
                 <div className={`font-modern text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{attr.label}</div>
                 <div className={`text-2xl font-bold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{valor}</div>
                 <div className={`text-xs font-modern ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -227,7 +250,7 @@ const VerPersonagemView = () => {
         <div className="card-rpg">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-              <span className="text-sm">⭐</span>
+              <Star size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Vantagens & Desvantagens
@@ -267,7 +290,7 @@ const VerPersonagemView = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-sm">📜</span>
+              <ScrollText size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Background
@@ -281,7 +304,7 @@ const VerPersonagemView = () => {
           >
             {vm.gerandoBackground ? (
               <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={12} className="animate-spin" />
                 <span>Gerando...</span>
               </div>
             ) : (
@@ -305,7 +328,7 @@ const VerPersonagemView = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-              <span className="text-sm">🔍</span>
+              <Search size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Validacao de Coerencia
@@ -319,7 +342,7 @@ const VerPersonagemView = () => {
           >
             {vm.validando ? (
               <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={12} className="animate-spin" />
                 <span>Validando...</span>
               </div>
             ) : (
@@ -330,7 +353,7 @@ const VerPersonagemView = () => {
         {vm.validacao ? (
           <div className="space-y-3">
             <div className={`flex items-center space-x-2 ${vm.validacao.valido ? 'text-green-400' : 'text-yellow-400'}`}>
-              <span>{vm.validacao.valido ? '✅' : '⚠️'}</span>
+              {vm.validacao.valido ? <Check size={18} /> : <Star size={18} />}
               <span className="font-modern text-sm font-semibold">
                 {vm.validacao.valido ? 'Personagem coerente!' : 'Avisos encontrados'}
               </span>
@@ -382,7 +405,7 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-            <span className="text-sm">🗡️</span>
+            <Package size={16} className="text-white" />
           </div>
           <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Inventario
@@ -396,19 +419,19 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
           size="small"
           onClick={() => vm.toggleCatalogo()}
         >
-          {vm.mostrarCatalogo ? 'Fechar Catalogo' : 'Adicionar Equipamento'}
+          {vm.mostrarCatalogo ? 'Fechar Catalogo' : (
+            <span className="flex items-center gap-1"><Plus size={14} /> Adicionar</span>
+          )}
         </Button>
       </div>
 
-      {/* Loading */}
       {vm.loadingEquipamentos && (
         <div className="flex items-center space-x-2 mb-4">
-          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <Loader2 size={16} className="animate-spin text-purple-400" />
           <span className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Carregando equipamentos...</span>
         </div>
       )}
 
-      {/* Equipment Cards */}
       {equipamentos.length > 0 ? (
         <div className="space-y-3 mb-4">
           {equipamentos.map(eq => {
@@ -427,26 +450,14 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
                       <span className={`font-modern text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                         {eq.nome}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${raridadeColors(raridade, isLight)}`}>
-                        {raridade}
-                      </span>
+                      <Badge variant={raridadeVariant[raridade] || 'slate'}>{raridade}</Badge>
                     </div>
                     {tipo && (
-                      <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {tipo}
-                      </p>
+                      <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{tipo}</p>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      {eq.dano_base && (
-                        <span className="text-xs font-modern text-red-400">
-                          Dano: {eq.dano_base}
-                        </span>
-                      )}
-                      {bonusText && (
-                        <span className="text-xs font-modern text-cyan-400">
-                          {bonusText}
-                        </span>
-                      )}
+                      {eq.dano_base && <span className="text-xs font-modern text-red-400">Dano: {eq.dano_base}</span>}
+                      {bonusText && <span className="text-xs font-modern text-cyan-400">{bonusText}</span>}
                     </div>
                   </div>
                   <div>
@@ -455,23 +466,17 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
                         <button
                           onClick={() => { vm.removerEquipamento(eq.id); setConfirmRemove(null); }}
                           className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 font-modern"
-                        >
-                          Confirmar
-                        </button>
+                        >Confirmar</button>
                         <button
                           onClick={() => setConfirmRemove(null)}
                           className="px-2 py-1 text-xs bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 font-modern"
-                        >
-                          Cancelar
-                        </button>
+                        >Cancelar</button>
                       </div>
                     ) : (
                       <button
                         onClick={() => setConfirmRemove(eq.id)}
                         className={`px-2 py-1 text-xs rounded font-modern ${isLight ? 'text-red-600 hover:bg-red-100' : 'text-red-400 hover:bg-red-500/20'}`}
-                      >
-                        Remover
-                      </button>
+                      >Remover</button>
                     )}
                   </div>
                 </div>
@@ -482,12 +487,11 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
       ) : (
         !vm.loadingEquipamentos && (
           <p className={`font-modern text-sm italic mb-4 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-            Nenhum equipamento no inventario. Clique em "Adicionar Equipamento" para equipar itens.
+            Nenhum equipamento no inventario. Clique em "Adicionar" para equipar itens.
           </p>
         )
       )}
 
-      {/* Bonus Agregados */}
       {bonusStr && (
         <div className={`p-3 rounded-lg mb-4 ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-500/10 border border-cyan-500/20'}`}>
           <span className={`font-modern text-sm font-semibold ${isLight ? 'text-cyan-800' : 'text-cyan-400'}`}>
@@ -496,7 +500,6 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
         </div>
       )}
 
-      {/* Catalogo Panel */}
       {vm.mostrarCatalogo && (
         <div className={`mt-4 p-4 rounded-lg border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/50 border-slate-700'}`}>
           <h3 className={`font-modern text-sm font-semibold mb-3 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
@@ -538,9 +541,7 @@ const InventarioSection = ({ vm, isLight, personagem }) => {
                         <span className={`font-modern text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                           {eq.nome}
                         </span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${raridadeColors(raridade, isLight)}`}>
-                          {raridade}
-                        </span>
+                        <Badge size="sm" variant={raridadeVariant[raridade] || 'slate'}>{raridade}</Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         {tipo && <span className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{tipo}</span>}

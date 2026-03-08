@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { mestreViewModel } from '../../../viewmodels/Mestres';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { TabelaList } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { ROUTES, generateRoute } from '../../../routes.jsx';
+import { Crown, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 
 const MestreListaView = () => {
   const vm = useViewModel(mestreViewModel);
@@ -59,7 +60,7 @@ const MestreListaView = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <span className="text-2xl">🧙</span>
+                <Crown size={24} className="text-white" />
               </div>
               <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando mestres...</div>
             </div>
@@ -83,7 +84,7 @@ const MestreListaView = () => {
       render: (row) => (
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-            <span className="text-sm">🧙</span>
+            <Crown size={16} className="text-white" />
           </div>
           <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
             {row.nome}
@@ -96,9 +97,7 @@ const MestreListaView = () => {
       label: 'Modelo',
       align: 'left',
       render: (row) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${isLight ? 'bg-slate-200/50 text-slate-700' : 'bg-slate-700/50 text-slate-300'} font-modern`}>
-          {row.modelo || 'Padrão'}
-        </span>
+        <Badge variant="slate">{row.modelo || 'Padrão'}</Badge>
       )
     },
     {
@@ -116,19 +115,19 @@ const MestreListaView = () => {
   const actions = [
     {
       label: 'Ver',
-      icon: '👁️',
+      icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => navigate(generateRoute.verMestre(row.id))
     },
     {
       label: 'Editar',
-      icon: '✏️',
+      icon: <Pencil size={18} />,
       color: 'cyan',
       onClick: (row) => navigate(generateRoute.editarMestre(row.id))
     },
     {
       label: 'Deletar',
-      icon: '🗑️',
+      icon: <Trash2 size={18} />,
       color: 'red',
       onClick: (row) => handleDeleteClick(row)
     }
@@ -140,29 +139,25 @@ const MestreListaView = () => {
         <Notification message={vm.error} type="error" onClose={vm.clearError} />
       )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            Mestres de Jogo
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Gerencie seus mestres e narradores
-          </p>
-        </div>
+      <PageHeader
+        title="Mestres de Jogo"
+        subtitle="Gerencie seus mestres e narradores"
+        icon={Crown}
+        actions={
+          <Link to={ROUTES.NOVO_MESTRE}>
+            <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer">
+              <Plus size={18} />
+              <span>Novo Mestre</span>
+            </button>
+          </Link>
+        }
+      />
 
-        <Link to={ROUTES.NOVO_MESTRE}>
-          <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
-            <span>✨</span>
-            <span>Novo Mestre</span>
-          </button>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Total de Mestres"
           value={vm.mestres?.length || 0}
-          icon="🧙"
+          icon={Crown}
           variant="primary"
         />
       </div>

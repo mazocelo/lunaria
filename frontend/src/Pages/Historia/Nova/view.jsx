@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { novaHistoriaViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { BookOpen, Sparkles, Lightbulb, Loader2 } from 'lucide-react';
 
 const NovaHistoriaView = () => {
   const vm = useViewModel(novaHistoriaViewModel);
@@ -35,7 +36,7 @@ const NovaHistoriaView = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">📚</span>
+          <BookOpen size={32} className="text-white" />
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Criar Nova História
@@ -129,12 +130,12 @@ const NovaHistoriaView = () => {
           >
             {vm.loading ? (
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
                 <span>Criando...</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <span>✨</span>
+                <Sparkles size={16} />
                 <span>Criar História</span>
               </div>
             )}
@@ -146,7 +147,7 @@ const NovaHistoriaView = () => {
       <div className="mt-6 card-rpg">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className={`${isLight ? 'text-slate-700' : 'text-white'} text-sm`}>💡</span>
+            <Lightbulb size={16} className="text-white" />
           </div>
           <div>
             <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para uma boa história</h3>

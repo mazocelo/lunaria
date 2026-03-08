@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { personagemViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { TabelaList } from '../../../components/shared';
-import SearchBar from '../../../components/shared/SearchBar.jsx';
+import { TabelaList, SearchBar, PageHeader, Badge } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import { Users, Plus, Eye, Pencil, Trash2, Shield, Sparkles } from 'lucide-react';
 
 const PersonagemListaView = () => {
   const vm = useViewModel(personagemViewModel);
@@ -164,15 +164,7 @@ const PersonagemListaView = () => {
         return (
           <div className="flex flex-wrap gap-1">
             {historias.map((historia, index) => (
-              <span
-                key={historia.id || index}
-                className={`px-2 py-0.5 rounded-full text-xs font-modern font-semibold ${isLight
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'bg-purple-500/20 text-purple-300'
-                }`}
-              >
-                {historia.nome}
-              </span>
+              <Badge key={historia.id || index} variant="purple">{historia.nome}</Badge>
             ))}
           </div>
         );
@@ -195,19 +187,19 @@ const PersonagemListaView = () => {
   const actions = [
     {
       label: 'Ver',
-      icon: '👁️',
+      icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => navigate(`/ver-personagem/${row.id}`)
     },
     {
       label: 'Editar',
-      icon: '✏️',
+      icon: <Pencil size={18} />,
       color: 'cyan',
       onClick: (row) => navigate(`/editar-personagem/${row.id}`)
     },
     {
       label: 'Deletar',
-      icon: '🗑️',
+      icon: <Trash2 size={18} />,
       color: 'red',
       onClick: (row) => handleDeletePersonagem(row.id)
     }
@@ -216,46 +208,25 @@ const PersonagemListaView = () => {
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header da página */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            Personagens & Heróis
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Gerencie seus personagens e heróis épicos
-          </p>
-        </div>
-        
-        <Link to="/novo-personagem">
-          <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
-            <span>✨</span>
-            <span>Novo Personagem</span>
-          </button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Personagens & Heróis"
+        subtitle="Gerencie seus personagens e heróis épicos"
+        icon={Users}
+        actions={
+          <Link to="/novo-personagem">
+            <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer">
+              <Plus size={18} />
+              <span>Novo Personagem</span>
+            </button>
+          </Link>
+        }
+      />
 
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          title="Total de Personagens"
-          value={vm.estatisticas?.total || 0}
-          icon="🧝"
-          variant="primary"
-        />
-
-        <StatCard
-          title="Guerreiros"
-          value={vm.estatisticas?.guerreiros || 0}
-          icon="🛡️"
-          variant="secondary"
-        />
-
-        <StatCard
-          title="Magos"
-          value={vm.estatisticas?.magos || 0}
-          icon="🔮"
-          variant="accent"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total de Personagens" value={vm.estatisticas?.total || 0} icon={Users} variant="primary" />
+        <StatCard title="Guerreiros" value={vm.estatisticas?.guerreiros || 0} icon={Shield} variant="secondary" />
+        <StatCard title="Magos" value={vm.estatisticas?.magos || 0} icon={Sparkles} variant="accent" />
       </div>
 
       {/* Busca */}

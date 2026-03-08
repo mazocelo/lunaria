@@ -5,6 +5,7 @@ import Button from '../../../components/form/button';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { editarVantagemViewModel } from '../../../viewmodels/Vantagens';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { Sparkles, Save, Loader2 } from 'lucide-react';
 import { ROUTES } from '../../../routes.jsx';
 
 const EditarVantagemView = () => {
@@ -19,12 +20,12 @@ const EditarVantagemView = () => {
 
   const handleSubmit = async (e) => { e.preventDefault(); const r = await vm.saveVantagem(); if (r.success) navigate(ROUTES.VANTAGENS); };
 
-  if (vm.loading) return (<div className="animate-fade-in"><div className="card-rpg"><div className="flex items-center justify-center py-12"><div className="text-center"><div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow"><span className="text-2xl">⭐</span></div><div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando vantagem...</div></div></div></div></div>);
+  if (vm.loading) return (<div className="animate-fade-in"><div className="card-rpg"><div className="flex items-center justify-center py-12"><div className="text-center"><div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow"><Sparkles size={24} className="text-white" /></div><div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando vantagem...</div></div></div></div></div>);
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><span className="text-3xl">⭐</span></div>
+        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><Sparkles size={32} className="text-white" /></div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Vantagem</h1>
         <p className="text-slate-400 font-modern">Atualize os dados da vantagem</p>
       </div>
@@ -46,7 +47,7 @@ const EditarVantagemView = () => {
         <div><label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Efeito (JSON)</label><textarea name="efeito" value={vm.efeito} onChange={e => vm.setField('efeito', e.target.value)} rows={2} className={`${inputCls} font-mono text-sm`} placeholder='{}' /></div>
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={() => navigate(ROUTES.VANTAGENS)} className="flex-1" type="button">Cancelar</Button>
-          <Button variant="primary" type="submit" disabled={vm.saving} className="flex-1">{vm.saving ? (<div className="flex items-center space-x-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Salvando...</span></div>) : (<div className="flex items-center space-x-2"><span>💾</span><span>Salvar Vantagem</span></div>)}</Button>
+          <Button variant="primary" type="submit" disabled={vm.saving} className="flex-1">{vm.saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>) : (<div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Vantagem</span></div>)}</Button>
         </div>
       </form>
     </div>

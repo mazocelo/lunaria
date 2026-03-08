@@ -57,17 +57,24 @@ export const RPGActions = ({
     const el = Array.isArray(elemento) ? elemento[0]?.toLowerCase() : elemento.toLowerCase();
     const colors = {
       fogo: isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/20 text-red-300',
+      gelo: isLight ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300',
+      eletrico: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
+      acido: isLight ? 'bg-lime-100 text-lime-700' : 'bg-lime-500/20 text-lime-300',
+      veneno: isLight ? 'bg-green-100 text-green-700' : 'bg-green-500/20 text-green-300',
+      sonico: isLight ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500/20 text-indigo-300',
+      radiante: isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-500/20 text-amber-300',
+      necrotico: isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-300',
+      sombrio: isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-600/30 text-slate-300',
+      psiquico: isLight ? 'bg-pink-100 text-pink-700' : 'bg-pink-500/20 text-pink-300',
+      arcano: isLight ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300',
+      divino: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
+      natureza: isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300',
       agua: isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-300',
       terra: isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-500/20 text-amber-300',
-      ar: isLight ? 'bg-cyan-100 text-cyan-700' : 'bg-cyan-500/20 text-cyan-300',
-      luz: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
-      sagrado: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
-      trevas: isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-300',
-      arcano: isLight ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500/20 text-indigo-300',
-      natureza: isLight ? 'bg-green-100 text-green-700' : 'bg-green-500/20 text-green-300',
-      gelo: isLight ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300',
-      raio: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
-      veneno: isLight ? 'bg-lime-100 text-lime-700' : 'bg-lime-500/20 text-lime-300',
+      vento: isLight ? 'bg-cyan-100 text-cyan-700' : 'bg-cyan-500/20 text-cyan-300',
+      contundente: isLight ? 'bg-stone-100 text-stone-700' : 'bg-stone-500/20 text-stone-300',
+      cortante: isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/20 text-red-300',
+      perfurante: isLight ? 'bg-gray-100 text-gray-700' : 'bg-gray-500/20 text-gray-300',
     };
     return colors[el] || (isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/50 text-slate-400');
   };

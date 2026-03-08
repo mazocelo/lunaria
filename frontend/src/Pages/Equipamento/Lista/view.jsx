@@ -5,9 +5,10 @@ import { equipamentoViewModel } from '../../../viewmodels/Equipamentos/Equipamen
 import { catalogoService } from '../../../services/index.js';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame } from 'lucide-react';
 
 const raridadeColors = (raridade, isLight) => {
   const map = {
@@ -108,19 +109,19 @@ const EquipamentoListaView = () => {
   const actions = [
     {
       label: 'Ver',
-      icon: '👁️',
+      icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => navigate(generateRoute.verEquipamento(row.id))
     },
     {
       label: 'Editar',
-      icon: '✏️',
+      icon: <Pencil size={18} />,
       color: 'blue',
       onClick: (row) => navigate(generateRoute.editarEquipamento(row.id))
     },
     {
       label: 'Deletar',
-      icon: '🗑️',
+      icon: <Trash2 size={18} />,
       color: 'red',
       onClick: async (row) => {
         if (window.confirm(`Deseja realmente excluir "${row.nome}"?`)) {
@@ -143,22 +144,17 @@ const EquipamentoListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            Equipamentos
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Armas, armaduras e itens magicos
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Equipamentos"
+        subtitle="Armas, armaduras e itens magicos"
+        icon={Sword}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total de Equipamentos" value={vm.equipamentos?.length || 0} icon="⚔️" variant="primary" />
-        <StatCard title="Raros" value={countByRaridade('Raro')} icon="💎" variant="secondary" />
-        <StatCard title="Lendarios" value={countByRaridade('Lendario')} icon="🏆" variant="accent" />
-        <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon="🔥" variant="primary" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard title="Total de Equipamentos" value={vm.equipamentos?.length || 0} icon={Sword} variant="primary" />
+        <StatCard title="Raros" value={countByRaridade('Raro')} icon={Gem} variant="secondary" />
+        <StatCard title="Lendarios" value={countByRaridade('Lendario')} icon={Trophy} variant="accent" />
+        <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon={Flame} variant="primary" />
       </div>
 
       {/* Filtros */}

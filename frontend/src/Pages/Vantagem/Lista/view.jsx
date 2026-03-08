@@ -4,9 +4,10 @@ import { useViewModel } from '../../../shared/hooks/useViewModel.js';
 import { vantagemViewModel } from '../../../viewmodels/Vantagens/VantagemViewModel';
 import StatCard from '../../../components/StatCard.jsx';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
+import { Sparkles, Eye, TrendingUp, TrendingDown } from 'lucide-react';
 
 const VantagemListaView = () => {
   const vm = useViewModel(vantagemViewModel);
@@ -30,20 +31,11 @@ const VantagemListaView = () => {
 
   const renderTipo = (row) => {
     const tipos = Array.isArray(row.tipo) ? row.tipo : [];
+    const variantMap = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
     return (
       <div className="flex flex-wrap gap-1">
         {tipos.length > 0 ? tipos.map((t, i) => (
-          <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-modern ${
-            t === 'ativa'
-              ? (isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400')
-              : t === 'passiva'
-              ? (isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400')
-              : t === 'reacao'
-              ? (isLight ? 'bg-orange-100 text-orange-800' : 'bg-orange-500/20 text-orange-400')
-              : (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300')
-          }`}>
-            {t}
-          </span>
+          <Badge key={i} variant={variantMap[t] || 'slate'}>{t}</Badge>
         )) : <span className="text-slate-500 text-xs">-</span>}
       </div>
     );
@@ -55,11 +47,7 @@ const VantagemListaView = () => {
     return (
       <div className="flex flex-wrap gap-1">
         {elementos.map((e, i) => (
-          <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-modern ${
-            isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400'
-          }`}>
-            {e}
-          </span>
+          <Badge key={i} variant="purple">{e}</Badge>
         ))}
       </div>
     );
@@ -123,7 +111,7 @@ const VantagemListaView = () => {
   const actions = [
     {
       label: 'Ver',
-      icon: '👁️',
+      icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => navigate(generateRoute.verVantagem(row.id))
     }
@@ -135,21 +123,16 @@ const VantagemListaView = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            Vantagens
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Habilidades e poderes para personagens
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Vantagens"
+        subtitle="Habilidades e poderes para personagens"
+        icon={Sparkles}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Total de Vantagens" value={vm.vantagens?.length || 0} icon="✨" variant="primary" />
-        <StatCard title="Positivas" value={positivas} icon="⬆️" variant="secondary" />
-        <StatCard title="Negativas" value={negativas} icon="⬇️" variant="accent" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total de Vantagens" value={vm.vantagens?.length || 0} icon={Sparkles} variant="primary" />
+        <StatCard title="Positivas" value={positivas} icon={TrendingUp} variant="secondary" />
+        <StatCard title="Negativas" value={negativas} icon={TrendingDown} variant="accent" />
       </div>
 
       <TabelaList

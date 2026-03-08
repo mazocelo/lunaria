@@ -6,28 +6,27 @@ import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { Badge } from '../../../components/shared';
+import { User, BarChart3, Sparkles, Swords, ScrollText, BookOpen, Lightbulb, Check, Loader2 } from 'lucide-react';
 
 const PONTOS_MAXIMO = 75;
 
-const raridadeColors = (raridade, isLight) => {
-  const map = {
-    'Comum': isLight ? 'bg-gray-100 text-gray-800' : 'bg-gray-500/20 text-gray-400',
-    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
-    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
-    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
-    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
-    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
-  };
-  return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
+const raridadeVariant = {
+  'Comum': 'slate',
+  'Incomum': 'green',
+  'Raro': 'blue',
+  'Muito Raro': 'purple',
+  'Lendario': 'amber',
+  'Artefato': 'red',
 };
 
 const atributosConfig = [
-  { key: 'forca', label: 'Força', icon: '💪' },
-  { key: 'inteligencia', label: 'Inteligência', icon: '🧠' },
-  { key: 'constituicao', label: 'Constituição', icon: '🛡️' },
-  { key: 'agilidade', label: 'Agilidade', icon: '⚡' },
-  { key: 'destreza', label: 'Destreza', icon: '🎯' },
-  { key: 'carisma', label: 'Carisma', icon: '✨' },
+  { key: 'forca', label: 'Força' },
+  { key: 'inteligencia', label: 'Inteligência' },
+  { key: 'constituicao', label: 'Constituição' },
+  { key: 'agilidade', label: 'Agilidade' },
+  { key: 'destreza', label: 'Destreza' },
+  { key: 'carisma', label: 'Carisma' },
 ];
 
 const NovoPersonagemView = () => {
@@ -54,7 +53,7 @@ const NovoPersonagemView = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">🧝</span>
+          <User size={32} className="text-white" />
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Criar Novo Personagem
@@ -84,7 +83,7 @@ const NovoPersonagemView = () => {
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-sm">👤</span>
+              <User size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Informações Básicas
@@ -102,7 +101,7 @@ const NovoPersonagemView = () => {
 
           {vm.loadingOpcoes ? (
             <div className="flex items-center space-x-2 py-4">
-              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <Loader2 size={16} className="animate-spin text-purple-400" />
               <span className="text-slate-400 font-modern text-sm">Carregando opções...</span>
             </div>
           ) : (
@@ -131,7 +130,7 @@ const NovoPersonagemView = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-                <span className="text-sm">📊</span>
+                <BarChart3 size={16} className="text-white" />
               </div>
               <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 Atributos
@@ -152,7 +151,7 @@ const NovoPersonagemView = () => {
             {atributosConfig.map(attr => (
               <InputSimples
                 key={attr.key}
-                label={`${attr.icon} ${attr.label}`}
+                label={attr.label}
                 type="number"
                 name={attr.key}
                 value={vm.atributos?.[attr.key] ?? ''}
@@ -172,7 +171,7 @@ const NovoPersonagemView = () => {
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-              <span className="text-sm">⭐</span>
+              <Sparkles size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Vantagens & Desvantagens
@@ -181,7 +180,7 @@ const NovoPersonagemView = () => {
 
           {vm.loadingVantagens ? (
             <div className="flex items-center space-x-2 py-4">
-              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <Loader2 size={16} className="animate-spin text-purple-400" />
               <span className="text-slate-400 font-modern text-sm">Carregando vantagens...</span>
             </div>
           ) : (
@@ -209,7 +208,7 @@ const NovoPersonagemView = () => {
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-sm">📜</span>
+              <ScrollText size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Background
@@ -280,7 +279,7 @@ const NovoPersonagemView = () => {
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-              <span className="text-sm">📚</span>
+              <BookOpen size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               Histórias
@@ -289,7 +288,7 @@ const NovoPersonagemView = () => {
 
           {vm.loadingHistorias ? (
             <div className="flex items-center space-x-2 py-4">
-              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              <Loader2 size={16} className="animate-spin text-purple-400" />
               <span className="text-slate-400 font-modern text-sm">Carregando histórias...</span>
             </div>
           ) : (vm.historiasDisponiveis || []).length > 0 ? (
@@ -329,12 +328,12 @@ const NovoPersonagemView = () => {
           >
             {vm.loading || vm.gerandoBackground ? (
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
                 <span>{vm.gerandoBackground ? 'Gerando background...' : 'Criando...'}</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <span>🧝</span>
+                <User size={16} />
                 <span>Criar Personagem</span>
               </div>
             )}
@@ -346,7 +345,7 @@ const NovoPersonagemView = () => {
       <div className="mt-6 card-rpg">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-sm">💡</span>
+            <Lightbulb size={16} className="text-white" />
           </div>
           <div>
             <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>
@@ -388,7 +387,6 @@ const EquipamentoSelector = ({ vm, isLight }) => {
     }
   };
 
-  // Check requirements against selected class/race
   const classeNome = (vm.classesDisponiveis || []).find(c => String(c.id) === String(vm.classe))?.nome?.toLowerCase();
   const racaNome = (vm.racasDisponiveis || []).find(r => String(r.id) === String(vm.raca))?.nome?.toLowerCase();
 
@@ -397,7 +395,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-            <span className="text-sm">🗡️</span>
+            <Swords size={16} className="text-white" />
           </div>
           <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Equipamentos
@@ -410,7 +408,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
 
       {vm.loadingEquipamentos ? (
         <div className="flex items-center space-x-2 py-4">
-          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <Loader2 size={16} className="animate-spin text-purple-400" />
           <span className="text-slate-400 font-modern text-sm">Carregando equipamentos...</span>
         </div>
       ) : (
@@ -454,9 +452,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
                       <span className={`font-modern text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                         {eq.nome}
                       </span>
-                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${raridadeColors(raridade, isLight)}`}>
-                        {raridade}
-                      </span>
+                      <Badge variant={raridadeVariant[raridade] || 'slate'} size="sm">{raridade}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
                       {tipo && <span className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{tipo}</span>}
@@ -473,7 +469,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
                       ? 'bg-purple-500 border-purple-500 text-white'
                       : isLight ? 'border-slate-300' : 'border-slate-600'
                   }`}>
-                    {selected && <span className="text-xs">✓</span>}
+                    {selected && <Check size={12} />}
                   </div>
                 </div>
               );

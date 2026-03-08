@@ -5,7 +5,12 @@ import { editarMestreViewModel } from '../../../viewmodels/Mestres';
 import { useTheme } from '../../../contexts/theme.jsx';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
+import { Badge } from '../../../components/shared';
 import { ROUTES, generateRoute } from '../../../routes.jsx';
+import {
+  Crown, ArrowLeft, Pencil, X, BookOpen, Theater, ScrollText,
+  Settings, Target
+} from 'lucide-react';
 
 const VerMestreView = () => {
   const { id } = useParams();
@@ -29,7 +34,7 @@ const VerMestreView = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <span className="text-2xl">🧙</span>
+                <Crown size={24} className="text-white" />
               </div>
               <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando mestre...</div>
             </div>
@@ -43,8 +48,8 @@ const VerMestreView = () => {
     return (
       <div className="animate-fade-in">
         <div className="card-rpg text-center py-12">
-          <div className="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
-            <span className="text-3xl">❌</span>
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-500/20">
+            <X size={36} className="text-red-400" />
           </div>
           <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
             Mestre não encontrado
@@ -76,31 +81,39 @@ const VerMestreView = () => {
       )}
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            {vm.nome}
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Detalhes do mestre narrador
-          </p>
+        <div className="flex items-center gap-3">
+          <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+            isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
+          }`}>
+            <Crown size={22} />
+          </div>
+          <div>
+            <h1 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              {vm.nome}
+            </h1>
+            <p className={`text-sm font-modern mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              Detalhes do mestre narrador
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center space-x-3">
           <Link to={ROUTES.MESTRES}>
-            <button className={`px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
+            <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
               isLight
-                ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                ? 'border border-slate-300 text-slate-600 hover:bg-slate-50'
+                : 'border border-slate-600 text-slate-300 hover:bg-slate-700/50'
             }`}>
-              ← Voltar
+              <ArrowLeft size={16} />
+              Voltar
             </button>
           </Link>
           <button
             onClick={() => navigate(generateRoute.editarMestre(id))}
-            className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
           >
-            <span>✏️</span>
-            <span>Editar</span>
+            <Pencil size={16} />
+            Editar
           </button>
         </div>
       </div>
@@ -119,20 +132,15 @@ const VerMestreView = () => {
                   </p>
                 </div>
                 {vm.tom_narrativo && (
-                  <span className={`px-3 py-1 rounded-full text-sm font-modern ${
-                    isLight
-                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                      : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                  }`}>
-                    {vm.tom_narrativo}
-                  </span>
+                  <Badge variant="purple">{vm.tom_narrativo}</Badge>
                 )}
               </div>
 
               {vm.descricao && (
                 <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    📖 Descrição
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <BookOpen size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Descrição
                   </h3>
                   <div className={`p-4 rounded-lg ${
                     isLight
@@ -148,8 +156,9 @@ const VerMestreView = () => {
 
               {vm.personalidade && (
                 <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    🎭 Personalidade
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <Theater size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Personalidade
                   </h3>
                   <div className={`p-4 rounded-lg ${
                     isLight
@@ -165,8 +174,9 @@ const VerMestreView = () => {
 
               {vm.regras_especiais && (
                 <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    📜 Regras Especiais
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <ScrollText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Regras Especiais
                   </h3>
                   <div className={`p-4 rounded-lg ${
                     isLight
@@ -185,8 +195,9 @@ const VerMestreView = () => {
 
         <div className="space-y-6">
           <RPGCard className="p-6">
-            <h3 className={`text-lg font-semibold font-fantasy mb-4 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              ⚙️ Configurações
+            <h3 className={`text-lg font-semibold font-fantasy mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+              <Settings size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+              Configurações
             </h3>
             <div className="space-y-3">
               <InfoRow label="Modelo" value={vm.modelo} />
@@ -197,27 +208,28 @@ const VerMestreView = () => {
           </RPGCard>
 
           <RPGCard className="p-6">
-            <h3 className={`text-lg font-semibold font-fantasy mb-4 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              🎯 Ações
+            <h3 className={`text-lg font-semibold font-fantasy mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+              <Target size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+              Ações
             </h3>
             <div className="space-y-3">
               <button
                 onClick={() => navigate(generateRoute.editarMestre(id))}
-                className="w-full btn-rpg hover-lift flex items-center justify-center space-x-2 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
               >
-                <span>✏️</span>
-                <span>Editar Mestre</span>
+                <Pencil size={16} />
+                Editar Mestre
               </button>
-              <button
-                onClick={() => navigate(ROUTES.MESTRES)}
-                className={`w-full px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
+              <Link to={ROUTES.MESTRES} className="block">
+                <button className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
                   isLight
                     ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
                     : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                }`}
-              >
-                ← Voltar aos Mestres
-              </button>
+                }`}>
+                  <ArrowLeft size={16} />
+                  Voltar aos Mestres
+                </button>
+              </Link>
             </div>
           </RPGCard>
         </div>

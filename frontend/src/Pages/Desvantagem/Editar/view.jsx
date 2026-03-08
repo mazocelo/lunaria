@@ -5,6 +5,7 @@ import Button from '../../../components/form/button';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { editarDesvantagemViewModel } from '../../../viewmodels/Desvantagens';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { AlertTriangle, Save, Loader2 } from 'lucide-react';
 import { ROUTES } from '../../../routes.jsx';
 
 const EditarDesvantagemView = () => {
@@ -40,7 +41,7 @@ const EditarDesvantagemView = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <span className="text-2xl">⚠️</span>
+                <AlertTriangle size={24} className="text-white" />
               </div>
               <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                 Carregando desvantagem...
@@ -56,7 +57,7 @@ const EditarDesvantagemView = () => {
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">⚠️</span>
+          <AlertTriangle size={32} className="text-white" />
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Editar Desvantagem
@@ -169,12 +170,12 @@ const EditarDesvantagemView = () => {
           >
             {vm.saving ? (
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
                 <span>Salvando...</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <span>💾</span>
+                <Save size={16} />
                 <span>Salvar Desvantagem</span>
               </div>
             )}

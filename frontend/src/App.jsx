@@ -11,6 +11,7 @@ import NotificationsModal from './components/NotificationsModal'
 import { AuthContainer } from './components/Auth'
 import ResetPasswordPage from './Pages/ResetPassword'
 import AppRoutes from './routes.jsx'
+import ScrollToTop from './components/shared/ScrollToTop'
 
 // 🚀 STORE INITIALIZATION - Cache de dados estáticos em background
 import { useEffect, useState } from 'react'
@@ -131,6 +132,7 @@ function AppContent() {
 
             {/* Main content with scroll */}
             <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 z-10">
+              <ScrollToTop />
               <div className="animate-fade-in">
                 <AppRoutes />
               </div>

@@ -7,11 +7,11 @@ import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import ConviteModal from '../../../components/ConviteModal.jsx';
-import { TabelaList } from '../../../components/shared';
-import SearchBar from '../../../components/shared/SearchBar.jsx';
+import { TabelaList, SearchBar, PageHeader, Badge } from '../../../components/shared';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { ROUTES, generateRoute } from '../../../routes.jsx';
+import { BookOpen, Plus, Eye, Mail, Play, Target, RotateCcw, StopCircle, Trash2 } from 'lucide-react';
 
 /**
  * View para exibição e gerenciamento de Histórias
@@ -254,15 +254,7 @@ export const HistoriaListaView = () => {
       <div className="flex flex-wrap gap-1">
         {nomesTemas.length > 0
           ? nomesTemas.map((nomeTema, i) => (
-            <span
-              key={i}
-              className={`px-2 py-1 text-xs rounded-full ${isLight
-                ? 'bg-slate-200/50 text-slate-700'
-                : 'bg-slate-700/50 text-slate-300'
-                } font-modern`}
-            >
-              {nomeTema}
-            </span>
+            <Badge key={i} variant="slate">{nomeTema}</Badge>
           ))
           : <span className="text-slate-500 text-xs">Sem tema</span>
         }
@@ -284,24 +276,12 @@ export const HistoriaListaView = () => {
   const renderStatusSessao = (historia) => {
     if (historia.sessaoAtiva) {
       return (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          isLight
-            ? 'bg-green-100 text-green-800'
-            : 'bg-green-500/20 text-green-400'
-        }`}>
-          ✓ Em Andamento {historia.totalJogadores > 0 ? `(${historia.totalJogadores})` : ''}
-        </span>
+        <Badge variant="green" dot>
+          Em Andamento {historia.totalJogadores > 0 ? `(${historia.totalJogadores})` : ''}
+        </Badge>
       );
     }
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-        isLight
-          ? 'bg-slate-100 text-slate-600'
-          : 'bg-slate-700/50 text-slate-400'
-      }`}>
-        ⏸ Aguardando
-      </span>
-    );
+    return <Badge variant="slate" dot>Aguardando</Badge>;
   };
 
   const columns = [
@@ -345,52 +325,49 @@ export const HistoriaListaView = () => {
   const actions = [
     {
       label: 'Entrar na Partida',
-      icon: '🎯',
+      icon: <Target size={18} />,
       color: 'orange',
       onClick: (row) => handleEntrarPartida(row),
       show: (row) => row.sessaoAtiva === true
     },
     {
       label: 'Iniciar Sessão',
-      icon: '🎮',
+      icon: <Play size={18} />,
       color: 'green',
       onClick: (row) => handlePlayHistoria(row),
       show: (row) => !row.sessaoAtiva
     },
     {
       label: 'Ver',
-      icon: '👁️',
+      icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => handleViewHistoria(row),
       show: (row) => isOwner(row)
     },
     {
       label: 'Convidar',
-      icon: '📧',
+      icon: <Mail size={18} />,
       color: 'blue',
-      onClick: (row) =>
-        handleConviteClick(row),
+      onClick: (row) => handleConviteClick(row),
       show: (row) => isOwner(row)
-
     },
-
     {
       label: 'Resetar Sessão',
-      icon: '🔄',
+      icon: <RotateCcw size={18} />,
       color: 'orange',
       onClick: (row) => handleResetarSessao(row),
       show: (row) => isOwner(row) && row.sessaoAtiva === true
     },
     {
       label: 'Encerrar Sessão',
-      icon: '⛔',
+      icon: <StopCircle size={18} />,
       color: 'red',
       onClick: (row) => handleEncerrarSessao(row),
       show: (row) => row.sessaoAtiva === true
     },
     {
       label: 'Deletar',
-      icon: '🗑️',
+      icon: <Trash2 size={18} />,
       color: 'red',
       onClick: (row) => handleDeleteClick(row),
       show: (row) => isOwner(row)
@@ -422,38 +399,32 @@ export const HistoriaListaView = () => {
       )}
 
       {/* Header da página */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
-            Histórias & Aventuras
-          </h1>
-          <p className="text-slate-400 font-modern">
-            Gerencie suas campanhas e aventuras épicas
-          </p>
-        </div>
-
-        {/* ✅ Link usando constante de rota */}
-        <Link to={ROUTES.NOVA_HISTORIA}>
-          <button className="btn-rpg hover-lift flex items-center space-x-2 cursor-pointer">
-            <span>✨</span>
-            <span>Nova História</span>
-          </button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Histórias & Aventuras"
+        subtitle="Gerencie suas campanhas e aventuras épicas"
+        icon={BookOpen}
+        actions={
+          <Link to={ROUTES.NOVA_HISTORIA}>
+            <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer">
+              <Plus size={18} />
+              <span>Nova História</span>
+            </button>
+          </Link>
+        }
+      />
 
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Total de Histórias"
           value={estatisticas?.total || 0}
-          icon="📚"
+          icon={BookOpen}
           variant="primary"
         />
-
         <StatCard
           title="Vagas Disponíveis"
           value={estatisticas?.totalParticipantes || 0}
-          icon="🎭"
+          icon={Target}
           variant="secondary"
         />
       </div>

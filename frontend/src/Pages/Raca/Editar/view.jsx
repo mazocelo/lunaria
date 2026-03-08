@@ -5,6 +5,7 @@ import Button from '../../../components/form/button';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { editarRacaViewModel } from '../../../viewmodels/Racas';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { Dna, Save, Loader2 } from 'lucide-react';
 import { ROUTES } from '../../../routes.jsx';
 
 const EditarRacaView = () => {
@@ -25,7 +26,7 @@ const EditarRacaView = () => {
   if (vm.loading) {
     return (
       <div className="animate-fade-in"><div className="card-rpg"><div className="flex items-center justify-center py-12"><div className="text-center">
-        <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow"><span className="text-2xl">🧬</span></div>
+        <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow"><Dna size={24} className="text-white" /></div>
         <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando raca...</div>
       </div></div></div></div>
     );
@@ -34,7 +35,7 @@ const EditarRacaView = () => {
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><span className="text-3xl">🧬</span></div>
+        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><Dna size={32} className="text-white" /></div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Raca</h1>
         <p className="text-slate-400 font-modern">Atualize os dados da raca</p>
       </div>
@@ -60,7 +61,7 @@ const EditarRacaView = () => {
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={() => navigate(ROUTES.RACAS)} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={vm.saving} className="flex-1">
-            {vm.saving ? (<div className="flex items-center space-x-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Salvando...</span></div>) : (<div className="flex items-center space-x-2"><span>💾</span><span>Salvar Raca</span></div>)}
+            {vm.saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>) : (<div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Raca</span></div>)}
           </Button>
         </div>
       </form>

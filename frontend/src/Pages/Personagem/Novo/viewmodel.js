@@ -2,6 +2,17 @@ import { EditarPersonagemViewModel } from '../../../viewmodels/Personagens/Edita
 import { Personagem } from '../../../models/Personagem';
 
 class NovoPersonagemViewModel extends EditarPersonagemViewModel {
+  constructor() {
+    super();
+    this.state = {
+      ...this.state,
+      gerandoBackground: false,
+      backgroundGerado: null,
+      validacao: null,
+      validando: false,
+    };
+  }
+
   criarPersonagem = async (onSuccess) => {
     if (!this.state.nome.trim()) {
       this.setState({ error: 'O nome do personagem é obrigatório' });
@@ -48,12 +59,50 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
       };
 
       const personagem = new Personagem(dados);
-      await this.personagemService.create(personagem);
+      const criado = await this.personagemService.create(personagem);
+
+      // Se modo guiado, gerar background via IA após criação
+      if (this.state.backgroundTipo === 'guiado' && criado?.id) {
+        try {
+          this.setState({ gerandoBackground: true });
+          await this.personagemService.gerarBackground(criado.id, this.state.background);
+        } catch (bgError) {
+          console.warn('Background IA não gerado:', bgError.message);
+        } finally {
+          this.setState({ gerandoBackground: false });
+        }
+      }
+
       if (onSuccess) onSuccess();
     } catch (error) {
       this.setState({ error: error.message || 'Erro ao criar personagem' });
     } finally {
       this.setState({ loading: false });
+    }
+  };
+
+  /**
+   * Gera preview do background via IA (requer personagem já criado)
+   * Para uso no formulário de edição
+   */
+  gerarBackgroundPreview = async (personagemId) => {
+    if (!personagemId) return;
+    this.setState({ gerandoBackground: true });
+    try {
+      const resultado = await this.personagemService.gerarBackground(
+        personagemId,
+        this.state.background
+      );
+      if (resultado?.background) {
+        this.setState({
+          background: resultado.background,
+          backgroundGerado: resultado.background
+        });
+      }
+    } catch (error) {
+      this.setState({ error: `Erro ao gerar background: ${error.message}` });
+    } finally {
+      this.setState({ gerandoBackground: false });
     }
   };
 
@@ -73,6 +122,10 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
       loading: false,
       error: null,
       personagemId: null,
+      gerandoBackground: false,
+      backgroundGerado: null,
+      validacao: null,
+      validando: false,
     });
   };
 }

@@ -212,7 +212,7 @@ const NovoPersonagemView = () => {
                     : 'glass text-slate-300 hover:bg-slate-700/50'
               }`}
             >
-              Guiado
+              Gerar com IA
             </button>
             <button
               type="button"
@@ -230,13 +230,18 @@ const NovoPersonagemView = () => {
           </div>
 
           {vm.backgroundTipo === 'guiado' ? (
-            <Selector
-              label="Escolha um Background"
-              options={(vm.backgroundsGuiados || []).map(bg => ({ value: bg, label: bg }))}
-              selected={vm.background}
-              onChange={(value) => vm.setBackground(value)}
-              type="single"
-            />
+            <div className="space-y-3">
+              <Selector
+                label="Tema do Background (a IA vai gerar baseado na ficha)"
+                options={(vm.backgroundsGuiados || []).map(bg => ({ value: bg, label: bg }))}
+                selected={vm.background}
+                onChange={(value) => vm.setBackground(value)}
+                type="single"
+              />
+              <p className="text-xs text-slate-400 font-modern">
+                A IA vai criar um background usando seus atributos, classe, raça, vantagens e equipamentos
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col mb-4">
               <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-200' : 'text-white'} drop-shadow`}>
@@ -303,13 +308,13 @@ const NovoPersonagemView = () => {
           <Button
             variant="primary"
             type="submit"
-            disabled={vm.loading}
+            disabled={vm.loading || vm.gerandoBackground}
             className="flex-1"
           >
-            {vm.loading ? (
+            {vm.loading || vm.gerandoBackground ? (
               <div className="flex items-center space-x-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Criando...</span>
+                <span>{vm.gerandoBackground ? 'Gerando background...' : 'Criando...'}</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">

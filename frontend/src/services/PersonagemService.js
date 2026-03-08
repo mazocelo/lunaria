@@ -311,4 +311,99 @@ export class PersonagemService {
       throw new Error(`Erro ao aumentar nível: ${error.message}`);
     }
   }
+
+  /**
+   * Gera background via IA com todos os dados da ficha
+   * @param {number} id - ID do personagem
+   * @param {string} sugestao - Sugestão do jogador para o background
+   * @returns {Promise<Object>} { background: string }
+   */
+  async gerarBackground(id, sugestao = '') {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/background`, {
+        sugestao_background: sugestao
+      });
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao gerar background');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao gerar background: ${error.message}`);
+    }
+  }
+
+  /**
+   * Valida coerência narrativa do personagem via IA
+   * @param {number} id - ID do personagem
+   * @returns {Promise<{ valido: boolean, avisos: string[], sugestoes: string[] }>}
+   */
+  async validarCoerencia(id) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/validar-coerencia`);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao validar coerência');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao validar coerência: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtém dados de evolução do personagem (XP, pontos pendentes, etc.)
+   * @param {number} id - ID do personagem
+   * @returns {Promise<Object>} Dados de evolução
+   */
+  async obterEvolucao(id) {
+    try {
+      const response = await this.apiClient.get(`${this.baseUrl}/${id}/evolucao`);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao obter evolução');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao obter evolução: ${error.message}`);
+    }
+  }
+
+  /**
+   * Concede XP ao personagem
+   * @param {number} id - ID do personagem
+   * @param {number} quantidade - Quantidade de XP
+   * @returns {Promise<Object>} Resultado com XP atualizado e possível level up
+   */
+  async ganharXP(id, quantidade) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/ganhar-xp`, { quantidade });
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao conceder XP');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao conceder XP: ${error.message}`);
+    }
+  }
+
+  /**
+   * Distribui pontos de atributo pendentes
+   * @param {number} id - ID do personagem
+   * @param {Object} atributos - Ex: { forca: 1, destreza: 2 }
+   * @returns {Promise<Object>} Personagem atualizado
+   */
+  async distribuirPontos(id, atributos) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/distribuir-pontos`, { atributos });
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao distribuir pontos');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao distribuir pontos: ${error.message}`);
+    }
+  }
 } 

@@ -27,6 +27,9 @@ export class Personagem {
     this.vantagens = data.vantagens || [];
     this.desvantagens = data.desvantagens || [];
     this.equipamentos = data.equipamentos || '';
+    this.xp_atual = data.xp_atual || 0;
+    this.xp_proximo_nivel = data.xp_proximo_nivel || 100;
+    this.pontos_atributo_pendentes = data.pontos_atributo_pendentes || 0;
     this.pontos_iniciais = data.pontos_iniciais || 25;
     this.pontos_totais = data.pontos_totais || 0;
     this.created_at = data.created_at || new Date();
@@ -137,6 +140,9 @@ export class Personagem {
       vantagens: this.vantagens,
       desvantagens: this.desvantagens,
       equipamentos: this.equipamentos,
+      xp_atual: this.xp_atual,
+      xp_proximo_nivel: this.xp_proximo_nivel,
+      pontos_atributo_pendentes: this.pontos_atributo_pendentes,
       pontos_iniciais: this.pontos_iniciais,
       pontos_totais: this.pontos_totais,
       created_at: this.created_at,
@@ -175,6 +181,9 @@ export class Personagem {
       vantagens: apiData.vantagens,
       desvantagens: apiData.desvantagens,
       equipamentos: apiData.equipamentos,
+      xp_atual: apiData.xp_atual || 0,
+      xp_proximo_nivel: apiData.xp_proximo_nivel || 100,
+      pontos_atributo_pendentes: apiData.pontos_atributo_pendentes || 0,
       pontos_iniciais: apiData.pontos_iniciais,
       pontos_totais: apiData.pontos_totais,
       created_at: apiData.created_at,

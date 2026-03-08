@@ -78,6 +78,9 @@ export const socketInitialStates = {
   combateLog: [],            // Últimas ações do combate
   combateXpGanho: 0,
 
+  // ===== PROGRESSÃO =====
+  lastLevelUp: null, // { userId, username, novoNivel, ganhos, timestamp }
+
   // ===== CONFIGURAÇÕES E LOGS =====
   logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'info',
   configs: {

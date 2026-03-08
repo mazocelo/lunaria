@@ -407,6 +407,26 @@ const EtapaJogoRPG = ({
         socketStore.on('level_up', handleLevelUp);
         socketStore.on('acao_mestre', handleAcaoMestre);
 
+        // XP toast ao fim de combate
+        const handleCombateFinalizado = (data) => {
+          const xpGanho = data.xpTotal || data.xpGanho || 0;
+          if (xpGanho > 0) {
+            showGameNotification(`+${xpGanho} XP ganho no combate!`, 'success');
+          }
+          if (onAdicionarMensagem) {
+            const resultado = data.resultado === 'vitoria' ? 'Vitoria!' : data.resultado === 'derrota' ? 'Derrota...' : 'Combate encerrado';
+            onAdicionarMensagem({
+              id: `combate_fim_${Date.now()}`,
+              tipo: 'mestre',
+              userId: 'sistema',
+              username: 'Sistema',
+              message: `${resultado}${xpGanho > 0 ? ` (+${xpGanho} XP)` : ''}`,
+              timestamp: Date.now()
+            });
+          }
+        };
+        socketStore.on('combate_finalizado', handleCombateFinalizado);
+
         // Cleanup
         return () => {
           socketStore.off('mensagem_mestre', handleMensagemMestre);
@@ -419,6 +439,7 @@ const EtapaJogoRPG = ({
           socketStore.off('mestre_solicita_dados', handleMestreSolicitaDados);
           socketStore.off('level_up', handleLevelUp);
           socketStore.off('acao_mestre', handleAcaoMestre);
+          socketStore.off('combate_finalizado', handleCombateFinalizado);
         };
       } catch (error) {
         // silenced
@@ -479,7 +500,6 @@ const EtapaJogoRPG = ({
       if (ehMensagemRoleplay) {
         // Verificar cooldown local antes de enviar
         if (cooldownLocal > 0) {
-          console.log(`⏱️ Cooldown ativo: ${cooldownLocal}s restantes`);
           return;
         }
 
@@ -526,15 +546,13 @@ const EtapaJogoRPG = ({
         if (enviado) {
           // Limpar input apenas se enviou com sucesso
           etapaJogoRPGViewModel.clearMensagemAtual();
-          console.log('✅ Mensagem enviada para o Mestre, aguardando resposta...');
         } else {
           // ✅ Remover loading se falhar
           setAguardandoMestre(false);
-          console.log('❌ Falha ao enviar mensagem (socket desconectado)');
         }
       }
     } catch (error) {
-      console.error('❌ Erro ao enviar mensagem:', error);
+      // silenced
     } finally {
       // Resetar flag após um pequeno delay para evitar duplo clique
       setTimeout(() => {
@@ -549,8 +567,6 @@ const EtapaJogoRPG = ({
       const dadoFinal = dadoSolicitadoInfo?.tipoDado || tipoDado;
       const descricaoFinal = descricao || dadoSolicitadoInfo?.teste || '';
 
-      console.log('🎲 handleRolarDados chamado com:', { dadoFinal, descricaoFinal });
-
       // Durante o jogo, emitir para o backend ao invés de adicionar localmente
       const { getSocketStoreAPI } = await import('../../../store/index.js');
       const socketStore = getSocketStoreAPI();
@@ -559,7 +575,6 @@ const EtapaJogoRPG = ({
 
       // Rolar dados localmente para obter resultado
       const resultado = etapaJogoRPGViewModel.rolarDados(dadoFinal, descricaoFinal);
-      console.log('🎲 Resultado local:', resultado);
 
       // Emitir para o backend (backend irá distribuir para todos)
       const enviado = socketStore.safeEmit('dice_roll', {
@@ -571,15 +586,11 @@ const EtapaJogoRPG = ({
         description: descricaoFinal
       });
 
-      if (enviado) {
-        console.log(`✅ Dado ${tipoDado} rolado e enviado: ${resultado.resultado}`);
-      } else {
-        console.warn('⚠️ Falhou ao enviar dado, usando fallback local');
+      if (!enviado) {
         // Se falhar ao enviar, adicionar localmente como fallback
         onAdicionarMensagem(resultado.mensagem);
       }
     } catch (error) {
-      console.error('❌ Erro ao rolar dados:', error);
       // Fallback: adicionar mensagem localmente
       const resultado = etapaJogoRPGViewModel.rolarDados(tipoDado, descricao);
       onAdicionarMensagem(resultado.mensagem);
@@ -591,16 +602,9 @@ const EtapaJogoRPG = ({
     try {
       const { getSocketStoreAPI } = await import('../../../store/index.js');
       const socketStore = getSocketStoreAPI();
-      
-      const sucesso = socketStore.getState().rolarDadoInicial();
-      
-      if (sucesso) {
-        console.log('✅ Evento de rolar dado inicial emitido');
-      } else {
-        console.error('❌ Falha ao emitir evento de rolar dado inicial');
-      }
+      socketStore.getState().rolarDadoInicial();
     } catch (error) {
-      console.error('❌ Erro ao rolar dado inicial:', error);
+      // silenced
     }
   };
 
@@ -609,16 +613,9 @@ const EtapaJogoRPG = ({
     try {
       const { getSocketStoreAPI } = await import('../../../store/index.js');
       const socketStore = getSocketStoreAPI();
-      
-      const sucesso = socketStore.getState().iniciarTurno();
-      
-      if (sucesso) {
-        console.log('✅ Turno iniciado com sucesso');
-      } else {
-        console.error('❌ Falha ao iniciar turno');
-      }
+      socketStore.getState().iniciarTurno();
     } catch (error) {
-      console.error('❌ Erro ao iniciar turno:', error);
+      // silenced
     }
   };
 
@@ -660,7 +657,7 @@ const EtapaJogoRPG = ({
         }
       });
     } catch (error) {
-      console.error('❌ Erro ao usar habilidade:', error);
+      // silenced
       setAguardandoMestre(false);
     }
   };
@@ -696,7 +693,7 @@ const EtapaJogoRPG = ({
         }
       });
     } catch (error) {
-      console.error('❌ Erro ao usar equipamento:', error);
+      // silenced
       setAguardandoMestre(false);
     }
   };
@@ -766,7 +763,6 @@ const EtapaJogoRPG = ({
       setFichasCache(prev => ({ ...prev, [personagemId]: ficha }));
       setFichaSelecionada(ficha);
     } catch (error) {
-      console.error('❌ Erro ao carregar ficha do personagem:', error);
       setFichaErro(error.message || 'Erro ao carregar ficha do personagem.');
     } finally {
       setFichaCarregando(false);

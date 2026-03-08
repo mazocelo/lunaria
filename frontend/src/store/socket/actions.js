@@ -591,6 +591,21 @@ export const createSocketActions = (set, get) => ({
       get().log('Ação do Mestre', { tipo: data.tipo, personagem: data.personagem });
     });
 
+    // ===== LISTENER DE LEVEL UP (store-level para não perder evento) =====
+    socket.on('level_up', (data) => {
+      console.log('🎉 Level Up recebido (store):', data);
+      set({
+        lastLevelUp: {
+          userId: data.userId,
+          username: data.username,
+          novoNivel: data.novoNivel || data.nivel,
+          ganhos: data.ganhos || {},
+          timestamp: Date.now()
+        }
+      });
+      get().log('Level Up', { userId: data.userId, nivel: data.novoNivel || data.nivel, success: true });
+    });
+
     // ✅ NOVO: Listener para usuário entrando na sala
     socket.on('user_joined', (data) => {
       console.log('👤 Usuário entrou na sala:', data);

@@ -107,13 +107,7 @@ export const SelecaoPersonagemView = () => {
   // 🎯 HANDLER - Selecionar personagem e navegar para sala de espera
   const handleSelecionarPersonagem = async (personagem) => {
     try {
-      // Selecionar personagem
       await jogoViewModel.selecionarPersonagem(personagem, user);
-      
-      // Aguardar sincronização com GameStore (evita race condition com useJogoGuard)
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // Navegar para sala de espera
       navigate(`/jogo/${id}/sala-espera`);
     } catch (error) {
       // silenced

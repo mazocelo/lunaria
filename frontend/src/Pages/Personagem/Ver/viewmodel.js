@@ -1,7 +1,9 @@
 import { PersonagemService } from '../../../services/PersonagemService';
+import { EquipamentoService } from '../../../services/EquipamentoService';
 import { apiClient } from '../../../services/ApiClient';
 
 const personagemService = new PersonagemService(apiClient);
+const equipamentoService = new EquipamentoService(apiClient);
 
 class VerPersonagemViewModel {
   constructor() {
@@ -15,6 +17,11 @@ class VerPersonagemViewModel {
       validando: false,
       distribuindo: false,
       pontosParaDistribuir: {},
+      equipamentos: [],
+      catalogoEquipamentos: [],
+      loadingEquipamentos: false,
+      mostrarCatalogo: false,
+      buscaCatalogo: '',
     };
     this.subscribers = [];
   }
@@ -52,8 +59,9 @@ class VerPersonagemViewModel {
       const personagem = response?.data || response;
       this.setState({ personagem, loading: false });
 
-      // Load evolution data in parallel
+      // Load evolution and equipment data in parallel
       this.loadEvolucao(id);
+      this.loadEquipamentos(id);
     } catch (error) {
       this.setState({ error: error.message, loading: false });
     }
@@ -131,6 +139,102 @@ class VerPersonagemViewModel {
     } finally {
       this.setState({ distribuindo: false });
     }
+  };
+
+  loadEquipamentos = async (personagemId) => {
+    const id = personagemId || this.state.personagem?.id;
+    if (!id) return;
+
+    this.setState({ loadingEquipamentos: true });
+    try {
+      const equipamentos = await personagemService.listarEquipamentos(id);
+      this.setState({ equipamentos: equipamentos || [], loadingEquipamentos: false });
+    } catch (error) {
+      console.warn('Erro ao carregar equipamentos:', error.message);
+      this.setState({ equipamentos: [], loadingEquipamentos: false });
+    }
+  };
+
+  loadCatalogo = async () => {
+    try {
+      const response = await equipamentoService.getAll();
+      const catalogo = response?.data || response || [];
+      this.setState({ catalogoEquipamentos: Array.isArray(catalogo) ? catalogo : [] });
+    } catch (error) {
+      console.warn('Erro ao carregar catálogo:', error.message);
+    }
+  };
+
+  adicionarEquipamento = async (equipamentoId) => {
+    const id = this.state.personagem?.id;
+    if (!id) return;
+
+    this.setState({ loadingEquipamentos: true });
+    try {
+      await personagemService.adicionarEquipamento(id, equipamentoId);
+      await this.loadEquipamentos(id);
+    } catch (error) {
+      this.setState({ error: `Erro ao adicionar equipamento: ${error.message}`, loadingEquipamentos: false });
+    }
+  };
+
+  removerEquipamento = async (equipamentoId) => {
+    const id = this.state.personagem?.id;
+    if (!id) return;
+
+    this.setState({ loadingEquipamentos: true });
+    try {
+      await personagemService.removerEquipamento(id, equipamentoId);
+      await this.loadEquipamentos(id);
+    } catch (error) {
+      this.setState({ error: `Erro ao remover equipamento: ${error.message}`, loadingEquipamentos: false });
+    }
+  };
+
+  toggleCatalogo = () => {
+    const mostrar = !this.state.mostrarCatalogo;
+    this.setState({ mostrarCatalogo: mostrar });
+    if (mostrar && this.state.catalogoEquipamentos.length === 0) {
+      this.loadCatalogo();
+    }
+  };
+
+  setBuscaCatalogo = (termo) => {
+    this.setState({ buscaCatalogo: termo });
+  };
+
+  getCatalogoFiltrado = () => {
+    const { catalogoEquipamentos, equipamentos, buscaCatalogo } = this.state;
+    const idsEquipados = new Set(equipamentos.map(e => e.id));
+
+    return catalogoEquipamentos
+      .filter(eq => {
+        if (buscaCatalogo) {
+          const termo = buscaCatalogo.toLowerCase();
+          return eq.nome?.toLowerCase().includes(termo) ||
+                 eq.descricao?.toLowerCase().includes(termo);
+        }
+        return true;
+      })
+      .map(eq => ({
+        ...eq,
+        jaEquipado: idsEquipados.has(eq.id),
+      }));
+  };
+
+  getBonusAgregados = () => {
+    const { equipamentos } = this.state;
+    if (!equipamentos?.length) return {};
+
+    const totais = {};
+    equipamentos.forEach(eq => {
+      if (eq.bonus && typeof eq.bonus === 'object') {
+        Object.entries(eq.bonus).forEach(([key, value]) => {
+          totais[key] = (totais[key] || 0) + Number(value);
+        });
+      }
+    });
+    return totais;
   };
 
   clearError = () => {

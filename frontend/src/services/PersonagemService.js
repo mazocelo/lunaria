@@ -16,7 +16,7 @@ export class PersonagemService {
    */
   async getAll() {
     try {
-      const data = await this.apiClient.get(this.baseUrl);;
+      const data = await this.apiClient.get(this.baseUrl);
       if (data.success) {
         // ✅ NORMALIZAR dados usando Personagem.fromAPI() conforme API documentation
         return data.data.map(personagemData => Personagem.fromAPI(personagemData));
@@ -214,8 +214,6 @@ export class PersonagemService {
       const url = `${this.baseUrl}/historia/${historiaId}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response = await this.apiClient.get(url);
 
-      console.log(response);
-
       if (response.success) {
         return {
           personagens: response.data.map(personagemData => Personagem.fromAPI(personagemData)),
@@ -229,86 +227,6 @@ export class PersonagemService {
       }
     } catch (error) {
       throw new Error(`Erro ao buscar personagens por usuário e história: ${error.message}`);
-    }
-  }
-
-  /**
-   * Busca personagens por classe
-   * @param {string} classe - Classe do personagem
-   * @returns {Promise<Personagem[]>} Lista de personagens da classe
-   */
-  async getByClasse(classe) {
-    try {
-      const response = await this.apiClient.get(`${this.baseUrl}?classe=${classe}`);
-      if (response.success) {
-        return response;
-      } else {
-        throw new Error(response.data?.message || 'Erro desconhecido');
-      }
-    } catch (error) {
-      throw new Error(`Erro ao buscar personagens por classe: ${error.message}`);
-    }
-  }
-
-  /**
-   * Busca personagens com filtros
-   * @param {Object} filters - Filtros de busca
-   * @returns {Promise<Personagem[]>} Lista de personagens filtrados
-   */
-  async getWithFilters(filters = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value);
-        }
-      });
-
-      const response = await this.apiClient.get(`${this.baseUrl}?${queryParams.toString()}`);
-      if (response.success) {
-        return response;
-      } else {
-        throw new Error(response.data?.message || 'Erro desconhecido');
-      }
-    } catch (error) {
-      throw new Error(`Erro ao buscar personagens com filtros: ${error.message}`);
-    }
-  }
-
-  /**
-   * Atualiza HP de um personagem
-   * @param {number} id - ID do personagem
-   * @param {number} novoHP - Novo valor de HP
-   * @returns {Promise<Personagem>} Personagem atualizado
-   */
-  async updateHP(id, novoHP) {
-    try {
-      const response = await this.apiClient.patch(`${this.baseUrl}/${id}/hp`, { hp: novoHP });
-      if (response.success) {
-        return response;
-      } else {
-        throw new Error(response.data?.message || 'Erro desconhecido');
-      }
-    } catch (error) {
-      throw new Error(`Erro ao atualizar HP: ${error.message}`);
-    }
-  }
-
-  /**
-   * Aumenta nível de um personagem
-   * @param {number} id - ID do personagem
-   * @returns {Promise<Personagem>} Personagem atualizado
-   */
-  async levelUp(id) {
-    try {
-      const response = await this.apiClient.patch(`${this.baseUrl}/${id}/level-up`);
-      if (response.success) {
-        return response;
-      } else {
-        throw new Error(response.data?.message || 'Erro desconhecido');
-      }
-    } catch (error) {
-      throw new Error(`Erro ao aumentar nível: ${error.message}`);
     }
   }
 
@@ -404,6 +322,64 @@ export class PersonagemService {
       }
     } catch (error) {
       throw new Error(`Erro ao distribuir pontos: ${error.message}`);
+    }
+  }
+
+  /**
+   * Lista equipamentos do personagem
+   * @param {number} id - ID do personagem
+   * @returns {Promise<Array>} Equipamentos com dados completos
+   */
+  async listarEquipamentos(id) {
+    try {
+      const response = await this.apiClient.get(`${this.baseUrl}/${id}/equipamentos`);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao listar equipamentos');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao listar equipamentos: ${error.message}`);
+    }
+  }
+
+  /**
+   * Adiciona equipamento ao inventario do personagem
+   * @param {number} personagemId - ID do personagem
+   * @param {number} equipamentoId - ID do equipamento
+   * @returns {Promise<Object>}
+   */
+  async adicionarEquipamento(personagemId, equipamentoId) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${personagemId}/equipamentos`, {
+        equipamento_id: equipamentoId
+      });
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao adicionar equipamento');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao adicionar equipamento: ${error.message}`);
+    }
+  }
+
+  /**
+   * Remove equipamento do inventario do personagem
+   * @param {number} personagemId - ID do personagem
+   * @param {number} equipamentoId - ID do equipamento
+   * @returns {Promise<void>}
+   */
+  async removerEquipamento(personagemId, equipamentoId) {
+    try {
+      const response = await this.apiClient.delete(`${this.baseUrl}/${personagemId}/equipamentos/${equipamentoId}`);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao remover equipamento');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao remover equipamento: ${error.message}`);
     }
   }
 } 

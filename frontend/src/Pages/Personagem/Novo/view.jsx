@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
@@ -8,6 +8,18 @@ import { novoPersonagemViewModel } from './viewmodel';
 import { useTheme } from '../../../contexts/theme.jsx';
 
 const PONTOS_MAXIMO = 75;
+
+const raridadeColors = (raridade, isLight) => {
+  const map = {
+    'Comum': isLight ? 'bg-gray-100 text-gray-800' : 'bg-gray-500/20 text-gray-400',
+    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
+    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
+    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
+    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
+    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
+  };
+  return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
+};
 
 const atributosConfig = [
   { key: 'forca', label: 'Força', icon: '💪' },
@@ -28,6 +40,7 @@ const NovoPersonagemView = () => {
     vm.loadOpcoes();
     vm.loadVantagens();
     vm.loadHistorias();
+    vm.loadEquipamentos();
     vm.clearError();
   }, []);
 
@@ -189,7 +202,10 @@ const NovoPersonagemView = () => {
           </p>
         </div>
 
-        {/* Section 4: Background */}
+        {/* Section 4: Equipamentos */}
+        <EquipamentoSelector vm={vm} isLight={isLight} />
+
+        {/* Section 5: Background */}
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
@@ -260,7 +276,7 @@ const NovoPersonagemView = () => {
           )}
         </div>
 
-        {/* Section 5: Histórias */}
+        {/* Section 6: Histórias */}
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
@@ -345,6 +361,134 @@ const NovoPersonagemView = () => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const EquipamentoSelector = ({ vm, isLight }) => {
+  const [busca, setBusca] = useState('');
+  const equipamentosDisponiveis = vm.equipamentosDisponiveis || [];
+  const selecionados = vm.equipamentos || [];
+  const selecionadosSet = new Set(selecionados.map(String));
+
+  const filtrados = equipamentosDisponiveis.filter(eq => {
+    if (busca) {
+      const termo = busca.toLowerCase();
+      return eq.nome?.toLowerCase().includes(termo) || eq.descricao?.toLowerCase().includes(termo);
+    }
+    return true;
+  });
+
+  const toggleEquipamento = (eqId) => {
+    const id = String(eqId);
+    if (selecionadosSet.has(id)) {
+      vm.setEquipamentos(selecionados.filter(s => String(s) !== id));
+    } else {
+      vm.setEquipamentos([...selecionados, id]);
+    }
+  };
+
+  // Check requirements against selected class/race
+  const classeNome = (vm.classesDisponiveis || []).find(c => String(c.id) === String(vm.classe))?.nome?.toLowerCase();
+  const racaNome = (vm.racasDisponiveis || []).find(r => String(r.id) === String(vm.raca))?.nome?.toLowerCase();
+
+  return (
+    <div className="card-rpg space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+            <span className="text-sm">🗡️</span>
+          </div>
+          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            Equipamentos
+          </h2>
+        </div>
+        <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          {selecionados.length} selecionado{selecionados.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {vm.loadingEquipamentos ? (
+        <div className="flex items-center space-x-2 py-4">
+          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <span className="text-slate-400 font-modern text-sm">Carregando equipamentos...</span>
+        </div>
+      ) : (
+        <>
+          <input
+            type="text"
+            placeholder="Buscar equipamento..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className={`w-full px-3 py-2 rounded-lg text-sm font-modern border ${
+              isLight
+                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
+                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
+            }`}
+          />
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {filtrados.map(eq => {
+              const raridade = eq.raridade_rel?.nome || 'Comum';
+              const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
+              const selected = selecionadosSet.has(String(eq.id));
+              const reqClasse = eq.requisitos?.classe;
+              const reqRaca = eq.requisitos?.raca;
+              const classeOk = !reqClasse || (classeNome && reqClasse.some(c => c.toLowerCase() === classeNome));
+              const racaOk = !reqRaca || (racaNome && reqRaca.some(r => r.toLowerCase() === racaNome));
+              const compativel = classeOk && racaOk;
+
+              return (
+                <div
+                  key={eq.id}
+                  onClick={() => compativel && toggleEquipamento(eq.id)}
+                  className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${
+                    selected
+                      ? isLight ? 'bg-purple-100 border border-purple-300' : 'bg-purple-500/20 border border-purple-500/30'
+                      : !compativel
+                        ? isLight ? 'bg-slate-50 opacity-50' : 'bg-slate-800/30 opacity-50'
+                        : isLight ? 'bg-white border border-slate-200 hover:border-purple-300' : 'bg-slate-800/50 border border-slate-700 hover:border-purple-500/30'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className={`font-modern text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                        {eq.nome}
+                      </span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${raridadeColors(raridade, isLight)}`}>
+                        {raridade}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {tipo && <span className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{tipo}</span>}
+                      {eq.dano_base && <span className="text-[10px] font-modern text-red-400">Dano: {eq.dano_base}</span>}
+                    </div>
+                    {!compativel && (
+                      <span className="text-[10px] font-modern text-yellow-400">
+                        Incompativel com {!classeOk ? 'classe' : 'raca'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
+                    selected
+                      ? 'bg-purple-500 border-purple-500 text-white'
+                      : isLight ? 'border-slate-300' : 'border-slate-600'
+                  }`}>
+                    {selected && <span className="text-xs">✓</span>}
+                  </div>
+                </div>
+              );
+            })}
+            {filtrados.length === 0 && (
+              <p className={`text-sm font-modern italic py-2 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                Nenhum equipamento encontrado.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+      <p className="text-xs text-slate-400 font-modern">
+        Selecione os equipamentos iniciais do personagem
+      </p>
     </div>
   );
 };

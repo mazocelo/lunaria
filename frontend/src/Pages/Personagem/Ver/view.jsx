@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { verPersonagemViewModel } from './viewmodel';
@@ -13,6 +13,26 @@ const atributosConfig = [
   { key: 'destreza', label: 'Destreza', icon: '🎯' },
   { key: 'carisma', label: 'Carisma', icon: '✨' },
 ];
+
+const raridadeColors = (raridade, isLight) => {
+  const map = {
+    'Comum': isLight ? 'bg-gray-100 text-gray-800' : 'bg-gray-500/20 text-gray-400',
+    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
+    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
+    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
+    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
+    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
+  };
+  return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
+};
+
+const formatBonus = (bonus) => {
+  if (!bonus || typeof bonus !== 'object') return null;
+  return Object.entries(bonus)
+    .filter(([, v]) => v !== 0)
+    .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k}`)
+    .join(', ');
+};
 
 const VerPersonagemView = () => {
   const { id } = useParams();
@@ -338,22 +358,217 @@ const VerPersonagemView = () => {
         )}
       </div>
 
-      {/* Equipamentos */}
-      {p.equipamentos && (
-        <div className="card-rpg">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-              <span className="text-sm">🗡️</span>
-            </div>
-            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-              Equipamentos
-            </h2>
+      {/* Inventario */}
+      <InventarioSection vm={vm} isLight={isLight} personagem={p} />
+    </div>
+  );
+};
+
+const InventarioSection = ({ vm, isLight, personagem }) => {
+  const [confirmRemove, setConfirmRemove] = useState(null);
+  const equipamentos = vm.equipamentos || [];
+  const bonusAgregados = vm.getBonusAgregados ? vm.getBonusAgregados() : {};
+  const bonusStr = formatBonus(bonusAgregados);
+
+  const catalogoFiltrado = vm.getCatalogoFiltrado ? vm.getCatalogoFiltrado() : [];
+
+  return (
+    <div className="card-rpg">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+            <span className="text-sm">🗡️</span>
           </div>
-          <p className={`font-modern text-sm ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-            {Array.isArray(p.equipamentos)
-              ? p.equipamentos.map(e => typeof e === 'object' ? e.nome : e).join(', ')
-              : p.equipamentos}
+          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            Inventario
+          </h2>
+          <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+            ({equipamentos.length} {equipamentos.length === 1 ? 'item' : 'itens'})
+          </span>
+        </div>
+        <Button
+          variant="secondary"
+          size="small"
+          onClick={() => vm.toggleCatalogo()}
+        >
+          {vm.mostrarCatalogo ? 'Fechar Catalogo' : 'Adicionar Equipamento'}
+        </Button>
+      </div>
+
+      {/* Loading */}
+      {vm.loadingEquipamentos && (
+        <div className="flex items-center space-x-2 mb-4">
+          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <span className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Carregando equipamentos...</span>
+        </div>
+      )}
+
+      {/* Equipment Cards */}
+      {equipamentos.length > 0 ? (
+        <div className="space-y-3 mb-4">
+          {equipamentos.map(eq => {
+            const raridade = eq.raridade_rel?.nome || 'Comum';
+            const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
+            const bonusText = formatBonus(eq.bonus);
+
+            return (
+              <div
+                key={eq.id}
+                className={`p-3 rounded-lg border ${isLight ? 'bg-white/50 border-slate-200' : 'bg-slate-800/50 border-slate-700'}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className={`font-modern text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                        {eq.nome}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${raridadeColors(raridade, isLight)}`}>
+                        {raridade}
+                      </span>
+                    </div>
+                    {tipo && (
+                      <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {tipo}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {eq.dano_base && (
+                        <span className="text-xs font-modern text-red-400">
+                          Dano: {eq.dano_base}
+                        </span>
+                      )}
+                      {bonusText && (
+                        <span className="text-xs font-modern text-cyan-400">
+                          {bonusText}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    {confirmRemove === eq.id ? (
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => { vm.removerEquipamento(eq.id); setConfirmRemove(null); }}
+                          className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 font-modern"
+                        >
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => setConfirmRemove(null)}
+                          className="px-2 py-1 text-xs bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 font-modern"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRemove(eq.id)}
+                        className={`px-2 py-1 text-xs rounded font-modern ${isLight ? 'text-red-600 hover:bg-red-100' : 'text-red-400 hover:bg-red-500/20'}`}
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        !vm.loadingEquipamentos && (
+          <p className={`font-modern text-sm italic mb-4 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+            Nenhum equipamento no inventario. Clique em "Adicionar Equipamento" para equipar itens.
           </p>
+        )
+      )}
+
+      {/* Bonus Agregados */}
+      {bonusStr && (
+        <div className={`p-3 rounded-lg mb-4 ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-500/10 border border-cyan-500/20'}`}>
+          <span className={`font-modern text-sm font-semibold ${isLight ? 'text-cyan-800' : 'text-cyan-400'}`}>
+            Bonus Totais: {bonusStr}
+          </span>
+        </div>
+      )}
+
+      {/* Catalogo Panel */}
+      {vm.mostrarCatalogo && (
+        <div className={`mt-4 p-4 rounded-lg border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/50 border-slate-700'}`}>
+          <h3 className={`font-modern text-sm font-semibold mb-3 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+            Catalogo de Equipamentos
+          </h3>
+          <input
+            type="text"
+            placeholder="Buscar equipamento..."
+            value={vm.buscaCatalogo || ''}
+            onChange={(e) => vm.setBuscaCatalogo(e.target.value)}
+            className={`w-full px-3 py-2 rounded-lg text-sm font-modern mb-3 border ${
+              isLight
+                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
+                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
+            }`}
+          />
+          {catalogoFiltrado.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {catalogoFiltrado.map(eq => {
+                const raridade = eq.raridade_rel?.nome || 'Comum';
+                const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
+                const reqClasse = eq.requisitos?.classe;
+                const reqRaca = eq.requisitos?.raca;
+                const classeOk = !reqClasse || reqClasse.some(c => c.toLowerCase() === personagem.classe?.toLowerCase());
+                const racaOk = !reqRaca || reqRaca.some(r => r.toLowerCase() === personagem.raca?.toLowerCase());
+                const compativel = classeOk && racaOk;
+
+                return (
+                  <div
+                    key={eq.id}
+                    className={`p-2 rounded-lg flex items-center justify-between ${
+                      eq.jaEquipado
+                        ? isLight ? 'bg-slate-100 opacity-50' : 'bg-slate-800/30 opacity-50'
+                        : isLight ? 'bg-white border border-slate-200' : 'bg-slate-800/50 border border-slate-700'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className={`font-modern text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                          {eq.nome}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${raridadeColors(raridade, isLight)}`}>
+                          {raridade}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {tipo && <span className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{tipo}</span>}
+                        {eq.dano_base && <span className="text-[10px] font-modern text-red-400">Dano: {eq.dano_base}</span>}
+                      </div>
+                      {!compativel && (
+                        <span className="text-[10px] font-modern text-yellow-400">
+                          Requisitos: {reqClasse ? `Classe: ${reqClasse.join('/')}` : ''}{reqClasse && reqRaca ? ' | ' : ''}{reqRaca ? `Raca: ${reqRaca.join('/')}` : ''}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => vm.adicionarEquipamento(eq.id)}
+                      disabled={eq.jaEquipado || !compativel || vm.loadingEquipamentos}
+                      className={`ml-2 px-2 py-1 text-xs rounded font-modern whitespace-nowrap ${
+                        eq.jaEquipado
+                          ? 'bg-slate-500/20 text-slate-500 cursor-not-allowed'
+                          : !compativel
+                            ? 'bg-yellow-500/20 text-yellow-500 cursor-not-allowed'
+                            : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                      }`}
+                    >
+                      {eq.jaEquipado ? 'Equipado' : !compativel ? 'Incompativel' : 'Adicionar'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={`text-sm font-modern italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              Nenhum equipamento encontrado.
+            </p>
+          )}
         </div>
       )}
     </div>

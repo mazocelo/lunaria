@@ -74,9 +74,11 @@ const FichaPersonagemModal = ({
 
     const vantagens = personagem.vantagens || [];
     const desvantagens = personagem.desvantagens || [];
-    const equipamentos = personagem.equipamentos
-      ? personagem.equipamentos.split(',').map(item => item.trim()).filter(Boolean)
-      : [];
+    const equipamentos = Array.isArray(personagem.equipamentos)
+      ? personagem.equipamentos
+      : typeof personagem.equipamentos === 'string'
+        ? personagem.equipamentos.split(',').map(item => item.trim()).filter(Boolean)
+        : [];
 
     return (
       <div className="space-y-6">

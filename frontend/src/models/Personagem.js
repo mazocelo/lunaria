@@ -14,14 +14,12 @@ export class Personagem {
     this.historia_id = data.historia_id || null; // ID da primeira história (compatibilidade)
     this.historias = data.historias || []; // Array de histórias vinculadas
     this.nivel = data.nivel || 1;
-    this.hp = data.hp || 100;
-    this.hp_maximo = data.hp_maximo || 100;
-    this.forca = data.forca 
-    this.destreza = data.destreza 
-    this.constituicao = data.constituicao 
-    this.inteligencia = data.inteligencia 
-    this.agilidade = data.agilidade 
-    this.carisma = data.carisma 
+    this.forca = data.forca || 10;
+    this.destreza = data.destreza || 10;
+    this.constituicao = data.constituicao || 10;
+    this.inteligencia = data.inteligencia || 10;
+    this.agilidade = data.agilidade || 10;
+    this.carisma = data.carisma || 10;
     this.sugestao_background = data.sugestao_background || 'guiado';
     this.background = data.background || '';
     this.vantagens = data.vantagens || [];
@@ -58,14 +56,6 @@ export class Personagem {
 
     if (this.nivel > 20) {
       errors.push('Nível máximo é 20');
-    }
-
-    if (this.hp < 0) {
-      errors.push('HP não pode ser negativo');
-    }
-
-    if (this.hp > this.hp_maximo) {
-      errors.push('HP não pode ser maior que HP máximo');
     }
 
     // Validar atributos (1-20)
@@ -126,8 +116,6 @@ export class Personagem {
       historia_id: this.historia_id,
       historias: this.historias,
       nivel: this.nivel,
-      hp: this.hp,
-      hp_maximo: this.hp_maximo,
       forca: this.forca,
       destreza: this.destreza,
       constituicao: this.constituicao,
@@ -136,7 +124,6 @@ export class Personagem {
       carisma: this.carisma,
       sugestao_background: this.sugestao_background,
       background: this.background,
-      atributos: this.atributos,
       vantagens: this.vantagens,
       desvantagens: this.desvantagens,
       equipamentos: this.equipamentos,
@@ -167,8 +154,6 @@ export class Personagem {
       historia_id: apiData.historia_id, // ID da primeira história (compatibilidade)
       historias: apiData.historias || [], // Array de histórias vinculadas
       nivel: apiData.nivel,
-      hp: apiData.hp,
-      hp_maximo: apiData.hp_maximo,
       forca: apiData.forca || 10,
       destreza: apiData.destreza || 10,
       constituicao: apiData.constituicao || 10,
@@ -177,7 +162,6 @@ export class Personagem {
       carisma: apiData.carisma || 10,
       sugestao_background: apiData.sugestao_background,
       background: apiData.background,
-      atributos: apiData.atributos || {},
       vantagens: apiData.vantagens,
       desvantagens: apiData.desvantagens,
       equipamentos: apiData.equipamentos,

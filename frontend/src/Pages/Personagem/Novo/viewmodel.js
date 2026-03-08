@@ -54,7 +54,9 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
         carisma: Number(this.state.atributos.carisma) || 10,
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
-        equipamentos: this.state.equipamentos,
+        equipamentos: Array.isArray(this.state.equipamentos)
+          ? this.state.equipamentos.map(id => Number(id))
+          : [],
         nivel: this.state.nivel || 1,
       };
 
@@ -116,7 +118,7 @@ class NovoPersonagemViewModel extends EditarPersonagemViewModel {
       historias: [],
       atributos: { forca: '', inteligencia: '', constituicao: '', agilidade: '', destreza: '', carisma: '' },
       vantagens: [],
-      equipamentos: '',
+      equipamentos: [],
       nivel: 1,
       hp: 100,
       loading: false,

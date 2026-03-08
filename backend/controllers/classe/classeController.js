@@ -71,25 +71,21 @@ class ClasseController {
    */
   async listarClasses(req, res, next) {
     try {
-      console.log('📋 Listando classes');
-
       const { limit = 50, offset = 0 } = req.query;
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
 
-      const classes = await db.Classe.findAll();
-
-      // Aplicar paginação manualmente se necessário
-      const startIndex = parseInt(offset);
-      const endIndex = startIndex + parseInt(limit);
-      const classesPaginadas = classes.slice(startIndex, endIndex);
-
-      console.log(`✅ ${classesPaginadas.length} classes encontradas`);
+      const result = await db.Classe.findPaginated({ limit: parsedLimit, offset: parsedOffset });
 
       res.status(200).json({
         success: true,
-        data: classesPaginadas,
-        total: classes.length,
-        offset: parseInt(offset),
-        limit: parseInt(limit)
+        data: result.data,
+        pagination: {
+          total: result.total,
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + result.data.length < result.total
+        }
       });
 
     } catch (error) {

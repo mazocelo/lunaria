@@ -105,48 +105,53 @@ class HistoriaController {
    */
   async listarHistorias(req, res, next) {
     try {
-      console.log('📋 Listando histórias...', req.user ? `para usuário ${req.user.id}` : 'público');
-      
       const { status, temas, limit = 20, offset = 0, todas = false, incluir_personagens = true } = req.query;
-      
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+
       let historias = [];
-      
+      let total = 0;
+      let usedDbPagination = false;
+
       // Se o usuário estiver logado e não for solicitada listagem pública
       if (req.user && req.user.id && todas !== 'true') {
         if (incluir_personagens === 'true' || incluir_personagens === true) {
-          // Buscar histórias criadas pelo usuário + onde seus personagens participam
-          console.log('🔍 Buscando histórias criadas pelo usuário e onde seus personagens participam...');
+          // Buscar histórias criadas + participação (query composta, paginação em memória)
           historias = await db.Historia.findAllByUsuario(req.user.id);
         } else {
-          // Buscar apenas histórias criadas pelo usuário
-          console.log('🔍 Buscando apenas histórias criadas pelo usuário...');
-          historias = await db.Historia.findByUsuario(req.user.id);
+          // Buscar apenas histórias criadas pelo usuário (paginação DB-level)
+          const result = await db.Historia.findByUsuarioPaginated(req.user.id, {
+            limit: parsedLimit,
+            offset: parsedOffset,
+            status: status || undefined
+          });
+          historias = result.data;
+          total = result.total;
+          usedDbPagination = true;
         }
       } else {
         // Buscar todas as histórias (modo público)
-        console.log('🔍 Buscando todas as histórias (modo público)...');
         historias = await db.Historia.findAll();
       }
-      
-      // Aplicar filtros
-      if (status) {
-        historias = historias.filter(h => h.status === status);
+
+      // Aplicar filtros em memória apenas quando não usou paginação DB
+      if (!usedDbPagination) {
+        if (status) {
+          historias = historias.filter(h => h.status === status);
+        }
+        if (temas) {
+          historias = historias.filter(h => h.temas && h.temas.includes(temas));
+        }
+
+        if (!req.user || todas === 'true') {
+          historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+        }
+
+        total = historias.length;
+        historias = historias.slice(parsedOffset, parsedOffset + parsedLimit);
       }
-      if (temas) {
-        historias = historias.filter(h => h.temas && h.temas.includes(temas));
-      }
-      
-      // Se não foram ordenadas no método do model, ordenar aqui
-      if (!req.user || todas === 'true') {
-        historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
-      }
-      
-      const total = historias.length;
-      
-      // Aplicar paginação
-      const startIndex = parseInt(offset) || 0;
-      const endIndex = startIndex + parseInt(limit || 20);
-      const historiasPaginadas = historias.slice(startIndex, endIndex);
+
+      const historiasPaginadas = historias;
       
       // Verificar status de sessão ativa para cada história (se usuário estiver logado)
       let historiasComSessao = historiasPaginadas;
@@ -189,16 +194,14 @@ class HistoriaController {
         }));
       }
       
-      console.log(`✅ ${historiasComSessao.length} histórias encontradas (${total} total)`);
-      
       res.status(200).json({
         success: true,
         data: historiasComSessao,
         pagination: {
           total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: startIndex + historiasPaginadas.length < total
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + historiasPaginadas.length < total
         },
         filtrado_por_usuario: req.user && req.user.id && todas !== 'true' ? req.user.id : null,
         incluindo_personagens: req.user && req.user.id && todas !== 'true' && (incluir_personagens === 'true' || incluir_personagens === true)
@@ -567,27 +570,18 @@ class HistoriaController {
    */
   async listarMinhasHistorias(req, res, next) {
     try {
-      console.log('📋 Listando histórias criadas pelo usuário:', req.user.id);
-      
-      const { status, temas, limit = 20, offset = 0 } = req.query;
-      
-      // Buscar apenas histórias criadas pelo usuário
-      let historias = await db.Historia.findByUsuario(req.user.id);
-      
-      // Aplicar filtros
-      if (status) {
-        historias = historias.filter(h => h.status === status);
-      }
-      if (temas) {
-        historias = historias.filter(h => h.temas && h.temas.includes(temas));
-      }
-      
-      const total = historias.length;
-      
-      // Aplicar paginação
-      const startIndex = parseInt(offset) || 0;
-      const endIndex = startIndex + parseInt(limit || 20);
-      const historiasPaginadas = historias.slice(startIndex, endIndex);
+      const { status, limit = 20, offset = 0 } = req.query;
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+
+      const result = await db.Historia.findByUsuarioPaginated(req.user.id, {
+        limit: parsedLimit,
+        offset: parsedOffset,
+        status: status || undefined
+      });
+
+      const historiasPaginadas = result.data;
+      const total = result.total;
       
       // Verificar status de sessão ativa para cada história
       const historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
@@ -629,16 +623,14 @@ class HistoriaController {
         }
       }));
       
-      console.log(`✅ ${historiasComSessao.length} histórias criadas encontradas (${total} total)`);
-      
       res.status(200).json({
         success: true,
         data: historiasComSessao,
         pagination: {
           total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: startIndex + historiasPaginadas.length < total
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + historiasPaginadas.length < total
         },
         tipo: 'historias_criadas'
       });

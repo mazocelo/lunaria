@@ -3,8 +3,22 @@ import db from '../../Model/index.js';
 class EquipamentoController {
   async listarEquipamentos(req, res) {
     try {
-      const equipamentos = await db.Equipamento.findAll();
-      res.json({ success: true, data: equipamentos, total: equipamentos.length });
+      const { limit = 50, offset = 0 } = req.query;
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+
+      const result = await db.Equipamento.findPaginated({ limit: parsedLimit, offset: parsedOffset });
+
+      res.json({
+        success: true,
+        data: result.data,
+        pagination: {
+          total: result.total,
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + result.data.length < result.total
+        }
+      });
     } catch (error) {
       console.error('Erro ao listar equipamentos:', error);
       res.status(500).json({ error: 'Erro interno do servidor' });

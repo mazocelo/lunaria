@@ -71,25 +71,21 @@ class RacaController {
    */
   async listarRacas(req, res, next) {
     try {
-      console.log('📋 Listando raças');
-
       const { limit = 50, offset = 0 } = req.query;
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
 
-      const racas = await db.Raca.findAll();
-
-      // Aplicar paginação manualmente se necessário
-      const startIndex = parseInt(offset);
-      const endIndex = startIndex + parseInt(limit);
-      const racasPaginadas = racas.slice(startIndex, endIndex);
-
-      console.log(`✅ ${racasPaginadas.length} raças encontradas`);
+      const result = await db.Raca.findPaginated({ limit: parsedLimit, offset: parsedOffset });
 
       res.status(200).json({
         success: true,
-        data: racasPaginadas,
-        total: racas.length,
-        offset: parseInt(offset),
-        limit: parseInt(limit)
+        data: result.data,
+        pagination: {
+          total: result.total,
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + result.data.length < result.total
+        }
       });
 
     } catch (error) {

@@ -89,66 +89,27 @@ class VantagemController {
    */
   async listarVantagens(req, res, next) {
     try {
-      console.log('📋 Listando vantagens...');
-      
-      const { 
-        tipo, 
-        elemento, 
-        nivel,
-        usar,
-        search,
-        limit, 
-        offset
-      } = req.query;
-          
-      // Construir filtros
-      const where = {};
-      if (tipo) where.tipo = tipo;
-      if (elemento) where.elemento = elemento;
-      if (nivel) where.nivel = nivel;
-      if (usar) where.usar = usar;
-      
-      let vantagens = [];
-      
-      // Se há termo de busca, usar método de busca
-      if (search) {
-        vantagens = await db.Vantagem.search(search);
-      } 
-      else if (tipo) {
-        vantagens = await db.Vantagem.findByTipo(tipo);
-      }
-      else if (elemento) {
-        vantagens = await db.Vantagem.findByElemento(elemento);
-      }
-      else if (nivel) {
-        vantagens = await db.Vantagem.findByNivel(parseInt(nivel));
-      }
-      else if (usar) {
-        vantagens = await db.Vantagem.findByUsar(parseInt(usar));
-      }
-      else {
-        vantagens = await db.Vantagem.findAll();
-      }
-      
-      // Aplicar paginação manualmente se necessário
-      if (limit || offset) {
-        const startIndex = parseInt(offset) || 0;
-        const endIndex = startIndex + parseInt(limit || 50);
-        vantagens = vantagens.slice(startIndex, endIndex);
-      }
-      
-      const total = vantagens.length;
-      
-      console.log(`✅ ${vantagens.length} vantagens encontradas`);
-      
+      const { tipo, elemento, nivel, usar, search, limit = 50, offset = 0 } = req.query;
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+
+      const result = await db.Vantagem.findPaginated({
+        limit: parsedLimit,
+        offset: parsedOffset,
+        tipo, elemento,
+        nivel: nivel ? parseInt(nivel) : undefined,
+        usar: usar ? parseInt(usar) : undefined,
+        search
+      });
+
       res.status(200).json({
         success: true,
-        data: vantagens,
+        data: result.data,
         pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: offset + vantagens.length < total
+          total: result.total,
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + result.data.length < result.total
         }
       });
       

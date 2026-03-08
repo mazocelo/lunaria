@@ -13,36 +13,25 @@ class MonstroController {
    */
   listar = async (req, res, next) => {
     try {
-      console.log('📋 Listando monstros');
-
       const { tipo, raridade_id, nivel, tema, limit = 50, offset = 0 } = req.query;
+      const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const parsedOffset = Math.max(parseInt(offset) || 0, 0);
 
-      let monstros;
-      if (tipo) {
-        monstros = await db.Monstro.findByTipo(tipo);
-      } else if (raridade_id) {
-        monstros = await db.Monstro.findByRaridade(parseInt(raridade_id));
-      } else if (nivel) {
-        const n = parseInt(nivel);
-        monstros = await db.Monstro.findByNivelRange(n, n);
-      } else if (tema) {
-        monstros = await db.Monstro.findByTema(tema);
-      } else {
-        monstros = await db.Monstro.findAll();
-      }
-
-      const startIndex = parseInt(offset);
-      const endIndex = startIndex + parseInt(limit);
-      const monstrosPaginados = monstros.slice(startIndex, endIndex);
-
-      console.log(`✅ ${monstrosPaginados.length} monstros encontrados`);
+      const result = await db.Monstro.findPaginated({
+        limit: parsedLimit,
+        offset: parsedOffset,
+        tipo, raridade_id, nivel, tema
+      });
 
       res.status(200).json({
         success: true,
-        data: monstrosPaginados,
-        total: monstros.length,
-        offset: parseInt(offset),
-        limit: parseInt(limit)
+        data: result.data,
+        pagination: {
+          total: result.total,
+          limit: parsedLimit,
+          offset: parsedOffset,
+          hasMore: parsedOffset + result.data.length < result.total
+        }
       });
 
     } catch (error) {

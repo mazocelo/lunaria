@@ -21,9 +21,9 @@ const raridadeVariant = {
 };
 
 const atributosConfig = [
-  { key: 'forca', label: 'Forca' },
-  { key: 'inteligencia', label: 'Inteligencia' },
-  { key: 'constituicao', label: 'Constituicao' },
+  { key: 'forca', label: 'Força' },
+  { key: 'inteligencia', label: 'Inteligência' },
+  { key: 'constituicao', label: 'Constituição' },
   { key: 'agilidade', label: 'Agilidade' },
   { key: 'destreza', label: 'Destreza' },
   { key: 'carisma', label: 'Carisma' },
@@ -100,7 +100,7 @@ const EditarPersonagemView = () => {
               <User size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-              Informacoes Basicas
+              Informações Básicas
             </h2>
           </div>
 
@@ -109,19 +109,19 @@ const EditarPersonagemView = () => {
             name="nome"
             onChange={e => vm.setNome(e.target.value)}
             value={vm.nome}
-            placeholder="Digite o nome do seu heroi..."
+            placeholder="Digite o nome do seu herói..."
             required
           />
 
           {vm.loadingOpcoes ? (
             <div className="flex items-center space-x-2 py-4">
               <Loader2 size={16} className="animate-spin text-purple-400" />
-              <span className="text-slate-400 font-modern text-sm">Carregando opcoes...</span>
+              <span className="text-slate-400 font-modern text-sm">Carregando opções...</span>
             </div>
           ) : (
             <>
               <Selector
-                label="Raca"
+                label="Raça"
                 options={(vm.racasDisponiveis || []).map(r => ({ value: String(r.id), label: r.nome }))}
                 selected={vm.raca}
                 onChange={(value) => vm.setRaca(value)}
@@ -177,7 +177,7 @@ const EditarPersonagemView = () => {
             ))}
           </div>
           <p className="text-xs text-slate-400 font-modern">
-            Distribua pontos entre 1 e 20 para cada atributo (maximo {PONTOS_MAXIMO} pontos no total)
+            Distribua pontos entre 1 e 20 para cada atributo (máximo {PONTOS_MAXIMO} pontos no total)
           </p>
         </div>
 
@@ -211,7 +211,7 @@ const EditarPersonagemView = () => {
             />
           )}
           <p className="text-xs text-slate-400 font-modern">
-            Selecione ate 5 vantagens e desvantagens para personalizar seu personagem
+            Selecione até 5 vantagens e desvantagens para personalizar seu personagem
           </p>
         </div>
 
@@ -268,35 +268,34 @@ const EditarPersonagemView = () => {
                 type="single"
               />
               <p className="text-xs text-slate-400 font-modern">
-                A IA vai criar um background usando seus atributos, classe, raca, vantagens e equipamentos
+                A IA vai criar um background usando seus atributos, classe, raça, vantagens e equipamentos
               </p>
             </div>
           ) : (
             <div className="flex flex-col mb-4">
-              <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-200' : 'text-white'} drop-shadow`}>
+              <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
                 Descreva o Background
               </label>
               <textarea
                 value={vm.background}
                 onChange={e => vm.setBackground(e.target.value)}
-                placeholder="Conte a historia de origem do seu personagem..."
+                placeholder="Conte a história de origem do seu personagem..."
                 rows={4}
-                className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all resize-none
-                  ${isLight ? 'bg-white/20 border-slate-400 text-slate-100' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
-                  placeholder:text-slate-400`}
+                className={`w-full px-4 py-3 rounded-lg font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all resize-none
+                  ${isLight ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'}`}
               />
             </div>
           )}
         </div>
 
-        {/* Section 6: Historias */}
+        {/* Section 6: Histórias */}
         <div className="card-rpg space-y-6">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
               <BookOpen size={16} className="text-white" />
             </div>
             <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-              Historias
+              Histórias
             </h2>
           </div>
 
@@ -307,7 +306,7 @@ const EditarPersonagemView = () => {
             </div>
           ) : (vm.historiasDisponiveis || []).length > 0 ? (
             <Selector
-              label="Vincular a Historias (opcional)"
+              label="Vincular a Histórias (opcional)"
               options={vm.historiasDisponiveis.map(h => ({ value: String(h.id), label: h.nome }))}
               selected={vm.historias || []}
               onChange={(selected) => vm.setHistorias(Array.isArray(selected) ? selected : [])}
@@ -316,11 +315,11 @@ const EditarPersonagemView = () => {
             />
           ) : (
             <p className={`${isLight ? 'text-slate-500' : 'text-slate-400'} font-modern text-sm italic`}>
-              Nenhuma historia disponivel.
+              Nenhuma história disponível.
             </p>
           )}
           <p className="text-xs text-slate-400 font-modern">
-            Vincule seu personagem a ate 3 historias existentes
+            Vincule seu personagem a até 3 histórias existentes
           </p>
         </div>
 
@@ -348,7 +347,7 @@ const EditarPersonagemView = () => {
             ) : (
               <div className="flex items-center space-x-2">
                 <Save size={16} />
-                <span>Salvar Alteracoes</span>
+                <span>Salvar Alterações</span>
               </div>
             )}
           </Button>
@@ -412,13 +411,13 @@ const EquipamentoSelector = ({ vm, isLight }) => {
             placeholder="Buscar equipamento..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className={`w-full px-3 py-2 rounded-lg text-sm font-modern border ${
+            className={`w-full px-3 py-2 rounded-lg text-sm font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 ${
               isLight
-                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
-                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
+                ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'
+                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'
             }`}
           />
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {filtrados.map(eq => {
               const raridade = eq.raridade_rel?.nome || 'Comum';
               const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
@@ -433,7 +432,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
                 <div
                   key={eq.id}
                   onClick={() => compativel && toggleEquipamento(eq.id)}
-                  className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${
+                  className={`p-2 rounded-lg flex items-center justify-between transition-all ${compativel ? 'cursor-pointer' : 'cursor-not-allowed'} ${
                     selected
                       ? isLight ? 'bg-purple-100 border border-purple-300' : 'bg-purple-500/20 border border-purple-500/30'
                       : !compativel
@@ -454,7 +453,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
                     </div>
                     {!compativel && (
                       <span className="text-[10px] font-modern text-yellow-400">
-                        Incompativel com {!classeOk ? 'classe' : 'raca'}
+                        Incompatível com {!classeOk ? 'classe' : 'raça'}
                       </span>
                     )}
                   </div>

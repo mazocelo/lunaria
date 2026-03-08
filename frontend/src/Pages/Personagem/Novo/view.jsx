@@ -259,7 +259,7 @@ const NovoPersonagemView = () => {
             </div>
           ) : (
             <div className="flex flex-col mb-4">
-              <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-200' : 'text-white'} drop-shadow`}>
+              <label className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
                 Descreva o Background
               </label>
               <textarea
@@ -267,9 +267,8 @@ const NovoPersonagemView = () => {
                 onChange={e => vm.setBackground(e.target.value)}
                 placeholder="Conte a história de origem do seu personagem..."
                 rows={4}
-                className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all resize-none
-                  ${isLight ? 'bg-white/20 border-slate-400 text-slate-100' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
-                  placeholder:text-slate-400`}
+                className={`w-full px-4 py-3 rounded-lg font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all resize-none
+                  ${isLight ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'}`}
               />
             </div>
           )}
@@ -418,13 +417,13 @@ const EquipamentoSelector = ({ vm, isLight }) => {
             placeholder="Buscar equipamento..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className={`w-full px-3 py-2 rounded-lg text-sm font-modern border ${
+            className={`w-full px-3 py-2 rounded-lg text-sm font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 ${
               isLight
-                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
-                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
+                ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'
+                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'
             }`}
           />
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {filtrados.map(eq => {
               const raridade = eq.raridade_rel?.nome || 'Comum';
               const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
@@ -439,7 +438,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
                 <div
                   key={eq.id}
                   onClick={() => compativel && toggleEquipamento(eq.id)}
-                  className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${
+                  className={`p-2 rounded-lg flex items-center justify-between transition-all ${compativel ? 'cursor-pointer' : 'cursor-not-allowed'} ${
                     selected
                       ? isLight ? 'bg-purple-100 border border-purple-300' : 'bg-purple-500/20 border border-purple-500/30'
                       : !compativel
@@ -460,7 +459,7 @@ const EquipamentoSelector = ({ vm, isLight }) => {
                     </div>
                     {!compativel && (
                       <span className="text-[10px] font-modern text-yellow-400">
-                        Incompativel com {!classeOk ? 'classe' : 'raca'}
+                        Incompatível com {!classeOk ? 'classe' : 'raça'}
                       </span>
                     )}
                   </div>

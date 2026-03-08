@@ -1,6 +1,7 @@
 import React from 'react';
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { Label } from "../ui/label";
+import { useTheme } from '../../contexts/theme.jsx';
 
 function Selector({
   selected,
@@ -14,7 +15,9 @@ function Selector({
   zerate = false,
   removeLast = false,
 }) {
-  // Função que trata a lógica de seleção (limitando se for "multiple")
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const handleChange = (value) => {
     if (type === "multiple") {
       const current = Array.isArray(selected) ? selected : [];
@@ -43,7 +46,7 @@ function Selector({
 
   return (
     <div className={`flex flex-col gap-3 ${containerClass}`}>
-      <Label htmlFor={id} className="text-sm font-semibold text-white mb-1">
+      <Label htmlFor={id} className={`text-sm font-semibold mb-1 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
         {label}
       </Label>
       <ToggleGroup

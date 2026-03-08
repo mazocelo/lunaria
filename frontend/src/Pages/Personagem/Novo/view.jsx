@@ -3,6 +3,7 @@ import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Combobox from '../../../components/form/Combobox';
 import MultiSelect from '../../../components/form/MultiSelect';
+import Selector from '../../../components/form/Selector';
 import { useNavigate } from 'react-router-dom';
 import { useViewModel } from '../../../shared/hooks/useViewModel';
 import { novoPersonagemViewModel } from './viewmodel';

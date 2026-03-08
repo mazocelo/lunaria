@@ -2691,7 +2691,18 @@ class SocketManager {
         return sessao;
       }
 
-      // Se não existe, buscar dados da história no banco e criar sessão
+      // Tentar restaurar do PostgreSQL (snapshot salvo)
+      try {
+        const sessaoRestaurada = await sessaoSnapshotService.restaurarSessao(salaId);
+        if (sessaoRestaurada) {
+          console.log(`♻️ Sessão restaurada do PostgreSQL para história ${historiaId}`);
+          return sessaoRestaurada;
+        }
+      } catch (restoreErr) {
+        console.warn(`⚠️ Falha ao restaurar sessão do PostgreSQL: ${restoreErr.message}`);
+      }
+
+      // Se não existe nem no snapshot, buscar dados da história no banco e criar sessão
       console.log(`🔍 Criando nova sessão para história ${historiaId}`);
       
       // Importar modelo do banco

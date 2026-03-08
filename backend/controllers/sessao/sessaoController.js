@@ -1,5 +1,6 @@
 import db from '../../Model/index.js';
 import gerenciadorSessoes from '../../redis/sessoes.js';
+import sessaoSnapshotService from '../../services/sessaoSnapshot.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 
 /**
@@ -329,25 +330,36 @@ class SessaoController {
   async finalizarSessao(req, res, next) {
     try {
       const { salaId } = req.params;
-      
+
       console.log(`🏁 Finalizando sessão: ${salaId}`);
-      
+
+      // Forçar snapshot antes de finalizar (preservar último estado)
+      const sessaoAtual = await gerenciadorSessoes.obterSessao(salaId);
+      if (sessaoAtual) {
+        try {
+          await sessaoSnapshotService.salvarSnapshot(salaId, sessaoAtual);
+          console.log('📸 Snapshot final salvo antes de finalizar sessão');
+        } catch (snapErr) {
+          console.error('⚠️ Erro ao salvar snapshot final (continuando):', snapErr.message);
+        }
+      }
+
       const finalizada = await gerenciadorSessoes.finalizarSessao(salaId);
-      
+
       if (!finalizada) {
         return res.status(404).json({
           success: false,
           error: 'Sessão não encontrada'
         });
       }
-      
+
       console.log('✅ Sessão finalizada com sucesso');
-      
+
       res.status(200).json({
         success: true,
         message: 'Sessão finalizada com sucesso'
       });
-      
+
     } catch (error) {
       console.error('❌ Erro ao finalizar sessão:', error);
       next(error);

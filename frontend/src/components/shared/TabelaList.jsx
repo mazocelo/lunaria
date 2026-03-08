@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
+import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Loader2, Inbox } from 'lucide-react';
 
 /**
  * Componente TabelaList genérico para exibição padronizada de listas
@@ -202,10 +203,10 @@ const TabelaList = ({
       <div className={`card-rpg ${className}`} role="region" aria-label="Carregando dados da tabela">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-              <span className="text-2xl">⚡</span>
+            <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
+              <Loader2 size={28} className="text-white animate-spin" />
             </div>
-            <div className="text-slate-300 font-modern">Carregando dados...</div>
+            <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando dados...</div>
           </div>
         </div>
       </div>
@@ -237,15 +238,21 @@ const TabelaList = ({
 
       {/* Estado vazio */}
       {data.length === 0 ? (
-        <div 
+        <div
           className="text-center py-12"
-          role="status" 
+          role="status"
           aria-label={emptyMessage}
         >
-          <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-            <span className="text-3xl">{emptyIcon}</span>
+          <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
+            isLight ? 'bg-slate-100 text-slate-400' : 'bg-slate-800/60 text-slate-500'
+          }`}>
+            {typeof emptyIcon === 'string' ? (
+              <span className="text-3xl">{emptyIcon}</span>
+            ) : (
+              <Inbox size={32} />
+            )}
           </div>
-          <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
+          <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
             {emptyMessage}
           </h3>
         </div>
@@ -480,7 +487,7 @@ const TabelaList = ({
                       title="Primeira página"
                       aria-label="Ir para a primeira página"
                     >
-                      <span className="text-sm">⏮️</span>
+                      <ChevronsLeft size={16} />
                     </button>
 
                     {/* Botão Página Anterior */}
@@ -500,7 +507,7 @@ const TabelaList = ({
                       `}
                       aria-label="Página anterior"
                     >
-                      ← Anterior
+                      <ChevronLeft size={16} className="inline mr-1" />Anterior
                     </button>
 
                     {/* Números das páginas */}
@@ -547,7 +554,7 @@ const TabelaList = ({
                       `}
                       aria-label="Próxima página"
                     >
-                      Próxima →
+                      Próxima<ChevronRight size={16} className="inline ml-1" />
                     </button>
 
                     {/* Botão Última Página */}
@@ -567,7 +574,7 @@ const TabelaList = ({
                       title="Última página"
                       aria-label="Ir para a última página"
                     >
-                      <span className="text-sm">⏭️</span>
+                      <ChevronsRight size={16} />
                     </button>
                   </div>
                 )}

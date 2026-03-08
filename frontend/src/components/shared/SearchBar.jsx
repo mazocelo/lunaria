@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../contexts/theme';
+import { Search, X } from 'lucide-react';
 
 const SearchBar = ({ placeholder = 'Buscar...', value = '', onChange, className = '' }) => {
   const { theme } = useTheme();
@@ -35,9 +36,9 @@ const SearchBar = ({ placeholder = 'Buscar...', value = '', onChange, className 
 
   return (
     <div className={`relative ${className}`}>
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
-        🔍
-      </span>
+      <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+        isDark ? 'text-purple-400/60' : 'text-slate-400'
+      }`} />
       <input
         type="text"
         value={localValue}
@@ -53,11 +54,11 @@ const SearchBar = ({ placeholder = 'Buscar...', value = '', onChange, className 
         <button
           type="button"
           onClick={handleClear}
-          className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-sm transition-colors
+          className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors cursor-pointer
             ${isDark ? 'text-purple-300 hover:text-white' : 'text-slate-400 hover:text-slate-700'}`}
           aria-label="Limpar busca"
         >
-          ✕
+          <X size={16} />
         </button>
       )}
     </div>

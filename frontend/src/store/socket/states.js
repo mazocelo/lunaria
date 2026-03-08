@@ -14,7 +14,11 @@ export const socketInitialStates = {
     timeout: SOCKET_TIMEOUTS.CONNECTION,
     pingTimeout: SOCKET_TIMEOUTS.PING,
     autoConnect: false,
-    forceNew: false
+    forceNew: false,
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 10000
   },
   
   // ===== STATUS DA CONEXÃO =====

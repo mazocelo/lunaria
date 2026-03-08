@@ -96,22 +96,55 @@ export const createSocketActions = (set, get) => ({
     });
 
     socket.on('disconnect', (reason) => {
-      set({ 
-        isConnected: false, 
+      set({
+        isConnected: false,
         isAuthenticated: false,
         inRoom: false,
-        roomId: null 
+        roomId: null
       });
       get().log('Disconnected', { reason });
+
+      // Notificar o usuário via toast se disponível
+      if (reason !== 'io client disconnect' && window.showGameNotification) {
+        window.showGameNotification('Conexao perdida. Tentando reconectar...', 'warning');
+      }
     });
 
     socket.on('connect_error', (error) => {
-      set({ 
-        isConnected: false, 
+      set({
+        isConnected: false,
         isConnecting: false,
-        error: error.message 
+        error: error.message
       });
       get().log('Connection error', { error: error.message }, 'error');
+    });
+
+    // Listeners de reconexão automática (Socket.IO built-in)
+    socket.io.on('reconnect', (attempt) => {
+      console.log(`♻️ Reconectado após ${attempt} tentativa(s)`);
+      set({ isConnected: true, isReconnecting: false, error: null });
+      if (window.showGameNotification) {
+        window.showGameNotification('Reconectado com sucesso!', 'success');
+      }
+
+      // Re-autenticar após reconexão
+      const { socketToken } = get();
+      if (socketToken) {
+        socket.emit('authenticate', { token: socketToken });
+      }
+    });
+
+    socket.io.on('reconnect_attempt', (attempt) => {
+      console.log(`🔄 Tentativa de reconexão #${attempt}`);
+      set({ isReconnecting: true, connectionAttempts: attempt });
+    });
+
+    socket.io.on('reconnect_failed', () => {
+      console.error('❌ Reconexão falhou após todas as tentativas');
+      set({ isReconnecting: false, error: 'Nao foi possivel reconectar. Recarregue a pagina.' });
+      if (window.showGameNotification) {
+        window.showGameNotification('Falha na reconexao. Recarregue a pagina.', 'error');
+      }
     });
 
     // Listeners de autenticação

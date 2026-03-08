@@ -14,25 +14,26 @@ const monstros = data.monstros;
 
 // ========== MAPEAMENTO DE CATEGORIAS ==========
 
+// IDs fixos correspondendo ao banco existente (categorias_monstro)
 const CATEGORIA_MAP = {
-  'mortosVivos':          { nome: 'Mortos-Vivos', icone: '💀', ordem: 1 },
-  'demoniosDiabos':       { nome: 'Demônios e Diabos', icone: '👿', ordem: 2 },
-  'dragoes':              { nome: 'Dragões', icone: '🐉', ordem: 3 },
-  'constructos':          { nome: 'Constructos', icone: '🤖', ordem: 4 },
-  'gigantes':             { nome: 'Gigantes', icone: '🗿', ordem: 5 },
-  'aberracoes':           { nome: 'Aberrações', icone: '👁️', ordem: 6 },
-  'fadas':                { nome: 'Fadas', icone: '🧚', ordem: 7 },
-  'humanoidesMonstr':     { nome: 'Humanoides Monstruosos', icone: '👹', ordem: 8 },
-  'bestas':               { nome: 'Bestas', icone: '🐺', ordem: 9 },
-  'elementais':           { nome: 'Elementais', icone: '🔥', ordem: 10 },
-  'miticas':              { nome: 'Criaturas Míticas', icone: '🦅', ordem: 11 },
-  'undeadRaros':          { nome: 'Mortos-Vivos Raros', icone: '👻', ordem: 12 },
-  'outrosPlanos':         { nome: 'Criaturas Planares', icone: '🌀', ordem: 13 },
-  'plantasNatureza':      { nome: 'Plantas e Natureza', icone: '🌿', ordem: 14 },
-  'aquaticas':            { nome: 'Criaturas Aquáticas', icone: '🐙', ordem: 15 },
-  'vermesSub':            { nome: 'Vermes e Subterrâneos', icone: '🪱', ordem: 16 },
-  'espiritos':            { nome: 'Espíritos', icone: '👤', ordem: 17 },
-  'elementaisClimaticos': { nome: 'Elementais Climáticos', icone: '⛈️', ordem: 18 },
+  'mortosVivos':          { id: 1,  nome: 'Mortos-Vivos' },
+  'demoniosDiabos':       { id: 2,  nome: 'Demonios e Diabos' },
+  'dragoes':              { id: 3,  nome: 'Dragoes' },
+  'constructos':          { id: 4,  nome: 'Constructos e Golems' },
+  'gigantes':             { id: 5,  nome: 'Gigantes e Titas' },
+  'aberracoes':           { id: 6,  nome: 'Aberracoes' },
+  'fadas':                { id: 7,  nome: 'Fadas e Criaturas do Sylvaris' },
+  'humanoidesMonstr':     { id: 8,  nome: 'Humanoides Monstruosos' },
+  'bestas':               { id: 9,  nome: 'Bestas e Animais Magicos' },
+  'elementais':           { id: 10, nome: 'Elementais e Genios' },
+  'miticas':              { id: 11, nome: 'Criaturas Miticas e Lendarias' },
+  'undeadRaros':          { id: 12, nome: 'Mortos-Vivos Especiais' },
+  'outrosPlanos':         { id: 13, nome: 'Criaturas de Outros Planos' },
+  'plantasNatureza':      { id: 14, nome: 'Plantas e Criaturas da Natureza' },
+  'aquaticas':            { id: 15, nome: 'Criaturas Aquaticas' },
+  'vermesSub':            { id: 16, nome: 'Vermes e Criaturas Subterraneos' },
+  'espiritos':            { id: 17, nome: 'Espiritos e Criaturas Incorporeas' },
+  'elementaisClimaticos': { id: 18, nome: 'Criaturas de Tempestade e Clima' },
 };
 
 // ========== TABELAS DE STATS ==========
@@ -526,9 +527,11 @@ function toJSON(obj) {
   return escapeSQL(JSON.stringify(obj));
 }
 
-function gerarSQL(stats, catIdMap) {
-  const catId = catIdMap[stats.categoria_id] || 1;
-  const rarMap = { 'comum': 1, 'incomum': 2, 'raro': 3, 'muito raro': 4, 'lendario': 5 };
+function gerarSQL(stats) {
+  const catInfo = CATEGORIA_MAP[stats.categoria_id];
+  const catId = catInfo ? catInfo.id : 1;
+  // Raridades existentes no banco: 1=Comum, 2=Incomum, 3=Raro, 4=Muito Raro, 6=Lendario
+  const rarMap = { 'comum': 1, 'incomum': 2, 'raro': 3, 'muito raro': 4, 'lendario': 6 };
   const rarId = rarMap[stats.raridade] || 1;
 
   const desc = stats.descricao.length > 1500
@@ -576,25 +579,7 @@ function main() {
   lines.push('-- =============================================================================');
   lines.push('');
 
-  // Gerar categorias
-  lines.push('-- === CATEGORIAS DE MONSTROS ===');
-  let catOrder = 1;
-  const catIdMap = {};
-  for (const [catKey, catInfo] of Object.entries(CATEGORIA_MAP)) {
-    lines.push(`INSERT INTO categorias_monstro (nome, icone, ordem) VALUES (${escapeSQL(catInfo.nome)}, ${escapeSQL(catInfo.icone)}, ${catOrder}) ON CONFLICT (nome) DO NOTHING;`);
-    catIdMap[catKey] = catOrder;
-    catOrder++;
-  }
-  lines.push('');
-
-  // Gerar raridades se nao existem
-  lines.push('-- === RARIDADES (se nao existem) ===');
-  const raridades = ['Comum', 'Incomum', 'Raro', 'Muito Raro', 'Lendário'];
-  const cores = ['#808080', '#1eff00', '#0070dd', '#a335ee', '#ff8000'];
-  for (let i = 0; i < raridades.length; i++) {
-    lines.push(`INSERT INTO raridades (nome, cor, ordem) VALUES (${escapeSQL(raridades[i])}, ${escapeSQL(cores[i])}, ${i + 1}) ON CONFLICT (nome) DO NOTHING;`);
-  }
-  lines.push('');
+  // Categorias e raridades ja existem no banco — nao gerar INSERTs
 
   // Agrupar por categoria
   const porCategoria = {};
@@ -626,7 +611,7 @@ function main() {
       nomesVistos.add(stats.nome);
 
       lines.push(`-- ${stats.nome} (Tier ${inferirTier(stats.xp_base)}, ${stats.tamanho}, ${stats.raridade})`);
-      lines.push(gerarSQL(stats, catIdMap));
+      lines.push(gerarSQL(stats));
       lines.push('');
       total++;
     }

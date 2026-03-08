@@ -82,12 +82,20 @@ const StatusPersonagem = ({
                   <div className="text-xs text-yellow-300">XP</div>
                 </div>
                 {combateStats && (
-                  <div className="text-center">
-                    <div className="text-base font-bold text-green-400">
-                      {combateStats.ca}
+                  <>
+                    <div className="text-center">
+                      <div className="text-base font-bold text-green-400">
+                        {combateStats.esquiva || 0}%
+                      </div>
+                      <div className="text-xs text-green-300">ESQ</div>
                     </div>
-                    <div className="text-xs text-green-300">CA</div>
-                  </div>
+                    <div className="text-center">
+                      <div className="text-base font-bold text-amber-400">
+                        {combateStats.armadura || 0}
+                      </div>
+                      <div className="text-xs text-amber-300">ARM</div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -147,12 +155,20 @@ const StatusPersonagem = ({
                   <div className="text-xs text-yellow-300">XP</div>
                 </div>
                 {combateStats && (
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-400">
-                      {combateStats.ca}
+                  <>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-400">
+                        {combateStats.esquiva || 0}%
+                      </div>
+                      <div className="text-xs text-green-300">ESQ</div>
                     </div>
-                    <div className="text-xs text-green-300">CA</div>
-                  </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-amber-400">
+                        {combateStats.armadura || 0}
+                      </div>
+                      <div className="text-xs text-amber-300">ARM</div>
+                    </div>
+                  </>
                 )}
               </div>
 

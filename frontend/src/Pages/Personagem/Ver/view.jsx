@@ -26,11 +26,16 @@ const raridadeColors = (raridade, isLight) => {
   return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
 };
 
+const bonusLabels = {
+  ataque: 'Ataque', dano: 'Dano', armadura: 'Armadura',
+  esquiva_bonus: 'Esquiva', esquiva_penalidade: 'Pen. Esquiva',
+  ca: 'Armadura', ca_base: 'Armadura Base'
+};
 const formatBonus = (bonus) => {
   if (!bonus || typeof bonus !== 'object') return null;
   return Object.entries(bonus)
-    .filter(([, v]) => v !== 0)
-    .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k}`)
+    .filter(([, v]) => v !== 0 && v != null)
+    .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${bonusLabels[k] || k}`)
     .join(', ');
 };
 

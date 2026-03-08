@@ -78,8 +78,11 @@ const BatalhaUI = ({
               <span className="text-red-300">
                 HP {jogadorStats.hp_atual}/{jogadorStats.hp_max}
               </span>
-              <span className="text-blue-300">
-                CA {jogadorStats.ca}
+              <span className="text-green-300">
+                ESQ {jogadorStats.esquiva || 0}%
+              </span>
+              <span className="text-amber-300">
+                ARM {jogadorStats.armadura || 0}
               </span>
             </div>
           </div>

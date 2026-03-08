@@ -83,11 +83,14 @@ export class Personagem {
   }
 
   /**
-   * Calcula a classe de armadura (CA)
-   * @returns {number} Classe de armadura
+   * Calcula taxa de esquiva base (%)
+   * Formula: (ModAGI + floor(ModDEX/2)) * 5, cap 0-50
+   * @returns {number} Taxa de esquiva em porcentagem
    */
-  getClasseArmadura() {
-    return 10 + this.getModificador('destreza');
+  getEsquiva() {
+    const modAgi = this.getModificador('agilidade');
+    const modDex = this.getModificador('destreza');
+    return Math.min(50, Math.max(0, (modAgi + Math.floor(modDex / 2)) * 5));
   }
 
   /**

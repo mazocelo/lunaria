@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const LayoutContext = createContext();
 
 export const LayoutProvider = ({ children }) => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebar-collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const hideSidebar = () => {
     setShowSidebar(false);
@@ -16,12 +23,22 @@ export const LayoutProvider = ({ children }) => {
     setIsFullscreen(false);
   };
 
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
   return (
     <LayoutContext.Provider value={{
       showSidebar,
       isFullscreen,
       hideSidebar,
-      openSidebar: showSidebarFn
+      openSidebar: showSidebarFn,
+      sidebarCollapsed,
+      toggleSidebar
     }}>
       {children}
     </LayoutContext.Provider>
@@ -36,4 +53,4 @@ export const useLayout = () => {
   return context;
 };
 
-export default LayoutProvider; 
+export default LayoutProvider;

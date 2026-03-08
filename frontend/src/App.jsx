@@ -4,6 +4,7 @@ import { useLayout } from './contexts/LayoutContext'
 import { GameLoadingProvider } from './contexts/GameLoadingContext'
 import { GameProvider } from './contexts/GameContext'
 import Sidebar from './components/sidebar'
+import TopHeader from './components/TopHeader'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
 import LoadingSpinner from './components/LoadingSpinner'
 import NotificationsModal from './components/NotificationsModal'
@@ -19,20 +20,19 @@ import { notificationService } from './services'
 
 // Componente interno que usa os hooks
 function AppContent() {
-  const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated, loading, logout } = useAuth();
-  const { showSidebar, isFullscreen } = useLayout();
+  const { theme } = useTheme();
+  const { isAuthenticated, loading } = useAuth();
+  const { showSidebar, isFullscreen, sidebarCollapsed } = useLayout();
   const location = useLocation();
-  
+
   // Estado local para notificações
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
-  
+
   const isLight = theme === 'light';
 
   // 🚀 INICIALIZAR STORES EM BACKGROUND - Uma vez por sessão
   useEffect(() => {
-    // Só inicializa se autenticado para evitar requests desnecessárias
     if (isAuthenticated && !loading) {
       initializeAllStores().catch(error => {
         console.error('❌ App: Erro ao inicializar stores:', error);
@@ -47,7 +47,6 @@ function AppContent() {
       return;
     }
 
-    // Função para buscar contador
     const fetchNotificationCount = async () => {
       try {
         const response = await notificationService.getUnreadCount();
@@ -60,12 +59,8 @@ function AppContent() {
       }
     };
 
-    // Buscar imediatamente
     fetchNotificationCount();
-
-    // Atualizar a cada 30 segundos
     const interval = setInterval(fetchNotificationCount, 30000);
-
     return () => clearInterval(interval);
   }, [isAuthenticated, loading]);
 
@@ -82,7 +77,7 @@ function AppContent() {
     );
   }
 
-  // Rota pública: redefinição de senha (acessível sem autenticação)
+  // Rota pública: redefinição de senha
   if (location.pathname === '/reset-password') {
     return <ResetPasswordPage />;
   }
@@ -92,6 +87,9 @@ function AppContent() {
     return <AuthContainer />;
   }
 
+  // Sidebar width for margin calculation
+  const sidebarWidth = sidebarCollapsed ? 72 : 260;
+
   return (
     <GameLoadingProvider>
       <GameProvider>
@@ -99,105 +97,51 @@ function AppContent() {
           {/* Fundo de partículas */}
           <ParticlesBackground />
 
-          {/* Gradiente de fundo adicional */}
+          {/* Gradiente de fundo */}
           <div className={`fixed inset-0 z-0 ${
-            isLight 
-              ? 'bg-gradient-to-br from-slate-100 via-purple-100/30 to-slate-100' 
+            isLight
+              ? 'bg-gradient-to-br from-slate-100 via-purple-100/30 to-slate-100'
               : 'bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900'
           }`} />
 
-          {/* Sidebar fixa à esquerda - será ocultada pelos componentes quando necessário */}
+          {/* === APP SHELL: Sidebar + TopHeader + Content === */}
+
+          {/* Sidebar */}
           {showSidebar && (
-            <div className="fixed left-0 top-0 h-screen w-[260px] z-20 flex-shrink-0">
+            <div
+              className="fixed left-0 top-0 h-screen z-20 flex-shrink-0"
+              style={{ width: sidebarWidth, transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+            >
               <Sidebar />
             </div>
           )}
 
-          {/* Conteúdo principal com altura fixa */}
-          <div className={`${showSidebar ? 'ml-[260px]' : ''} flex flex-col h-screen`}>
-            {/* Header com toggle de tema - OCULTO quando em tela de jogo (fullscreen) */}
+          {/* Main area (header + content) */}
+          <div
+            className="flex flex-col h-screen transition-[margin-left] duration-300 ease-in-out"
+            style={{ marginLeft: showSidebar ? sidebarWidth : 0 }}
+          >
+            {/* TopHeader - hidden in fullscreen (game) mode */}
             {!isFullscreen && (
-              <header className={`border-b px-6 py-6 flex-shrink-0 z-10 ${
-                isLight
-                  ? 'glass-strong-light border-slate-200/50'
-                  : 'glass-strong border-slate-700/50'
-              }`} style={{height: '8vh'}}>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-4">
-                    <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                      The Fable Forge
-                    </h1>
-                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={toggleTheme}
-                      className={`hover-lift cursor-pointer ${
-                        isLight ? 'btn-rpg-light' : 'btn-rpg'
-                      }`}
-                      aria-label="Alternar tema"
-                    >
-                      {theme === 'dark' ? '🌙' : '☀️'}
-                      <span className="ml-2 font-modern">
-                        {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => setIsNotificationsOpen(true)}
-                      className={`hover-lift cursor-pointer px-4 py-2 rounded-md transition-all relative ${
-                        isLight
-                          ? 'bg-purple-100 text-purple-600 hover:bg-purple-200'
-                          : 'bg-purple-900/50 text-purple-400 hover:bg-purple-800/50'
-                      }`}
-                      aria-label="Notificações"
-                    >
-                      <span className={`inline-block ${notificationCount > 0 ? 'animate-bounce' : ''}`}>
-                        🔔
-                      </span>
-                      <span className="ml-2 font-modern">Notificações</span>
-                      {/* Badge de notificações não lidas */}
-                      {notificationCount > 0 && (
-                        <div className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 bg-red-500 rounded-full animate-pulse flex items-center justify-center">
-                          <span className="text-white text-xs font-bold px-1">
-                            {notificationCount > 99 ? '99+' : notificationCount}
-                          </span>
-                        </div>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={logout}
-                      className={`hover-lift cursor-pointer px-4 py-2 rounded-md transition-all ${
-                        isLight
-                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                          : 'bg-red-900/50 text-red-400 hover:bg-red-800/50'
-                      }`}
-                      aria-label="Fazer logout"
-                    >
-                      <span className="font-modern">Sair</span>
-                    </button>
-                  </div>
-                </div>
-              </header>
+              <TopHeader
+                notificationCount={notificationCount}
+                onOpenNotifications={() => setIsNotificationsOpen(true)}
+              />
             )}
 
-            {/* Conteúdo principal com scroll vertical - APENAS AQUI TEM SCROLL */}
+            {/* Main content with scroll */}
             <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 z-10">
               <div className="animate-fade-in">
-                {/* ✅ ROTAS CENTRALIZADAS EM ARQUIVO SEPARADO */}
                 <AppRoutes />
               </div>
             </main>
           </div>
 
           {/* Modal de notificações */}
-          <NotificationsModal 
-            isOpen={isNotificationsOpen} 
+          <NotificationsModal
+            isOpen={isNotificationsOpen}
             onClose={() => setIsNotificationsOpen(false)}
             onNotificationUpdate={() => {
-              // Atualizar contador quando notificações mudarem
               notificationService.getUnreadCount()
                 .then(response => {
                   if (response.success) {
@@ -215,7 +159,7 @@ function AppContent() {
   )
 }
 
-// Componente principal que engloba os providers
+// Componente principal
 function App() {
   return <AppContent />;
 }

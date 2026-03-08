@@ -93,17 +93,23 @@ export function verificarEsquiva(taxaEsquiva) {
  */
 export function calcularStatsEfetivos(monstro, nivel) {
   const n = Math.max(1, nivel);
+  const hpBase = monstro.hp_base || 10;
+  const constituicao = monstro.constituicao || 10;
+  const forca = monstro.forca || 10;
+  const ataqueBase = monstro.ataque_base || 2;
+  const defesaBase = monstro.defesa_base || 10;
+  const xpBase = monstro.xp_base || 50;
   const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
   const modTam = _getModTamanho(monstro.tamanho);
 
   return {
-    hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
-    ataque: Math.round(monstro.ataque_base + Math.floor(((monstro.forca || 10) - 10) / 2) + Math.floor(n * 0.7)),
-    defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
-    armadura: Math.max(0, Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
+    hp_max: Math.round(hpBase + (n * constituicao * 0.5)),
+    ataque: Math.round(ataqueBase + Math.floor((forca - 10) / 2) + Math.floor(n * 0.7)),
+    defesa: Math.round(defesaBase + modAgi + Math.floor(n * 0.4)),
+    armadura: Math.max(0, Math.round(Math.floor(defesaBase * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
     esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
-    dano_base: monstro.dano_base,
-    xp: monstro.xp_base * n
+    dano_base: monstro.dano_base || '1d6',
+    xp: xpBase * n
   };
 }
 

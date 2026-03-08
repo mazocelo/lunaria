@@ -203,6 +203,23 @@ function processarAplicarDano(acao, sessao, roomId, io) {
     danoFinal = aplicarResistencias(danoFinal, elemento, resistencias, imunidades);
   }
 
+  // Se imune (dano zerado por resistência), não aplica nada
+  if (danoFinal <= 0) {
+    io.to(roomId).emit('acao_mestre', {
+      tipo: 'dano_recebido',
+      personagem: nomePersonagem,
+      userId: alvo.userId,
+      dano: 0,
+      elemento: elemento || null,
+      imune: true,
+      hp_atual: alvo.personagem.hp_atual,
+      hp_max: null,
+      derrotado: false,
+      timestamp: Date.now()
+    });
+    return;
+  }
+
   if (combate?.ativo && alvo.userId && combate.jogadores[alvo.userId]) {
     const jogadorCombate = combate.jogadores[alvo.userId];
 

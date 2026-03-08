@@ -3455,6 +3455,16 @@ class SocketManager {
               hpMax: jogadorStats.hp_max,
               timestamp: Date.now()
             });
+            // Emitir atualização de HP para o frontend refletir imediatamente
+            this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+              userId,
+              nome: personagem.nome,
+              hp_atual: jogadorStats.hp_atual,
+              hp_max: jogadorStats.hp_max,
+              derrotado: jogadorStats.status === 'derrotado',
+              fonte: efeito.nome,
+              timestamp: Date.now()
+            });
             if (jogadorStats.status === 'derrotado') {
               impedidoDeAgir = true;
               this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
@@ -3483,7 +3493,8 @@ class SocketManager {
       if (!impedidoDeAgir) {
         // Determinar alvo (primeiro monstro vivo)
         const monstroAlvo = combate.monstros.find(m => m.status === 'vivo');
-        if (!monstroAlvo) return;
+        if (monstroAlvo) {
+        // Bloco de ataque — indentado dentro do guard
 
         // Rolar ataque do jogador (d20)
         const rolagemAtaque = Math.floor(Math.random() * 20) + 1;
@@ -3495,7 +3506,11 @@ class SocketManager {
         const penalidadeCego = statusEfeitos.some(e => e.nome === 'cego') ? 5 : 0;
         const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7) + bonusAtaqueEquip - penalidadeCego;
 
-        const { acertou, critico } = verificarAcerto(rolagemAtaque);
+        let { acertou, critico } = verificarAcerto(rolagemAtaque);
+        // Cego: rolagem + bonus precisa superar DC 10 para acertar (além de nat 1/20)
+        if (acertou && !critico && penalidadeCego > 0 && (rolagemAtaque + bonusAtaque) < 10) {
+          acertou = false;
+        }
 
         let danoTotal = 0;
         let esquivou = false;
@@ -3563,6 +3578,7 @@ class SocketManager {
             timestamp: Date.now()
           });
         }
+        } // fecha if (monstroAlvo)
       }
 
       // --- CONTRA-ATAQUE DOS MONSTROS ---

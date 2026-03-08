@@ -65,6 +65,8 @@ class RacaViewModel {
     this.setState({ filteredRacas });
   };
 
+  buscarRacas = (term) => this.setSearchTerm(term);
+
   // ===== CARREGAMENTO DE DADOS =====
   loadRacas = async (id = null) => {
     try {

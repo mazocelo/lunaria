@@ -164,13 +164,13 @@ const MestreListaView = () => {
 
       <SearchBar
         placeholder="Buscar mestres..."
-        onChange={(texto) => vm.buscarMestres?.(texto)}
+        onChange={(texto) => vm.buscarMestres(texto)}
       />
 
       <TabelaList
         header="Lista de Mestres"
         columns={columns}
-        data={vm.mestres}
+        data={vm.searchTerm ? vm.filteredMestres : vm.mestres}
         actions={actions}
         loading={vm.loading}
         pagination={true}

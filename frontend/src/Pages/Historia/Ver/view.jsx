@@ -12,8 +12,7 @@ import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
   Pencil, Calendar, RefreshCw, ScrollText, Clock, MessageCircle, Loader2
 } from 'lucide-react';
-import { SessaoService } from '../../../services/SessaoService.js';
-import { apiClient } from '../../../services/ApiClient.js';
+import { sessaoService } from '../../../services';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 
 /**
@@ -46,7 +45,6 @@ export const VerHistoriaView = () => {
   const [loadingSessoes, setLoadingSessoes] = useState(false);
   const [sessaoSelecionada, setSessaoSelecionada] = useState(null);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
-  const sessaoService = useState(() => new SessaoService(apiClient))[0];
 
   useEffect(() => {
     if (id) {

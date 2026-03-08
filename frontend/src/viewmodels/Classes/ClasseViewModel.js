@@ -54,6 +54,8 @@ class ClasseViewModel {
     this.setState({ filteredClasses });
   };
 
+  buscarClasses = (term) => this.setSearchTerm(term);
+
   // ===== HANDLER DE MUDANÇAS DO STORE =====
   handleStoreChange = (storeState) => {
     // 🔄 Atualizar estado local quando store muda

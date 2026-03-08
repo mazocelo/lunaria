@@ -65,6 +65,8 @@ class DesvantagemViewModel {
     this.setState({ filteredDesvantagens });
   };
 
+  buscarDesvantagens = (term) => this.setSearchTerm(term);
+
   // ===== CARREGAMENTO DE DADOS =====
   loadDesvantagens = async (id = null) => {
     try {

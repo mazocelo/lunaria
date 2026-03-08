@@ -82,6 +82,8 @@ class MonstroViewModel {
     this.setState({ searchTerm: term, filteredMonstros });
   };
 
+  buscarMonstros = (term) => this.setSearchTerm(term);
+
   filterMonstros = (monstros, searchTerm = null) => {
     const term = searchTerm || this.state.searchTerm;
     if (!term) return monstros;

@@ -8,6 +8,8 @@ class MestreViewModel {
       mestreAtual: null,
       loading: false,
       error: null,
+      searchTerm: '',
+      filteredMestres: [],
     };
     this.subscribers = [];
     this.unsubscribe = this.mestreStore.subscribe((storeState) => {
@@ -16,11 +18,29 @@ class MestreViewModel {
   }
 
   handleStoreChange = (storeState) => {
+    const mestres = storeState.mestresAtivos || storeState.mestres;
+    const filteredMestres = this.filterMestres(mestres, this.state.searchTerm);
     this.setState({
-      mestres: storeState.mestresAtivos || storeState.mestres,
+      mestres,
+      filteredMestres,
       loading: storeState.loading,
       error: storeState.error,
     });
+  };
+
+  filterMestres = (mestres, searchTerm) => {
+    if (!searchTerm) return mestres;
+    const termLower = searchTerm.toLowerCase();
+    return mestres.filter(m =>
+      m.nome?.toLowerCase().includes(termLower) ||
+      m.modelo?.toLowerCase().includes(termLower) ||
+      m.tom_narrativo?.toLowerCase().includes(termLower)
+    );
+  };
+
+  buscarMestres = (term) => {
+    const filteredMestres = this.filterMestres(this.state.mestres, term);
+    this.setState({ searchTerm: term, filteredMestres });
   };
 
   subscribe(callback) {

@@ -65,6 +65,8 @@ class VantagemViewModel {
     this.setState({ filteredVantagens });
   };
 
+  buscarVantagens = (term) => this.setSearchTerm(term);
+
   // ===== CARREGAMENTO DE DADOS =====
   loadVantagens = async (id = null) => {
     try {

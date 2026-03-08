@@ -12,14 +12,17 @@ import { calcularHP, calcularEsquiva, calcularArmadura, aplicarResistencias } fr
  * @returns {{ personagemId, userId, personagem }} ou null
  */
 function encontrarPersonagemPorNome(sessao, nome) {
+  if (!nome) return null;
   const completos = sessao.personagensCompletos || {};
   for (const [pId, p] of Object.entries(completos)) {
-    if (p.nome?.toLowerCase() === nome?.toLowerCase()) {
-      // Encontrar userId correspondente
+    if (p.nome?.toLowerCase() === nome.toLowerCase()) {
       const jogadores = sessao.jogadoresConectados || [];
       const jogador = jogadores.find(j =>
         String(j.personagemId || j.personagem_id) === String(pId)
       );
+      if (!jogador) {
+        console.warn(`⚠️ Personagem "${nome}" encontrado mas sem jogador conectado`);
+      }
       return { personagemId: pId, userId: jogador ? String(jogador.userId || jogador.id) : null, personagem: p };
     }
   }
@@ -142,7 +145,7 @@ function processarRemoverItem(acao, sessao, roomId, io) {
  */
 function processarCurar(acao, sessao, roomId, io) {
   const { personagem: nomePersonagem, hp } = acao;
-  if (!nomePersonagem || !hp) return;
+  if (!nomePersonagem || hp == null || hp === 0) return;
 
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
   if (!alvo) return;
@@ -187,7 +190,7 @@ function processarCurar(acao, sessao, roomId, io) {
  */
 function processarAplicarDano(acao, sessao, roomId, io) {
   const { personagem: nomePersonagem, dano, elemento } = acao;
-  if (!nomePersonagem || !dano) return;
+  if (!nomePersonagem || dano == null || dano <= 0) return;
 
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
   if (!alvo) return;

@@ -108,8 +108,12 @@ router.get('/salvas', async (req, res, next) => {
 router.get('/historia/:historiaId', async (req, res, next) => {
   try {
     const { historiaId } = req.params;
+    const parsed = parseInt(historiaId);
+    if (isNaN(parsed)) {
+      return res.status(400).json({ success: false, error: 'historiaId deve ser numérico' });
+    }
     const db = (await import('../Model/index.js')).default;
-    const sessoes = await db.SessaoJogo.findByHistoriaId(parseInt(historiaId));
+    const sessoes = await db.SessaoJogo.findByHistoriaId(parsed);
     res.json({
       success: true,
       data: sessoes.map(s => ({

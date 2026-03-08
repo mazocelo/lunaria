@@ -261,6 +261,13 @@ export const requireOwnerOrSuperAdmin = (paramName = 'id') => {
     const resourceId = parseInt(req.params[paramName]);
     const userId = parseInt(req.user.id);
 
+    if (isNaN(resourceId) || isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID inválido'
+      });
+    }
+
     if (resourceId !== userId) {
       return res.status(403).json({
         success: false,
@@ -292,6 +299,10 @@ export const requireResourceOwnerOrSuperAdmin = (modelName) => {
     try {
       const resourceId = parseInt(req.params.id);
       const userId = parseInt(req.user.id);
+
+      if (isNaN(resourceId) || isNaN(userId)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' });
+      }
 
       // Buscar recurso e verificar id_usuario
       const resource = await db[modelName].findById(resourceId);

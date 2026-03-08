@@ -568,6 +568,19 @@ class SocketManager {
         return;
       }
 
+      // ===== VALIDAÇÃO 3: userId deve coincidir com socket autenticado =====
+      if (String(rawUserId) !== String(socket.userId)) {
+        this.log('ERROR', 'JOIN_ROOM_USER_MISMATCH', socket.id, socket.userId, {
+          authenticatedUserId: socket.userId,
+          requestedUserId: rawUserId
+        });
+        socket.emit('error', {
+          message: 'userId não corresponde ao usuário autenticado.',
+          code: 'USER_MISMATCH'
+        });
+        return;
+      }
+
       // Fazer parsing dos dados para tipos corretos
       const roomId = String(rawRoomId);
       const userId = String(rawUserId);
@@ -1096,6 +1109,16 @@ class SocketManager {
           receivedData: data
         });
         socket.emit('error', { message: 'roomId, userId e message são obrigatórios' });
+        return;
+      }
+
+      // Validar userId corresponde ao autenticado
+      if (String(rawUserId) !== String(socket.userId)) {
+        this.log('ERROR', 'CHAT_USER_MISMATCH', socket.id, socket.userId, {
+          authenticatedUserId: socket.userId,
+          requestedUserId: rawUserId
+        });
+        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
         return;
       }
 
@@ -2180,9 +2203,15 @@ class SocketManager {
           turnoAtual,
           jogadorDaVez: jogadorDaVez?.username
         });
-        return socket.emit('erro_turno', { 
-          message: 'Não é seu turno!' 
+        return socket.emit('erro_turno', {
+          message: 'Não é seu turno!'
         });
+      }
+
+      // Guard: turno já foi iniciado (evitar duplicatas por cliques rápidos)
+      if (estadoJogo.turnoIniciado) {
+        this.log('WARN', 'INICIAR_TURNO_JA_INICIADO', socket.id, userId, { roomId });
+        return;
       }
 
       this.log('INFO', 'INICIAR_TURNO_VALIDADO', socket.id, userId, {
@@ -3031,6 +3060,16 @@ class SocketManager {
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       console.log(`💾 Turno ${proximoTurno} e mensagem de transição salvos no Redis`);
+
+      // ✅ 3.5. EMITIR MENSAGEM DE TRANSIÇÃO EM TEMPO REAL
+      this.io.to(roomId).emit('mensagem_mestre', {
+        id: `transicao_${Date.now()}`,
+        tipo: 'transicao_turno',
+        userId: 'sistema',
+        username: 'Sistema',
+        message: `🏁 Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
+        timestamp: Date.now()
+      });
 
       // ✅ 4. EMITIR EVENTO DE MUDANÇA DE TURNO
       this.io.to(roomId).emit('turno_alterado', {

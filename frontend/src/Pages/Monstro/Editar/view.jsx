@@ -36,7 +36,7 @@ const EditarMonstroView = () => {
         <div><label className={labelCls}>Descricao</label><textarea name="descricao" value={vm.descricao} onChange={e => vm.setField('descricao', e.target.value)} placeholder="Descricao do monstro..." rows={3} className={inputCls} /></div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputSimples label="Tipo" name="tipo" value={vm.tipo} onChange={e => vm.setField('tipo', e.target.value)} placeholder="bestial, magico" />
-          <InputSimples label="Elemento" name="elemento" value={vm.elemento} onChange={e => vm.setField('elemento', e.target.value)} placeholder="fogo, trevas" />
+          <InputSimples label="Elemento" name="elemento" value={vm.elemento} onChange={e => vm.setField('elemento', e.target.value)} placeholder="fogo, sombrio" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label className={labelCls}>Categoria</label><select name="categoria_id" value={vm.categoria_id} onChange={e => vm.setField('categoria_id', e.target.value)} className={inputCls}><option value="">Selecione...</option>{vm.categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>

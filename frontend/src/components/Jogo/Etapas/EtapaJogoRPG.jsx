@@ -166,6 +166,16 @@ const EtapaJogoRPG = ({
     };
   }, [cooldownLocal]);
 
+  // ⏱️ Timeout de segurança para aguardandoMestre (30s)
+  useEffect(() => {
+    if (!aguardandoMestre) return;
+    const timeout = setTimeout(() => {
+      setAguardandoMestre(false);
+      showGameNotification('O Mestre demorou para responder. Tente novamente.', 'warning');
+    }, 30000);
+    return () => clearTimeout(timeout);
+  }, [aguardandoMestre]);
+
   // 🧹 Listener para limpar mensagens de dados quando ordem definida
   useEffect(() => {
     const limparMensagensDados = async () => {
@@ -385,15 +395,28 @@ const EtapaJogoRPG = ({
         // Nota: não mutamos props diretamente - apenas notificamos via toast
         const handleAcaoMestre = (data) => {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-          if (data.tipo === 'item_recebido' && String(data.userId) === String(currentUser.id)) {
+          const ehMeu = String(data.userId) === String(currentUser.id);
+          if (data.tipo === 'item_recebido' && ehMeu) {
             if (data.item) {
               showGameNotification(`Item recebido: ${data.item.nome || 'Novo item'}`, 'success');
             }
-          } else if (data.tipo === 'item_removido' && String(data.userId) === String(currentUser.id)) {
+          } else if (data.tipo === 'item_removido' && ehMeu) {
             const nomeItem = data.item?.nome || data.itemNome;
             if (nomeItem) {
               showGameNotification(`Item removido: ${nomeItem}`, 'warning');
             }
+          } else if (data.tipo === 'curado' && ehMeu) {
+            showGameNotification(`+${data.hp_restaurado || 0} HP restaurado!`, 'success');
+          } else if (data.tipo === 'dano_recebido' && ehMeu) {
+            if (data.imune) {
+              showGameNotification(`Imune ao dano${data.elemento ? ` de ${data.elemento}` : ''}!`, 'info');
+            } else {
+              showGameNotification(`-${data.dano} HP${data.elemento ? ` (${data.elemento})` : ''}${data.derrotado ? ' - Derrotado!' : ''}`, 'error');
+            }
+          } else if (data.tipo === 'status_aplicado' && ehMeu) {
+            showGameNotification(`Status: ${data.status} (${data.duracao || 3} turnos)`, 'warning');
+          } else if (data.tipo === 'status_removido' && ehMeu) {
+            showGameNotification(`Status removido: ${data.status}`, 'info');
           }
         };
 
@@ -504,6 +527,7 @@ const EtapaJogoRPG = ({
       if (ehMensagemRoleplay) {
         // Verificar cooldown local antes de enviar
         if (cooldownLocal > 0) {
+          showGameNotification(`Aguarde ${cooldownLocal}s para enviar outra mensagem roleplay`, 'warning');
           return;
         }
 

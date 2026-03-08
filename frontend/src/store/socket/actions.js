@@ -633,14 +633,34 @@ export const createSocketActions = (set, get) => ({
     // ===== LISTENER DE AÇÕES MECÂNICAS DO MESTRE =====
     socket.on('acao_mestre', (data) => {
       const { combateJogadores } = get();
-      if (data.tipo === 'curado' && get().combateAtivo && data.userId && combateJogadores[data.userId]) {
+      const jogador = data.userId && combateJogadores[data.userId];
+
+      if (data.tipo === 'curado' && get().combateAtivo && jogador) {
         const updated = { ...combateJogadores };
         updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.hp_atual > 0 ? 'vivo' : updated[data.userId].status };
         set({ combateJogadores: updated });
       }
-      if (data.tipo === 'dano_recebido' && get().combateAtivo && data.userId && combateJogadores[data.userId]) {
+      if (data.tipo === 'dano_recebido' && get().combateAtivo && jogador) {
         const updated = { ...combateJogadores };
         updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.derrotado ? 'derrotado' : 'vivo' };
+        set({ combateJogadores: updated });
+      }
+      if (data.tipo === 'status_aplicado' && get().combateAtivo && jogador) {
+        const updated = { ...combateJogadores };
+        const efeitos = [...(updated[data.userId].status_efeitos || [])];
+        const existente = efeitos.findIndex(e => e.nome === data.status);
+        if (existente >= 0) {
+          efeitos[existente] = { nome: data.status, duracao: data.duracao || 3 };
+        } else {
+          efeitos.push({ nome: data.status, duracao: data.duracao || 3 });
+        }
+        updated[data.userId] = { ...updated[data.userId], status_efeitos: efeitos };
+        set({ combateJogadores: updated });
+      }
+      if (data.tipo === 'status_removido' && get().combateAtivo && jogador) {
+        const updated = { ...combateJogadores };
+        const efeitos = (updated[data.userId].status_efeitos || []).filter(e => e.nome !== data.status);
+        updated[data.userId] = { ...updated[data.userId], status_efeitos: efeitos };
         set({ combateJogadores: updated });
       }
       get().log('Ação do Mestre', { tipo: data.tipo, personagem: data.personagem });

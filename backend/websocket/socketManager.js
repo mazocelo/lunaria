@@ -3379,6 +3379,9 @@ class SocketManager {
 
       console.log(`✅ Combate iniciado: ${instancias.length} monstros vs ${Object.keys(jogadoresCombate).length} jogadores`);
 
+      // Snapshot forçado ao iniciar combate (garante estado persistido)
+      this._tentarSnapshot(roomId, sessao, true);
+
       // Emitir evento de combate iniciado
       this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_INICIADO, {
         monstros: instancias,

@@ -109,28 +109,34 @@ const EtapaJogoRPG = ({
         const { getSocketStoreAPI } = await import('../../../store/index.js');
         const socketStore = getSocketStoreAPI();
         
+        // Extrai estado relevante do socket store
+        const extractSocketState = (state) => ({
+          faseJogo: state.faseJogo || 'aguardando_inicio',
+          rodadaAtual: state.rodadaAtual || 1,
+          turnoAtual: state.turnoAtual || 0,
+          jogadorAtual: state.jogadorAtual,
+          ordemJogadores: state.ordemJogadores || [],
+          ordemDefinida: state.ordemDefinida || false,
+          resultadosDados: state.resultadosDados || {},
+          ehMeuTurno: state.ehMeuTurno || false,
+          turnoIniciado: state.turnoIniciado || false,
+          cooldownRoleplay: state.cooldownRoleplay || 0,
+          // Combate
+          combateAtivo: state.combateAtivo || false,
+          combateMonstros: state.combateMonstros || [],
+          combateJogadores: state.combateJogadores || {},
+          combateRodada: state.combateRodada || 0,
+          combateResultado: state.combateResultado || null,
+          combateLog: state.combateLog || [],
+          combateXpGanho: state.combateXpGanho || 0
+        });
+
+        // Ler estado inicial (subscribe só dispara em mudanças futuras)
+        setSocketState(extractSocketState(socketStore.getState()));
+
         // Subscribe para mudanças no socket store
         unsubscribe = socketStore.subscribe((state) => {
-          setSocketState({
-            faseJogo: state.faseJogo || 'aguardando_inicio',
-            rodadaAtual: state.rodadaAtual || 1,
-            turnoAtual: state.turnoAtual || 0,
-            jogadorAtual: state.jogadorAtual,
-            ordemJogadores: state.ordemJogadores || [],
-            ordemDefinida: state.ordemDefinida || false,
-            resultadosDados: state.resultadosDados || {},
-            ehMeuTurno: state.ehMeuTurno || false,
-            turnoIniciado: state.turnoIniciado || false,
-            cooldownRoleplay: state.cooldownRoleplay || 0,
-            // Combate
-            combateAtivo: state.combateAtivo || false,
-            combateMonstros: state.combateMonstros || [],
-            combateJogadores: state.combateJogadores || {},
-            combateRodada: state.combateRodada || 0,
-            combateResultado: state.combateResultado || null,
-            combateLog: state.combateLog || [],
-            combateXpGanho: state.combateXpGanho || 0
-          });
+          setSocketState(extractSocketState(state));
         });
       } catch (error) {
         // silenced

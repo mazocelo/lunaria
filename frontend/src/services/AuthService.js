@@ -193,6 +193,8 @@ export class AuthService {
           return new Error(data.message || 'Acesso negado');
         case 422:
           return new Error(data.message || 'Dados inválidos');
+        case 429:
+          return new Error(data.message || 'Muitas tentativas. Aguarde alguns minutos.');
         default:
           return new Error(data.message || 'Erro no servidor');
       }

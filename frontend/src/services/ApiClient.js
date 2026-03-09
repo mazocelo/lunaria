@@ -73,9 +73,8 @@ axiosInstance.interceptors.response.use(
           refreshAttempts = 0;
           localStorage.removeItem('user');
           localStorage.removeItem('lembrarDeMim');
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
+          // Recarregar para voltar à tela de login (AuthContext detecta !isAuthenticated)
+          window.location.reload();
           throw new Error('Sessão expirada. Faça login novamente.');
         }
 
@@ -105,11 +104,8 @@ axiosInstance.interceptors.response.use(
           localStorage.removeItem('user');
           localStorage.removeItem('lembrarDeMim');
 
-          // Redirecionar para login se necessário
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
-
+          // Recarregar para voltar à tela de login
+          window.location.reload();
           throw new Error('Sessão expirada. Faça login novamente.');
         } finally {
           isRefreshing = false;
@@ -125,6 +121,8 @@ axiosInstance.interceptors.response.use(
           throw new Error('Recurso não encontrado');
         case 422:
           throw new Error(data?.message || 'Dados inválidos');
+        case 429:
+          throw new Error(data?.message || 'Muitas tentativas. Aguarde alguns minutos.');
         case 500:
           throw new Error('Erro interno do servidor');
         default:

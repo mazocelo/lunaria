@@ -29,6 +29,32 @@ async function withRetry(fn, retries) {
   }
 }
 
+/**
+ * Parse robusto de JSON da IA - remove markdown wrappers (```json ... ```)
+ */
+function parseIAJson(content) {
+  // Tentar parse direto
+  try {
+    return JSON.parse(content);
+  } catch (_) { /* continuar */ }
+
+  // Remover markdown code blocks (```json ... ``` ou ``` ... ```)
+  const cleaned = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (_) { /* continuar */ }
+
+  // Tentar extrair primeiro bloco JSON { ... } do texto
+  const match = content.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch (_) { /* falhou */ }
+  }
+
+  return null; // Parse impossível
+}
+
 import { criarPromptSistema } from './prompts/sistema.js';
 import { criarPromptNarracao } from './prompts/narracao.js';
 import { criarPromptInicio, criarPromptBoasVindas } from './prompts/inicio.js';
@@ -161,10 +187,8 @@ export class MestreAgent {
       })));
 
       // Parsear JSON da resposta
-      let respostaJSON;
-      try {
-        respostaJSON = JSON.parse(response.content);
-      } catch (error) {
+      let respostaJSON = parseIAJson(response.content);
+      if (!respostaJSON) {
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,
@@ -244,10 +268,8 @@ export class MestreAgent {
       })));
 
       // Parsear JSON
-      let respostaJSON;
-      try {
-        respostaJSON = JSON.parse(response.content);
-      } catch (error) {
+      let respostaJSON = parseIAJson(response.content);
+      if (!respostaJSON) {
         console.warn('⚠️ Resposta iniciarSessao não é JSON, usando fallback');
         respostaJSON = {
           narrativa: response.content,
@@ -371,10 +393,8 @@ Mensagem do Jogador:
         chat_history: historico
       })));
 
-      let respostaJSON;
-      try {
-        respostaJSON = JSON.parse(response.content);
-      } catch (error) {
+      let respostaJSON = parseIAJson(response.content);
+      if (!respostaJSON) {
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,
@@ -472,10 +492,8 @@ Narre a transição e apresente o novo desafio:`;
         chat_history: historico
       })));
 
-      let respostaJSON;
-      try {
-        respostaJSON = JSON.parse(response.content);
-      } catch (error) {
+      let respostaJSON = parseIAJson(response.content);
+      if (!respostaJSON) {
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,

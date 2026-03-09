@@ -138,6 +138,11 @@ class SessaoRPG {
         timestamp: new Date().toISOString()
       });
 
+      // Manter apenas as últimas 500 mensagens
+      if (mensagens.length > 500) {
+        mensagens.splice(0, mensagens.length - 500);
+      }
+
       return await this.atualizarSessao(salaId, { mensagens });
     } catch (error) {
       console.error('Erro ao adicionar mensagem:', error);

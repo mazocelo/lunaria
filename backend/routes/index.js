@@ -17,6 +17,8 @@ import mestreRoutes from './mestres.js';
 import monstroRoutes from './monstro.js';
 import equipamentoRoutes from './equipamento.js';
 import catalogosRoutes from './catalogos.js';
+import amizadeRoutes from './amizades.js';
+import feedRoutes from './feed.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -45,6 +47,8 @@ router.get('/', async (req, res, next) => {
       monstros: '/monstros',
       equipamentos: '/equipamentos',
       catalogos: '/catalogos',
+      amizades: '/amizades',
+      feed: '/feed',
       websocket: '/websocket'
     }
   });
@@ -71,6 +75,10 @@ router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);
 router.use('/mestres', authenticateToken, mestreRoutes);
+
+// Rotas sociais
+router.use('/amizades', authenticateToken, amizadeRoutes);
+router.use('/feed', authenticateToken, feedRoutes);
 
 // Rotas de sessão
 router.use('/sessoes', authenticateToken, sessaoRoutes);

@@ -1,5 +1,6 @@
 import express from 'express';
 import socketManager from '../websocket/socketManager.js';
+import { requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -91,7 +92,7 @@ router.get('/stats', (req, res) => {
  *                 message:
  *                   type: string
  */
-router.post('/broadcast', (req, res) => {
+router.post('/broadcast', requireSuperAdmin, (req, res) => {
   try {
     const { event, data } = req.body;
     
@@ -160,7 +161,7 @@ router.post('/broadcast', (req, res) => {
  *                 message:
  *                   type: string
  */
-router.post('/room/:roomId/message', (req, res) => {
+router.post('/room/:roomId/message', requireSuperAdmin, (req, res) => {
   try {
     const { roomId } = req.params;
     const { event, data } = req.body;
@@ -230,7 +231,7 @@ router.post('/room/:roomId/message', (req, res) => {
  *                 message:
  *                   type: string
  */
-router.post('/user/:userId/message', (req, res) => {
+router.post('/user/:userId/message', requireSuperAdmin, (req, res) => {
   try {
     const { userId } = req.params;
     const { event, data } = req.body;

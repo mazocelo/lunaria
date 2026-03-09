@@ -80,7 +80,8 @@ export const COMBAT_EVENTS = {
   COMBATE_MONSTRO_DERROTADO: 'combate_monstro_derrotado',
   COMBATE_JOGADOR_FERIDO: 'combate_jogador_ferido',
   COMBATE_FINALIZADO: 'combate_finalizado',
-  COMBATE_ESTADO: 'combate_estado'
+  COMBATE_ESTADO: 'combate_estado',
+  COMBATE_LOOT: 'combate_loot'
 };
 
 // Eventos de sistema

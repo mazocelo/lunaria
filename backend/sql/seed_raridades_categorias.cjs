@@ -45,6 +45,7 @@ async function run() {
     { nome: 'Itens de Uso e Ferramentas Mágicas',   icone: 'tools',   ordem: 10 },
     { nome: 'Artefatos Lendários',                  icone: 'crown',   ordem: 11 },
     { nome: 'Miscelânea Mágica',                    icone: 'sparkle', ordem: 12 },
+    { nome: 'Consumíveis',                           icone: 'flask',   ordem: 13 },
   ];
 
   for (const c of categorias) {

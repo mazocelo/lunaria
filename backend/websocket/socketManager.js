@@ -3467,10 +3467,14 @@ class SocketManager {
             agilidade: attrs.agilidade || 10,
             nivel: p.nivel || 1
           };
+          const hpMax = calcularHP(personagemStats);
+          // Preservar HP da narrativa (dano de armadilhas, aplicar_dano, etc.)
+          // Se p.hp_atual existe e é menor que hpMax, manter o dano sofrido
+          const hpAtual = (p.hp_atual != null && p.hp_atual < hpMax) ? Math.max(1, p.hp_atual) : hpMax;
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId),
-            hp_max: calcularHP(personagemStats),
-            hp_atual: calcularHP(personagemStats),
+            hp_max: hpMax,
+            hp_atual: hpAtual,
             esquiva: calcularEsquiva(personagemStats, bonusEquip),
             armadura: calcularArmadura(bonusEquip),
             bonusAtaque: bonusEquip.ataque || 0,
@@ -4274,7 +4278,9 @@ class SocketManager {
         motivo: 'Sessão encerrada pelo administrador',
         timestamp: Date.now(),
         resumo: recapData.resumo || null,
-        historiaNome: recapData.historiaNome || null
+        historiaNome: recapData.historiaNome || null,
+        xpGanho: recapData.xpGanho || 0,
+        loot: recapData.loot || []
       });
 
       const room = this.io.sockets.adapter.rooms.get(salaId);

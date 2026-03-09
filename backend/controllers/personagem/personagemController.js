@@ -303,6 +303,9 @@ class PersonagemController {
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(novoPersonagem.id);
       const personagemData = await this.processarDadosPersonagem(personagemCompleto);
 
+      // Auto-evento no feed
+      db.FeedPost.createAutoEvent(req.user.id, 'personagem_criado', { nome: novoPersonagem.nome }, 'personagem', novoPersonagem.id);
+
       res.status(201).json({
         success: true,
         message: 'Personagem criado com sucesso',
@@ -482,6 +485,10 @@ class PersonagemController {
       delete dadosAtualizacao.hp; // não existe no schema
       delete dadosAtualizacao.hp_maximo; // não existe no schema
       delete dadosAtualizacao.equipamentos; // gerenciado via relacionamento personagem_equipamento
+      delete dadosAtualizacao.nivel; // gerenciado pelo sistema de evolução
+      delete dadosAtualizacao.xp_atual; // gerenciado pelo sistema de evolução
+      delete dadosAtualizacao.xp_proximo_nivel; // gerenciado pelo sistema de evolução
+      delete dadosAtualizacao.pontos_atributo_pendentes; // gerenciado pelo sistema de evolução
 
       // Validar atributos se fornecidos
       const atributos = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];

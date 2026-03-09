@@ -731,12 +731,19 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
     const salaId = `historia_${historiaId}`;
 
     // 1. Mesclar clones de personagens (aplicar XP, itens ganhos ao personagem original)
+    let totalXpGanho = 0;
+    let todosItensGanhos = [];
     try {
       const sessaoJogoRow = await db.SessaoJogo.findBySalaId(salaId);
       if (sessaoJogoRow) {
         const clones = await db.PersonagemSessao.findBySessaoId(sessaoJogoRow.id);
         let mergeCount = 0;
         for (const clone of clones) {
+          // Coletar XP e loot antes do merge (para o recap)
+          totalXpGanho += clone.xp_ganho || 0;
+          const itensClone = Array.isArray(clone.itens_ganhos) ? clone.itens_ganhos : [];
+          todosItensGanhos.push(...itensClone);
+
           if (clone.status === 'ativa') {
             try {
               await db.PersonagemSessao.finalizarEMesclar(clone.id);
@@ -746,7 +753,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
             }
           }
         }
-        console.log(`📋 ${mergeCount}/${clones.length} clones de personagens mesclados`);
+        console.log(`📋 ${mergeCount}/${clones.length} clones de personagens mesclados | XP total: ${totalXpGanho} | Itens: ${todosItensGanhos.length}`);
       }
     } catch (mergeError) {
       console.error('⚠️ Erro ao mesclar clones:', mergeError.message);
@@ -790,7 +797,12 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
     }
 
     // 5. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
-    socketManager.limparSessaoCompleta(salaId, { resumo: resumoSessao, historiaNome: historia.nome });
+    socketManager.limparSessaoCompleta(salaId, {
+      resumo: resumoSessao,
+      historiaNome: historia.nome,
+      xpGanho: totalXpGanho,
+      loot: todosItensGanhos
+    });
 
     console.log(`✅ Sessão encerrada com sucesso para história ${historia.id}`);
 

@@ -12,6 +12,10 @@ import Mestre from './Mestre.js';
 import Monstro from './Monstro.js';
 import SessaoJogo from './SessaoJogo.js';
 import Elemento from './Elemento.js';
+import Amizade from './Amizade.js';
+import FeedPost from './FeedPost.js';
+import PersonagemSessao from './PersonagemSessao.js';
+import MonstroLoot from './MonstroLoot.js';
 
 // Exportar o cliente Prisma e todos os modelos
 const db = {
@@ -28,7 +32,11 @@ const db = {
   Mestre: Mestre(prisma),
   Monstro: Monstro(prisma),
   SessaoJogo: SessaoJogo(prisma),
-  Elemento: Elemento(prisma)
+  Elemento: Elemento(prisma),
+  Amizade: Amizade(prisma),
+  FeedPost: FeedPost(prisma),
+  PersonagemSessao: PersonagemSessao(prisma),
+  MonstroLoot: MonstroLoot(prisma)
 };
 
 export default db;

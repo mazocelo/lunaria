@@ -86,6 +86,7 @@ model equipamentos {
   categoria_rel          categorias_equipamento?  @relation(fields: [categoria_id], references: [id])
   raridade_rel           raridades?               @relation(fields: [raridade_id], references: [id])
   personagem_equipamento personagem_equipamento[]
+  monstro_loot           monstro_loot[]
 
   @@index([categoria_id], map: "idx_equipamento_categoria")
   @@index([raridade_id], map: "idx_equipamento_raridade")
@@ -112,6 +113,8 @@ model historias {
   sessoes_jogo            sessoes_jogo[]
 
   @@index([id_usuario])
+  @@index([id_usuario, deleted_at])
+  @@index([mestre_id])
   @@index([status])
   @@index([deleted_at])
 }
@@ -168,6 +171,7 @@ model personagens {
   usuarios                  usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
   classes                   classes?                 @relation(fields: [classe_id], references: [id])
   racas                     racas?                   @relation(fields: [raca_id], references: [id])
+  personagem_sessao         personagem_sessao[]
 
   @@index([id_usuario])
   @@index([deleted_at])
@@ -192,18 +196,23 @@ model temas {
 }
 
 model usuarios {
-  id                  Int                 @id @default(autoincrement())
-  nome                String              @db.VarChar(100)
-  email               String              @unique @db.VarChar(150)
-  senha               String              @db.VarChar(255)
-  role                String?             @default("player") @db.VarChar(20)
-  deleted_at          DateTime?           @db.Timestamptz(6)
-  reset_token         String?             @db.VarChar(500)
-  reset_token_expires DateTime?           @db.Timestamptz(6)
-  historias           historias[]
-  historias_convite   historias_convite[]
-  mestres             mestres[]
-  personagens         personagens[]
+  id                   Int                @id @default(autoincrement())
+  nome                 String             @db.VarChar(100)
+  email                String             @unique @db.VarChar(150)
+  senha                String             @db.VarChar(255)
+  role                 String?            @default("player") @db.VarChar(20)
+  deleted_at           DateTime?          @db.Timestamptz(6)
+  reset_token          String?            @db.VarChar(500)
+  reset_token_expires  DateTime?          @db.Timestamptz(6)
+  historias            historias[]
+  historias_convite    historias_convite[]
+  mestres              mestres[]
+  personagens          personagens[]
+  amizades_enviadas    amizades[]         @relation("amizade_requester")
+  amizades_recebidas   amizades[]         @relation("amizade_receiver")
+  feed_posts           feed_posts[]
+  feed_curtidas        feed_curtidas[]
+  feed_comentarios     feed_comentarios[]
 
   @@index([deleted_at])
 }
@@ -313,6 +322,7 @@ model monstros {
   velocidade    Json?               @default("{\"terrestre\": 30}")
   categoria_rel categorias_monstro? @relation(fields: [categoria_id], references: [id])
   raridade_rel  raridades?          @relation(fields: [raridade_id], references: [id])
+  monstro_loot  monstro_loot[]
 
   @@index([nivel_min, nivel_max], map: "idx_monstro_nivel")
   @@index([raridade_id], map: "idx_monstro_raridade")
@@ -335,7 +345,8 @@ model sessoes_jogo {
   ultimo_snapshot DateTime  @default(now()) @db.Timestamptz(6)
   criada_em       DateTime  @default(now()) @db.Timestamptz(6)
   atualizada_em   DateTime  @updatedAt @db.Timestamptz(6)
-  historia        historias @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  historia          historias           @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  personagem_sessao personagem_sessao[]
 
   @@index([historia_id])
   @@index([status])
@@ -379,4 +390,122 @@ enum enum_habilidades_tipo {
   passiva
   reacao
   ritual
+}
+
+model amizades {
+  id            Int       @id @default(autoincrement())
+  requester_id  Int
+  receiver_id   Int
+  status        String    @default("pendente") @db.VarChar(20)
+  criado_em     DateTime  @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime? @db.Timestamptz(6)
+  requester     usuarios  @relation("amizade_requester", fields: [requester_id], references: [id], onDelete: Cascade)
+  receiver      usuarios  @relation("amizade_receiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  @@unique([requester_id, receiver_id], map: "unq_amizade")
+  @@index([receiver_id])
+  @@index([status])
+}
+
+model feed_posts {
+  id            Int                @id @default(autoincrement())
+  user_id       Int
+  tipo          String             @default("post") @db.VarChar(20)
+  conteudo      Json
+  entidade_tipo String?            @db.VarChar(50)
+  entidade_id   Int?
+  visibilidade  String             @default("amigos") @db.VarChar(20)
+  deleted_at    DateTime?          @db.Timestamptz(6)
+  criado_em     DateTime           @default(now()) @db.Timestamptz(6)
+  usuario       usuarios           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  curtidas      feed_curtidas[]
+  comentarios   feed_comentarios[]
+
+  @@index([user_id])
+  @@index([visibilidade])
+  @@index([criado_em])
+  @@index([deleted_at])
+}
+
+model feed_curtidas {
+  id        Int        @id @default(autoincrement())
+  post_id   Int
+  user_id   Int
+  criado_em DateTime   @default(now()) @db.Timestamptz(6)
+  post      feed_posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  usuario   usuarios   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id], map: "unq_curtida")
+}
+
+model feed_comentarios {
+  id         Int        @id @default(autoincrement())
+  post_id    Int
+  user_id    Int
+  texto      String
+  deleted_at DateTime?  @db.Timestamptz(6)
+  criado_em  DateTime   @default(now()) @db.Timestamptz(6)
+  post       feed_posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  usuario    usuarios   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+}
+
+model personagem_sessao {
+  id                    Int          @id @default(autoincrement())
+  sessao_jogo_id        Int
+  personagem_id         Int
+  usuario_id            Int
+
+  // Snapshot imutavel (estado ao entrar na sessao)
+  nome                  String       @db.VarChar(200)
+  nivel_inicio          Int          @default(1)
+  xp_inicio             Int          @default(0)
+  atributos_snapshot    Json
+  equipamentos_inicio   Json         @default("[]")
+  vantagens_snapshot    Json         @default("[]")
+  desvantagens_snapshot Json         @default("[]")
+  classe_nome           String?      @db.VarChar(100)
+  raca_nome             String?      @db.VarChar(100)
+
+  // Estado runtime (atualizado durante sessao)
+  hp_atual              Int?
+  hp_max                Int?
+  xp_ganho              Int          @default(0)
+  nivel_fim             Int?
+  itens_ganhos          Json         @default("[]")
+  itens_perdidos        Json         @default("[]")
+  status_efeitos        Json         @default("[]")
+
+  // Controle de merge
+  status                String       @default("ativa") @db.VarChar(20)
+  merged_at             DateTime?    @db.Timestamptz(6)
+
+  criado_em             DateTime     @default(now()) @db.Timestamptz(6)
+  atualizado_em         DateTime     @updatedAt @db.Timestamptz(6)
+
+  sessao_jogo           sessoes_jogo @relation(fields: [sessao_jogo_id], references: [id], onDelete: Cascade)
+  personagem            personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+
+  @@unique([sessao_jogo_id, personagem_id])
+  @@index([sessao_jogo_id])
+  @@index([personagem_id])
+  @@index([usuario_id])
+}
+
+model monstro_loot {
+  id              Int          @id @default(autoincrement())
+  monstro_id      Int
+  equipamento_id  Int
+  drop_rate       Float        @default(0.1)
+  min_quantidade  Int          @default(1)
+  max_quantidade  Int          @default(1)
+  nivel_minimo    Int          @default(1)
+  criado_em       DateTime?    @default(now()) @db.Timestamptz(6)
+
+  monstro         monstros     @relation(fields: [monstro_id], references: [id], onDelete: Cascade)
+  equipamento     equipamentos @relation(fields: [equipamento_id], references: [id], onDelete: Cascade)
+
+  @@unique([monstro_id, equipamento_id])
+  @@index([monstro_id])
 }

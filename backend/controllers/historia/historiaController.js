@@ -79,7 +79,10 @@ class HistoriaController {
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
-      
+
+      // Auto-evento no feed
+      db.FeedPost.createAutoEvent(userId, 'historia_criada', { nome: nomeHistoria }, 'historia', novaHistoria.id);
+
       res.status(201).json({
         success: true,
         message: 'História criada com prólogo gerado automaticamente',

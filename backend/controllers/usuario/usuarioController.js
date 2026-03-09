@@ -446,7 +446,11 @@ class UsuarioController {
         }
       });
 
-      console.log(`✅ ${convites.length} convites pendentes encontrados`);
+      // Buscar solicitacoes de amizade pendentes
+      const solicitacoesAmizade = await db.Amizade.findPendingReceived(usuario_id);
+      const totalSolicitacoes = solicitacoesAmizade.length;
+
+      console.log(`✅ ${convites.length} convites + ${totalSolicitacoes} solicitacoes de amizade`);
 
       return res.status(200).json({
         success: true,
@@ -461,14 +465,17 @@ class UsuarioController {
             status: convite.status,
             criado_em: convite.criado_em
           })),
-          // Futuramente aqui poderão ser adicionados outros tipos de novidades
-          // notificacoes: [],
-          // mensagens: [],
-          // etc.
+          solicitacoes_amizade: solicitacoesAmizade.map(s => ({
+            id: s.id,
+            tipo: 'solicitacao_amizade',
+            usuario: s.requester,
+            criado_em: s.criado_em
+          }))
         },
         resumo: {
           total_convites: totalConvites,
-          total_novidades: totalConvites // Por enquanto só convites
+          total_solicitacoes_amizade: totalSolicitacoes,
+          total_novidades: totalConvites + totalSolicitacoes
         },
         pagination: {
           limit: parseInt(limit),

@@ -8,6 +8,24 @@ import db from '../Model/index.js';
 import { calcularHP, calcularEsquiva, calcularArmadura, aplicarResistencias } from './combateHelper.js';
 
 /**
+ * Persiste estado runtime (HP, status_efeitos) no clone da sessão
+ * Chamada fire-and-forget para não bloquear o fluxo de jogo
+ */
+async function persistirEstadoClone(roomId, personagemId, dados) {
+  try {
+    const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+    if (!sessaoJogoRow) return;
+    const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+      sessaoJogoRow.id, parseInt(personagemId)
+    );
+    if (!clone) return;
+    await db.PersonagemSessao.atualizarRuntime(clone.id, dados);
+  } catch (e) {
+    console.warn(`⚠️ persistirEstadoClone: Erro ao persistir no clone:`, e.message);
+  }
+}
+
+/**
  * Encontra personagem na sessão pelo nome
  * @returns {{ personagemId, userId, personagem }} ou null
  */
@@ -42,19 +60,19 @@ export async function processarAcoes(acoes, sessao, roomId, io) {
           await processarDarItem(acao, sessao, roomId, io);
           break;
         case 'remover_item':
-          processarRemoverItem(acao, sessao, roomId, io);
+          await processarRemoverItem(acao, sessao, roomId, io);
           break;
         case 'curar':
-          processarCurar(acao, sessao, roomId, io);
+          await processarCurar(acao, sessao, roomId, io);
           break;
         case 'aplicar_dano':
-          processarAplicarDano(acao, sessao, roomId, io);
+          await processarAplicarDano(acao, sessao, roomId, io);
           break;
         case 'aplicar_status':
-          processarAplicarStatus(acao, sessao, roomId, io);
+          await processarAplicarStatus(acao, sessao, roomId, io);
           break;
         case 'remover_status':
-          processarRemoverStatus(acao, sessao, roomId, io);
+          await processarRemoverStatus(acao, sessao, roomId, io);
           break;
         default:
           console.warn(`⚠️ AcoesProcessor: tipo de ação desconhecido: ${acao.tipo}`);
@@ -87,6 +105,11 @@ async function processarDarItem(acao, sessao, roomId, io) {
 
   // Adicionar ao inventário na sessão (não persiste no DB, apenas na sessão ativa)
   if (!alvo.personagem.equipamentos) alvo.personagem.equipamentos = [];
+  const jaTemItem = alvo.personagem.equipamentos.some(e => e.id === equipamento.id);
+  if (jaTemItem) {
+    console.warn(`⚠️ dar_item: ${nomePersonagem} ja possui ${equipamento.nome}, ignorando duplicata`);
+    return;
+  }
   alvo.personagem.equipamentos.push({
     id: equipamento.id,
     nome: equipamento.nome,
@@ -97,6 +120,23 @@ async function processarDarItem(acao, sessao, roomId, io) {
   });
 
   console.log(`🎁 dar_item: ${equipamento.nome} → ${nomePersonagem}`);
+
+  // Persistir no clone da sessão (se existir)
+  try {
+    const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+    if (sessaoJogoRow) {
+      const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+        sessaoJogoRow.id, parseInt(alvo.personagemId)
+      );
+      if (clone) {
+        await db.PersonagemSessao.registrarItemGanho(clone.id, {
+          equipamento_id: equipamento.id, nome: equipamento.nome, origem: 'narrativa'
+        });
+      }
+    }
+  } catch (e) {
+    console.warn(`⚠️ dar_item: Erro ao persistir no clone:`, e.message);
+  }
 
   io.to(roomId).emit('acao_mestre', {
     tipo: 'item_recebido',
@@ -116,7 +156,7 @@ async function processarDarItem(acao, sessao, roomId, io) {
 /**
  * remover_item: Remove item do inventário do personagem na sessão
  */
-function processarRemoverItem(acao, sessao, roomId, io) {
+async function processarRemoverItem(acao, sessao, roomId, io) {
   const { item, personagem: nomePersonagem } = acao;
   if (!item || !nomePersonagem) return;
 
@@ -131,6 +171,23 @@ function processarRemoverItem(acao, sessao, roomId, io) {
   const removido = alvo.personagem.equipamentos.splice(idx, 1)[0];
   console.log(`🗑️ remover_item: ${removido.nome} ← ${nomePersonagem}`);
 
+  // Persistir no clone da sessão (se existir)
+  try {
+    const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+    if (sessaoJogoRow) {
+      const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+        sessaoJogoRow.id, parseInt(alvo.personagemId)
+      );
+      if (clone) {
+        await db.PersonagemSessao.registrarItemPerdido(clone.id, {
+          equipamento_id: removido.id, nome: removido.nome, motivo: 'narrativa'
+        });
+      }
+    }
+  } catch (e) {
+    console.warn(`⚠️ remover_item: Erro ao persistir no clone:`, e.message);
+  }
+
   io.to(roomId).emit('acao_mestre', {
     tipo: 'item_removido',
     personagem: nomePersonagem,
@@ -143,7 +200,7 @@ function processarRemoverItem(acao, sessao, roomId, io) {
 /**
  * curar: Restaura HP do personagem (dentro ou fora de combate)
  */
-function processarCurar(acao, sessao, roomId, io) {
+async function processarCurar(acao, sessao, roomId, io) {
   const { personagem: nomePersonagem, hp } = acao;
   if (!nomePersonagem || hp == null || hp === 0) return;
 
@@ -174,6 +231,11 @@ function processarCurar(acao, sessao, roomId, io) {
 
   console.log(`💚 curar: ${nomePersonagem} +${hp}HP (${hpAnterior} → ${hpNovo})`);
 
+  // Persistir HP no clone da sessão
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, { hp_atual: hpNovo });
+  }
+
   io.to(roomId).emit('acao_mestre', {
     tipo: 'curado',
     personagem: nomePersonagem,
@@ -188,7 +250,7 @@ function processarCurar(acao, sessao, roomId, io) {
 /**
  * aplicar_dano: Aplica dano direto (armadilhas, veneno, etc.)
  */
-function processarAplicarDano(acao, sessao, roomId, io) {
+async function processarAplicarDano(acao, sessao, roomId, io) {
   const { personagem: nomePersonagem, dano, elemento } = acao;
   if (!nomePersonagem || dano == null || dano <= 0) return;
 
@@ -244,6 +306,11 @@ function processarAplicarDano(acao, sessao, roomId, io) {
 
   console.log(`💔 aplicar_dano: ${nomePersonagem} -${danoFinal}HP${elemento ? ` (${elemento})` : ''} (${hpAnterior} → ${hpNovo})`);
 
+  // Persistir HP no clone da sessão
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, { hp_atual: hpNovo });
+  }
+
   io.to(roomId).emit('acao_mestre', {
     tipo: 'dano_recebido',
     personagem: nomePersonagem,
@@ -260,7 +327,7 @@ function processarAplicarDano(acao, sessao, roomId, io) {
 /**
  * aplicar_status: Aplica efeito de status temporário
  */
-function processarAplicarStatus(acao, sessao, roomId, io) {
+async function processarAplicarStatus(acao, sessao, roomId, io) {
   const { personagem: nomePersonagem, status, duracao } = acao;
   if (!nomePersonagem || !status) return;
 
@@ -284,6 +351,13 @@ function processarAplicarStatus(acao, sessao, roomId, io) {
 
   console.log(`⚡ aplicar_status: ${nomePersonagem} → ${status} (${duracao || 3} turnos)`);
 
+  // Persistir status_efeitos no clone da sessão
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, {
+      status_efeitos: alvo.personagem.status_efeitos
+    });
+  }
+
   io.to(roomId).emit('acao_mestre', {
     tipo: 'status_aplicado',
     personagem: nomePersonagem,
@@ -297,7 +371,7 @@ function processarAplicarStatus(acao, sessao, roomId, io) {
 /**
  * remover_status: Remove efeito de status
  */
-function processarRemoverStatus(acao, sessao, roomId, io) {
+async function processarRemoverStatus(acao, sessao, roomId, io) {
   const { personagem: nomePersonagem, status } = acao;
   if (!nomePersonagem || !status) return;
 
@@ -311,6 +385,13 @@ function processarRemoverStatus(acao, sessao, roomId, io) {
 
   console.log(`✨ remover_status: ${nomePersonagem} ← ${status}`);
 
+  // Persistir status_efeitos no clone da sessão
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, {
+      status_efeitos: alvo.personagem.status_efeitos
+    });
+  }
+
   io.to(roomId).emit('acao_mestre', {
     tipo: 'status_removido',
     personagem: nomePersonagem,
@@ -320,4 +401,5 @@ function processarRemoverStatus(acao, sessao, roomId, io) {
   });
 }
 
+export { persistirEstadoClone };
 export default { processarAcoes };

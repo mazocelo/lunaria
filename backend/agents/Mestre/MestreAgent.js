@@ -12,6 +12,20 @@ function withTimeout(promise, ms = 45000) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), ms))
   ]);
 }
+
+// Retry wrapper: 1 retry on AI_TIMEOUT only
+async function withRetry(fn, retries = 1) {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error.message === 'AI_TIMEOUT' && retries > 0) {
+      console.warn('⚠️ MestreAgent: AI timeout, retrying...');
+      return withRetry(fn, retries - 1);
+    }
+    throw error;
+  }
+}
+
 import { criarPromptSistema } from './prompts/sistema.js';
 import { criarPromptNarracao } from './prompts/narracao.js';
 import { criarPromptInicio, criarPromptBoasVindas } from './prompts/inicio.js';
@@ -20,6 +34,9 @@ import { converterHistoricoParaLangChain, adicionarMensagem } from './utils/hist
 import { extrairNomesTemas } from '../../helpers/temasHelper.js';
 
 dotenv.config();
+
+const HISTORY_LIMIT = 15;
+const RESUMO_MAX_CHARS = 2000;
 
 /**
  * Classe principal do Mestre de RPG
@@ -109,12 +126,13 @@ export class MestreAgent {
       // ✅ Se houver resumo, adicionar como contexto do sistema
       if (resumo) {
         console.log(`📖 MestreAgent: Usando resumo da aventura no contexto`);
+        const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
         historico = [
           {
             role: 'system',
-            content: `RESUMO DA AVENTURA ATÉ AGORA:\n${resumo}\n\nContinue a aventura considerando este contexto.`
+            content: `RESUMO DA AVENTURA ATÉ AGORA:\n${resumoTruncado}\n\nContinue a aventura considerando este contexto.`
           },
-          ...historico.slice(-20) // Últimas 20 mensagens + resumo
+          ...historico.slice(-HISTORY_LIMIT)
         ];
       }
 
@@ -122,11 +140,11 @@ export class MestreAgent {
         throw new Error('Modelo de IA nao inicializado');
       }
 
-      // Invocar chain with timeout
-      const response = await withTimeout(this.chain.invoke({
+      // Invocar chain with timeout + retry
+      const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      }));
+      })));
 
       // Parsear JSON da resposta
       let respostaJSON;
@@ -205,11 +223,11 @@ export class MestreAgent {
         throw new Error('Modelo de IA nao inicializado');
       }
 
-      // Invocar chain with timeout
-      const response = await withTimeout(this.chain.invoke({
+      // Invocar chain with timeout + retry
+      const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: []
-      }));
+      })));
 
       // Parsear JSON
       let respostaJSON;
@@ -319,12 +337,13 @@ Mensagem do Jogador:
       // ✅ Se houver resumo, adicionar como contexto do sistema
       if (resumo) {
         console.log(`📖 MestreAgent: Usando resumo no turno`);
+        const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
         historico = [
           {
             role: 'system',
-            content: `RESUMO DA AVENTURA:\n${resumo}`
+            content: `RESUMO DA AVENTURA:\n${resumoTruncado}`
           },
-          ...historico.slice(-15) // Últimas 15 mensagens + resumo
+          ...historico.slice(-HISTORY_LIMIT)
         ];
       }
 
@@ -332,11 +351,11 @@ Mensagem do Jogador:
         throw new Error('Modelo de IA nao inicializado');
       }
 
-      // Invocar chain with timeout
-      const response = await withTimeout(this.chain.invoke({
+      // Invocar chain with timeout + retry
+      const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      }));
+      })));
 
       let respostaJSON;
       try {
@@ -420,12 +439,13 @@ Narre a transição e apresente o novo desafio:`;
       // ✅ Se houver resumo, adicionar como contexto do sistema
       if (resumo) {
         console.log(`📖 MestreAgent: Usando resumo entre rodadas`);
+        const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
         historico = [
           {
             role: 'system',
-            content: `RESUMO DA AVENTURA:\n${resumo}`
+            content: `RESUMO DA AVENTURA:\n${resumoTruncado}`
           },
-          ...historico.slice(-10) // Últimas 10 mensagens + resumo
+          ...historico.slice(-HISTORY_LIMIT)
         ];
       }
 
@@ -433,10 +453,10 @@ Narre a transição e apresente o novo desafio:`;
         throw new Error('Modelo de IA nao inicializado');
       }
 
-      const response = await withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      }));
+      })));
 
       let respostaJSON;
       try {
@@ -510,10 +530,10 @@ Seja conciso (máximo 100 palavras).`;
 
       const historico = converterHistoricoParaLangChain(chatHistory);
 
-      const response = await withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
-        chat_history: historico.slice(-10)
-      }));
+        chat_history: historico.slice(-HISTORY_LIMIT)
+      })));
 
       return {
         narrativa: response.content,

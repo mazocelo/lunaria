@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../routes.jsx';
-import { TabelaList, SearchBar, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import Notification from '../../../components/Notification.jsx';
@@ -33,20 +33,7 @@ const PersonagemListaView = ({
   handleCancelBulkDelete,
 }) => {
   if (loading && personagens.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <Users size={24} className="text-white" />
-              </div>
-              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando personagens...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={7} />;
   }
 
   const renderClasseIcon = (personagem) => (

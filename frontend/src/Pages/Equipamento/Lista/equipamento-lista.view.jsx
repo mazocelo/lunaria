@@ -1,9 +1,8 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import { TabelaList, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame, Sparkles } from 'lucide-react';
 
 const raridadeColors = (raridade, isLight) => {
@@ -47,13 +46,7 @@ const EquipamentoListaView = ({
   generateRoute,
 }) => {
   if (loading && equipamentos.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <LoadingSpinner size="xl" text="Carregando equipamentos..." variant="primary" />
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={5} />;
   }
 
   const columns = [

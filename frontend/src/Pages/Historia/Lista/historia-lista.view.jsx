@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import StatCard from '../../../components/StatCard.jsx';
-import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import ConviteModal from '../../../components/ConviteModal.jsx';
-import { TabelaList, SearchBar, PageHeader, Badge } from '../../../components/shared';
+import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import { BookOpen, Plus, Eye, Mail, Play, Target, RotateCcw, StopCircle, Trash2 } from 'lucide-react';
 
 const HistoriaListaView = ({
@@ -193,17 +192,7 @@ const HistoriaListaView = ({
   ];
 
   if (loading && historias.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <LoadingSpinner
-            size="xl"
-            text="Carregando historias..."
-            variant="primary"
-          />
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={5} />;
   }
 
   return (

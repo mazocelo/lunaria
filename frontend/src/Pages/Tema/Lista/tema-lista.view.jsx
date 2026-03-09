@@ -1,7 +1,6 @@
 import React from 'react';
-import { TabelaList, PageHeader } from '../../../components/shared';
+import { TabelaList, PageHeader, TableSkeleton } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
-import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -23,13 +22,7 @@ const TemaListaView = ({
   ROUTES,
 }) => {
   if (loading && temas.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <LoadingSpinner size="xl" text="Carregando temas..." variant="primary" />
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={3} />;
   }
 
   const columns = [

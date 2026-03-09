@@ -1,6 +1,7 @@
 import React from 'react';
 import FeedPostCard from '../../components/FeedPostCard';
 import FeedPostForm from '../../components/FeedPostForm';
+import { TableSkeleton } from '../../components/shared';
 import { Users, Globe, Loader2, MessageSquare } from 'lucide-react';
 
 const TABS = [
@@ -73,11 +74,7 @@ const FeedView = ({
       )}
 
       {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="animate-spin text-indigo-500" size={32} />
-        </div>
-      )}
+      {loading && <TableSkeleton rows={3} cols={3} />}
 
       {/* Posts */}
       {!loading && (

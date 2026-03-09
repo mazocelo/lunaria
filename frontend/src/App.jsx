@@ -2,7 +2,6 @@ import { useTheme } from './contexts/theme.jsx'
 import { useAuth } from './contexts/AuthContext'
 import { useLayout } from './contexts/LayoutContext'
 import { GameLoadingProvider } from './contexts/GameLoadingContext'
-import { GameProvider } from './contexts/GameContext'
 import Sidebar from './components/sidebar'
 import TopHeader from './components/TopHeader'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
@@ -126,7 +125,6 @@ function AppContent() {
 
   return (
     <GameLoadingProvider>
-      <GameProvider>
         <div className="w-screen h-screen overflow-hidden">
           {/* Fundo de partículas */}
           <ParticlesBackground />
@@ -191,7 +189,6 @@ function AppContent() {
             }}
           />
         </div>
-      </GameProvider>
     </GameLoadingProvider>
   )
 }

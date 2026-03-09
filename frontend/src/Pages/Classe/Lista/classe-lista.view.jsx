@@ -1,7 +1,6 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader, SearchBar } from '../../../components/shared';
+import { TabelaList, PageHeader, SearchBar, TableSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Shield, Eye, Gift, Coins } from 'lucide-react';
 
@@ -19,13 +18,7 @@ const ClasseListaView = ({
   generateRoute,
 }) => {
   if (loading && classes.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <LoadingSpinner size="xl" text="Carregando classes..." variant="primary" />
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={4} />;
   }
 
   const columns = [

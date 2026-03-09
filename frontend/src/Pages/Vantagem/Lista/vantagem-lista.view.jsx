@@ -1,7 +1,6 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, SearchBar, TableSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Sparkles, Eye, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -19,13 +18,7 @@ const VantagemListaView = ({
   generateRoute,
 }) => {
   if (loading && vantagens.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <LoadingSpinner size="xl" text="Carregando vantagens..." variant="primary" />
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={6} />;
   }
 
   const renderTipo = (row) => {

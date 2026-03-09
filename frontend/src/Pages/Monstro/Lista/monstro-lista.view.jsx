@@ -1,7 +1,6 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
-import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/shared';
+import { TabelaList, PageHeader, Badge, SearchBar, TableSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Skull, Circle, Gem, Leaf } from 'lucide-react';
 
@@ -32,13 +31,7 @@ const MonstroListaView = ({
   clearError,
 }) => {
   if (loading && monstros.length === 0) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <LoadingSpinner size="xl" text="Carregando monstros..." variant="primary" />
-        </div>
-      </div>
-    );
+    return <TableSkeleton cols={10} />;
   }
 
   const renderTipo = (row) => {

@@ -361,14 +361,19 @@ const EtapaJogoRPG = ({
         };
 
         // Listener para dice_roll (dados normais durante o jogo)
+        // Se dadosSolicitados está ativo, NÃO adicionar mensagem aqui — o resultado_teste vai trazer a versão enriquecida
         const handleDiceRoll = (data) => {
           // ✅ Se era o usuário atual que rolou, transição: dado → aguardando mestre
           const user = JSON.parse(localStorage.getItem('user') || '{}');
-          if (String(data.userId) === String(user.id)) {
+          const foiEuQueRolei = String(data.userId) === String(user.id);
+          if (foiEuQueRolei) {
             setDadosSolicitados(false);
             setDadoSolicitadoInfo(null);
             setAguardandoMestre(true);
           }
+
+          // Se dados foram solicitados pelo Mestre, resultado_teste vai adicionar a mensagem enriquecida
+          if (data.dadosSolicitados) return;
 
           const mensagem = {
             id: data.id || `dice_${Date.now()}`,
@@ -385,7 +390,7 @@ const EtapaJogoRPG = ({
           }
         };
 
-        // Listener para resultado de teste com modificadores
+        // Listener para resultado de teste com modificadores (substitui dice_roll quando teste mecânico ativo)
         const handleResultadoTeste = (data) => {
           if (onAdicionarMensagemRef.current) {
             onAdicionarMensagemRef.current({

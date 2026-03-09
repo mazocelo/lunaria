@@ -41,6 +41,7 @@ class SocketManager {
     this._disconnectTimers = new Map(); // userId -> timeout for grace period
     this._snapshotCounters = new Map(); // roomId -> mensagens count since last snapshot
     this._roomLocks = new Map(); // roomId -> Promise (mutex por sala)
+    this._roundTimers = new Map(); // roomId -> setTimeout ID (timer entre rodadas)
   }
 
   /**
@@ -1569,6 +1570,9 @@ class SocketManager {
         username
       });
 
+      // ✅ MUTEX: Garantir que rolagens simultâneas não causem race condition
+      await this.withRoomLock(roomId, async () => {
+
       // Obter sessão
       const sessao = await this.obterSessaoHistoria(roomId);
       if (!sessao) {
@@ -1581,13 +1585,13 @@ class SocketManager {
       // Verificar se jogador já rolou
       const estadoJogo = sessao.estadoJogo || {};
       const rolagemInicial = estadoJogo.rolagemInicial || {};
-      
+
       if (rolagemInicial[userId]) {
         this.log('WARN', 'ROLAR_DADO_INICIAL_JA_ROLOU', socket.id, userId, {
           roomId,
           valorAnterior: rolagemInicial[userId].valor
         });
-        return socket.emit('erro_dado_inicial', { 
+        return socket.emit('erro_dado_inicial', {
           message: 'Você já rolou o dado inicial',
           valorAnterior: rolagemInicial[userId].valor
         });
@@ -1637,13 +1641,13 @@ class SocketManager {
         valorDado: resultadoData.valor,
         timestamp: Date.now()
       };
-      
+
       if (!sessaoParaDado.mensagens) {
         sessaoParaDado.mensagens = [];
       }
       sessaoParaDado.mensagens.push(mensagemDado);
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaDado);
-      
+
       console.log(`💬 Mensagem de dado salva no Redis: ${resultadoData.username} rolou ${resultadoData.valor}`);
 
       // Verificar se todos jogadores rolaram
@@ -1667,7 +1671,7 @@ class SocketManager {
 
         // Definir ordem dos jogadores
         await this.gerenciadorSessoes.definirOrdemJogadores(roomId);
-        
+
         // Obter sessão com ordem definida
         const sessaoComOrdem = await this.obterSessaoHistoria(roomId);
         const ordemJogadores = sessaoComOrdem.estadoJogo.ordemJogadores || [];
@@ -1691,13 +1695,13 @@ class SocketManager {
           mensagem: `Ordem de jogadores definida: ${ordemJogadores.map(j => j.username).join(', ')}`,
           timestamp: Date.now()
         };
-        
+
         if (!sessaoComOrdem.mensagens) {
           sessaoComOrdem.mensagens = [];
         }
         sessaoComOrdem.mensagens.push(mensagemOrdem);
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoComOrdem);
-        
+
         console.log(`💬 Mensagem de ordem definida salva no Redis`);
 
         // Atualizar fase para rodada em andamento
@@ -1707,11 +1711,12 @@ class SocketManager {
         await this.iniciarPrimeiroTurno(roomId);
       }
 
+      }); // Fim do withRoomLock
+
       const processingTime = Date.now() - startTime;
       this.log('SUCCESS', 'ROLAR_DADO_INICIAL_COMPLETED', socket.id, userId, {
         roomId,
         username,
-        valorDado,
         processingTimeMs: processingTime
       });
 
@@ -1722,7 +1727,10 @@ class SocketManager {
         stack: error.stack,
         processingTimeMs: processingTime
       });
-      socket.emit('error', { message: 'Erro ao rolar dado inicial' });
+      // Não emitir erro genérico se foi timeout do lock (operação já em andamento)
+      if (!error.message?.includes('Operação em andamento')) {
+        socket.emit('error', { message: 'Erro ao rolar dado inicial' });
+      }
     }
   }
 
@@ -2349,7 +2357,10 @@ class SocketManager {
         username
       });
 
-      // Obter sessão
+      // ✅ MUTEX: Prevenir duplo-clique que gera mensagem duplicada do Mestre
+      await this.withRoomLock(roomId, async () => {
+
+      // Obter sessão (dentro do lock para garantir leitura consistente)
       const sessao = await this.obterSessaoHistoria(roomId);
       if (!sessao) {
         this.log('ERROR', 'INICIAR_TURNO_SESSAO_NOT_FOUND', socket.id, userId, {
@@ -2363,7 +2374,7 @@ class SocketManager {
       const turnoAtual = estadoJogo.turnoAtual || 0;
       const ordemJogadores = estadoJogo.ordemJogadores || [];
       const jogadorDaVez = ordemJogadores[turnoAtual];
-      
+
       if (!jogadorDaVez || String(jogadorDaVez.userId) !== String(userId)) {
         this.log('WARN', 'INICIAR_TURNO_NAO_E_SEU_TURNO', socket.id, userId, {
           roomId,
@@ -2375,11 +2386,16 @@ class SocketManager {
         });
       }
 
-      // Guard: turno já foi iniciado (evitar duplicatas por cliques rápidos)
+      // Guard: turno já foi iniciado (agora seguro dentro do lock)
       if (estadoJogo.turnoIniciado) {
         this.log('WARN', 'INICIAR_TURNO_JA_INICIADO', socket.id, userId, { roomId });
         return;
       }
+
+      // ✅ Setar flag IMEDIATAMENTE antes da chamada IA (previne race mesmo com lock lento)
+      estadoJogo.turnoIniciado = true;
+      sessao.estadoJogo = estadoJogo;
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       this.log('INFO', 'INICIAR_TURNO_VALIDADO', socket.id, userId, {
         roomId,
@@ -2417,28 +2433,31 @@ class SocketManager {
         });
       } catch (errorIA) {
         console.error('❌ Erro na IA ao iniciar turno:', errorIA);
-        
+
         this.log('ERROR', 'INICIAR_TURNO_IA_FAILED', socket.id, userId, {
           error: errorIA.message,
           stack: errorIA.stack
         });
-        
+
         // ✅ FALLBACK: Mensagem simples
         mensagemInicial = {
           resposta: `E agora, **${jogadorDaVez.personagemNome || username}**, o que você faz?`
         };
-        
+
         this.log('INFO', 'INICIAR_TURNO_USANDO_FALLBACK', socket.id, userId, {
           mensagemFallback: mensagemInicial.resposta
         });
       }
 
+      // Re-obter sessão (pode ter mudado durante chamada IA)
+      const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+
       // Salvar mensagem do Mestre
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
+      if (!sessaoAtualizada.mensagens) {
+        sessaoAtualizada.mensagens = [];
       }
-      
-      sessao.mensagens.push({
+
+      sessaoAtualizada.mensagens.push({
         tipo: 'mestre',
         userId: 'mestre',
         username: 'Mestre',
@@ -2446,21 +2465,17 @@ class SocketManager {
         timestamp: Date.now()
       });
 
-      // Marcar que o turno foi iniciado
-      estadoJogo.turnoIniciado = true;
-      sessao.estadoJogo = estadoJogo;
-
       // Processar ações mecânicas do Mestre (dar_item, curar, etc.)
       if (mensagemInicial.acoes && Array.isArray(mensagemInicial.acoes) && mensagemInicial.acoes.length > 0) {
         try {
           const { processarAcoes } = await import('../helpers/acoesProcessor.js');
-          await processarAcoes(mensagemInicial.acoes, sessao, roomId, this.io);
+          await processarAcoes(mensagemInicial.acoes, sessaoAtualizada, roomId, this.io);
         } catch (acoesError) {
           console.error('⚠️ Erro ao processar ações no inicio de turno:', acoesError.message);
         }
       }
 
-      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
 
       this.log('SUCCESS', 'INICIAR_TURNO_SESSAO_ATUALIZADA', socket.id, userId, {
         roomId
@@ -2485,6 +2500,8 @@ class SocketManager {
         timestamp: Date.now()
       });
 
+      }); // Fim do withRoomLock
+
       const processingTime = Date.now() - startTime;
       this.log('SUCCESS', 'INICIAR_TURNO_COMPLETED', socket.id, userId, {
         roomId,
@@ -2499,7 +2516,9 @@ class SocketManager {
         stack: error.stack,
         processingTimeMs: processingTime
       });
-      socket.emit('error', { message: 'Erro ao iniciar turno' });
+      if (!error.message?.includes('Operação em andamento')) {
+        socket.emit('error', { message: 'Erro ao iniciar turno' });
+      }
     }
   }
 
@@ -3444,8 +3463,13 @@ class SocketManager {
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
       }
 
-      // Aguardar 5 segundos antes de iniciar nova rodada
-      setTimeout(async () => {
+      // Aguardar 5 segundos antes de iniciar nova rodada (com referência rastreada)
+      // Cancelar timer anterior se existir (ex: rodada finalizada 2x por race)
+      if (this._roundTimers.has(roomId)) {
+        clearTimeout(this._roundTimers.get(roomId));
+      }
+      const timerId = setTimeout(async () => {
+        this._roundTimers.delete(roomId);
         try {
           await this.iniciarNovaRodada(roomId);
         } catch (error) {
@@ -3453,6 +3477,7 @@ class SocketManager {
           this.io.to(roomId).emit('erro_sistema', { message: 'Erro ao iniciar nova rodada. Tente novamente.' });
         }
       }, 5000);
+      this._roundTimers.set(roomId, timerId);
 
       console.log(`✅ Rodada ${rodadaAtual} finalizada, próxima rodada em 5s`);
     } catch (error) {
@@ -4386,6 +4411,12 @@ class SocketManager {
     // 2. Limpar contador de snapshots
     if (this._snapshotCounters) {
       this._snapshotCounters.delete(salaId);
+    }
+
+    // 2b. Cancelar timer de próxima rodada (evita setTimeout orphan)
+    if (this._roundTimers?.has(salaId)) {
+      clearTimeout(this._roundTimers.get(salaId));
+      this._roundTimers.delete(salaId);
     }
 
     // 3. Emitir evento e forcar todos os sockets a sairem da room

@@ -219,7 +219,7 @@ const Personagem = (prisma) => {
 
     async listarHistoriasPersonagem(personagem_id) {
       return await prisma.historias_personagens.findMany({
-        where: { personagem_id: parseInt(personagem_id) },
+        where: { personagem_id: parseInt(personagem_id), historias: { deleted_at: null } },
         include: {
           historias: true
         }
@@ -228,7 +228,7 @@ const Personagem = (prisma) => {
 
     async listarPersonagensHistoriaByUsuario(historia_id, usuario_id) {
       return await prisma.historias_personagens.findMany({
-        where: { historia_id: parseInt(historia_id), personagens: { id_usuario: parseInt(usuario_id) } },
+        where: { historia_id: parseInt(historia_id), personagens: { id_usuario: parseInt(usuario_id), deleted_at: null } },
         include: {
           personagens: {
             include: {

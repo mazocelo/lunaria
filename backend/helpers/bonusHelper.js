@@ -61,7 +61,7 @@ export function agregarBonusEquipamentos(equipamentos) {
     }
 
     // Fallback: ca aditivo antigo → armadura
-    if (bonus.ca && !bonus.armadura) {
+    if (bonus.ca && !bonus.armadura && !bonus.ca_base) {
       resultado.armadura += bonus.ca;
     }
 

@@ -135,8 +135,8 @@ const Historia = (prisma) => {
     // Adicionar participante (personagem) à história — com transaction para evitar race condition
     async addParticipante(historiaId, personagemId, papel = 'jogador') {
       return await prisma.$transaction(async (tx) => {
-        const historia = await tx.historias.findUnique({
-          where: { id: historiaId }
+        const historia = await tx.historias.findFirst({
+          where: { id: historiaId, deleted_at: null }
         });
 
         if (!historia) {
@@ -203,7 +203,7 @@ const Historia = (prisma) => {
       const historias = await prisma.historias.findMany({
         where: { status: 'ativa', deleted_at: null },
         include: {
-          _count: { select: { historias_personagens: true } }
+          _count: { select: { historias_personagens: { where: { personagens: { deleted_at: null } } } } }
         },
         orderBy: { nome: 'asc' }
       });
@@ -273,14 +273,15 @@ const Historia = (prisma) => {
           usuario_id: parseInt(usuario_id),
           status: {
             in: ['pendente', 'aceito']
-          }
+          },
+          historias: { deleted_at: null }
         },
         include: {
           historias: true
         }
       });
 
-      return convites.map(convite => ({
+      return convites.filter(c => c.historias).map(convite => ({
         ...convite.historias,
         tipo_relacao: `convite_${convite.status}`,
         convite_status: convite.status,

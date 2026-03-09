@@ -598,7 +598,7 @@ router.get('/historia/:historia_id', asyncHandlerWithContext(personagemControlle
  *       404:
  *         description: Personagem ou vantagem não encontrado
  */
-router.post('/:id/vantagens', asyncHandlerWithContext(personagemController.adicionarVantagem, personagemController));
+router.post('/:id/vantagens', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.adicionarVantagem, personagemController));
 
 /**
  * @swagger
@@ -634,7 +634,7 @@ router.post('/:id/vantagens', asyncHandlerWithContext(personagemController.adici
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id/vantagens/:vantagem_id', asyncHandlerWithContext(personagemController.removerVantagem, personagemController));
+router.delete('/:id/vantagens/:vantagem_id', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.removerVantagem, personagemController));
 
 /**
  * @swagger
@@ -715,7 +715,7 @@ router.get('/:id/vantagens', asyncHandlerWithContext(personagemController.listar
  *       404:
  *         description: Personagem ou desvantagem não encontrado
  */
-router.post('/:id/desvantagens', asyncHandlerWithContext(personagemController.adicionarDesvantagem, personagemController));
+router.post('/:id/desvantagens', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.adicionarDesvantagem, personagemController));
 
 /**
  * @swagger
@@ -751,7 +751,7 @@ router.post('/:id/desvantagens', asyncHandlerWithContext(personagemController.ad
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id/desvantagens/:desvantagem_id', asyncHandlerWithContext(personagemController.removerDesvantagem, personagemController));
+router.delete('/:id/desvantagens/:desvantagem_id', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.removerDesvantagem, personagemController));
 
 /**
  * @swagger
@@ -832,7 +832,7 @@ router.get('/:id/desvantagens', asyncHandlerWithContext(personagemController.lis
  *       404:
  *         description: Personagem ou equipamento não encontrado
  */
-router.post('/:id/equipamentos', asyncHandlerWithContext(personagemController.adicionarEquipamento, personagemController));
+router.post('/:id/equipamentos', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.adicionarEquipamento, personagemController));
 
 /**
  * @swagger
@@ -868,7 +868,7 @@ router.post('/:id/equipamentos', asyncHandlerWithContext(personagemController.ad
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id/equipamentos/:equipamento_id', asyncHandlerWithContext(personagemController.removerEquipamento, personagemController));
+router.delete('/:id/equipamentos/:equipamento_id', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.removerEquipamento, personagemController));
 
 /**
  * @swagger

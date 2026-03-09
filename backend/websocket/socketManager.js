@@ -1236,6 +1236,12 @@ class SocketManager {
         return;
       }
 
+      // Validar userId corresponde ao autenticado
+      if (String(rawUserId) !== String(socket.userId)) {
+        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
+        return;
+      }
+
       // Fazer parsing dos dados para tipos corretos
       const roomId = String(rawRoomId);
       const userId = String(rawUserId);
@@ -2086,6 +2092,12 @@ class SocketManager {
         return;
       }
 
+      // Validar userId corresponde ao autenticado
+      if (String(rawUserId) !== String(socket.userId)) {
+        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
+        return;
+      }
+
       // Parsing dos dados
       const roomId = String(rawRoomId);
       const userId = String(rawUserId);
@@ -2493,6 +2505,12 @@ class SocketManager {
 
       if (!rawRoomId || !rawUserId || !rawStatus) {
         socket.emit('error', { message: 'roomId, userId e status são obrigatórios' });
+        return;
+      }
+
+      // Validar userId corresponde ao autenticado
+      if (String(rawUserId) !== String(socket.userId)) {
+        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
         return;
       }
 

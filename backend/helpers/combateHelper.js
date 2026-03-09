@@ -13,10 +13,16 @@
  * @returns {number} Resultado da rolagem
  */
 export function rolarDado(notacao) {
-  if (!notacao || typeof notacao !== 'string') return 0;
+  if (!notacao || typeof notacao !== 'string') {
+    console.warn(`⚠️ rolarDado: notação inválida (tipo ${typeof notacao}):`, notacao);
+    return 1;
+  }
 
   const match = notacao.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
-  if (!match) return 0;
+  if (!match) {
+    console.warn(`⚠️ rolarDado: notação não reconhecida: "${notacao}"`);
+    return 1;
+  }
 
   const quantidade = parseInt(match[1]);
   const faces = parseInt(match[2]);
@@ -39,7 +45,7 @@ export function calcularHP(personagem) {
   const constituicao = personagem.constituicao || 10;
   const nivel = personagem.nivel || 1;
   const modConstituicao = Math.floor((constituicao - 10) / 2);
-  return Math.max(1, 10 + (modConstituicao * nivel));
+  return Math.max(1, 10 + (nivel * 2) + (modConstituicao * nivel));
 }
 
 /**

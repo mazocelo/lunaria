@@ -236,42 +236,6 @@ router.get('/', vantagemController.listarVantagens);
 
 /**
  * @swagger
- * /vantagens/{id}:
- *   get:
- *     summary: Obter uma vantagem especifica
- *     tags: [Vantagens]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID da vantagem
- *     responses:
- *       200:
- *         description: Vantagem encontrada
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/Vantagem'
- *       404:
- *         description: Vantagem nao encontrada
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/:id', vantagemController.obterVantagem);
-
-
-
-/**
- * @swagger
  * /vantagens/elemento/{elemento}:
  *   get:
  *     summary: Listar vantagens por elemento
@@ -438,6 +402,41 @@ router.get('/buscar', vantagemController.buscarVantagens);
  *                             type: integer
  */
 router.get('/estatisticas', vantagemController.obterEstatisticas);
+
+/**
+ * @swagger
+ * /vantagens/{id}:
+ *   get:
+ *     summary: Obter uma vantagem especifica
+ *     tags: [Vantagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da vantagem
+ *     responses:
+ *       200:
+ *         description: Vantagem encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Vantagem'
+ *       404:
+ *         description: Vantagem nao encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', vantagemController.obterVantagem);
+
 router.put('/:id', requireSuperAdmin, vantagemController.atualizarVantagem);
 router.delete('/:id', requireSuperAdmin, vantagemController.deletarVantagem);
 

@@ -236,42 +236,6 @@ router.get('/', desvantagemController.listarDesvantagens);
 
 /**
  * @swagger
- * /desvantagens/{id}:
- *   get:
- *     summary: Obter uma desvantagem especifica
- *     tags: [Desvantagens]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID da desvantagem
- *     responses:
- *       200:
- *         description: Desvantagem encontrada
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/Desvantagem'
- *       404:
- *         description: Desvantagem nao encontrada
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/:id', desvantagemController.obterDesvantagem);
-
-
-
-/**
- * @swagger
  * /desvantagens/elemento/{elemento}:
  *   get:
  *     summary: Listar desvantagens por elemento
@@ -438,6 +402,41 @@ router.get('/buscar', desvantagemController.buscarDesvantagens);
  *                             type: integer
  */
 router.get('/estatisticas', desvantagemController.obterEstatisticas);
+
+/**
+ * @swagger
+ * /desvantagens/{id}:
+ *   get:
+ *     summary: Obter uma desvantagem especifica
+ *     tags: [Desvantagens]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da desvantagem
+ *     responses:
+ *       200:
+ *         description: Desvantagem encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Desvantagem'
+ *       404:
+ *         description: Desvantagem nao encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', desvantagemController.obterDesvantagem);
+
 router.put('/:id', requireSuperAdmin, desvantagemController.atualizarDesvantagem);
 router.delete('/:id', requireSuperAdmin, desvantagemController.deletarDesvantagem);
 

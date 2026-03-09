@@ -41,6 +41,7 @@ export default function Usuario(prisma) {
           email: true,
           role: true,
           historias: {
+            where: { deleted_at: null },
             select: {
               id: true,
               nome: true,
@@ -49,6 +50,7 @@ export default function Usuario(prisma) {
             },
           },
           personagens: {
+            where: { deleted_at: null },
             select: {
               id: true,
               nome: true,

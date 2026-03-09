@@ -221,6 +221,7 @@ export const useHistoriaListaModel = () => {
       }
     } catch (err) {
       console.error('Erro ao resetar sessao:', err);
+      setError(err.message || 'Erro ao resetar sessão');
     } finally {
       setResetLoading(false);
     }
@@ -250,6 +251,7 @@ export const useHistoriaListaModel = () => {
       }
     } catch (err) {
       console.error('Erro ao encerrar sessao:', err);
+      setError(err.message || 'Erro ao encerrar sessão');
     } finally {
       setEncerrarLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { historiaService, personagemService } from '../../../services/index.js';
 import useGameStore from '../../../store/game';
+import useSocketStore from '../../../store/socket';
 import { useTemaStore } from '../../../store/tema/index.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -340,6 +341,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   const sairDoJogo = useCallback(() => {
     storeResetGameState();
+    useSocketStore.getState().resetSocketState();
   }, [storeResetGameState]);
 
   // ------------------------------------------------------------------

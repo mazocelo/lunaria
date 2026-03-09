@@ -166,10 +166,18 @@ const EditarMestreView = () => {
                     : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
                 } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
               >
-                <option value="openai/gpt-oss-120b">GPT OSS 120B (Recomendado)</option>
-                <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-                <option value="openai/gpt-oss-20b">GPT OSS 20B (Rápido)</option>
-                <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                <optgroup label="Google Gemini">
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Rapido)</option>
+                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Ultra-rapido)</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Avancado)</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </optgroup>
+                <optgroup label="Groq (Llama)">
+                  <option value="openai/gpt-oss-120b">GPT OSS 120B (Recomendado)</option>
+                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                  <option value="openai/gpt-oss-20b">GPT OSS 20B (Rapido)</option>
+                  <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                </optgroup>
               </select>
             </div>
             <InputSimples

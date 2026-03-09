@@ -187,6 +187,11 @@ const InputArea = ({
                   </p>
                   <p className="text-amber-300/80 text-xs">
                     {dadoSolicitadoInfo.tipoDado?.toUpperCase()} &middot; Dificuldade {dadoSolicitadoInfo.dificuldade}
+                    {dadoSolicitadoInfo.modificador != null && dadoSolicitadoInfo.modificador !== 0 && (
+                      <span className="ml-2 text-green-300 font-bold">
+                        ({dadoSolicitadoInfo.modificador > 0 ? '+' : ''}{dadoSolicitadoInfo.modificador} {dadoSolicitadoInfo.atributo})
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

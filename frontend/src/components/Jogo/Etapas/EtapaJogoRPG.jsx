@@ -385,6 +385,27 @@ const EtapaJogoRPG = ({
           }
         };
 
+        // Listener para resultado de teste com modificadores
+        const handleResultadoTeste = (data) => {
+          if (onAdicionarMensagemRef.current) {
+            onAdicionarMensagemRef.current({
+              id: `teste_${Date.now()}`,
+              userId: data.username,
+              username: data.username,
+              dice: data.dice || 'd20',
+              result: data.rolagemBruta,
+              totalModificador: data.totalModificador,
+              atributoNome: data.atributoNome,
+              total: data.total,
+              dc: data.dc,
+              sucesso: data.sucesso,
+              descricaoResultado: data.descricaoResultado,
+              tipo: 'dado',
+              timestamp: data.timestamp || Date.now()
+            });
+          }
+        };
+
         // Listener para solicitação de dados do Mestre
         const handleMestreSolicitaDados = (data) => {
 
@@ -393,7 +414,9 @@ const EtapaJogoRPG = ({
           setDadoSolicitadoInfo({
             tipoDado: data.tipoDado || 'd20',
             teste: data.teste || '',
-            dificuldade: data.dificuldade || 'Média'
+            dificuldade: data.dificuldade || 'Média',
+            modificador: data.modificador || 0,
+            atributo: data.atributo || null
           });
         };
 
@@ -455,6 +478,7 @@ const EtapaJogoRPG = ({
         socketStore.on('rodada_finalizada', handleRodadaFinalizada);
         socketStore.on('ordem_definida', handleOrdemDefinida);
         socketStore.on('dice_roll', handleDiceRoll);
+        socketStore.on('resultado_teste', handleResultadoTeste);
         socketStore.on('mestre_solicita_dados', handleMestreSolicitaDados);
         socketStore.on('solicitacao_dados', handleMestreSolicitaDados);
         socketStore.on('level_up', handleLevelUp);
@@ -527,6 +551,7 @@ const EtapaJogoRPG = ({
           socketStore.off('rodada_finalizada', handleRodadaFinalizada);
           socketStore.off('ordem_definida', handleOrdemDefinida);
           socketStore.off('dice_roll', handleDiceRoll);
+          socketStore.off('resultado_teste', handleResultadoTeste);
           socketStore.off('mestre_solicita_dados', handleMestreSolicitaDados);
           socketStore.off('solicitacao_dados', handleMestreSolicitaDados);
           socketStore.off('level_up', handleLevelUp);

@@ -18,23 +18,36 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
   const getConteudo = (msg) => msg.message || msg.mensagem;
 
   // Renderers por tipo de mensagem
-  const renderDado = (mensagem, key) => (
-    <div key={key} className="w-full animate-fade-in">
-      <div className="glass p-4 rounded-xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-900/40 to-orange-900/40 shadow-xl">
-        <div className="flex items-center justify-center space-x-3">
-          <span className="text-4xl drop-shadow-lg">🎲</span>
-          <div className="text-center">
-            <p className="text-white font-bold text-base mb-1">
-              {mensagem.username} rolou {mensagem.dice || 'd20'}
-            </p>
-            <p className="text-amber-300 text-2xl font-bold drop-shadow-lg">
-              Resultado: {mensagem.result || mensagem.valor}
-            </p>
+  const renderDado = (mensagem, key) => {
+    const temModificador = mensagem.totalModificador && mensagem.totalModificador !== 0;
+    return (
+      <div key={key} className="w-full animate-fade-in">
+        <div className="glass p-4 rounded-xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-900/40 to-orange-900/40 shadow-xl">
+          <div className="flex items-center justify-center space-x-3">
+            <span className="text-4xl drop-shadow-lg">🎲</span>
+            <div className="text-center">
+              <p className="text-white font-bold text-base mb-1">
+                {mensagem.username} rolou {mensagem.dice || 'd20'}
+              </p>
+              <p className="text-amber-300 text-2xl font-bold drop-shadow-lg">
+                Resultado: {mensagem.result || mensagem.valor}
+                {temModificador && (
+                  <span className="text-lg">
+                    {' '}+ {mensagem.totalModificador} ({mensagem.atributoNome}) = {mensagem.total}
+                  </span>
+                )}
+              </p>
+              {mensagem.descricaoResultado && (
+                <p className={`text-sm font-bold mt-1 ${mensagem.sucesso ? 'text-green-400' : 'text-red-400'}`}>
+                  {mensagem.descricaoResultado} (DC {mensagem.dc})
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderRoleplay = (mensagem, key) => (
     <div key={key} className="w-full animate-fade-in">

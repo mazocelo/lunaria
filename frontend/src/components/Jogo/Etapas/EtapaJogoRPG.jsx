@@ -189,9 +189,16 @@ const EtapaJogoRPG = ({
   // ⏱️ Timeout de segurança para aguardandoMestre (30s)
   useEffect(() => {
     if (!aguardandoMestre) return;
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       setAguardandoMestre(false);
       showGameNotification('O Mestre demorou para responder. Tente novamente.', 'warning');
+      // Remover mensagens de loading para não ficarem fantasma
+      try {
+        const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
+        const msgs = jogoViewModel.getState().mensagens || [];
+        const semLoading = msgs.filter(m => m.tipo !== 'loading');
+        if (msgs.length !== semLoading.length) jogoViewModel.setMensagens(semLoading);
+      } catch (e) { /* silenced */ }
     }, 30000);
     return () => clearTimeout(timeout);
   }, [aguardandoMestre]);
@@ -495,6 +502,22 @@ const EtapaJogoRPG = ({
         };
         socketStore.on('combate_loot', handleCombateLoot);
 
+        // ✅ Listener para erro de mensagem (limpa loading se backend rejeitar)
+        const handleErroMensagem = async (data) => {
+          setAguardandoMestre(false);
+          if (data?.message) {
+            showGameNotification(data.message, 'warning');
+          }
+          // Remover loading messages
+          try {
+            const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
+            const msgs = jogoViewModel.getState().mensagens || [];
+            const semLoading = msgs.filter(m => m.tipo !== 'loading');
+            if (msgs.length !== semLoading.length) jogoViewModel.setMensagens(semLoading);
+          } catch (e) { /* silenced */ }
+        };
+        socketStore.on('erro_mensagem', handleErroMensagem);
+
         // Cleanup
         return () => {
           socketStore.off('mensagem_mestre', handleMensagemMestre);
@@ -510,6 +533,7 @@ const EtapaJogoRPG = ({
           socketStore.off('acao_mestre', handleAcaoMestre);
           socketStore.off('combate_finalizado', handleCombateFinalizado);
           socketStore.off('combate_loot', handleCombateLoot);
+          socketStore.off('erro_mensagem', handleErroMensagem);
         };
       } catch (error) {
         // silenced

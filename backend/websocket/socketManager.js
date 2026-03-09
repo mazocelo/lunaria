@@ -1348,14 +1348,15 @@ class SocketManager {
 
       console.log(`💬 Mensagem de dado salva no Redis: ${username} rolou ${dice} = ${result}`);
 
-      // 2. Broadcast do resultado do dado para todos
-      this.io.to(roomId).emit('dice_roll', rollData);
-
-      console.log(`🎲 ${username} rolou ${dice}: ${result} (sala ${roomId})`);
-
       // 3. ✅ VERIFICAR SE MESTRE SOLICITOU DADOS (só processar se solicitou)
       const estadoJogo = sessao.estadoJogo || {};
       const dadosSolicitados = estadoJogo.dadosSolicitados || false;
+
+      // 2. Broadcast do resultado do dado para todos
+      // Inclui flag dadosSolicitados para frontend saber se resultado_teste vai seguir
+      this.io.to(roomId).emit('dice_roll', { ...rollData, dadosSolicitados });
+
+      console.log(`🎲 ${username} rolou ${dice}: ${result} (sala ${roomId})`);
       
       if (dadosSolicitados) {
         console.log('✅ Dados foram solicitados pelo Mestre, processando com IA...');
@@ -1389,7 +1390,7 @@ class SocketManager {
             if (resultadoTeste.atributo) {
               descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} + ${resultadoTeste.totalModificador} (${resultadoTeste.atributoNome}) = ${resultadoTeste.total} vs DC ${resultadoTeste.dc} (${resultadoTeste.dificuldadeNome}) → ${resultadoTeste.descricaoResultado}`;
             } else {
-              descricaoParaIA = `Rolou ${dice} e obteve ${result} (teste de Sorte) vs DC ${resultadoTeste.dc} → ${resultadoTeste.descricaoResultado}`;
+              descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} (teste de Sorte) vs DC ${resultadoTeste.dc} → ${resultadoTeste.descricaoResultado}`;
             }
 
             console.log(`🎯 Teste resolvido: ${descricaoParaIA}`);

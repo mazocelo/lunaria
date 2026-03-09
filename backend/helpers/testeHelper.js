@@ -166,7 +166,7 @@ export function resolverTeste(personagem, nomeTeste, rolagemBruta, dificuldade) 
   let descricaoResultado;
   if (critico) descricaoResultado = 'Sucesso Crítico!';
   else if (falha_critica) descricaoResultado = 'Falha Crítica!';
-  else if (sucesso && margem >= 5) descricaoResultado = 'Sucesso!';
+  else if (sucesso && margem >= 5) descricaoResultado = 'Sucesso Excepcional!';
   else if (sucesso) descricaoResultado = 'Sucesso!';
   else if (margem >= -2) descricaoResultado = 'Falha marginal';
   else descricaoResultado = 'Falha';

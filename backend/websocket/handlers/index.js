@@ -37,29 +37,48 @@ export class WebSocketHandlers {
    * Registrar handlers específicos de jogo
    */
   registerGameHandlers(socket) {
-    // Substituir os handlers de jogo já registrados pelo ConnectionHandlers
-    socket.removeAllListeners('start_session');
-    socket.removeAllListeners('end_session');
-    socket.removeAllListeners('player_action');
+    // Registrar handlers de jogo (usa once-style para evitar duplicatas)
+    const gameEvents = ['start_session', 'end_session', 'player_action'];
+    gameEvents.forEach(evt => socket.removeAllListeners(evt));
 
-    socket.on('start_session', (data) => this.gameHandlers.handleStartSession(socket, data));
-    socket.on('end_session', (data) => this.gameHandlers.handleEndSession(socket, data));
-    socket.on('player_action', (data) => this.gameHandlers.handlePlayerAction(socket, data));
+    socket.on('start_session', (data) => {
+      if (!data || typeof data !== 'object') return socket.emit('error', { message: 'Dados inválidos para start_session' });
+      this.gameHandlers.handleStartSession(socket, data);
+    });
+    socket.on('end_session', (data) => {
+      if (!data || typeof data !== 'object') return socket.emit('error', { message: 'Dados inválidos para end_session' });
+      this.gameHandlers.handleEndSession(socket, data);
+    });
+    socket.on('player_action', (data) => {
+      if (!data || typeof data !== 'object') return socket.emit('error', { message: 'Dados inválidos para player_action' });
+      this.gameHandlers.handlePlayerAction(socket, data);
+    });
   }
 
   /**
    * Registrar handlers específicos de chat
    */
   registerChatHandlers(socket) {
-    // Substituir os handlers de chat já registrados pelo ConnectionHandlers
-    socket.removeAllListeners('send_message');
-    socket.removeAllListeners('typing_start');
-    socket.removeAllListeners('typing_stop');
+    // Registrar handlers de chat (limpa anteriores para evitar duplicatas)
+    const chatEvents = ['send_message', 'typing_start', 'typing_stop'];
+    chatEvents.forEach(evt => socket.removeAllListeners(evt));
 
-    socket.on('send_message', (data) => this.chatHandlers.handleSendMessage(socket, data));
-    socket.on('typing_start', (data) => this.chatHandlers.handleTypingStart(socket, data));
-    socket.on('typing_stop', (data) => this.chatHandlers.handleTypingStop(socket, data));
-    socket.on('get_message_history', (data) => this.chatHandlers.getMessageHistory(socket, data));
+    socket.on('send_message', (data) => {
+      if (!data || typeof data !== 'object' || !data.roomId) return socket.emit('error', { message: 'Dados inválidos para send_message' });
+      this.chatHandlers.handleSendMessage(socket, data);
+    });
+    socket.on('typing_start', (data) => {
+      if (!data || typeof data !== 'object') return;
+      this.chatHandlers.handleTypingStart(socket, data);
+    });
+    socket.on('typing_stop', (data) => {
+      if (!data || typeof data !== 'object') return;
+      this.chatHandlers.handleTypingStop(socket, data);
+    });
+    socket.on('get_message_history', (data) => {
+      if (!data || typeof data !== 'object') return;
+      this.chatHandlers.getMessageHistory(socket, data);
+    });
 
     // Limpar typing quando usuário desconectar
     socket.on('disconnect', () => {

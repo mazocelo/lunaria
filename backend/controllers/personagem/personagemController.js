@@ -166,12 +166,12 @@ class PersonagemController {
       } = req.body;
       // Validacoes basicas
       if (!nome) {
-        return res.status(400).json({ error: 'Nome e obrigatorio' });
+        return res.status(400).json({ success: false, error: 'Nome e obrigatorio' });
       }
 
       const nivelEfetivo = nivel || 1;
       if (nivelEfetivo < 1 || nivelEfetivo > EVOLUCAO.NIVEL_MAX) {
-        return res.status(400).json({ error: `Nivel deve estar entre 1 e ${EVOLUCAO.NIVEL_MAX}` });
+        return res.status(400).json({ success: false, error: `Nivel deve estar entre 1 e ${EVOLUCAO.NIVEL_MAX}` });
       }
 
       // Validar atributos (range individual + total de pontos)
@@ -181,7 +181,7 @@ class PersonagemController {
       };
       const validacaoAtributos = validarAtributos(atributos, nivelEfetivo);
       if (!validacaoAtributos.valido) {
-        return res.status(400).json({ error: validacaoAtributos.erros.join('; ') });
+        return res.status(400).json({ success: false, error: validacaoAtributos.erros.join('; ') });
       }
 
       // Buscar raca e classe para validar orcamento de vantagens
@@ -189,12 +189,12 @@ class PersonagemController {
       let classeCusto = 0;
       if (raca_id) {
         const raca = await db.Raca.findById(parseInt(raca_id));
-        if (!raca) return res.status(400).json({ error: `Raca com ID ${raca_id} nao encontrada` });
+        if (!raca) return res.status(400).json({ success: false, error: `Raca com ID ${raca_id} nao encontrada` });
         racaCusto = raca.custo || 0;
       }
       if (classe_id) {
         const classe = await db.Classe.findById(parseInt(classe_id));
-        if (!classe) return res.status(400).json({ error: `Classe com ID ${classe_id} nao encontrada` });
+        if (!classe) return res.status(400).json({ success: false, error: `Classe com ID ${classe_id} nao encontrada` });
         classeCusto = classe.custo || 0;
       }
 
@@ -207,11 +207,11 @@ class PersonagemController {
         const desvantagensValidas = desvantagensObjetos.filter(d => d !== null);
         const idsNaoEncontrados = desvantagens.filter((id, i) => !desvantagensObjetos[i]);
         if (idsNaoEncontrados.length > 0) {
-          return res.status(400).json({ error: `Desvantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
+          return res.status(400).json({ success: false, error: `Desvantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
         }
         const validacaoDesv = validarDesvantagens(desvantagensValidas, nivelEfetivo);
         if (!validacaoDesv.valido) {
-          return res.status(400).json({ error: validacaoDesv.erros.join('; ') });
+          return res.status(400).json({ success: false, error: validacaoDesv.erros.join('; ') });
         }
         custoDesvantagensAceitas = validacaoDesv.custoTotal;
       }
@@ -223,13 +223,13 @@ class PersonagemController {
         );
         const idsNaoEncontrados = vantagens.filter((id, i) => !vantagensObjetos[i]);
         if (idsNaoEncontrados.length > 0) {
-          return res.status(400).json({ error: `Vantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
+          return res.status(400).json({ success: false, error: `Vantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
         }
         const vantagensValidas = vantagensObjetos.filter(v => v !== null);
         const pontosDisponiveis = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, custoDesvantagensAceitas);
         const validacaoVant = validarVantagens(vantagensValidas, pontosDisponiveis, nivelEfetivo);
         if (!validacaoVant.valido) {
-          return res.status(400).json({ error: validacaoVant.erros.join('; ') });
+          return res.status(400).json({ success: false, error: validacaoVant.erros.join('; ') });
         }
       }
 
@@ -655,7 +655,7 @@ class PersonagemController {
       // Buscar personagem completo com todos os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       if (!personagemCompleto) {
-        return res.status(404).json({ error: 'Personagem não encontrado' });
+        return res.status(404).json({ success: false, error: 'Personagem não encontrado' });
       }
 
       const personagemData = await this.processarDadosPersonagem(personagemCompleto);
@@ -735,7 +735,7 @@ class PersonagemController {
 
     } catch (error) {
       console.error('❌ Erro ao gerar background:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 
@@ -1371,12 +1371,12 @@ class PersonagemController {
       const { xp } = req.body;
 
       if (!xp || xp <= 0) {
-        return res.status(400).json({ error: 'XP deve ser um numero positivo' });
+        return res.status(400).json({ success: false, error: 'XP deve ser um numero positivo' });
       }
 
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
       if (!personagem) {
-        return res.status(404).json({ error: 'Personagem nao encontrado' });
+        return res.status(404).json({ success: false, error: 'Personagem nao encontrado' });
       }
 
       const xpAtual = (personagem.xp_atual || 0) + parseInt(xp);
@@ -1432,7 +1432,7 @@ class PersonagemController {
 
     } catch (error) {
       console.error('Erro ao adicionar XP:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 
@@ -1448,16 +1448,16 @@ class PersonagemController {
 
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
       if (!personagem) {
-        return res.status(404).json({ error: 'Personagem nao encontrado' });
+        return res.status(404).json({ success: false, error: 'Personagem nao encontrado' });
       }
 
       if (req.user && req.user.id && personagem.id_usuario && personagem.id_usuario !== req.user.id) {
-        return res.status(403).json({ error: 'Voce so pode atualizar seus proprios personagens' });
+        return res.status(403).json({ success: false, error: 'Voce so pode atualizar seus proprios personagens' });
       }
 
       const pendentes = personagem.pontos_atributo_pendentes || 0;
       if (pendentes <= 0) {
-        return res.status(400).json({ error: 'Nenhum ponto de atributo pendente para distribuir' });
+        return res.status(400).json({ success: false, error: 'Nenhum ponto de atributo pendente para distribuir' });
       }
 
       const statsNomes = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
@@ -1467,12 +1467,12 @@ class PersonagemController {
       for (const stat of statsNomes) {
         const inc = parseInt(incrementos[stat]) || 0;
         if (inc < 0) {
-          return res.status(400).json({ error: `Incremento de ${stat} nao pode ser negativo` });
+          return res.status(400).json({ success: false, error: `Incremento de ${stat} nao pode ser negativo` });
         }
         if (inc > 0) {
           const novoValor = (personagem[stat] || 10) + inc;
           if (novoValor > EVOLUCAO.STAT_MAX) {
-            return res.status(400).json({ error: `${stat} excederia o maximo de ${EVOLUCAO.STAT_MAX} (atual: ${personagem[stat]}, incremento: ${inc})` });
+            return res.status(400).json({ success: false, error: `${stat} excederia o maximo de ${EVOLUCAO.STAT_MAX} (atual: ${personagem[stat]}, incremento: ${inc})` });
           }
           novosStats[stat] = novoValor;
           totalGasto += inc;
@@ -1480,11 +1480,11 @@ class PersonagemController {
       }
 
       if (totalGasto === 0) {
-        return res.status(400).json({ error: 'Nenhum incremento fornecido' });
+        return res.status(400).json({ success: false, error: 'Nenhum incremento fornecido' });
       }
 
       if (totalGasto > pendentes) {
-        return res.status(400).json({ error: `Pontos insuficientes: ${totalGasto} solicitados, ${pendentes} disponiveis` });
+        return res.status(400).json({ success: false, error: `Pontos insuficientes: ${totalGasto} solicitados, ${pendentes} disponiveis` });
       }
 
       await db.Personagem.updatePersonagem(parseInt(id), {
@@ -1504,7 +1504,7 @@ class PersonagemController {
 
     } catch (error) {
       console.error('Erro ao distribuir pontos:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 
@@ -1518,7 +1518,7 @@ class PersonagemController {
 
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
       if (!personagem) {
-        return res.status(404).json({ error: 'Personagem nao encontrado' });
+        return res.status(404).json({ success: false, error: 'Personagem nao encontrado' });
       }
 
       const nivel = personagem.nivel || 1;
@@ -1571,7 +1571,7 @@ class PersonagemController {
 
     } catch (error) {
       console.error('Erro ao obter evolucao:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 
@@ -1585,7 +1585,7 @@ class PersonagemController {
 
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       if (!personagemCompleto) {
-        return res.status(404).json({ error: 'Personagem não encontrado' });
+        return res.status(404).json({ success: false, error: 'Personagem não encontrado' });
       }
 
       const personagemData = await this.processarDadosPersonagem(personagemCompleto);
@@ -1630,7 +1630,7 @@ class PersonagemController {
 
     } catch (error) {
       console.error('Erro ao validar coerência:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 }

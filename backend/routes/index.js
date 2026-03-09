@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import historiaRoutes from './historia.js';
 import sessaoRoutes from './sessao.js';
 import personagemRoutes from './personagem.js';
@@ -22,6 +23,15 @@ import feedRoutes from './feed.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Rate limiter por usuário para endpoints de criação
+const createLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 30, // 30 criações por 15 min por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
 
 /* GET home page. */
 router.get('/', async (req, res, next) => {
@@ -68,8 +78,8 @@ router.use('/catalogos', authenticateToken, catalogosRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória
-router.use('/historias', authenticateToken, historiaRoutes);
-router.use('/personagens', authenticateToken, personagemRoutes);
+router.use('/historias', authenticateToken, createLimiter, historiaRoutes);
+router.use('/personagens', authenticateToken, createLimiter, personagemRoutes);
 router.use('/usuarios', authenticateToken, usuarioRoutes);
 router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
@@ -78,7 +88,7 @@ router.use('/mestres', authenticateToken, mestreRoutes);
 
 // Rotas sociais
 router.use('/amizades', authenticateToken, amizadeRoutes);
-router.use('/feed', authenticateToken, feedRoutes);
+router.use('/feed', authenticateToken, createLimiter, feedRoutes);
 
 // Rotas de sessão
 router.use('/sessoes', authenticateToken, sessaoRoutes);

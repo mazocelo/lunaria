@@ -40,7 +40,7 @@ const router = express.Router();
  *                       type: integer
  *                       description: Total de salas no servidor
  */
-router.get('/stats', (req, res) => {
+router.get('/stats', requireSuperAdmin, (req, res) => {
   try {
     const stats = socketManager.getStats();
     

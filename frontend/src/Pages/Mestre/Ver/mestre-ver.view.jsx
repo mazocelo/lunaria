@@ -10,9 +10,7 @@ import {
 } from 'lucide-react';
 
 const VerMestreView = ({
-  id, nome, descricao, personalidade, modelo, temperatura,
-  max_tokens, tom_narrativo, regras_especiais,
-  loading, error, isLight,
+  id, mestre, loading, error, isLight,
   clearError, navigate, generateRoute,
 }) => {
   if (loading) {
@@ -32,7 +30,7 @@ const VerMestreView = ({
     );
   }
 
-  if (!nome && !loading && error) {
+  if (!mestre && !loading && error) {
     return (
       <div className="animate-fade-in">
         <div className="card-rpg text-center py-12">
@@ -53,6 +51,10 @@ const VerMestreView = ({
     );
   }
 
+  if (!mestre) return null;
+
+  const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem } = mestre;
+
   const InfoRow = ({ label, value, fallback = 'Nao definido' }) => (
     <div className="flex items-center justify-between">
       <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{label}:</span>
@@ -70,11 +72,19 @@ const VerMestreView = ({
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-            isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
-          }`}>
-            <Crown size={22} />
-          </div>
+          {imagem ? (
+            <img
+              src={imagem}
+              alt={nome}
+              className="w-10 h-10 rounded-xl object-cover"
+            />
+          ) : (
+            <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+              isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
+            }`}>
+              <Crown size={22} />
+            </div>
+          )}
           <div>
             <h1 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               {nome}
@@ -111,13 +121,22 @@ const VerMestreView = ({
           <RPGCard className="p-6">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-1`}>
-                    {nome}
-                  </h2>
-                  <p className="text-slate-400 font-modern text-sm">
-                    ID: #{id}
-                  </p>
+                <div className="flex items-center gap-4">
+                  {imagem && (
+                    <img
+                      src={imagem}
+                      alt={nome}
+                      className="w-16 h-16 rounded-xl object-cover shadow-lg"
+                    />
+                  )}
+                  <div>
+                    <h2 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-1`}>
+                      {nome}
+                    </h2>
+                    <p className="text-slate-400 font-modern text-sm">
+                      ID: #{id}
+                    </p>
+                  </div>
                 </div>
                 {tom_narrativo && (
                   <Badge variant="purple">{tom_narrativo}</Badge>

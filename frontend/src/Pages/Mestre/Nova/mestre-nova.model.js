@@ -63,6 +63,10 @@ export const useMestreNovaModel = () => {
       setError('Nome e obrigatorio');
       return { success: false };
     }
+    if (nome.trim().length < 2) {
+      setError('Nome deve ter pelo menos 2 caracteres');
+      return { success: false };
+    }
     setSaving(true);
     setError(null);
     try {

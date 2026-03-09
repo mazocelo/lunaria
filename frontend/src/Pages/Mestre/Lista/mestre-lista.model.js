@@ -56,15 +56,12 @@ export const useMestreListaModel = () => {
   const handleConfirmDelete = async () => {
     if (!mestreToDelete) return;
     setDeleteLoading(true);
-    try {
-      await deleteMestre(mestreToDelete.id);
+    const result = await deleteMestre(mestreToDelete.id);
+    if (result.success) {
       setShowDeleteModal(false);
       setMestreToDelete(null);
-    } catch (error) {
-      console.error('Erro ao deletar mestre:', error);
-    } finally {
-      setDeleteLoading(false);
     }
+    setDeleteLoading(false);
   };
 
   const handleCancelDelete = () => {
@@ -73,14 +70,16 @@ export const useMestreListaModel = () => {
     setDeleteLoading(false);
   };
 
-  const clearError = () => setLocalError(null);
+  const clearError = () => {
+    setLocalError(null);
+    useMestreStore.setState({ error: null });
+  };
 
   return {
     mestres,
     filteredMestres,
     loading,
     error: localError || error,
-    searchTerm,
     isLight,
     showDeleteModal,
     mestreToDelete,

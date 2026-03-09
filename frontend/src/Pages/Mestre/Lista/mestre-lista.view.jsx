@@ -12,7 +12,6 @@ const MestreListaView = ({
   filteredMestres,
   loading,
   error,
-  searchTerm,
   isLight,
   showDeleteModal,
   mestreToDelete,
@@ -142,7 +141,7 @@ const MestreListaView = ({
       <TabelaList
         header="Lista de Mestres"
         columns={columns}
-        data={searchTerm ? filteredMestres : mestres}
+        data={filteredMestres}
         actions={actions}
         loading={loading}
         pagination={true}

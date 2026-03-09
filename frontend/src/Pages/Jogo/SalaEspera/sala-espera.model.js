@@ -126,10 +126,12 @@ export const useSalaEsperaModel = () => {
   const handleIniciarJogo = useCallback(async () => {
     try {
       await iniciarJogo();
+      // Navigate directly after API success — socket event remains as backup for other players
+      navigate(`/jogo/${id}/jogo-ativo`);
     } catch (err) {
       console.error('Erro ao iniciar jogo:', err);
     }
-  }, [iniciarJogo]);
+  }, [iniciarJogo, navigate, id]);
 
   const handleSair = useCallback(() => {
     sairDoJogo();

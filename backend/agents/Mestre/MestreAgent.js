@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { MESTRE_CONFIG } from './config.js';
 
 // Timeout wrapper for AI calls
-function withTimeout(promise, ms = 30000) {
+function withTimeout(promise, ms = 45000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), ms))

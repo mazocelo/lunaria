@@ -7,7 +7,7 @@ export const MESTRE_CONFIG = {
   // Configurações do modelo de IA
   model: {
     provider: 'groq',
-    name: 'openai/gpt-oss-120b',
+    name: 'meta-llama/llama-4-scout-17b-16e-instruct',
     temperature: 0.9, // Alta criatividade para narração
     maxTokens: 8000,
     topP: 0.99

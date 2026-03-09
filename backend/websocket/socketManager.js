@@ -1350,14 +1350,21 @@ class SocketManager {
 
       // 3. ✅ VERIFICAR SE MESTRE SOLICITOU DADOS (só processar se solicitou)
       const estadoJogo = sessao.estadoJogo || {};
-      const dadosSolicitados = estadoJogo.dadosSolicitados || false;
+      const testeInfo = estadoJogo.testeInfo || {};
+
+      // Verificar se dados foram solicitados E se é o jogador correto
+      let dadosSolicitados = estadoJogo.dadosSolicitados || false;
+      if (dadosSolicitados && testeInfo.jogadorAlvo && testeInfo.jogadorAlvo !== userId) {
+        console.log(`⚠️ Jogador ${userId} rolou, mas teste é para ${testeInfo.jogadorAlvo}. Tratando como rolagem comum.`);
+        dadosSolicitados = false; // Tratar como rolagem normal para este jogador
+      }
 
       // 2. Broadcast do resultado do dado para todos
       // Inclui flag dadosSolicitados para frontend saber se resultado_teste vai seguir
       this.io.to(roomId).emit('dice_roll', { ...rollData, dadosSolicitados });
 
       console.log(`🎲 ${username} rolou ${dice}: ${result} (sala ${roomId})`);
-      
+
       if (dadosSolicitados) {
         console.log('✅ Dados foram solicitados pelo Mestre, processando com IA...');
 
@@ -1365,7 +1372,6 @@ class SocketManager {
         try {
           const jogadorInfo = sessao.jogadores?.[userId];
           const personagemNome = jogadorInfo?.personagemNome || username;
-          const testeInfo = estadoJogo.testeInfo || {};
 
           // Buscar personagem completo para aplicar modificadores
           const personagemId = jogadorInfo?.personagemId;
@@ -1508,6 +1514,22 @@ class SocketManager {
     } catch (error) {
       console.error('❌ Erro ao processar dice_roll:', error);
       socket.emit('error', { message: 'Erro ao processar rolagem' });
+
+      // Limpar flags para não travar o sistema
+      try {
+        const roomId = String(data?.roomId || '');
+        if (roomId) {
+          const sessao = await this.gerenciadorSessoes.obterSessao(roomId);
+          if (sessao?.estadoJogo?.dadosSolicitados) {
+            sessao.estadoJogo.dadosSolicitados = false;
+            sessao.estadoJogo.testeInfo = null;
+            await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+            console.log('🔄 Flags de teste limpas no outer catch');
+          }
+        }
+      } catch (cleanupErr) {
+        console.warn('⚠️ Erro ao limpar flags no outer catch:', cleanupErr.message);
+      }
     }
   }
 

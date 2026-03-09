@@ -447,8 +447,8 @@ export const VerHistoriaView = () => {
                     </span>
                     <span>{sessao.rodada_atual || 0} rodadas</span>
                     {participantes.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Users size={11} /> {participantes.length}
+                      <span className="flex items-center gap-1" title={participantes.join(', ')}>
+                        <Users size={11} /> {participantes.slice(0, 3).join(', ')}{participantes.length > 3 ? ` +${participantes.length - 3}` : ''}
                       </span>
                     )}
                   </div>

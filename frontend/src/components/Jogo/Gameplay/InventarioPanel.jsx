@@ -51,7 +51,7 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome })
       )}
 
       {/* Panel */}
-      <div className={`fixed top-0 right-0 h-full w-80 z-40 transform transition-transform duration-300 ease-out ${
+      <div className={`fixed top-0 right-0 h-full w-full sm:w-80 z-40 transform transition-transform duration-300 ease-out ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="h-full bg-slate-900/95 backdrop-blur-md border-l border-purple-500/20 flex flex-col">

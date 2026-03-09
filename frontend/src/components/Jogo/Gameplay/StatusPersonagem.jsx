@@ -37,7 +37,7 @@ const StatusPersonagem = ({
 
   // Determinar HP/HP_max a exibir: combate live ou DB estatico
   const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
-  const hpDisplay = combateStats ? `${combateStats.hp_atual}/${combateStats.hp_max}` : (personagemSelecionado.hp != null ? String(personagemSelecionado.hp) : '???');
+  const hpDisplay = combateStats ? `${combateStats.hp_atual}/${combateStats.hp_max}` : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || '?'}` : '???');
   const hpBaixo = combateStats && combateStats.hp_max > 0 ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
   const derrotado = combateStats?.status === 'derrotado';
 

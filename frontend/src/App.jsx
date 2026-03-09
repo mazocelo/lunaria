@@ -14,10 +14,43 @@ import AppRoutes from './routes.jsx'
 import ScrollToTop from './components/shared/ScrollToTop'
 
 // 🚀 STORE INITIALIZATION - Cache de dados estáticos em background
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { initializeAllStores } from './store/index.js'
 import { notificationService } from './services'
+
+// ErrorBoundary para capturar crashes em componentes
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-screen min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+          <div className="text-center space-y-4 p-8">
+            <h1 className="text-2xl font-bold text-red-400">Algo deu errado</h1>
+            <p className="text-purple-300">Um erro inesperado ocorreu. Tente recarregar a pagina.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              Recarregar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Componente interno que usa os hooks
 function AppContent() {
@@ -133,9 +166,11 @@ function AppContent() {
             {/* Main content with scroll */}
             <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0">
               <ScrollToTop />
-              <div className="animate-fade-in">
-                <AppRoutes />
-              </div>
+              <ErrorBoundary>
+                <div className="animate-fade-in">
+                  <AppRoutes />
+                </div>
+              </ErrorBoundary>
             </main>
           </div>
 

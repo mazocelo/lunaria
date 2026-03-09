@@ -6,7 +6,8 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { useSocketStore } from '../../store';
 import {
   BookOpen, Users, Dna, Shield, Star, AlertTriangle,
-  Sword, Skull, Palette, Crown, User, AlertCircle, RefreshCw
+  Sword, Skull, Palette, Crown, User, AlertCircle, RefreshCw,
+  UserPlus, Rss
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -23,6 +24,11 @@ const Sidebar = () => {
   const playerItems = [
     { path: '/historias', label: 'Historias', icon: BookOpen, description: 'Gerencie suas aventuras' },
     { path: '/personagens', label: 'Personagens', icon: Users, description: 'Crie e edite personagens' },
+  ];
+
+  const socialItems = [
+    { path: '/amigos', label: 'Amigos', icon: UserPlus, description: 'Gerencie seus amigos' },
+    { path: '/feed', label: 'Feed', icon: Rss, description: 'Feed social' },
   ];
 
   const catalogItems = [
@@ -105,6 +111,20 @@ const Sidebar = () => {
         )}
         <div className="space-y-0.5">
           {playerItems.map(item => <NavItem key={item.path} item={item} />)}
+        </div>
+
+        {/* Social section */}
+        {collapsed ? (
+          <div className={`my-3 mx-2 h-px ${isLight ? 'bg-slate-200/60' : 'bg-slate-700/50'}`} />
+        ) : (
+          <div className={`text-[10px] font-semibold uppercase tracking-widest px-3 mt-5 mb-2 ${
+            isLight ? 'text-slate-400' : 'text-slate-500'
+          }`}>
+            Social
+          </div>
+        )}
+        <div className="space-y-0.5">
+          {socialItems.map(item => <NavItem key={item.path} item={item} />)}
         </div>
 
         {/* Catalog section (SuperAdmin only) */}

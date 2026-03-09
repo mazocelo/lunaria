@@ -13,6 +13,8 @@ import { EquipamentoService } from './EquipamentoService';
 import { AuthService } from './AuthService';
 import { NotificationService } from './NotificationService';
 import { SessaoService } from './SessaoService';
+import { AmizadeService } from './AmizadeService';
+import { FeedService } from './FeedService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
@@ -31,6 +33,8 @@ export { MonstroService } from './MonstroService';
 export { EquipamentoService } from './EquipamentoService';
 export { AuthService } from './AuthService';
 export { SessaoService } from './SessaoService';
+export { AmizadeService } from './AmizadeService';
+export { FeedService } from './FeedService';
 
 // Instâncias padrão dos serviços
 export const historiaService = new HistoriaService(apiClient);
@@ -46,6 +50,8 @@ export const equipamentoService = new EquipamentoService(apiClient);
 export const authService = new AuthService(apiClient);
 export const notificationService = new NotificationService(apiClient);
 export const sessaoService = new SessaoService(apiClient);
+export const amizadeService = new AmizadeService(apiClient);
+export const feedService = new FeedService(apiClient);
 
 // Catalogos (raridades, categorias)
 export const catalogoService = {

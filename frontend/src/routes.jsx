@@ -43,7 +43,9 @@ import {
   SalaEsperaPage,
   JogoAtivoPage,
   ConviteJogoPage,
-  PerfilPage
+  PerfilPage,
+  AmigosPage,
+  FeedPage
 } from './Pages';
 
 /**
@@ -130,7 +132,11 @@ export const ROUTES = {
   VER_MESTRE: '/ver-mestre/:id',
 
   // ===== PERFIL =====
-  PERFIL: '/perfil'
+  PERFIL: '/perfil',
+
+  // ===== SOCIAL =====
+  AMIGOS: '/amigos',
+  FEED: '/feed'
 };
 
 /**
@@ -515,6 +521,20 @@ const ROUTE_CONFIG = [
     component: PerfilPage,
     name: 'Meu Perfil',
     category: 'USUARIO'
+  },
+
+  // ===== SOCIAL =====
+  {
+    path: ROUTES.AMIGOS,
+    component: AmigosPage,
+    name: 'Amigos',
+    category: 'SOCIAL'
+  },
+  {
+    path: ROUTES.FEED,
+    component: FeedPage,
+    name: 'Feed',
+    category: 'SOCIAL'
   }
 ];
 

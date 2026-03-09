@@ -66,3 +66,7 @@ export { ConviteJogoView as ConviteJogoPage } from './ConviteJogo';
 // Perfil
 export { default as PerfilPage } from './Perfil';
 
+// Social
+export { default as AmigosPage } from './Amigos';
+export { default as FeedPage } from './Feed';
+

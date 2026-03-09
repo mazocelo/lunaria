@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/theme';
-import { notificationService } from '../services';
+import { notificationService, amizadeService } from '../services';
 import ConviteItem from './ConviteItem';
+import { UserPlus, Check, X } from 'lucide-react';
 
 /**
  * 🔔 Modal de Notificações Simples
@@ -13,6 +14,7 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -52,6 +54,7 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
       
       if (response.success) {
         setNotifications(response.data.convites || []);
+        setFriendRequests(response.data.solicitacoes_amizade || []);
       } else {
         setError('Erro ao carregar notificações');
       }
@@ -101,6 +104,26 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
     navigate(`/jogo/sala-espera/${convite.historia.id}`);
   };
 
+  const handleAcceptFriend = async (solicitacao) => {
+    try {
+      await amizadeService.acceptRequest(solicitacao.id);
+      setFriendRequests(prev => prev.filter(s => s.id !== solicitacao.id));
+      if (onNotificationUpdate) onNotificationUpdate();
+    } catch (error) {
+      console.error('Erro ao aceitar solicitação:', error);
+    }
+  };
+
+  const handleRejectFriend = async (solicitacao) => {
+    try {
+      await amizadeService.rejectRequest(solicitacao.id);
+      setFriendRequests(prev => prev.filter(s => s.id !== solicitacao.id));
+      if (onNotificationUpdate) onNotificationUpdate();
+    } catch (error) {
+      console.error('Erro ao rejeitar solicitação:', error);
+    }
+  };
+
   // 🎯 NAVEGAR PARA CRIAR NOVO PERSONAGEM
   const handleCreatePersonagem = () => {
     onClose(); // Fechar modal de notificações
@@ -134,12 +157,12 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
               <h3 className={`font-bold text-lg ${
                 isLight ? 'text-slate-800' : 'text-white'
               }`}>
-                Convites de Histórias
+                Notificações
               </h3>
               <p className={`text-xs ${
                 isLight ? 'text-slate-600' : 'text-slate-400'
               }`}>
-                {notifications.length} convite{notifications.length !== 1 ? 's' : ''}
+                {notifications.length + friendRequests.length} notificaç{(notifications.length + friendRequests.length) !== 1 ? 'ões' : 'ão'}
               </p>
             </div>
           </div>
@@ -191,7 +214,7 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
                 {error}
               </p>
             </div>
-          ) : notifications.length === 0 ? (
+          ) : (notifications.length === 0 && friendRequests.length === 0) ? (
             <div className="p-8 text-center">
               <div className="text-4xl mb-3">📭</div>
               <p className={`${
@@ -206,7 +229,50 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
               </p>
             </div>
           ) : (
-            <div className="p-2">
+            <div className="p-2 space-y-1">
+              {/* Solicitações de amizade */}
+              {friendRequests.map(solicitacao => (
+                <div
+                  key={`friend-${solicitacao.id}`}
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    isLight ? 'bg-blue-50/80 border border-blue-100' : 'bg-blue-900/20 border border-blue-800/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      isLight ? 'bg-blue-100 text-blue-600' : 'bg-blue-800/50 text-blue-300'
+                    }`}>
+                      <UserPlus size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                        {solicitacao.requester?.nome || 'Usuário'}
+                      </p>
+                      <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Quer ser seu amigo
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                    <button
+                      onClick={() => handleAcceptFriend(solicitacao)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors cursor-pointer"
+                      title="Aceitar"
+                    >
+                      <Check size={15} />
+                    </button>
+                    <button
+                      onClick={() => handleRejectFriend(solicitacao)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors cursor-pointer"
+                      title="Rejeitar"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Convites de histórias */}
               {notifications.map(convite => (
                 <ConviteItem
                   key={convite.id}

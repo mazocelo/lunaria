@@ -88,7 +88,10 @@ export const createSocketActions = (set, get) => ({
   // ===== CONFIGURAÇÃO DE LISTENERS INTERNOS =====
   setupInternalListeners: () => {
     const { socket, log } = get();
-    
+
+    // Limpar listeners anteriores para evitar acumulação em reconnect
+    socket.removeAllListeners();
+
     // Listeners de conexão
     socket.on('connect', () => {
       set({ isConnected: true, isConnecting: false });
@@ -1248,9 +1251,10 @@ export const createSocketActions = (set, get) => ({
     const { socket, stopConnectionMonitor } = get();
     
     if (socket) {
+      socket.removeAllListeners();
       socket.disconnect();
     }
-    
+
     stopConnectionMonitor();
     
     set({

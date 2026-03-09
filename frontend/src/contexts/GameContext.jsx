@@ -315,6 +315,10 @@ export const GameProvider = ({ children }) => {
 
   // Gerenciar erros
   const setError = useCallback((error) => {
+    if (!error) {
+      dispatch({ type: GAME_ACTIONS.CLEAR_ERROR });
+      return;
+    }
     console.error('❌ GameContext: Erro:', error);
     dispatch({ type: GAME_ACTIONS.SET_ERROR, payload: error });
     dispatch({ type: GAME_ACTIONS.SET_STATE, payload: GAME_STATES.ERROR });

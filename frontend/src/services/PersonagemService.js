@@ -35,23 +35,12 @@ export class PersonagemService {
    */
   async getById(id) {
     try {
-      const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
+      const data = await this.apiClient.get(`${this.baseUrl}/${id}`);
 
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            // ✅ NORMALIZAR dados usando Personagem.fromAPI() conforme API documentation
-            return Personagem.fromAPI(response.data.data);
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Personagem.fromAPI(response.data);
-        }
+      if (data.success) {
+        return Personagem.fromAPI(data.data);
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao buscar personagem: ${error.message}`);
@@ -71,21 +60,12 @@ export class PersonagemService {
         throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
       }
 
-      const response = await this.apiClient.post(this.baseUrl, personagem.toJSON());
+      const data = await this.apiClient.post(this.baseUrl, personagem.toJSON());
 
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return Personagem.fromAPI(response.data.data);
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return Personagem.fromAPI(response.data);
-        }
+      if (data.success) {
+        return Personagem.fromAPI(data.data);
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao criar personagem: ${error.message}`);
@@ -110,21 +90,12 @@ export class PersonagemService {
         dadosEnvio = personagemData.toJSON();
       }
 
-      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, dadosEnvio);
+      const data = await this.apiClient.put(`${this.baseUrl}/${id}`, dadosEnvio);
 
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return Personagem.fromAPI(response.data.data);
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return Personagem.fromAPI(response.data);
-        }
+      if (data.success) {
+        return Personagem.fromAPI(data.data);
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao atualizar personagem: ${error.message}`);
@@ -138,21 +109,12 @@ export class PersonagemService {
    */
   async delete(id) {
     try {
-      const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
+      const data = await this.apiClient.delete(`${this.baseUrl}/${id}`);
 
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return response.data;
-        }
+      if (data.success) {
+        return data.data;
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error(data?.message || 'Erro desconhecido');
       }
     } catch (error) {
       throw new Error(`Erro ao remover personagem: ${error.message}`);

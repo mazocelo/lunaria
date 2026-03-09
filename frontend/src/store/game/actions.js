@@ -41,13 +41,14 @@ export const createGameActions = (set, get) => ({
       return;
     }
 
-    // Verificar se o personagem existe na lista
+    // Verificar se o personagem existe na lista (se lista já carregada)
     const { personagensDaHistoria } = get();
-    const personagemValido = personagensDaHistoria.find(p => p.id === personagem.id);
-    
-    if (!personagemValido) {
-      console.warn('🚫 GameStore: Personagem não encontrado na lista da história');
-      return;
+    if (personagensDaHistoria.length > 0) {
+      const personagemValido = personagensDaHistoria.find(p => p.id === personagem.id);
+      if (!personagemValido) {
+        console.warn('🚫 GameStore: Personagem não encontrado na lista da história');
+        return;
+      }
     }
 
     set({ personagemSelecionado: personagem });
@@ -99,20 +100,20 @@ export const createGameActions = (set, get) => ({
   // ===== ACTIONS - PARTICIPANTES (JOGADORES CONFIRMADOS) =====
   adicionarParticipante: (participante) => {
     const { participantes } = get();
-    if (!participantes.find(p => p.id === participante.id)) {
+    if (!participantes.find(p => (p.userId || p.id) === (participante.userId || participante.id))) {
       set({ participantes: [...participantes, participante] });
     }
   },
   
   removerParticipante: (participanteId) => {
     const { participantes } = get();
-    set({ participantes: participantes.filter(p => p.id !== participanteId) });
+    set({ participantes: participantes.filter(p => (p.userId || p.id) !== participanteId) });
   },
   
   atualizarStatusParticipante: (participanteId, status) => {
     const { participantes } = get();
     const participantesAtualizados = participantes.map(p => 
-      p.id === participanteId ? { ...p, status } : p
+      (p.userId || p.id) === participanteId ? { ...p, status } : p
     );
     set({ participantes: participantesAtualizados });
   },

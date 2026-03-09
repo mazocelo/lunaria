@@ -171,9 +171,9 @@ export const createClasseActions = (set, get) => ({
   },
 
   // Reset completo do estado
-  resetClasseState: () => {
-    const { classeInitialStates } = require('./states.js');
-    set(classeInitialStates);
+  resetClasseState: async () => {
+    const { default: states } = await import('./states.js');
+    set(states);
   },
 
   // ===== GETTERS ESPECÍFICOS PARA VIEWMODELS =====

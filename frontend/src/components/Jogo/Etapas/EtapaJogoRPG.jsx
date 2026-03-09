@@ -31,6 +31,7 @@ const EtapaJogoRPG = ({
   isDonoSala,
   socketConnected,
   isTyping,
+  user,
   onAdicionarMensagem,
   onAtualizarStatus,
   onSair
@@ -483,7 +484,7 @@ const EtapaJogoRPG = ({
 
   // 📋 HELPERS: Formatar dados via ViewModel
   const infoPersonagem = etapaJogoRPGViewModel.formatarInformacoesPersonagem(personagemSelecionado);
-  const participantesFormatados = etapaJogoRPGViewModel.formatarParticipantes(participantes, { id: 'current-user' });
+  const participantesFormatados = etapaJogoRPGViewModel.formatarParticipantes(participantes, user);
 
   // 🎯 HANDLERS: Usando ViewModel
   const handleMensagemChange = (e) => {
@@ -733,7 +734,6 @@ const EtapaJogoRPG = ({
 
 
   // 📊 Preparar dados para componentes
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const jaRolouDadoInicial = !!socketState.resultadosDados[user?.id];
 
   // ✅ Usar ordemJogadores como fallback se participantes estiver vazio

@@ -182,9 +182,9 @@ export const createTemaActions = (set, get) => ({
   },
 
   // Reset completo do estado
-  resetTemaState: () => {
-    const { temaInitialStates } = require('./states.js');
-    set(temaInitialStates);
+  resetTemaState: async () => {
+    const { default: states } = await import('./states.js');
+    set(states);
   },
 
   // ===== GETTERS ESPECÍFICOS PARA VIEWMODELS =====

@@ -69,14 +69,14 @@ export class AuthService {
   async register(userData) {
     try {
       const response = await this.apiClient.post(`${this.baseEndpoint}/registro`, userData);
-      
-      // Armazenar token no localStorage se retornado
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      const responseData = response.data || response;
+
+      // Armazenar dados do usuário se retornados
+      if (responseData.usuario) {
+        localStorage.setItem('user', JSON.stringify(responseData.usuario));
       }
-      
-      return response.data;
+
+      return responseData;
     } catch (error) {
       console.error('Erro no registro:', error);
       throw this.handleAuthError(error);
@@ -110,7 +110,7 @@ export class AuthService {
   async validateToken() {
     try {
       const response = await this.apiClient.get(`${this.baseEndpoint}/verificar`);
-      return response.status === 200;
+      return response.success !== false;
     } catch (error) {
       console.error('Token inválido:', error);
       return false;
@@ -153,7 +153,7 @@ export class AuthService {
   async forgotPassword(email) {
     try {
       const response = await this.apiClient.post(`${this.baseEndpoint}/forgot-password`, { email });
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Erro ao solicitar recuperação de senha:', error);
       throw this.handleAuthError(error);
@@ -170,7 +170,7 @@ export class AuthService {
   async resetPassword(resetData) {
     try {
       const response = await this.apiClient.post(`${this.baseEndpoint}/reset-password`, resetData);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Erro ao redefinir senha:', error);
       throw this.handleAuthError(error);

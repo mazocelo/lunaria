@@ -140,6 +140,7 @@ export const JogoAtivoView = () => {
         isDonoSala={isDonoSala}
         socketConnected={isConnected}
         isTyping={isTyping}
+        user={user}
         onAdicionarMensagem={(mensagem) => jogoViewModel.adicionarMensagem(mensagem)}
         onAtualizarStatus={(status) => jogoViewModel.atualizarStatusPersonagem(status)}
         onSair={handleSair}

@@ -28,7 +28,8 @@ const CooldownRoleplay = ({
     }, TIMEOUTS.COOLDOWN_TICK);
 
     return () => clearInterval(intervalo);
-  }, [ativo, segundos]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ativo]);
 
   if (!ativo || segundos <= 0) return null;
 

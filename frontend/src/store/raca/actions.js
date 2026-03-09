@@ -170,9 +170,9 @@ export const createRacaActions = (set, get) => ({
   },
 
   // Reset completo do estado
-  resetRacaState: () => {
-    const { racaInitialStates } = require('./states.js');
-    set(racaInitialStates);
+  resetRacaState: async () => {
+    const { default: states } = await import('./states.js');
+    set(states);
   },
 
   // ===== GETTERS ESPECÍFICOS PARA VIEWMODELS =====

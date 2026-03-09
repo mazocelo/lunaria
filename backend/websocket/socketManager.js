@@ -1359,18 +1359,59 @@ class SocketManager {
       
       if (dadosSolicitados) {
         console.log('✅ Dados foram solicitados pelo Mestre, processando com IA...');
-        
-        // ENVIAR RESULTADO PARA O MESTRE PROCESSAR (COM FALLBACK)
+
+        // RESOLVER TESTE MECANICAMENTE + ENVIAR PARA IA NARRAR
         try {
-          const personagem = sessao.jogadores?.[userId];
-          const personagemNome = personagem?.personagemNome || username;
+          const jogadorInfo = sessao.jogadores?.[userId];
+          const personagemNome = jogadorInfo?.personagemNome || username;
+          const testeInfo = estadoJogo.testeInfo || {};
+
+          // Buscar personagem completo para aplicar modificadores
+          const personagemId = jogadorInfo?.personagemId;
+          const personagemCompleto = personagemId
+            ? sessao.personagensCompletos?.[String(personagemId)]
+            : null;
+
+          // Resolver teste mecanicamente
+          let resultadoTeste = null;
+          let descricaoParaIA = `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`;
+
+          try {
+            const { resolverTeste } = await import('../helpers/testeHelper.js');
+            resultadoTeste = resolverTeste(
+              personagemCompleto,
+              testeInfo.teste || description,
+              parseInt(result),
+              testeInfo.dificuldade
+            );
+
+            // Construir descrição enriquecida para IA
+            if (resultadoTeste.atributo) {
+              descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} + ${resultadoTeste.totalModificador} (${resultadoTeste.atributoNome}) = ${resultadoTeste.total} vs DC ${resultadoTeste.dc} (${resultadoTeste.dificuldadeNome}) → ${resultadoTeste.descricaoResultado}`;
+            } else {
+              descricaoParaIA = `Rolou ${dice} e obteve ${result} (teste de Sorte) vs DC ${resultadoTeste.dc} → ${resultadoTeste.descricaoResultado}`;
+            }
+
+            console.log(`🎯 Teste resolvido: ${descricaoParaIA}`);
+
+            // Emitir resultado enriquecido do dado (substitui o dice_roll básico anterior)
+            this.io.to(roomId).emit('resultado_teste', {
+              ...resultadoTeste,
+              username,
+              personagemNome,
+              dice,
+              timestamp: Date.now()
+            });
+          } catch (testeError) {
+            console.warn('⚠️ Erro ao resolver teste mecanicamente, usando resultado bruto:', testeError.message);
+          }
 
           const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao);
 
           const interpretacao = await mestre.narrarAcao({
             jogador: username,
             personagem: personagemNome,
-            acao: `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`,
+            acao: descricaoParaIA,
             chatHistory: sessao.mensagens || []
           });
 
@@ -1378,7 +1419,7 @@ class SocketManager {
           if (!sessao.mensagens) {
             sessao.mensagens = [];
           }
-          
+
           sessao.mensagens.push({
             tipo: 'mestre',
             userId: 'mestre',
@@ -1387,10 +1428,11 @@ class SocketManager {
             timestamp: Date.now()
           });
 
-          // ✅ Limpar flag de dados solicitados
+          // ✅ Limpar flag de dados solicitados + testeInfo
           estadoJogo.dadosSolicitados = false;
+          estadoJogo.testeInfo = null;
           sessao.estadoJogo = estadoJogo;
-          
+
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
           // Enviar interpretação do Mestre
@@ -1406,11 +1448,11 @@ class SocketManager {
           console.log(`✅ Resultado do dado processado pelo Mestre`);
         } catch (errorIA) {
           console.error('❌ Erro ao processar dado com Mestre IA:', errorIA);
-          
+
           // ✅ FALLBACK: Mensagem simples sem IA
-          const personagem = sessao.jogadores?.[userId];
-          const personagemNome = personagem?.personagemNome || username;
-          
+          const jogadorInfo = sessao.jogadores?.[userId];
+          const personagemNome = jogadorInfo?.personagemNome || username;
+
           const mensagemFallback = {
             tipo: 'mestre',
             userId: 'mestre',
@@ -1418,18 +1460,19 @@ class SocketManager {
             mensagem: `${personagemNome} rolou ${dice} e obteve **${result}**${description ? ` para ${description}` : ''}. Continue a aventura!`,
             timestamp: Date.now()
           };
-          
+
           if (!sessao.mensagens) {
             sessao.mensagens = [];
           }
           sessao.mensagens.push(mensagemFallback);
-          
+
           // ✅ Limpar flag mesmo com erro
           estadoJogo.dadosSolicitados = false;
+          estadoJogo.testeInfo = null;
           sessao.estadoJogo = estadoJogo;
-          
+
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
-          
+
           this.io.to(roomId).emit('mensagem_mestre', {
             id: (Date.now() + 1).toString(),
             userId: 'mestre',
@@ -1438,7 +1481,7 @@ class SocketManager {
             tipo: 'mestre',
             timestamp: Date.now()
           });
-          
+
           console.log(`✅ Resultado do dado processado com mensagem fallback (IA falhou)`);
         }
       } else {
@@ -1960,6 +2003,11 @@ class SocketManager {
         // ✅ MARCAR QUE DADOS FORAM SOLICITADOS (para handleDiceRoll saber)
         const estadoJogoAtual = sessao.estadoJogo || {};
         estadoJogoAtual.dadosSolicitados = true;
+        estadoJogoAtual.testeInfo = {
+          teste: resposta.solicitaDados.teste || null,
+          dificuldade: resposta.solicitaDados.dificuldade || 'Média',
+          jogadorAlvo: userId
+        };
         sessao.estadoJogo = estadoJogoAtual;
         
         // ✅ SALVAR MENSAGEM DE AGUARDANDO DADOS NO REDIS
@@ -1979,12 +2027,31 @@ class SocketManager {
         
         console.log(`💬 Mensagem de aguardando dados salva no Redis + flag dadosSolicitados = true`);
         
+        // Calcular modificador antecipado para mostrar no banner
+        let modificadorPreview = 0;
+        let atributoPreview = null;
+        try {
+          const { calcularModificadorTeste } = await import('../helpers/testeHelper.js');
+          const jogadorInfo = sessao.jogadores?.[userId];
+          const pId = jogadorInfo?.personagemId;
+          const pCompleto = pId ? sessao.personagensCompletos?.[String(pId)] : null;
+          if (pCompleto && resposta.solicitaDados.teste) {
+            const modInfo = calcularModificadorTeste(pCompleto, resposta.solicitaDados.teste);
+            modificadorPreview = modInfo.totalModificador;
+            atributoPreview = modInfo.atributoNome;
+          }
+        } catch (e) {
+          console.warn('⚠️ Erro ao calcular modificador preview:', e.message);
+        }
+
         // Emitir evento com mais informações
         this.io.to(roomId).emit('mestre_solicita_dados', {
           narrativa: resposta.narracao,
           tipoDado: resposta.solicitaDados.tipo,
           teste: resposta.solicitaDados.teste,
           dificuldade: resposta.solicitaDados.dificuldade,
+          modificador: modificadorPreview,
+          atributo: atributoPreview,
           timestamp: Date.now()
         });
       } else {
@@ -1992,6 +2059,7 @@ class SocketManager {
         const estadoJogoAtual = sessao.estadoJogo || {};
         if (estadoJogoAtual.dadosSolicitados) {
           estadoJogoAtual.dadosSolicitados = false;
+          estadoJogoAtual.testeInfo = null;
           sessao.estadoJogo = estadoJogoAtual;
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           console.log(`🔄 Flag dadosSolicitados limpa (Mestre não solicitou)`);

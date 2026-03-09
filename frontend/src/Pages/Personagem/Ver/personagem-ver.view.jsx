@@ -2,9 +2,9 @@ import React from 'react';
 import Button from '../../../components/form/button';
 import { Badge } from '../../../components/shared';
 import {
-  User, ArrowLeft, BarChart3, Star, ScrollText, Search,
+  User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
-  Package, Plus, X, Check, Loader2
+  Package, X, Loader2
 } from 'lucide-react';
 
 const atributosConfig = [
@@ -42,11 +42,6 @@ const VerPersonagemView = ({
   error,
   isLight,
   navigate,
-  gerandoBackground,
-  gerarBackground,
-  validacao,
-  validando,
-  validarCoerencia,
   distribuindo,
   pontosParaDistribuir,
   totalPontosDistribuir,
@@ -54,14 +49,7 @@ const VerPersonagemView = ({
   distribuirPontos,
   equipamentos,
   loadingEquipamentos,
-  mostrarCatalogo,
-  buscaCatalogo,
-  setBuscaCatalogo,
-  toggleCatalogo,
-  catalogoFiltrado,
   bonusAgregados,
-  adicionarEquipamento,
-  removerEquipamento,
   clearError,
 }) => {
   if (loading) {
@@ -299,21 +287,6 @@ const VerPersonagemView = ({
               Background
             </h2>
           </div>
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={() => gerarBackground()}
-            disabled={gerandoBackground}
-          >
-            {gerandoBackground ? (
-              <div className="flex items-center space-x-1">
-                <Loader2 size={12} className="animate-spin" />
-                <span>Gerando...</span>
-              </div>
-            ) : (
-              'Gerar com IA'
-            )}
-          </Button>
         </div>
         {p.background ? (
           <p className={`font-modern text-sm leading-relaxed whitespace-pre-wrap ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -321,70 +294,7 @@ const VerPersonagemView = ({
           </p>
         ) : (
           <p className={`font-modern text-sm italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-            Nenhum background definido. Clique em "Gerar com IA" para criar um automaticamente.
-          </p>
-        )}
-      </div>
-
-      {/* Validation */}
-      <div className="card-rpg">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-              <Search size={16} className="text-white" />
-            </div>
-            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-              Validacao de Coerencia
-            </h2>
-          </div>
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={validarCoerencia}
-            disabled={validando}
-          >
-            {validando ? (
-              <div className="flex items-center space-x-1">
-                <Loader2 size={12} className="animate-spin" />
-                <span>Validando...</span>
-              </div>
-            ) : (
-              'Validar Personagem'
-            )}
-          </Button>
-        </div>
-        {validacao ? (
-          <div className="space-y-3">
-            <div className={`flex items-center space-x-2 ${validacao.valido ? 'text-green-400' : 'text-yellow-400'}`}>
-              {validacao.valido ? <Check size={18} /> : <Star size={18} />}
-              <span className="font-modern text-sm font-semibold">
-                {validacao.valido ? 'Personagem coerente!' : 'Avisos encontrados'}
-              </span>
-            </div>
-            {validacao.avisos && validacao.avisos.length > 0 && (
-              <div>
-                <h4 className="text-yellow-400 font-modern text-xs font-semibold mb-1">Avisos:</h4>
-                <ul className="space-y-1">
-                  {validacao.avisos.map((a, i) => (
-                    <li key={i} className="text-sm text-yellow-300 font-modern">- {a}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {validacao.sugestoes && validacao.sugestoes.length > 0 && (
-              <div>
-                <h4 className="text-cyan-400 font-modern text-xs font-semibold mb-1">Sugestoes:</h4>
-                <ul className="space-y-1">
-                  {validacao.sugestoes.map((s, i) => (
-                    <li key={i} className="text-sm text-cyan-300 font-modern">- {s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className={`font-modern text-sm italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-            Clique em "Validar Personagem" para verificar a coerencia narrativa.
+            Nenhum background definido.
           </p>
         )}
       </div>
@@ -392,17 +302,9 @@ const VerPersonagemView = ({
       {/* Inventario */}
       <InventarioSection
         isLight={isLight}
-        personagem={p}
         equipamentos={equipamentos}
         loadingEquipamentos={loadingEquipamentos}
-        mostrarCatalogo={mostrarCatalogo}
-        buscaCatalogo={buscaCatalogo}
-        setBuscaCatalogo={setBuscaCatalogo}
-        toggleCatalogo={toggleCatalogo}
-        catalogoFiltrado={catalogoFiltrado}
         bonusAgregados={bonusAgregados}
-        adicionarEquipamento={adicionarEquipamento}
-        removerEquipamento={removerEquipamento}
       />
     </div>
   );
@@ -410,45 +312,24 @@ const VerPersonagemView = ({
 
 const InventarioSection = ({
   isLight,
-  personagem,
   equipamentos,
   loadingEquipamentos,
-  mostrarCatalogo,
-  buscaCatalogo,
-  setBuscaCatalogo,
-  toggleCatalogo,
-  catalogoFiltrado,
   bonusAgregados,
-  adicionarEquipamento,
-  removerEquipamento,
-  confirmRemove,
-  setConfirmRemove,
 }) => {
   const bonusStr = formatBonus(bonusAgregados);
 
   return (
     <div className="card-rpg">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-            <Package size={16} className="text-white" />
-          </div>
-          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-            Inventario
-          </h2>
-          <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-            ({equipamentos.length} {equipamentos.length === 1 ? 'item' : 'itens'})
-          </span>
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+          <Package size={16} className="text-white" />
         </div>
-        <Button
-          variant="secondary"
-          size="small"
-          onClick={toggleCatalogo}
-        >
-          {mostrarCatalogo ? 'Fechar Catalogo' : (
-            <span className="flex items-center gap-1"><Plus size={14} /> Adicionar</span>
-          )}
-        </Button>
+        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+          Inventario
+        </h2>
+        <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+          ({equipamentos.length} {equipamentos.length === 1 ? 'item' : 'itens'})
+        </span>
       </div>
 
       {loadingEquipamentos && (
@@ -470,41 +351,18 @@ const InventarioSection = ({
                 key={eq.id}
                 className={`p-3 rounded-lg border ${isLight ? 'bg-white/50 border-slate-200' : 'bg-slate-800/50 border-slate-700'}`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className={`font-modern text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                        {eq.nome}
-                      </span>
-                      <Badge variant={raridadeVariant[raridade] || 'slate'}>{raridade}</Badge>
-                    </div>
-                    {tipo && (
-                      <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{tipo}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      {eq.dano_base && <span className="text-xs font-modern text-red-400">Dano: {eq.dano_base}</span>}
-                      {bonusText && <span className="text-xs font-modern text-cyan-400">{bonusText}</span>}
-                    </div>
-                  </div>
-                  <div>
-                    {confirmRemove === eq.id ? (
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => { removerEquipamento(eq.id); setConfirmRemove(null); }}
-                          className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 font-modern"
-                        >Confirmar</button>
-                        <button
-                          onClick={() => setConfirmRemove(null)}
-                          className="px-2 py-1 text-xs bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 font-modern"
-                        >Cancelar</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmRemove(eq.id)}
-                        className={`px-2 py-1 text-xs rounded font-modern ${isLight ? 'text-red-600 hover:bg-red-100' : 'text-red-400 hover:bg-red-500/20'}`}
-                      >Remover</button>
-                    )}
-                  </div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className={`font-modern text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                    {eq.nome}
+                  </span>
+                  <Badge variant={raridadeVariant[raridade] || 'slate'}>{raridade}</Badge>
+                </div>
+                {tipo && (
+                  <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{tipo}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {eq.dano_base && <span className="text-xs font-modern text-red-400">Dano: {eq.dano_base}</span>}
+                  {bonusText && <span className="text-xs font-modern text-cyan-400">{bonusText}</span>}
                 </div>
               </div>
             );
@@ -513,94 +371,16 @@ const InventarioSection = ({
       ) : (
         !loadingEquipamentos && (
           <p className={`font-modern text-sm italic mb-4 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-            Nenhum equipamento no inventario. Clique em "Adicionar" para equipar itens.
+            Nenhum equipamento no inventario.
           </p>
         )
       )}
 
       {bonusStr && (
-        <div className={`p-3 rounded-lg mb-4 ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-500/10 border border-cyan-500/20'}`}>
+        <div className={`p-3 rounded-lg ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-500/10 border border-cyan-500/20'}`}>
           <span className={`font-modern text-sm font-semibold ${isLight ? 'text-cyan-800' : 'text-cyan-400'}`}>
             Bonus Totais: {bonusStr}
           </span>
-        </div>
-      )}
-
-      {mostrarCatalogo && (
-        <div className={`mt-4 p-4 rounded-lg border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/50 border-slate-700'}`}>
-          <h3 className={`font-modern text-sm font-semibold mb-3 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-            Catalogo de Equipamentos
-          </h3>
-          <input
-            type="text"
-            placeholder="Buscar equipamento..."
-            value={buscaCatalogo || ''}
-            onChange={(e) => setBuscaCatalogo(e.target.value)}
-            className={`w-full px-3 py-2 rounded-lg text-sm font-modern mb-3 border ${
-              isLight
-                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
-                : 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
-            }`}
-          />
-          {catalogoFiltrado.length > 0 ? (
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {catalogoFiltrado.map(eq => {
-                const raridade = eq.raridade_rel?.nome || 'Comum';
-                const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
-                const reqClasse = eq.requisitos?.classe;
-                const reqRaca = eq.requisitos?.raca;
-                const classeOk = !reqClasse || reqClasse.some(c => c.toLowerCase() === personagem.classe?.toLowerCase());
-                const racaOk = !reqRaca || reqRaca.some(r => r.toLowerCase() === personagem.raca?.toLowerCase());
-                const compativel = classeOk && racaOk;
-
-                return (
-                  <div
-                    key={eq.id}
-                    className={`p-2 rounded-lg flex items-center justify-between ${
-                      eq.jaEquipado
-                        ? isLight ? 'bg-slate-100 opacity-50' : 'bg-slate-800/30 opacity-50'
-                        : isLight ? 'bg-white border border-slate-200' : 'bg-slate-800/50 border border-slate-700'
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <span className={`font-modern text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                          {eq.nome}
-                        </span>
-                        <Badge size="sm" variant={raridadeVariant[raridade] || 'slate'}>{raridade}</Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {tipo && <span className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{tipo}</span>}
-                        {eq.dano_base && <span className="text-[10px] font-modern text-red-400">Dano: {eq.dano_base}</span>}
-                      </div>
-                      {!compativel && (
-                        <span className="text-[10px] font-modern text-yellow-400">
-                          Requisitos: {reqClasse ? `Classe: ${reqClasse.join('/')}` : ''}{reqClasse && reqRaca ? ' | ' : ''}{reqRaca ? `Raca: ${reqRaca.join('/')}` : ''}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => adicionarEquipamento(eq.id)}
-                      disabled={eq.jaEquipado || !compativel || loadingEquipamentos}
-                      className={`ml-2 px-2 py-1 text-xs rounded font-modern whitespace-nowrap ${
-                        eq.jaEquipado
-                          ? 'bg-slate-500/20 text-slate-500 cursor-not-allowed'
-                          : !compativel
-                            ? 'bg-yellow-500/20 text-yellow-500 cursor-not-allowed'
-                            : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                      }`}
-                    >
-                      {eq.jaEquipado ? 'Equipado' : !compativel ? 'Incompativel' : 'Adicionar'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={`text-sm font-modern italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-              Nenhum equipamento encontrado.
-            </p>
-          )}
         </div>
       )}
     </div>

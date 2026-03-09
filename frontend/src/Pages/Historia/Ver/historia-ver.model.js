@@ -90,10 +90,12 @@ export const useHistoriaVerModel = () => {
       await historiaService.update(historiaAtual.id, { mestre_id: mestreSelecionadoId });
       await loadHistoria(historiaAtual.id);
       setEditandoMestre(false);
-    } catch (_) {
-      // Error handled silently
+    } catch (err) {
+      console.error('Erro ao salvar mestre:', err);
+      setError(err.message || 'Erro ao salvar mestre');
+    } finally {
+      setSalvandoMestre(false);
     }
-    setSalvandoMestre(false);
   }, [historiaAtual, mestreSelecionadoId, loadHistoria]);
 
   const handleEditarMestre = useCallback(() => {
@@ -119,6 +121,7 @@ export const useHistoriaVerModel = () => {
       setSessaoSelecionada(completa);
     } catch (err) {
       console.error('Erro ao carregar historico:', err);
+      setError(err.message || 'Erro ao carregar histórico da sessão');
     } finally {
       setLoadingHistorico(false);
     }

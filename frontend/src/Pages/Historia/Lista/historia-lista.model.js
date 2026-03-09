@@ -153,6 +153,7 @@ export const useHistoriaListaModel = () => {
       setHistoriaToDelete(null);
     } catch (err) {
       console.error('Erro ao deletar historia:', err);
+      setError(err.message || 'Erro ao deletar história');
     } finally {
       setDeleteLoading(false);
     }
@@ -192,6 +193,7 @@ export const useHistoriaListaModel = () => {
       setHistoriaParaConvite(null);
     } catch (err) {
       console.error('Erro ao enviar convite:', err);
+      setError(err.message || 'Erro ao enviar convite');
     } finally {
       setConviteLoading(false);
     }
@@ -216,6 +218,10 @@ export const useHistoriaListaModel = () => {
       const response = await historiaService.resetarSessao(historiaToReset.id);
       if (response && response.success) {
         await loadHistorias();
+        setShowResetModal(false);
+        setHistoriaToReset(null);
+      } else {
+        setError(response?.message || 'Erro ao resetar sessão');
         setShowResetModal(false);
         setHistoriaToReset(null);
       }
@@ -246,6 +252,10 @@ export const useHistoriaListaModel = () => {
       const response = await historiaService.encerrarSessao(historiaToEncerrar.id);
       if (response && response.success) {
         await loadHistorias();
+        setShowEncerrarModal(false);
+        setHistoriaToEncerrar(null);
+      } else {
+        setError(response?.message || 'Erro ao encerrar sessão');
         setShowEncerrarModal(false);
         setHistoriaToEncerrar(null);
       }
@@ -279,6 +289,9 @@ export const useHistoriaListaModel = () => {
       setBulkDeleteIds([]);
     } catch (err) {
       console.error('Erro ao deletar historias em lote:', err);
+      setError(err.message || 'Erro ao deletar histórias em lote');
+      setShowBulkDeleteModal(false);
+      setBulkDeleteIds([]);
     } finally {
       setBulkDeleteLoading(false);
     }

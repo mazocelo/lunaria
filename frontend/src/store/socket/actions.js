@@ -1303,7 +1303,8 @@ export const createSocketActions = (set, get) => ({
       typingTimeout: null,
       rateLimitExceeded: false,
       rateLimitResetTime: null,
-      lastMessageTime: null
+      lastMessageTime: null,
+      aventuraIniciada: false
     });
   }
 }); 

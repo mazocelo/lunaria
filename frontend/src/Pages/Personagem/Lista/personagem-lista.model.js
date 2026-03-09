@@ -84,6 +84,7 @@ export const usePersonagemListaModel = () => {
       setPersonagemToDelete(null);
     } catch (err) {
       console.error("Erro ao deletar personagem:", err);
+      setError(err.message || 'Erro ao deletar personagem');
     } finally {
       setDeleteLoading(false);
     }
@@ -111,6 +112,7 @@ export const usePersonagemListaModel = () => {
       setBulkDeleteIds([]);
     } catch (err) {
       console.error('Erro ao deletar personagens em lote:', err);
+      setError(err.message || 'Erro ao deletar personagens em lote');
     } finally {
       setBulkDeleteLoading(false);
     }

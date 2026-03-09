@@ -42,6 +42,7 @@ export const useJogoAtivoModel = () => {
     isConnected,
     socketError,
     isTyping,
+    isReconnecting,
     clearSocketError,
   } = socket;
 
@@ -57,8 +58,8 @@ export const useJogoAtivoModel = () => {
           if (sessaoData && sessaoData.hasActiveSession) {
             await retomarJogo(id, user);
           }
-        } catch {
-          // silenced
+        } catch (err) {
+          console.error('Erro ao retomar sessão:', err);
         }
       }
     };
@@ -109,6 +110,7 @@ export const useJogoAtivoModel = () => {
     socketError,
     isConnected,
     isTyping,
+    isReconnecting,
 
     // Handlers
     handleSair,

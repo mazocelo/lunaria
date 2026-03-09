@@ -93,8 +93,8 @@ export const useSelecaoPersonagemModel = () => {
     try {
       await selecionarPersonagem(personagem, user);
       navigate(`/jogo/${id}/sala-espera`);
-    } catch {
-      // silenced
+    } catch (err) {
+      console.error('Erro ao selecionar personagem:', err);
     }
   }, [selecionarPersonagem, user, id, navigate]);
 

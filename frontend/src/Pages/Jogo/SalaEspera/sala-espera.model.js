@@ -126,9 +126,8 @@ export const useSalaEsperaModel = () => {
   const handleIniciarJogo = useCallback(async () => {
     try {
       await iniciarJogo();
-      // Navegacao sera feita pelo listener aventura_iniciada
-    } catch {
-      // silenced
+    } catch (err) {
+      console.error('Erro ao iniciar jogo:', err);
     }
   }, [iniciarJogo]);
 

@@ -57,6 +57,9 @@ export const socketInitialStates = {
   isTyping: false, // Se o usuário atual está digitando
   typingTimeout: null,
   
+  // ===== CONTROLE DE AVENTURA =====
+  aventuraIniciada: false,
+
   // ===== SISTEMA DE TURNOS E RODADAS =====
   faseJogo: 'aguardando_inicio', // 'aguardando_inicio' | 'rolagem_inicial' | 'rodada_em_andamento' | 'entre_rodadas'
   rodadaAtual: 1,

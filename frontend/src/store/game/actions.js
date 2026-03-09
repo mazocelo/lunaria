@@ -35,23 +35,22 @@ export const createGameActions = (set, get) => ({
   },
   
   selecionarPersonagem: (personagem) => {
-    // Validação básica
     if (!personagem) {
       set({ personagemSelecionado: null });
       return;
     }
 
-    // Verificar se o personagem existe na lista (se lista já carregada)
     const { personagensDaHistoria } = get();
     if (personagensDaHistoria.length > 0) {
       const personagemValido = personagensDaHistoria.find(p => p.id === personagem.id);
       if (!personagemValido) {
         console.warn('🚫 GameStore: Personagem não encontrado na lista da história');
+        set({ error: 'Personagem não encontrado na lista desta história. Recarregue a página.' });
         return;
       }
     }
 
-    set({ personagemSelecionado: personagem });
+    set({ personagemSelecionado: personagem, error: null });
   },
   
   setLoadingPersonagens: (loading) => {

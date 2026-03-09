@@ -23,6 +23,8 @@ import {
 import { COMBAT_EVENTS } from './events/eventTypes.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import { verificarLevelUp, xpParaNivel } from '../helpers/evolucaoHelper.js';
+import { rolarLootCombate } from '../helpers/lootHelper.js';
+import { persistirEstadoClone } from '../helpers/acoesProcessor.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -3466,6 +3468,7 @@ class SocketManager {
             nivel: p.nivel || 1
           };
           jogadoresCombate[jUserId] = {
+            personagemId: parseInt(pId),
             hp_max: calcularHP(personagemStats),
             hp_atual: calcularHP(personagemStats),
             esquiva: calcularEsquiva(personagemStats, bonusEquip),
@@ -3479,6 +3482,7 @@ class SocketManager {
           };
         } else {
           jogadoresCombate[jUserId] = {
+            personagemId: parseInt(pId) || null,
             hp_max: 15,
             hp_atual: 15,
             esquiva: 5,
@@ -3599,6 +3603,10 @@ class SocketManager {
               fonte: efeito.nome,
               timestamp: Date.now()
             });
+            // Persistir HP no clone da sessão (DOT damage)
+            if (jogadorStats.personagemId) {
+              await persistirEstadoClone(roomId, jogadorStats.personagemId, { hp_atual: jogadorStats.hp_atual });
+            }
             if (jogadorStats.status === 'derrotado') {
               impedidoDeAgir = true;
               this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
@@ -3749,6 +3757,11 @@ class SocketManager {
             if (alvoStats.hp_atual <= 0) {
               alvoStats.status = 'derrotado';
             }
+
+            // Persistir HP no clone da sessão (monster attack)
+            if (alvoStats.personagemId) {
+              await persistirEstadoClone(roomId, alvoStats.personagemId, { hp_atual: alvoStats.hp_atual });
+            }
           }
         }
 
@@ -3835,6 +3848,12 @@ class SocketManager {
             }
             return true;
           });
+          // Persistir status_efeitos no clone da sessão
+          if (jStats.personagemId) {
+            await persistirEstadoClone(roomId, jStats.personagemId, {
+              status_efeitos: pCompleto.status_efeitos
+            });
+          }
         }
 
         console.log(`🔄 Combate rodada ${combate.rodadaCombate} na sala ${roomId}`);
@@ -3898,62 +3917,110 @@ class SocketManager {
 
       console.log(`✅ Combate finalizado: ${resultado} | XP: ${xpTotal}`);
 
-      // Persistir XP no banco ANTES de emitir o evento (garante dados corretos)
+      // Persistir HP final de todos os jogadores no clone (vivos e derrotados)
+      for (const [jId, jStats] of Object.entries(combate.jogadores)) {
+        if (jStats.personagemId) {
+          await persistirEstadoClone(roomId, jStats.personagemId, { hp_atual: jStats.hp_atual });
+        }
+      }
+
+      // Persistir XP no clone da sessão (não no personagem original)
+      const xpPorJogador = xpTotal > 0
+        ? Math.floor(xpTotal / Math.max(1, Object.values(combate.jogadores).filter(j => j.status === 'vivo').length))
+        : 0;
+
       if (xpTotal > 0) {
         try {
-          const jogadores = Array.isArray(sessao.jogadoresConectados)
-            ? sessao.jogadoresConectados
-            : Object.values(sessao.jogadores || {});
+          const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
 
-          const xpPorJogador = Math.floor(xpTotal / Math.max(1,
-            Object.values(combate.jogadores).filter(j => j.status === 'vivo').length));
+          for (const [jUserId, jogadorCombate] of Object.entries(combate.jogadores)) {
+            if (jogadorCombate.status !== 'vivo') continue;
+            if (!jogadorCombate.personagemId) continue;
 
-          for (const jogador of jogadores) {
-            const jUserId = String(jogador.userId || jogador.id);
-            const jogadorCombate = combate.jogadores[jUserId];
-            if (!jogadorCombate || jogadorCombate.status !== 'vivo') continue;
+            // Tentar gravar no clone primeiro
+            let gravouNoClone = false;
+            if (sessaoJogoRow) {
+              const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+                sessaoJogoRow.id, jogadorCombate.personagemId
+              );
+              if (clone) {
+                const xpTotalClone = (clone.xp_inicio + clone.xp_ganho) + xpPorJogador;
+                let nivelAtual = clone.nivel_fim || clone.nivel_inicio;
 
-            const personagemId = parseInt(jogador.personagemId || jogador.personagem_id);
-            if (!personagemId || isNaN(personagemId)) continue;
+                // Multi-level-up loop
+                let xpRestante = xpTotalClone;
+                let levelUp = verificarLevelUp(nivelAtual, xpRestante);
+                while (levelUp.podeEvoluir) {
+                  nivelAtual = levelUp.ganhos.novoNivel;
+                  xpRestante = levelUp.ganhos.xpRestante;
 
-            const personagem = await db.prisma.personagens.findUnique({
-              where: { id: personagemId },
-              select: { id: true, nivel: true, xp_atual: true, xp_proximo_nivel: true, pontos_atributo_pendentes: true }
-            });
-            if (!personagem) continue;
+                  this.io.to(roomId).emit('level_up', {
+                    userId: jUserId,
+                    personagemNome: jogadorCombate.personagemNome,
+                    novoNivel: nivelAtual,
+                    ganhos: levelUp.ganhos,
+                    timestamp: Date.now()
+                  });
+                  console.log(`🎉 ${jogadorCombate.personagemNome} subiu para nivel ${nivelAtual}!`);
 
-            const xpNovo = (personagem.xp_atual || 0) + xpPorJogador;
-            const levelUp = verificarLevelUp(personagem.nivel || 1, xpNovo);
-
-            if (levelUp.podeEvoluir) {
-              await db.prisma.personagens.update({
-                where: { id: personagemId },
-                data: {
-                  xp_atual: levelUp.ganhos.xpRestante,
-                  xp_proximo_nivel: levelUp.ganhos.xpProximoNivel,
-                  nivel: levelUp.ganhos.novoNivel,
-                  pontos_atributo_pendentes: (personagem.pontos_atributo_pendentes || 0) + levelUp.ganhos.pontosAtributo,
-                  atualizado_em: new Date()
+                  levelUp = verificarLevelUp(nivelAtual, xpRestante);
                 }
-              });
 
-              this.io.to(roomId).emit('level_up', {
-                userId: jUserId,
-                personagemNome: jogadorCombate.personagemNome,
-                novoNivel: levelUp.ganhos.novoNivel,
-                ganhos: levelUp.ganhos,
-                timestamp: Date.now()
-              });
+                await db.PersonagemSessao.atualizarRuntime(clone.id, {
+                  xp_ganho: clone.xp_ganho + xpPorJogador,
+                  nivel_fim: nivelAtual
+                });
+                gravouNoClone = true;
+              }
+            }
 
-              console.log(`🎉 ${jogadorCombate.personagemNome} subiu para nivel ${levelUp.ganhos.novoNivel}!`);
-            } else {
-              await db.prisma.personagens.update({
-                where: { id: personagemId },
-                data: {
-                  xp_atual: xpNovo,
-                  atualizado_em: new Date()
-                }
+            // Fallback: se não tem clone, gravar direto no personagem
+            if (!gravouNoClone) {
+              const personagem = await db.prisma.personagens.findUnique({
+                where: { id: jogadorCombate.personagemId },
+                select: { id: true, nivel: true, xp_atual: true, xp_proximo_nivel: true, pontos_atributo_pendentes: true }
               });
+              if (!personagem) continue;
+
+              let nivelAtual = personagem.nivel || 1;
+              let xpRestante = (personagem.xp_atual || 0) + xpPorJogador;
+              let pontosAtributoExtra = 0;
+              let ultimoGanhos = null;
+
+              let levelUp = verificarLevelUp(nivelAtual, xpRestante);
+              while (levelUp.podeEvoluir) {
+                pontosAtributoExtra += levelUp.ganhos.pontosAtributo;
+                ultimoGanhos = levelUp.ganhos;
+                nivelAtual = levelUp.ganhos.novoNivel;
+                xpRestante = levelUp.ganhos.xpRestante;
+                levelUp = verificarLevelUp(nivelAtual, xpRestante);
+              }
+
+              if (ultimoGanhos) {
+                await db.prisma.personagens.update({
+                  where: { id: jogadorCombate.personagemId },
+                  data: {
+                    xp_atual: xpRestante,
+                    xp_proximo_nivel: xpParaNivel(nivelAtual),
+                    nivel: nivelAtual,
+                    pontos_atributo_pendentes: (personagem.pontos_atributo_pendentes || 0) + pontosAtributoExtra,
+                    atualizado_em: new Date()
+                  }
+                });
+
+                this.io.to(roomId).emit('level_up', {
+                  userId: jUserId,
+                  personagemNome: jogadorCombate.personagemNome,
+                  novoNivel: nivelAtual,
+                  ganhos: ultimoGanhos,
+                  timestamp: Date.now()
+                });
+              } else {
+                await db.prisma.personagens.update({
+                  where: { id: jogadorCombate.personagemId },
+                  data: { xp_atual: xpRestante, atualizado_em: new Date() }
+                });
+              }
             }
           }
 
@@ -3963,14 +4030,71 @@ class SocketManager {
         }
       }
 
-      // Emitir evento de combate finalizado (após XP persistido)
+      // Loot automático (se vitória e monstros têm loot table)
+      let lootResultado = null;
+      if (resultado === 'vitoria') {
+        try {
+          const monstrosDerrotados = combate.monstros
+            .filter(m => m.status === 'derrotado' && m.monstroId)
+            .map(m => ({ monstroDbId: m.monstroId, nome: m.nome }));
+
+          const jogadoresSobreviventes = Object.entries(combate.jogadores)
+            .filter(([_, j]) => j.status === 'vivo')
+            .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, personagemId: j.personagemId }));
+
+          const nivelMedio = jogadoresSobreviventes.length > 0
+            ? Math.round(Object.values(combate.jogadores)
+                .filter(j => j.status === 'vivo')
+                .reduce((sum, j) => sum + (j.nivel || 1), 0) / jogadoresSobreviventes.length)
+            : 1;
+
+          if (monstrosDerrotados.length > 0 && jogadoresSobreviventes.length > 0) {
+            lootResultado = await rolarLootCombate(monstrosDerrotados, jogadoresSobreviventes, nivelMedio);
+
+            if (lootResultado && lootResultado.todosItens.length > 0) {
+              // Persistir loot nos clones
+              const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+              if (sessaoJogoRow) {
+                for (const [uid, items] of Object.entries(lootResultado.lootPorJogador)) {
+                  const jogadorCombate = combate.jogadores[uid];
+                  if (!jogadorCombate?.personagemId) continue;
+                  const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+                    sessaoJogoRow.id, jogadorCombate.personagemId
+                  );
+                  if (clone) {
+                    for (const item of items) {
+                      await db.PersonagemSessao.registrarItemGanho(clone.id, {
+                        equipamento_id: item.equipamento_id,
+                        nome: item.nome,
+                        origem: 'loot'
+                      });
+                    }
+                  }
+                }
+              }
+
+              this.io.to(roomId).emit('combate_loot', {
+                lootPorJogador: lootResultado.lootPorJogador,
+                todosItens: lootResultado.todosItens,
+                timestamp: Date.now()
+              });
+            }
+          }
+        } catch (errLoot) {
+          console.error('❌ Erro ao rolar loot:', errLoot);
+        }
+      }
+
+      // Emitir evento de combate finalizado
       this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
         resultado,
         xpTotal,
+        xpPorJogador,
         monstrosDerrotados: combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome),
         jogadoresSobreviventes: Object.entries(combate.jogadores)
           .filter(([, j]) => j.status === 'vivo')
           .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, hp_atual: j.hp_atual })),
+        loot: lootResultado?.todosItens || [],
         timestamp: Date.now()
       });
 
@@ -4132,7 +4256,7 @@ class SocketManager {
    * Limpeza completa de uma sessao: mestresCache, roomUsers, snapshotCounters, sockets
    * Usado ao encerrar sessao via admin
    */
-  limparSessaoCompleta(salaId) {
+  limparSessaoCompleta(salaId, recapData = {}) {
     // 1. Limpar cache de mestres
     if (this.mestresCache) {
       this.mestresCache.delete(salaId);
@@ -4148,7 +4272,9 @@ class SocketManager {
       this.io.to(salaId).emit('sessao_encerrada', {
         salaId,
         motivo: 'Sessão encerrada pelo administrador',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        resumo: recapData.resumo || null,
+        historiaNome: recapData.historiaNome || null
       });
 
       const room = this.io.sockets.adapter.rooms.get(salaId);

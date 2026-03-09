@@ -6,6 +6,7 @@ import socketManager from '../websocket/socketManager.js';
 import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.js';
 import { buscarPersonagensCompletos, formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
+import resumoAgent from '../agents/Resumo/ResumoAgent.js';
 
 const router = express.Router();
 
@@ -253,6 +254,32 @@ router.post('/start', async (req, res, next) => {
         timestamp: Date.now()
       });
 
+      // Criar clones dos personagens para a sessao
+      try {
+        // Garantir que a row no PostgreSQL existe antes de criar clones (pode não ter sido salva ainda)
+        let sessaoJogoRow = await db.SessaoJogo.findBySalaId(salaId);
+        if (!sessaoJogoRow) {
+          sessaoJogoRow = await sessaoSnapshotService.salvarSnapshot(salaId, sessao);
+        }
+        if (sessaoJogoRow) {
+          const jogadoresParaClonar = sessaoExistente.jogadoresConectados || [];
+          for (const jogador of jogadoresParaClonar) {
+            if (jogador.personagemId) {
+              await db.PersonagemSessao.criarClone(
+                sessaoJogoRow.id,
+                parseInt(jogador.personagemId),
+                parseInt(jogador.userId)
+              );
+            }
+          }
+          console.log(`📋 Clones de personagens criados para ${jogadoresParaClonar.length} jogadores`);
+        } else {
+          console.warn('⚠️ Não foi possível obter sessaoJogoRow para criar clones');
+        }
+      } catch (cloneError) {
+        console.error('⚠️ Erro ao criar clones de personagens:', cloneError.message);
+      }
+
       console.log(`✅ Aventura iniciada com sucesso para história ${historia.id} - Sala: ${salaId}`);
 
       return res.status(200).json({
@@ -421,6 +448,31 @@ router.post('/start', async (req, res, next) => {
       timestamp: Date.now()
     });
 
+    // Criar clones dos personagens para a sessao
+    try {
+      // Garantir que a row no PostgreSQL existe (sessão foi criada apenas no Redis)
+      let sessaoJogoRow = await db.SessaoJogo.findBySalaId(salaId);
+      if (!sessaoJogoRow) {
+        sessaoJogoRow = await sessaoSnapshotService.salvarSnapshot(salaId, sessao);
+      }
+      if (sessaoJogoRow) {
+        for (const jogador of jogadoresDaSalaEspera) {
+          if (jogador.personagemId) {
+            await db.PersonagemSessao.criarClone(
+              sessaoJogoRow.id,
+              parseInt(jogador.personagemId),
+              parseInt(jogador.userId)
+            );
+          }
+        }
+        console.log(`📋 Clones de personagens criados para ${jogadoresDaSalaEspera.length} jogadores`);
+      } else {
+        console.warn('⚠️ Não foi possível obter sessaoJogoRow para criar clones');
+      }
+    } catch (cloneError) {
+      console.error('⚠️ Erro ao criar clones de personagens:', cloneError.message);
+    }
+
     console.log(`✅ Aventura iniciada com sucesso para história ${historia.id} - Sala: ${salaId}`);
 
     res.status(200).json({
@@ -577,6 +629,26 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
       });
     }
 
+    // Marcar clones como abandonados (sem merge - reset nao aplica mudancas)
+    try {
+      const sessaoJogoRow = await db.SessaoJogo.findBySalaId(salaId);
+      if (sessaoJogoRow) {
+        const clones = await db.PersonagemSessao.findBySessaoId(sessaoJogoRow.id);
+        for (const clone of clones) {
+          if (clone.status === 'ativa') {
+            try {
+              await db.PersonagemSessao.marcarAbandonada(clone.id);
+            } catch (e) {
+              console.error(`⚠️ Falha ao abandonar clone ${clone.id}:`, e.message);
+            }
+          }
+        }
+        console.log(`📋 ${clones.length} clones marcados como abandonados`);
+      }
+    } catch (abandonError) {
+      console.error('⚠️ Erro ao abandonar clones:', abandonError.message);
+    }
+
     // Excluir sessão do Redis
     await gerenciadorSessoes.excluirSessao(salaId);
 
@@ -658,18 +730,67 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
 
     const salaId = `historia_${historiaId}`;
 
-    // 1. Excluir sessão do Redis
+    // 1. Mesclar clones de personagens (aplicar XP, itens ganhos ao personagem original)
+    try {
+      const sessaoJogoRow = await db.SessaoJogo.findBySalaId(salaId);
+      if (sessaoJogoRow) {
+        const clones = await db.PersonagemSessao.findBySessaoId(sessaoJogoRow.id);
+        let mergeCount = 0;
+        for (const clone of clones) {
+          if (clone.status === 'ativa') {
+            try {
+              await db.PersonagemSessao.finalizarEMesclar(clone.id);
+              mergeCount++;
+            } catch (e) {
+              console.error(`⚠️ Falha ao mesclar clone ${clone.id} (${clone.nome}):`, e.message);
+            }
+          }
+        }
+        console.log(`📋 ${mergeCount}/${clones.length} clones de personagens mesclados`);
+      }
+    } catch (mergeError) {
+      console.error('⚠️ Erro ao mesclar clones:', mergeError.message);
+    }
+
+    // 2. Excluir sessão do Redis
     try {
       await gerenciadorSessoes.excluirSessao(salaId);
     } catch (_) { /* sessão pode não existir no Redis */ }
 
-    // 2. Finalizar snapshot no DB
+    // 3. Finalizar snapshot no DB
     try {
       await sessaoSnapshotService.finalizarSnapshot(salaId);
     } catch (_) { /* snapshot pode não existir */ }
 
-    // 3. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
-    socketManager.limparSessaoCompleta(salaId);
+    // 4. Gerar resumo da sessão via IA (antes de limpar Redis)
+    let resumoSessao = null;
+    try {
+      const sessaoRedis = await gerenciadorSessoes.obterSessao(salaId);
+      if (sessaoRedis && sessaoRedis.mensagens && sessaoRedis.mensagens.length > 0) {
+        const personagens = sessaoRedis.jogadores
+          ? Object.values(sessaoRedis.jogadores).map(j => ({
+              personagemNome: j.personagemNome || j.username,
+              username: j.username
+            }))
+          : [];
+        const temas = sessaoRedis.temas || historia.temas || [];
+        const rodadasJogadas = sessaoRedis.estadoJogo?.rodadaAtual || 0;
+
+        const resultado = await resumoAgent.resumirAventura({
+          mensagens: sessaoRedis.mensagens,
+          temas: Array.isArray(temas) ? temas : [temas],
+          personagens,
+          rodadasJogadas
+        });
+        resumoSessao = resultado.resumo;
+        console.log(`📝 Resumo da sessão gerado com sucesso (${resultado.mensagensResumiadas} mensagens)`);
+      }
+    } catch (resumoError) {
+      console.error('⚠️ Erro ao gerar resumo da sessão (não-bloqueante):', resumoError.message);
+    }
+
+    // 5. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
+    socketManager.limparSessaoCompleta(salaId, { resumo: resumoSessao, historiaNome: historia.nome });
 
     console.log(`✅ Sessão encerrada com sucesso para história ${historia.id}`);
 

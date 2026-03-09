@@ -21,6 +21,7 @@ import catalogosRoutes from './catalogos.js';
 import amizadeRoutes from './amizades.js';
 import feedRoutes from './feed.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
+import { flags } from '../config/featureFlags.js';
 
 const router = express.Router();
 
@@ -62,6 +63,11 @@ router.get('/', async (req, res, next) => {
       websocket: '/websocket'
     }
   });
+});
+
+// Feature flags (publico, sem auth)
+router.get('/features', (req, res) => {
+  res.json({ success: true, data: flags });
 });
 
 // Rotas da API

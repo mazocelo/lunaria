@@ -95,7 +95,7 @@ const Personagem = (prisma) => {
       return await prisma.personagem_vantagem.create({
         data: {
           personagem_id: parseInt(personagem_id),
-          desvantagem_id: parseInt(vantagem_id) // Usa desvantagem_id para vantagens
+          vantagem_id: parseInt(vantagem_id) // Usa desvantagem_id para vantagens
         }
       });
     },
@@ -104,7 +104,7 @@ const Personagem = (prisma) => {
       return await prisma.personagem_vantagem.deleteMany({
         where: {
           personagem_id: parseInt(personagem_id),
-          desvantagem_id: parseInt(vantagem_id)
+          vantagem_id: parseInt(vantagem_id)
         }
       });
     },
@@ -117,7 +117,7 @@ const Personagem = (prisma) => {
       if (vinculos.length === 0) return [];
 
       // Batch query: 1 query instead of N
-      const ids = vinculos.map(v => v.desvantagem_id);
+      const ids = vinculos.map(v => v.vantagem_id);
       const vantagens = await prisma.vantagens.findMany({
         where: { id: { in: ids } }
       });
@@ -130,7 +130,7 @@ const Personagem = (prisma) => {
       return await prisma.personagem_desvantagem.create({
         data: {
           personagem_id: parseInt(personagem_id),
-          habilidade_id: parseInt(desvantagem_id)
+          desvantagem_id: parseInt(desvantagem_id)
         }
       });
     },
@@ -139,7 +139,7 @@ const Personagem = (prisma) => {
       return await prisma.personagem_desvantagem.deleteMany({
         where: {
           personagem_id: parseInt(personagem_id),
-          habilidade_id: parseInt(desvantagem_id)
+          desvantagem_id: parseInt(desvantagem_id)
         }
       });
     },
@@ -152,7 +152,7 @@ const Personagem = (prisma) => {
       if (vinculos.length === 0) return [];
 
       // Batch query: 1 query instead of N
-      const ids = vinculos.map(v => v.habilidade_id);
+      const ids = vinculos.map(v => v.desvantagem_id);
       const desvantagens = await prisma.desvantagens.findMany({
         where: { id: { in: ids } }
       });

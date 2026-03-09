@@ -1,4 +1,5 @@
 import db from '../../Model/index.js';
+import { BonusEquipSchema, RequisitosEquipSchema, VinculoSchema, validateJson } from '../../helpers/jsonSchemas.js';
 
 class EquipamentoController {
   async listarEquipamentos(req, res) {
@@ -54,7 +55,25 @@ class EquipamentoController {
       const existe = await db.Equipamento.findByNome(nome);
       if (existe) return res.status(400).json({ success: false, error: 'Ja existe um equipamento com este nome' });
 
-      const equipamento = await db.Equipamento.create(req.body);
+      // Validar campos JSON
+      const dados = { ...req.body };
+      if (dados.bonus !== undefined) {
+        const v = validateJson(BonusEquipSchema, dados.bonus);
+        if (!v.success) return res.status(400).json({ success: false, error: `bonus invalido: ${v.error}` });
+        dados.bonus = v.data;
+      }
+      if (dados.requisitos !== undefined) {
+        const v = validateJson(RequisitosEquipSchema, dados.requisitos);
+        if (!v.success) return res.status(400).json({ success: false, error: `requisitos invalido: ${v.error}` });
+        dados.requisitos = v.data;
+      }
+      if (dados.vinculo !== undefined) {
+        const v = validateJson(VinculoSchema, dados.vinculo);
+        if (!v.success) return res.status(400).json({ success: false, error: `vinculo invalido: ${v.error}` });
+        dados.vinculo = v.data;
+      }
+
+      const equipamento = await db.Equipamento.create(dados);
       res.status(201).json({ success: true, message: 'Equipamento criado com sucesso', data: equipamento });
     } catch (error) {
       console.error('Erro ao criar equipamento:', error);
@@ -68,7 +87,25 @@ class EquipamentoController {
       const equipamento = await db.Equipamento.findById(parseInt(id));
       if (!equipamento) return res.status(404).json({ success: false, error: 'Equipamento nao encontrado' });
 
-      const atualizado = await db.Equipamento.update(parseInt(id), req.body);
+      // Validar campos JSON
+      const dados = { ...req.body };
+      if (dados.bonus !== undefined) {
+        const v = validateJson(BonusEquipSchema, dados.bonus);
+        if (!v.success) return res.status(400).json({ success: false, error: `bonus invalido: ${v.error}` });
+        dados.bonus = v.data;
+      }
+      if (dados.requisitos !== undefined) {
+        const v = validateJson(RequisitosEquipSchema, dados.requisitos);
+        if (!v.success) return res.status(400).json({ success: false, error: `requisitos invalido: ${v.error}` });
+        dados.requisitos = v.data;
+      }
+      if (dados.vinculo !== undefined) {
+        const v = validateJson(VinculoSchema, dados.vinculo);
+        if (!v.success) return res.status(400).json({ success: false, error: `vinculo invalido: ${v.error}` });
+        dados.vinculo = v.data;
+      }
+
+      const atualizado = await db.Equipamento.update(parseInt(id), dados);
       res.json({ success: true, message: 'Equipamento atualizado com sucesso', data: atualizado });
     } catch (error) {
       console.error('Erro ao atualizar equipamento:', error);

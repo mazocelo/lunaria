@@ -35,6 +35,8 @@ model desvantagens {
   criada_em     DateTime? @db.Timestamptz(6)
   atualizada_em DateTime? @db.Timestamptz(6)
 
+  personagem_desvantagem personagem_desvantagem[]
+
   @@index([nivel], map: "idx_desvantagem_nivel")
   @@index([usar], map: "idx_desvantagem_usar")
 }
@@ -107,7 +109,7 @@ model historias {
   deleted_at              DateTime?               @db.Timestamptz(6)
   mestre_id               Int?
   usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
-  mestres                 mestres?                @relation(fields: [mestre_id], references: [id], onUpdate: NoAction, map: "fk_historias_mestre_id")
+  mestres                 mestres?                @relation(fields: [mestre_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_historias_mestre_id")
   historias_convite       historias_convite[]
   historias_personagens   historias_personagens[]
   sessoes_jogo            sessoes_jogo[]
@@ -120,11 +122,12 @@ model historias {
 }
 
 model personagem_desvantagem {
-  personagem_id Int
-  habilidade_id Int
-  personagens   personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "personagem_habilidade_personagem_id_fkey")
+  personagem_id  Int
+  desvantagem_id Int          @map("habilidade_id")
+  personagens    personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "personagem_habilidade_personagem_id_fkey")
+  desvantagens   desvantagens @relation(fields: [desvantagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([personagem_id, habilidade_id], map: "personagem_habilidade_pkey")
+  @@id([personagem_id, desvantagem_id], map: "personagem_habilidade_pkey")
 }
 
 model personagem_equipamento {
@@ -137,10 +140,12 @@ model personagem_equipamento {
 }
 
 model personagem_vantagem {
-  desvantagem_id Int
-  personagem_id  Int
+  vantagem_id   Int         @map("desvantagem_id")
+  personagem_id Int
+  personagens   personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vantagens     vantagens   @relation(fields: [vantagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([personagem_id, desvantagem_id])
+  @@id([personagem_id, vantagem_id])
 }
 
 model personagens {
@@ -166,6 +171,7 @@ model personagens {
   xp_atual                  Int?                     @default(0)
   xp_proximo_nivel          Int?                     @default(100)
   historias_personagens     historias_personagens[]
+  personagem_vantagem       personagem_vantagem[]
   personagem_desvantagem    personagem_desvantagem[]
   personagem_equipamento    personagem_equipamento[]
   usuarios                  usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
@@ -204,6 +210,10 @@ model usuarios {
   deleted_at           DateTime?          @db.Timestamptz(6)
   reset_token          String?            @db.VarChar(500)
   reset_token_expires  DateTime?          @db.Timestamptz(6)
+  avatar               String?            @db.VarChar(500)
+  bio                  String?            @db.VarChar(500)
+  preferencias         Json?              @default("{}")
+  privacidade          Json?              @default("{}")
   historias            historias[]
   historias_convite    historias_convite[]
   mestres              mestres[]
@@ -234,6 +244,8 @@ model vantagens {
   requisitos    Json?
   criada_em     DateTime? @db.Timestamptz(6)
   atualizada_em DateTime? @db.Timestamptz(6)
+
+  personagem_vantagem personagem_vantagem[]
 
   @@index([nivel], map: "idx_habilidade_nivel")
   @@index([usar], map: "idx_habilidade_usar")

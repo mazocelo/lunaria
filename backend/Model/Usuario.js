@@ -40,6 +40,10 @@ export default function Usuario(prisma) {
           nome: true,
           email: true,
           role: true,
+          avatar: true,
+          bio: true,
+          preferencias: true,
+          privacidade: true,
           historias: {
             where: { deleted_at: null },
             select: {
@@ -98,6 +102,10 @@ export default function Usuario(prisma) {
           nome: true,
           email: true,
           role: true,
+          avatar: true,
+          bio: true,
+          preferencias: true,
+          privacidade: true,
         },
       });
     },

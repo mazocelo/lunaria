@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import { PreferenciasSchema, PrivacidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
 
 /**
  * Controller para gerenciar operações CRUD de usuários
@@ -136,7 +137,7 @@ class UsuarioController {
     try {
       const { id } = req.params;
       const usuarioId = parseInt(id);
-      const { nome, email, senha, senha_atual } = req.body;
+      const { nome, email, senha, senha_atual, avatar, bio, preferencias, privacidade } = req.body;
 
       console.log(`✏️ Atualizando usuário ID: ${usuarioId}`);
 
@@ -226,6 +227,24 @@ class UsuarioController {
         // Criptografar nova senha
         const saltRounds = 12;
         dadosAtualizacao.senha = await bcrypt.hash(senha, saltRounds);
+      }
+
+      // Campos de perfil
+      if (avatar !== undefined) {
+        dadosAtualizacao.avatar = avatar ? String(avatar).slice(0, 500) : null;
+      }
+      if (bio !== undefined) {
+        dadosAtualizacao.bio = bio ? String(bio).slice(0, 500) : null;
+      }
+      if (preferencias !== undefined) {
+        const v = validateJson(PreferenciasSchema, preferencias);
+        if (!v.success) return res.status(400).json({ success: false, error: `preferencias invalido: ${v.error}` });
+        dadosAtualizacao.preferencias = v.data;
+      }
+      if (privacidade !== undefined) {
+        const v = validateJson(PrivacidadeSchema, privacidade);
+        if (!v.success) return res.status(400).json({ success: false, error: `privacidade invalido: ${v.error}` });
+        dadosAtualizacao.privacidade = v.data;
       }
 
       // Atualizar usuário

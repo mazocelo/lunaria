@@ -3,6 +3,7 @@
  * Armazena snapshot imutavel + estado runtime + merge ao finalizar
  */
 import { verificarLevelUp, xpParaNivel } from '../helpers/evolucaoHelper.js';
+import { calcularHP } from '../helpers/combateHelper.js';
 
 const PersonagemSessao = (prisma) => {
   const model = prisma.personagem_sessao;
@@ -39,7 +40,7 @@ const PersonagemSessao = (prisma) => {
       let vantagens = [];
       if (vantagensVinculos.length > 0) {
         vantagens = await prisma.vantagens.findMany({
-          where: { id: { in: vantagensVinculos.map(v => v.desvantagem_id) } } // coluna legada: desvantagem_id na tabela personagem_vantagem
+          where: { id: { in: vantagensVinculos.map(v => v.vantagem_id) } }
         });
       }
 
@@ -47,16 +48,14 @@ const PersonagemSessao = (prisma) => {
       let desvantagens = [];
       if (personagem.personagem_desvantagem.length > 0) {
         desvantagens = await prisma.desvantagens.findMany({
-          where: { id: { in: personagem.personagem_desvantagem.map(d => d.habilidade_id) } } // coluna legada: habilidade_id na tabela personagem_desvantagem
+          where: { id: { in: personagem.personagem_desvantagem.map(d => d.desvantagem_id) } }
         });
       }
 
       const equipamentos = personagem.personagem_equipamento.map(pe => pe.equipamentos);
       const nivel = personagem.nivel || 1;
 
-      // Calcular HP max
-      const modConstituicao = Math.floor(((personagem.constituicao || 10) - 10) / 2);
-      const hpMax = 10 + (nivel * 2) + (modConstituicao * nivel);
+      const hpMax = calcularHP(personagem);
 
       try {
         return await model.create({

@@ -1,4 +1,5 @@
 import db from '../../Model/index.js';
+import { HabilidadeMonstroSchema, ResistenciasSchema, VelocidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
 
 /**
  * Controller para gerenciar operações de monstro
@@ -176,7 +177,11 @@ class MonstroController {
       if (ataque_base !== undefined) dados.ataque_base = parseInt(ataque_base);
       if (defesa_base !== undefined) dados.defesa_base = parseInt(defesa_base);
       if (dano_base !== undefined) dados.dano_base = dano_base;
-      if (habilidades !== undefined) dados.habilidades = habilidades;
+      if (habilidades !== undefined) {
+        const v = validateJson(HabilidadeMonstroSchema, habilidades);
+        if (!v.success) return res.status(400).json({ success: false, error: `habilidades invalido: ${v.error}` });
+        dados.habilidades = v.data;
+      }
       if (elemento !== undefined) dados.elemento = elemento;
       if (temas !== undefined) dados.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dados.xp_base = parseInt(xp_base);
@@ -245,7 +250,11 @@ class MonstroController {
       if (ataque_base !== undefined) dadosAtualizacao.ataque_base = parseInt(ataque_base);
       if (defesa_base !== undefined) dadosAtualizacao.defesa_base = parseInt(defesa_base);
       if (dano_base !== undefined) dadosAtualizacao.dano_base = dano_base;
-      if (habilidades !== undefined) dadosAtualizacao.habilidades = habilidades;
+      if (habilidades !== undefined) {
+        const v = validateJson(HabilidadeMonstroSchema, habilidades);
+        if (!v.success) return res.status(400).json({ success: false, error: `habilidades invalido: ${v.error}` });
+        dadosAtualizacao.habilidades = v.data;
+      }
       if (elemento !== undefined) dadosAtualizacao.elemento = elemento;
       if (temas !== undefined) dadosAtualizacao.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dadosAtualizacao.xp_base = parseInt(xp_base);

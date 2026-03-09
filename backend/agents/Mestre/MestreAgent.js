@@ -5,6 +5,7 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import dotenv from 'dotenv';
 
 import { MESTRE_CONFIG } from './config.js';
+import { isEnabled } from '../../config/featureFlags.js';
 
 // Timeout wrapper for AI calls (25s para caber no timeout de 30s do frontend)
 function withTimeout(promise, ms = 25000) {
@@ -14,8 +15,9 @@ function withTimeout(promise, ms = 25000) {
   ]);
 }
 
-// Sem retry - se der timeout, fallback imediato no socketManager
-async function withRetry(fn, retries = 0) {
+// Retry controlado por feature flag AI_RETRY
+async function withRetry(fn, retries) {
+  if (retries === undefined) retries = isEnabled('AI_RETRY') ? 1 : 0;
   try {
     return await fn();
   } catch (error) {

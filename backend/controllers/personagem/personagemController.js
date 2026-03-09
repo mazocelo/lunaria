@@ -280,14 +280,14 @@ class PersonagemController {
         // Vantagens
         if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
           await tx.personagem_vantagem.createMany({
-            data: vantagens.map(vid => ({ personagem_id: novoPersonagem.id, desvantagem_id: parseInt(vid) }))
+            data: vantagens.map(vid => ({ personagem_id: novoPersonagem.id, vantagem_id: parseInt(vid) }))
           });
         }
 
         // Desvantagens
         if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
           await tx.personagem_desvantagem.createMany({
-            data: desvantagens.map(did => ({ personagem_id: novoPersonagem.id, habilidade_id: parseInt(did) }))
+            data: desvantagens.map(did => ({ personagem_id: novoPersonagem.id, desvantagem_id: parseInt(did) }))
           });
         }
 
@@ -514,7 +514,7 @@ class PersonagemController {
           await tx.personagem_vantagem.deleteMany({ where: { personagem_id: parseInt(id) } });
           if (Array.isArray(vantagens) && vantagens.length > 0) {
             await tx.personagem_vantagem.createMany({
-              data: vantagens.map(vid => ({ personagem_id: parseInt(id), desvantagem_id: parseInt(vid) }))
+              data: vantagens.map(vid => ({ personagem_id: parseInt(id), vantagem_id: parseInt(vid) }))
             });
           }
         }
@@ -524,7 +524,7 @@ class PersonagemController {
           await tx.personagem_desvantagem.deleteMany({ where: { personagem_id: parseInt(id) } });
           if (Array.isArray(desvantagens) && desvantagens.length > 0) {
             await tx.personagem_desvantagem.createMany({
-              data: desvantagens.map(did => ({ personagem_id: parseInt(id), habilidade_id: parseInt(did) }))
+              data: desvantagens.map(did => ({ personagem_id: parseInt(id), desvantagem_id: parseInt(did) }))
             });
           }
         }

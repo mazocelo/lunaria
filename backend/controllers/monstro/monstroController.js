@@ -178,7 +178,7 @@ class MonstroController {
       if (dano_base !== undefined) dados.dano_base = dano_base;
       if (habilidades !== undefined) dados.habilidades = habilidades;
       if (elemento !== undefined) dados.elemento = elemento;
-      if (temas !== undefined) dados.temas = temas;
+      if (temas !== undefined) dados.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dados.xp_base = parseInt(xp_base);
 
       const novoMonstro = await db.Monstro.create(dados);
@@ -247,7 +247,7 @@ class MonstroController {
       if (dano_base !== undefined) dadosAtualizacao.dano_base = dano_base;
       if (habilidades !== undefined) dadosAtualizacao.habilidades = habilidades;
       if (elemento !== undefined) dadosAtualizacao.elemento = elemento;
-      if (temas !== undefined) dadosAtualizacao.temas = temas;
+      if (temas !== undefined) dadosAtualizacao.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dadosAtualizacao.xp_base = parseInt(xp_base);
 
       const monstroAtualizado = await db.Monstro.update(parseInt(id), dadosAtualizacao);

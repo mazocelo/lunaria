@@ -34,7 +34,7 @@ const Monstro = (prisma) => {
         where.nivel_min = { lte: n };
         where.nivel_max = { gte: n };
       }
-      if (tema) where.temas = { has: tema };
+      if (tema) where.temas = { has: parseInt(tema) };
       const [data, total] = await Promise.all([
         model.findMany({ where, include: includeRels, orderBy: { nome: 'asc' }, take: limit, skip: offset }),
         model.count({ where })
@@ -70,10 +70,10 @@ const Monstro = (prisma) => {
       });
     },
 
-    // Buscar por tema compativel
+    // Buscar por tema compativel (tema = ID inteiro)
     async findByTema(tema) {
       return await model.findMany({
-        where: { temas: { has: tema } },
+        where: { temas: { has: parseInt(tema) } },
         orderBy: { nome: 'asc' }
       });
     },
@@ -138,7 +138,7 @@ const Monstro = (prisma) => {
     /**
      * Seleciona monstros adequados para combate baseado no contexto
      * @param {number} nivel - Nivel medio do grupo de jogadores
-     * @param {string[]} temas - Temas da campanha
+     * @param {(number|string)[]} temas - Temas da campanha (IDs ou nomes)
      * @param {string} dificuldade - facil | media | dificil | letal
      * @returns {Array} Monstros filtrados
      */
@@ -156,13 +156,23 @@ const Monstro = (prisma) => {
 
       // Filtrar por temas se disponivel
       if (temas.length > 0 && monstros.length > 3) {
-        const temasLower = temas.map(t => t.toLowerCase());
-        const comTema = monstros.filter(m =>
-          m.temas.some(t => temasLower.includes(t.toLowerCase()))
-        );
-        // Usar filtrado por tema se houver resultados suficientes
-        if (comTema.length >= 2) {
-          monstros = comTema;
+        // Resolver nomes para IDs se necessário
+        let temasIds = temas.map(t => parseInt(t)).filter(n => !isNaN(n));
+        if (temasIds.length === 0) {
+          // Temas vieram como nomes — resolver via DB
+          const temasDb = await prisma.temas.findMany({
+            where: { nome: { in: temas.map(t => String(t)), mode: 'insensitive' } }
+          });
+          temasIds = temasDb.map(t => t.id);
+        }
+
+        if (temasIds.length > 0) {
+          const comTema = monstros.filter(m =>
+            m.temas.some(t => temasIds.includes(t))
+          );
+          if (comTema.length >= 2) {
+            monstros = comTema;
+          }
         }
       }
 

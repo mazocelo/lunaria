@@ -309,7 +309,7 @@ model monstros {
   dano_base     String              @default("1d6") @db.VarChar(20)
   habilidades   Json?               @default("[]")
   elemento      String[]            @default([]) @db.VarChar(50)
-  temas         String[]            @default([]) @db.VarChar(50)
+  temas         Int[]               @default([])
   xp_base       Int                 @default(50)
   criado_em     DateTime?           @default(now()) @db.Timestamptz(6)
   atualizado_em DateTime?           @db.Timestamptz(6)

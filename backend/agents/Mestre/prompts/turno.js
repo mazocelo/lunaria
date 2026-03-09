@@ -11,14 +11,12 @@ Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/4
 
 Mensagem do Jogador:
 "${mensagem}"
-
 `;
 
-  // Se já houve 3 mensagens, avisar que é hora de finalizar
   if (contadorMensagens >= 3) {
-    prompt += `\n⚠️ LIMITE ALCANÇADO: Finalize e sinalize "Próximo jogador!"\n`;
+    prompt += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação de forma conclusiva e use fimDeTurno: true no JSON.\n`;
   } else {
-    prompt += `\nVocê tem ${4 - contadorMensagens - 1} resposta(s) restantes. Se a ação estiver completa, sinalize "Próximo jogador!" para avançar.\n`;
+    prompt += `\nResponda de forma dinâmica. Restam ${4 - contadorMensagens - 1} resposta(s). Se a ação estiver completamente resolvida, use fimDeTurno: true para avançar.\n`;
   }
 
   return prompt;
@@ -31,32 +29,16 @@ export function criarPromptInicioTurno(jogador, personagem, rodada, turno) {
   return `INÍCIO DO TURNO DE ${personagem} (${jogador})
 Rodada: ${rodada} | Turno: ${turno + 1}
 
-Como Mestre, dirija-se diretamente a ${personagem} e:
-1. Descreva a situação atual em que o personagem se encontra
+Como Mestre, dirija-se a ${personagem}:
+1. Descreva a situação atual do personagem
 2. Apresente um desafio, obstáculo ou situação interessante
-3. Faça perguntas diretas que demandem ação do jogador
-4. Mantenha a narrativa dinâmica e envolvente
-5. **IMPORTANTE:** Se a situação exigir teste de habilidade, perícia, ataque, sorte ou talento, solicite rolagem com 🎲 Role 1d20 para [teste]! (NÃO inclua faixas numéricas — o sistema resolve automaticamente)
-6. SEMPRE termine com um gancho narrativo para o jogador agir ("O que você faz?", "Qual será sua próxima ação?" ou pergunta narrativa)
+3. Se a situação exigir teste, solicite rolagem via solicitaDados no JSON
+4. Termine com gancho narrativo para o jogador agir
 
-O que acontece com ${personagem}? O que ${personagem} vê e percebe?`;
-}
-
-/**
- * Criar prompt para finalizar turno
- */
-export function criarPromptFimTurno(jogador, personagem, resumoAcoes) {
-  return `Finalizando turno de ${personagem} (${jogador}).
-
-Resumo das ações:
-${resumoAcoes}
-
-Conclua de forma épica as ações de ${personagem} neste turno e prepare a transição para o próximo jogador.`;
+O que acontece com ${personagem}?`;
 }
 
 export default {
   criarPromptTurno,
-  criarPromptInicioTurno,
-  criarPromptFimTurno
+  criarPromptInicioTurno
 };
-

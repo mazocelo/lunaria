@@ -6,7 +6,7 @@ import Button from '../../../components/form/button';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { Badge } from '../../../components/shared';
 import {
-  User, ArrowLeft, Pencil, BarChart3, Star, ScrollText, Search,
+  User, ArrowLeft, BarChart3, Star, ScrollText, Search,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
   Package, Plus, X, Check, Loader2
 } from 'lucide-react';
@@ -104,26 +104,17 @@ const VerPersonagemView = () => {
               </p>
             </div>
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => navigate('/personagens')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
-                isLight
-                  ? 'border border-slate-300 text-slate-600 hover:bg-slate-50'
-                  : 'border border-slate-600 text-slate-300 hover:bg-slate-700/50'
-              }`}
-            >
-              <ArrowLeft size={16} />
-              Voltar
-            </button>
-            <button
-              onClick={() => navigate(`/editar-personagem/${p.id}`)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
-            >
-              <Pencil size={16} />
-              Editar
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/personagens')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
+              isLight
+                ? 'border border-slate-300 text-slate-600 hover:bg-slate-50'
+                : 'border border-slate-600 text-slate-300 hover:bg-slate-700/50'
+            }`}
+          >
+            <ArrowLeft size={16} />
+            Voltar
+          </button>
         </div>
       </div>
 

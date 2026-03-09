@@ -8,7 +8,7 @@ import { TabelaList, SearchBar, PageHeader, Badge } from '../../../components/sh
 import StatCard from '../../../components/StatCard.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import Notification from '../../../components/Notification.jsx';
-import { Users, Plus, Eye, Pencil, Trash2, Shield, Sparkles } from 'lucide-react';
+import { Users, Plus, Eye, Trash2, Shield, Sparkles } from 'lucide-react';
 
 const PersonagemListaView = () => {
   const vm = useViewModel(personagemViewModel);
@@ -205,12 +205,6 @@ const PersonagemListaView = () => {
       icon: <Eye size={18} />,
       color: 'purple',
       onClick: (row) => navigate(generateRoute.verPersonagem(row.id))
-    },
-    {
-      label: 'Editar',
-      icon: <Pencil size={18} />,
-      color: 'cyan',
-      onClick: (row) => navigate(generateRoute.editarPersonagem(row.id))
     },
     {
       label: 'Deletar',

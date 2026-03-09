@@ -6,8 +6,7 @@ import {
   VerHistoriaPage, 
   PersonagemListaPage, 
   NovoPersonagemPage, 
-  EditarPersonagemPage, 
-  VerPersonagemPage, 
+  VerPersonagemPage,
   RacaPage,
   NovaRacaPage,
   EditarRacaPage,
@@ -82,7 +81,6 @@ export const ROUTES = {
   // ===== PERSONAGENS =====
   PERSONAGENS: '/personagens',
   NOVO_PERSONAGEM: '/novo-personagem',
-  EDITAR_PERSONAGEM: '/editar-personagem/:id',
   VER_PERSONAGEM: '/ver-personagem/:id',
   
   // ===== RAÇAS =====
@@ -162,7 +160,6 @@ export const generateRoute = {
   conviteJogo: (id) => `/convite-jogo/${id}`,
   
   // Personagens
-  editarPersonagem: (id) => `/editar-personagem/${id}`,
   verPersonagem: (id) => `/ver-personagem/${id}`,
   
   // Sistema
@@ -273,13 +270,6 @@ const ROUTE_CONFIG = [
     component: NovoPersonagemPage,
     name: 'Novo Personagem',
     category: 'PERSONAGENS'
-  },
-  {
-    path: ROUTES.EDITAR_PERSONAGEM,
-    component: EditarPersonagemPage,
-    name: 'Editar Personagem',
-    category: 'PERSONAGENS',
-    hasParams: true
   },
   {
     path: ROUTES.VER_PERSONAGEM,

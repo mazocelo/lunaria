@@ -6,7 +6,6 @@ export { default as VerHistoriaPage } from './Historia/Ver';
 // Personagem
 export { default as PersonagemListaPage } from './Personagem/Lista';
 export { default as NovoPersonagemPage } from './Personagem/Novo';
-export { default as EditarPersonagemPage } from './Personagem/Editar';
 export { default as VerPersonagemPage } from './Personagem/Ver';
 
 // Raça

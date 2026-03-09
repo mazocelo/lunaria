@@ -219,4 +219,4 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
   );
 };
 
-export default FeedPostCard;
+export default React.memo(FeedPostCard);

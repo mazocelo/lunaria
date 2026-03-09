@@ -181,4 +181,4 @@ const BatalhaUI = ({
   );
 };
 
-export default BatalhaUI;
+export default React.memo(BatalhaUI);

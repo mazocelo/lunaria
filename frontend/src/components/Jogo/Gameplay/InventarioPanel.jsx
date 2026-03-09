@@ -190,4 +190,4 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome })
   );
 };
 
-export default InventarioPanel;
+export default React.memo(InventarioPanel);

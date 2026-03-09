@@ -19,6 +19,8 @@ const axiosInstance = axios.create({
 // Flag para evitar loop infinito de refresh
 let isRefreshing = false;
 let failedQueue = [];
+let refreshAttempts = 0;
+const MAX_REFRESH_ATTEMPTS = 2;
 
 const processQueue = (error, success = null) => {
   failedQueue.forEach(prom => {
@@ -66,8 +68,20 @@ axiosInstance.interceptors.response.use(
           });
         }
 
+        // Proteção contra loop infinito de refresh
+        if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
+          refreshAttempts = 0;
+          localStorage.removeItem('user');
+          localStorage.removeItem('lembrarDeMim');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          throw new Error('Sessão expirada. Faça login novamente.');
+        }
+
         originalRequest._retry = true;
         isRefreshing = true;
+        refreshAttempts++;
 
         try {
           // Tentar renovar o token (refreshToken vem automaticamente do cookie)
@@ -75,25 +89,27 @@ axiosInstance.interceptors.response.use(
 
           // A resposta vem no formato: { success: true, data: { socketToken, usuario } }
           const responseData = response.data.data || response.data;
-          
+
           // Cookies são atualizados automaticamente pelo backend
           // Processar fila de requisições pendentes
           processQueue(null, true);
-          
+          refreshAttempts = 0; // Reset on success
+
           // Repetir requisição original (cookie atualizado automaticamente)
           return axiosInstance(originalRequest);
-          
+
         } catch (refreshError) {
           // Falhou ao renovar token, limpar dados e processar fila
           processQueue(refreshError, null);
+          refreshAttempts = 0;
           localStorage.removeItem('user');
           localStorage.removeItem('lembrarDeMim');
-          
+
           // Redirecionar para login se necessário
           if (window.location.pathname !== '/login') {
             window.location.href = '/login';
           }
-          
+
           throw new Error('Sessão expirada. Faça login novamente.');
         } finally {
           isRefreshing = false;

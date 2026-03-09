@@ -14,12 +14,15 @@ export default defineConfig({
     outDir: "dist",
     assetsDir: "assets",
     sourcemap: false,
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ["react", "react-dom"],
           router: ["react-router-dom"],
-          ui: ["@radix-ui/react-label", "@radix-ui/react-slot", "@radix-ui/react-toggle", "@radix-ui/react-toggle-group"]
+          ui: ["@radix-ui/react-label", "@radix-ui/react-slot", "@radix-ui/react-toggle", "@radix-ui/react-toggle-group"],
+          socket: ["socket.io-client"],
+          state: ["zustand"]
         }
       }
     }

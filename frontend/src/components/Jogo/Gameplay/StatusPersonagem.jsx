@@ -225,4 +225,4 @@ const StatusPersonagem = ({
   );
 };
 
-export default StatusPersonagem;
+export default React.memo(StatusPersonagem);

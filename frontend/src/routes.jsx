@@ -1,51 +1,52 @@
+import React, { Suspense } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import SuperAdminRoute from './components/SuperAdminRoute';
-import {
-  HistoriaListaPage, 
-  NovaHistoriaPage, 
-  VerHistoriaPage, 
-  PersonagemListaPage, 
-  NovoPersonagemPage, 
-  VerPersonagemPage,
-  RacaPage,
-  NovaRacaPage,
-  EditarRacaPage,
-  VerRacaPage,
-  ClassePage,
-  NovaClassePage,
-  EditarClassePage,
-  VerClassePage,
-  VantagemPage,
-  NovaVantagemPage,
-  EditarVantagemPage,
-  VerVantagemPage,
-  TemaListaPage,
-  NovoTemaPage,
-  EditarTemaPage,
-  DesvantagemPage, 
-  NovaDesvantagemPage, 
-  EditarDesvantagemPage, 
-  VerDesvantagemPage,
-  EquipamentoPage,
-  NovoEquipamentoPage,
-  EditarEquipamentoPage,
-  VerEquipamentoPage,
-  MonstroListaPage,
-  NovoMonstroPage,
-  EditarMonstroPage,
-  MestreListaPage,
-  NovoMestrePage,
-  EditarMestrePage,
-  VerMestrePage,
-  // Jogo - 3 rotas separadas
-  SelecaoPersonagemPage,
-  SalaEsperaPage,
-  JogoAtivoPage,
-  ConviteJogoPage,
-  PerfilPage,
-  AmigosPage,
-  FeedPage
-} from './Pages';
+import LoadingSpinner from './components/LoadingSpinner';
+
+// Lazy loading de todas as páginas
+const HistoriaListaPage = React.lazy(() => import('./Pages/Historia/Lista'));
+const NovaHistoriaPage = React.lazy(() => import('./Pages/Historia/Nova'));
+const VerHistoriaPage = React.lazy(() => import('./Pages/Historia/Ver'));
+const PersonagemListaPage = React.lazy(() => import('./Pages/Personagem/Lista'));
+const NovoPersonagemPage = React.lazy(() => import('./Pages/Personagem/Novo'));
+const VerPersonagemPage = React.lazy(() => import('./Pages/Personagem/Ver'));
+const RacaPage = React.lazy(() => import('./Pages/Raca/Lista'));
+const NovaRacaPage = React.lazy(() => import('./Pages/Raca/Nova'));
+const EditarRacaPage = React.lazy(() => import('./Pages/Raca/Editar'));
+const VerRacaPage = React.lazy(() => import('./Pages/Raca/Ver'));
+const ClassePage = React.lazy(() => import('./Pages/Classe/Lista'));
+const NovaClassePage = React.lazy(() => import('./Pages/Classe/Nova'));
+const EditarClassePage = React.lazy(() => import('./Pages/Classe/Editar'));
+const VerClassePage = React.lazy(() => import('./Pages/Classe/Ver'));
+const VantagemPage = React.lazy(() => import('./Pages/Vantagem/Lista'));
+const NovaVantagemPage = React.lazy(() => import('./Pages/Vantagem/Nova'));
+const EditarVantagemPage = React.lazy(() => import('./Pages/Vantagem/Editar'));
+const VerVantagemPage = React.lazy(() => import('./Pages/Vantagem/Ver'));
+const TemaListaPage = React.lazy(() => import('./Pages/Tema/Lista'));
+const NovoTemaPage = React.lazy(() => import('./Pages/Tema/Nova'));
+const EditarTemaPage = React.lazy(() => import('./Pages/Tema/Editar'));
+const DesvantagemPage = React.lazy(() => import('./Pages/Desvantagem/Lista'));
+const NovaDesvantagemPage = React.lazy(() => import('./Pages/Desvantagem/Nova'));
+const EditarDesvantagemPage = React.lazy(() => import('./Pages/Desvantagem/Editar'));
+const VerDesvantagemPage = React.lazy(() => import('./Pages/Desvantagem/Ver'));
+const EquipamentoPage = React.lazy(() => import('./Pages/Equipamento/Lista'));
+const NovoEquipamentoPage = React.lazy(() => import('./Pages/Equipamento/Nova'));
+const EditarEquipamentoPage = React.lazy(() => import('./Pages/Equipamento/Editar'));
+const VerEquipamentoPage = React.lazy(() => import('./Pages/Equipamento/Ver'));
+const MonstroListaPage = React.lazy(() => import('./Pages/Monstro/Lista'));
+const NovoMonstroPage = React.lazy(() => import('./Pages/Monstro/Nova'));
+const EditarMonstroPage = React.lazy(() => import('./Pages/Monstro/Editar'));
+const MestreListaPage = React.lazy(() => import('./Pages/Mestre/Lista'));
+const NovoMestrePage = React.lazy(() => import('./Pages/Mestre/Nova'));
+const EditarMestrePage = React.lazy(() => import('./Pages/Mestre/Editar'));
+const VerMestrePage = React.lazy(() => import('./Pages/Mestre/Ver'));
+const SelecaoPersonagemPage = React.lazy(() => import('./Pages/Jogo/SelecaoPersonagem'));
+const SalaEsperaPage = React.lazy(() => import('./Pages/Jogo/SalaEspera'));
+const JogoAtivoPage = React.lazy(() => import('./Pages/Jogo/JogoAtivo'));
+const ConviteJogoPage = React.lazy(() => import('./Pages/ConviteJogo'));
+const PerfilPage = React.lazy(() => import('./Pages/Perfil'));
+const AmigosPage = React.lazy(() => import('./Pages/Amigos'));
+const FeedPage = React.lazy(() => import('./Pages/Feed'));
 
 /**
  * ============================================================================
@@ -537,21 +538,23 @@ const ROUTE_CONFIG = [
  */
 const AppRoutes = () => {
   return (
-    <Routes>
-      {ROUTE_CONFIG.map((route, index) => {
-        const Component = route.component;
-        const element = route.requireSuperAdmin
-          ? <SuperAdminRoute><Component /></SuperAdminRoute>
-          : <Component />;
-        return (
-          <Route
-            key={`${route.path}-${index}`}
-            path={route.path}
-            element={element}
-          />
-        );
-      })}
-    </Routes>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><LoadingSpinner /></div>}>
+      <Routes>
+        {ROUTE_CONFIG.map((route, index) => {
+          const Component = route.component;
+          const element = route.requireSuperAdmin
+            ? <SuperAdminRoute><Component /></SuperAdminRoute>
+            : <Component />;
+          return (
+            <Route
+              key={`${route.path}-${index}`}
+              path={route.path}
+              element={element}
+            />
+          );
+        })}
+      </Routes>
+    </Suspense>
   );
 };
 

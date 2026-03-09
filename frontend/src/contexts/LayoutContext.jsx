@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const LayoutContext = createContext();
 
@@ -22,6 +22,18 @@ export const LayoutProvider = ({ children }) => {
     setShowSidebar(true);
     setIsFullscreen(false);
   };
+
+  // Auto-collapse sidebar on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && !sidebarCollapsed) {
+        setSidebarCollapsed(true);
+      }
+    };
+    handleResize(); // Check on mount
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => {

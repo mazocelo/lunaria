@@ -82,8 +82,17 @@ export const useJogoSocket = () => {
         email: connectionData.email,
       });
 
-      // Aguardar processamento no backend
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Aguardar autenticação ser confirmada pelo backend
+      const waitForAuth = () => new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Auth timeout')), 5000);
+        const check = () => {
+          const state = useSocketStore.getState();
+          if (state.isAuthenticated) { clearTimeout(timeout); resolve(); return; }
+          setTimeout(check, 100);
+        };
+        check();
+      });
+      await waitForAuth();
 
       // Se tiver historia e personagem, entrar na sala
       const gameState = useGameStore.getState();

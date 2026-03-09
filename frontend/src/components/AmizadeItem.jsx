@@ -134,4 +134,4 @@ const AmizadeItem = ({
   );
 };
 
-export default AmizadeItem;
+export default React.memo(AmizadeItem);

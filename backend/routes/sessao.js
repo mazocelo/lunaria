@@ -135,7 +135,7 @@ router.get('/historia/:historiaId', async (req, res, next) => {
   }
 });
 
-// Buscar historico completo de uma sessao (com mensagens)
+// Buscar historico completo de uma sessao (com mensagens e personagens)
 router.get('/historico/:sessaoId', async (req, res, next) => {
   try {
     const { sessaoId } = req.params;
@@ -144,7 +144,9 @@ router.get('/historico/:sessaoId', async (req, res, next) => {
     if (!sessao) {
       return res.status(404).json({ success: false, error: 'Sessão não encontrada' });
     }
-    res.json({ success: true, data: sessao });
+    // Buscar personagens que participaram desta sessão
+    const personagens = await db.PersonagemSessao.findBySessaoId(sessao.id);
+    res.json({ success: true, data: { ...sessao, personagens: personagens || [] } });
   } catch (error) {
     next(error);
   }

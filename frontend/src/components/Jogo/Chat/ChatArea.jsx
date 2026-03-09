@@ -30,7 +30,7 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
                 {mensagem.username} rolou {mensagem.dice || 'd20'}
               </p>
               <p className="text-amber-300 text-2xl font-bold drop-shadow-lg">
-                Resultado: {mensagem.result || mensagem.valor}
+                Resultado: {mensagem.result || mensagem.valor || mensagem.total || '?'}
                 {temModificador && (
                   <span className="text-lg">
                     {' '}{mensagem.totalModificador > 0 ? '+' : ''}{mensagem.totalModificador} ({mensagem.atributoNome || 'Sorte'}) = {mensagem.total}

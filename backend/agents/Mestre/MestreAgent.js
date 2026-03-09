@@ -1,4 +1,5 @@
 import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
 import dotenv from 'dotenv';
@@ -75,14 +76,25 @@ export class MestreAgent {
       const temperature = Math.min(2, Math.max(0, rawTemp));
       const maxTokens = Math.min(32000, Math.max(100, rawTokens));
 
-      // Criar modelo Groq
-      this.model = new ChatGroq({
-        apiKey: process.env.GROQ_API_KEY,
-        model: modelName,
-        temperature,
-        maxTokens,
-        topP: MESTRE_CONFIG.model.topP
-      });
+      // Detectar provider pelo prefixo do modelo
+      if (modelName.startsWith('gemini')) {
+        this.model = new ChatGoogleGenerativeAI({
+          apiKey: process.env.GOOGLE_API_KEY,
+          model: modelName,
+          temperature,
+          maxOutputTokens: maxTokens
+        });
+        console.log(`🤖 MestreAgent: Usando Google Gemini (${modelName})`);
+      } else {
+        this.model = new ChatGroq({
+          apiKey: process.env.GROQ_API_KEY,
+          model: modelName,
+          temperature,
+          maxTokens,
+          topP: MESTRE_CONFIG.model.topP
+        });
+        console.log(`🤖 MestreAgent: Usando Groq (${modelName})`);
+      }
 
       // Criar prompt template (com personalidade custom se houver)
       const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride, this.catalogo);

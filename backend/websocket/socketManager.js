@@ -48,13 +48,12 @@ class SocketManager {
    * Previne race conditions quando múltiplos jogadores agem simultaneamente
    */
   async withRoomLock(roomId, fn) {
-    // Esperar lock anterior terminar (max 10s para evitar deadlock)
-    const maxWait = Date.now() + 10000;
+    // Esperar lock anterior terminar (max 15s para evitar deadlock)
+    const maxWait = Date.now() + 15000;
     while (this._roomLocks.has(roomId)) {
       if (Date.now() > maxWait) {
-        console.warn(`⚠️ withRoomLock: timeout esperando lock da sala ${roomId}, forçando liberação`);
-        this._roomLocks.delete(roomId);
-        break;
+        console.error(`❌ withRoomLock: timeout esperando lock da sala ${roomId}. Rejeitando operação.`);
+        throw new Error('Operação em andamento na sala. Tente novamente em alguns segundos.');
       }
       await this._roomLocks.get(roomId).catch(() => {});
     }
@@ -65,8 +64,8 @@ class SocketManager {
     try {
       return await fn();
     } finally {
-      this._roomLocks.delete(roomId);
       resolve();
+      this._roomLocks.delete(roomId);
     }
   }
 

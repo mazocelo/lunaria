@@ -241,6 +241,21 @@ const EtapaJogoRPG = ({
     return () => clearTimeout(timeout);
   }, [aguardandoMestre, gameStoreSetMensagens]);
 
+  // Limpar loading e aguardandoMestre se socket desconectar
+  useEffect(() => {
+    let wasConnected = useSocketStore.getState().isConnected;
+    const unsubscribe = useSocketStore.subscribe((state) => {
+      if (wasConnected && !state.isConnected && aguardandoMestre) {
+        setAguardandoMestre(false);
+        const msgs = useGameStore.getState().mensagens || [];
+        const semLoading = msgs.filter(m => m.tipo !== 'loading');
+        if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
+      }
+      wasConnected = state.isConnected;
+    });
+    return unsubscribe;
+  }, [aguardandoMestre, gameStoreSetMensagens]);
+
   // Listener para limpar mensagens de dados quando ordem definida
   useEffect(() => {
     const limparMensagensDados = () => {

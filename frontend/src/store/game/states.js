@@ -28,7 +28,6 @@ export const gameInitialStates = {
   participantes: [], // Jogadores confirmados na aventura (com personagens selecionados)
   isDonoSala: false,
   salaAberta: false,
-  jogoIniciado: false,
   podeIniciarJogo: false,
   
   // ===== DADOS DO JOGO ATIVO =====

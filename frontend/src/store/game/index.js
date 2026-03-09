@@ -32,10 +32,9 @@ export const useGameSelectors = {
   
   // Estado computado da sala
   estadoSala: () => {
-    const { salaAberta, jogoIniciado, podeIniciarJogo, participantes } = useGameStore.getState();
+    const { salaAberta, podeIniciarJogo, participantes } = useGameStore.getState();
     return {
       salaAberta,
-      jogoIniciado,
       podeIniciarJogo,
       totalParticipantes: participantes.length
     };

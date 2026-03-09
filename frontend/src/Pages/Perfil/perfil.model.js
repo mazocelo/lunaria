@@ -10,6 +10,16 @@ export const usePerfilModel = () => {
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatar, setAvatar] = useState('');
+  const [preferencias, setPreferencias] = useState({
+    tema: 'escuro',
+    notificacoes: { convites: true, amizades: true, sessoes: true },
+  });
+  const [privacidade, setPrivacidade] = useState({
+    perfil_publico: true,
+    mostrar_estatisticas: true,
+  });
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
@@ -23,6 +33,10 @@ export const usePerfilModel = () => {
     if (user) {
       setNome(user.nome || '');
       setEmail(user.email || '');
+      setBio(user.bio || '');
+      setAvatar(user.avatar || '');
+      if (user.preferencias) setPreferencias(prev => ({ ...prev, ...user.preferencias }));
+      if (user.privacidade) setPrivacidade(prev => ({ ...prev, ...user.privacidade }));
     }
     if (user?.id) {
       apiClient.get(`/usuarios/${user.id}/estatisticas`)
@@ -41,10 +55,11 @@ export const usePerfilModel = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      await apiClient.put(`/usuarios/${user.id}`, { nome, email });
+      const dados = { nome, email, bio: bio || null, avatar: avatar || null, preferencias, privacidade };
+      await apiClient.put(`/usuarios/${user.id}`, dados);
       setSavingProfile(false);
       setSuccessMessage('Perfil atualizado com sucesso!');
-      updateUser({ ...user, nome, email });
+      updateUser({ ...user, nome, email, bio, avatar, preferencias, privacidade });
     } catch (err) {
       setSavingProfile(false);
       setError(err.message || 'Erro ao atualizar perfil');
@@ -87,6 +102,10 @@ export const usePerfilModel = () => {
   return {
     nome,
     email,
+    bio,
+    avatar,
+    preferencias,
+    privacidade,
     senhaAtual,
     novaSenha,
     confirmarSenha,
@@ -98,6 +117,10 @@ export const usePerfilModel = () => {
     isLight,
     setNome,
     setEmail,
+    setBio,
+    setAvatar,
+    setPreferencias,
+    setPrivacidade,
     setSenhaAtual,
     setNovaSenha,
     setConfirmarSenha,

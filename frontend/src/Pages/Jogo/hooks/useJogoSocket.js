@@ -146,7 +146,7 @@ export const useJogoSocket = () => {
         }
 
         const unsubscribe = useSocketStore.subscribe((state, prevState) => {
-          if (state.participantes && state.participantes.length !== prevState?.participantes?.length) {
+          if (state.participantes && state.participantes !== prevState?.participantes) {
             storeSetParticipantes(state.participantes);
           }
         });

@@ -88,14 +88,6 @@ export const createGameActions = (set, get) => ({
     set({ salaAberta: false, podeIniciarJogo: false });
   },
   
-  iniciarJogo: () => {
-    set({ jogoIniciado: true });
-  },
-  
-  finalizarJogo: () => {
-    set({ jogoIniciado: false });
-  },
-  
   // ===== ACTIONS - PARTICIPANTES (JOGADORES CONFIRMADOS) =====
   adicionarParticipante: (participante) => {
     const { participantes } = get();
@@ -165,7 +157,7 @@ export const createGameActions = (set, get) => ({
    */
   persistirEstadoCritico: () => {
     try {
-      const { personagemSelecionado, historiaAtual, etapaAtual } = get();
+      const { personagemSelecionado } = get();
       
       // Persistir apenas dados críticos
       if (personagemSelecionado) {
@@ -216,7 +208,6 @@ export const createGameActions = (set, get) => ({
       sessaoId: null,
       isDonoSala: false,
       salaAberta: false,
-      jogoIniciado: false,
       podeIniciarJogo: false,
       mensagens: [],
       statusPersonagem: {},

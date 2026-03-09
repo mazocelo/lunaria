@@ -5,6 +5,10 @@ import Button from '../../components/form/button';
 const PerfilView = ({
   nome,
   email,
+  bio,
+  avatar,
+  preferencias,
+  privacidade,
   senhaAtual,
   novaSenha,
   confirmarSenha,
@@ -16,6 +20,10 @@ const PerfilView = ({
   isLight,
   setNome,
   setEmail,
+  setBio,
+  setAvatar,
+  setPreferencias,
+  setPrivacidade,
   setSenhaAtual,
   setNovaSenha,
   setConfirmarSenha,
@@ -27,8 +35,12 @@ const PerfilView = ({
     <div className="animate-fade-in max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">{'\uD83D\uDC64'}</span>
+        <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
+          {avatar ? (
+            <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-3xl">{'\uD83D\uDC64'}</span>
+          )}
         </div>
         <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>
           Meu Perfil
@@ -111,6 +123,33 @@ const PerfilView = ({
             required
           />
 
+          <div>
+            <label className={`block text-sm font-medium mb-1 font-modern ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+              Bio
+            </label>
+            <textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder="Conte um pouco sobre voce..."
+              className={`w-full rounded-lg border px-3 py-2 text-sm font-modern resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-800'
+                  : 'bg-slate-800 border-slate-600 text-white'
+              }`}
+            />
+            <p className="text-xs text-slate-400 mt-1">{bio.length}/500</p>
+          </div>
+
+          <InputSimples
+            label="Avatar (URL)"
+            name="avatar"
+            value={avatar}
+            onChange={e => setAvatar(e.target.value)}
+            placeholder="https://exemplo.com/avatar.png"
+          />
+
           <div className="flex justify-end">
             <Button
               variant="primary"
@@ -188,6 +227,69 @@ const PerfilView = ({
           </div>
         </form>
 
+        {/* Section: Notificacoes */}
+        <div className="card-rpg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <span className="text-sm">{'\uD83D\uDD14'}</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Notifica\u00E7\u00F5es
+            </h2>
+          </div>
+          <div className="space-y-3">
+            <ToggleItem
+              label="Convites de historia"
+              description="Receber notificacoes de convites para historias"
+              checked={preferencias.notificacoes?.convites ?? true}
+              onChange={v => setPreferencias(p => ({ ...p, notificacoes: { ...p.notificacoes, convites: v } }))}
+              isLight={isLight}
+            />
+            <ToggleItem
+              label="Solicitacoes de amizade"
+              description="Receber notificacoes de solicitacoes de amizade"
+              checked={preferencias.notificacoes?.amizades ?? true}
+              onChange={v => setPreferencias(p => ({ ...p, notificacoes: { ...p.notificacoes, amizades: v } }))}
+              isLight={isLight}
+            />
+            <ToggleItem
+              label="Sessoes de jogo"
+              description="Receber notificacoes quando uma sessao iniciar"
+              checked={preferencias.notificacoes?.sessoes ?? true}
+              onChange={v => setPreferencias(p => ({ ...p, notificacoes: { ...p.notificacoes, sessoes: v } }))}
+              isLight={isLight}
+            />
+          </div>
+        </div>
+
+        {/* Section: Privacidade */}
+        <div className="card-rpg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+              <span className="text-sm">{'\uD83D\uDEE1\uFE0F'}</span>
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Privacidade
+            </h2>
+          </div>
+          <div className="space-y-3">
+            <ToggleItem
+              label="Perfil publico"
+              description="Permitir que outros usuarios vejam seu perfil"
+              checked={privacidade.perfil_publico ?? true}
+              onChange={v => setPrivacidade(p => ({ ...p, perfil_publico: v }))}
+              isLight={isLight}
+            />
+            <ToggleItem
+              label="Mostrar estatisticas"
+              description="Exibir suas estatisticas no perfil publico"
+              checked={privacidade.mostrar_estatisticas ?? true}
+              onChange={v => setPrivacidade(p => ({ ...p, mostrar_estatisticas: v }))}
+              isLight={isLight}
+            />
+          </div>
+        </div>
+
         {/* Section: Tema */}
         <div className="card-rpg">
           <div className="flex items-center space-x-3 mb-4">
@@ -228,6 +330,28 @@ const PerfilView = ({
     </div>
   );
 };
+
+const ToggleItem = ({ label, description, checked, onChange, isLight }) => (
+  <div className="flex items-center justify-between py-2">
+    <div>
+      <p className={`font-modern font-semibold text-sm ${isLight ? 'text-slate-700' : 'text-white'}`}>
+        {label}
+      </p>
+      <p className="text-xs text-slate-400 font-modern">{description}</p>
+    </div>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative w-11 h-6 rounded-full transition-colors duration-300 cursor-pointer ${
+        checked ? 'bg-purple-600' : isLight ? 'bg-slate-300' : 'bg-slate-600'
+      }`}
+    >
+      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
+        checked ? 'left-5.5' : 'left-0.5'
+      }`} />
+    </button>
+  </div>
+);
 
 const StatItem = ({ label, value, icon, isLight }) => (
   <div className={`text-center p-3 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>

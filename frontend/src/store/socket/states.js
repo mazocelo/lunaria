@@ -79,7 +79,7 @@ export const socketInitialStates = {
   // ===== SISTEMA DE COMBATE =====
   combateAtivo: false,
   combateMonstros: [],       // Instâncias de monstros com HP atual
-  combateJogadores: {},      // HP dos jogadores { [userId]: { hp_max, hp_atual, ca, status } }
+  combateJogadores: {},      // HP dos jogadores { [userId]: { hp_max, hp_atual, esquiva, armadura, status } }
   combateRodada: 0,
   combateResultado: null,    // null | 'vitoria' | 'derrota' | 'fuga'
   combateLog: [],            // Últimas ações do combate

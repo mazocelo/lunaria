@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useAuth } from '../../../contexts/AuthContext';
 import LoadingSpinner from '../../LoadingSpinner.jsx';
-import { etapaSalaEsperaViewModel } from '../../../viewmodels/Jogo';
+import { useSocketStore, useGameStore, useTemaStore } from '../../../store/index.js';
 
 /**
  * Componente para sala de espera antes do jogo iniciar
- * 📍 Usado por: JogoView (etapa 'sala-espera')
- * 🎯 MIGRADO: Agora usa ViewModel específico para lógica de negócio
+ * Usado por: JogoView (etapa 'sala-espera')
+ * Refatorado: Usa hooks diretos (useSocketStore, useGameStore, useTemaStore) no lugar de ViewModels
  */
 const EtapaSalaEspera = ({
   historia,
@@ -25,125 +25,191 @@ const EtapaSalaEspera = ({
   const { user } = useAuth();
   const isLight = theme === 'light';
 
-  // 🎯 ESTADO LOCAL
+  // Stores diretos
+  const getNomesDeTemas = useTemaStore(s => s.getNomesDeTemas);
+  const socketOn = useSocketStore(s => s.on);
+  const socketOff = useSocketStore(s => s.off);
+  const gameStoreSetParticipantes = useGameStore(s => s.setParticipantes);
+  const gameStoreAdicionarParticipante = useGameStore(s => s.adicionarParticipante);
+  const gameStoreRemoverParticipante = useGameStore(s => s.removerParticipante);
+
+  // Estado local
   const [iniciandoJogo, setIniciandoJogo] = useState(false);
-  
-  // 🎯 VIEWMODEL - Estado reativo
-  const [viewModelState, setViewModelState] = useState(etapaSalaEsperaViewModel.getState());
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const copiarTimeoutRef = useRef(null);
 
-  // 🔄 SUBSCRIBE AO VIEWMODEL
+  // Cleanup timeout on unmount
   useEffect(() => {
-    const unsubscribe = etapaSalaEsperaViewModel.subscribe(setViewModelState);
-    return unsubscribe;
-  }, []);
-
-  // 📊 DESTRUCTURING DO ESTADO
-  const { linkCopiado } = viewModelState;
-
-  // 🚀 INICIALIZAÇÃO
-  useEffect(() => {
-    etapaSalaEsperaViewModel.initialize();
-    
-    // Cleanup ao desmontar
     return () => {
-      etapaSalaEsperaViewModel.destroy();
+      if (copiarTimeoutRef.current) {
+        clearTimeout(copiarTimeoutRef.current);
+      }
     };
   }, []);
 
-  // 👥 LISTENERS PARA SINCRONIZAÇÃO DE JOGADORES VIA WEBSOCKET
+  // Listeners para sincronizacao de jogadores via WebSocket
   useEffect(() => {
     if (!socketConnected) return;
 
-    let cleanupFn = null;
+    // Listener para quando um jogador entra na sala
+    const handleUserJoined = (data) => {
+      const isOwner = historia?.id_usuario ? String(data.userId) === String(historia.id_usuario) : false;
 
-    const setupListeners = async () => {
-      try {
-        const { getSocketStoreAPI } = await import('../../../store/index.js');
-        const { jogoViewModel } = await import('../../../viewmodels/Jogo');
-        const socketStore = getSocketStoreAPI();
+      const novoParticipante = {
+        userId: data.userId,
+        username: data.username,
+        personagem: data.personagemNome || 'Selecionando...',
+        personagemNome: data.personagemNome,
+        personagemId: data.personagemId,
+        status: data.status || 'selecionando',
+        isOwner: isOwner
+      };
 
-        // Listener para quando um jogador entra na sala
-        const handleUserJoined = (data) => {
-          // Verificar se é dono comparando userId com donoId da história (converter para string)
-          const isOwner = historia?.id_usuario ? String(data.userId) === String(historia.id_usuario) : false;
-
-          const novoParticipante = {
-            userId: data.userId,
-            username: data.username,
-            personagem: data.personagemNome || 'Selecionando...',
-            personagemNome: data.personagemNome,
-            personagemId: data.personagemId,
-            status: data.status || 'selecionando',
-            isOwner: isOwner  // Usar valor calculado baseado no USUÁRIO
-          };
-
-          jogoViewModel.adicionarParticipante(novoParticipante);
-        };
-
-        // Listener para quando um jogador sai da sala
-        const handleUserLeft = (data) => {
-          jogoViewModel.removerParticipante(data.userId);
-        };
-
-        // Listener para carregar lista inicial ao entrar na sala
-        const handleRoomJoined = (data) => {
-          // Carregar lista inicial de jogadores já conectados
-          if (data.sessao?.jogadoresConectados && Array.isArray(data.sessao.jogadoresConectados)) {
-            // donoId vem da sessão (id do USUÁRIO que criou a história)
-            const donoId = data.sessao.donoId;
-
-            const jogadoresFormatados = data.sessao.jogadoresConectados.map(j => {
-              // Comparar userId do jogador com donoId da história (converter ambos para string)
-              const isOwner = String(j.userId) === String(donoId);
-
-              return {
-                userId: j.userId,
-                username: j.username,
-                personagem: j.personagemNome || 'Selecionando...',
-                personagemId: j.personagemId,
-                isOwner: isOwner  // Baseado no USUÁRIO, não no personagem
-              };
-            });
-
-            jogoViewModel.atualizarParticipantes(jogadoresFormatados);
-          }
-        };
-
-        // Adicionar listeners
-        socketStore.on('user_joined', handleUserJoined);
-        socketStore.on('user_left', handleUserLeft);
-        socketStore.on('room_joined', handleRoomJoined);
-
-        // Guardar cleanup para o useEffect
-        cleanupFn = () => {
-          socketStore.off('user_joined', handleUserJoined);
-          socketStore.off('user_left', handleUserLeft);
-          socketStore.off('room_joined', handleRoomJoined);
-        };
-      } catch (error) {
-        // silenced
+      // Adicionar via gameStore (equivalente ao antigo jogoViewModel.adicionarParticipante)
+      // O parent page hook gerencia participantes via gameStore
+      if (gameStoreAdicionarParticipante) {
+        gameStoreAdicionarParticipante(novoParticipante);
       }
     };
 
-    setupListeners().then(() => {});
+    // Listener para quando um jogador sai da sala
+    const handleUserLeft = (data) => {
+      if (gameStoreRemoverParticipante) {
+        gameStoreRemoverParticipante(data.userId);
+      }
+    };
+
+    // Listener para carregar lista inicial ao entrar na sala
+    const handleRoomJoined = (data) => {
+      if (data.sessao?.jogadoresConectados && Array.isArray(data.sessao.jogadoresConectados)) {
+        const donoId = data.sessao.donoId;
+
+        const jogadoresFormatados = data.sessao.jogadoresConectados.map(j => {
+          const isOwner = String(j.userId) === String(donoId);
+          return {
+            userId: j.userId,
+            username: j.username,
+            personagem: j.personagemNome || 'Selecionando...',
+            personagemId: j.personagemId,
+            isOwner: isOwner
+          };
+        });
+
+        if (gameStoreSetParticipantes) {
+          gameStoreSetParticipantes(jogadoresFormatados);
+        }
+      }
+    };
+
+    // Adicionar listeners
+    socketOn('user_joined', handleUserJoined);
+    socketOn('user_left', handleUserLeft);
+    socketOn('room_joined', handleRoomJoined);
 
     return () => {
-      if (cleanupFn) cleanupFn();
+      socketOff('user_joined', handleUserJoined);
+      socketOff('user_left', handleUserLeft);
+      socketOff('room_joined', handleRoomJoined);
     };
-  }, [socketConnected]);
+  }, [socketConnected, historia, socketOn, socketOff, gameStoreSetParticipantes, gameStoreAdicionarParticipante, gameStoreRemoverParticipante]);
 
-  // 📋 HELPERS: Formatar dados via ViewModel
-  const infoHistoria = etapaSalaEsperaViewModel.formatarInformacoesHistoria(historia);
-  const infoPersonagem = etapaSalaEsperaViewModel.formatarInformacoesPersonagem(personagemSelecionado);
-  const participantesFormatados = etapaSalaEsperaViewModel.formatarParticipantes(participantes, user);
-  const connectionStatus = etapaSalaEsperaViewModel.getConnectionStatus(socketConnected);
-  
-  // 🎯 HANDLERS: Delegar para callback (view gerencia API)
-  const handleIniciarJogo = async () => {
-    if (!onIniciarJogo) {
-      return;
+  // --- Helpers inline (antes no ViewModel) ---
+
+  const formatarInformacoesHistoria = useCallback((hist) => {
+    if (!hist) {
+      return { titulo: 'Historia sem nome', descricao: 'Uma aventura epica esta prestes a comecar...', temas: null };
     }
+    const titulo = hist.nome || hist.titulo || 'Historia sem nome';
+    const descricao = hist.prologo || 'Uma aventura epica esta prestes a comecar...';
+    const temas = getNomesDeTemas(hist.temas);
+    return { titulo, descricao, temas };
+  }, [getNomesDeTemas]);
 
+  const formatarInformacoesPersonagem = useCallback((p) => {
+    if (!p) {
+      return { nome: 'Carregando personagem...', classe: 'Aguarde um momento', raca: '', nivel: '', hp: '???', mp: '???' };
+    }
+    return {
+      nome: p.nome || 'Personagem sem nome',
+      classe: p.classe_nome || p.classe || 'Desconhecida',
+      raca: p.raca_nome || p.raca || 'Desconhecida',
+      nivel: p.nivel || '1',
+      hp: p.hp_atual || p.hp || '???',
+      mp: p.mp_atual || p.mp || '???',
+    };
+  }, []);
+
+  const formatarParticipantes = useCallback((parts, usr) => {
+    if (!Array.isArray(parts)) return [];
+    return parts.map(participante => {
+      const personagemExibicao = participante.personagem || participante.personagemNome || 'Selecionando personagem...';
+      return {
+        ...participante,
+        username: participante.username || 'Jogador Anonimo',
+        personagem: personagemExibicao,
+        isCurrentUser: participante.userId === usr?.id,
+        isOwner: participante.isOwner || false
+      };
+    });
+  }, []);
+
+  const getConnectionStatus = useCallback((connected) => {
+    if (!connected) {
+      return { text: 'Desconectado', color: 'text-red-400', bgColor: 'bg-red-500/20', borderColor: 'border-red-500/30', icon: '🔴' };
+    }
+    return { text: 'Conectado a Sala', color: 'text-green-400', bgColor: 'bg-green-500/20', borderColor: 'border-green-500/30', icon: '🟢' };
+  }, []);
+
+  const validarIniciarJogo = useCallback((isDono, sala, iniciando) => {
+    if (!isDono) return { podeIniciar: false, motivo: 'Apenas o Mestre pode iniciar o jogo' };
+    if (iniciando) return { podeIniciar: false, motivo: 'Jogo ja esta sendo iniciado...' };
+    if (!sala) return { podeIniciar: false, motivo: 'Sala nao esta aberta' };
+    return { podeIniciar: true, motivo: null };
+  }, []);
+
+  const validarTrocarPersonagem = useCallback((sel) => {
+    if (!sel) return { podeTrocar: true, acao: 'Selecionar personagem' };
+    return { podeTrocar: true, acao: 'Trocar personagem' };
+  }, []);
+
+  const compartilharSala = async () => {
+    try {
+      let url = window.location.href;
+      url = url.replace('/jogo/', '/convite-jogo/');
+      await navigator.clipboard.writeText(url);
+      setLinkCopiado(true);
+      if (copiarTimeoutRef.current) clearTimeout(copiarTimeoutRef.current);
+      copiarTimeoutRef.current = setTimeout(() => setLinkCopiado(false), 2000);
+      return true;
+    } catch (error) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = window.location.href;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setLinkCopiado(true);
+        if (copiarTimeoutRef.current) clearTimeout(copiarTimeoutRef.current);
+        copiarTimeoutRef.current = setTimeout(() => setLinkCopiado(false), 2000);
+        return true;
+      } catch (fallbackError) {
+        return false;
+      }
+    }
+  };
+
+  // Computed values
+  const infoHistoria = formatarInformacoesHistoria(historia);
+  const infoPersonagem = formatarInformacoesPersonagem(personagemSelecionado);
+  const participantesFormatados = formatarParticipantes(participantes, user);
+  const connectionStatus = getConnectionStatus(socketConnected);
+  const validacaoIniciarJogo = validarIniciarJogo(isDonoSala, salaAberta, iniciandoJogo);
+  const validacaoTrocarPersonagem = validarTrocarPersonagem(personagemSelecionado);
+
+  // Handlers
+  const handleIniciarJogo = async () => {
+    if (!onIniciarJogo) return;
     setIniciandoJogo(true);
     try {
       await onIniciarJogo();
@@ -159,12 +225,8 @@ const EtapaSalaEspera = ({
   };
 
   const handleCompartilharSala = async () => {
-    await etapaSalaEsperaViewModel.compartilharSala();
+    await compartilharSala();
   };
-
-  // 🎯 VALIDAÇÕES: Via ViewModel
-  const validacaoIniciarJogo = etapaSalaEsperaViewModel.validarIniciarJogo(isDonoSala, salaAberta, iniciandoJogo);
-  const validacaoTrocarPersonagem = etapaSalaEsperaViewModel.validarTrocarPersonagem(personagemSelecionado);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
@@ -205,17 +267,17 @@ const EtapaSalaEspera = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Informações da História */}
+          {/* Informacoes da Historia */}
           <div className="lg:col-span-2 space-y-6">
-            {/* História */}
+            {/* Historia */}
             <div className="glass p-6 rounded-2xl border border-purple-500/20">
               <h3 className="text-xl font-fantasy font-bold text-white mb-4 flex items-center">
-                📖 História
+                📖 Historia
               </h3>
               <p className="text-purple-200 leading-relaxed">
                 {infoHistoria.descricao}
               </p>
-              
+
               {infoHistoria.temas && (
                 <div className="mt-4">
                   <span className="inline-block px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
@@ -237,14 +299,14 @@ const EtapaSalaEspera = ({
                 <div className="flex-1">
                   <h4 className="text-lg font-bold text-white">{infoPersonagem.nome}</h4>
                   <p className="text-cyan-300">
-                    {infoPersonagem.classe} • {infoPersonagem.raca} • Nível {infoPersonagem.nivel}
+                    {infoPersonagem.classe} • {infoPersonagem.raca} • Nivel {infoPersonagem.nivel}
                   </p>
                   <div className="flex items-center space-x-4 mt-2 text-sm">
                     <span className="text-red-400">❤️ {infoPersonagem.hp} HP</span>
                     <span className="text-blue-400">🔮 {infoPersonagem.mp} MP</span>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={handleTrocarPersonagem}
                   className="btn-rpg-secondary px-4 py-2 text-sm"
                 >
@@ -258,12 +320,12 @@ const EtapaSalaEspera = ({
               <h3 className="text-xl font-fantasy font-bold text-white mb-4 flex items-center">
                 ⏳ Status da Aventura
               </h3>
-              
+
               {isDonoSala ? (
                 <div className="space-y-4">
                   <div className="flex items-center text-yellow-300">
                     <span className="text-lg mr-2">👑</span>
-                    <span>Você é o Dono desta aventura</span>
+                    <span>Voce e o Dono desta aventura</span>
                   </div>
                   <p className="text-yellow-200 text-sm">
                     Quando estiver pronto, inicie a aventura para todos os jogadores.
@@ -273,7 +335,7 @@ const EtapaSalaEspera = ({
                     disabled={iniciandoJogo || !validacaoIniciarJogo.podeIniciar}
                     className={`
                       w-full btn-rpg h-12 text-lg font-bold
-                      bg-gradient-to-r from-yellow-600 to-orange-600 
+                      bg-gradient-to-r from-yellow-600 to-orange-600
                       hover:from-yellow-500 hover:to-orange-500
                       disabled:opacity-50 disabled:cursor-not-allowed
                       transition-all duration-300 transform hover:scale-105
@@ -297,11 +359,11 @@ const EtapaSalaEspera = ({
                     <span className="ml-2">Aguardando o Dono iniciar a aventura...</span>
                   </div>
                   <p className="text-purple-400 text-sm">
-                    O Dono da sala irá iniciar quando todos estiverem prontos.
+                    O Dono da sala ira iniciar quando todos estiverem prontos.
                   </p>
                   {!personagemSelecionado && (
                     <p className="text-yellow-300 text-sm mt-2">
-                      ⚠️ Você precisa selecionar um personagem primeiro
+                      ⚠️ Voce precisa selecionar um personagem primeiro
                     </p>
                   )}
                 </div>
@@ -319,7 +381,7 @@ const EtapaSalaEspera = ({
                   {participantesFormatados.length}
                 </span>
               </h3>
-              
+
               <div className="space-y-3">
                 {participantesFormatados.map((participante, index) => (
                   <div key={participante.userId || index} className="flex items-center space-x-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -330,7 +392,7 @@ const EtapaSalaEspera = ({
                       <div className="text-white font-medium">
                         {participante.username}
                         {participante.isCurrentUser && (
-                          <span className="text-cyan-400 text-xs ml-2">(Você)</span>
+                          <span className="text-cyan-400 text-xs ml-2">(Voce)</span>
                         )}
                         {participante.isOwner && (
                           <span className="text-yellow-400 text-xs ml-2">👑 Dono</span>
@@ -364,7 +426,7 @@ const EtapaSalaEspera = ({
               <h3 className="text-xl font-fantasy font-bold text-white mb-4 flex items-center">
                 ⚙️ Controles
               </h3>
-              
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-blue-300 text-sm">Status WebSocket:</span>
@@ -377,18 +439,18 @@ const EtapaSalaEspera = ({
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-blue-300 text-sm">Etapa:</span>
                   <span className="text-white text-sm">🏰 Sala de Espera</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-blue-300 text-sm">Pode Iniciar:</span>
                   <span className="text-yellow-300 text-sm">⏳ Aguardando</span>
                 </div>
               </div>
-              
+
               <div className="mt-6 space-y-3">
                 <button
                   onClick={handleCompartilharSala}
@@ -397,14 +459,14 @@ const EtapaSalaEspera = ({
                   <span>{linkCopiado ? '✅' : '🔗'}</span>
                   <span>{linkCopiado ? 'Link Copiado!' : 'Compartilhar Sala'}</span>
                 </button>
-                
+
                 {isDonoSala && (
                   <button
                     onClick={handleIniciarJogo}
                     disabled={iniciandoJogo || !salaAberta}
                     className={`
                       w-full btn-rpg h-10 text-sm font-bold flex items-center justify-center space-x-2
-                      bg-gradient-to-r from-yellow-600 to-orange-600 
+                      bg-gradient-to-r from-yellow-600 to-orange-600
                       hover:from-yellow-500 hover:to-orange-500
                       disabled:opacity-50 disabled:cursor-not-allowed
                       transition-all duration-300
@@ -414,7 +476,7 @@ const EtapaSalaEspera = ({
                     <span>{iniciandoJogo ? 'Iniciando...' : 'Iniciar Jogo'}</span>
                   </button>
                 )}
-                
+
                 <button
                   onClick={onSair}
                   className="w-full btn-rpg-secondary h-10 text-sm font-bold flex items-center justify-center space-x-2"
@@ -422,11 +484,11 @@ const EtapaSalaEspera = ({
                   <span>🚪</span>
                   <span>Sair da Sala</span>
                 </button>
-                
+
                 {!socketConnected && (
                   <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
                     <p className="text-yellow-300 text-xs text-center">
-                      ⚠️ Conexão perdida. Tentando reconectar automaticamente...
+                      ⚠️ Conexao perdida. Tentando reconectar automaticamente...
                     </p>
                   </div>
                 )}
@@ -437,6 +499,6 @@ const EtapaSalaEspera = ({
       </div>
     </div>
   );
-}; 
+};
 
 export default EtapaSalaEspera;

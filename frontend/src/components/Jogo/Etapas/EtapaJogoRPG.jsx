@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RPGActions } from '../../RPGActions';
 import BackgroundEffects from '../Shared/BackgroundEffects';
 import PainelJogadores from '../Chat/PainelJogadores';
@@ -10,18 +10,74 @@ import BatalhaUI from '../Gameplay/BatalhaUI';
 import InventarioPanel from '../Gameplay/InventarioPanel';
 import LevelUpCelebration from '../Gameplay/LevelUpCelebration';
 import SessionRecap from '../Gameplay/SessionRecap';
-import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
 import NotificationManager, { showGameNotification } from '../NotificationManager';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
 import { personagemService } from '../../../services';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS, PARTICLES } from '../../../constants/game';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { useSocketStore, useGameStore } from '../../../store/index.js';
+
+// --- Helper functions (antes no ViewModel) ---
+
+const extrairFacesDoDado = (tipoDado) => {
+  if (!tipoDado || typeof tipoDado !== 'string') return 20;
+  const match = tipoDado.match(/d(\d+)/);
+  return match ? parseInt(match[1]) : 20;
+};
+
+const rolarDados = (tipoDado = 'd20', descricao = '') => {
+  const faces = extrairFacesDoDado(tipoDado);
+  const resultado = Math.floor(Math.random() * faces) + 1;
+  const conteudo = descricao
+    ? `🎲 ${descricao}: ${resultado} (${tipoDado})`
+    : `🎲 Voce rolou: ${resultado} (${tipoDado})`;
+  return {
+    resultado,
+    tipoDado,
+    descricao,
+    mensagem: {
+      id: Date.now() + Math.random(),
+      autor: 'Sistema',
+      conteudo,
+      tipo: 'dado',
+      timestamp: new Date()
+    }
+  };
+};
+
+const formatarInformacoesPersonagem = (personagem) => {
+  if (!personagem) {
+    return { nome: 'Personagem nao encontrado', classe: 'Desconhecida', raca: 'Desconhecida', nivel: '1', hp: '???', mp: '???', xp: '0' };
+  }
+  return {
+    nome: personagem.nome || 'Personagem sem nome',
+    classe: personagem.classe_nome || personagem.classe || 'Desconhecida',
+    raca: personagem.raca_nome || personagem.raca || 'Desconhecida',
+    nivel: personagem.nivel || '1',
+    hp: personagem.hp_atual || personagem.hp || '???',
+    mp: personagem.mp_atual || personagem.mp || '???',
+    xp: personagem.xp || '0',
+  };
+};
+
+const formatarParticipantes = (participantes, user) => {
+  if (!Array.isArray(participantes)) return [];
+  return participantes
+    .filter(p => p.userId !== user?.id)
+    .map(participante => ({
+      ...participante,
+      username: participante.username || 'Jogador',
+      personagem: participante.personagem || 'Personagem',
+      isOwner: participante.isOwner || false,
+      status: participante.status || 'online',
+    }));
+};
 
 /**
- * Layout do jogo RPG ativo - Usando ViewModel específico
- * 📍 Usado por: JogoView (etapa 'jogo-ativo')
- * 🎯 MIGRADO: Agora usa ViewModel específico para lógica de negócio
- * 🎲 SISTEMA DE TURNOS: Integrado com fases, rodadas e turnos
+ * Layout do jogo RPG ativo
+ * Usado por: JogoView (etapa 'jogo-ativo')
+ * Refatorado: Usa hooks diretos (useSocketStore, useGameStore) no lugar de ViewModels
+ * Sistema de turnos: Integrado com fases, rodadas e turnos
  */
 const EtapaJogoRPG = ({
   historia,
@@ -37,13 +93,26 @@ const EtapaJogoRPG = ({
   onAtualizarStatus,
   onSair
 }) => {
-  // 🎨 THEME
+  // Theme
   const { theme, toggleTheme } = useTheme();
 
-  // 🎯 VIEWMODEL - Estado reativo
-  const [viewModelState, setViewModelState] = useState(etapaJogoRPGViewModel.getState());
+  // Socket store - acesso direto via hooks
+  const socketStoreOn = useSocketStore(s => s.on);
+  const socketStoreOff = useSocketStore(s => s.off);
+  const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
+  const socketStoreRolarDadoInicial = useSocketStore(s => s.rolarDadoInicial);
+  const socketStoreIniciarTurno = useSocketStore(s => s.iniciarTurno);
 
-  // 🎲 SOCKET STORE - Estado de turnos e rodadas
+  // Game store - para mensagens
+  const gameStoreMensagens = useGameStore(s => s.mensagens);
+  const gameStoreSetMensagens = useGameStore(s => s.setMensagens);
+
+  // --- Estado local (antes no ViewModel etapaJogoRPGViewModel) ---
+  const [showActions, setShowActions] = useState(false);
+  const [mensagemAtual, setMensagemAtual] = useState('');
+  const [typingTimeout, setTypingTimeoutState] = useState(null);
+
+  // Socket state (turnos e rodadas)
   const [socketState, setSocketState] = useState({
     faseJogo: 'aguardando_inicio',
     rodadaAtual: 1,
@@ -55,7 +124,6 @@ const EtapaJogoRPG = ({
     ehMeuTurno: false,
     turnoIniciado: false,
     cooldownRoleplay: 0,
-    // Combate
     combateAtivo: false,
     combateMonstros: [],
     combateJogadores: {},
@@ -66,17 +134,17 @@ const EtapaJogoRPG = ({
     sessionRecap: null
   });
 
-  // ⏱️ Timer local para cooldown roleplay
+  // Timer local para cooldown roleplay
   const [cooldownLocal, setCooldownLocal] = useState(0);
-  const cooldownIntervalRef = React.useRef(null);
+  const cooldownIntervalRef = useRef(null);
 
-  // 📊 Estado para dropdown de informações da rodada
+  // Estado para dropdown de informacoes da rodada
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
-  // 🎯 Estado para collapse do painel direito
+  // Estado para collapse do painel direito
   const [rightPanelExpanded, setRightPanelExpanded] = useState(true);
-  const rodadaDropdownRef = React.useRef(null);
+  const rodadaDropdownRef = useRef(null);
 
-  // 🎲 Estado para controlar solicitação de dados do Mestre
+  // Estado para controlar solicitacao de dados do Mestre
   const [dadosSolicitados, setDadosSolicitados] = useState(false);
   const [dadoSolicitadoInfo, setDadoSolicitadoInfo] = useState(null);
   const [aguardandoMestre, setAguardandoMestre] = useState(false);
@@ -86,13 +154,13 @@ const EtapaJogoRPG = ({
   const [fichaErro, setFichaErro] = useState(null);
   const [tituloFicha, setTituloFicha] = useState('Ficha do Personagem');
   const [fichasCache, setFichasCache] = useState({});
-  // 🎒 Inventario + Level Up
+  // Inventario + Level Up
   const [inventarioAberto, setInventarioAberto] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
   const [levelUpQueue, setLevelUpQueue] = useState([]);
 
-  // Consumir fila de level-ups sequencialmente (mostra um por vez)
-  React.useEffect(() => {
+  // Consumir fila de level-ups sequencialmente
+  useEffect(() => {
     if (!levelUpData && levelUpQueue.length > 0) {
       const [next, ...rest] = levelUpQueue;
       setLevelUpData(next);
@@ -101,565 +169,437 @@ const EtapaJogoRPG = ({
   }, [levelUpData, levelUpQueue]);
 
   // Ref para evitar stale closure no onAdicionarMensagem
-  const onAdicionarMensagemRef = React.useRef(onAdicionarMensagem);
-  React.useEffect(() => {
+  const onAdicionarMensagemRef = useRef(onAdicionarMensagem);
+  useEffect(() => {
     onAdicionarMensagemRef.current = onAdicionarMensagem;
   }, [onAdicionarMensagem]);
 
-  // 🔄 SUBSCRIBE AO VIEWMODEL
+  // Subscribe ao socket store (para estados de turnos)
   useEffect(() => {
-    const unsubscribe = etapaJogoRPGViewModel.subscribe(setViewModelState);
-    return unsubscribe;
+    const extractSocketState = (state) => ({
+      faseJogo: state.faseJogo || 'aguardando_inicio',
+      rodadaAtual: state.rodadaAtual || 1,
+      turnoAtual: state.turnoAtual || 0,
+      jogadorAtual: state.jogadorAtual,
+      ordemJogadores: state.ordemJogadores || [],
+      ordemDefinida: state.ordemDefinida || false,
+      resultadosDados: state.resultadosDados || {},
+      ehMeuTurno: state.ehMeuTurno || false,
+      turnoIniciado: state.turnoIniciado || false,
+      cooldownRoleplay: state.cooldownRoleplay || 0,
+      combateAtivo: state.combateAtivo || false,
+      combateMonstros: state.combateMonstros || [],
+      combateJogadores: state.combateJogadores || {},
+      combateRodada: state.combateRodada || 0,
+      combateResultado: state.combateResultado || null,
+      combateLog: state.combateLog || [],
+      combateXpGanho: state.combateXpGanho || 0,
+      sessionRecap: state.sessionRecap || null
+    });
+
+    // Ler estado inicial
+    const initialState = useSocketStore.getState();
+    setSocketState(extractSocketState(initialState));
+
+    // Subscribe para mudancas
+    const unsubscribe = useSocketStore.subscribe((state) => {
+      setSocketState(extractSocketState(state));
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // 🔄 SUBSCRIBE AO SOCKET STORE (para estados de turnos)
-  useEffect(() => {
-    let unsubscribe;
-    
-    const setupSocketStoreSubscription = async () => {
-      try {
-        const { getSocketStoreAPI } = await import('../../../store/index.js');
-        const socketStore = getSocketStoreAPI();
-        
-        // Extrai estado relevante do socket store
-        const extractSocketState = (state) => ({
-          faseJogo: state.faseJogo || 'aguardando_inicio',
-          rodadaAtual: state.rodadaAtual || 1,
-          turnoAtual: state.turnoAtual || 0,
-          jogadorAtual: state.jogadorAtual,
-          ordemJogadores: state.ordemJogadores || [],
-          ordemDefinida: state.ordemDefinida || false,
-          resultadosDados: state.resultadosDados || {},
-          ehMeuTurno: state.ehMeuTurno || false,
-          turnoIniciado: state.turnoIniciado || false,
-          cooldownRoleplay: state.cooldownRoleplay || 0,
-          // Combate
-          combateAtivo: state.combateAtivo || false,
-          combateMonstros: state.combateMonstros || [],
-          combateJogadores: state.combateJogadores || {},
-          combateRodada: state.combateRodada || 0,
-          combateResultado: state.combateResultado || null,
-          combateLog: state.combateLog || [],
-          combateXpGanho: state.combateXpGanho || 0,
-          sessionRecap: state.sessionRecap || null
-        });
-
-        // Ler estado inicial (subscribe só dispara em mudanças futuras)
-        setSocketState(extractSocketState(socketStore.getState()));
-
-        // Subscribe para mudanças no socket store
-        unsubscribe = socketStore.subscribe((state) => {
-          setSocketState(extractSocketState(state));
-        });
-      } catch (error) {
-        // silenced
-      }
-    };
-
-    setupSocketStoreSubscription();
-    
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
-
-  // ⏱️ Timer para decrementar cooldown local
+  // Timer para decrementar cooldown local
   useEffect(() => {
     if (cooldownLocal > 0) {
       cooldownIntervalRef.current = setInterval(() => {
         setCooldownLocal(prev => {
           if (prev <= 1) {
-            if (cooldownIntervalRef.current) {
-              clearInterval(cooldownIntervalRef.current);
-            }
+            if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
             return 0;
           }
           return prev - 1;
         });
       }, TIMEOUTS.COOLDOWN_TICK);
     }
-
     return () => {
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current);
-      }
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
     };
   }, [cooldownLocal]);
 
-  // ⏱️ Timeout de segurança para aguardandoMestre (30s)
+  // Timeout de seguranca para aguardandoMestre (30s)
   useEffect(() => {
     if (!aguardandoMestre) return;
-    const timeout = setTimeout(async () => {
+    const timeout = setTimeout(() => {
       setAguardandoMestre(false);
       showGameNotification('O Mestre demorou para responder. Tente novamente.', 'warning');
-      // Remover mensagens de loading para não ficarem fantasma
-      try {
-        const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
-        const msgs = jogoViewModel.getState().mensagens || [];
-        const semLoading = msgs.filter(m => m.tipo !== 'loading');
-        if (msgs.length !== semLoading.length) jogoViewModel.setMensagens(semLoading);
-      } catch (e) { /* silenced */ }
+      // Remover mensagens de loading
+      const msgs = useGameStore.getState().mensagens || [];
+      const semLoading = msgs.filter(m => m.tipo !== 'loading');
+      if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
     }, 30000);
     return () => clearTimeout(timeout);
-  }, [aguardandoMestre]);
+  }, [aguardandoMestre, gameStoreSetMensagens]);
 
-  // 🧹 Listener para limpar mensagens de dados quando ordem definida
+  // Listener para limpar mensagens de dados quando ordem definida
   useEffect(() => {
-    const limparMensagensDados = async () => {
-      // Filtrar mensagens para manter apenas a do Mestre
-      const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
-      const mensagensAtuais = jogoViewModel.getState().mensagens || [];
-
-      // Manter apenas mensagens do tipo 'mestre'
+    const limparMensagensDados = () => {
+      const mensagensAtuais = useGameStore.getState().mensagens || [];
       const mensagensFiltradas = mensagensAtuais.filter(m => m.tipo === 'mestre' || m.tipo === 'entre_rodadas');
-
-      jogoViewModel.limparMensagensDados(mensagensFiltradas);
+      gameStoreSetMensagens(mensagensFiltradas);
     };
 
     window.addEventListener('limparMensagensDados', limparMensagensDados);
+    return () => window.removeEventListener('limparMensagensDados', limparMensagensDados);
+  }, [gameStoreSetMensagens]);
 
-    return () => {
-      window.removeEventListener('limparMensagensDados', limparMensagensDados);
-    };
-  }, []);
-
-  // 📊 DESTRUCTURING DO ESTADO
-  const { showActions, mensagemAtual, messageType, isTyping: isTypingLocal } = viewModelState;
-
-  // 🚀 INICIALIZAÇÃO
-  useEffect(() => {
-    etapaJogoRPGViewModel.initialize();
-    
-    // Cleanup ao desmontar
-    return () => {
-      etapaJogoRPGViewModel.destroy();
-    };
-  }, []);
-
-  // 🖱️ Fechar dropdown ao clicar fora
+  // Fechar dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (rodadaDropdownRef.current && !rodadaDropdownRef.current.contains(event.target)) {
         setShowRodadaInfo(false);
       }
     };
-
     if (showRodadaInfo) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showRodadaInfo]);
 
-  // 🎭 LISTENERS PARA MENSAGENS DO MESTRE E JOGADORES
+  // Listeners para mensagens do Mestre e jogadores
   useEffect(() => {
-    const setupListeners = async () => {
-      try {
-        const { getSocketStoreAPI } = await import('../../../store/index.js');
-        const socketStore = getSocketStoreAPI();
+    // Listener para mensagens do Mestre
+    const handleMensagemMestre = (data) => {
+      // Remover mensagens de loading
+      const mensagensAtuais = useGameStore.getState().mensagens || [];
+      const mensagensSemLoading = mensagensAtuais.filter(m => m.tipo !== 'loading');
+      if (mensagensAtuais.length !== mensagensSemLoading.length) {
+        gameStoreSetMensagens(mensagensSemLoading);
+      }
 
-        // Listener para mensagens do Mestre
-        const handleMensagemMestre = async (data) => {
-          // ✅ Remover mensagens de loading antes de adicionar resposta real
-          try {
-            const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
-            const mensagensAtuais = jogoViewModel.getState().mensagens || [];
-            const mensagensSemLoading = mensagensAtuais.filter(m => m.tipo !== 'loading');
+      setAguardandoMestre(false);
+      setDadosSolicitados(false);
+      setDadoSolicitadoInfo(null);
 
-            if (mensagensAtuais.length !== mensagensSemLoading.length) {
-              jogoViewModel.setMensagens(mensagensSemLoading);
-            }
-          } catch (error) {
-            // silenced
-          }
-          
-          // ✅ Desativar loading e limpar estado de dados solicitados
-          setAguardandoMestre(false);
-          setDadosSolicitados(false);
-          setDadoSolicitadoInfo(null);
-          
-          const mensagem = {
-            id: data.id || Date.now(),
-            userId: 'mestre',
-            username: 'Mestre',
-            message: data.message,
-            tipo: 'mestre',
-            timestamp: data.timestamp || Date.now()
-          };
-          
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current(mensagem);
-          }
-        };
+      const mensagem = {
+        id: data.id || Date.now(),
+        userId: 'mestre',
+        username: 'Mestre',
+        message: data.message,
+        tipo: 'mestre',
+        timestamp: data.timestamp || Date.now()
+      };
 
-        // Listener para mensagens de chat normais (eco dos jogadores)
-        const handleChatMessage = (data) => {
-          // Só adicionar se não for mestre (mensagens do mestre vêm pelo outro listener)
-          if (data.userId !== 'mestre' && data.tipo !== 'mestre') {
-            if (onAdicionarMensagemRef.current) {
-              onAdicionarMensagemRef.current(data);
-            }
-          }
-        };
-
-        // Listener para resultados de dados
-        const handleResultadoDado = (data) => {
-          const mensagem = {
-            id: data.id || `dado_${Date.now()}`,
-            userId: data.userId,
-            username: data.username,
-            personagemNome: data.personagemNome,
-            valor: data.valor,
-            dice: 'd20',
-            tipo: 'dado',
-            timestamp: data.timestamp || Date.now()
-          };
-
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current(mensagem);
-          }
-        };
-
-        // Listener para mensagens roleplay
-        const handleMensagemRoleplay = (data) => {
-          const mensagem = {
-            id: data.id || Date.now(),
-            userId: data.userId,
-            username: data.username,
-            message: data.message,
-            tipo: 'roleplay',
-            timestamp: data.timestamp || Date.now()
-          };
-
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current(mensagem);
-          }
-        };
-
-        // Listener para rodada finalizada (narrativa entre rodadas)
-        const handleRodadaFinalizada = (data) => {
-          const mensagem = {
-            id: `rodada_${data.rodada}_fim`,
-            tipo: 'entre_rodadas',
-            titulo: `Fim da Rodada ${data.rodada}`,
-            mensagem: `A rodada ${data.rodada} foi concluída. Preparando próxima rodada...`,
-            timestamp: data.timestamp || Date.now()
-          };
-
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current(mensagem);
-          }
-        };
-
-        // Listener para ordem definida - limpar chat de dados
-        const handleOrdemDefinida = (data) => {
-          // Emitir evento customizado para limpar mensagens
-          const event = new CustomEvent('limparMensagensDados');
-          window.dispatchEvent(event);
-        };
-
-        // Listener para dice_roll (dados normais durante o jogo)
-        // Se dadosSolicitados está ativo, NÃO adicionar mensagem aqui — o resultado_teste vai trazer a versão enriquecida
-        const handleDiceRoll = (data) => {
-          // ✅ Se era o usuário atual que rolou, transição: dado → aguardando mestre
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const foiEuQueRolei = String(data.userId) === String(user.id);
-          if (foiEuQueRolei) {
-            setDadosSolicitados(false);
-            setDadoSolicitadoInfo(null);
-            setAguardandoMestre(true);
-          }
-
-          // Se dados foram solicitados pelo Mestre, resultado_teste vai adicionar a mensagem enriquecida
-          if (data.dadosSolicitados) return;
-
-          const mensagem = {
-            id: data.id || `dice_${Date.now()}`,
-            userId: data.userId,
-            username: data.username,
-            dice: data.dice,
-            result: data.result,
-            tipo: 'dado',
-            timestamp: data.timestamp || Date.now()
-          };
-
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current(mensagem);
-          }
-        };
-
-        // Listener para resultado de teste com modificadores (substitui dice_roll quando teste mecânico ativo)
-        const handleResultadoTeste = (data) => {
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current({
-              id: `teste_${Date.now()}`,
-              userId: data.username,
-              username: data.username,
-              dice: data.dice || 'd20',
-              result: data.rolagemBruta,
-              totalModificador: data.totalModificador,
-              atributoNome: data.atributoNome,
-              total: data.total,
-              dc: data.dc,
-              sucesso: data.sucesso,
-              descricaoResultado: data.descricaoResultado,
-              tipo: 'dado',
-              timestamp: data.timestamp || Date.now()
-            });
-          }
-        };
-
-        // Listener para solicitação de dados do Mestre
-        const handleMestreSolicitaDados = (data) => {
-
-          // ✅ Ativar estado de dados solicitados com info completa
-          setDadosSolicitados(true);
-          setDadoSolicitadoInfo({
-            tipoDado: data.tipoDado || 'd20',
-            teste: data.teste || '',
-            dificuldade: data.dificuldade || 'Média',
-            modificador: data.modificador || 0,
-            atributo: data.atributo || null
-          });
-        };
-
-        // Listener para level up (usa fila para multi-level-up)
-        const handleLevelUp = (data) => {
-          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-          if (String(data.userId) === String(currentUser.id)) {
-            setLevelUpQueue(prev => [...prev, {
-              novoNivel: data.novoNivel || data.nivel,
-              ganhos: data.ganhos || {}
-            }]);
-          }
-          if (onAdicionarMensagemRef.current) {
-            onAdicionarMensagemRef.current({
-              id: `levelup_${Date.now()}_${data.novoNivel}`,
-              tipo: 'mestre',
-              userId: 'sistema',
-              username: 'Sistema',
-              message: `🎉 **${data.personagemNome || data.username || 'Jogador'}** subiu para o **Nível ${data.novoNivel || data.nivel}**!`,
-              timestamp: Date.now()
-            });
-          }
-        };
-
-        // Listener para acoes do mestre (itens, cura, etc)
-        // Nota: não mutamos props diretamente - apenas notificamos via toast
-        const handleAcaoMestre = (data) => {
-          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-          const ehMeu = String(data.userId) === String(currentUser.id);
-          if (data.tipo === 'item_recebido' && ehMeu) {
-            if (data.item) {
-              showGameNotification(`Item recebido: ${data.item.nome || 'Novo item'}`, 'success');
-            }
-          } else if (data.tipo === 'item_removido' && ehMeu) {
-            const nomeItem = data.item?.nome || data.itemNome;
-            if (nomeItem) {
-              showGameNotification(`Item removido: ${nomeItem}`, 'warning');
-            }
-          } else if (data.tipo === 'curado' && ehMeu) {
-            showGameNotification(`+${data.hp_restaurado || 0} HP restaurado!`, 'success');
-          } else if (data.tipo === 'dano_recebido' && ehMeu) {
-            if (data.imune) {
-              showGameNotification(`Imune ao dano${data.elemento ? ` de ${data.elemento}` : ''}!`, 'info');
-            } else {
-              showGameNotification(`-${data.dano} HP${data.elemento ? ` (${data.elemento})` : ''}${data.derrotado ? ' - Derrotado!' : ''}`, 'error');
-            }
-          } else if (data.tipo === 'status_aplicado' && ehMeu) {
-            showGameNotification(`Status: ${data.status} (${data.duracao || 3} turnos)`, 'warning');
-          } else if (data.tipo === 'status_removido' && ehMeu) {
-            showGameNotification(`Status removido: ${data.status}`, 'info');
-          }
-        };
-
-        // Adicionar listeners
-        socketStore.on('mensagem_mestre', handleMensagemMestre);
-        socketStore.on('chat_message', handleChatMessage);
-        socketStore.on('resultado_dado_inicial', handleResultadoDado);
-        socketStore.on('mensagem_roleplay', handleMensagemRoleplay);
-        socketStore.on('rodada_finalizada', handleRodadaFinalizada);
-        socketStore.on('ordem_definida', handleOrdemDefinida);
-        socketStore.on('dice_roll', handleDiceRoll);
-        socketStore.on('resultado_teste', handleResultadoTeste);
-        socketStore.on('mestre_solicita_dados', handleMestreSolicitaDados);
-        socketStore.on('solicitacao_dados', handleMestreSolicitaDados);
-        socketStore.on('level_up', handleLevelUp);
-        socketStore.on('acao_mestre', handleAcaoMestre);
-
-        // XP toast ao fim de combate
-        const handleCombateFinalizado = (data) => {
-          const xpPorJogador = data.xpPorJogador || 0;
-          if (xpPorJogador > 0) {
-            showGameNotification(`+${xpPorJogador} XP ganho no combate!`, 'success');
-          }
-          if (onAdicionarMensagemRef.current) {
-            const resultado = data.resultado === 'vitoria' ? 'Vitoria!' : data.resultado === 'derrota' ? 'Derrota...' : 'Combate encerrado';
-            onAdicionarMensagemRef.current({
-              id: `combate_fim_${Date.now()}`,
-              tipo: 'mestre',
-              userId: 'sistema',
-              username: 'Sistema',
-              message: `${resultado}${xpPorJogador > 0 ? ` (+${xpPorJogador} XP)` : ''}`,
-              timestamp: Date.now()
-            });
-          }
-        };
-        socketStore.on('combate_finalizado', handleCombateFinalizado);
-
-        // Loot pós-combate
-        const handleCombateLoot = (data) => {
-          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-          const meusItens = data.lootPorJogador?.[String(currentUser.id)] || [];
-          if (meusItens.length > 0) {
-            const nomes = meusItens.map(i => i.nome).join(', ');
-            showGameNotification(`Loot recebido: ${nomes}`, 'success');
-          }
-          if (onAdicionarMensagemRef.current && data.todosItens?.length > 0) {
-            const listaItens = data.todosItens.map(i => i.nome).join(', ');
-            onAdicionarMensagemRef.current({
-              id: `loot_${Date.now()}`,
-              tipo: 'mestre',
-              userId: 'sistema',
-              username: 'Sistema',
-              message: `Loot obtido: ${listaItens}`,
-              timestamp: Date.now()
-            });
-          }
-        };
-        socketStore.on('combate_loot', handleCombateLoot);
-
-        // ✅ Listener para erro de mensagem (limpa loading se backend rejeitar)
-        const handleErroMensagem = async (data) => {
-          setAguardandoMestre(false);
-          if (data?.message) {
-            showGameNotification(data.message, 'warning');
-          }
-          // Remover loading messages
-          try {
-            const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
-            const msgs = jogoViewModel.getState().mensagens || [];
-            const semLoading = msgs.filter(m => m.tipo !== 'loading');
-            if (msgs.length !== semLoading.length) jogoViewModel.setMensagens(semLoading);
-          } catch (e) { /* silenced */ }
-        };
-        socketStore.on('erro_mensagem', handleErroMensagem);
-
-        // Cleanup
-        return () => {
-          socketStore.off('mensagem_mestre', handleMensagemMestre);
-          socketStore.off('chat_message', handleChatMessage);
-          socketStore.off('resultado_dado_inicial', handleResultadoDado);
-          socketStore.off('mensagem_roleplay', handleMensagemRoleplay);
-          socketStore.off('rodada_finalizada', handleRodadaFinalizada);
-          socketStore.off('ordem_definida', handleOrdemDefinida);
-          socketStore.off('dice_roll', handleDiceRoll);
-          socketStore.off('resultado_teste', handleResultadoTeste);
-          socketStore.off('mestre_solicita_dados', handleMestreSolicitaDados);
-          socketStore.off('solicitacao_dados', handleMestreSolicitaDados);
-          socketStore.off('level_up', handleLevelUp);
-          socketStore.off('acao_mestre', handleAcaoMestre);
-          socketStore.off('combate_finalizado', handleCombateFinalizado);
-          socketStore.off('combate_loot', handleCombateLoot);
-          socketStore.off('erro_mensagem', handleErroMensagem);
-        };
-      } catch (error) {
-        // silenced
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current(mensagem);
       }
     };
 
-    const cleanup = setupListeners();
+    const handleChatMessage = (data) => {
+      if (data.userId !== 'mestre' && data.tipo !== 'mestre') {
+        if (onAdicionarMensagemRef.current) {
+          onAdicionarMensagemRef.current(data);
+        }
+      }
+    };
+
+    const handleResultadoDado = (data) => {
+      const mensagem = {
+        id: data.id || `dado_${Date.now()}`,
+        userId: data.userId,
+        username: data.username,
+        personagemNome: data.personagemNome,
+        valor: data.valor,
+        dice: 'd20',
+        tipo: 'dado',
+        timestamp: data.timestamp || Date.now()
+      };
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current(mensagem);
+      }
+    };
+
+    const handleMensagemRoleplay = (data) => {
+      const mensagem = {
+        id: data.id || Date.now(),
+        userId: data.userId,
+        username: data.username,
+        message: data.message,
+        tipo: 'roleplay',
+        timestamp: data.timestamp || Date.now()
+      };
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current(mensagem);
+      }
+    };
+
+    const handleRodadaFinalizada = (data) => {
+      const mensagem = {
+        id: `rodada_${data.rodada}_fim`,
+        tipo: 'entre_rodadas',
+        titulo: `Fim da Rodada ${data.rodada}`,
+        mensagem: `A rodada ${data.rodada} foi concluida. Preparando proxima rodada...`,
+        timestamp: data.timestamp || Date.now()
+      };
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current(mensagem);
+      }
+    };
+
+    const handleOrdemDefinida = () => {
+      const event = new CustomEvent('limparMensagensDados');
+      window.dispatchEvent(event);
+    };
+
+    const handleDiceRoll = (data) => {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const foiEuQueRolei = String(data.userId) === String(currentUser.id);
+      if (foiEuQueRolei) {
+        setDadosSolicitados(false);
+        setDadoSolicitadoInfo(null);
+        setAguardandoMestre(true);
+      }
+      if (data.dadosSolicitados) return;
+
+      const mensagem = {
+        id: data.id || `dice_${Date.now()}`,
+        userId: data.userId,
+        username: data.username,
+        dice: data.dice,
+        result: data.result,
+        tipo: 'dado',
+        timestamp: data.timestamp || Date.now()
+      };
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current(mensagem);
+      }
+    };
+
+    const handleResultadoTeste = (data) => {
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current({
+          id: `teste_${Date.now()}`,
+          userId: data.username,
+          username: data.username,
+          dice: data.dice || 'd20',
+          result: data.rolagemBruta,
+          totalModificador: data.totalModificador,
+          atributoNome: data.atributoNome,
+          total: data.total,
+          dc: data.dc,
+          sucesso: data.sucesso,
+          descricaoResultado: data.descricaoResultado,
+          tipo: 'dado',
+          timestamp: data.timestamp || Date.now()
+        });
+      }
+    };
+
+    const handleMestreSolicitaDados = (data) => {
+      setDadosSolicitados(true);
+      setDadoSolicitadoInfo({
+        tipoDado: data.tipoDado || 'd20',
+        teste: data.teste || '',
+        dificuldade: data.dificuldade || 'Media',
+        modificador: data.modificador || 0,
+        atributo: data.atributo || null
+      });
+    };
+
+    const handleLevelUp = (data) => {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      if (String(data.userId) === String(currentUser.id)) {
+        setLevelUpQueue(prev => [...prev, {
+          novoNivel: data.novoNivel || data.nivel,
+          ganhos: data.ganhos || {}
+        }]);
+      }
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current({
+          id: `levelup_${Date.now()}_${data.novoNivel}`,
+          tipo: 'mestre',
+          userId: 'sistema',
+          username: 'Sistema',
+          message: `🎉 **${data.personagemNome || data.username || 'Jogador'}** subiu para o **Nivel ${data.novoNivel || data.nivel}**!`,
+          timestamp: Date.now()
+        });
+      }
+    };
+
+    const handleAcaoMestre = (data) => {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const ehMeu = String(data.userId) === String(currentUser.id);
+      if (data.tipo === 'item_recebido' && ehMeu) {
+        if (data.item) showGameNotification(`Item recebido: ${data.item.nome || 'Novo item'}`, 'success');
+      } else if (data.tipo === 'item_removido' && ehMeu) {
+        const nomeItem = data.item?.nome || data.itemNome;
+        if (nomeItem) showGameNotification(`Item removido: ${nomeItem}`, 'warning');
+      } else if (data.tipo === 'curado' && ehMeu) {
+        showGameNotification(`+${data.hp_restaurado || 0} HP restaurado!`, 'success');
+      } else if (data.tipo === 'dano_recebido' && ehMeu) {
+        if (data.imune) {
+          showGameNotification(`Imune ao dano${data.elemento ? ` de ${data.elemento}` : ''}!`, 'info');
+        } else {
+          showGameNotification(`-${data.dano} HP${data.elemento ? ` (${data.elemento})` : ''}${data.derrotado ? ' - Derrotado!' : ''}`, 'error');
+        }
+      } else if (data.tipo === 'status_aplicado' && ehMeu) {
+        showGameNotification(`Status: ${data.status} (${data.duracao || 3} turnos)`, 'warning');
+      } else if (data.tipo === 'status_removido' && ehMeu) {
+        showGameNotification(`Status removido: ${data.status}`, 'info');
+      }
+    };
+
+    const handleCombateFinalizado = (data) => {
+      const xpPorJogador = data.xpPorJogador || 0;
+      if (xpPorJogador > 0) {
+        showGameNotification(`+${xpPorJogador} XP ganho no combate!`, 'success');
+      }
+      if (onAdicionarMensagemRef.current) {
+        const resultado = data.resultado === 'vitoria' ? 'Vitoria!' : data.resultado === 'derrota' ? 'Derrota...' : 'Combate encerrado';
+        onAdicionarMensagemRef.current({
+          id: `combate_fim_${Date.now()}`,
+          tipo: 'mestre',
+          userId: 'sistema',
+          username: 'Sistema',
+          message: `${resultado}${xpPorJogador > 0 ? ` (+${xpPorJogador} XP)` : ''}`,
+          timestamp: Date.now()
+        });
+      }
+    };
+
+    const handleCombateLoot = (data) => {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const meusItens = data.lootPorJogador?.[String(currentUser.id)] || [];
+      if (meusItens.length > 0) {
+        const nomes = meusItens.map(i => i.nome).join(', ');
+        showGameNotification(`Loot recebido: ${nomes}`, 'success');
+      }
+      if (onAdicionarMensagemRef.current && data.todosItens?.length > 0) {
+        const listaItens = data.todosItens.map(i => i.nome).join(', ');
+        onAdicionarMensagemRef.current({
+          id: `loot_${Date.now()}`,
+          tipo: 'mestre',
+          userId: 'sistema',
+          username: 'Sistema',
+          message: `Loot obtido: ${listaItens}`,
+          timestamp: Date.now()
+        });
+      }
+    };
+
+    const handleErroMensagem = (data) => {
+      setAguardandoMestre(false);
+      if (data?.message) showGameNotification(data.message, 'warning');
+      // Remover loading messages
+      const msgs = useGameStore.getState().mensagens || [];
+      const semLoading = msgs.filter(m => m.tipo !== 'loading');
+      if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
+    };
+
+    // Adicionar listeners
+    socketStoreOn('mensagem_mestre', handleMensagemMestre);
+    socketStoreOn('chat_message', handleChatMessage);
+    socketStoreOn('resultado_dado_inicial', handleResultadoDado);
+    socketStoreOn('mensagem_roleplay', handleMensagemRoleplay);
+    socketStoreOn('rodada_finalizada', handleRodadaFinalizada);
+    socketStoreOn('ordem_definida', handleOrdemDefinida);
+    socketStoreOn('dice_roll', handleDiceRoll);
+    socketStoreOn('resultado_teste', handleResultadoTeste);
+    socketStoreOn('mestre_solicita_dados', handleMestreSolicitaDados);
+    socketStoreOn('solicitacao_dados', handleMestreSolicitaDados);
+    socketStoreOn('level_up', handleLevelUp);
+    socketStoreOn('acao_mestre', handleAcaoMestre);
+    socketStoreOn('combate_finalizado', handleCombateFinalizado);
+    socketStoreOn('combate_loot', handleCombateLoot);
+    socketStoreOn('erro_mensagem', handleErroMensagem);
+
     return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
-        cleanup.then(cleanupFn => cleanupFn && cleanupFn());
-      }
+      socketStoreOff('mensagem_mestre', handleMensagemMestre);
+      socketStoreOff('chat_message', handleChatMessage);
+      socketStoreOff('resultado_dado_inicial', handleResultadoDado);
+      socketStoreOff('mensagem_roleplay', handleMensagemRoleplay);
+      socketStoreOff('rodada_finalizada', handleRodadaFinalizada);
+      socketStoreOff('ordem_definida', handleOrdemDefinida);
+      socketStoreOff('dice_roll', handleDiceRoll);
+      socketStoreOff('resultado_teste', handleResultadoTeste);
+      socketStoreOff('mestre_solicita_dados', handleMestreSolicitaDados);
+      socketStoreOff('solicitacao_dados', handleMestreSolicitaDados);
+      socketStoreOff('level_up', handleLevelUp);
+      socketStoreOff('acao_mestre', handleAcaoMestre);
+      socketStoreOff('combate_finalizado', handleCombateFinalizado);
+      socketStoreOff('combate_loot', handleCombateLoot);
+      socketStoreOff('erro_mensagem', handleErroMensagem);
     };
-  }, []); // ← REMOVIDA DEPENDÊNCIA onAdicionarMensagem
+  }, [socketStoreOn, socketStoreOff, gameStoreSetMensagens]);
 
-  // 📋 HELPERS: Formatar dados via ViewModel
-  const infoPersonagem = etapaJogoRPGViewModel.formatarInformacoesPersonagem(personagemSelecionado);
-  const participantesFormatados = etapaJogoRPGViewModel.formatarParticipantes(participantes, user);
+  // Formatar dados
+  const infoPersonagem = formatarInformacoesPersonagem(personagemSelecionado);
+  const participantesFormatados = formatarParticipantes(participantes, user);
 
-  // 🎯 HANDLERS: Usando ViewModel
+  // Handlers
   const handleMensagemChange = (e) => {
-    etapaJogoRPGViewModel.updateMensagemAtual(e.target.value);
+    setMensagemAtual(e.target.value);
   };
 
   const handleKeyPress = (e) => {
-    const preventDefault = etapaJogoRPGViewModel.handleKeyPress(e, handleEnviarMensagem);
-    if (preventDefault) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      handleEnviarMensagem();
     }
   };
 
   // Flag para prevenir envios duplicados
-  const enviandoRef = React.useRef(false);
+  const enviandoRef = useRef(false);
 
   const handleEnviarMensagem = async () => {
-    if (!mensagemAtual.trim()) {
-      return;
-    }
-
-    // Prevenir envios duplicados
-    if (enviandoRef.current) {
-      return;
-    }
+    if (!mensagemAtual.trim()) return;
+    if (enviandoRef.current) return;
 
     try {
       enviandoRef.current = true;
-      
-      // Importar socketStore dinamicamente
-      const { getSocketStoreAPI } = await import('../../../store/index.js');
-      const socketStore = getSocketStoreAPI();
 
-      // Obter dados da história e usuário
       const roomId = `historia_${historia?.id}`;
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-      // Verificar se é mensagem roleplay (não é o turno do jogador)
+      // Verificar se e mensagem roleplay
       const ehMensagemRoleplay = socketState.faseJogo === 'rodada_em_andamento' && !socketState.ehMeuTurno;
 
       if (ehMensagemRoleplay) {
-        // Verificar cooldown local antes de enviar
         if (cooldownLocal > 0) {
           showGameNotification(`Aguarde ${cooldownLocal}s para enviar outra mensagem roleplay`, 'warning');
           return;
         }
 
-        // Enviar mensagem roleplay
-        const enviado = socketStore.safeEmit('mensagem_roleplay', {
+        const enviado = socketStoreSafeEmit('mensagem_roleplay', {
           roomId,
-          userId: String(user.id),
-          username: user.nome || user.name,
+          userId: String(currentUser.id),
+          username: currentUser.nome || currentUser.name,
           mensagem: mensagemAtual
         });
 
         if (enviado) {
           setCooldownLocal(ROLEPLAY_COOLDOWN_SECONDS);
-          etapaJogoRPGViewModel.clearMensagemAtual();
+          setMensagemAtual('');
         }
       } else {
-        // ✅ Ativar loading
+        // Ativar loading
         setAguardandoMestre(true);
-        
-        // ✅ Adicionar mensagem temporária de loading
+
+        // Adicionar mensagem temporaria de loading
         const loadingMsg = {
           id: `loading_${Date.now()}`,
           userId: 'sistema',
           username: 'Sistema',
-          message: '⏳ O Mestre está pensando...',
+          message: '⏳ O Mestre esta pensando...',
           tipo: 'loading',
           timestamp: Date.now()
         };
         onAdicionarMensagem(loadingMsg);
-        
-        // Enviar mensagem para o Mestre via WebSocket (turno do jogador)
-        const enviado = socketStore.safeEmit('mensagem_para_mestre', {
+
+        const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
           roomId,
-          userId: String(user.id),
-          username: user.nome || user.name,
+          userId: String(currentUser.id),
+          username: currentUser.nome || currentUser.name,
           mensagem: mensagemAtual,
           personagem: {
             nome: personagemSelecionado?.nome || 'Aventureiro',
@@ -669,25 +609,18 @@ const EtapaJogoRPG = ({
         });
 
         if (enviado) {
-          // Limpar input apenas se enviou com sucesso
-          etapaJogoRPGViewModel.clearMensagemAtual();
+          setMensagemAtual('');
         } else {
-          // ✅ Remover loading se falhar
           setAguardandoMestre(false);
-          showGameNotification('Falha ao enviar mensagem. Verifique sua conexão.', 'error');
-          // Remover loading message (mesmo pattern do handleMensagemMestre)
-          try {
-            const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
-            const msgs = jogoViewModel.getState().mensagens || [];
-            const semLoading = msgs.filter(m => m.tipo !== 'loading');
-            if (msgs.length !== semLoading.length) jogoViewModel.setMensagens(semLoading);
-          } catch (e) { /* silenced */ }
+          showGameNotification('Falha ao enviar mensagem. Verifique sua conexao.', 'error');
+          const msgs = useGameStore.getState().mensagens || [];
+          const semLoading = msgs.filter(m => m.tipo !== 'loading');
+          if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
         }
       }
     } catch (error) {
       // silenced
     } finally {
-      // Resetar flag após um pequeno delay para evitar duplo clique
       setTimeout(() => {
         enviandoRef.current = false;
       }, TIMEOUTS.FLAG_RESET_DELAY);
@@ -696,74 +629,67 @@ const EtapaJogoRPG = ({
 
   const handleRolarDados = async (tipoDado = 'd20', descricao = '') => {
     try {
-      // Usar info do dado solicitado pelo Mestre se disponível
       const dadoFinal = dadoSolicitadoInfo?.tipoDado || tipoDado;
       const descricaoFinal = descricao || dadoSolicitadoInfo?.teste || '';
 
-      // Durante o jogo, emitir para o backend ao invés de adicionar localmente
-      const { getSocketStoreAPI } = await import('../../../store/index.js');
-      const socketStore = getSocketStoreAPI();
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const roomId = `historia_${historia?.id}`;
 
-      // Rolar dados localmente para obter resultado
-      const resultado = etapaJogoRPGViewModel.rolarDados(dadoFinal, descricaoFinal);
+      const resultado = rolarDados(dadoFinal, descricaoFinal);
 
-      // Emitir para o backend (backend irá distribuir para todos)
-      const enviado = socketStore.safeEmit('dice_roll', {
+      const enviado = socketStoreSafeEmit('dice_roll', {
         roomId: roomId,
-        userId: String(user.id),
-        username: user.nome || user.name,
+        userId: String(currentUser.id),
+        username: currentUser.nome || currentUser.name,
         dice: String(dadoFinal),
         result: String(resultado.resultado),
         description: descricaoFinal
       });
 
       if (!enviado) {
-        // Se falhar ao enviar, adicionar localmente como fallback
         onAdicionarMensagem(resultado.mensagem);
       }
     } catch (error) {
-      // Fallback: adicionar mensagem localmente
-      const resultado = etapaJogoRPGViewModel.rolarDados(tipoDado, descricao);
+      const resultado = rolarDados(tipoDado, descricao);
       onAdicionarMensagem(resultado.mensagem);
     }
   };
 
-  // 🎲 Handler para rolar dado inicial (d20)
   const handleRolarDadoInicial = async () => {
     try {
-      const { getSocketStoreAPI } = await import('../../../store/index.js');
-      const socketStore = getSocketStoreAPI();
-      socketStore.getState().rolarDadoInicial();
+      if (socketStoreRolarDadoInicial) {
+        socketStoreRolarDadoInicial();
+      }
     } catch (error) {
       // silenced
     }
   };
 
-  // ⚡ Handler para iniciar turno (receber mensagem inicial do Mestre)
   const handleIniciarTurno = async () => {
     try {
-      const { getSocketStoreAPI } = await import('../../../store/index.js');
-      const socketStore = getSocketStoreAPI();
-      socketStore.getState().iniciarTurno();
+      if (socketStoreIniciarTurno) {
+        socketStoreIniciarTurno();
+      }
     } catch (error) {
       // silenced
     }
   };
 
   const handleExecutarAcao = (acao, target = null, description = null) => {
-    // Se description foi fornecida, usar ela; caso contrário, formatar a ação
     const textoAcao = description || acao;
-    const mensagemAcao = etapaJogoRPGViewModel.criarMensagemAcao(textoAcao);
+    const mensagemAcao = {
+      id: Date.now() + Math.random(),
+      autor: 'Voce',
+      conteudo: `⚔️ ${textoAcao}`,
+      tipo: 'acao',
+      timestamp: new Date()
+    };
     onAdicionarMensagem(mensagemAcao);
   };
 
   const handleUsarHabilidade = async (vantagem) => {
     try {
-      const { getSocketStoreAPI } = await import('../../../store/index.js');
-      const socketStore = getSocketStoreAPI();
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const roomId = `historia_${historia?.id}`;
 
       const descricao = `[USA HABILIDADE: ${vantagem.nome}]${vantagem.dano_base ? ` Dano base: ${vantagem.dano_base}` : ''}${vantagem.elemento?.length ? ` Elemento: ${vantagem.elemento.join(', ')}` : ''} - ${vantagem.descricao || ''}`;
@@ -773,15 +699,15 @@ const EtapaJogoRPG = ({
         id: `loading_${Date.now()}`,
         userId: 'sistema',
         username: 'Sistema',
-        message: '⏳ O Mestre está pensando...',
+        message: '⏳ O Mestre esta pensando...',
         tipo: 'loading',
         timestamp: Date.now()
       });
 
-      socketStore.safeEmit('mensagem_para_mestre', {
+      socketStoreSafeEmit('mensagem_para_mestre', {
         roomId,
-        userId: String(user.id),
-        username: user.nome || user.name,
+        userId: String(currentUser.id),
+        username: currentUser.nome || currentUser.name,
         mensagem: descricao,
         personagem: {
           nome: personagemSelecionado?.nome || 'Aventureiro',
@@ -790,16 +716,13 @@ const EtapaJogoRPG = ({
         }
       });
     } catch (error) {
-      // silenced
       setAguardandoMestre(false);
     }
   };
 
   const handleUsarEquipamento = async (equipamento) => {
     try {
-      const { getSocketStoreAPI } = await import('../../../store/index.js');
-      const socketStore = getSocketStoreAPI();
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const roomId = `historia_${historia?.id}`;
 
       const descricao = `[USA EQUIPAMENTO: ${equipamento.nome}]${equipamento.dano_base ? ` Dano: ${equipamento.dano_base}` : ''}${equipamento.elemento?.length ? ` Elemento: ${equipamento.elemento.join(', ')}` : ''} - ${equipamento.descricao || ''}`;
@@ -809,15 +732,15 @@ const EtapaJogoRPG = ({
         id: `loading_${Date.now()}`,
         userId: 'sistema',
         username: 'Sistema',
-        message: '⏳ O Mestre está pensando...',
+        message: '⏳ O Mestre esta pensando...',
         tipo: 'loading',
         timestamp: Date.now()
       });
 
-      socketStore.safeEmit('mensagem_para_mestre', {
+      socketStoreSafeEmit('mensagem_para_mestre', {
         roomId,
-        userId: String(user.id),
-        username: user.nome || user.name,
+        userId: String(currentUser.id),
+        username: currentUser.nome || currentUser.name,
         mensagem: descricao,
         personagem: {
           nome: personagemSelecionado?.nome || 'Aventureiro',
@@ -826,23 +749,21 @@ const EtapaJogoRPG = ({
         }
       });
     } catch (error) {
-      // silenced
       setAguardandoMestre(false);
     }
   };
 
   const toggleActions = () => {
-    etapaJogoRPGViewModel.toggleActions();
+    setShowActions(!showActions);
     setRightPanelExpanded(true);
   };
 
-
-  // 📊 Preparar dados para componentes
+  // Preparar dados para componentes
   const jaRolouDadoInicial = !!socketState.resultadosDados[user?.id];
 
-  // ✅ Usar ordemJogadores como fallback se participantes estiver vazio
-  const jogadoresExibir = participantesFormatados.length > 0 
-    ? participantesFormatados 
+  // Usar ordemJogadores como fallback se participantes estiver vazio
+  const jogadoresExibir = participantesFormatados.length > 0
+    ? participantesFormatados
     : socketState.ordemJogadores.map(j => ({
         userId: j.userId,
         username: j.username,
@@ -871,7 +792,7 @@ const EtapaJogoRPG = ({
   const carregarFichaRemota = async (personagemId, titulo) => {
     if (!personagemId) {
       setTituloFicha(titulo);
-      setFichaErro('Personagem não informado para esta ficha.');
+      setFichaErro('Personagem nao informado para esta ficha.');
       setFichaSelecionada(null);
       setFichaCarregando(false);
       setFichaModalAberta(true);
@@ -909,18 +830,15 @@ const EtapaJogoRPG = ({
       setFichaModalAberta(true);
       return;
     }
-
     abrirFichaLocal(personagemSelecionado, 'Minha Ficha');
   };
 
   const handleVerFichaJogador = (jogador) => {
     if (!jogador) return;
-
     if (user?.id && String(jogador.userId) === String(user.id)) {
       handleVerMinhaFicha();
       return;
     }
-
     const personagemId = jogador.personagemId || jogador.personagem_id;
     const titulo = `${jogador.username || 'Jogador'} • ${jogador.personagemNome || jogador.personagem || 'Personagem'}`;
     carregarFichaRemota(personagemId, titulo);
@@ -928,9 +846,9 @@ const EtapaJogoRPG = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
-      {/* Gerenciador de Notificações */}
+      {/* Gerenciador de Notificacoes */}
       <NotificationManager />
-      
+
       {/* Background effects */}
       <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
 
@@ -962,9 +880,9 @@ const EtapaJogoRPG = ({
             <span className="text-purple-300/70 text-xs hidden sm:inline">{jogadoresExibir.length} jogadores</span>
           </div>
 
-          {/* Lado direito: Botões de controle */}
+          {/* Lado direito: Botoes de controle */}
           <div className="flex items-center space-x-2">
-            {/* Botão RODADA com dropdown */}
+            {/* Botao RODADA com dropdown */}
             <div className="relative" ref={rodadaDropdownRef}>
               <button
                 onClick={() => setShowRodadaInfo(!showRodadaInfo)}
@@ -974,7 +892,7 @@ const EtapaJogoRPG = ({
                 <span>RODADA</span>
               </button>
 
-              {/* Dropdown de informações */}
+              {/* Dropdown de informacoes */}
               {showRodadaInfo && (
                 <div className="absolute right-0 top-full mt-1 w-80 glass p-4 rounded-xl border-2 border-purple-500/50 shadow-2xl animate-scale-in max-h-96 overflow-y-auto z-50">
                   <div className="space-y-3">
@@ -1044,7 +962,7 @@ const EtapaJogoRPG = ({
               )}
             </div>
 
-            {/* Botão FICHA */}
+            {/* Botao FICHA */}
             <button
               onClick={handleVerMinhaFicha}
               className="px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center space-x-1.5 text-sm bg-gradient-to-r from-cyan-600/70 to-purple-600/70 text-white border border-cyan-300/40 hover:from-cyan-500/80 hover:to-purple-500/80"
@@ -1053,7 +971,7 @@ const EtapaJogoRPG = ({
               <span>FICHA</span>
             </button>
 
-            {/* Botão AÇÕES */}
+            {/* Botao ACOES */}
             <button
               onClick={toggleActions}
               className={`px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center space-x-1.5 text-sm ${
@@ -1066,7 +984,7 @@ const EtapaJogoRPG = ({
               <span>ACOES</span>
             </button>
 
-            {/* Botão TEMA */}
+            {/* Botao TEMA */}
             <button
               onClick={toggleTheme}
               className="px-3 py-1.5 bg-purple-600/30 text-purple-200 border border-purple-500/50 rounded-lg hover:bg-purple-600/50 transition-all font-bold shadow-md flex items-center space-x-1.5 text-sm"
@@ -1075,7 +993,7 @@ const EtapaJogoRPG = ({
               <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
             </button>
 
-            {/* Botão SAIR */}
+            {/* Botao SAIR */}
             <button
               onClick={onSair}
               className="px-3 py-1.5 bg-red-500/30 text-red-200 border border-red-500/50 rounded-lg hover:bg-red-500/40 transition-all font-bold shadow-md flex items-center space-x-1.5 text-sm"
@@ -1089,7 +1007,7 @@ const EtapaJogoRPG = ({
         {/* Main Game Layout */}
         <div className="flex-1 flex overflow-hidden">
           {/* Painel Lateral Esquerdo - Outros Jogadores */}
-          <PainelJogadores 
+          <PainelJogadores
             participantes={jogadoresExibir}
             ordemJogadores={socketState.ordemJogadores}
             resultadosDados={socketState.resultadosDados}
@@ -1098,7 +1016,7 @@ const EtapaJogoRPG = ({
             onVerFichaJogador={handleVerFichaJogador}
           />
 
-          {/* Área Central - Chat do Mestre */}
+          {/* Area Central - Chat do Mestre */}
           <div className="flex-1 flex flex-col">
             {/* Componente de Rolagem de Dados Inicial */}
             {socketState.faseJogo === 'rolagem_inicial' && (
@@ -1132,10 +1050,10 @@ const EtapaJogoRPG = ({
             <ChatArea
               mensagens={mensagens}
               usuariosDigitando={[]}
-              mensagensRef={null} // No longer needed
+              mensagensRef={null}
             />
 
-            {/* Área de Input - Chat */}
+            {/* Area de Input - Chat */}
             <InputArea
               mensagemAtual={mensagemAtual}
               onMensagemChange={handleMensagemChange}
@@ -1157,12 +1075,12 @@ const EtapaJogoRPG = ({
             />
           </div>
 
-          {/* Painel Lateral Direito - Ações RPG (colapsável) */}
+          {/* Painel Lateral Direito - Acoes RPG (colapsavel) */}
           {showActions && (
             <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-l border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden ${
               rightPanelExpanded ? 'w-80' : 'w-16'
             }`}>
-              {/* Header com botão de collapse */}
+              {/* Header com botao de collapse */}
               <div className={`flex items-center mb-3 ${rightPanelExpanded ? 'justify-between' : 'justify-center'}`}>
                 {rightPanelExpanded && (
                   <h3 className="text-white font-bold text-lg">Acoes RPG</h3>
@@ -1176,7 +1094,7 @@ const EtapaJogoRPG = ({
                 </button>
               </div>
 
-              {/* Conteúdo expandido */}
+              {/* Conteudo expandido */}
               {rightPanelExpanded && (
                 <div className="space-y-4">
                   <RPGActions
@@ -1200,7 +1118,7 @@ const EtapaJogoRPG = ({
                 </div>
               )}
 
-              {/* Versão compacta quando colapsado */}
+              {/* Versao compacta quando colapsado */}
               {!rightPanelExpanded && (
                 <div className="flex flex-col items-center space-y-3 mt-4">
                   <button
@@ -1250,10 +1168,9 @@ const EtapaJogoRPG = ({
       <SessionRecap
         isVisible={!!socketState.sessionRecap}
         recapData={socketState.sessionRecap}
-        onClose={async () => {
+        onClose={() => {
           try {
-            const { getSocketStoreAPI } = await import('../../../store/index.js');
-            getSocketStoreAPI().setState({ sessionRecap: null });
+            useSocketStore.setState({ sessionRecap: null });
           } catch (_) {}
         }}
       />

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from '../../../contexts/theme.jsx';
 import LoadingSpinner from '../../LoadingSpinner.jsx';
-import { etapaSelecaoPersonagemViewModel } from '../../../viewmodels/Jogo';
+import { useTemaStore } from '../../../store/index.js';
 
 /**
- * Componente para a etapa de seleção de personagem
- * 📍 Usado por: JogoView (etapa 'selecao-personagem')
- * 🎯 MIGRADO: Agora usa ViewModel específico para lógica de negócio
+ * Componente para a etapa de selecao de personagem
+ * Usado por: JogoView (etapa 'selecao-personagem')
+ * Refatorado: Usa hooks diretos (useTemaStore) no lugar de ViewModel
  */
 const EtapaSelecaoPersonagem = ({
   historia,
@@ -20,32 +20,55 @@ const EtapaSelecaoPersonagem = ({
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // 🎯 VIEWMODEL - Estado reativo
-  const [viewModelState, setViewModelState] = useState(etapaSelecaoPersonagemViewModel.getState());
+  // Store de temas - acesso direto via hook
+  const temasCarregados = useTemaStore(s => s.temasCarregados);
+  const temasLoading = useTemaStore(s => s.loading);
+  const carregarTemas = useTemaStore(s => s.carregarTemas);
+  const getNomesDeTemas = useTemaStore(s => s.getNomesDeTemas);
 
-  // 🔄 SUBSCRIBE AO VIEWMODEL
+  // Carregar temas se necessario
   useEffect(() => {
-    const unsubscribe = etapaSelecaoPersonagemViewModel.subscribe(setViewModelState);
-    return unsubscribe;
-  }, []);
+    if (!temasCarregados) {
+      carregarTemas();
+    }
+  }, [temasCarregados, carregarTemas]);
 
-  // 📊 DESTRUCTURING DO ESTADO
-  const { temasCarregados, temasLoading, temasError } = viewModelState;
+  // Helpers inline (antes no ViewModel)
+  const obterTemasNomes = (hist) => {
+    if (!hist?.temas || !Array.isArray(hist.temas)) return [];
+    return getNomesDeTemas(hist.temas);
+  };
 
-  // 🚀 INICIALIZAÇÃO
-  useEffect(() => {
-    etapaSelecaoPersonagemViewModel.initialize();
-  }, []);
+  const formatarInformacoesHistoria = (hist) => {
+    if (!hist) return { nome: 'Historia sem nome', descricao: '', maximoParticipantes: 0 };
+    return {
+      nome: hist.nome || hist.titulo || 'Historia sem nome',
+      descricao: hist.descricao || '',
+      maximoParticipantes: hist.maximo_de_participantes || 0,
+    };
+  };
 
-  // 🎨 HELPER: Obter nomes dos temas da história
-  const temasNomes = etapaSelecaoPersonagemViewModel.obterTemasNomes(historia);
-  
-  // 📋 HELPER: Formatar informações da história
-  const infoHistoria = etapaSelecaoPersonagemViewModel.formatarInformacoesHistoria(historia);
+  const formatarInformacoesPersonagem = (p) => {
+    if (!p) return { nome: 'Personagem nao encontrado', classe: 'Desconhecida', raca: 'Desconhecida', nivel: '1', hp: '???', hpMaximo: '???' };
+    return {
+      nome: p.nome || 'Personagem sem nome',
+      classe: p.classe_nome || p.classe || 'Desconhecida',
+      raca: p.raca_nome || p.raca || 'Desconhecida',
+      nivel: p.nivel || '1',
+      hp: p.hp_atual || p.hp || '???',
+      hpMaximo: p.hp_maximo || p.hp || '???',
+    };
+  };
+
+  const temPersonagensDisponiveis = (list) => Array.isArray(list) && list.length > 0;
+  const isPersonagemSelecionadoFn = (p, sel) => p && sel && p.id === sel.id;
+
+  const temasNomes = obterTemasNomes(historia);
+  const infoHistoria = formatarInformacoesHistoria(historia);
 
   return (
     <div className="space-y-6">
-      {/* Informações da História */}
+      {/* Informacoes da Historia */}
       <div className="card-rpg p-6">
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
@@ -53,7 +76,7 @@ const EtapaSelecaoPersonagem = ({
               {infoHistoria.nome}
             </h2>
 
-            {/* 🎨 TEMAS POR NOME - Via ViewModel */}
+            {/* Temas por nome */}
             <div className="flex flex-wrap gap-2 mb-6">
               {temasLoading ? (
                 <span className="text-slate-500 text-sm animate-pulse">Carregando temas...</span>
@@ -71,7 +94,7 @@ const EtapaSelecaoPersonagem = ({
             <div className="flex items-center space-x-4 text-sm">
               <span className={`flex items-center ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 <span className="mr-1">👥</span>
-                Máx. {infoHistoria.maximoParticipantes} participantes
+                Max. {infoHistoria.maximoParticipantes} participantes
               </span>
 
               {infoHistoria.descricao && (
@@ -96,7 +119,7 @@ const EtapaSelecaoPersonagem = ({
         </div>
       </div>
 
-      {/* Seleção de Personagem */}
+      {/* Selecao de Personagem */}
       <div className="card-rpg p-6">
         <h3 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'} mb-6`}>
           👤 Escolha seu Personagem
@@ -116,27 +139,28 @@ const EtapaSelecaoPersonagem = ({
           </div>
         )}
 
-        {!loading && etapaSelecaoPersonagemViewModel.temPersonagensDisponiveis(personagens) && (
+        {!loading && temPersonagensDisponiveis(personagens) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {personagens.map((personagem) => (
               <PersonagemCard
                 key={personagem.id}
                 personagem={personagem}
-                isSelected={etapaSelecaoPersonagemViewModel.isPersonagemSelecionado(personagem, personagemSelecionado)}
+                isSelected={isPersonagemSelecionadoFn(personagem, personagemSelecionado)}
                 onSelect={() => onSelecionarPersonagem(personagem)}
                 isLight={isLight}
+                formatarInfo={formatarInformacoesPersonagem}
               />
             ))}
           </div>
         )}
 
-        {!loading && !etapaSelecaoPersonagemViewModel.temPersonagensDisponiveis(personagens) && !error && (
+        {!loading && !temPersonagensDisponiveis(personagens) && !error && (
           <div className="text-center py-8">
             <p className={`text-xl ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-4 font-modern`}>
-              Nenhum personagem encontrado para esta história
+              Nenhum personagem encontrado para esta historia
             </p>
             <p className="text-slate-500 text-sm mt-2">
-              Você precisa criar um personagem para esta história primeiro
+              Voce precisa criar um personagem para esta historia primeiro
             </p>
             <div className="mt-4">
               <button
@@ -172,10 +196,9 @@ const EtapaSelecaoPersonagem = ({
 /**
  * Card individual de personagem
  */
-const PersonagemCard = ({ personagem, isSelected, onSelect, isLight }) => {
-  // 📋 HELPER: Formatar informações do personagem
-  const infoPersonagem = etapaSelecaoPersonagemViewModel.formatarInformacoesPersonagem(personagem);
-  
+const PersonagemCard = ({ personagem, isSelected, onSelect, isLight, formatarInfo }) => {
+  const infoPersonagem = formatarInfo(personagem);
+
   return (
     <div
       onClick={onSelect}
@@ -198,7 +221,7 @@ const PersonagemCard = ({ personagem, isSelected, onSelect, isLight }) => {
 
         <div className="space-y-2 text-sm">
           <div className={`flex justify-between ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-            <span>Nível:</span>
+            <span>Nivel:</span>
             <span className="font-semibold">
               {infoPersonagem.nivel}
             </span>
@@ -212,7 +235,7 @@ const PersonagemCard = ({ personagem, isSelected, onSelect, isLight }) => {
           </div>
 
           <div className={`flex justify-between ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-            <span>Raça:</span>
+            <span>Raca:</span>
             <span className="font-semibold text-cyan-400">
               {infoPersonagem.raca}
             </span>

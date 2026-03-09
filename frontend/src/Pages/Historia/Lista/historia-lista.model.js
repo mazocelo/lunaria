@@ -1,0 +1,356 @@
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTemaStore } from '../../../store/tema/index.js';
+import { useAuth } from '../../../contexts/AuthContext.jsx';
+import { useTheme } from '../../../contexts/theme.jsx';
+import { historiaService } from '../../../services/index.js';
+import { ROUTES, generateRoute } from '../../../routes.jsx';
+
+export const useHistoriaListaModel = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  // Tema store
+  const carregarTemas = useTemaStore(s => s.carregarTemas);
+  const mapearTemasDeHistoria = useTemaStore(s => s.mapearTemasDeHistoria);
+
+  // State
+  const [historias, setHistorias] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Filtros
+  const [filtros, setFiltros] = useState({
+    tema: null,
+    participantes: null,
+    busca: ''
+  });
+
+  // Modal de delete
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [historiaToDelete, setHistoriaToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Modal de convite
+  const [showConviteModal, setShowConviteModal] = useState(false);
+  const [historiaParaConvite, setHistoriaParaConvite] = useState(null);
+  const [conviteLoading, setConviteLoading] = useState(false);
+
+  // Modal de reset de sessao
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [historiaToReset, setHistoriaToReset] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  // Modal de encerrar sessao
+  const [showEncerrarModal, setShowEncerrarModal] = useState(false);
+  const [historiaToEncerrar, setHistoriaToEncerrar] = useState(null);
+  const [encerrarLoading, setEncerrarLoading] = useState(false);
+
+  // Bulk delete
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+  // Carregar historias
+  const loadHistorias = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await carregarTemas();
+      const { data } = await historiaService.getAll();
+      setHistorias(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [carregarTemas]);
+
+  useEffect(() => {
+    loadHistorias();
+    return () => setError(null);
+  }, []);
+
+  // Historias com temas mapeados
+  const historiasComTemas = useMemo(() => {
+    return historias.map(historia => ({
+      ...historia,
+      temasNomes: mapearTemasDeHistoria(historia)
+    }));
+  }, [historias, mapearTemasDeHistoria]);
+
+  // Estatisticas
+  const estatisticas = useMemo(() => {
+    const total = historias.length;
+    const comTemas = historias.filter(h => h.temas && h.temas.length > 0).length;
+    const totalParticipantes = historias.reduce((acc, h) => acc + (h.maximo_de_participantes || 0), 0);
+    return {
+      total,
+      comTemas,
+      totalParticipantes,
+      mediaParticipantes: total > 0 ? Math.round(totalParticipantes / total) : 0
+    };
+  }, [historias]);
+
+  // Historias filtradas
+  const historiasFiltradasComTemas = useMemo(() => {
+    let resultado = historiasComTemas;
+
+    if (filtros.tema) {
+      resultado = resultado.filter(h => h.temas && h.temas.includes(filtros.tema));
+    }
+    if (filtros.participantes) {
+      resultado = resultado.filter(h => h.maximo_de_participantes >= filtros.participantes);
+    }
+    if (filtros.busca) {
+      const termo = filtros.busca.toLowerCase();
+      resultado = resultado.filter(h =>
+        h.nome.toLowerCase().includes(termo) ||
+        (h.temasNomes && h.temasNomes.some(t => t.toLowerCase().includes(termo)))
+      );
+    }
+    return resultado;
+  }, [historiasComTemas, filtros]);
+
+  // Aplicar filtros
+  const aplicarFiltros = useCallback((novosFiltros) => {
+    setFiltros(prev => ({ ...prev, ...novosFiltros }));
+  }, []);
+
+  // Obter nomes dos temas de uma historia
+  const getNomesTemas = useCallback((historia) => {
+    if (!historia) return [];
+    return mapearTemasDeHistoria(historia);
+  }, [mapearTemasDeHistoria]);
+
+  // Verificar se usuario e dono da historia
+  const isOwner = useCallback((historia) => {
+    if (user && historia) {
+      return historia.id_usuario == user.id;
+    }
+    return false;
+  }, [user]);
+
+  // Delete
+  const deleteHistoria = useCallback(async (id) => {
+    await historiaService.delete(id);
+    setHistorias(prev => prev.filter(h => h.id !== id));
+  }, []);
+
+  const handleDeleteClick = useCallback((historia) => {
+    setHistoriaToDelete(historia);
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!historiaToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await deleteHistoria(historiaToDelete.id);
+      setShowDeleteModal(false);
+      setHistoriaToDelete(null);
+    } catch (err) {
+      console.error('Erro ao deletar historia:', err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [historiaToDelete, deleteHistoria]);
+
+  const handleCancelDelete = useCallback(() => {
+    setShowDeleteModal(false);
+    setHistoriaToDelete(null);
+    setDeleteLoading(false);
+  }, []);
+
+  // Navegacao
+  const handleViewHistoria = useCallback((historia) => {
+    navigate(generateRoute.verHistoria(historia.id));
+  }, [navigate]);
+
+  const handlePlayHistoria = useCallback((historia) => {
+    navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
+  }, [navigate]);
+
+  const handleEntrarPartida = useCallback((historia) => {
+    navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
+  }, [navigate]);
+
+  // Convite
+  const handleConviteClick = useCallback((historia) => {
+    setHistoriaParaConvite(historia);
+    setShowConviteModal(true);
+  }, []);
+
+  const handleEnviarConvite = useCallback(async (email) => {
+    if (!historiaParaConvite) return;
+    setConviteLoading(true);
+    try {
+      await historiaService.enviarConvite(historiaParaConvite.id, email);
+      setShowConviteModal(false);
+      setHistoriaParaConvite(null);
+    } catch (err) {
+      console.error('Erro ao enviar convite:', err);
+    } finally {
+      setConviteLoading(false);
+    }
+  }, [historiaParaConvite]);
+
+  const handleCancelConvite = useCallback(() => {
+    setShowConviteModal(false);
+    setHistoriaParaConvite(null);
+    setConviteLoading(false);
+  }, []);
+
+  // Reset sessao
+  const handleResetarSessao = useCallback((historia) => {
+    setHistoriaToReset(historia);
+    setShowResetModal(true);
+  }, []);
+
+  const handleConfirmReset = useCallback(async () => {
+    if (!historiaToReset) return;
+    setResetLoading(true);
+    try {
+      const response = await historiaService.resetarSessao(historiaToReset.id);
+      if (response && response.success) {
+        await loadHistorias();
+        setShowResetModal(false);
+        setHistoriaToReset(null);
+      }
+    } catch (err) {
+      console.error('Erro ao resetar sessao:', err);
+    } finally {
+      setResetLoading(false);
+    }
+  }, [historiaToReset, loadHistorias]);
+
+  const handleCancelReset = useCallback(() => {
+    setShowResetModal(false);
+    setHistoriaToReset(null);
+    setResetLoading(false);
+  }, []);
+
+  // Encerrar sessao
+  const handleEncerrarSessao = useCallback((historia) => {
+    setHistoriaToEncerrar(historia);
+    setShowEncerrarModal(true);
+  }, []);
+
+  const handleConfirmEncerrar = useCallback(async () => {
+    if (!historiaToEncerrar) return;
+    setEncerrarLoading(true);
+    try {
+      const response = await historiaService.encerrarSessao(historiaToEncerrar.id);
+      if (response && response.success) {
+        await loadHistorias();
+        setShowEncerrarModal(false);
+        setHistoriaToEncerrar(null);
+      }
+    } catch (err) {
+      console.error('Erro ao encerrar sessao:', err);
+    } finally {
+      setEncerrarLoading(false);
+    }
+  }, [historiaToEncerrar, loadHistorias]);
+
+  const handleCancelEncerrar = useCallback(() => {
+    setShowEncerrarModal(false);
+    setHistoriaToEncerrar(null);
+    setEncerrarLoading(false);
+  }, []);
+
+  // Bulk delete
+  const handleBulkDeleteClick = useCallback((ids) => {
+    setBulkDeleteIds(ids);
+    setShowBulkDeleteModal(true);
+  }, []);
+
+  const handleConfirmBulkDelete = useCallback(async () => {
+    setBulkDeleteLoading(true);
+    try {
+      for (const id of bulkDeleteIds) {
+        await deleteHistoria(id);
+      }
+      setShowBulkDeleteModal(false);
+      setBulkDeleteIds([]);
+    } catch (err) {
+      console.error('Erro ao deletar historias em lote:', err);
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  }, [bulkDeleteIds, deleteHistoria]);
+
+  const handleCancelBulkDelete = useCallback(() => {
+    setShowBulkDeleteModal(false);
+    setBulkDeleteIds([]);
+    setBulkDeleteLoading(false);
+  }, []);
+
+  const clearError = useCallback(() => setError(null), []);
+
+  return {
+    // Data
+    historias: historiasComTemas,
+    historiasFiltradasComTemas,
+    estatisticas,
+    loading,
+    error,
+    isLight,
+
+    // Filtros
+    aplicarFiltros,
+    getNomesTemas,
+    isOwner,
+
+    // Delete
+    showDeleteModal,
+    historiaToDelete,
+    deleteLoading,
+    handleDeleteClick,
+    handleConfirmDelete,
+    handleCancelDelete,
+
+    // Convite
+    showConviteModal,
+    historiaParaConvite,
+    conviteLoading,
+    handleConviteClick,
+    handleEnviarConvite,
+    handleCancelConvite,
+
+    // Reset sessao
+    showResetModal,
+    historiaToReset,
+    resetLoading,
+    handleResetarSessao,
+    handleConfirmReset,
+    handleCancelReset,
+
+    // Encerrar sessao
+    showEncerrarModal,
+    historiaToEncerrar,
+    encerrarLoading,
+    handleEncerrarSessao,
+    handleConfirmEncerrar,
+    handleCancelEncerrar,
+
+    // Bulk delete
+    showBulkDeleteModal,
+    bulkDeleteIds,
+    bulkDeleteLoading,
+    handleBulkDeleteClick,
+    handleConfirmBulkDelete,
+    handleCancelBulkDelete,
+
+    // Navegacao
+    handleViewHistoria,
+    handlePlayHistoria,
+    handleEntrarPartida,
+
+    // Utils
+    clearError,
+    ROUTES,
+  };
+};

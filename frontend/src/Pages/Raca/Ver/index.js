@@ -1,3 +1,4 @@
-export { default } from './view';
-export { racaViewModel } from '../../../viewmodels/Racas/RacaViewModel';
+import React from 'react';
+import PageStub from '../../../components/PageStub';
 
+export default () => <PageStub title="Ver Raca" />;

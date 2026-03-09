@@ -1,0 +1,125 @@
+import React from 'react';
+import StatCard from '../../../components/StatCard.jsx';
+import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
+import { TabelaList, PageHeader, SearchBar } from '../../../components/shared';
+import Notification from '../../../components/Notification.jsx';
+import { Shield, Eye, Gift, Coins } from 'lucide-react';
+
+const ClasseListaView = ({
+  classes,
+  filteredClasses,
+  loading,
+  error,
+  isLight,
+  gratuitas,
+  pagas,
+  buscarClasses,
+  clearError,
+  navigate,
+  generateRoute,
+}) => {
+  if (loading && classes.length === 0) {
+    return (
+      <div className="animate-fade-in">
+        <div className="card-rpg">
+          <LoadingSpinner size="xl" text="Carregando classes..." variant="primary" />
+        </div>
+      </div>
+    );
+  }
+
+  const columns = [
+    {
+      key: 'id',
+      label: 'ID',
+      align: 'left',
+      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
+    },
+    {
+      key: 'nome',
+      label: 'Nome',
+      align: 'left',
+      render: (row) => (
+        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
+          {row.nome}
+        </span>
+      )
+    },
+    {
+      key: 'descricao',
+      label: 'Descricao',
+      align: 'left',
+      render: (row) => (
+        <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern text-sm`}>
+          {row.descricao ? (row.descricao.length > 80 ? row.descricao.slice(0, 80) + '...' : row.descricao) : '-'}
+        </span>
+      )
+    },
+    {
+      key: 'custo',
+      label: 'Custo',
+      align: 'left',
+      render: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+          row.custo === 0
+            ? (isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400')
+            : (isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400')
+        }`}>
+          {row.custo === 0 ? 'Gratuita' : `${row.custo} pts`}
+        </span>
+      )
+    }
+  ];
+
+  const actions = [
+    {
+      label: 'Ver',
+      icon: <Eye size={18} />,
+      color: 'purple',
+      onClick: (row) => navigate(generateRoute.verClasse(row.id))
+    }
+  ];
+
+  const displayClasses = filteredClasses?.length > 0 ? filteredClasses : classes;
+
+  return (
+    <div className="animate-fade-in space-y-6">
+      {error && (
+        <Notification message={error} type="error" onClose={clearError} />
+      )}
+
+      <PageHeader
+        title="Classes"
+        subtitle="Classes disponiveis para personagens"
+        icon={Shield}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total de Classes" value={classes?.length || 0} icon={Shield} variant="primary" />
+        <StatCard title="Gratuitas" value={gratuitas} icon={Gift} variant="secondary" />
+        <StatCard title="Com Custo" value={pagas} icon={Coins} variant="accent" />
+      </div>
+
+      <SearchBar
+        placeholder="Buscar classes..."
+        onChange={(texto) => buscarClasses(texto)}
+      />
+
+      <TabelaList
+        header="Lista de Classes"
+        columns={columns}
+        data={displayClasses}
+        actions={actions}
+        loading={loading}
+        pagination={true}
+        initialPageSize={10}
+        pageSizeOptions={[5, 10, 25, 50]}
+        emptyMessage="Nenhuma classe encontrada"
+        emptyIcon={<Shield size={32} />}
+        hoverable={true}
+      />
+    </div>
+  );
+};
+
+export default ClasseListaView;

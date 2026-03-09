@@ -1,2 +1,2 @@
 // Hooks personalizados
-export { useViewModel } from './useViewModel'; 
+// (useViewModel removido - migrado para hooks diretos nos componentes)

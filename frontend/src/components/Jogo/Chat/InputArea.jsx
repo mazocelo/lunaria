@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { inputAreaViewModel } from '../../../viewmodels/Jogo';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSocketStore } from '../../../store/index.js';
 import CooldownRoleplay from '../Gameplay/CooldownRoleplay';
 import { TIMEOUTS } from '../../../constants/game';
 
 /**
- * Área de input de mensagens do jogo RPG
- * 📍 Usado por: EtapaJogoRPG
- * 🎯 MIGRADO: Agora usa ViewModel específico para lógica de negócio
- * 🎲 SISTEMA DE TURNOS: Controla rolagem inicial, turnos e mensagens roleplay
+ * Area de input de mensagens do jogo RPG
+ * Usado por: EtapaJogoRPG
+ * Refatorado: Usa useSocketStore diretamente no lugar de inputAreaViewModel
+ * Sistema de turnos: Controla rolagem inicial, turnos e mensagens roleplay
  */
 const InputArea = ({
   mensagemAtual,
@@ -16,7 +16,7 @@ const InputArea = ({
   onEnviarMensagem,
   onRolarDados,
   onExecutarAcao,
-  // Novas props para sistema de turnos
+  // Props para sistema de turnos
   faseJogo = 'aguardando_inicio',
   ehMeuTurno = false,
   turnoIniciado = false,
@@ -28,79 +28,75 @@ const InputArea = ({
   // Props de combate
   combateAtivo = false
 }) => {
-  // 🎯 VIEWMODEL - Estado reativo
-  const [viewModelState, setViewModelState] = useState(inputAreaViewModel.getState());
-  
-  // ⏳ Estado de loading para botão iniciar turno
+  // Socket store direto
+  const isConnected = useSocketStore(s => s.isConnected);
+  const isAuthenticated = useSocketStore(s => s.isAuthenticated);
+
+  // Estado local (substitui ViewModel state)
+  const [isSending, setIsSending] = useState(false);
   const [iniciandoTurno, setIniciandoTurno] = useState(false);
+  const lastSentTimeRef = useRef(null);
 
-  // 🔄 SUBSCRIBE AO VIEWMODEL
-  useEffect(() => {
-    const unsubscribe = inputAreaViewModel.subscribe(setViewModelState);
-    return unsubscribe;
-  }, []);
+  // Connection status (antes no ViewModel)
+  const getConnectionStatus = useCallback(() => {
+    if (!isAuthenticated) {
+      return { status: 'error', text: 'Nao autenticado', color: 'text-red-400' };
+    }
+    if (!isConnected) {
+      return { status: 'error', text: 'Desconectado', color: 'text-red-400' };
+    }
+    return { status: 'success', text: 'Conectado', color: 'text-green-400' };
+  }, [isConnected, isAuthenticated]);
 
-  // 📊 DESTRUCTURING DO ESTADO
-  const { isSending } = viewModelState;
+  const connectionStatus = getConnectionStatus();
 
-  // 🚀 INICIALIZAÇÃO
-  useEffect(() => {
-    inputAreaViewModel.initialize();
-    
-    // Cleanup ao desmontar
-    return () => {
-      inputAreaViewModel.destroy();
-    };
-  }, []);
+  // Placeholder padrao (antes no ViewModel)
+  const placeholder = 'Digite sua mensagem...';
 
+  // Enviar mensagem (antes delegava para ViewModel)
   const enviarMensagemComTipo = async () => {
-    // ViewModel já chama onEnviarMensagem internamente se sucesso
-    await inputAreaViewModel.enviarMensagem(mensagemAtual, onEnviarMensagem);
+    if (!mensagemAtual?.trim() || isSending) return;
+
+    // Cooldown de 1s entre envios
+    if (lastSentTimeRef.current && Date.now() - lastSentTimeRef.current < 1000) return;
+
+    setIsSending(true);
+    try {
+      await onEnviarMensagem();
+      lastSentTimeRef.current = Date.now();
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleKeyPress = (e) => {
-    const preventDefault = inputAreaViewModel.handleKeyPress(e, enviarMensagemComTipo);
-    if (preventDefault) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      enviarMensagemComTipo();
     }
-    
     // Chamar callback adicional se existir
     if (onKeyPress) {
       onKeyPress(e);
     }
   };
 
-  // 📋 HELPERS: Via ViewModel
-  const placeholder = inputAreaViewModel.getPlaceholder();
-  const connectionStatus = inputAreaViewModel.getConnectionStatus();
-
-  // 🎲 CONTROLE DE FASE
-  const inputDesabilitado = 
-    faseJogo === 'rolagem_inicial' || 
+  // Controle de fase
+  const inputDesabilitado =
+    faseJogo === 'rolagem_inicial' ||
     (faseJogo === 'rodada_em_andamento' && ehMeuTurno && !turnoIniciado) ||
     dadosSolicitados ||
     aguardandoMestre;
   const podeEnviarRoleplay = faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay === 0;
   const mostrarCooldown = faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay > 0;
 
-  // 🎯 Placeholder dinâmico
+  // Placeholder dinamico
   const getPlaceholderDinamico = () => {
-    if (aguardandoMestre) {
-      return '⏳ Aguardando resposta do Mestre...';
-    }
-    if (dadosSolicitados) {
-      return '🎲 Role os dados antes de continuar!';
-    }
-    if (faseJogo === 'rolagem_inicial') {
-      return 'Aguardando rolagem de dados inicial...';
-    }
+    if (aguardandoMestre) return '⏳ Aguardando resposta do Mestre...';
+    if (dadosSolicitados) return '🎲 Role os dados antes de continuar!';
+    if (faseJogo === 'rolagem_inicial') return 'Aguardando rolagem de dados inicial...';
     if (faseJogo === 'rodada_em_andamento') {
-      if (ehMeuTurno && combateAtivo) {
-        return '⚔️ Combate! Descreva sua ação de combate...';
-      }
-      if (ehMeuTurno) {
-        return 'É sua vez! Digite sua ação...';
-      }
+      if (ehMeuTurno && combateAtivo) return '⚔️ Combate! Descreva sua acao de combate...';
+      if (ehMeuTurno) return 'E sua vez! Digite sua acao...';
       return 'Aguarde sua vez ou envie uma mensagem roleplay...';
     }
     return placeholder;
@@ -109,28 +105,28 @@ const InputArea = ({
   return (
     <div className="px-4 py-4 bg-black/30 backdrop-blur-sm border-t-2 border-purple-500/30 shadow-2xl">
       <div className="w-full space-y-3">
-        
+
         {/* LINHA 1: Status/Avisos */}
         <div className="flex items-center justify-end gap-4">
           <div className="flex-1 flex justify-end">
             {/* Cooldown de mensagens roleplay */}
             {mostrarCooldown && (
-              <CooldownRoleplay 
+              <CooldownRoleplay
                 segundosRestantes={cooldownRoleplay}
                 ativo={mostrarCooldown}
               />
             )}
 
-            {/* Aviso quando não é o turno */}
+            {/* Aviso quando nao e o turno */}
             {faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay === 0 && (
               <div className="px-4 py-2.5 bg-purple-900/40 border-2 border-purple-500/50 rounded-xl shadow-lg">
                 <p className="text-purple-200 text-sm font-semibold">
-                  ⏳ Não é seu turno. Você pode enviar mensagens roleplay
+                  ⏳ Nao e seu turno. Voce pode enviar mensagens roleplay
                 </p>
               </div>
             )}
 
-            {/* Botão para iniciar turno */}
+            {/* Botao para iniciar turno */}
             {faseJogo === 'rodada_em_andamento' && ehMeuTurno && !turnoIniciado && (
               <button
                 onClick={async () => {
@@ -164,18 +160,18 @@ const InputArea = ({
               </button>
             )}
 
-            {/* Aviso após iniciar turno */}
+            {/* Aviso apos iniciar turno */}
             {faseJogo === 'rodada_em_andamento' && ehMeuTurno && turnoIniciado && (
               <div className="px-6 py-2.5 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border-2 border-cyan-400/70 rounded-xl shadow-xl animate-pulse">
                 <p className="text-cyan-200 font-bold drop-shadow-lg">
-                  ⚡ É SUA VEZ! Responda ao Mestre
+                  ⚡ E SUA VEZ! Responda ao Mestre
                 </p>
               </div>
             )}
           </div>
         </div>
-          
-        {/* BANNER: Mestre solicitou dado específico */}
+
+        {/* BANNER: Mestre solicitou dado especifico */}
         {dadosSolicitados && dadoSolicitadoInfo && (
           <div className="animate-fade-in">
             <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-gradient-to-r from-amber-900/50 to-orange-900/40 border-2 border-amber-400/60 rounded-xl shadow-lg shadow-amber-500/10">
@@ -208,7 +204,7 @@ const InputArea = ({
           </div>
         )}
 
-        {/* BANNER: Aguardando resposta do Mestre após rolar dado */}
+        {/* BANNER: Aguardando resposta do Mestre apos rolar dado */}
         {aguardandoMestre && (
           <div className="animate-fade-in">
             <div className="flex items-center justify-center gap-3 px-5 py-3.5 bg-gradient-to-r from-purple-900/50 to-indigo-900/40 border-2 border-purple-400/50 rounded-xl shadow-lg">
@@ -224,13 +220,13 @@ const InputArea = ({
           </div>
         )}
 
-        {/* COMBATE: Botões de ação rápida */}
+        {/* COMBATE: Botoes de acao rapida */}
         {combateAtivo && ehMeuTurno && turnoIniciado && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-red-300 mr-1">Ações:</span>
+            <span className="text-xs text-red-300 mr-1">Acoes:</span>
             {[
-              { label: 'Atacar', emoji: '⚔️', acao: 'Ataco o inimigo mais próximo com minha arma!' },
-              { label: 'Defender', emoji: '🛡️', acao: 'Me coloco em posição defensiva, protegendo-me dos ataques!' },
+              { label: 'Atacar', emoji: '⚔️', acao: 'Ataco o inimigo mais proximo com minha arma!' },
+              { label: 'Defender', emoji: '🛡️', acao: 'Me coloco em posicao defensiva, protegendo-me dos ataques!' },
               { label: 'Habilidade', emoji: '✨', acao: 'Uso minha habilidade especial contra o inimigo!' },
               { label: 'Fugir', emoji: '🏃', acao: 'Tento fugir do combate!' }
             ].map((btn) => (
@@ -249,7 +245,7 @@ const InputArea = ({
           </div>
         )}
 
-        {/* LINHA 2: Input + Botão Enviar */}
+        {/* LINHA 2: Input + Botao Enviar */}
         <div className="flex gap-3">
           <input
             type="text"
@@ -273,8 +269,8 @@ const InputArea = ({
             {isSending ? 'Enviando...' : 'Enviar'}
           </button>
         </div>
-        
-        {/* Status de conexão */}
+
+        {/* Status de conexao */}
         {connectionStatus.status === 'error' && (
           <div className="text-center">
             <span className={`text-xs ${connectionStatus.color}`}>
@@ -287,4 +283,4 @@ const InputArea = ({
   );
 };
 
-export default InputArea; 
+export default InputArea;

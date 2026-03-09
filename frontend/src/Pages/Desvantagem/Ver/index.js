@@ -1,3 +1,3 @@
-export { default } from './view';
-export { desvantagemViewModel } from '../../../viewmodels/Desvantagens/DesvantagemViewModel';
+import PageStub from '../../../components/PageStub';
 
+export default () => <PageStub title="Ver Desvantagem" />;

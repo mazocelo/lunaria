@@ -60,7 +60,7 @@ export { default as SalaEsperaPage } from './Jogo/SalaEspera';
 export { default as JogoAtivoPage } from './Jogo/JogoAtivo';
 
 // ConviteJogo
-export { ConviteJogoView as ConviteJogoPage } from './ConviteJogo';
+export { default as ConviteJogoPage } from './ConviteJogo';
 
 // Perfil
 export { default as PerfilPage } from './Perfil';

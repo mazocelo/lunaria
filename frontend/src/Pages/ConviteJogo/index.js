@@ -1,3 +1,7 @@
-export { default as ConviteJogoView } from './view';
-// ConviteJogo é uma página de redirecionamento simples
+import { useConviteJogoModel } from './convite-jogo.model';
+import ConviteJogoView from './convite-jogo.view';
 
+export default function ConviteJogoPage() {
+  const props = useConviteJogoModel();
+  return <ConviteJogoView {...props} />;
+}

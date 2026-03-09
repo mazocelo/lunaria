@@ -1,4 +1,7 @@
-export { default } from './view';
-// Reutiliza o viewmodel da Lista pois carrega história individual
-export { historiaViewModel } from '../Lista/viewmodel';
+import { useHistoriaVerModel } from './historia-ver.model';
+import VerHistoriaView from './historia-ver.view';
 
+export default function HistoriaVerPage() {
+  const props = useHistoriaVerModel();
+  return <VerHistoriaView {...props} />;
+}

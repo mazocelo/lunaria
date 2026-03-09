@@ -1,3 +1,4 @@
-export { default } from './view';
-export { classeViewModel } from '../../../viewmodels/Classes/ClasseViewModel';
+import React from 'react';
+import PageStub from '../../../components/PageStub';
 
+export default () => <PageStub title="Ver Classe" />;

@@ -503,13 +503,20 @@ export const createSocketActions = (set, get) => ({
         combateRodada: 0,
         combateResultado: null,
         combateLog: [],
-        combateXpGanho: 0
+        combateXpGanho: 0,
+        // Salvar dados do recap para exibir na tela antes de sair
+        sessionRecap: {
+          resumo: data.resumo || null,
+          historiaNome: data.historiaNome || null,
+          xpGanho: data.xpGanho || 0,
+          loot: data.loot || []
+        }
       });
 
       get().log('Sessão encerrada', { salaId: data.salaId, success: true });
 
       if (window.showGameNotification) {
-        window.showGameNotification(`Sessão encerrada: ${data.motivo || 'Encerrada pelo administrador'}`, 'error');
+        window.showGameNotification(`Sessão encerrada: ${data.motivo || 'Encerrada pelo administrador'}`, 'info');
       }
     });
 
@@ -674,13 +681,19 @@ export const createSocketActions = (set, get) => ({
       set({
         lastLevelUp: {
           userId: data.userId,
-          username: data.username,
+          username: data.personagemNome || data.username,
           novoNivel: data.novoNivel || data.nivel,
           ganhos: data.ganhos || {},
           timestamp: Date.now()
         }
       });
       get().log('Level Up', { userId: data.userId, nivel: data.novoNivel || data.nivel, success: true });
+    });
+
+    // ===== LISTENER DE LOOT PÓS-COMBATE =====
+    socket.on('combate_loot', (data) => {
+      set({ lastCombateLoot: data });
+      get().log('Combate Loot', { totalItens: data.todosItens?.length || 0 });
     });
 
     // ✅ NOVO: Listener para usuário entrando na sala

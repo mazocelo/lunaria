@@ -84,6 +84,8 @@ export const socketInitialStates = {
 
   // ===== PROGRESSÃO =====
   lastLevelUp: null, // { userId, username, novoNivel, ganhos, timestamp }
+  lastCombateLoot: null, // { lootPorJogador, todosItens, timestamp }
+  sessionRecap: null, // { resumo, historiaNome, xpGanho, loot } - dados do recap ao encerrar sessão
 
   // ===== CONFIGURAÇÕES E LOGS =====
   logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'info',

@@ -9,6 +9,7 @@ import RolagemDadosInicial from '../Gameplay/RolagemDadosInicial';
 import BatalhaUI from '../Gameplay/BatalhaUI';
 import InventarioPanel from '../Gameplay/InventarioPanel';
 import LevelUpCelebration from '../Gameplay/LevelUpCelebration';
+import SessionRecap from '../Gameplay/SessionRecap';
 import { etapaJogoRPGViewModel } from '../../../viewmodels/Jogo';
 import NotificationManager, { showGameNotification } from '../NotificationManager';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
@@ -61,7 +62,8 @@ const EtapaJogoRPG = ({
     combateRodada: 0,
     combateResultado: null,
     combateLog: [],
-    combateXpGanho: 0
+    combateXpGanho: 0,
+    sessionRecap: null
   });
 
   // ⏱️ Timer local para cooldown roleplay
@@ -87,6 +89,16 @@ const EtapaJogoRPG = ({
   // 🎒 Inventario + Level Up
   const [inventarioAberto, setInventarioAberto] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
+  const [levelUpQueue, setLevelUpQueue] = useState([]);
+
+  // Consumir fila de level-ups sequencialmente (mostra um por vez)
+  React.useEffect(() => {
+    if (!levelUpData && levelUpQueue.length > 0) {
+      const [next, ...rest] = levelUpQueue;
+      setLevelUpData(next);
+      setLevelUpQueue(rest);
+    }
+  }, [levelUpData, levelUpQueue]);
 
   // Ref para evitar stale closure no onAdicionarMensagem
   const onAdicionarMensagemRef = React.useRef(onAdicionarMensagem);
@@ -128,7 +140,8 @@ const EtapaJogoRPG = ({
           combateRodada: state.combateRodada || 0,
           combateResultado: state.combateResultado || null,
           combateLog: state.combateLog || [],
-          combateXpGanho: state.combateXpGanho || 0
+          combateXpGanho: state.combateXpGanho || 0,
+          sessionRecap: state.sessionRecap || null
         });
 
         // Ler estado inicial (subscribe só dispara em mudanças futuras)
@@ -377,22 +390,22 @@ const EtapaJogoRPG = ({
           });
         };
 
-        // Listener para level up
+        // Listener para level up (usa fila para multi-level-up)
         const handleLevelUp = (data) => {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           if (String(data.userId) === String(currentUser.id)) {
-            setLevelUpData({
+            setLevelUpQueue(prev => [...prev, {
               novoNivel: data.novoNivel || data.nivel,
               ganhos: data.ganhos || {}
-            });
+            }]);
           }
           if (onAdicionarMensagemRef.current) {
             onAdicionarMensagemRef.current({
-              id: `levelup_${Date.now()}`,
+              id: `levelup_${Date.now()}_${data.novoNivel}`,
               tipo: 'mestre',
               userId: 'sistema',
               username: 'Sistema',
-              message: `🎉 **${data.username || 'Jogador'}** subiu para o **Nível ${data.novoNivel || data.nivel}**!`,
+              message: `🎉 **${data.personagemNome || data.username || 'Jogador'}** subiu para o **Nível ${data.novoNivel || data.nivel}**!`,
               timestamp: Date.now()
             });
           }
@@ -442,9 +455,9 @@ const EtapaJogoRPG = ({
 
         // XP toast ao fim de combate
         const handleCombateFinalizado = (data) => {
-          const xpGanho = data.xpTotal || data.xpGanho || 0;
-          if (xpGanho > 0) {
-            showGameNotification(`+${xpGanho} XP ganho no combate!`, 'success');
+          const xpPorJogador = data.xpPorJogador || 0;
+          if (xpPorJogador > 0) {
+            showGameNotification(`+${xpPorJogador} XP ganho no combate!`, 'success');
           }
           if (onAdicionarMensagemRef.current) {
             const resultado = data.resultado === 'vitoria' ? 'Vitoria!' : data.resultado === 'derrota' ? 'Derrota...' : 'Combate encerrado';
@@ -453,12 +466,34 @@ const EtapaJogoRPG = ({
               tipo: 'mestre',
               userId: 'sistema',
               username: 'Sistema',
-              message: `${resultado}${xpGanho > 0 ? ` (+${xpGanho} XP)` : ''}`,
+              message: `${resultado}${xpPorJogador > 0 ? ` (+${xpPorJogador} XP)` : ''}`,
               timestamp: Date.now()
             });
           }
         };
         socketStore.on('combate_finalizado', handleCombateFinalizado);
+
+        // Loot pós-combate
+        const handleCombateLoot = (data) => {
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const meusItens = data.lootPorJogador?.[String(currentUser.id)] || [];
+          if (meusItens.length > 0) {
+            const nomes = meusItens.map(i => i.nome).join(', ');
+            showGameNotification(`Loot recebido: ${nomes}`, 'success');
+          }
+          if (onAdicionarMensagemRef.current && data.todosItens?.length > 0) {
+            const listaItens = data.todosItens.map(i => i.nome).join(', ');
+            onAdicionarMensagemRef.current({
+              id: `loot_${Date.now()}`,
+              tipo: 'mestre',
+              userId: 'sistema',
+              username: 'Sistema',
+              message: `Loot obtido: ${listaItens}`,
+              timestamp: Date.now()
+            });
+          }
+        };
+        socketStore.on('combate_loot', handleCombateLoot);
 
         // Cleanup
         return () => {
@@ -474,6 +509,7 @@ const EtapaJogoRPG = ({
           socketStore.off('level_up', handleLevelUp);
           socketStore.off('acao_mestre', handleAcaoMestre);
           socketStore.off('combate_finalizado', handleCombateFinalizado);
+          socketStore.off('combate_loot', handleCombateLoot);
         };
       } catch (error) {
         // silenced
@@ -584,6 +620,14 @@ const EtapaJogoRPG = ({
         } else {
           // ✅ Remover loading se falhar
           setAguardandoMestre(false);
+          showGameNotification('Falha ao enviar mensagem. Verifique sua conexão.', 'error');
+          // Remover loading message (mesmo pattern do handleMensagemMestre)
+          try {
+            const { jogoViewModel } = await import('../../../viewmodels/Jogo/index.js');
+            const msgs = jogoViewModel.getState().mensagens || [];
+            const semLoading = msgs.filter(m => m.tipo !== 'loading');
+            if (msgs.length !== semLoading.length) jogoViewModel.setMensagens(semLoading);
+          } catch (e) { /* silenced */ }
         }
       }
     } catch (error) {
@@ -1147,6 +1191,17 @@ const EtapaJogoRPG = ({
         novoNivel={levelUpData?.novoNivel}
         ganhos={levelUpData?.ganhos}
         onClose={() => setLevelUpData(null)}
+      />
+
+      <SessionRecap
+        isVisible={!!socketState.sessionRecap}
+        recapData={socketState.sessionRecap}
+        onClose={async () => {
+          try {
+            const { getSocketStoreAPI } = await import('../../../store/index.js');
+            getSocketStoreAPI().setState({ sessionRecap: null });
+          } catch (_) {}
+        }}
       />
     </div>
   );

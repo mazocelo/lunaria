@@ -85,7 +85,8 @@ const Historia = (prisma) => {
           ...data,
           criada_em: new Date(),
           atualizada_em: new Date()
-        }
+        },
+        include: { mestres: true }
       });
     },
 
@@ -96,7 +97,8 @@ const Historia = (prisma) => {
         data: {
           ...data,
           atualizada_em: new Date()
-        }
+        },
+        include: { mestres: true }
       });
     },
 
@@ -120,7 +122,8 @@ const Historia = (prisma) => {
     async findAll() {
       return await prisma.historias.findMany({
         where: { deleted_at: null },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        include: { mestres: true }
       });
     },
 

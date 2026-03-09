@@ -98,13 +98,10 @@ router.post('/start', async (req, res, next) => {
       });
     }
 
-    // Carregar config do mestre customizado (se vinculado à história)
-    let mestreConfig = null;
-    if (historia.mestre_id) {
-      mestreConfig = await db.Mestre.findById(historia.mestre_id);
-      if (mestreConfig) {
-        console.log(`🧙‍♂️ Mestre customizado carregado: "${mestreConfig.nome}"`);
-      }
+    // Config do mestre customizado (já incluso no findById via include)
+    const mestreConfig = historia.mestres || null;
+    if (mestreConfig) {
+      console.log(`🧙‍♂️ Mestre customizado carregado: "${mestreConfig.nome}"`);
     }
 
     // ID da sala será baseado na história

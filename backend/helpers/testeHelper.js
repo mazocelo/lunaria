@@ -124,7 +124,8 @@ export function calcularModificadorTeste(personagem, nomeTeste) {
     };
   }
 
-  const valorAtributo = personagem[atributo] || 10;
+  // Atributos podem estar em personagem.atributos.X ou personagem.X (compatível com ambos)
+  const valorAtributo = personagem.atributos?.[atributo] || personagem[atributo] || 10;
   const modificador = calcularModificadorAtributo(valorAtributo);
   const bonusNivel = calcularBonusNivel(personagem.nivel || 1);
 

@@ -1405,6 +1405,20 @@ class SocketManager {
             });
           } catch (testeError) {
             console.warn('⚠️ Erro ao resolver teste mecanicamente, usando resultado bruto:', testeError.message);
+            // Fallback: emitir resultado_teste com dados básicos para frontend não ficar sem mensagem
+            this.io.to(roomId).emit('resultado_teste', {
+              rolagemBruta: parseInt(result) || 1,
+              total: parseInt(result) || 1,
+              totalModificador: 0,
+              atributoNome: null,
+              dc: null,
+              sucesso: null,
+              descricaoResultado: null,
+              username,
+              personagemNome,
+              dice,
+              timestamp: Date.now()
+            });
           }
 
           const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao);

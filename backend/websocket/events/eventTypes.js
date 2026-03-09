@@ -88,7 +88,6 @@ export const COMBAT_EVENTS = {
 export const SYSTEM_EVENTS = {
   PING: 'ping',
   PONG: 'pong',
-  HEARTBEAT: 'heartbeat',
   STATUS_UPDATE: 'status_update',
   SERVER_MESSAGE: 'server_message',
   ERROR: 'error',

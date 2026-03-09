@@ -57,7 +57,7 @@ export const loggingMiddleware = (socket, next) => {
  */
 function logEvent(type, socket, event, data) {
   // Filtrar eventos sensíveis ou muito frequentes
-  const skipEvents = ['ping', 'pong', 'heartbeat'];
+  const skipEvents = ['ping', 'pong'];
   
   if (skipEvents.includes(event)) {
     return;

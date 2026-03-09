@@ -19,7 +19,7 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
 
   // Renderers por tipo de mensagem
   const renderDado = (mensagem, key) => {
-    const temModificador = mensagem.totalModificador && mensagem.totalModificador !== 0;
+    const temModificador = mensagem.totalModificador != null && mensagem.totalModificador !== 0;
     return (
       <div key={key} className="w-full animate-fade-in">
         <div className="glass p-4 rounded-xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-900/40 to-orange-900/40 shadow-xl">

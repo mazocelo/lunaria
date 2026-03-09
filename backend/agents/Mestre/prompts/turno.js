@@ -36,7 +36,8 @@ Como Mestre, dirija-se diretamente a ${personagem} e:
 2. Apresente um desafio, obstáculo ou situação interessante
 3. Faça perguntas diretas que demandem ação do jogador
 4. Mantenha a narrativa dinâmica e envolvente
-5. **IMPORTANTE:** Se a situação exigir teste de habilidade, perícia, ataque, sorte ou talento, solicite rolagem de dados usando 🎲 e explicando as consequências
+5. **IMPORTANTE:** Se a situação exigir teste de habilidade, perícia, ataque, sorte ou talento, solicite rolagem com 🎲 Role 1d20 para [teste]! (NÃO inclua faixas numéricas — o sistema resolve automaticamente)
+6. SEMPRE termine com um gancho narrativo para o jogador agir ("O que você faz?", "Qual será sua próxima ação?" ou pergunta narrativa)
 
 O que acontece com ${personagem}? O que ${personagem} vê e percebe?`;
 }

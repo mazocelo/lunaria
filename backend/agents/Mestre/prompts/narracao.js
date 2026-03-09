@@ -11,12 +11,13 @@ INSTRUÇÕES PARA NARRAÇÃO:
 - Narre o que acontece como resultado dessa ação
 - AVALIE SE A AÇÃO É:
   * SIMPLES/SEGURA: Narre diretamente o resultado (ex: observar sala, conversar normalmente)
-  * ARRISCADA/DIFÍCIL: Solicite rolagem de dados explicando consequências
-  
-- Se solicitar dados, use o formato:
-  🎲 Role 1d20 para [teste]! (explique faixas de resultado)
-  
-- Mantenha a emoção e o suspense`;
+  * ARRISCADA/DIFÍCIL: Solicite rolagem de dados (o sistema aplica modificadores automaticamente)
+
+- Se solicitar dados, use: 🎲 Role 1d20 para [nome do teste]!
+- NÃO inclua faixas numéricas de resultado — o motor mecânico resolve sucesso/falha
+
+- Mantenha a emoção e o suspense
+- SEMPRE termine com um gancho narrativo para o jogador agir, como "O que você faz?", "Qual será sua próxima ação?" ou uma pergunta narrativa que estimule a continuidade`;
 }
 
 export function criarPromptReacao(contexto, evento) {

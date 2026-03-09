@@ -99,7 +99,7 @@ function AppContent() {
           <ParticlesBackground />
 
           {/* Gradiente de fundo */}
-          <div className={`fixed inset-0 z-0 ${
+          <div className={`fixed inset-0 z-0 pointer-events-none ${
             isLight
               ? 'bg-gradient-to-br from-slate-100 via-purple-100/30 to-slate-100'
               : 'bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900'
@@ -119,7 +119,7 @@ function AppContent() {
 
           {/* Main area (header + content) */}
           <div
-            className="flex flex-col h-screen transition-[margin-left] duration-300 ease-in-out"
+            className="flex flex-col h-screen transition-[margin-left] duration-300 ease-in-out relative z-10"
             style={{ marginLeft: showSidebar ? sidebarWidth : 0 }}
           >
             {/* TopHeader - hidden in fullscreen (game) mode */}

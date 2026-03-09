@@ -1,9 +1,19 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import personagemController from '../controllers/personagem/personagemController.js';
 import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
 import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Rate limiter para endpoints de escrita/IA (não afeta GETs)
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
 
 /**
  * @swagger
@@ -200,7 +210,7 @@ const router = express.Router();
  *       404:
  *         description: História não encontrada
  */
-router.post('/', asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
+router.post('/', writeLimiter, asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -388,7 +398,7 @@ router.get('/:id', asyncHandlerWithContext(personagemController.obterPersonagem,
  *         description: Personagem não encontrado
  */
 // PUT /:id - Atualizar personagem (OWNER OU ADMIN)
-router.put('/:id', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
+router.put('/:id', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.atualizarPersonagem, personagemController));
 
 /**
  * @swagger
@@ -471,7 +481,7 @@ router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Personagem'), asy
  *       404:
  *         description: Personagem não encontrado
  */
-router.post('/:id/background', asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
+router.post('/:id/background', writeLimiter, asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
 
 /**
  * @swagger
@@ -1040,6 +1050,6 @@ router.post('/:id/distribuir-pontos', asyncHandlerWithContext(personagemControll
 router.get('/:id/evolucao', asyncHandlerWithContext(personagemController.obterEvolucao, personagemController));
 
 // POST /:id/validar-coerencia - Validar coerência narrativa via IA
-router.post('/:id/validar-coerencia', asyncHandlerWithContext(personagemController.validarCoerencia, personagemController));
+router.post('/:id/validar-coerencia', writeLimiter, asyncHandlerWithContext(personagemController.validarCoerencia, personagemController));
 
 export default router;

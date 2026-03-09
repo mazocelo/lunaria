@@ -84,8 +84,8 @@ router.use('/catalogos', authenticateToken, catalogosRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória
-router.use('/historias', authenticateToken, createLimiter, historiaRoutes);
-router.use('/personagens', authenticateToken, createLimiter, personagemRoutes);
+router.use('/historias', authenticateToken, historiaRoutes);
+router.use('/personagens', authenticateToken, personagemRoutes);
 router.use('/usuarios', authenticateToken, usuarioRoutes);
 router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);

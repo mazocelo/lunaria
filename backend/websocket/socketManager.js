@@ -1717,6 +1717,19 @@ class SocketManager {
         return socket.emit('error', { message: 'Sessão não encontrada' });
       }
 
+      // ✅ GUARD: Rejeitar mensagem se dados já foram solicitados (evita solicitação duplicada)
+      const estadoJogoGuard = sessao.estadoJogo || {};
+      if (estadoJogoGuard.dadosSolicitados) {
+        this.log('WARN', 'MENSAGEM_PARA_MESTRE_DADOS_PENDENTES', socket.id, userId, {
+          roomId,
+          mensagem: mensagem.substring(0, 50)
+        });
+        socket.emit('erro_mensagem', {
+          message: 'Aguarde a rolagem de dados antes de enviar uma nova mensagem.'
+        });
+        return;
+      }
+
       this.log('INFO', 'MENSAGEM_PARA_MESTRE_SESSAO_FOUND', socket.id, userId, {
         sessaoStatus: sessao.status,
         historiaNome: sessao.historiaNome,

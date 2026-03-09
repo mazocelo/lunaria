@@ -5,16 +5,16 @@ import dotenv from 'dotenv';
 
 import { MESTRE_CONFIG } from './config.js';
 
-// Timeout wrapper for AI calls
-function withTimeout(promise, ms = 45000) {
+// Timeout wrapper for AI calls (25s para caber no timeout de 30s do frontend)
+function withTimeout(promise, ms = 25000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), ms))
   ]);
 }
 
-// Retry wrapper: 1 retry on AI_TIMEOUT only
-async function withRetry(fn, retries = 1) {
+// Sem retry - se der timeout, fallback imediato no socketManager
+async function withRetry(fn, retries = 0) {
   try {
     return await fn();
   } catch (error) {

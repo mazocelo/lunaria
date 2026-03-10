@@ -2,8 +2,6 @@ import React from 'react';
 import { Sword, Loader2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import ImageGenerator from '../../../components/form/ImageGenerator';
-
 const NovoEquipamentoView = ({
   nome, descricao, tipo, elemento, bonus, dano_base, requisitos, numero,
   raridade_id, origem_lore, categoria_id,
@@ -127,13 +125,6 @@ const NovoEquipamentoView = ({
           </div>
         </div>
 
-        <ImageGenerator
-          imageUrl={imagem}
-          onImageGenerated={setImagem}
-          entityType="equipamento"
-          entityData={{ nome, tipo, descricao, raridade: raridades?.find(r => String(r.id) === String(raridade_id))?.nome }}
-          isLight={isLight}
-        />
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">{saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>) : (<div className="flex items-center space-x-2"><Sword size={16} /><span>Criar Equipamento</span></div>)}</Button>

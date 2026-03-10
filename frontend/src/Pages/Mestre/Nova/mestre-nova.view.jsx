@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { Crown, Sparkles, Loader2, Volume2 } from 'lucide-react';
 import { apiClient } from '../../../services/ApiClient.js';
 import InputSimples from '../../../components/form/inputSimples';
-import ImageGenerator from '../../../components/form/ImageGenerator';
 import Button from '../../../components/form/button';
 
 const EMOTION_OPTIONS = [
@@ -287,14 +286,6 @@ const NovaMestreView = ({
             />
           </div>
         </div>
-
-        <ImageGenerator
-          imageUrl={imagem}
-          onImageGenerated={(url) => setField('imagem', url)}
-          entityType="mestre"
-          entityData={{ nome, personalidade, tom_narrativo }}
-          isLight={isLight}
-        />
 
         <VoiceSelector
           voice_id={voice_id}

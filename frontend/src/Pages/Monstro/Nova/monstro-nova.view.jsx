@@ -1,7 +1,6 @@
 import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import ImageGenerator from '../../../components/form/ImageGenerator';
 import { Skull, Sparkles, Loader2 } from 'lucide-react';
 
 const NovoMonstroView = ({
@@ -61,13 +60,6 @@ const NovoMonstroView = ({
             <InputSimples label="Dano Base" name="dano_base" type="number" value={dano_base} onChange={e => setField('dano_base', e.target.value)} />
           </div>
         </div>
-        <ImageGenerator
-          imageUrl={imagem}
-          onImageGenerated={setImagem}
-          entityType="monstro"
-          entityData={{ nome, tipo, descricao }}
-          isLight={isLight}
-        />
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">{saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>) : (<div className="flex items-center space-x-2"><Sparkles size={16} /><span>Criar Monstro</span></div>)}</Button>

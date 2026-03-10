@@ -21,7 +21,7 @@ const ParticlesBackground = () => {
 
     // Configurações
     const particles = [];
-    const particleCount = isLight ? 550 : 50;
+    const particleCount = isLight ? 550 : 120;
 
     // --- CLASSES ---
     class NatureElement {

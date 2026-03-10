@@ -158,9 +158,10 @@ export const usePersonagemNovoModel = () => {
       const desvantagensIds = [];
 
       if (Array.isArray(vantagensSelecionadas)) {
+        // Criar set de IDs que vieram da store de desvantagens para separação correta
+        const desvantagemIdSet = new Set((desvantagens || []).map(d => String(d.id)));
         vantagensSelecionadas.forEach(id => {
-          const vantagem = vantagensDisponiveis?.find(v => String(v.id) === String(id));
-          if (vantagem && vantagem.tipo === 'desvantagem') {
+          if (desvantagemIdSet.has(String(id))) {
             desvantagensIds.push(Number(id));
           } else {
             vantagensIds.push(Number(id));

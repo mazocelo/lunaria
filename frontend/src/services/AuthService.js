@@ -191,8 +191,13 @@ export class AuthService {
           return new Error(data.message || 'Credenciais inválidas');
         case 403:
           return new Error(data.message || 'Acesso negado');
-        case 422:
-          return new Error(data.message || 'Dados inválidos');
+        case 422: {
+          const details = data.error?.details || data.errors;
+          if (Array.isArray(details) && details.length > 0) {
+            return new Error(details.map(d => d.msg || d.message).join('. '));
+          }
+          return new Error(data.error?.message || data.message || 'Dados inválidos');
+        }
         case 429:
           return new Error(data.message || 'Muitas tentativas. Aguarde alguns minutos.');
         default:

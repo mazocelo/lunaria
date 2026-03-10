@@ -77,8 +77,14 @@ const RegisterView = ({ onSwitchToLogin }) => {
         }
       }
       if (name === 'senha') {
-        if (formData.senha && formData.senha.length > 0 && formData.senha.length < 6) {
-          next.senha = 'Senha deve ter pelo menos 6 caracteres';
+        if (formData.senha && formData.senha.length > 0) {
+          if (formData.senha.length < 8) {
+            next.senha = 'Senha deve ter pelo menos 8 caracteres';
+          } else if (!/[A-Z]/.test(formData.senha) || !/[0-9]/.test(formData.senha) || !/[^a-zA-Z0-9]/.test(formData.senha)) {
+            next.senha = 'Senha deve conter maiúscula, número e caractere especial';
+          } else {
+            delete next.senha;
+          }
         } else {
           delete next.senha;
         }
@@ -114,8 +120,10 @@ const RegisterView = ({ onSwitchToLogin }) => {
     // Validação da senha
     if (!formData.senha.trim()) {
       newErrors.senha = 'Senha é obrigatória';
-    } else if (formData.senha.length < 6) {
-      newErrors.senha = 'Senha deve ter pelo menos 6 caracteres';
+    } else if (formData.senha.length < 8) {
+      newErrors.senha = 'Senha deve ter pelo menos 8 caracteres';
+    } else if (!/[A-Z]/.test(formData.senha) || !/[0-9]/.test(formData.senha) || !/[^a-zA-Z0-9]/.test(formData.senha)) {
+      newErrors.senha = 'Senha deve conter maiúscula, número e caractere especial';
     }
 
     // Validação da confirmação de senha

@@ -55,6 +55,31 @@ function parseIAJson(content) {
   return null; // Parse impossível
 }
 
+/**
+ * Fallback: detecta solicitação de dados na narrativa quando o JSON não incluiu.
+ * Extrai teste e dificuldade do padrão "🎲 Role 1d20 para X! (Dificuldade: Y)"
+ * ou "🎲 Role 1d20 para X!" sem dificuldade explícita.
+ */
+function fallbackSolicitaDados(respostaJSON) {
+  if (!respostaJSON?.narrativa) return;
+  if (respostaJSON.solicitaDados?.solicita) return; // Já está correto
+
+  const narrativa = respostaJSON.narrativa;
+  // Padrão: 🎲 Role 1d20 para Teste! (Dificuldade: X) ou 🎲 Role 1d20 para Teste!
+  const match = narrativa.match(/🎲\s*[Rr]ole\s+1?d20\s+para\s+([^!(.]+?)(?:\s*!\s*\((?:[Dd]ificuldade:\s*)([^)]+)\)|\s*!)/);
+  if (match) {
+    const teste = match[1].trim();
+    const dificuldade = match[2]?.trim() || 'Média';
+    console.log(`🔄 Fallback solicitaDados detectado na narrativa: teste="${teste}", dificuldade="${dificuldade}"`);
+    respostaJSON.solicitaDados = {
+      solicita: true,
+      tipo: 'd20',
+      teste,
+      dificuldade
+    };
+  }
+}
+
 import { criarPromptSistema } from './prompts/sistema.js';
 import { criarPromptNarracao } from './prompts/narracao.js';
 import { criarPromptInicio, criarPromptBoasVindas } from './prompts/inicio.js';
@@ -196,6 +221,9 @@ export class MestreAgent {
           acaoCompleta: false
         };
       }
+
+      // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
+      fallbackSolicitaDados(respostaJSON);
 
       // Adicionar ao historico local
       const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
@@ -402,6 +430,9 @@ Mensagem do Jogador:
           acaoCompleta: false
         };
       }
+
+      // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
+      fallbackSolicitaDados(respostaJSON);
 
       const deveFinalizarTurno = respostaJSON.fimDeTurno || contadorMensagens >= 3;
 

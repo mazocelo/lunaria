@@ -8,7 +8,7 @@ import { useTTS } from '../../../hooks/useTTS';
  * Despacha renderização por tipo via MESSAGE_RENDERERS registry
  * Uma única instância de useTTS garante que só 1 áudio toque por vez
  */
-const ChatArea = ({ mensagens, usuariosDigitando, voiceId }) => {
+const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider }) => {
   const chatEndRef = useRef(null);
   const tts = useTTS();
 
@@ -22,7 +22,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId }) => {
 
     // Mestre messages use React component (supports TTS)
     if (tipo === 'mestre') {
-      return <MestreMessage key={key} mensagem={mensagem} voiceId={voiceId} tts={tts} />;
+      return <MestreMessage key={key} mensagem={mensagem} voiceId={voiceId} voiceProvider={voiceProvider} tts={tts} />;
     }
 
     const renderer = MESSAGE_RENDERERS[tipo];

@@ -7,7 +7,7 @@ import { useSocketStore } from '../../store';
 import {
   BookOpen, Users, Dna, Shield, Star, AlertTriangle,
   Sword, Skull, Palette, Crown, User, AlertCircle, RefreshCw,
-  UserPlus, Rss, Globe
+  UserPlus, Rss, Globe, BarChart3, Zap
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -25,6 +25,7 @@ const Sidebar = () => {
     { path: '/historias', label: 'Historias', icon: BookOpen, description: 'Gerencie suas aventuras' },
     { path: '/historias/explorar', label: 'Explorar', icon: Globe, description: 'Descubra aventuras publicas' },
     { path: '/personagens', label: 'Personagens', icon: Users, description: 'Crie e edite personagens' },
+    { path: '/billing', label: 'Consumo', icon: BarChart3, description: 'Consumo de API' },
   ];
 
   const socialItems = [
@@ -40,6 +41,7 @@ const Sidebar = () => {
     { path: '/equipamentos', label: 'Equipamentos', icon: Sword, description: 'Armas e itens magicos' },
     { path: '/monstros', label: 'Monstros', icon: Skull, description: 'Bestiario de Lunaria' },
     { path: '/temas', label: 'Temas', icon: Palette, description: 'Gerencie os temas' },
+    { path: '/habilidades', label: 'Habilidades', icon: Zap, description: 'Gerencie as habilidades' },
     { path: '/mestres', label: 'Mestres', icon: Crown, description: 'Gerencie seus mestres' },
   ];
 

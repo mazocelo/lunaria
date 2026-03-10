@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
+import { calcularMana } from '../../../utils/rpgHelpers';
 
 /**
  * Barra inferior com status do personagem
@@ -41,6 +42,11 @@ const StatusPersonagem = ({
   const hpBaixo = combateStats && combateStats.hp_max > 0 ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
   const derrotado = combateStats?.status === 'derrotado';
 
+  // Mana: combate usa dados live, fora de combate calcula pela fórmula
+  const manaMax = combateStats?.mana_max ?? calcularMana(personagemSelecionado);
+  const manaAtual = combateStats?.mana_atual ?? manaMax;
+  const mpDisplay = `${manaAtual}/${manaMax}`;
+
   // Layout compacto para painel lateral
   if (compact) {
     return (
@@ -72,14 +78,12 @@ const StatusPersonagem = ({
                   </div>
                   <div className="text-xs text-red-300">HP</div>
                 </div>
-                {personagemSelecionado.mp != null && (
-                  <div className="text-center">
-                    <div className="text-base font-bold text-blue-400">
-                      {personagemSelecionado.mp}
-                    </div>
-                    <div className="text-xs text-blue-300">MP</div>
+                <div className="text-center">
+                  <div className="text-base font-bold text-blue-400">
+                    {mpDisplay}
                   </div>
-                )}
+                  <div className="text-xs text-blue-300">MP</div>
+                </div>
                 {combateStats && (
                   <>
                     <div className="text-center">
@@ -160,14 +164,12 @@ const StatusPersonagem = ({
                   </div>
                   <div className="text-xs text-red-300">HP</div>
                 </div>
-                {personagemSelecionado.mp != null && (
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-400">
-                      {personagemSelecionado.mp}
-                    </div>
-                    <div className="text-xs text-blue-300">MP</div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-400">
+                    {mpDisplay}
                   </div>
-                )}
+                  <div className="text-xs text-blue-300">MP</div>
+                </div>
                 <div className="min-w-[120px]">
                   <XPProgressBar
                     xpAtual={personagemSelecionado.xp_atual || personagemSelecionado.xp || 0}

@@ -330,7 +330,7 @@ export class HistoriaService {
   async getStatusJogo(historiaId) {
     try {
       const response = await this.apiClient.get(`/jogo/status/${historiaId}`);
-      
+
       if (response.success) {
         return response.data;
       } else {
@@ -338,6 +338,38 @@ export class HistoriaService {
       }
     } catch (error) {
       throw new Error(`Erro ao buscar status do jogo: ${error.message}`);
+    }
+  }
+
+  // === ROTEIRO (Story Blueprint) ===
+
+  async gerarRoteiro(historiaId) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro`);
+      return response;
+    } catch (error) {
+      throw new Error(`Erro ao gerar roteiro: ${error.message}`);
+    }
+  }
+
+  async getRoteiro(historiaId) {
+    try {
+      const response = await this.apiClient.get(`${this.baseUrl}/${historiaId}/roteiro`);
+      if (response.success) {
+        return response.data;
+      }
+      return { roteiro: null, roteiro_status: null };
+    } catch (error) {
+      throw new Error(`Erro ao buscar roteiro: ${error.message}`);
+    }
+  }
+
+  async atualizarRoteiro(historiaId, roteiro) {
+    try {
+      const response = await this.apiClient.put(`${this.baseUrl}/${historiaId}/roteiro`, { roteiro });
+      return response;
+    } catch (error) {
+      throw new Error(`Erro ao atualizar roteiro: ${error.message}`);
     }
   }
 } 

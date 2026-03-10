@@ -5,9 +5,22 @@ import InputSimples from '../../../components/form/inputSimples';
 import ImageGenerator from '../../../components/form/ImageGenerator';
 import Button from '../../../components/form/button';
 
-const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) => {
+const EMOTION_OPTIONS = [
+  { value: '', label: 'Nenhuma' },
+  { value: 'positivity:high', label: 'Animado' },
+  { value: 'sadness:low', label: 'Calmo' },
+  { value: 'sadness:high', label: 'Triste' },
+  { value: 'surprise:high', label: 'Surpreso' },
+  { value: 'curiosity:high', label: 'Curioso' },
+  { value: 'anger:low', label: 'Serio' },
+];
+
+const PROVIDER_LABELS = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia' };
+
+const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoices, isLight, setField }) => {
   const previewAudioRef = useRef(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [emotion, setEmotion] = useState('');
 
   const handlePreview = async (voiceId) => {
     if (!voiceId || loadingPreview) return;
@@ -17,7 +30,9 @@ const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) =
     }
     setLoadingPreview(true);
     try {
-      const response = await apiClient.post('/tts/preview', { voiceId }, { responseType: 'blob' });
+      const body = { voiceId, provider: voice_provider };
+      if (voice_provider === 'cartesia' && emotion) body.emotion = emotion;
+      const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
       const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
@@ -28,59 +43,91 @@ const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) =
     setLoadingPreview(false);
   };
 
-  if (loadingVoices) {
-    return (
-      <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
-        <div className="flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin text-purple-400" />
-          <span className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Carregando vozes...</span>
-        </div>
-      </div>
-    );
-  }
+  if (!providers || providers.length === 0) return null;
 
-  if (voices.length === 0) return null;
+  const selectClass = `flex-1 px-4 py-3 rounded-lg font-modern transition-all duration-200 ${
+    isLight
+      ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500'
+      : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
+  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
 
   const selectedVoice = voices.find(v => v.voice_id === voice_id);
 
   return (
-    <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
-      <h3 className={`text-sm font-semibold font-modern mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+    <div className={`p-4 rounded-lg space-y-4 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
+      <h3 className={`text-sm font-semibold font-modern flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
         <Volume2 size={16} className="text-purple-400" />
         Voz do Mestre (TTS)
       </h3>
-      <div className="flex items-center gap-3">
-        <select
-          value={voice_id}
-          onChange={e => setField('voice_id', e.target.value)}
-          className={`flex-1 px-4 py-3 rounded-lg font-modern transition-all duration-200 ${
-            isLight
-              ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500'
-              : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
-          } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-        >
-          <option value="">Sem voz</option>
-          {voices.map(v => (
-            <option key={v.voice_id} value={v.voice_id}>
-              {v.name}{v.category ? ` (${v.category})` : ''}
-            </option>
+
+      {providers.length > 1 && (
+        <div className="flex gap-2">
+          {providers.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setField('voice_provider', p)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer ${
+                voice_provider === p
+                  ? 'bg-purple-500 text-white'
+                  : isLight
+                    ? 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              {PROVIDER_LABELS[p] || p}
+            </button>
           ))}
-        </select>
-        {selectedVoice && (
-          <button
-            type="button"
-            onClick={() => handlePreview(voice_id)}
-            disabled={loadingPreview}
-            className="px-3 py-3 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loadingPreview ? <Loader2 size={16} className="animate-spin" /> : 'Preview'}
-          </button>
-        )}
-      </div>
-      {selectedVoice && (
-        <p className={`text-xs mt-2 font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-          As mensagens do mestre poderao ser ouvidas com esta voz durante o jogo.
-        </p>
+        </div>
+      )}
+
+      {loadingVoices ? (
+        <div className="flex items-center gap-2">
+          <Loader2 size={16} className="animate-spin text-purple-400" />
+          <span className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Carregando vozes...</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3">
+            <select value={voice_id} onChange={e => setField('voice_id', e.target.value)} className={selectClass}>
+              <option value="">Sem voz</option>
+              {voices.map(v => (
+                <option key={v.voice_id} value={v.voice_id}>
+                  {v.name}{v.category ? ` (${v.category})` : ''}
+                </option>
+              ))}
+            </select>
+            {selectedVoice && (
+              <button
+                type="button"
+                onClick={() => handlePreview(voice_id)}
+                disabled={loadingPreview}
+                className="px-3 py-3 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingPreview ? <Loader2 size={16} className="animate-spin" /> : 'Preview'}
+              </button>
+            )}
+          </div>
+
+          {voice_provider === 'cartesia' && selectedVoice && (
+            <div>
+              <label className={`text-xs font-modern mb-1 block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Emocao (Cartesia)
+              </label>
+              <select value={emotion} onChange={e => setEmotion(e.target.value)} className={selectClass}>
+                {EMOTION_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {selectedVoice && (
+            <p className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              As mensagens do mestre poderao ser ouvidas com esta voz durante o jogo.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -89,7 +136,7 @@ const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) =
 const EditarMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
   max_tokens, tom_narrativo, regras_especiais, imagem,
-  voice_id, voices, loadingVoices,
+  voice_id, voice_provider, voices, providers, loadingVoices,
   loading, saving, error, isLight,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
@@ -275,7 +322,9 @@ const EditarMestreView = ({
 
         <VoiceSelector
           voice_id={voice_id}
+          voice_provider={voice_provider}
           voices={voices}
+          providers={providers}
           loadingVoices={loadingVoices}
           isLight={isLight}
           setField={setField}

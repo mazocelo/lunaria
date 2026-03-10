@@ -16,10 +16,10 @@ export const useMestreVerModel = () => {
   const [error, setError] = useState(null);
   const [voiceName, setVoiceName] = useState(null);
 
-  const resolveVoiceName = useCallback(async (voiceId) => {
+  const resolveVoiceName = useCallback(async (voiceId, provider) => {
     if (!voiceId) return;
     try {
-      const res = await apiClient.get('/tts/voices');
+      const res = await apiClient.get(`/tts/voices?provider=${provider || 'elevenlabs'}`);
       if (res.success) {
         const match = (res.data || []).find(v => v.voice_id === voiceId);
         if (match) setVoiceName(match.name);
@@ -38,7 +38,7 @@ export const useMestreVerModel = () => {
     try {
       const { data } = await mestreService.getById(mestreId);
       setMestre(data);
-      if (data.voice_id) resolveVoiceName(data.voice_id);
+      if (data.voice_id) resolveVoiceName(data.voice_id, data.voice_provider);
       setLoading(false);
     } catch (err) {
       setLoading(false);

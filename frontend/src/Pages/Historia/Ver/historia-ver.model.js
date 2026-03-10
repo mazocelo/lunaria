@@ -36,6 +36,11 @@ export const useHistoriaVerModel = () => {
   const [sessaoSelecionada, setSessaoSelecionada] = useState(null);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
 
+  // Roteiro (Story Blueprint)
+  const [roteiro, setRoteiro] = useState(null);
+  const [roteiroStatus, setRoteiroStatus] = useState(null);
+  const [roteiroLoading, setRoteiroLoading] = useState(false);
+
   // Carregar historia
   const loadHistoria = useCallback(async (historiaId) => {
     setLoading(true);
@@ -56,6 +61,7 @@ export const useHistoriaVerModel = () => {
   useEffect(() => {
     if (id) {
       loadHistoria(parseInt(id));
+      loadRoteiro(parseInt(id));
       // Carregar sessoes anteriores
       setLoadingSessoes(true);
       sessaoService.getSessoesByHistoria(id)
@@ -140,6 +146,51 @@ export const useHistoriaVerModel = () => {
     });
   }, []);
 
+  // Roteiro handlers
+  const loadRoteiro = useCallback(async (historiaId) => {
+    try {
+      const data = await historiaService.getRoteiro(historiaId);
+      setRoteiro(data.roteiro || null);
+      setRoteiroStatus(data.roteiro_status || null);
+    } catch (err) {
+      console.error('Erro ao carregar roteiro:', err);
+    }
+  }, []);
+
+  const handleGerarRoteiro = useCallback(async () => {
+    if (!historiaAtual) return;
+    setRoteiroLoading(true);
+    setRoteiroStatus('generating');
+    try {
+      await historiaService.gerarRoteiro(historiaAtual.id);
+      // Inicia polling para verificar quando terminar
+      const poll = setInterval(async () => {
+        try {
+          const data = await historiaService.getRoteiro(historiaAtual.id);
+          if (data.roteiro_status !== 'generating') {
+            clearInterval(poll);
+            setRoteiro(data.roteiro || null);
+            setRoteiroStatus(data.roteiro_status);
+            setRoteiroLoading(false);
+          }
+        } catch (_) {
+          clearInterval(poll);
+          setRoteiroLoading(false);
+        }
+      }, 3000);
+      // Safety timeout after 2 minutes
+      setTimeout(() => {
+        clearInterval(poll);
+        setRoteiroLoading(false);
+      }, 120000);
+    } catch (err) {
+      console.error('Erro ao gerar roteiro:', err);
+      setError(err.message || 'Erro ao gerar roteiro');
+      setRoteiroStatus('error');
+      setRoteiroLoading(false);
+    }
+  }, [historiaAtual]);
+
   // Navegacao
   const handleIniciarSessao = useCallback(() => {
     if (historiaAtual) {
@@ -184,6 +235,12 @@ export const useHistoriaVerModel = () => {
     // Navegacao
     handleIniciarSessao,
     handleVoltar,
+
+    // Roteiro
+    roteiro,
+    roteiroStatus,
+    roteiroLoading,
+    handleGerarRoteiro,
 
     // Utils
     clearError,

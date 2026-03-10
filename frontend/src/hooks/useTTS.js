@@ -33,7 +33,7 @@ export const useTTS = () => {
     cleanup();
   }, [cleanup]);
 
-  const play = useCallback(async (text, voiceId, messageId) => {
+  const play = useCallback(async (text, voiceId, messageId, provider = 'elevenlabs') => {
     // Se já está tocando a mesma mensagem, parar
     if (isPlaying && currentMessageId === messageId) {
       stop();
@@ -47,7 +47,7 @@ export const useTTS = () => {
     setCurrentMessageId(messageId);
 
     try {
-      const response = await apiClient.post('/tts/generate', { text, voiceId }, {
+      const response = await apiClient.post('/tts/generate', { text, voiceId, provider }, {
         responseType: 'blob'
       });
 

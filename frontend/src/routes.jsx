@@ -51,6 +51,11 @@ const PerfilPage = React.lazy(() => import('./Pages/Perfil'));
 const PerfilPublicoPage = React.lazy(() => import('./Pages/PerfilPublico'));
 const AmigosPage = React.lazy(() => import('./Pages/Amigos'));
 const FeedPage = React.lazy(() => import('./Pages/Feed'));
+const HabilidadePage = React.lazy(() => import('./Pages/Habilidade/Lista'));
+const NovaHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Nova'));
+const EditarHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Editar'));
+const VerHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Ver'));
+const BillingPage = React.lazy(() => import('./Pages/Billing'));
 
 /**
  * ============================================================================
@@ -130,6 +135,12 @@ export const ROUTES = {
   EDITAR_MONSTRO: '/editar-monstro/:id',
   VER_MONSTRO: '/ver-monstro/:id',
 
+  // ===== HABILIDADES =====
+  HABILIDADES: '/habilidades',
+  NOVA_HABILIDADE: '/criar-habilidade',
+  EDITAR_HABILIDADE: '/editar-habilidade/:id',
+  VER_HABILIDADE: '/ver-habilidade/:id',
+
   // ===== MESTRES =====
   MESTRES: '/mestres',
   NOVO_MESTRE: '/criar-mestre',
@@ -142,7 +153,10 @@ export const ROUTES = {
 
   // ===== SOCIAL =====
   AMIGOS: '/amigos',
-  FEED: '/feed'
+  FEED: '/feed',
+
+  // ===== BILLING =====
+  BILLING: '/billing'
 };
 
 /**
@@ -185,7 +199,9 @@ export const generateRoute = {
   editarMonstro: (id) => `/editar-monstro/${id}`,
   verMonstro: (id) => `/ver-monstro/${id}`,
   editarMestre: (id) => `/editar-mestre/${id}`,
-  verMestre: (id) => `/ver-mestre/${id}`
+  verMestre: (id) => `/ver-mestre/${id}`,
+  verHabilidade: (id) => `/ver-habilidade/${id}`,
+  editarHabilidade: (id) => `/editar-habilidade/${id}`
 };
 
 /**
@@ -497,6 +513,36 @@ const ROUTE_CONFIG = [
     hasParams: true
   },
 
+  // ===== HABILIDADES =====
+  {
+    path: ROUTES.HABILIDADES,
+    component: HabilidadePage,
+    name: 'Habilidades',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVA_HABILIDADE,
+    component: NovaHabilidadePage,
+    name: 'Nova Habilidade',
+    category: 'SISTEMA',
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.EDITAR_HABILIDADE,
+    component: EditarHabilidadePage,
+    name: 'Editar Habilidade',
+    category: 'SISTEMA',
+    hasParams: true,
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.VER_HABILIDADE,
+    component: VerHabilidadePage,
+    name: 'Ver Habilidade',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+
   // ===== MESTRES =====
   {
     path: ROUTES.MESTRES,
@@ -554,6 +600,14 @@ const ROUTE_CONFIG = [
     component: FeedPage,
     name: 'Feed',
     category: 'SOCIAL'
+  },
+
+  // ===== BILLING =====
+  {
+    path: ROUTES.BILLING,
+    component: BillingPage,
+    name: 'Billing',
+    category: 'USUARIO'
   }
 ];
 

@@ -181,7 +181,7 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instância compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, tts }) => {
+export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;
@@ -206,7 +206,7 @@ export const MestreMessage = ({ mensagem, voiceId, tts }) => {
               </p>
               {voiceId && (
                 <button
-                  onClick={() => tts.play(conteudo, voiceId, mensagem.id)}
+                  onClick={() => tts.play(conteudo, voiceId, mensagem.id, voiceProvider)}
                   disabled={tts.isLoading && isThisPlaying}
                   className={`p-1.5 rounded-lg transition-all text-lg ${
                     isThisPlaying && tts.isPlaying

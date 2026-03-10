@@ -23,15 +23,24 @@ export const useMestreNovaModel = () => {
   const [regras_especiais, setRegrasEspeciais] = useState('');
   const [imagem, setImagem] = useState('');
   const [voice_id, setVoiceId] = useState('');
+  const [voice_provider, setVoiceProvider] = useState('elevenlabs');
   const [voices, setVoices] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const carregarVozes = useCallback(async () => {
+  const carregarProviders = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/tts/providers');
+      if (res.success) setProviders(res.data || []);
+    } catch { /* TTS não disponível */ }
+  }, []);
+
+  const carregarVozes = useCallback(async (provider) => {
     setLoadingVoices(true);
     try {
-      const res = await apiClient.get('/tts/voices');
+      const res = await apiClient.get(`/tts/voices?provider=${provider}`);
       if (res.success) {
         setVoices(res.data || []);
       }
@@ -40,9 +49,15 @@ export const useMestreNovaModel = () => {
   }, []);
 
   useEffect(() => {
-    carregarVozes();
+    carregarProviders();
+    carregarVozes(voice_provider);
     return () => setError(null);
-  }, [carregarVozes]);
+  }, []);
+
+  useEffect(() => {
+    carregarVozes(voice_provider);
+    setVoiceId('');
+  }, [voice_provider]);
 
   const setField = (name, value) => {
     const setters = {
@@ -56,6 +71,7 @@ export const useMestreNovaModel = () => {
       regras_especiais: setRegrasEspeciais,
       imagem: setImagem,
       voice_id: setVoiceId,
+      voice_provider: setVoiceProvider,
     };
     setters[name]?.(value);
   };
@@ -74,6 +90,7 @@ export const useMestreNovaModel = () => {
       regras_especiais: regras_especiais || null,
       imagem: imagem || null,
       voice_id: voice_id || null,
+      voice_provider: voice_id ? (voice_provider || 'elevenlabs') : null,
     };
   };
 
@@ -112,7 +129,7 @@ export const useMestreNovaModel = () => {
   return {
     nome, descricao, personalidade, modelo, temperatura,
     max_tokens, tom_narrativo, regras_especiais, imagem,
-    voice_id, voices, loadingVoices,
+    voice_id, voice_provider, voices, providers, loadingVoices,
     saving, error, isLight,
     setField, handleSubmit, handleCancel, clearError,
   };

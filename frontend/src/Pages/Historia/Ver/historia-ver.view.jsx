@@ -6,9 +6,10 @@ import RPGCard from '../../../components/RPGCard.jsx';
 import { Badge } from '../../../components/shared';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map
+  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
+import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -63,6 +64,12 @@ const VerHistoriaView = ({
   abrirHistorico,
   fecharHistorico,
   formatSessaoDate,
+
+  // Roteiro
+  roteiro,
+  roteiroStatus,
+  roteiroLoading,
+  handleGerarRoteiro,
 
   // Navegacao
   handleIniciarSessao,
@@ -252,6 +259,72 @@ const VerHistoriaView = ({
                   </div>
                 </div>
               )}
+
+              {/* Roteiro da Aventura (Story Blueprint) */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={`text-lg font-semibold font-fantasy flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <ScrollText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Roteiro da Aventura
+                  </h3>
+                  {(!roteiro && roteiroStatus !== 'generating' && !roteiroLoading) && (
+                    <button
+                      onClick={handleGerarRoteiro}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
+                    >
+                      <Sparkles size={14} />
+                      Gerar com IA
+                    </button>
+                  )}
+                  {roteiro && !roteiroLoading && (
+                    <button
+                      onClick={handleGerarRoteiro}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
+                        isLight ? 'bg-slate-200 hover:bg-slate-300 text-slate-600' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      }`}
+                    >
+                      <RotateCcw size={12} />
+                      Regenerar
+                    </button>
+                  )}
+                </div>
+
+                {(roteiroLoading || roteiroStatus === 'generating') ? (
+                  <div className={`p-6 rounded-lg text-center ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
+                    <Loader2 size={24} className="animate-spin text-purple-400 mx-auto mb-3" />
+                    <p className={`font-modern text-sm ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                      Gerando roteiro com Claude Sonnet 4.5...
+                    </p>
+                    <p className={`font-modern text-xs mt-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Isso pode levar 30-60 segundos
+                    </p>
+                    <div className="mt-3 w-full h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                      <div className="h-full rounded-full bg-purple-500 animate-pulse" style={{ width: '60%' }} />
+                    </div>
+                  </div>
+                ) : roteiroStatus === 'error' ? (
+                  <div className={`p-4 rounded-lg ${isLight ? 'bg-red-50 border border-red-200' : 'bg-red-500/10 border border-red-500/30'}`}>
+                    <p className={`font-modern text-sm ${isLight ? 'text-red-600' : 'text-red-400'}`}>
+                      Erro ao gerar roteiro. Tente novamente.
+                    </p>
+                    <button
+                      onClick={handleGerarRoteiro}
+                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-semibold text-white bg-red-500 hover:bg-red-600 transition-all cursor-pointer"
+                    >
+                      <RotateCcw size={12} />
+                      Tentar novamente
+                    </button>
+                  </div>
+                ) : roteiro ? (
+                  <RoteiroViewer roteiro={roteiro} isLight={isLight} />
+                ) : (
+                  <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
+                    <p className={`font-modern text-sm italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Nenhum roteiro gerado. Clique em "Gerar com IA" para criar um roteiro narrativo completo para esta aventura.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </RPGCard>
         </div>

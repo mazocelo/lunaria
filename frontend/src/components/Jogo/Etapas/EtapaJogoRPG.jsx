@@ -17,6 +17,7 @@ import { personagemService, apiClient } from '../../../services';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS, PARTICLES } from '../../../constants/game';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
+import { calcularMana } from '../../../utils/rpgHelpers';
 
 // --- Helper functions (antes no ViewModel) ---
 
@@ -50,13 +51,14 @@ const formatarInformacoesPersonagem = (personagem) => {
   if (!personagem) {
     return { nome: 'Personagem nao encontrado', classe: 'Desconhecida', raca: 'Desconhecida', nivel: '1', hp: '???', mp: '???', xp: '0' };
   }
+  const manaMax = calcularMana(personagem);
   return {
     nome: personagem.nome || 'Personagem sem nome',
     classe: personagem.classe_nome || personagem.classe || 'Desconhecida',
     raca: personagem.raca_nome || personagem.raca || 'Desconhecida',
     nivel: personagem.nivel || '1',
     hp: personagem.hp_atual || personagem.hp || '???',
-    mp: personagem.mp_atual || personagem.mp || '???',
+    mp: manaMax,
     xp: personagem.xp || '0',
   };
 };
@@ -1109,6 +1111,7 @@ const EtapaJogoRPG = ({
               usuariosDigitando={[]}
               mensagensRef={null}
               voiceId={historia?.mestres?.voice_id}
+              voiceProvider={historia?.mestres?.voice_provider || 'elevenlabs'}
             />
 
             {/* Area de Input - Chat */}
@@ -1131,8 +1134,8 @@ const EtapaJogoRPG = ({
               aguardandoMestre={aguardandoMestre}
               combateAtivo={socketState.combateAtivo}
               habilidadesPersonagem={habilidadesPersonagem}
-              manaAtual={socketState.combateJogadores?.[user?.id]?.mana_atual ?? 0}
-              manaMax={socketState.combateJogadores?.[user?.id]?.mana_max ?? 0}
+              manaAtual={socketState.combateJogadores?.[user?.id]?.mana_atual ?? calcularMana(personagemSelecionado)}
+              manaMax={socketState.combateJogadores?.[user?.id]?.mana_max ?? calcularMana(personagemSelecionado)}
               cooldownsHabilidades={cooldownsHabilidades}
             />
           </div>

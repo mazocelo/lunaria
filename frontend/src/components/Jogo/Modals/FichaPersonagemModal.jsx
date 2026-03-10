@@ -1,5 +1,6 @@
 import React from 'react';
 import LoadingSpinner from '../../LoadingSpinner';
+import { calcularMana } from '../../../utils/rpgHelpers';
 
 const atributosPrincipais = [
   { key: 'forca', label: 'Força' },
@@ -103,6 +104,12 @@ const FichaPersonagemModal = ({
                 <p className="text-xs text-purple-200/70 uppercase tracking-wide">HP</p>
                 <p className="text-2xl font-bold text-red-300">
                   {personagem.hp ?? personagem.hp_atual ?? '???'} / {personagem.hp_max ?? personagem.hp_maximo ?? '?'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-purple-200/70 uppercase tracking-wide">MP</p>
+                <p className="text-2xl font-bold text-blue-300">
+                  {calcularMana(personagem)}
                 </p>
               </div>
             </div>

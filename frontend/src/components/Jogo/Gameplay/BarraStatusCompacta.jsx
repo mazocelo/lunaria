@@ -1,9 +1,10 @@
 import React from 'react';
-import { Heart, Shield, Zap } from 'lucide-react';
+import { Heart, Shield, Zap, Droplets } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
+import { calcularMana } from '../../../utils/rpgHelpers';
 
 /**
- * Barra de HP/XP compacta sempre visível acima do chat.
+ * Barra de HP/XP/Mana compacta sempre visível acima do chat.
  * Mostra HP live durante combate (via combateJogadores) ou HP estático fora de combate.
  */
 const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userId }) => {
@@ -14,6 +15,11 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
   const hpAtual = jogadorCombate?.hp_atual ?? personagem.hp ?? personagem.hp_max ?? 0;
   const hpMax = jogadorCombate?.hp_max ?? personagem.hp_max ?? personagem.hp ?? 1;
   const hpPercent = Math.max(0, Math.min(100, (hpAtual / hpMax) * 100));
+
+  // Mana: combate usa dados live, fora de combate calcula pela fórmula
+  const manaMax = jogadorCombate?.mana_max ?? calcularMana(personagem);
+  const manaAtual = jogadorCombate?.mana_atual ?? manaMax;
+  const manaPercent = manaMax > 0 ? Math.max(0, Math.min(100, (manaAtual / manaMax) * 100)) : 0;
 
   // Cor da barra HP baseada na porcentagem
   const hpColor = hpPercent > 60
@@ -44,6 +50,18 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
           />
         </div>
         <span className="text-[10px] font-mono text-slate-300 shrink-0">{hpAtual}/{hpMax}</span>
+      </div>
+
+      {/* Mana Bar */}
+      <div className="flex items-center gap-1.5 flex-1 min-w-0 max-w-[160px]">
+        <Droplets size={12} className="text-blue-400 shrink-0" />
+        <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-500"
+            style={{ width: `${manaPercent}%` }}
+          />
+        </div>
+        <span className="text-[10px] font-mono text-slate-300 shrink-0">{manaAtual}/{manaMax}</span>
       </div>
 
       {/* XP Bar */}

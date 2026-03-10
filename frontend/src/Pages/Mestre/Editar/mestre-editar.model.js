@@ -24,16 +24,26 @@ export const useMestreEditarModel = () => {
   const [regras_especiais, setRegrasEspeciais] = useState('');
   const [imagem, setImagem] = useState('');
   const [voice_id, setVoiceId] = useState('');
+  const [voice_provider, setVoiceProvider] = useState('elevenlabs');
   const [voices, setVoices] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [initialProviderLoaded, setInitialProviderLoaded] = useState(false);
 
-  const carregarVozes = useCallback(async () => {
+  const carregarProviders = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/tts/providers');
+      if (res.success) setProviders(res.data || []);
+    } catch { /* TTS não disponível */ }
+  }, []);
+
+  const carregarVozes = useCallback(async (provider) => {
     setLoadingVoices(true);
     try {
-      const res = await apiClient.get('/tts/voices');
+      const res = await apiClient.get(`/tts/voices?provider=${provider}`);
       if (res.success) {
         setVoices(res.data || []);
       }
@@ -43,9 +53,15 @@ export const useMestreEditarModel = () => {
 
   useEffect(() => {
     if (id) loadMestre(id);
-    carregarVozes();
+    carregarProviders();
     return () => setError(null);
-  }, [id, carregarVozes]);
+  }, [id]);
+
+  useEffect(() => {
+    if (initialProviderLoaded) {
+      carregarVozes(voice_provider);
+    }
+  }, [voice_provider, initialProviderLoaded]);
 
   const loadMestre = async (mestreId) => {
     setLoading(true);
@@ -62,6 +78,10 @@ export const useMestreEditarModel = () => {
       setRegrasEspeciais(data.regras_especiais || '');
       setImagem(data.imagem || '');
       setVoiceId(data.voice_id || '');
+      const mestreProvider = data.voice_provider || 'elevenlabs';
+      setVoiceProvider(mestreProvider);
+      setInitialProviderLoaded(true);
+      await carregarVozes(mestreProvider);
       setLoading(false);
     } catch (err) {
       setLoading(false);
@@ -81,6 +101,7 @@ export const useMestreEditarModel = () => {
       regras_especiais: setRegrasEspeciais,
       imagem: setImagem,
       voice_id: setVoiceId,
+      voice_provider: setVoiceProvider,
     };
     setters[name]?.(value);
   };
@@ -99,6 +120,7 @@ export const useMestreEditarModel = () => {
       regras_especiais: regras_especiais || null,
       imagem: imagem || null,
       voice_id: voice_id || null,
+      voice_provider: voice_id ? (voice_provider || 'elevenlabs') : null,
     };
   };
 
@@ -137,7 +159,7 @@ export const useMestreEditarModel = () => {
   return {
     nome, descricao, personalidade, modelo, temperatura,
     max_tokens, tom_narrativo, regras_especiais, imagem,
-    voice_id, voices, loadingVoices,
+    voice_id, voice_provider, voices, providers, loadingVoices,
     loading, saving, error, isLight,
     setField, handleSubmit, handleCancel, clearError,
   };

@@ -42,6 +42,7 @@ export const useJogoAtivoModel = () => {
     isConnected,
     socketError,
     isReconnecting,
+    conectarSocket,
     clearSocketError,
   } = socket;
 
@@ -59,6 +60,19 @@ export const useJogoAtivoModel = () => {
           }
         } catch (err) {
           console.error('Erro ao retomar sessão:', err);
+        }
+      }
+
+      // Conectar socket se ainda não está conectado
+      if (!isConnected && user) {
+        try {
+          await conectarSocket({
+            userId: user.id,
+            username: user.nome || user.name,
+            email: user.email,
+          });
+        } catch (err) {
+          console.error('Erro ao conectar socket:', err);
         }
       }
     };

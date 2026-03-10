@@ -6,9 +6,35 @@ import RPGCard from '../../../components/RPGCard.jsx';
 import { Badge } from '../../../components/shared';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  RefreshCw, ScrollText, Clock, MessageCircle, Loader2
+  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
+
+const CopyInviteLinkButton = ({ historiaId, isLight }) => {
+  const [copied, setCopied] = React.useState(false);
+  const handleCopy = () => {
+    const url = `${window.location.origin}/convite-jogo/${historiaId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold transition-all cursor-pointer ${
+        copied
+          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+          : isLight
+            ? 'bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200'
+            : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30'
+      }`}
+    >
+      {copied ? <Check size={16} /> : <Link2 size={16} />}
+      {copied ? 'Link copiado!' : 'Copiar link de convite'}
+    </button>
+  );
+};
 
 const VerHistoriaView = ({
   // Data
@@ -330,6 +356,7 @@ const VerHistoriaView = ({
                 <Play size={16} />
                 Iniciar Sessao
               </button>
+              <CopyInviteLinkButton historiaId={historiaAtual?.id} isLight={isLight} />
               <button
                 onClick={handleVoltar}
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${

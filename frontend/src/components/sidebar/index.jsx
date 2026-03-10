@@ -7,7 +7,7 @@ import { useSocketStore } from '../../store';
 import {
   BookOpen, Users, Dna, Shield, Star, AlertTriangle,
   Sword, Skull, Palette, Crown, User, AlertCircle, RefreshCw,
-  UserPlus, Rss
+  UserPlus, Rss, Globe
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -23,6 +23,7 @@ const Sidebar = () => {
 
   const playerItems = [
     { path: '/historias', label: 'Historias', icon: BookOpen, description: 'Gerencie suas aventuras' },
+    { path: '/historias/explorar', label: 'Explorar', icon: Globe, description: 'Descubra aventuras publicas' },
     { path: '/personagens', label: 'Personagens', icon: Users, description: 'Crie e edite personagens' },
   ];
 

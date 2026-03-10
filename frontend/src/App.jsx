@@ -11,6 +11,7 @@ import { AuthContainer } from './components/Auth'
 import ResetPasswordPage from './Pages/ResetPassword'
 import AppRoutes from './routes.jsx'
 import ScrollToTop from './components/shared/ScrollToTop'
+import OnboardingTour, { isOnboardingCompleted } from './components/OnboardingTour'
 
 // 🚀 STORE INITIALIZATION - Cache de dados estáticos em background
 import React, { useEffect, useState } from 'react'
@@ -61,6 +62,9 @@ function AppContent() {
   // Estado local para notificações
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+
+  // Onboarding tour para primeiro acesso
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingCompleted());
 
   const isLight = theme === 'light';
 
@@ -171,6 +175,11 @@ function AppContent() {
               </ErrorBoundary>
             </main>
           </div>
+
+          {/* Onboarding tour (primeiro acesso) */}
+          {showOnboarding && (
+            <OnboardingTour onComplete={() => setShowOnboarding(false)} />
+          )}
 
           {/* Modal de notificações */}
           <NotificationsModal

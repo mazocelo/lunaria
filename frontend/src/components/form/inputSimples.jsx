@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
+import { HelpCircle } from 'lucide-react';
 
 const InputSimples = ({
     label,
@@ -18,7 +19,8 @@ const InputSimples = ({
     max,
     step,
     id,
-    autoComplete
+    autoComplete,
+    tooltip
 }) => {
     const { theme } = useTheme();
     const isLight = theme === 'light';
@@ -43,12 +45,13 @@ const InputSimples = ({
     return (
         <div className={`flex flex-col mb-4 ${className}`}>
             {label && (
-                <label 
+                <label
                     htmlFor={inputId}
-                    className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}
+                    className={`mb-2 text-sm font-semibold font-modern flex items-center gap-1.5 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}
                 >
                     {label}
                     {required && <span className="text-red-400 ml-1">*</span>}
+                    {tooltip && <TooltipIcon text={tooltip} isLight={isLight} />}
                 </label>
             )}
             <input
@@ -91,5 +94,21 @@ const InputSimples = ({
         </div>
     );
 };
+
+function TooltipIcon({ text, isLight }) {
+    const [show, setShow] = useState(false);
+    return (
+        <span className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+            <HelpCircle size={13} className="text-purple-400 cursor-help" />
+            {show && (
+                <span className={`absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg shadow-lg whitespace-pre-line max-w-[220px] border ${
+                    isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-slate-800 border-purple-500/30 text-slate-200'
+                }`}>
+                    {text}
+                </span>
+            )}
+        </span>
+    );
+}
 
 export default InputSimples;

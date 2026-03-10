@@ -58,7 +58,7 @@ const Notification = ({
   const Icon = iconMap[type] || Info;
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slide-in-right" role="alert" aria-live="assertive" aria-atomic="true">
+    <div className="animate-slide-in-right" role="alert" aria-live="assertive" aria-atomic="true">
       <div className={`p-4 rounded-lg border backdrop-blur-lg ${typeClasses[type]} max-w-sm ${isLight ? 'glass-light' : 'glass'}`}>
         <div className="flex items-start space-x-3">
           <Icon size={18} className={`flex-shrink-0 mt-0.5 ${iconColorMap[type]}`} />

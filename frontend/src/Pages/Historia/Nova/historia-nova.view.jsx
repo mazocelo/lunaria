@@ -31,6 +31,8 @@ const NovaHistoriaView = ({
   handleCancelar,
   imagem,
   setImagem,
+  publica,
+  setPublica,
 }) => {
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -122,6 +124,29 @@ const NovaHistoriaView = ({
           <p className="text-xs text-slate-400 font-modern">
             Se nenhum mestre for selecionado, sera usado um mestre padrao
           </p>
+        </div>
+
+        {/* Toggle pública */}
+        <div className="flex items-center justify-between">
+          <div>
+            <label className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              Aventura publica
+            </label>
+            <p className="text-xs text-slate-400 font-modern">
+              Permite que outros jogadores encontrem e solicitem entrada
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPublica(!publica)}
+            className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative ${
+              publica ? 'bg-purple-600' : isLight ? 'bg-slate-300' : 'bg-slate-600'
+            }`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+              publica ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
         </div>
 
         <ImageGenerator

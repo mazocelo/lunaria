@@ -3,13 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/theme.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { useLayout } from '../contexts/LayoutContext';
-import { Sun, Moon, Bell, LogOut, User, ChevronDown, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Sun, Moon, Bell, BellRing, BellOff, LogOut, User, ChevronDown, Settings, PanelLeftClose, PanelLeft, Volume2, VolumeX } from 'lucide-react';
+import { isSoundEnabled, toggleSound } from '../utils/audio.js';
+import { isNotificationsEnabled, requestPermission, getPermissionState, setNotificationsEnabled } from '../utils/notifications.js';
 
 const TopHeader = ({ notificationCount, onOpenNotifications }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useLayout();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [notifOn, setNotifOn] = useState(() => isNotificationsEnabled() && getPermissionState() === 'granted');
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -56,6 +60,33 @@ const TopHeader = ({ notificationCount, onOpenNotifications }) => {
 
       {/* Right side: Actions */}
       <div className="flex items-center gap-1">
+        {/* Sound Toggle */}
+        <button
+          onClick={() => setSoundOn(toggleSound())}
+          className={`icon-btn ${isLight ? 'text-slate-600' : 'text-slate-400'}`}
+          aria-label={soundOn ? 'Desativar som' : 'Ativar som'}
+        >
+          {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
+        </button>
+
+        {/* Browser Notifications Toggle */}
+        <button
+          onClick={async () => {
+            if (notifOn) {
+              setNotificationsEnabled(false);
+              setNotifOn(false);
+            } else {
+              const granted = await requestPermission();
+              setNotifOn(granted);
+            }
+          }}
+          className={`icon-btn ${notifOn ? (isLight ? 'text-purple-600' : 'text-purple-400') : (isLight ? 'text-slate-600' : 'text-slate-400')}`}
+          aria-label={notifOn ? 'Desativar notificações do navegador' : 'Ativar notificações do navegador'}
+          title={notifOn ? 'Notificações ativas' : 'Ativar notificações'}
+        >
+          {notifOn ? <BellRing size={20} /> : <BellOff size={20} />}
+        </button>
+
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}

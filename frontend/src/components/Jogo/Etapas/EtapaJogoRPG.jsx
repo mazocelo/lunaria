@@ -11,8 +11,9 @@ import InventarioPanel from '../Gameplay/InventarioPanel';
 import LevelUpCelebration from '../Gameplay/LevelUpCelebration';
 import SessionRecap from '../Gameplay/SessionRecap';
 import NotificationManager, { showGameNotification } from '../NotificationManager';
+import BarraStatusCompacta from '../Gameplay/BarraStatusCompacta';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
-import { personagemService } from '../../../services';
+import { personagemService, apiClient } from '../../../services';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS, PARTICLES } from '../../../constants/game';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
@@ -107,6 +108,7 @@ const EtapaJogoRPG = ({
   const gameStoreSetMensagens = useGameStore(s => s.setMensagens);
 
   // --- Estado local (antes no ViewModel etapaJogoRPGViewModel) ---
+  const [mobileDrawer, setMobileDrawer] = useState(null); // 'jogadores' | 'acoes' | null
   const [showActions, setShowActions] = useState(false);
   const [mensagemAtual, setMensagemAtual] = useState('');
   const [typingTimeout, setTypingTimeoutState] = useState(null);
@@ -153,10 +155,12 @@ const EtapaJogoRPG = ({
   const [fichaErro, setFichaErro] = useState(null);
   const [tituloFicha, setTituloFicha] = useState('Ficha do Personagem');
   const [fichasCache, setFichasCache] = useState({});
-  // Inventario + Level Up
+  // Inventario + Level Up + Habilidades
   const [inventarioAberto, setInventarioAberto] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
   const [levelUpQueue, setLevelUpQueue] = useState([]);
+  const [habilidadesPersonagem, setHabilidadesPersonagem] = useState([]);
+  const [cooldownsHabilidades, setCooldownsHabilidades] = useState({});
 
   // Consumir fila de level-ups sequencialmente
   useEffect(() => {
@@ -166,6 +170,16 @@ const EtapaJogoRPG = ({
       setLevelUpQueue(rest);
     }
   }, [levelUpData, levelUpQueue]);
+
+  // Buscar habilidades do personagem por classe e nivel
+  useEffect(() => {
+    if (!personagemSelecionado?.classe_id) return;
+    apiClient.get('/catalogos/habilidades', {
+      params: { classe_id: personagemSelecionado.classe_id, nivel: personagemSelecionado.nivel || 1 }
+    }).then(res => {
+      if (res.data?.success) setHabilidadesPersonagem(res.data.data || []);
+    }).catch(() => {});
+  }, [personagemSelecionado?.classe_id, personagemSelecionado?.nivel]);
 
   // Ref para evitar stale closure no onAdicionarMensagem
   const onAdicionarMensagemRef = useRef(onAdicionarMensagem);
@@ -1018,7 +1032,23 @@ const EtapaJogoRPG = ({
               className="px-3 py-1.5 bg-red-500/30 text-red-200 border border-red-500/50 rounded-lg hover:bg-red-500/40 transition-all font-bold shadow-md flex items-center space-x-1.5 text-sm"
             >
               <span>🚪</span>
-              <span>SAIR</span>
+              <span className="hidden sm:inline">SAIR</span>
+            </button>
+
+            {/* Mobile: toggle jogadores e ações */}
+            <button
+              onClick={() => setMobileDrawer(mobileDrawer === 'jogadores' ? null : 'jogadores')}
+              className="md:hidden px-2 py-1.5 bg-purple-600/30 text-purple-200 border border-purple-500/50 rounded-lg hover:bg-purple-600/50 transition-all text-sm"
+              title="Jogadores"
+            >
+              👥
+            </button>
+            <button
+              onClick={() => setMobileDrawer(mobileDrawer === 'acoes' ? null : 'acoes')}
+              className="md:hidden px-2 py-1.5 bg-cyan-600/30 text-cyan-200 border border-cyan-500/50 rounded-lg hover:bg-cyan-600/50 transition-all text-sm"
+              title="Ações"
+            >
+              ⚔️
             </button>
           </div>
         </div>
@@ -1037,6 +1067,14 @@ const EtapaJogoRPG = ({
 
           {/* Area Central - Chat do Mestre */}
           <div className="flex-1 flex flex-col">
+            {/* Barra de HP/XP compacta — sempre visível */}
+            <BarraStatusCompacta
+              personagem={personagemSelecionado}
+              combateAtivo={socketState.combateAtivo}
+              combateJogadores={socketState.combateJogadores}
+              userId={user?.id}
+            />
+
             {/* Componente de Rolagem de Dados Inicial */}
             {socketState.faseJogo === 'rolagem_inicial' && (
               <div className="p-6">
@@ -1092,12 +1130,16 @@ const EtapaJogoRPG = ({
               dadoSolicitadoInfo={dadoSolicitadoInfo}
               aguardandoMestre={aguardandoMestre}
               combateAtivo={socketState.combateAtivo}
+              habilidadesPersonagem={habilidadesPersonagem}
+              manaAtual={socketState.combateJogadores?.[user?.id]?.mana_atual ?? 0}
+              manaMax={socketState.combateJogadores?.[user?.id]?.mana_max ?? 0}
+              cooldownsHabilidades={cooldownsHabilidades}
             />
           </div>
 
-          {/* Painel Lateral Direito - Acoes RPG (colapsavel) */}
+          {/* Painel Lateral Direito - Acoes RPG (colapsavel, hidden on mobile) */}
           {showActions && (
-            <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-l border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden ${
+            <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-l border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
               rightPanelExpanded ? 'w-80' : 'w-16'
             }`}>
               {/* Header com botao de collapse */}
@@ -1161,6 +1203,70 @@ const EtapaJogoRPG = ({
           )}
         </div>
       </div>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileDrawer && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileDrawer(null)} />
+          <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-slate-900/95 backdrop-blur-md border-l border-purple-500/20 overflow-y-auto animate-fade-in">
+            <div className="flex items-center justify-between p-4 border-b border-purple-500/20">
+              <h3 className="text-white font-fantasy font-bold">
+                {mobileDrawer === 'jogadores' ? '👥 Aventureiros' : '⚔️ Ações RPG'}
+              </h3>
+              <button
+                onClick={() => setMobileDrawer(null)}
+                className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4">
+              {mobileDrawer === 'jogadores' && (
+                <div className="space-y-3">
+                  {(socketState.ordemJogadores.length > 0 ? socketState.ordemJogadores : jogadoresExibir).map((jogador, i) => {
+                    const uid = jogador.userId || jogador.id;
+                    const nome = jogador.username || jogador.nome;
+                    const pNome = jogador.personagemNome || jogador.personagem;
+                    const ehTurno = socketState.turnoAtual === i;
+                    return (
+                      <div key={uid || i} className={`p-3 rounded-lg border ${
+                        ehTurno ? 'border-cyan-400/50 bg-cyan-500/10' : 'border-purple-500/20 bg-black/20'
+                      }`}>
+                        <div className="text-white font-medium text-sm">{nome}</div>
+                        <div className="text-purple-300 text-xs">{pNome}</div>
+                        {jogador.valorDado && (
+                          <div className="text-yellow-300 text-xs mt-1">🎲 {jogador.valorDado}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {mobileDrawer === 'acoes' && (
+                <div className="space-y-4">
+                  <RPGActions
+                    onRollDice={handleRolarDados}
+                    onUsarHabilidade={handleUsarHabilidade}
+                    onUsarEquipamento={handleUsarEquipamento}
+                    personagem={personagemSelecionado}
+                  />
+                  <div className="border-t border-purple-500/20 pt-4">
+                    <StatusPersonagem
+                      personagemSelecionado={infoPersonagem}
+                      onRolarDados={handleRolarDados}
+                      onToggleInventario={() => { setInventarioAberto(!inventarioAberto); setMobileDrawer(null); }}
+                      compact={true}
+                      combateAtivo={socketState.combateAtivo}
+                      combateJogadores={socketState.combateJogadores}
+                      userId={String(user.id)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <FichaPersonagemModal
         isOpen={fichaModalAberta}

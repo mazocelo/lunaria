@@ -4,17 +4,18 @@ import Button from '../../../components/form/button';
 import Combobox from '../../../components/form/Combobox';
 import MultiSelect from '../../../components/form/MultiSelect';
 import ImageGenerator from '../../../components/form/ImageGenerator';
+import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
 import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus } from 'lucide-react';
 
 const PONTOS_MAXIMO = 75;
 
 const atributosConfig = [
-  { key: 'forca', label: 'Forca' },
-  { key: 'inteligencia', label: 'Inteligencia' },
-  { key: 'constituicao', label: 'Constituicao' },
-  { key: 'agilidade', label: 'Agilidade' },
-  { key: 'destreza', label: 'Destreza' },
-  { key: 'carisma', label: 'Carisma' },
+  { key: 'forca', label: 'Forca', tooltip: 'Poder fisico bruto.\nHabilidades: Atletismo, Intimidacao' },
+  { key: 'inteligencia', label: 'Inteligencia', tooltip: 'Raciocinio e conhecimento.\nHabilidades: Investigacao, Percepcao, Conhecimento, Arcano' },
+  { key: 'constituicao', label: 'Constituicao', tooltip: 'Resistencia e vitalidade. Afeta HP.\nHabilidades: Resistencia, Fortitude, Vigor, Sobrevivencia' },
+  { key: 'agilidade', label: 'Agilidade', tooltip: 'Velocidade e reflexos. Afeta Esquiva.\nHabilidades: Furtividade, Reflexos, Esquiva' },
+  { key: 'destreza', label: 'Destreza', tooltip: 'Precisao e coordenacao motora.\nHabilidades: Acrobacia, Arrombamento, Prestidigitacao' },
+  { key: 'carisma', label: 'Carisma', tooltip: 'Influencia e presenca social.\nHabilidades: Persuasao, Enganacao, Intuicao, Performance, Lideranca' },
 ];
 
 const NovoPersonagemView = ({
@@ -53,7 +54,24 @@ const NovoPersonagemView = ({
   setImagem,
 }) => {
   return (
-    <div className="animate-fade-in max-w-4xl mx-auto">
+    <div className="animate-fade-in max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
+      {/* Preview Card - sidebar sticky (desktop) / collapsible top (mobile) */}
+      <div className="md:hidden w-full mb-2">
+        <PersonagemPreviewCard
+          nome={nome}
+          raca={raca}
+          classe={classe}
+          atributos={atributos}
+          vantagensSelecionadas={vantagens}
+          vantagensDisponiveis={vantagensDisponiveis}
+          racasDisponiveis={racasDisponiveis}
+          classesDisponiveis={classesDisponiveis}
+          imagem={imagem}
+        />
+      </div>
+
+      {/* Main form column */}
+      <div className="flex-1 min-w-0">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -158,6 +176,7 @@ const NovoPersonagemView = ({
               <InputSimples
                 key={attr.key}
                 label={attr.label}
+                tooltip={attr.tooltip}
                 type="number"
                 name={attr.key}
                 value={atributos?.[attr.key] ?? ''}
@@ -392,6 +411,24 @@ const NovoPersonagemView = ({
               <li>- Um bom background enriquece a experiencia de jogo</li>
             </ul>
           </div>
+        </div>
+      </div>
+      </div>{/* end main form column */}
+
+      {/* Preview Card - desktop sticky sidebar */}
+      <div className="hidden md:block w-64 shrink-0">
+        <div className="sticky top-4">
+          <PersonagemPreviewCard
+            nome={nome}
+            raca={raca}
+            classe={classe}
+            atributos={atributos}
+            vantagensSelecionadas={vantagens}
+            vantagensDisponiveis={vantagensDisponiveis}
+            racasDisponiveis={racasDisponiveis}
+            classesDisponiveis={classesDisponiveis}
+            imagem={imagem}
+          />
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ export const useHistoriaNovaModel = () => {
   const [mestreSelecionado, setMestreSelecionado] = useState(null);
   const [nomeError, setNomeError] = useState('');
   const [imagem, setImagem] = useState('');
+  const [publica, setPublica] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -77,6 +78,7 @@ export const useHistoriaNovaModel = () => {
         maximo_de_participantes,
         prologo: descricao,
         mestre_id: mestreSelecionado,
+        publica,
         ...(imagem ? { imagem } : {}),
       };
 
@@ -125,5 +127,7 @@ export const useHistoriaNovaModel = () => {
     clearError,
     imagem,
     setImagem,
+    publica,
+    setPublica,
   };
 };

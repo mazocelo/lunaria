@@ -18,8 +18,10 @@ export class PersonagemService {
     try {
       const data = await this.apiClient.get(this.baseUrl);
       if (data.success) {
-        // ✅ NORMALIZAR dados usando Personagem.fromAPI() conforme API documentation
-        return data.data.map(personagemData => Personagem.fromAPI(personagemData));
+        return {
+          ...data,
+          data: data.data.map(personagemData => Personagem.fromAPI(personagemData)),
+        };
       } else {
         throw new Error(data?.message || 'Erro desconhecido');
       }

@@ -3,6 +3,8 @@
  */
 import { COMBAT } from '../../constants/game';
 import { transicaoFase } from './faseMachine.js';
+import { playSound } from '../../utils/audio.js';
+import { sendNotification } from '../../utils/notifications.js';
 
 export const createListenerActions = (set, get) => ({
   setupInternalListeners: () => {
@@ -262,6 +264,7 @@ export const createListenerActions = (set, get) => ({
       };
 
       set({ resultadosDados: { ...resultadosDados } });
+      playSound('dice_roll');
 
       get().log('Dado inicial rolado', {
         userId: data.userId,
@@ -311,8 +314,10 @@ export const createListenerActions = (set, get) => ({
         turnoIniciado: false
       });
 
-      if (typeof window !== 'undefined' && window.showGameNotification) {
-        if (ehMeuTurno) {
+      if (ehMeuTurno) {
+        playSound('my_turn');
+        sendNotification('Lunaria - É sua vez!', { body: 'Seu turno começou. Volte ao jogo!' });
+        if (typeof window !== 'undefined' && window.showGameNotification) {
           window.showGameNotification(`⚡ É SUA VEZ!`, 'success');
         }
       }
@@ -567,6 +572,7 @@ export const createListenerActions = (set, get) => ({
         };
       }
       set({ combateJogadores: jogadoresAtualizados });
+      playSound(data.derrotado ? 'death' : 'combat_hit');
       get().log('Jogador ferido', { nome: data.nome, hp: data.hp_atual });
     });
 
@@ -593,6 +599,8 @@ export const createListenerActions = (set, get) => ({
       const { combateJogadores } = get();
       const jogador = data.userId && combateJogadores[data.userId];
 
+      if (data.tipo === 'curado') playSound('heal');
+      if (data.tipo === 'dano_recebido' && !data.imune) playSound('combat_hit');
       if (data.tipo === 'curado' && get().combateAtivo && jogador) {
         const updated = { ...combateJogadores };
         updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.hp_atual > 0 ? 'vivo' : updated[data.userId].status };
@@ -635,6 +643,7 @@ export const createListenerActions = (set, get) => ({
           timestamp: Date.now()
         }
       });
+      playSound('level_up');
       get().log('Level Up', { userId: data.userId, nivel: data.novoNivel || data.nivel, success: true });
     });
 

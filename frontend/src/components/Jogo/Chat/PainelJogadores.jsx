@@ -127,7 +127,7 @@ const PainelJogadores = ({
   };
 
   return (
-    <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-r border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden ${
+    <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-r border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
       isExpanded ? 'w-80' : 'w-16'
     }`}>
       {/* Header com botão de collapse */}

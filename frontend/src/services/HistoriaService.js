@@ -31,6 +31,20 @@ export class HistoriaService {
   }
 
   /**
+   * Busca histórias públicas para o browser de exploração
+   */
+  async getPublicas(params = {}) {
+    try {
+      const queryParams = new URLSearchParams({ todas: 'true', ...params });
+      const response = await this.apiClient.get(`${this.baseUrl}?${queryParams}`);
+      if (response.success) return response;
+      throw new Error(response.data?.message || 'Erro desconhecido');
+    } catch (error) {
+      throw new Error(`Erro ao buscar histórias públicas: ${error.message}`);
+    }
+  }
+
+  /**
    * Busca uma história por ID
    * @param {number} id - ID da história
    * @returns {Promise<Historia>} História encontrada

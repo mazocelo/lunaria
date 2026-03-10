@@ -14,6 +14,13 @@ import AuthProvider from './contexts/AuthContext.jsx'
 import './utils/EventEmitter.js'
 import './services/index.js'
 
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

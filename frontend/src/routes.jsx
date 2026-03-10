@@ -2,11 +2,13 @@ import React, { Suspense } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import SuperAdminRoute from './components/SuperAdminRoute';
 import LoadingSpinner from './components/LoadingSpinner';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 // Lazy loading de todas as páginas
 const HistoriaListaPage = React.lazy(() => import('./Pages/Historia/Lista'));
 const NovaHistoriaPage = React.lazy(() => import('./Pages/Historia/Nova'));
 const VerHistoriaPage = React.lazy(() => import('./Pages/Historia/Ver'));
+const ExplorarHistoriasPage = React.lazy(() => import('./Pages/Historia/Explorar'));
 const PersonagemListaPage = React.lazy(() => import('./Pages/Personagem/Lista'));
 const NovoPersonagemPage = React.lazy(() => import('./Pages/Personagem/Novo'));
 const VerPersonagemPage = React.lazy(() => import('./Pages/Personagem/Ver'));
@@ -46,6 +48,7 @@ const SalaEsperaPage = React.lazy(() => import('./Pages/Jogo/SalaEspera'));
 const JogoAtivoPage = React.lazy(() => import('./Pages/Jogo/JogoAtivo'));
 const ConviteJogoPage = React.lazy(() => import('./Pages/ConviteJogo'));
 const PerfilPage = React.lazy(() => import('./Pages/Perfil'));
+const PerfilPublicoPage = React.lazy(() => import('./Pages/PerfilPublico'));
 const AmigosPage = React.lazy(() => import('./Pages/Amigos'));
 const FeedPage = React.lazy(() => import('./Pages/Feed'));
 
@@ -69,7 +72,8 @@ const FeedPage = React.lazy(() => import('./Pages/Feed'));
 export const ROUTES = {
   HOME: '/',
   HISTORIAS: '/historias',
-  
+  EXPLORAR_HISTORIAS: '/historias/explorar',
+
   // ===== HISTÓRIAS =====
   NOVA_HISTORIA: '/nova-historia',
   VER_HISTORIA: '/historias/:id',
@@ -134,6 +138,7 @@ export const ROUTES = {
 
   // ===== PERFIL =====
   PERFIL: '/perfil',
+  PERFIL_PUBLICO: '/perfil/:id',
 
   // ===== SOCIAL =====
   AMIGOS: '/amigos',
@@ -206,6 +211,12 @@ const ROUTE_CONFIG = [
   },
 
   // ===== HISTÓRIAS =====
+  {
+    path: ROUTES.EXPLORAR_HISTORIAS,
+    component: ExplorarHistoriasPage,
+    name: 'Explorar Aventuras',
+    category: 'HISTORIAS'
+  },
   {
     path: ROUTES.NOVA_HISTORIA,
     component: NovaHistoriaPage,
@@ -523,6 +534,13 @@ const ROUTE_CONFIG = [
     name: 'Meu Perfil',
     category: 'USUARIO'
   },
+  {
+    path: ROUTES.PERFIL_PUBLICO,
+    component: PerfilPublicoPage,
+    name: 'Perfil Público',
+    category: 'USUARIO',
+    hasParams: true
+  },
 
   // ===== SOCIAL =====
   {
@@ -552,14 +570,14 @@ const AppRoutes = () => {
       <Routes>
         {ROUTE_CONFIG.map((route, index) => {
           const Component = route.component;
-          const element = route.requireSuperAdmin
+          const inner = route.requireSuperAdmin
             ? <SuperAdminRoute><Component /></SuperAdminRoute>
             : <Component />;
           return (
             <Route
               key={`${route.path}-${index}`}
               path={route.path}
-              element={element}
+              element={<RouteErrorBoundary>{inner}</RouteErrorBoundary>}
             />
           );
         })}

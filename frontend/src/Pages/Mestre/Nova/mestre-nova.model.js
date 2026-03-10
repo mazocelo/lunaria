@@ -4,7 +4,7 @@ import { mestreService } from '../../../services/index.js';
 import { useMestreStore } from '../../../store/mestre';
 import { useTheme } from '../../../contexts/theme.jsx';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { apiClient } from '../../../services/ApiClient.js';
 import { ROUTES } from '../../../routes.jsx';
 
 export const useMestreNovaModel = () => {
@@ -31,10 +31,9 @@ export const useMestreNovaModel = () => {
   const carregarVozes = useCallback(async () => {
     setLoadingVoices(true);
     try {
-      const res = await fetch(`${API_URL}/tts/voices`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setVoices(data.data || []);
+      const res = await apiClient.get('/tts/voices');
+      if (res.success) {
+        setVoices(res.data || []);
       }
     } catch { /* TTS não disponível */ }
     setLoadingVoices(false);

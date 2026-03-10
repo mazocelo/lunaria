@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { mestreService } from '../../../services/index.js';
+import { apiClient } from '../../../services/ApiClient.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 
@@ -13,6 +14,18 @@ export const useMestreVerModel = () => {
   const [mestre, setMestre] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [voiceName, setVoiceName] = useState(null);
+
+  const resolveVoiceName = useCallback(async (voiceId) => {
+    if (!voiceId) return;
+    try {
+      const res = await apiClient.get('/tts/voices');
+      if (res.success) {
+        const match = (res.data || []).find(v => v.voice_id === voiceId);
+        if (match) setVoiceName(match.name);
+      }
+    } catch { /* TTS nao disponivel */ }
+  }, []);
 
   useEffect(() => {
     if (id) loadMestre(id);
@@ -25,6 +38,7 @@ export const useMestreVerModel = () => {
     try {
       const { data } = await mestreService.getById(mestreId);
       setMestre(data);
+      if (data.voice_id) resolveVoiceName(data.voice_id);
       setLoading(false);
     } catch (err) {
       setLoading(false);
@@ -35,7 +49,7 @@ export const useMestreVerModel = () => {
   const clearError = () => setError(null);
 
   return {
-    id, mestre, loading, error, isLight,
+    id, mestre, loading, error, isLight, voiceName,
     clearError, navigate, generateRoute,
   };
 };

@@ -1,13 +1,16 @@
 import React, { useRef, useEffect } from 'react';
 import { RPGMessage } from '../../RPGMessage';
 import { MESSAGE_RENDERERS, MestreMessage } from './renderers';
+import { useTTS } from '../../../hooks/useTTS';
 
 /**
  * Área central do chat do jogo RPG
  * Despacha renderização por tipo via MESSAGE_RENDERERS registry
+ * Uma única instância de useTTS garante que só 1 áudio toque por vez
  */
 const ChatArea = ({ mensagens, usuariosDigitando, voiceId }) => {
   const chatEndRef = useRef(null);
+  const tts = useTTS();
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,9 +20,9 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId }) => {
     const tipo = mensagem.tipo || mensagem.type;
     const key = mensagem.id || index;
 
-    // Mestre messages use React component (supports TTS hook)
+    // Mestre messages use React component (supports TTS)
     if (tipo === 'mestre') {
-      return <MestreMessage key={key} mensagem={mensagem} voiceId={voiceId} />;
+      return <MestreMessage key={key} mensagem={mensagem} voiceId={voiceId} tts={tts} />;
     }
 
     const renderer = MESSAGE_RENDERERS[tipo];

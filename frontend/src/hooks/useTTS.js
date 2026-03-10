@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { apiClient } from '../services/ApiClient.js';
 
 /**
  * Hook para gerenciar playback de TTS (Text-to-Speech)
  * Chama o backend que gera áudio via ElevenLabs
+ * Usa apiClient (axios) para aproveitar refresh automático de token
  */
 export const useTTS = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -47,18 +47,11 @@ export const useTTS = () => {
     setCurrentMessageId(messageId);
 
     try {
-      const response = await fetch(`${API_URL}/tts/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ text, voiceId })
+      const response = await apiClient.post('/tts/generate', { text, voiceId }, {
+        responseType: 'blob'
       });
 
-      if (!response.ok) {
-        throw new Error('Erro ao gerar áudio');
-      }
-
-      const blob = await response.blob();
+      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       blobUrlRef.current = url;
 

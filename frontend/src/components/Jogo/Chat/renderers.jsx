@@ -1,6 +1,5 @@
 import React from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
-import { useTTS } from '../../../hooks/useTTS';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 
@@ -180,10 +179,9 @@ export const renderMestre = (mensagem, key) => {
 
 /**
  * MestreMessage - Componente React para mensagens do mestre com TTS
- * Usado quando voiceId está disponível (via ChatArea)
+ * Recebe instância compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId }) => {
-  const tts = useTTS();
+export const MestreMessage = ({ mensagem, voiceId, tts }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;

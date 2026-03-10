@@ -10,7 +10,7 @@ import { createBackgroundPrompt } from './prompts.js';
 async function criarGeradorBackground(temas = []) {
     try {
         const prompt = createBackgroundPrompt(temas);
-        const model = createBackgroundModel({ model: "meta-llama/llama-4-maverick-17b-128e-instruct" });
+        const model = createBackgroundModel({ model: "meta-llama/llama-4-scout-17b-16e-instruct" });
 
         const chain = RunnableSequence.from([
             prompt,

@@ -717,7 +717,7 @@ class PersonagemController {
       });
 
       const bgUserId = req.user?.id;
-      if (bgUserId) usageService.track({ userId: bgUserId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-maverick-17b-128e-instruct', duracao_ms: Date.now() - tBg, metadata: { agent: 'GeradorBackground' } });
+      if (bgUserId) usageService.track({ userId: bgUserId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - tBg, metadata: { agent: 'GeradorBackground' } });
 
       // Atualizar personagem com o novo background
       await db.Personagem.updatePersonagem(parseInt(id), {

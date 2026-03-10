@@ -66,17 +66,47 @@ const SessaoJogo = (prisma) => {
     },
 
     /**
-     * Marcar sessao como finalizada
+     * Marcar sessao como finalizada e arquivar sala_id
+     * Renomeia sala_id com sufixo timestamp para liberar o ID original
+     * para futuras sessoes (evita upsert sobrescrever historico)
      */
     async finalize(salaId) {
+      const archivedSalaId = `${salaId}_fin_${Date.now()}`;
       return await model.update({
         where: { sala_id: salaId },
         data: {
+          sala_id: archivedSalaId,
           status: 'finalizada',
           finalizada_em: new Date(),
           ultimo_snapshot: new Date()
         }
       });
+    },
+
+    /**
+     * Arquivar todas as sessoes ativas de uma historia (safety cleanup)
+     * Chamado antes de criar nova sessao para evitar conflito de sala_id
+     */
+    async archiveActiveByHistoriaId(historiaId) {
+      const activeSessions = await model.findMany({
+        where: { historia_id: historiaId, status: 'ativa' }
+      });
+      for (const session of activeSessions) {
+        const archivedSalaId = `${session.sala_id}_fin_${Date.now()}`;
+        await model.update({
+          where: { id: session.id },
+          data: {
+            sala_id: archivedSalaId,
+            status: 'finalizada',
+            finalizada_em: new Date(),
+            ultimo_snapshot: new Date()
+          }
+        });
+      }
+      if (activeSessions.length > 0) {
+        console.log(`🗄️ Arquivadas ${activeSessions.length} sessoes stale da historia ${historiaId}`);
+      }
+      return activeSessions.length;
     },
 
     /**

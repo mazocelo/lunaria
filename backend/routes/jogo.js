@@ -107,6 +107,13 @@ router.post('/start', async (req, res, next) => {
     // ID da sala será baseado na história
     const salaId = `historia_${historiaId}`;
 
+    // Arquivar sessões ativas stale no PostgreSQL (libera sala_id para nova sessão)
+    try {
+      await db.SessaoJogo.archiveActiveByHistoriaId(parseInt(historiaId));
+    } catch (archiveErr) {
+      console.warn('⚠️ Erro ao arquivar sessões stale (não-bloqueante):', archiveErr.message);
+    }
+
     // Verificar se já existe uma sessão ativa no Redis
     let sessaoExistente = await gerenciadorSessoes.obterSessao(salaId);
 

@@ -110,21 +110,21 @@ export class HistoriaService {
    */
   async update(id, historia) {
     try {
-      // Criar instância da classe Historia se necessário
-      let historiaInstance;
+      // Se for instância completa de Historia, validar e enviar tudo
+      // Se for objeto parcial (ex: { mestre_id: 5 }), enviar apenas os campos fornecidos
+      let payload;
       if (historia instanceof Historia) {
-        historiaInstance = historia;
+        const validation = historia.validate();
+        if (!validation.isValid) {
+          throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
+        }
+        payload = historia.toJSON();
       } else {
-        historiaInstance = new Historia(historia);
+        // Partial update — enviar apenas campos fornecidos
+        payload = { ...historia };
       }
 
-      // Validar antes de enviar
-      const validation = historiaInstance.validate();
-      if (!validation.isValid) {
-        throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
-      }
-
-      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, historiaInstance.toJSON());
+      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, payload);
 
       // Verificação mais robusta da estrutura de resposta
       if (response.data) {

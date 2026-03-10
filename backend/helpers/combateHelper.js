@@ -49,6 +49,50 @@ export function calcularHP(personagem) {
 }
 
 /**
+ * Calcula mana maxima de um personagem
+ * Formula: 10 + nivel + modInteligencia * 2
+ */
+export function calcularMana(personagem) {
+  const inteligencia = personagem.inteligencia || 10;
+  const nivel = personagem.nivel || 1;
+  const modInt = Math.floor((inteligencia - 10) / 2);
+  return Math.max(5, 10 + nivel + modInt * 2);
+}
+
+/**
+ * Valida e processa uso de habilidade ativa em combate
+ * @returns {{ valido: boolean, erro?: string, dano?: number, efeito?: object }}
+ */
+export function processarHabilidade(habilidade, jogadorState) {
+  const { mana_atual = 0, cooldowns = {} } = jogadorState;
+
+  // Verificar mana
+  if (habilidade.custo_mana > 0 && mana_atual < habilidade.custo_mana) {
+    return { valido: false, erro: `Mana insuficiente (${mana_atual}/${habilidade.custo_mana})` };
+  }
+
+  // Verificar cooldown
+  const cdRestante = cooldowns[habilidade.id] || 0;
+  if (cdRestante > 0) {
+    return { valido: false, erro: `Habilidade em cooldown (${cdRestante} turnos)` };
+  }
+
+  // Calcular dano se aplicável
+  let dano = 0;
+  if (habilidade.dano_base) {
+    dano = rolarDado(habilidade.dano_base);
+  }
+
+  return {
+    valido: true,
+    dano,
+    custoMana: habilidade.custo_mana,
+    cooldown: habilidade.cooldown_turnos,
+    efeito: habilidade.efeito || null
+  };
+}
+
+/**
  * Calcula taxa de esquiva de um personagem (%)
  * Formula: (ModAGI + floor(ModDEX/2)) * 5 + floor(nivel*0.5) + equip_bonus - equip_penalidade
  * Cap: 0-50%
@@ -358,8 +402,9 @@ export function formatarContextoCombate(combateState, userId) {
     .join(', ');
 
   const jogadorHP = combateState.jogadores[userId];
+  const manaStr = jogadorHP?.mana_atual != null ? ` | Mana ${jogadorHP.mana_atual}/${jogadorHP.mana_max}` : '';
   const jogadorInfo = jogadorHP
-    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max} | Esquiva ${jogadorHP.esquiva || 0}% | Armadura ${jogadorHP.armadura || 0}`
+    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max}${manaStr} | Esquiva ${jogadorHP.esquiva || 0}% | Armadura ${jogadorHP.armadura || 0}`
     : 'HP desconhecido';
 
   // HP e status de todos os aliados (excluindo o jogador atual)
@@ -384,12 +429,246 @@ export function formatarContextoCombate(combateState, userId) {
   if (aliadosInfo) contexto += `\n[Aliados: ${aliadosInfo}]`;
   if (statusInfo) contexto += `\n[Seus efeitos: ${statusInfo}]`;
 
+  // Habilidades disponíveis do jogador
+  const jogadorCooldowns = jogadorHP?.cooldowns || {};
+  if (combateState.habilidadesJogador?.length > 0) {
+    const habsStr = combateState.habilidadesJogador
+      .map(h => {
+        const cd = jogadorCooldowns[h.id] || 0;
+        const cdStr = cd > 0 ? ` [CD: ${cd}t]` : '';
+        return `${h.nome} (${h.custo_mana}MP, ${h.tipo}${h.dano_base ? `, ${h.dano_base}` : ''}${cdStr})`;
+      })
+      .join(', ');
+    contexto += `\n[Habilidades disponiveis: ${habsStr}]`;
+  }
+
   return contexto;
+}
+
+/**
+ * Resolve TODA a mecanica de combate de uma rodada ANTES da IA narrar.
+ * Muta o estado do combate (HP, status, log, rodada) e retorna um resumo.
+ */
+export function resolverMecanicaCombate(combate, userId, sessao, personagem) {
+  const resultados = {
+    statusEfeitos: [],
+    ataqueJogador: null,
+    contraAtaques: [],
+    rodadaAvancou: false,
+    combateFinalizado: false,
+    resultadoCombate: null,
+    statusRemovidos: [],
+    jogadorDerrotado: false,
+  };
+
+  if (!combate?.ativo) return resultados;
+
+  const jogadorStats = combate.jogadores[userId];
+  if (!jogadorStats) return resultados;
+  if (jogadorStats.status === 'derrotado') {
+    resultados.jogadorDerrotado = true;
+    return resultados;
+  }
+
+  // --- 1. STATUS EFFECTS DO JOGADOR ---
+  const pcStatus = sessao.personagensCompletos?.[String(personagem.id)] || {};
+  const statusEfeitos = pcStatus.status_efeitos || [];
+  jogadorStats.status_efeitos = statusEfeitos;
+  let impedidoDeAgir = false;
+
+  for (const efeito of statusEfeitos) {
+    switch (efeito.nome) {
+      case 'atordoado':
+      case 'paralizado':
+      case 'congelado':
+        impedidoDeAgir = true;
+        resultados.statusEfeitos.push({ tipo: 'impedido', efeito: efeito.nome, personagem: personagem.nome, userId });
+        break;
+      case 'envenenado':
+      case 'queimando': {
+        const danoPorTurno = efeito.nome === 'envenenado' ? rolarDado('1d4') : rolarDado('1d6');
+        jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
+        if (jogadorStats.hp_atual <= 0 && jogadorStats.status === 'vivo') jogadorStats.status = 'inconsciente';
+        resultados.statusEfeitos.push({
+          tipo: 'dano', efeito: efeito.nome, dano: danoPorTurno,
+          hpRestante: jogadorStats.hp_atual, hpMax: jogadorStats.hp_max,
+          personagem: personagem.nome, userId, personagemId: jogadorStats.personagemId,
+          derrotado: jogadorStats.status === 'derrotado',
+        });
+        break;
+      }
+    }
+  }
+
+  // --- 2. ATAQUE DO JOGADOR ---
+  if (!impedidoDeAgir) {
+    const monstroAlvo = combate.monstros.find(m => m.status === 'vivo');
+    if (monstroAlvo) {
+      const pc = sessao.personagensCompletos?.[String(personagem.id)] || {};
+      const attrs = pc.atributos || {};
+      const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
+      const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
+      const penalidadeCego = statusEfeitos.some(e => e.nome === 'cego') ? 5 : 0;
+      const bonusAtaque = modForca + Math.floor((pc.nivel || 1) * 0.7) + bonusAtaqueEquip - penalidadeCego;
+
+      const rolagemAtaque = Math.floor(Math.random() * 20) + 1;
+      let { acertou, critico } = verificarAcerto(rolagemAtaque);
+      if (acertou && !critico && penalidadeCego > 0 && (rolagemAtaque + bonusAtaque) < 10) {
+        acertou = false;
+      }
+
+      let danoTotal = 0;
+      let esquivou = false;
+      if (acertou) {
+        if (!critico && verificarEsquiva(monstroAlvo.esquiva || 0)) {
+          esquivou = true;
+        } else {
+          const danoBase = jogadorStats.dano_base || (pc.nivel >= 5 ? '1d8' : '1d6');
+          const bonusDanoEquip = jogadorStats.bonusDano || 0;
+          danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico, monstroAlvo.armadura || 0);
+          const elementoAtaque = jogadorStats.elemento || null;
+          if (elementoAtaque) {
+            danoTotal = aplicarResistencias(danoTotal, elementoAtaque, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
+          }
+          monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
+          if (monstroAlvo.hp_atual <= 0) monstroAlvo.status = 'derrotado';
+        }
+      }
+
+      resultados.ataqueJogador = {
+        atacante: personagem.nome, userId,
+        alvo: monstroAlvo.nome, alvoId: monstroAlvo.id,
+        rolagem: rolagemAtaque, bonus: bonusAtaque,
+        acertou: acertou && !esquivou, esquivou, critico,
+        dano: danoTotal, armaduraAlvo: monstroAlvo.armadura || 0,
+        hpRestante: monstroAlvo.hp_atual, hpMax: monstroAlvo.hp_max,
+        derrotado: monstroAlvo.status === 'derrotado', xp: monstroAlvo.xp || 0,
+      };
+      combate.log.push({ tipo: 'ataque_jogador', ...resultados.ataqueJogador, timestamp: Date.now() });
+    }
+  }
+
+  // --- 3. CONTRA-ATAQUE DOS MONSTROS ---
+  const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
+  for (const monstro of monstrosVivos) {
+    const jogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo');
+    if (jogadoresVivos.length === 0) break;
+
+    const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
+    const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
+    const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
+    const { acertou: mAcertou, critico: mCritico } = verificarAcerto(rolagemMonstro);
+
+    let danoMonstro = 0;
+    let mEsquivou = false;
+    if (mAcertou) {
+      if (!mCritico && verificarEsquiva(alvoStats.esquiva || 0)) {
+        mEsquivou = true;
+      } else {
+        const danoNotacao = habilidade?.dano || monstro.dano_base;
+        const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
+        danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico, alvoStats.armadura || 0);
+        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
+        if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
+      }
+    }
+
+    if (habilidade) monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
+
+    resultados.contraAtaques.push({
+      atacante: monstro.nome, atacanteId: monstro.id,
+      habilidade: habilidade?.nome || 'Ataque básico',
+      alvoId, alvoNome: alvoStats.personagemNome,
+      rolagem: rolagemMonstro,
+      acertou: mAcertou && !mEsquivou, esquivou: mEsquivou, critico: mCritico,
+      dano: danoMonstro, armaduraAlvo: alvoStats.armadura || 0,
+      hpRestante: alvoStats.hp_atual, hpMax: alvoStats.hp_max,
+      inconsciente: alvoStats.status === 'inconsciente',
+      personagemId: alvoStats.personagemId,
+    });
+    combate.log.push({ tipo: 'ataque_monstro', ...resultados.contraAtaques.at(-1), timestamp: Date.now() });
+  }
+
+  // --- 4. CONTROLE DE RODADA ---
+  if (!combate.jogadoresQueAgiram) combate.jogadoresQueAgiram = [];
+  if (!combate.jogadoresQueAgiram.includes(userId)) combate.jogadoresQueAgiram.push(userId);
+
+  const totalJogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo').length;
+  if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
+    combate.rodadaCombate++;
+    combate.jogadoresQueAgiram = [];
+    resultados.rodadaAvancou = true;
+
+    for (const [jId, jStats] of Object.entries(combate.jogadores)) {
+      const pCompleto = Object.values(sessao.personagensCompletos || {}).find(p => p.nome === jStats.personagemNome);
+      if (!pCompleto?.status_efeitos) continue;
+      pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
+        e.duracao = (e.duracao || 1) - 1;
+        if (e.duracao <= 0) {
+          resultados.statusRemovidos.push({ personagem: jStats.personagemNome, userId: jId, status: e.nome, personagemId: jStats.personagemId });
+          return false;
+        }
+        return true;
+      });
+    }
+  }
+
+  // --- 5. FIM DE COMBATE ---
+  const { finalizado, resultado } = verificarFimCombate(combate);
+  resultados.combateFinalizado = finalizado;
+  resultados.resultadoCombate = resultado;
+
+  return resultados;
+}
+
+/**
+ * Formata os resultados mecanicos em texto para injetar no prompt da IA.
+ */
+export function formatarResultadoMecanico(resultados, personagemNome) {
+  const linhas = ['[RESULTADO MECÂNICO DA RODADA — narre baseado nestes fatos, NÃO invente resultados diferentes]'];
+
+  for (const se of resultados.statusEfeitos) {
+    if (se.tipo === 'impedido') {
+      linhas.push(`${personagemNome} está ${se.efeito} e não pode agir!`);
+    } else if (se.tipo === 'dano') {
+      linhas.push(`${personagemNome} sofreu ${se.dano} de dano por ${se.efeito}. HP: ${se.hpRestante}/${se.hpMax}`);
+    }
+  }
+
+  const atk = resultados.ataqueJogador;
+  if (atk) {
+    if (!atk.acertou && !atk.esquivou) {
+      linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem} — ERROU!`);
+    } else if (atk.esquivou) {
+      linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem} (acertou) mas ${atk.alvo} ESQUIVOU!`);
+    } else {
+      linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem}${atk.critico ? ' CRÍTICO!' : ''} — ${atk.dano} de dano. ${atk.alvo} HP: ${atk.hpRestante}/${atk.hpMax}${atk.derrotado ? ' — DERROTADO!' : ''}`);
+    }
+  }
+
+  for (const ca of resultados.contraAtaques) {
+    const atkName = ca.habilidade !== 'Ataque básico' ? `usou ${ca.habilidade} contra` : 'atacou';
+    if (!ca.acertou && !ca.esquivou) {
+      linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem} — ERROU!`);
+    } else if (ca.esquivou) {
+      linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem} (acertou) mas ${ca.alvoNome} ESQUIVOU!`);
+    } else {
+      linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem}${ca.critico ? ' CRÍTICO!' : ''} — ${ca.dano} de dano. ${ca.alvoNome} HP: ${ca.hpRestante}/${ca.hpMax}${ca.inconsciente ? ' — INCONSCIENTE!' : ''}`);
+    }
+  }
+
+  if (resultados.combateFinalizado) {
+    linhas.push(`COMBATE FINALIZADO: ${resultados.resultadoCombate === 'vitoria' ? 'VITÓRIA dos jogadores!' : 'DERROTA dos jogadores!'}`);
+  }
+
+  return '\n' + linhas.join('\n');
 }
 
 export default {
   rolarDado,
   calcularHP,
+  calcularMana,
+  processarHabilidade,
   calcularEsquiva,
   calcularArmadura,
   verificarEsquiva,
@@ -400,5 +679,7 @@ export default {
   selecionarHabilidadeMonstro,
   gerarInstanciasCombate,
   verificarFimCombate,
-  formatarContextoCombate
+  formatarContextoCombate,
+  resolverMecanicaCombate,
+  formatarResultadoMecanico
 };

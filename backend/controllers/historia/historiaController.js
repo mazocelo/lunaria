@@ -20,7 +20,7 @@ class HistoriaController {
     try {
       console.log('Criando nova historia');
       
-      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id } = req.body;
+      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id, publica } = req.body;
       
       // Validações básicas
       if (!temas) {
@@ -75,7 +75,8 @@ class HistoriaController {
         prologo: resultadoPrologo.prologo,
         status: 'ativa',
         id_usuario: userId,
-        mestre_id: mestre_id ? parseInt(mestre_id) : null
+        mestre_id: mestre_id ? parseInt(mestre_id) : null,
+        publica: publica === true || publica === 'true' ? true : false
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
@@ -133,8 +134,13 @@ class HistoriaController {
           usedDbPagination = true;
         }
       } else {
-        // Buscar todas as histórias (modo público)
-        historias = await db.Historia.findAll();
+        // Buscar histórias públicas (modo público)
+        const result = await db.Historia.findPublicas({
+          limit: parsedLimit, offset: parsedOffset, status: status || undefined, temas: temas || undefined
+        });
+        historias = result.data;
+        total = result.total;
+        usedDbPagination = true;
       }
 
       // Aplicar filtros em memória apenas quando não usou paginação DB

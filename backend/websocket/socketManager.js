@@ -10,21 +10,19 @@ import {
   calcularHP,
   calcularEsquiva,
   calcularArmadura,
-  verificarEsquiva,
-  verificarAcerto,
-  calcularDano,
-  aplicarResistencias,
-  rolarDado,
-  selecionarHabilidadeMonstro,
   gerarInstanciasCombate,
-  verificarFimCombate,
-  formatarContextoCombate
+  formatarContextoCombate,
+  calcularMana,
+  resolverMecanicaCombate,
+  formatarResultadoMecanico
 } from '../helpers/combateHelper.js';
 import { COMBAT_EVENTS } from './events/eventTypes.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import { verificarLevelUp, xpParaNivel } from '../helpers/evolucaoHelper.js';
 import { rolarLootCombate } from '../helpers/lootHelper.js';
 import { persistirEstadoClone } from '../helpers/acoesProcessor.js';
+import analyticsService from '../services/analyticsService.js';
+import { MESTRE_CONFIG } from '../agents/Mestre/config.js';
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -1876,17 +1874,49 @@ class SocketManager {
         sessao
       );
 
-      // 4. Injetar contexto de combate na ação (se combate ativo)
-      let acaoComContexto = mensagem;
+      // 4. Injetar contexto dinâmico do personagem + combate na ação
+      let acaoComContexto = '';
+
+      // Estado dinâmico do personagem (HP atual, XP, inventário, efeitos)
+      const pcCompleto = (sessao.personagensCompletos || {})[String(personagem.id || personagem.personagemId)] || personagem;
+      const pSessao = estadoJogo.personagemSessao?.[String(userId)] || {};
+      const hpAtual = pSessao.hp_atual ?? pcCompleto.hp ?? pcCompleto.hp_max ?? '?';
+      const hpMax = pSessao.hp_max ?? pcCompleto.hp_max ?? pcCompleto.hp ?? '?';
+      const xpGanho = pSessao.xp_ganho || 0;
+      const itensGanhos = pSessao.itens_ganhos || [];
+      const itensPerdidos = pSessao.itens_perdidos || [];
+      const efeitos = pSessao.status_efeitos || [];
+
+      let estadoParts = [`HP ${hpAtual}/${hpMax}`];
+      if (xpGanho > 0) estadoParts.push(`XP ganho: ${xpGanho}`);
+      if (itensGanhos.length > 0) estadoParts.push(`Itens ganhos: ${itensGanhos.map(i => i.nome || i).join(', ')}`);
+      if (itensPerdidos.length > 0) estadoParts.push(`Itens perdidos: ${itensPerdidos.map(i => i.nome || i).join(', ')}`);
+      if (efeitos.length > 0) estadoParts.push(`Efeitos: ${efeitos.map(e => `${e.nome}(${e.duracao}t)`).join(', ')}`);
+      acaoComContexto = `[Estado atual de ${personagem.nome}: ${estadoParts.join(' | ')}]\n`;
+
       const combateAtivo = estadoJogo.combate?.ativo;
+      let resultadosCombatePreResolvido = null;
       if (combateAtivo) {
+        // Contexto ANTES da resolução (estado atual dos monstros/jogadores)
         const contextoCombate = formatarContextoCombate(estadoJogo.combate, userId);
-        acaoComContexto = `${contextoCombate}\nAção do jogador: "${mensagem}"`;
+        acaoComContexto += `${contextoCombate}\n`;
+
+        // ✅ Resolver mecânica ANTES da IA para que ela narre baseada em fatos
+        resultadosCombatePreResolvido = resolverMecanicaCombate(estadoJogo.combate, userId, sessao, personagem);
+        const resumoMecanico = formatarResultadoMecanico(resultadosCombatePreResolvido, personagem.nome);
+        acaoComContexto += resumoMecanico + '\n';
+
+        // Guardar para o processarAcaoCombate usar (sem re-rolar)
+        sessao._combatePreResolvido = resultadosCombatePreResolvido;
+
         this.log('INFO', 'MENSAGEM_PARA_MESTRE_COMBATE_CONTEXTO', socket.id, userId, {
           roomId,
-          monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length
+          monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length,
+          preResolvido: true
         });
       }
+
+      acaoComContexto += `Ação do jogador: "${mensagem}"`;
 
       // 5. Narrar ação do jogador (COM FALLBACK SE IA FALHAR)
       this.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {
@@ -2961,6 +2991,7 @@ class SocketManager {
         ...dados,
         timestamp: Date.now()
       });
+      analyticsService.track('sessao_inicio', { salaId, totalJogadores: dados.totalJogadores });
       console.log(`🎮 Notificação de início enviada para sala ${salaId}`);
     }
   }
@@ -3255,11 +3286,15 @@ class SocketManager {
             const resumoAgent = (await import('../agents/Resumo/index.js')).default;
             const sessaoParaResumo = await this.obterSessaoHistoria(roomId);
             
+            // Buscar resumo anterior para consolidação cumulativa
+            const resumoAnteriorObj = await this.gerenciadorSessoes.obterUltimoResumo(roomId);
+
             const resumo = await resumoAgent.resumirAventura({
               mensagens: sessaoParaResumo.mensagens || [],
               temas: extrairNomesTemas(sessaoParaResumo.historiaTemas || []),
               personagens: Object.values(sessaoParaResumo.jogadores || {}),
-              rodadasJogadas: rodadaAtual
+              rodadasJogadas: rodadaAtual,
+              resumoAnterior: resumoAnteriorObj?.resumo || null
             });
 
             await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
@@ -3480,10 +3515,13 @@ class SocketManager {
           // Preservar HP da narrativa (dano de armadilhas, aplicar_dano, etc.)
           // Se p.hp_atual existe e é menor que hpMax, manter o dano sofrido
           const hpAtual = (p.hp_atual != null && p.hp_atual < hpMax) ? Math.max(1, p.hp_atual) : hpMax;
+          const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, nivel: p.nivel || 1 });
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId),
             hp_max: hpMax,
             hp_atual: hpAtual,
+            mana_max: manaMax,
+            mana_atual: (p.mana_atual != null && p.mana_atual < manaMax) ? p.mana_atual : manaMax,
             esquiva: calcularEsquiva(personagemStats, bonusEquip),
             armadura: calcularArmadura(bonusEquip),
             bonusAtaque: bonusEquip.ataque || 0,
@@ -3491,20 +3529,24 @@ class SocketManager {
             dano_base: p.melhorArma || null,
             elemento: p.elementoArma || null,
             status: 'vivo',
-            personagemNome: p.nome || jogador.username
+            personagemNome: p.nome || jogador.username,
+            cooldowns: {}
           };
         } else {
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId) || null,
             hp_max: 15,
             hp_atual: 15,
+            mana_max: 10,
+            mana_atual: 10,
             esquiva: 5,
             armadura: 0,
             bonusAtaque: 0,
             bonusDano: 0,
             dano_base: null,
             status: 'vivo',
-            personagemNome: jogador.username || 'Jogador'
+            personagemNome: jogador.username || 'Jogador',
+            cooldowns: {}
           };
         }
       }
@@ -3557,11 +3599,16 @@ class SocketManager {
       const combate = estadoJogo.combate;
       if (!combate?.ativo) return;
 
-      const jogadorStats = combate.jogadores[userId];
-      if (!jogadorStats) return;
+      // ✅ Usar resultados pré-resolvidos (mecânica já foi computada ANTES da IA narrar)
+      const r = sessao._combatePreResolvido;
+      if (!r) {
+        console.warn('⚠️ processarAcaoCombate: sem resultados pré-resolvidos, pulando');
+        return;
+      }
+      delete sessao._combatePreResolvido;
 
-      // Etapa 1.4: Bloquear jogador derrotado de agir
-      if (jogadorStats.status === 'derrotado') {
+      // Jogador derrotado
+      if (r.jogadorDerrotado) {
         this.io.to(roomId).emit('server_message', {
           userId,
           mensagem: `💀 ${personagem.nome} foi derrotado e não pode agir neste combate.`
@@ -3569,313 +3616,102 @@ class SocketManager {
         return;
       }
 
-      // --- PROCESSAR STATUS EFFECTS DO JOGADOR ---
-      const personagemCompleto_status = sessao.personagensCompletos?.[String(personagem.id)] || {};
-      const statusEfeitos = personagemCompleto_status.status_efeitos || [];
-      // Sync status_efeitos para combate.jogadores (para formatarContextoCombate ter visibilidade)
-      jogadorStats.status_efeitos = statusEfeitos;
-      let impedidoDeAgir = false;
-
-      for (const efeito of statusEfeitos) {
-        switch (efeito.nome) {
-          case 'atordoado':
-          case 'paralizado':
-          case 'congelado':
-            impedidoDeAgir = true;
-            this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
-              tipo: 'status_efeito',
-              personagem: personagem.nome,
-              userId,
-              status: efeito.nome,
-              mensagem: `${personagem.nome} está ${efeito.nome} e não pode agir!`,
-              timestamp: Date.now()
-            });
-            break;
-          case 'envenenado':
-          case 'queimando': {
-            // Dano por turno: 1d4 para veneno, 1d6 para queimadura
-            const danoPorTurno = efeito.nome === 'envenenado' ? rolarDado('1d4') : rolarDado('1d6');
-            jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
-            if (jogadorStats.hp_atual <= 0) jogadorStats.status = 'derrotado';
-            this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
-              tipo: 'status_dano',
-              alvo: { userId, nome: personagem.nome },
-              status: efeito.nome,
-              dano: danoPorTurno,
-              hpRestante: jogadorStats.hp_atual,
-              hpMax: jogadorStats.hp_max,
-              timestamp: Date.now()
-            });
-            // Emitir atualização de HP para o frontend refletir imediatamente
-            this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
-              userId,
-              nome: personagem.nome,
-              hp_atual: jogadorStats.hp_atual,
-              hp_max: jogadorStats.hp_max,
-              derrotado: jogadorStats.status === 'derrotado',
-              fonte: efeito.nome,
-              timestamp: Date.now()
-            });
-            // Persistir HP no clone da sessão (DOT damage)
-            if (jogadorStats.personagemId) {
-              await persistirEstadoClone(roomId, jogadorStats.personagemId, { hp_atual: jogadorStats.hp_atual });
-            }
-            if (jogadorStats.status === 'derrotado') {
-              impedidoDeAgir = true;
-              this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
-                userId,
-                nome: personagem.nome,
-                hp_atual: 0,
-                hp_max: jogadorStats.hp_max,
-                derrotado: true,
-                timestamp: Date.now()
-              });
-            }
-            break;
-          }
-          case 'cego':
-            // Cego: penalidade de -5 no ataque (aplicado abaixo)
-            break;
-        }
-      }
-
-      if (impedidoDeAgir) {
-        // Mesmo impedido, conta como ação do turno e monstros contra-atacam
-        // (skip para seção de contra-ataque abaixo)
-      }
-
-      // --- ATAQUE DO JOGADOR (só se não impedido por status) ---
-      if (!impedidoDeAgir) {
-        // Determinar alvo (primeiro monstro vivo)
-        const monstroAlvo = combate.monstros.find(m => m.status === 'vivo');
-        if (monstroAlvo) {
-        // Bloco de ataque — indentado dentro do guard
-
-        // Rolar ataque do jogador (d20)
-        const rolagemAtaque = Math.floor(Math.random() * 20) + 1;
-        const personagemCompleto = sessao.personagensCompletos?.[String(personagem.id)] || {};
-        const attrs = personagemCompleto.atributos || {};
-        const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
-        const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
-        // Penalidade de cego: -5 no ataque
-        const penalidadeCego = statusEfeitos.some(e => e.nome === 'cego') ? 5 : 0;
-        const bonusAtaque = modForca + Math.floor((personagemCompleto.nivel || 1) * 0.7) + bonusAtaqueEquip - penalidadeCego;
-
-        let { acertou, critico } = verificarAcerto(rolagemAtaque);
-        // Cego: rolagem + bonus precisa superar DC 10 para acertar (além de nat 1/20)
-        if (acertou && !critico && penalidadeCego > 0 && (rolagemAtaque + bonusAtaque) < 10) {
-          acertou = false;
-        }
-
-        let danoTotal = 0;
-        let esquivou = false;
-        if (acertou) {
-          // Critico ignora esquiva
-          if (!critico && verificarEsquiva(monstroAlvo.esquiva || 0)) {
-            esquivou = true;
-          } else {
-            const danoBase = jogadorStats.dano_base || (personagemCompleto.nivel >= 5 ? '1d8' : '1d6');
-            const bonusDanoEquip = jogadorStats.bonusDano || 0;
-            const armaduraMonstro = monstroAlvo.armadura || 0;
-            danoTotal = calcularDano(danoBase, modForca + bonusDanoEquip, critico, armaduraMonstro);
-            // Aplicar resistencias/imunidades do monstro
-            const elementoAtaque = jogadorStats.elemento || null;
-            if (elementoAtaque) {
-              danoTotal = aplicarResistencias(danoTotal, elementoAtaque, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
-            }
-            monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoTotal);
-
-            if (monstroAlvo.hp_atual <= 0) {
-              monstroAlvo.status = 'derrotado';
-            }
-          }
-        }
-
-        // Log do ataque do jogador
-        const logAtaque = {
-          tipo: 'ataque_jogador',
-          atacante: personagem.nome,
-          alvo: monstroAlvo.nome,
-          rolagem: rolagemAtaque,
-          bonus: bonusAtaque,
-          acertou: acertou && !esquivou,
-          esquivou,
-          critico,
-          dano: danoTotal,
-          armaduraAlvo: monstroAlvo.armadura || 0,
-          hpRestante: monstroAlvo.hp_atual,
-          timestamp: Date.now()
-        };
-        combate.log.push(logAtaque);
-
-        // Emitir resultado do ataque do jogador
-        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
-          tipo: 'ataque_jogador',
-          atacante: { userId, nome: personagem.nome },
-          alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
-          rolagem: rolagemAtaque,
-          bonus: bonusAtaque,
-          acertou: acertou && !esquivou,
-          esquivou,
-          critico,
-          dano: danoTotal,
-          armaduraAlvo: monstroAlvo.armadura || 0,
-          hpRestante: monstroAlvo.hp_atual,
-          hpMax: monstroAlvo.hp_max,
-          timestamp: Date.now()
-        });
-
-        // Se monstro derrotado
-        if (monstroAlvo.status === 'derrotado') {
-          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
-            monstro: { id: monstroAlvo.id, nome: monstroAlvo.nome },
-            xp: monstroAlvo.xp || 0,
+      // --- EMITIR EVENTOS DE STATUS EFFECTS ---
+      for (const se of r.statusEfeitos) {
+        if (se.tipo === 'impedido') {
+          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+            tipo: 'status_efeito', personagem: se.personagem, userId: se.userId,
+            status: se.efeito, mensagem: `${se.personagem} está ${se.efeito} e não pode agir!`,
             timestamp: Date.now()
           });
-        }
-        } // fecha if (monstroAlvo)
-      }
-
-      // --- CONTRA-ATAQUE DOS MONSTROS ---
-      // Etapa 1.2: Selecionar alvo aleatório entre jogadores vivos (multi-player)
-      const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
-      for (const monstro of monstrosVivos) {
-        // Selecionar alvo aleatório entre jogadores vivos
-        const jogadoresVivos = Object.entries(combate.jogadores)
-          .filter(([_, j]) => j.status !== 'derrotado');
-        if (jogadoresVivos.length === 0) break;
-
-        const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
-
-        // Selecionar habilidade ou ataque básico
-        const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
-
-        // Rolar ataque do monstro
-        const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
-        const { acertou: monstroAcertou, critico: monstroCritico } = verificarAcerto(rolagemMonstro);
-
-        let danoMonstro = 0;
-        let monstroEsquivou = false;
-        if (monstroAcertou) {
-          // Critico ignora esquiva
-          if (!monstroCritico && verificarEsquiva(alvoStats.esquiva || 0)) {
-            monstroEsquivou = true;
-          } else {
-            const danoNotacao = habilidade?.dano || monstro.dano_base;
-            const modForcaMonstro = Math.floor(((monstro.forca || 10) - 10) / 2);
-            const armaduraJogador = alvoStats.armadura || 0;
-            danoMonstro = calcularDano(danoNotacao, modForcaMonstro, monstroCritico, armaduraJogador);
-            alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
-
-            if (alvoStats.hp_atual <= 0) {
-              alvoStats.status = 'derrotado';
-            }
-
-            // Persistir HP no clone da sessão (monster attack)
-            if (alvoStats.personagemId) {
-              await persistirEstadoClone(roomId, alvoStats.personagemId, { hp_atual: alvoStats.hp_atual });
-            }
-          }
-        }
-
-        // Atualizar cooldown da habilidade usada
-        if (habilidade) {
-          monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
-        }
-
-        // Log do ataque do monstro
-        combate.log.push({
-          tipo: 'ataque_monstro',
-          atacante: monstro.nome,
-          alvo: alvoStats.personagemNome,
-          habilidade: habilidade?.nome || 'Ataque básico',
-          rolagem: rolagemMonstro,
-          acertou: monstroAcertou && !monstroEsquivou,
-          esquivou: monstroEsquivou,
-          critico: monstroCritico,
-          dano: danoMonstro,
-          armaduraAlvo: alvoStats.armadura || 0,
-          hpRestante: alvoStats.hp_atual,
-          timestamp: Date.now()
-        });
-
-        // Emitir resultado do ataque do monstro
-        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
-          tipo: 'ataque_monstro',
-          atacante: { id: monstro.id, nome: monstro.nome },
-          alvo: { userId: alvoId, nome: alvoStats.personagemNome },
-          habilidade: habilidade?.nome || 'Ataque básico',
-          rolagem: rolagemMonstro,
-          acertou: monstroAcertou && !monstroEsquivou,
-          esquivou: monstroEsquivou,
-          critico: monstroCritico,
-          dano: danoMonstro,
-          armaduraAlvo: alvoStats.armadura || 0,
-          hpRestante: alvoStats.hp_atual,
-          hpMax: alvoStats.hp_max,
-          timestamp: Date.now()
-        });
-
-        if (alvoStats.status === 'derrotado') {
+        } else if (se.tipo === 'dano') {
+          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+            tipo: 'status_dano', alvo: { userId: se.userId, nome: se.personagem },
+            status: se.efeito, dano: se.dano, hpRestante: se.hpRestante, hpMax: se.hpMax,
+            timestamp: Date.now()
+          });
           this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
-            userId: alvoId,
-            nome: alvoStats.personagemNome,
-            hp_atual: 0,
-            hp_max: alvoStats.hp_max,
-            derrotado: true,
+            userId: se.userId, nome: se.personagem,
+            hp_atual: se.hpRestante, hp_max: se.hpMax,
+            derrotado: se.derrotado, fonte: se.efeito, timestamp: Date.now()
+          });
+          if (se.personagemId) {
+            await persistirEstadoClone(roomId, se.personagemId, { hp_atual: se.hpRestante });
+          }
+        }
+      }
+
+      // --- EMITIR RESULTADO DO ATAQUE DO JOGADOR ---
+      const atk = r.ataqueJogador;
+      if (atk) {
+        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'ataque_jogador',
+          atacante: { userId: atk.userId, nome: atk.atacante },
+          alvo: { id: atk.alvoId, nome: atk.alvo },
+          rolagem: atk.rolagem, bonus: atk.bonus,
+          acertou: atk.acertou, esquivou: atk.esquivou, critico: atk.critico,
+          dano: atk.dano, armaduraAlvo: atk.armaduraAlvo,
+          hpRestante: atk.hpRestante, hpMax: atk.hpMax,
+          timestamp: Date.now()
+        });
+
+        if (atk.derrotado) {
+          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
+            monstro: { id: atk.alvoId, nome: atk.alvo },
+            xp: atk.xp, timestamp: Date.now()
+          });
+        }
+      }
+
+      // --- EMITIR CONTRA-ATAQUES DOS MONSTROS ---
+      for (const ca of r.contraAtaques) {
+        this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'ataque_monstro',
+          atacante: { id: ca.atacanteId, nome: ca.atacante },
+          alvo: { userId: ca.alvoId, nome: ca.alvoNome },
+          habilidade: ca.habilidade,
+          rolagem: ca.rolagem,
+          acertou: ca.acertou, esquivou: ca.esquivou, critico: ca.critico,
+          dano: ca.dano, armaduraAlvo: ca.armaduraAlvo,
+          hpRestante: ca.hpRestante, hpMax: ca.hpMax,
+          timestamp: Date.now()
+        });
+
+        if (ca.inconsciente) {
+          this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+            userId: ca.alvoId, nome: ca.alvoNome,
+            hp_atual: 0, hp_max: ca.hpMax, inconsciente: true,
             timestamp: Date.now()
           });
         }
+
+        // Persistir HP no clone
+        if (ca.personagemId && ca.dano > 0) {
+          await persistirEstadoClone(roomId, ca.personagemId, { hp_atual: ca.hpRestante });
+        }
       }
 
-      // Etapa 1.1: Rastrear jogadores que agiram e incrementar rodada
-      if (!combate.jogadoresQueAgiram) {
-        combate.jogadoresQueAgiram = [];
-      }
-      if (!combate.jogadoresQueAgiram.includes(userId)) {
-        combate.jogadoresQueAgiram.push(userId);
-      }
-      const totalJogadoresVivos = Object.entries(combate.jogadores)
-        .filter(([_, j]) => j.status !== 'derrotado').length;
-      if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
-        combate.rodadaCombate++;
-        combate.jogadoresQueAgiram = [];
-
-        // Tick down status effects de todos os jogadores no fim da rodada
-        for (const [jId, jStats] of Object.entries(combate.jogadores)) {
-          const pCompleto = Object.values(sessao.personagensCompletos || {}).find(
-            p => p.nome === jStats.personagemNome
-          );
-          if (!pCompleto?.status_efeitos) continue;
-          pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
-            e.duracao = (e.duracao || 1) - 1;
-            if (e.duracao <= 0) {
-              this.io.to(roomId).emit('acao_mestre', {
-                tipo: 'status_removido',
-                personagem: jStats.personagemNome,
-                userId: jId,
-                status: e.nome,
-                timestamp: Date.now()
-              });
-              return false;
-            }
-            return true;
-          });
-          // Persistir status_efeitos no clone da sessão
-          if (jStats.personagemId) {
-            await persistirEstadoClone(roomId, jStats.personagemId, {
-              status_efeitos: pCompleto.status_efeitos
-            });
+      // --- EMITIR STATUS REMOVIDOS ---
+      for (const sr of r.statusRemovidos) {
+        this.io.to(roomId).emit('acao_mestre', {
+          tipo: 'status_removido', personagem: sr.personagem,
+          userId: sr.userId, status: sr.status, timestamp: Date.now()
+        });
+        if (sr.personagemId) {
+          const pCompleto = Object.values(sessao.personagensCompletos || {}).find(p => p.nome === sr.personagem);
+          if (pCompleto) {
+            await persistirEstadoClone(roomId, sr.personagemId, { status_efeitos: pCompleto.status_efeitos });
           }
         }
+      }
 
+      if (r.rodadaAvancou) {
         console.log(`🔄 Combate rodada ${combate.rodadaCombate} na sala ${roomId}`);
       }
 
       // Verificar fim de combate
-      const { finalizado, resultado } = verificarFimCombate(combate);
-      if (finalizado) {
-        await this.finalizarCombate(roomId, resultado);
+      if (r.combateFinalizado) {
+        await this.finalizarCombate(roomId, r.resultadoCombate);
         return;
       }
 
@@ -3976,6 +3812,9 @@ class SocketManager {
                   });
                   console.log(`🎉 ${jogadorCombate.personagemNome} subiu para nivel ${nivelAtual}!`);
 
+                  // Post automático no feed
+                  db.FeedPost.createAutoEvent(parseInt(jUserId), 'level_up', { personagem: jogadorCombate.personagemNome, nivel: nivelAtual }, 'personagem', jogadorCombate.personagemId).catch(() => {});
+
                   levelUp = verificarLevelUp(nivelAtual, xpRestante);
                 }
 
@@ -4028,6 +3867,9 @@ class SocketManager {
                   ganhos: ultimoGanhos,
                   timestamp: Date.now()
                 });
+
+                // Post automático no feed
+                db.FeedPost.createAutoEvent(parseInt(jUserId), 'level_up', { personagem: jogadorCombate.personagemNome, nivel: nivelAtual }, 'personagem', jogadorCombate.personagemId).catch(() => {});
               } else {
                 await db.prisma.personagens.update({
                   where: { id: jogadorCombate.personagemId },
@@ -4099,17 +3941,27 @@ class SocketManager {
       }
 
       // Emitir evento de combate finalizado
+      const monstrosDerrotados = combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome);
       this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
         resultado,
         xpTotal,
         xpPorJogador,
-        monstrosDerrotados: combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome),
+        monstrosDerrotados,
         jogadoresSobreviventes: Object.entries(combate.jogadores)
           .filter(([, j]) => j.status === 'vivo')
           .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, hp_atual: j.hp_atual })),
         loot: lootResultado?.todosItens || [],
         timestamp: Date.now()
       });
+
+      // Posts automáticos no feed para sobreviventes
+      if (resultado === 'vitoria') {
+        for (const [uid, j] of Object.entries(combate.jogadores)) {
+          if (j.status === 'vivo') {
+            db.FeedPost.createAutoEvent(parseInt(uid), 'combate_finalizado', { resultado, monstros: monstrosDerrotados, xpGanho: xpPorJogador }, 'personagem', j.personagemId).catch(() => {});
+          }
+        }
+      }
 
       // Narrar desfecho via IA
       try {
@@ -4190,11 +4042,17 @@ class SocketManager {
     
     console.log(`🎭 Criando Mestre com ${personagensFormatados.length} personagens formatados`);
     
-    // Construir catálogo de monstros/equipamentos/elementos para o Mestre
+    // Construir catálogo filtrado por nível dos jogadores
     let catalogo = '';
     try {
       const { buildCatalogo } = await import('../agents/Mestre/catalogo/catalogoMestre.js');
-      catalogo = await buildCatalogo();
+      const niveisJogadores = jogadoresConectados
+        .map(j => {
+          const pc = (sessao.personagensCompletos || {})[j.personagemId || j.id];
+          return pc?.nivel || j.nivel || 1;
+        })
+        .filter(n => typeof n === 'number');
+      catalogo = await buildCatalogo({ niveisJogadores });
     } catch (error) {
       console.warn('⚠️ Erro ao construir catálogo para Mestre:', error.message);
     }
@@ -4202,7 +4060,7 @@ class SocketManager {
     const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null, catalogo);
 
     // Limitar tamanho do cache (LRU eviction)
-    const MAX_CACHE_SIZE = 30;
+    const MAX_CACHE_SIZE = MESTRE_CONFIG.cache.maxSize;
     if (this.mestresCache.size >= MAX_CACHE_SIZE) {
       let oldestKey = null, oldestTime = Number.POSITIVE_INFINITY;
       for (const [key, cache] of this.mestresCache.entries()) {
@@ -4254,7 +4112,7 @@ class SocketManager {
     let removidos = 0;
 
     for (const [salaId, cache] of this.mestresCache.entries()) {
-      if (agora - cache.ultimoUso > 3600000) { // 1 hora
+      if (agora - cache.ultimoUso > MESTRE_CONFIG.cache.ttl * 1000) {
         this.mestresCache.delete(salaId);
         removidos++;
       }
@@ -4297,6 +4155,7 @@ class SocketManager {
         xpGanho: recapData.xpGanho || 0,
         loot: recapData.loot || []
       });
+      analyticsService.track('sessao_fim', { salaId, xpGanho: recapData.xpGanho || 0 });
 
       const room = this.io.sockets.adapter.rooms.get(salaId);
       if (room) {

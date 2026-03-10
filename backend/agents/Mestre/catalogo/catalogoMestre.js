@@ -25,25 +25,65 @@ function formatarBonus(bonus) {
   return parts.join('/');
 }
 
+const MAX_CATALOGO_CHARS = 4000;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutos
+
+// Cache de dados brutos do banco (compartilhado entre chamadas com diferentes filtros)
+let _cachedRawData = null;
+let _cacheTimestamp = 0;
+
+/** Invalida o cache manualmente (chamar após admin criar/editar monstro ou equipamento) */
+export function invalidarCacheCatalogo() {
+  _cachedRawData = null;
+  _cacheTimestamp = 0;
+  console.log('📦 CatalogoMestre: cache invalidado');
+}
+
+async function fetchRawData() {
+  const now = Date.now();
+  if (_cachedRawData && (now - _cacheTimestamp) < CACHE_TTL_MS) {
+    return _cachedRawData;
+  }
+  const data = await Promise.all([
+    db.Monstro.findAll(),
+    db.Equipamento.findAll(),
+    db.Elemento.findAll()
+  ]);
+  _cachedRawData = { monstros: data[0], equipamentos: data[1], elementos: data[2] };
+  _cacheTimestamp = now;
+  return _cachedRawData;
+}
+
 /**
- * Constrói catálogo completo para o prompt do Mestre
+ * Constrói catálogo filtrado para o prompt do Mestre
+ * @param {Object} options
+ * @param {number[]} [options.niveisJogadores] - Níveis dos jogadores para filtrar monstros (±3)
  * @returns {string} Texto formatado do catálogo
  */
-export async function buildCatalogo() {
+export async function buildCatalogo({ niveisJogadores = [] } = {}) {
   try {
-    const [monstros, equipamentos, elementos] = await Promise.all([
-      db.Monstro.findAll(),
-      db.Equipamento.findAll(),
-      db.Elemento.findAll()
-    ]);
+    const { monstros, equipamentos, elementos } = await fetchRawData();
+
+    // Filtrar monstros por nível dos jogadores (±3) se disponível
+    let monstrosFiltrados = monstros;
+    let monstrosOmitidos = 0;
+    if (niveisJogadores.length > 0) {
+      const nivelMin = Math.max(1, Math.min(...niveisJogadores) - 3);
+      const nivelMax = Math.max(...niveisJogadores) + 3;
+      monstrosFiltrados = monstros.filter(m => {
+        const mMin = m.nivel_min || 1;
+        const mMax = m.nivel_max || mMin;
+        return mMax >= nivelMin && mMin <= nivelMax;
+      });
+      monstrosOmitidos = monstros.length - monstrosFiltrados.length;
+    }
 
     const sections = [];
 
     // === MONSTROS ===
-    if (monstros.length > 0) {
-      // Agrupar por primeiro tipo
+    if (monstrosFiltrados.length > 0) {
       const porTipo = {};
-      for (const m of monstros) {
+      for (const m of monstrosFiltrados) {
         const tipo = (m.tipo && m.tipo[0]) || 'outro';
         if (!porTipo[tipo]) porTipo[tipo] = [];
         const elem = m.elemento?.length ? `, ${m.elemento.join('/')}` : '';
@@ -51,17 +91,19 @@ export async function buildCatalogo() {
       }
 
       let monstrosText = '=== CATÁLOGO DE MONSTROS ===\n';
-      monstrosText += `Total: ${monstros.length} monstros disponíveis.\n`;
+      monstrosText += `${monstrosFiltrados.length} monstros no nível da party.\n`;
       monstrosText += 'Use nomes EXATOS ao iniciar combate.\n\n';
       for (const [tipo, lista] of Object.entries(porTipo).sort()) {
         monstrosText += `[${tipo}] ${lista.join(', ')}\n`;
+      }
+      if (monstrosOmitidos > 0) {
+        monstrosText += `\n(+${monstrosOmitidos} monstros fora do nível da party)`;
       }
       sections.push(monstrosText);
     }
 
     // === EQUIPAMENTOS ===
     if (equipamentos.length > 0) {
-      // Agrupar por primeiro tipo
       const porTipo = {};
       for (const e of equipamentos) {
         const tipo = (e.tipo && e.tipo[0]) || 'outro';
@@ -90,8 +132,18 @@ export async function buildCatalogo() {
       sections.push(elemText);
     }
 
-    const catalogo = sections.join('\n\n');
-    console.log(`📦 CatalogoMestre: ${monstros.length} monstros, ${equipamentos.length} equipamentos, ${elementos.length} elementos`);
+    let catalogo = sections.join('\n\n');
+
+    // Cap final: truncar se exceder limite
+    if (catalogo.length > MAX_CATALOGO_CHARS) {
+      catalogo = catalogo.substring(0, MAX_CATALOGO_CHARS - 80);
+      // Cortar na última linha completa
+      const lastNewline = catalogo.lastIndexOf('\n');
+      if (lastNewline > 0) catalogo = catalogo.substring(0, lastNewline);
+      catalogo += `\n\n(Catálogo truncado. +${monstros.length} monstros e ${equipamentos.length} equipamentos disponíveis no mundo)`;
+    }
+
+    console.log(`📦 CatalogoMestre: ${monstrosFiltrados.length}/${monstros.length} monstros, ${equipamentos.length} equipamentos, ${elementos.length} elementos (${catalogo.length} chars)`);
     return catalogo;
   } catch (error) {
     console.error('❌ CatalogoMestre: Erro ao construir catálogo:', error.message);

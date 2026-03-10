@@ -93,6 +93,59 @@ class UsuarioController {
   }
 
   /**
+   * Obter perfil público de um usuário (sem autenticação)
+   */
+  async obterPerfilPublico(req, res) {
+    try {
+      const usuarioId = parseInt(req.params.id);
+      if (isNaN(usuarioId)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' });
+      }
+
+      const usuario = await db.Usuario.findById(usuarioId);
+      if (!usuario) {
+        return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
+      }
+
+      const privacidade = usuario.privacidade || {};
+      if (privacidade.perfil_publico === false) {
+        return res.status(403).json({ success: false, error: 'Este perfil é privado' });
+      }
+
+      // Retornar apenas dados públicos (sem email, senha, etc.)
+      const dadosPublicos = {
+        id: usuario.id,
+        nome: usuario.nome,
+        avatar: usuario.avatar,
+        bio: usuario.bio,
+        criado_em: usuario.criado_em,
+      };
+
+      // Estatísticas apenas se permitido
+      if (privacidade.mostrar_estatisticas !== false) {
+        try {
+          const stats = await db.Usuario.getEstatisticas(usuarioId);
+          dadosPublicos.estatisticas = stats;
+        } catch { /* ignore */ }
+      }
+
+      // Personagens públicos
+      try {
+        const personagens = await db.Personagem.findByUsuario(usuarioId);
+        dadosPublicos.personagens = (personagens || []).map(p => ({
+          id: p.id, nome: p.nome, nivel: p.nivel,
+          classe_nome: p.classe_nome, raca_nome: p.raca_nome, imagem: p.imagem
+        }));
+      } catch { /* ignore */ }
+
+      res.status(200).json({ success: true, data: dadosPublicos });
+    } catch (error) {
+      console.error('❌ Erro ao obter perfil público:', error);
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
    * Obter perfil do usuário logado
    * @param {Object} req - Request object
    * @param {Object} res - Response object

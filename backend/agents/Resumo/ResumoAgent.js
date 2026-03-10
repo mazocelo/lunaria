@@ -26,10 +26,14 @@ export class ResumoAgent {
    * @param {number} params.rodadasJogadas - Número de rodadas jogadas
    * @returns {Promise<Object>} - Resumo gerado
    */
-  async resumirAventura({ mensagens, temas, personagens, rodadasJogadas }) {
+  async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null }) {
     try {
-      const ultimasMensagens = mensagens.slice(-50); // Últimas 50 mensagens
-      
+      const ultimasMensagens = mensagens.slice(-50);
+
+      const blocoAnterior = resumoAnterior
+        ? `\nRESUMO ANTERIOR (consolidar com as novas informações):\n${resumoAnterior}\n`
+        : '';
+
       const prompt = `Você é um assistente que resume aventuras de RPG de forma concisa.
 
 CONTEXTO:
@@ -37,14 +41,14 @@ CONTEXTO:
 - Personagens: ${personagens.map(p => p.personagemNome || p.username || p.nome || p).join(', ')}
 - Rodadas Jogadas: ${rodadasJogadas}
 - Total de Mensagens: ${mensagens.length}
-
-Crie um resumo MUITO CONCISO (máximo 300 palavras) cobrindo:
+${blocoAnterior}
+${resumoAnterior ? 'Consolide o resumo anterior com as novas mensagens abaixo em um ÚNICO resumo coeso.' : 'Crie um resumo'} MUITO CONCISO (máximo 300 palavras) cobrindo:
 1. Principais eventos ocorridos
 2. Decisões importantes dos jogadores
 3. Situação/desafio atual
 4. NPCs ou inimigos encontrados
 
-ÚLTIMAS MENSAGENS (${ultimasMensagens.length}):
+MENSAGENS RECENTES (${ultimasMensagens.length}):
 ${ultimasMensagens.map(m => {
   const tipo = m.tipo || m.type || 'desconhecido';
   const autor = m.username || 'Sistema';

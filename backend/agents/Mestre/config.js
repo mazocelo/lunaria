@@ -1,37 +1,40 @@
 /**
  * Configurações do Mestre RPG
- * Centraliza todas as configurações de modelo, temperatura, etc.
+ * Centraliza todas as configurações de modelo, comportamento, cache, etc.
+ * Override via env vars quando disponível.
  */
 
 export const MESTRE_CONFIG = {
   // Configurações do modelo de IA
   model: {
-    provider: 'gemini',
-    name: 'gemini-2.5-flash',
-    temperature: 0.9, // Alta criatividade para narração
-    maxTokens: 8000,
-    topP: 0.99
+    provider: process.env.AI_PROVIDER || 'gemini',
+    name: process.env.AI_MODEL || 'gemini-2.5-flash',
+    temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.9,
+    maxTokens: parseInt(process.env.AI_MAX_TOKENS) || 8000,
+    topP: parseFloat(process.env.AI_TOP_P) || 0.99,
+    timeout: parseInt(process.env.AI_TIMEOUT_MS) || 12000,
   },
 
   // Configurações de comportamento
   behavior: {
     language: 'pt-br',
-    maxHistoryLength: 20, // Número máximo de mensagens no histórico
-    contextWindow: 4000, // Janela de contexto em tokens
+    maxHistoryLength: parseInt(process.env.MESTRE_HISTORY_LIMIT) || 15,
+    resumoMaxChars: parseInt(process.env.MESTRE_RESUMO_MAX_CHARS) || 2000,
+    contextWindow: 4000,
   },
 
   // Configurações de rate limiting
   rateLimit: {
-    maxRequestsPerMinute: 10,
-    cooldownTime: 1000 // ms entre requisições
+    maxRequestsPerMinute: parseInt(process.env.MESTRE_RATE_LIMIT) || 10,
+    cooldownTime: 1000,
   },
 
   // Configurações de cache
   cache: {
-    enabled: true,
-    ttl: 3600 // segundos (1 hora)
+    enabled: process.env.MESTRE_CACHE_ENABLED !== 'false',
+    ttl: parseInt(process.env.MESTRE_CACHE_TTL) || 3600,
+    maxSize: parseInt(process.env.MESTRE_CACHE_MAX_SIZE) || 30,
   }
 };
 
 export default MESTRE_CONFIG;
-

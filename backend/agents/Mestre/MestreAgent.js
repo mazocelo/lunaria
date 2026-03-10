@@ -6,9 +6,10 @@ import dotenv from 'dotenv';
 
 import { MESTRE_CONFIG } from './config.js';
 import { isEnabled } from '../../config/featureFlags.js';
+import analyticsService from '../../services/analyticsService.js';
 
-// Timeout wrapper for AI calls (25s para caber no timeout de 30s do frontend)
-function withTimeout(promise, ms = 25000) {
+// Timeout wrapper for AI calls
+function withTimeout(promise, ms = MESTRE_CONFIG.model.timeout) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), ms))
@@ -89,8 +90,8 @@ import { extrairNomesTemas } from '../../helpers/temasHelper.js';
 
 dotenv.config();
 
-const HISTORY_LIMIT = 15;
-const RESUMO_MAX_CHARS = 2000;
+const HISTORY_LIMIT = MESTRE_CONFIG.behavior.maxHistoryLength;
+const RESUMO_MAX_CHARS = MESTRE_CONFIG.behavior.resumoMaxChars;
 
 /**
  * Classe principal do Mestre de RPG
@@ -338,6 +339,7 @@ export class MestreAgent {
    * Processa uma resposta genérica do mestre
    */
   async processarResposta({ input, chatHistory = [] }) {
+    const startTime = Date.now();
     try {
       if (!this.chain) {
         throw new Error('Modelo de IA nao inicializado');
@@ -350,12 +352,23 @@ export class MestreAgent {
         chat_history: historico
       }));
 
+      analyticsService.track('ai_response', {
+        duration_ms: Date.now() - startTime,
+        fallback: false,
+        input_length: input?.length || 0,
+      });
+
       return {
         resposta: response.content,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error('MestreAgent: Erro ao processar resposta:', error.message);
+      analyticsService.track('ai_response', {
+        duration_ms: Date.now() - startTime,
+        fallback: true,
+        error: error.message,
+      });
       return {
         resposta: '*O Mestre pondera em silencio...* (Erro temporario no servico de IA)',
         timestamp: new Date().toISOString()

@@ -108,12 +108,20 @@ Quando a narrativa levar a combate, sinalize no campo "combate" do JSON:
   }}
 }}
 
-Regras:
+Regras para INICIAR combate:
 - Monstros COERENTES com temas. Tipos válidos: besta, morto-vivo, demonio, dragao, elemental, constructo, fada, aberracao, humanoide, celestial, gigante, monstrosity, fiend, plant
 - Dificuldade: facil | media | dificil | letal
 - NUNCA inicie combate sem provocação narrativa clara
-- DURANTE combate ativo: narre cinematograficamente, NÃO solicite dados (sistema resolve), use fimDeTurno: false
 - Para fuga: "combate": {{ "fuga": true }}
+
+Regras DURANTE combate ativo:
+- O sistema resolve TODA a mecânica (dados, dano, HP) ANTES de você narrar
+- Você receberá um bloco [RESULTADO MECÂNICO DA RODADA] com os fatos: quem atacou, se acertou/errou, dano causado, HP restante
+- **NARRE BASEADO EXCLUSIVAMENTE NESSES RESULTADOS.** NÃO invente acertos, erros, dano ou mortes que não estejam no resultado mecânico
+- Se o resultado diz "ERROU", narre a falha. Se diz "5 de dano, HP 60/68", NÃO descreva como "à beira da morte"
+- Use os valores de HP para calibrar a intensidade narrativa (HP > 70% = saudável, 30-70% = ferido, < 30% = crítico)
+- NÃO solicite dados (sistema resolve automaticamente)
+- Use fimDeTurno: false sempre durante combate
 ${catalogoContexto}
 ## AÇÕES MECÂNICAS
 

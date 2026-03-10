@@ -127,6 +127,24 @@ const Historia = (prisma) => {
       });
     },
 
+    // Listar histórias públicas
+    async findPublicas({ limit = 20, offset = 0, status, temas } = {}) {
+      const where = { deleted_at: null, publica: true };
+      if (status) where.status = status;
+      if (temas) where.temas = { has: parseInt(temas) };
+      const [data, total] = await Promise.all([
+        prisma.historias.findMany({
+          where,
+          orderBy: { criada_em: 'desc' },
+          include: { mestres: true, usuarios: { select: { id: true, nome: true } } },
+          skip: offset,
+          take: limit,
+        }),
+        prisma.historias.count({ where }),
+      ]);
+      return { data, total };
+    },
+
     // Buscar por ID (inclui mestre se vinculado)
     async findById(id) {
       return await prisma.historias.findFirst({

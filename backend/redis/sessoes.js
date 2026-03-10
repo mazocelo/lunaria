@@ -705,7 +705,7 @@ class SessaoRPG {
   async salvarResumo(salaId, resumo) {
     try {
       const sessao = await this.obterSessao(salaId);
-      
+
       if (!sessao.resumos) {
         sessao.resumos = [];
       }
@@ -715,8 +715,21 @@ class SessaoRPG {
       sessao.ultimoResumoMensagens = (sessao.mensagens || []).length;
       sessao.atualizadaEm = new Date().toISOString();
 
+      // Trim de mensagens: manter últimas 200 após resumo consolidar as anteriores
+      const MAX_MENSAGENS_REDIS = 200;
+      if (sessao.mensagens && sessao.mensagens.length > MAX_MENSAGENS_REDIS) {
+        const trimmed = sessao.mensagens.length - MAX_MENSAGENS_REDIS;
+        sessao.mensagens = sessao.mensagens.slice(-MAX_MENSAGENS_REDIS);
+        console.log(`🧹 Trim: ${trimmed} mensagens antigas removidas do Redis (mantidas ${MAX_MENSAGENS_REDIS})`);
+      }
+
+      // Manter apenas último resumo (cumulativo — já consolida anteriores)
+      if (sessao.resumos.length > 2) {
+        sessao.resumos = sessao.resumos.slice(-2);
+      }
+
       console.log(`📝 Resumo salvo - Rodada ${sessao.ultimoResumoRodada}, ${sessao.ultimoResumoMensagens} mensagens`);
-      
+
       return await this.atualizarSessao(salaId, sessao);
     } catch (error) {
       console.error('Erro ao salvar resumo:', error);

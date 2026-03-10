@@ -22,6 +22,7 @@ import amizadeRoutes from './amizades.js';
 import feedRoutes from './feed.js';
 import imageRoutes from './imageRoutes.js';
 import ttsRoutes from './tts.js';
+import analyticsRoutes from './analytics.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import { flags } from '../config/featureFlags.js';
 
@@ -62,7 +63,8 @@ router.get('/', async (req, res, next) => {
       catalogos: '/catalogos',
       amizades: '/amizades',
       feed: '/feed',
-      websocket: '/websocket'
+      websocket: '/websocket',
+      analytics: '/analytics'
     }
   });
 });
@@ -88,7 +90,7 @@ router.use('/websocket',authenticateToken, websocketRoutes);
 // Rotas que requerem autenticação obrigatória
 router.use('/historias', authenticateToken, historiaRoutes);
 router.use('/personagens', authenticateToken, personagemRoutes);
-router.use('/usuarios', authenticateToken, usuarioRoutes);
+router.use('/usuarios', usuarioRoutes);
 router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);
@@ -109,5 +111,8 @@ router.use('/sessoes', authenticateToken, sessaoRoutes);
 
 // Rotas de monstro (auth aplicado individualmente em POST/PUT/DELETE)
 router.use('/monstros', monstroRoutes);
+
+// Analytics (auth aplicado internamente - superadmin only)
+router.use('/analytics', analyticsRoutes);
 
 export default router;

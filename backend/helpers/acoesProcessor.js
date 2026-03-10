@@ -213,7 +213,7 @@ async function processarCurar(acao, sessao, roomId, io) {
     hpMax = jogadorCombate.hp_max;
     jogadorCombate.hp_atual = Math.min(hpMax, jogadorCombate.hp_atual + hp);
     hpNovo = jogadorCombate.hp_atual;
-    if (jogadorCombate.status === 'derrotado' && hpNovo > 0) {
+    if ((jogadorCombate.status === 'derrotado' || jogadorCombate.status === 'inconsciente') && hpNovo > 0) {
       jogadorCombate.status = 'vivo';
     }
   } else {
@@ -291,7 +291,7 @@ async function processarAplicarDano(acao, sessao, roomId, io) {
     hpMax = jogadorCombate.hp_max;
     jogadorCombate.hp_atual = Math.max(0, jogadorCombate.hp_atual - danoFinal);
     hpNovo = jogadorCombate.hp_atual;
-    if (hpNovo <= 0) jogadorCombate.status = 'derrotado';
+    if (hpNovo <= 0 && jogadorCombate.status === 'vivo') jogadorCombate.status = 'inconsciente';
   } else {
     const attrs = alvo.personagem.atributos || {};
     hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });

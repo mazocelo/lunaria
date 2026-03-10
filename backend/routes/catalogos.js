@@ -33,4 +33,22 @@ router.get('/categorias-monstro', async (req, res) => {
   }
 });
 
+// GET /catalogos/habilidades?classe_id=X&nivel=Y
+router.get('/habilidades', async (req, res) => {
+  try {
+    const { classe_id, nivel } = req.query;
+    const where = {};
+    if (classe_id) where.classe_id = parseInt(classe_id);
+    if (nivel) where.nivel_requerido = { lte: parseInt(nivel) };
+    const habilidades = await db.prisma.habilidades.findMany({
+      where,
+      orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }],
+      include: { classe: { select: { nome: true } } }
+    });
+    res.json({ success: true, data: habilidades });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

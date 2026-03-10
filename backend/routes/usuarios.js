@@ -152,6 +152,9 @@ router.get('/', authenticateToken, requireSuperAdmin, asyncHandler(usuarioContro
  */
 router.get('/perfil', authenticateToken, asyncHandler(usuarioController.obterPerfil));
 
+// Perfil público (sem auth obrigatória)
+router.get('/publico/:id', asyncHandler(usuarioController.obterPerfilPublico));
+
 /**
  * @swagger
  * /usuarios/{id}:

@@ -230,11 +230,28 @@ export const createListenerActions = (set, get) => ({
       const currentUser = get().currentUser;
       const ehMeuTurno = currentUser && String(data.jogadorAtual?.userId) === String(currentUser.id);
 
+      // Preservar valorDado existente ao atualizar ordemJogadores
+      let ordemAtualizada = data.ordemCompleta || get().ordemJogadores;
+      if (data.ordemCompleta) {
+        const ordemAnterior = get().ordemJogadores;
+        const dadosMap = {};
+        ordemAnterior.forEach(j => {
+          if (j.valorDado != null) dadosMap[j.userId || j.id] = j.valorDado;
+        });
+        ordemAtualizada = data.ordemCompleta.map(j => {
+          const uid = j.userId || j.id;
+          if (j.valorDado == null && dadosMap[uid] != null) {
+            return { ...j, valorDado: dadosMap[uid] };
+          }
+          return j;
+        });
+      }
+
       set({
         rodadaAtual: data.rodadaAtual,
         turnoAtual: data.turnoAtual,
         jogadorAtual: data.jogadorAtual,
-        ordemJogadores: data.ordemCompleta || get().ordemJogadores,
+        ordemJogadores: ordemAtualizada,
         ehMeuTurno,
         turnoIniciado: false
       });

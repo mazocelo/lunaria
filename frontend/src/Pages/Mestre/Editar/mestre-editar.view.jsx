@@ -1,11 +1,83 @@
-import React from 'react';
-import { Crown, Save, Loader2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Crown, Save, Loader2, Volume2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+
+const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) => {
+  const previewAudioRef = useRef(null);
+
+  const handlePreview = (previewUrl) => {
+    if (!previewUrl) return;
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    const audio = new Audio(previewUrl);
+    previewAudioRef.current = audio;
+    audio.play().catch(() => {});
+  };
+
+  if (loadingVoices) {
+    return (
+      <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
+        <div className="flex items-center gap-2">
+          <Loader2 size={16} className="animate-spin text-purple-400" />
+          <span className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Carregando vozes...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (voices.length === 0) return null;
+
+  const selectedVoice = voices.find(v => v.voice_id === voice_id);
+
+  return (
+    <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
+      <h3 className={`text-sm font-semibold font-modern mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+        <Volume2 size={16} className="text-purple-400" />
+        Voz do Mestre (TTS)
+      </h3>
+      <div className="flex items-center gap-3">
+        <select
+          value={voice_id}
+          onChange={e => setField('voice_id', e.target.value)}
+          className={`flex-1 px-4 py-3 rounded-lg font-modern transition-all duration-200 ${
+            isLight
+              ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500'
+              : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
+          } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+        >
+          <option value="">Sem voz</option>
+          {voices.map(v => (
+            <option key={v.voice_id} value={v.voice_id}>
+              {v.name}{v.category ? ` (${v.category})` : ''}
+            </option>
+          ))}
+        </select>
+        {selectedVoice?.preview_url && (
+          <button
+            type="button"
+            onClick={() => handlePreview(selectedVoice.preview_url)}
+            className="px-3 py-3 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30"
+          >
+            Preview
+          </button>
+        )}
+      </div>
+      {selectedVoice && (
+        <p className={`text-xs mt-2 font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+          As mensagens do mestre poderao ser ouvidas com esta voz durante o jogo.
+        </p>
+      )}
+    </div>
+  );
+};
 
 const EditarMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
   max_tokens, tom_narrativo, regras_especiais, imagem,
+  voice_id, voices, loadingVoices,
   loading, saving, error, isLight,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
@@ -187,6 +259,14 @@ const EditarMestreView = ({
           value={imagem}
           onChange={e => setField('imagem', e.target.value)}
           placeholder="https://exemplo.com/imagem.png"
+        />
+
+        <VoiceSelector
+          voice_id={voice_id}
+          voices={voices}
+          loadingVoices={loadingVoices}
+          isLight={isLight}
+          setField={setField}
         />
 
         <div className="flex space-x-4 pt-4">

@@ -1,5 +1,6 @@
 import React from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
+import { useTTS } from '../../../hooks/useTTS';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 
@@ -167,6 +168,61 @@ export const renderMestre = (mensagem, key) => {
             }`}>
               Mestre {temSolicitacaoDados && '- Solicita Rolagem!'}
             </p>
+            <MarkdownRenderer className="text-white text-lg leading-relaxed">
+              {conteudo}
+            </MarkdownRenderer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * MestreMessage - Componente React para mensagens do mestre com TTS
+ * Usado quando voiceId está disponível (via ChatArea)
+ */
+export const MestreMessage = ({ mensagem, voiceId }) => {
+  const tts = useTTS();
+  const conteudo = getConteudo(mensagem);
+  const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
+  const isThisPlaying = tts.currentMessageId === mensagem.id;
+
+  return (
+    <div className="w-full animate-fade-in">
+      <div className={`glass p-6 rounded-xl border-2 shadow-2xl ${
+        temSolicitacaoDados || mensagem.destaque
+          ? 'border-amber-400/90 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
+          : 'border-purple-400/70 bg-gradient-to-br from-purple-900/40 to-pink-900/30'
+      }`}>
+        <div className="flex items-start space-x-4">
+          <span className="text-4xl drop-shadow-lg">
+            {temSolicitacaoDados ? '🎲' : '🎭'}
+          </span>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className={`font-bold text-lg ${
+                temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
+              }`}>
+                Mestre {temSolicitacaoDados && '- Solicita Rolagem!'}
+              </p>
+              {voiceId && (
+                <button
+                  onClick={() => tts.play(conteudo, voiceId, mensagem.id)}
+                  disabled={tts.isLoading && isThisPlaying}
+                  className={`p-1.5 rounded-lg transition-all text-lg ${
+                    isThisPlaying && tts.isPlaying
+                      ? 'bg-purple-500/30 text-purple-200'
+                      : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+                  }`}
+                  title={isThisPlaying && tts.isPlaying ? 'Parar narração' : 'Ouvir narração'}
+                >
+                  {tts.isLoading && isThisPlaying ? (
+                    <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                  ) : isThisPlaying && tts.isPlaying ? '⏹' : '🔊'}
+                </button>
+              )}
+            </div>
             <MarkdownRenderer className="text-white text-lg leading-relaxed">
               {conteudo}
             </MarkdownRenderer>

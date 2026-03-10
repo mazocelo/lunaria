@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import { RPGMessage } from '../../RPGMessage';
-import { MESSAGE_RENDERERS } from './renderers';
+import { MESSAGE_RENDERERS, MestreMessage } from './renderers';
 
 /**
  * Área central do chat do jogo RPG
  * Despacha renderização por tipo via MESSAGE_RENDERERS registry
  */
-const ChatArea = ({ mensagens, usuariosDigitando }) => {
+const ChatArea = ({ mensagens, usuariosDigitando, voiceId }) => {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -16,8 +16,13 @@ const ChatArea = ({ mensagens, usuariosDigitando }) => {
   const renderMensagem = (mensagem, index) => {
     const tipo = mensagem.tipo || mensagem.type;
     const key = mensagem.id || index;
-    const renderer = MESSAGE_RENDERERS[tipo];
 
+    // Mestre messages use React component (supports TTS hook)
+    if (tipo === 'mestre') {
+      return <MestreMessage key={key} mensagem={mensagem} voiceId={voiceId} />;
+    }
+
+    const renderer = MESSAGE_RENDERERS[tipo];
     if (renderer) {
       return renderer(mensagem, key);
     }

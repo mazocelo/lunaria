@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
@@ -6,7 +6,7 @@ import { Badge } from '../../../components/shared';
 import { ROUTES } from '../../../routes.jsx';
 import {
   Crown, ArrowLeft, Pencil, X, BookOpen, Theater, ScrollText,
-  Settings, Target, Terminal, ChevronDown, ChevronUp, Copy, Check
+  Settings, Target, Terminal, ChevronDown, ChevronUp, Copy, Check, Volume2
 } from 'lucide-react';
 
 const PromptPreviewSection = ({ promptPreview, isLight }) => {
@@ -114,7 +114,7 @@ const VerMestreView = ({
 
   if (!mestre) return null;
 
-  const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem } = mestre;
+  const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id } = mestre;
 
   const promptPreview = useMemo(() => {
     const parts = [];
@@ -302,6 +302,7 @@ const VerMestreView = ({
               <InfoRow label="Temperatura" value={temperatura} />
               <InfoRow label="Max Tokens" value={max_tokens} />
               <InfoRow label="Tom Narrativo" value={tom_narrativo} />
+              <InfoRow label="Voz (TTS)" value={voice_id ? `ID: ${voice_id.substring(0, 12)}...` : null} fallback="Sem voz" />
             </div>
           </RPGCard>
 

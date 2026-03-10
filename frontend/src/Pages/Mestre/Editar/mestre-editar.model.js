@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { mestreService } from '../../../services/index.js';
 import { useMestreStore } from '../../../store/mestre';
 import { useTheme } from '../../../contexts/theme.jsx';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 import { ROUTES } from '../../../routes.jsx';
 
 export const useMestreEditarModel = () => {
@@ -21,14 +23,30 @@ export const useMestreEditarModel = () => {
   const [tom_narrativo, setTomNarrativo] = useState('');
   const [regras_especiais, setRegrasEspeciais] = useState('');
   const [imagem, setImagem] = useState('');
+  const [voice_id, setVoiceId] = useState('');
+  const [voices, setVoices] = useState([]);
+  const [loadingVoices, setLoadingVoices] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  const carregarVozes = useCallback(async () => {
+    setLoadingVoices(true);
+    try {
+      const res = await fetch(`${API_URL}/tts/voices`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setVoices(data.data || []);
+      }
+    } catch { /* TTS nao disponivel */ }
+    setLoadingVoices(false);
+  }, []);
+
   useEffect(() => {
     if (id) loadMestre(id);
+    carregarVozes();
     return () => setError(null);
-  }, [id]);
+  }, [id, carregarVozes]);
 
   const loadMestre = async (mestreId) => {
     setLoading(true);
@@ -44,6 +62,7 @@ export const useMestreEditarModel = () => {
       setTomNarrativo(data.tom_narrativo || '');
       setRegrasEspeciais(data.regras_especiais || '');
       setImagem(data.imagem || '');
+      setVoiceId(data.voice_id || '');
       setLoading(false);
     } catch (err) {
       setLoading(false);
@@ -62,6 +81,7 @@ export const useMestreEditarModel = () => {
       tom_narrativo: setTomNarrativo,
       regras_especiais: setRegrasEspeciais,
       imagem: setImagem,
+      voice_id: setVoiceId,
     };
     setters[name]?.(value);
   };
@@ -79,6 +99,7 @@ export const useMestreEditarModel = () => {
       tom_narrativo: tom_narrativo || null,
       regras_especiais: regras_especiais || null,
       imagem: imagem || null,
+      voice_id: voice_id || null,
     };
   };
 
@@ -117,6 +138,7 @@ export const useMestreEditarModel = () => {
   return {
     nome, descricao, personalidade, modelo, temperatura,
     max_tokens, tom_narrativo, regras_especiais, imagem,
+    voice_id, voices, loadingVoices,
     loading, saving, error, isLight,
     setField, handleSubmit, handleCancel, clearError,
   };

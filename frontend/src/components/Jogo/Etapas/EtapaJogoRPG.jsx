@@ -1070,6 +1070,7 @@ const EtapaJogoRPG = ({
               mensagens={mensagens}
               usuariosDigitando={[]}
               mensagensRef={null}
+              voiceId={historia?.mestres?.voice_id}
             />
 
             {/* Area de Input - Chat */}

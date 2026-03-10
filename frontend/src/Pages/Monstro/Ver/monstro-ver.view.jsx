@@ -104,11 +104,15 @@ const VerMonstroView = ({ monstro, loading, error, isLight, handleBack, handleEd
         <div className={`relative p-6 md:p-8 ${isLight ? 'bg-white/90 border border-slate-200' : 'card-rpg'}`}>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center ${
-                isLight ? 'bg-slate-100' : 'bg-white/5 border border-white/10'
-              }`}>
-                <Skull size={36} style={{ color: config.accent }} strokeWidth={1.5} />
-              </div>
+              {m.imagem ? (
+                <img src={m.imagem} alt={m.nome} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2" style={{ borderColor: config.accent }} />
+              ) : (
+                <div className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center ${
+                  isLight ? 'bg-slate-100' : 'bg-white/5 border border-white/10'
+                }`}>
+                  <Skull size={36} style={{ color: config.accent }} strokeWidth={1.5} />
+                </div>
+              )}
               <div>
                 <h1 className={`text-2xl md:text-4xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                   {m.nome}

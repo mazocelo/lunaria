@@ -3,7 +3,8 @@ import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Combobox from '../../../components/form/Combobox';
 import MultiSelect from '../../../components/form/MultiSelect';
-import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2 } from 'lucide-react';
+import ImageGenerator from '../../../components/form/ImageGenerator';
+import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus } from 'lucide-react';
 
 const PONTOS_MAXIMO = 75;
 
@@ -48,6 +49,8 @@ const NovoPersonagemView = ({
   clearError,
   navigate,
   isLight,
+  imagem,
+  setImagem,
 }) => {
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -279,6 +282,30 @@ const NovoPersonagemView = ({
               />
             </div>
           )}
+        </div>
+
+        {/* Section 5.5: Imagem */}
+        <div className="card-rpg space-y-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+              <ImagePlus size={16} className="text-white" />
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Imagem
+            </h2>
+          </div>
+          <ImageGenerator
+            imageUrl={imagem}
+            onImageGenerated={setImagem}
+            entityType="personagem"
+            entityData={{
+              nome,
+              raca: racasDisponiveis?.find(r => String(r.id) === String(raca))?.nome,
+              classe: classesDisponiveis?.find(c => String(c.id) === String(classe))?.nome,
+              background,
+            }}
+            isLight={isLight}
+          />
         </div>
 
         {/* Section 6: Historias */}

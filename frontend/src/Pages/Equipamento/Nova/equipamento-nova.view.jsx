@@ -2,6 +2,7 @@ import React from 'react';
 import { Sword, Loader2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import ImageGenerator from '../../../components/form/ImageGenerator';
 
 const NovoEquipamentoView = ({
   nome, descricao, tipo, elemento, bonus, dano_base, requisitos, numero,
@@ -9,6 +10,7 @@ const NovoEquipamentoView = ({
   vinculo_requer, vinculo_restricao_tipo, vinculo_restricao, vinculo_descricao,
   propriedades, cargas, usos_por_dia,
   raridades, categorias, saving, error, isLight,
+  imagem, setImagem,
   setField, handleSubmit, handleCancel,
 }) => {
   const inputCls = `w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
@@ -125,6 +127,13 @@ const NovoEquipamentoView = ({
           </div>
         </div>
 
+        <ImageGenerator
+          imageUrl={imagem}
+          onImageGenerated={setImagem}
+          entityType="equipamento"
+          entityData={{ nome, tipo, descricao, raridade: raridades?.find(r => String(r.id) === String(raridade_id))?.nome }}
+          isLight={isLight}
+        />
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">{saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>) : (<div className="flex items-center space-x-2"><Sword size={16} /><span>Criar Equipamento</span></div>)}</Button>

@@ -2,6 +2,7 @@ import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
+import ImageGenerator from '../../../components/form/ImageGenerator';
 import { BookOpen, Sparkles, Lightbulb, Loader2 } from 'lucide-react';
 
 const NovaHistoriaView = ({
@@ -28,6 +29,8 @@ const NovaHistoriaView = ({
   handleMestreChange,
   criarHistoria,
   handleCancelar,
+  imagem,
+  setImagem,
 }) => {
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -120,6 +123,14 @@ const NovaHistoriaView = ({
             Se nenhum mestre for selecionado, sera usado um mestre padrao
           </p>
         </div>
+
+        <ImageGenerator
+          imageUrl={imagem}
+          onImageGenerated={setImagem}
+          entityType="historia"
+          entityData={{ nome, temas: temasSelecionados?.map(id => temas?.find(t => t.id === id)?.nome).filter(Boolean).join(', '), descricao }}
+          isLight={isLight}
+        />
 
         {/* Botoes de acao */}
         <div className="flex space-x-4 pt-4">

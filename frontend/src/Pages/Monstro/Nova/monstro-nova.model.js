@@ -30,6 +30,7 @@ export const useMonstroNovaModel = () => {
   const [dano_base, setDanoBase] = useState(0);
   const [raridades, setRaridades] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [imagem, setImagem] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -80,6 +81,7 @@ export const useMonstroNovaModel = () => {
       inteligencia: int(inteligencia), sabedoria: int(sabedoria), carisma: int(carisma),
       ataque_base: int(ataque), defesa_base: int(defesa), dano_base: String(dano_base),
       xp_base: int(xp_base), elemento: _parseArr(elemento),
+      ...(imagem ? { imagem } : {}),
     };
   };
 
@@ -107,6 +109,7 @@ export const useMonstroNovaModel = () => {
     forca, destreza, constituicao, inteligencia, sabedoria, carisma,
     ataque, defesa, dano_base,
     raridades, categorias, saving, error, isLight,
+    imagem, setImagem,
     setField, handleSubmit, handleCancel, clearError,
   };
 };

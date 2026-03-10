@@ -29,6 +29,7 @@ export const useEquipamentoNovaModel = () => {
   const [usos_por_dia, setUsosPorDia] = useState('');
   const [raridades, setRaridades] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [imagem, setImagem] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -98,6 +99,7 @@ export const useEquipamentoNovaModel = () => {
     origem_lore: origem_lore || null,
     vinculo: _buildVinculo(),
     categoria_id: categoria_id ? parseInt(categoria_id) : null,
+    ...(imagem ? { imagem } : {}),
   });
 
   const handleSubmit = async (e) => {
@@ -124,6 +126,7 @@ export const useEquipamentoNovaModel = () => {
     vinculo_requer, vinculo_restricao_tipo, vinculo_restricao, vinculo_descricao,
     propriedades, cargas, usos_por_dia,
     raridades, categorias, saving, error, isLight,
+    imagem, setImagem,
     setField, handleSubmit, handleCancel, clearError,
   };
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import ImageGenerator from '../../../components/form/ImageGenerator';
 import { Skull, Save, Loader2 } from 'lucide-react';
 
 const EditarMonstroView = ({
@@ -9,6 +10,7 @@ const EditarMonstroView = ({
   forca, destreza, constituicao, inteligencia, sabedoria, carisma,
   ataque, defesa, dano_base,
   raridades, categorias, loading, saving, error, isLight,
+  imagem, setImagem,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
   const inputCls = `w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
@@ -74,6 +76,13 @@ const EditarMonstroView = ({
             <InputSimples label="Dano Base" name="dano_base" type="number" value={dano_base} onChange={e => setField('dano_base', e.target.value)} />
           </div>
         </div>
+        <ImageGenerator
+          imageUrl={imagem}
+          onImageGenerated={setImagem}
+          entityType="monstro"
+          entityData={{ nome, tipo, descricao }}
+          isLight={isLight}
+        />
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">{saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>) : (<div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Monstro</span></div>)}</Button>

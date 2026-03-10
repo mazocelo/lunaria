@@ -98,9 +98,13 @@ const VerPersonagemView = ({
       <div className="card-rpg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center">
-              <User size={32} className="text-white" />
-            </div>
+            {p.imagem ? (
+              <img src={p.imagem} alt={p.nome} className="w-16 h-16 rounded-full object-cover border-2 border-purple-500" />
+            ) : (
+              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center">
+                <User size={32} className="text-white" />
+              </div>
+            )}
             <div>
               <h1 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {p.nome}

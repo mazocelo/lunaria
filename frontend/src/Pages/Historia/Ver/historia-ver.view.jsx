@@ -95,11 +95,15 @@ const VerHistoriaView = ({
       {/* Header da pagina */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-            isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
-          }`}>
-            <BookOpen size={22} />
-          </div>
+          {historiaAtual.imagem ? (
+            <img src={historiaAtual.imagem} alt={historiaAtual.nome} className="flex-shrink-0 w-10 h-10 rounded-xl object-cover border-2 border-purple-500" />
+          ) : (
+            <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+              isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
+            }`}>
+              <BookOpen size={22} />
+            </div>
+          )}
           <div>
             <h1 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
               {historiaAtual.nome}

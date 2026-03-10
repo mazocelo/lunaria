@@ -59,6 +59,7 @@ export const usePersonagemNovoModel = () => {
   const [vantagensSelecionadas, setVantagensSelecionadas] = useState([]);
 
   // Async state
+  const [imagem, setImagem] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [gerandoBackground, setGerandoBackground] = useState(false);
@@ -185,6 +186,7 @@ export const usePersonagemNovoModel = () => {
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
         nivel: 1,
+        ...(imagem ? { imagem } : {}),
       };
 
       const personagem = new Personagem(dados);
@@ -251,5 +253,7 @@ export const usePersonagemNovoModel = () => {
     clearError,
     navigate,
     isLight,
+    imagem,
+    setImagem,
   };
 };

@@ -15,6 +15,7 @@ import { NotificationService } from './NotificationService';
 import { SessaoService } from './SessaoService';
 import { AmizadeService } from './AmizadeService';
 import { FeedService } from './FeedService';
+import { ImageGenerationService } from './ImageGenerationService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
@@ -35,6 +36,7 @@ export { AuthService } from './AuthService';
 export { SessaoService } from './SessaoService';
 export { AmizadeService } from './AmizadeService';
 export { FeedService } from './FeedService';
+export { ImageGenerationService } from './ImageGenerationService';
 
 // Instâncias padrão dos serviços
 export const historiaService = new HistoriaService(apiClient);
@@ -52,6 +54,7 @@ export const notificationService = new NotificationService(apiClient);
 export const sessaoService = new SessaoService(apiClient);
 export const amizadeService = new AmizadeService(apiClient);
 export const feedService = new FeedService(apiClient);
+export const imageGenerationService = new ImageGenerationService(apiClient);
 
 // Catalogos (raridades, categorias)
 export const catalogoService = {

@@ -184,17 +184,21 @@ const HeroCard = ({ eq, isLight, onBack, onEdit }) => {
                 className="absolute inset-0 rounded-full blur-xl"
                 style={{ background: config.glow, transform: 'scale(1.5)' }}
               />
-              <div
-                className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center ${
-                  isLight ? 'bg-slate-100' : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                <CatIcon
-                  size={36}
-                  style={{ color: config.accent }}
-                  strokeWidth={1.5}
-                />
-              </div>
+              {eq.imagem ? (
+                <img src={eq.imagem} alt={eq.nome} className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2" style={{ borderColor: config.accent }} />
+              ) : (
+                <div
+                  className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center ${
+                    isLight ? 'bg-slate-100' : 'bg-white/5 border border-white/10'
+                  }`}
+                >
+                  <CatIcon
+                    size={36}
+                    style={{ color: config.accent }}
+                    strokeWidth={1.5}
+                  />
+                </div>
+              )}
             </div>
             <div>
               {eq.numero && (

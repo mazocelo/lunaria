@@ -31,6 +31,7 @@ export const useMonstroEditarModel = () => {
   const [dano_base, setDanoBase] = useState(0);
   const [raridades, setRaridades] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [imagem, setImagem] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -76,6 +77,7 @@ export const useMonstroEditarModel = () => {
       setAtaque(data.ataque_base ?? 0);
       setDefesa(data.defesa_base ?? 0);
       setDanoBase(data.dano_base ?? 0);
+      setImagem(data.imagem || '');
       setLoading(false);
     } catch (err) {
       setLoading(false);
@@ -112,6 +114,7 @@ export const useMonstroEditarModel = () => {
       inteligencia: int(inteligencia), sabedoria: int(sabedoria), carisma: int(carisma),
       ataque_base: int(ataque), defesa_base: int(defesa), dano_base: String(dano_base),
       xp_base: int(xp_base), elemento: _parseArr(elemento),
+      ...(imagem ? { imagem } : {}),
     };
   };
 
@@ -139,6 +142,7 @@ export const useMonstroEditarModel = () => {
     forca, destreza, constituicao, inteligencia, sabedoria, carisma,
     ataque, defesa, dano_base,
     raridades, categorias, loading, saving, error, isLight,
+    imagem, setImagem,
     setField, handleSubmit, handleCancel, clearError,
   };
 };

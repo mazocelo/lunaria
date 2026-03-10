@@ -9,7 +9,7 @@ const HistoriaNotFound = ({ onVoltarHistorias }) => {
   const isLight = theme === 'light';
 
   return (
-    <div className="min-h-screen flex items-center justify-center animate-fade-in">
+    <div className="h-full flex items-center justify-center animate-fade-in">
       <div className="card-rpg max-w-md w-full text-center py-16">
         <div className="w-24 h-24 gradient-primary rounded-full mx-auto mb-6 flex items-center justify-center">
           <span className="text-4xl">❌</span>

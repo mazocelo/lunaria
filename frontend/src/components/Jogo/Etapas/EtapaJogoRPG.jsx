@@ -878,7 +878,7 @@ const EtapaJogoRPG = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+    <div className="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
       {/* Gerenciador de Notificacoes */}
       <NotificationManager />
 

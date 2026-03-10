@@ -166,10 +166,10 @@ function AppContent() {
             )}
 
             {/* Main content with scroll */}
-            <main className="flex-1 overflow-hidden min-w-0">
+            <main className={`flex-1 min-w-0 ${isFullscreen ? 'overflow-hidden' : 'p-6 overflow-y-auto overflow-x-hidden'}`}>
               <ScrollToTop />
               <ErrorBoundary>
-                <div className="animate-fade-in h-full">
+                <div className={`animate-fade-in ${isFullscreen ? 'h-full' : ''}`}>
                   <AppRoutes />
                 </div>
               </ErrorBoundary>

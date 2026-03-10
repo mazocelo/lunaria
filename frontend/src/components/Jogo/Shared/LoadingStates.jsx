@@ -5,7 +5,7 @@ import LoadingSpinner from '../../LoadingSpinner.jsx';
  * Estados de loading para o jogo
  */
 export const AuthLoading = () => (
-  <div className="flex items-center justify-center min-h-screen">
+  <div className="flex items-center justify-center h-full">
     <div className="text-center">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mx-auto mb-4"></div>
       <h2 className="text-xl font-semibold text-purple-600">Verificando autenticação...</h2>
@@ -15,7 +15,7 @@ export const AuthLoading = () => (
 );
 
 export const HistoriaLoading = () => (
-  <div className="min-h-screen flex items-center justify-center animate-fade-in">
+  <div className="h-full flex items-center justify-center animate-fade-in">
     <div className="card-rpg max-w-md w-full">
       <LoadingSpinner 
         size="xl" 
@@ -27,7 +27,7 @@ export const HistoriaLoading = () => (
 );
 
 export const AuthError = () => (
-  <div className="flex items-center justify-center min-h-screen">
+  <div className="flex items-center justify-center h-full">
     <div className="text-center">
       <div className="text-red-500 text-6xl mb-4">🔐</div>
       <h2 className="text-xl font-semibold text-red-600">Acesso não autorizado</h2>

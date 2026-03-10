@@ -229,7 +229,7 @@ const EtapaSalaEspera = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(30)].map((_, i) => (

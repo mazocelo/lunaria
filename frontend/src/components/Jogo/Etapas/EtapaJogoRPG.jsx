@@ -190,24 +190,24 @@ const EtapaJogoRPG = ({
   // Subscribe ao socket store (para estados de turnos)
   useEffect(() => {
     const extractSocketState = (state) => ({
-      faseJogo: state.faseJogo || 'aguardando_inicio',
-      rodadaAtual: state.rodadaAtual || 1,
-      turnoAtual: state.turnoAtual || 0,
-      jogadorAtual: state.jogadorAtual,
-      ordemJogadores: state.ordemJogadores || [],
-      ordemDefinida: state.ordemDefinida || false,
-      resultadosDados: state.resultadosDados || {},
-      ehMeuTurno: state.ehMeuTurno || false,
-      turnoIniciado: state.turnoIniciado || false,
-      cooldownRoleplay: state.cooldownRoleplay || 0,
-      combateAtivo: state.combateAtivo || false,
-      combateMonstros: state.combateMonstros || [],
-      combateJogadores: state.combateJogadores || {},
-      combateRodada: state.combateRodada || 0,
-      combateResultado: state.combateResultado || null,
-      combateLog: state.combateLog || [],
-      combateXpGanho: state.combateXpGanho || 0,
-      sessionRecap: state.sessionRecap || null
+      faseJogo: state.faseJogo ?? 'aguardando_inicio',
+      rodadaAtual: state.rodadaAtual ?? 1,
+      turnoAtual: state.turnoAtual ?? 0,
+      jogadorAtual: state.jogadorAtual ?? null,
+      ordemJogadores: state.ordemJogadores ?? [],
+      ordemDefinida: state.ordemDefinida ?? false,
+      resultadosDados: state.resultadosDados ?? {},
+      ehMeuTurno: state.ehMeuTurno ?? false,
+      turnoIniciado: state.turnoIniciado ?? false,
+      cooldownRoleplay: state.cooldownRoleplay ?? 0,
+      combateAtivo: state.combateAtivo ?? false,
+      combateMonstros: state.combateMonstros ?? [],
+      combateJogadores: state.combateJogadores ?? {},
+      combateRodada: state.combateRodada ?? 0,
+      combateResultado: state.combateResultado ?? null,
+      combateLog: state.combateLog ?? [],
+      combateXpGanho: state.combateXpGanho ?? 0,
+      sessionRecap: state.sessionRecap ?? null
     });
 
     // Ler estado inicial

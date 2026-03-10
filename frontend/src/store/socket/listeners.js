@@ -543,6 +543,7 @@ export const createListenerActions = (set, get) => ({
           };
         }
         set({ combateJogadores: jogadoresAtualizados });
+        if (data.acertou && data.dano > 0) playSound('combat_hit');
       }
 
       set({ combateLog: [...combateLog.slice(-(COMBAT.LOG_MAX_ENTRIES - 1)), data] });
@@ -583,14 +584,29 @@ export const createListenerActions = (set, get) => ({
         combateXpGanho: data.xpTotal || 0
       });
       get().log('Combate finalizado', { resultado: data.resultado, xp: data.xpTotal, success: true });
+
+      // Auto-limpar resultado após 8s para desmontar o BatalhaUI
+      setTimeout(() => {
+        const current = get();
+        if (current.combateResultado === data.resultado && !current.combateAtivo) {
+          set({
+            combateResultado: null,
+            combateMonstros: [],
+            combateJogadores: {},
+            combateRodada: 0,
+            combateLog: [],
+            combateXpGanho: 0
+          });
+        }
+      }, 8000);
     });
 
     socket.on('combate_estado', (data) => {
       set({
-        combateMonstros: data.monstros || get().combateMonstros,
-        combateJogadores: data.jogadores || get().combateJogadores,
-        combateRodada: data.rodada || get().combateRodada,
-        combateLog: data.log || get().combateLog
+        combateMonstros: data.monstros ?? get().combateMonstros,
+        combateJogadores: data.jogadores ?? get().combateJogadores,
+        combateRodada: data.rodada ?? get().combateRodada,
+        combateLog: data.log ?? get().combateLog
       });
     });
 

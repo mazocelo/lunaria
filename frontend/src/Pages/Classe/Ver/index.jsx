@@ -1,4 +1,7 @@
-import React from 'react';
-import PageStub from '../../../components/PageStub';
+import { useClasseVerModel } from './classe-ver.model';
+import VerClasseView from './classe-ver.view';
 
-export default () => <PageStub title="Ver Classe" />;
+export default function ClasseVerPage() {
+  const props = useClasseVerModel();
+  return <VerClasseView {...props} />;
+}

@@ -36,6 +36,7 @@ const VerEquipamentoPage = React.lazy(() => import('./Pages/Equipamento/Ver'));
 const MonstroListaPage = React.lazy(() => import('./Pages/Monstro/Lista'));
 const NovoMonstroPage = React.lazy(() => import('./Pages/Monstro/Nova'));
 const EditarMonstroPage = React.lazy(() => import('./Pages/Monstro/Editar'));
+const VerMonstroPage = React.lazy(() => import('./Pages/Monstro/Ver'));
 const MestreListaPage = React.lazy(() => import('./Pages/Mestre/Lista'));
 const NovoMestrePage = React.lazy(() => import('./Pages/Mestre/Nova'));
 const EditarMestrePage = React.lazy(() => import('./Pages/Mestre/Editar'));
@@ -123,6 +124,7 @@ export const ROUTES = {
   MONSTROS: '/monstros',
   NOVO_MONSTRO: '/criar-monstro',
   EDITAR_MONSTRO: '/editar-monstro/:id',
+  VER_MONSTRO: '/ver-monstro/:id',
 
   // ===== MESTRES =====
   MESTRES: '/mestres',
@@ -176,6 +178,7 @@ export const generateRoute = {
   editarEquipamento: (id) => `/editar-equipamento/${id}`,
   verEquipamento: (id) => `/ver-equipamento/${id}`,
   editarMonstro: (id) => `/editar-monstro/${id}`,
+  verMonstro: (id) => `/ver-monstro/${id}`,
   editarMestre: (id) => `/editar-mestre/${id}`,
   verMestre: (id) => `/ver-mestre/${id}`
 };
@@ -474,6 +477,13 @@ const ROUTE_CONFIG = [
     category: 'SISTEMA',
     hasParams: true,
     requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.VER_MONSTRO,
+    component: VerMonstroPage,
+    name: 'Ver Monstro',
+    category: 'SISTEMA',
+    hasParams: true
   },
 
   // ===== MESTRES =====

@@ -1,4 +1,7 @@
-import React from 'react';
-import PageStub from '../../../components/PageStub';
+import { useVantagemVerModel } from './vantagem-ver.model';
+import VerVantagemView from './vantagem-ver.view';
 
-export default () => <PageStub title="Ver Vantagem" />;
+export default function VantagemVerPage() {
+  const props = useVantagemVerModel();
+  return <VerVantagemView {...props} />;
+}

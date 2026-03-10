@@ -1,4 +1,7 @@
-import React from 'react';
-import PageStub from '../../../components/PageStub';
+import { useRacaVerModel } from './raca-ver.model';
+import VerRacaView from './raca-ver.view';
 
-export default () => <PageStub title="Ver Raca" />;
+export default function RacaVerPage() {
+  const props = useRacaVerModel();
+  return <VerRacaView {...props} />;
+}

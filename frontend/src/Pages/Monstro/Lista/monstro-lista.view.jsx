@@ -2,7 +2,7 @@ import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
 import { TabelaList, PageHeader, Badge, SearchBar, TableSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
-import { Skull, Circle, Gem, Leaf } from 'lucide-react';
+import { Skull, Circle, Gem, Leaf, Eye } from 'lucide-react';
 
 const raridadeVariant = {
   'Comum': 'slate',
@@ -29,6 +29,8 @@ const MonstroListaView = ({
   handlePageSizeChange,
   buscarMonstros,
   clearError,
+  navigate,
+  generateRoute,
 }) => {
   if (loading && monstros.length === 0) {
     return <TableSkeleton cols={10} />;
@@ -175,7 +177,14 @@ const MonstroListaView = ({
         header="Bestiario"
         columns={columns}
         data={displayMonstros}
-        actions={[]}
+        actions={[
+          {
+            label: 'Ver',
+            icon: <Eye size={18} />,
+            color: 'purple',
+            onClick: (row) => navigate(generateRoute.verMonstro(row.id))
+          }
+        ]}
         loading={loading}
         pagination={true}
         totalCount={totalCount}

@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { monstroService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { generateRoute } from '../../../routes.jsx';
 
 export const useMonstroListaModel = () => {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -90,5 +93,7 @@ export const useMonstroListaModel = () => {
     handlePageSizeChange,
     buscarMonstros,
     clearError,
+    navigate,
+    generateRoute,
   };
 };

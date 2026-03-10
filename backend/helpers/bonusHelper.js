@@ -168,10 +168,56 @@ export function validarRequisitosEquipamento(requisitos, classeNome, racaNome) {
   return { valido: true, motivo: null };
 }
 
+/**
+ * Calcula bonus de vantagens/desvantagens aplicáveis a um teste específico
+ * Match por nome do teste (ex: "percepcao") ou atributo base (ex: "forca")
+ * Suporta chaves com prefixo "penalidade_" para retrocompatibilidade
+ * @param {Object} personagem - Personagem com arrays vantagens/desvantagens (incluindo campo bonus)
+ * @param {string} nomeTeste - Nome do teste (ex: "Percepção")
+ * @param {string|null} atributoDoTeste - Atributo base do teste (ex: "forca")
+ * @returns {{ bonusTotal: number, detalhes: Array<{ fonte: string, valor: number }> }}
+ */
+export function calcularBonusTeste(personagem, nomeTeste, atributoDoTeste) {
+  let bonusTotal = 0;
+  const detalhes = [];
+
+  const normalizar = (s) =>
+    s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+  const testeNorm = nomeTeste ? normalizar(nomeTeste) : '';
+
+  const itens = [
+    ...(personagem.vantagens || []),
+    ...(personagem.desvantagens || [])
+  ];
+
+  for (const item of itens) {
+    if (!item.bonus || typeof item.bonus !== 'object') continue;
+
+    for (const [key, value] of Object.entries(item.bonus)) {
+      const val = Number(value) || 0;
+      if (val === 0) continue;
+
+      const keyNorm = normalizar(key.replace(/^penalidade_/i, ''));
+
+      if (
+        (testeNorm && keyNorm === testeNorm) ||
+        (atributoDoTeste && keyNorm === normalizar(atributoDoTeste))
+      ) {
+        bonusTotal += val;
+        detalhes.push({ fonte: item.nome, valor: val });
+      }
+    }
+  }
+
+  return { bonusTotal, detalhes };
+}
+
 export default {
   parsearBonusEntidade,
   agregarBonusEquipamentos,
   calcularAtributosEfetivos,
   encontrarMelhorArma,
-  validarRequisitosEquipamento
+  validarRequisitosEquipamento,
+  calcularBonusTeste
 };

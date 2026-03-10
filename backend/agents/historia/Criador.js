@@ -1,4 +1,5 @@
 import { ChatGroq } from '@langchain/groq'
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import dotenv from 'dotenv'
@@ -10,19 +11,30 @@ dotenv.config();
 
 // Constantes globais
 const DEFAULT_MODEL_SETTINGS = {
-    model: 'openai/gpt-oss-120b',
+    model: 'gemini-2.5-flash',
     temperature: 0.7,
     maxTokens: 8000,
     topP: 0.99,
     language: 'pt-br',
 };
 
-// Gera o modelo da Groq
+// Gera o modelo com detecção automática de provider (Groq ou Gemini)
 function generateModel(detalhes = {}) {
+    const merged = { ...DEFAULT_MODEL_SETTINGS, ...detalhes };
+    const modelName = merged.model;
+
+    if (modelName.startsWith('gemini')) {
+        return new ChatGoogleGenerativeAI({
+            apiKey: process.env.GOOGLE_API_KEY,
+            model: modelName,
+            temperature: merged.temperature,
+            maxOutputTokens: merged.maxTokens,
+        });
+    }
+
     return new ChatGroq({
         apiKey: process.env.GROQ_API_KEY,
-        ...DEFAULT_MODEL_SETTINGS,
-        ...detalhes,
+        ...merged,
     });
 }
 
@@ -134,7 +146,7 @@ async function criadorCompleto(temas = [], personagens = []) {
                         },
                         metadata: {
                             geradoEm: resultadoPrologo.timestamp,
-                            modelo: 'openai/gpt-oss-120b',
+                            modelo: DEFAULT_MODEL_SETTINGS.model,
                             versao: '2.0',
                             temasUtilizados: temas,
                             agentes: ['GeradorPrologo', 'MestreRPG']

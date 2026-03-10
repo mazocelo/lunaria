@@ -82,14 +82,16 @@ export async function buscarPersonagensCompletos(personagensIds) {
               elemento: v.vantagem?.elemento || v.elemento,
               usar: v.vantagem?.usar ?? v.usar ?? 0,
               dano_base: v.vantagem?.dano_base || v.dano_base || null,
-              efeito: v.vantagem?.efeito || v.efeito || null
+              efeito: v.vantagem?.efeito || v.efeito || null,
+              bonus: v.vantagem?.bonus || v.bonus || null
             })),
             desvantagens: desvantagens.map(d => ({
               nome: d.desvantagem?.nome || d.nome,
               descricao: d.desvantagem?.descricao || d.descricao,
               tipo: d.desvantagem?.tipo || d.tipo,
               elemento: d.desvantagem?.elemento || d.elemento,
-              efeito: d.desvantagem?.efeito || d.efeito || null
+              efeito: d.desvantagem?.efeito || d.efeito || null,
+              bonus: d.desvantagem?.bonus || d.bonus || null
             })),
             equipamentos: equipamentosMapeados,
             // Informações para o Mestre (formato texto)

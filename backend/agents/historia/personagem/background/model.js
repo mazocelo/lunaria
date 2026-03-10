@@ -1,38 +1,33 @@
 import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { DEFAULT_MODEL_SETTINGS, API_CONFIG } from './config.js';
 
 /**
- * Gera o modelo da Groq com configurações personalizadas
- * @param {Object} detalhes - Configurações adicionais para o modelo
- * @returns {ChatGroq} Instância do modelo configurado
+ * Gera o modelo de IA com detecção automática de provider (Groq ou Gemini)
  */
 export function generateModel(detalhes = {}) {
+    const merged = { ...DEFAULT_MODEL_SETTINGS, ...detalhes };
+    const modelName = merged.model;
+
+    if (modelName.startsWith('gemini')) {
+        return new ChatGoogleGenerativeAI({
+            apiKey: API_CONFIG.googleApiKey,
+            model: modelName,
+            temperature: merged.temperature,
+            maxOutputTokens: merged.maxTokens,
+        });
+    }
+
     return new ChatGroq({
         apiKey: API_CONFIG.groqApiKey,
-        ...DEFAULT_MODEL_SETTINGS,
-        ...detalhes,
+        ...merged,
     });
 }
 
-/**
- * Cria um modelo otimizado para geração de background de personagens
- * @returns {ChatGroq} Modelo configurado para backgrounds
- */
 export function createBackgroundModel(params) {
-    return generateModel({ 
-        temperature: 0.8, // Criativo para backgrounds
-        maxTokens: 4000,
-        ...params
-    });
+    return generateModel({ temperature: 0.8, maxTokens: 4000, ...params });
 }
 
-/**
- * Cria um modelo para geração de background detalhado
- * @returns {ChatGroq} Modelo configurado para backgrounds detalhados
- */
 export function createBackgroundDetalhadoModel() {
-    return generateModel({ 
-        temperature: 0.9, // Mais criativo para backgrounds detalhados
-        maxTokens: 6000 
-    });
-} 
+    return generateModel({ temperature: 0.9, maxTokens: 6000 });
+}

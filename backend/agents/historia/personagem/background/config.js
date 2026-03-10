@@ -4,8 +4,8 @@ dotenv.config();
 
 // Configurações padrão do modelo para background de personagens
 export const DEFAULT_MODEL_SETTINGS = {
-    model: 'openai/gpt-oss-120b',
-    temperature: 0.8, // Criativo para backgrounds
+    model: 'gemini-2.5-flash',
+    temperature: 0.8,
     maxTokens: 4000,
     topP: 0.99,
     language: 'pt-br',
@@ -14,6 +14,7 @@ export const DEFAULT_MODEL_SETTINGS = {
 // Configurações da API
 export const API_CONFIG = {
     groqApiKey: process.env.GROQ_API_KEY,
+    googleApiKey: process.env.GOOGLE_API_KEY,
 };
 
 // Configurações de geração de background

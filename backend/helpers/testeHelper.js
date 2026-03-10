@@ -10,6 +10,7 @@
  */
 
 import { TESTES_CONFIG } from '../config/testesConfig.js';
+import { calcularBonusTeste } from './bonusHelper.js';
 
 /**
  * Calcula modificador de um atributo (mesma fórmula usada em combate)
@@ -129,13 +130,19 @@ export function calcularModificadorTeste(personagem, nomeTeste) {
   const modificador = calcularModificadorAtributo(valorAtributo);
   const bonusNivel = calcularBonusNivel(personagem.nivel || 1);
 
+  // Bonus de vantagens/desvantagens
+  const { bonusTotal: bonusVantDesvant, detalhes: detalhesBonus } =
+    calcularBonusTeste(personagem, nomeTeste, atributo);
+
   return {
     atributo,
     atributoNome: TESTES_CONFIG.ATRIBUTOS_DISPLAY[atributo] || atributo,
     valorAtributo,
     modificador,
     bonusNivel,
-    totalModificador: modificador + bonusNivel
+    bonusVantDesvant,
+    detalhesBonus,
+    totalModificador: modificador + bonusNivel + bonusVantDesvant
   };
 }
 
@@ -187,6 +194,8 @@ export function resolverTeste(personagem, nomeTeste, rolagemBruta, dificuldade) 
     valorAtributo: mod.valorAtributo,
     modificador: mod.modificador,
     bonusNivel: mod.bonusNivel,
+    bonusVantDesvant: mod.bonusVantDesvant || 0,
+    detalhesBonus: mod.detalhesBonus || [],
     totalModificador: mod.totalModificador,
     total,
     dc,

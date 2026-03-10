@@ -4,7 +4,7 @@ dotenv.config();
 
 // Configurações padrão do modelo para títulos
 export const DEFAULT_MODEL_SETTINGS = {
-    model: 'openai/gpt-oss-120b',
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     temperature: 0.9, // Mais criativo para títulos
     maxTokens: 2000,
     topP: 0.99,

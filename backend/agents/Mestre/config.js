@@ -6,8 +6,8 @@
 export const MESTRE_CONFIG = {
   // Configurações do modelo de IA
   model: {
-    provider: 'groq',
-    name: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    provider: 'gemini',
+    name: 'gemini-2.5-flash',
     temperature: 0.9, // Alta criatividade para narração
     maxTokens: 8000,
     topP: 0.99

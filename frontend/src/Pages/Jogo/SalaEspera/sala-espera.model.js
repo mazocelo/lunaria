@@ -34,7 +34,6 @@ export const useSalaEsperaModel = () => {
     error,
     iniciarJogo,
     sairDoJogo,
-    carregarMensagensSalvas,
     clearErrors,
   } = jogo;
 
@@ -102,9 +101,6 @@ export const useSalaEsperaModel = () => {
 
     const handleRoomJoined = (data) => {
       if (data?.sessao?.status === 'iniciada') {
-        if (historiaAtual?.id) {
-          carregarMensagensSalvas(historiaAtual.id);
-        }
         navigate(`/jogo/${id}/jogo-ativo`);
       }
     };
@@ -120,7 +116,7 @@ export const useSalaEsperaModel = () => {
     return () => {
       cleanupFns.forEach(fn => fn());
     };
-  }, [historiaAtual, id, navigate, onSocketEvent, offSocketEvent, carregarMensagensSalvas]);
+  }, [historiaAtual, id, navigate, onSocketEvent, offSocketEvent]);
 
   // Handlers
   const handleIniciarJogo = useCallback(async () => {

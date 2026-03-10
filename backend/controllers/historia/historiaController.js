@@ -67,7 +67,7 @@ class HistoriaController {
       // Gerar prólogo automaticamente
       const t1 = Date.now();
       const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
-      const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas });
+      const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas, descricao: descricao || '' });
       if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - t1, metadata: { agent: 'GeradorPrologo' } });
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para criar história' });

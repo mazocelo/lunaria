@@ -24,12 +24,15 @@ async function criarGeradorPrologo(temas = []) {
              * @param {string} params.tema - Tema da história
              * @returns {Object} Resultado da geração
              */
-            gerarPrologo: async ({ tema }) => {
-                const response = await chain.invoke({ tema });
-                console.log('📖 Prólogo gerado para tema:', tema);
+            gerarPrologo: async ({ temas: temasInput, descricao = '' }) => {
+                const response = await chain.invoke({
+                    tema: temasInput,
+                    descricao: descricao || 'Nenhuma descrição fornecida — crie livremente baseado nos temas.',
+                });
+                console.log('📖 Prólogo gerado para temas:', temasInput);
                 return {
                     prologo: response.content,
-                    tema: tema,
+                    tema: temasInput,
                     timestamp: new Date().toISOString(),
                     temasUtilizados: temas
                 };

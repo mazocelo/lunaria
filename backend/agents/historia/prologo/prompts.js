@@ -23,6 +23,7 @@ INSTRUÇÕES:
 - Mantenha tom adequado ao tema (fantasia, sci-fi, horror, etc.)
 - Evite revelar muito sobre a trama principal
 - Crie um gancho narrativo que incentive os jogadores a explorar
+- Se uma descrição/premissa for fornecida pelo criador, USE-A como base principal para o prólogo. Incorpore os elementos descritos (vilões, locais, conflitos, mistérios) de forma orgânica.
 - Use português brasileiro
 - Responda APENAS com o prólogo, sem formatação adicional
 ${temasContexto}
@@ -33,7 +34,7 @@ ESTRUTURA:
 
     return ChatPromptTemplate.fromMessages([
         ['system', systemPrompt],
-        ['human', 'Tema da história: {tema}'],
+        ['human', 'Tema da história: {tema}\n\nDescrição fornecida pelo criador: {descricao}'],
     ]);
 }
 

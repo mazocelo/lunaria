@@ -106,6 +106,13 @@ function buildPrompt(entityType, entityData) {
       if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
       return `${parts.join(', ')}, ${style}`;
     }
+    case 'mestre': {
+      const parts = ['Fantasy RPG game master portrait, wise narrator'];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.tom_narrativo) parts.push(`${entityData.tom_narrativo} atmosphere`);
+      if (entityData.personalidade) parts.push(entityData.personalidade.slice(0, 150));
+      return `${parts.join(', ')}, ${style}`;
+    }
     default:
       return `Fantasy RPG illustration, ${entityData.nome || 'mysterious scene'}, ${style}`;
   }

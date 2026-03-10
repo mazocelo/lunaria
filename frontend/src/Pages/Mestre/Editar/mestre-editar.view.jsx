@@ -1,21 +1,31 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Crown, Save, Loader2, Volume2 } from 'lucide-react';
+import { apiClient } from '../../../services/ApiClient.js';
 import InputSimples from '../../../components/form/inputSimples';
 import ImageGenerator from '../../../components/form/ImageGenerator';
 import Button from '../../../components/form/button';
 
 const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) => {
   const previewAudioRef = useRef(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
-  const handlePreview = (previewUrl) => {
-    if (!previewUrl) return;
+  const handlePreview = async (voiceId) => {
+    if (!voiceId || loadingPreview) return;
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
     }
-    const audio = new Audio(previewUrl);
-    previewAudioRef.current = audio;
-    audio.play().catch(() => {});
+    setLoadingPreview(true);
+    try {
+      const response = await apiClient.post('/tts/preview', { voiceId }, { responseType: 'blob' });
+      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      previewAudioRef.current = audio;
+      await audio.play();
+    } catch {}
+    setLoadingPreview(false);
   };
 
   if (loadingVoices) {
@@ -56,13 +66,14 @@ const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) =
             </option>
           ))}
         </select>
-        {selectedVoice?.preview_url && (
+        {selectedVoice && (
           <button
             type="button"
-            onClick={() => handlePreview(selectedVoice.preview_url)}
-            className="px-3 py-3 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30"
+            onClick={() => handlePreview(voice_id)}
+            disabled={loadingPreview}
+            className="px-3 py-3 rounded-lg font-modern text-sm font-semibold transition-all cursor-pointer bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Preview
+            {loadingPreview ? <Loader2 size={16} className="animate-spin" /> : 'Preview'}
           </button>
         )}
       </div>

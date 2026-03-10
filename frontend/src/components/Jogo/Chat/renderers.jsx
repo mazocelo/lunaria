@@ -4,7 +4,10 @@ import MarkdownRenderer from '../../MarkdownRenderer';
 const getConteudo = (msg) => msg.message || msg.mensagem;
 
 export const renderDado = (mensagem, key) => {
-  const temModificador = mensagem.totalModificador != null && mensagem.totalModificador !== 0;
+  const modBase = (mensagem.modificador || 0) + (mensagem.bonusNivel || 0);
+  const temModBase = modBase !== 0;
+  const detalhes = mensagem.detalhesBonus || [];
+  const temDetalhes = detalhes.length > 0;
   return (
     <div key={key} className="w-full animate-fade-in">
       <div className="glass p-4 rounded-xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-900/40 to-orange-900/40 shadow-xl">
@@ -15,11 +18,19 @@ export const renderDado = (mensagem, key) => {
               {mensagem.username} rolou {mensagem.dice || 'd20'}
             </p>
             <p className="text-amber-300 text-2xl font-bold drop-shadow-lg">
-              Resultado: {mensagem.result || mensagem.valor || mensagem.total || '?'}
-              {temModificador && (
+              Resultado: {mensagem.rolagemBruta || mensagem.result || mensagem.valor || '?'}
+              {temModBase && (
                 <span className="text-lg">
-                  {' '}{mensagem.totalModificador > 0 ? '+' : ''}{mensagem.totalModificador} ({mensagem.atributoNome || 'Sorte'}) = {mensagem.total}
+                  {' '}{modBase > 0 ? '+' : ''}{modBase} ({mensagem.atributoNome || 'Sorte'})
                 </span>
+              )}
+              {temDetalhes && detalhes.map((d, i) => (
+                <span key={i} className="text-lg text-cyan-300">
+                  {' '}{d.valor > 0 ? '+' : ''}{d.valor} ({d.fonte})
+                </span>
+              ))}
+              {(temModBase || temDetalhes) && (
+                <span className="text-lg"> = {mensagem.total}</span>
               )}
             </p>
             {mensagem.descricaoResultado && (

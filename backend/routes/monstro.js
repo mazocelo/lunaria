@@ -1,8 +1,17 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import monstroController from '../controllers/monstro/monstroController.js';
 import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import db from '../Model/index.js';
+
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
 
 const router = express.Router();
 
@@ -183,7 +192,7 @@ router.get('/:id', asyncHandler(monstroController.buscarPorId));
  *       400:
  *         description: Dados invalidos
  */
-router.post('/', authenticateToken, requireSuperAdmin, asyncHandler(monstroController.criar));
+router.post('/', authenticateToken, writeLimiter, requireSuperAdmin, asyncHandler(monstroController.criar));
 
 /**
  * @swagger
@@ -212,7 +221,7 @@ router.post('/', authenticateToken, requireSuperAdmin, asyncHandler(monstroContr
  *       404:
  *         description: Monstro nao encontrado
  */
-router.put('/:id', authenticateToken, requireSuperAdmin, asyncHandler(monstroController.atualizar));
+router.put('/:id', authenticateToken, writeLimiter, requireSuperAdmin, asyncHandler(monstroController.atualizar));
 
 /**
  * @swagger
@@ -235,7 +244,7 @@ router.put('/:id', authenticateToken, requireSuperAdmin, asyncHandler(monstroCon
  *       404:
  *         description: Monstro nao encontrado
  */
-router.delete('/:id', authenticateToken, requireSuperAdmin, asyncHandler(monstroController.deletar));
+router.delete('/:id', authenticateToken, writeLimiter, requireSuperAdmin, asyncHandler(monstroController.deletar));
 
 // ===== LOOT TABLE CRUD (SuperAdmin) =====
 
@@ -246,7 +255,7 @@ router.get('/:id/loot', asyncHandler(async (req, res) => {
 }));
 
 // Adicionar entry na loot table
-router.post('/:id/loot', authenticateToken, requireSuperAdmin, asyncHandler(async (req, res) => {
+router.post('/:id/loot', authenticateToken, writeLimiter, requireSuperAdmin, asyncHandler(async (req, res) => {
   const { equipamento_id, drop_rate, min_quantidade, max_quantidade, nivel_minimo } = req.body;
   if (!equipamento_id) {
     return res.status(400).json({ success: false, error: 'equipamento_id é obrigatório' });
@@ -263,7 +272,7 @@ router.post('/:id/loot', authenticateToken, requireSuperAdmin, asyncHandler(asyn
 }));
 
 // Atualizar entry da loot table
-router.put('/loot/:lootId', authenticateToken, requireSuperAdmin, asyncHandler(async (req, res) => {
+router.put('/loot/:lootId', authenticateToken, writeLimiter, requireSuperAdmin, asyncHandler(async (req, res) => {
   const { drop_rate, min_quantidade, max_quantidade, nivel_minimo } = req.body;
   const entry = await db.MonstroLoot.update(parseInt(req.params.lootId), {
     ...(drop_rate !== undefined && { drop_rate }),
@@ -275,7 +284,7 @@ router.put('/loot/:lootId', authenticateToken, requireSuperAdmin, asyncHandler(a
 }));
 
 // Remover entry da loot table
-router.delete('/loot/:lootId', authenticateToken, requireSuperAdmin, asyncHandler(async (req, res) => {
+router.delete('/loot/:lootId', authenticateToken, writeLimiter, requireSuperAdmin, asyncHandler(async (req, res) => {
   await db.MonstroLoot.delete(parseInt(req.params.lootId));
   res.json({ success: true, message: 'Loot entry removida' });
 }));

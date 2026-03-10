@@ -1,9 +1,18 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import historiaController from '../controllers/historia/historiaController.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
 
 /**
  * @swagger
@@ -97,7 +106,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/create', historiaController.criarHistoria);
+router.post('/create', writeLimiter, historiaController.criarHistoria);
 
 /**
  * @swagger
@@ -370,7 +379,7 @@ router.get('/com-personagens', historiaController.listarHistoriasComPersonagens)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
+router.post('/gerar-ia', writeLimiter, historiaController.gerarHistoriaComIA);
 
 /**
  * @swagger
@@ -421,7 +430,7 @@ router.post('/gerar-ia', historiaController.gerarHistoriaComIA);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-aventura-completa', historiaController.gerarAventuraCompleta);
+router.post('/gerar-aventura-completa', writeLimiter, historiaController.gerarAventuraCompleta);
 
 /**
  * @swagger
@@ -511,7 +520,7 @@ router.get('/:id', historiaController.obterHistoria);
  *               $ref: '#/components/schemas/Error'
  */
 // PUT /:id - Atualizar história (OWNER OU ADMIN)
-router.put('/:id', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarHistoria);
+router.put('/:id', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarHistoria);
 
 /**
  * @swagger
@@ -546,7 +555,7 @@ router.put('/:id', requireResourceOwnerOrSuperAdmin('Historia'), historiaControl
  *               $ref: '#/components/schemas/Error'
  */
 // DELETE /:id - Excluir história (OWNER OU ADMIN)
-router.delete('/:id', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.excluirHistoria);
+router.delete('/:id', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.excluirHistoria);
 
 // PATCH /:id/restore - Restaurar história soft-deleted (OWNER OU ADMIN)
 router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.restaurarHistoria);

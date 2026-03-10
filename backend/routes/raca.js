@@ -1,9 +1,18 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import racaController from '../controllers/raca/racaController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
 
 /**
  * @swagger
@@ -65,7 +74,7 @@ const router = express.Router();
  *       400:
  *         description: Dados inválidos
  */
-router.post('/', requireSuperAdmin, asyncHandler(racaController.criarRaca));
+router.post('/', writeLimiter, requireSuperAdmin, asyncHandler(racaController.criarRaca));
 
 /**
  * @swagger
@@ -133,7 +142,7 @@ router.get('/buscar', asyncHandler(racaController.buscarRacas));
  *         description: Raça não encontrada
  */
 router.get('/:id', asyncHandler(racaController.obterRaca));
-router.put('/:id', requireSuperAdmin, asyncHandler(racaController.atualizarRaca));
-router.delete('/:id', requireSuperAdmin, asyncHandler(racaController.deletarRaca));
+router.put('/:id', writeLimiter, requireSuperAdmin, asyncHandler(racaController.atualizarRaca));
+router.delete('/:id', writeLimiter, requireSuperAdmin, asyncHandler(racaController.deletarRaca));
 
 export default router; 

@@ -344,4 +344,32 @@ export class PersonagemService {
       throw new Error(`Erro ao remover equipamento: ${error.message}`);
     }
   }
+
+  async vincularHistoria(personagemId, historiaId) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${personagemId}/historias`, {
+        historia_id: historiaId
+      });
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao vincular historia');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao vincular historia: ${error.message}`);
+    }
+  }
+
+  async desvincularHistoria(personagemId, historiaId) {
+    try {
+      const response = await this.apiClient.delete(`${this.baseUrl}/${personagemId}/historias/${historiaId}`);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao desvincular historia');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao desvincular historia: ${error.message}`);
+    }
+  }
 } 

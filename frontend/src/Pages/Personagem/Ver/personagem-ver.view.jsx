@@ -4,7 +4,7 @@ import { Badge } from '../../../components/shared';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
-  Package, X, Loader2
+  Package, X, Loader2, BookOpen, Plus, Trash2
 } from 'lucide-react';
 
 const atributosConfig = [
@@ -50,6 +50,12 @@ const VerPersonagemView = ({
   equipamentos,
   loadingEquipamentos,
   bonusAgregados,
+  mostrarSeletorHistoria,
+  toggleSeletorHistoria,
+  historiasNaoVinculadas,
+  loadingHistorias,
+  vincularHistoria,
+  desvincularHistoria,
   clearError,
 }) => {
   if (loading) {
@@ -299,6 +305,18 @@ const VerPersonagemView = ({
         )}
       </div>
 
+      {/* Historias */}
+      <HistoriasSection
+        isLight={isLight}
+        historias={p.historias || []}
+        mostrarSeletorHistoria={mostrarSeletorHistoria}
+        toggleSeletorHistoria={toggleSeletorHistoria}
+        historiasNaoVinculadas={historiasNaoVinculadas}
+        loadingHistorias={loadingHistorias}
+        vincularHistoria={vincularHistoria}
+        desvincularHistoria={desvincularHistoria}
+      />
+
       {/* Inventario */}
       <InventarioSection
         isLight={isLight}
@@ -306,6 +324,116 @@ const VerPersonagemView = ({
         loadingEquipamentos={loadingEquipamentos}
         bonusAgregados={bonusAgregados}
       />
+    </div>
+  );
+};
+
+const HistoriasSection = ({
+  isLight,
+  historias,
+  mostrarSeletorHistoria,
+  toggleSeletorHistoria,
+  historiasNaoVinculadas,
+  loadingHistorias,
+  vincularHistoria,
+  desvincularHistoria,
+}) => {
+  return (
+    <div className="card-rpg">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+            <BookOpen size={16} className="text-white" />
+          </div>
+          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            Historias
+          </h2>
+          <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+            ({historias.length})
+          </span>
+        </div>
+        <button
+          onClick={toggleSeletorHistoria}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
+            isLight
+              ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+              : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+          }`}
+        >
+          <Plus size={14} />
+          Vincular
+        </button>
+      </div>
+
+      {/* Seletor de historia */}
+      {mostrarSeletorHistoria && (
+        <div className={`mb-4 p-3 rounded-lg border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'}`}>
+          <p className={`text-sm font-modern font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+            Selecione uma historia:
+          </p>
+          {loadingHistorias && (
+            <div className="flex items-center space-x-2 mb-2">
+              <Loader2 size={14} className="animate-spin text-purple-400" />
+              <span className="text-xs font-modern text-slate-400">Carregando...</span>
+            </div>
+          )}
+          {historiasNaoVinculadas.length > 0 ? (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {historiasNaoVinculadas.map(h => (
+                <button
+                  key={h.id}
+                  onClick={() => vincularHistoria(h.id)}
+                  disabled={loadingHistorias}
+                  className={`w-full text-left p-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
+                    isLight
+                      ? 'hover:bg-purple-50 text-slate-700'
+                      : 'hover:bg-slate-700 text-slate-300'
+                  } disabled:opacity-50`}
+                >
+                  {h.nome}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className={`text-xs font-modern italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              Nenhuma historia disponivel para vincular.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Historias vinculadas */}
+      {historias.length > 0 ? (
+        <div className="space-y-2">
+          {historias.map(h => (
+            <div
+              key={h.id}
+              className={`flex items-center justify-between p-3 rounded-lg border ${
+                isLight ? 'bg-white/50 border-slate-200' : 'bg-slate-800/50 border-slate-700'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <BookOpen size={16} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                <span className={`font-modern text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                  {h.nome}
+                </span>
+              </div>
+              <button
+                onClick={() => desvincularHistoria(h.id)}
+                disabled={loadingHistorias}
+                className="text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
+                title="Desvincular"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className={`font-modern text-sm italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+          Nenhuma historia vinculada.
+        </p>
+      )}
     </div>
   );
 };

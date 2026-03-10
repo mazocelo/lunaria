@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { personagemService, equipamentoService } from '../../../services/index.js';
+import { personagemService, equipamentoService, historiaService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 
 export const usePersonagemVerModel = () => {
@@ -33,6 +33,11 @@ export const usePersonagemVerModel = () => {
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
   const [buscaCatalogo, setBuscaCatalogo] = useState('');
   const [confirmRemove, setConfirmRemove] = useState(null);
+
+  // Historias
+  const [historiasDisponiveis, setHistoriasDisponiveis] = useState([]);
+  const [mostrarSeletorHistoria, setMostrarSeletorHistoria] = useState(false);
+  const [loadingHistorias, setLoadingHistorias] = useState(false);
 
   // Computed
   const totalPontosDistribuir = useMemo(
@@ -231,6 +236,63 @@ export const usePersonagemVerModel = () => {
     return totais;
   }, [equipamentos]);
 
+  // Historia methods
+  const loadHistoriasDisponiveis = async () => {
+    try {
+      const response = await historiaService.getAll();
+      const historias = Array.isArray(response) ? response : response?.data || [];
+      setHistoriasDisponiveis(historias);
+    } catch (err) {
+      console.warn('Erro ao carregar historias:', err.message);
+    }
+  };
+
+  const toggleSeletorHistoria = useCallback(() => {
+    setMostrarSeletorHistoria(prev => {
+      const newVal = !prev;
+      if (newVal && historiasDisponiveis.length === 0) {
+        loadHistoriasDisponiveis();
+      }
+      return newVal;
+    });
+  }, [historiasDisponiveis.length]);
+
+  const vincularHistoria = useCallback(async (historiaId) => {
+    const personagemId = personagem?.id;
+    if (!personagemId) return;
+
+    setLoadingHistorias(true);
+    try {
+      await personagemService.vincularHistoria(personagemId, historiaId);
+      await loadPersonagem(personagemId);
+      setMostrarSeletorHistoria(false);
+    } catch (err) {
+      setError(`Erro ao vincular historia: ${err.message}`);
+    } finally {
+      setLoadingHistorias(false);
+    }
+  }, [personagem?.id]);
+
+  const desvincularHistoria = useCallback(async (historiaId) => {
+    const personagemId = personagem?.id;
+    if (!personagemId) return;
+
+    setLoadingHistorias(true);
+    try {
+      await personagemService.desvincularHistoria(personagemId, historiaId);
+      await loadPersonagem(personagemId);
+    } catch (err) {
+      setError(`Erro ao desvincular historia: ${err.message}`);
+    } finally {
+      setLoadingHistorias(false);
+    }
+  }, [personagem?.id]);
+
+  const historiasNaoVinculadas = useMemo(() => {
+    const idsVinculados = new Set((personagem?.historias || []).map(h => h.id));
+    return historiasDisponiveis.filter(h => !idsVinculados.has(h.id));
+  }, [historiasDisponiveis, personagem?.historias]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -266,6 +328,13 @@ export const usePersonagemVerModel = () => {
     removerEquipamento,
     confirmRemove,
     setConfirmRemove,
+    // Historias
+    mostrarSeletorHistoria,
+    toggleSeletorHistoria,
+    historiasNaoVinculadas,
+    loadingHistorias,
+    vincularHistoria,
+    desvincularHistoria,
     // Actions
     clearError,
   };

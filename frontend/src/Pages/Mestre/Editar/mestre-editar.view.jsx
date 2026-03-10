@@ -277,16 +277,18 @@ const EditarMestreView = ({
                 } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
               >
                 <optgroup label="Google Gemini">
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Rapido)</option>
-                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Ultra-rapido)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Avancado)</option>
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</option>
+                  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Economico)</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Legado)</option>
                 </optgroup>
                 <optgroup label="Groq (Llama)">
-                  <option value="openai/gpt-oss-120b">GPT OSS 120B (Recomendado)</option>
+                  <option value="openai/gpt-oss-120b">GPT OSS 120B</option>
                   <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
                   <option value="openai/gpt-oss-20b">GPT OSS 20B (Rapido)</option>
-                  <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                  <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (Avancado)</option>
+                </optgroup>
+                <optgroup label="Anthropic">
+                  <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Premium)</option>
                 </optgroup>
               </select>
             </div>

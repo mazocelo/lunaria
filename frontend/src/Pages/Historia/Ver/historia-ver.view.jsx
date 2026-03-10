@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
+import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -74,6 +75,11 @@ const VerHistoriaView = ({
   // Navegacao
   handleIniciarSessao,
   handleVoltar,
+
+  // Imagens
+  handleCapaGenerated,
+  handleMapaGenerated,
+  handleRemoveMapa,
 
   // Utils
   clearError,
@@ -228,37 +234,70 @@ const VerHistoriaView = ({
                 </div>
               </div>
 
+              {/* Capa da Historia */}
+              <div>
+                <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                  <Sparkles size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                  Capa da Historia
+                </h3>
+                <ImageGenerator
+                  imageUrl={historiaAtual.imagem}
+                  onImageGenerated={handleCapaGenerated}
+                  entityType="historia"
+                  entityData={{ nome: historiaAtual.nome, temas: nomesTemas.join(', '), descricao: historiaAtual.descricao }}
+                  isLight={isLight}
+                  label=""
+                />
+              </div>
+
               {/* Mapas do Mundo */}
-              {historiaAtual.mapas && Array.isArray(historiaAtual.mapas) && historiaAtual.mapas.length > 0 && (
-                <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    <Map size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-                    Mapas do Mundo
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
+              <div>
+                <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                  <Map size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                  Mapas do Mundo
+                </h3>
+                {historiaAtual.mapas && Array.isArray(historiaAtual.mapas) && historiaAtual.mapas.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 mb-3">
                     {historiaAtual.mapas.map((mapa, i) => (
-                      <a
-                        key={i}
-                        href={mapa.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`group block rounded-lg overflow-hidden border transition-all hover:scale-[1.02] ${
-                          isLight ? 'border-slate-200 hover:border-purple-400' : 'border-slate-700 hover:border-purple-500'
-                        }`}
-                      >
-                        <img
-                          src={mapa.url}
-                          alt={mapa.nome || `Mapa ${i + 1}`}
-                          className="w-full h-36 object-cover"
-                        />
-                        <div className={`px-2 py-1.5 text-xs font-modern ${isLight ? 'text-slate-600 bg-slate-50' : 'text-slate-300 bg-slate-800/50'}`}>
-                          {mapa.nome || `Mapa ${i + 1}`}
-                        </div>
-                      </a>
+                      <div key={i} className="relative group">
+                        <a
+                          href={mapa.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`block rounded-lg overflow-hidden border transition-all hover:scale-[1.02] ${
+                            isLight ? 'border-slate-200 hover:border-purple-400' : 'border-slate-700 hover:border-purple-500'
+                          }`}
+                        >
+                          <img src={mapa.url} alt={mapa.nome || `Mapa ${i + 1}`} className="w-full h-36 object-cover" />
+                          <div className={`px-2 py-1.5 text-xs font-modern ${isLight ? 'text-slate-600 bg-slate-50' : 'text-slate-300 bg-slate-800/50'}`}>
+                            {mapa.nome || `Mapa ${i + 1}`}
+                          </div>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMapa(i)}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+                <ImageGenerator
+                  imageUrl=""
+                  onImageGenerated={handleMapaGenerated}
+                  entityType="historia_mapa"
+                  entityData={{ nome: historiaAtual.nome, temas: nomesTemas.join(', ') }}
+                  isLight={isLight}
+                  label=""
+                />
+                {(!historiaAtual.mapas || historiaAtual.mapas.length === 0) && (
+                  <p className={`text-xs mt-2 ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Gere mapas do mundo da sua historia. Voce pode adicionar varios.
+                  </p>
+                )}
+              </div>
 
               {/* Roteiro da Aventura (Story Blueprint) */}
               <div>

@@ -17,7 +17,7 @@ export const useMestreEditarModel = () => {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [personalidade, setPersonalidade] = useState('');
-  const [modelo, setModelo] = useState('openai/gpt-oss-120b');
+  const [modelo, setModelo] = useState('gemini-2.5-flash');
   const [temperatura, setTemperatura] = useState(0.9);
   const [max_tokens, setMaxTokens] = useState(8000);
   const [tom_narrativo, setTomNarrativo] = useState('');

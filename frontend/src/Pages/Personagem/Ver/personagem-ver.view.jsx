@@ -1,10 +1,11 @@
 import React from 'react';
 import Button from '../../../components/form/button';
+import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import { Badge } from '../../../components/shared';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
-  Package, X, Loader2, BookOpen, Plus, Trash2
+  Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus
 } from 'lucide-react';
 
 const atributosConfig = [
@@ -56,6 +57,7 @@ const VerPersonagemView = ({
   loadingHistorias,
   vincularHistoria,
   desvincularHistoria,
+  handleImagemGenerated,
   clearError,
 }) => {
   if (loading) {
@@ -135,6 +137,30 @@ const VerPersonagemView = ({
           <button onClick={clearError} className="text-red-300 text-xs underline mt-1">Fechar</button>
         </div>
       )}
+
+      {/* Imagem do Personagem */}
+      <div className="card-rpg">
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+            <ImagePlus size={16} className="text-white" />
+          </div>
+          <h2 className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            Imagem do Personagem
+          </h2>
+        </div>
+        <ImageGenerator
+          imageUrl={p.imagem}
+          onImageGenerated={handleImagemGenerated}
+          entityType="personagem"
+          entityData={{
+            nome: p.nome,
+            raca: p.raca,
+            classe: p.classe,
+            background: p.background,
+          }}
+          isLight={isLight}
+        />
+      </div>
 
       {/* XP Bar */}
       <div className="card-rpg">

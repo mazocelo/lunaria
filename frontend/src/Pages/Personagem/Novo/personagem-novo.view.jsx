@@ -3,9 +3,8 @@ import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Combobox from '../../../components/form/Combobox';
 import MultiSelect from '../../../components/form/MultiSelect';
-import ImageGenerator from '../../../components/form/ImageGenerator';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
-import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus } from 'lucide-react';
+import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus, Link2, X } from 'lucide-react';
 
 const PONTOS_MAXIMO = 75;
 
@@ -313,18 +312,27 @@ const NovoPersonagemView = ({
               Imagem
             </h2>
           </div>
-          <ImageGenerator
-            imageUrl={imagem}
-            onImageGenerated={setImagem}
-            entityType="personagem"
-            entityData={{
-              nome,
-              raca: racasDisponiveis?.find(r => String(r.id) === String(raca))?.nome,
-              classe: classesDisponiveis?.find(c => String(c.id) === String(classe))?.nome,
-              background,
-            }}
-            isLight={isLight}
-          />
+          {imagem && (
+            <div className="relative inline-block">
+              <img src={imagem} alt="Personagem" className={`w-full max-w-xs h-40 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`} />
+              <button type="button" onClick={() => setImagem('')} className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 hover:opacity-100 transition-opacity">
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Link2 size={14} className={isLight ? 'text-gray-400' : 'text-gray-500'} />
+            <input
+              type="url"
+              value={imagem}
+              onChange={e => setImagem(e.target.value)}
+              placeholder="Cole a URL da imagem do personagem (opcional)"
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 ${isLight ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400' : 'bg-slate-800/50 border-slate-600 text-white placeholder-slate-500'}`}
+            />
+          </div>
+          <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
+            Geracao por IA disponivel apos criar o personagem.
+          </p>
         </div>
 
         {/* Section 6: Historias */}

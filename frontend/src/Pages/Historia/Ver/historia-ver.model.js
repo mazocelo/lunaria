@@ -191,6 +191,40 @@ export const useHistoriaVerModel = () => {
     }
   }, [historiaAtual]);
 
+  // Imagem handlers
+  const handleCapaGenerated = useCallback(async (url) => {
+    if (!historiaAtual) return;
+    try {
+      await historiaService.update(historiaAtual.id, { imagem: url });
+      setHistoriaAtual(prev => ({ ...prev, imagem: url }));
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar capa');
+    }
+  }, [historiaAtual]);
+
+  const handleMapaGenerated = useCallback(async (url) => {
+    if (!historiaAtual) return;
+    const novoMapa = { url, nome: `Mapa ${(historiaAtual.mapas?.length || 0) + 1}` };
+    const novosMapas = [...(historiaAtual.mapas || []), novoMapa];
+    try {
+      await historiaService.update(historiaAtual.id, { mapas: novosMapas });
+      setHistoriaAtual(prev => ({ ...prev, mapas: novosMapas }));
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar mapa');
+    }
+  }, [historiaAtual]);
+
+  const handleRemoveMapa = useCallback(async (index) => {
+    if (!historiaAtual) return;
+    const novosMapas = (historiaAtual.mapas || []).filter((_, i) => i !== index);
+    try {
+      await historiaService.update(historiaAtual.id, { mapas: novosMapas });
+      setHistoriaAtual(prev => ({ ...prev, mapas: novosMapas }));
+    } catch (err) {
+      setError(err.message || 'Erro ao remover mapa');
+    }
+  }, [historiaAtual]);
+
   // Navegacao
   const handleIniciarSessao = useCallback(() => {
     if (historiaAtual) {
@@ -241,6 +275,11 @@ export const useHistoriaVerModel = () => {
     roteiroStatus,
     roteiroLoading,
     handleGerarRoteiro,
+
+    // Imagens
+    handleCapaGenerated,
+    handleMapaGenerated,
+    handleRemoveMapa,
 
     // Utils
     clearError,

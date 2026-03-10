@@ -293,6 +293,18 @@ export const usePersonagemVerModel = () => {
     return historiasDisponiveis.filter(h => !idsVinculados.has(h.id));
   }, [historiasDisponiveis, personagem?.historias]);
 
+  // Imagem handler
+  const handleImagemGenerated = useCallback(async (url) => {
+    const personagemId = personagem?.id;
+    if (!personagemId) return;
+    try {
+      await personagemService.update(personagemId, { imagem: url });
+      setPersonagem(prev => ({ ...prev, imagem: url }));
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar imagem');
+    }
+  }, [personagem?.id]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -305,6 +317,8 @@ export const usePersonagemVerModel = () => {
     // Background
     gerandoBackground,
     gerarBackground,
+    // Imagem
+    handleImagemGenerated,
     // Validation
     validacao,
     validando,

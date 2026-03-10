@@ -3,6 +3,7 @@ import React from 'react';
 const PROVIDER_LABELS = {
   groq: 'Groq (Llama)',
   gemini: 'Gemini',
+  anthropic: 'Anthropic (Claude)',
   elevenlabs: 'ElevenLabs',
   cartesia: 'Cartesia',
   leonardo: 'Leonardo AI',
@@ -10,6 +11,7 @@ const PROVIDER_LABELS = {
 
 const TIPO_LABELS = {
   text: 'Texto (LLM)',
+  blueprint: 'Roteiro (Blueprint)',
   tts: 'Voz (TTS)',
   image: 'Imagem',
 };

@@ -27,6 +27,9 @@ export class Personagem {
     this.equipamentos = data.equipamentos || [];
     this.xp_atual = data.xp_atual || 0;
     this.xp_proximo_nivel = data.xp_proximo_nivel || 100;
+    this.hp_max = data.hp_max || data.hp_maximo || this.calcularHPMaximo();
+    this.hp = data.hp_atual ?? data.hp ?? this.hp_max;
+    this.mp = data.mp_atual ?? data.mp ?? null;
     this.pontos_atributo_pendentes = data.pontos_atributo_pendentes || 0;
     this.pontos_iniciais = data.pontos_iniciais || 25;
     this.pontos_totais = data.pontos_totais || 0;
@@ -132,6 +135,9 @@ export class Personagem {
       equipamentos: this.equipamentos,
       xp_atual: this.xp_atual,
       xp_proximo_nivel: this.xp_proximo_nivel,
+      hp: this.hp,
+      hp_max: this.hp_max,
+      mp: this.mp,
       pontos_atributo_pendentes: this.pontos_atributo_pendentes,
       pontos_iniciais: this.pontos_iniciais,
       pontos_totais: this.pontos_totais,
@@ -170,6 +176,11 @@ export class Personagem {
       equipamentos: apiData.equipamentos,
       xp_atual: apiData.xp_atual || 0,
       xp_proximo_nivel: apiData.xp_proximo_nivel || 100,
+      hp_max: apiData.hp_max || apiData.hp_maximo,
+      hp_atual: apiData.hp_atual,
+      hp: apiData.hp,
+      mp_atual: apiData.mp_atual,
+      mp: apiData.mp,
       pontos_atributo_pendentes: apiData.pontos_atributo_pendentes || 0,
       pontos_iniciais: apiData.pontos_iniciais,
       pontos_totais: apiData.pontos_totais,

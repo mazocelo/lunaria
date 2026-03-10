@@ -72,12 +72,14 @@ const StatusPersonagem = ({
                   </div>
                   <div className="text-xs text-red-300">HP</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-base font-bold text-blue-400">
-                    {personagemSelecionado.mp || '???'}
+                {personagemSelecionado.mp != null && (
+                  <div className="text-center">
+                    <div className="text-base font-bold text-blue-400">
+                      {personagemSelecionado.mp}
+                    </div>
+                    <div className="text-xs text-blue-300">MP</div>
                   </div>
-                  <div className="text-xs text-blue-300">MP</div>
-                </div>
+                )}
                 {combateStats && (
                   <>
                     <div className="text-center">
@@ -158,12 +160,14 @@ const StatusPersonagem = ({
                   </div>
                   <div className="text-xs text-red-300">HP</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-blue-400">
-                    {personagemSelecionado.mp || '???'}
+                {personagemSelecionado.mp != null && (
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-400">
+                      {personagemSelecionado.mp}
+                    </div>
+                    <div className="text-xs text-blue-300">MP</div>
                   </div>
-                  <div className="text-xs text-blue-300">MP</div>
-                </div>
+                )}
                 <div className="min-w-[120px]">
                   <XPProgressBar
                     xpAtual={personagemSelecionado.xp_atual || personagemSelecionado.xp || 0}

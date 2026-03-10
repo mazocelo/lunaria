@@ -20,17 +20,31 @@ export const useSocketStore = create(
 export const useSocketSelectors = {
   // Status da conexão
   connectionStatus: () => {
-    return useSocketStore.getState().getConnectionStatus();
+    const { isConnected, isConnecting, isReconnecting, inRoom } = useSocketStore.getState();
+    if (!isConnected) return 'disconnected';
+    if (isConnecting) return 'connecting';
+    if (isReconnecting) return 'reconnecting';
+    if (!inRoom) return 'connected';
+    return 'ready';
   },
-  
+
   // Informações completas da conexão
   connectionInfo: () => {
-    return useSocketStore.getState().getConnectionInfo();
+    const s = useSocketStore.getState();
+    return {
+      isConnected: s.isConnected,
+      isAuthenticated: s.isAuthenticated,
+      isReconnecting: s.isReconnecting,
+      inRoom: s.inRoom,
+      roomId: s.roomId,
+      socketId: s.socket?.id || null,
+    };
   },
-  
+
   // Pode enviar mensagem
   canSendMessage: () => {
-    return useSocketStore.getState().canSendMessage();
+    const { isConnected, inRoom, rateLimitExceeded } = useSocketStore.getState();
+    return isConnected && inRoom && !rateLimitExceeded;
   },
   
   // Status da sala

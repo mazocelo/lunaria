@@ -6,10 +6,34 @@ import { transicaoFase } from './faseMachine.js';
 
 export const createListenerActions = (set, get) => ({
   setupInternalListeners: () => {
-    const { socket } = get();
+    const { socket, listeners: storedListeners } = get();
 
-    // Limpar listeners anteriores para evitar acumulação em reconnect
-    socket.removeAllListeners();
+    // Limpar apenas listeners internos do socket (não os de componentes via socketStoreOn)
+    // removeAllListeners() destruía listeners de EtapaJogoRPG registrados via on()
+    const internalEvents = [
+      'connect', 'disconnect', 'connect_error',
+      'authenticated', 'authentication_error',
+      'room_joined', 'room_left', 'room_users', 'connection_error',
+      'fase_atualizada', 'aventura_iniciada', 'resultado_dado_inicial',
+      'ordem_definida', 'turno_alterado', 'mestre_finalizou_turno',
+      'turno_iniciado', 'rodada_finalizada', 'nova_rodada_iniciada',
+      'erro_cooldown_roleplay', 'erro_turno', 'server_message', 'force_disconnect',
+      'solicitacao_dados', 'mensagem_roleplay',
+      'sessao_resetada', 'sessao_encerrada',
+      'erro_sistema', 'erro_mensagem', 'erro_dado_inicial', 'rate_limit_exceeded',
+      'combate_iniciado', 'combate_resultado_acao', 'combate_monstro_derrotado',
+      'combate_jogador_ferido', 'combate_finalizado', 'combate_estado',
+      'acao_mestre', 'level_up', 'combate_loot',
+      'user_joined', 'user_left',
+    ];
+    for (const event of internalEvents) {
+      socket.removeAllListeners(event);
+    }
+
+    // Limpar listeners de Manager (socket.io) para evitar acumulação em reconexões
+    socket.io.off('reconnect');
+    socket.io.off('reconnect_attempt');
+    socket.io.off('reconnect_failed');
 
     // ===== LISTENERS DE CONEXÃO =====
     socket.on('connect', () => {
@@ -650,5 +674,13 @@ export const createListenerActions = (set, get) => ({
 
       get().log('Usuario saiu', { username: data.username, success: true });
     });
+
+    // Re-registrar listeners de componentes (via socketStoreOn) no socket real
+    // Eles sobrevivem na Map do store mas foram removidos do socket acima
+    for (const [event, callbacks] of storedListeners) {
+      for (const cb of callbacks) {
+        socket.on(event, cb);
+      }
+    }
   },
 });

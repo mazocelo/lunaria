@@ -102,8 +102,7 @@ const FichaPersonagemModal = ({
               <div className="text-center">
                 <p className="text-xs text-purple-200/70 uppercase tracking-wide">HP</p>
                 <p className="text-2xl font-bold text-red-300">
-                  {personagem.hp ?? personagem.hp_atual ?? '???'}
-                  {personagem.hp_maximo && ` / ${personagem.hp_maximo}`}
+                  {personagem.hp ?? personagem.hp_atual ?? '???'} / {personagem.hp_max ?? personagem.hp_maximo ?? '?'}
                 </p>
               </div>
             </div>

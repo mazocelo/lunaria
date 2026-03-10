@@ -106,6 +106,13 @@ function buildPrompt(entityType, entityData) {
       if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
       return `${parts.join(', ')}, ${style}`;
     }
+    case 'historia_mapa': {
+      const mapStyle = 'fantasy RPG world map, top-down cartographic view, parchment texture, hand-drawn style, detailed terrain';
+      const parts = ['Fantasy world map'];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
+      return `${parts.join(', ')}, ${mapStyle}`;
+    }
     case 'mestre': {
       const parts = ['Fantasy RPG game master portrait, wise narrator'];
       if (entityData.nome) parts.push(entityData.nome);

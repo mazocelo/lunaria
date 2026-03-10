@@ -20,7 +20,7 @@ class HistoriaController {
     try {
       console.log('Criando nova historia');
       
-      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id, publica } = req.body;
+      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id, publica, imagem, mapas } = req.body;
       
       // Validações básicas
       if (!temas) {
@@ -76,7 +76,9 @@ class HistoriaController {
         status: 'ativa',
         id_usuario: userId,
         mestre_id: mestre_id ? parseInt(mestre_id) : null,
-        publica: publica === true || publica === 'true' ? true : false
+        publica: publica === true || publica === 'true' ? true : false,
+        ...(imagem ? { imagem } : {}),
+        ...(mapas && Array.isArray(mapas) ? { mapas } : {})
       });
       
       console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
@@ -287,7 +289,7 @@ class HistoriaController {
 
       // Ownership já verificado pelo middleware requireResourceOwnerOrAdmin
 
-      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem } = req.body;
+      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas } = req.body;
       const dadosSeguros = {};
       if (nome !== undefined) dadosSeguros.nome = nome;
       if (temas !== undefined) dadosSeguros.temas = temas;
@@ -297,6 +299,7 @@ class HistoriaController {
       if (prologo !== undefined) dadosSeguros.prologo = prologo;
       if (mestre_id !== undefined) dadosSeguros.mestre_id = mestre_id ? parseInt(mestre_id) : null;
       if (imagem !== undefined) dadosSeguros.imagem = imagem;
+      if (mapas !== undefined) dadosSeguros.mapas = Array.isArray(mapas) ? mapas : [];
       dadosSeguros.atualizada_em = new Date();
 
       await db.Historia.updateHistoria(parseInt(id), dadosSeguros);

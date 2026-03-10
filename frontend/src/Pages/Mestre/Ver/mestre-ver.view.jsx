@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
@@ -6,8 +6,69 @@ import { Badge } from '../../../components/shared';
 import { ROUTES } from '../../../routes.jsx';
 import {
   Crown, ArrowLeft, Pencil, X, BookOpen, Theater, ScrollText,
-  Settings, Target
+  Settings, Target, Terminal, ChevronDown, ChevronUp, Copy, Check
 } from 'lucide-react';
+
+const PromptPreviewSection = ({ promptPreview, isLight }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(promptPreview);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`w-full text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 cursor-pointer transition-colors ${
+          isLight ? 'text-slate-700 hover:text-purple-600' : 'text-white hover:text-purple-300'
+        }`}
+      >
+        <Terminal size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+        Prompt do Sistema
+        <span className="ml-auto">
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="relative">
+          <button
+            onClick={handleCopy}
+            className={`absolute top-3 right-3 p-1.5 rounded-md transition-all cursor-pointer ${
+              isLight
+                ? 'hover:bg-slate-200 text-slate-500'
+                : 'hover:bg-slate-600 text-slate-400'
+            }`}
+            title="Copiar prompt"
+          >
+            {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+          </button>
+          <div className={`p-4 rounded-lg overflow-auto max-h-96 ${
+            isLight
+              ? 'bg-slate-100 border border-slate-200'
+              : 'bg-slate-900/80 border border-slate-600'
+          }`}>
+            <pre className={`font-mono text-xs leading-relaxed whitespace-pre-wrap break-words ${
+              isLight ? 'text-slate-700' : 'text-slate-300'
+            }`}>
+              {promptPreview}
+            </pre>
+          </div>
+          <p className={`text-xs mt-2 font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+            Previa do prompt enviado a IA. Temas e personagens sao adicionados dinamicamente na sessao.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const VerMestreView = ({
   id, mestre, loading, error, isLight,
@@ -54,6 +115,34 @@ const VerMestreView = ({
   if (!mestre) return null;
 
   const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem } = mestre;
+
+  const promptPreview = useMemo(() => {
+    const parts = [];
+    parts.push('Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.');
+    if (nome) parts.push(`Seu nome como Mestre e "${nome}".`);
+    if (personalidade) parts.push(`PERSONALIDADE: ${personalidade}`);
+    if (tom_narrativo) parts.push(`TOM NARRATIVO: ${tom_narrativo}`);
+    if (regras_especiais) parts.push(`REGRAS ESPECIAIS: ${regras_especiais}`);
+    parts.push('');
+    parts.push('TEMAS DA CAMPANHA: [definidos pela historia]');
+    parts.push('PERSONAGENS JOGANDO: [definidos na sessao]');
+    parts.push('');
+    parts.push('## REGRAS FUNDAMENTAIS');
+    parts.push('1. Reaja com criatividade e coerencia a cada acao do jogador');
+    parts.push('2. Descreva ambiente, efeitos e desdobramentos narrativos');
+    parts.push('3. Nunca tome decisoes pelo personagem — apenas descreva consequencias');
+    parts.push('4. Mantenha imersao, suspense e ritmo adequado aos temas');
+    parts.push('5. SEMPRE responda em JSON valido');
+    parts.push('');
+    parts.push('## ROLAGEM DE DADOS');
+    parts.push('Solicite rolagem quando a acao for ARRISCADA, INCERTA ou de COMBATE (~30-40% das acoes).');
+    parts.push('Testes: Forca, Destreza, Constituicao, Inteligencia, Agilidade, Carisma, Atletismo, Intimidacao, Percepcao, Furtividade, etc.');
+    parts.push('Dificuldades: Muito Facil | Facil | Media | Dificil | Muito Dificil | Quase Impossivel');
+    parts.push('');
+    parts.push('## FORMATO DE RESPOSTA (JSON)');
+    parts.push('{ "narrativa": "...", "fimDeTurno": false, "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }, "combate": null, "acoes": [] }');
+    return parts.join('\n');
+  }, [nome, personalidade, tom_narrativo, regras_especiais]);
 
   const InfoRow = ({ label, value, fallback = 'Nao definido' }) => (
     <div className="flex items-center justify-between">
@@ -196,6 +285,8 @@ const VerMestreView = ({
                   </div>
                 </div>
               )}
+
+              <PromptPreviewSection promptPreview={promptPreview} isLight={isLight} />
             </div>
           </RPGCard>
         </div>

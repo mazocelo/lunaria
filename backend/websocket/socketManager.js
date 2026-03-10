@@ -3677,10 +3677,11 @@ class SocketManager {
           timestamp: Date.now()
         });
 
-        if (ca.inconsciente) {
+        if (ca.acertou && ca.dano > 0) {
           this.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
             userId: ca.alvoId, nome: ca.alvoNome,
-            hp_atual: 0, hp_max: ca.hpMax, inconsciente: true,
+            hp_atual: ca.hpRestante, hp_max: ca.hpMax,
+            derrotado: ca.inconsciente || false,
             timestamp: Date.now()
           });
         }

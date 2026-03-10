@@ -145,9 +145,8 @@ const MonstroListaView = ({
     }
   ];
 
-  const displayMonstros = filteredMonstros?.length > 0 || searchTerm
-    ? filteredMonstros
-    : monstros;
+  const hasFilters = !!searchTerm;
+  const displayMonstros = hasFilters ? filteredMonstros : monstros;
 
   return (
     <div className="animate-fade-in space-y-6">

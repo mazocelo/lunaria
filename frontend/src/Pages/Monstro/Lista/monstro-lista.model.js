@@ -10,6 +10,7 @@ export const useMonstroListaModel = () => {
   const isLight = theme === 'light';
 
   const [monstros, setMonstros] = useState([]);
+  const [allMonstros, setAllMonstros] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,28 +42,40 @@ export const useMonstroListaModel = () => {
     }
   }, [currentPage, pageSize]);
 
-  useEffect(() => {
-    loadMonstros();
+  const loadAllMonstros = useCallback(async () => {
+    try {
+      const response = await monstroService.getAll({});
+      setAllMonstros(response.data || []);
+    } catch (err) {
+      console.warn('Erro ao carregar todos os monstros:', err.message);
+    }
   }, []);
 
+  useEffect(() => {
+    loadMonstros();
+    loadAllMonstros();
+  }, []);
+
+  const hasFilters = !!searchTerm;
+
   const filteredMonstros = useMemo(() => {
-    if (!searchTerm) return monstros;
+    if (!searchTerm) return [];
     const term = searchTerm.toLowerCase();
-    return monstros.filter(m =>
+    return allMonstros.filter(m =>
       m.nome?.toLowerCase().includes(term) ||
       m.descricao?.toLowerCase().includes(term) ||
       m.raridade_rel?.nome?.toLowerCase().includes(term) ||
       m.categoria_rel?.nome?.toLowerCase().includes(term)
     );
-  }, [monstros, searchTerm]);
+  }, [allMonstros, searchTerm]);
 
   const raridades = useMemo(() => {
-    return (monstros || []).reduce((acc, m) => {
+    return (allMonstros || []).reduce((acc, m) => {
       const r = m.raridade_rel?.nome || 'Comum';
       acc[r] = (acc[r] || 0) + 1;
       return acc;
     }, {});
-  }, [monstros]);
+  }, [allMonstros]);
 
   const handlePageChange = useCallback((newPage) => {
     loadMonstros(newPage);
@@ -84,13 +97,13 @@ export const useMonstroListaModel = () => {
     loading,
     error,
     searchTerm,
-    totalCount,
-    currentPage,
-    pageSize,
+    totalCount: hasFilters ? undefined : totalCount,
+    currentPage: hasFilters ? undefined : currentPage,
+    pageSize: hasFilters ? undefined : pageSize,
     isLight,
     raridades,
-    handlePageChange,
-    handlePageSizeChange,
+    handlePageChange: hasFilters ? undefined : handlePageChange,
+    handlePageSizeChange: hasFilters ? undefined : handlePageSizeChange,
     buscarMonstros,
     clearError,
     navigate,

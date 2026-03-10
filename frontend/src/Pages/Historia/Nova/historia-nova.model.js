@@ -29,6 +29,7 @@ export const useHistoriaNovaModel = () => {
   const [mestreSelecionado, setMestreSelecionado] = useState(null);
   const [nomeError, setNomeError] = useState('');
   const [imagem, setImagem] = useState('');
+  const [mapas, setMapas] = useState([]);
   const [publica, setPublica] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -80,6 +81,7 @@ export const useHistoriaNovaModel = () => {
         mestre_id: mestreSelecionado,
         publica,
         ...(imagem ? { imagem } : {}),
+        ...(mapas.length > 0 ? { mapas } : {}),
       };
 
       const historia = new Historia(historiaData);
@@ -127,6 +129,8 @@ export const useHistoriaNovaModel = () => {
     clearError,
     imagem,
     setImagem,
+    mapas,
+    setMapas,
     publica,
     setPublica,
   };

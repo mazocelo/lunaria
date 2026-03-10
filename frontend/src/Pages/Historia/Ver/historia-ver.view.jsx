@@ -6,7 +6,7 @@ import RPGCard from '../../../components/RPGCard.jsx';
 import { Badge } from '../../../components/shared';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check
+  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 
@@ -122,12 +122,12 @@ const VerHistoriaView = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {historiaAtual.imagem ? (
-            <img src={historiaAtual.imagem} alt={historiaAtual.nome} className="flex-shrink-0 w-10 h-10 rounded-xl object-cover border-2 border-purple-500" />
+            <img src={historiaAtual.imagem} alt={historiaAtual.nome} className="flex-shrink-0 w-14 h-14 rounded-xl object-cover border-2 border-purple-500" />
           ) : (
-            <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+            <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center ${
               isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
             }`}>
-              <BookOpen size={22} />
+              <BookOpen size={28} />
             </div>
           )}
           <div>
@@ -220,6 +220,38 @@ const VerHistoriaView = ({
                   )}
                 </div>
               </div>
+
+              {/* Mapas do Mundo */}
+              {historiaAtual.mapas && Array.isArray(historiaAtual.mapas) && historiaAtual.mapas.length > 0 && (
+                <div>
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <Map size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Mapas do Mundo
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {historiaAtual.mapas.map((mapa, i) => (
+                      <a
+                        key={i}
+                        href={mapa.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`group block rounded-lg overflow-hidden border transition-all hover:scale-[1.02] ${
+                          isLight ? 'border-slate-200 hover:border-purple-400' : 'border-slate-700 hover:border-purple-500'
+                        }`}
+                      >
+                        <img
+                          src={mapa.url}
+                          alt={mapa.nome || `Mapa ${i + 1}`}
+                          className="w-full h-36 object-cover"
+                        />
+                        <div className={`px-2 py-1.5 text-xs font-modern ${isLight ? 'text-slate-600 bg-slate-50' : 'text-slate-300 bg-slate-800/50'}`}>
+                          {mapa.nome || `Mapa ${i + 1}`}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </RPGCard>
         </div>

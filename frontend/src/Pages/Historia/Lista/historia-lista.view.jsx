@@ -117,7 +117,21 @@ const HistoriaListaView = ({
     {
       key: 'nome',
       label: 'Nome da Historia',
-      align: 'left'
+      align: 'left',
+      render: (row) => (
+        <div className="flex items-center space-x-3">
+          {row.imagem ? (
+            <img src={row.imagem} alt={row.nome} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
+              <BookOpen size={16} className="text-white" />
+            </div>
+          )}
+          <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
+            {row.nome}
+          </span>
+        </div>
+      )
     },
     {
       key: 'temas',

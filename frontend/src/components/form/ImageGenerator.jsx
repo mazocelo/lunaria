@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ImagePlus, Loader2, X, Link2 } from 'lucide-react';
 import { imageGenerationService } from '../../services';
 
-const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, isLight }) => {
+const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, isLight, label = 'Imagem' }) => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -44,9 +44,11 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
 
   return (
     <div className="space-y-3">
-      <label className={`block text-sm font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
-        Imagem
-      </label>
+      {label && (
+        <label className={`block text-sm font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+          {label}
+        </label>
+      )}
 
       {imageUrl && (
         <div className="relative group">

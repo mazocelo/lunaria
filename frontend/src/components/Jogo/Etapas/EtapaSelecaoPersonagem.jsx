@@ -211,8 +211,18 @@ const PersonagemCard = ({ personagem, isSelected, onSelect, isLight, formatarInf
       `}
     >
       <div className="text-center">
-        <div className="text-3xl mb-3">
-          {isSelected ? '✨' : '👤'}
+        <div className="mb-3 flex justify-center">
+          {personagem.imagem ? (
+            <img
+              src={personagem.imagem}
+              alt={infoPersonagem.nome}
+              className={`w-16 h-16 rounded-full object-cover border-2 ${isSelected ? 'border-cyan-500' : 'border-purple-500'}`}
+            />
+          ) : (
+            <div className="text-3xl">
+              {isSelected ? '✨' : '👤'}
+            </div>
+          )}
         </div>
 
         <h4 className={`text-lg font-bold mb-3 ${isLight ? 'text-slate-700' : 'text-white'}`}>

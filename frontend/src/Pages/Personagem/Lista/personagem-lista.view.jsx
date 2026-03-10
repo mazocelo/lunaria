@@ -38,9 +38,13 @@ const PersonagemListaView = ({
 
   const renderClasseIcon = (personagem) => (
     <div className="flex items-center space-x-3">
-      <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-        <Shield size={16} className="text-white" />
-      </div>
+      {personagem.imagem ? (
+        <img src={personagem.imagem} alt={personagem.nome} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+      ) : (
+        <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
+          <Shield size={16} className="text-white" />
+        </div>
+      )}
       <div>
         <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
           {personagem.nome}

@@ -3,7 +3,7 @@ import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
 import ImageGenerator from '../../../components/form/ImageGenerator';
-import { BookOpen, Sparkles, Lightbulb, Loader2 } from 'lucide-react';
+import { BookOpen, Sparkles, Lightbulb, Loader2, X } from 'lucide-react';
 
 const NovaHistoriaView = ({
   // Form data
@@ -31,9 +31,17 @@ const NovaHistoriaView = ({
   handleCancelar,
   imagem,
   setImagem,
+  mapas,
+  setMapas,
   publica,
   setPublica,
 }) => {
+  const handleMapaGenerated = (url) => {
+    if (url) setMapas(prev => [...prev, { url, nome: `Mapa ${prev.length + 1}` }]);
+  };
+  const handleRemoveMapa = (index) => {
+    setMapas(prev => prev.filter((_, i) => i !== index));
+  };
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       {/* Header */}
@@ -149,13 +157,58 @@ const NovaHistoriaView = ({
           </button>
         </div>
 
+        {/* Capa da Historia */}
         <ImageGenerator
           imageUrl={imagem}
           onImageGenerated={setImagem}
           entityType="historia"
           entityData={{ nome, temas: temasSelecionados?.map(id => temas?.find(t => t.id === id)?.nome).filter(Boolean).join(', '), descricao }}
           isLight={isLight}
+          label="Capa da Historia"
         />
+
+        {/* Mapas do Mundo */}
+        <div className="space-y-3">
+          <label className={`block text-sm font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+            Mapas do Mundo
+          </label>
+          {mapas.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {mapas.map((mapa, i) => (
+                <div key={i} className="relative group">
+                  <img
+                    src={mapa.url}
+                    alt={mapa.nome || `Mapa ${i + 1}`}
+                    className={`w-full h-32 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMapa(i)}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                  <span className={`absolute bottom-1 left-1 text-xs px-1.5 py-0.5 rounded ${isLight ? 'bg-white/80 text-gray-700' : 'bg-black/60 text-gray-200'}`}>
+                    {mapa.nome || `Mapa ${i + 1}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <ImageGenerator
+            imageUrl=""
+            onImageGenerated={handleMapaGenerated}
+            entityType="historia_mapa"
+            entityData={{ nome, temas: temasSelecionados?.map(id => temas?.find(t => t.id === id)?.nome).filter(Boolean).join(', ') }}
+            isLight={isLight}
+            label=""
+          />
+          {mapas.length === 0 && (
+            <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
+              Gere mapas do mundo da sua historia. Voce pode adicionar varios.
+            </p>
+          )}
+        </div>
 
         {/* Botoes de acao */}
         <div className="flex space-x-4 pt-4">

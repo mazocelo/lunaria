@@ -144,6 +144,11 @@ export const useJogo = () => {
       isInitializingRef.current = true;
       setError(null);
 
+      // Limpar personagem selecionado de sessao anterior
+      // Nova sessao = selecao obrigatoria de personagem
+      storeSelecionarPersonagem(null);
+      localStorage.removeItem('personagemSelecionado');
+
       await carregarHistoria(historiaId);
 
       // Carregar temas se necessario
@@ -156,7 +161,7 @@ export const useJogo = () => {
       setError('Erro ao inicializar jogo: ' + err.message);
       isInitializingRef.current = false;
     }
-  }, [carregarHistoria, temasCarregados, carregarTemas]);
+  }, [carregarHistoria, temasCarregados, carregarTemas, storeSelecionarPersonagem]);
 
   // ------------------------------------------------------------------
   // SELECIONAR PERSONAGEM

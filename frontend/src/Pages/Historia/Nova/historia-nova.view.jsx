@@ -98,17 +98,28 @@ const NovaHistoriaView = ({
           Recomendamos entre 2 e 10 jogadores para uma experiencia ideal
         </p>
 
-        <Selector
-          label="Mestre (opcional)"
-          options={mestres?.map((m) => ({ value: m.id, label: m.nome })) || []}
-          selected={mestreSelecionado}
-          onChange={handleMestreChange}
-          type="single"
-          containerClass="mb-2"
-        />
-        <p className="text-xs text-slate-400 mt-2 font-modern">
-          Se nenhum mestre for selecionado, sera usado um mestre padrao
-        </p>
+        <div className="flex flex-col gap-2 mb-2">
+          <label className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+            Mestre (opcional)
+          </label>
+          <select
+            value={mestreSelecionado || ''}
+            onChange={(e) => handleMestreChange(e.target.value ? Number(e.target.value) : null)}
+            className={`w-full px-4 py-2.5 rounded-lg border text-sm font-modern transition-colors
+              ${isLight
+                ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                : 'bg-slate-800 border-slate-600 text-slate-200 focus:border-purple-400'}
+              focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+          >
+            <option value="">Mestre Padrao</option>
+            {(mestres || []).map((m) => (
+              <option key={m.id} value={m.id}>{m.nome}</option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400 font-modern">
+            Se nenhum mestre for selecionado, sera usado um mestre padrao
+          </p>
+        </div>
 
         {/* Botoes de acao */}
         <div className="flex space-x-4 pt-4">

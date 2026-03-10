@@ -20,6 +20,8 @@ import equipamentoRoutes from './equipamento.js';
 import catalogosRoutes from './catalogos.js';
 import amizadeRoutes from './amizades.js';
 import feedRoutes from './feed.js';
+import imageRoutes from './imageRoutes.js';
+import ttsRoutes from './tts.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import { flags } from '../config/featureFlags.js';
 
@@ -91,6 +93,12 @@ router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);
 router.use('/mestres', authenticateToken, mestreRoutes);
+
+// Geração de imagem
+router.use('/image', authenticateToken, imageRoutes);
+
+// Text-to-Speech
+router.use('/tts', authenticateToken, ttsRoutes);
 
 // Rotas sociais
 router.use('/amizades', authenticateToken, amizadeRoutes);

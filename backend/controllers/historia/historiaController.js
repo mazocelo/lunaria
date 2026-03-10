@@ -68,7 +68,7 @@ class HistoriaController {
       const t1 = Date.now();
       const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
       const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas });
-      if (userId) usageService.track({ userId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - t1, metadata: { agent: 'GeradorPrologo' } });
+      if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - t1, metadata: { agent: 'GeradorPrologo' } });
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para criar história' });
       }
@@ -463,7 +463,7 @@ class HistoriaController {
 
       // Verificar autenticação
       const userId = req.user?.id;
-      if (userId) usageService.track({ userId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - tIA, metadata: { agent: 'GeradorPrologo' } });
+      if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - tIA, metadata: { agent: 'GeradorPrologo' } });
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar história' });
       }
@@ -543,7 +543,7 @@ class HistoriaController {
 
       // Verificar autenticação
       const userId = req.user?.id;
-      if (userId) usageService.track({ userId, provider: 'groq', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - tAv, metadata: { agent: 'CriadorCompleto' } });
+      if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - tAv, metadata: { agent: 'CriadorCompleto' } });
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar aventura' });
       }

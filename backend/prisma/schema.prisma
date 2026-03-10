@@ -299,7 +299,7 @@ model mestres {
   nome             String      @db.VarChar(100)
   descricao        String?
   personalidade    String?
-  modelo           String?     @default("openai/gpt-oss-120b") @db.VarChar(100)
+  modelo           String?     @default("gemini-2.5-flash") @db.VarChar(100)
   temperatura      Float?      @default(0.9)
   max_tokens       Int?        @default(8000)
   tom_narrativo    String?     @db.VarChar(255)

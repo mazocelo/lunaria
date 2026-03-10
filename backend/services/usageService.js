@@ -27,13 +27,17 @@ const COST_TABLE = {
   leonardo: {
     per_image: 0.02,
   },
+  anthropic: {
+    input_per_million: 3.00,   // Sonnet 4.5
+    output_per_million: 15.00,
+  },
 };
 
 function estimateCost({ provider, tipo, input_tokens, output_tokens, caracteres }) {
   const table = COST_TABLE[provider];
   if (!table) return 0;
 
-  if (tipo === 'text' && table.input_per_million) {
+  if ((tipo === 'text' || tipo === 'blueprint') && table.input_per_million) {
     const inputCost = ((input_tokens || 0) / 1_000_000) * table.input_per_million;
     const outputCost = ((output_tokens || 0) / 1_000_000) * table.output_per_million;
     return parseFloat((inputCost + outputCost).toFixed(6));

@@ -15,6 +15,7 @@ export const DEFAULT_MODEL_SETTINGS = {
 export const API_CONFIG = {
     groqApiKey: process.env.GROQ_API_KEY,
     googleApiKey: process.env.GOOGLE_API_KEY,
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
 };
 
 // Configurações de geração de background

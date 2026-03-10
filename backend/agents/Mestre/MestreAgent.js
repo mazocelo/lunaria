@@ -1,10 +1,11 @@
 import { ChatGroq } from '@langchain/groq';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatAnthropic } from '@langchain/anthropic';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
 import dotenv from 'dotenv';
 
-import { MESTRE_CONFIG } from './config.js';
+import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider } from './config.js';
 import { isEnabled } from '../../config/featureFlags.js';
 import analyticsService from '../../services/analyticsService.js';
 import usageService from '../../services/usageService.js';
@@ -93,7 +94,7 @@ function trackLLMUsage(response, modelName, userId, startTime) {
     const tokenUsage = response?.response_metadata?.token_usage || response?.usage_metadata || {};
     const input_tokens = tokenUsage.prompt_tokens || tokenUsage.input_tokens || 0;
     const output_tokens = tokenUsage.completion_tokens || tokenUsage.output_tokens || 0;
-    const provider = modelName?.startsWith('gemini') ? 'gemini' : 'groq';
+    const provider = detectProvider(modelName);
 
     usageService.track({
       userId,
@@ -155,16 +156,24 @@ export class MestreAgent {
   _inicializarModelo() {
     try {
       // Merge config customizada com defaults + clamp values
-      const modelName = this.configOverride?.modelo || MESTRE_CONFIG.model.name;
+      let modelName = this.configOverride?.modelo || MESTRE_CONFIG.model.name;
       const rawTemp = this.configOverride?.temperatura ?? MESTRE_CONFIG.model.temperature;
       const rawTokens = this.configOverride?.max_tokens ?? MESTRE_CONFIG.model.maxTokens;
       const temperature = Math.min(2, Math.max(0, rawTemp));
       const maxTokens = Math.min(32000, Math.max(100, rawTokens));
 
+      // Fallback de modelos deprecados
+      if (DEPRECATED_MODELS[modelName]) {
+        const newModel = DEPRECATED_MODELS[modelName];
+        console.warn(`⚠️ MestreAgent: Modelo deprecado "${modelName}" → migrando para "${newModel}"`);
+        modelName = newModel;
+      }
+
       this.modelName = modelName;
 
       // Detectar provider pelo prefixo do modelo
-      if (modelName.startsWith('gemini')) {
+      const provider = detectProvider(modelName);
+      if (provider === 'gemini') {
         this.model = new ChatGoogleGenerativeAI({
           apiKey: process.env.GOOGLE_API_KEY,
           model: modelName,
@@ -172,6 +181,14 @@ export class MestreAgent {
           maxOutputTokens: maxTokens
         });
         console.log(`🤖 MestreAgent: Usando Google Gemini (${modelName})`);
+      } else if (provider === 'anthropic') {
+        this.model = new ChatAnthropic({
+          apiKey: process.env.ANTHROPIC_API_KEY,
+          model: modelName,
+          temperature,
+          maxTokens,
+        });
+        console.log(`🤖 MestreAgent: Usando Anthropic (${modelName})`);
       } else {
         this.model = new ChatGroq({
           apiKey: process.env.GROQ_API_KEY,

@@ -2,6 +2,7 @@
  * Socket Store - Listeners internos: todos os socket.on() do jogo
  */
 import { COMBAT } from '../../constants/game';
+import { transicaoFase } from './faseMachine.js';
 
 export const createListenerActions = (set, get) => ({
   setupInternalListeners: () => {
@@ -185,10 +186,10 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.on('aventura_iniciada', (data) => {
-      set({
-        faseJogo: 'rolagem_inicial',
+      set(state => ({
+        faseJogo: transicaoFase(state.faseJogo, 'rolagem_inicial'),
         aventuraIniciada: true
-      });
+      }));
       get().log('Aventura iniciada', {
         historiaId: data.historiaId,
         historiaNome: data.historiaNome,
@@ -272,20 +273,20 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.on('rodada_finalizada', (data) => {
-      set({
-        faseJogo: 'entre_rodadas',
+      set(state => ({
+        faseJogo: transicaoFase(state.faseJogo, 'entre_rodadas'),
         rodadaFinalizada: data.rodada
-      });
+      }));
       get().log('Rodada finalizada', { rodada: data.rodada, success: true });
     });
 
     socket.on('nova_rodada_iniciada', (data) => {
-      set({
-        faseJogo: 'rodada_em_andamento',
+      set(state => ({
+        faseJogo: transicaoFase(state.faseJogo, 'rodada_em_andamento'),
         rodadaAtual: data.rodada,
         turnoAtual: 0,
         rodadaFinalizada: null
-      });
+      }));
       get().log('Nova rodada iniciada', { rodada: data.rodada, success: true });
     });
 

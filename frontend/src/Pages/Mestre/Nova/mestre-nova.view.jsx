@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Crown, Sparkles, Loader2, Volume2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
+import ImageGenerator from '../../../components/form/ImageGenerator';
 import Button from '../../../components/form/button';
 
 const VoiceSelector = ({ voice_id, voices, loadingVoices, isLight, setField }) => {
@@ -236,12 +237,12 @@ const NovaMestreView = ({
           </div>
         </div>
 
-        <InputSimples
-          label="URL da Imagem"
-          name="imagem"
-          value={imagem}
-          onChange={e => setField('imagem', e.target.value)}
-          placeholder="https://exemplo.com/imagem.png"
+        <ImageGenerator
+          imageUrl={imagem}
+          onImageGenerated={(url) => setField('imagem', url)}
+          entityType="mestre"
+          entityData={{ nome, personalidade, tom_narrativo }}
+          isLight={isLight}
         />
 
         <VoiceSelector

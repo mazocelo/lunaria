@@ -285,15 +285,6 @@ const NovaMestreView = ({
               max={2}
               step={0.1}
             />
-            <InputSimples
-              label="Max Tokens"
-              name="max_tokens"
-              type="number"
-              value={max_tokens}
-              onChange={e => setField('max_tokens', e.target.value)}
-              min={100}
-              max={32000}
-            />
           </div>
         </div>
 

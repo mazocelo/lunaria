@@ -18,7 +18,7 @@ export const useMestreNovaModel = () => {
   const [personalidade, setPersonalidade] = useState('');
   const [modelo, setModelo] = useState('gemini-2.5-flash');
   const [temperatura, setTemperatura] = useState(0.9);
-  const [max_tokens, setMaxTokens] = useState(8000);
+  const max_tokens = 32000;
   const [tom_narrativo, setTomNarrativo] = useState('');
   const [regras_especiais, setRegrasEspeciais] = useState('');
   const [imagem, setImagem] = useState('');
@@ -66,7 +66,6 @@ export const useMestreNovaModel = () => {
       personalidade: setPersonalidade,
       modelo: setModelo,
       temperatura: setTemperatura,
-      max_tokens: setMaxTokens,
       tom_narrativo: setTomNarrativo,
       regras_especiais: setRegrasEspeciais,
       imagem: setImagem,
@@ -78,14 +77,13 @@ export const useMestreNovaModel = () => {
 
   const _buildData = () => {
     const temp = parseFloat(temperatura);
-    const tokens = parseInt(max_tokens);
     return {
       nome,
       descricao: descricao || null,
       personalidade: personalidade || null,
       modelo: modelo || null,
       temperatura: isNaN(temp) ? 0.9 : temp,
-      max_tokens: isNaN(tokens) ? 8000 : tokens,
+      max_tokens: 32000,
       tom_narrativo: tom_narrativo || null,
       regras_especiais: regras_especiais || null,
       imagem: imagem || null,

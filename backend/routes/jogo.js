@@ -220,26 +220,15 @@ router.post('/start', async (req, res, next) => {
         }
       }
 
-      // Salvar mensagem inicial na sessão e no Redis
+      // Guardar prólogo pendente — será emitido APÓS rolagem de dados inicial
       if (mensagemIntrodutoria) {
-        if (!sessao.mensagens) {
-          sessao.mensagens = [];
-        }
-
-        sessao.mensagens.push({
-          tipo: 'mestre',
-          userId: 'mestre',
-          username: 'Mestre',
-          mensagem: mensagemIntrodutoria,
-          timestamp: Date.now()
-        });
-
         if (sessao.estadoJogo) {
           sessao.estadoJogo.mensagemMestre = mensagemIntrodutoria;
+          sessao.estadoJogo.prologoPendente = mensagemIntrodutoria;
         }
 
         await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-        console.log(`🎭 Mensagem inicial salva no Redis (Prólogo/IA)`);
+        console.log(`🎭 Prólogo salvo como pendente (será emitido após rolagem de dados)`);
       }
 
       // Notificar via WebSocket
@@ -247,7 +236,6 @@ router.post('/start', async (req, res, next) => {
         historiaId: historia.id,
         historiaNome: historia.nome,
         donoNome: req.user.nome,
-        mensagemInicial: mensagemIntrodutoria,
         iniciadaEm: dadosAtualizacao.iniciadaEm
       });
 
@@ -413,27 +401,15 @@ router.post('/start', async (req, res, next) => {
       }
     }
 
-    // Salvar mensagem inicial na sessão e no Redis
+    // Guardar prólogo pendente — será emitido APÓS rolagem de dados inicial
     if (mensagemIntrodutoria) {
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
-      }
-      
-      sessao.mensagens.push({
-        tipo: 'mestre',
-        userId: 'mestre',
-        username: 'Mestre',
-        mensagem: mensagemIntrodutoria,
-        timestamp: Date.now()
-      });
-      
-      // Atualizar mensagemMestre no estado do jogo também
       if (sessao.estadoJogo) {
         sessao.estadoJogo.mensagemMestre = mensagemIntrodutoria;
+        sessao.estadoJogo.prologoPendente = mensagemIntrodutoria;
       }
 
       await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-      console.log(`🎭 Mensagem inicial salva no Redis (Prólogo/IA)`);
+      console.log(`🎭 Prólogo salvo como pendente (será emitido após rolagem de dados)`);
     }
 
     // Notificar via WebSocket todos os usuários conectados à sala sobre o início
@@ -441,7 +417,6 @@ router.post('/start', async (req, res, next) => {
       historiaId: historia.id,
       historiaNome: historia.nome,
       donoNome: req.user.nome,
-      mensagemInicial: mensagemIntrodutoria,
       iniciadaEm: dadosSessao.iniciadaEm
     });
 

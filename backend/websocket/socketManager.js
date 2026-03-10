@@ -3004,6 +3004,38 @@ class SocketManager {
       
       console.log(`🎯 Iniciando primeiro turno para ${primeiroJogador.username} na sala ${roomId}`);
 
+      // Emitir prólogo pendente (gerado no /jogo/start, adiado até após rolagem de dados)
+      const prologoPendente = estadoJogo.prologoPendente;
+      if (prologoPendente) {
+        const prologoTimestamp = Date.now();
+
+        // Salvar na sessao.mensagens
+        if (!sessao.mensagens) sessao.mensagens = [];
+        sessao.mensagens.push({
+          tipo: 'mestre',
+          userId: 'mestre',
+          username: 'Mestre',
+          mensagem: prologoPendente,
+          timestamp: prologoTimestamp
+        });
+
+        // Limpar flag
+        delete estadoJogo.prologoPendente;
+        sessao.estadoJogo = estadoJogo;
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+        // Emitir para todos os jogadores
+        this.io.to(roomId).emit('mensagem_mestre', {
+          id: prologoTimestamp.toString(),
+          userId: 'mestre',
+          username: 'Mestre',
+          message: prologoPendente,
+          tipo: 'mestre',
+          timestamp: prologoTimestamp
+        });
+        console.log(`📜 Prólogo emitido após rolagem de dados para sala ${roomId}`);
+      }
+
       // Notificar mudança de fase
       this.notificarMudancaFase(roomId, 'rodada_em_andamento', {
         rodadaAtual: estadoJogo.rodadaAtual || 1
@@ -3018,7 +3050,6 @@ class SocketManager {
         timestamp: Date.now()
       });
 
-      // Opcional: Mestre pode falar algo direto para o primeiro jogador
       console.log(`✅ Primeiro turno iniciado com ${primeiroJogador.username}`);
     } catch (error) {
       console.error(`❌ Erro ao iniciar primeiro turno:`, error);

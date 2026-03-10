@@ -77,7 +77,7 @@ const BillingPage = React.lazy(() => import('./Pages/Billing'));
 export const ROUTES = {
   HOME: '/',
   HISTORIAS: '/historias',
-  EXPLORAR_HISTORIAS: '/historias/explorar',
+  EXPLORAR_HISTORIAS: '/explorar',
 
   // ===== HISTÓRIAS =====
   NOVA_HISTORIA: '/nova-historia',

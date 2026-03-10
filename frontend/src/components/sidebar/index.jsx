@@ -23,7 +23,7 @@ const Sidebar = () => {
 
   const playerItems = [
     { path: '/historias', label: 'Historias', icon: BookOpen, description: 'Gerencie suas aventuras' },
-    { path: '/historias/explorar', label: 'Explorar', icon: Globe, description: 'Descubra aventuras publicas' },
+    { path: '/explorar', label: 'Explorar', icon: Globe, description: 'Descubra aventuras publicas' },
     { path: '/personagens', label: 'Personagens', icon: Users, description: 'Crie e edite personagens' },
     { path: '/billing', label: 'Consumo', icon: BarChart3, description: 'Consumo de API' },
   ];

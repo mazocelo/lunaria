@@ -48,34 +48,30 @@ function encontrarPersonagemPorNome(sessao, nome) {
 }
 
 /**
+ * Registry de handlers por tipo de ação — extensível sem modificar o dispatcher
+ */
+const ACTION_HANDLERS = new Map([
+  ['dar_item', processarDarItem],
+  ['remover_item', processarRemoverItem],
+  ['curar', processarCurar],
+  ['aplicar_dano', processarAplicarDano],
+  ['aplicar_status', processarAplicarStatus],
+  ['remover_status', processarRemoverStatus],
+]);
+
+/**
  * Processa array de ações mecânicas do Mestre
  */
 export async function processarAcoes(acoes, sessao, roomId, io) {
-  if (!acoes || !Array.isArray(acoes) || acoes.length === 0) return;
+  if (!acoes?.length) return;
 
   for (const acao of acoes) {
     try {
-      switch (acao.tipo) {
-        case 'dar_item':
-          await processarDarItem(acao, sessao, roomId, io);
-          break;
-        case 'remover_item':
-          await processarRemoverItem(acao, sessao, roomId, io);
-          break;
-        case 'curar':
-          await processarCurar(acao, sessao, roomId, io);
-          break;
-        case 'aplicar_dano':
-          await processarAplicarDano(acao, sessao, roomId, io);
-          break;
-        case 'aplicar_status':
-          await processarAplicarStatus(acao, sessao, roomId, io);
-          break;
-        case 'remover_status':
-          await processarRemoverStatus(acao, sessao, roomId, io);
-          break;
-        default:
-          console.warn(`⚠️ AcoesProcessor: tipo de ação desconhecido: ${acao.tipo}`);
+      const handler = ACTION_HANDLERS.get(acao.tipo);
+      if (handler) {
+        await handler(acao, sessao, roomId, io);
+      } else {
+        console.warn(`⚠️ AcoesProcessor: tipo de ação desconhecido: ${acao.tipo}`);
       }
     } catch (error) {
       console.error(`❌ AcoesProcessor: Erro ao processar ação ${acao.tipo}:`, error.message);

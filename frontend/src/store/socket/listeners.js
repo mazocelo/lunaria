@@ -18,15 +18,19 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.on('disconnect', (reason) => {
+      const isIntentional = reason === 'io client disconnect';
+      const prevRoomId = get().roomId;
+
       set({
         isConnected: false,
         isAuthenticated: false,
         inRoom: false,
-        roomId: null
+        // Preservar roomId para auto-rejoin em reconexões não-intencionais
+        roomId: isIntentional ? null : prevRoomId
       });
-      get().log('Disconnected', { reason });
+      get().log('Disconnected', { reason, preservedRoomId: isIntentional ? null : prevRoomId });
 
-      if (reason !== 'io client disconnect' && window.showGameNotification) {
+      if (!isIntentional && window.showGameNotification) {
         window.showGameNotification('Conexao perdida. Tentando reconectar...', 'warning');
       }
     });
@@ -47,9 +51,36 @@ export const createListenerActions = (set, get) => ({
         window.showGameNotification('Reconectado com sucesso!', 'success');
       }
 
-      const { socketToken } = get();
-      if (socketToken) {
-        socket.emit('authenticate', { token: socketToken });
+      // Recuperar dados de auth para re-autenticar
+      const { socketToken, currentUser, roomId } = get();
+      let userId = currentUser?.id;
+      let username = currentUser?.username;
+
+      // Fallback: recuperar do localStorage se currentUser foi limpo
+      if (!userId || !username) {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('user'));
+          userId = userId || storedUser?.id;
+          username = username || storedUser?.username || storedUser?.nome;
+        } catch (e) { /* silent */ }
+      }
+
+      if (userId && username) {
+        const authData = { userId, username };
+        if (socketToken) authData.token = socketToken;
+
+        socket.emit('authenticate', authData);
+
+        // Após re-auth, re-entrar na sala se estava em uma
+        const savedRoomId = roomId;
+        if (savedRoomId) {
+          socket.once('authenticated', () => {
+            get().log('Re-joining room after reconnect', { roomId: savedRoomId });
+            socket.emit('join_room', { roomId: savedRoomId, userId });
+          });
+        }
+      } else {
+        get().log('Cannot re-authenticate: missing userId/username', {}, 'warn');
       }
     });
 

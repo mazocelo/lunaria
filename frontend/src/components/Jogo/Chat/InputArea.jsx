@@ -253,7 +253,7 @@ const InputArea = ({
             value={mensagemAtual || ''}
             onChange={onMensagemChange}
             onKeyDown={handleKeyPress}
-            disabled={connectionStatus.status === 'error' || isSending || inputDesabilitado}
+            disabled={isSending || inputDesabilitado}
             className={`flex-1 min-w-0 px-5 py-3 text-base rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg ${
               ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado
                 ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-cyan-500/30'

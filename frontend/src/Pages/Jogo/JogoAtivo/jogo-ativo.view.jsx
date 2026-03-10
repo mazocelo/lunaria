@@ -21,7 +21,6 @@ const JogoAtivoView = ({
   error,
   socketError,
   isConnected,
-  isTyping,
   isReconnecting,
 
   // Handlers
@@ -84,7 +83,6 @@ const JogoAtivoView = ({
         statusPersonagem={statusPersonagem}
         isDonoSala={isDonoSala}
         socketConnected={isConnected}
-        isTyping={isTyping}
         user={user}
         onAdicionarMensagem={handleAdicionarMensagem}
         onAtualizarStatus={handleAtualizarStatus}

@@ -29,12 +29,11 @@ export const socketInitialStates = {
   connectionAttempts: 0,
   lastConnectionTime: null,
   connectionStartTime: null,
-  connectionMonitor: null,
-  
+
   // ===== INFORMAÇÕES DO USUÁRIO =====
   currentUser: null,
   userRole: null, // 'mestre' | 'jogador'
-  socketToken: null, // Token JWT para autenticação do Socket.IO
+  socketToken: (() => { try { return localStorage.getItem('socketToken'); } catch { return null; } })(),
   
   // ===== ESTADO DA SALA/ROOM (TÉCNICO) =====
   roomId: null, // ID técnico da room WebSocket
@@ -50,13 +49,7 @@ export const socketInitialStates = {
   
   // ===== STATUS DE CONECTIVIDADE =====
   error: null, // Erros específicos de conexão/socket
-  lastPingTime: null,
-  latency: 0,
-  
-  // ===== TYPING STATUS =====
-  isTyping: false, // Se o usuário atual está digitando
-  typingTimeout: null,
-  
+
   // ===== CONTROLE DE AVENTURA =====
   aventuraIniciada: false,
 
@@ -71,7 +64,6 @@ export const socketInitialStates = {
   ehMeuTurno: false,
   turnoIniciado: false, // Se o jogador já clicou em "Iniciar Turno"
   cooldownRoleplay: 0,
-  contadorMensagensTurno: 0,
   rodadaFinalizada: null,
   estadoJogo: {},
   erroMensagem: null,
@@ -97,7 +89,6 @@ export const socketInitialStates = {
     AUTH_TIMEOUT: SOCKET_TIMEOUTS.AUTHENTICATION,
     ROOM_TIMEOUT: SOCKET_TIMEOUTS.ROOM_JOIN_LEAVE,
     SESSION_TIMEOUT: SOCKET_TIMEOUTS.SESSION_START,
-    MONITOR_INTERVAL: SOCKET_TIMEOUTS.MONITOR_INTERVAL,
   }
 };
 

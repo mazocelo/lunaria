@@ -23,8 +23,6 @@ export const useJogoSocket = () => {
   const isConnecting = useSocketStore(s => s.isConnecting);
   const isAuthenticated = useSocketStore(s => s.isAuthenticated);
   const socketError = useSocketStore(s => s.error);
-  const latency = useSocketStore(s => s.latency);
-  const isTyping = useSocketStore(s => s.isTyping);
   const isReconnecting = useSocketStore(s => s.isReconnecting);
   const roomUsers = useSocketStore(s => s.roomUsers);
   const inRoom = useSocketStore(s => s.inRoom);
@@ -298,8 +296,6 @@ export const useJogoSocket = () => {
     isConnecting: isConnecting || localIsConnecting,
     isAuthenticated,
     socketError: localSocketError || socketError,
-    latency,
-    isTyping,
     isReconnecting,
     roomUsers,
     inRoom,

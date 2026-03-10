@@ -87,7 +87,6 @@ const EtapaJogoRPG = ({
   statusPersonagem,
   isDonoSala,
   socketConnected,
-  isTyping,
   user,
   onAdicionarMensagem,
   onAtualizarStatus,

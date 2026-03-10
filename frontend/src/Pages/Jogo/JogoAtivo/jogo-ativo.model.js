@@ -41,7 +41,6 @@ export const useJogoAtivoModel = () => {
   const {
     isConnected,
     socketError,
-    isTyping,
     isReconnecting,
     clearSocketError,
   } = socket;
@@ -109,7 +108,6 @@ export const useJogoAtivoModel = () => {
     error,
     socketError,
     isConnected,
-    isTyping,
     isReconnecting,
 
     // Handlers

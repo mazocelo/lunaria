@@ -1,24 +1,14 @@
 /**
- * Socket Store - Conexão: connect, authenticate, monitor, disconnect, token
+ * Socket Store - Conexão: connect, authenticate, disconnect, token
  */
 import io from 'socket.io-client';
 
 const WS_BASE_URL = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:3001';
 
 export const createConnectionActions = (set, get) => ({
-  // Monitor removido — Socket.IO nativo já cuida de heartbeat via pingInterval/pingTimeout
-  startConnectionMonitor: () => {},
-  stopConnectionMonitor: () => {
-    const { connectionMonitor } = get();
-    if (connectionMonitor) {
-      clearInterval(connectionMonitor);
-      set({ connectionMonitor: null });
-    }
-  },
-
   // ===== CONEXÃO PRINCIPAL =====
   connect: async (authData = null) => {
-    const { isConnected, isConnecting, socket, socketToken, validateToken, log, setupInternalListeners, startConnectionMonitor, configs, connectionOptions } = get();
+    const { isConnected, isConnecting, socket, socketToken, validateToken, log, setupInternalListeners, configs, connectionOptions } = get();
 
     return new Promise((resolve, reject) => {
       try {
@@ -83,7 +73,6 @@ export const createConnectionActions = (set, get) => ({
             duration: Date.now() - get().connectionStartTime,
             success: true
           });
-          startConnectionMonitor();
           resolve();
         });
 
@@ -169,22 +158,22 @@ export const createConnectionActions = (set, get) => ({
   // ===== GERENCIAMENTO DE SOCKET TOKEN =====
   setSocketToken: (token) => {
     set({ socketToken: token });
+    try { localStorage.setItem('socketToken', token); } catch (e) { /* silent */ }
   },
 
   clearSocketToken: () => {
     set({ socketToken: null });
+    try { localStorage.removeItem('socketToken'); } catch (e) { /* silent */ }
   },
 
   // ===== DISCONNECT E CLEANUP =====
   disconnect: () => {
-    const { socket, stopConnectionMonitor } = get();
+    const { socket } = get();
 
     if (socket) {
       socket.removeAllListeners();
       socket.disconnect();
     }
-
-    stopConnectionMonitor();
 
     set({
       socket: null,
@@ -200,6 +189,7 @@ export const createConnectionActions = (set, get) => ({
       roomUsers: [],
       error: null
     });
+    try { localStorage.removeItem('socketToken'); } catch (e) { /* silent */ }
   },
 
   resetSocketState: () => {
@@ -209,13 +199,8 @@ export const createConnectionActions = (set, get) => ({
     set({
       listeners: new Map(),
       connectionStartTime: null,
-      connectionMonitor: null,
       lastConnectionTime: null,
       connectionAttempts: 0,
-      lastPingTime: null,
-      latency: 0,
-      isTyping: false,
-      typingTimeout: null,
       rateLimitExceeded: false,
       rateLimitResetTime: null,
       lastMessageTime: null,

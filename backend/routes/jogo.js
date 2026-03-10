@@ -7,6 +7,7 @@ import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.
 import { buscarPersonagensCompletos, formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import resumoAgent from '../agents/Resumo/ResumoAgent.js';
+import usageService from '../services/usageService.js';
 
 const router = express.Router();
 
@@ -762,6 +763,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
         const temas = sessaoRedis.temas || historia.temas || [];
         const rodadasJogadas = sessaoRedis.estadoJogo?.rodadaAtual || 0;
 
+        const tResumo = Date.now();
         const resultado = await resumoAgent.resumirAventura({
           mensagens: sessaoRedis.mensagens,
           temas: Array.isArray(temas) ? temas : [temas],
@@ -769,6 +771,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
           rodadasJogadas
         });
         resumoSessao = resultado.resumo;
+        if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - tResumo, metadata: { agent: 'ResumoAgent' } });
         console.log(`📝 Resumo da sessão gerado com sucesso (${resultado.mensagensResumiadas} mensagens)`);
       }
     } catch (resumoError) {

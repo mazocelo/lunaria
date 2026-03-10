@@ -151,4 +151,70 @@ export async function buildCatalogo({ niveisJogadores = [] } = {}) {
   }
 }
 
+/**
+ * Constrói catálogo COMPLETO sem truncamento (para geração de blueprints)
+ * @returns {string} Texto formatado do catálogo completo
+ */
+export async function buildCatalogoCompleto() {
+  try {
+    const { monstros, equipamentos, elementos } = await fetchRawData();
+    const sections = [];
+
+    // === MONSTROS (todos, sem filtro de nível) ===
+    if (monstros.length > 0) {
+      const porTipo = {};
+      for (const m of monstros) {
+        const tipo = (m.tipo && m.tipo[0]) || 'outro';
+        if (!porTipo[tipo]) porTipo[tipo] = [];
+        const elem = m.elemento?.length ? `, ${m.elemento.join('/')}` : '';
+        const hab = m.habilidades && Array.isArray(m.habilidades) && m.habilidades.length > 0
+          ? `, hab: ${m.habilidades.map(h => h.nome || h).join('/')}`
+          : '';
+        porTipo[tipo].push(`${m.nome} (nv${m.nivel_min}-${m.nivel_max}, HP${m.hp_base}, dano:${m.dano_base}${elem}${hab})`);
+      }
+      let text = '=== CATÁLOGO COMPLETO DE MONSTROS ===\n';
+      text += `Total: ${monstros.length} monstros.\n\n`;
+      for (const [tipo, lista] of Object.entries(porTipo).sort()) {
+        text += `[${tipo}] ${lista.join(', ')}\n`;
+      }
+      sections.push(text);
+    }
+
+    // === EQUIPAMENTOS (todos) ===
+    if (equipamentos.length > 0) {
+      const porTipo = {};
+      for (const e of equipamentos) {
+        const tipo = (e.tipo && e.tipo[0]) || 'outro';
+        if (!porTipo[tipo]) porTipo[tipo] = [];
+        const elem = e.elemento?.length ? `, ${e.elemento.join('/')}` : '';
+        const bonus = formatarBonus(e.bonus);
+        const bonusStr = bonus ? `, ${bonus}` : '';
+        const raridade = e.raridade_rel?.nome || '';
+        const raridadeStr = raridade ? ` [${raridade}]` : '';
+        porTipo[tipo].push(`${e.nome}${raridadeStr} (${e.dano_base || '-'}${elem}${bonusStr})`);
+      }
+      let text = '=== CATÁLOGO COMPLETO DE EQUIPAMENTOS ===\n';
+      text += `Total: ${equipamentos.length} equipamentos.\n\n`;
+      for (const [tipo, lista] of Object.entries(porTipo).sort()) {
+        text += `[${tipo}] ${lista.join(', ')}\n`;
+      }
+      sections.push(text);
+    }
+
+    // === ELEMENTOS ===
+    if (elementos.length > 0) {
+      let text = '=== ELEMENTOS ===\n';
+      text += elementos.map(e => `${e.nome} (${e.descricao || ''})`).join(', ');
+      sections.push(text);
+    }
+
+    const catalogo = sections.join('\n\n');
+    console.log(`📦 CatalogoCompleto: ${monstros.length} monstros, ${equipamentos.length} equipamentos, ${elementos.length} elementos (${catalogo.length} chars)`);
+    return catalogo;
+  } catch (error) {
+    console.error('❌ CatalogoCompleto: Erro ao construir catálogo:', error.message);
+    return '';
+  }
+}
+
 export default buildCatalogo;

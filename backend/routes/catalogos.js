@@ -34,11 +34,17 @@ router.get('/categorias-monstro', async (req, res) => {
 });
 
 // GET /catalogos/habilidades?classe_id=X&nivel=Y
+// Retorna habilidades da classe + genéricas (classe_id null)
 router.get('/habilidades', async (req, res) => {
   try {
     const { classe_id, nivel } = req.query;
     const where = {};
-    if (classe_id) where.classe_id = parseInt(classe_id);
+    if (classe_id) {
+      where.OR = [
+        { classe_id: parseInt(classe_id) },
+        { classe_id: null }
+      ];
+    }
     if (nivel) where.nivel_requerido = { lte: parseInt(nivel) };
     const habilidades = await db.prisma.habilidades.findMany({
       where,

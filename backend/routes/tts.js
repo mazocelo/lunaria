@@ -1,21 +1,54 @@
 import express from 'express';
-import ttsService from '../services/ttsService.js';
+import { getProvider, getConfiguredProviders } from '../services/ttsService.js';
+import usageService from '../services/usageService.js';
 
 const router = express.Router();
 
 const MAX_TEXT_LENGTH = 5000;
+const PREVIEW_TEXT_PTBR = 'Olá aventureiros! Eu serei o mestre desta jornada épica. Preparem-se para uma aventura inesquecível!';
+
+/**
+ * GET /tts/providers
+ * Lista providers de TTS configurados
+ */
+router.get('/providers', (req, res) => {
+  const configured = getConfiguredProviders();
+  res.json({ success: true, data: configured });
+});
+
+/**
+ * GET /tts/voices?provider=elevenlabs|cartesia
+ * Lista vozes disponíveis no provider
+ */
+router.get('/voices', async (req, res) => {
+  try {
+    const providerName = req.query.provider || 'elevenlabs';
+    const provider = getProvider(providerName);
+
+    if (!provider.isConfigured()) {
+      return res.status(503).json({ success: false, error: `Provider ${providerName} não configurado` });
+    }
+
+    const voices = await provider.listVoices();
+    res.json({ success: true, data: voices, provider: providerName });
+  } catch (error) {
+    console.error('TTS voices error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 /**
  * POST /tts/generate
- * Gera áudio a partir de texto usando ElevenLabs
+ * Gera áudio a partir de texto
  */
 router.post('/generate', async (req, res) => {
   try {
-    if (!ttsService.isConfigured()) {
-      return res.status(503).json({ success: false, error: 'TTS não configurado' });
-    }
+    const { text, voiceId, provider: providerName = 'elevenlabs', emotion } = req.body;
+    const provider = getProvider(providerName);
 
-    const { text, voiceId } = req.body;
+    if (!provider.isConfigured()) {
+      return res.status(503).json({ success: false, error: `Provider ${providerName} não configurado` });
+    }
 
     if (!text || !voiceId) {
       return res.status(400).json({ success: false, error: 'text e voiceId são obrigatórios' });
@@ -25,7 +58,13 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ success: false, error: `Texto excede limite de ${MAX_TEXT_LENGTH} caracteres` });
     }
 
-    const audioBuffer = await ttsService.generateSpeech(text, voiceId);
+    const options = {};
+    if (emotion) options.emotion = emotion;
+
+    const tTTS = Date.now();
+    const audioBuffer = await provider.generateSpeech(text, voiceId, options);
+
+    if (req.user?.id) usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: text.length, duracao_ms: Date.now() - tTTS });
 
     res.set({
       'Content-Type': 'audio/mpeg',
@@ -40,42 +79,29 @@ router.post('/generate', async (req, res) => {
 });
 
 /**
- * GET /tts/voices
- * Lista vozes disponíveis na ElevenLabs
- */
-router.get('/voices', async (req, res) => {
-  try {
-    if (!ttsService.isConfigured()) {
-      return res.status(503).json({ success: false, error: 'TTS não configurado' });
-    }
-
-    const voices = await ttsService.listVoices();
-    res.json({ success: true, data: voices });
-  } catch (error) {
-    console.error('TTS voices error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-const PREVIEW_TEXT_PTBR = 'Olá aventureiros! Eu serei o mestre desta jornada épica. Preparem-se para uma aventura inesquecível!';
-
-/**
  * POST /tts/preview
  * Gera preview de voz em PT-BR
  */
 router.post('/preview', async (req, res) => {
   try {
-    if (!ttsService.isConfigured()) {
-      return res.status(503).json({ success: false, error: 'TTS não configurado' });
-    }
+    const { voiceId, provider: providerName = 'elevenlabs', emotion } = req.body;
+    const provider = getProvider(providerName);
 
-    const { voiceId } = req.body;
+    if (!provider.isConfigured()) {
+      return res.status(503).json({ success: false, error: `Provider ${providerName} não configurado` });
+    }
 
     if (!voiceId) {
       return res.status(400).json({ success: false, error: 'voiceId é obrigatório' });
     }
 
-    const audioBuffer = await ttsService.generateSpeech(PREVIEW_TEXT_PTBR, voiceId);
+    const options = {};
+    if (emotion) options.emotion = emotion;
+
+    const tPrev = Date.now();
+    const audioBuffer = await provider.generateSpeech(PREVIEW_TEXT_PTBR, voiceId, options);
+
+    if (req.user?.id) usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: PREVIEW_TEXT_PTBR.length, duracao_ms: Date.now() - tPrev, metadata: { preview: true } });
 
     res.set({
       'Content-Type': 'audio/mpeg',

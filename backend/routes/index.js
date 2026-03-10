@@ -23,6 +23,8 @@ import feedRoutes from './feed.js';
 import imageRoutes from './imageRoutes.js';
 import ttsRoutes from './tts.js';
 import analyticsRoutes from './analytics.js';
+import billingRoutes from './billing.js';
+import habilidadeRoutes from './habilidades.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import { flags } from '../config/featureFlags.js';
 
@@ -61,6 +63,7 @@ router.get('/', async (req, res, next) => {
       monstros: '/monstros',
       equipamentos: '/equipamentos',
       catalogos: '/catalogos',
+      habilidades: '/habilidades',
       amizades: '/amizades',
       feed: '/feed',
       websocket: '/websocket',
@@ -85,6 +88,7 @@ router.use('/desvantagens',authenticateToken, desvantagemRoutes);
 router.use('/temas',authenticateToken, temasRoutes);
 router.use('/equipamentos', authenticateToken, equipamentoRoutes);
 router.use('/catalogos', authenticateToken, catalogosRoutes);
+router.use('/habilidades', authenticateToken, habilidadeRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória
@@ -114,5 +118,8 @@ router.use('/monstros', monstroRoutes);
 
 // Analytics (auth aplicado internamente - superadmin only)
 router.use('/analytics', analyticsRoutes);
+
+// Billing
+router.use('/billing', authenticateToken, billingRoutes);
 
 export default router;

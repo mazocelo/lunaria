@@ -1,4 +1,5 @@
 import { generateImage, buildPrompt } from '../services/imageGenerationService.js';
+import usageService from '../services/usageService.js';
 
 const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'mestre'];
 
@@ -21,7 +22,10 @@ async function gerarImagem(req, res) {
     }
 
     const prompt = buildPrompt(entityType, entityData);
+    const tImg = Date.now();
     const imageUrl = await generateImage(prompt);
+
+    if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'leonardo', tipo: 'image', duracao_ms: Date.now() - tImg, metadata: { entityType } });
 
     return res.json({ success: true, data: { url: imageUrl, prompt } });
   } catch (error) {

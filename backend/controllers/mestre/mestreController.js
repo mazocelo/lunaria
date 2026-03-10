@@ -2,7 +2,7 @@ import db from '../../Model/index.js';
 
 class MestreController {
   criarMestre = async (req, res) => {
-    const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id } = req.body;
+    const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id, voice_provider } = req.body;
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
@@ -19,6 +19,7 @@ class MestreController {
       regras_especiais: regras_especiais || null,
       imagem: imagem || null,
       voice_id: voice_id || null,
+      voice_provider: voice_provider || null,
       id_usuario: req.user.id
     });
 
@@ -96,7 +97,7 @@ class MestreController {
       return res.status(403).json({ success: false, error: 'Você só pode editar seus próprios mestres' });
     }
 
-    const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id } = req.body;
+    const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id, voice_provider } = req.body;
 
     const dadosAtualizacao = {};
     if (nome !== undefined) dadosAtualizacao.nome = nome;
@@ -109,6 +110,7 @@ class MestreController {
     if (regras_especiais !== undefined) dadosAtualizacao.regras_especiais = regras_especiais;
     if (imagem !== undefined) dadosAtualizacao.imagem = imagem;
     if (voice_id !== undefined) dadosAtualizacao.voice_id = voice_id;
+    if (voice_provider !== undefined) dadosAtualizacao.voice_provider = voice_provider;
 
     const mestreAtualizado = await db.Mestre.updateMestre(id, dadosAtualizacao);
 

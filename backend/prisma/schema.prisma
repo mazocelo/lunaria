@@ -16,6 +16,8 @@ model classes {
   bonus       String?
   personagens personagens[]
   habilidades habilidades[]
+  ferramentas ferramentas[]
+  receitas    receitas[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -49,6 +51,7 @@ model raridades {
   ordem        Int            @default(0)
   equipamentos equipamentos[]
   monstros     monstros[]
+  ingredientes ingredientes[]
 }
 
 model categorias_equipamento {
@@ -91,6 +94,7 @@ model equipamentos {
   raridade_rel           raridades?               @relation(fields: [raridade_id], references: [id])
   personagem_equipamento personagem_equipamento[]
   monstro_loot           monstro_loot[]
+  receitas               receitas[]
 
   @@index([categoria_id], map: "idx_equipamento_categoria")
   @@index([raridade_id], map: "idx_equipamento_raridade")
@@ -113,6 +117,8 @@ model historias {
   imagem                  String?                 @db.VarChar(500)
   mapas                   Json?
   publica                 Boolean                 @default(false)
+  roteiro                 Json?
+  roteiro_status          String?                 @db.VarChar(50)
   usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
   mestres                 mestres?                @relation(fields: [mestre_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_historias_mestre_id")
   historias_convite       historias_convite[]
@@ -199,6 +205,7 @@ model racas {
   descricao   String?
   bonus       String?
   personagens personagens[]
+  habilidades habilidades[]
 }
 
 model temas {
@@ -229,6 +236,7 @@ model usuarios {
   feed_posts           feed_posts[]
   feed_curtidas        feed_curtidas[]
   feed_comentarios     feed_comentarios[]
+  api_usage            api_usage[]
 
   @@index([deleted_at])
 }
@@ -343,7 +351,8 @@ model monstros {
   velocidade    Json?               @default("{\"terrestre\": 30}")
   categoria_rel categorias_monstro? @relation(fields: [categoria_id], references: [id])
   raridade_rel  raridades?          @relation(fields: [raridade_id], references: [id])
-  monstro_loot  monstro_loot[]
+  monstro_loot         monstro_loot[]
+  monstro_ingrediente  monstro_ingrediente[]
 
   @@index([nivel_min, nivel_max], map: "idx_monstro_nivel")
   @@index([raridade_id], map: "idx_monstro_raridade")
@@ -382,35 +391,71 @@ model elementos {
   ordem     Int?    @default(0)
 }
 
-enum enum_habilidades_categoria {
-  combate
-  magia
-  social
-  exploracao
-  sobrevivencia
-  artesanato
-  outros
+// ─── V2 Enums ──────────────────────────────────────────────
+
+enum enum_alcance {
+  toque
+  curto
+  medio
+  longo
+  extremo
+  pessoal
+  ilimitado
 }
 
-enum enum_habilidades_raridade {
-  comum
-  incomum
-  rara
-  epica
-  lendaria
+enum enum_area_tipo {
+  nenhuma
+  esfera
+  cone
+  linha
+  cubo
+  cilindro
 }
 
-enum enum_habilidades_status {
-  ativa
-  inativa
-  rascunho
-}
-
-enum enum_habilidades_tipo {
-  ativa
-  passiva
-  reacao
+enum enum_tempo_conjuracao {
+  instantaneo
+  acao
+  turno_cheio
   ritual
+  preparacao
+}
+
+enum enum_categoria_habilidade {
+  combate_fisico
+  magia_ofensiva
+  magia_defensiva
+  cura
+  suporte
+  controle
+  utilidade
+  social
+  crafting
+}
+
+enum enum_escola_magia {
+  nenhuma
+  evocacao
+  abjuracao
+  necromancia
+  ilusao
+  transmutacao
+  adivinhacao
+  encantamento
+  conjuracao
+  universal
+}
+
+enum enum_categoria_receita {
+  pocao
+  veneno
+  bomba
+  armadilha
+  pergaminho
+  municao
+  comida
+  equipamento
+  engenhoca
+  kit
 }
 
 model amizades {
@@ -521,19 +566,39 @@ model habilidades {
   nome             String   @unique @db.VarChar(100)
   descricao        String
   custo_mana       Int      @default(0)
-  dano_base        String?  @db.VarChar(50)   // ex: "2d6+3"
-  tipo             String   @default("dano") @db.VarChar(30) // dano, cura, buff, debuff, controle
-  elemento         String?  @db.VarChar(50)   // fogo, gelo, arcano, sagrado, etc
+  dano_base        String?  @db.VarChar(50)
+  tipo             String   @default("dano") @db.VarChar(30)
+  elemento         String?  @db.VarChar(50)
   nivel_requerido  Int      @default(1)
   cooldown_turnos  Int      @default(0)
   classe_id        Int?
-  efeito           Json?    // { status: "envenenado", duracao: 3, valor: 5 }
-  alvo             String   @default("inimigo") @db.VarChar(30) // inimigo, aliado, area, self
+  efeito           Json?
+  alvo             String   @default("inimigo") @db.VarChar(30)
 
-  classe           classes? @relation(fields: [classe_id], references: [id])
+  // --- V2 FIELDS ---
+  alcance             String   @default("medio") @db.VarChar(30)
+  area_efeito         Json?
+  tempo_conjuracao    String   @default("acao") @db.VarChar(30)
+  usa_concentracao    Boolean  @default(false)
+  categoria           String   @default("combate_fisico") @db.VarChar(30)
+  escola_magia        String?  @db.VarChar(30)
+  escalamento         Json?
+  pre_requisito       Json?
+  raca_id             Int?
+  usos_por_descanso   Int?
+  componente_material Json?
+  saving_throw        String?  @db.VarChar(30)
+
+  // Relations
+  classe              classes? @relation(fields: [classe_id], references: [id])
+  raca                racas?   @relation(fields: [raca_id], references: [id])
+  receitas            receitas[]
 
   @@index([classe_id])
   @@index([nivel_requerido])
+  @@index([raca_id])
+  @@index([categoria])
+  @@index([escola_magia])
 }
 
 model monstro_loot {
@@ -553,6 +618,28 @@ model monstro_loot {
   @@index([monstro_id])
 }
 
+model api_usage {
+  id            Int       @id @default(autoincrement())
+  user_id       Int
+  provider      String    @db.VarChar(50)
+  tipo          String    @db.VarChar(50)
+  modelo        String?   @db.VarChar(100)
+  input_tokens  Int?
+  output_tokens Int?
+  caracteres    Int?
+  custo_usd     Float?    @default(0)
+  duracao_ms    Int?
+  metadata      Json?     @default("{}")
+  criado_em     DateTime  @default(now()) @db.Timestamptz(6)
+
+  usuarios      usuarios  @relation(fields: [user_id], references: [id], onDelete: NoAction)
+
+  @@index([user_id])
+  @@index([provider])
+  @@index([tipo])
+  @@index([criado_em])
+}
+
 model analytics_eventos {
   id         Int       @id @default(autoincrement())
   tipo       String    @db.VarChar(100)
@@ -563,4 +650,113 @@ model analytics_eventos {
   @@index([tipo])
   @@index([criado_em])
   @@index([user_id])
+}
+
+// ─── SISTEMA DE CRAFTING ─────────────────────────────────────
+
+model ingredientes {
+  id          Int     @id @default(autoincrement())
+  nome        String  @unique @db.VarChar(100)
+  descricao   String?
+  tipo        String  @default("material") @db.VarChar(30)
+  raridade_id Int?
+  preco_base  Int     @default(1)
+  peso        Float?  @default(0.1)
+  icone       String? @db.VarChar(10)
+  empilhavel  Boolean @default(true)
+  max_pilha   Int     @default(99)
+
+  raridade_rel         raridades?          @relation(fields: [raridade_id], references: [id])
+  receita_ingredientes receita_ingrediente[]
+  monstro_ingrediente  monstro_ingrediente[]
+
+  @@index([tipo])
+  @@index([raridade_id])
+}
+
+model ferramentas {
+  id          Int     @id @default(autoincrement())
+  nome        String  @unique @db.VarChar(100)
+  descricao   String?
+  tipo        String  @default("kit") @db.VarChar(30)
+  preco_base  Int     @default(50)
+  peso        Float?  @default(2.0)
+  classe_id   Int?
+
+  classe              classes? @relation(fields: [classe_id], references: [id])
+  receita_ferramentas receita_ferramenta[]
+
+  @@index([classe_id])
+}
+
+model receitas {
+  id                   Int      @id @default(autoincrement())
+  nome                 String   @unique @db.VarChar(150)
+  descricao            String?
+  categoria            String   @default("pocao") @db.VarChar(30)
+  habilidade_id        Int?
+  equipamento_id       Int?
+  quantidade_resultado Int      @default(1)
+  nivel_requerido      Int      @default(1)
+  classe_id            Int?
+  dificuldade          Int      @default(10)
+  atributo_teste       String   @default("inteligencia") @db.VarChar(30)
+  tempo_fabricacao      Int      @default(1)
+  tempo_fora_combate   Int?     @default(30)
+  descoberta           Boolean  @default(false)
+  criado_em            DateTime? @default(now()) @db.Timestamptz(6)
+
+  classe               classes?       @relation(fields: [classe_id], references: [id])
+  habilidade           habilidades?   @relation(fields: [habilidade_id], references: [id])
+  equipamento          equipamentos?  @relation(fields: [equipamento_id], references: [id])
+  ingredientes_rel     receita_ingrediente[]
+  ferramentas_rel      receita_ferramenta[]
+
+  @@index([classe_id])
+  @@index([categoria])
+  @@index([nivel_requerido])
+  @@index([habilidade_id])
+}
+
+model receita_ingrediente {
+  id              Int          @id @default(autoincrement())
+  receita_id      Int
+  ingrediente_id  Int
+  quantidade      Int          @default(1)
+  consumido       Boolean      @default(true)
+
+  receita         receitas     @relation(fields: [receita_id], references: [id], onDelete: Cascade)
+  ingrediente     ingredientes @relation(fields: [ingrediente_id], references: [id], onDelete: Cascade)
+
+  @@unique([receita_id, ingrediente_id])
+  @@index([receita_id])
+}
+
+model receita_ferramenta {
+  id              Int         @id @default(autoincrement())
+  receita_id      Int
+  ferramenta_id   Int
+  obrigatoria     Boolean     @default(true)
+
+  receita         receitas    @relation(fields: [receita_id], references: [id], onDelete: Cascade)
+  ferramenta      ferramentas @relation(fields: [ferramenta_id], references: [id], onDelete: Cascade)
+
+  @@unique([receita_id, ferramenta_id])
+  @@index([receita_id])
+}
+
+model monstro_ingrediente {
+  id              Int          @id @default(autoincrement())
+  monstro_id      Int
+  ingrediente_id  Int
+  drop_rate       Float        @default(0.3)
+  min_quantidade  Int          @default(1)
+  max_quantidade  Int          @default(3)
+  nivel_minimo    Int          @default(1)
+
+  monstro         monstros     @relation(fields: [monstro_id], references: [id], onDelete: Cascade)
+  ingrediente     ingredientes @relation(fields: [ingrediente_id], references: [id], onDelete: Cascade)
+
+  @@unique([monstro_id, ingrediente_id])
+  @@index([monstro_id])
 }

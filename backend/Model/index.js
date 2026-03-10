@@ -16,6 +16,7 @@ import Amizade from './Amizade.js';
 import FeedPost from './FeedPost.js';
 import PersonagemSessao from './PersonagemSessao.js';
 import MonstroLoot from './MonstroLoot.js';
+import Habilidade from './Habilidade.js';
 
 // Exportar o cliente Prisma e todos os modelos
 const db = {
@@ -36,7 +37,8 @@ const db = {
   Amizade: Amizade(prisma),
   FeedPost: FeedPost(prisma),
   PersonagemSessao: PersonagemSessao(prisma),
-  MonstroLoot: MonstroLoot(prisma)
+  MonstroLoot: MonstroLoot(prisma),
+  Habilidade: Habilidade(prisma)
 };
 
 export default db;

@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { MESTRE_CONFIG } from './config.js';
 import { isEnabled } from '../../config/featureFlags.js';
 import analyticsService from '../../services/analyticsService.js';
+import usageService from '../../services/usageService.js';
 
 // Timeout wrapper for AI calls
 function withTimeout(promise, ms = MESTRE_CONFIG.model.timeout) {
@@ -81,6 +82,33 @@ function fallbackSolicitaDados(respostaJSON) {
   }
 }
 
+/**
+ * Extract token usage from LangChain response and track via usageService
+ */
+function trackLLMUsage(response, modelName, userId, startTime) {
+  if (!userId) return;
+  try {
+    // Groq: response.response_metadata.token_usage
+    // Gemini: response.usage_metadata
+    const tokenUsage = response?.response_metadata?.token_usage || response?.usage_metadata || {};
+    const input_tokens = tokenUsage.prompt_tokens || tokenUsage.input_tokens || 0;
+    const output_tokens = tokenUsage.completion_tokens || tokenUsage.output_tokens || 0;
+    const provider = modelName?.startsWith('gemini') ? 'gemini' : 'groq';
+
+    usageService.track({
+      userId,
+      provider,
+      tipo: 'text',
+      modelo: modelName,
+      input_tokens,
+      output_tokens,
+      duracao_ms: startTime ? Date.now() - startTime : null,
+    });
+  } catch (e) {
+    // silent — don't break game flow
+  }
+}
+
 import { criarPromptSistema } from './prompts/sistema.js';
 import { criarPromptNarracao } from './prompts/narracao.js';
 import { criarPromptInicio, criarPromptBoasVindas } from './prompts/inicio.js';
@@ -98,7 +126,7 @@ const RESUMO_MAX_CHARS = MESTRE_CONFIG.behavior.resumoMaxChars;
  * Gerencia toda a interação com o modelo de IA e o contexto da aventura
  */
 export class MestreAgent {
-  constructor(temas = [], personagens = [], configOverride = null, catalogo = '') {
+  constructor(temas = [], personagens = [], configOverride = null, catalogo = '', roteiroCondensado = '') {
     // Garantir que temas sejam sempre strings (nomes)
     // Validação de segurança caso alguém passe IDs ou objetos por engano
     this.temas = extrairNomesTemas(temas);
@@ -111,9 +139,12 @@ export class MestreAgent {
     this.personagens = personagens.map(p => extrairInfoPersonagem(p));
     this.configOverride = configOverride;
     this.catalogo = catalogo;
+    this.roteiroCondensado = roteiroCondensado;
     this.historico = [];
     this.model = null;
     this.chain = null;
+    this.modelName = null;
+    this.userId = null;
 
     this._inicializarModelo();
   }
@@ -129,6 +160,8 @@ export class MestreAgent {
       const rawTokens = this.configOverride?.max_tokens ?? MESTRE_CONFIG.model.maxTokens;
       const temperature = Math.min(2, Math.max(0, rawTemp));
       const maxTokens = Math.min(32000, Math.max(100, rawTokens));
+
+      this.modelName = modelName;
 
       // Detectar provider pelo prefixo do modelo
       if (modelName.startsWith('gemini')) {
@@ -151,7 +184,7 @@ export class MestreAgent {
       }
 
       // Criar prompt template (com personalidade custom se houver)
-      const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride, this.catalogo);
+      const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride, this.catalogo, this.roteiroCondensado);
       const prompt = ChatPromptTemplate.fromMessages([
         ['system', promptSistema],
         new MessagesPlaceholder('chat_history'),
@@ -180,6 +213,7 @@ export class MestreAgent {
    * Narra uma ação do jogador
    */
   async narrarAcao({ jogador, personagem, acao, chatHistory = [], resumo = null }) {
+    const startTime = Date.now();
     try {
       console.log(`🎭 MestreAgent: Narrando ação de ${personagem}...`);
 
@@ -211,6 +245,8 @@ export class MestreAgent {
         input,
         chat_history: historico
       })));
+
+      trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       // Parsear JSON da resposta
       let respostaJSON = parseIAJson(response.content);
@@ -265,6 +301,7 @@ export class MestreAgent {
    * Inicia uma nova sessão com mensagem de boas-vindas
    */
   async iniciarSessao({ tema, personagens: personagensCustom, cenaInicial, historiaNome }) {
+    const startTime = Date.now();
     try {
       console.log('🎮 MestreAgent: Iniciando nova sessão...');
 
@@ -295,6 +332,8 @@ export class MestreAgent {
         input,
         chat_history: []
       })));
+
+      trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       // Parsear JSON
       let respostaJSON = parseIAJson(response.content);
@@ -357,6 +396,7 @@ export class MestreAgent {
         fallback: false,
         input_length: input?.length || 0,
       });
+      trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       return {
         resposta: response.content,
@@ -379,16 +419,17 @@ export class MestreAgent {
   /**
    * Narrar turno do jogador (controla interação durante o turno)
    */
-  async narrarTurnoJogador({ 
-    jogador, 
-    personagem, 
-    mensagem, 
-    rodada, 
-    turno, 
+  async narrarTurnoJogador({
+    jogador,
+    personagem,
+    mensagem,
+    rodada,
+    turno,
     contadorMensagens = 0,
     chatHistory = [],
     resumo = null
   }) {
+    const startTime = Date.now();
     try {
       console.log(`🎯 MestreAgent: Narrando turno ${turno} de ${personagem} (rodada ${rodada})...`);
 
@@ -433,6 +474,8 @@ Mensagem do Jogador:
         input,
         chat_history: historico
       })));
+
+      trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       let respostaJSON = parseIAJson(response.content);
       if (!respostaJSON) {
@@ -483,13 +526,14 @@ Mensagem do Jogador:
   /**
    * Narrar entre rodadas (gerar novo desafio após todos jogarem)
    */
-  async narrarEntreRodadas({ 
-    rodadaAnterior, 
-    proximaRodada, 
+  async narrarEntreRodadas({
+    rodadaAnterior,
+    proximaRodada,
     resumoAcoes = [],
     chatHistory = [],
     resumo = null
   }) {
+    const startTime = Date.now();
     try {
       console.log(`🔄 MestreAgent: Narrando transição da rodada ${rodadaAnterior} para ${proximaRodada}...`);
 
@@ -535,6 +579,8 @@ Narre a transição e apresente o novo desafio:`;
         input,
         chat_history: historico
       })));
+
+      trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       let respostaJSON = parseIAJson(response.content);
       if (!respostaJSON) {
@@ -664,9 +710,9 @@ Seja conciso (máximo 100 palavras).`;
 /**
  * Factory function para criar instância do Mestre
  */
-export async function criarMestreRPG(temas = [], personagens = [], configOverride = null, catalogo = '') {
+export async function criarMestreRPG(temas = [], personagens = [], configOverride = null, catalogo = '', roteiroCondensado = '') {
   try {
-    const mestre = new MestreAgent(temas, personagens, configOverride, catalogo);
+    const mestre = new MestreAgent(temas, personagens, configOverride, catalogo, roteiroCondensado);
     return mestre;
   } catch (error) {
     console.error('❌ Erro ao criar mestre de RPG:', error);

@@ -560,6 +560,30 @@ router.delete('/:id', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia')
 // PATCH /:id/restore - Restaurar história soft-deleted (OWNER OU ADMIN)
 router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Historia'), historiaController.restaurarHistoria);
 
+// === ROTEIRO (Story Blueprint) ===
+const blueprintLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Limite de geração de roteiros atingido. Tente novamente em 1 hora.' }
+});
+
+// POST /:id/roteiro - Gerar roteiro com IA (OWNER OU ADMIN)
+router.post('/:id/roteiro', blueprintLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.gerarRoteiro);
+
+// GET /:id/roteiro - Obter roteiro
+router.get('/:id/roteiro', historiaController.obterRoteiro);
+
+// PUT /:id/roteiro - Atualizar roteiro manualmente (OWNER OU ADMIN)
+router.put('/:id/roteiro', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarRoteiro);
+
+// GET /:id/roteiro/progressao - Obter progressão do roteiro
+router.get('/:id/roteiro/progressao', historiaController.obterProgressao);
+
+// PUT /:id/roteiro/progressao - Atualizar progressão (OWNER OU ADMIN)
+router.put('/:id/roteiro/progressao', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarProgressao);
+
 /**
  * Verificar se há sessão ativa para uma história
  */

@@ -5,7 +5,7 @@
 
 import { sanitizePromptInput } from '../../../helpers/sanitize.js';
 
-export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null, catalogo = '') {
+export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null, catalogo = '', roteiroCondensado = '') {
   // === PERSONALIDADE CUSTOMIZADA ===
   let personalidadeContexto = '';
   if (mestreConfig) {
@@ -46,6 +46,22 @@ Use estes temas para compor cenário, clima, criaturas, eventos e ameaças. Mist
 Considere atributos, vantagens, desvantagens e equipamentos de cada personagem ao narrar ações e definir consequências.\n`;
   }
 
+  // === ROTEIRO (Story Blueprint) ===
+  let roteiroContexto = '';
+  if (roteiroCondensado) {
+    roteiroContexto = `\n### ROTEIRO DA AVENTURA (Story Blueprint)
+Use este roteiro como GUIA narrativo. Siga os arcos, NPCs, locais e plot twists descritos, mas ADAPTE-SE às ações dos jogadores. O roteiro é uma bússola, não uma prisão.
+
+${roteiroCondensado}
+
+REGRAS DO ROTEIRO:
+- Introduza NPCs e locais do roteiro naturalmente na narrativa
+- Siga a progressão dos arcos, mas permita desvios criativos dos jogadores
+- Semeie pistas dos plot twists sutilmente antes de revelá-los
+- Use os encontros-chave nos momentos narrativamente adequados
+- Adapte a dificuldade conforme o nível e ações dos jogadores\n`;
+  }
+
   // === CATALOGO ===
   let catalogoContexto = '';
   if (catalogo) {
@@ -59,7 +75,7 @@ REGRAS DO CATÁLOGO:
   }
 
   return `Você é um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em português brasileiro.
-${personalidadeContexto}${temasContexto}${personagensContexto}
+${personalidadeContexto}${temasContexto}${personagensContexto}${roteiroContexto}
 ## REGRAS FUNDAMENTAIS
 
 1. Reaja com criatividade e coerência a cada ação do jogador

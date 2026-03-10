@@ -45,6 +45,7 @@ const Mestre = (prisma) => {
           regras_especiais: data.regras_especiais,
           imagem: data.imagem,
           voice_id: data.voice_id,
+          voice_provider: data.voice_provider,
           id_usuario: data.id_usuario,
           criado_em: new Date(),
           atualizado_em: new Date()
@@ -66,6 +67,7 @@ const Mestre = (prisma) => {
           ...(data.regras_especiais !== undefined && { regras_especiais: data.regras_especiais }),
           ...(data.imagem !== undefined && { imagem: data.imagem }),
           ...(data.voice_id !== undefined && { voice_id: data.voice_id }),
+          ...(data.voice_provider !== undefined && { voice_provider: data.voice_provider }),
           atualizado_em: new Date()
         }
       });

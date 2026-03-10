@@ -1418,7 +1418,7 @@ class SocketManager {
             });
           }
 
-          const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao);
+          const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao, userId);
 
           const interpretacao = await mestre.narrarAcao({
             jogador: username,
@@ -1871,7 +1871,8 @@ class SocketManager {
       const mestre = await this.obterMestre(
         roomId,
         sessao.historiaTemas || [],
-        sessao
+        sessao,
+        userId
       );
 
       // 4. Injetar contexto dinâmico do personagem + combate na ação
@@ -2273,7 +2274,8 @@ class SocketManager {
       const mestre = await this.obterMestre(
         roomId,
         sessao.historiaTemas || [],
-        sessao
+        sessao,
+        userId
       );
 
       this.log('INFO', 'INICIAR_TURNO_GERANDO_MENSAGEM_MESTRE', socket.id, userId, {
@@ -2426,7 +2428,8 @@ class SocketManager {
       const mestre = await this.obterMestre(
         roomId,
         sessao.historiaTemas || [],
-        sessao
+        sessao,
+        socket.userId
       );
 
       this.log('INFO', 'SOLICITAR_DADOS_GERANDO_NARRATIVA', socket.id, socket.userId, {
@@ -2837,6 +2840,7 @@ class SocketManager {
         historiaNome: historia.nome,
         historiaTemas: temasCompletos, // Salvar temas completos (id + nome)
         historiaPrologo: historia.prologo || '',
+        historiaRoteiro: historia.roteiro || null,
         donoId: historia.id_usuario ? String(historia.id_usuario) : null,
         donoNome: donoNome,
         maxJogadores: historia.maximo_de_participantes || 5,
@@ -3264,7 +3268,8 @@ class SocketManager {
         const mestre = await this.obterMestre(
           roomId,
           sessao.historiaTemas || [],
-          sessao
+          sessao,
+          socket.userId
         );
 
         const narrativa = await mestre.narrarEntreRodadas({
@@ -3289,6 +3294,7 @@ class SocketManager {
             // Buscar resumo anterior para consolidação cumulativa
             const resumoAnteriorObj = await this.gerenciadorSessoes.obterUltimoResumo(roomId);
 
+            const tResumo = Date.now();
             const resumo = await resumoAgent.resumirAventura({
               mensagens: sessaoParaResumo.mensagens || [],
               temas: extrairNomesTemas(sessaoParaResumo.historiaTemas || []),
@@ -3296,6 +3302,12 @@ class SocketManager {
               rodadasJogadas: rodadaAtual,
               resumoAnterior: resumoAnteriorObj?.resumo || null
             });
+
+            // Track usage (userId from socket context)
+            if (socket?.userId) {
+              const usageService = (await import('../services/usageService.js')).default;
+              usageService.track({ userId: socket.userId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - tResumo, metadata: { agent: 'ResumoAgent' } });
+            }
 
             await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
             
@@ -3966,7 +3978,7 @@ class SocketManager {
 
       // Narrar desfecho via IA
       try {
-        const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao);
+        const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao, null);
         const desfecho = resultado === 'vitoria'
           ? `Os monstros foram derrotados! Os jogadores ganham ${xpTotal} XP. Narre o desfecho da batalha de forma épica.`
           : resultado === 'derrota'
@@ -4018,11 +4030,12 @@ class SocketManager {
   // FIM SISTEMA DE COMBATE
   // ============================================================
 
-  async obterMestre(salaId, temas, sessao) {
+  async obterMestre(salaId, temas, sessao, userId = null) {
     // Verificar se já existe no cache
     if (this.mestresCache.has(salaId)) {
       const cache = this.mestresCache.get(salaId);
       cache.ultimoUso = Date.now();
+      if (userId) cache.mestre.userId = userId;
       console.log(`♻️ Mestre reutilizado do cache para sala ${salaId}`);
       return cache.mestre;
     }
@@ -4058,7 +4071,22 @@ class SocketManager {
       console.warn('⚠️ Erro ao construir catálogo para Mestre:', error.message);
     }
 
-    const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null, catalogo);
+    // Condensar roteiro se disponível
+    let roteiroCondensado = '';
+    if (sessao.historiaRoteiro) {
+      try {
+        const { condensarRoteiro } = await import('../agents/Mestre/prompts/roteiroCondenser.js');
+        roteiroCondensado = condensarRoteiro(sessao.historiaRoteiro, sessao.estadoJogo || null);
+        if (roteiroCondensado) {
+          console.log(`📜 Roteiro condensado para sala ${salaId} (${roteiroCondensado.length} chars)`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro ao condensar roteiro:', error.message);
+      }
+    }
+
+    const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null, catalogo, roteiroCondensado);
+    if (userId) mestre.userId = userId;
 
     // Limitar tamanho do cache (LRU eviction)
     const MAX_CACHE_SIZE = MESTRE_CONFIG.cache.maxSize;

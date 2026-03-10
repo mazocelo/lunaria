@@ -14,6 +14,7 @@ import {
   maxCustoDesvantagem,
   EVOLUCAO
 } from '../../helpers/evolucaoHelper.js';
+import usageService from '../../services/usageService.js';
 
 /**
  * Controller para gerenciar operações de personagem
@@ -695,6 +696,7 @@ class PersonagemController {
         .join(', ') || 'Nenhum';
 
       const geradorBackground = await criarGeradorBackground(temasFiltrados);
+      const tBg = Date.now();
 
       const resultadoBackground = await geradorBackground.gerarBackground({
         nome: personagemCompleto.nome,
@@ -713,6 +715,9 @@ class PersonagemController {
         agilidade: personagemCompleto.agilidade || 10,
         equipamentos: equipamentosNomes
       });
+
+      const bgUserId = req.user?.id;
+      if (bgUserId) usageService.track({ userId: bgUserId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-maverick-17b-128e-instruct', duracao_ms: Date.now() - tBg, metadata: { agent: 'GeradorBackground' } });
 
       // Atualizar personagem com o novo background
       await db.Personagem.updatePersonagem(parseInt(id), {
@@ -1608,6 +1613,7 @@ class PersonagemController {
         .join(', ') || 'Nenhum';
 
       const validador = await criarValidadorPersonagem();
+      const tVal = Date.now();
       const resultado = await validador.validar({
         nome: personagemCompleto.nome,
         classe: nomeClasse,
@@ -1624,6 +1630,9 @@ class PersonagemController {
         equipamentos: equipamentosTexto,
         background: personagemCompleto.background || ''
       });
+
+      const valUserId = req.user?.id;
+      if (valUserId) usageService.track({ userId: valUserId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - tVal, metadata: { agent: 'ValidadorPersonagem' } });
 
       res.status(200).json({
         success: true,

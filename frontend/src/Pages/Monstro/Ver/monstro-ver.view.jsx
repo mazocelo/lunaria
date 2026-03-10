@@ -7,7 +7,8 @@ const RARIDADE_CONFIG = {
   'Incomum': { accent: '#22c55e', badge: 'bg-green-500/20 text-green-400 border-green-500/30', badgeLight: 'bg-green-100 text-green-700 border-green-300' },
   'Raro': { accent: '#3b82f6', badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30', badgeLight: 'bg-blue-100 text-blue-700 border-blue-300' },
   'Muito Raro': { accent: '#8b5cf6', badge: 'bg-purple-500/20 text-purple-400 border-purple-500/30', badgeLight: 'bg-purple-100 text-purple-700 border-purple-300' },
-  'Lendario': { accent: '#f59e0b', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30', badgeLight: 'bg-amber-100 text-amber-700 border-amber-300' },
+  'Épico': { accent: '#f97316', badge: 'bg-orange-500/20 text-orange-400 border-orange-500/30', badgeLight: 'bg-orange-100 text-orange-700 border-orange-300' },
+  'Lendário': { accent: '#f59e0b', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30', badgeLight: 'bg-amber-100 text-amber-700 border-amber-300' },
   'Artefato': { accent: '#ef4444', badge: 'bg-red-500/20 text-red-400 border-red-500/30', badgeLight: 'bg-red-100 text-red-700 border-red-300' },
 };
 

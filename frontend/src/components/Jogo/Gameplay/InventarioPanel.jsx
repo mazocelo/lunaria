@@ -7,7 +7,12 @@ const raridadeStyles = {
   incomum: { border: 'border-green-500/40', text: 'text-green-400', label: 'Incomum' },
   raro: { border: 'border-blue-500/40', text: 'text-blue-400', label: 'Raro' },
   epico: { border: 'border-purple-500/40', text: 'text-purple-400', label: 'Épico' },
+  'épico': { border: 'border-purple-500/40', text: 'text-purple-400', label: 'Épico' },
   lendario: { border: 'border-yellow-500/40', text: 'text-yellow-400', label: 'Lendário' },
+  'lendário': { border: 'border-yellow-500/40', text: 'text-yellow-400', label: 'Lendário' },
+  'variável': { border: 'border-slate-500/40', text: 'text-slate-400', label: 'Variável' },
+  artefato: { border: 'border-red-500/40', text: 'text-red-400', label: 'Artefato' },
+  'muito raro': { border: 'border-purple-500/40', text: 'text-purple-400', label: 'Muito Raro' },
 };
 
 const elementoColors = {

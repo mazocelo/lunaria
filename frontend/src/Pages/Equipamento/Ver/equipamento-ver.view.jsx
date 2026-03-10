@@ -39,13 +39,29 @@ const RARIDADE_CONFIG = {
     glow: 'rgba(139, 92, 246, 0.3)',
     gradient: 'radial-gradient(ellipse at top, rgba(139,92,246,0.25), transparent 70%)',
   },
-  'Lendario': {
+  'Épico': {
+    color: 'orange',
+    badge: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    badgeLight: 'bg-orange-100 text-orange-700 border-orange-300',
+    accent: '#f97316',
+    glow: 'rgba(249, 115, 22, 0.3)',
+    gradient: 'radial-gradient(ellipse at top, rgba(249,115,22,0.25), transparent 70%)',
+  },
+  'Lendário': {
     color: 'amber',
     badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     badgeLight: 'bg-amber-100 text-amber-700 border-amber-300',
     accent: '#f59e0b',
     glow: 'rgba(245, 158, 11, 0.3)',
     gradient: 'radial-gradient(ellipse at top, rgba(245,158,11,0.25), transparent 70%)',
+  },
+  'Variável': {
+    color: 'slate',
+    badge: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+    badgeLight: 'bg-slate-100 text-slate-700 border-slate-300',
+    accent: '#64748b',
+    glow: 'rgba(100, 116, 139, 0.2)',
+    gradient: 'radial-gradient(ellipse at top, rgba(100,116,139,0.15), transparent 70%)',
   },
   'Artefato': {
     color: 'red',

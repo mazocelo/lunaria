@@ -9,8 +9,8 @@ const raridadeVariant = {
   'Incomum': 'green',
   'Raro': 'blue',
   'Muito Raro': 'purple',
-  'Epico': 'pink',
-  'Lendario': 'amber',
+  'Épico': 'pink',
+  'Lendário': 'amber',
   'Artefato': 'red',
 };
 
@@ -164,7 +164,7 @@ const MonstroListaView = ({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Total" value={totalCount || monstros?.length || 0} icon={Skull} variant="primary" />
         <StatCard title="Comuns" value={raridades['Comum'] || 0} icon={Circle} variant="secondary" />
-        <StatCard title="Raros+" value={(raridades['Raro'] || 0) + (raridades['Epico'] || 0) + (raridades['Lendario'] || 0)} icon={Gem} variant="accent" />
+        <StatCard title="Raros+" value={(raridades['Raro'] || 0) + (raridades['Épico'] || 0) + (raridades['Lendário'] || 0)} icon={Gem} variant="accent" />
         <StatCard title="Incomuns" value={raridades['Incomum'] || 0} icon={Leaf} variant="secondary" />
       </div>
 

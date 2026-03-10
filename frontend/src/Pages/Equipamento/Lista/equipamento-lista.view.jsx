@@ -11,8 +11,10 @@ const raridadeColors = (raridade, isLight) => {
     'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
     'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
     'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
-    'Lendario': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
+    'Épico': isLight ? 'bg-orange-100 text-orange-800' : 'bg-orange-500/20 text-orange-400',
+    'Lendário': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
     'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
+    'Variável': isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-500/20 text-slate-400',
   };
   return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
 };
@@ -149,7 +151,7 @@ const EquipamentoListaView = ({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Total de Equipamentos" value={totalCount || equipamentos?.length || 0} icon={Sword} variant="primary" />
         <StatCard title="Raros" value={countByRaridade('Raro')} icon={Gem} variant="secondary" />
-        <StatCard title="Lendários" value={countByRaridade('Lendario')} icon={Trophy} variant="accent" />
+        <StatCard title="Lendários" value={countByRaridade('Lendário')} icon={Trophy} variant="accent" />
         <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon={Flame} variant="primary" />
       </div>
 

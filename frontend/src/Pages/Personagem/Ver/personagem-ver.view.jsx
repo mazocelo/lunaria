@@ -18,7 +18,7 @@ const atributosConfig = [
 
 const raridadeVariant = {
   'Comum': 'slate', 'Incomum': 'green', 'Raro': 'blue',
-  'Muito Raro': 'purple', 'Lendario': 'amber', 'Artefato': 'red',
+  'Muito Raro': 'purple', 'Épico': 'pink', 'Lendário': 'amber', 'Artefato': 'red', 'Variável': 'slate',
 };
 
 const bonusLabels = {

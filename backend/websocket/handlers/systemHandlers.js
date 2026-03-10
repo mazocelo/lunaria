@@ -1,8 +1,8 @@
 import { SYSTEM_EVENTS } from '../events/eventTypes.js';
 
 /**
- * Handlers para eventos de sistema (ping, status, debug)
- * Heartbeat/timeout removidos — Socket.IO nativo já cuida disso via pingInterval/pingTimeout
+ * Handlers para eventos de sistema (status, debug)
+ * Heartbeat via Socket.IO nativo (pingInterval/pingTimeout) — sem ping/pong manual
  */
 export class SystemHandlers {
   constructor(io) {
@@ -21,11 +21,6 @@ export class SystemHandlers {
    * Configurar handlers de eventos de sistema
    */
   setupSystemHandlers(socket) {
-    // Handler para ping/pong (manual, sob demanda)
-    socket.on(SYSTEM_EVENTS.PING, (data, callback) => {
-      this.handlePing(socket, data, callback);
-    });
-
     // Handler para obter status do servidor
     socket.on('get_server_status', (data, callback) => {
       this.handleGetServerStatus(socket, data, callback);
@@ -50,28 +45,6 @@ export class SystemHandlers {
       socket.on('get_event_history', (data, callback) => {
         this.handleGetEventHistory(socket, data, callback);
       });
-    }
-  }
-
-  /**
-   * Handler para ping/pong
-   */
-  handlePing(socket, data, callback) {
-    try {
-      const pongData = {
-        timestamp: new Date(),
-        serverTime: Date.now(),
-        clientTime: data?.timestamp,
-        latency: data?.timestamp ? Date.now() - data.timestamp : null
-      };
-
-      if (callback) {
-        callback(pongData);
-      } else {
-        socket.emit(SYSTEM_EVENTS.PONG, pongData);
-      }
-    } catch (error) {
-      console.error('❌ PING Error:', error.message);
     }
   }
 

@@ -377,13 +377,6 @@ class SocketManager {
         }
       });
 
-      // Evento de ping para manter conexão
-      socket.on('ping', () => {
-        this.log('DEBUG', 'PING_RECEIVED', socket.id, socket.userId);
-        socket.emit('pong', { timestamp: Date.now() });
-        this.log('DEBUG', 'PONG_SENT', socket.id, socket.userId);
-      });
-
       // Evento de desconexão
       socket.on('disconnect', (reason) => {
         this.log('WARN', 'CLIENT_DISCONNECTING', socket.id, socket.userId, {

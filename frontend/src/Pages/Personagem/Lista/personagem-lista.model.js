@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePersonagemStore } from '../../../store/personagem/index.js';
 import { personagemService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { ROUTES, generateRoute } from '../../../routes.jsx';
@@ -9,8 +10,14 @@ export const usePersonagemListaModel = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  const [personagens, setPersonagens] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Personagem store
+  const personagens = usePersonagemStore(s => s.personagens);
+  const loading = usePersonagemStore(s => s.loading);
+  const storeError = usePersonagemStore(s => s.error);
+  const carregarPersonagens = usePersonagemStore(s => s.carregarPersonagens);
+  const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
+
+  // Local state
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -25,21 +32,8 @@ export const usePersonagemListaModel = () => {
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   useEffect(() => {
-    loadPersonagens();
+    carregarPersonagens();
   }, []);
-
-  const loadPersonagens = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await personagemService.getAll();
-      setPersonagens(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredPersonagens = useMemo(() => {
     if (!searchTerm) return personagens;
@@ -56,18 +50,10 @@ export const usePersonagemListaModel = () => {
     return { total, guerreiros, magos };
   }, [personagens]);
 
-  const deletePersonagem = async (id) => {
-    setLoading(true);
-    try {
-      await personagemService.delete(id);
-      setPersonagens(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deletePersonagem = useCallback(async (id) => {
+    await personagemService.delete(id);
+    await recarregarPersonagens();
+  }, [recarregarPersonagens]);
 
   // Handlers de delete individual
   const handleDeleteClick = useCallback((row) => {
@@ -88,7 +74,7 @@ export const usePersonagemListaModel = () => {
     } finally {
       setDeleteLoading(false);
     }
-  }, [personagemToDelete]);
+  }, [personagemToDelete, deletePersonagem]);
 
   const handleCancelDelete = useCallback(() => {
     setShowDeleteModal(false);
@@ -106,8 +92,9 @@ export const usePersonagemListaModel = () => {
     setBulkDeleteLoading(true);
     try {
       for (const id of bulkDeleteIds) {
-        await deletePersonagem(id);
+        await personagemService.delete(id);
       }
+      await recarregarPersonagens();
       setShowBulkDeleteModal(false);
       setBulkDeleteIds([]);
     } catch (err) {
@@ -116,7 +103,7 @@ export const usePersonagemListaModel = () => {
     } finally {
       setBulkDeleteLoading(false);
     }
-  }, [bulkDeleteIds]);
+  }, [bulkDeleteIds, recarregarPersonagens]);
 
   const handleCancelBulkDelete = useCallback(() => {
     setShowBulkDeleteModal(false);
@@ -130,7 +117,7 @@ export const usePersonagemListaModel = () => {
     personagens: filteredPersonagens,
     allPersonagens: personagens,
     loading,
-    error,
+    error: error || storeError,
     isLight,
     estatisticas,
     buscarPersonagens: setSearchTerm,

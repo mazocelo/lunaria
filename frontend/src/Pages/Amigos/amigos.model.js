@@ -1,14 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
+import { useAmizadeStore } from '../../store/amizade/index.js';
 import { amizadeService } from '../../services';
 
 export const useAmigosModel = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const [friends, setFriends] = useState([]);
-  const [pending, setPending] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
+  // Amizade store
+  const friends = useAmizadeStore(s => s.amigos);
+  const pending = useAmizadeStore(s => s.pendentes);
+  const suggestions = useAmizadeStore(s => s.sugestoes);
+  const storeLoading = useAmizadeStore(s => s.loading);
+  const storeError = useAmizadeStore(s => s.error);
+  const carregarAmigos = useAmizadeStore(s => s.carregarAmigos);
+  const carregarPendentes = useAmizadeStore(s => s.carregarPendentes);
+  const recarregarAmigos = useAmizadeStore(s => s.recarregarAmigos);
+  const recarregarPendentes = useAmizadeStore(s => s.recarregarPendentes);
+  const recarregarSugestoes = useAmizadeStore(s => s.recarregarSugestoes);
+  const removerAmigoDaLista = useAmizadeStore(s => s.removerAmigoDaLista);
+  const removerPendenteDaLista = useAmizadeStore(s => s.removerPendenteDaLista);
+
+  // Local state
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -23,44 +36,19 @@ export const useAmigosModel = () => {
     setSuccessMessage(null);
   }, []);
 
-  const loadFriends = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await amizadeService.fetchFriends();
-      setFriends(response.data || []);
-    } catch {
-      setError('Erro ao carregar amigos');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    carregarAmigos();
+    carregarPendentes();
   }, []);
 
-  const loadPending = useCallback(async () => {
-    setLoading(true);
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
     setError(null);
-    try {
-      const response = await amizadeService.fetchPending();
-      setPending(response.data || []);
-    } catch {
-      setError('Erro ao carregar solicitacoes');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadSuggestions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await amizadeService.fetchSuggestions();
-      setSuggestions(response.data || []);
-    } catch {
-      setError('Erro ao carregar sugestoes');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    setSuccessMessage(null);
+    if (tab === 'amigos') recarregarAmigos();
+    if (tab === 'pendentes') recarregarPendentes();
+    if (tab === 'buscar') recarregarSugestoes();
+  }, [recarregarAmigos, recarregarPendentes, recarregarSugestoes]);
 
   const search = useCallback(async (query) => {
     if (!query || query.length < 2) {
@@ -78,23 +66,6 @@ export const useAmigosModel = () => {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    // Carrega amigos e pre-carrega pendentes
-    loadFriends();
-    amizadeService.fetchPending()
-      .then(response => setPending(response.data || []))
-      .catch(() => { /* silencioso */ });
-  }, [loadFriends]);
-
-  const setActiveTab = useCallback((tab) => {
-    setActiveTabState(tab);
-    setError(null);
-    setSuccessMessage(null);
-    if (tab === 'amigos') loadFriends();
-    if (tab === 'pendentes') loadPending();
-    if (tab === 'buscar') loadSuggestions();
-  }, [loadFriends, loadPending, loadSuggestions]);
 
   const handleSearch = useCallback(() => {
     search(searchInput);
@@ -116,13 +87,12 @@ export const useAmigosModel = () => {
       setLoadingAction(null);
       setSuccessMessage('Solicitacao enviada!');
       if (searchQuery) await search(searchQuery);
-      const sugResponse = await amizadeService.fetchSuggestions();
-      setSuggestions(sugResponse.data || []);
+      await recarregarSugestoes();
     } catch (err) {
       setLoadingAction(null);
       setError(err.message || 'Erro ao enviar solicitacao');
     }
-  }, [searchQuery, search]);
+  }, [searchQuery, search, recarregarSugestoes]);
 
   const acceptRequest = useCallback(async (amizadeId) => {
     setLoadingAction(amizadeId);
@@ -131,12 +101,12 @@ export const useAmigosModel = () => {
       await amizadeService.acceptRequest(amizadeId);
       setLoadingAction(null);
       setSuccessMessage('Amizade aceita!');
-      setPending(prev => prev.filter(p => p.id !== amizadeId));
+      removerPendenteDaLista(amizadeId);
     } catch (err) {
       setLoadingAction(null);
       setError(err.message || 'Erro ao aceitar');
     }
-  }, []);
+  }, [removerPendenteDaLista]);
 
   const rejectRequest = useCallback(async (amizadeId) => {
     setLoadingAction(amizadeId);
@@ -144,12 +114,12 @@ export const useAmigosModel = () => {
     try {
       await amizadeService.rejectRequest(amizadeId);
       setLoadingAction(null);
-      setPending(prev => prev.filter(p => p.id !== amizadeId));
+      removerPendenteDaLista(amizadeId);
     } catch (err) {
       setLoadingAction(null);
       setError(err.message || 'Erro ao rejeitar');
     }
-  }, []);
+  }, [removerPendenteDaLista]);
 
   const removeFriend = useCallback(async (amizadeId) => {
     setLoadingAction(amizadeId);
@@ -157,12 +127,12 @@ export const useAmigosModel = () => {
     try {
       await amizadeService.removeFriend(amizadeId);
       setLoadingAction(null);
-      setFriends(prev => prev.filter(f => f.amizadeId !== amizadeId));
+      removerAmigoDaLista(amizadeId);
     } catch (err) {
       setLoadingAction(null);
       setError(err.message || 'Erro ao remover amigo');
     }
-  }, []);
+  }, [removerAmigoDaLista]);
 
   return {
     friends,
@@ -171,9 +141,9 @@ export const useAmigosModel = () => {
     searchResults,
     searchInput,
     activeTab,
-    loading,
+    loading: loading || storeLoading,
     loadingAction,
-    error,
+    error: error || storeError,
     successMessage,
     isDark,
     setActiveTab,

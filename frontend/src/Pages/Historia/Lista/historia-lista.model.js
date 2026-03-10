@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
+import { useHistoriaStore } from '../../../store/historia/index.js';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
@@ -16,9 +17,14 @@ export const useHistoriaListaModel = () => {
   const carregarTemas = useTemaStore(s => s.carregarTemas);
   const mapearTemasDeHistoria = useTemaStore(s => s.mapearTemasDeHistoria);
 
-  // State
-  const [historias, setHistorias] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Historia store
+  const historias = useHistoriaStore(s => s.historias);
+  const loading = useHistoriaStore(s => s.loading);
+  const storeError = useHistoriaStore(s => s.error);
+  const carregarHistorias = useHistoriaStore(s => s.carregarHistorias);
+  const recarregarHistorias = useHistoriaStore(s => s.recarregarHistorias);
+
+  // Local state
   const [error, setError] = useState(null);
 
   // Filtros
@@ -53,23 +59,10 @@ export const useHistoriaListaModel = () => {
   const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
-  // Carregar historias
-  const loadHistorias = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await carregarTemas();
-      const { data } = await historiaService.getAll();
-      setHistorias(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [carregarTemas]);
-
+  // Carregar historias do store
   useEffect(() => {
-    loadHistorias();
+    carregarTemas();
+    carregarHistorias();
     return () => setError(null);
   }, []);
 
@@ -136,8 +129,8 @@ export const useHistoriaListaModel = () => {
   // Delete
   const deleteHistoria = useCallback(async (id) => {
     await historiaService.delete(id);
-    setHistorias(prev => prev.filter(h => h.id !== id));
-  }, []);
+    await recarregarHistorias();
+  }, [recarregarHistorias]);
 
   const handleDeleteClick = useCallback((historia) => {
     setHistoriaToDelete(historia);
@@ -217,7 +210,7 @@ export const useHistoriaListaModel = () => {
     try {
       const response = await historiaService.resetarSessao(historiaToReset.id);
       if (response && response.success) {
-        await loadHistorias();
+        await recarregarHistorias();
         setShowResetModal(false);
         setHistoriaToReset(null);
       } else {
@@ -231,7 +224,7 @@ export const useHistoriaListaModel = () => {
     } finally {
       setResetLoading(false);
     }
-  }, [historiaToReset, loadHistorias]);
+  }, [historiaToReset, recarregarHistorias]);
 
   const handleCancelReset = useCallback(() => {
     setShowResetModal(false);
@@ -251,7 +244,7 @@ export const useHistoriaListaModel = () => {
     try {
       const response = await historiaService.encerrarSessao(historiaToEncerrar.id);
       if (response && response.success) {
-        await loadHistorias();
+        await recarregarHistorias();
         setShowEncerrarModal(false);
         setHistoriaToEncerrar(null);
       } else {
@@ -265,7 +258,7 @@ export const useHistoriaListaModel = () => {
     } finally {
       setEncerrarLoading(false);
     }
-  }, [historiaToEncerrar, loadHistorias]);
+  }, [historiaToEncerrar, recarregarHistorias]);
 
   const handleCancelEncerrar = useCallback(() => {
     setShowEncerrarModal(false);
@@ -283,8 +276,9 @@ export const useHistoriaListaModel = () => {
     setBulkDeleteLoading(true);
     try {
       for (const id of bulkDeleteIds) {
-        await deleteHistoria(id);
+        await historiaService.delete(id);
       }
+      await recarregarHistorias();
       setShowBulkDeleteModal(false);
       setBulkDeleteIds([]);
     } catch (err) {
@@ -295,7 +289,7 @@ export const useHistoriaListaModel = () => {
     } finally {
       setBulkDeleteLoading(false);
     }
-  }, [bulkDeleteIds, deleteHistoria]);
+  }, [bulkDeleteIds, recarregarHistorias]);
 
   const handleCancelBulkDelete = useCallback(() => {
     setShowBulkDeleteModal(false);
@@ -311,7 +305,7 @@ export const useHistoriaListaModel = () => {
     historiasFiltradasComTemas,
     estatisticas,
     loading,
-    error,
+    error: error || storeError,
     isLight,
 
     // Filtros

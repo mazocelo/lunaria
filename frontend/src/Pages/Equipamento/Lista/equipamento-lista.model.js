@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEquipamentoStore } from '../../../store/equipamento/index.js';
 import { equipamentoService, catalogoService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
@@ -9,15 +10,20 @@ export const useEquipamentoListaModel = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  const [equipamentos, setEquipamentos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Equipamento store
+  const allEquipamentos = useEquipamentoStore(s => s.equipamentos);
+  const storeLoading = useEquipamentoStore(s => s.loading);
+  const storeError = useEquipamentoStore(s => s.error);
+  const carregarEquipamentos = useEquipamentoStore(s => s.carregarEquipamentos);
+  const recarregarEquipamentos = useEquipamentoStore(s => s.recarregarEquipamentos);
+
+  // Local state
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('');
   const [raridadeFilter, setRaridadeFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [totalCount, setTotalCount] = useState(0);
   const [raridades, setRaridades] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -25,42 +31,8 @@ export const useEquipamentoListaModel = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
-  const [allEquipamentos, setAllEquipamentos] = useState([]);
-
-  const loadEquipamentos = useCallback(async (page, size) => {
-    const p = page ?? currentPage;
-    const s = size ?? pageSize;
-    const offset = (p - 1) * s;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await equipamentoService.getAll({ limit: s, offset });
-      const data = response.data || [];
-      const total = response.pagination?.total ?? data.length;
-      setEquipamentos(data);
-      setTotalCount(total);
-      setCurrentPage(p);
-      setPageSize(s);
-      setLoading(false);
-    } catch (err) {
-      setError(`Erro ao carregar equipamentos: ${err.message}`);
-      setLoading(false);
-    }
-  }, [currentPage, pageSize]);
-
-  const loadAllEquipamentos = useCallback(async () => {
-    try {
-      const response = await equipamentoService.getAll({});
-      setAllEquipamentos(response.data || []);
-    } catch (err) {
-      console.warn('Erro ao carregar todos os equipamentos:', err.message);
-    }
-  }, []);
-
   useEffect(() => {
-    loadEquipamentos();
-    loadAllEquipamentos();
+    carregarEquipamentos();
     catalogoService.getRaridades().then(r => setRaridades(r.data || [])).catch(() => {});
     catalogoService.getCategoriasEquipamento().then(r => setCategorias(r.data || [])).catch(() => {});
   }, []);
@@ -68,7 +40,6 @@ export const useEquipamentoListaModel = () => {
   const hasFilters = !!(searchTerm || categoriaFilter || raridadeFilter);
 
   const filteredEquipamentos = useMemo(() => {
-    if (!hasFilters) return [];
     let filtered = [...allEquipamentos];
 
     if (searchTerm) {
@@ -88,14 +59,24 @@ export const useEquipamentoListaModel = () => {
     }
 
     return filtered;
-  }, [allEquipamentos, searchTerm, categoriaFilter, raridadeFilter, hasFilters]);
+  }, [allEquipamentos, searchTerm, categoriaFilter, raridadeFilter]);
+
+  // Paginated view of data
+  const paginatedEquipamentos = useMemo(() => {
+    if (hasFilters) return filteredEquipamentos;
+    const start = (currentPage - 1) * pageSize;
+    return allEquipamentos.slice(start, start + pageSize);
+  }, [allEquipamentos, filteredEquipamentos, hasFilters, currentPage, pageSize]);
+
+  const totalCount = hasFilters ? filteredEquipamentos.length : allEquipamentos.length;
 
   const handlePageChange = (newPage) => {
-    loadEquipamentos(newPage);
+    setCurrentPage(newPage);
   };
 
   const handlePageSizeChange = (newSize) => {
-    loadEquipamentos(1, newSize);
+    setPageSize(newSize);
+    setCurrentPage(1);
   };
 
   const handleDeleteClick = (row) => {
@@ -108,8 +89,7 @@ export const useEquipamentoListaModel = () => {
     setDeleteLoading(true);
     try {
       await equipamentoService.delete(equipToDelete.id);
-      await loadEquipamentos();
-      loadAllEquipamentos();
+      await recarregarEquipamentos();
       setShowDeleteModal(false);
       setEquipToDelete(null);
     } catch (err) {
@@ -127,25 +107,22 @@ export const useEquipamentoListaModel = () => {
 
   const countByRaridade = (nome) => (allEquipamentos || []).filter(e => e.raridade_rel?.nome === nome).length;
 
-  const displayEquipamentos = hasFilters ? filteredEquipamentos : equipamentos;
-  const effectiveTotalCount = hasFilters ? undefined : totalCount;
-
   const clearError = () => {
     setError(null);
     setDeleteError(null);
   };
 
   return {
-    equipamentos,
-    displayEquipamentos,
-    loading,
-    error: error || deleteError,
+    equipamentos: allEquipamentos,
+    displayEquipamentos: paginatedEquipamentos,
+    loading: storeLoading,
+    error: error || deleteError || storeError,
     searchTerm,
     categoriaFilter,
     raridadeFilter,
     currentPage: hasFilters ? undefined : currentPage,
     pageSize: hasFilters ? undefined : pageSize,
-    totalCount: effectiveTotalCount,
+    totalCount: hasFilters ? undefined : totalCount,
     raridades,
     categorias,
     showDeleteModal,

@@ -6,21 +6,8 @@ import io from 'socket.io-client';
 const WS_BASE_URL = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:3001';
 
 export const createConnectionActions = (set, get) => ({
-  // ===== MONITOR DE CONEXÃO =====
-  startConnectionMonitor: () => {
-    const { configs } = get();
-
-    const monitor = setInterval(() => {
-      const { socket, isConnected } = get();
-      if (socket && isConnected) {
-        socket.emit('ping');
-        set({ lastPingTime: Date.now() });
-      }
-    }, configs.MONITOR_INTERVAL);
-
-    set({ connectionMonitor: monitor });
-  },
-
+  // Monitor removido — Socket.IO nativo já cuida de heartbeat via pingInterval/pingTimeout
+  startConnectionMonitor: () => {},
   stopConnectionMonitor: () => {
     const { connectionMonitor } = get();
     if (connectionMonitor) {

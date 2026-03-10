@@ -2,7 +2,15 @@ import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
-import { BookOpen, Sparkles, Lightbulb, Loader2 } from 'lucide-react';
+import { BookOpen, Sparkles, Lightbulb, Loader2, ScrollText } from 'lucide-react';
+
+const PROMPT_SUGGESTIONS = [
+  'Uma maldição antiga desperta em uma floresta proibida. Os aventureiros devem encontrar a fonte antes que ela consuma o reino.',
+  'Piratas descobrem um mapa para uma ilha que aparece apenas durante eclipses. Lá, um tesouro amaldiçoado aguarda.',
+  'Uma cidade flutuante está perdendo altitude lentamente. Os heróis precisam descobrir a sabotagem antes que ela caia.',
+  'Um torneio de gladiadores esconde uma conspiração para assassinar o rei. Os participantes são peões ou salvadores?',
+  'Portais dimensionais estão se abrindo aleatoriamente, trazendo criaturas de outros planos. A causa está nas ruínas de um mago louco.',
+];
 
 const NovaHistoriaView = ({
   // Form data
@@ -25,6 +33,7 @@ const NovaHistoriaView = ({
   handleNomeBlur,
   handleTemasChange,
   handleMaxParticipantesChange,
+  handleDescricaoChange,
   handleMestreChange,
   criarHistoria,
   handleCancelar,
@@ -85,6 +94,52 @@ const NovaHistoriaView = ({
         <p className="text-xs text-slate-400 mt-2 font-modern">
           Selecione ate 3 temas para categorizar sua historia
         </p>
+
+        {/* Prompt da Aventura */}
+        <div className="flex flex-col gap-2">
+          <label className={`text-sm font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+            <ScrollText size={16} className="text-purple-400" />
+            Descreva sua aventura (opcional)
+          </label>
+          <textarea
+            value={descricao}
+            onChange={handleDescricaoChange}
+            rows={4}
+            placeholder="Descreva a premissa da sua aventura... Ex: Um reino assolado por dragões onde os heróis devem encontrar as 3 relíquias ancestrais para selar o portal demoníaco."
+            className={`w-full px-4 py-3 rounded-lg border text-sm font-modern transition-colors resize-none
+              ${isLight
+                ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'
+                : 'bg-slate-800 border-slate-600 text-slate-200 placeholder-slate-500 focus:border-purple-400'}
+              focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+          />
+          <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            Quanto mais detalhado, melhor sera o prologo e o roteiro gerados pela IA
+          </p>
+
+          {/* Sugestoes de prompt */}
+          {!descricao && (
+            <div className="mt-1">
+              <p className={`text-xs font-semibold mb-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Precisa de inspiracao? Clique em uma sugestao:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {PROMPT_SUGGESTIONS.map((sugestao, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleDescricaoChange({ target: { value: sugestao } })}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors cursor-pointer text-left
+                      ${isLight
+                        ? 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'
+                        : 'border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20'}`}
+                  >
+                    {sugestao.length > 80 ? sugestao.substring(0, 80) + '...' : sugestao}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <InputSimples
           label="Maximo de Participantes"
@@ -186,10 +241,10 @@ const NovaHistoriaView = ({
           <div>
             <h3 className={`font-semibold font-modern mb-1 ${isLight ? 'text-slate-700' : 'text-white'}`}>Dicas para uma boa historia</h3>
             <ul className="text-sm text-slate-400 space-y-1 font-modern">
-              <li>• Escolha um nome memoravel e descritivo</li>
+              <li>• Descreva sua aventura com detalhes — a IA usara isso para gerar prologo e roteiro</li>
+              <li>• Mencione viloes, locais, conflitos ou misterios que deseja na historia</li>
               <li>• Selecione temas que combinem com sua narrativa</li>
-              <li>• Considere o numero ideal de jogadores para sua historia</li>
-              <li>• Pense na progressao e desenvolvimento dos personagens</li>
+              <li>• Apos criar, gere o Roteiro com IA na pagina da historia para um guia completo</li>
             </ul>
           </div>
         </div>

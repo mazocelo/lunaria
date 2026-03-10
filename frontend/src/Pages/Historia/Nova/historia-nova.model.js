@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useMestreStore } from '../../../store/mestre/index.js';
+import { useHistoriaStore } from '../../../store/historia/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
 import { Historia } from '../../../models/Historia.js';
@@ -20,6 +21,9 @@ export const useHistoriaNovaModel = () => {
   // Mestre store
   const mestresAtivos = useMestreStore(s => s.mestresAtivos);
   const carregarMestres = useMestreStore(s => s.carregarMestres);
+
+  // Historia store
+  const recarregarHistorias = useHistoriaStore(s => s.recarregarHistorias);
 
   // Form state
   const [nome, setNome] = useState('');
@@ -61,6 +65,10 @@ export const useHistoriaNovaModel = () => {
     setMaximoDeParticipantes(Number(e.target.value));
   }, []);
 
+  const handleDescricaoChange = useCallback((e) => {
+    setDescricao(e.target.value);
+  }, []);
+
   const handleMestreChange = useCallback((id) => {
     setMestreSelecionado(id);
   }, []);
@@ -75,13 +83,14 @@ export const useHistoriaNovaModel = () => {
         nome,
         temas: temasSelecionados,
         maximo_de_participantes,
-        prologo: descricao,
+        descricao,
         mestre_id: mestreSelecionado,
         publica,
       };
 
       const historia = new Historia(historiaData);
       await historiaService.create(historia);
+      await recarregarHistorias();
       navigate('/historias');
     } catch (err) {
       console.error('Erro ao criar historia:', err);
@@ -119,6 +128,7 @@ export const useHistoriaNovaModel = () => {
     handleNomeBlur,
     handleTemasChange,
     handleMaxParticipantesChange,
+    handleDescricaoChange,
     handleMestreChange,
     criarHistoria,
     handleCancelar,

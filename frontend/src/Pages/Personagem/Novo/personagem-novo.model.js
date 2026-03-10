@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { personagemService, historiaService } from '../../../services/index.js';
+import { usePersonagemStore } from '../../../store/personagem';
 import { useVantagemStore } from '../../../store/vantagem';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
@@ -27,6 +28,7 @@ export const usePersonagemNovoModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
 
   // Zustand stores
   const racas = useRacaStore(s => s.racas);
@@ -207,6 +209,7 @@ export const usePersonagemNovoModel = () => {
         }
       }
 
+      await recarregarPersonagens();
       navigate('/personagens');
     } catch (err) {
       setError(err.message || 'Erro ao criar personagem');

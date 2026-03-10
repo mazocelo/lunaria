@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monstroService, catalogoService } from '../../../services/index.js';
+import { useMonstroStore } from '../../../store/monstro/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { ROUTES } from '../../../routes.jsx';
 
@@ -8,6 +9,7 @@ export const useMonstroNovaModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const recarregarMonstros = useMonstroStore(s => s.recarregarMonstros);
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -92,6 +94,7 @@ export const useMonstroNovaModel = () => {
     setError(null);
     try {
       await monstroService.create(_buildData());
+      await recarregarMonstros();
       setSaving(false);
       navigate(ROUTES.MONSTROS);
     } catch (err) {

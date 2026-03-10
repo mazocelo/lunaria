@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { equipamentoService, catalogoService } from '../../../services/index.js';
+import { useEquipamentoStore } from '../../../store/equipamento/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { ROUTES } from '../../../routes.jsx';
 
@@ -8,6 +9,7 @@ export const useEquipamentoNovaModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const recarregarEquipamentos = useEquipamentoStore(s => s.recarregarEquipamentos);
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -109,6 +111,7 @@ export const useEquipamentoNovaModel = () => {
     setError(null);
     try {
       await equipamentoService.create(_buildData());
+      await recarregarEquipamentos();
       setSaving(false);
       navigate(ROUTES.EQUIPAMENTOS);
     } catch (err) {

@@ -76,13 +76,14 @@ class TTSService {
     }
 
     const data = await response.json();
-    return (data.voices || []).map(v => ({
-      voice_id: v.voice_id,
-      name: v.name,
-      preview_url: v.preview_url,
-      category: v.category,
-      labels: v.labels || {}
-    }));
+    return (data.voices || [])
+      .filter(v => (v.high_quality_base_model_ids || []).includes(DEFAULT_MODEL))
+      .map(v => ({
+        voice_id: v.voice_id,
+        name: v.name,
+        category: v.category,
+        labels: v.labels || {}
+      }));
   }
 }
 

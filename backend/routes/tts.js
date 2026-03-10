@@ -57,4 +57,36 @@ router.get('/voices', async (req, res) => {
   }
 });
 
+const PREVIEW_TEXT_PTBR = 'Olá aventureiros! Eu serei o mestre desta jornada épica. Preparem-se para uma aventura inesquecível!';
+
+/**
+ * POST /tts/preview
+ * Gera preview de voz em PT-BR
+ */
+router.post('/preview', async (req, res) => {
+  try {
+    if (!ttsService.isConfigured()) {
+      return res.status(503).json({ success: false, error: 'TTS não configurado' });
+    }
+
+    const { voiceId } = req.body;
+
+    if (!voiceId) {
+      return res.status(400).json({ success: false, error: 'voiceId é obrigatório' });
+    }
+
+    const audioBuffer = await ttsService.generateSpeech(PREVIEW_TEXT_PTBR, voiceId);
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': audioBuffer.length,
+      'Cache-Control': 'no-cache'
+    });
+    res.send(audioBuffer);
+  } catch (error) {
+    console.error('TTS preview error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

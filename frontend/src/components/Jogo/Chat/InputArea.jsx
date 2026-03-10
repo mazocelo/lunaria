@@ -30,23 +30,23 @@ const InputArea = ({
 }) => {
   // Socket store direto
   const isConnected = useSocketStore(s => s.isConnected);
-  const isAuthenticated = useSocketStore(s => s.isAuthenticated);
+  const inRoom = useSocketStore(s => s.inRoom);
 
   // Estado local (substitui ViewModel state)
   const [isSending, setIsSending] = useState(false);
   const [iniciandoTurno, setIniciandoTurno] = useState(false);
   const lastSentTimeRef = useRef(null);
 
-  // Connection status (antes no ViewModel)
+  // Connection status
   const getConnectionStatus = useCallback(() => {
-    if (!isAuthenticated) {
-      return { status: 'error', text: 'Nao autenticado', color: 'text-red-400' };
-    }
     if (!isConnected) {
       return { status: 'error', text: 'Desconectado', color: 'text-red-400' };
     }
+    if (!inRoom) {
+      return { status: 'warning', text: 'Conectando a sala...', color: 'text-yellow-400' };
+    }
     return { status: 'success', text: 'Conectado', color: 'text-green-400' };
-  }, [isConnected, isAuthenticated]);
+  }, [isConnected, inRoom]);
 
   const connectionStatus = getConnectionStatus();
 
@@ -271,10 +271,10 @@ const InputArea = ({
         </div>
 
         {/* Status de conexao */}
-        {connectionStatus.status === 'error' && (
+        {connectionStatus.status !== 'success' && (
           <div className="text-center">
             <span className={`text-xs ${connectionStatus.color}`}>
-              ⚠️ {connectionStatus.text}
+              {connectionStatus.status === 'error' ? '⚠️' : '⏳'} {connectionStatus.text}
             </span>
           </div>
         )}

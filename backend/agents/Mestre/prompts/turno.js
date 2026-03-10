@@ -29,11 +29,12 @@ export function criarPromptInicioTurno(jogador, personagem, rodada, turno) {
   return `INÍCIO DO TURNO DE ${personagem} (${jogador})
 Rodada: ${rodada} | Turno: ${turno + 1}
 
-Como Mestre, dirija-se a ${personagem}:
+Dirija-se a ${personagem}:
 1. Descreva a situação atual do personagem
 2. Apresente um desafio, obstáculo ou situação interessante
 3. Se a situação exigir teste, solicite rolagem via solicitaDados no JSON
 4. Termine com gancho narrativo para o jogador agir
+5. NÃO se narre em terceira pessoa — fale diretamente ao jogador, sem descrever suas próprias ações
 
 O que acontece com ${personagem}?`;
 }

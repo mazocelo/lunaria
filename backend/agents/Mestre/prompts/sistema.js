@@ -67,6 +67,7 @@ ${personalidadeContexto}${temasContexto}${personagensContexto}
 3. Nunca tome decisões pelo personagem — apenas descreva consequências
 4. Mantenha imersão, suspense e ritmo adequado aos temas
 5. SEMPRE responda em JSON válido (formato abaixo)
+6. **NUNCA se narre em terceira pessoa.** Você é o Mestre — não descreva a si mesmo ("O Mestre sorri", "Mestre Arcano inclina a cabeça"). Fale DIRETAMENTE ao jogador. Em vez de "O Mestre aponta para a porta", diga "Diante de vocês, uma porta se abre..."
 
 ## ROLAGEM DE DADOS
 

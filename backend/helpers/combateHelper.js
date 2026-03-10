@@ -362,21 +362,27 @@ export function formatarContextoCombate(combateState, userId) {
     ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max} | Esquiva ${jogadorHP.esquiva || 0}% | Armadura ${jogadorHP.armadura || 0}`
     : 'HP desconhecido';
 
-  // Status effects ativos de todos os jogadores
-  const statusInfo = Object.entries(combateState.jogadores)
+  // HP e status de todos os aliados (excluindo o jogador atual)
+  const aliadosInfo = Object.entries(combateState.jogadores)
+    .filter(([id]) => String(id) !== String(userId))
     .map(([_, j]) => {
       const efeitos = j.status_efeitos || [];
-      if (efeitos.length === 0) return null;
-      return `${j.personagemNome}: ${efeitos.map(e => `${e.nome}(${e.duracao}t)`).join(', ')}`;
+      const efeitosStr = efeitos.length > 0 ? ` [${efeitos.map(e => `${e.nome}(${e.duracao}t)`).join(', ')}]` : '';
+      return `${j.personagemNome} HP ${j.hp_atual}/${j.hp_max}${efeitosStr}`;
     })
-    .filter(Boolean)
-    .join(' | ');
+    .join(', ');
+
+  // Status effects ativos do jogador atual
+  const statusInfo = jogadorHP?.status_efeitos?.length
+    ? jogadorHP.status_efeitos.map(e => `${e.nome}(${e.duracao}t)`).join(', ')
+    : '';
 
   let contexto = `\n[COMBATE ATIVO - Rodada ${combateState.rodadaCombate}]`;
   contexto += `\n[Monstros vivos: ${monstrosInfo || 'nenhum'}]`;
   if (monstrosDerrotados) contexto += `\n[Monstros derrotados: ${monstrosDerrotados}]`;
   contexto += `\n[Seu status: ${jogadorInfo}]`;
-  if (statusInfo) contexto += `\n[Efeitos ativos: ${statusInfo}]`;
+  if (aliadosInfo) contexto += `\n[Aliados: ${aliadosInfo}]`;
+  if (statusInfo) contexto += `\n[Seus efeitos: ${statusInfo}]`;
 
   return contexto;
 }

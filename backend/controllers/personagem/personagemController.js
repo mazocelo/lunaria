@@ -162,7 +162,8 @@ class PersonagemController {
         desvantagens,
         equipamentos,
         sugestao_background = '',
-        historias // Array de IDs de histórias para vincular
+        historias, // Array de IDs de histórias para vincular
+        imagem
       } = req.body;
       // Validacoes basicas
       if (!nome) {
@@ -255,7 +256,8 @@ class PersonagemController {
         xp_atual: 0,
         xp_proximo_nivel: xpParaNivel(nivelEfetivo),
         pontos_atributo_pendentes: 0,
-        id_usuario: req.user?.id || null
+        id_usuario: req.user?.id || null,
+        ...(imagem ? { imagem } : {})
       });
 
       // Criar personagem no banco

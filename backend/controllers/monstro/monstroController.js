@@ -150,7 +150,7 @@ class MonstroController {
       const {
         nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max,
         hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma,
-        ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base
+        ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base, imagem
       } = req.body;
 
       if (!nome) {
@@ -185,6 +185,7 @@ class MonstroController {
       if (elemento !== undefined) dados.elemento = elemento;
       if (temas !== undefined) dados.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dados.xp_base = parseInt(xp_base);
+      if (imagem !== undefined) dados.imagem = imagem;
 
       const novoMonstro = await db.Monstro.create(dados);
 
@@ -229,7 +230,7 @@ class MonstroController {
       const {
         nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max,
         hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma,
-        ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base
+        ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base, imagem
       } = req.body;
 
       const dadosAtualizacao = {};
@@ -258,6 +259,7 @@ class MonstroController {
       if (elemento !== undefined) dadosAtualizacao.elemento = elemento;
       if (temas !== undefined) dadosAtualizacao.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dadosAtualizacao.xp_base = parseInt(xp_base);
+      if (imagem !== undefined) dadosAtualizacao.imagem = imagem;
 
       const monstroAtualizado = await db.Monstro.update(parseInt(id), dadosAtualizacao);
 

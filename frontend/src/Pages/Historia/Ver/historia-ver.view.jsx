@@ -72,6 +72,7 @@ const VerHistoriaView = ({
   roteiroStatus,
   roteiroLoading,
   handleGerarRoteiro,
+  handleRoteiroUpdate,
 
   // Navegacao
   handleIniciarSessao,
@@ -374,7 +375,7 @@ const VerHistoriaView = ({
                     </button>
                   </div>
                 ) : roteiro ? (
-                  <RoteiroViewer roteiro={roteiro} isLight={isLight} />
+                  <RoteiroViewer roteiro={roteiro} isLight={isLight} historiaId={historiaAtual?.id} onRoteiroUpdate={handleRoteiroUpdate} />
                 ) : (
                   <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
                     <p className={`font-modern text-sm italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>

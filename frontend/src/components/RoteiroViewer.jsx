@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Scroll, Sword, MapPin, Users, Gem,
-  Zap, Swords, Flag, BookOpen, Compass, CheckCircle2, Circle
+  Zap, Swords, Flag, BookOpen, Compass, CheckCircle2, Circle,
+  ImagePlus, Loader2, X
 } from 'lucide-react';
+import { imageGenerationService } from '../services';
 
 const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -27,8 +29,60 @@ const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) 
   );
 };
 
-const RoteiroViewer = ({ roteiro, isLight }) => {
+const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) => {
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const response = await imageGenerationService.generate({ entityType, entityData });
+      const url = response.data?.url;
+      if (url) onGenerated(url);
+      else setError('Nenhuma imagem retornada');
+    } catch (err) {
+      setError(err.message || 'Erro ao gerar');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  if (imageUrl) {
+    return (
+      <div className="relative group mt-2">
+        <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+        <button onClick={() => onGenerated('')} className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" title="Remover">
+          <X size={12} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={handleGenerate}
+        disabled={generating}
+        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+          generating ? 'bg-gray-500/30 cursor-not-allowed text-gray-400' : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300'
+        }`}
+      >
+        {generating ? <><Loader2 size={12} className="animate-spin" /> Gerando...</> : <><ImagePlus size={12} /> Gerar Imagem</>}
+      </button>
+      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+    </div>
+  );
+};
+
+const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate }) => {
   if (!roteiro) return null;
+
+  const updateItemImage = (arrayKey, index, url) => {
+    if (!onRoteiroUpdate) return;
+    const updated = { ...roteiro, [arrayKey]: roteiro[arrayKey].map((item, i) => i === index ? { ...item, imagem: url } : item) };
+    onRoteiroUpdate(updated);
+  };
 
   return (
     <div className="space-y-2">
@@ -113,6 +167,15 @@ const RoteiroViewer = ({ roteiro, isLight }) => {
                   <span className="text-purple-400">({local.tipo})</span>
                 </div>
                 <p className="opacity-80">{local.descricao?.substring(0, 120)}{local.descricao?.length > 120 ? '...' : ''}</p>
+                {onRoteiroUpdate && (
+                  <ImagemCard
+                    imageUrl={local.imagem}
+                    entityType="local"
+                    entityData={{ nome: local.nome, tipo: local.tipo, descricao: local.descricao }}
+                    isLight={isLight}
+                    onGenerated={(url) => updateItemImage('locais', i, url)}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -136,6 +199,15 @@ const RoteiroViewer = ({ roteiro, isLight }) => {
                 <p className="opacity-80">{npc.descricao?.substring(0, 100)}{npc.descricao?.length > 100 ? '...' : ''}</p>
                 {npc.dialogo_exemplo && (
                   <p className="mt-1 italic opacity-60">"{npc.dialogo_exemplo}"</p>
+                )}
+                {onRoteiroUpdate && (
+                  <ImagemCard
+                    imageUrl={npc.imagem}
+                    entityType="npc"
+                    entityData={{ nome: npc.nome, papel: npc.papel, descricao: npc.descricao, local: npc.local }}
+                    isLight={isLight}
+                    onGenerated={(url) => updateItemImage('npcs', i, url)}
+                  />
                 )}
               </div>
             ))}

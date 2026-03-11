@@ -203,6 +203,16 @@ export const useHistoriaVerModel = () => {
     }
   }, [historiaAtual]);
 
+  const handleRoteiroUpdate = useCallback(async (updatedRoteiro) => {
+    if (!historiaAtual) return;
+    setRoteiro(updatedRoteiro);
+    try {
+      await historiaService.atualizarRoteiro(historiaAtual.id, updatedRoteiro);
+    } catch (err) {
+      console.error('Erro ao salvar roteiro:', err);
+    }
+  }, [historiaAtual]);
+
   // Imagem handlers
   const handleCapaGenerated = useCallback(async (url) => {
     if (!historiaAtual) return;
@@ -287,6 +297,7 @@ export const useHistoriaVerModel = () => {
     roteiroStatus,
     roteiroLoading,
     handleGerarRoteiro,
+    handleRoteiroUpdate,
 
     // Imagens
     handleCapaGenerated,

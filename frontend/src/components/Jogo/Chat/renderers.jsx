@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
+import { imageGenerationService } from '../../../services';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 
@@ -189,6 +190,19 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
 
+  const [sceneImage, setSceneImage] = useState(null);
+  const [generatingScene, setGeneratingScene] = useState(false);
+
+  const handleGenerateScene = async () => {
+    setGeneratingScene(true);
+    try {
+      const response = await imageGenerationService.generate({ entityType: 'cena', entityData: { narracao: conteudo } });
+      const url = response.data?.url;
+      if (url) setSceneImage(url);
+    } catch (_) { /* silent */ }
+    setGeneratingScene(false);
+  };
+
   return (
     <div className="w-full animate-fade-in">
       <div className={`glass p-6 rounded-xl border-2 shadow-2xl ${
@@ -207,26 +221,53 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
               }`}>
                 Mestre {temSolicitacaoDados && '- Solicita Rolagem!'}
               </p>
-              {effectiveVoiceId && (
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)}
-                  disabled={tts.isLoading && isThisPlaying}
+                  onClick={handleGenerateScene}
+                  disabled={generatingScene}
                   className={`p-1.5 rounded-lg transition-all text-lg ${
-                    isThisPlaying && tts.isPlaying
+                    generatingScene
                       ? 'bg-purple-500/30 text-purple-200'
                       : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
                   }`}
-                  title={isThisPlaying && tts.isPlaying ? 'Parar narração' : 'Ouvir narração'}
+                  title={generatingScene ? 'Gerando ilustração...' : 'Ilustrar cena'}
                 >
-                  {tts.isLoading && isThisPlaying ? (
+                  {generatingScene ? (
                     <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                  ) : isThisPlaying && tts.isPlaying ? '⏹' : '🔊'}
+                  ) : '🖼️'}
                 </button>
-              )}
+                {effectiveVoiceId && (
+                  <button
+                    onClick={() => tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)}
+                    disabled={tts.isLoading && isThisPlaying}
+                    className={`p-1.5 rounded-lg transition-all text-lg ${
+                      isThisPlaying && tts.isPlaying
+                        ? 'bg-purple-500/30 text-purple-200'
+                        : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+                    }`}
+                    title={isThisPlaying && tts.isPlaying ? 'Parar narração' : 'Ouvir narração'}
+                  >
+                    {tts.isLoading && isThisPlaying ? (
+                      <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                    ) : isThisPlaying && tts.isPlaying ? '⏹' : '🔊'}
+                  </button>
+                )}
+              </div>
             </div>
             <MarkdownRenderer className="text-white text-lg leading-relaxed">
               {conteudo}
             </MarkdownRenderer>
+            {sceneImage && (
+              <div className="mt-3 relative group">
+                <img src={sceneImage} alt="Ilustração da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30" />
+                <button
+                  onClick={() => setSceneImage(null)}
+                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <span className="text-xs">✕</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

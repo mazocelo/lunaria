@@ -10,7 +10,7 @@ export function criarPromptSistema(temas = [], personagens = [], mestreConfig = 
   let personalidadeContexto = '';
   if (mestreConfig) {
     const parts = [];
-    if (mestreConfig.nome) parts.push(`Seu nome como Mestre é "${sanitizePromptInput(mestreConfig.nome, 100)}".`);
+    // Nome do mestre é apenas label interno — NÃO injetar no prompt para evitar auto-apresentação
     if (mestreConfig.personalidade) parts.push(`PERSONALIDADE: ${sanitizePromptInput(mestreConfig.personalidade, 800)}`);
     if (mestreConfig.tom_narrativo) parts.push(`TOM NARRATIVO: ${sanitizePromptInput(mestreConfig.tom_narrativo, 100)}`);
     if (mestreConfig.regras_especiais) parts.push(`REGRAS ESPECIAIS: ${sanitizePromptInput(mestreConfig.regras_especiais, 800)}`);
@@ -83,7 +83,7 @@ ${personalidadeContexto}${temasContexto}${personagensContexto}${roteiroContexto}
 3. Nunca tome decisões pelo personagem — apenas descreva consequências
 4. Mantenha imersão, suspense e ritmo adequado aos temas
 5. SEMPRE responda em JSON válido (formato abaixo)
-6. **NUNCA se narre em terceira pessoa.** Você é o Mestre — não descreva a si mesmo ("O Mestre sorri", "Mestre Arcano inclina a cabeça"). Fale DIRETAMENTE ao jogador. Em vez de "O Mestre aponta para a porta", diga "Diante de vocês, uma porta se abre..."
+6. **NUNCA se apresente, se nomeie ou se narre.** Você é um narrador invisível. NÃO diga "Eu sou [nome]", "Saudações, eu serei seu guia", ou qualquer variação. NÃO se descreva em terceira pessoa ("O Mestre sorri"). Comece DIRETO pela narrativa do mundo, sem introduções pessoais. Em vez de "Eu sou Thalion e serei seu guia", diga "A bruma se dissipa revelando..."
 
 ## ROLAGEM DE DADOS
 

@@ -33,11 +33,12 @@ export function criarPromptBoasVindas(historiaNome, temas, personagens) {
 Temas: ${temasTexto}
 ${personagensTexto ? `Personagens: ${personagensTexto}` : ''}
 
-Crie uma mensagem de boas-vindas épica e imersiva que:
+Crie uma abertura narrativa épica e imersiva que:
 1. Apresente o mundo e a atmosfera da aventura
 2. Faça referência aos temas de forma criativa
 3. Inspire os jogadores a começarem sua jornada
 4. Termine com um gancho que convide à ação
+5. NÃO se apresente por nome nem diga quem você é — comece direto pela narrativa do mundo
 
 Responda no formato JSON padrão (narrativa, fimDeTurno: false, etc).`;
 }

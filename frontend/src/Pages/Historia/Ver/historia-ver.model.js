@@ -71,8 +71,8 @@ export const useHistoriaVerModel = () => {
         .catch(() => setSessoes([]))
         .finally(() => setLoadingSessoes(false));
     }
-    return () => { setError(null); clearRoteiroPoll(); };
-  }, [id, clearRoteiroPoll]);
+    return () => { setError(null); stopRoteiroPoll(); };
+  }, [id]);
 
   // Obter nomes dos temas
   const getNomesTemas = useCallback((historia) => {
@@ -148,33 +148,31 @@ export const useHistoriaVerModel = () => {
     });
   }, []);
 
-  // Limpar polling de roteiro
-  const clearRoteiroPoll = useCallback(() => {
+  // Helpers de polling (sem useCallback para evitar dependência circular)
+  function stopRoteiroPoll() {
     if (roteiroPollRef.current) { clearInterval(roteiroPollRef.current); roteiroPollRef.current = null; }
     if (roteiroTimeoutRef.current) { clearTimeout(roteiroTimeoutRef.current); roteiroTimeoutRef.current = null; }
-  }, []);
+  }
 
-  // Iniciar polling de roteiro
-  const startRoteiroPoll = useCallback((historiaId) => {
-    clearRoteiroPoll();
+  function startRoteiroPoll(historiaId) {
+    stopRoteiroPoll();
     setRoteiroLoading(true);
     roteiroPollRef.current = setInterval(async () => {
       try {
         const updated = await historiaService.getRoteiro(historiaId);
         if (updated.roteiro_status !== 'generating') {
-          clearRoteiroPoll();
+          stopRoteiroPoll();
           setRoteiro(updated.roteiro || null);
           setRoteiroStatus(updated.roteiro_status);
           setRoteiroLoading(false);
         }
       } catch (_) {
-        clearRoteiroPoll();
+        stopRoteiroPoll();
         setRoteiroLoading(false);
       }
     }, 5000);
-    // Safety timeout 2min
-    roteiroTimeoutRef.current = setTimeout(() => { clearRoteiroPoll(); setRoteiroLoading(false); }, 120000);
-  }, [clearRoteiroPoll]);
+    roteiroTimeoutRef.current = setTimeout(() => { stopRoteiroPoll(); setRoteiroLoading(false); }, 120000);
+  }
 
   // Roteiro handlers
   const loadRoteiro = useCallback(async (historiaId) => {
@@ -182,15 +180,13 @@ export const useHistoriaVerModel = () => {
       const data = await historiaService.getRoteiro(historiaId);
       setRoteiro(data.roteiro || null);
       setRoteiroStatus(data.roteiro_status || null);
-
-      // Se roteiro está sendo gerado, iniciar polling
       if (data.roteiro_status === 'generating') {
         startRoteiroPoll(historiaId);
       }
     } catch (err) {
       console.error('Erro ao carregar roteiro:', err);
     }
-  }, [startRoteiroPoll]);
+  }, []);
 
   const handleGerarRoteiro = useCallback(async () => {
     if (!historiaAtual) return;
@@ -205,7 +201,7 @@ export const useHistoriaVerModel = () => {
       setRoteiroStatus('error');
       setRoteiroLoading(false);
     }
-  }, [historiaAtual, startRoteiroPoll]);
+  }, [historiaAtual]);
 
   // Imagem handlers
   const handleCapaGenerated = useCallback(async (url) => {

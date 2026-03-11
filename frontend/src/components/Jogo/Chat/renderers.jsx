@@ -185,6 +185,9 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;
+  // Usar voice da mensagem (permanente) com fallback para props (sessão atual)
+  const effectiveVoiceId = mensagem.voice_id || voiceId;
+  const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
 
   return (
     <div className="w-full animate-fade-in">
@@ -204,9 +207,9 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
               }`}>
                 Mestre {temSolicitacaoDados && '- Solicita Rolagem!'}
               </p>
-              {voiceId && (
+              {effectiveVoiceId && (
                 <button
-                  onClick={() => tts.play(conteudo, voiceId, mensagem.id, voiceProvider)}
+                  onClick={() => tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)}
                   disabled={tts.isLoading && isThisPlaying}
                   className={`p-1.5 rounded-lg transition-all text-lg ${
                     isThisPlaying && tts.isPlaying

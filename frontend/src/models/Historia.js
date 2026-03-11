@@ -12,6 +12,8 @@ export class Historia {
     this.prologo = data.prologo || '';
     this.mestre_id = data.mestre_id || null;
     this.mestre = data.mestre || null;
+    this.imagem = data.imagem || null;
+    this.mapas = data.mapas || [];
     this.id_usuario = data.id_usuario || null;  // ID do usuário dono da história
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
@@ -59,6 +61,8 @@ export class Historia {
       descricao: this.descricao,
       prologo: this.prologo,
       mestre_id: this.mestre_id,
+      imagem: this.imagem,
+      mapas: this.mapas,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
@@ -79,6 +83,8 @@ export class Historia {
       prologo: apiData.prologo || '',
       mestre_id: apiData.mestre_id || null,
       mestre: apiData.mestres || apiData.mestre || null,
+      imagem: apiData.imagem || null,
+      mapas: apiData.mapas || [],
       id_usuario: apiData.id_usuario,  // ID do usuário dono da história
       created_at: apiData.created_at,
       updated_at: apiData.updated_at

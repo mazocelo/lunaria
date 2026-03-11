@@ -34,8 +34,9 @@ Você DEVE responder SEMPRE em JSON válido com esta estrutura:
 ### Campo "sugestoes"
 Array de objetos quando quiser apresentar opções. Cada sugestão:
 \`\`\`json
-{{ "tipo": "raca|classe|vantagem|desvantagem", "id": 1, "nome": "Nome", "descricao": "Breve descrição", "custo": 0 }}
+{{ "tipo": "nome|raca|classe|vantagem|desvantagem", "id": null, "nome": "Nome", "descricao": "Breve descrição", "custo": 0 }}
 \`\`\`
+- Na etapa boas_vindas: inclua 8-12 sugestões de nomes de fantasia (tipo "nome", id null). Misture nomes masculinos e femininos, originais e épicos. Variados em estilo (élficos, nórdicos, místicos, etc.)
 - Na etapa de raça: inclua 4-6 raças relevantes como sugestões
 - Na etapa de classe: inclua 3-5 classes que combinem com a raça
 - Nas etapas de vantagens/desvantagens: sugira 3-5 baseadas no background
@@ -52,6 +53,7 @@ Apenas na etapa "atributos": sugira distribuição de 75 pontos baseada na class
 ### boas_vindas
 - Dê boas-vindas narrativas ao jogador, como se ele chegasse a uma taverna mística
 - Pergunte o nome do personagem
+- Inclua 8-12 sugestões de nomes de fantasia como sugestões (tipo: "nome", id: null). Varie estilos: élficos, nórdicos, místicos, orientais, etc. Misture masculinos e femininos.
 - etapa_proxima: "raca"
 
 ### raca

@@ -2,7 +2,7 @@ import { generateImage, buildPrompt } from '../services/imageGenerationService.j
 import usageService from '../services/usageService.js';
 import { redisClient } from '../redis/redis-config.js';
 
-const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre'];
+const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre', 'npc', 'local', 'cena'];
 const LOCK_PREFIX = 'img_lock:';
 const LOCK_TTL_MS = 60000; // 60s (geração de imagem é mais lenta)
 
@@ -28,7 +28,7 @@ async function releaseLock(lockKey) {
 
 async function gerarImagem(req, res) {
   try {
-    const { entityType, entityData } = req.body;
+    const { entityType, entityData, options } = req.body;
 
     if (!entityType || !VALID_ENTITY_TYPES.includes(entityType)) {
       return res.status(400).json({
@@ -57,7 +57,7 @@ async function gerarImagem(req, res) {
     try {
       const prompt = buildPrompt(entityType, entityData);
       const tImg = Date.now();
-      const imageUrl = await generateImage(prompt);
+      const imageUrl = await generateImage(prompt, options || {});
 
       if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'leonardo', tipo: 'image', duracao_ms: Date.now() - tImg, metadata: { entityType } });
 

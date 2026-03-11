@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { RPGActions } from '../../RPGActions';
 import BackgroundEffects from '../Shared/BackgroundEffects';
 import PainelJogadores from '../Chat/PainelJogadores';
@@ -97,6 +97,20 @@ const EtapaJogoRPG = ({
 }) => {
   // Theme
   const { theme, toggleTheme } = useTheme();
+
+  // Entidades do roteiro que possuem imagem (NPCs e Locais)
+  const entidadesComImagem = useMemo(() => {
+    const roteiro = historia?.roteiro;
+    if (!roteiro) return [];
+    const itens = [];
+    (roteiro.npcs || []).forEach(npc => {
+      if (npc.imagem) itens.push({ nome: npc.nome, imagem: npc.imagem, tipo: 'npc' });
+    });
+    (roteiro.locais || []).forEach(local => {
+      if (local.imagem) itens.push({ nome: local.nome, imagem: local.imagem, tipo: 'local' });
+    });
+    return itens;
+  }, [historia?.roteiro]);
 
   // Socket store - acesso direto via hooks
   const socketStoreOn = useSocketStore(s => s.on);
@@ -1112,6 +1126,7 @@ const EtapaJogoRPG = ({
               mensagensRef={null}
               voiceId={historia?.mestre?.voice_id || historia?.mestres?.voice_id}
               voiceProvider={historia?.mestre?.voice_provider || historia?.mestres?.voice_provider || 'elevenlabs'}
+              entidadesComImagem={entidadesComImagem}
             />
 
             {/* Area de Input - Chat */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
@@ -183,7 +183,7 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instância compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
+export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;
@@ -194,6 +194,14 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
   const [sceneImage, setSceneImage] = useState(null);
   const [generatingScene, setGeneratingScene] = useState(false);
   const [sceneLightbox, setSceneLightbox] = useState(false);
+  const [activeLightbox, setActiveLightbox] = useState(null);
+
+  // Detectar NPCs/Locais mencionados na narrativa que possuem imagem
+  const entidadesMencionadas = useMemo(() => {
+    if (!entidadesComImagem?.length || !conteudo) return [];
+    const texto = conteudo.toLowerCase();
+    return entidadesComImagem.filter(e => texto.includes(e.nome.toLowerCase()));
+  }, [conteudo, entidadesComImagem]);
 
   const handleGenerateScene = async () => {
     setGeneratingScene(true);
@@ -259,6 +267,24 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
             <MarkdownRenderer className="text-white text-lg leading-relaxed">
               {conteudo}
             </MarkdownRenderer>
+            {entidadesMencionadas.length > 0 && (
+              <div className="flex gap-2 mt-3 flex-wrap">
+                {entidadesMencionadas.map((e, i) => (
+                  <div key={i} className="relative group/entity">
+                    <img
+                      src={e.imagem}
+                      alt={e.nome}
+                      className="h-24 w-24 object-cover rounded-lg border border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all"
+                      onClick={() => setActiveLightbox(e.imagem)}
+                    />
+                    <span className="absolute bottom-0 left-0 right-0 text-xs text-center bg-black/60 text-white rounded-b-lg px-1 py-0.5 truncate">
+                      {e.nome}
+                    </span>
+                  </div>
+                ))}
+                <ImageLightbox src={activeLightbox} alt="" isOpen={!!activeLightbox} onClose={() => setActiveLightbox(null)} />
+              </div>
+            )}
             {sceneImage && (
               <div className="mt-3 relative group">
                 <img src={sceneImage} alt="Ilustração da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer" onClick={() => setSceneLightbox(true)} />

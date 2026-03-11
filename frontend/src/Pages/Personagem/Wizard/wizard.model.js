@@ -7,6 +7,7 @@ import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { useLayout } from '../../../contexts/LayoutContext.jsx';
 import { Personagem } from '../../../models/Personagem';
 
 const ETAPAS = [
@@ -33,8 +34,15 @@ export const useWizardModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const { setIsFullscreen } = useLayout();
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
   const chatEndRef = useRef(null);
+
+  // Ativa fullscreen no main (sem padding, overflow-hidden) e desativa ao sair
+  useEffect(() => {
+    setIsFullscreen(true);
+    return () => setIsFullscreen(false);
+  }, [setIsFullscreen]);
 
   // Zustand stores
   const racas = useRacaStore(s => s.racas);

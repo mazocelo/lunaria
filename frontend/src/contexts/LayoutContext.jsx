@@ -47,6 +47,7 @@ export const LayoutProvider = ({ children }) => {
     <LayoutContext.Provider value={{
       showSidebar,
       isFullscreen,
+      setIsFullscreen,
       hideSidebar,
       openSidebar: showSidebarFn,
       sidebarCollapsed,

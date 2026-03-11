@@ -85,7 +85,7 @@ const WizardChat = ({
                   <span className="text-lg">🧙</span>
                 )}
                 <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
-                  isLight ? 'text-slate-500' : 'text-slate-500'
+                  isLight ? 'text-slate-600' : 'text-slate-500'
                 }`}>
                   {msg.role === 'mestre' ? 'Mestre Criador' : 'Você'}
                 </span>

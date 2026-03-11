@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../contexts/theme.jsx';
-import { Heart, Shield, Sword, Eye, EyeOff, Sparkles, User } from 'lucide-react';
+import { Heart, Shield, Eye, EyeOff, Sparkles, User } from 'lucide-react';
 
 const ATTR_LABELS = {
   forca: { label: 'FOR', color: 'bg-red-500' },

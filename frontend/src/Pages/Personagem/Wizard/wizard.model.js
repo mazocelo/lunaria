@@ -305,6 +305,14 @@ export const useWizardModel = () => {
       setError('Nome do personagem é obrigatório');
       return;
     }
+    if (!racaId) {
+      setError('Selecione uma raça antes de salvar');
+      return;
+    }
+    if (!classeId) {
+      setError('Selecione uma classe antes de salvar');
+      return;
+    }
 
     setSalvando(true);
     setError(null);

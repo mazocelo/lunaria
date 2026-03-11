@@ -14,17 +14,13 @@ export class MestreCriadorService {
    * @returns {Object} { mensagem, sugestoes, etapa_proxima, atributos_sugeridos }
    */
   async interagir({ etapa, estado, mensagemJogador, historico }) {
-    try {
-      const response = await this.apiClient.post(`${this.baseUrl}/interagir`, {
-        etapa,
-        estado,
-        mensagemJogador,
-        historico,
-      });
-      if (response.success) return response.data;
-      throw new Error(response.data?.message || 'Erro desconhecido');
-    } catch (error) {
-      throw new Error(`Erro ao interagir com Mestre Criador: ${error.message}`);
-    }
+    const response = await this.apiClient.post(`${this.baseUrl}/interagir`, {
+      etapa,
+      estado,
+      mensagemJogador,
+      historico,
+    });
+    if (response.success) return response.data;
+    throw new Error(response.data?.message || 'Erro ao interagir com Mestre Criador');
   }
 }

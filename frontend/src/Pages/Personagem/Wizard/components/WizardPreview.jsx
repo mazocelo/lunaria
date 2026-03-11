@@ -74,13 +74,13 @@ const WizardPreview = ({
             isLight ? 'border-slate-200 bg-white/80' : 'border-slate-700/50 bg-slate-800/30'
           }`}>
             <h4 className={`text-xs font-modern font-semibold uppercase tracking-wider mb-2 ${
-              isLight ? 'text-slate-500' : 'text-slate-500'
+              isLight ? 'text-slate-600' : 'text-slate-500'
             }`}>
               Seleções
             </h4>
             <div className="flex flex-wrap gap-1">
               {vantagensIds.map(id => {
-                const item = vantagensDisponiveis.find(v => v.id === id);
+                const item = vantagensDisponiveis.find(v => v.id === id && v.tipo !== 'desvantagem');
                 if (!item) return null;
                 return (
                   <button
@@ -94,7 +94,7 @@ const WizardPreview = ({
                 );
               })}
               {desvantagensIds.map(id => {
-                const item = vantagensDisponiveis.find(d => d.id === id);
+                const item = vantagensDisponiveis.find(d => d.id === id && d.tipo === 'desvantagem');
                 if (!item) return null;
                 return (
                   <button

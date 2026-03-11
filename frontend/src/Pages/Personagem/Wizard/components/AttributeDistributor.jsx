@@ -2,12 +2,12 @@ import React from 'react';
 import { Minus, Plus, Wand2 } from 'lucide-react';
 
 const ATTR_CONFIG = {
-  forca: { label: 'Força', abbr: 'FOR', color: 'red' },
-  destreza: { label: 'Destreza', abbr: 'DES', color: 'purple' },
-  constituicao: { label: 'Constituição', abbr: 'CON', color: 'green' },
-  inteligencia: { label: 'Inteligência', abbr: 'INT', color: 'blue' },
-  agilidade: { label: 'Agilidade', abbr: 'AGI', color: 'yellow' },
-  carisma: { label: 'Carisma', abbr: 'CAR', color: 'pink' },
+  forca: { label: 'Força', abbr: 'FOR', bar: 'bg-red-500' },
+  destreza: { label: 'Destreza', abbr: 'DES', bar: 'bg-purple-500' },
+  constituicao: { label: 'Constituição', abbr: 'CON', bar: 'bg-green-500' },
+  inteligencia: { label: 'Inteligência', abbr: 'INT', bar: 'bg-blue-500' },
+  agilidade: { label: 'Agilidade', abbr: 'AGI', bar: 'bg-yellow-500' },
+  carisma: { label: 'Carisma', abbr: 'CAR', bar: 'bg-pink-500' },
 };
 
 const AttributeDistributor = ({
@@ -106,7 +106,7 @@ const AttributeDistributor = ({
               {/* Bar */}
               <div className={`flex-1 h-1.5 rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-700/50'}`}>
                 <div
-                  className={`h-full rounded-full bg-${cfg.color}-500 transition-all duration-200`}
+                  className={`h-full rounded-full ${cfg.bar} transition-all duration-200`}
                   style={{ width: `${Math.min(100, (val / 20) * 100)}%` }}
                 />
               </div>

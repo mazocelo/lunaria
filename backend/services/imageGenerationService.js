@@ -100,17 +100,23 @@ function buildPrompt(entityType, entityData) {
       return `${parts.join(', ')}, ${style}`;
     }
     case 'historia': {
-      const parts = ['Epic fantasy scene'];
-      if (entityData.nome) parts.push(entityData.nome);
+      const parts = ['Epic fantasy book cover illustration'];
+      if (entityData.nome) parts.push(`"${entityData.nome}"`);
       if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
+      if (entityData.sinopse) parts.push(entityData.sinopse.slice(0, 200));
+      else if (entityData.prologo) parts.push(entityData.prologo.slice(0, 200));
+      else if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
+      if (entityData.antagonista) parts.push(`antagonist: ${entityData.antagonista}`);
+      if (entityData.locais) parts.push(`locations: ${entityData.locais}`);
       return `${parts.join(', ')}, ${style}`;
     }
     case 'historia_mapa': {
       const mapStyle = 'fantasy RPG world map, top-down cartographic view, parchment texture, hand-drawn style, detailed terrain';
       const parts = ['Fantasy world map'];
-      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.nome) parts.push(`"${entityData.nome}"`);
       if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
+      if (entityData.locais) parts.push(`locations: ${entityData.locais}`);
+      if (entityData.mapaMundi) parts.push(String(entityData.mapaMundi).slice(0, 200));
       return `${parts.join(', ')}, ${mapStyle}`;
     }
     case 'mestre': {

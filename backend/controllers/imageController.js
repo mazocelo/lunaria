@@ -1,7 +1,30 @@
 import { generateImage, buildPrompt } from '../services/imageGenerationService.js';
 import usageService from '../services/usageService.js';
+import { redisClient } from '../redis/redis-config.js';
 
 const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre'];
+const LOCK_PREFIX = 'img_lock:';
+const LOCK_TTL_MS = 60000; // 60s (geração de imagem é mais lenta)
+
+/**
+ * Tenta adquirir lock distribuído para evitar geração duplicada simultânea
+ */
+async function acquireLock(lockKey) {
+  try {
+    if (!redisClient.isOpen) return true;
+    const result = await redisClient.set(LOCK_PREFIX + lockKey, '1', { NX: true, PX: LOCK_TTL_MS });
+    return result === 'OK';
+  } catch {
+    return true; // sem Redis → prossegue sem lock
+  }
+}
+
+async function releaseLock(lockKey) {
+  try {
+    if (!redisClient.isOpen) return;
+    await redisClient.del(LOCK_PREFIX + lockKey);
+  } catch { /* ignore */ }
+}
 
 async function gerarImagem(req, res) {
   try {
@@ -21,13 +44,27 @@ async function gerarImagem(req, res) {
       });
     }
 
-    const prompt = buildPrompt(entityType, entityData);
-    const tImg = Date.now();
-    const imageUrl = await generateImage(prompt);
+    // Lock por entidade (entityType + id) para evitar geração simultânea duplicada
+    const lockKey = `${entityType}:${entityData.id || entityData.nome || 'unknown'}`;
+    const gotLock = await acquireLock(lockKey);
+    if (!gotLock) {
+      return res.status(429).json({
+        success: false,
+        error: 'Imagem já está sendo gerada para esta entidade. Aguarde.',
+      });
+    }
 
-    if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'leonardo', tipo: 'image', duracao_ms: Date.now() - tImg, metadata: { entityType } });
+    try {
+      const prompt = buildPrompt(entityType, entityData);
+      const tImg = Date.now();
+      const imageUrl = await generateImage(prompt);
 
-    return res.json({ success: true, data: { url: imageUrl, prompt } });
+      if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'leonardo', tipo: 'image', duracao_ms: Date.now() - tImg, metadata: { entityType } });
+
+      return res.json({ success: true, data: { url: imageUrl, prompt } });
+    } finally {
+      releaseLock(lockKey);
+    }
   } catch (error) {
     console.error('[ImageController] Erro ao gerar imagem:', error.message);
     return res.status(500).json({

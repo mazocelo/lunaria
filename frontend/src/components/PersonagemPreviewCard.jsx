@@ -36,9 +36,23 @@ const PersonagemPreviewCard = ({
   const isLight = theme === 'light';
   const [collapsed, setCollapsed] = useState(false);
 
-  const racaNome = racasDisponiveis?.find(r => String(r.id) === String(raca))?.nome;
-  const classeNome = classesDisponiveis?.find(c => String(c.id) === String(classe))?.nome;
+  const racaObj = racasDisponiveis?.find(r => String(r.id) === String(raca));
+  const classeObj = classesDisponiveis?.find(c => String(c.id) === String(classe));
+  const racaNome = racaObj?.nome;
+  const classeNome = classeObj?.nome;
   const hpEstimado = calcHP(atributos.constituicao, 1);
+
+  // Parse bonuses from race/class
+  const parseBonus = (raw) => {
+    if (!raw) return null;
+    try {
+      const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return Array.isArray(obj) ? obj[0] : obj;
+    } catch { return null; }
+  };
+  const racaBonus = parseBonus(racaObj?.bonus);
+  const classeBonus = parseBonus(classeObj?.bonus);
+  const temBonus = racaBonus || classeBonus;
 
   const vantagensNomes = (vantagensSelecionadas || []).map(id => {
     const v = vantagensDisponiveis?.find(vt => String(vt.id) === String(id));
@@ -118,6 +132,44 @@ const PersonagemPreviewCard = ({
               );
             })}
           </div>
+
+          {/* Bônus de Raça/Classe */}
+          {temBonus && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Shield size={12} className="text-blue-400" />
+                <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
+                  isLight ? 'text-slate-600' : 'text-slate-400'
+                }`}>
+                  Bônus
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {racaBonus && Object.entries(racaBonus).map(([k, v]) => (
+                  <span
+                    key={`r-${k}`}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-modern ${
+                      Number(v) >= 0 ? 'bg-purple-500/15 text-purple-400' : 'bg-orange-500/15 text-orange-400'
+                    }`}
+                    title={`Raça: ${racaNome}`}
+                  >
+                    {k.replace(/_/g, ' ')} {Number(v) >= 0 ? '+' : ''}{v}
+                  </span>
+                ))}
+                {classeBonus && Object.entries(classeBonus).map(([k, v]) => (
+                  <span
+                    key={`c-${k}`}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-modern ${
+                      Number(v) >= 0 ? 'bg-blue-500/15 text-blue-400' : 'bg-orange-500/15 text-orange-400'
+                    }`}
+                    title={`Classe: ${classeNome}`}
+                  >
+                    {k.replace(/_/g, ' ')} {Number(v) >= 0 ? '+' : ''}{v}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Vantagens/Desvantagens */}
           {vantagensNomes.length > 0 && (

@@ -1,7 +1,13 @@
-import React from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Send, Loader2, Sparkles, Search, X } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
+
+const NOMES_FANTASIA = [
+  'Aldric', 'Seraphina', 'Thorin', 'Lyanna', 'Kael',
+  'Isolde', 'Raven', 'Zephyr', 'Morgana', 'Fenris',
+  'Elara', 'Draven', 'Selene', 'Orin', 'Ashara',
+];
 
 const WizardChat = ({
   mensagens,
@@ -12,6 +18,9 @@ const WizardChat = ({
   onSelecionarSugestao,
   vantagensIds,
   desvantagensIds,
+  etapaAtual,
+  racasDisponiveis,
+  classesDisponiveis,
   chatEndRef,
   isLight,
 }) => {
@@ -29,17 +38,45 @@ const WizardChat = ({
     }
   };
 
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [filtro, setFiltro] = useState('');
+
   const isSugestaoSelecionada = (sugestao) => {
     if (sugestao.tipo === 'vantagem') return vantagensIds.includes(sugestao.id);
     if (sugestao.tipo === 'desvantagem') return desvantagensIds.includes(sugestao.id);
     return false;
   };
 
+  const mostrarBusca = etapaAtual === 'raca' || etapaAtual === 'classe';
+  const catalogoAtual = etapaAtual === 'raca' ? racasDisponiveis : etapaAtual === 'classe' ? classesDisponiveis : [];
+  const tipoAtual = etapaAtual === 'raca' ? 'raca' : 'classe';
+  const labelAtual = etapaAtual === 'raca' ? 'raças' : 'classes';
+
+  const catalogoFiltrado = useMemo(() => {
+    if (!filtro.trim()) return catalogoAtual;
+    const termo = filtro.toLowerCase();
+    return catalogoAtual.filter(item =>
+      item.nome?.toLowerCase().includes(termo) ||
+      item.descricao?.toLowerCase().includes(termo)
+    );
+  }, [catalogoAtual, filtro]);
+
+  const handleSelecionarCatalogo = (item) => {
+    onSelecionarSugestao({
+      tipo: tipoAtual,
+      id: item.id,
+      nome: item.nome,
+      descricao: item.descricao,
+    });
+    setBuscaAberta(false);
+    setFiltro('');
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Mensagens */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {mensagens.map((msg) => (
+        {mensagens.map((msg, msgIndex) => (
           <div key={msg.id} className={`flex ${msg.role === 'jogador' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] ${msg.role === 'jogador' ? 'order-1' : ''}`}>
               {/* Avatar + Nome */}
@@ -83,6 +120,91 @@ const WizardChat = ({
                   ))}
                 </div>
               )}
+
+              {/* Botão "Pesquisar outras" — na última mensagem do mestre em etapas raca/classe */}
+              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && mostrarBusca && !enviando && (
+                <button
+                  type="button"
+                  onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
+                  className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-medium transition-all cursor-pointer ${
+                    buscaAberta
+                      ? isLight
+                        ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                        : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                      : isLight
+                        ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                        : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30'
+                  }`}
+                >
+                  <Search size={12} />
+                  {buscaAberta ? `Fechar busca` : `Pesquisar todas as ${labelAtual}`}
+                </button>
+              )}
+
+              {/* Painel de busca expandido */}
+              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && mostrarBusca && buscaAberta && (
+                <div className={`mt-2 rounded-lg border overflow-hidden ${
+                  isLight ? 'border-slate-200 bg-white' : 'border-slate-700/50 bg-slate-800/60'
+                }`}>
+                  {/* Search input */}
+                  <div className={`flex items-center gap-2 px-3 py-2 border-b ${
+                    isLight ? 'border-slate-200' : 'border-slate-700/50'
+                  }`}>
+                    <Search size={14} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                    <input
+                      type="text"
+                      value={filtro}
+                      onChange={(e) => setFiltro(e.target.value)}
+                      placeholder={`Buscar ${labelAtual}...`}
+                      className={`flex-1 text-xs font-modern bg-transparent outline-none ${
+                        isLight ? 'text-slate-700 placeholder-slate-400' : 'text-slate-200 placeholder-slate-500'
+                      }`}
+                    />
+                    {filtro && (
+                      <button onClick={() => setFiltro('')} className="cursor-pointer">
+                        <X size={12} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Lista */}
+                  <div className="max-h-48 overflow-y-auto">
+                    {catalogoFiltrado.length === 0 ? (
+                      <p className={`px-3 py-4 text-xs text-center font-modern ${
+                        isLight ? 'text-slate-400' : 'text-slate-500'
+                      }`}>
+                        Nenhuma {tipoAtual === 'raca' ? 'raça' : 'classe'} encontrada
+                      </p>
+                    ) : (
+                      catalogoFiltrado.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelecionarCatalogo(item)}
+                          className={`w-full text-left px-3 py-2 transition-colors cursor-pointer ${
+                            isLight
+                              ? 'hover:bg-purple-50 border-b border-slate-100 last:border-b-0'
+                              : 'hover:bg-purple-500/10 border-b border-slate-700/30 last:border-b-0'
+                          }`}
+                        >
+                          <span className={`text-sm font-fantasy font-bold block ${
+                            isLight ? 'text-slate-800' : 'text-white'
+                          }`}>
+                            {item.nome}
+                          </span>
+                          {item.descricao && (
+                            <span className={`text-[11px] font-modern line-clamp-1 ${
+                              isLight ? 'text-slate-500' : 'text-slate-400'
+                            }`}>
+                              {item.descricao}
+                            </span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -105,6 +227,38 @@ const WizardChat = ({
 
         <div ref={chatEndRef} />
       </div>
+
+      {/* Sugestões de nome */}
+      {etapaAtual === 'boas_vindas' && !enviando && (
+        <div className={`px-4 pt-3 pb-1 border-t ${
+          isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
+        }`}>
+          <div className={`flex items-center gap-1.5 mb-2 ${
+            isLight ? 'text-slate-500' : 'text-slate-400'
+          }`}>
+            <Sparkles size={12} />
+            <span className="text-[10px] font-modern font-semibold uppercase tracking-wider">
+              Sugestões de nome
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {NOMES_FANTASIA.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onEnviar(n)}
+                className={`px-3 py-1 rounded-full text-xs font-modern font-medium transition-all cursor-pointer ${
+                  isLight
+                    ? 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 hover:border-purple-300'
+                    : 'bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <form

@@ -108,6 +108,9 @@ const WizardView = (props) => {
             onSelecionarSugestao={selecionarSugestao}
             vantagensIds={vantagensIds}
             desvantagensIds={desvantagensIds}
+            etapaAtual={etapaAtual}
+            racasDisponiveis={racasDisponiveis}
+            classesDisponiveis={classesDisponiveis}
             chatEndRef={chatEndRef}
             isLight={isLight}
           />

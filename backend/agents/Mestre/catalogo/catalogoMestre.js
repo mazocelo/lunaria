@@ -152,49 +152,43 @@ export async function buildCatalogo({ niveisJogadores = [] } = {}) {
 }
 
 /**
- * Constrói catálogo COMPLETO sem truncamento (para geração de blueprints)
- * @returns {string} Texto formatado do catálogo completo
+ * Constrói catálogo resumido para geração de blueprints (~15K chars max)
+ * Lista nomes agrupados por tipo, sem detalhes excessivos.
+ * @returns {string} Texto formatado do catálogo
  */
 export async function buildCatalogoCompleto() {
+  const MAX_CHARS = 15000;
   try {
     const { monstros, equipamentos, elementos } = await fetchRawData();
     const sections = [];
 
-    // === MONSTROS (todos, sem filtro de nível) ===
+    // === MONSTROS (nomes + nível + elemento, sem habilidades) ===
     if (monstros.length > 0) {
       const porTipo = {};
       for (const m of monstros) {
         const tipo = (m.tipo && m.tipo[0]) || 'outro';
         if (!porTipo[tipo]) porTipo[tipo] = [];
-        const elem = m.elemento?.length ? `, ${m.elemento.join('/')}` : '';
-        const hab = m.habilidades && Array.isArray(m.habilidades) && m.habilidades.length > 0
-          ? `, hab: ${m.habilidades.map(h => h.nome || h).join('/')}`
-          : '';
-        porTipo[tipo].push(`${m.nome} (nv${m.nivel_min}-${m.nivel_max}, HP${m.hp_base}, dano:${m.dano_base}${elem}${hab})`);
+        const elem = m.elemento?.length ? ` ${m.elemento.join('/')}` : '';
+        porTipo[tipo].push(`${m.nome}(nv${m.nivel_min}-${m.nivel_max}${elem})`);
       }
-      let text = '=== CATÁLOGO COMPLETO DE MONSTROS ===\n';
-      text += `Total: ${monstros.length} monstros.\n\n`;
+      let text = `=== MONSTROS (${monstros.length}) ===\n`;
       for (const [tipo, lista] of Object.entries(porTipo).sort()) {
         text += `[${tipo}] ${lista.join(', ')}\n`;
       }
       sections.push(text);
     }
 
-    // === EQUIPAMENTOS (todos) ===
+    // === EQUIPAMENTOS (nomes + raridade + elemento) ===
     if (equipamentos.length > 0) {
       const porTipo = {};
       for (const e of equipamentos) {
         const tipo = (e.tipo && e.tipo[0]) || 'outro';
         if (!porTipo[tipo]) porTipo[tipo] = [];
-        const elem = e.elemento?.length ? `, ${e.elemento.join('/')}` : '';
-        const bonus = formatarBonus(e.bonus);
-        const bonusStr = bonus ? `, ${bonus}` : '';
-        const raridade = e.raridade_rel?.nome || '';
-        const raridadeStr = raridade ? ` [${raridade}]` : '';
-        porTipo[tipo].push(`${e.nome}${raridadeStr} (${e.dano_base || '-'}${elem}${bonusStr})`);
+        const raridade = e.raridade_rel?.nome ? `[${e.raridade_rel.nome}]` : '';
+        const elem = e.elemento?.length ? ` ${e.elemento.join('/')}` : '';
+        porTipo[tipo].push(`${e.nome}${raridade}${elem}`);
       }
-      let text = '=== CATÁLOGO COMPLETO DE EQUIPAMENTOS ===\n';
-      text += `Total: ${equipamentos.length} equipamentos.\n\n`;
+      let text = `=== EQUIPAMENTOS (${equipamentos.length}) ===\n`;
       for (const [tipo, lista] of Object.entries(porTipo).sort()) {
         text += `[${tipo}] ${lista.join(', ')}\n`;
       }
@@ -208,7 +202,10 @@ export async function buildCatalogoCompleto() {
       sections.push(text);
     }
 
-    const catalogo = sections.join('\n\n');
+    let catalogo = sections.join('\n\n');
+    if (catalogo.length > MAX_CHARS) {
+      catalogo = catalogo.slice(0, MAX_CHARS) + '\n...(catálogo truncado)';
+    }
     console.log(`📦 CatalogoCompleto: ${monstros.length} monstros, ${equipamentos.length} equipamentos, ${elementos.length} elementos (${catalogo.length} chars)`);
     return catalogo;
   } catch (error) {

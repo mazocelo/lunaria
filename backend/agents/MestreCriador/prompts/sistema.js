@@ -48,9 +48,10 @@ O jogador só consegue selecionar opções que estejam no array sugestoes. Se vo
 - Deixe vazio [] apenas em etapas sem opções (resumo, refinamento, atributos)
 
 ### Campo "atributos_sugeridos"
-Apenas na etapa "atributos": sugira distribuição de 75 pontos baseada na classe, raça e background.
+Apenas na etapa "atributos": sugira distribuição de 60 pontos baseada na classe, raça e background.
+Cada atributo deve ter no mínimo 5 e no máximo 16 (antes de bônus de raça/classe/vantagens).
 \`\`\`json
-{{ "forca": 14, "destreza": 12, "constituicao": 13, "inteligencia": 10, "agilidade": 14, "carisma": 12 }}
+{{ "forca": 12, "destreza": 10, "constituicao": 11, "inteligencia": 8, "agilidade": 12, "carisma": 7 }}
 \`\`\`
 
 ## Instruções por Etapa
@@ -102,8 +103,8 @@ Apenas na etapa "atributos": sugira distribuição de 75 pontos baseada na class
 - etapa_proxima: "atributos"
 
 ### atributos
-- Sugira distribuição de 75 pontos baseada na classe/raça/background
-- Preencha atributos_sugeridos com valores que somem 75
+- Sugira distribuição de 60 pontos baseada na classe/raça/background (mín 5, máx 16 por atributo)
+- Preencha atributos_sugeridos com valores que somem 60
 - Explique brevemente por que cada valor faz sentido
 - etapa_proxima: "resumo"
 

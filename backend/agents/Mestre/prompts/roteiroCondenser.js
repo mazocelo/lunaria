@@ -260,4 +260,76 @@ function condensarRoteiroV2(roteiro, estadoAtual = null) {
   return resultado;
 }
 
+/**
+ * Atualiza progressão do blueprint com base no resumo mais recente.
+ * Usa modelo barato para extrair arco atual, NPCs encontrados, twists ativados.
+ * @param {Object} roteiro - Roteiro completo
+ * @param {string} resumoTexto - Resumo da aventura recém-gerado
+ * @param {Object|null} progressaoAnterior - Progressão salva anteriormente
+ * @param {string} userId - ID do usuário (para tracking)
+ * @returns {Promise<Object|null>} Nova progressão ou null se falhar
+ */
+export async function atualizarProgressao(roteiro, resumoTexto, progressaoAnterior = null, userId = null) {
+  if (!roteiro || !resumoTexto) return null;
+
+  try {
+    const { ChatGroq } = await import('@langchain/groq');
+    const { trackLLMUsage } = await import('../../../services/llmTracker.js');
+
+    const model = new ChatGroq({
+      apiKey: process.env.GROQ_API_KEY,
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      temperature: 0.1,
+      maxTokens: 500
+    });
+
+    const arcosNomes = (roteiro.arcos || []).map(a => `${a.numero}: "${a.titulo}"`).join(', ');
+    const npcsNomes = (roteiro.npcs || []).map(n => n.nome).join(', ');
+    const twistsDesc = (roteiro.plotTwists || []).map((t, i) => `${i + 1}: "${t.momento || t.titulo}"`).join(', ');
+
+    const prompt = `Analise o resumo da aventura e atualize a progressão do roteiro.
+
+ARCOS: ${arcosNomes}
+NPCs DO ROTEIRO: ${npcsNomes}
+PLOT TWISTS: ${twistsDesc}
+
+PROGRESSÃO ANTERIOR: ${progressaoAnterior ? JSON.stringify(progressaoAnterior) : 'nenhuma'}
+
+RESUMO RECENTE:
+${resumoTexto.substring(0, 1000)}
+
+Responda APENAS com JSON válido:
+{"arco_atual": <numero>, "npcs_encontrados": ["nome1"], "twists_ativados": [<indice>], "notas": "observação breve"}`;
+
+    const startTime = Date.now();
+    const response = await model.invoke(prompt);
+    trackLLMUsage(response, { modelName: 'meta-llama/llama-4-scout-17b-16e-instruct', userId, startTime, agent: 'ProgressaoBlueprint' });
+
+    // Parse JSON da resposta
+    const text = response.content.trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return progressaoAnterior;
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Merge com progressão anterior
+    return {
+      arco_atual: parsed.arco_atual || progressaoAnterior?.arco_atual || 1,
+      npcs_encontrados: [...new Set([
+        ...(progressaoAnterior?.npcs_encontrados || []),
+        ...(parsed.npcs_encontrados || [])
+      ])],
+      twists_ativados: [...new Set([
+        ...(progressaoAnterior?.twists_ativados || []),
+        ...(parsed.twists_ativados || [])
+      ])],
+      notas: parsed.notas || progressaoAnterior?.notas || '',
+      atualizado_em: new Date().toISOString()
+    };
+  } catch (error) {
+    console.warn('⚠️ Falha ao atualizar progressão:', error.message);
+    return progressaoAnterior;
+  }
+}
+
 export default condensarRoteiro;

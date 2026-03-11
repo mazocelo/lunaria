@@ -3302,9 +3302,33 @@ class SocketManager {
             });
 
             await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
-            
+
             console.log(`✅ Resumo gerado e salvo (${resumo.mensagensResumiadas} msgs resumidas)`);
-            
+
+            // ✅ AUTO-PROGRESSÃO DO BLUEPRINT (atualiza arco, NPCs, twists)
+            if (isEnabled('BLUEPRINT_V2') && sessaoParaResumo.historiaRoteiro) {
+              try {
+                const { atualizarProgressao } = await import('../agents/Mestre/prompts/roteiroCondenser.js');
+                const progressaoAtual = sessaoParaResumo.estadoJogo?.progressao || null;
+                const novaProgressao = await atualizarProgressao(
+                  sessaoParaResumo.historiaRoteiro,
+                  resumo.resumo,
+                  progressaoAtual,
+                  socket?.userId
+                );
+                if (novaProgressao) {
+                  const estadoAtual = sessaoParaResumo.estadoJogo || {};
+                  await this.gerenciadorSessoes.atualizarEstadoJogo(roomId, {
+                    ...estadoAtual,
+                    progressao: novaProgressao
+                  });
+                  console.log(`📊 Progressão do blueprint atualizada`);
+                }
+              } catch (err) {
+                console.warn('⚠️ Erro ao atualizar progressão:', err.message);
+              }
+            }
+
             // ✅ INVALIDAR CACHE DO MESTRE APÓS RESUMO
             this.invalidarMestreSeNecessario(roomId, proximaRodada);
           } catch (error) {

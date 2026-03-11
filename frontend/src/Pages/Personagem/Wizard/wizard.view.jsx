@@ -1,8 +1,8 @@
-import React from 'react';
-import { ArrowLeft, AlertCircle, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, AlertCircle, X, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
-import WizardPreview from './components/WizardPreview.jsx';
+import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
 
 const WizardView = (props) => {
   const {
@@ -51,6 +51,9 @@ const WizardView = (props) => {
     navigate,
   } = props;
 
+  const [fichaAberta, setFichaAberta] = useState(false);
+  const allSelecoes = [...vantagensIds, ...desvantagensIds];
+
   return (
     <div className={`h-screen flex flex-col overflow-hidden ${
       isLight
@@ -69,7 +72,7 @@ const WizardView = (props) => {
         >
           <ArrowLeft size={20} />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Forja do Destino
           </h1>
@@ -77,6 +80,23 @@ const WizardView = (props) => {
             Criação guiada de personagem
           </p>
         </div>
+        {/* Botão toggle ficha */}
+        <button
+          onClick={() => setFichaAberta(prev => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-medium transition-all cursor-pointer ${
+            fichaAberta
+              ? isLight
+                ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+              : isLight
+                ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-purple-50 hover:text-purple-600'
+                : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300'
+          }`}
+        >
+          <ScrollText size={14} />
+          Ficha
+          {fichaAberta ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
       </div>
 
       {/* Progress Bar */}
@@ -93,57 +113,96 @@ const WizardView = (props) => {
         </div>
       )}
 
-      {/* Main content: split-screen */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-        {/* Chat panel (left) */}
-        <div className={`flex-1 md:w-3/5 flex flex-col min-h-0 border-r ${
-          isLight ? 'border-slate-200' : 'border-slate-700/50'
-        }`}>
-          <WizardChat
-            mensagens={mensagens}
-            inputTexto={inputTexto}
-            setInputTexto={setInputTexto}
-            enviando={enviando}
-            onEnviar={enviarMensagem}
-            onSelecionarSugestao={selecionarSugestao}
-            vantagensIds={vantagensIds}
-            desvantagensIds={desvantagensIds}
-            etapaAtual={etapaAtual}
-            racasDisponiveis={racasDisponiveis}
-            classesDisponiveis={classesDisponiveis}
-            chatEndRef={chatEndRef}
-            isLight={isLight}
-            atributos={atributos}
-            setAtributo={setAtributo}
-            pontosDistribuidos={pontosDistribuidos}
-            pontosRestantes={pontosRestantes}
-            pontosTotais={pontosTotais}
-            atributosSugeridos={atributosSugeridos}
-            aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-            salvarPersonagem={salvarPersonagem}
-            salvando={salvando}
-            gerandoBackground={gerandoBackground}
-          />
-        </div>
+      {/* Ficha collapse */}
+      {fichaAberta && (
+        <div className={`border-b overflow-y-auto max-h-[50vh] ${
+          isLight ? 'border-slate-200 bg-white/95' : 'border-slate-700/50 bg-slate-900/95'
+        } backdrop-blur-sm`}>
+          <div className="p-4 max-w-lg mx-auto space-y-3">
+            <PersonagemPreviewCard
+              nome={nome}
+              raca={racaId}
+              classe={classeId}
+              atributos={atributos}
+              vantagensSelecionadas={allSelecoes}
+              vantagensDisponiveis={vantagensDisponiveis}
+              racasDisponiveis={racasDisponiveis}
+              classesDisponiveis={classesDisponiveis}
+            />
 
-        {/* Preview panel (right) */}
-        <div className={`md:w-2/5 lg:w-[35%] overflow-y-auto ${
-          isLight ? 'bg-slate-50/50' : 'bg-slate-900/50'
-        }`}>
-          <WizardPreview
-            nome={nome}
-            racaId={racaId}
-            classeId={classeId}
-            atributos={atributos}
-            vantagensIds={vantagensIds}
-            desvantagensIds={desvantagensIds}
-            racasDisponiveis={racasDisponiveis}
-            classesDisponiveis={classesDisponiveis}
-            vantagensDisponiveis={vantagensDisponiveis}
-            removerSelecao={removerSelecao}
-            isLight={isLight}
-          />
+            {/* Seleções removíveis */}
+            {(vantagensIds.length > 0 || desvantagensIds.length > 0) && (
+              <div className={`rounded-lg border p-3 ${
+                isLight ? 'border-slate-200 bg-white/80' : 'border-slate-700/50 bg-slate-800/30'
+              }`}>
+                <h4 className={`text-xs font-modern font-semibold uppercase tracking-wider mb-2 ${
+                  isLight ? 'text-slate-600' : 'text-slate-500'
+                }`}>
+                  Seleções
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {vantagensIds.map(id => {
+                    const item = vantagensDisponiveis.find(v => v.id === id && v.tipo !== 'desvantagem');
+                    if (!item) return null;
+                    return (
+                      <button
+                        key={`v-${id}`}
+                        onClick={() => removerSelecao('vantagem', id)}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 hover:bg-red-500/15 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Clique para remover"
+                      >
+                        {item.nome} ×
+                      </button>
+                    );
+                  })}
+                  {desvantagensIds.map(id => {
+                    const item = vantagensDisponiveis.find(d => d.id === id && d.tipo === 'desvantagem');
+                    if (!item) return null;
+                    return (
+                      <button
+                        key={`d-${id}`}
+                        onClick={() => removerSelecao('desvantagem', id)}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 hover:bg-slate-500/15 hover:text-slate-400 transition-colors cursor-pointer"
+                        title="Clique para remover"
+                      >
+                        {item.nome} ×
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* Chat (full width) */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <WizardChat
+          mensagens={mensagens}
+          inputTexto={inputTexto}
+          setInputTexto={setInputTexto}
+          enviando={enviando}
+          onEnviar={enviarMensagem}
+          onSelecionarSugestao={selecionarSugestao}
+          vantagensIds={vantagensIds}
+          desvantagensIds={desvantagensIds}
+          etapaAtual={etapaAtual}
+          racasDisponiveis={racasDisponiveis}
+          classesDisponiveis={classesDisponiveis}
+          chatEndRef={chatEndRef}
+          isLight={isLight}
+          atributos={atributos}
+          setAtributo={setAtributo}
+          pontosDistribuidos={pontosDistribuidos}
+          pontosRestantes={pontosRestantes}
+          pontosTotais={pontosTotais}
+          atributosSugeridos={atributosSugeridos}
+          aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+          salvarPersonagem={salvarPersonagem}
+          salvando={salvando}
+          gerandoBackground={gerandoBackground}
+        />
       </div>
     </div>
   );

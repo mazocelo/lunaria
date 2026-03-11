@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useMestreStore } from '../../../store/mestre/index.js';
@@ -40,6 +40,8 @@ export const useHistoriaVerModel = () => {
   const [roteiro, setRoteiro] = useState(null);
   const [roteiroStatus, setRoteiroStatus] = useState(null);
   const [roteiroLoading, setRoteiroLoading] = useState(false);
+  const roteiroPollRef = useRef(null);
+  const roteiroTimeoutRef = useRef(null);
 
   // Carregar historia
   const loadHistoria = useCallback(async (historiaId) => {
@@ -69,8 +71,8 @@ export const useHistoriaVerModel = () => {
         .catch(() => setSessoes([]))
         .finally(() => setLoadingSessoes(false));
     }
-    return () => setError(null);
-  }, [id]);
+    return () => { setError(null); clearRoteiroPoll(); };
+  }, [id, clearRoteiroPoll]);
 
   // Obter nomes dos temas
   const getNomesTemas = useCallback((historia) => {
@@ -146,6 +148,34 @@ export const useHistoriaVerModel = () => {
     });
   }, []);
 
+  // Limpar polling de roteiro
+  const clearRoteiroPoll = useCallback(() => {
+    if (roteiroPollRef.current) { clearInterval(roteiroPollRef.current); roteiroPollRef.current = null; }
+    if (roteiroTimeoutRef.current) { clearTimeout(roteiroTimeoutRef.current); roteiroTimeoutRef.current = null; }
+  }, []);
+
+  // Iniciar polling de roteiro
+  const startRoteiroPoll = useCallback((historiaId) => {
+    clearRoteiroPoll();
+    setRoteiroLoading(true);
+    roteiroPollRef.current = setInterval(async () => {
+      try {
+        const updated = await historiaService.getRoteiro(historiaId);
+        if (updated.roteiro_status !== 'generating') {
+          clearRoteiroPoll();
+          setRoteiro(updated.roteiro || null);
+          setRoteiroStatus(updated.roteiro_status);
+          setRoteiroLoading(false);
+        }
+      } catch (_) {
+        clearRoteiroPoll();
+        setRoteiroLoading(false);
+      }
+    }, 5000);
+    // Safety timeout 2min
+    roteiroTimeoutRef.current = setTimeout(() => { clearRoteiroPoll(); setRoteiroLoading(false); }, 120000);
+  }, [clearRoteiroPoll]);
+
   // Roteiro handlers
   const loadRoteiro = useCallback(async (historiaId) => {
     try {
@@ -153,30 +183,14 @@ export const useHistoriaVerModel = () => {
       setRoteiro(data.roteiro || null);
       setRoteiroStatus(data.roteiro_status || null);
 
-      // Se roteiro está sendo gerado (ex: auto-geração na criação), iniciar polling
+      // Se roteiro está sendo gerado, iniciar polling
       if (data.roteiro_status === 'generating') {
-        setRoteiroLoading(true);
-        const poll = setInterval(async () => {
-          try {
-            const updated = await historiaService.getRoteiro(historiaId);
-            if (updated.roteiro_status !== 'generating') {
-              clearInterval(poll);
-              setRoteiro(updated.roteiro || null);
-              setRoteiroStatus(updated.roteiro_status);
-              setRoteiroLoading(false);
-            }
-          } catch (_) {
-            clearInterval(poll);
-            setRoteiroLoading(false);
-          }
-        }, 3000);
-        // Safety timeout 2min
-        setTimeout(() => { clearInterval(poll); setRoteiroLoading(false); }, 120000);
+        startRoteiroPoll(historiaId);
       }
     } catch (err) {
       console.error('Erro ao carregar roteiro:', err);
     }
-  }, []);
+  }, [startRoteiroPoll]);
 
   const handleGerarRoteiro = useCallback(async () => {
     if (!historiaAtual) return;
@@ -184,33 +198,14 @@ export const useHistoriaVerModel = () => {
     setRoteiroStatus('generating');
     try {
       await historiaService.gerarRoteiro(historiaAtual.id);
-      // Inicia polling para verificar quando terminar
-      const poll = setInterval(async () => {
-        try {
-          const data = await historiaService.getRoteiro(historiaAtual.id);
-          if (data.roteiro_status !== 'generating') {
-            clearInterval(poll);
-            setRoteiro(data.roteiro || null);
-            setRoteiroStatus(data.roteiro_status);
-            setRoteiroLoading(false);
-          }
-        } catch (_) {
-          clearInterval(poll);
-          setRoteiroLoading(false);
-        }
-      }, 3000);
-      // Safety timeout after 2 minutes
-      setTimeout(() => {
-        clearInterval(poll);
-        setRoteiroLoading(false);
-      }, 120000);
+      startRoteiroPoll(historiaAtual.id);
     } catch (err) {
       console.error('Erro ao gerar roteiro:', err);
       setError(err.message || 'Erro ao gerar roteiro');
       setRoteiroStatus('error');
       setRoteiroLoading(false);
     }
-  }, [historiaAtual]);
+  }, [historiaAtual, startRoteiroPoll]);
 
   // Imagem handlers
   const handleCapaGenerated = useCallback(async (url) => {

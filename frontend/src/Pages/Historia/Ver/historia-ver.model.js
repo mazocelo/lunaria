@@ -152,6 +152,27 @@ export const useHistoriaVerModel = () => {
       const data = await historiaService.getRoteiro(historiaId);
       setRoteiro(data.roteiro || null);
       setRoteiroStatus(data.roteiro_status || null);
+
+      // Se roteiro está sendo gerado (ex: auto-geração na criação), iniciar polling
+      if (data.roteiro_status === 'generating') {
+        setRoteiroLoading(true);
+        const poll = setInterval(async () => {
+          try {
+            const updated = await historiaService.getRoteiro(historiaId);
+            if (updated.roteiro_status !== 'generating') {
+              clearInterval(poll);
+              setRoteiro(updated.roteiro || null);
+              setRoteiroStatus(updated.roteiro_status);
+              setRoteiroLoading(false);
+            }
+          } catch (_) {
+            clearInterval(poll);
+            setRoteiroLoading(false);
+          }
+        }, 3000);
+        // Safety timeout 2min
+        setTimeout(() => { clearInterval(poll); setRoteiroLoading(false); }, 120000);
+      }
     } catch (err) {
       console.error('Erro ao carregar roteiro:', err);
     }

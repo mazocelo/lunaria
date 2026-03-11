@@ -3,49 +3,67 @@ import { apiClient } from '../services/ApiClient.js';
 
 /**
  * Hook para gerenciar playback de TTS (Text-to-Speech)
- * Chama o backend que gera áudio via ElevenLabs
- * Usa apiClient (axios) para aproveitar refresh automático de token
+ * Cache em memória por messageId — gera áudio uma vez, reproduz N vezes
  */
 export const useTTS = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentMessageId, setCurrentMessageId] = useState(null);
   const audioRef = useRef(null);
-  const blobUrlRef = useRef(null);
+  const cacheRef = useRef(new Map()); // messageId → blobUrl
 
-  const cleanup = useCallback(() => {
+  const stopAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
       audioRef.current = null;
-    }
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
     }
     setIsPlaying(false);
     setCurrentMessageId(null);
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => cleanup, [cleanup]);
+  // Cleanup all blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      for (const url of cacheRef.current.values()) {
+        URL.revokeObjectURL(url);
+      }
+      cacheRef.current.clear();
+    };
+  }, [stopAudio]);
 
-  const stop = useCallback(() => {
-    cleanup();
-  }, [cleanup]);
+  const playUrl = useCallback((url, messageId) => {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.onended = () => stopAudio();
+    audio.onerror = () => stopAudio();
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch(() => stopAudio());
+  }, [stopAudio]);
 
   const play = useCallback(async (text, voiceId, messageId, provider = 'elevenlabs') => {
-    // Se já está tocando a mesma mensagem, parar
+    // Toggle: se já está tocando esta mensagem, parar
     if (isPlaying && currentMessageId === messageId) {
-      stop();
+      stopAudio();
       return;
     }
 
     // Parar áudio anterior
-    cleanup();
-
-    setIsLoading(true);
+    stopAudio();
     setCurrentMessageId(messageId);
 
+    // Cache hit — reproduzir sem chamar API
+    const cached = cacheRef.current.get(messageId);
+    if (cached) {
+      playUrl(cached, messageId);
+      return;
+    }
+
+    // Cache miss — gerar via API
+    setIsLoading(true);
     try {
       const response = await apiClient.post('/tts/generate', { text, voiceId, provider }, {
         responseType: 'blob'
@@ -53,32 +71,20 @@ export const useTTS = () => {
 
       const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
-      blobUrlRef.current = url;
+      cacheRef.current.set(messageId, url);
 
-      const audio = new Audio(url);
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        cleanup();
-      };
-
-      audio.onerror = () => {
-        cleanup();
-      };
-
-      await audio.play();
-      setIsPlaying(true);
+      playUrl(url, messageId);
     } catch (error) {
       console.error('TTS error:', error.message);
-      cleanup();
+      stopAudio();
     } finally {
       setIsLoading(false);
     }
-  }, [isPlaying, currentMessageId, stop, cleanup]);
+  }, [isPlaying, currentMessageId, stopAudio, playUrl]);
 
   return {
     play,
-    stop,
+    stop: stopAudio,
     isPlaying,
     isLoading,
     currentMessageId

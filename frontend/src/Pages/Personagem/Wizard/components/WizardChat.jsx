@@ -3,12 +3,6 @@ import { Send, Loader2, Sparkles, Search, X } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 
-const NOMES_FANTASIA = [
-  'Aldric', 'Seraphina', 'Thorin', 'Lyanna', 'Kael',
-  'Isolde', 'Raven', 'Zephyr', 'Morgana', 'Fenris',
-  'Elara', 'Draven', 'Selene', 'Orin', 'Ashara',
-];
-
 const WizardChat = ({
   mensagens,
   inputTexto,
@@ -106,10 +100,41 @@ const WizardChat = ({
                 </div>
               </div>
 
-              {/* Sugestões inline */}
-              {msg.sugestoes?.length > 0 && (
+              {/* Sugestões de nome (chips) */}
+              {msg.sugestoes?.some(s => s.tipo === 'nome') && (
+                <div className="mt-2">
+                  <div className={`flex items-center gap-1.5 mb-1.5 ${
+                    isLight ? 'text-slate-500' : 'text-slate-400'
+                  }`}>
+                    <Sparkles size={12} />
+                    <span className="text-[10px] font-modern font-semibold uppercase tracking-wider">
+                      Sugestões de nome
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {msg.sugestoes.filter(s => s.tipo === 'nome').map((sug, i) => (
+                      <button
+                        key={`nome-${i}`}
+                        type="button"
+                        onClick={() => onEnviar(sug.nome)}
+                        className={`px-3 py-1 rounded-full text-xs font-modern font-medium transition-all cursor-pointer ${
+                          isLight
+                            ? 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 hover:border-purple-300'
+                            : 'bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40'
+                        }`}
+                        title={sug.descricao || ''}
+                      >
+                        {sug.nome}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sugestões inline (raça, classe, vantagem, desvantagem) */}
+              {msg.sugestoes?.some(s => s.tipo !== 'nome') && (
                 <div className="mt-2 grid grid-cols-1 gap-2">
-                  {msg.sugestoes.map((sug, i) => (
+                  {msg.sugestoes.filter(s => s.tipo !== 'nome').map((sug, i) => (
                     <SuggestionCard
                       key={`${sug.id}-${i}`}
                       sugestao={sug}
@@ -227,38 +252,6 @@ const WizardChat = ({
 
         <div ref={chatEndRef} />
       </div>
-
-      {/* Sugestões de nome */}
-      {etapaAtual === 'boas_vindas' && !enviando && (
-        <div className={`px-4 pt-3 pb-1 border-t ${
-          isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
-        }`}>
-          <div className={`flex items-center gap-1.5 mb-2 ${
-            isLight ? 'text-slate-500' : 'text-slate-400'
-          }`}>
-            <Sparkles size={12} />
-            <span className="text-[10px] font-modern font-semibold uppercase tracking-wider">
-              Sugestões de nome
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {NOMES_FANTASIA.map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => onEnviar(n)}
-                className={`px-3 py-1 rounded-full text-xs font-modern font-medium transition-all cursor-pointer ${
-                  isLight
-                    ? 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 hover:border-purple-300'
-                    : 'bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40'
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Input */}
       <form

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const ImageLightbox = ({ src, alt, isOpen, onClose }) => {
@@ -11,7 +12,7 @@ const ImageLightbox = ({ src, alt, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
@@ -28,7 +29,8 @@ const ImageLightbox = ({ src, alt, isOpen, onClose }) => {
         className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
-    </div>
+    </div>,
+    document.body
   );
 };
 

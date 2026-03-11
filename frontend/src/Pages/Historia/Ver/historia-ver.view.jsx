@@ -244,7 +244,15 @@ const VerHistoriaView = ({
                   imageUrl={historiaAtual.imagem}
                   onImageGenerated={handleCapaGenerated}
                   entityType="historia"
-                  entityData={{ nome: historiaAtual.nome, temas: nomesTemas.join(', '), descricao: historiaAtual.descricao }}
+                  entityData={{
+                    nome: historiaAtual.nome,
+                    temas: nomesTemas.join(', '),
+                    descricao: historiaAtual.descricao,
+                    prologo: historiaAtual.prologo,
+                    sinopse: roteiro?.sinopse,
+                    antagonista: roteiro?.antagonista?.nome,
+                    locais: roteiro?.locais?.slice(0, 3).map(l => l.nome).join(', '),
+                  }}
                   isLight={isLight}
                   label=""
                 />
@@ -288,7 +296,12 @@ const VerHistoriaView = ({
                   imageUrl=""
                   onImageGenerated={handleMapaGenerated}
                   entityType="historia_mapa"
-                  entityData={{ nome: historiaAtual.nome, temas: nomesTemas.join(', ') }}
+                  entityData={{
+                    nome: historiaAtual.nome,
+                    temas: nomesTemas.join(', '),
+                    locais: roteiro?.locais?.slice(0, 5).map(l => l.nome).join(', '),
+                    mapaMundi: roteiro?.mapaMundi,
+                  }}
                   isLight={isLight}
                   label=""
                 />

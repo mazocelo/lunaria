@@ -25,6 +25,7 @@ import ttsRoutes from './tts.js';
 import analyticsRoutes from './analytics.js';
 import billingRoutes from './billing.js';
 import habilidadeRoutes from './habilidades.js';
+import mestreCriadorRoutes from './mestreCriador.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import { flags } from '../config/featureFlags.js';
 
@@ -99,6 +100,7 @@ router.use('/convites', authenticateToken, conviteRoutes);
 router.use('/novidades', authenticateToken, novidadesRoutes);
 router.use('/jogo', authenticateToken, jogoRoutes);
 router.use('/mestres', authenticateToken, mestreRoutes);
+router.use('/mestre-criador', authenticateToken, mestreCriadorRoutes);
 
 // Geração de imagem
 router.use('/image', authenticateToken, imageRoutes);

@@ -74,7 +74,7 @@ class MestreController {
     }
 
     // C2: Verificar ownership - usuario so pode ver seus proprios mestres
-    if (mestre.id_usuario !== req.user.id && req.user.role !== 'admin') {
+    if (mestre.id_usuario !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
 
@@ -93,7 +93,7 @@ class MestreController {
       return res.status(404).json({ success: false, error: 'Mestre não encontrado' });
     }
 
-    if (mestre.id_usuario !== req.user.id && req.user.role !== 'admin') {
+    if (mestre.id_usuario !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: 'Você só pode editar seus próprios mestres' });
     }
 
@@ -133,7 +133,7 @@ class MestreController {
       return res.status(404).json({ success: false, error: 'Mestre não encontrado' });
     }
 
-    if (mestre.id_usuario !== req.user.id && req.user.role !== 'admin') {
+    if (mestre.id_usuario !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: 'Você só pode excluir seus próprios mestres' });
     }
 

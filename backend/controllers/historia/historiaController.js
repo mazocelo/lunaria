@@ -767,7 +767,7 @@ class HistoriaController {
       }
 
       // Verificar ownership
-      if (String(historia.id_usuario) !== String(userId) && req.user?.role !== 'admin') {
+      if (String(historia.id_usuario) !== String(userId) && !['admin', 'superadmin'].includes(req.user?.role)) {
         return res.status(403).json({ success: false, error: 'Apenas o dono pode gerar roteiro' });
       }
 

@@ -33,7 +33,7 @@ router.get('/global', async (req, res) => {
     const userId = req.user?.id;
     const role = req.user?.role;
     if (!userId) return res.status(401).json({ success: false, error: 'Não autenticado' });
-    if (role !== 'admin') return res.status(403).json({ success: false, error: 'Acesso restrito a administradores' });
+    if (role !== 'admin' && role !== 'superadmin') return res.status(403).json({ success: false, error: 'Acesso restrito a administradores' });
 
     const { from, to } = req.query;
     const data = await usageService.getUsageGlobal({ from, to });

@@ -87,77 +87,77 @@ function buildPrompt(entityType, entityData) {
 
   switch (entityType) {
     case 'personagem': {
-      const parts = ['Fantasy RPG character portrait'];
-      if (entityData.nome) parts.push(entityData.nome);
+      const parts = [`${style}, character portrait`];
       if (entityData.raca) parts.push(entityData.raca);
       if (entityData.classe) parts.push(entityData.classe);
-      if (entityData.background) parts.push(entityData.background.slice(0, 150));
-      return `${parts.join(', ')}, ${style}`;
+      if (entityData.nome) parts.push(`named ${entityData.nome}`);
+      if (entityData.background) parts.push(entityData.background.slice(0, 200));
+      return parts.join(', ');
     }
     case 'monstro': {
-      const parts = ['Fantasy RPG creature'];
+      const parts = [`${style}, creature illustration`];
       if (entityData.nome) parts.push(entityData.nome);
       if (entityData.tipo) parts.push(Array.isArray(entityData.tipo) ? entityData.tipo.join(' ') : entityData.tipo);
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
-      return `${parts.join(', ')}, ${style}`;
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      return parts.join(', ');
     }
     case 'equipamento': {
-      const parts = ['Fantasy RPG item'];
+      const parts = [`${style}, item illustration, no characters`];
       if (entityData.nome) parts.push(entityData.nome);
       if (entityData.tipo) parts.push(Array.isArray(entityData.tipo) ? entityData.tipo.join(' ') : entityData.tipo);
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 250));
       if (entityData.raridade) parts.push(`${entityData.raridade} rarity`);
-      return `${parts.join(', ')}, ${style}`;
+      return parts.join(', ');
     }
     case 'historia': {
-      const parts = ['Epic fantasy book cover illustration'];
+      const parts = [`${style}, epic book cover illustration`];
       if (entityData.nome) parts.push(`"${entityData.nome}"`);
       if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
-      if (entityData.sinopse) parts.push(entityData.sinopse.slice(0, 200));
-      else if (entityData.prologo) parts.push(entityData.prologo.slice(0, 200));
-      else if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
+      if (entityData.sinopse) parts.push(entityData.sinopse.slice(0, 250));
+      else if (entityData.prologo) parts.push(entityData.prologo.slice(0, 250));
+      else if (entityData.descricao) parts.push(entityData.descricao.slice(0, 250));
       if (entityData.antagonista) parts.push(`antagonist: ${entityData.antagonista}`);
       if (entityData.locais) parts.push(`locations: ${entityData.locais}`);
-      return `${parts.join(', ')}, ${style}`;
+      return parts.join(', ');
     }
     case 'historia_mapa': {
       const mapStyle = 'fantasy RPG world map, top-down cartographic view, parchment texture, hand-drawn style, detailed terrain';
-      const parts = ['Fantasy world map'];
+      const parts = [mapStyle];
       if (entityData.nome) parts.push(`"${entityData.nome}"`);
       if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
       if (entityData.locais) parts.push(`locations: ${entityData.locais}`);
-      if (entityData.mapaMundi) parts.push(String(entityData.mapaMundi).slice(0, 200));
-      return `${parts.join(', ')}, ${mapStyle}`;
+      if (entityData.mapaMundi) parts.push(String(entityData.mapaMundi).slice(0, 250));
+      return parts.join(', ');
     }
     case 'mestre': {
-      const parts = ['Fantasy RPG game master portrait, wise narrator'];
+      const parts = [`${style}, game master portrait, wise narrator`];
       if (entityData.nome) parts.push(entityData.nome);
       if (entityData.tom_narrativo) parts.push(`${entityData.tom_narrativo} atmosphere`);
-      if (entityData.personalidade) parts.push(entityData.personalidade.slice(0, 150));
-      return `${parts.join(', ')}, ${style}`;
+      if (entityData.personalidade) parts.push(entityData.personalidade.slice(0, 200));
+      return parts.join(', ');
     }
     case 'npc': {
-      const parts = ['Fantasy RPG character portrait, NPC'];
-      if (entityData.nome) parts.push(entityData.nome);
-      if (entityData.papel) parts.push(`${entityData.papel} role`);
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
-      if (entityData.local) parts.push(`found in ${entityData.local}`);
-      return `${parts.join(', ')}, ${style}`;
+      const parts = [`${style}, RPG character portrait`];
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 400));
+      if (entityData.nome) parts.push(`named ${entityData.nome}`);
+      if (entityData.papel) parts.push(`${entityData.papel}`);
+      if (entityData.local) parts.push(`in ${entityData.local}`);
+      return parts.join(', ');
     }
     case 'local': {
-      const parts = ['Fantasy RPG landscape illustration, environment'];
+      const parts = [`${style}, landscape illustration, environment art, no characters`];
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 400));
       if (entityData.nome) parts.push(entityData.nome);
-      if (entityData.tipo) parts.push(`${entityData.tipo} environment`);
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
-      return `${parts.join(', ')}, ${style}`;
+      if (entityData.tipo) parts.push(`${entityData.tipo}`);
+      return parts.join(', ');
     }
     case 'cena': {
-      const parts = ['Fantasy RPG scene illustration, dramatic lighting, cinematic'];
-      if (entityData.narracao) parts.push(entityData.narracao.slice(0, 400));
-      return `${parts.join(', ')}, ${style}`;
+      const parts = [`${style}, scene illustration, dramatic lighting, cinematic`];
+      if (entityData.narracao) parts.push(entityData.narracao.slice(0, 500));
+      return parts.join(', ');
     }
     default:
-      return `Fantasy RPG illustration, ${entityData.nome || 'mysterious scene'}, ${style}`;
+      return `${style}, ${entityData.nome || 'mysterious scene'}`;
   }
 }
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ImagePlus, Loader2, X, Link2 } from 'lucide-react';
 import { imageGenerationService } from '../../services';
 
-const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, isLight, label = 'Imagem' }) => {
+const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, isLight, label = 'Imagem', imageOptions, imageClassName }) => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -12,7 +12,7 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
     setGenerating(true);
     setError(null);
     try {
-      const response = await imageGenerationService.generate({ entityType, entityData });
+      const response = await imageGenerationService.generate({ entityType, entityData, options: imageOptions });
       const url = response.data?.url;
       if (url) {
         onImageGenerated(url);
@@ -55,7 +55,7 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
           <img
             src={imageUrl}
             alt="Preview"
-            className={`w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}
+            className={imageClassName || `w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
           <button

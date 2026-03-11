@@ -264,6 +264,8 @@ const VerHistoriaView = ({
                   }}
                   isLight={isLight}
                   label=""
+                  imageOptions={{ width: 1024, height: 576 }}
+                  imageClassName={`w-full h-56 sm:h-72 object-cover rounded-xl border-2 shadow-lg ${isLight ? 'border-slate-200' : 'border-purple-500/30'}`}
                 />
               </div>
 

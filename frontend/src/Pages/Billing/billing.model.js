@@ -24,10 +24,10 @@ export function useBillingModel() {
       const queryString = new URLSearchParams(params).toString();
       const suffix = queryString ? `?${queryString}` : '';
 
-      const { data } = await apiClient.get(`/billing/usage${suffix}`);
-      if (data.success) setUsage(data.data);
+      const response = await apiClient.get(`/billing/usage${suffix}`);
+      if (response.success) setUsage(response.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao carregar consumo');
+      setError(err.message || 'Erro ao carregar consumo');
     } finally {
       setLoading(false);
     }
@@ -45,10 +45,10 @@ export function useBillingModel() {
       const queryString = new URLSearchParams(params).toString();
       const suffix = queryString ? `?${queryString}` : '';
 
-      const { data } = await apiClient.get(`/billing/global${suffix}`);
-      if (data.success) setGlobalUsage(data.data);
+      const response = await apiClient.get(`/billing/global${suffix}`);
+      if (response.success) setGlobalUsage(response.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao carregar consumo global');
+      setError(err.message || 'Erro ao carregar consumo global');
     } finally {
       setLoading(false);
     }

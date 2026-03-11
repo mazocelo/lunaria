@@ -52,7 +52,7 @@ const WizardView = (props) => {
   } = props;
 
   return (
-    <div className={`min-h-screen flex flex-col ${
+    <div className={`h-screen flex flex-col overflow-hidden ${
       isLight
         ? 'bg-gradient-to-br from-slate-50 via-purple-50/30 to-slate-100'
         : 'bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-900'
@@ -94,9 +94,9 @@ const WizardView = (props) => {
       )}
 
       {/* Main content: split-screen */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* Chat panel (left) */}
-        <div className={`flex-1 md:w-3/5 flex flex-col border-r ${
+        <div className={`flex-1 md:w-3/5 flex flex-col min-h-0 border-r ${
           isLight ? 'border-slate-200' : 'border-slate-700/50'
         }`}>
           <WizardChat
@@ -114,7 +114,7 @@ const WizardView = (props) => {
         </div>
 
         {/* Preview panel (right) */}
-        <div className={`md:w-2/5 lg:w-[35%] ${
+        <div className={`md:w-2/5 lg:w-[35%] overflow-y-auto ${
           isLight ? 'bg-slate-50/50' : 'bg-slate-900/50'
         }`}>
           <WizardPreview

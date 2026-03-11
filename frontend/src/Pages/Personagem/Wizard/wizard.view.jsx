@@ -113,6 +113,16 @@ const WizardView = (props) => {
             classesDisponiveis={classesDisponiveis}
             chatEndRef={chatEndRef}
             isLight={isLight}
+            atributos={atributos}
+            setAtributo={setAtributo}
+            pontosDistribuidos={pontosDistribuidos}
+            pontosRestantes={pontosRestantes}
+            pontosTotais={pontosTotais}
+            atributosSugeridos={atributosSugeridos}
+            aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+            salvarPersonagem={salvarPersonagem}
+            salvando={salvando}
+            gerandoBackground={gerandoBackground}
           />
         </div>
 
@@ -127,20 +137,10 @@ const WizardView = (props) => {
             atributos={atributos}
             vantagensIds={vantagensIds}
             desvantagensIds={desvantagensIds}
-            pontosDistribuidos={pontosDistribuidos}
-            pontosRestantes={pontosRestantes}
-            pontosTotais={pontosTotais}
-            atributosSugeridos={atributosSugeridos}
             racasDisponiveis={racasDisponiveis}
             classesDisponiveis={classesDisponiveis}
             vantagensDisponiveis={vantagensDisponiveis}
-            setAtributo={setAtributo}
-            aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-            salvarPersonagem={salvarPersonagem}
             removerSelecao={removerSelecao}
-            etapaAtual={etapaAtual}
-            salvando={salvando}
-            gerandoBackground={gerandoBackground}
             isLight={isLight}
           />
         </div>

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Send, Loader2, Sparkles, Search, X } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, Save } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
+import AttributeDistributor from './AttributeDistributor.jsx';
 
 const WizardChat = ({
   mensagens,
@@ -17,6 +18,18 @@ const WizardChat = ({
   classesDisponiveis,
   chatEndRef,
   isLight,
+  // Atributos (inline no chat)
+  atributos,
+  setAtributo,
+  pontosDistribuidos,
+  pontosRestantes,
+  pontosTotais,
+  atributosSugeridos,
+  aplicarAtributosSugeridos,
+  // Salvar (inline no chat)
+  salvarPersonagem,
+  salvando,
+  gerandoBackground,
 }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,6 +54,8 @@ const WizardChat = ({
     return false;
   };
 
+  const showAtributos = ['atributos', 'resumo', 'refinamento'].includes(etapaAtual);
+  const showSave = etapaAtual === 'refinamento';
   const mostrarBusca = etapaAtual === 'raca' || etapaAtual === 'classe';
   const catalogoAtual = etapaAtual === 'raca' ? racasDisponiveis : etapaAtual === 'classe' ? classesDisponiveis : [];
   const tipoAtual = etapaAtual === 'raca' ? 'raca' : 'classe';
@@ -68,6 +83,29 @@ const WizardChat = ({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header badge — pontos de atributo */}
+      {showAtributos && (
+        <div className={`flex items-center justify-between px-4 py-2 border-b ${
+          isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
+        }`}>
+          <div className="flex items-center gap-2">
+            <Dices size={16} className="text-purple-400" />
+            <span className={`text-xs font-modern font-semibold ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Distribuição de Atributos
+            </span>
+          </div>
+          <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+            pontosRestantes === 0
+              ? 'bg-green-500/15 text-green-400'
+              : pontosRestantes < 0
+                ? 'bg-red-500/15 text-red-400'
+                : 'bg-amber-500/15 text-amber-400'
+          }`}>
+            🎲 {pontosDistribuidos}/{pontosTotais}
+          </span>
+        </div>
+      )}
+
       {/* Mensagens */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {mensagens.map((msg, msgIndex) => (
@@ -164,6 +202,52 @@ const WizardChat = ({
                   <Search size={12} />
                   {buscaAberta ? `Fechar busca` : `Pesquisar todas as ${labelAtual}`}
                 </button>
+              )}
+
+              {/* Distribuidor de atributos inline — após última mensagem do mestre */}
+              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && showAtributos && !enviando && (
+                <div className="mt-3 space-y-3">
+                  <AttributeDistributor
+                    atributos={atributos}
+                    setAtributo={setAtributo}
+                    pontosDistribuidos={pontosDistribuidos}
+                    pontosRestantes={pontosRestantes}
+                    pontosTotais={pontosTotais}
+                    atributosSugeridos={atributosSugeridos}
+                    aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+                    isLight={isLight}
+                  />
+
+                  {/* Botão Criar Personagem */}
+                  {showSave && (
+                    <button
+                      onClick={salvarPersonagem}
+                      disabled={salvando || gerandoBackground || pontosRestantes !== 0}
+                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-fantasy font-bold text-sm transition-all cursor-pointer ${
+                        salvando || gerandoBackground
+                          ? 'bg-slate-600 text-slate-400 cursor-wait'
+                          : pontosRestantes !== 0
+                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
+                      }`}
+                    >
+                      {salvando || gerandoBackground ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          {gerandoBackground ? 'Gerando background...' : 'Salvando...'}
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          {pontosRestantes !== 0
+                            ? `Distribua todos os pontos (${pontosRestantes} restantes)`
+                            : 'Criar Personagem'
+                          }
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Painel de busca expandido */}

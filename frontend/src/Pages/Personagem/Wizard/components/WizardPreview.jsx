@@ -1,7 +1,6 @@
 import React from 'react';
-import { Save, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import PersonagemPreviewCard from '../../../../components/PersonagemPreviewCard.jsx';
-import AttributeDistributor from './AttributeDistributor.jsx';
 
 const WizardPreview = ({
   // Personagem data
@@ -11,10 +10,6 @@ const WizardPreview = ({
   atributos,
   vantagensIds,
   desvantagensIds,
-  pontosDistribuidos,
-  pontosRestantes,
-  pontosTotais,
-  atributosSugeridos,
 
   // Catálogos
   racasDisponiveis,
@@ -22,20 +17,12 @@ const WizardPreview = ({
   vantagensDisponiveis,
 
   // Actions
-  setAtributo,
-  aplicarAtributosSugeridos,
-  salvarPersonagem,
   removerSelecao,
 
   // State
-  etapaAtual,
-  salvando,
-  gerandoBackground,
   isLight,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
-  const showAtributos = ['atributos', 'resumo', 'refinamento'].includes(etapaAtual);
-  const showSave = etapaAtual === 'refinamento';
 
   // Combinar vantagens+desvantagens para o preview card
   const allSelecoes = [...vantagensIds, ...desvantagensIds];
@@ -109,50 +96,6 @@ const WizardPreview = ({
               })}
             </div>
           </div>
-        )}
-
-        {/* Attribute Distributor */}
-        {showAtributos && (
-          <AttributeDistributor
-            atributos={atributos}
-            setAtributo={setAtributo}
-            pontosDistribuidos={pontosDistribuidos}
-            pontosRestantes={pontosRestantes}
-            pontosTotais={pontosTotais}
-            atributosSugeridos={atributosSugeridos}
-            aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-            isLight={isLight}
-          />
-        )}
-
-        {/* Save Button */}
-        {showSave && (
-          <button
-            onClick={salvarPersonagem}
-            disabled={salvando || gerandoBackground || pontosRestantes !== 0}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-fantasy font-bold text-sm transition-all cursor-pointer ${
-              salvando || gerandoBackground
-                ? 'bg-slate-600 text-slate-400 cursor-wait'
-                : pontosRestantes !== 0
-                  ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
-            }`}
-          >
-            {salvando || gerandoBackground ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                {gerandoBackground ? 'Gerando background...' : 'Salvando...'}
-              </>
-            ) : (
-              <>
-                <Save size={16} />
-                {pontosRestantes !== 0
-                  ? `Distribua todos os pontos (${pontosRestantes} restantes)`
-                  : 'Criar Personagem'
-                }
-              </>
-            )}
-          </button>
         )}
       </div>
     </div>

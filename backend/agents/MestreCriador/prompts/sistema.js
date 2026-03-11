@@ -62,12 +62,14 @@ Apenas na etapa "atributos": sugira distribuição de 75 pontos baseada na class
 ### raca
 - O jogador acabou de dizer o nome. Reaja ao nome com uma observação breve
 - Apresente opções de raça como sugestões (use IDs do catálogo)
-- Descreva 2-3 raças de forma narrativa na mensagem
+- VARIE as raças sugeridas: NÃO sugira sempre as mesmas. Inclua raças menos óbvias e exóticas do catálogo. Misture populares com incomuns.
+- Descreva 2-3 raças de forma narrativa na mensagem, destacando o que as torna únicas
 - etapa_proxima: "classe"
 
 ### classe
 - O jogador escolheu uma raça. Reconheça a escolha narrativamente
 - Sugira classes que combinam com a raça escolhida (use IDs do catálogo)
+- VARIE as classes sugeridas: NÃO sugira sempre as mesmas combinações. Surpreenda com classes inesperadas que criam personagens únicos.
 - etapa_proxima: "background"
 
 ### background

@@ -7,6 +7,7 @@ import usageService from './usageService.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOKENS = 16000;
+const TIMEOUT_MS = 120000; // 120s timeout para geração de roteiro
 
 function buildBlueprintPrompt(historia, catalogo, temasNomes) {
   const temas = temasNomes.join(', ');
@@ -193,14 +194,27 @@ class BlueprintService {
 
     console.log(`📜 BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5...`);
 
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      temperature: 1,
-      messages: [
-        { role: 'user', content: prompt }
-      ]
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    let response;
+    try {
+      response = await client.messages.create({
+        model: MODEL,
+        max_tokens: MAX_TOKENS,
+        temperature: 1,
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      }, { signal: controller.signal });
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError' || controller.signal.aborted) {
+        throw new Error(`Timeout: geração de roteiro excedeu ${TIMEOUT_MS / 1000}s`);
+      }
+      throw err;
+    }
+    clearTimeout(timeout);
 
     const content = response.content[0]?.text || '';
     const duracao = Date.now() - startTime;

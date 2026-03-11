@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, Save, BookOpen } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, Save, BookOpen, Check, Info } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -26,6 +26,9 @@ const WizardChat = ({
   pontosTotais,
   atributosSugeridos,
   aplicarAtributosSugeridos,
+  confirmarAtributos,
+  bonusAplicados,
+  bonusDetalhes,
   // Salvar (inline no chat)
   salvarPersonagem,
   salvando,
@@ -257,7 +260,51 @@ const WizardChat = ({
                     atributosSugeridos={atributosSugeridos}
                     aplicarAtributosSugeridos={aplicarAtributosSugeridos}
                     isLight={isLight}
+                    disabled={bonusAplicados}
                   />
+
+                  {/* Nota sobre bônus / Bônus aplicados */}
+                  {bonusAplicados && bonusDetalhes && Object.keys(bonusDetalhes).length > 0 ? (
+                    <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs font-modern leading-relaxed ${
+                      isLight ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-green-500/10 text-green-300 border border-green-500/20'
+                    }`}>
+                      <Check size={14} className="mt-0.5 shrink-0" />
+                      <span>
+                        Bônus aplicados: {Object.entries(bonusDetalhes).map(([k, v]) => {
+                          const abbr = k.substring(0, 3).toUpperCase();
+                          return `${abbr} ${v > 0 ? '+' : ''}${v}`;
+                        }).join(', ')}
+                      </span>
+                    </div>
+                  ) : !bonusAplicados ? (
+                    <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs font-modern leading-relaxed ${
+                      isLight ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
+                    }`}>
+                      <Info size={14} className="mt-0.5 shrink-0" />
+                      <span>Estes são os pontos base. Bônus de <strong>raça</strong>, <strong>classe</strong>, <strong>vantagens</strong> e <strong>desvantagens</strong> serão aplicados automaticamente após a confirmação.</span>
+                    </div>
+                  ) : null}
+
+                  {/* Botão Confirmar Atributos */}
+                  {etapaAtual === 'atributos' && !bonusAplicados && (
+                    <button
+                      onClick={confirmarAtributos}
+                      disabled={enviando || pontosRestantes !== 0}
+                      className={`w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
+                        pontosRestantes !== 0
+                          ? isLight
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/20'
+                      }`}
+                    >
+                      <Check size={18} />
+                      {pontosRestantes !== 0
+                        ? `Distribua todos os pontos (${pontosRestantes} restantes)`
+                        : 'Confirmar Atributos'
+                      }
+                    </button>
+                  )}
 
                   {/* Botão Criar Personagem */}
                   {showSave && (

@@ -37,6 +37,7 @@ const AttributeDistributor = ({
   atributosSugeridos,
   aplicarAtributosSugeridos,
   isLight,
+  disabled = false,
 }) => {
   const [infoAberta, setInfoAberta] = useState(null);
 
@@ -61,7 +62,7 @@ const AttributeDistributor = ({
       </div>
 
       {/* Sugestão da IA */}
-      {atributosSugeridos && (
+      {atributosSugeridos && !disabled && (
         <button
           onClick={aplicarAtributosSugeridos}
           className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 mb-4 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
@@ -106,9 +107,9 @@ const AttributeDistributor = ({
                 {/* Controls */}
                 <button
                   onClick={() => setAtributo(key, val - 1)}
-                  disabled={val <= 1}
+                  disabled={disabled || val <= 1}
                   className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                    val <= 1
+                    disabled || val <= 1
                       ? 'opacity-30 cursor-not-allowed'
                       : isLight
                         ? 'hover:bg-slate-100 text-slate-600'
@@ -124,9 +125,9 @@ const AttributeDistributor = ({
 
                 <button
                   onClick={() => setAtributo(key, val + 1)}
-                  disabled={val >= 20 || pontosRestantes <= 0}
+                  disabled={disabled || val >= 20 || pontosRestantes <= 0}
                   className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                    val >= 20 || pontosRestantes <= 0
+                    disabled || val >= 20 || pontosRestantes <= 0
                       ? 'opacity-30 cursor-not-allowed'
                       : isLight
                         ? 'hover:bg-slate-100 text-slate-600'

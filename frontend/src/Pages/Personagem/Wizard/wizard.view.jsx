@@ -40,8 +40,13 @@ const WizardView = (props) => {
     removerSelecao,
     aplicarAtributosSugeridos,
     setAtributo,
+    confirmarAtributos,
     salvarPersonagem,
     clearError,
+
+    // Bonus
+    bonusAplicados,
+    bonusDetalhes,
 
     // State
     salvando,
@@ -201,6 +206,9 @@ const WizardView = (props) => {
           pontosTotais={pontosTotais}
           atributosSugeridos={atributosSugeridos}
           aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+          confirmarAtributos={confirmarAtributos}
+          bonusAplicados={bonusAplicados}
+          bonusDetalhes={bonusDetalhes}
           salvarPersonagem={salvarPersonagem}
           salvando={salvando}
           gerandoBackground={gerandoBackground}

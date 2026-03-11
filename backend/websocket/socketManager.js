@@ -2849,7 +2849,7 @@ class SocketManager {
         statusJogo: null, // ✅ NOVO: null = ninguém entrou ainda
         jogadoresConectados: [], // Lista vazia inicialmente
         estadoJogo: {
-          fase: 'preparacao',
+          fase: 'aguardando_inicio',
           cenaAtual: 'Aguardando início',
           mensagemMestre: `Bem-vindos à história "${historia.nome}"!`,
           npcs: [],

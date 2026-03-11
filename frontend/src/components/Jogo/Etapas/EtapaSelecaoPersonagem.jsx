@@ -164,7 +164,7 @@ const EtapaSelecaoPersonagem = ({
             </p>
             <div className="mt-4">
               <button
-                onClick={() => window.location.href = '/personagens/novo'}
+                onClick={() => window.location.href = '/novo-personagem'}
                 className="btn-rpg px-6 py-2 text-sm"
               >
                 ➕ Criar Personagem

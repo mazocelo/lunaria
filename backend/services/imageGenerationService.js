@@ -126,6 +126,26 @@ function buildPrompt(entityType, entityData) {
       if (entityData.personalidade) parts.push(entityData.personalidade.slice(0, 150));
       return `${parts.join(', ')}, ${style}`;
     }
+    case 'npc': {
+      const parts = ['Fantasy RPG character portrait, NPC'];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.papel) parts.push(`${entityData.papel} role`);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
+      if (entityData.local) parts.push(`found in ${entityData.local}`);
+      return `${parts.join(', ')}, ${style}`;
+    }
+    case 'local': {
+      const parts = ['Fantasy RPG landscape illustration, environment'];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.tipo) parts.push(`${entityData.tipo} environment`);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 200));
+      return `${parts.join(', ')}, ${style}`;
+    }
+    case 'cena': {
+      const parts = ['Fantasy RPG scene illustration, dramatic lighting, cinematic'];
+      if (entityData.narracao) parts.push(entityData.narracao.slice(0, 400));
+      return `${parts.join(', ')}, ${style}`;
+    }
     default:
       return `Fantasy RPG illustration, ${entityData.nome || 'mysterious scene'}, ${style}`;
   }

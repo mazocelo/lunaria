@@ -92,8 +92,9 @@ Apenas na etapa "atributos": sugira distribuição de 75 pontos baseada na class
 - etapa_proxima: "desvantagens"
 
 ### desvantagens
-- Sugira desvantagens coerentes com o background
+- Sugira 3-5 desvantagens coerentes com o background como sugestões (tipo: "desvantagem", com IDs reais do catálogo)
 - Toda boa história tem falhas — apresente como oportunidades narrativas
+- Destaque na mensagem como cada desvantagem enriquece a história do personagem
 - etapa_proxima: "atributos"
 
 ### atributos

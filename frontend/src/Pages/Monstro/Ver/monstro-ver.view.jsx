@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Pencil, Skull, BookOpen, ClipboardList, Heart, Swords, Shield, Zap, Tag, BarChart3, Star } from 'lucide-react';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 
 const RARIDADE_CONFIG = {
   'Comum': { accent: '#64748b', badge: 'bg-slate-500/20 text-slate-300 border-slate-500/30', badgeLight: 'bg-gray-100 text-gray-700 border-gray-300' },
@@ -89,6 +90,7 @@ const VerMonstroView = ({ monstro, loading, error, isLight, handleBack, handleEd
   }
 
   const m = monstro;
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const raridadeNome = m.raridade_rel?.nome || 'Comum';
   const config = getRaridadeConfig(raridadeNome);
   const tipos = Array.isArray(m.tipo) ? m.tipo : [];
@@ -105,7 +107,13 @@ const VerMonstroView = ({ monstro, loading, error, isLight, handleBack, handleEd
           <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex items-center gap-5">
               {m.imagem ? (
-                <img src={m.imagem} alt={m.nome} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2" style={{ borderColor: config.accent }} />
+                <img
+                  src={m.imagem}
+                  alt={m.nome}
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ borderColor: config.accent }}
+                  onClick={() => setLightboxSrc(m.imagem)}
+                />
               ) : (
                 <div className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center ${
                   isLight ? 'bg-slate-100' : 'bg-white/5 border border-white/10'
@@ -289,6 +297,7 @@ const VerMonstroView = ({ monstro, loading, error, isLight, handleBack, handleEd
           </div>
         </div>
       </div>
+      <ImageLightbox src={lightboxSrc} alt={m.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };

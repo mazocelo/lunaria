@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Button from '../../../components/form/button';
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import { Badge } from '../../../components/shared';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
@@ -86,6 +87,7 @@ const VerPersonagemView = ({
     );
   }
 
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const p = personagem;
   if (!p) return null;
 
@@ -101,7 +103,12 @@ const VerPersonagemView = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {p.imagem ? (
-              <img src={p.imagem} alt={p.nome} className="w-16 h-16 rounded-full object-cover border-2 border-purple-500" />
+              <img
+                src={p.imagem}
+                alt={p.nome}
+                className="w-16 h-16 rounded-full object-cover border-2 border-purple-500 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setLightboxSrc(p.imagem)}
+              />
             ) : (
               <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center">
                 <User size={32} className="text-white" />
@@ -541,6 +548,7 @@ const InventarioSection = ({
           </span>
         </div>
       )}
+      <ImageLightbox src={lightboxSrc} alt={p.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };

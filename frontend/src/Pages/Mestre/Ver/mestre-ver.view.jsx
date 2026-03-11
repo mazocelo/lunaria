@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import { Badge } from '../../../components/shared';
 import { ROUTES } from '../../../routes.jsx';
 import {
@@ -114,6 +115,7 @@ const VerMestreView = ({
 
   if (!mestre) return null;
 
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id, voice_provider } = mestre;
 
   const promptPreview = useMemo(() => {
@@ -165,7 +167,8 @@ const VerMestreView = ({
             <img
               src={imagem}
               alt={nome}
-              className="w-10 h-10 rounded-xl object-cover"
+              className="w-10 h-10 rounded-xl object-cover cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setLightboxSrc(imagem)}
             />
           ) : (
             <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
@@ -215,7 +218,8 @@ const VerMestreView = ({
                     <img
                       src={imagem}
                       alt={nome}
-                      className="w-16 h-16 rounded-xl object-cover shadow-lg"
+                      className="w-16 h-16 rounded-xl object-cover shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setLightboxSrc(imagem)}
                     />
                   )}
                   <div>
@@ -333,6 +337,7 @@ const VerMestreView = ({
           </RPGCard>
         </div>
       </div>
+      <ImageLightbox src={lightboxSrc} alt={nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };

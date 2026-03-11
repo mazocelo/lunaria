@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
@@ -11,6 +11,7 @@ import {
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -84,6 +85,8 @@ const VerHistoriaView = ({
   // Utils
   clearError,
 }) => {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (loading) {
     return (
       <div className="animate-fade-in">
@@ -135,7 +138,12 @@ const VerHistoriaView = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {historiaAtual.imagem ? (
-            <img src={historiaAtual.imagem} alt={historiaAtual.nome} className="flex-shrink-0 w-14 h-14 rounded-xl object-cover border-2 border-purple-500" />
+            <img
+              src={historiaAtual.imagem}
+              alt={historiaAtual.nome}
+              className="flex-shrink-0 w-14 h-14 rounded-xl object-cover border-2 border-purple-500 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setLightboxSrc(historiaAtual.imagem)}
+            />
           ) : (
             <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center ${
               isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
@@ -268,11 +276,9 @@ const VerHistoriaView = ({
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     {historiaAtual.mapas.map((mapa, i) => (
                       <div key={i} className="relative group">
-                        <a
-                          href={mapa.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`block rounded-lg overflow-hidden border transition-all hover:scale-[1.02] ${
+                        <div
+                          onClick={() => setLightboxSrc(mapa.url)}
+                          className={`block rounded-lg overflow-hidden border transition-all hover:scale-[1.02] cursor-pointer ${
                             isLight ? 'border-slate-200 hover:border-purple-400' : 'border-slate-700 hover:border-purple-500'
                           }`}
                         >
@@ -280,7 +286,7 @@ const VerHistoriaView = ({
                           <div className={`px-2 py-1.5 text-xs font-modern ${isLight ? 'text-slate-600 bg-slate-50' : 'text-slate-300 bg-slate-800/50'}`}>
                             {mapa.nome || `Mapa ${i + 1}`}
                           </div>
-                        </a>
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveMapa(i)}
@@ -602,6 +608,14 @@ const VerHistoriaView = ({
         isOpen={!!sessaoSelecionada}
         onClose={fecharHistorico}
         sessao={sessaoSelecionada}
+      />
+
+      {/* Lightbox de imagem */}
+      <ImageLightbox
+        src={lightboxSrc}
+        alt={historiaAtual.nome}
+        isOpen={!!lightboxSrc}
+        onClose={() => setLightboxSrc(null)}
       />
     </div>
   );

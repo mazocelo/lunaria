@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Pencil, BookOpen, Sparkles, ScrollText, ClipboardList, Link2, Tag, Swords, Shield, Weight, Zap, Coins, Package } from 'lucide-react';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 
 // ===================================================
 // CONFIGURACAO DE RARIDADE
@@ -156,7 +157,7 @@ const RarityBadge = ({ raridade, isLight, animate = false }) => {
   );
 };
 
-const HeroCard = ({ eq, isLight, onBack, onEdit }) => {
+const HeroCard = ({ eq, isLight, onBack, onEdit, onImageClick }) => {
   const raridadeNome = eq.raridade_rel?.nome || 'Comum';
   const config = getRaridadeConfig(raridadeNome);
   const CatIcon = getCategoriaIcon(eq.categoria_rel?.nome);
@@ -185,7 +186,13 @@ const HeroCard = ({ eq, isLight, onBack, onEdit }) => {
                 style={{ background: config.glow, transform: 'scale(1.5)' }}
               />
               {eq.imagem ? (
-                <img src={eq.imagem} alt={eq.nome} className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2" style={{ borderColor: config.accent }} />
+                <img
+                  src={eq.imagem}
+                  alt={eq.nome}
+                  className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ borderColor: config.accent }}
+                  onClick={() => onImageClick?.(eq.imagem)}
+                />
               ) : (
                 <div
                   className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center ${
@@ -587,6 +594,7 @@ const VerEquipamentoView = ({
   }
 
   const eq = equipamento;
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -594,6 +602,7 @@ const VerEquipamentoView = ({
         eq={eq}
         isLight={isLight}
         onBack={handleBack}
+        onImageClick={setLightboxSrc}
         onEdit={handleEdit}
       />
 
@@ -636,6 +645,7 @@ const VerEquipamentoView = ({
           </div>
         </div>
       </div>
+      <ImageLightbox src={lightboxSrc} alt={eq.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };

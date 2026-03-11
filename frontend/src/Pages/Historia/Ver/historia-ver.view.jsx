@@ -82,11 +82,23 @@ const VerHistoriaView = ({
   handleCapaGenerated,
   handleMapaGenerated,
   handleRemoveMapa,
+  handleEstiloImagemChange,
 
   // Utils
   clearError,
 }) => {
   const [lightboxSrc, setLightboxSrc] = useState(null);
+
+  const ESTILOS_IMAGEM = [
+    { value: 'fantasy_painting', label: 'Fantasy Painting' },
+    { value: 'anime', label: 'Anime / Manga' },
+    { value: 'realistic', label: 'Realista' },
+    { value: 'dark_gothic', label: 'Dark / Gótico' },
+    { value: 'watercolor', label: 'Aquarela' },
+    { value: 'pixel_art', label: 'Pixel Art' },
+    { value: 'comic_book', label: 'Comic Book' },
+  ];
+  const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
 
   if (loading) {
     return (
@@ -243,6 +255,31 @@ const VerHistoriaView = ({
                 </div>
               </div>
 
+              {/* Estilo de Imagem */}
+              <div>
+                <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                  <Sparkles size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                  Estilo de Imagem
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {ESTILOS_IMAGEM.map(e => (
+                    <button
+                      key={e.value}
+                      onClick={() => handleEstiloImagemChange(e.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer border ${
+                        estiloAtual === e.value
+                          ? 'bg-purple-500/30 border-purple-400 text-purple-200'
+                          : isLight
+                            ? 'border-slate-300 hover:bg-slate-100 text-slate-600'
+                            : 'border-slate-600 hover:bg-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {e.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Capa da Historia */}
               <div>
                 <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
@@ -261,6 +298,7 @@ const VerHistoriaView = ({
                     sinopse: roteiro?.sinopse,
                     antagonista: roteiro?.antagonista?.nome,
                     locais: roteiro?.locais?.slice(0, 3).map(l => l.nome).join(', '),
+                    estilo_imagem: estiloAtual,
                   }}
                   isLight={isLight}
                   label=""
@@ -310,6 +348,7 @@ const VerHistoriaView = ({
                     temas: nomesTemas.join(', '),
                     locais: roteiro?.locais?.slice(0, 5).map(l => l.nome).join(', '),
                     mapaMundi: roteiro?.mapaMundi,
+                    estilo_imagem: estiloAtual,
                   }}
                   isLight={isLight}
                   label=""
@@ -377,7 +416,7 @@ const VerHistoriaView = ({
                     </button>
                   </div>
                 ) : roteiro ? (
-                  <RoteiroViewer roteiro={roteiro} isLight={isLight} historiaId={historiaAtual?.id} onRoteiroUpdate={handleRoteiroUpdate} />
+                  <RoteiroViewer roteiro={roteiro} isLight={isLight} historiaId={historiaAtual?.id} onRoteiroUpdate={handleRoteiroUpdate} estiloImagem={estiloAtual} />
                 ) : (
                   <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
                     <p className={`font-modern text-sm italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>

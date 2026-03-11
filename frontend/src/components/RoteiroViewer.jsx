@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronDown, ChevronRight, Scroll, Sword, MapPin, Users, Gem,
   Zap, Swords, Flag, BookOpen, Compass, CheckCircle2, Circle,
@@ -78,12 +78,18 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   );
 };
 
-const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate }) => {
+const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloImagem }) => {
+  // Ref para manter versão mais recente do roteiro (evita race condition em gerações paralelas)
+  const roteiroRef = useRef(roteiro);
+  useEffect(() => { roteiroRef.current = roteiro; }, [roteiro]);
+
   if (!roteiro) return null;
 
   const updateItemImage = (arrayKey, index, url) => {
     if (!onRoteiroUpdate) return;
-    const updated = { ...roteiro, [arrayKey]: roteiro[arrayKey].map((item, i) => i === index ? { ...item, imagem: url } : item) };
+    const current = roteiroRef.current || roteiro;
+    const updated = { ...current, [arrayKey]: current[arrayKey].map((item, i) => i === index ? { ...item, imagem: url } : item) };
+    roteiroRef.current = updated;
     onRoteiroUpdate(updated);
   };
 
@@ -174,7 +180,7 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate }) => {
                   <ImagemCard
                     imageUrl={local.imagem}
                     entityType="local"
-                    entityData={{ nome: local.nome, tipo: local.tipo, descricao: local.descricao }}
+                    entityData={{ nome: local.nome, tipo: local.tipo, descricao: local.descricao, estilo_imagem: estiloImagem }}
                     isLight={isLight}
                     onGenerated={(url) => updateItemImage('locais', i, url)}
                   />
@@ -207,7 +213,7 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate }) => {
                   <ImagemCard
                     imageUrl={npc.imagem}
                     entityType="npc"
-                    entityData={{ nome: npc.nome, papel: npc.papel, descricao: npc.descricao, local: npc.local }}
+                    entityData={{ nome: npc.nome, papel: npc.papel, descricao: npc.descricao, local: npc.local, estilo_imagem: estiloImagem }}
                     isLight={isLight}
                     onGenerated={(url) => updateItemImage('npcs', i, url)}
                   />

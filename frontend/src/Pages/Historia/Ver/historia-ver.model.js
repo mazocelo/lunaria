@@ -258,6 +258,16 @@ export const useHistoriaVerModel = () => {
     navigate('/historias');
   }, [navigate]);
 
+  const handleEstiloImagemChange = useCallback(async (estilo) => {
+    if (!historiaAtual) return;
+    try {
+      await historiaService.update(historiaAtual.id, { estilo_imagem: estilo });
+      setHistoriaAtual(prev => ({ ...prev, estilo_imagem: estilo }));
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar estilo');
+    }
+  }, [historiaAtual]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -303,6 +313,7 @@ export const useHistoriaVerModel = () => {
     handleCapaGenerated,
     handleMapaGenerated,
     handleRemoveMapa,
+    handleEstiloImagemChange,
 
     // Utils
     clearError,

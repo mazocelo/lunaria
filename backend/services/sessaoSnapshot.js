@@ -48,7 +48,8 @@ class SessaoSnapshotService {
     const sessaoReconstruida = {
       id: salaId,
       historiaId: snapshot.historia_id,
-      status: 'ativa',
+      status: 'iniciada',
+      statusJogo: 'iniciado',
       estadoJogo: snapshot.estado || {},
       mensagens: snapshot.mensagens || [],
       resumos: snapshot.resumos || [],
@@ -57,9 +58,35 @@ class SessaoSnapshotService {
       atualizadaEm: new Date().toISOString()
     };
 
-    // Precisamos reconstruir campos que vem do DB (historia, personagens, mestre)
-    // Esses serao recarregados pelo fluxo normal de /jogo/start
-    // Aqui salvamos apenas o estado do jogo que seria perdido
+    // Enriquecer com dados do banco (historia, mestre, personagens)
+    try {
+      const historia = await db.Historia.findById(snapshot.historia_id);
+      if (historia) {
+        sessaoReconstruida.historiaNome = historia.nome;
+        sessaoReconstruida.historiaPrologo = historia.prologo || '';
+        sessaoReconstruida.historiaRoteiro = historia.roteiro || null;
+        sessaoReconstruida.historiaTemas = historia.temas || [];
+        sessaoReconstruida.donoId = historia.id_usuario ? String(historia.id_usuario) : null;
+        sessaoReconstruida.maxJogadores = historia.maximo_de_participantes || 5;
+
+        if (historia.mestres) {
+          sessaoReconstruida.mestreConfig = {
+            nome: historia.mestres.nome,
+            personalidade: historia.mestres.personalidade,
+            tom_narrativo: historia.mestres.tom_narrativo,
+            regras_especiais: historia.mestres.regras_especiais,
+            modelo: historia.mestres.modelo,
+            temperatura: historia.mestres.temperatura,
+            max_tokens: historia.mestres.max_tokens
+          };
+        }
+
+        // Reconstruir jogadoresConectados a partir do mapa de jogadores
+        sessaoReconstruida.jogadoresConectados = Object.keys(snapshot.jogadores || {});
+      }
+    } catch (err) {
+      console.warn(`⚠️ Erro ao enriquecer sessao restaurada: ${err.message}`);
+    }
 
     // Salvar no Redis
     await gerenciadorSessoes.criarSessao(salaId, sessaoReconstruida);

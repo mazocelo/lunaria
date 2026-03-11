@@ -75,7 +75,10 @@ const PersonagemPreviewCard = ({
 
   const vantagensNomes = (vantagensSelecionadas || []).map(id => {
     const v = vantagensDisponiveis?.find(vt => String(vt.id) === String(id));
-    return v ? { nome: v.nome, tipo: v.tipo, custo: v.custo } : null;
+    if (!v) return null;
+    // Detectar desvantagem: custo negativo ou vem da tabela desvantagens (custo < 0)
+    const isDesv = (v.custo != null && v.custo < 0);
+    return { nome: v.nome, isDesvantagem: isDesv, custo: v.custo };
   }).filter(Boolean);
 
   return (
@@ -244,7 +247,7 @@ const PersonagemPreviewCard = ({
                   <span
                     key={i}
                     className={`text-[10px] px-1.5 py-0.5 rounded font-modern ${
-                      v.tipo === 'desvantagem'
+                      v.isDesvantagem
                         ? 'bg-red-500/15 text-red-400'
                         : 'bg-green-500/15 text-green-400'
                     }`}

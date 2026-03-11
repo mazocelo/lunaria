@@ -149,7 +149,7 @@ const WizardView = (props) => {
                 </h4>
                 <div className="flex flex-wrap gap-1">
                   {vantagensIds.map(id => {
-                    const item = vantagensDisponiveis.find(v => v.id === id && v.tipo !== 'desvantagem');
+                    const item = vantagensDisponiveis.find(v => v.id === id);
                     if (!item) return null;
                     return (
                       <button
@@ -163,7 +163,7 @@ const WizardView = (props) => {
                     );
                   })}
                   {desvantagensIds.map(id => {
-                    const item = vantagensDisponiveis.find(d => d.id === id && d.tipo === 'desvantagem');
+                    const item = vantagensDisponiveis.find(d => d.id === id);
                     if (!item) return null;
                     return (
                       <button

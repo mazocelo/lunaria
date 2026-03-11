@@ -85,16 +85,16 @@ const WizardChat = ({
     <div className="flex flex-col h-full">
       {/* Header badge — pontos de atributo */}
       {showAtributos && (
-        <div className={`flex items-center justify-between px-4 py-2 border-b ${
+        <div className={`flex items-center justify-between px-5 py-2.5 border-b shrink-0 ${
           isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
         }`}>
           <div className="flex items-center gap-2">
-            <Dices size={16} className="text-purple-400" />
-            <span className={`text-xs font-modern font-semibold ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <Dices size={18} className="text-purple-400" />
+            <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
               Distribuição de Atributos
             </span>
           </div>
-          <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+          <span className={`text-sm font-mono px-2.5 py-1 rounded-lg font-bold ${
             pontosRestantes === 0
               ? 'bg-green-500/15 text-green-400'
               : pontosRestantes < 0
@@ -107,16 +107,16 @@ const WizardChat = ({
       )}
 
       {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5 min-h-0">
         {mensagens.map((msg, msgIndex) => (
           <div key={msg.id} className={`flex ${msg.role === 'jogador' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] ${msg.role === 'jogador' ? 'order-1' : ''}`}>
               {/* Avatar + Nome */}
-              <div className={`flex items-center gap-2 mb-1 ${msg.role === 'jogador' ? 'justify-end' : ''}`}>
+              <div className={`flex items-center gap-2 mb-1.5 ${msg.role === 'jogador' ? 'justify-end' : ''}`}>
                 {msg.role === 'mestre' && (
-                  <span className="text-lg">🧙</span>
+                  <span className="text-xl">🧙</span>
                 )}
-                <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
+                <span className={`text-xs font-modern font-semibold uppercase tracking-wider ${
                   isLight ? 'text-slate-600' : 'text-slate-500'
                 }`}>
                   {msg.role === 'mestre' ? 'Mestre Criador' : 'Você'}
@@ -133,29 +133,29 @@ const WizardChat = ({
                     ? 'bg-white border border-slate-200 text-slate-700'
                     : 'bg-slate-800/60 border border-slate-700/30 text-slate-200'
               }`}>
-                <div className="text-sm font-modern leading-relaxed">
+                <div className="text-[15px] font-modern leading-relaxed">
                   <MarkdownRenderer>{msg.content}</MarkdownRenderer>
                 </div>
               </div>
 
               {/* Sugestões de nome (chips) */}
               {msg.sugestoes?.some(s => s.tipo === 'nome') && (
-                <div className="mt-2">
-                  <div className={`flex items-center gap-1.5 mb-1.5 ${
+                <div className="mt-3">
+                  <div className={`flex items-center gap-1.5 mb-2 ${
                     isLight ? 'text-slate-500' : 'text-slate-400'
                   }`}>
-                    <Sparkles size={12} />
-                    <span className="text-[10px] font-modern font-semibold uppercase tracking-wider">
+                    <Sparkles size={14} />
+                    <span className="text-xs font-modern font-semibold uppercase tracking-wider">
                       Sugestões de nome
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {msg.sugestoes.filter(s => s.tipo === 'nome').map((sug, i) => (
                       <button
                         key={`nome-${i}`}
                         type="button"
                         onClick={() => onEnviar(sug.nome)}
-                        className={`px-3 py-1 rounded-full text-xs font-modern font-medium transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 rounded-full text-sm font-modern font-medium transition-all cursor-pointer ${
                           isLight
                             ? 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 hover:border-purple-300'
                             : 'bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40'
@@ -189,7 +189,7 @@ const WizardChat = ({
                 <button
                   type="button"
                   onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
-                  className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-medium transition-all cursor-pointer ${
+                  className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
                     buscaAberta
                       ? isLight
                         ? 'bg-purple-100 text-purple-700 border border-purple-300'
@@ -223,7 +223,7 @@ const WizardChat = ({
                     <button
                       onClick={salvarPersonagem}
                       disabled={salvando || gerandoBackground || pontosRestantes !== 0}
-                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-fantasy font-bold text-sm transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
                         salvando || gerandoBackground
                           ? 'bg-slate-600 text-slate-400 cursor-wait'
                           : pontosRestantes !== 0
@@ -233,12 +233,12 @@ const WizardChat = ({
                     >
                       {salvando || gerandoBackground ? (
                         <>
-                          <Loader2 size={16} className="animate-spin" />
+                          <Loader2 size={18} className="animate-spin" />
                           {gerandoBackground ? 'Gerando background...' : 'Salvando...'}
                         </>
                       ) : (
                         <>
-                          <Save size={16} />
+                          <Save size={18} />
                           {pontosRestantes !== 0
                             ? `Distribua todos os pontos (${pontosRestantes} restantes)`
                             : 'Criar Personagem'
@@ -340,7 +340,7 @@ const WizardChat = ({
       {/* Input */}
       <form
         onSubmit={handleSubmit}
-        className={`flex items-end gap-2 p-4 border-t ${
+        className={`flex items-end gap-3 p-4 border-t shrink-0 ${
           isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
         }`}
       >
@@ -351,7 +351,7 @@ const WizardChat = ({
           placeholder="Digite sua resposta..."
           disabled={enviando}
           rows={1}
-          className={`flex-1 resize-none rounded-xl px-4 py-2.5 text-sm font-modern transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/30 ${
+          className={`flex-1 resize-none rounded-xl px-4 py-3 text-[15px] font-modern transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/30 ${
             isLight
               ? 'bg-slate-100 text-slate-800 placeholder-slate-400 border border-slate-200'
               : 'bg-slate-800 text-white placeholder-slate-500 border border-slate-700'
@@ -366,7 +366,7 @@ const WizardChat = ({
         <button
           type="submit"
           disabled={!inputTexto.trim() || enviando}
-          className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`p-3 rounded-xl transition-all cursor-pointer ${
             inputTexto.trim() && !enviando
               ? 'bg-purple-500 text-white hover:bg-purple-600 shadow-lg shadow-purple-500/20'
               : isLight
@@ -374,7 +374,7 @@ const WizardChat = ({
                 : 'bg-slate-700 text-slate-500'
           }`}
         >
-          {enviando ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+          {enviando ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
         </button>
       </form>
     </div>

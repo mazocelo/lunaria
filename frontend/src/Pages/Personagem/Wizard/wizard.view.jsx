@@ -61,61 +61,63 @@ const WizardView = (props) => {
         : 'bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-900'
     }`}>
       {/* Header */}
-      <div className={`flex items-center gap-3 px-4 py-3 border-b ${
+      <div className={`flex items-center gap-3 px-5 py-4 border-b shrink-0 ${
         isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
       } backdrop-blur-sm`}>
         <button
           onClick={() => navigate('/personagens')}
-          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+          className={`p-2.5 rounded-lg transition-colors cursor-pointer ${
             isLight ? 'hover:bg-slate-100 text-slate-600' : 'hover:bg-slate-800 text-slate-400'
           }`}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={22} />
         </button>
         <div className="flex-1">
-          <h1 className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+          <h1 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Forja do Destino
           </h1>
-          <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          <p className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Criação guiada de personagem
           </p>
         </div>
-        {/* Botão toggle ficha */}
+        {/* Botão toggle ficha — dourado */}
         <button
           onClick={() => setFichaAberta(prev => !prev)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-medium transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-bold transition-all cursor-pointer ${
             fichaAberta
               ? isLight
-                ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                ? 'bg-amber-100 text-amber-700 border-2 border-amber-400 shadow-md shadow-amber-200/50'
+                : 'bg-amber-500/20 text-amber-300 border-2 border-amber-500/50 shadow-md shadow-amber-500/10'
               : isLight
-                ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-purple-50 hover:text-purple-600'
-                : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300'
+                ? 'bg-amber-50 text-amber-600 border-2 border-amber-300 hover:bg-amber-100 hover:shadow-md hover:shadow-amber-200/50'
+                : 'bg-amber-500/10 text-amber-400 border-2 border-amber-500/30 hover:bg-amber-500/20 hover:shadow-md hover:shadow-amber-500/10'
           }`}
         >
-          <ScrollText size={14} />
+          <ScrollText size={16} />
           Ficha
-          {fichaAberta ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          {fichaAberta ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
 
       {/* Progress Bar */}
-      <WizardProgressBar etapas={etapas} etapaIndex={etapaIndex} isLight={isLight} />
+      <div className="shrink-0">
+        <WizardProgressBar etapas={etapas} etapaIndex={etapaIndex} isLight={isLight} />
+      </div>
 
       {/* Error banner */}
       {error && (
-        <div className={`flex items-center gap-2 px-4 py-2 ${
+        <div className={`flex items-center gap-2 px-4 py-2.5 shrink-0 ${
           isLight ? 'bg-red-50 text-red-600' : 'bg-red-500/10 text-red-400'
         }`}>
-          <AlertCircle size={14} />
-          <span className="flex-1 text-xs font-modern">{error}</span>
-          <button onClick={clearError} className="cursor-pointer"><X size={14} /></button>
+          <AlertCircle size={16} />
+          <span className="flex-1 text-sm font-modern">{error}</span>
+          <button onClick={clearError} className="cursor-pointer"><X size={16} /></button>
         </div>
       )}
 
       {/* Ficha collapse */}
       {fichaAberta && (
-        <div className={`border-b overflow-y-auto max-h-[50vh] ${
+        <div className={`border-b overflow-y-auto max-h-[40vh] shrink-0 ${
           isLight ? 'border-slate-200 bg-white/95' : 'border-slate-700/50 bg-slate-900/95'
         } backdrop-blur-sm`}>
           <div className="p-4 max-w-lg mx-auto space-y-3">

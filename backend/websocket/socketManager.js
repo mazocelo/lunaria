@@ -23,6 +23,25 @@ import { rolarLootCombate } from '../helpers/lootHelper.js';
 import { persistirEstadoClone } from '../helpers/acoesProcessor.js';
 import analyticsService from '../services/analyticsService.js';
 import { MESTRE_CONFIG } from '../agents/Mestre/config.js';
+import ttsCacheService from '../services/ttsCacheService.js';
+
+/**
+ * Cria objeto de mensagem do mestre com campos de áudio vinculados
+ */
+function buildMestreMensagem(conteudo, mestreConfig = null) {
+  const voiceId = mestreConfig?.voice_id || null;
+  const voiceProvider = mestreConfig?.voice_provider || null;
+  return {
+    tipo: 'mestre',
+    userId: 'mestre',
+    username: 'Mestre',
+    mensagem: conteudo,
+    timestamp: Date.now(),
+    voice_id: voiceId,
+    voice_provider: voiceProvider,
+    audio_cache_key: voiceId ? ttsCacheService.generateCacheKey(conteudo, voiceId, voiceProvider || 'elevenlabs') : null
+  };
+}
 
 /**
  * Gerenciador de WebSocket para o Role Chat Game
@@ -1432,13 +1451,8 @@ class SocketManager {
             sessao.mensagens = [];
           }
 
-          sessao.mensagens.push({
-            tipo: 'mestre',
-            userId: 'mestre',
-            username: 'Mestre',
-            mensagem: interpretacao.narracao,
-            timestamp: Date.now()
-          });
+          const msgInterpretacao = buildMestreMensagem(interpretacao.narracao, sessao.mestreConfig);
+          sessao.mensagens.push(msgInterpretacao);
 
           // ✅ Limpar flag de dados solicitados + testeInfo
           estadoJogo.dadosSolicitados = false;
@@ -1450,11 +1464,8 @@ class SocketManager {
           // Enviar interpretação do Mestre
           this.io.to(roomId).emit('mensagem_mestre', {
             id: (Date.now() + 1).toString(),
-            userId: 'mestre',
-            username: 'Mestre',
-            message: interpretacao.narracao,
-            tipo: 'mestre',
-            timestamp: Date.now()
+            ...msgInterpretacao,
+            message: interpretacao.narracao
           });
 
           console.log(`✅ Resultado do dado processado pelo Mestre`);
@@ -1465,13 +1476,8 @@ class SocketManager {
           const jogadorInfo = sessao.jogadores?.[userId];
           const personagemNome = jogadorInfo?.personagemNome || username;
 
-          const mensagemFallback = {
-            tipo: 'mestre',
-            userId: 'mestre',
-            username: 'Mestre',
-            mensagem: `${personagemNome} rolou ${dice} e obteve **${result}**${description ? ` para ${description}` : ''}. Continue a aventura!`,
-            timestamp: Date.now()
-          };
+          const textoFallback = `${personagemNome} rolou ${dice} e obteve **${result}**${description ? ` para ${description}` : ''}. Continue a aventura!`;
+          const mensagemFallback = buildMestreMensagem(textoFallback, sessao.mestreConfig);
 
           if (!sessao.mensagens) {
             sessao.mensagens = [];
@@ -1487,11 +1493,8 @@ class SocketManager {
 
           this.io.to(roomId).emit('mensagem_mestre', {
             id: (Date.now() + 1).toString(),
-            userId: 'mestre',
-            username: 'Mestre',
-            message: mensagemFallback.mensagem,
-            tipo: 'mestre',
-            timestamp: Date.now()
+            ...mensagemFallback,
+            message: textoFallback
           });
 
           console.log(`✅ Resultado do dado processado com mensagem fallback (IA falhou)`);
@@ -1980,14 +1983,7 @@ class SocketManager {
       sessao.mensagens.push(mensagemJogador);
 
       // 6. Salvar resposta do mestre na sessão
-      const mensagemMestre = {
-        tipo: 'mestre',
-        userId: 'mestre',
-        username: 'Mestre',
-        mensagem: resposta.narracao,
-        timestamp: Date.now()
-      };
-
+      const mensagemMestre = buildMestreMensagem(resposta.narracao, sessao.mestreConfig);
       sessao.mensagens.push(mensagemMestre);
 
       // 7. Atualizar sessão no Redis
@@ -2016,11 +2012,8 @@ class SocketManager {
       // 9. Enviar resposta do mestre para todos na sala
       this.io.to(roomId).emit('mensagem_mestre', {
         id: (Date.now() + 1).toString(),
-        userId: 'mestre',
-        username: 'Mestre',
-        message: resposta.narracao,
-        tipo: 'mestre',
-        timestamp: Date.now() + 1
+        ...mensagemMestre,
+        message: resposta.narracao
       });
 
       // ✅ DESPACHAR RESPOSTA DA IA (combate, ações, dados, turnos)
@@ -2325,13 +2318,8 @@ class SocketManager {
         sessaoAtualizada.mensagens = [];
       }
 
-      sessaoAtualizada.mensagens.push({
-        tipo: 'mestre',
-        userId: 'mestre',
-        username: 'Mestre',
-        mensagem: mensagemInicial.resposta,
-        timestamp: Date.now()
-      });
+      const msgInicial = buildMestreMensagem(mensagemInicial.resposta, sessaoAtualizada.mestreConfig);
+      sessaoAtualizada.mensagens.push(msgInicial);
 
       // Processar ações mecânicas do Mestre (dar_item, curar, etc.)
       if (mensagemInicial.acoes && Array.isArray(mensagemInicial.acoes) && mensagemInicial.acoes.length > 0) {
@@ -2352,11 +2340,8 @@ class SocketManager {
       // Enviar mensagem do Mestre para todos
       this.io.to(roomId).emit('mensagem_mestre', {
         id: Date.now().toString(),
-        userId: 'mestre',
-        username: 'Mestre',
-        message: mensagemInicial.resposta,
-        tipo: 'mestre',
-        timestamp: Date.now()
+        ...msgInicial,
+        message: mensagemInicial.resposta
       });
 
       // Emitir evento de turno iniciado
@@ -2831,7 +2816,9 @@ class SocketManager {
         regras_especiais: historia.mestres.regras_especiais,
         modelo: historia.mestres.modelo,
         temperatura: historia.mestres.temperatura,
-        max_tokens: historia.mestres.max_tokens
+        max_tokens: historia.mestres.max_tokens,
+        voice_id: historia.mestres.voice_id || null,
+        voice_provider: historia.mestres.voice_provider || null
       } : null;
 
       // Criar dados da sessão
@@ -3046,13 +3033,9 @@ class SocketManager {
 
         // Salvar na sessao.mensagens
         if (!sessao.mensagens) sessao.mensagens = [];
-        sessao.mensagens.push({
-          tipo: 'mestre',
-          userId: 'mestre',
-          username: 'Mestre',
-          mensagem: prologoPendente,
-          timestamp: prologoTimestamp
-        });
+        const msgPrologo = buildMestreMensagem(prologoPendente, sessao.mestreConfig);
+        msgPrologo.timestamp = prologoTimestamp;
+        sessao.mensagens.push(msgPrologo);
 
         // Limpar flag
         delete estadoJogo.prologoPendente;
@@ -3062,11 +3045,8 @@ class SocketManager {
         // Emitir para todos os jogadores
         this.io.to(roomId).emit('mensagem_mestre', {
           id: prologoTimestamp.toString(),
-          userId: 'mestre',
-          username: 'Mestre',
-          message: prologoPendente,
-          tipo: 'mestre',
-          timestamp: prologoTimestamp
+          ...msgPrologo,
+          message: prologoPendente
         });
         console.log(`📜 Prólogo emitido após rolagem de dados para sala ${roomId}`);
       }
@@ -3086,6 +3066,10 @@ class SocketManager {
       });
 
       console.log(`✅ Primeiro turno iniciado com ${primeiroJogador.username}`);
+
+      // Snapshot forçado após transição de fase (evita perda se Redis expirar)
+      const sessaoFinal = await this.obterSessaoHistoria(roomId);
+      if (sessaoFinal) this._tentarSnapshot(roomId, sessaoFinal, true);
     } catch (error) {
       console.error(`❌ Erro ao iniciar primeiro turno:`, error);
     }
@@ -3993,24 +3977,15 @@ class SocketManager {
           resumo: null
         });
 
-        // Emitir narração do desfecho
+        // Emitir e salvar narração do desfecho
+        const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig);
+        sessao.mensagens = sessao.mensagens || [];
+        sessao.mensagens.push(msgDesfecho);
+
         this.io.to(roomId).emit('mensagem_mestre', {
           id: Date.now().toString(),
-          userId: 'mestre',
-          username: 'Mestre',
-          message: respostaDesfecho.narracao,
-          tipo: 'mestre',
-          timestamp: Date.now()
-        });
-
-        // Salvar no histórico
-        sessao.mensagens = sessao.mensagens || [];
-        sessao.mensagens.push({
-          tipo: 'mestre',
-          userId: 'mestre',
-          username: 'Mestre',
-          mensagem: respostaDesfecho.narracao,
-          timestamp: Date.now()
+          ...msgDesfecho,
+          message: respostaDesfecho.narracao
         });
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 

@@ -39,19 +39,39 @@ function getParticipantes(jogadores) {
   return Object.values(jogadores).map(j => j.personagemNome || j.username || j.nome || 'Jogador');
 }
 
-const MensagemItem = ({ msg }) => {
+/** Extrai texto da mensagem (backend salva como 'mensagem', emit usa 'message') */
+function getConteudo(msg) {
+  return msg.mensagem || msg.message || msg.conteudo || '';
+}
+
+const MensagemItem = ({ msg, tts }) => {
   const tipo = msg.tipo || 'roleplay';
   const config = tipoConfig[tipo] || tipoConfig.roleplay;
+  const conteudo = getConteudo(msg);
 
   if (tipo === 'mestre') {
+    const voiceId = msg.voice_id;
+    const voiceProvider = msg.voice_provider;
+    const isThisPlaying = tts?.currentMessageId === msg.id;
+
     return (
       <div className="glass p-3 rounded-lg border border-purple-500/20 ml-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs">{config.icon}</span>
           <span className="text-xs font-semibold text-purple-300 font-modern">Mestre</span>
+          {voiceId && tts && (
+            <button
+              onClick={() => isThisPlaying && tts.isPlaying ? tts.stop() : tts.play(conteudo, voiceId, msg.id, voiceProvider)}
+              disabled={tts.isLoading && isThisPlaying}
+              className="p-0.5 rounded transition-all text-purple-400 hover:text-purple-200"
+              title={isThisPlaying && tts.isPlaying ? 'Parar' : 'Ouvir'}
+            >
+              {tts.isLoading && isThisPlaying ? <Loader2 size={12} className="animate-spin" /> : isThisPlaying && tts.isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
+            </button>
+          )}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
         </div>
-        <div className="text-sm text-slate-200 font-modern whitespace-pre-wrap">{msg.message || msg.conteudo}</div>
+        <div className="text-sm text-slate-200 font-modern whitespace-pre-wrap">{conteudo}</div>
       </div>
     );
   }
@@ -61,7 +81,7 @@ const MensagemItem = ({ msg }) => {
       <div className="flex items-center gap-2 py-1">
         <span className="text-xs">🎲</span>
         <span className="text-xs text-slate-400 font-modern">{msg.username || 'Jogador'}</span>
-        <span className="text-sm font-bold text-amber-400">{msg.dice || msg.message}</span>
+        <span className="text-sm font-bold text-amber-400">{msg.dice || conteudo}</span>
         {msg.result != null && <span className="text-lg font-bold text-amber-300">→ {msg.result}</span>}
         <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
       </div>
@@ -73,7 +93,7 @@ const MensagemItem = ({ msg }) => {
       <div className="glass p-2 rounded-lg border border-red-500/20">
         <div className="flex items-center gap-2">
           <span className="text-xs">⚔️</span>
-          <span className="text-sm text-red-300 font-modern">{msg.message || msg.conteudo}</span>
+          <span className="text-sm text-red-300 font-modern">{conteudo}</span>
           {msg.dano && <span className="text-sm font-bold text-red-400">-{msg.dano} HP</span>}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
         </div>
@@ -84,7 +104,7 @@ const MensagemItem = ({ msg }) => {
   if (tipo === 'entre_rodadas') {
     return (
       <div className="glass p-2 rounded-lg border border-cyan-500/20 text-center">
-        <span className="text-xs text-cyan-300 font-modern">{msg.message || msg.conteudo}</span>
+        <span className="text-xs text-cyan-300 font-modern">{conteudo}</span>
       </div>
     );
   }
@@ -96,7 +116,7 @@ const MensagemItem = ({ msg }) => {
         <span className="text-xs font-semibold text-cyan-300 font-modern">{msg.username || 'Jogador'}</span>
         <span className="text-[10px] text-slate-500">{formatTimestamp(msg.timestamp)}</span>
       </div>
-      <div className="text-sm text-slate-300 font-modern italic">{msg.message || msg.conteudo}</div>
+      <div className="text-sm text-slate-300 font-modern italic">{conteudo}</div>
     </div>
   );
 };
@@ -216,6 +236,7 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
   const [abaAtiva, setAbaAtiva] = useState('mensagens');
   const scrollRef = useRef(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const tts = useTTS();
 
   const mensagens = useMemo(() => {
     const msgs = Array.isArray(sessao?.mensagens) ? sessao.mensagens : [];
@@ -376,7 +397,7 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
                 {filtros.size > 0 ? 'Nenhuma mensagem com os filtros selecionados' : 'Nenhuma mensagem nesta sessao'}
               </div>
             ) : (
-              mensagens.map((msg, i) => <MensagemItem key={msg.id || i} msg={msg} />)
+              mensagens.map((msg, i) => <MensagemItem key={msg.id || i} msg={msg} tts={tts} />)
             )
           ) : (
             personagens.length === 0 ? (

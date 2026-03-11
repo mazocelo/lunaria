@@ -55,7 +55,10 @@ async function gerarImagem(req, res) {
     }
 
     try {
+      console.log(`[ImageController] entityType=${entityType} estilo=${entityData.estilo_imagem || 'DEFAULT'}`);
+      console.log(`[ImageController] entityData:`, JSON.stringify(entityData, null, 2));
       const prompt = buildPrompt(entityType, entityData);
+      console.log(`[ImageController] prompt final:`, prompt);
       const tImg = Date.now();
       const imageUrl = await generateImage(prompt, options || {});
 

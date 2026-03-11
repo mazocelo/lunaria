@@ -260,10 +260,11 @@ export const useHistoriaVerModel = () => {
 
   const handleEstiloImagemChange = useCallback(async (estilo) => {
     if (!historiaAtual) return;
+    setHistoriaAtual(prev => ({ ...prev, estilo_imagem: estilo }));
     try {
       await historiaService.update(historiaAtual.id, { estilo_imagem: estilo });
-      setHistoriaAtual(prev => ({ ...prev, estilo_imagem: estilo }));
     } catch (err) {
+      setHistoriaAtual(prev => ({ ...prev, estilo_imagem: historiaAtual.estilo_imagem }));
       setError(err.message || 'Erro ao salvar estilo');
     }
   }, [historiaAtual]);

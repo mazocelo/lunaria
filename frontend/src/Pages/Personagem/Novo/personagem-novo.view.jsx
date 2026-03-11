@@ -6,7 +6,7 @@ import MultiSelect from '../../../components/form/MultiSelect';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
 import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus, Link2, X } from 'lucide-react';
 
-const PONTOS_MAXIMO = 75;
+const PONTOS_MAXIMO = 60;
 
 const atributosConfig = [
   { key: 'forca', label: 'Forca', tooltip: 'Poder fisico bruto.\nHabilidades: Atletismo, Intimidacao' },
@@ -180,14 +180,14 @@ const NovoPersonagemView = ({
                 name={attr.key}
                 value={atributos?.[attr.key] ?? ''}
                 onChange={e => setAtributo(attr.key, e.target.value)}
-                min={1}
-                max={20}
+                min={5}
+                max={16}
                 placeholder="10"
               />
             ))}
           </div>
           <p className="text-xs text-slate-400 font-modern">
-            Distribua pontos entre 1 e 20 para cada atributo (maximo {PONTOS_MAXIMO} pontos no total)
+            Distribua pontos entre 5 e 16 para cada atributo (maximo {PONTOS_MAXIMO} pontos no total)
           </p>
         </div>
 

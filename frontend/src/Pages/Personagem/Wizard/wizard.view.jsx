@@ -48,6 +48,17 @@ const WizardView = (props) => {
     bonusAplicados,
     bonusDetalhes,
 
+    // Limites de seleção
+    pontosCriacaoTotal,
+    pontosCriacaoRestantes,
+    pontosVantagem,
+    pontosDesvantagem,
+    maxDesvantagens,
+
+    // Limites de atributos
+    attrMin,
+    attrMax,
+
     // State
     salvando,
     gerandoBackground,
@@ -209,9 +220,16 @@ const WizardView = (props) => {
           confirmarAtributos={confirmarAtributos}
           bonusAplicados={bonusAplicados}
           bonusDetalhes={bonusDetalhes}
+          pontosCriacaoTotal={pontosCriacaoTotal}
+          pontosCriacaoRestantes={pontosCriacaoRestantes}
+          pontosVantagem={pontosVantagem}
+          pontosDesvantagem={pontosDesvantagem}
+          maxDesvantagens={maxDesvantagens}
           salvarPersonagem={salvarPersonagem}
           salvando={salvando}
           gerandoBackground={gerandoBackground}
+          attrMin={attrMin}
+          attrMax={attrMax}
         />
       </div>
     </div>

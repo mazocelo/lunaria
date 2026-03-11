@@ -22,7 +22,9 @@ const ETAPAS = [
   { id: 'refinamento', label: 'Ajustes', icon: '⚙️' },
 ];
 
-const PONTOS_TOTAIS = 75;
+const PONTOS_TOTAIS = 60;
+const ATTR_MIN = 5;
+const ATTR_MAX = 16; // max na criação (antes de bônus)
 
 function somaAtributos(atributos) {
   return Object.values(atributos)
@@ -103,7 +105,12 @@ export const useWizardModel = () => {
     return [...(vantagens || []), ...(desvantagens || [])];
   }, [vantagens, desvantagens]);
 
-  const pontosDistribuidos = useMemo(() => somaAtributos(atributos), [atributos]);
+  // Pontos base distribuídos (descontar bônus aplicados)
+  const bonusTotal = useMemo(() => {
+    if (!bonusAplicados || !bonusDetalhes) return 0;
+    return Object.values(bonusDetalhes).reduce((s, v) => s + (Number(v) || 0), 0);
+  }, [bonusAplicados, bonusDetalhes]);
+  const pontosDistribuidos = useMemo(() => somaAtributos(atributos) - bonusTotal, [atributos, bonusTotal]);
   const pontosRestantes = PONTOS_TOTAIS - pontosDistribuidos;
 
   const etapaIndex = useMemo(() => {
@@ -250,11 +257,39 @@ export const useWizardModel = () => {
     }
   }, [etapaAtual, nome, enviando, getEstado, getHistorico]);
 
+  // Limites de seleção
+  const MAX_DESVANTAGENS = 3;
+  const MAX_PONTOS_DESVANTAGEM = -4; // soma mínima dos custos negativos
+
+  // Pontos de desvantagem usados (soma dos custos negativos)
+  const pontosDesvantagem = useMemo(() => {
+    const allItems = vantagensDisponiveis || [];
+    return desvantagensIds.reduce((sum, id) => {
+      const item = allItems.find(v => v.id === id);
+      return sum + (item ? Number(item.custo) || 0 : 0);
+    }, 0);
+  }, [desvantagensIds, vantagensDisponiveis]);
+
+  // Pontos de vantagem usados (soma dos custos positivos)
+  const pontosVantagem = useMemo(() => {
+    const allItems = vantagensDisponiveis || [];
+    return vantagensIds.reduce((sum, id) => {
+      const item = allItems.find(v => v.id === id);
+      return sum + (item ? Number(item.custo) || 0 : 0);
+    }, 0);
+  }, [vantagensIds, vantagensDisponiveis]);
+
+  // Pontos de criação disponíveis (base + devolvidos por desvantagens)
+  const PONTOS_CRIACAO_BASE = 5;
+  const pontosDevolvidos = Math.min(Math.abs(MAX_PONTOS_DESVANTAGEM), Math.abs(pontosDesvantagem));
+  const pontosCriacaoTotal = PONTOS_CRIACAO_BASE + pontosDevolvidos;
+  const pontosCriacaoRestantes = pontosCriacaoTotal - pontosVantagem;
+
   /** Seleciona uma sugestão (raça, classe, vantagem, etc.) */
   const selecionarSugestao = useCallback((sugestao) => {
-    const { tipo, id, nome: sugestaoNome } = sugestao;
+    const { tipo, id, nome: sugestaoNome, custo: sugCusto } = sugestao;
 
-    // Ignorar se vantagem/desvantagem já está selecionada
+    // Ignorar se já selecionada
     if (tipo === 'vantagem' && vantagensIds.includes(id)) return;
     if (tipo === 'desvantagem' && desvantagensIds.includes(id)) return;
 
@@ -267,19 +302,38 @@ export const useWizardModel = () => {
         setClasseId(id);
         setClasseNome(sugestaoNome);
         break;
-      case 'vantagem':
+      case 'vantagem': {
+        // Verificar pontos de criação
+        const custo = Number(sugCusto) || 0;
+        if (custo > pontosCriacaoRestantes) {
+          setError(`Pontos de criação insuficientes. Disponível: ${pontosCriacaoRestantes}, Custo: ${custo}`);
+          return;
+        }
         setVantagensIds(prev => [...prev, id]);
         setVantagensNomes(prev => [...prev, sugestaoNome]);
         break;
-      case 'desvantagem':
+      }
+      case 'desvantagem': {
+        // Limite de quantidade
+        if (desvantagensIds.length >= MAX_DESVANTAGENS) {
+          setError(`Máximo de ${MAX_DESVANTAGENS} desvantagens por personagem`);
+          return;
+        }
+        // Limite de pontos devolvidos
+        const custoDesv = Number(sugCusto) || 0;
+        if (pontosDesvantagem + custoDesv < MAX_PONTOS_DESVANTAGEM) {
+          setError(`Limite de ${Math.abs(MAX_PONTOS_DESVANTAGEM)} pontos de desvantagem atingido (atual: ${Math.abs(pontosDesvantagem)})`);
+          return;
+        }
         setDesvantagensIds(prev => [...prev, id]);
         setDesvantagensNomes(prev => [...prev, sugestaoNome]);
         break;
+      }
     }
 
     // Enviar como mensagem do jogador
     enviarMensagem(`Escolho: ${sugestaoNome}`);
-  }, [enviarMensagem, vantagensIds, desvantagensIds]);
+  }, [enviarMensagem, vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem]);
 
   /** Remove uma vantagem/desvantagem selecionada */
   const removerSelecao = useCallback((tipo, id) => {
@@ -305,9 +359,11 @@ export const useWizardModel = () => {
     }
   }, [atributosSugeridos]);
 
-  /** Calcula bônus de raça/classe para um atributo */
+  /** Calcula bônus de raça/classe/vantagens/desvantagens para atributos base */
   const calcularBonus = useCallback(() => {
-    const parseBonus = (raw) => {
+    const ATTR_BASE = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
+
+    const parseRacaClasseBonus = (raw) => {
       if (!raw) return null;
       try {
         const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -317,23 +373,44 @@ export const useWizardModel = () => {
 
     const racaObj = racasDisponiveis.find(r => r.id === racaId);
     const classeObj = classesDisponiveis.find(c => c.id === classeId);
-    const racaBonus = parseBonus(racaObj?.bonus);
-    const classeBonus = parseBonus(classeObj?.bonus);
+    const racaBonus = parseRacaClasseBonus(racaObj?.bonus);
+    const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
 
     const bonus = {};
-    const keys = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
-    for (const key of keys) {
+    for (const key of ATTR_BASE) {
       let b = 0;
+      // Raça bonus (object format: { forca: "+2", agilidade: 1 })
       if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
         b += Number(racaBonus[key]) || 0;
       }
+      // Classe bonus (same format)
       if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
         b += Number(classeBonus[key]) || 0;
       }
       if (b !== 0) bonus[key] = b;
     }
+
+    // Vantagens bonus (array format: [{ atributo: "carisma", valor: 1 }])
+    const allItems = vantagensDisponiveis || [];
+    const selectedIds = [...vantagensIds, ...desvantagensIds];
+    for (const id of selectedIds) {
+      const item = allItems.find(v => v.id === id);
+      if (!item?.bonus) continue;
+      const bonusArr = Array.isArray(item.bonus) ? item.bonus : [item.bonus];
+      for (const entry of bonusArr) {
+        if (entry?.atributo && ATTR_BASE.includes(entry.atributo)) {
+          bonus[entry.atributo] = (bonus[entry.atributo] || 0) + (Number(entry.valor) || 0);
+        }
+      }
+    }
+
+    // Remove zeros
+    for (const key of Object.keys(bonus)) {
+      if (bonus[key] === 0) delete bonus[key];
+    }
+
     return bonus;
-  }, [racaId, classeId, racasDisponiveis, classesDisponiveis]);
+  }, [racaId, classeId, racasDisponiveis, classesDisponiveis, vantagensIds, desvantagensIds, vantagensDisponiveis]);
 
   /** Confirma atributos e aplica bônus de raça/classe */
   const confirmarAtributos = useCallback(() => {
@@ -368,7 +445,7 @@ export const useWizardModel = () => {
 
   /** Atualiza um atributo individual */
   const setAtributo = useCallback((key, value) => {
-    const val = Math.min(20, Math.max(1, Number(value) || 0));
+    const val = Math.min(ATTR_MAX, Math.max(ATTR_MIN, Number(value) || ATTR_MIN));
     setAtributos(prev => ({ ...prev, [key]: val }));
   }, []);
 
@@ -464,6 +541,8 @@ export const useWizardModel = () => {
     pontosDistribuidos,
     pontosRestantes,
     pontosTotais: PONTOS_TOTAIS,
+    attrMin: ATTR_MIN,
+    attrMax: ATTR_MAX,
 
     // Catálogos (para preview)
     racasDisponiveis,
@@ -483,6 +562,13 @@ export const useWizardModel = () => {
     // Bonus
     bonusAplicados,
     bonusDetalhes,
+
+    // Limites de seleção
+    pontosCriacaoTotal,
+    pontosCriacaoRestantes,
+    pontosVantagem,
+    pontosDesvantagem,
+    maxDesvantagens: MAX_DESVANTAGENS,
 
     // Async
     salvando,

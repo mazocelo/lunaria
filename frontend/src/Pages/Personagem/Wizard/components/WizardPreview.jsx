@@ -67,7 +67,7 @@ const WizardPreview = ({
             </h4>
             <div className="flex flex-wrap gap-1">
               {vantagensIds.map(id => {
-                const item = vantagensDisponiveis.find(v => v.id === id && v.tipo !== 'desvantagem');
+                const item = vantagensDisponiveis.find(v => v.id === id);
                 if (!item) return null;
                 return (
                   <button
@@ -81,7 +81,7 @@ const WizardPreview = ({
                 );
               })}
               {desvantagensIds.map(id => {
-                const item = vantagensDisponiveis.find(d => d.id === id && d.tipo === 'desvantagem');
+                const item = vantagensDisponiveis.find(d => d.id === id);
                 if (!item) return null;
                 return (
                   <button

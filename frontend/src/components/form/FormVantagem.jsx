@@ -97,11 +97,11 @@ const FormVantagem = ({
                 const vant = options.find(v => String(v.value) === String(id));
                 return vant ? (
                   <span key={id} className={`rounded px-2 py-0.5 text-xs font-semibold flex items-center gap-1 ${
-                    vant.tipo === 'desvantagem' 
+                    (vant.custo != null && vant.custo < 0) 
                       ? 'bg-red-700/80 text-white' 
                       : 'bg-cyan-700/80 text-white'
                   }`}>
-                    {vant.label} {vant.custo ? <span className={vant.tipo === 'desvantagem' ? 'text-red-300' : 'text-cyan-300'}>({vant.custo} pts)</span> : null}
+                    {vant.label} {vant.custo ? <span className={(vant.custo != null && vant.custo < 0) ? 'text-red-300' : 'text-cyan-300'}>({vant.custo} pts)</span> : null}
                     <button
                       type="button"
                       className="ml-1 text-white/70 hover:text-red-400 focus:outline-none text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full transition-colors duration-150"
@@ -142,7 +142,7 @@ const FormVantagem = ({
                     <div className="flex items-center space-x-2">
                       {option.custo && (
                         <span className={`text-sm ml-2 ${
-                          option.tipo === 'desvantagem' ? 'text-red-400' : 'text-cyan-400'
+                          (option.custo != null && option.custo < 0) ? 'text-red-400' : 'text-cyan-400'
                         }`}>
                           {option.custo} pts
                         </span>
@@ -169,17 +169,17 @@ const FormVantagem = ({
               <div className="font-semibold">{hoveredOption.label}</div>
               {hoveredOption.tipo && (
                 <span className={`text-xs px-2 py-1 rounded font-medium ${
-                  hoveredOption.tipo === 'desvantagem' 
+                  (hoveredOption.custo != null && hoveredOption.custo < 0) 
                     ? 'bg-red-500/20 text-red-300' 
                     : 'bg-cyan-500/20 text-cyan-300'
                 }`}>
-                  {hoveredOption.tipo === 'desvantagem' ? 'Desvantagem' : 'Vantagem'}
+                  {(hoveredOption.custo != null && hoveredOption.custo < 0) ? 'Desvantagem' : 'Vantagem'}
                 </span>
               )}
             </div>
             {hoveredOption.custo && (
               <div className={`text-xs mb-2 ${
-                hoveredOption.tipo === 'desvantagem' ? 'text-red-400' : 'text-cyan-400'
+                (hoveredOption.custo != null && hoveredOption.custo < 0) ? 'text-red-400' : 'text-cyan-400'
               }`}>
                 Custo: {hoveredOption.custo} pontos
               </div>

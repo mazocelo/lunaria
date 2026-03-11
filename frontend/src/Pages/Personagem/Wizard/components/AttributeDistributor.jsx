@@ -38,6 +38,8 @@ const AttributeDistributor = ({
   aplicarAtributosSugeridos,
   isLight,
   disabled = false,
+  attrMin = 5,
+  attrMax = 16,
 }) => {
   const [infoAberta, setInfoAberta] = useState(null);
 
@@ -107,9 +109,9 @@ const AttributeDistributor = ({
                 {/* Controls */}
                 <button
                   onClick={() => setAtributo(key, val - 1)}
-                  disabled={disabled || val <= 1}
+                  disabled={disabled || val <= attrMin}
                   className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                    disabled || val <= 1
+                    disabled || val <= attrMin
                       ? 'opacity-30 cursor-not-allowed'
                       : isLight
                         ? 'hover:bg-slate-100 text-slate-600'
@@ -125,9 +127,9 @@ const AttributeDistributor = ({
 
                 <button
                   onClick={() => setAtributo(key, val + 1)}
-                  disabled={disabled || val >= 20 || pontosRestantes <= 0}
+                  disabled={disabled || val >= attrMax || pontosRestantes <= 0}
                   className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                    disabled || val >= 20 || pontosRestantes <= 0
+                    disabled || val >= attrMax || pontosRestantes <= 0
                       ? 'opacity-30 cursor-not-allowed'
                       : isLight
                         ? 'hover:bg-slate-100 text-slate-600'

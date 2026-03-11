@@ -29,6 +29,15 @@ const WizardChat = ({
   confirmarAtributos,
   bonusAplicados,
   bonusDetalhes,
+  // Limites de seleção
+  pontosCriacaoTotal,
+  pontosCriacaoRestantes,
+  pontosVantagem,
+  pontosDesvantagem,
+  maxDesvantagens,
+  // Limites de atributos
+  attrMin,
+  attrMax,
   // Salvar (inline no chat)
   salvarPersonagem,
   salvando,
@@ -86,6 +95,34 @@ const WizardChat = ({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header badge — pontos de criação (vantagens/desvantagens) */}
+      {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
+        <div className={`flex items-center justify-between px-5 py-2.5 border-b shrink-0 ${
+          isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Sparkles size={14} className="text-green-400" />
+              <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Pontos: <span className={`font-bold ${pontosCriacaoRestantes >= 0 ? 'text-green-400' : 'text-red-400'}`}>{pontosCriacaoRestantes}/{pontosCriacaoTotal}</span>
+              </span>
+            </div>
+            {desvantagensIds.length > 0 && (
+              <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Desv: <span className={`font-bold ${desvantagensIds.length >= maxDesvantagens ? 'text-red-400' : 'text-amber-400'}`}>{desvantagensIds.length}/{maxDesvantagens}</span>
+              </span>
+            )}
+          </div>
+          {pontosDesvantagem < 0 && (
+            <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+              isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'
+            }`}>
+              +{Math.abs(pontosDesvantagem)} pts devolvidos
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header badge — pontos de atributo */}
       {showAtributos && (
         <div className={`flex items-center justify-between px-5 py-2.5 border-b shrink-0 ${
@@ -261,6 +298,8 @@ const WizardChat = ({
                     aplicarAtributosSugeridos={aplicarAtributosSugeridos}
                     isLight={isLight}
                     disabled={bonusAplicados}
+                    attrMin={attrMin}
+                    attrMax={attrMax}
                   />
 
                   {/* Nota sobre bônus / Bônus aplicados */}

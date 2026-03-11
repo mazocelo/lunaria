@@ -55,7 +55,7 @@ const WizardView = (props) => {
   const allSelecoes = [...vantagensIds, ...desvantagensIds];
 
   return (
-    <div className={`h-screen flex flex-col overflow-hidden ${
+    <div className={`h-full flex flex-col overflow-hidden ${
       isLight
         ? 'bg-gradient-to-br from-slate-50 via-purple-50/30 to-slate-100'
         : 'bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-900'

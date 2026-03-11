@@ -134,42 +134,69 @@ const PersonagemPreviewCard = ({
           </div>
 
           {/* Bônus de Raça/Classe */}
-          {temBonus && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Shield size={12} className="text-blue-400" />
-                <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
-                  isLight ? 'text-slate-600' : 'text-slate-400'
-                }`}>
-                  Bônus
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {racaBonus && Object.entries(racaBonus).map(([k, v]) => (
+          {temBonus && (() => {
+            // Separate scalar bonuses (e.g. constituicao: "+1") from array bonuses (vantagens/desvantagens)
+            const renderBonus = (bonus, prefix, colorPos, colorNeg, titleLabel) => {
+              if (!bonus) return null;
+              return Object.entries(bonus)
+                .filter(([, v]) => typeof v === 'string' || typeof v === 'number')
+                .map(([k, v]) => (
                   <span
-                    key={`r-${k}`}
+                    key={`${prefix}-${k}`}
                     className={`text-[10px] px-1.5 py-0.5 rounded font-modern ${
-                      Number(v) >= 0 ? 'bg-purple-500/15 text-purple-400' : 'bg-orange-500/15 text-orange-400'
+                      Number(v) >= 0 ? colorPos : colorNeg
                     }`}
-                    title={`Raça: ${racaNome}`}
+                    title={titleLabel}
                   >
                     {k.replace(/_/g, ' ')} {Number(v) >= 0 ? '+' : ''}{v}
                   </span>
-                ))}
-                {classeBonus && Object.entries(classeBonus).map(([k, v]) => (
-                  <span
-                    key={`c-${k}`}
-                    className={`text-[10px] px-1.5 py-0.5 rounded font-modern ${
-                      Number(v) >= 0 ? 'bg-blue-500/15 text-blue-400' : 'bg-orange-500/15 text-orange-400'
-                    }`}
-                    title={`Classe: ${classeNome}`}
-                  >
-                    {k.replace(/_/g, ' ')} {Number(v) >= 0 ? '+' : ''}{v}
+                ));
+            };
+            const racaTags = renderBonus(racaBonus, 'r', 'bg-purple-500/15 text-purple-400', 'bg-orange-500/15 text-orange-400', `Raça: ${racaNome}`);
+            const classeTags = renderBonus(classeBonus, 'c', 'bg-blue-500/15 text-blue-400', 'bg-orange-500/15 text-orange-400', `Classe: ${classeNome}`);
+            // Racial innate vantagens/desvantagens
+            const racaVants = racaBonus?.vantagens || [];
+            const racaDesvs = racaBonus?.desvantagens || [];
+            const classeVants = classeBonus?.vantagens || [];
+            const classeDesvs = classeBonus?.desvantagens || [];
+            const allInnate = [
+              ...racaVants.map(v => ({ ...v, tipo: 'vantagem', origem: racaNome })),
+              ...classeVants.map(v => ({ ...v, tipo: 'vantagem', origem: classeNome })),
+              ...racaDesvs.map(v => ({ ...v, tipo: 'desvantagem', origem: racaNome })),
+              ...classeDesvs.map(v => ({ ...v, tipo: 'desvantagem', origem: classeNome })),
+            ];
+            const hasContent = (racaTags?.length > 0) || (classeTags?.length > 0) || allInnate.length > 0;
+            if (!hasContent) return null;
+            return (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Shield size={12} className="text-blue-400" />
+                  <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
+                    isLight ? 'text-slate-600' : 'text-slate-400'
+                  }`}>
+                    Bônus
                   </span>
-                ))}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {racaTags}
+                  {classeTags}
+                  {allInnate.map((item, i) => (
+                    <span
+                      key={`innate-${i}`}
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-modern ${
+                        item.tipo === 'desvantagem'
+                          ? 'bg-red-500/15 text-red-400'
+                          : 'bg-green-500/15 text-green-400'
+                      }`}
+                      title={item.origem}
+                    >
+                      {item.nome}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Vantagens/Desvantagens */}
           {vantagensNomes.length > 0 && (

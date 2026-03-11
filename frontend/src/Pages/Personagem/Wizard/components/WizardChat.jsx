@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, Save } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, Save, BookOpen } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -169,10 +169,51 @@ const WizardChat = ({
                 </div>
               )}
 
+              {/* Sugestões de background (cards clicáveis) */}
+              {msg.sugestoes?.some(s => s.tipo === 'background') && (
+                <div className="mt-3">
+                  <div className={`flex items-center gap-1.5 mb-2 ${
+                    isLight ? 'text-slate-500' : 'text-slate-400'
+                  }`}>
+                    <BookOpen size={14} />
+                    <span className="text-xs font-modern font-semibold uppercase tracking-wider">
+                      Sugestões de origem
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {msg.sugestoes.filter(s => s.tipo === 'background').map((sug, i) => (
+                      <button
+                        key={`bg-${i}`}
+                        type="button"
+                        onClick={() => onEnviar(sug.nome)}
+                        className={`text-left px-4 py-2.5 rounded-lg transition-all cursor-pointer ${
+                          isLight
+                            ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300'
+                            : 'bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/15 hover:border-amber-500/40'
+                        }`}
+                      >
+                        <span className={`text-sm font-modern font-semibold block ${
+                          isLight ? 'text-amber-700' : 'text-amber-300'
+                        }`}>
+                          {sug.nome}
+                        </span>
+                        {sug.descricao && (
+                          <span className={`text-xs font-modern block mt-0.5 ${
+                            isLight ? 'text-amber-600/70' : 'text-amber-400/60'
+                          }`}>
+                            {sug.descricao}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Sugestões inline (raça, classe, vantagem, desvantagem) */}
-              {msg.sugestoes?.some(s => s.tipo !== 'nome') && (
+              {msg.sugestoes?.some(s => !['nome', 'background'].includes(s.tipo)) && (
                 <div className="mt-2 grid grid-cols-1 gap-2">
-                  {msg.sugestoes.filter(s => s.tipo !== 'nome').map((sug, i) => (
+                  {msg.sugestoes.filter(s => !['nome', 'background'].includes(s.tipo)).map((sug, i) => (
                     <SuggestionCard
                       key={`${sug.id}-${i}`}
                       sugestao={sug}

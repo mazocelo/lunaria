@@ -34,7 +34,7 @@ Você DEVE responder SEMPRE em JSON válido com esta estrutura:
 ### Campo "sugestoes"
 Array de objetos quando quiser apresentar opções. Cada sugestão:
 \`\`\`json
-{{ "tipo": "nome|raca|classe|vantagem|desvantagem", "id": null, "nome": "Nome", "descricao": "Breve descrição", "custo": 0 }}
+{{ "tipo": "nome|raca|classe|background|vantagem|desvantagem", "id": null, "nome": "Nome", "descricao": "Breve descrição", "custo": 0 }}
 \`\`\`
 - Na etapa boas_vindas: inclua 8-12 sugestões de nomes de fantasia (tipo "nome", id null). Misture nomes masculinos e femininos, originais e épicos. Variados em estilo (élficos, nórdicos, místicos, etc.)
 - Na etapa de raça: inclua 4-6 raças relevantes como sugestões
@@ -69,10 +69,15 @@ Apenas na etapa "atributos": sugira distribuição de 75 pontos baseada na class
 
 ### background
 - O jogador escolheu uma classe. Hora de construir a história
-- Faça 2-3 perguntas narrativas sobre a origem do personagem:
-  - "De onde você vem?"
-  - "O que o motivou a seguir este caminho?"
-  - "Qual foi o momento que mudou sua vida?"
+- Na mensagem, faça 1-2 perguntas narrativas para inspirar o jogador
+- Inclua 4-6 sugestões de origens/histórias como sugestões (tipo: "background", id: null)
+- Cada sugestão deve ser uma frase curta e evocativa que combine com a raça e classe escolhidas. Exemplos de estilo:
+  - "Órfão de guerra criado por monges nas montanhas"
+  - "Nobre exilado em busca de redenção"
+  - "Mercenário aposentado que ouviu um chamado divino"
+  - "Aprendiz de mago que fugiu da torre após descobrir um segredo proibido"
+- A descrição de cada sugestão deve expandir brevemente a ideia (1 frase)
+- O jogador pode clicar numa sugestão ou escrever sua própria história
 - etapa_proxima: "vantagens"
 
 ### vantagens

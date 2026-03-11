@@ -564,7 +564,7 @@ model personagem_sessao {
 
 model habilidades {
   id               Int      @id @default(autoincrement())
-  nome             String   @unique @db.VarChar(100)
+  nome             String   @db.VarChar(100)
   descricao        String
   custo_mana       Int      @default(0)
   dano_base        String?  @db.VarChar(50)
@@ -595,11 +595,13 @@ model habilidades {
   raca                racas?   @relation(fields: [raca_id], references: [id])
   receitas            receitas[]
 
+  @@unique([nome, classe_id], map: "habilidades_nome_classe_unique")
   @@index([classe_id])
   @@index([nivel_requerido])
   @@index([raca_id])
   @@index([categoria])
   @@index([escola_magia])
+  @@index([nome])
 }
 
 model monstro_loot {

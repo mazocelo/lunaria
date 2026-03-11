@@ -13,14 +13,27 @@ import { isEnabled } from '../../../config/featureFlags.js';
 // ── Helpers de formatação ──────────────────────────────────────────
 
 function formatarBonus(bonus) {
-  if (!bonus || typeof bonus !== 'object') return '';
-  const parts = [];
-  if (bonus.ataque) parts.push(`+${bonus.ataque} ataque`);
-  if (bonus.dano) parts.push(`+${bonus.dano} dano`);
-  if (bonus.armadura) parts.push(`+${bonus.armadura} armadura`);
-  if (bonus.esquiva_bonus) parts.push(`+${bonus.esquiva_bonus} esquiva`);
-  if (bonus.esquiva_penalidade) parts.push(`-${bonus.esquiva_penalidade} esquiva`);
-  return parts.length > 0 ? parts.join(', ') : 'nenhum';
+  if (!bonus) return '';
+  // Array format: [{atributo: "iniciativa", valor: 3}, ...]
+  if (Array.isArray(bonus)) {
+    if (bonus.length === 0) return '';
+    return bonus.map(b => {
+      const sinal = (b.valor || 0) >= 0 ? '+' : '';
+      return `${sinal}${b.valor} ${b.atributo}`;
+    }).join(', ');
+  }
+  // Object format (equipamentos): {ataque, dano, armadura, esquiva_bonus, ...}
+  if (typeof bonus === 'object') {
+    const parts = [];
+    for (const [key, val] of Object.entries(bonus)) {
+      if (val && val !== 0) {
+        const sinal = val > 0 ? '+' : '';
+        parts.push(`${sinal}${val} ${key.replace(/_/g, ' ')}`);
+      }
+    }
+    return parts.length > 0 ? parts.join(', ') : '';
+  }
+  return String(bonus);
 }
 
 // ── Montagem de personalidade ──────────────────────────────────────
@@ -86,7 +99,7 @@ function montarPersonagens4Pilares(personagens) {
     resultado += `\n## ${nome} — ${raca} ${classe} Nv${nivel}\n`;
     if (p.atributos) {
       const a = p.atributos;
-      resultado += `Atributos: FOR ${a.forca||10} (poder físico) | DES ${a.destreza||10} (precisão) | CON ${a.constituicao||10} (resistência) | INT ${a.inteligencia||10} (raciocínio) | AGI ${a.agilidade||10} (velocidade) | CAR ${a.carisma||10} (influência)\n`;
+      resultado += `Atributos: FOR ${a.forca||10} (dano corpo a corpo) ↔ INT ${a.inteligencia||10} (poder mágico) | AGI ${a.agilidade||10} (esquiva/iniciativa) ↔ CON ${a.constituicao||10} (HP/resistência) | DEX ${a.destreza||10} (precisão/furtividade) ↔ CAR ${a.carisma||10} (persuasão/liderança)\n`;
     }
     if (p.background) resultado += `Background: ${sanitizePromptInput(p.background, 300)}\n`;
     if (p.equipamentos?.length) resultado += `Equipamentos: ${p.equipamentos.map(e => e.nome).join(', ')}\n`;
@@ -203,6 +216,19 @@ function montarRegrasBase() {
 ## ROLAGEM DE DADOS
 
 Solicite rolagem quando a ação for ARRISCADA, INCERTA ou de COMBATE (~30-40% das ações). Ações simples (conversar, observar lugar seguro) NÃO precisam de dados.
+
+**Os 6 Atributos (3 pares opostos):**
+- **FOR** (Força): dano corpo a corpo, arrombar, carregar, manobras físicas
+- **INT** (Inteligência): poder mágico arcano, conhecimento, dedução, identificar
+- **AGI** (Agilidade): esquiva, iniciativa, acrobacia, equilíbrio — CORPO TODO em movimento
+- **CON** (Constituição): HP, resistir veneno/dano, manter concentração, fortitude
+- **DEX** (Destreza): ataque à distância, abrir fechaduras, furtividade — MÃOS e precisão fina
+- **CAR** (Carisma): persuasão, intimidação, liderança, resistir medo/charme
+
+**REGRA CRÍTICA — AGI vs DEX:**
+- AGI = corpo todo (desviar bola de fogo, saltar fosso, correr no telhado, reagir primeiro)
+- DEX = mãos/precisão (abrir fechadura, atirar flecha, aplicar veneno, furtar chave)
+- Esquiva é SEMPRE Agilidade. Atirar arco é SEMPRE Destreza. NÃO confunda.
 
 **Testes disponíveis:**
 - Atributos: Força, Destreza, Constituição, Inteligência, Agilidade, Carisma
@@ -341,14 +367,14 @@ Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
 - **aplicar_dano**: {{ "tipo": "aplicar_dano", "personagem": "Nome", "dano": 8, "elemento": "fogo" }}
 - **aplicar_status**: {{ "tipo": "aplicar_status", "personagem": "Nome", "status": "envenenado", "duracao": 3 }}
 - **remover_status**: {{ "tipo": "remover_status", "personagem": "Nome", "status": "envenenado" }}
-- **usar_habilidade**: {{ "tipo": "usar_habilidade", "habilidade_id": 15, "nome": "Golpe Atordoante", "alvo": "Nome do Alvo", "custo_mana": 4 }}
-- **conjurar_magia**: {{ "tipo": "conjurar_magia", "magia_id": 354, "nome": "Bola de Fogo", "alvo": "area_3m", "custo_mana": 7, "concentracao": false }}
-- **ativar_desvantagem**: {{ "tipo": "ativar_desvantagem", "desvantagem": "Ganancioso", "jogador": "Nome", "dc": 12, "atributo_teste": "carisma", "contexto": "tesouro visível" }}
-- **aplicar_vantagem**: {{ "tipo": "aplicar_vantagem", "vantagem": "Sentidos Aguçados", "jogador": "Nome", "bonus_aplicado": "+2 percepção" }}
-- **aplicar_efeito**: {{ "tipo": "aplicar_efeito", "alvo": "Nome", "efeito": "queimando", "duracao_turnos": 2, "valor": 3, "fonte": "magia:Bola_de_Fogo" }}
-- **remover_efeito**: {{ "tipo": "remover_efeito", "alvo": "Nome", "efeito": "Escudo Mágico", "motivo": "duração expirou" }}
-- **dar_xp**: {{ "tipo": "dar_xp", "jogador": "todos", "quantidade": 50, "motivo": "Derrotou grupo de goblins" }}
-- **concentracao_quebrada**: {{ "tipo": "concentracao_quebrada", "jogador": "Nome", "magia": "Escudo Arcano", "motivo": "tomou dano e falhou no teste" }}
+- **usar_habilidade**: {{ "tipo": "usar_habilidade", "personagem": "Nome", "habilidade_id": 15, "nome": "Golpe Atordoante", "custo_mana": 4, "cooldown_turnos": 2, "dano_base": "2d6", "elemento": "fisico" }}
+- **conjurar_magia**: {{ "tipo": "conjurar_magia", "personagem": "Nome", "magia_id": 354, "nome": "Bola de Fogo", "custo_mana": 7, "cooldown_turnos": 1, "usa_concentracao": false, "dano_base": "4d6", "elemento": "fogo" }}
+- **ativar_desvantagem**: {{ "tipo": "ativar_desvantagem", "personagem": "Nome", "nome": "Ganancioso", "dc": 12, "atributo": "carisma", "penalidade": "compelido a pegar o tesouro" }}
+- **aplicar_vantagem**: {{ "tipo": "aplicar_vantagem", "personagem": "Nome", "nome": "Sentidos Aguçados", "bonus": "+2 percepção" }}
+- **aplicar_efeito**: {{ "tipo": "aplicar_efeito", "personagem": "Nome", "nome": "queimando", "duracao": 2, "dano_por_turno": 3 }}
+- **remover_efeito**: {{ "tipo": "remover_efeito", "personagem": "Nome", "nome": "Escudo Mágico" }}
+- **dar_xp**: {{ "tipo": "dar_xp", "personagem": "Nome", "xp": 50, "motivo": "Derrotou grupo de goblins" }}
+- **concentracao_quebrada**: {{ "tipo": "concentracao_quebrada", "personagem": "Nome", "motivo": "tomou dano e falhou no teste" }}
 `;
 }
 

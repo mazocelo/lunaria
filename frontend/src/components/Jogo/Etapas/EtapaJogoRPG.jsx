@@ -1110,8 +1110,8 @@ const EtapaJogoRPG = ({
               mensagens={mensagens}
               usuariosDigitando={[]}
               mensagensRef={null}
-              voiceId={historia?.mestres?.voice_id}
-              voiceProvider={historia?.mestres?.voice_provider || 'elevenlabs'}
+              voiceId={historia?.mestre?.voice_id || historia?.mestres?.voice_id}
+              voiceProvider={historia?.mestre?.voice_provider || historia?.mestres?.voice_provider || 'elevenlabs'}
             />
 
             {/* Area de Input - Chat */}

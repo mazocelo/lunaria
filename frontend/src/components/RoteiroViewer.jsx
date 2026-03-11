@@ -5,6 +5,7 @@ import {
   ImagePlus, Loader2, X
 } from 'lucide-react';
 import { imageGenerationService } from '../services';
+import ImageLightbox from './ImageLightbox.jsx';
 
 const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -32,6 +33,7 @@ const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) 
 const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -51,10 +53,11 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   if (imageUrl) {
     return (
       <div className="relative group mt-2">
-        <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+        <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg cursor-pointer" onError={(e) => { e.target.style.display = 'none'; }} onClick={() => setLightboxOpen(true)} />
         <button onClick={() => onGenerated('')} className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" title="Remover">
           <X size={12} />
         </button>
+        <ImageLightbox src={imageUrl} alt="Preview" isOpen={lightboxOpen} onClose={() => setLightboxOpen(false)} />
       </div>
     );
   }

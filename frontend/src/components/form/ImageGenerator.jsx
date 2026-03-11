@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { ImagePlus, Loader2, X, Link2 } from 'lucide-react';
 import { imageGenerationService } from '../../services';
+import ImageLightbox from '../ImageLightbox.jsx';
 
 const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, isLight, label = 'Imagem', imageOptions, imageClassName }) => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -55,8 +57,9 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
           <img
             src={imageUrl}
             alt="Preview"
-            className={imageClassName || `w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}
+            className={`cursor-pointer ${imageClassName || `w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}`}
             onError={(e) => { e.target.style.display = 'none'; }}
+            onClick={() => setLightboxOpen(true)}
           />
           <button
             type="button"
@@ -66,6 +69,7 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
           >
             <X size={14} />
           </button>
+          <ImageLightbox src={imageUrl} alt="Preview" isOpen={lightboxOpen} onClose={() => setLightboxOpen(false)} />
         </div>
       )}
 

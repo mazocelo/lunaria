@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { imageGenerationService } from '../../../services';
+import ImageLightbox from '../../ImageLightbox.jsx';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 
@@ -192,6 +193,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
 
   const [sceneImage, setSceneImage] = useState(null);
   const [generatingScene, setGeneratingScene] = useState(false);
+  const [sceneLightbox, setSceneLightbox] = useState(false);
 
   const handleGenerateScene = async () => {
     setGeneratingScene(true);
@@ -259,13 +261,14 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts }) => {
             </MarkdownRenderer>
             {sceneImage && (
               <div className="mt-3 relative group">
-                <img src={sceneImage} alt="Ilustração da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30" />
+                <img src={sceneImage} alt="Ilustração da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer" onClick={() => setSceneLightbox(true)} />
                 <button
                   onClick={() => setSceneImage(null)}
                   className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <span className="text-xs">✕</span>
                 </button>
+                <ImageLightbox src={sceneImage} alt="Ilustração da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
               </div>
             )}
           </div>

@@ -242,6 +242,10 @@ export const useWizardModel = () => {
   const selecionarSugestao = useCallback((sugestao) => {
     const { tipo, id, nome: sugestaoNome } = sugestao;
 
+    // Ignorar se vantagem/desvantagem já está selecionada
+    if (tipo === 'vantagem' && vantagensIds.includes(id)) return;
+    if (tipo === 'desvantagem' && desvantagensIds.includes(id)) return;
+
     switch (tipo) {
       case 'raca':
         setRacaId(id);
@@ -252,18 +256,18 @@ export const useWizardModel = () => {
         setClasseNome(sugestaoNome);
         break;
       case 'vantagem':
-        setVantagensIds(prev => prev.includes(id) ? prev : [...prev, id]);
-        setVantagensNomes(prev => prev.includes(sugestaoNome) ? prev : [...prev, sugestaoNome]);
+        setVantagensIds(prev => [...prev, id]);
+        setVantagensNomes(prev => [...prev, sugestaoNome]);
         break;
       case 'desvantagem':
-        setDesvantagensIds(prev => prev.includes(id) ? prev : [...prev, id]);
-        setDesvantagensNomes(prev => prev.includes(sugestaoNome) ? prev : [...prev, sugestaoNome]);
+        setDesvantagensIds(prev => [...prev, id]);
+        setDesvantagensNomes(prev => [...prev, sugestaoNome]);
         break;
     }
 
     // Enviar como mensagem do jogador
     enviarMensagem(`Escolho: ${sugestaoNome}`);
-  }, [enviarMensagem]);
+  }, [enviarMensagem, vantagensIds, desvantagensIds]);
 
   /** Remove uma vantagem/desvantagem selecionada */
   const removerSelecao = useCallback((tipo, id) => {

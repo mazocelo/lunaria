@@ -14,13 +14,15 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false }) => {
 
   return (
     <button
-      onClick={() => onSelect(sugestao)}
-      className={`group w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
+      onClick={() => !selected && onSelect(sugestao)}
+      disabled={selected}
+      className={`group w-full text-left p-3 rounded-lg border transition-all ${
         selected
-          ? `border-${config.color}-500/50 ${isLight ? `bg-${config.color}-50` : `bg-${config.color}-500/10`}`
-          : isLight
+          ? `border-${config.color}-500/50 ${isLight ? `bg-${config.color}-50` : `bg-${config.color}-500/10`} opacity-60 cursor-default`
+          : `cursor-pointer ${isLight
             ? 'border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 bg-white'
             : 'border-slate-700/50 hover:border-purple-500/30 hover:bg-slate-800/50 bg-slate-800/30'
+          }`
       }`}
     >
       <div className="flex items-start gap-2">
@@ -32,7 +34,11 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false }) => {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            <span className={`text-sm font-fantasy font-bold ${
+              selected
+                ? isLight ? 'text-slate-500' : 'text-slate-400'
+                : isLight ? 'text-slate-800' : 'text-white'
+            }`}>
               {sugestao.nome}
             </span>
             {sugestao.custo != null && (
@@ -56,7 +62,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false }) => {
         </div>
 
         {selected && (
-          <span className="text-green-400 text-xs font-bold">✓</span>
+          <span className="text-green-400 text-xs font-bold">✓ Selecionado</span>
         )}
       </div>
     </button>

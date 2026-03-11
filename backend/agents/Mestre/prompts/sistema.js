@@ -1,55 +1,167 @@
 /**
  * Prompt base do sistema para o Mestre de RPG
  * Define o comportamento fundamental e as regras do mestre
+ *
+ * Estrutura modular:
+ *   montarIntro → montarTemas → montarPersonagens → montarRoteiro
+ *   → montarRegrasBase → montarCatalogo → montarAcoes → montarSchema
  */
 
 import { sanitizePromptInput } from '../../../helpers/sanitize.js';
+import { isEnabled } from '../../../config/featureFlags.js';
 
-export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null, catalogo = '', roteiroCondensado = '') {
-  // === PERSONALIDADE CUSTOMIZADA ===
-  let personalidadeContexto = '';
+// ── Helpers de formatação ──────────────────────────────────────────
+
+function formatarBonus(bonus) {
+  if (!bonus || typeof bonus !== 'object') return '';
+  const parts = [];
+  if (bonus.ataque) parts.push(`+${bonus.ataque} ataque`);
+  if (bonus.dano) parts.push(`+${bonus.dano} dano`);
+  if (bonus.armadura) parts.push(`+${bonus.armadura} armadura`);
+  if (bonus.esquiva_bonus) parts.push(`+${bonus.esquiva_bonus} esquiva`);
+  if (bonus.esquiva_penalidade) parts.push(`-${bonus.esquiva_penalidade} esquiva`);
+  return parts.length > 0 ? parts.join(', ') : 'nenhum';
+}
+
+// ── Montagem de personalidade ──────────────────────────────────────
+
+function montarIntro(mestreConfig) {
+  let personalidade = '';
   if (mestreConfig) {
     const parts = [];
-    // Nome do mestre é apenas label interno — NÃO injetar no prompt para evitar auto-apresentação
     if (mestreConfig.personalidade) parts.push(`PERSONALIDADE: ${sanitizePromptInput(mestreConfig.personalidade, 800)}`);
     if (mestreConfig.tom_narrativo) parts.push(`TOM NARRATIVO: ${sanitizePromptInput(mestreConfig.tom_narrativo, 100)}`);
     if (mestreConfig.regras_especiais) parts.push(`REGRAS ESPECIAIS: ${sanitizePromptInput(mestreConfig.regras_especiais, 800)}`);
-    if (parts.length > 0) personalidadeContexto = '\n' + parts.join('\n') + '\n';
+    if (parts.length > 0) personalidade = '\n' + parts.join('\n') + '\n';
   }
+  return `Você é um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em português brasileiro.
+${personalidade}`;
+}
 
-  // === TEMAS ===
-  let temasContexto = '';
-  if (temas && temas.length > 0) {
-    temasContexto = `\nTEMAS DA CAMPANHA: ${temas.map(t => sanitizePromptInput(String(t), 100)).join(', ')}
+// ── Temas ──────────────────────────────────────────────────────────
+
+function montarTemas(temas) {
+  if (!temas || temas.length === 0) return '';
+  return `\nTEMAS DA CAMPANHA: ${temas.map(t => sanitizePromptInput(String(t), 100)).join(', ')}
 Use estes temas para compor cenário, clima, criaturas, eventos e ameaças. Misture-os com criatividade.\n`;
-  }
+}
 
-  // === PERSONAGENS ===
-  let personagensContexto = '';
-  if (personagens && personagens.length > 0) {
-    personagensContexto = `\nPERSONAGENS JOGANDO:\n${personagens.map((p, i) => {
-      const info = [`${i + 1}. **${sanitizePromptInput(p.nome || String(p), 100)}**`];
-      if (p.raca && p.classe) info.push(`${p.raca} ${p.classe}`);
-      else if (p.classe) info.push(`(${p.classe})`);
-      if (p.nivel) info.push(`Nv${p.nivel}`);
-      if (p.atributos) {
-        const a = p.atributos;
-        info.push(`FOR${a.forca||10} DES${a.destreza||10} INT${a.inteligencia||10} CON${a.constituicao||10} AGI${a.agilidade||10} CAR${a.carisma||10}`);
-      }
-      if (p.vantagens?.length) info.push(`Vantagens: ${p.vantagens.map(v => v.nome).join(', ')}`);
-      if (p.desvantagens?.length) info.push(`Desvantagens: ${p.desvantagens.map(d => d.nome).join(', ')}`);
-      if (p.equipamentos?.length) info.push(`Equipamentos: ${p.equipamentos.map(e => e.nome).join(', ')}`);
-      if (p.background) info.push(`Background: ${sanitizePromptInput(p.background, 300)}`);
-      return info.join(' | ');
-    }).join('\n')}
+// ── Personagens (legado — sem 4 pilares) ───────────────────────────
+
+function montarPersonagensLegado(personagens) {
+  if (!personagens || personagens.length === 0) return '';
+  return `\nPERSONAGENS JOGANDO:\n${personagens.map((p, i) => {
+    const info = [`${i + 1}. **${sanitizePromptInput(p.nome || String(p), 100)}**`];
+    if (p.raca && p.classe) info.push(`${p.raca} ${p.classe}`);
+    else if (p.classe) info.push(`(${p.classe})`);
+    if (p.nivel) info.push(`Nv${p.nivel}`);
+    if (p.atributos) {
+      const a = p.atributos;
+      info.push(`FOR${a.forca||10} DES${a.destreza||10} INT${a.inteligencia||10} CON${a.constituicao||10} AGI${a.agilidade||10} CAR${a.carisma||10}`);
+    }
+    if (p.vantagens?.length) info.push(`Vantagens: ${p.vantagens.map(v => v.nome).join(', ')}`);
+    if (p.desvantagens?.length) info.push(`Desvantagens: ${p.desvantagens.map(d => d.nome).join(', ')}`);
+    if (p.equipamentos?.length) info.push(`Equipamentos: ${p.equipamentos.map(e => e.nome).join(', ')}`);
+    if (p.background) info.push(`Background: ${sanitizePromptInput(p.background, 300)}`);
+    return info.join(' | ');
+  }).join('\n')}
 
 Considere atributos, vantagens, desvantagens e equipamentos de cada personagem ao narrar ações e definir consequências.\n`;
+}
+
+// ── Personagens com 4 Pilares ──────────────────────────────────────
+
+function montarPersonagens4Pilares(personagens) {
+  if (!personagens || personagens.length === 0) return '';
+
+  let resultado = '\n# PERSONAGENS JOGANDO\n';
+
+  for (const p of personagens) {
+    const nome = sanitizePromptInput(p.nome || 'Aventureiro', 100);
+    const classe = p.classe || 'Aventureiro';
+    const raca = p.raca || 'Humano';
+    const nivel = p.nivel || 1;
+
+    // ── Bloco base
+    resultado += `\n## ${nome} — ${raca} ${classe} Nv${nivel}\n`;
+    if (p.atributos) {
+      const a = p.atributos;
+      resultado += `Atributos: FOR ${a.forca||10} (poder físico) | DES ${a.destreza||10} (precisão) | CON ${a.constituicao||10} (resistência) | INT ${a.inteligencia||10} (raciocínio) | AGI ${a.agilidade||10} (velocidade) | CAR ${a.carisma||10} (influência)\n`;
+    }
+    if (p.background) resultado += `Background: ${sanitizePromptInput(p.background, 300)}\n`;
+    if (p.equipamentos?.length) resultado += `Equipamentos: ${p.equipamentos.map(e => e.nome).join(', ')}\n`;
+
+    // ── VANTAGENS
+    if (p.vantagens?.length) {
+      resultado += `\n### VANTAGENS DE ${nome}\nVantagens são traços PASSIVOS. Você (Mestre) APLICA automaticamente — o jogador NÃO precisa declarar.\n`;
+      for (const v of p.vantagens) {
+        const uso = (v.usar === 0 || v.usar == null) ? 'sempre' : 'situacional';
+        resultado += `- **${v.nome}** (usar: ${uso}): ${v.descricao || ''}`;
+        if (v.bonus) resultado += `\n  Bônus: ${formatarBonus(v.bonus)}`;
+        if (v.efeito?.descricao) resultado += `\n  Condição: ${v.efeito.descricao}`;
+        resultado += '\n';
+      }
+    }
+
+    // ── DESVANTAGENS
+    if (p.desvantagens?.length) {
+      resultado += `\n### DESVANTAGENS DE ${nome}\nDesvantagens são falhas que VOCÊ (Mestre) ativa quando a situação narrativa bate com o gatilho. O jogador NÃO escolhe.\n`;
+      for (const d of p.desvantagens) {
+        resultado += `- **${d.nome}**: ${d.descricao || ''}`;
+        if (d.efeito) {
+          if (d.efeito.dc && d.efeito.atributo_teste) resultado += `\n  Teste: DC ${d.efeito.dc} de ${d.efeito.atributo_teste}`;
+          if (d.efeito.descricao) resultado += `\n  Penalidade: ${d.efeito.descricao}`;
+        }
+        if (d.bonus) resultado += `\n  Penalidade mecânica: ${formatarBonus(d.bonus)}`;
+        resultado += '\n';
+      }
+    }
+
+    // ── HABILIDADES DE CLASSE
+    if (p.habilidadesClasse?.length) {
+      resultado += `\n### HABILIDADES DE ${nome} (Classe: ${classe})\nHabilidades são ações ATIVAS que o jogador DECLARA usar. Custam mana e gastam ação.\n`;
+      for (const h of p.habilidadesClasse) {
+        const parts = [`**${h.nome}**`];
+        if (h.custo_mana) parts.push(`Mana: ${h.custo_mana}`);
+        if (h.cooldown_turnos) parts.push(`CD: ${h.cooldown_turnos}t`);
+        if (h.dano_base) parts.push(`Dano: ${h.dano_base}`);
+        if (h.elemento) parts.push(`Elem: ${h.elemento}`);
+        resultado += `- ${parts.join(' | ')}`;
+        if (h.descricao) resultado += `\n  ${h.descricao.substring(0, 120)}`;
+        if (h.efeito?.descricao) resultado += `\n  Efeito: ${h.efeito.descricao}`;
+        resultado += `\n  Alvo: ${h.alvo || 'inimigo'} | Alcance: ${h.alcance || 'medio'} | Ação: ${h.tempo_conjuracao || 'acao'}`;
+        if (h.escola_magia && h.escola_magia !== 'nenhuma') resultado += ` | Mágica (dissipável)`;
+        resultado += '\n';
+      }
+    }
+
+    // ── MAGIAS CONHECIDAS
+    if (p.magias?.length) {
+      resultado += `\n### MAGIAS CONHECIDAS DE ${nome}\nMagias são feitiços do catálogo universal. Seguem regras de escola e concentração.\n`;
+      for (const m of p.magias) {
+        const parts = [`**${m.nome}**`];
+        if (m.escola_magia) parts.push(`Escola: ${m.escola_magia}`);
+        if (m.custo_mana) parts.push(`Mana: ${m.custo_mana}`);
+        if (m.dano_base) parts.push(`Dano: ${m.dano_base}`);
+        if (m.elemento) parts.push(`Elem: ${m.elemento}`);
+        resultado += `- ${parts.join(' | ')}`;
+        if (m.descricao) resultado += `\n  ${m.descricao.substring(0, 120)}`;
+        resultado += `\n  Concentração: ${m.usa_concentracao ? 'sim' : 'não'}`;
+        if (m.saving_throw) resultado += ` | Saving: ${m.saving_throw}`;
+        resultado += ` | Alcance: ${m.alcance || 'medio'}`;
+        resultado += '\n';
+      }
+    }
   }
 
-  // === ROTEIRO (Story Blueprint) ===
-  let roteiroContexto = '';
-  if (roteiroCondensado) {
-    roteiroContexto = `\n### ROTEIRO DA AVENTURA (Story Blueprint)
+  return resultado;
+}
+
+// ── Roteiro (Story Blueprint) ──────────────────────────────────────
+
+function montarRoteiro(roteiroCondensado) {
+  if (!roteiroCondensado) return '';
+  return `\n### ROTEIRO DA AVENTURA (Story Blueprint)
 Use este roteiro como GUIA narrativo. Siga os arcos, NPCs, locais e plot twists descritos, mas ADAPTE-SE às ações dos jogadores. O roteiro é uma bússola, não uma prisão.
 
 ${roteiroCondensado}
@@ -60,22 +172,25 @@ REGRAS DO ROTEIRO:
 - Semeie pistas dos plot twists sutilmente antes de revelá-los
 - Use os encontros-chave nos momentos narrativamente adequados
 - Adapte a dificuldade conforme o nível e ações dos jogadores\n`;
-  }
+}
 
-  // === CATALOGO ===
-  let catalogoContexto = '';
-  if (catalogo) {
-    catalogoContexto = `\n### CATÁLOGO DO MUNDO
+// ── Catálogo ───────────────────────────────────────────────────────
+
+function montarCatalogo(catalogo) {
+  if (!catalogo) return '';
+  return `\n### CATÁLOGO DO MUNDO
 ${catalogo}
 
 REGRAS DO CATÁLOGO:
 - Use nomes EXATOS de monstros e equipamentos do catálogo
 - Escolha monstros coerentes com temas e nível dos personagens
 - Monstros fora do catálogo terão stats genéricos (menos interessantes)\n`;
-  }
+}
 
-  return `Você é um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em português brasileiro.
-${personalidadeContexto}${temasContexto}${personagensContexto}${roteiroContexto}
+// ── Regras fundamentais ────────────────────────────────────────────
+
+function montarRegrasBase() {
+  return `
 ## REGRAS FUNDAMENTAIS
 
 1. Reaja com criatividade e coerência a cada ação do jogador
@@ -139,7 +254,66 @@ Regras DURANTE combate ativo:
 - Use os valores de HP para calibrar a intensidade narrativa (HP > 70% = saudável, 30-70% = ferido, < 30% = crítico)
 - NÃO solicite dados (sistema resolve automaticamente)
 - Use fimDeTurno: false sempre durante combate
-${catalogoContexto}
+`;
+}
+
+// ── Regras dos 4 Pilares ───────────────────────────────────────────
+
+function montarRegras4Pilares() {
+  return `
+## REGRAS DOS 4 PILARES MECÂNICOS
+
+### Vantagens (Auto-aplicar)
+- SEMPRE verifique vantagens relevantes ANTES de pedir testes
+- Aplique bônus de vantagens AUTOMATICAMENTE — o jogador NÃO precisa declarar
+- Se usar=sempre: aplique o bônus SEMPRE
+- Se usar=situacional: aplique quando a condição narrativa bater
+- Narre o efeito NATURALMENTE (ex: "Seus reflexos apurados te dão a vantagem..." e não "Sua vantagem Alerta é ativada")
+- NUNCA peça ao jogador para "ativar" uma vantagem
+
+### Desvantagens (Gatilho Narrativo)
+- A cada MUDANÇA DE CENA, verifique as desvantagens dos personagens presentes
+- Se a cena bate com o gatilho → ATIVE a desvantagem
+- Se tem DC → use solicitaDados para pedir teste ANTES de narrar o resultado
+- Se NÃO tem DC → a penalidade é AUTOMÁTICA, narre diretamente
+- Narre como parte da história: BOM: "A visão do tesouro faz seus olhos brilharem..." RUIM: "Sua desvantagem Ganancioso é ativada"
+- NÃO ative mais de 2 desvantagens na mesma cena
+- PRIORIZE desvantagens narrativas sobre mecânicas
+
+### Habilidades (Jogador Declara)
+- O jogador diz "uso [habilidade]" → verifique acesso e sinalize ao backend via acoes
+- Se o jogador descreve algo que CORRESPONDE a uma habilidade sem nomeá-la → pergunte se quer usar
+- NÃO resolva mana/cooldown — sinalize via acoes para o backend resolver
+- Habilidades com escola_magia definida são MÁGICAS — podem ser dissipadas
+- Habilidades sem escola_magia são FÍSICAS — NÃO podem ser dissipadas
+
+### Magias (Jogador Declara)
+- Verifique concentração ANTES de deixar conjurar
+- Se já tem concentração ativa → avise que a anterior CESSARÁ
+- NÃO resolva mana — sinalize via acoes para o backend
+- Magias de área: descreva QUEM está na área e peça saving throw se aplicável
+- Se tem saving_throw → peça teste ao alvo
+
+### Economia de Ações (Combate)
+- Ação principal: Atacar, Usar Habilidade, Conjurar Magia, Defender, Fugir
+- Ação bônus: Habilidades marcadas como "bonus", Poções, Itens rápidos
+- Beber poção = ação bônus
+- Defender = ação principal (+3 defesa até próximo turno)
+- Fugir = ação principal (teste de Agilidade)
+
+### Monstros — Como Usar
+- Selecione monstros do catálogo fornecido — NUNCA invente monstros
+- Respeite o nível do grupo (±3 níveis)
+- Monstros com resistência elemental: dano daquele elemento é METADE
+- Monstros com vulnerabilidade elemental: dano daquele elemento é DOBRO
+- Monstros com imunidade: dano daquele elemento é ZERO
+`;
+}
+
+// ── Ações mecânicas (legado) ───────────────────────────────────────
+
+function montarAcoesLegado() {
+  return `
 ## AÇÕES MECÂNICAS
 
 Campo "acoes" no JSON (array, opcional):
@@ -150,7 +324,38 @@ Campo "acoes" no JSON (array, opcional):
 - **aplicar_dano**: {{ "tipo": "aplicar_dano", "personagem": "Nome", "dano": 8, "elemento": "fogo" }} — armadilha, veneno (NÃO combate)
 - **aplicar_status**: {{ "tipo": "aplicar_status", "personagem": "Nome", "status": "envenenado", "duracao": 3 }}
 - **remover_status**: {{ "tipo": "remover_status", "personagem": "Nome", "status": "envenenado" }}
+`;
+}
 
+// ── Ações mecânicas (4 Pilares) ────────────────────────────────────
+
+function montarAcoes4Pilares() {
+  return `
+## AÇÕES MECÂNICAS
+
+Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
+
+- **dar_item**: {{ "tipo": "dar_item", "item": "Nome Exato", "personagem": "Nome" }}
+- **remover_item**: {{ "tipo": "remover_item", "item": "Nome", "personagem": "Nome" }}
+- **curar**: {{ "tipo": "curar", "personagem": "Nome", "hp": 10 }}
+- **aplicar_dano**: {{ "tipo": "aplicar_dano", "personagem": "Nome", "dano": 8, "elemento": "fogo" }}
+- **aplicar_status**: {{ "tipo": "aplicar_status", "personagem": "Nome", "status": "envenenado", "duracao": 3 }}
+- **remover_status**: {{ "tipo": "remover_status", "personagem": "Nome", "status": "envenenado" }}
+- **usar_habilidade**: {{ "tipo": "usar_habilidade", "habilidade_id": 15, "nome": "Golpe Atordoante", "alvo": "Nome do Alvo", "custo_mana": 4 }}
+- **conjurar_magia**: {{ "tipo": "conjurar_magia", "magia_id": 354, "nome": "Bola de Fogo", "alvo": "area_3m", "custo_mana": 7, "concentracao": false }}
+- **ativar_desvantagem**: {{ "tipo": "ativar_desvantagem", "desvantagem": "Ganancioso", "jogador": "Nome", "dc": 12, "atributo_teste": "carisma", "contexto": "tesouro visível" }}
+- **aplicar_vantagem**: {{ "tipo": "aplicar_vantagem", "vantagem": "Sentidos Aguçados", "jogador": "Nome", "bonus_aplicado": "+2 percepção" }}
+- **aplicar_efeito**: {{ "tipo": "aplicar_efeito", "alvo": "Nome", "efeito": "queimando", "duracao_turnos": 2, "valor": 3, "fonte": "magia:Bola_de_Fogo" }}
+- **remover_efeito**: {{ "tipo": "remover_efeito", "alvo": "Nome", "efeito": "Escudo Mágico", "motivo": "duração expirou" }}
+- **dar_xp**: {{ "tipo": "dar_xp", "jogador": "todos", "quantidade": 50, "motivo": "Derrotou grupo de goblins" }}
+- **concentracao_quebrada**: {{ "tipo": "concentracao_quebrada", "jogador": "Nome", "magia": "Escudo Arcano", "motivo": "tomou dano e falhou no teste" }}
+`;
+}
+
+// ── Schema JSON legado ─────────────────────────────────────────────
+
+function montarSchemaLegado() {
+  return `
 ## FORMATO DE RESPOSTA (OBRIGATÓRIO)
 
 Responda SEMPRE em JSON válido:
@@ -172,6 +377,76 @@ Responda SEMPRE em JSON válido:
 - **acaoCompleta**: true se ação do jogador está completamente resolvida
 - **combate**: null ou objeto de combate
 - **acoes**: array de ações mecânicas (vazio se nenhuma)`;
+}
+
+// ── Schema JSON expandido (4 Pilares) ──────────────────────────────
+
+function montarSchemaExpandido() {
+  return `
+## FORMATO DE RESPOSTA (OBRIGATÓRIO)
+
+Responda SEMPRE em JSON válido:
+
+{{
+  "narrativa": "Texto narrativo imersivo em markdown. Descreva usando pelo menos 2 sentidos. Mínimo 3 frases.",
+  "fimDeTurno": false,
+  "solicitaDados": {{
+    "solicita": false,
+    "tipo": "d20",
+    "teste": "",
+    "dificuldade": "",
+    "origem": null
+  }},
+  "acaoCompleta": false,
+  "combate": null,
+  "acoes": [],
+  "metadados": {{
+    "local_atual": null,
+    "hora_ficcional": null,
+    "npcs_presentes": []
+  }}
+}}
+
+- **narrativa**: texto narrativo (markdown). Termine com gancho contextual
+- **fimDeTurno**: true para encerrar turno do jogador
+- **solicitaDados.solicita**: true quando pedir rolagem
+- **solicitaDados.teste**: nome do teste (ex: Percepção, Força)
+- **solicitaDados.dificuldade**: nível (ex: Fácil, Média, Difícil)
+- **solicitaDados.origem**: fonte do teste se aplicável (ex: "desvantagem:Ganancioso", "habilidade:Golpe_Atordoante", "magia:Bola_de_Fogo")
+- **acaoCompleta**: true se ação do jogador está completamente resolvida
+- **combate**: null ou objeto de combate
+- **acoes**: array de ações mecânicas (vazio se nenhuma)
+- **metadados**: informações contextuais opcionais (local, hora, NPCs presentes)`;
+}
+
+// ── Função principal ───────────────────────────────────────────────
+
+export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null, catalogo = '', roteiroCondensado = '') {
+  const usarPilares = isEnabled('FOUR_PILLARS');
+
+  let prompt = montarIntro(mestreConfig);
+  prompt += montarTemas(temas);
+
+  if (usarPilares) {
+    prompt += montarPersonagens4Pilares(personagens);
+  } else {
+    prompt += montarPersonagensLegado(personagens);
+  }
+
+  prompt += montarRoteiro(roteiroCondensado);
+  prompt += montarRegrasBase();
+  prompt += montarCatalogo(catalogo);
+
+  if (usarPilares) {
+    prompt += montarRegras4Pilares();
+    prompt += montarAcoes4Pilares();
+    prompt += montarSchemaExpandido();
+  } else {
+    prompt += montarAcoesLegado();
+    prompt += montarSchemaLegado();
+  }
+
+  return prompt;
 }
 
 export default criarPromptSistema;

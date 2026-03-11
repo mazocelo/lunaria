@@ -27,10 +27,34 @@ export async function buscarPersonagensCompletos(personagensIds) {
             return null;
           }
 
-          // Buscar vantagens, desvantagens e equipamentos
+          // Buscar vantagens, desvantagens, equipamentos e habilidades
           const vantagens = await db.Personagem.listarVantagens(personagem.id);
           const desvantagens = await db.Personagem.listarDesvantagens(personagem.id);
           const equipamentos = await db.Personagem.listarEquipamentos(personagem.id);
+
+          // Buscar habilidades da classe + raciais (filtradas por nível)
+          let habilidadesClasse = [];
+          let magiasUniversais = [];
+          try {
+            const nivelAtual = personagem.nivel || 1;
+            const promises = [];
+            if (personagem.classe_id) promises.push(db.Habilidade.findByClasse(personagem.classe_id));
+            if (personagem.raca_id) promises.push(db.Habilidade.findByRaca(personagem.raca_id));
+            const results = await Promise.all(promises);
+            const merged = results.flat();
+            const seen = new Set();
+            const todas = merged.filter(h => {
+              if (seen.has(h.id)) return false;
+              seen.add(h.id);
+              return (h.nivel_requerido || 1) <= nivelAtual;
+            });
+            habilidadesClasse = todas.filter(h => h.classe_id != null || h.raca_id != null);
+            magiasUniversais = todas.filter(h =>
+              h.classe_id == null && h.raca_id == null && h.escola_magia && h.escola_magia !== 'nenhuma'
+            );
+          } catch (e) {
+            console.warn(`⚠️ Erro ao buscar habilidades do personagem ${personagem.id}:`, e.message);
+          }
 
           // Calcular atributos efetivos com bonus de raça e classe
           const atributosEfetivos = calcularAtributosEfetivos(
@@ -94,7 +118,26 @@ export async function buscarPersonagensCompletos(personagensIds) {
               bonus: d.desvantagem?.bonus || d.bonus || null
             })),
             equipamentos: equipamentosMapeados,
-            // Informações para o Mestre (formato texto)
+            habilidadesClasse: habilidadesClasse.map(h => ({
+              id: h.id, nome: h.nome, descricao: h.descricao,
+              custo_mana: h.custo_mana || 0, cooldown_turnos: h.cooldown_turnos || 0,
+              dano_base: h.dano_base || null, tipo: h.tipo, elemento: h.elemento || null,
+              escola_magia: h.escola_magia || null, alcance: h.alcance, alvo: h.alvo,
+              tempo_conjuracao: h.tempo_conjuracao || 'acao',
+              usa_concentracao: h.usa_concentracao || false,
+              efeito: h.efeito || null, saving_throw: h.saving_throw || null,
+              nivel_requerido: h.nivel_requerido || 1
+            })),
+            magias: magiasUniversais.map(m => ({
+              id: m.id, nome: m.nome, descricao: m.descricao,
+              custo_mana: m.custo_mana || 0, cooldown_turnos: m.cooldown_turnos || 0,
+              dano_base: m.dano_base || null, tipo: m.tipo, elemento: m.elemento || null,
+              escola_magia: m.escola_magia || null, alcance: m.alcance, alvo: m.alvo,
+              tempo_conjuracao: m.tempo_conjuracao || 'acao',
+              usa_concentracao: m.usa_concentracao || false,
+              efeito: m.efeito || null, saving_throw: m.saving_throw || null,
+              nivel_requerido: m.nivel_requerido || 1
+            })),
             descricaoCompleta: `${personagem.nome} - ${personagem.racas?.nome || 'Humano'} ${personagem.classes?.nome || 'Aventureiro'} Nível ${personagem.nivel || 1}`
           };
         } catch (error) {
@@ -138,6 +181,8 @@ export function formatarPersonagensParaMestre(jogadoresArray, personagensComplet
         vantagens: personagemCompleto.vantagens || [],
         desvantagens: personagemCompleto.desvantagens || [],
         equipamentos: personagemCompleto.equipamentos || [],
+        habilidadesClasse: personagemCompleto.habilidadesClasse || [],
+        magias: personagemCompleto.magias || [],
         jogador: jogador.username || jogador.nome,
         descricao: personagemCompleto.descricaoCompleta
       };

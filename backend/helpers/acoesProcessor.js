@@ -5,7 +5,11 @@
  * Cada ação é processada mecanicamente e emitida via WebSocket.
  */
 import db from '../Model/index.js';
-import { calcularHP, calcularEsquiva, calcularArmadura, aplicarResistencias } from './combateHelper.js';
+import { calcularHP, calcularMana, calcularEsquiva, calcularArmadura, aplicarResistencias } from './combateHelper.js';
+import { setCooldown, checkCooldown } from './cooldownManager.js';
+import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
+import { aplicarEfeito, removerEfeito } from './effectManager.js';
+import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 
 /**
  * Persiste estado runtime (HP, status_efeitos) no clone da sessão
@@ -57,6 +61,15 @@ const ACTION_HANDLERS = new Map([
   ['aplicar_dano', processarAplicarDano],
   ['aplicar_status', processarAplicarStatus],
   ['remover_status', processarRemoverStatus],
+  // 4 Pilares — novos handlers
+  ['usar_habilidade', processarUsarHabilidade],
+  ['conjurar_magia', processarConjurarMagia],
+  ['ativar_desvantagem', processarAtivarDesvantagem],
+  ['aplicar_vantagem', processarAplicarVantagem],
+  ['aplicar_efeito', processarAplicarEfeito],
+  ['remover_efeito', processarRemoverEfeito],
+  ['dar_xp', processarDarXP],
+  ['concentracao_quebrada', processarConcentracaoQuebrada],
 ]);
 
 /**
@@ -395,6 +408,335 @@ async function processarRemoverStatus(acao, sessao, roomId, io) {
     status,
     timestamp: Date.now()
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 4 Pilares — Novos handlers
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * usar_habilidade: Verifica mana/cooldown → deduz mana → seta cooldown → emite evento
+ * acao: { tipo, personagem, habilidade_id, nome, custo_mana, cooldown_turnos, dano_base, elemento }
+ */
+async function processarUsarHabilidade(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, habilidade_id, nome, custo_mana = 0, cooldown_turnos = 0 } = acao;
+  if (!nomePersonagem || !nome) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo || !alvo.userId) return;
+
+  // Verificar cooldown
+  if (habilidade_id && checkCooldown(sessao, alvo.userId, 'hab', habilidade_id)) {
+    console.warn(`⚠️ usar_habilidade: ${nome} em cooldown para ${nomePersonagem}`);
+    io.to(roomId).emit('acao_mestre', {
+      tipo: 'habilidade_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
+      nome, motivo: 'cooldown', timestamp: Date.now()
+    });
+    return;
+  }
+
+  // Verificar e deduzir mana
+  if (custo_mana > 0) {
+    const manaState = ensureManaState(sessao, alvo.userId, alvo.personagem);
+    if (manaState.mana_atual < custo_mana) {
+      console.warn(`⚠️ usar_habilidade: Mana insuficiente para ${nome} (${manaState.mana_atual}/${custo_mana})`);
+      io.to(roomId).emit('acao_mestre', {
+        tipo: 'habilidade_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
+        nome, motivo: 'mana_insuficiente', mana_atual: manaState.mana_atual, custo: custo_mana,
+        timestamp: Date.now()
+      });
+      return;
+    }
+    manaState.mana_atual -= custo_mana;
+    persistirEstadoClone(roomId, alvo.personagemId, { mana_atual: manaState.mana_atual });
+  }
+
+  // Setar cooldown
+  if (habilidade_id && cooldown_turnos > 0) {
+    setCooldown(sessao, alvo.userId, 'hab', habilidade_id, cooldown_turnos);
+  }
+
+  console.log(`⚔️ usar_habilidade: ${nomePersonagem} usou ${nome} (mana: -${custo_mana}, cd: ${cooldown_turnos}t)`);
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'habilidade_usada', personagem: nomePersonagem, userId: alvo.userId,
+    nome, habilidade_id, custo_mana, cooldown_turnos,
+    dano_base: acao.dano_base || null, elemento: acao.elemento || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * conjurar_magia: Verifica mana + concentração → deduz → registra concentração se aplicável
+ * acao: { tipo, personagem, magia_id, nome, custo_mana, cooldown_turnos, usa_concentracao, duracao, dano_base, elemento }
+ */
+async function processarConjurarMagia(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, magia_id, nome, custo_mana = 0, cooldown_turnos = 0, usa_concentracao = false } = acao;
+  if (!nomePersonagem || !nome) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo || !alvo.userId) return;
+
+  // Verificar cooldown
+  if (magia_id && checkCooldown(sessao, alvo.userId, 'mag', magia_id)) {
+    console.warn(`⚠️ conjurar_magia: ${nome} em cooldown para ${nomePersonagem}`);
+    io.to(roomId).emit('acao_mestre', {
+      tipo: 'magia_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
+      nome, motivo: 'cooldown', timestamp: Date.now()
+    });
+    return;
+  }
+
+  // Verificar e deduzir mana
+  if (custo_mana > 0) {
+    const manaState = ensureManaState(sessao, alvo.userId, alvo.personagem);
+    if (manaState.mana_atual < custo_mana) {
+      io.to(roomId).emit('acao_mestre', {
+        tipo: 'magia_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
+        nome, motivo: 'mana_insuficiente', mana_atual: manaState.mana_atual, custo: custo_mana,
+        timestamp: Date.now()
+      });
+      return;
+    }
+    manaState.mana_atual -= custo_mana;
+    persistirEstadoClone(roomId, alvo.personagemId, { mana_atual: manaState.mana_atual });
+  }
+
+  // Cooldown
+  if (magia_id && cooldown_turnos > 0) {
+    setCooldown(sessao, alvo.userId, 'mag', magia_id, cooldown_turnos);
+  }
+
+  // Concentração — se ativar nova, a anterior é quebrada automaticamente
+  let concentracaoQuebrada = null;
+  if (usa_concentracao) {
+    const result = setConcentracao(sessao, alvo.userId, {
+      id: magia_id, nome, duracao: acao.duracao || 10
+    });
+    concentracaoQuebrada = result.quebrada;
+    if (concentracaoQuebrada) {
+      io.to(roomId).emit('acao_mestre', {
+        tipo: 'concentracao_quebrada', personagem: nomePersonagem, userId: alvo.userId,
+        magia: concentracaoQuebrada.nome, motivo: 'nova_concentracao',
+        timestamp: Date.now()
+      });
+    }
+  }
+
+  console.log(`🔮 conjurar_magia: ${nomePersonagem} conjurou ${nome} (mana: -${custo_mana}, conc: ${usa_concentracao})`);
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'magia_conjurada', personagem: nomePersonagem, userId: alvo.userId,
+    nome, magia_id, custo_mana, usa_concentracao,
+    dano_base: acao.dano_base || null, elemento: acao.elemento || null,
+    concentracao_anterior_quebrada: concentracaoQuebrada?.nome || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * ativar_desvantagem: Mestre ativa desvantagem narrativamente
+ * Se DC presente, emite pedido de teste ao jogador
+ * acao: { tipo, personagem, nome, dc, atributo, penalidade }
+ */
+async function processarAtivarDesvantagem(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, nome, dc, atributo } = acao;
+  if (!nomePersonagem || !nome) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  if (dc && atributo) {
+    // Requer teste — emitir pedido
+    console.log(`🎭 ativar_desvantagem: ${nome} → ${nomePersonagem} (DC ${dc} ${atributo})`);
+    io.to(roomId).emit('acao_mestre', {
+      tipo: 'desvantagem_teste_requerido', personagem: nomePersonagem, userId: alvo.userId,
+      desvantagem: nome, dc, atributo, penalidade: acao.penalidade || null,
+      timestamp: Date.now()
+    });
+  } else {
+    // Ativação automática (narrativa)
+    console.log(`🎭 ativar_desvantagem: ${nome} → ${nomePersonagem} (auto)`);
+    io.to(roomId).emit('acao_mestre', {
+      tipo: 'desvantagem_ativada', personagem: nomePersonagem, userId: alvo.userId,
+      desvantagem: nome, penalidade: acao.penalidade || null,
+      timestamp: Date.now()
+    });
+  }
+}
+
+/**
+ * aplicar_vantagem: Registra uso de vantagem passiva (informativo)
+ * acao: { tipo, personagem, nome, bonus }
+ */
+async function processarAplicarVantagem(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, nome } = acao;
+  if (!nomePersonagem || !nome) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  console.log(`✅ aplicar_vantagem: ${nome} → ${nomePersonagem}`);
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'vantagem_aplicada', personagem: nomePersonagem, userId: alvo.userId,
+    vantagem: nome, bonus: acao.bonus || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * aplicar_efeito: Efeito temporário com duração
+ * acao: { tipo, personagem, nome, duracao, dano_por_turno, cura_por_turno, tipo_efeito }
+ */
+async function processarAplicarEfeito(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, nome, duracao } = acao;
+  if (!nomePersonagem || !nome) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  aplicarEfeito(sessao, alvo.personagemId, {
+    nome,
+    duracao: duracao || 3,
+    tipo: acao.tipo_efeito || null,
+    dano_por_turno: acao.dano_por_turno || null,
+    cura_por_turno: acao.cura_por_turno || null
+  });
+
+  // Persistir
+  if (alvo.personagemId && alvo.personagem.status_efeitos) {
+    persistirEstadoClone(roomId, alvo.personagemId, {
+      status_efeitos: alvo.personagem.status_efeitos
+    });
+  }
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'efeito_aplicado', personagem: nomePersonagem, userId: alvo.userId,
+    efeito: nome, duracao: duracao || 3,
+    dano_por_turno: acao.dano_por_turno || null,
+    cura_por_turno: acao.cura_por_turno || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * remover_efeito: Remove efeito ativo
+ * acao: { tipo, personagem, nome }
+ */
+async function processarRemoverEfeito(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, nome } = acao;
+  if (!nomePersonagem || !nome) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  const removido = removerEfeito(sessao, alvo.personagemId, nome);
+  if (!removido) return;
+
+  if (alvo.personagemId && alvo.personagem.status_efeitos) {
+    persistirEstadoClone(roomId, alvo.personagemId, {
+      status_efeitos: alvo.personagem.status_efeitos
+    });
+  }
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'efeito_removido', personagem: nomePersonagem, userId: alvo.userId,
+    efeito: nome, timestamp: Date.now()
+  });
+}
+
+/**
+ * dar_xp: Aplica XP a um personagem e verifica level-up
+ * acao: { tipo, personagem, xp, motivo }
+ */
+async function processarDarXP(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, xp } = acao;
+  if (!nomePersonagem || !xp || xp <= 0) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  const pSessao = ensurePersonagemSessao(sessao, alvo.userId);
+  pSessao.xp_ganho = (pSessao.xp_ganho || 0) + xp;
+
+  console.log(`⭐ dar_xp: ${nomePersonagem} +${xp}XP (total sessão: ${pSessao.xp_ganho})`);
+
+  // Persistir XP no clone
+  if (alvo.personagemId) {
+    try {
+      const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+      if (sessaoJogoRow) {
+        const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+          sessaoJogoRow.id, parseInt(alvo.personagemId)
+        );
+        if (clone) {
+          await db.PersonagemSessao.atualizarRuntime(clone.id, { xp_ganho: pSessao.xp_ganho });
+        }
+      }
+    } catch (e) {
+      console.warn(`⚠️ dar_xp: Erro ao persistir:`, e.message);
+    }
+  }
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'xp_recebido', personagem: nomePersonagem, userId: alvo.userId,
+    xp, xp_total_sessao: pSessao.xp_ganho, motivo: acao.motivo || 'narrativa',
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * concentracao_quebrada: Remove concentração ativa do jogador
+ * acao: { tipo, personagem, motivo }
+ */
+async function processarConcentracaoQuebrada(acao, sessao, roomId, io) {
+  const { personagem: nomePersonagem, motivo = 'narrativa' } = acao;
+  if (!nomePersonagem) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo || !alvo.userId) return;
+
+  const quebrada = quebrarConcentracao(sessao, alvo.userId, motivo);
+  if (!quebrada) return;
+
+  io.to(roomId).emit('acao_mestre', {
+    tipo: 'concentracao_quebrada', personagem: nomePersonagem, userId: alvo.userId,
+    magia: quebrada.nome, motivo,
+    timestamp: Date.now()
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Helpers internos para os novos handlers
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Garante que manaState existe para o jogador
+ */
+function ensureManaState(sessao, userId, personagem) {
+  if (!sessao.estadoJogo) sessao.estadoJogo = {};
+  if (!sessao.estadoJogo.manaState) sessao.estadoJogo.manaState = {};
+  const uid = String(userId);
+  if (!sessao.estadoJogo.manaState[uid]) {
+    const attrs = personagem?.atributos || {};
+    const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, nivel: personagem?.nivel || 1 });
+    sessao.estadoJogo.manaState[uid] = { mana_atual: manaMax, mana_max: manaMax };
+  }
+  return sessao.estadoJogo.manaState[uid];
+}
+
+/**
+ * Garante que personagemSessao existe para o jogador
+ */
+function ensurePersonagemSessao(sessao, userId) {
+  if (!sessao.estadoJogo) sessao.estadoJogo = {};
+  if (!sessao.estadoJogo.personagemSessao) sessao.estadoJogo.personagemSessao = {};
+  const uid = String(userId);
+  if (!sessao.estadoJogo.personagemSessao[uid]) {
+    sessao.estadoJogo.personagemSessao[uid] = {};
+  }
+  return sessao.estadoJogo.personagemSessao[uid];
 }
 
 export { persistirEstadoClone };

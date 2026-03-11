@@ -11,12 +11,16 @@
  */
 
 const defaults = {
-  COMBAT_V2: false,       // Sistema de combate v2 (futuro)
-  LOOT_SYSTEM: true,      // Drop de loot pos-combate
-  FRIEND_SYSTEM: true,    // Sistema de amizades
-  AI_RETRY: true,         // Retry automatico em timeout da IA
-  SESSION_RECAP: true,    // Recap ao encerrar sessao
-  LEVEL_UP_NOTIFY: true,  // Notificacao de level up em tempo real
+  COMBAT_V2: false,           // Sistema de combate v2 (futuro)
+  LOOT_SYSTEM: true,          // Drop de loot pos-combate
+  FRIEND_SYSTEM: true,        // Sistema de amizades
+  AI_RETRY: true,             // Retry automatico em timeout da IA
+  SESSION_RECAP: true,        // Recap ao encerrar sessao
+  LEVEL_UP_NOTIFY: true,      // Notificacao de level up em tempo real
+  FOUR_PILLARS: false,        // Secoes detalhadas de vant/desv/hab/mag no prompt do Mestre
+  EXPANDED_STATE: false,      // State block expandido no turno (mana, cooldowns, concentracao)
+  BLUEPRINT_V2: false,        // Integracao avancada com Story Blueprint
+  STRUCTURED_SUMMARY: false,  // Resumo estruturado (vs narrativo)
 };
 
 function parseFlag(envValue, defaultValue) {

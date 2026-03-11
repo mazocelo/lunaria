@@ -24,6 +24,11 @@ import { persistirEstadoClone } from '../helpers/acoesProcessor.js';
 import analyticsService from '../services/analyticsService.js';
 import { MESTRE_CONFIG } from '../agents/Mestre/config.js';
 import ttsCacheService from '../services/ttsCacheService.js';
+import { buildTurnState, formatTurnStateText } from '../helpers/turnStateBuilder.js';
+import { isEnabled } from '../config/featureFlags.js';
+import { decrementCooldowns } from '../helpers/cooldownManager.js';
+import { decrementConcentracao } from '../helpers/concentrationManager.js';
+import { decrementEfeitos, aplicarEfeitosPorTurno } from '../helpers/effectManager.js';
 
 /**
  * Cria objeto de mensagem do mestre com campos de áudio vinculados
@@ -1878,25 +1883,34 @@ class SocketManager {
         userId
       );
 
-      // 4. Injetar contexto dinâmico do personagem + combate na ação
+      // 4. Início de turno: decrementar cooldowns, efeitos, concentração
+      if (isEnabled('EXPANDED_STATE')) {
+        decrementCooldowns(sessao, userId);
+        const pcId = String(personagem.id || personagem.personagemId);
+        const efeitosExpirados = decrementEfeitos(sessao, pcId);
+        const efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
+        const concExpirada = decrementConcentracao(sessao, userId);
+
+        if (efeitosExpirados.length > 0) {
+          io.to(roomId).emit('acao_mestre', {
+            tipo: 'efeitos_expirados', personagem: personagem.nome,
+            efeitos: efeitosExpirados.map(e => e.nome), timestamp: Date.now()
+          });
+        }
+        if (concExpirada) {
+          io.to(roomId).emit('acao_mestre', {
+            tipo: 'concentracao_quebrada', personagem: personagem.nome,
+            magia: concExpirada.nome, motivo: 'expirou', timestamp: Date.now()
+          });
+        }
+      }
+
+      // Injetar contexto dinâmico do personagem + combate na ação
       let acaoComContexto = '';
 
-      // Estado dinâmico do personagem (HP atual, XP, inventário, efeitos)
-      const pcCompleto = (sessao.personagensCompletos || {})[String(personagem.id || personagem.personagemId)] || personagem;
-      const pSessao = estadoJogo.personagemSessao?.[String(userId)] || {};
-      const hpAtual = pSessao.hp_atual ?? pcCompleto.hp ?? pcCompleto.hp_max ?? '?';
-      const hpMax = pSessao.hp_max ?? pcCompleto.hp_max ?? pcCompleto.hp ?? '?';
-      const xpGanho = pSessao.xp_ganho || 0;
-      const itensGanhos = pSessao.itens_ganhos || [];
-      const itensPerdidos = pSessao.itens_perdidos || [];
-      const efeitos = pSessao.status_efeitos || [];
-
-      let estadoParts = [`HP ${hpAtual}/${hpMax}`];
-      if (xpGanho > 0) estadoParts.push(`XP ganho: ${xpGanho}`);
-      if (itensGanhos.length > 0) estadoParts.push(`Itens ganhos: ${itensGanhos.map(i => i.nome || i).join(', ')}`);
-      if (itensPerdidos.length > 0) estadoParts.push(`Itens perdidos: ${itensPerdidos.map(i => i.nome || i).join(', ')}`);
-      if (efeitos.length > 0) estadoParts.push(`Efeitos: ${efeitos.map(e => `${e.nome}(${e.duracao}t)`).join(', ')}`);
-      acaoComContexto = `[Estado atual de ${personagem.nome}: ${estadoParts.join(' | ')}]\n`;
+      // Estado dinâmico do personagem (via turnStateBuilder)
+      const turnState = buildTurnState(sessao, userId, personagem);
+      acaoComContexto = formatTurnStateText(turnState) + '\n';
 
       const combateAtivo = estadoJogo.combate?.ativo;
       let resultadosCombatePreResolvido = null;

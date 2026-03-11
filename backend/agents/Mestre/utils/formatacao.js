@@ -44,6 +44,8 @@ export function extrairInfoPersonagem(personagem) {
     vantagens: personagem.vantagens || [],
     desvantagens: personagem.desvantagens || [],
     equipamentos: personagem.equipamentos || [],
+    habilidadesClasse: personagem.habilidadesClasse || [],
+    magias: personagem.magias || [],
     background: personagem.background || ''
   };
 }

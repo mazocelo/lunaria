@@ -56,6 +56,7 @@ const NovaHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Nova'));
 const EditarHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Editar'));
 const VerHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Ver'));
 const BillingPage = React.lazy(() => import('./Pages/Billing'));
+const PersonagemWizardPage = React.lazy(() => import('./Pages/Personagem/Wizard'));
 
 /**
  * ============================================================================
@@ -92,6 +93,7 @@ export const ROUTES = {
   // ===== PERSONAGENS =====
   PERSONAGENS: '/personagens',
   NOVO_PERSONAGEM: '/novo-personagem',
+  WIZARD_PERSONAGEM: '/novo-personagem-wizard',
   VER_PERSONAGEM: '/ver-personagem/:id',
   
   // ===== RAÇAS =====
@@ -300,6 +302,12 @@ const ROUTE_CONFIG = [
     path: ROUTES.NOVO_PERSONAGEM,
     component: NovoPersonagemPage,
     name: 'Novo Personagem',
+    category: 'PERSONAGENS'
+  },
+  {
+    path: ROUTES.WIZARD_PERSONAGEM,
+    component: PersonagemWizardPage,
+    name: 'Wizard Personagem',
     category: 'PERSONAGENS'
   },
   {

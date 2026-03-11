@@ -1,7 +1,7 @@
 import { generateImage, buildPrompt } from '../services/imageGenerationService.js';
 import usageService from '../services/usageService.js';
 
-const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'mestre'];
+const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre'];
 
 async function gerarImagem(req, res) {
   try {

@@ -7,7 +7,6 @@ import gerenciadorSessoes from '../../redis/sessoes.js';
 import blueprintService from '../../services/blueprintService.js';
 import { buildCatalogoCompleto } from '../../agents/Mestre/catalogo/catalogoMestre.js';
 import { extrairNomesTemas } from '../../helpers/temasHelper.js';
-import usageService from '../../services/usageService.js';
 
 /**
  * Controller para gerenciar operações de história
@@ -56,19 +55,15 @@ class HistoriaController {
       let nomeHistoria = nome;
       if (!nome || nome.trim() === '') {
         console.log('📝 Gerando título automático...');
-        const t0 = Date.now();
         const geradorTitulo = await criarGeradorTitulo(temasParaUsar);
-        const resultadoTitulo = await geradorTitulo.gerarTitulo({ tema: temas });
+        const resultadoTitulo = await geradorTitulo.gerarTitulo({ tema: temas, userId });
         nomeHistoria = resultadoTitulo.titulo;
-        if (userId) usageService.track({ userId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - t0, metadata: { agent: 'GeradorTitulo' } });
         console.log('✅ Título gerado:', nomeHistoria);
       }
 
       // Gerar prólogo automaticamente
-      const t1 = Date.now();
       const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
-      const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas, descricao: descricao || '' });
-      if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - t1, metadata: { agent: 'GeradorPrologo' } });
+      const resultadoPrologo = await geradorPrologo.gerarPrologo({ temas, descricao: descricao || '', userId });
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para criar história' });
       }
@@ -486,23 +481,20 @@ class HistoriaController {
       
       console.log(`🎲 Usando ${temasParaUsar.length} temas para geração`);
       
-      // Usar o gerador de prólogo diretamente
-      const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
-
-      // Gerar história completa com prólogo
-      const tIA = Date.now();
-      const historiaGerada = await geradorPrologo.criarHistoriaCompleta({
-        temas,
-        nome: nome || `Aventura em ${temas}`,
-        descricao: descricao || ''
-      });
-
       // Verificar autenticação
       const userId = req.user?.id;
-      if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - tIA, metadata: { agent: 'GeradorPrologo' } });
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar história' });
       }
+
+      // Usar o gerador de prólogo diretamente (tracking happens inside agent)
+      const geradorPrologo = await criarGeradorPrologo(temasParaUsar);
+      const historiaGerada = await geradorPrologo.criarHistoriaCompleta({
+        temas,
+        nome: nome || `Aventura em ${temas}`,
+        descricao: descricao || '',
+        userId
+      });
 
       // Salvar no banco de dados
       const novaHistoria = await db.Historia.createHistoria({
@@ -566,23 +558,22 @@ class HistoriaController {
       console.log(`🎲 Usando ${temasParaUsar.length} temas e ${personagens?.length || 0} personagens`);
       
       // Usar o criador completo com agentes separados
+      // Verificar autenticação
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar aventura' });
+      }
+
       const criador = await criadorCompleto(temasParaUsar, personagens || []);
 
-      // Gerar aventura completa
-      const tAv = Date.now();
+      // Gerar aventura completa (tracking happens inside sub-agents)
       const aventuraCompleta = await criador.criarAventuraCompleta({
         temas,
         nome: nome || `Aventura em ${temas}`,
         descricao: descricao || '',
-        personagens: personagens || []
+        personagens: personagens || [],
+        userId
       });
-
-      // Verificar autenticação
-      const userId = req.user?.id;
-      if (userId) usageService.track({ userId, provider: 'gemini', tipo: 'text', modelo: 'gemini-2.5-flash', duracao_ms: Date.now() - tAv, metadata: { agent: 'CriadorCompleto' } });
-      if (!userId) {
-        return res.status(401).json({ success: false, error: 'Autenticação necessária para gerar aventura' });
-      }
 
       // Salvar no banco de dados
       const novaHistoria = await db.Historia.createHistoria({

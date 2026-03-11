@@ -1,6 +1,7 @@
 import { ChatGroq } from '@langchain/groq';
 import dotenv from 'dotenv';
 import { isEnabled } from '../../config/featureFlags.js';
+import { trackLLMUsage } from '../../services/llmTracker.js';
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ export class ResumoAgent {
    * @param {number} params.rodadasJogadas - Número de rodadas jogadas
    * @returns {Promise<Object>} - Resumo gerado
    */
-  async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null }) {
+  async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null, userId }) {
     try {
       const ultimasMensagens = mensagens.slice(-50);
 
@@ -46,7 +47,9 @@ export class ResumoAgent {
         ? this._buildStructuredPrompt(temas, personagens, rodadasJogadas, mensagens.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length)
         : this._buildNarrativePrompt(temas, personagens, rodadasJogadas, mensagens.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length);
 
+      const startTime = Date.now();
       const response = await this.model.invoke(prompt);
+      trackLLMUsage(response, { modelName: 'meta-llama/llama-4-scout-17b-16e-instruct', userId, startTime, agent: 'ResumoAgent' });
 
       console.log('✅ ResumoAgent: Resumo gerado com sucesso');
 

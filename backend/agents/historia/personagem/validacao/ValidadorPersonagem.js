@@ -1,6 +1,8 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { createValidacaoModel } from './model.js';
 import { createValidacaoPrompt } from './prompts.js';
+import { DEFAULT_MODEL_SETTINGS } from './config.js';
+import { trackLLMUsage } from '../../../../services/llmTracker.js';
 
 /**
  * Cria o agente para validação de coerência de personagens
@@ -10,27 +12,23 @@ async function criarValidadorPersonagem() {
     try {
         const prompt = createValidacaoPrompt();
         const model = createValidacaoModel();
+        const modelName = DEFAULT_MODEL_SETTINGS.model;
 
         const chain = RunnableSequence.from([prompt, model]);
 
         return {
-            /**
-             * Valida coerência narrativa de um personagem
-             * @param {Object} params - Dados completos do personagem
-             * @returns {{ valido: boolean, avisos: string[], sugestoes: string[] }}
-             */
             validar: async ({
                 nome, classe, raca, nivel = 1,
                 forca = 10, inteligencia = 10, carisma = 10,
                 destreza = 10, constituicao = 10, agilidade = 10,
                 vantagens = '', desvantagens = '', equipamentos = '',
-                background = ''
+                background = '',
+                userId
             }) => {
                 try {
+                    const startTime = Date.now();
                     const response = await chain.invoke({
-                        nome,
-                        classe,
-                        raca,
+                        nome, classe, raca,
                         nivel: String(nivel),
                         forca: String(forca),
                         inteligencia: String(inteligencia),
@@ -38,13 +36,11 @@ async function criarValidadorPersonagem() {
                         destreza: String(destreza),
                         constituicao: String(constituicao),
                         agilidade: String(agilidade),
-                        vantagens,
-                        desvantagens,
-                        equipamentos,
+                        vantagens, desvantagens, equipamentos,
                         background: background || 'Ainda não definido'
                     });
+                    trackLLMUsage(response, { modelName, userId, startTime, agent: 'ValidadorPersonagem' });
 
-                    // Parsear JSON da resposta
                     const content = response.content.trim();
                     const jsonMatch = content.match(/\{[\s\S]*\}/);
                     if (!jsonMatch) {
@@ -62,7 +58,6 @@ async function criarValidadorPersonagem() {
                     };
                 } catch (error) {
                     console.error('❌ Erro ao validar personagem:', error);
-                    // Em caso de erro, não bloqueia - retorna válido
                     return { valido: true, avisos: [], sugestoes: ['Não foi possível validar coerência no momento.'] };
                 }
             }

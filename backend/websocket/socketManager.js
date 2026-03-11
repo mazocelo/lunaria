@@ -3292,20 +3292,14 @@ class SocketManager {
             // Buscar resumo anterior para consolidação cumulativa
             const resumoAnteriorObj = await this.gerenciadorSessoes.obterUltimoResumo(roomId);
 
-            const tResumo = Date.now();
             const resumo = await resumoAgent.resumirAventura({
               mensagens: sessaoParaResumo.mensagens || [],
               temas: extrairNomesTemas(sessaoParaResumo.historiaTemas || []),
               personagens: Object.values(sessaoParaResumo.jogadores || {}),
               rodadasJogadas: rodadaAtual,
-              resumoAnterior: resumoAnteriorObj?.resumo || null
+              resumoAnterior: resumoAnteriorObj?.resumo || null,
+              userId: socket?.userId
             });
-
-            // Track usage (userId from socket context)
-            if (socket?.userId) {
-              const usageService = (await import('../services/usageService.js')).default;
-              usageService.track({ userId: socket.userId, provider: 'groq', tipo: 'text', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', duracao_ms: Date.now() - tResumo, metadata: { agent: 'ResumoAgent' } });
-            }
 
             await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
             

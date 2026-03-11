@@ -669,10 +669,12 @@ Seja conciso (máximo 100 palavras).`;
 
       const historico = converterHistoricoParaLangChain(chatHistory);
 
+      const startTime = Date.now();
       const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: historico.slice(-HISTORY_LIMIT)
       })));
+      trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       return {
         narrativa: response.content,

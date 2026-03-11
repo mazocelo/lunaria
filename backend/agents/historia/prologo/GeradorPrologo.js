@@ -1,6 +1,8 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { createPrologoModel } from './model.js';
 import { createPrologoPrompt } from './prompts.js';
+import { DEFAULT_MODEL_SETTINGS } from './config.js';
+import { trackLLMUsage } from '../../../services/llmTracker.js';
 
 /**
  * Cria o agente para geração de prólogo
@@ -11,6 +13,7 @@ async function criarGeradorPrologo(temas = []) {
     try {
         const prompt = createPrologoPrompt(temas);
         const model = createPrologoModel();
+        const modelName = DEFAULT_MODEL_SETTINGS.model;
 
         const chain = RunnableSequence.from([
             prompt,
@@ -18,17 +21,13 @@ async function criarGeradorPrologo(temas = []) {
         ]);
 
         return {
-            /**
-             * Gerar prólogo para um tema específico
-             * @param {Object} params - Parâmetros de geração
-             * @param {string} params.tema - Tema da história
-             * @returns {Object} Resultado da geração
-             */
-            gerarPrologo: async ({ temas: temasInput, descricao = '' }) => {
+            gerarPrologo: async ({ temas: temasInput, descricao = '', userId }) => {
+                const startTime = Date.now();
                 const response = await chain.invoke({
                     tema: temasInput,
                     descricao: descricao || 'Nenhuma descrição fornecida — crie livremente baseado nos temas.',
                 });
+                trackLLMUsage(response, { modelName, userId, startTime, agent: 'GeradorPrologo' });
                 console.log('📖 Prólogo gerado para temas:', temasInput);
                 return {
                     prologo: response.content,
@@ -38,17 +37,11 @@ async function criarGeradorPrologo(temas = []) {
                 };
             },
 
-            /**
-             * Gerar história completa com prólogo
-             * @param {Object} params - Parâmetros de geração
-             * @param {string} params.tema - Tema da história
-             * @param {string} params.nome - Nome da história
-             * @param {string} params.descricao - Descrição da história
-             * @returns {Object} História completa gerada
-             */
-            criarHistoriaCompleta: async ({ tema, nome, descricao }) => {
+            criarHistoriaCompleta: async ({ tema, nome, descricao, userId }) => {
                 try {
+                    const startTime = Date.now();
                     const resultadoPrologo = await chain.invoke({ tema });
+                    trackLLMUsage(resultadoPrologo, { modelName, userId, startTime, agent: 'GeradorPrologo' });
 
                     const historiaCompleta = {
                         nome: nome || `Aventura em ${tema}`,
@@ -63,7 +56,7 @@ async function criarGeradorPrologo(temas = []) {
                         },
                         metadata: {
                             geradoEm: new Date().toISOString(),
-                            modelo: 'openai/gpt-oss-120b',
+                            modelo: modelName,
                             versao: '1.0',
                             temasUtilizados: temas
                         }
@@ -84,4 +77,4 @@ async function criarGeradorPrologo(temas = []) {
     }
 }
 
-export default criarGeradorPrologo; 
+export default criarGeradorPrologo;

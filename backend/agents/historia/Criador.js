@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import { criarGeradorPrologo } from './prologo/index.js'
 import criarMestreRPG from '../Mestre/index.js'
 import { extrairNomesTemas } from '../../helpers/temasHelper.js'
+import { trackLLMUsage } from '../../services/llmTracker.js'
 
 dotenv.config();
 
@@ -72,8 +73,10 @@ async function criadorDeHistoria() {
             model,
         ]);
         return {
-            invoke: async ({ input }) => {
+            invoke: async ({ input, userId }) => {
+                const startTime = Date.now();
                 const response = await chain.invoke({ input });
+                trackLLMUsage(response, { modelName: DEFAULT_MODEL_SETTINGS.model, userId, startTime, agent: 'CriadorTriagem' });
                 console.log('Resposta do auxiliar question', response.content);
                 return { response: response.content };
             },
@@ -118,10 +121,10 @@ async function criadorCompleto(temas = [], personagens = []) {
             },
 
             // Função combinada que gera história completa com mestre
-            criarAventuraCompleta: async ({ tema, nome, descricao, personagens }) => {
+            criarAventuraCompleta: async ({ tema, nome, descricao, personagens, userId }) => {
                 try {
-                    // Gerar prólogo
-                    const resultadoPrologo = await agentePrologo.gerarPrologo({ tema });
+                    // Gerar prólogo (tracking happens inside agent)
+                    const resultadoPrologo = await agentePrologo.gerarPrologo({ temas: tema, userId });
 
                     // Iniciar sessão com mestre
                     const sessaoIniciada = await agenteMestre.iniciarSessao({

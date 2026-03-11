@@ -103,6 +103,41 @@ class HistoriaController {
           titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null
         }
       });
+
+      // Gerar roteiro em background (não bloqueia a resposta)
+      (async () => {
+        try {
+          console.log(`📜 Iniciando geração de roteiro para história ${novaHistoria.id}...`);
+          await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'generating' });
+
+          const catalogo = await buildCatalogoCompleto();
+          const temasDB = await db.Temas.findAll();
+          const temasNomes = (temas || []).map(tid => {
+            const tema = temasDB.find(t => t.id === tid);
+            return tema?.nome || `Tema ${tid}`;
+          });
+
+          const roteiro = await blueprintService.gerarRoteiro(
+            { ...novaHistoria, prologo: resultadoPrologo.prologo, descricao: descricao || '', temas, maximo_de_participantes: maximo_de_participantes || 5 },
+            catalogo,
+            temasNomes,
+            userId
+          );
+
+          await db.Historia.updateHistoria(novaHistoria.id, { roteiro, roteiro_status: 'completed' });
+          console.log(`✅ Roteiro gerado automaticamente para história ${novaHistoria.id}`);
+
+          try {
+            const socketManager = (await import('../../websocket/socketManager.js')).default;
+            if (socketManager?.io) {
+              socketManager.io.to(`historia_${novaHistoria.id}`).emit('roteiro_gerado', { historiaId: novaHistoria.id });
+            }
+          } catch (_) { /* socket não disponível */ }
+        } catch (error) {
+          console.error(`❌ Erro ao gerar roteiro automático para história ${novaHistoria.id}:`, error.message);
+          await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'error' });
+        }
+      })();
       
     } catch (error) {
       console.error('❌ Erro ao criar história:', error);

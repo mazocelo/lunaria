@@ -1,6 +1,7 @@
 import express from 'express';
 import { getProvider, getConfiguredProviders } from '../services/ttsService.js';
 import usageService from '../services/usageService.js';
+import ttsCacheService from '../services/ttsCacheService.js';
 
 const router = express.Router();
 
@@ -62,14 +63,20 @@ router.post('/generate', async (req, res) => {
     if (emotion) options.emotion = emotion;
 
     const tTTS = Date.now();
-    const audioBuffer = await provider.generateSpeech(text, voiceId, options);
+    const { audioBuffer, fromCache } = await ttsCacheService.getOrGenerate(
+      text, voiceId, providerName,
+      () => provider.generateSpeech(text, voiceId, options)
+    );
 
-    if (req.user?.id) usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: text.length, duracao_ms: Date.now() - tTTS });
+    // Só trackeia billing quando gerou de verdade (não cache hit)
+    if (!fromCache && req.user?.id) {
+      usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: text.length, duracao_ms: Date.now() - tTTS });
+    }
 
     res.set({
       'Content-Type': 'audio/mpeg',
       'Content-Length': audioBuffer.length,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': fromCache ? 'public, max-age=86400' : 'no-cache'
     });
     res.send(audioBuffer);
   } catch (error) {

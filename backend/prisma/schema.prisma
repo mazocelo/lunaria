@@ -640,6 +640,19 @@ model api_usage {
   @@index([criado_em])
 }
 
+model tts_cache {
+  id            Int       @id @default(autoincrement())
+  cache_key     String    @unique @db.VarChar(128)
+  provider      String    @db.VarChar(50)
+  voice_id      String    @db.VarChar(100)
+  caracteres    Int
+  audio_data    Bytes
+  tamanho_bytes Int
+  criado_em     DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([cache_key])
+}
+
 model analytics_eventos {
   id         Int       @id @default(autoincrement())
   tipo       String    @db.VarChar(100)

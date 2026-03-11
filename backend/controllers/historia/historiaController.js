@@ -331,7 +331,7 @@ class HistoriaController {
 
       // Ownership já verificado pelo middleware requireResourceOwnerOrAdmin
 
-      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas } = req.body;
+      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas, estilo_imagem } = req.body;
       const dadosSeguros = {};
       if (nome !== undefined) dadosSeguros.nome = nome;
       if (temas !== undefined) dadosSeguros.temas = temas;
@@ -342,6 +342,7 @@ class HistoriaController {
       if (mestre_id !== undefined) dadosSeguros.mestre_id = mestre_id ? parseInt(mestre_id) : null;
       if (imagem !== undefined) dadosSeguros.imagem = imagem;
       if (mapas !== undefined) dadosSeguros.mapas = Array.isArray(mapas) ? mapas : [];
+      if (estilo_imagem !== undefined) dadosSeguros.estilo_imagem = estilo_imagem;
       dadosSeguros.atualizada_em = new Date();
 
       await db.Historia.updateHistoria(parseInt(id), dadosSeguros);

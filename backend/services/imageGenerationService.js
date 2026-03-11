@@ -72,8 +72,18 @@ async function pollGeneration(generationId) {
   throw new Error('Timeout aguardando geração de imagem');
 }
 
+const IMAGE_STYLES = {
+  fantasy_painting: 'high fantasy RPG art style, detailed, vibrant colors, digital painting',
+  anime: 'anime art style, cel shading, vivid colors, manga illustration, Japanese RPG aesthetic',
+  realistic: 'photorealistic, hyper-detailed, cinematic lighting, concept art, AAA game art',
+  dark_gothic: 'dark fantasy art, gothic atmosphere, muted colors, dramatic shadows, grim and moody',
+  watercolor: 'watercolor painting style, soft edges, ethereal, pastel tones, storybook illustration',
+  pixel_art: 'pixel art style, retro 16-bit RPG aesthetic, detailed sprites, nostalgic',
+  comic_book: 'comic book art style, bold ink outlines, dynamic poses, vibrant halftone colors, graphic novel',
+};
+
 function buildPrompt(entityType, entityData) {
-  const style = 'high fantasy RPG art style, detailed, vibrant colors, digital painting';
+  const style = IMAGE_STYLES[entityData.estilo_imagem] || IMAGE_STYLES.fantasy_painting;
 
   switch (entityType) {
     case 'personagem': {
@@ -151,4 +161,4 @@ function buildPrompt(entityType, entityData) {
   }
 }
 
-export { generateImage, buildPrompt };
+export { generateImage, buildPrompt, IMAGE_STYLES };

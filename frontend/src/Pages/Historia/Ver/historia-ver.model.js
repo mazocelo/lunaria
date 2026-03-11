@@ -171,7 +171,7 @@ export const useHistoriaVerModel = () => {
         setRoteiroLoading(false);
       }
     }, 5000);
-    roteiroTimeoutRef.current = setTimeout(() => { stopRoteiroPoll(); setRoteiroLoading(false); }, 120000);
+    roteiroTimeoutRef.current = setTimeout(() => { stopRoteiroPoll(); setRoteiroLoading(false); }, 200000);
   }
 
   // Roteiro handlers

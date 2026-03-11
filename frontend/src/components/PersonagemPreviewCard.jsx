@@ -40,7 +40,6 @@ const PersonagemPreviewCard = ({
   const classeObj = classesDisponiveis?.find(c => String(c.id) === String(classe));
   const racaNome = racaObj?.nome;
   const classeNome = classeObj?.nome;
-  const hpEstimado = calcHP(atributos.constituicao, 1);
 
   // Parse bonuses from race/class
   const parseBonus = (raw) => {
@@ -53,6 +52,26 @@ const PersonagemPreviewCard = ({
   const racaBonus = parseBonus(racaObj?.bonus);
   const classeBonus = parseBonus(classeObj?.bonus);
   const temBonus = racaBonus || classeBonus;
+
+  // Calcula bônus de atributo por chave (raça + classe)
+  const getAttrBonus = (key) => {
+    let bonus = 0;
+    if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
+      bonus += Number(racaBonus[key]) || 0;
+    }
+    if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
+      bonus += Number(classeBonus[key]) || 0;
+    }
+    return bonus;
+  };
+
+  // Atributos efetivos (base + bônus)
+  const atributosEfetivos = {};
+  for (const key of Object.keys(ATTR_LABELS)) {
+    atributosEfetivos[key] = (Number(atributos[key]) || 0) + getAttrBonus(key);
+  }
+
+  const hpEstimado = calcHP(atributosEfetivos.constituicao, 1);
 
   const vantagensNomes = (vantagensSelecionadas || []).map(id => {
     const v = vantagensDisponiveis?.find(vt => String(vt.id) === String(id));
@@ -111,9 +130,11 @@ const PersonagemPreviewCard = ({
           {/* Attributes bars */}
           <div className="space-y-1.5">
             {Object.entries(ATTR_LABELS).map(([key, cfg]) => {
-              const val = Number(atributos[key]) || 0;
-              const pct = Math.min(100, (val / 20) * 100);
-              const mod = calcMod(val);
+              const base = Number(atributos[key]) || 0;
+              const bonus = getAttrBonus(key);
+              const efetivo = base + bonus;
+              const pct = Math.min(100, (efetivo / 20) * 100);
+              const mod = calcMod(efetivo);
               return (
                 <div key={key} className="flex items-center gap-2">
                   <span className={`text-[10px] font-mono w-7 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -125,8 +146,17 @@ const PersonagemPreviewCard = ({
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className={`text-[10px] font-mono w-10 text-right ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    {val || '-'} ({mod >= 0 ? '+' : ''}{mod})
+                  <span className={`text-[10px] font-mono text-right ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    {efetivo || '-'}
+                    {bonus !== 0 && (
+                      <span className={bonus > 0 ? 'text-green-400' : 'text-red-400'}>
+                        {` (${bonus > 0 ? '+' : ''}${bonus})`}
+                      </span>
+                    )}
+                    {' '}
+                    <span className={mod >= 0 ? 'text-green-400/70' : 'text-red-400/70'}>
+                      {mod >= 0 ? '+' : ''}{mod}
+                    </span>
                   </span>
                 </div>
               );

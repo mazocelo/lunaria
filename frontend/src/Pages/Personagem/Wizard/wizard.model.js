@@ -318,6 +318,30 @@ export const useWizardModel = () => {
     setError(null);
 
     try {
+      // Aplicar bônus de raça/classe nos atributos finais
+      const parseBonus = (raw) => {
+        if (!raw) return null;
+        try {
+          const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          return Array.isArray(obj) ? obj[0] : obj;
+        } catch { return null; }
+      };
+      const racaObj = racasDisponiveis.find(r => r.id === racaId);
+      const classeObj = classesDisponiveis.find(c => c.id === classeId);
+      const racaBonus = parseBonus(racaObj?.bonus);
+      const classeBonus = parseBonus(classeObj?.bonus);
+
+      const getBonus = (key) => {
+        let b = 0;
+        if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
+          b += Number(racaBonus[key]) || 0;
+        }
+        if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
+          b += Number(classeBonus[key]) || 0;
+        }
+        return b;
+      };
+
       const dados = {
         nome,
         raca_id: racaId || undefined,
@@ -325,12 +349,12 @@ export const useWizardModel = () => {
         sugestao_background: 'guiado',
         background,
         historias: [],
-        forca: atributos.forca,
-        destreza: atributos.destreza,
-        constituicao: atributos.constituicao,
-        inteligencia: atributos.inteligencia,
-        agilidade: atributos.agilidade,
-        carisma: atributos.carisma,
+        forca: atributos.forca + getBonus('forca'),
+        destreza: atributos.destreza + getBonus('destreza'),
+        constituicao: atributos.constituicao + getBonus('constituicao'),
+        inteligencia: atributos.inteligencia + getBonus('inteligencia'),
+        agilidade: atributos.agilidade + getBonus('agilidade'),
+        carisma: atributos.carisma + getBonus('carisma'),
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
         nivel: 1,
@@ -358,7 +382,7 @@ export const useWizardModel = () => {
     } finally {
       setSalvando(false);
     }
-  }, [nome, racaId, classeId, background, atributos, vantagensIds, desvantagensIds, navigate, recarregarPersonagens]);
+  }, [nome, racaId, classeId, background, atributos, vantagensIds, desvantagensIds, racasDisponiveis, classesDisponiveis, navigate, recarregarPersonagens]);
 
   const clearError = useCallback(() => setError(null), []);
 

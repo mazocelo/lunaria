@@ -1,7 +1,7 @@
 import React from 'react';
 import Notification from '../../../components/Notification.jsx';
 import { EtapaSalaEspera } from '../../../components/Jogo';
-import { AuthLoading } from '../../../components/Jogo/Shared/LoadingStates';
+import { AuthLoading, GameTransitionLoading } from '../../../components/Jogo/Shared/LoadingStates';
 
 /**
  * View pura para a pagina de Sala de Espera.
@@ -19,6 +19,8 @@ const SalaEsperaView = ({
   socketError,
   isConnected,
   roomUsers,
+  isResumingSession,
+  resumeMessage,
 
   // Handlers
   handleIniciarJogo,
@@ -26,6 +28,11 @@ const SalaEsperaView = ({
   handleVoltar,
   handleClearErrors,
 }) => {
+  // Retomando sessao ativa — tela de transicao tematica
+  if (isResumingSession) {
+    return <GameTransitionLoading historiaNome={historiaAtual?.nome} message={resumeMessage} />;
+  }
+
   // Validacoes
   if (!user) {
     return <AuthLoading message="Verificando autenticacao..." />;

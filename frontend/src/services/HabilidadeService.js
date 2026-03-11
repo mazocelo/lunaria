@@ -9,9 +9,7 @@ export class HabilidadeService {
   async getAll(params) {
     try {
       const paramsString = generateGETparams(params);
-      const response = await this.apiClient.get(this.baseUrl + paramsString);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      return await this.apiClient.get(this.baseUrl + paramsString);
     } catch (error) {
       throw new Error(`Erro ao buscar habilidades: ${error.message}`);
     }
@@ -19,9 +17,7 @@ export class HabilidadeService {
 
   async getById(id) {
     try {
-      const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      return await this.apiClient.get(`${this.baseUrl}/${id}`);
     } catch (error) {
       throw new Error(`Erro ao buscar habilidade: ${error.message}`);
     }
@@ -29,9 +25,7 @@ export class HabilidadeService {
 
   async getEstatisticas() {
     try {
-      const response = await this.apiClient.get(`${this.baseUrl}/estatisticas`);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      return await this.apiClient.get(`${this.baseUrl}/estatisticas`);
     } catch (error) {
       throw new Error(`Erro ao buscar estatísticas: ${error.message}`);
     }
@@ -39,9 +33,7 @@ export class HabilidadeService {
 
   async create(data) {
     try {
-      const response = await this.apiClient.post(this.baseUrl, data);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      return await this.apiClient.post(this.baseUrl, data);
     } catch (error) {
       throw new Error(`Erro ao criar habilidade: ${error.message}`);
     }
@@ -49,9 +41,7 @@ export class HabilidadeService {
 
   async update(id, data) {
     try {
-      const response = await this.apiClient.put(`${this.baseUrl}/${id}`, data);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      return await this.apiClient.put(`${this.baseUrl}/${id}`, data);
     } catch (error) {
       throw new Error(`Erro ao atualizar habilidade: ${error.message}`);
     }
@@ -59,9 +49,7 @@ export class HabilidadeService {
 
   async delete(id) {
     try {
-      const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      return await this.apiClient.delete(`${this.baseUrl}/${id}`);
     } catch (error) {
       throw new Error(`Erro ao excluir habilidade: ${error.message}`);
     }

@@ -26,7 +26,7 @@ const WizardProgressBar = ({ etapas, etapaIndex, isLight }) => {
                 isActive
                   ? 'bg-purple-500/20 text-purple-400 font-semibold'
                   : isDone
-                    ? isLight ? 'text-slate-500' : 'text-slate-500'
+                    ? isLight ? 'text-slate-600' : 'text-slate-500'
                     : isLight ? 'text-slate-400' : 'text-slate-600'
               }`}
             >

@@ -11,7 +11,7 @@ async function generateImage(prompt, options = {}) {
 
   const isRealisticPrompt = /photorealistic|real-world|satellite-like|physically plausible/i.test(prompt);
   const defaultNegative = 'blurry, low quality, distorted, deformed, ugly, bad anatomy';
-  const realisticNegative = 'cartoon, anime, manga, cel shading, hand-drawn, painterly, illustration style, comic style, stylized outlines, logo, watermark, text';
+  const realisticNegative = 'cartoon, anime, manga, cel shading, hand-drawn, painterly, illustration style, comic style, stylized outlines, concept art, matte painting, digital painting brushstrokes, logo, watermark, text';
 
   const body = {
     prompt,
@@ -79,7 +79,7 @@ async function pollGeneration(generationId) {
 const IMAGE_STYLES = {
   fantasy_painting: 'high fantasy RPG art style, detailed, vibrant colors, digital painting',
   anime: 'anime art style, cel shading, vivid colors, manga illustration, Japanese RPG aesthetic',
-  realistic: 'photorealistic, hyper-detailed, cinematic lighting, concept art, AAA game art',
+  realistic: 'photorealistic RAW photo look, ultra-detailed real-world textures, natural lighting, physically based rendering, high dynamic range',
   dark_gothic: 'dark fantasy art, gothic atmosphere, muted colors, dramatic shadows, grim and moody',
   watercolor: 'watercolor painting style, soft edges, ethereal, pastel tones, storybook illustration',
   pixel_art: 'pixel art style, retro 16-bit RPG aesthetic, detailed sprites, nostalgic',

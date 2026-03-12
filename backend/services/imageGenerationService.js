@@ -109,6 +109,43 @@ function addIf(parts, value) {
   if (normalized) parts.push(normalized);
 }
 
+function mapStyleDirectives(estiloImagem) {
+  switch (estiloImagem) {
+    case 'realistic':
+      return 'realistic top-down world map, natural terrain textures, physically plausible geography, cinematic satellite-like rendering, no cartoon, no cel shading, no hand-drawn outlines';
+    case 'anime':
+      return 'anime-inspired top-down world map, cel-shaded stylization, vivid colors, clean stylized terrain';
+    case 'dark_gothic':
+      return 'dark gothic fantasy map, bleak palette, ominous atmosphere, dramatic shadows';
+    case 'watercolor':
+      return 'watercolor cartographic map, soft brush textures, painterly transitions';
+    case 'pixel_art':
+      return 'pixel art top-down world map, retro 16-bit RPG aesthetic';
+    case 'comic_book':
+      return 'comic-book cartographic map, bold inking, graphic stylization';
+    case 'fantasy_painting':
+    default:
+      return 'high fantasy painted world map, top-down cartographic composition, rich detail';
+  }
+}
+
+function extractMapaMundiContext(mapaMundi) {
+  if (!mapaMundi) return '';
+  if (typeof mapaMundi === 'string') return normalizeText(mapaMundi, 450);
+  if (typeof mapaMundi !== 'object') return '';
+
+  const descricao = normalizeText(mapaMundi.descricao_geral || mapaMundi.descricao || '', 260);
+  const regioes = Array.isArray(mapaMundi.regioes)
+    ? mapaMundi.regioes
+        .map((r) => `${normalizeText(r.nome || '', 60)} ${normalizeText(r.descricao || '', 80)}`.trim())
+        .filter(Boolean)
+        .slice(0, 8)
+        .join(' | ')
+    : '';
+
+  return [descricao, regioes].filter(Boolean).join(' | ');
+}
+
 function buildPrompt(entityType, entityData) {
   const style = IMAGE_STYLES[entityData.estilo_imagem] || IMAGE_STYLES.fantasy_painting;
   const temas = toListText(entityData.temas, 10);
@@ -153,15 +190,17 @@ function buildPrompt(entityType, entityData) {
       return parts.join(', ');
     }
     case 'historia_mapa': {
-      const mapStyle = 'fantasy RPG world map, top-down cartographic view, parchment texture, hand-drawn style, detailed terrain';
+      const mapVisualStyle = mapStyleDirectives(entityData.estilo_imagem);
       const parts = [
-        `${style}, ${mapStyle}`,
+        `${style}, ${mapVisualStyle}`,
         'strictly follow the provided themes and world context',
+        'no text labels, no logo, no watermark, no decorative frame unless explicitly requested',
       ];
       if (entityData.nome) parts.push(`world name: "${normalizeText(entityData.nome, 120)}"`);
       if (temas) parts.push(`themes: ${temas}`);
       if (entityData.locais) parts.push(`locations to include: ${toListText(entityData.locais, 12)}`);
-      if (entityData.mapaMundi) parts.push(`world context: ${normalizeText(entityData.mapaMundi, 450)}`);
+      const mapaContext = extractMapaMundiContext(entityData.mapaMundi);
+      if (mapaContext) parts.push(`world context: ${mapaContext}`);
       return parts.join(', ');
     }
     case 'mestre': {

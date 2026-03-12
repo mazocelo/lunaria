@@ -13,6 +13,9 @@ export class Personagem {
     this.historia_nome = data.historia_nome || null; // Nome da primeira história (compatibilidade)
     this.historia_id = data.historia_id || null; // ID da primeira história (compatibilidade)
     this.historias = data.historias || []; // Array de histórias vinculadas
+    this.racas = data.racas || null; // Objeto completo da raça (com bonus)
+    this.classes = data.classes || null; // Objeto completo da classe (com bonus)
+    this.imagem = data.imagem || null;
     this.nivel = data.nivel || 1;
     this.forca = data.forca || 10;
     this.destreza = data.destreza || 10;
@@ -121,6 +124,9 @@ export class Personagem {
       historia_nome: this.historia_nome,
       historia_id: this.historia_id,
       historias: this.historias,
+      racas: this.racas,
+      classes: this.classes,
+      imagem: this.imagem,
       nivel: this.nivel,
       forca: this.forca,
       destreza: this.destreza,
@@ -162,6 +168,9 @@ export class Personagem {
       historia_nome: apiData.historia_nome, // Nome da primeira história (compatibilidade)
       historia_id: apiData.historia_id, // ID da primeira história (compatibilidade)
       historias: apiData.historias || [], // Array de histórias vinculadas
+      racas: apiData.racas || null,
+      classes: apiData.classes || null,
+      imagem: apiData.imagem || null,
       nivel: apiData.nivel,
       forca: apiData.forca || 10,
       destreza: apiData.destreza || 10,

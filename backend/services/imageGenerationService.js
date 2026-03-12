@@ -13,6 +13,74 @@ const STYLE_MODEL_IDS = {
   pixel_art: process.env.LEONARDO_PIXEL_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
   comic_book: process.env.LEONARDO_COMIC_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
 };
+const BASE_NEGATIVE_PROMPT = 'blurry, low quality, distorted, deformed, ugly, bad anatomy';
+const REALISTIC_NEGATIVE = 'cartoon, anime, manga, cel shading, hand-drawn, painterly, illustration style, comic style, stylized outlines, concept art, matte painting, digital painting brushstrokes, logo, watermark, text';
+
+const STYLE_GENERATION_CONFIG = {
+  realistic: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 9,
+    alchemy: true,
+    enhancePrompt: true,
+    contrast: 3,
+    presetStyle: 'STOCK_PHOTO',
+    negativeExtra: REALISTIC_NEGATIVE,
+  },
+  anime: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 8,
+    alchemy: true,
+    enhancePrompt: true,
+    presetStyle: 'ANIME',
+  },
+  fantasy_painting: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 7.5,
+    alchemy: true,
+    enhancePrompt: true,
+    contrast: 3,
+    presetStyle: 'CINEMATIC',
+  },
+  dark_gothic: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 7.5,
+    alchemy: true,
+    enhancePrompt: true,
+    contrast: 4,
+    presetStyle: 'MOODY',
+  },
+  watercolor: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 7,
+    alchemy: true,
+    enhancePrompt: true,
+    contrast: 2,
+    presetStyle: 'ILLUSTRATION',
+  },
+  pixel_art: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 8.5,
+    alchemy: false,
+    enhancePrompt: false,
+    presetStyle: 'DYNAMIC',
+    negativeExtra: 'smooth gradients, anti-aliased edges, painterly textures, blurry pixels',
+  },
+  comic_book: {
+    width: 1024,
+    height: 1024,
+    guidance_scale: 7.5,
+    alchemy: true,
+    enhancePrompt: true,
+    contrast: 4,
+    presetStyle: 'DYNAMIC',
+  },
+};
 
 const POLL_INTERVAL = 2000;
 const MAX_POLLS = 30;
@@ -22,24 +90,32 @@ async function generateImage(prompt, options = {}) {
     throw new Error('LEONARDO_API_KEY não configurada');
   }
 
-  const isRealisticPrompt = /photorealistic|real-world|satellite-like|physically plausible/i.test(prompt);
-  const defaultNegative = 'blurry, low quality, distorted, deformed, ugly, bad anatomy';
-  const realisticNegative = 'cartoon, anime, manga, cel shading, hand-drawn, painterly, illustration style, comic style, stylized outlines, concept art, matte painting, digital painting brushstrokes, logo, watermark, text';
-
   const requestedStyle = options.estilo_imagem;
-  const isRealisticStyle = requestedStyle === 'realistic';
+  const styleConfig = STYLE_GENERATION_CONFIG[requestedStyle] || STYLE_GENERATION_CONFIG.fantasy_painting;
   const styleModelId = STYLE_MODEL_IDS[requestedStyle] || FALLBACK_MODEL_ID;
   const modelId = options.modelId || styleModelId;
+  const isRealisticPrompt = /photorealistic|real-world|satellite-like|physically plausible/i.test(prompt);
+
+  const negativeParts = [BASE_NEGATIVE_PROMPT];
+  if (styleConfig.negativeExtra) negativeParts.push(styleConfig.negativeExtra);
+  if (isRealisticPrompt && !negativeParts.includes(REALISTIC_NEGATIVE)) negativeParts.push(REALISTIC_NEGATIVE);
 
   const body = {
     prompt,
     modelId,
-    width: options.width || 512,
-    height: options.height || 512,
-    num_images: 1,
-    guidance_scale: options.guidance_scale || (isRealisticStyle ? 8.5 : 7),
-    negative_prompt: options.negative_prompt || (isRealisticPrompt ? `${defaultNegative}, ${realisticNegative}` : defaultNegative),
+    width: options.width || styleConfig.width || 1024,
+    height: options.height || styleConfig.height || 1024,
+    num_images: options.num_images || 1,
+    guidance_scale: options.guidance_scale || styleConfig.guidance_scale || 7,
+    negative_prompt: options.negative_prompt || negativeParts.join(', '),
+    alchemy: options.alchemy ?? styleConfig.alchemy ?? true,
+    enhancePrompt: options.enhancePrompt ?? styleConfig.enhancePrompt ?? true,
+    contrast: options.contrast ?? styleConfig.contrast,
+    presetStyle: options.presetStyle || styleConfig.presetStyle,
   };
+
+  if (body.contrast == null) delete body.contrast;
+  if (!body.presetStyle) delete body.presetStyle;
 
   const response = await fetch(`${LEONARDO_API_URL}/generations`, {
     method: 'POST',
@@ -366,3 +442,6 @@ function buildPrompt(entityType, entityData) {
 }
 
 export { generateImage, buildPrompt, IMAGE_STYLES };
+
+
+

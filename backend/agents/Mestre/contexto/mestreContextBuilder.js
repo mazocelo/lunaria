@@ -125,16 +125,59 @@ function inferNpcCanonicos(sessao = {}, historia = null) {
   return uniqueList((roteiro?.npcs || []).map(npc => npc?.nome)).slice(0, 30);
 }
 
+function inferNpcComDetalhes(sessao = {}, historia = null) {
+  const roteiro = inferRoteiro(sessao, historia);
+  return Array.isArray(roteiro?.npcs) ? roteiro.npcs : [];
+}
+
+function buildNameCollisionMap(sessao = {}, historia = null) {
+  const jogadoresRuntime = buildJogadoresRuntimeList(sessao);
+  const personagens = formatarPersonagensParaMestre(
+    jogadoresRuntime,
+    sessao.personagensCompletos || {}
+  );
+  const npcs = inferNpcComDetalhes(sessao, historia);
+
+  const personagensPorNome = new Map();
+  personagens.forEach(personagem => {
+    const nome = String(personagem?.nome || '').trim();
+    if (!nome) return;
+    const key = nome.toLowerCase();
+    personagensPorNome.set(key, [
+      ...(personagensPorNome.get(key) || []),
+      `${nome}${personagem.jogador ? ` (PJ do jogador ${personagem.jogador})` : ' (PJ)'}`
+    ]);
+  });
+
+  const conflitos = [];
+  npcs.forEach(npc => {
+    const nome = String(npc?.nome || '').trim();
+    if (!nome) return;
+    const key = nome.toLowerCase();
+    if (!personagensPorNome.has(key)) return;
+    conflitos.push({
+      nome,
+      personagens: personagensPorNome.get(key) || [],
+      npcs: [`${nome}${npc?.papel ? ` (NPC ${npc.papel})` : ' (NPC)'}`]
+    });
+  });
+
+  return conflitos;
+}
+
 function buildPartyResumo(personagens = []) {
   if (!personagens.length) return 'Nenhum personagem carregado.';
   return personagens
     .map(personagem => {
       const partes = [
-        personagem.nome || 'Aventureiro',
+        `[PJ] ${personagem.nome || 'Aventureiro'}`,
         personagem.raca || 'Humano',
         personagem.classe || 'Aventureiro',
         `Nv${personagem.nivel || 1}`
       ];
+      if (personagem.jogador) {
+        partes.push(`jogador: ${personagem.jogador}`);
+      }
       if (personagem.background) {
         partes.push(truncateText(personagem.background, 120));
       }
@@ -152,6 +195,7 @@ export function buildHistoriaContext(sessao = {}, historia = null, roteiroConden
     temas,
     prologo: historia?.prologo || sessao.historiaPrologo || '',
     resumoRoteiro: truncateText(roteiroCondensado || '', MAX_BLOCK_CHARS),
+    nomesConflitantes: buildNameCollisionMap(sessao, historia),
     mestreConfig: mestreConfig ? {
       nome: mestreConfig.nome || null,
       personalidade: mestreConfig.personalidade || null,
@@ -174,6 +218,7 @@ export function buildPersonagensContext(sessao = {}) {
     personagens: personagens.map(personagem => ({
       id: personagem.id || personagem.personagemId || personagem.nome,
       nome: personagem.nome,
+      jogador: personagem.jogador || null,
       classe: personagem.classe || '',
       raca: personagem.raca || '',
       nivel: personagem.nivel || 1,
@@ -257,8 +302,9 @@ export function formatMestreContextBlocks(mestreContexto = {}) {
   const personagensTexto = Array.isArray(personagens.personagens) && personagens.personagens.length > 0
     ? personagens.personagens.slice(0, MAX_LIST_ITEMS).map(personagem => {
         const partes = [
-          `${personagem.nome} (${personagem.raca || 'Humano'} ${personagem.classe || 'Aventureiro'} Nv${personagem.nivel || 1})`
+          `[PJ] ${personagem.nome} (${personagem.raca || 'Humano'} ${personagem.classe || 'Aventureiro'} Nv${personagem.nivel || 1})`
         ];
+        if (personagem.jogador) partes.push(`jogador: ${personagem.jogador}`);
         if (personagem.background) partes.push(`background: ${personagem.background}`);
         if (personagem.objetivos?.length) partes.push(`objetivos: ${personagem.objetivos.join(', ')}`);
         if (personagem.notasRelacionais?.length) partes.push(`relacoes: ${personagem.notasRelacionais.join(', ')}`);
@@ -266,13 +312,22 @@ export function formatMestreContextBlocks(mestreContexto = {}) {
       }).join('\n')
     : '- nenhum personagem carregado';
 
+  const conflitosTexto = Array.isArray(historia.nomesConflitantes) && historia.nomesConflitantes.length > 0
+    ? historia.nomesConflitantes.map(conflito =>
+        `- Nome compartilhado: ${conflito.nome}\n  PJs: ${conflito.personagens.join(', ')}\n  NPCs: ${conflito.npcs.join(', ')}`
+      ).join('\n')
+    : '- nenhum conflito de nomes entre PJ e NPC';
+
   const blocos = [
     `### CONTEXTO_HISTORIA
 Nome: ${historia.nome || 'Sem nome'}
 Temas: ${(historia.temas || []).join(', ') || 'nenhum'}
 Prologo: ${truncateText(historia.prologo || '', 500) || 'nenhum'}
 Resumo do roteiro:
-${truncateText(historia.resumoRoteiro || '', MAX_BLOCK_CHARS) || 'nenhum'}`,
+${truncateText(historia.resumoRoteiro || '', MAX_BLOCK_CHARS) || 'nenhum'}
+
+Desambiguação de nomes:
+${conflitosTexto}`,
     `### CONTEXTO_PERSONAGENS
 Party:
 ${truncateText(personagens.partyResumo || '', MAX_BLOCK_CHARS) || 'nenhum'}

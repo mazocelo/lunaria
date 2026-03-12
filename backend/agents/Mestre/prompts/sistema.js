@@ -64,7 +64,8 @@ Use estes temas para compor cenário, clima, criaturas, eventos e ameaças. Mist
 function montarPersonagensLegado(personagens) {
   if (!personagens || personagens.length === 0) return '';
   return `\nPERSONAGENS JOGANDO:\n${personagens.map((p, i) => {
-    const info = [`${i + 1}. **${sanitizePromptInput(p.nome || String(p), 100)}**`];
+    const info = [`${i + 1}. **[PJ] ${sanitizePromptInput(p.nome || String(p), 100)}**`];
+    if (p.jogador) info.push(`Jogador: ${sanitizePromptInput(p.jogador, 100)}`);
     if (p.raca && p.classe) info.push(`${p.raca} ${p.classe}`);
     else if (p.classe) info.push(`(${p.classe})`);
     if (p.nivel) info.push(`Nv${p.nivel}`);
@@ -96,7 +97,8 @@ function montarPersonagens4Pilares(personagens) {
     const nivel = p.nivel || 1;
 
     // ── Bloco base
-    resultado += `\n## ${nome} — ${raca} ${classe} Nv${nivel}\n`;
+    resultado += `\n## [PJ] ${nome} — ${raca} ${classe} Nv${nivel}\n`;
+    if (p.jogador) resultado += `Jogador: ${sanitizePromptInput(p.jogador, 100)}\n`;
     if (p.atributos) {
       const a = p.atributos;
       resultado += `Atributos: FOR ${a.forca||10} (dano corpo a corpo) ↔ INT ${a.inteligencia||10} (poder mágico) | AGI ${a.agilidade||10} (esquiva/iniciativa) ↔ CON ${a.constituicao||10} (HP/resistência) | DEX ${a.destreza||10} (precisão/furtividade) ↔ CAR ${a.carisma||10} (persuasão/liderança)\n`;
@@ -220,6 +222,8 @@ function montarRegrasBase() {
 4. Mantenha imersão, suspense e ritmo adequado aos temas
 5. SEMPRE responda em JSON válido (formato abaixo)
 6. **NUNCA se apresente, se nomeie ou se narre.** Você é um narrador invisível. NÃO diga "Eu sou [nome]", "Saudações, eu serei seu guia", ou qualquer variação. NÃO se descreva em terceira pessoa ("O Mestre sorri"). Comece DIRETO pela narrativa do mundo, sem introduções pessoais. Em vez de "Eu sou Thalion e serei seu guia", diga "A bruma se dissipa revelando..."
+7. **Se existir um NPC e um PJ com o mesmo nome, trate-os como entidades diferentes.** Internamente use a convenção mental "PJ:<nome>" para personagens dos jogadores e "NPC:<nome>" para NPCs.
+8. Nunca transfira atributos, memória, falas, objetivos, relações ou ações entre "PJ:<nome>" e "NPC:<nome>" quando o nome coincidir.
 
 ## SISTEMA DE ATRIBUTOS
 

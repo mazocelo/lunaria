@@ -3,6 +3,7 @@ import { apiClient } from '../services/ApiClient.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 const SPEED_STEPS = [1, 1.25, 1.5, 1.75, 2];
+const TTS_LAST_MESSAGE_KEY = 'tts_last_message_id';
 
 /**
  * Hook para playback de TTS com cache por mensagem.
@@ -10,7 +11,13 @@ const SPEED_STEPS = [1, 1.25, 1.5, 1.75, 2];
 export const useTTS = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentMessageId, setCurrentMessageId] = useState(null);
+  const [currentMessageId, setCurrentMessageId] = useState(() => {
+    try {
+      return localStorage.getItem(TTS_LAST_MESSAGE_KEY);
+    } catch (_) {
+      return null;
+    }
+  });
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -28,7 +35,7 @@ export const useTTS = () => {
     audio.onloadedmetadata = null;
   }, []);
 
-  const stopAudio = useCallback(() => {
+  const clearPlayback = useCallback((clearMessage = true) => {
     if (audioRef.current) {
       audioRef.current.pause();
       detachAudioHandlers(audioRef.current);
@@ -36,20 +43,42 @@ export const useTTS = () => {
     }
 
     setIsPlaying(false);
-    setCurrentMessageId(null);
     setCurrentTime(0);
     setDuration(0);
+    if (clearMessage) setCurrentMessageId(null);
   }, [detachAudioHandlers]);
+
+  // Stop do player: para e volta ao inicio, mantendo a mensagem selecionada
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    setCurrentTime(0);
+    setIsPlaying(false);
+  }, []);
 
   useEffect(() => {
     return () => {
-      stopAudio();
+      clearPlayback(true);
       for (const url of cacheRef.current.values()) {
         URL.revokeObjectURL(url);
       }
       cacheRef.current.clear();
     };
-  }, [stopAudio]);
+  }, [clearPlayback]);
+
+  useEffect(() => {
+    try {
+      if (currentMessageId == null) {
+        localStorage.removeItem(TTS_LAST_MESSAGE_KEY);
+      } else {
+        localStorage.setItem(TTS_LAST_MESSAGE_KEY, String(currentMessageId));
+      }
+    } catch (_) {
+      // no-op
+    }
+  }, [currentMessageId]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -80,8 +109,12 @@ export const useTTS = () => {
     setCurrentTime(0);
     setDuration(0);
 
-    audio.onended = () => stopAudio();
-    audio.onerror = () => stopAudio();
+    audio.onended = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      try { audio.currentTime = 0; } catch (_) {}
+    };
+    audio.onerror = () => clearPlayback(true);
     audio.onplay = () => setIsPlaying(true);
     audio.onpause = () => setIsPlaying(false);
     audio.ontimeupdate = () => setCurrentTime(audio.currentTime || 0);
@@ -92,20 +125,20 @@ export const useTTS = () => {
 
     audio.play()
       .then(() => setIsPlaying(true))
-      .catch(() => stopAudio());
-  }, [detachAudioHandlers, playbackRate, stopAudio]);
+      .catch(() => clearPlayback(true));
+  }, [clearPlayback, detachAudioHandlers, playbackRate]);
 
   const togglePause = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     if (audio.paused) {
-      audio.play().catch(() => stopAudio());
+      audio.play().catch(() => clearPlayback(true));
       return;
     }
 
     audio.pause();
-  }, [stopAudio]);
+  }, [clearPlayback]);
 
   const seekTo = useCallback((value) => {
     const audio = audioRef.current;
@@ -132,12 +165,23 @@ export const useTTS = () => {
   }, []);
 
   const play = useCallback(async (text, voiceId, messageId, provider = DEFAULT_TTS_PROVIDER) => {
-    if (String(currentMessageId) === String(messageId) && audioRef.current) {
-      togglePause();
-      return;
+    if (String(currentMessageId) === String(messageId)) {
+      if (audioRef.current) {
+        togglePause();
+        return;
+      }
+
+      // Mesmo messageId sem instancia ativa: recarregar do cache local se existir
+      const cachedCurrent = cacheRef.current.get(messageId);
+      if (cachedCurrent) {
+        playUrl(cachedCurrent, messageId);
+        return;
+      }
     }
 
-    stopAudio();
+    // Troca de mensagem: limpar contexto atual
+    clearPlayback(true);
+    setCurrentMessageId(messageId);
 
     const cached = cacheRef.current.get(messageId);
     if (cached) {
@@ -158,11 +202,11 @@ export const useTTS = () => {
       playUrl(url, messageId);
     } catch (error) {
       console.error('TTS error:', error.message);
-      stopAudio();
+      clearPlayback(true);
     } finally {
       setIsLoading(false);
     }
-  }, [currentMessageId, playUrl, stopAudio, togglePause]);
+  }, [clearPlayback, currentMessageId, playUrl, togglePause]);
 
   return {
     play,

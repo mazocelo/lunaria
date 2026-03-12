@@ -82,8 +82,37 @@ const IMAGE_STYLES = {
   comic_book: 'comic book art style, bold ink outlines, dynamic poses, vibrant halftone colors, graphic novel',
 };
 
+function normalizeText(value, maxLen = 400) {
+  if (value == null) return '';
+  const text = String(value).replace(/\s+/g, ' ').trim();
+  return text.slice(0, maxLen);
+}
+
+function toListText(value, maxItems = 8) {
+  if (!value) return '';
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item == null) return '';
+        if (typeof item === 'string' || typeof item === 'number') return String(item);
+        return item.nome || item.name || item.label || item.id || '';
+      })
+      .filter(Boolean)
+      .slice(0, maxItems)
+      .join(', ');
+  }
+  return normalizeText(value, 400);
+}
+
+function addIf(parts, value) {
+  const normalized = normalizeText(value, 500);
+  if (normalized) parts.push(normalized);
+}
+
 function buildPrompt(entityType, entityData) {
   const style = IMAGE_STYLES[entityData.estilo_imagem] || IMAGE_STYLES.fantasy_painting;
+  const temas = toListText(entityData.temas, 10);
+  const contextoHistoria = normalizeText(entityData.contexto_historia || entityData.contexto || '', 500);
 
   switch (entityType) {
     case 'personagem': {
@@ -110,23 +139,29 @@ function buildPrompt(entityType, entityData) {
       return parts.join(', ');
     }
     case 'historia': {
-      const parts = [`${style}, epic book cover illustration`];
-      if (entityData.nome) parts.push(`"${entityData.nome}"`);
-      if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
-      if (entityData.sinopse) parts.push(entityData.sinopse.slice(0, 250));
-      else if (entityData.prologo) parts.push(entityData.prologo.slice(0, 250));
-      else if (entityData.descricao) parts.push(entityData.descricao.slice(0, 250));
-      if (entityData.antagonista) parts.push(`antagonist: ${entityData.antagonista}`);
-      if (entityData.locais) parts.push(`locations: ${entityData.locais}`);
+      const parts = [
+        `${style}, epic book cover illustration`,
+        'strictly follow the provided themes and story mood',
+      ];
+      if (entityData.nome) parts.push(`title: "${normalizeText(entityData.nome, 120)}"`);
+      if (temas) parts.push(`themes: ${temas}`);
+      if (entityData.sinopse) parts.push(`synopsis: ${normalizeText(entityData.sinopse, 350)}`);
+      else if (entityData.prologo) parts.push(`prologue: ${normalizeText(entityData.prologo, 350)}`);
+      else if (entityData.descricao) parts.push(`description: ${normalizeText(entityData.descricao, 350)}`);
+      if (entityData.antagonista) parts.push(`main antagonist: ${normalizeText(entityData.antagonista, 120)}`);
+      if (entityData.locais) parts.push(`key locations: ${toListText(entityData.locais, 8)}`);
       return parts.join(', ');
     }
     case 'historia_mapa': {
       const mapStyle = 'fantasy RPG world map, top-down cartographic view, parchment texture, hand-drawn style, detailed terrain';
-      const parts = [mapStyle];
-      if (entityData.nome) parts.push(`"${entityData.nome}"`);
-      if (entityData.temas) parts.push(`themes: ${entityData.temas}`);
-      if (entityData.locais) parts.push(`locations: ${entityData.locais}`);
-      if (entityData.mapaMundi) parts.push(String(entityData.mapaMundi).slice(0, 250));
+      const parts = [
+        `${style}, ${mapStyle}`,
+        'strictly follow the provided themes and world context',
+      ];
+      if (entityData.nome) parts.push(`world name: "${normalizeText(entityData.nome, 120)}"`);
+      if (temas) parts.push(`themes: ${temas}`);
+      if (entityData.locais) parts.push(`locations to include: ${toListText(entityData.locais, 12)}`);
+      if (entityData.mapaMundi) parts.push(`world context: ${normalizeText(entityData.mapaMundi, 450)}`);
       return parts.join(', ');
     }
     case 'mestre': {
@@ -137,23 +172,56 @@ function buildPrompt(entityType, entityData) {
       return parts.join(', ');
     }
     case 'npc': {
-      const parts = [`${style}, RPG character portrait`];
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 400));
-      if (entityData.nome) parts.push(`named ${entityData.nome}`);
-      if (entityData.papel) parts.push(`${entityData.papel}`);
-      if (entityData.local) parts.push(`in ${entityData.local}`);
+      const parts = [
+        `${style}, RPG character portrait`,
+        'strictly follow the provided appearance/personality description',
+      ];
+      if (entityData.nome) parts.push(`named ${normalizeText(entityData.nome, 100)}`);
+      if (entityData.papel) parts.push(`role: ${normalizeText(entityData.papel, 80)}`);
+      if (entityData.local) parts.push(`location: ${normalizeText(entityData.local, 120)}`);
+      if (temas) parts.push(`themes: ${temas}`);
+      addIf(parts, `description: ${entityData.descricao}`);
+      addIf(parts, `motivation: ${entityData.motivacao}`);
+      addIf(parts, `secret: ${entityData.segredo}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
       return parts.join(', ');
     }
     case 'local': {
-      const parts = [`${style}, landscape illustration, environment art, no characters`];
-      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 400));
-      if (entityData.nome) parts.push(entityData.nome);
-      if (entityData.tipo) parts.push(`${entityData.tipo}`);
+      const parts = [
+        `${style}, landscape illustration, environment art, no characters`,
+        'strictly follow the provided environment description',
+      ];
+      if (entityData.nome) parts.push(`location name: ${normalizeText(entityData.nome, 120)}`);
+      if (entityData.tipo) parts.push(`location type: ${normalizeText(entityData.tipo, 80)}`);
+      if (entityData.perigo) parts.push(`danger level: ${normalizeText(entityData.perigo, 50)}`);
+      if (temas) parts.push(`themes: ${temas}`);
+      addIf(parts, `description: ${entityData.descricao}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
       return parts.join(', ');
     }
     case 'cena': {
-      const parts = [`${style}, scene illustration, dramatic lighting, cinematic`];
-      if (entityData.narracao) parts.push(entityData.narracao.slice(0, 500));
+      const parts = [
+        `${style}, scene illustration, dramatic lighting, cinematic composition`,
+        'strictly follow the narrative and entity descriptions',
+      ];
+      if (temas) parts.push(`themes: ${temas}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      if (entityData.narracao) parts.push(`scene narration: ${normalizeText(entityData.narracao, 700)}`);
+
+      const entidades = Array.isArray(entityData.entidades) ? entityData.entidades : [];
+      if (entidades.length > 0) {
+        const descricoesEntidades = entidades.slice(0, 8).map((e) => {
+          const tipo = normalizeText(e.tipo || e.entityType || 'entidade', 30);
+          const nome = normalizeText(e.nome || e.name || '', 80);
+          const descricao = normalizeText(e.descricao || e.description || '', 220);
+          const detalhes = [nome, descricao].filter(Boolean).join(' - ');
+          return `${tipo}: ${detalhes}`.trim();
+        }).filter(Boolean);
+
+        if (descricoesEntidades.length > 0) {
+          parts.push(`entities in scene: ${descricoesEntidades.join(' | ')}`);
+        }
+      }
       return parts.join(', ');
     }
     default:

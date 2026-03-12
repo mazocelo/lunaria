@@ -3,7 +3,14 @@ import { getProvider, getConfiguredProviders } from '../services/ttsService.js';
 import usageService from '../services/usageService.js';
 import ttsCacheService from '../services/ttsCacheService.js';
 
+function getProviderContentType(provider) {
+  return typeof provider.getContentType === 'function'
+    ? provider.getContentType()
+    : 'audio/mpeg';
+}
+
 const router = express.Router();
+const DEFAULT_PROVIDER = process.env.DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
 const MAX_TEXT_LENGTH = 5000;
 const PREVIEW_TEXT_PTBR = 'Olá aventureiros! Eu serei o mestre desta jornada épica. Preparem-se para uma aventura inesquecível!';
@@ -23,7 +30,7 @@ router.get('/providers', (req, res) => {
  */
 router.get('/voices', async (req, res) => {
   try {
-    const providerName = req.query.provider || 'elevenlabs';
+    const providerName = req.query.provider || DEFAULT_PROVIDER;
     const provider = getProvider(providerName);
 
     if (!provider.isConfigured()) {
@@ -44,7 +51,7 @@ router.get('/voices', async (req, res) => {
  */
 router.post('/generate', async (req, res) => {
   try {
-    const { text, voiceId, provider: providerName = 'elevenlabs', emotion } = req.body;
+    const { text, voiceId, provider: providerName = DEFAULT_PROVIDER, emotion } = req.body;
     const provider = getProvider(providerName);
 
     if (!provider.isConfigured()) {
@@ -74,7 +81,7 @@ router.post('/generate', async (req, res) => {
     }
 
     res.set({
-      'Content-Type': 'audio/mpeg',
+      'Content-Type': getProviderContentType(provider),
       'Content-Length': audioBuffer.length,
       'Cache-Control': fromCache ? 'public, max-age=86400' : 'no-cache'
     });
@@ -91,7 +98,7 @@ router.post('/generate', async (req, res) => {
  */
 router.post('/preview', async (req, res) => {
   try {
-    const { voiceId, provider: providerName = 'elevenlabs', emotion } = req.body;
+    const { voiceId, provider: providerName = DEFAULT_PROVIDER, emotion } = req.body;
     const provider = getProvider(providerName);
 
     if (!provider.isConfigured()) {
@@ -111,7 +118,7 @@ router.post('/preview', async (req, res) => {
     if (req.user?.id) usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: PREVIEW_TEXT_PTBR.length, duracao_ms: Date.now() - tPrev, metadata: { preview: true } });
 
     res.set({
-      'Content-Type': 'audio/mpeg',
+      'Content-Type': getProviderContentType(provider),
       'Content-Length': audioBuffer.length,
       'Cache-Control': 'no-cache'
     });

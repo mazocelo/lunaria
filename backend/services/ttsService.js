@@ -5,14 +5,18 @@
 
 import ElevenLabsProvider from './tts/elevenLabsProvider.js';
 import CartesiaProvider from './tts/cartesiaProvider.js';
+import OpenSourceProvider from './tts/openSourceProvider.js';
+
+const defaultProviderName = process.env.DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
 const providers = {
   elevenlabs: new ElevenLabsProvider(),
   cartesia: new CartesiaProvider(),
+  opensource: new OpenSourceProvider(),
 };
 
 export function getProvider(name) {
-  return providers[name] || providers.elevenlabs;
+  return providers[name] || providers[defaultProviderName] || providers.elevenlabs;
 }
 
 export function getConfiguredProviders() {
@@ -22,4 +26,4 @@ export function getConfiguredProviders() {
 }
 
 // Backward compatibility: default export as ElevenLabs instance
-export default providers.elevenlabs;
+export default providers[defaultProviderName] || providers.elevenlabs;

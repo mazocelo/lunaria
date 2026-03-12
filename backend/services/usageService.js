@@ -24,6 +24,9 @@ const COST_TABLE = {
   cartesia: {
     per_1000_chars: 0.05,
   },
+  opensource: {
+    per_1000_chars: 0,
+  },
   leonardo: {
     per_image: 0.02,
   },

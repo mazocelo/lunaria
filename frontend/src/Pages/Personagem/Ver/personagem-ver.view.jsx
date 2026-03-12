@@ -26,15 +26,9 @@ const raridadeVariant = {
 const bonusLabels = {
   ataque: 'Ataque', dano: 'Dano', armadura: 'Armadura',
   esquiva_bonus: 'Esquiva', esquiva_penalidade: 'Pen. Esquiva',
-  ca: 'Armadura', ca_base: 'Armadura Base'
-};
-
-const formatBonus = (bonus) => {
-  if (!bonus || typeof bonus !== 'object') return null;
-  return Object.entries(bonus)
-    .filter(([, v]) => v !== 0 && v != null)
-    .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${bonusLabels[k] || k}`)
-    .join(', ');
+  ca: 'Armadura', ca_base: 'Armadura Base',
+  forca: 'Forca', inteligencia: 'Inteligencia', constituicao: 'Constituicao',
+  agilidade: 'Agilidade', destreza: 'Destreza', carisma: 'Carisma',
 };
 
 const parseBonus = (raw) => {
@@ -45,31 +39,56 @@ const parseBonus = (raw) => {
   } catch { return null; }
 };
 
+// Normalize bonus to flat {key: number} — handles both {forca: "+2"} and [{atributo: "forca", valor: 2}]
+const normalizeBonusObj = (raw) => {
+  if (!raw) return null;
+  const parsed = typeof raw === 'string' ? parseBonus(raw) : raw;
+  if (!parsed) return null;
+  // Array format: [{atributo: "forca", valor: 2}, ...]
+  if (Array.isArray(parsed)) {
+    const result = {};
+    parsed.forEach(item => {
+      if (item?.atributo && item?.valor != null) {
+        result[item.atributo] = Number(item.valor);
+      }
+    });
+    return Object.keys(result).length > 0 ? result : null;
+  }
+  // Object format: {forca: "+2", vantagens: [...], ...} — filter to primitives only
+  if (typeof parsed === 'object') return parsed;
+  return null;
+};
+
+const formatBonus = (bonus) => {
+  const obj = normalizeBonusObj(bonus);
+  if (!obj || typeof obj !== 'object') return null;
+  const parts = Object.entries(obj)
+    .filter(([, v]) => (typeof v === 'number' || typeof v === 'string') && v !== 0 && v != null)
+    .filter(([, v]) => !isNaN(Number(v)))
+    .map(([k, v]) => { const n = Number(v); return `${n > 0 ? '+' : ''}${n} ${bonusLabels[k] || k}`; });
+  return parts.length > 0 ? parts.join(', ') : null;
+};
+
 const atributoKeys = new Set(['forca', 'inteligencia', 'constituicao', 'agilidade', 'destreza', 'carisma']);
 
 const calcularBonusAtributos = (p) => {
   const result = {};
   atributosConfig.forEach(a => { result[a.key] = []; });
 
-  const addBonus = (source, label, bonus) => {
-    if (!bonus || typeof bonus !== 'object') return;
-    Object.entries(bonus).forEach(([k, v]) => {
-      if (atributoKeys.has(k) && v && v !== 0 && result[k]) {
+  const addBonus = (label, bonus) => {
+    const obj = normalizeBonusObj(bonus);
+    if (!obj || typeof obj !== 'object') return;
+    Object.entries(obj).forEach(([k, v]) => {
+      if (atributoKeys.has(k) && v != null && !isNaN(Number(v)) && Number(v) !== 0 && result[k]) {
         result[k].push({ label, value: Number(v) });
       }
     });
   };
 
-  addBonus(p, 'Raca', parseBonus(p.racas?.bonus));
-  addBonus(p, 'Classe', parseBonus(p.classes?.bonus));
-  (p.vantagens || []).forEach(v => {
-    const b = typeof v.bonus === 'object' && !Array.isArray(v.bonus) ? v.bonus : parseBonus(v.bonus);
-    addBonus(p, v.nome, b);
-  });
-  (p.desvantagens || []).forEach(d => {
-    const b = typeof d.bonus === 'object' && !Array.isArray(d.bonus) ? d.bonus : parseBonus(d.bonus);
-    addBonus(p, d.nome, b);
-  });
+  addBonus('Raca', p.racas?.bonus);
+  addBonus('Classe', p.classes?.bonus);
+  (p.vantagens || []).forEach(v => addBonus(v.nome, v.bonus));
+  (p.desvantagens || []).forEach(d => addBonus(d.nome, d.bonus));
 
   return result;
 };
@@ -387,6 +406,26 @@ const VerPersonagemView = ({
                 );
               })}
             </div>
+            {/* Total summary */}
+            {(() => {
+              const hasBonuses = Object.values(bonusPorAtributo).some(arr => arr.length > 0);
+              if (!hasBonuses) return null;
+              const totalBonusGeral = Object.values(bonusPorAtributo).reduce((sum, arr) => sum + arr.reduce((s, b) => s + b.value, 0), 0);
+              const totalAtributos = atributosConfig.reduce((sum, attr) => sum + (p[attr.key] || p.atributos?.[attr.key] || 10), 0);
+              const totalBase = totalAtributos - totalBonusGeral;
+              return (
+                <div className={`mt-4 p-3 rounded-lg border ${isLight ? 'bg-purple-50/30 border-purple-200/50' : 'bg-purple-500/5 border-purple-500/20'}`}>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                      Total: {totalAtributos} pontos
+                    </span>
+                    <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Base: {totalBase} {totalBonusGeral !== 0 && <span className={totalBonusGeral > 0 ? 'text-cyan-400' : 'text-red-400'}>({totalBonusGeral > 0 ? '+' : ''}{totalBonusGeral} bonus)</span>}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}

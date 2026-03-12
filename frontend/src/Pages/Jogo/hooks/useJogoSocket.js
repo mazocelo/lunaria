@@ -132,13 +132,11 @@ export const useJogoSocket = () => {
         const statusData = await historiaService.getStatusJogo(historia.id);
         const { sessao } = statusData || {};
         if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
-          const mensagensFormatadas = sessao.mensagens.map(m => ({
-            id: m.timestamp || Date.now(),
-            userId: m.userId,
-            username: m.username,
-            message: m.mensagem,
-            tipo: m.tipo,
-            timestamp: m.timestamp,
+          const mensagensFormatadas = sessao.mensagens.map((m, index) => ({
+            ...m,
+            id: m.id ?? m.timestamp ?? `msg_${Date.now()}_${index}`,
+            message: m.mensagem || m.message,
+            scene_image: m.scene_image || m.sceneImage || m.imagem_cena || null,
           }));
           storeSetMensagens(mensagensFormatadas);
         }

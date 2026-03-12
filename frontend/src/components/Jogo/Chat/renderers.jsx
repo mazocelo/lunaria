@@ -259,7 +259,11 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                 </button>
                 {effectiveVoiceId && (
                   <button
-                    onClick={() => tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)}
+                    onClick={() => (
+                      isThisPlaying && tts.isPlaying
+                        ? tts.stop()
+                        : tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)
+                    )}
                     disabled={tts.isLoading && isThisPlaying}
                     className={`p-1.5 rounded-lg transition-all text-lg ${
                       isThisPlaying && tts.isPlaying

@@ -258,10 +258,11 @@ export const useJogo = () => {
       }
 
       if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
-        const mensagensFormatadas = sessao.mensagens.map(m => ({
+        const mensagensFormatadas = sessao.mensagens.map((m, index) => ({
           ...m,
-          id: m.timestamp || Date.now(),
+          id: m.id ?? m.timestamp ?? `msg_${Date.now()}_${index}`,
           message: m.mensagem || m.message,
+          scene_image: m.scene_image || m.sceneImage || m.imagem_cena || null,
         }));
 
         storeSetMensagens(mensagensFormatadas);

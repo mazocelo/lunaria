@@ -490,7 +490,7 @@ class SessaoController {
       }
 
       const mensagens = sessao.mensagens || [];
-      const idx = mensagens.findIndex(m => String(m.id) === String(mensagemId));
+      const idx = mensagens.findIndex(m => String(m.id) === String(mensagemId) || String(m.timestamp) === String(mensagemId));
       if (idx === -1) {
         return res.status(404).json({ success: false, error: 'Mensagem não encontrada' });
       }

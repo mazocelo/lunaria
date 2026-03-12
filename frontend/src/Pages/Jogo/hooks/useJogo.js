@@ -419,6 +419,7 @@ export const useJogo = () => {
       return { nome: 'Personagem nao encontrado', classe: 'Desconhecida', raca: 'Desconhecida', nivel: '1', hp: '???', hpMaximo: '???', mp: '???', xp: '0' };
     }
     return {
+      ...personagem,
       nome: personagem.nome || 'Personagem sem nome',
       classe: personagem.classe_nome || personagem.classe || 'Desconhecida',
       raca: personagem.raca_nome || personagem.raca || 'Desconhecida',

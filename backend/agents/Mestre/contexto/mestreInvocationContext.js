@@ -1,0 +1,36 @@
+export function getResumoMaisRecente(sessao = {}) {
+  if (Array.isArray(sessao.resumos) && sessao.resumos.length > 0) {
+    return sessao.resumos[sessao.resumos.length - 1]?.resumo || null;
+  }
+  return null;
+}
+
+function buildBaseContext(sessao = {}) {
+  return {
+    chatHistory: sessao.mensagens || [],
+    resumo: getResumoMaisRecente(sessao)
+  };
+}
+
+export function buildNarracaoContext(sessao = {}) {
+  return buildBaseContext(sessao);
+}
+
+export function buildTurnStartContext(sessao = {}, userId = null) {
+  return {
+    ...buildBaseContext(sessao),
+    turno: sessao.estadoJogo?.turno || null,
+    userId
+  };
+}
+
+export function buildDiceResolutionContext(sessao = {}, testeResolvido = null) {
+  const contexto = buildBaseContext(sessao);
+  if (!testeResolvido) return contexto;
+
+  return {
+    ...contexto,
+    resumo: contexto.resumo,
+    testeResolvido
+  };
+}

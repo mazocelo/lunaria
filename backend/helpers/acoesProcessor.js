@@ -72,17 +72,31 @@ const ACTION_HANDLERS = new Map([
   ['concentracao_quebrada', processarConcentracaoQuebrada],
 ]);
 
+function shouldProcessAction(acao, stage = 'all') {
+  if (stage === 'all') return true;
+
+  const actionStage = acao?.stage || (acao?.dependeDeTeste ? 'posTeste' : 'independente');
+  if (stage === 'preTeste') {
+    return actionStage === 'preTeste' || actionStage === 'independente';
+  }
+  if (stage === 'posTeste') {
+    return actionStage === 'posTeste' || actionStage === 'independente';
+  }
+  return true;
+}
+
 /**
  * Processa array de ações mecânicas do Mestre
  */
-export async function processarAcoes(acoes, sessao, roomId, io) {
+export async function processarAcoes(acoes, sessao, roomId, io, options = {}) {
   if (!acoes?.length) return;
 
   for (const acao of acoes) {
+    if (!shouldProcessAction(acao, options.stage || 'all')) continue;
     try {
       const handler = ACTION_HANDLERS.get(acao.tipo);
       if (handler) {
-        await handler(acao, sessao, roomId, io);
+        await handler(acao, sessao, roomId, io, options);
       } else {
         console.warn(`⚠️ AcoesProcessor: tipo de ação desconhecido: ${acao.tipo}`);
       }
@@ -539,7 +553,7 @@ async function processarConjurarMagia(acao, sessao, roomId, io) {
  * Se DC presente, emite pedido de teste ao jogador
  * acao: { tipo, personagem, nome, dc, atributo, penalidade }
  */
-async function processarAtivarDesvantagem(acao, sessao, roomId, io) {
+async function processarAtivarDesvantagem(acao, sessao, roomId, io, options = {}) {
   const { personagem: nomePersonagem, nome, dc, atributo } = acao;
   if (!nomePersonagem || !nome) return;
 
@@ -547,6 +561,23 @@ async function processarAtivarDesvantagem(acao, sessao, roomId, io) {
   if (!alvo) return;
 
   if (dc && atributo) {
+    if (typeof options.onTesteSolicitado === 'function') {
+      await options.onTesteSolicitado({
+        origem: 'desvantagem',
+        jogadorAlvo: alvo.userId,
+        personagemAlvo: alvo.personagemId,
+        teste: atributo,
+        atributo,
+        dificuldade: dc,
+        contexto: `Resistir a desvantagem ${nome}`,
+        tipoDado: 'd20',
+        metadata: {
+          desvantagem: nome,
+          penalidade: acao.penalidade || null
+        }
+      });
+      return;
+    }
     // Requer teste — emitir pedido
     console.log(`🎭 ativar_desvantagem: ${nome} → ${nomePersonagem} (DC ${dc} ${atributo})`);
     io.to(roomId).emit('acao_mestre', {

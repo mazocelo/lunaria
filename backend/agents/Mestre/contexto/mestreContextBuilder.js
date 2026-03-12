@@ -271,6 +271,9 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
     locaisVisitados: uniqueList(contextoExistente.locaisVisitados || []).slice(0, MAX_LIST_ITEMS),
     objetivosAbertos: uniqueList(contextoExistente.objetivosAbertos || []).slice(0, MAX_LIST_ITEMS),
     relacoesNPC: Array.isArray(contextoExistente.relacoesNPC) ? contextoExistente.relacoesNPC.slice(0, MAX_LIST_ITEMS) : [],
+    roleplayRecente: uniqueList(
+      (sessao.roleplayRecente || []).map(item => `${item.username}: ${item.mensagem || item.message || ''}`)
+    ).slice(-10),
     compactacao
   };
 }
@@ -349,7 +352,8 @@ ${formatList('Locais visitados', sessao.locaisVisitados)}
 ${formatList('Objetivos em aberto', sessao.objetivosAbertos)}
 ${formatList('Pistas descobertas', sessao.pistasDescobertas)}
 ${formatList('Fatos importantes', sessao.fatosImportantes)}
-${formatList('Itens relevantes', sessao.itensRelevantes)}`
+${formatList('Itens relevantes', sessao.itensRelevantes)}
+${formatList('Roleplay recente', sessao.roleplayRecente)}` 
   ];
 
   return blocos.join('\n\n');

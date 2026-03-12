@@ -1,9 +1,20 @@
 /**
- * AI Response Dispatcher — processa blocos da resposta do Mestre IA em sequência
- *
- * Cada handler recebe (resposta, ctx) onde ctx contém:
- *   { roomId, userId, username, personagem, mensagem, sessao, socket, io, sm (socketManager), fase, combateAtivo }
+ * AI Response Dispatcher - processa blocos da resposta do Mestre IA em sequencia.
  */
+import { processarAcoes } from '../../helpers/acoesProcessor.js';
+import { calcularModificadorTeste } from '../../helpers/testeHelper.js';
+import {
+  buildTurnEventPayload,
+  incrementTurnInteractions,
+  transitionTurnState,
+  TURN_STATUS
+} from './turnStateMachine.js';
+import {
+  criarTestePendente,
+  emitirSolicitacaoTeste,
+  getTestePendente,
+  limparTestePendente
+} from './testePipeline.js';
 
 async function processarInicioCombate(resposta, ctx) {
   ctx.sm.log('INFO', 'COMBATE_DETECTADO_PELA_IA', ctx.socket.id, ctx.userId, {
@@ -25,151 +36,160 @@ async function processarFugaCombate(resposta, ctx) {
   await ctx.sm.finalizarCombate(ctx.roomId, 'fuga');
 }
 
-async function processarAcoesMecanicas(resposta, ctx) {
-  const { processarAcoes } = await import('../../helpers/acoesProcessor.js');
-  await processarAcoes(resposta.acoes, ctx.sessao, ctx.roomId, ctx.io);
-  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
-}
+async function criarSolicitacaoTeste(resposta, ctx) {
+  const teste = resposta.teste || resposta.solicitaDados || {};
+  const testePendente = criarTestePendente(ctx.sessao, {
+    origem: teste.origem || 'mestre',
+    jogadorAlvo: teste.jogadorAlvo || ctx.userId,
+    personagemAlvo: ctx.personagem?.id || ctx.personagem?.personagemId || null,
+    teste: teste.teste || resposta.solicitaDados?.teste || '',
+    atributo: teste.atributo || null,
+    pericia: teste.pericia || null,
+    dificuldade: teste.dificuldade || resposta.solicitaDados?.dificuldade || 'Média',
+    contexto: teste.contexto || resposta.narracao || null,
+    tipoDado: teste.tipoDado || resposta.solicitaDados?.tipo || 'd20',
+    metadata: {
+      origemNarrativa: ctx.mensagem
+    }
+  }, ctx.userId);
 
-async function processarSolicitaDados(resposta, ctx) {
-  ctx.sm.log('INFO', 'MENSAGEM_PARA_MESTRE_DADOS_SOLICITADOS_JSON', ctx.socket.id, ctx.userId, {
-    roomId: ctx.roomId,
-    teste: resposta.solicitaDados.teste,
-    tipo: resposta.solicitaDados.tipo,
-    dificuldade: resposta.solicitaDados.dificuldade
-  });
-  console.log('🎲 Mestre solicitou dados (JSON):', resposta.solicitaDados);
-
-  const estadoJogoAtual = ctx.sessao.estadoJogo || {};
-  estadoJogoAtual.dadosSolicitados = true;
-  estadoJogoAtual.testeInfo = {
-    teste: resposta.solicitaDados.teste || null,
-    dificuldade: resposta.solicitaDados.dificuldade || 'Média',
-    jogadorAlvo: ctx.userId
-  };
-  ctx.sessao.estadoJogo = estadoJogoAtual;
-
-  const mensagemAguardando = {
-    tipo: 'aguardando_dados',
-    userId: 'sistema',
-    username: 'Sistema',
-    mensagem: `⏳ Aguardando ${ctx.username} rolar ${resposta.solicitaDados.tipo} para ${resposta.solicitaDados.teste}`,
-    jogadorAguardando: ctx.username,
-    dadoSolicitado: resposta.solicitaDados.tipo,
-    teste: resposta.solicitaDados.teste,
-    timestamp: Date.now()
-  };
-
-  ctx.sessao.mensagens.push(mensagemAguardando);
-  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
-  console.log(`💬 Mensagem de aguardando dados salva no Redis + flag dadosSolicitados = true`);
-
-  // Calcular modificador antecipado para mostrar no banner
   let modificadorPreview = 0;
   let atributoPreview = null;
   try {
-    const { calcularModificadorTeste } = await import('../../helpers/testeHelper.js');
     const jogadorInfo = ctx.sessao.jogadores?.[ctx.userId];
-    const pId = jogadorInfo?.personagemId;
-    const pCompleto = pId ? ctx.sessao.personagensCompletos?.[String(pId)] : null;
-    if (pCompleto && resposta.solicitaDados.teste) {
-      const modInfo = calcularModificadorTeste(pCompleto, resposta.solicitaDados.teste);
+    const personagemId = jogadorInfo?.personagemId;
+    const personagemCompleto = personagemId
+      ? ctx.sessao.personagensCompletos?.[String(personagemId)]
+      : null;
+
+    if (personagemCompleto && testePendente.teste) {
+      const modInfo = calcularModificadorTeste(personagemCompleto, testePendente.teste);
       modificadorPreview = modInfo.totalModificador;
       atributoPreview = modInfo.atributoNome;
     }
-  } catch (e) {
-    console.warn('⚠️ Erro ao calcular modificador preview:', e.message);
+  } catch (error) {
+    console.warn('⚠️ Erro ao calcular modificador preview:', error.message);
   }
 
-  ctx.io.to(ctx.roomId).emit('mestre_solicita_dados', {
+  emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atributoPreview);
+  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
+  ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
+}
+
+function emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atributoPreview) {
+  emitSolicitacaoTeste(ctx.io, ctx.roomId, ctx.sessao, {
     narrativa: resposta.narracao,
-    tipoDado: resposta.solicitaDados.tipo,
-    teste: resposta.solicitaDados.teste,
-    dificuldade: resposta.solicitaDados.dificuldade,
+    tipoDado: testePendente.tipoDado,
+    teste: testePendente.teste,
+    dificuldade: testePendente.dificuldade,
     modificador: modificadorPreview,
     atributo: atributoPreview,
-    timestamp: Date.now()
+    contexto: testePendente.contexto
   });
+}
+
+async function processarAcoesMecanicas(resposta, ctx) {
+  if (!resposta.acoes?.length) return;
+
+  const existeTestePendente = !!getTestePendente(ctx.sessao);
+  if (existeTestePendente) {
+    const acoesPosTeste = resposta.acoes.filter(acao => {
+      const stage = acao?.stage || (acao?.dependeDeTeste ? 'posTeste' : 'independente');
+      return stage === 'posTeste';
+    });
+    ctx.sessao.estadoJogo = ctx.sessao.estadoJogo || {};
+    ctx.sessao.estadoJogo.acoesPendentesTeste = acoesPosTeste;
+  }
+
+  await processarAcoes(resposta.acoes, ctx.sessao, ctx.roomId, ctx.io, {
+    stage: existeTestePendente ? 'preTeste' : 'all',
+    onTesteSolicitado: async (testePayload) => {
+      await criarSolicitacaoTeste({
+        ...resposta,
+        teste: testePayload,
+        solicitaDados: { solicita: true }
+      }, ctx);
+    }
+  });
+  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
 }
 
 async function limparFlagDados(resposta, ctx) {
-  const estadoJogoAtual = ctx.sessao.estadoJogo || {};
-  if (estadoJogoAtual.dadosSolicitados) {
-    estadoJogoAtual.dadosSolicitados = false;
-    estadoJogoAtual.testeInfo = null;
-    ctx.sessao.estadoJogo = estadoJogoAtual;
-    await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
-    console.log(`🔄 Flag dadosSolicitados limpa (Mestre não solicitou)`);
-  }
+  if (!getTestePendente(ctx.sessao)) return;
+  limparTestePendente(ctx.sessao, { nextTurnState: TURN_STATUS.ACTIVE });
+  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
+  ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
 }
 
 async function processarControleTurno(resposta, ctx) {
-  const contador = await ctx.sm.gerenciadorSessoes.incrementarContadorMensagensTurno(ctx.roomId);
+  const turno = incrementTurnInteractions(ctx.sessao);
+  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
 
-  ctx.sm.log('INFO', 'MENSAGEM_PARA_MESTRE_CONTADOR_INCREMENTADO', ctx.socket.id, ctx.userId, {
-    roomId: ctx.roomId,
-    contadorAtual: contador
+  const existeTestePendente = !!getTestePendente(ctx.sessao);
+  const mestreSinalizouFim = resposta.fimDeTurno || false;
+  const acaoCompleta = resposta.acaoCompleta || false;
+  const podeFinalizar = !existeTestePendente
+    && (mestreSinalizouFim || (acaoCompleta && turno.contadorInteracoes >= 4));
+
+  if (!podeFinalizar) {
+    if (existeTestePendente) {
+      ctx.sm.log('INFO', 'TURN_FINALIZATION_BLOCKED_PENDING_TEST', ctx.socket.id, ctx.userId, {
+        roomId: ctx.roomId,
+        contadorAtual: turno.contadorInteracoes
+      });
+    }
+    ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
+    return;
+  }
+
+  transitionTurnState(ctx.sessao, TURN_STATUS.FINISHING, {
+    jogadorAtual: String(ctx.userId),
+    rodadaAtual: turno.rodadaAtual,
+    lockReason: 'fechando_turno'
+  });
+  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
+  ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
+
+  ctx.io.to(ctx.roomId).emit('mestre_finalizou_turno', {
+    jogador: ctx.username,
+    contador: turno.contadorInteracoes,
+    motivo: mestreSinalizouFim ? 'mestre_sinalizou' : 'limite_interacoes',
+    timestamp: Date.now()
   });
 
-  const mestreSinalizouFim = resposta.fimDeTurno || false;
-
-  if (mestreSinalizouFim) {
-    console.log(`🎭 Mestre sinalizou fim de turno via JSON (fimDeTurno: true)`);
-    setTimeout(() => {
-      ctx.io.to(ctx.roomId).emit('mestre_finalizou_turno', {
-        jogador: ctx.username,
-        contador: contador,
-        timestamp: Date.now()
-      });
-      console.log('✅ Evento mestre_finalizou_turno emitido após 500ms');
-    }, 500);
-  }
-
-  if (mestreSinalizouFim || contador >= 4) {
-    const motivo = mestreSinalizouFim ? 'mestre_sinalizou' : 'limite_atingido';
-
-    ctx.sm.log('INFO', 'MENSAGEM_PARA_MESTRE_FIM_TURNO', ctx.socket.id, ctx.userId, {
-      roomId: ctx.roomId,
-      contador,
-      motivo,
-      jogador: ctx.username
-    });
-
-    console.log(`🏁 Fim de turno detectado (${motivo}) - Aguardando 500ms para avançar`);
-
-    setTimeout(async () => {
-      try {
-        await ctx.sm.avancarProximoTurno(ctx.roomId);
-        console.log('✅ Turno avançado após 500ms');
-      } catch (error) {
-        console.error('❌ Erro ao avançar turno:', error);
-        ctx.io.to(ctx.roomId).emit('erro_sistema', { message: 'Erro ao avançar turno. Tente novamente.' });
-      }
-    }, 500);
-  }
+  setTimeout(async () => {
+    try {
+      await ctx.sm.avancarProximoTurno(ctx.roomId);
+    } catch (error) {
+      console.error('❌ Erro ao avançar turno:', error);
+      ctx.io.to(ctx.roomId).emit('erro_sistema', { message: 'Erro ao avançar turno. Tente novamente.' });
+    }
+  }, 500);
 }
 
-/**
- * Pipeline de handlers — executados em ordem, cada um com sua condição
- */
 const RESPONSE_HANDLERS = [
   { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !ctx.combateAtivo, process: processarInicioCombate },
   { nome: 'acao_combate', check: (r, ctx) => ctx.combateAtivo, process: processarAcaoCombateHandler },
   { nome: 'fuga_combate', check: (r, ctx) => ctx.combateAtivo && r.combate?.fuga, process: processarFugaCombate },
+  { nome: 'solicita_dados', check: (r) => r.solicitaDados?.solicita || !!r.teste, process: criarSolicitacaoTeste },
   { nome: 'acoes_mecanicas', check: (r) => r.acoes?.length > 0, process: processarAcoesMecanicas },
-  { nome: 'solicita_dados', check: (r) => r.solicitaDados?.solicita, process: processarSolicitaDados },
-  { nome: 'limpar_dados', check: (r) => !r.solicitaDados?.solicita, process: limparFlagDados },
-  { nome: 'controle_turno', check: (r, ctx) => ctx.fase === 'rodada_em_andamento' && !ctx.combateAtivo, process: processarControleTurno },
+  { nome: 'limpar_dados', check: (r) => !r.solicitaDados?.solicita && !r.teste, process: limparFlagDados },
+  { nome: 'controle_turno', check: (r, ctx) => ctx.fase === 'rodada_em_andamento' && !ctx.combateAtivo, process: processarControleTurno }
 ];
 
 export async function despacharResposta(resposta, ctx) {
   for (const handler of RESPONSE_HANDLERS) {
-    if (handler.check(resposta, ctx)) {
-      try {
-        await handler.process(resposta, ctx);
-      } catch (err) {
-        console.error(`❌ RespostaDispatcher [${handler.nome}]:`, err.message);
-      }
+    if (!handler.check(resposta, ctx)) continue;
+    try {
+      await handler.process(resposta, ctx);
+    } catch (err) {
+      console.error(`❌ RespostaDispatcher [${handler.nome}]:`, err.message);
     }
   }
+
+  ctx.io.to(ctx.roomId).emit('turno_estado_atualizado', {
+    roomId: ctx.roomId,
+    ...buildTurnEventPayload(ctx.sessao),
+    timestamp: Date.now()
+  });
 }

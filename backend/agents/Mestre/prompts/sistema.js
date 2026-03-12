@@ -393,6 +393,12 @@ Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
 - **remover_efeito**: {{ "tipo": "remover_efeito", "personagem": "Nome", "nome": "Escudo Mágico" }}
 - **dar_xp**: {{ "tipo": "dar_xp", "personagem": "Nome", "xp": 50, "motivo": "Derrotou grupo de goblins" }}
 - **concentracao_quebrada**: {{ "tipo": "concentracao_quebrada", "personagem": "Nome", "motivo": "tomou dano e falhou no teste" }}
+
+Quando houver rolagem pendente:
+- NUNCA use acoes que resolvam o efeito final antes do dado
+- Para acoes que dependem do resultado do teste, inclua "stage": "posTeste" e "dependeDeTeste": true
+- Para efeitos imediatos que podem ocorrer antes do dado, use "stage": "preTeste"
+- Se a acao nao depender do teste, use "stage": "independente"
 `;
 }
 

@@ -83,6 +83,21 @@ function fallbackSolicitaDados(respostaJSON) {
   }
 }
 
+function extrairTeste(respostaJSON = {}) {
+  if (!respostaJSON?.solicitaDados?.solicita) return null;
+
+  return {
+    teste: respostaJSON.solicitaDados.teste || '',
+    atributo: respostaJSON.solicitaDados.atributo || null,
+    pericia: respostaJSON.solicitaDados.pericia || null,
+    dificuldade: respostaJSON.solicitaDados.dificuldade || null,
+    contexto: respostaJSON.solicitaDados.contexto || null,
+    jogadorAlvo: respostaJSON.solicitaDados.jogadorAlvo || null,
+    tipoDado: respostaJSON.solicitaDados.tipo || 'd20',
+    origem: respostaJSON.solicitaDados.origem || 'mestre'
+  };
+}
+
 /**
  * Extract token usage from LangChain response and track via usageService
  */
@@ -313,6 +328,7 @@ export class MestreAgent {
         narracao: respostaJSON.narrativa,
         fimDeTurno: respostaJSON.fimDeTurno || false,
         solicitaDados: respostaJSON.solicitaDados || { solicita: false },
+        teste: extrairTeste(respostaJSON),
         acaoCompleta: respostaJSON.acaoCompleta || false,
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
@@ -329,6 +345,7 @@ export class MestreAgent {
         narracao: '*O Mestre faz uma pausa dramatica...* A magia que conecta os mundos vacila por um instante. (Erro temporario no servico de IA - tente novamente)',
         fimDeTurno: false,
         solicitaDados: { solicita: false },
+        teste: null,
         acaoCompleta: false,
         metadados: {},
         jogador,
@@ -488,9 +505,9 @@ Mensagem do Jogador:
 
       // Se já houve 3 mensagens, avisar que é hora de finalizar
       if (contadorMensagens >= 3) {
-        input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e sinalize "Próximo jogador!" para passar a vez.\n`;
+        input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e use fimDeTurno: true no JSON.\n`;
       } else {
-        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você ainda tem ${4 - contadorMensagens - 1} resposta(s) disponíveis.\n\nSe a ação estiver completamente resolvida, você pode sinalizar "Próximo jogador!" para avançar antes do limite.\n`;
+        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você ainda tem ${4 - contadorMensagens - 1} resposta(s) disponíveis.\n\nSe a ação estiver completamente resolvida, use fimDeTurno: true no JSON.\n`;
       }
 
       // Converter histórico
@@ -534,17 +551,15 @@ Mensagem do Jogador:
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
 
-      const deveFinalizarTurno = respostaJSON.fimDeTurno || contadorMensagens >= 3;
-
       return {
         resposta: respostaJSON.narrativa,
         fimDeTurno: respostaJSON.fimDeTurno || false,
         solicitaDados: respostaJSON.solicitaDados || { solicita: false },
+        teste: extrairTeste(respostaJSON),
         acaoCompleta: respostaJSON.acaoCompleta || false,
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
-        deveFinalizarTurno,
         rodada,
         turno,
         jogador,
@@ -557,9 +572,9 @@ Mensagem do Jogador:
         resposta: '*O Mestre faz uma pausa...* (Erro temporario no servico de IA - tente novamente)',
         fimDeTurno: false,
         solicitaDados: { solicita: false },
+        teste: null,
         acaoCompleta: false,
         metadados: {},
-        deveFinalizarTurno: false,
         rodada,
         turno,
         jogador,

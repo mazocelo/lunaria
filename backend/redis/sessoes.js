@@ -1,4 +1,23 @@
 import { redisClient, inicializarRedis, fecharConexaoRedis } from './redis-config.js';
+import { getCompactacaoState, mergeMestreContext } from '../agents/Mestre/contexto/mestreContextBuilder.js';
+
+function mergeEstadoJogo(estadoAtual = {}, proximoEstado = {}) {
+  return {
+    ...estadoAtual,
+    ...proximoEstado,
+    compactacao: {
+      ...(estadoAtual?.compactacao || {}),
+      ...(proximoEstado?.compactacao || {})
+    },
+    progressao: proximoEstado?.progressao !== undefined
+      ? proximoEstado.progressao
+      : (estadoAtual?.progressao || null),
+    mestreContexto: mergeMestreContext(
+      estadoAtual?.mestreContexto || {},
+      proximoEstado?.mestreContexto || {}
+    )
+  };
+}
 
 /**
  * Classe para gerenciar sessões de RPG usando Redis
@@ -94,8 +113,24 @@ class SessaoRPG {
         const sessaoAtualizada = {
           ...sessaoAtual,
           ...novosDados,
+          estadoJogo: mergeEstadoJogo(sessaoAtual.estadoJogo || {}, novosDados.estadoJogo || {}),
+          mestreContexto: mergeMestreContext(
+            sessaoAtual.mestreContexto || sessaoAtual.estadoJogo?.mestreContexto || {},
+            novosDados.mestreContexto || novosDados.estadoJogo?.mestreContexto || {}
+          ),
           atualizadaEm: new Date().toISOString()
         };
+
+        if (sessaoAtualizada.mestreContexto && Object.keys(sessaoAtualizada.mestreContexto).length > 0) {
+          sessaoAtualizada.estadoJogo = sessaoAtualizada.estadoJogo || {};
+          sessaoAtualizada.estadoJogo.mestreContexto = sessaoAtualizada.mestreContexto;
+        }
+
+        sessaoAtualizada.estadoJogo = sessaoAtualizada.estadoJogo || {};
+        sessaoAtualizada.estadoJogo.compactacao = getCompactacaoState(
+          sessaoAtualizada.estadoJogo,
+          sessaoAtualizada.mensagens || []
+        );
 
         const multi = this.client.multi();
         multi.setEx(sessionId, this.ttl, JSON.stringify(sessaoAtualizada));
@@ -682,12 +717,10 @@ class SessaoRPG {
 
       const rodadas = sessao.estadoJogo?.rodadaAtual || 0;
       const mensagens = (sessao.mensagens || []).length;
-      const ultimoResumoRodada = sessao.ultimoResumoRodada || 0;
-      const ultimoResumoMensagens = sessao.ultimoResumoMensagens || 0;
+      const compactacao = getCompactacaoState(sessao.estadoJogo || {}, sessao.mensagens || []);
 
-      // A cada 5 rodadas OU a cada 25 mensagens
-      const precisaPorRodadas = rodadas > 0 && rodadas % 5 === 0 && rodadas > ultimoResumoRodada;
-      const precisaPorMensagens = mensagens >= 25 && mensagens - ultimoResumoMensagens >= 25;
+      const precisaPorRodadas = rodadas > compactacao.ultimaRodadaCompactada;
+      const precisaPorMensagens = mensagens - compactacao.ultimaMensagemIndex >= 30;
 
       return precisaPorRodadas || precisaPorMensagens;
     } catch (error) {
@@ -702,7 +735,7 @@ class SessaoRPG {
    * @param {Object} resumo - Dados do resumo
    * @returns {Promise<Object>} - Sessão atualizada
    */
-  async salvarResumo(salaId, resumo) {
+  async salvarResumo(salaId, resumo, meta = {}) {
     try {
       const sessao = await this.obterSessao(salaId);
 
@@ -714,6 +747,13 @@ class SessaoRPG {
       sessao.ultimoResumoRodada = sessao.estadoJogo?.rodadaAtual || 0;
       sessao.ultimoResumoMensagens = (sessao.mensagens || []).length;
       sessao.atualizadaEm = new Date().toISOString();
+      sessao.estadoJogo = sessao.estadoJogo || {};
+      sessao.estadoJogo.compactacao = {
+        ultimaMensagemIndex: meta.ultimaMensagemIndex ?? (sessao.mensagens || []).length,
+        ultimaRodadaCompactada: meta.ultimaRodadaCompactada ?? (sessao.estadoJogo?.rodadaAtual || 0),
+        ultimaCompactacaoEm: new Date().toISOString(),
+        totalMensagens: (sessao.mensagens || []).length
+      };
 
       // Trim de mensagens: manter últimas 200 após resumo consolidar as anteriores
       const MAX_MENSAGENS_REDIS = 200;

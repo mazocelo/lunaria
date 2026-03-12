@@ -172,6 +172,14 @@ function montarPersonagens4Pilares(personagens) {
 
 // ── Roteiro (Story Blueprint) ──────────────────────────────────────
 
+function montarContextoPersistente(contextoPersistente) {
+  if (!contextoPersistente) return '';
+  return `\n### CONTEXTO PERSISTENTE DO MESTRE
+Estes blocos são a memória canônica da campanha. Considere-os sempre como fonte de verdade para história, personagens, NPCs presentes e progresso da sessão.
+
+${contextoPersistente}\n`;
+}
+
 function montarRoteiro(roteiroCondensado) {
   if (!roteiroCondensado) return '';
   return `\n### ROTEIRO DA AVENTURA (Story Blueprint)
@@ -453,7 +461,14 @@ Responda SEMPRE em JSON válido:
 
 // ── Função principal ───────────────────────────────────────────────
 
-export function criarPromptSistema(temas = [], personagens = [], mestreConfig = null, catalogo = '', roteiroCondensado = '') {
+export function criarPromptSistema(
+  temas = [],
+  personagens = [],
+  mestreConfig = null,
+  catalogo = '',
+  roteiroCondensado = '',
+  contextoPersistente = ''
+) {
   const usarPilares = isEnabled('FOUR_PILLARS');
 
   let prompt = montarIntro(mestreConfig);
@@ -465,6 +480,7 @@ export function criarPromptSistema(temas = [], personagens = [], mestreConfig = 
     prompt += montarPersonagensLegado(personagens);
   }
 
+  prompt += montarContextoPersistente(contextoPersistente);
   prompt += montarRoteiro(roteiroCondensado);
   prompt += montarRegrasBase();
   prompt += montarCatalogo(catalogo);

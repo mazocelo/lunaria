@@ -127,7 +127,15 @@ const RESUMO_MAX_CHARS = MESTRE_CONFIG.behavior.resumoMaxChars;
  * Gerencia toda a interação com o modelo de IA e o contexto da aventura
  */
 export class MestreAgent {
-  constructor(temas = [], personagens = [], configOverride = null, catalogo = '', roteiroCondensado = '') {
+  constructor(
+    temas = [],
+    personagens = [],
+    configOverride = null,
+    catalogo = '',
+    roteiroCondensado = '',
+    contextoPersistenteFormatado = '',
+    mestreContexto = null
+  ) {
     // Garantir que temas sejam sempre strings (nomes)
     // Validação de segurança caso alguém passe IDs ou objetos por engano
     this.temas = extrairNomesTemas(temas);
@@ -141,6 +149,8 @@ export class MestreAgent {
     this.configOverride = configOverride;
     this.catalogo = catalogo;
     this.roteiroCondensado = roteiroCondensado;
+    this.contextoPersistenteFormatado = contextoPersistenteFormatado;
+    this.mestreContexto = mestreContexto;
     this.historico = [];
     this.model = null;
     this.chain = null;
@@ -201,7 +211,14 @@ export class MestreAgent {
       }
 
       // Criar prompt template (com personalidade custom se houver)
-      const promptSistema = criarPromptSistema(this.temas, this.personagens, this.configOverride, this.catalogo, this.roteiroCondensado);
+      const promptSistema = criarPromptSistema(
+        this.temas,
+        this.personagens,
+        this.configOverride,
+        this.catalogo,
+        this.roteiroCondensado,
+        this.contextoPersistenteFormatado
+      );
       const prompt = ChatPromptTemplate.fromMessages([
         ['system', promptSistema],
         new MessagesPlaceholder('chat_history'),
@@ -284,6 +301,12 @@ export class MestreAgent {
       this.historico = adicionarMensagem(this.historico, mensagemJogador);
 
       const respostaMestre = formatarRespostaMestre(respostaJSON.narrativa);
+      if (respostaJSON.metadados) {
+        respostaMestre.contexto = {
+          ...(respostaMestre.contexto || {}),
+          metadados: respostaJSON.metadados
+        };
+      }
       this.historico = adicionarMensagem(this.historico, respostaMestre);
 
       return {
@@ -293,6 +316,7 @@ export class MestreAgent {
         acaoCompleta: respostaJSON.acaoCompleta || false,
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
+        metadados: respostaJSON.metadados || {},
         jogador,
         personagem,
         acao,
@@ -306,6 +330,7 @@ export class MestreAgent {
         fimDeTurno: false,
         solicitaDados: { solicita: false },
         acaoCompleta: false,
+        metadados: {},
         jogador,
         personagem,
         acao,
@@ -377,6 +402,7 @@ export class MestreAgent {
         introducao: respostaJSON.narrativa,
         tema: tema || this.temas.join(', '),
         personagens: personagensCustom || this.personagens,
+        metadados: respostaJSON.metadados || {},
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -386,6 +412,7 @@ export class MestreAgent {
         introducao: '*Uma nevoa mistica se dissipa lentamente...* A aventura esta prestes a comecar! (Erro temporario no servico de IA)',
         tema: tema || this.temas.join(', '),
         personagens: personagensCustom || this.personagens,
+        metadados: {},
         timestamp: new Date().toISOString()
       };
     }
@@ -516,6 +543,7 @@ Mensagem do Jogador:
         acaoCompleta: respostaJSON.acaoCompleta || false,
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
+        metadados: respostaJSON.metadados || {},
         deveFinalizarTurno,
         rodada,
         turno,
@@ -530,6 +558,7 @@ Mensagem do Jogador:
         fimDeTurno: false,
         solicitaDados: { solicita: false },
         acaoCompleta: false,
+        metadados: {},
         deveFinalizarTurno: false,
         rodada,
         turno,
@@ -613,6 +642,7 @@ Narre a transição e apresente o novo desafio:`;
         narrativa: respostaJSON.narrativa,
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
+        metadados: respostaJSON.metadados || {},
         rodadaAnterior,
         proximaRodada,
         novoDesafio: respostaJSON.narrativa,
@@ -622,6 +652,7 @@ Narre a transição e apresente o novo desafio:`;
       console.error('MestreAgent: Erro ao narrar entre rodadas:', error.message);
       return {
         narrativa: '*O mundo estremece brevemente...* Uma nova rodada se inicia! (Erro temporario no servico de IA)',
+        metadados: {},
         rodadaAnterior,
         proximaRodada,
         novoDesafio: 'Nova rodada iniciada',
@@ -729,9 +760,25 @@ Seja conciso (máximo 100 palavras).`;
 /**
  * Factory function para criar instância do Mestre
  */
-export async function criarMestreRPG(temas = [], personagens = [], configOverride = null, catalogo = '', roteiroCondensado = '') {
+export async function criarMestreRPG(
+  temas = [],
+  personagens = [],
+  configOverride = null,
+  catalogo = '',
+  roteiroCondensado = '',
+  contextoPersistenteFormatado = '',
+  mestreContexto = null
+) {
   try {
-    const mestre = new MestreAgent(temas, personagens, configOverride, catalogo, roteiroCondensado);
+    const mestre = new MestreAgent(
+      temas,
+      personagens,
+      configOverride,
+      catalogo,
+      roteiroCondensado,
+      contextoPersistenteFormatado,
+      mestreContexto
+    );
     return mestre;
   } catch (error) {
     console.error('❌ Erro ao criar mestre de RPG:', error);

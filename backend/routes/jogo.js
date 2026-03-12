@@ -3,10 +3,11 @@ import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import criarMestreRPG from '../agents/Mestre/index.js';
 import socketManager from '../websocket/socketManager.js';
-import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.js';
-import { buscarPersonagensCompletos, formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
+import { buscarTemasCompletos } from '../helpers/temasHelper.js';
+import { buscarPersonagensCompletos } from '../helpers/personagensHelper.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import resumoAgent from '../agents/Resumo/ResumoAgent.js';
+import { buildMestreContext, prepareMestrePayload } from '../agents/Mestre/contexto/mestreContextBuilder.js';
 
 const router = express.Router();
 
@@ -163,6 +164,8 @@ router.post('/start', async (req, res, next) => {
         statusJogo: 'iniciado',
         iniciadaEm: new Date().toISOString(),
         historiaTemas: temasCompletos,
+        historiaRoteiro: historia.roteiro || null,
+        historiaPrologo: historia.prologo || '',
         personagensCompletos: personagensMap,
         mestreConfig: mestreConfig || null,
         jogadores: converterJogadoresParaMapa(sessaoExistente.jogadoresConectados || []),
@@ -177,9 +180,22 @@ router.post('/start', async (req, res, next) => {
           contadorMensagensTurno: 0,
           historicoTurnos: [],
           cooldownRoleplay: {},
-          mensagemMestre: mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`
+          mensagemMestre: mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`,
+          npcs: sessaoExistente.estadoJogo?.npcs || [],
+          ambiente: sessaoExistente.estadoJogo?.ambiente || 'Início da Aventura',
+          cenaAtual: sessaoExistente.estadoJogo?.cenaAtual || 'Prólogo',
+          compactacao: sessaoExistente.estadoJogo?.compactacao || {
+            ultimaMensagemIndex: 0,
+            ultimaRodadaCompactada: 0,
+            ultimaCompactacaoEm: null
+          }
         }
       };
+
+      dadosAtualizacao.mestreContexto = buildMestreContext({
+        ...sessaoExistente,
+        ...dadosAtualizacao
+      }, historia);
 
       const sessao = await gerenciadorSessoes.atualizarSessao(salaId, dadosAtualizacao);
 
@@ -195,20 +211,30 @@ router.post('/start', async (req, res, next) => {
         try {
           console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
           
-          // Extrair apenas os nomes dos temas para o Mestre
-          const nomesTemas = extrairNomesTemas(temasCompletos);
-          
-          // Formatar personagens para o Mestre
-          const personagensFormatados = formatarPersonagensParaMestre(
-            sessaoExistente.jogadoresConectados || [],
-            personagensMap
+          const payloadMestre = await prepareMestrePayload({
+            ...sessao,
+            historiaId: historia.id,
+            historiaNome: historia.nome,
+            historiaTemas: temasCompletos,
+            historiaRoteiro: historia.roteiro || null,
+            historiaPrologo: historia.prologo || '',
+            personagensCompletos: personagensMap,
+            mestreConfig: mestreConfig || null
+          }, historia);
+
+          const mestre = await criarMestreRPG(
+            payloadMestre.nomesTemas,
+            payloadMestre.personagensFormatados,
+            mestreConfig,
+            payloadMestre.catalogo,
+            payloadMestre.roteiroCondensado,
+            payloadMestre.contextoPersistenteFormatado,
+            payloadMestre.mestreContexto
           );
-          
-          const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, mestreConfig);
           const boasVindas = await mestre.iniciarSessao({
             historiaNome: historia.nome,
-            tema: nomesTemas.join(', '),
-            personagens: personagensFormatados,
+            tema: payloadMestre.nomesTemas.join(', '),
+            personagens: payloadMestre.personagensFormatados,
             cenaInicial: mensagemInicial || dadosAtualizacao.estadoJogo.mensagemMestre
           });
 
@@ -332,6 +358,7 @@ router.post('/start', async (req, res, next) => {
       historiaId: historia.id,
       historiaNome: historia.nome,
       historiaTemas: temasCompletos,
+      historiaRoteiro: historia.roteiro || null,
       personagensCompletos: personagensMap,
       mestreConfig: mestreConfig || null,
       historiaPrologo: historia.prologo,
@@ -357,11 +384,18 @@ router.post('/start', async (req, res, next) => {
         cenaAtual: 'Prólogo',
         mensagemMestre: mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`,
         npcs: [],
-        ambiente: 'Início da Aventura'
+        ambiente: 'Início da Aventura',
+        compactacao: {
+          ultimaMensagemIndex: 0,
+          ultimaRodadaCompactada: 0,
+          ultimaCompactacaoEm: null
+        }
       },
       mensagens: [],
       acoes: []
     };
+
+    dadosSessao.mestreContexto = buildMestreContext(dadosSessao, historia);
 
     const sessao = await gerenciadorSessoes.criarSessao(salaId, dadosSessao);
 
@@ -376,20 +410,20 @@ router.post('/start', async (req, res, next) => {
       try {
         console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
         
-        // Extrair apenas os nomes dos temas para o Mestre
-        const nomesTemas = extrairNomesTemas(temasCompletos);
-        
-        // Formatar personagens para o Mestre
-        const personagensFormatados = formatarPersonagensParaMestre(
-          jogadoresDaSalaEspera,
-          personagensMap
+        const payloadMestre = await prepareMestrePayload(sessao, historia);
+        const mestre = await criarMestreRPG(
+          payloadMestre.nomesTemas,
+          payloadMestre.personagensFormatados,
+          mestreConfig,
+          payloadMestre.catalogo,
+          payloadMestre.roteiroCondensado,
+          payloadMestre.contextoPersistenteFormatado,
+          payloadMestre.mestreContexto
         );
-        
-        const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, mestreConfig);
         const boasVindas = await mestre.iniciarSessao({
           historiaNome: historia.nome,
-          tema: nomesTemas.join(', '),
-          personagens: personagensFormatados,
+          tema: payloadMestre.nomesTemas.join(', '),
+          personagens: payloadMestre.personagensFormatados,
           cenaInicial: mensagemInicial || dadosSessao.estadoJogo.mensagemMestre
         });
 

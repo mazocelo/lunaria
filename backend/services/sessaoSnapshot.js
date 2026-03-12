@@ -18,7 +18,10 @@ class SessaoSnapshotService {
 
     const snapshotData = {
       historia_id: parseInt(sessaoRedis.historiaId),
-      estado: sessaoRedis.estadoJogo || {},
+      estado: {
+        ...(sessaoRedis.estadoJogo || {}),
+        mestreContexto: sessaoRedis.mestreContexto || sessaoRedis.estadoJogo?.mestreContexto || null
+      },
       mensagens: sessaoRedis.mensagens || [],
       resumos: sessaoRedis.resumos || [],
       jogadores: sessaoRedis.jogadores || {},
@@ -54,6 +57,7 @@ class SessaoSnapshotService {
       mensagens: snapshot.mensagens || [],
       resumos: snapshot.resumos || [],
       jogadores: snapshot.jogadores || {},
+      mestreContexto: snapshot.estado?.mestreContexto || null,
       iniciadaEm: snapshot.iniciada_em?.toISOString() || new Date().toISOString(),
       atualizadaEm: new Date().toISOString()
     };

@@ -108,6 +108,33 @@ export function condensarRoteiro(roteiro, estadoAtual = null) {
     parts.push(`**PROGRESSÃO:** ${concluidos}/${marcos.length} marcos concluídos (${roteiro.progressao.porcentagem_estimada || 0}%)`);
   }
 
+  const progressaoAtual = estadoAtual?.progressao || roteiro.progressao || null;
+  if (progressaoAtual?.npcs_encontrados?.length) {
+    parts.push(`**NPCS JÁ ENCONTRADOS:** ${progressaoAtual.npcs_encontrados.slice(0, 8).join('; ')}`);
+  }
+  if (Array.isArray(estadoAtual?.npcs) && estadoAtual.npcs.length > 0) {
+    parts.push(`**NPCS NA CENA/SESSÃO:** ${estadoAtual.npcs.slice(0, 8).join('; ')}`);
+  }
+  if (progressaoAtual?.twists_ativados?.length) {
+    parts.push(`**TWISTS ATIVADOS:** ${progressaoAtual.twists_ativados.slice(0, 6).join(', ')}`);
+  }
+  if (progressaoAtual?.arco_atual) {
+    parts.push(`**ARCO NARRATIVO REAL:** ${progressaoAtual.arco_atual}`);
+  }
+  if (Array.isArray(progressaoAtual?.marcos) && progressaoAtual.marcos.length > 0) {
+    const concluidosRecentes = progressaoAtual.marcos
+      .filter(m => m?.concluido)
+      .slice(0, 5)
+      .map(m => m.descricao || m.nome)
+      .filter(Boolean);
+    if (concluidosRecentes.length > 0) {
+      parts.push(`**MARCOS CONCLUÍDOS:** ${concluidosRecentes.join('; ')}`);
+    }
+  }
+  if (Array.isArray(estadoAtual?.locaisVisitados) && estadoAtual.locaisVisitados.length > 0) {
+    parts.push(`**LOCAIS VISITADOS:** ${estadoAtual.locaisVisitados.slice(0, 6).join('; ')}`);
+  }
+
   let resultado = parts.join('\n\n');
 
   // Truncar se necessário
@@ -129,6 +156,7 @@ export function condensarRoteiro(roteiro, estadoAtual = null) {
 function condensarRoteiroV2(roteiro, estadoAtual = null) {
   const parts = [];
   const arcoAtual = estadoAtual?.arcoAtual || roteiro.progressao?.arco_atual || 1;
+  const progressaoAtual = estadoAtual?.progressao || roteiro.progressao || null;
 
   // 1. Sinopse
   if (roteiro.sinopse) {
@@ -244,6 +272,19 @@ function condensarRoteiroV2(roteiro, estadoAtual = null) {
       progText += `\n  Próximos marcos: ${pendentes.map(m => m.descricao || m.nome).join('; ')}`;
     }
     parts.push(progText);
+  }
+
+  if (progressaoAtual?.npcs_encontrados?.length) {
+    parts.push(`**NPCS ENCONTRADOS EM SESSÃO:** ${progressaoAtual.npcs_encontrados.slice(0, 10).join('; ')}`);
+  }
+  if (Array.isArray(estadoAtual?.npcs) && estadoAtual.npcs.length > 0) {
+    parts.push(`**NPCS PRESENTES AGORA:** ${estadoAtual.npcs.slice(0, 10).join('; ')}`);
+  }
+  if (progressaoAtual?.twists_ativados?.length) {
+    parts.push(`**TWISTS JÁ ATIVADOS:** ${progressaoAtual.twists_ativados.slice(0, 6).join(', ')}`);
+  }
+  if (Array.isArray(estadoAtual?.locaisVisitados) && estadoAtual.locaisVisitados.length > 0) {
+    parts.push(`**LOCAIS JÁ VISITADOS:** ${estadoAtual.locaisVisitados.slice(0, 8).join('; ')}`);
   }
 
   let resultado = parts.join('\n\n');

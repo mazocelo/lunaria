@@ -29,6 +29,13 @@ import { isEnabled } from '../config/featureFlags.js';
 import { decrementCooldowns } from '../helpers/cooldownManager.js';
 import { decrementConcentracao } from '../helpers/concentrationManager.js';
 import { decrementEfeitos, aplicarEfeitosPorTurno } from '../helpers/effectManager.js';
+import {
+  applyMetadadosToSessao,
+  applyResumoToSessao,
+  buildMestreContext,
+  getCompactacaoState,
+  prepareMestrePayload
+} from '../agents/Mestre/contexto/mestreContextBuilder.js';
 
 /**
  * Cria objeto de mensagem do mestre com campos de áudio vinculados
@@ -1360,6 +1367,7 @@ class SocketManager {
       }
       sessao.mensagens.push(mensagemDado);
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      await this.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
 
       console.log(`💬 Mensagem de dado salva no Redis: ${username} rolou ${dice} = ${result}`);
 
@@ -1458,6 +1466,7 @@ class SocketManager {
 
           const msgInterpretacao = buildMestreMensagem(interpretacao.narracao, sessao.mestreConfig);
           sessao.mensagens.push(msgInterpretacao);
+          await this.aplicarMetadadosNarrativos(roomId, sessao, interpretacao.metadados || {});
 
           // ✅ Limpar flag de dados solicitados + testeInfo
           estadoJogo.dadosSolicitados = false;
@@ -1465,6 +1474,7 @@ class SocketManager {
           sessao.estadoJogo = estadoJogo;
 
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+          await this.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
 
           // Enviar interpretação do Mestre
           this.io.to(roomId).emit('mensagem_mestre', {
@@ -1999,6 +2009,7 @@ class SocketManager {
       // 6. Salvar resposta do mestre na sessão
       const mensagemMestre = buildMestreMensagem(resposta.narracao, sessao.mestreConfig);
       sessao.mensagens.push(mensagemMestre);
+      await this.aplicarMetadadosNarrativos(roomId, sessao, resposta.metadados || {});
 
       // 7. Atualizar sessão no Redis
       sessao.atualizadaEm = new Date().toISOString();
@@ -2334,6 +2345,7 @@ class SocketManager {
 
       const msgInicial = buildMestreMensagem(mensagemInicial.resposta, sessaoAtualizada.mestreConfig);
       sessaoAtualizada.mensagens.push(msgInicial);
+      await this.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, mensagemInicial.metadados || {});
 
       // Processar ações mecânicas do Mestre (dar_item, curar, etc.)
       if (mensagemInicial.acoes && Array.isArray(mensagemInicial.acoes) && mensagemInicial.acoes.length > 0) {
@@ -2346,6 +2358,7 @@ class SocketManager {
       }
 
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+      await this.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, { userId });
 
       this.log('SUCCESS', 'INICIAR_TURNO_SESSAO_ATUALIZADA', socket.id, userId, {
         roomId
@@ -2740,6 +2753,101 @@ class SocketManager {
     }
   }
 
+  async aplicarMetadadosNarrativos(roomId, sessao, metadados = {}) {
+    if (!sessao || !metadados || Object.keys(metadados).length === 0) {
+      return sessao;
+    }
+
+    let historia = null;
+    if (sessao.historiaId) {
+      try {
+        historia = await db.Historia.findById(parseInt(sessao.historiaId));
+      } catch (error) {
+        console.warn(`⚠️ Erro ao buscar história ${sessao.historiaId} para metadados:`, error.message);
+      }
+    }
+
+    return applyMetadadosToSessao(sessao, metadados, historia);
+  }
+
+  async executarCompactacaoSeNecessaria(roomId, sessao, options = {}) {
+    if (!sessao) return sessao;
+
+    const estadoJogo = sessao.estadoJogo || {};
+    const compactacao = getCompactacaoState(estadoJogo, sessao.mensagens || []);
+    const totalMensagens = (sessao.mensagens || []).length;
+    const rodadaAtual = estadoJogo.rodadaAtual || 0;
+    const deveCompactarPorMensagens = totalMensagens - compactacao.ultimaMensagemIndex >= 30;
+    const deveCompactarPorRodada = !!options.forceRound && rodadaAtual > compactacao.ultimaRodadaCompactada;
+
+    if (!deveCompactarPorMensagens && !deveCompactarPorRodada && !options.force) {
+      return sessao;
+    }
+
+    try {
+      const resumoAgent = (await import('../agents/Resumo/index.js')).default;
+      const resumoAnteriorObj = await this.gerenciadorSessoes.obterUltimoResumo(roomId);
+      const resumo = await resumoAgent.resumirAventura({
+        mensagens: sessao.mensagens || [],
+        temas: extrairNomesTemas(sessao.historiaTemas || []),
+        personagens: Object.values(sessao.jogadores || {}),
+        rodadasJogadas: rodadaAtual,
+        resumoAnterior: resumoAnteriorObj?.resumo || null,
+        userId: options.userId || null
+      });
+
+      let novaProgressao = estadoJogo.progressao || null;
+      if (sessao.historiaRoteiro) {
+        try {
+          const { atualizarProgressao } = await import('../agents/Mestre/prompts/roteiroCondenser.js');
+          novaProgressao = await atualizarProgressao(
+            sessao.historiaRoteiro,
+            resumo.resumo,
+            estadoJogo.progressao || null,
+            options.userId || null
+          );
+        } catch (error) {
+          console.warn('⚠️ Erro ao atualizar progressão na compactação:', error.message);
+        }
+      }
+
+      let historia = null;
+      if (sessao.historiaId) {
+        try {
+          historia = await db.Historia.findById(parseInt(sessao.historiaId));
+        } catch (error) {
+          console.warn(`⚠️ Erro ao carregar história ${sessao.historiaId} para compactação:`, error.message);
+        }
+      }
+
+      const sessaoComResumo = applyResumoToSessao(sessao, resumo, historia, novaProgressao);
+      sessaoComResumo.estadoJogo = sessaoComResumo.estadoJogo || {};
+      sessaoComResumo.estadoJogo.compactacao = {
+        ultimaMensagemIndex: totalMensagens,
+        ultimaRodadaCompactada: deveCompactarPorRodada ? rodadaAtual : compactacao.ultimaRodadaCompactada,
+        ultimaCompactacaoEm: new Date().toISOString()
+      };
+      if (novaProgressao) {
+        sessaoComResumo.estadoJogo.progressao = novaProgressao;
+      }
+      sessaoComResumo.resumos = [...(sessao.resumos || []), resumo].slice(-2);
+      sessaoComResumo.ultimoResumoRodada = rodadaAtual;
+      sessaoComResumo.ultimoResumoMensagens = totalMensagens;
+      if ((sessaoComResumo.mensagens || []).length > 200) {
+        sessaoComResumo.mensagens = sessaoComResumo.mensagens.slice(-200);
+      }
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoComResumo);
+
+      this.mestresCache.delete(roomId);
+      this._tentarSnapshot(roomId, sessaoComResumo, true);
+
+      return sessaoComResumo;
+    } catch (error) {
+      console.error(`❌ Erro ao compactar contexto da sala ${roomId}:`, error);
+      return sessao;
+    }
+  }
+
   /**
    * Obter estatísticas do servidor
    */
@@ -2854,13 +2962,19 @@ class SocketManager {
           cenaAtual: 'Aguardando início',
           mensagemMestre: `Bem-vindos à história "${historia.nome}"!`,
           npcs: [],
-          ambiente: 'Sala de espera'
+          ambiente: 'Sala de espera',
+          compactacao: {
+            ultimaMensagemIndex: 0,
+            ultimaRodadaCompactada: 0,
+            ultimaCompactacaoEm: null
+          }
         },
         mensagens: [],
         acoes: []
       };
 
       // Criar sessão no Redis
+      dadosSessao.mestreContexto = buildMestreContext(dadosSessao, historia);
       sessao = await this.gerenciadorSessoes.criarSessao(salaId, dadosSessao);
       
       console.log(`✅ Nova sessão criada para história "${historia.nome}" (ID: ${historiaId})`);
@@ -3267,7 +3381,7 @@ class SocketManager {
           roomId,
           sessao.historiaTemas || [],
           sessao,
-          socket.userId
+          null
         );
 
         const narrativa = await mestre.narrarEntreRodadas({
@@ -3280,7 +3394,7 @@ class SocketManager {
         console.log(`✅ Narrativa entre rodadas gerada com sucesso`);
 
         // ✅ VERIFICAR SE PRECISA GERAR RESUMO
-        const precisaResumir = await this.gerenciadorSessoes.precisaResumir(roomId);
+        const precisaResumir = false;
 
         if (precisaResumir) {
           console.log(`📝 Gerando resumo automático da aventura...`);
@@ -3298,7 +3412,7 @@ class SocketManager {
               personagens: Object.values(sessaoParaResumo.jogadores || {}),
               rodadasJogadas: rodadaAtual,
               resumoAnterior: resumoAnteriorObj?.resumo || null,
-              userId: socket?.userId
+              userId: null
             });
 
             await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
@@ -3314,7 +3428,7 @@ class SocketManager {
                   sessaoParaResumo.historiaRoteiro,
                   resumo.resumo,
                   progressaoAtual,
-                  socket?.userId
+                  null
                 );
                 if (novaProgressao) {
                   const estadoAtual = sessaoParaResumo.estadoJogo || {};
@@ -3370,7 +3484,13 @@ class SocketManager {
           sessaoAtualizada.mensagens = [];
         }
         sessaoAtualizada.mensagens.push(mensagemMestre);
+        await this.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, narrativa.metadados || {});
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+        await this.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, {
+          force: true,
+          userId: null,
+          forceRound: true
+        });
 
         console.log(`💬 Narrativa entre rodadas salva no Redis (será carregada via HTTP pelo frontend)`);
       } catch (error) {
@@ -4013,6 +4133,7 @@ class SocketManager {
         const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig);
         sessao.mensagens = sessao.mensagens || [];
         sessao.mensagens.push(msgDesfecho);
+        await this.aplicarMetadadosNarrativos(roomId, sessao, respostaDesfecho.metadados || {});
 
         this.io.to(roomId).emit('mensagem_mestre', {
           id: Date.now().toString(),
@@ -4020,6 +4141,7 @@ class SocketManager {
           message: respostaDesfecho.narracao
         });
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        await this.executarCompactacaoSeNecessaria(roomId, sessao, {});
 
       } catch (errIA) {
         console.error('❌ Erro ao narrar desfecho do combate:', errIA);
@@ -4049,7 +4171,7 @@ class SocketManager {
 
     // Criar novo mestre
     console.log(`🆕 Criando novo Mestre para sala ${salaId}`);
-    const nomesTemas = extrairNomesTemas(temas);
+    const payloadMestre = await prepareMestrePayload(sessao);
     
     // Formatar personagens com dados completos
     const jogadoresConectados = Array.isArray(sessao.jogadoresConectados) 
@@ -4092,7 +4214,15 @@ class SocketManager {
       }
     }
 
-    const mestre = await criarMestreRPG(nomesTemas, personagensFormatados, sessao.mestreConfig || null, catalogo, roteiroCondensado);
+    const mestre = await criarMestreRPG(
+      payloadMestre.nomesTemas.length > 0 ? payloadMestre.nomesTemas : extrairNomesTemas(temas),
+      payloadMestre.personagensFormatados,
+      sessao.mestreConfig || null,
+      payloadMestre.catalogo,
+      payloadMestre.roteiroCondensado,
+      payloadMestre.contextoPersistenteFormatado,
+      payloadMestre.mestreContexto
+    );
     if (userId) mestre.userId = userId;
 
     // Limitar tamanho do cache (LRU eviction)

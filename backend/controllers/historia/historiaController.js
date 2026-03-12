@@ -12,6 +12,24 @@ import { extrairNomesTemas } from '../../helpers/temasHelper.js';
  * Controller para gerenciar operações de história
  */
 class HistoriaController {
+  constructor() {
+    this.criarHistoria = this.criarHistoria.bind(this);
+    this.listarHistorias = this.listarHistorias.bind(this);
+    this.obterHistoria = this.obterHistoria.bind(this);
+    this.atualizarHistoria = this.atualizarHistoria.bind(this);
+    this.excluirHistoria = this.excluirHistoria.bind(this);
+    this.restaurarHistoria = this.restaurarHistoria.bind(this);
+    this.gerarHistoriaComIA = this.gerarHistoriaComIA.bind(this);
+    this.gerarAventuraCompleta = this.gerarAventuraCompleta.bind(this);
+    this.listarMinhasHistorias = this.listarMinhasHistorias.bind(this);
+    this.listarHistoriasComPersonagens = this.listarHistoriasComPersonagens.bind(this);
+    this.gerarRoteiro = this.gerarRoteiro.bind(this);
+    this.obterRoteiro = this.obterRoteiro.bind(this);
+    this.atualizarRoteiro = this.atualizarRoteiro.bind(this);
+    this.obterProgressao = this.obterProgressao.bind(this);
+    this.atualizarProgressao = this.atualizarProgressao.bind(this);
+  }
+
   parseTemaQueryValue(req) {
     const raw = req.query.temas ?? req.query.tema ?? req.query.tema_id;
     const parsed = parseInt(raw, 10);

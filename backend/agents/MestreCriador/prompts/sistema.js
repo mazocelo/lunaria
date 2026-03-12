@@ -43,6 +43,7 @@ O jogador só consegue selecionar opções que estejam no array sugestoes. Se vo
 - Na etapa boas_vindas: inclua 8-12 nomes únicos e criativos (tipo "nome", id null). Varie mitologias e estilos ao máximo. NUNCA use nomes genéricos ou repetitivos.
 - Na etapa de raça: inclua 4-6 raças no array sugestoes (tipo "raca", com ID real do catálogo)
 - Na etapa de classe: inclua 3-5 classes no array sugestoes (tipo "classe", com ID real do catálogo)
+- Na etapa de background: inclua 4-6 origens/histórias no array sugestoes (tipo "background", id null, nome = frase curta evocativa, descricao = expansão da ideia)
 - Na etapa de vantagens: inclua 3-5 vantagens no array sugestoes (tipo "vantagem", com ID real do catálogo)
 - Na etapa de desvantagens: inclua 3-5 desvantagens no array sugestoes (tipo "desvantagem", com ID real do catálogo)
 - Deixe vazio [] apenas em etapas sem opções (resumo, refinamento, atributos)

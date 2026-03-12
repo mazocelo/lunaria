@@ -129,6 +129,26 @@ function mapStyleDirectives(estiloImagem) {
   }
 }
 
+function stylePhrase(estiloImagem, kind = 'scene') {
+  const isRealistic = estiloImagem === 'realistic';
+  if (kind === 'npc') {
+    return isRealistic
+      ? 'photorealistic character portrait, natural skin texture, real-world lighting'
+      : 'RPG character portrait illustration';
+  }
+  if (kind === 'local') {
+    return isRealistic
+      ? 'photorealistic environment, natural terrain detail, real-world material textures, no illustration style'
+      : 'landscape illustration, environment art, no characters';
+  }
+  if (kind === 'scene') {
+    return isRealistic
+      ? 'photorealistic cinematic still frame, natural lighting, physically plausible materials'
+      : 'scene illustration, dramatic lighting, cinematic composition';
+  }
+  return isRealistic ? 'photorealistic render' : 'illustration';
+}
+
 function extractMapaMundiContext(mapaMundi) {
   if (!mapaMundi) return '';
   if (typeof mapaMundi === 'string') return normalizeText(mapaMundi, 450);
@@ -212,7 +232,7 @@ function buildPrompt(entityType, entityData) {
     }
     case 'npc': {
       const parts = [
-        `${style}, RPG character portrait`,
+        `${style}, ${stylePhrase(entityData.estilo_imagem, 'npc')}`,
         'strictly follow the provided appearance/personality description',
       ];
       if (entityData.nome) parts.push(`named ${normalizeText(entityData.nome, 100)}`);
@@ -227,7 +247,7 @@ function buildPrompt(entityType, entityData) {
     }
     case 'local': {
       const parts = [
-        `${style}, landscape illustration, environment art, no characters`,
+        `${style}, ${stylePhrase(entityData.estilo_imagem, 'local')}`,
         'strictly follow the provided environment description',
       ];
       if (entityData.nome) parts.push(`location name: ${normalizeText(entityData.nome, 120)}`);
@@ -240,12 +260,15 @@ function buildPrompt(entityType, entityData) {
     }
     case 'cena': {
       const parts = [
-        `${style}, scene illustration, dramatic lighting, cinematic composition`,
+        `${style}, ${stylePhrase(entityData.estilo_imagem, 'scene')}`,
         'strictly follow the narrative and entity descriptions',
       ];
       if (temas) parts.push(`themes: ${temas}`);
       if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
       if (entityData.narracao) parts.push(`scene narration: ${normalizeText(entityData.narracao, 700)}`);
+      if (entityData.estilo_imagem === 'realistic') {
+        parts.push('no cartoon, no cel shading, no hand-drawn lines, no painterly style');
+      }
 
       const entidades = Array.isArray(entityData.entidades) ? entityData.entidades : [];
       if (entidades.length > 0) {

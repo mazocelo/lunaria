@@ -561,6 +561,8 @@ const VerEquipamentoView = ({
   handleBack,
   handleEdit,
 }) => {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (loading) {
     return (
       <div className="animate-fade-in">
@@ -594,7 +596,6 @@ const VerEquipamentoView = ({
   }
 
   const eq = equipamento;
-  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

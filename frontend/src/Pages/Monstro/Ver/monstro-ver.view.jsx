@@ -64,6 +64,8 @@ const AtributoBar = ({ label, value, max = 20, color, isLight }) => {
 };
 
 const VerMonstroView = ({ monstro, loading, error, isLight, handleBack, handleEdit }) => {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (loading) {
     return (
       <div className="animate-fade-in">
@@ -90,7 +92,6 @@ const VerMonstroView = ({ monstro, loading, error, isLight, handleBack, handleEd
   }
 
   const m = monstro;
-  const [lightboxSrc, setLightboxSrc] = useState(null);
   const raridadeNome = m.raridade_rel?.nome || 'Comum';
   const config = getRaridadeConfig(raridadeNome);
   const tipos = Array.isArray(m.tipo) ? m.tipo : [];

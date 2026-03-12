@@ -75,6 +75,8 @@ const VerMestreView = ({
   id, mestre, loading, error, isLight, voiceName,
   clearError, navigate, generateRoute,
 }) => {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (loading) {
     return (
       <div className="animate-fade-in">
@@ -115,7 +117,6 @@ const VerMestreView = ({
 
   if (!mestre) return null;
 
-  const [lightboxSrc, setLightboxSrc] = useState(null);
   const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id, voice_provider } = mestre;
 
   const promptPreview = useMemo(() => {

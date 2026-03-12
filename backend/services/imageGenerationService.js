@@ -1,5 +1,7 @@
 const LEONARDO_API_URL = 'https://cloud.leonardo.ai/api/rest/v1';
 const LEONARDO_API_KEY = process.env.LEONARDO_API_KEY;
+const DEFAULT_MODEL_ID = process.env.LEONARDO_MODEL_ID || 'e71a1c2f-4f80-4800-934f-2c68979d8cc8';
+const REALISTIC_MODEL_ID = process.env.LEONARDO_REALISTIC_MODEL_ID || DEFAULT_MODEL_ID;
 
 const POLL_INTERVAL = 2000;
 const MAX_POLLS = 30;
@@ -13,13 +15,17 @@ async function generateImage(prompt, options = {}) {
   const defaultNegative = 'blurry, low quality, distorted, deformed, ugly, bad anatomy';
   const realisticNegative = 'cartoon, anime, manga, cel shading, hand-drawn, painterly, illustration style, comic style, stylized outlines, concept art, matte painting, digital painting brushstrokes, logo, watermark, text';
 
+  const requestedStyle = options.estilo_imagem;
+  const isRealisticStyle = requestedStyle === 'realistic';
+  const modelId = options.modelId || (isRealisticStyle ? REALISTIC_MODEL_ID : DEFAULT_MODEL_ID);
+
   const body = {
     prompt,
-    modelId: options.modelId || 'e71a1c2f-4f80-4800-934f-2c68979d8cc8',
+    modelId,
     width: options.width || 512,
     height: options.height || 512,
     num_images: 1,
-    guidance_scale: options.guidance_scale || 7,
+    guidance_scale: options.guidance_scale || (isRealisticStyle ? 8.5 : 7),
     negative_prompt: options.negative_prompt || (isRealisticPrompt ? `${defaultNegative}, ${realisticNegative}` : defaultNegative),
   };
 

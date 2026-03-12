@@ -60,7 +60,10 @@ async function gerarImagem(req, res) {
       const prompt = buildPrompt(entityType, entityData);
       console.log(`[ImageController] prompt final:`, prompt);
       const tImg = Date.now();
-      const imageUrl = await generateImage(prompt, options || {});
+      const imageUrl = await generateImage(prompt, {
+        ...(options || {}),
+        estilo_imagem: entityData.estilo_imagem
+      });
 
       if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'leonardo', tipo: 'image', duracao_ms: Date.now() - tImg, metadata: { entityType } });
 

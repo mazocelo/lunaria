@@ -37,6 +37,43 @@ const formatBonus = (bonus) => {
     .join(', ');
 };
 
+const parseBonus = (raw) => {
+  if (!raw) return null;
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(obj) ? obj[0] : obj;
+  } catch { return null; }
+};
+
+const atributoKeys = new Set(['forca', 'inteligencia', 'constituicao', 'agilidade', 'destreza', 'carisma']);
+
+const calcularBonusAtributos = (p) => {
+  const result = {};
+  atributosConfig.forEach(a => { result[a.key] = []; });
+
+  const addBonus = (source, label, bonus) => {
+    if (!bonus || typeof bonus !== 'object') return;
+    Object.entries(bonus).forEach(([k, v]) => {
+      if (atributoKeys.has(k) && v && v !== 0 && result[k]) {
+        result[k].push({ label, value: Number(v) });
+      }
+    });
+  };
+
+  addBonus(p, 'Raca', parseBonus(p.racas?.bonus));
+  addBonus(p, 'Classe', parseBonus(p.classes?.bonus));
+  (p.vantagens || []).forEach(v => {
+    const b = typeof v.bonus === 'object' && !Array.isArray(v.bonus) ? v.bonus : parseBonus(v.bonus);
+    addBonus(p, v.nome, b);
+  });
+  (p.desvantagens || []).forEach(d => {
+    const b = typeof d.bonus === 'object' && !Array.isArray(d.bonus) ? d.bonus : parseBonus(d.bonus);
+    addBonus(p, d.nome, b);
+  });
+
+  return result;
+};
+
 const VerPersonagemView = ({
   personagem,
   evolucao,
@@ -304,35 +341,55 @@ const VerPersonagemView = ({
       )}
 
       {/* Attributes */}
-      <div className="card-rpg">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-            <BarChart3 size={16} className="text-white" />
-          </div>
-          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-            Atributos
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {atributosConfig.map(attr => {
-            const valor = p[attr.key] || p.atributos?.[attr.key] || 10;
-            const mod = Math.floor((valor - 10) / 2);
-            const AttrIcon = attr.icon;
-            return (
-              <div key={attr.key} className={`p-3 rounded-lg text-center ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
-                <div className="mb-1 flex justify-center">
-                  <AttrIcon size={20} className={isLight ? 'text-slate-500' : 'text-slate-400'} />
-                </div>
-                <div className={`font-modern text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{attr.label}</div>
-                <div className={`text-2xl font-bold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{valor}</div>
-                <div className={`text-xs font-modern ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {mod >= 0 ? '+' : ''}{mod}
-                </div>
+      {(() => {
+        const bonusPorAtributo = calcularBonusAtributos(p);
+        return (
+          <div className="card-rpg">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+                <BarChart3 size={16} className="text-white" />
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                Atributos
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {atributosConfig.map(attr => {
+                const valor = p[attr.key] || p.atributos?.[attr.key] || 10;
+                const mod = Math.floor((valor - 10) / 2);
+                const AttrIcon = attr.icon;
+                const bonuses = bonusPorAtributo[attr.key] || [];
+                const totalBonus = bonuses.reduce((sum, b) => sum + b.value, 0);
+                const base = valor - totalBonus;
+                return (
+                  <div key={attr.key} className={`p-3 rounded-lg text-center ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
+                    <div className="mb-1 flex justify-center">
+                      <AttrIcon size={20} className={isLight ? 'text-slate-500' : 'text-slate-400'} />
+                    </div>
+                    <div className={`font-modern text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{attr.label}</div>
+                    <div className={`text-2xl font-bold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{valor}</div>
+                    <div className={`text-xs font-modern ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {mod >= 0 ? '+' : ''}{mod}
+                    </div>
+                    {bonuses.length > 0 && (
+                      <div className="mt-1.5 space-y-0.5">
+                        <div className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Base: {base}
+                        </div>
+                        {bonuses.map((b, i) => (
+                          <div key={i} className={`text-[10px] font-modern ${b.value > 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                            {b.value > 0 ? '+' : ''}{b.value} {b.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Vantagens & Desvantagens */}
       {((p.vantagens && p.vantagens.length > 0) || (p.desvantagens && p.desvantagens.length > 0)) && (

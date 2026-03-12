@@ -5,7 +5,7 @@ import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { ROUTES } from '../../../routes.jsx';
-import { Crown, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Crown, Plus, Eye, Pencil, Trash2, Volume2 } from 'lucide-react';
 
 const MestreListaView = ({
   mestres,
@@ -20,6 +20,7 @@ const MestreListaView = ({
   handleDeleteClick,
   handleConfirmDelete,
   handleCancelDelete,
+  handlePreviewVoz,
   clearError,
   navigate,
   generateRoute,
@@ -95,6 +96,13 @@ const MestreListaView = ({
       icon: <Pencil size={18} />,
       color: 'cyan',
       onClick: (row) => navigate(generateRoute.editarMestre(row.id))
+    },
+    {
+      label: 'Ouvir voz',
+      icon: <Volume2 size={18} />,
+      color: 'green',
+      show: (row) => Boolean(row.voice_id),
+      onClick: (row) => handlePreviewVoz(row)
     },
     {
       label: 'Deletar',

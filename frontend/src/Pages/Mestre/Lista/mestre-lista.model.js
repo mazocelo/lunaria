@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMestreStore } from '../../../store/mestre';
-import { mestreService } from '../../../services/index.js';
+import { apiClient, mestreService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 
@@ -22,9 +22,29 @@ export const useMestreListaModel = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [mestreToDelete, setMestreToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [playingMestreId, setPlayingMestreId] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewAudioRef = useRef(null);
+  const previewUrlRef = useRef(null);
 
   useEffect(() => {
     if (!mestresCarregados) carregarMestres();
+  }, []);
+
+  const stopPreview = () => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setPlayingMestreId(null);
+  };
+
+  useEffect(() => {
+    return () => stopPreview();
   }, []);
 
   const filteredMestres = useMemo(() => {
@@ -70,6 +90,38 @@ export const useMestreListaModel = () => {
     setDeleteLoading(false);
   };
 
+  const handlePreviewVoz = async (mestre) => {
+    if (!mestre?.voice_id || previewLoading) return;
+
+    if (playingMestreId && String(playingMestreId) === String(mestre.id)) {
+      stopPreview();
+      return;
+    }
+
+    stopPreview();
+    setPreviewLoading(true);
+    try {
+      const body = {
+        voiceId: mestre.voice_id,
+        provider: mestre.voice_provider || 'elevenlabs',
+      };
+      const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
+      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      previewUrlRef.current = url;
+      previewAudioRef.current = audio;
+      audio.onended = () => stopPreview();
+      audio.onpause = () => setPlayingMestreId(null);
+      await audio.play();
+      setPlayingMestreId(mestre.id);
+    } catch {
+      stopPreview();
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const clearError = () => {
     setLocalError(null);
     useMestreStore.setState({ error: null });
@@ -88,6 +140,8 @@ export const useMestreListaModel = () => {
     handleDeleteClick,
     handleConfirmDelete,
     handleCancelDelete,
+    handlePreviewVoz,
+    playingMestreId,
     clearError,
     navigate,
     generateRoute,

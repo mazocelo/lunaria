@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
 import { Badge } from '../../../components/shared';
+import { apiClient } from '../../../services/ApiClient.js';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw
+  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw, Pause
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
@@ -89,6 +90,63 @@ const VerHistoriaView = ({
   clearError,
 }) => {
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [playingMestreId, setPlayingMestreId] = useState(null);
+  const previewAudioRef = useRef(null);
+  const previewUrlRef = useRef(null);
+
+  const selectedMestre = useMemo(() => {
+    if (!mestreSelecionadoId) return null;
+    return (mestresAtivos || []).find((m) => String(m.id) === String(mestreSelecionadoId)) || null;
+  }, [mestresAtivos, mestreSelecionadoId]);
+
+  const stopPreview = () => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setPlayingMestreId(null);
+  };
+
+  useEffect(() => {
+    return () => stopPreview();
+  }, []);
+
+  const handlePreviewMestre = async () => {
+    if (!selectedMestre?.voice_id || loadingPreview) return;
+
+    if (playingMestreId && String(playingMestreId) === String(selectedMestre.id)) {
+      stopPreview();
+      return;
+    }
+
+    stopPreview();
+    setLoadingPreview(true);
+    try {
+      const body = {
+        voiceId: selectedMestre.voice_id,
+        provider: selectedMestre.voice_provider || 'elevenlabs',
+      };
+      const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
+      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      previewUrlRef.current = url;
+      previewAudioRef.current = audio;
+      audio.onended = () => stopPreview();
+      audio.onpause = () => setPlayingMestreId(null);
+      await audio.play();
+      setPlayingMestreId(selectedMestre.id);
+    } catch (_) {
+      stopPreview();
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
 
   const ESTILOS_IMAGEM = [
     { value: 'fantasy_painting', label: 'Fantasy Painting' },
@@ -524,6 +582,27 @@ const VerHistoriaView = ({
                     <option key={m.id} value={m.id}>{m.nome}</option>
                   ))}
                 </select>
+                {selectedMestre?.voice_id && (
+                  <button
+                    type="button"
+                    onClick={handlePreviewMestre}
+                    disabled={loadingPreview}
+                    className={`w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-modern text-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isLight
+                        ? 'bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200'
+                        : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30'
+                    }`}
+                  >
+                    {loadingPreview ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : playingMestreId && String(playingMestreId) === String(selectedMestre.id) ? (
+                      <Pause size={14} />
+                    ) : (
+                      <Play size={14} />
+                    )}
+                    {playingMestreId && String(playingMestreId) === String(selectedMestre.id) ? 'Pausar voz' : 'Ouvir voz do mestre'}
+                  </button>
+                )}
                 <div className="flex gap-2">
                   <button
                     disabled={salvandoMestre}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
@@ -14,7 +14,7 @@ export const renderDado = (mensagem, key) => {
     <div key={key} className="w-full animate-fade-in">
       <div className="glass p-4 rounded-xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-900/40 to-orange-900/40 shadow-xl">
         <div className="flex items-center justify-center space-x-3">
-          <span className="text-4xl drop-shadow-lg">🎲</span>
+          <span className="text-4xl drop-shadow-lg">ðŸŽ²</span>
           <div className="text-center">
             <p className="text-white font-bold text-base mb-1">
               {mensagem.username} rolou {mensagem.dice || 'd20'}
@@ -51,7 +51,7 @@ export const renderRoleplay = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in">
     <div className="glass p-5 rounded-xl border-2 border-gray-500/40 bg-gray-900/30 shadow-lg">
       <div className="flex items-start space-x-3">
-        <span className="text-2xl">💬</span>
+        <span className="text-2xl">ðŸ’¬</span>
         <div className="flex-1">
           <p className="text-gray-300 text-sm font-semibold mb-2">
             {mensagem.username} <span className="italic text-gray-400">(roleplay)</span>
@@ -86,7 +86,7 @@ export const renderCombate = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in">
     <div className="glass p-5 rounded-xl border-2 border-red-500/60 bg-gradient-to-br from-red-900/30 to-orange-900/20 shadow-xl">
       <div className="flex items-start space-x-3">
-        <span className="text-3xl drop-shadow-lg">⚔️</span>
+        <span className="text-3xl drop-shadow-lg">âš”ï¸</span>
         <div className="flex-1">
           <p className="text-red-300 font-bold text-sm mb-2">
             Combate
@@ -110,7 +110,7 @@ export const renderTransicaoTurno = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in my-3">
     <div className="glass p-3 rounded-xl border border-cyan-500/50 bg-cyan-900/20">
       <div className="flex items-center justify-center space-x-2">
-        <span className="text-2xl">🏁</span>
+        <span className="text-2xl">ðŸ</span>
         <p className="text-cyan-200 font-semibold text-sm">
           {getConteudo(mensagem)}
         </p>
@@ -123,7 +123,7 @@ export const renderAguardandoDados = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in my-3">
     <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-4">
       <div className="flex items-center justify-center space-x-2">
-        <span className="text-2xl">⏳</span>
+        <span className="text-2xl">â³</span>
         <p className="text-amber-300 font-semibold">
           {getConteudo(mensagem)}
         </p>
@@ -136,7 +136,7 @@ export const renderEntreRodadas = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in my-8">
     <div className="glass p-8 rounded-2xl border-2 border-cyan-400/70 bg-gradient-to-br from-cyan-900/40 to-purple-900/40 shadow-2xl">
       <div className="text-center mb-4">
-        <span className="text-6xl drop-shadow-lg">🌟</span>
+        <span className="text-6xl drop-shadow-lg">ðŸŒŸ</span>
         <h3 className="text-3xl font-fantasy font-bold text-cyan-300 mt-3 drop-shadow-lg">
           {mensagem.titulo || 'Fim de Rodada'}
         </h3>
@@ -150,7 +150,7 @@ export const renderEntreRodadas = (mensagem, key) => (
 
 export const renderMestre = (mensagem, key) => {
   const conteudo = getConteudo(mensagem);
-  const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
+  const temSolicitacaoDados = /ðŸŽ².*[Rr]ole/i.test(conteudo);
 
   return (
     <div key={key} className="w-full animate-fade-in">
@@ -161,7 +161,7 @@ export const renderMestre = (mensagem, key) => {
       }`}>
         <div className="flex items-start space-x-4">
           <span className="text-4xl drop-shadow-lg">
-            {temSolicitacaoDados ? '🎲' : '🎭'}
+            {temSolicitacaoDados ? 'ðŸŽ²' : 'ðŸŽ­'}
           </span>
           <div className="flex-1">
             <p className={`font-bold text-lg mb-2 ${
@@ -181,13 +181,13 @@ export const renderMestre = (mensagem, key) => {
 
 /**
  * MestreMessage - Componente React para mensagens do mestre com TTS
- * Recebe instância compartilhada de useTTS via props (do ChatArea)
+ * Recebe instÃ¢ncia compartilhada de useTTS via props (do ChatArea)
  */
 export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, onSceneImageGenerated, estiloImagem }) => {
   const conteudo = getConteudo(mensagem);
-  const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
+  const temSolicitacaoDados = /ðŸŽ².*[Rr]ole/i.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;
-  // Usar voice da mensagem (permanente) com fallback para props (sessão atual)
+  // Usar voice da mensagem (permanente) com fallback para props (sessÃ£o atual)
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
 
@@ -233,7 +233,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
       }`}>
         <div className="flex items-start space-x-4">
           <span className="text-4xl drop-shadow-lg">
-            {temSolicitacaoDados ? '🎲' : '🎭'}
+            {temSolicitacaoDados ? 'ðŸŽ²' : 'ðŸŽ­'}
           </span>
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
@@ -251,17 +251,17 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                       ? 'bg-purple-500/30 text-purple-200'
                       : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
                   }`}
-                  title={generatingScene ? 'Gerando ilustração...' : 'Ilustrar cena'}
+                  title={generatingScene ? 'Gerando ilustraÃ§Ã£o...' : 'Ilustrar cena'}
                 >
                   {generatingScene ? (
                     <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                  ) : '🖼️'}
+                  ) : 'ðŸ–¼ï¸'}
                 </button>
                 {effectiveVoiceId && (
                   <button
                     onClick={() => (
-                      isThisPlaying && tts.isPlaying
-                        ? tts.stop()
+                      isThisPlaying
+                        ? tts.togglePause()
                         : tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)
                     )}
                     disabled={tts.isLoading && isThisPlaying}
@@ -270,11 +270,11 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                         ? 'bg-purple-500/30 text-purple-200'
                         : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
                     }`}
-                    title={isThisPlaying && tts.isPlaying ? 'Parar narração' : 'Ouvir narração'}
+                    title={isThisPlaying && tts.isPlaying ? 'Pausar narraÃ§Ã£o' : 'Ouvir narraÃ§Ã£o'}
                   >
                     {tts.isLoading && isThisPlaying ? (
                       <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                    ) : isThisPlaying && tts.isPlaying ? '⏹' : '🔊'}
+                    ) : isThisPlaying && tts.isPlaying ? 'â¹' : 'ðŸ”Š'}
                   </button>
                 )}
               </div>
@@ -302,14 +302,14 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
             )}
             {sceneImage && (
               <div className="mt-3 relative group">
-                <img src={sceneImage} alt="Ilustração da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer" onClick={() => setSceneLightbox(true)} />
+                <img src={sceneImage} alt="IlustraÃ§Ã£o da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer" onClick={() => setSceneLightbox(true)} />
                 <button
                   onClick={() => setSceneImage(null)}
                   className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <span className="text-xs">✕</span>
+                  <span className="text-xs">âœ•</span>
                 </button>
-                <ImageLightbox src={sceneImage} alt="Ilustração da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
+                <ImageLightbox src={sceneImage} alt="IlustraÃ§Ã£o da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
               </div>
             )}
           </div>
@@ -323,7 +323,7 @@ export const renderJogador = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in">
     <div className="glass p-6 rounded-xl border-2 border-cyan-500/60 bg-gradient-to-br from-cyan-900/30 to-blue-900/30 shadow-xl">
       <div className="flex items-start space-x-4">
-        <span className="text-3xl drop-shadow-lg">⚔️</span>
+        <span className="text-3xl drop-shadow-lg">âš”ï¸</span>
         <div className="flex-1">
           <p className="text-cyan-300 font-bold text-lg mb-2">
             {mensagem.username}
@@ -343,7 +343,7 @@ export const renderJogador = (mensagem, key) => (
 );
 
 /**
- * Registry: tipo → renderer (com aliases)
+ * Registry: tipo â†’ renderer (com aliases)
  */
 export const MESSAGE_RENDERERS = {
   dado: renderDado,
@@ -360,3 +360,6 @@ export const MESSAGE_RENDERERS = {
   jogador: renderJogador,
   player: renderJogador,
 };
+
+
+

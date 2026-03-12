@@ -152,9 +152,12 @@ const TIPO_ESPERADO = {
 };
 
 /** Valida e sanitiza sugestões da IA */
-function sanitizarSugestoes(sugestoes, etapa) {
+function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino) {
   if (!Array.isArray(sugestoes)) return [];
-  const tipoEsperado = TIPO_ESPERADO[etapa] || null;
+  // Aceitar tipo da etapa atual OU da etapa destino
+  const tiposAceitos = new Set();
+  if (TIPO_ESPERADO[etapaAtual]) tiposAceitos.add(TIPO_ESPERADO[etapaAtual]);
+  if (TIPO_ESPERADO[etapaDestino]) tiposAceitos.add(TIPO_ESPERADO[etapaDestino]);
 
   return sugestoes.filter(s => {
     // Toda sugestão precisa ter tipo e nome
@@ -162,9 +165,9 @@ function sanitizarSugestoes(sugestoes, etapa) {
       console.warn('⚠️ MestreCriador: Sugestão sem tipo/nome descartada:', JSON.stringify(s));
       return false;
     }
-    // Validar que o tipo corresponde à etapa (ex: etapa "classe" só aceita tipo "classe")
-    if (tipoEsperado && s.tipo !== tipoEsperado) {
-      console.warn(`⚠️ MestreCriador [${etapa}]: Sugestão com tipo errado "${s.tipo}" descartada (esperado: "${tipoEsperado}"): "${s.nome}"`);
+    // Validar que o tipo corresponde à etapa atual ou destino
+    if (tiposAceitos.size > 0 && !tiposAceitos.has(s.tipo)) {
+      console.warn(`⚠️ MestreCriador [${etapaAtual}→${etapaDestino}]: Sugestão tipo "${s.tipo}" descartada (aceitos: ${[...tiposAceitos].join(',')}): "${s.nome}"`);
       return false;
     }
     // Sugestões de catálogo (raça, classe, vantagem, desvantagem) precisam de ID
@@ -369,20 +372,24 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       resultado.etapa_proxima = transicoesValidas[0] || etapa;
     }
 
-    // As sugestões são para a PRÓXIMA etapa (etapa_proxima), não a etapa atual
     const etapaDestino = resultado.etapa_proxima || etapa;
 
-    // Sanitizar sugestões usando etapa destino
+    // Sanitizar sugestões (aceita tipo da etapa atual OU destino)
     const sugestoes = sanitizarSugestoes(
       Array.isArray(resultado.sugestoes) ? resultado.sugestoes : [],
+      etapa,
       etapaDestino
     );
 
+    // Determinar qual etapa precisa de sugestões (preferir destino, depois atual)
+    const etapaFallback = ETAPAS_COM_SUGESTOES.includes(etapaDestino) ? etapaDestino
+      : ETAPAS_COM_SUGESTOES.includes(etapa) ? etapa : null;
+
     // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
     let sugestoesFinal = sugestoes;
-    if (sugestoes.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapaDestino)) {
-      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback do catálogo.`);
-      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado);
+    if (sugestoes.length === 0 && etapaFallback) {
+      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback para "${etapaFallback}".`);
+      sugestoesFinal = await gerarFallbackSugestoes(etapaFallback, estado);
     }
 
     // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão

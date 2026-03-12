@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, Save, BookOpen, Check, Info } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, Save, BookOpen, Check, Info, RefreshCw } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -263,6 +263,23 @@ const WizardChat = ({
                     />
                   ))}
                 </div>
+              )}
+
+              {/* Botão "Gerar novas sugestões" — última mensagem do mestre em etapas com sugestões */}
+              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && !enviando &&
+                ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
+                <button
+                  type="button"
+                  onClick={() => onEnviar('Mostre-me outras opções diferentes')}
+                  className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
+                    isLight
+                      ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200'
+                      : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30'
+                  }`}
+                >
+                  <RefreshCw size={12} />
+                  Gerar novas sugestões
+                </button>
               )}
 
               {/* Botão "Pesquisar outras" — na última mensagem do mestre em etapas raca/classe */}

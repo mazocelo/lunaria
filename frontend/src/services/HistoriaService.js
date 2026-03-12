@@ -1,8 +1,7 @@
 import { Historia } from '../models/Historia';
 
 /**
- * Serviço para gerenciar operações de História
- * Responsável pela comunicação com a API
+ * Servico para gerenciar operacoes de Historia
  */
 export class HistoriaService {
   constructor(apiClient) {
@@ -10,343 +9,201 @@ export class HistoriaService {
     this.baseUrl = '/historias';
   }
 
-  /**
-   * Busca todas as histórias
-   * @returns {Promise<Historia[]>} Lista de histórias
-   */
+  asListResponse(response) {
+    const data = response?.success ? response.data : response;
+    return Array.isArray(data) ? data : [];
+  }
+
+  asEntityResponse(response) {
+    if (response?.success === false) {
+      throw new Error(response?.message || response?.error || 'Erro desconhecido');
+    }
+    if (response?.success === true) {
+      return response.data;
+    }
+    return response;
+  }
+
   async getAll() {
     try {
       const response = await this.apiClient.get(this.baseUrl);
-      // Verificação mais robusta da estrutura de resposta
-      if (response.success) {
-        // ✅ NORMALIZAR dados usando Historia.fromAPI() conforme API documentation
-        return response
-      } else {
-        throw new Error(response.data?.message || 'Erro desconhecido');
-      }
-
+      if (response?.success) return response;
+      throw new Error(response?.message || 'Erro desconhecido');
     } catch (error) {
-      throw new Error(`Erro ao buscar histórias: ${error.message}`);
+      throw new Error(`Erro ao buscar historias: ${error.message}`);
     }
   }
 
-  /**
-   * Busca histórias públicas para o browser de exploração
-   */
   async getPublicas(params = {}) {
     try {
       const queryParams = new URLSearchParams({ todas: 'true', ...params });
       const response = await this.apiClient.get(`${this.baseUrl}?${queryParams}`);
-      if (response.success) return response;
-      throw new Error(response.data?.message || 'Erro desconhecido');
+      if (response?.success) return response;
+      throw new Error(response?.message || 'Erro desconhecido');
     } catch (error) {
-      throw new Error(`Erro ao buscar histórias públicas: ${error.message}`);
+      throw new Error(`Erro ao buscar historias publicas: ${error.message}`);
     }
   }
 
-  /**
-   * Busca uma história por ID
-   * @param {number} id - ID da história
-   * @returns {Promise<Historia>} História encontrada
-   */
   async getById(id) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${id}`);
-
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            // ✅ USAR Historia.fromAPI() para normalizar dados conforme API documentation
-            return Historia.fromAPI(response.data.data);
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          // Se não tem a estrutura success, assume que a resposta é direta
-          return Historia.fromAPI(response.data);
-        }
-      } else {
-        throw new Error('Resposta inválida da API');
-      }
+      const data = this.asEntityResponse(response);
+      return Historia.fromAPI(data);
     } catch (error) {
-      throw new Error(`Erro ao buscar história: ${error.message}`);
+      throw new Error(`Erro ao buscar historia: ${error.message}`);
     }
   }
 
-  /**
-   * Cria uma nova história
-   * @param {Historia|Object} historia - Dados da história (instância ou objeto simples)
-   * @returns {Promise<Historia>} História criada
-   */
   async create(historia) {
     try {
-      // Criar instância da classe Historia se necessário
-      let historiaInstance;
-      if (historia instanceof Historia) {
-        historiaInstance = historia;
-      } else {
-        historiaInstance = new Historia(historia);
-      }
-
-      // Validar antes de enviar
+      const historiaInstance = historia instanceof Historia ? historia : new Historia(historia);
       const validation = historiaInstance.validate();
       if (!validation.isValid) {
-        throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
+        throw new Error(`Dados invalidos: ${validation.errors.join(', ')}`);
       }
 
-      const response = await this.apiClient.post(this.baseUrl + '/create', historiaInstance.toJSON());
-
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return Historia.fromAPI(response.data.data);
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return Historia.fromAPI(response.data);
-        }
-      } else {
-        throw new Error('Resposta inválida da API');
-      }
+      const response = await this.apiClient.post(`${this.baseUrl}/create`, historiaInstance.toJSON());
+      const data = this.asEntityResponse(response);
+      return Historia.fromAPI(data);
     } catch (error) {
-      throw new Error(`Erro ao criar história: ${error.message}`);
+      throw new Error(`Erro ao criar historia: ${error.message}`);
     }
   }
 
-  /**
-   * Atualiza uma história existente
-   * @param {number} id - ID da história
-   * @param {Historia|Object} historia - Dados atualizados (instância ou objeto simples)
-   * @returns {Promise<Historia>} História atualizada
-   */
   async update(id, historia) {
     try {
-      // Se for instância completa de Historia, validar e enviar tudo
-      // Se for objeto parcial (ex: { mestre_id: 5 }), enviar apenas os campos fornecidos
       let payload;
       if (historia instanceof Historia) {
         const validation = historia.validate();
         if (!validation.isValid) {
-          throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
+          throw new Error(`Dados invalidos: ${validation.errors.join(', ')}`);
         }
         payload = historia.toJSON();
       } else {
-        // Partial update — enviar apenas campos fornecidos
         payload = { ...historia };
       }
 
       const response = await this.apiClient.put(`${this.baseUrl}/${id}`, payload);
-
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return Historia.fromAPI(response.data.data);
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return Historia.fromAPI(response.data);
-        }
-      } else {
-        throw new Error('Resposta inválida da API');
-      }
+      const data = this.asEntityResponse(response);
+      return Historia.fromAPI(data);
     } catch (error) {
-      throw new Error(`Erro ao atualizar história: ${error.message}`);
+      throw new Error(`Erro ao atualizar historia: ${error.message}`);
     }
   }
 
-  /**
-   * Remove uma história
-   * @param {number} id - ID da história
-   * @returns {Promise<void>}
-   */
   async delete(id) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-
-      // Verificação mais robusta da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data.data;
-          } else {
-            throw new Error(response.data?.message || 'Erro desconhecido');
-          }
-        } else {
-          return response.data;
-        }
-      } else {
-        throw new Error('Resposta inválida da API');
+      if (response?.success === false) {
+        throw new Error(response?.message || response?.error || 'Erro desconhecido');
       }
+      return response;
     } catch (error) {
-      throw new Error(`Erro ao remover história: ${error.message}`);
+      throw new Error(`Erro ao remover historia: ${error.message}`);
     }
   }
 
-  /**
-   * Resetar/zerar sessão de jogo ativa
-   * @param {number} historiaId - ID da história
-   * @returns {Promise<Object>} Resposta da API
-   */
   async resetarSessao(historiaId) {
     try {
       const response = await this.apiClient.delete(`/jogo/reset/${historiaId}`);
-
-      // Verificação da estrutura de resposta
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data;
-          } else {
-            throw new Error(response.data?.error || response.data?.message || 'Erro desconhecido');
-          }
-        }
-        return response.data;
+      if (response?.success === false) {
+        throw new Error(response?.error || response?.message || 'Erro desconhecido');
       }
-
       return response;
     } catch (error) {
-      throw new Error(`Erro ao resetar sessão: ${error.message}`);
+      throw new Error(`Erro ao resetar sessao: ${error.message}`);
     }
   }
 
   async encerrarSessao(historiaId) {
     try {
       const response = await this.apiClient.delete(`/jogo/encerrar/${historiaId}`);
-
-      if (response.data) {
-        if (response.data.success !== undefined) {
-          if (response.data.success) {
-            return response.data;
-          } else {
-            throw new Error(response.data?.error || response.data?.message || 'Erro desconhecido');
-          }
-        }
-        return response.data;
+      if (response?.success === false) {
+        throw new Error(response?.error || response?.message || 'Erro desconhecido');
       }
-
       return response;
     } catch (error) {
-      throw new Error(`Erro ao encerrar sessão: ${error.message}`);
+      throw new Error(`Erro ao encerrar sessao: ${error.message}`);
     }
   }
 
-  /**
-   * Busca histórias por tema
-   * @param {number} temaId - ID do tema
-   * @returns {Promise<Historia[]>} Lista de histórias do tema
-   */
   async getByTema(temaId) {
     try {
-      const response = await this.apiClient.get(`${this.baseUrl}?tema_id=${temaId}`);
-      return response.data.map(historiaData => Historia.fromAPI(historiaData));
+      const response = await this.apiClient.get(`${this.baseUrl}?temas=${temaId}`);
+      const historias = this.asListResponse(response);
+      return historias.map(historiaData => Historia.fromAPI(historiaData));
     } catch (error) {
-      throw new Error(`Erro ao buscar histórias por tema: ${error.message}`);
+      throw new Error(`Erro ao buscar historias por tema: ${error.message}`);
     }
   }
 
-  /**
-   * Busca histórias com filtros
-   * @param {Object} filters - Filtros de busca
-   * @returns {Promise<Historia[]>} Lista de histórias filtradas
-   */
   async getWithFilters(filters = {}) {
     try {
       const queryParams = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value);
+        if (value !== undefined && value !== null && value !== '') {
+          const normalizedKey = key === 'tema' ? 'temas' : key;
+          queryParams.append(normalizedKey, value);
         }
       });
 
       const response = await this.apiClient.get(`${this.baseUrl}?${queryParams.toString()}`);
-      return response.data.map(historiaData => Historia.fromAPI(historiaData));
+      const historias = this.asListResponse(response);
+      return historias.map(historiaData => Historia.fromAPI(historiaData));
     } catch (error) {
-      throw new Error(`Erro ao buscar histórias com filtros: ${error.message}`);
+      throw new Error(`Erro ao buscar historias com filtros: ${error.message}`);
     }
   }
 
-  /**
-   * Envia convite por email para uma história
-   * @param {number} historia_id - ID da história
-   * @param {string} email - Email do jogador a ser convidado
-   * @returns {Promise<Object>} Resultado do convite
-   */
   async enviarConvite(historia_id, email) {
     try {
       if (!historia_id || !email) {
-        throw new Error('ID da história e email são obrigatórios');
+        throw new Error('ID da historia e email sao obrigatorios');
       }
 
-      // Validar formato do email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        throw new Error('Email inválido');
+        throw new Error('Email invalido');
       }
 
-      const response = await this.apiClient.post('/convites', {
-        historia_id,
-        email
-      });
-
-      if (response.success) {
+      const response = await this.apiClient.post('/convites', { historia_id, email });
+      if (response?.success) {
         return response.data;
-      } else {
-        throw new Error(response.error || response.message || 'Erro ao enviar convite');
       }
+      throw new Error(response?.error || response?.message || 'Erro ao enviar convite');
     } catch (error) {
       throw new Error(`Erro ao enviar convite: ${error.message}`);
     }
   }
 
-  /**
-   * Verifica se há sessão ativa para uma história
-   * @param {number} historiaId - ID da história
-   * @returns {Promise<Object>} Dados da sessão ativa
-   */
   async verificarSessaoAtiva(historiaId) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${historiaId}/sessao-ativa`);
-      
-      if (response.success) {
+      if (response?.success) {
         return response.data;
-      } else {
-        throw new Error(response.message || 'Erro ao verificar sessão');
       }
+      throw new Error(response?.message || 'Erro ao verificar sessao');
     } catch (error) {
-      throw new Error(`Erro ao verificar sessão ativa: ${error.message}`);
+      throw new Error(`Erro ao verificar sessao ativa: ${error.message}`);
     }
   }
 
-  /**
-   * Busca status completo de uma sessão de jogo
-   * @param {number} historiaId - ID da história
-   * @returns {Promise<Object>} Dados completos da sessão
-   */
   async getStatusJogo(historiaId) {
     try {
       const response = await this.apiClient.get(`/jogo/status/${historiaId}`);
-
-      if (response.success) {
+      if (response?.success) {
         return response.data;
-      } else {
-        throw new Error(response.message || 'Erro ao buscar status do jogo');
       }
+      throw new Error(response?.message || 'Erro ao buscar status do jogo');
     } catch (error) {
       throw new Error(`Erro ao buscar status do jogo: ${error.message}`);
     }
   }
 
-  // === ROTEIRO (Story Blueprint) ===
-
   async gerarRoteiro(historiaId) {
     try {
-      const response = await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro`);
-      return response;
+      return await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro`);
     } catch (error) {
       throw new Error(`Erro ao gerar roteiro: ${error.message}`);
     }
@@ -355,9 +212,7 @@ export class HistoriaService {
   async getRoteiro(historiaId) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${historiaId}/roteiro`);
-      if (response.success) {
-        return response.data;
-      }
+      if (response?.success) return response.data;
       return { roteiro: null, roteiro_status: null };
     } catch (error) {
       throw new Error(`Erro ao buscar roteiro: ${error.message}`);
@@ -366,10 +221,9 @@ export class HistoriaService {
 
   async atualizarRoteiro(historiaId, roteiro) {
     try {
-      const response = await this.apiClient.put(`${this.baseUrl}/${historiaId}/roteiro`, { roteiro });
-      return response;
+      return await this.apiClient.put(`${this.baseUrl}/${historiaId}/roteiro`, { roteiro });
     } catch (error) {
       throw new Error(`Erro ao atualizar roteiro: ${error.message}`);
     }
   }
-} 
+}

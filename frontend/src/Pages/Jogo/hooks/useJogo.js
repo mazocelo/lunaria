@@ -77,19 +77,19 @@ export const useJogo = () => {
     try {
       isLoadingHistoriaRef.current = true;
       setLoading(true);
+      storeSetLoading(true);
       setError(null);
 
       const historia = await historiaService.getById(historiaId);
       storeSetHistoriaAtual(historia);
-
-      setLoading(false);
-      isLoadingHistoriaRef.current = false;
     } catch (err) {
       setError('Erro ao carregar historia: ' + err.message);
+    } finally {
       setLoading(false);
+      storeSetLoading(false);
       isLoadingHistoriaRef.current = false;
     }
-  }, [storeSetHistoriaAtual]);
+  }, [storeSetHistoriaAtual, storeSetLoading]);
 
   // ------------------------------------------------------------------
   // CARREGAR PERSONAGENS
@@ -280,6 +280,7 @@ export const useJogo = () => {
   const retomarJogo = useCallback(async (historiaId, user) => {
     try {
       setLoading(true);
+      storeSetLoading(true);
       setError(null);
 
       // 1. Carregar historia
@@ -310,7 +311,6 @@ export const useJogo = () => {
           if (user?.id) {
             await carregarPersonagens(user.id);
           }
-          setLoading(false);
           return;
         }
       } else {
@@ -318,7 +318,6 @@ export const useJogo = () => {
         if (user?.id) {
           await carregarPersonagens(user.id);
         }
-        setLoading(false);
         return;
       }
 
@@ -330,13 +329,14 @@ export const useJogo = () => {
         await carregarPersonagens(user.id);
       }
 
-      setLoading(false);
     } catch (err) {
       setError('Erro ao retomar jogo: ' + err.message);
-      setLoading(false);
       throw err;
+    } finally {
+      setLoading(false);
+      storeSetLoading(false);
     }
-  }, [carregarHistoria, storeSelecionarPersonagem, storeSetIsDonoSala, storeAbrirSala, carregarPersonagens, carregarMensagensSalvas]);
+  }, [carregarHistoria, storeSelecionarPersonagem, storeSetIsDonoSala, storeAbrirSala, carregarPersonagens, carregarMensagensSalvas, storeSetLoading]);
 
   // ------------------------------------------------------------------
   // SAIR DO JOGO

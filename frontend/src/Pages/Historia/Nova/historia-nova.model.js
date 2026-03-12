@@ -98,7 +98,7 @@ export const useHistoriaNovaModel = () => {
     } finally {
       setLoading(false);
     }
-  }, [nome, temasSelecionados, maximo_de_participantes, descricao, mestreSelecionado, navigate]);
+  }, [nome, temasSelecionados, maximo_de_participantes, descricao, mestreSelecionado, publica, recarregarHistorias, navigate]);
 
   const handleCancelar = useCallback(() => {
     navigate('/historias');

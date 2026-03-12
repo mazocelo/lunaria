@@ -92,7 +92,8 @@ export const useHistoriaListaModel = () => {
     let resultado = historiasComTemas;
 
     if (filtros.tema) {
-      resultado = resultado.filter(h => h.temas && h.temas.includes(filtros.tema));
+      const temaFiltro = Number(filtros.tema);
+      resultado = resultado.filter(h => Array.isArray(h.temas) && h.temas.includes(temaFiltro));
     }
     if (filtros.participantes) {
       resultado = resultado.filter(h => h.maximo_de_participantes >= filtros.participantes);

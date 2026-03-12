@@ -59,6 +59,99 @@ export const useJogoSocket = () => {
   }, []);
 
   // ------------------------------------------------------------------
+  // GARANTIR ENTRADA NA SALA ATUAL
+  // ------------------------------------------------------------------
+  const garantirEntradaSala = useCallback(async (connectionData = null) => {
+    const gameState = useGameStore.getState();
+    const historia = gameState.historiaAtual;
+    const personagem = gameState.personagemSelecionado;
+
+    if (!historia?.id || !personagem?.id) {
+      return { joined: false, sessionAlreadyStarted: false };
+    }
+
+    const fallbackUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = connectionData?.userId || fallbackUser?.id;
+    const username = connectionData?.username || fallbackUser?.nome || fallbackUser?.name;
+
+    if (!userId || !username) {
+      return { joined: false, sessionAlreadyStarted: false };
+    }
+
+    await socketJoinRoom({
+      id: historia.id,
+      historiaId: String(historia.id),
+      nome: historia.nome,
+      titulo: historia.nome,
+      userId: String(userId),
+      username,
+      personagemId: String(personagem.id),
+      personagemNome: personagem.nome || 'Personagem',
+    });
+
+    const roomState = useSocketStore.getState();
+    if (roomState.session?.jogadoresConectados) {
+      const participantesAtuais = gameState.participantes;
+      const participantesFormatados = roomState.session.jogadoresConectados.map(j => {
+        const participanteExistente = participantesAtuais.find(
+          p => String(p.userId) === String(j.userId)
+        );
+        const isOwner = String(j.userId) === String(historia?.id_usuario);
+
+        if (participanteExistente) {
+          return { ...j, ...participanteExistente, isOwner };
+        }
+
+        return {
+          userId: j.userId,
+          username: j.username,
+          personagem: j.personagemNome || 'Selecionando...',
+          personagemNome: j.personagemNome,
+          personagemId: j.personagemId,
+          status: j.status || 'selecionando',
+          isOwner,
+        };
+      });
+
+      storeSetParticipantes(participantesFormatados);
+    }
+
+    if (socketStoreUnsubscribeRef.current) {
+      socketStoreUnsubscribeRef.current();
+    }
+
+    const unsubscribe = useSocketStore.subscribe((state, prevState) => {
+      if (state.participantes && state.participantes !== prevState?.participantes) {
+        storeSetParticipantes(state.participantes);
+      }
+    });
+    socketStoreUnsubscribeRef.current = unsubscribe;
+
+    if (roomState.session?.status === 'iniciada') {
+      try {
+        const statusData = await historiaService.getStatusJogo(historia.id);
+        const { sessao } = statusData || {};
+        if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
+          const mensagensFormatadas = sessao.mensagens.map(m => ({
+            id: m.timestamp || Date.now(),
+            userId: m.userId,
+            username: m.username,
+            message: m.mensagem,
+            tipo: m.tipo,
+            timestamp: m.timestamp,
+          }));
+          storeSetMensagens(mensagensFormatadas);
+        }
+      } catch {
+        // noop
+      }
+      return { joined: true, sessionAlreadyStarted: true };
+    }
+
+    return { joined: true, sessionAlreadyStarted: false };
+  }, [socketJoinRoom, storeSetParticipantes, storeSetMensagens]);
+
+  // ------------------------------------------------------------------
   // CONECTAR SOCKET (anfitriao)
   // ------------------------------------------------------------------
   const conectarSocket = useCallback(async (connectionData) => {
@@ -93,86 +186,10 @@ export const useJogoSocket = () => {
       });
       await waitForAuth();
 
-      // Se tiver historia e personagem, entrar na sala
-      const gameState = useGameStore.getState();
-      const historia = gameState.historiaAtual;
-      const personagem = gameState.personagemSelecionado;
-
-      if (historia?.id && personagem?.id) {
-        await socketJoinRoom({
-          id: historia.id,
-          historiaId: String(historia.id),
-          nome: historia.nome,
-          titulo: historia.nome,
-          userId: String(connectionData.userId),
-          username: connectionData.username,
-          personagemId: String(personagem.id),
-          personagemNome: personagem.nome || 'Personagem',
-        });
-
-        // Carregar participantes da sessao
-        const roomState = useSocketStore.getState();
-        if (roomState.session?.jogadoresConectados) {
-          const participantesAtuais = gameState.participantes;
-          const participantesFormatados = roomState.session.jogadoresConectados.map(j => {
-            const participanteExistente = participantesAtuais.find(
-              p => String(p.userId) === String(j.userId)
-            );
-            const isOwner = String(j.userId) === String(historia?.id_usuario);
-
-            if (participanteExistente) {
-              return { ...j, ...participanteExistente, isOwner };
-            }
-
-            return {
-              userId: j.userId,
-              username: j.username,
-              personagem: j.personagemNome || 'Selecionando...',
-              personagemNome: j.personagemNome,
-              personagemId: j.personagemId,
-              status: j.status || 'selecionando',
-              isOwner,
-            };
-          });
-
-          storeSetParticipantes(participantesFormatados);
-        }
-
-        // Sincronizar com socket store em tempo real
-        if (socketStoreUnsubscribeRef.current) {
-          socketStoreUnsubscribeRef.current();
-        }
-
-        const unsubscribe = useSocketStore.subscribe((state, prevState) => {
-          if (state.participantes && state.participantes !== prevState?.participantes) {
-            storeSetParticipantes(state.participantes);
-          }
-        });
-        socketStoreUnsubscribeRef.current = unsubscribe;
-
-        // Verificar se sessao ja foi iniciada
-        if (roomState.session?.status === 'iniciada') {
-          // Carregar mensagens salvas
-          try {
-            const statusData = await historiaService.getStatusJogo(historia.id);
-            const { sessao } = statusData || {};
-            if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
-              const mensagensFormatadas = sessao.mensagens.map(m => ({
-                id: m.timestamp || Date.now(),
-                userId: m.userId,
-                username: m.username,
-                message: m.mensagem,
-                tipo: m.tipo,
-                timestamp: m.timestamp,
-              }));
-              storeSetMensagens(mensagensFormatadas);
-            }
-          } catch { /* silenced */ }
-
-          setLocalIsConnecting(false);
-
-          return { sessionAlreadyStarted: true };
-        }
+      const salaAtual = await garantirEntradaSala(connectionData);
+      if (salaAtual.sessionAlreadyStarted) {
+        setLocalIsConnecting(false);
+        return { sessionAlreadyStarted: true };
       }
 
       setLocalIsConnecting(false);
@@ -182,7 +199,7 @@ export const useJogoSocket = () => {
       setLocalIsConnecting(false);
       throw err;
     }
-  }, [validarAutenticacao, socketConnect, socketAuthenticate, socketJoinRoom, storeSetParticipantes, storeSetMensagens]);
+  }, [validarAutenticacao, socketConnect, socketAuthenticate, garantirEntradaSala]);
 
   // ------------------------------------------------------------------
   // CONECTAR COMO CONVIDADO
@@ -303,6 +320,7 @@ export const useJogoSocket = () => {
     // Actions
     conectarSocket,
     conectarComoConvidado,
+    garantirEntradaSala,
     enviarMensagem,
 
     // Listeners

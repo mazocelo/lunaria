@@ -30,8 +30,8 @@ export class Historia {
       errors.push('Nome deve ter pelo menos 3 caracteres');
     }
 
-    if (this.maximo_de_participantes < 2) {
-      errors.push('Mínimo de 2 participantes');
+    if (this.maximo_de_participantes < 1) {
+      errors.push('Minimo de 1 participante');
     }
 
     if (this.maximo_de_participantes > 10) {

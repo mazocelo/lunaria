@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
@@ -191,11 +191,18 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
 
-  // Inicializar com imagem persistida no reload
-  const [sceneImage, setSceneImage] = useState(mensagem.scene_image || null);
+  // Inicializar e sincronizar com imagem persistida no payload/store
+  const [sceneImage, setSceneImage] = useState(
+    mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null
+  );
   const [generatingScene, setGeneratingScene] = useState(false);
   const [sceneLightbox, setSceneLightbox] = useState(false);
   const [activeLightbox, setActiveLightbox] = useState(null);
+
+  useEffect(() => {
+    const persistedSceneImage = mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null;
+    setSceneImage(persistedSceneImage);
+  }, [mensagem.id, mensagem.scene_image, mensagem.sceneImage, mensagem.imagem_cena]);
 
   // Detectar NPCs/Locais mencionados na narrativa que possuem imagem
   const entidadesMencionadas = useMemo(() => {

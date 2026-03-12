@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLayout } from '../../../contexts/LayoutContext';
@@ -17,7 +17,6 @@ export const useJogoAtivoModel = () => {
   // Validacao de acesso
   useJogoGuard('jogo-ativo');
 
-  // Shared hooks
   const jogo = useJogo();
   const socket = useJogoSocket();
 
@@ -43,54 +42,106 @@ export const useJogoAtivoModel = () => {
     socketError,
     isReconnecting,
     conectarSocket,
+    garantirEntradaSala,
     clearSocketError,
   } = socket;
 
-  // Inicializacao e retomada de sessao
+  const resumeAttemptKeyRef = useRef(null);
+  const joinAttemptKeyRef = useRef(null);
+
+  // Layout
   useEffect(() => {
-    const inicializarOuRetomar = async () => {
-      // Se nao tem historia carregada, pode ser uma retomada de sessao
-      if (!historiaAtual) {
-        try {
-          const { historiaService } = await import('../../../services/index.js');
-          const sessaoData = await historiaService.verificarSessaoAtiva(id);
+    hideSidebar();
+    return () => openSidebar();
+  }, [hideSidebar, openSidebar]);
 
-          if (sessaoData && sessaoData.hasActiveSession) {
-            await retomarJogo(id, user);
-          }
-        } catch (err) {
-          console.error('Erro ao retomar sessão:', err);
-        }
-      }
+  // Retomar sessao se usuario entrou direto em jogo-ativo e ainda nao carregou historia.
+  useEffect(() => {
+    if (!id || !user?.id || historiaAtual?.id) return;
 
-      // Conectar socket se ainda não está conectado
-      if (!isConnected && user) {
-        try {
-          await conectarSocket({
-            userId: user.id,
-            username: user.nome || user.name,
-            email: user.email,
-          });
-        } catch (err) {
-          console.error('Erro ao conectar socket:', err);
+    const key = `${id}:${user.id}`;
+    if (resumeAttemptKeyRef.current === key) return;
+    resumeAttemptKeyRef.current = key;
+
+    const tryResume = async () => {
+      try {
+        const { historiaService } = await import('../../../services/index.js');
+        const sessaoData = await historiaService.verificarSessaoAtiva(id);
+        if (sessaoData?.hasActiveSession) {
+          await retomarJogo(id, user);
         }
+      } catch (err) {
+        console.error('Erro ao retomar sessao:', err);
       }
     };
 
-    inicializarOuRetomar();
-    hideSidebar();
+    tryResume();
+  }, [id, user?.id, historiaAtual?.id, retomarJogo]);
 
-    return () => openSidebar();
-  }, []);
+  // Conectar socket sempre que tiver usuario e estiver desconectado.
+  useEffect(() => {
+    if (!user?.id || isConnected) return;
 
-  // Carregar mensagens salvas
+    const connect = async () => {
+      try {
+        await conectarSocket({
+          userId: user.id,
+          username: user.nome || user.name,
+          email: user.email,
+        });
+      } catch (err) {
+        console.error('Erro ao conectar socket:', err);
+      }
+    };
+
+    connect();
+  }, [user?.id, user?.nome, user?.name, user?.email, isConnected, conectarSocket]);
+
+  // Se estiver conectado e com historia+personagem, garantir entrada na sala.
+  useEffect(() => {
+    if (!isConnected || !user?.id || !historiaAtual?.id || !personagemSelecionado?.id) return;
+
+    const key = `${historiaAtual.id}:${personagemSelecionado.id}:${user.id}`;
+    if (joinAttemptKeyRef.current === key) return;
+    joinAttemptKeyRef.current = key;
+
+    const ensureJoin = async () => {
+      try {
+        await garantirEntradaSala({
+          userId: user.id,
+          username: user.nome || user.name,
+          email: user.email,
+        });
+      } catch (err) {
+        console.error('Erro ao entrar na sala do jogo ativo:', err);
+      }
+    };
+
+    ensureJoin();
+  }, [
+    isConnected,
+    user?.id,
+    user?.nome,
+    user?.name,
+    user?.email,
+    historiaAtual?.id,
+    personagemSelecionado?.id,
+    garantirEntradaSala,
+  ]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      joinAttemptKeyRef.current = null;
+    }
+  }, [isConnected]);
+
+  // Carregar mensagens salvas ao ter historia carregada e socket conectado.
   useEffect(() => {
     if (historiaAtual?.id && isConnected) {
       carregarMensagensSalvas(historiaAtual.id);
     }
   }, [historiaAtual?.id, isConnected, carregarMensagensSalvas]);
 
-  // Handlers
   const handleSair = useCallback(() => {
     sairDoJogo();
     navigate('/historias');
@@ -110,7 +161,6 @@ export const useJogoAtivoModel = () => {
   }, [clearErrors, clearSocketError]);
 
   return {
-    // State
     user,
     historiaAtual,
     personagemSelecionado,
@@ -123,8 +173,6 @@ export const useJogoAtivoModel = () => {
     socketError,
     isConnected,
     isReconnecting,
-
-    // Handlers
     handleSair,
     handleAdicionarMensagem,
     handleAtualizarStatus,

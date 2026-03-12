@@ -6,6 +6,7 @@ const PROVIDER_LABELS = {
   anthropic: 'Anthropic (Claude)',
   elevenlabs: 'ElevenLabs',
   cartesia: 'Cartesia',
+  opensource: 'Open Source TTS',
   leonardo: 'Leonardo AI',
 };
 

@@ -7,6 +7,8 @@ import { useTheme } from '../../../contexts/theme.jsx';
 import { apiClient } from '../../../services/ApiClient.js';
 import { ROUTES } from '../../../routes.jsx';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 export const useMestreNovaModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -23,7 +25,7 @@ export const useMestreNovaModel = () => {
   const [regras_especiais, setRegrasEspeciais] = useState('');
   const [imagem, setImagem] = useState('');
   const [voice_id, setVoiceId] = useState('');
-  const [voice_provider, setVoiceProvider] = useState('elevenlabs');
+  const [voice_provider, setVoiceProvider] = useState(DEFAULT_TTS_PROVIDER);
   const [voices, setVoices] = useState([]);
   const [providers, setProviders] = useState([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
@@ -88,7 +90,7 @@ export const useMestreNovaModel = () => {
       regras_especiais: regras_especiais || null,
       imagem: imagem || null,
       voice_id: voice_id || null,
-      voice_provider: voice_id ? (voice_provider || 'elevenlabs') : null,
+      voice_provider: voice_id ? (voice_provider || DEFAULT_TTS_PROVIDER) : null,
     };
   };
 

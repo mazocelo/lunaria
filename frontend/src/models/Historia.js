@@ -15,8 +15,8 @@ export class Historia {
     this.imagem = data.imagem || null;
     this.mapas = data.mapas || [];
     this.id_usuario = data.id_usuario || null;  // ID do usuário dono da história
-    this.created_at = data.created_at || new Date();
-    this.updated_at = data.updated_at || new Date();
+    this.created_at = data.created_at || null;
+    this.updated_at = data.updated_at || null;
   }
 
   /**
@@ -86,8 +86,8 @@ export class Historia {
       imagem: apiData.imagem || null,
       mapas: apiData.mapas || [],
       id_usuario: apiData.id_usuario,  // ID do usuário dono da história
-      created_at: apiData.created_at,
-      updated_at: apiData.updated_at
+      created_at: apiData.criada_em || apiData.created_at || null,
+      updated_at: apiData.atualizada_em || apiData.updated_at || null
     });
   }
 

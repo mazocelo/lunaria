@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useMestreStore } from '../../../store/mestre/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { historiaService } from '../../../services/index.js';
 import { sessaoService } from '../../../services/index.js';
 
@@ -10,6 +11,7 @@ export const useHistoriaVerModel = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const isLight = theme === 'light';
 
   // Tema store
@@ -81,6 +83,14 @@ export const useHistoriaVerModel = () => {
   }, [mapearTemasDeHistoria]);
 
   const nomesTemas = historiaAtual ? getNomesTemas(historiaAtual) : [];
+  const canMutateHistoria = Boolean(
+    user &&
+    historiaAtual &&
+    (
+      String(historiaAtual.id_usuario) === String(user.id) ||
+      user.role === 'superadmin'
+    )
+  );
 
   // Obter nome do mestre
   const getMestreNome = useCallback((historia) => {
@@ -278,6 +288,7 @@ export const useHistoriaVerModel = () => {
     error,
     isLight,
     nomesTemas,
+    canMutateHistoria,
 
     // Mestre
     mestresAtivos,

@@ -57,6 +57,7 @@ export const useHistoriaListaModel = () => {
   // Bulk delete
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
+  const [bulkDeleteIgnoredCount, setBulkDeleteIgnoredCount] = useState(0);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   // Carregar historias do store
@@ -122,7 +123,7 @@ export const useHistoriaListaModel = () => {
   // Verificar se usuario e dono da historia
   const isOwner = useCallback((historia) => {
     if (user && historia) {
-      return historia.id_usuario == user.id;
+      return String(historia.id_usuario) === String(user.id) || user.role === 'superadmin';
     }
     return false;
   }, [user]);
@@ -269,9 +270,25 @@ export const useHistoriaListaModel = () => {
 
   // Bulk delete
   const handleBulkDeleteClick = useCallback((ids) => {
-    setBulkDeleteIds(ids);
+    const idsDeletaveis = ids.filter((selectedId) => {
+      const historia = historiasComTemas.find((item) => String(item.id) === String(selectedId));
+      return historia ? isOwner(historia) : false;
+    });
+    const ignorados = ids.length - idsDeletaveis.length;
+
+    if (idsDeletaveis.length === 0) {
+      setError('Nenhuma das historias selecionadas pode ser deletada por voce.');
+      return;
+    }
+
+    if (ignorados > 0) {
+      setError(`${ignorados} historia(s) selecionada(s) foram ignoradas por falta de permissao.`);
+    }
+
+    setBulkDeleteIds(idsDeletaveis);
+    setBulkDeleteIgnoredCount(ignorados);
     setShowBulkDeleteModal(true);
-  }, []);
+  }, [historiasComTemas, isOwner]);
 
   const handleConfirmBulkDelete = useCallback(async () => {
     setBulkDeleteLoading(true);
@@ -282,11 +299,13 @@ export const useHistoriaListaModel = () => {
       await recarregarHistorias();
       setShowBulkDeleteModal(false);
       setBulkDeleteIds([]);
+      setBulkDeleteIgnoredCount(0);
     } catch (err) {
       console.error('Erro ao deletar historias em lote:', err);
       setError(err.message || 'Erro ao deletar histórias em lote');
       setShowBulkDeleteModal(false);
       setBulkDeleteIds([]);
+      setBulkDeleteIgnoredCount(0);
     } finally {
       setBulkDeleteLoading(false);
     }
@@ -295,6 +314,7 @@ export const useHistoriaListaModel = () => {
   const handleCancelBulkDelete = useCallback(() => {
     setShowBulkDeleteModal(false);
     setBulkDeleteIds([]);
+    setBulkDeleteIgnoredCount(0);
     setBulkDeleteLoading(false);
   }, []);
 
@@ -349,6 +369,7 @@ export const useHistoriaListaModel = () => {
     // Bulk delete
     showBulkDeleteModal,
     bulkDeleteIds,
+    bulkDeleteIgnoredCount,
     bulkDeleteLoading,
     handleBulkDeleteClick,
     handleConfirmBulkDelete,

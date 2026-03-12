@@ -5,6 +5,8 @@ import { apiClient } from '../../../services/ApiClient.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 export const useMestreVerModel = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -19,7 +21,7 @@ export const useMestreVerModel = () => {
   const resolveVoiceName = useCallback(async (voiceId, provider) => {
     if (!voiceId) return;
     try {
-      const res = await apiClient.get(`/tts/voices?provider=${provider || 'elevenlabs'}`);
+      const res = await apiClient.get(`/tts/voices?provider=${provider || DEFAULT_TTS_PROVIDER}`);
       if (res.success) {
         const match = (res.data || []).find(v => v.voice_id === voiceId);
         if (match) setVoiceName(match.name);

@@ -46,6 +46,7 @@ const VerHistoriaView = ({
   error,
   isLight,
   nomesTemas,
+  canMutateHistoria,
 
   // Mestre
   mestresAtivos,
@@ -99,6 +100,12 @@ const VerHistoriaView = ({
     { value: 'comic_book', label: 'Comic Book' },
   ];
   const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
+  const formatDisplayDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('pt-BR');
+  };
 
   if (loading) {
     return (
@@ -186,13 +193,15 @@ const VerHistoriaView = ({
             <ArrowLeft size={16} />
             Voltar
           </button>
-          <button
-            onClick={handleIniciarSessao}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
-          >
-            <Play size={16} />
-            Iniciar Sessao
-          </button>
+          {canMutateHistoria && (
+            <button
+              onClick={handleIniciarSessao}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
+            >
+              <Play size={16} />
+              Iniciar Sessao
+            </button>
+          )}
         </div>
       </div>
 
@@ -255,30 +264,31 @@ const VerHistoriaView = ({
                 </div>
               </div>
 
-              {/* Estilo de Imagem */}
-              <div>
-                <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                  <Sparkles size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-                  Estilo de Imagem
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {ESTILOS_IMAGEM.map(e => (
-                    <button
-                      key={e.value}
-                      onClick={() => handleEstiloImagemChange(e.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer border ${
-                        estiloAtual === e.value
-                          ? 'bg-purple-500/30 border-purple-400 text-purple-200'
-                          : isLight
-                            ? 'border-slate-300 hover:bg-slate-100 text-slate-600'
-                            : 'border-slate-600 hover:bg-slate-700 text-slate-400'
-                      }`}
-                    >
-                      {e.label}
-                    </button>
-                  ))}
+              {canMutateHistoria && (
+                <div>
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <Sparkles size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Estilo de Imagem
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {ESTILOS_IMAGEM.map(e => (
+                      <button
+                        key={e.value}
+                        onClick={() => handleEstiloImagemChange(e.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer border ${
+                          estiloAtual === e.value
+                            ? 'bg-purple-500/30 border-purple-400 text-purple-200'
+                            : isLight
+                              ? 'border-slate-300 hover:bg-slate-100 text-slate-600'
+                              : 'border-slate-600 hover:bg-slate-700 text-slate-400'
+                        }`}
+                      >
+                        {e.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Capa da Historia */}
               <div>
@@ -286,25 +296,44 @@ const VerHistoriaView = ({
                   <Sparkles size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
                   Capa da Historia
                 </h3>
-                <ImageGenerator
-                  imageUrl={historiaAtual.imagem}
-                  onImageGenerated={handleCapaGenerated}
-                  entityType="historia"
-                  entityData={{
-                    nome: historiaAtual.nome,
-                    temas: nomesTemas.join(', '),
-                    descricao: historiaAtual.descricao,
-                    prologo: historiaAtual.prologo,
-                    sinopse: roteiro?.sinopse,
-                    antagonista: roteiro?.antagonista?.nome,
-                    locais: roteiro?.locais?.slice(0, 3).map(l => l.nome).join(', '),
-                    estilo_imagem: estiloAtual,
-                  }}
-                  isLight={isLight}
-                  label=""
-                  imageOptions={{ width: 1024, height: 576 }}
-                  imageClassName={`w-full h-56 sm:h-72 object-cover rounded-xl border-2 shadow-lg ${isLight ? 'border-slate-200' : 'border-purple-500/30'}`}
-                />
+                {canMutateHistoria ? (
+                  <ImageGenerator
+                    imageUrl={historiaAtual.imagem}
+                    onImageGenerated={handleCapaGenerated}
+                    entityType="historia"
+                    entityData={{
+                      nome: historiaAtual.nome,
+                      temas: nomesTemas.join(', '),
+                      descricao: historiaAtual.descricao,
+                      prologo: historiaAtual.prologo,
+                      sinopse: roteiro?.sinopse,
+                      antagonista: roteiro?.antagonista?.nome,
+                      locais: roteiro?.locais?.slice(0, 3).map(l => l.nome).join(', '),
+                      estilo_imagem: estiloAtual,
+                    }}
+                    isLight={isLight}
+                    label=""
+                    imageOptions={{ width: 1024, height: 576 }}
+                    imageClassName={`w-full h-56 sm:h-72 object-cover rounded-xl border-2 shadow-lg ${isLight ? 'border-slate-200' : 'border-purple-500/30'}`}
+                  />
+                ) : (
+                  <div className={`w-full h-56 sm:h-72 rounded-xl border-2 shadow-lg overflow-hidden flex items-center justify-center ${
+                    isLight ? 'border-slate-200 bg-slate-50' : 'border-purple-500/30 bg-slate-800/50'
+                  }`}>
+                    {historiaAtual.imagem ? (
+                      <img
+                        src={historiaAtual.imagem}
+                        alt={historiaAtual.nome}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setLightboxSrc(historiaAtual.imagem)}
+                      />
+                    ) : (
+                      <span className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Nenhuma capa gerada
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Mapas do Mundo */}
@@ -328,32 +357,36 @@ const VerHistoriaView = ({
                             {mapa.nome || `Mapa ${i + 1}`}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMapa(i)}
-                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        >
-                          <X size={14} />
-                        </button>
+                        {canMutateHistoria && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMapa(i)}
+                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
-                <ImageGenerator
-                  imageUrl=""
-                  onImageGenerated={handleMapaGenerated}
-                  entityType="historia_mapa"
-                  entityData={{
-                    nome: historiaAtual.nome,
-                    temas: nomesTemas.join(', '),
-                    locais: roteiro?.locais?.slice(0, 5).map(l => l.nome).join(', '),
-                    mapaMundi: roteiro?.mapaMundi,
-                    estilo_imagem: estiloAtual,
-                  }}
-                  isLight={isLight}
-                  label=""
-                />
-                {(!historiaAtual.mapas || historiaAtual.mapas.length === 0) && (
+                {canMutateHistoria && (
+                  <ImageGenerator
+                    imageUrl=""
+                    onImageGenerated={handleMapaGenerated}
+                    entityType="historia_mapa"
+                    entityData={{
+                      nome: historiaAtual.nome,
+                      temas: nomesTemas.join(', '),
+                      locais: roteiro?.locais?.slice(0, 5).map(l => l.nome).join(', '),
+                      mapaMundi: roteiro?.mapaMundi,
+                      estilo_imagem: estiloAtual,
+                    }}
+                    isLight={isLight}
+                    label=""
+                  />
+                )}
+                {canMutateHistoria && (!historiaAtual.mapas || historiaAtual.mapas.length === 0) && (
                   <p className={`text-xs mt-2 ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
                     Gere mapas do mundo da sua historia. Voce pode adicionar varios.
                   </p>
@@ -367,7 +400,7 @@ const VerHistoriaView = ({
                     <ScrollText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
                     Roteiro da Aventura
                   </h3>
-                  {(!roteiro && roteiroStatus !== 'generating' && !roteiroLoading) && (
+                  {canMutateHistoria && (!roteiro && roteiroStatus !== 'generating' && !roteiroLoading) && (
                     <button
                       onClick={handleGerarRoteiro}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
@@ -376,7 +409,7 @@ const VerHistoriaView = ({
                       Gerar com IA
                     </button>
                   )}
-                  {roteiro && !roteiroLoading && (
+                  {canMutateHistoria && roteiro && !roteiroLoading && (
                     <button
                       onClick={handleGerarRoteiro}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
@@ -407,13 +440,15 @@ const VerHistoriaView = ({
                     <p className={`font-modern text-sm ${isLight ? 'text-red-600' : 'text-red-400'}`}>
                       Erro ao gerar roteiro. Tente novamente.
                     </p>
-                    <button
-                      onClick={handleGerarRoteiro}
-                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-semibold text-white bg-red-500 hover:bg-red-600 transition-all cursor-pointer"
-                    >
-                      <RotateCcw size={12} />
-                      Tentar novamente
-                    </button>
+                    {canMutateHistoria && (
+                      <button
+                        onClick={handleGerarRoteiro}
+                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-semibold text-white bg-red-500 hover:bg-red-600 transition-all cursor-pointer"
+                      >
+                        <RotateCcw size={12} />
+                        Tentar novamente
+                      </button>
+                    )}
                   </div>
                 ) : roteiro ? (
                   <RoteiroViewer roteiro={roteiro} isLight={isLight} historiaId={historiaAtual?.id} onRoteiroUpdate={handleRoteiroUpdate} estiloImagem={estiloAtual} />
@@ -463,7 +498,7 @@ const VerHistoriaView = ({
               <Crown size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
               Mestre
             </h3>
-            {editandoMestre ? (
+            {canMutateHistoria && editandoMestre ? (
               <div className="space-y-3">
                 <select
                   value={mestreSelecionadoId || ''}
@@ -506,17 +541,19 @@ const VerHistoriaView = ({
                     {getMestreNome(historiaAtual)}
                   </span>
                 </div>
-                <button
-                  onClick={handleEditarMestre}
-                  className={`w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-modern text-sm transition-all cursor-pointer ${
-                    isLight
-                      ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                  }`}
-                >
-                  <RefreshCw size={14} />
-                  Trocar Mestre
-                </button>
+                {canMutateHistoria && (
+                  <button
+                    onClick={handleEditarMestre}
+                    className={`w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-modern text-sm transition-all cursor-pointer ${
+                      isLight
+                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                    }`}
+                  >
+                    <RefreshCw size={14} />
+                    Trocar Mestre
+                  </button>
+                )}
               </div>
             )}
           </RPGCard>
@@ -533,7 +570,7 @@ const VerHistoriaView = ({
                   Criada em:
                 </span>
                 <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {new Date(historiaAtual.created_at).toLocaleDateString('pt-BR')}
+                  {formatDisplayDate(historiaAtual.created_at)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -541,7 +578,7 @@ const VerHistoriaView = ({
                   Ultima atualizacao:
                 </span>
                 <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {new Date(historiaAtual.updated_at).toLocaleDateString('pt-BR')}
+                  {formatDisplayDate(historiaAtual.updated_at)}
                 </span>
               </div>
             </div>
@@ -554,14 +591,18 @@ const VerHistoriaView = ({
               Acoes
             </h3>
             <div className="space-y-3">
-              <button
-                onClick={handleIniciarSessao}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
-              >
-                <Play size={16} />
-                Iniciar Sessao
-              </button>
-              <CopyInviteLinkButton historiaId={historiaAtual?.id} isLight={isLight} />
+              {canMutateHistoria && (
+                <>
+                  <button
+                    onClick={handleIniciarSessao}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
+                  >
+                    <Play size={16} />
+                    Iniciar Sessao
+                  </button>
+                  <CopyInviteLinkButton historiaId={historiaAtual?.id} isLight={isLight} />
+                </>
+              )}
               <button
                 onClick={handleVoltar}
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${

@@ -307,7 +307,7 @@ const VerMestreView = ({
               <InfoRow label="Temperatura" value={temperatura} />
               <InfoRow label="Max Tokens" value={max_tokens} />
               <InfoRow label="Tom Narrativo" value={tom_narrativo} />
-              <InfoRow label="Voz (TTS)" value={voice_id ? `${voiceName || voice_id} (${voice_provider === 'cartesia' ? 'Cartesia' : 'ElevenLabs'})` : null} fallback="Sem voz" />
+              <InfoRow label="Voz (TTS)" value={voice_id ? `${voiceName || voice_id} (${voice_provider === 'cartesia' ? 'Cartesia' : voice_provider === 'opensource' ? 'Open Source' : 'ElevenLabs'})` : null} fallback="Sem voz" />
             </div>
           </RPGCard>
 

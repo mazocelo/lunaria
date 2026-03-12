@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { apiClient } from '../services/ApiClient.js';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 /**
  * Hook para gerenciar playback de TTS (Text-to-Speech)
  * Cache em memória por messageId — gera áudio uma vez, reproduz N vezes
@@ -44,7 +46,7 @@ export const useTTS = () => {
     }).catch(() => stopAudio());
   }, [stopAudio]);
 
-  const play = useCallback(async (text, voiceId, messageId, provider = 'elevenlabs') => {
+  const play = useCallback(async (text, voiceId, messageId, provider = DEFAULT_TTS_PROVIDER) => {
     // Toggle: se já está tocando esta mensagem, parar
     if (isPlaying && currentMessageId === messageId) {
       stopAudio();

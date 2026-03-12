@@ -14,7 +14,7 @@ const EMOTION_OPTIONS = [
   { value: 'anger:low', label: 'Serio' },
 ];
 
-const PROVIDER_LABELS = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia' };
+const PROVIDER_LABELS = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia', opensource: 'Open Source' };
 
 const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoices, isLight, setField }) => {
   const previewAudioRef = useRef(null);

@@ -54,6 +54,7 @@ const HistoriaListaView = ({
   // Bulk delete
   showBulkDeleteModal,
   bulkDeleteIds,
+  bulkDeleteIgnoredCount,
   bulkDeleteLoading,
   handleBulkDeleteClick,
   handleConfirmBulkDelete,
@@ -303,7 +304,7 @@ const HistoriaListaView = ({
       <ConfirmationModal
         isOpen={showBulkDeleteModal}
         title="Deletar Historias Selecionadas"
-        message={`Tem certeza de que deseja deletar ${bulkDeleteIds.length} historia(s)? Esta acao nao pode ser desfeita.`}
+        message={`Tem certeza de que deseja deletar ${bulkDeleteIds.length} historia(s)? Esta acao nao pode ser desfeita.${bulkDeleteIgnoredCount > 0 ? ` ${bulkDeleteIgnoredCount} selecionada(s) foram ignoradas por falta de permissao.` : ''}`}
         confirmText="Deletar Todos"
         cancelText="Cancelar"
         onConfirm={handleConfirmBulkDelete}

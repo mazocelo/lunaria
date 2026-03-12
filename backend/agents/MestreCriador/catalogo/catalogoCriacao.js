@@ -25,7 +25,7 @@ function formatarBonus(bonus) {
   return parts.join('/');
 }
 
-async function fetchData() {
+export async function fetchData() {
   const now = Date.now();
   if (_cachedCatalogo && (now - _cacheTimestamp) < CACHE_TTL_MS) {
     return _cachedCatalogo;

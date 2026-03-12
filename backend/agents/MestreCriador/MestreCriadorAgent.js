@@ -17,7 +17,7 @@ import { DEPRECATED_MODELS } from '../Mestre/config.js';
 import { isEnabled } from '../../config/featureFlags.js';
 import usageService from '../../services/usageService.js';
 import { criarPromptSistemaCriador } from './prompts/sistema.js';
-import { buildCatalogoCriacao } from './catalogo/catalogoCriacao.js';
+import { buildCatalogoCriacao, fetchData as fetchCatalogo } from './catalogo/catalogoCriacao.js';
 
 dotenv.config();
 
@@ -54,6 +54,68 @@ function parseIAJson(content) {
   }
   console.warn('⚠️ MestreCriador: JSON parse falhou. Conteúdo bruto:', content.substring(0, 300));
   return null;
+}
+
+// Etapas que DEVEM ter sugestões
+const ETAPAS_COM_SUGESTOES = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
+
+/** Gera sugestões fallback do catálogo quando IA retorna vazio */
+async function gerarFallbackSugestoes(etapa, estado) {
+  try {
+    const { racas, classes, vantagens, desvantagens } = await fetchCatalogo();
+
+    if (etapa === 'raca') {
+      const shuffled = [...racas].sort(() => Math.random() - 0.5).slice(0, 5);
+      return shuffled.map(r => ({
+        tipo: 'raca', id: r.id, nome: r.nome,
+        descricao: r.descricao?.slice(0, 80) || '', custo: r.custo ?? 0,
+      }));
+    }
+
+    if (etapa === 'classe') {
+      const shuffled = [...classes].sort(() => Math.random() - 0.5).slice(0, 4);
+      return shuffled.map(c => ({
+        tipo: 'classe', id: c.id, nome: c.nome,
+        descricao: c.descricao?.slice(0, 80) || '', custo: c.custo ?? 0,
+      }));
+    }
+
+    if (etapa === 'vantagens') {
+      const compraveis = vantagens.filter(v => v.custo > 0 || v.compravel !== false);
+      const shuffled = [...compraveis].sort(() => Math.random() - 0.5).slice(0, 4);
+      return shuffled.map(v => ({
+        tipo: 'vantagem', id: v.id, nome: v.nome,
+        descricao: v.descricao?.slice(0, 60) || '', custo: v.custo ?? 0,
+      }));
+    }
+
+    if (etapa === 'desvantagens') {
+      const shuffled = [...desvantagens].sort(() => Math.random() - 0.5).slice(0, 4);
+      return shuffled.map(d => ({
+        tipo: 'desvantagem', id: d.id, nome: d.nome,
+        descricao: d.descricao?.slice(0, 60) || '', custo: d.custo ?? 0,
+      }));
+    }
+
+    if (etapa === 'background') {
+      return [
+        { tipo: 'background', id: null, nome: 'Órfão de guerra criado por monges', descricao: 'Uma infância marcada pela perda, mas moldada pela disciplina.' },
+        { tipo: 'background', id: null, nome: 'Nobre exilado em busca de redenção', descricao: 'Nascido na nobreza, agora busca provar seu valor longe dos privilégios.' },
+        { tipo: 'background', id: null, nome: 'Mercenário aposentado que ouviu um chamado', descricao: 'Anos de batalha, agora um propósito maior o guia.' },
+        { tipo: 'background', id: null, nome: 'Aprendiz que fugiu após descobrir um segredo proibido', descricao: 'O conhecimento pode ser tão perigoso quanto uma espada.' },
+      ];
+    }
+
+    if (etapa === 'boas_vindas') {
+      const nomes = ['Kaelen', 'Zephyra', 'Thorne', 'Mirael', 'Ashwin', 'Selene', 'Darius', 'Yuki'];
+      return nomes.map(n => ({ tipo: 'nome', id: null, nome: n, descricao: '' }));
+    }
+
+    return [];
+  } catch (err) {
+    console.warn('⚠️ MestreCriador: Falha ao gerar fallback de sugestões:', err.message);
+    return [];
+  }
 }
 
 /** Valida e sanitiza sugestões da IA */
@@ -273,13 +335,16 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       etapa
     );
 
-    if (sugestoes.length === 0 && ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'].includes(etapa)) {
-      console.warn(`⚠️ MestreCriador [${etapa}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0})`);
+    // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
+    let sugestoesFinal = sugestoes;
+    if (sugestoes.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapa)) {
+      console.warn(`⚠️ MestreCriador [${etapa}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback do catálogo.`);
+      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado);
     }
 
     return {
       mensagem: resultado.mensagem || '',
-      sugestoes,
+      sugestoes: sugestoesFinal,
       etapa_proxima: resultado.etapa_proxima,
       atributos_sugeridos: resultado.atributos_sugeridos || null,
     };
@@ -299,9 +364,14 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       refinamento: 'Deseja ajustar algo antes de finalizar?',
     };
 
+    // Mesmo em erro, tentar gerar sugestões do catálogo
+    const fallbackSugestoes = ETAPAS_COM_SUGESTOES.includes(etapa)
+      ? await gerarFallbackSugestoes(etapa, estado).catch(() => [])
+      : [];
+
     return {
       mensagem: fallbacks[etapa] || 'Ocorreu um erro. Tente novamente.',
-      sugestoes: [],
+      sugestoes: fallbackSugestoes,
       etapa_proxima: TRANSICOES[etapa]?.[0] || etapa,
       atributos_sugeridos: null,
     };

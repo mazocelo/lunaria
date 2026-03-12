@@ -97,12 +97,17 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome })
 
                 return (
                   <div key={equip.id || i} className={`glass p-3 rounded-lg border ${raridade.border}`}>
-                    {/* Nome + Raridade */}
-                    <div className="flex items-start justify-between mb-1">
-                      <span className="text-sm font-semibold text-white font-modern">{equip.nome}</span>
-                      <span className={`text-[10px] font-semibold ${raridade.text}`}>
-                        {raridade.label}
-                      </span>
+                    {/* Nome + Raridade + Imagem */}
+                    <div className="flex items-start gap-2 mb-1">
+                      {equip.imagem && (
+                        <img src={equip.imagem} alt={equip.nome} className="w-8 h-8 rounded object-cover flex-shrink-0 border border-slate-600/50" />
+                      )}
+                      <div className="flex-1 min-w-0 flex items-start justify-between">
+                        <span className="text-sm font-semibold text-white font-modern">{equip.nome}</span>
+                        <span className={`text-[10px] font-semibold ${raridade.text} flex-shrink-0`}>
+                          {raridade.label}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Tipos */}

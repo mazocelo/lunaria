@@ -945,9 +945,14 @@ const EtapaJogoRPG = ({
               {showRodadaInfo && (
                 <div className="absolute right-0 top-full mt-1 w-80 glass p-4 rounded-xl border-2 border-purple-500/50 shadow-2xl animate-scale-in max-h-96 overflow-y-auto z-50">
                   <div className="space-y-3">
-                    <div>
-                      <p className="text-purple-300 text-xs font-semibold mb-1">Historia</p>
-                      <p className="text-white font-bold text-lg">{historia?.nome || historia?.titulo || 'Aventura RPG'}</p>
+                    <div className="flex items-center gap-3">
+                      {historia?.imagem && (
+                        <img src={historia.imagem} alt={historia.nome} className="w-14 h-14 rounded-lg object-cover border border-purple-500/30 flex-shrink-0" />
+                      )}
+                      <div>
+                        <p className="text-purple-300 text-xs font-semibold mb-1">Historia</p>
+                        <p className="text-white font-bold text-lg">{historia?.nome || historia?.titulo || 'Aventura RPG'}</p>
+                      </div>
                     </div>
 
                     <div className="border-t border-purple-500/20 pt-3">

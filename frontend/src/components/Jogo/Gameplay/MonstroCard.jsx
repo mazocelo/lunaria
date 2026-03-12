@@ -27,7 +27,11 @@ const MonstroCard = ({ monstro, compact = false }) => {
           ? 'border-gray-600/20 opacity-40 grayscale'
           : 'border-red-500/30 bg-red-900/10'
       }`}>
-        <span className="text-sm flex-shrink-0">{tipoIcon}</span>
+        {monstro.imagem ? (
+          <img src={monstro.imagem} alt={monstro.nome} className="w-6 h-6 rounded-full object-cover flex-shrink-0 border border-red-500/30" />
+        ) : (
+          <span className="text-sm flex-shrink-0">{tipoIcon}</span>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <span className={`text-xs font-semibold truncate ${isDerrotado ? 'text-gray-500 line-through' : 'text-red-300'}`}>
@@ -57,7 +61,11 @@ const MonstroCard = ({ monstro, compact = false }) => {
         : 'border-red-500/40 hover:border-red-400/60'
     }`}>
       <div className="flex items-center space-x-2 mb-2">
-        <span className="text-xl">{tipoIcon}</span>
+        {monstro.imagem ? (
+          <img src={monstro.imagem} alt={monstro.nome} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-red-500/30" />
+        ) : (
+          <span className="text-xl">{tipoIcon}</span>
+        )}
         <div className="flex-1 min-w-0">
           <h4 className={`font-fantasy font-bold text-sm truncate ${
             isDerrotado ? 'text-gray-400 line-through' : 'text-red-300'

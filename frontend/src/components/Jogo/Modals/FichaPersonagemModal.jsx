@@ -86,14 +86,19 @@ const FichaPersonagemModal = ({
         {/* Cabeçalho com informações básicas */}
         <div className="glass border border-cyan-500/30 rounded-2xl p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-purple-200/70">Nome</p>
-              <h3 className="text-2xl font-fantasy font-bold text-white">
-                {personagem.nome || 'Personagem sem nome'}
-              </h3>
-              <p className="text-cyan-200 text-sm">
-                {personagem.classe || 'Classe desconhecida'} • {personagem.raca || 'Raça desconhecida'}
-              </p>
+            <div className="flex items-center gap-4">
+              {personagem.imagem && (
+                <img src={personagem.imagem} alt={personagem.nome} className="w-16 h-16 rounded-full object-cover border-2 border-purple-500 flex-shrink-0" />
+              )}
+              <div>
+                <p className="text-xs uppercase tracking-wide text-purple-200/70">Nome</p>
+                <h3 className="text-2xl font-fantasy font-bold text-white">
+                  {personagem.nome || 'Personagem sem nome'}
+                </h3>
+                <p className="text-cyan-200 text-sm">
+                  {personagem.classe || 'Classe desconhecida'} • {personagem.raca || 'Raça desconhecida'}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-center">

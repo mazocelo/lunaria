@@ -34,9 +34,13 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
 
   return (
     <div className="flex items-center gap-3 px-3 py-1.5 bg-black/30 backdrop-blur-sm border-b border-purple-500/10 shrink-0">
-      {/* Nível */}
-      <div className="flex items-center gap-1 shrink-0">
-        <Shield size={12} className="text-purple-400" />
+      {/* Avatar + Nível */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {personagem.imagem ? (
+          <img src={personagem.imagem} alt={personagem.nome} className="w-6 h-6 rounded-full object-cover border border-purple-500/50" />
+        ) : (
+          <Shield size={12} className="text-purple-400" />
+        )}
         <span className="text-xs font-bold text-purple-300">Nv{nivel}</span>
       </div>
 

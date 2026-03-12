@@ -52,13 +52,19 @@ const StatusPersonagem = ({
     return (
       <div className={`glass p-3 rounded-lg border ${combateAtivo ? 'border-red-500/40' : 'border-cyan-500/20'}`}>
         <div className="flex items-start space-x-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base flex-shrink-0 ${
-            derrotado ? 'bg-gradient-to-r from-gray-600 to-gray-700' :
-            combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
-            'bg-gradient-to-r from-cyan-500 to-purple-500'
-          }`}>
-            {derrotado ? '💀' : combateAtivo ? '⚔️' : '🛡️'}
-          </div>
+          {personagemSelecionado.imagem ? (
+            <img src={personagemSelecionado.imagem} alt={personagemSelecionado.nome} className={`w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 ${
+              derrotado ? 'border-gray-600 grayscale' : combateAtivo ? 'border-red-500' : 'border-cyan-500'
+            }`} />
+          ) : (
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base flex-shrink-0 ${
+              derrotado ? 'bg-gradient-to-r from-gray-600 to-gray-700' :
+              combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+              'bg-gradient-to-r from-cyan-500 to-purple-500'
+            }`}>
+              {derrotado ? '💀' : combateAtivo ? '⚔️' : '🛡️'}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-fantasy font-bold text-white truncate">
               {personagemSelecionado.nome || 'Personagem sem nome'}
@@ -134,13 +140,19 @@ const StatusPersonagem = ({
         <div className={`glass p-4 rounded-lg border ${combateAtivo ? 'border-red-500/40' : 'border-cyan-500/20'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${
-                derrotado ? 'bg-gradient-to-r from-gray-600 to-gray-700' :
-                combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
-                'bg-gradient-to-r from-cyan-500 to-purple-500'
-              }`}>
-                {derrotado ? '💀' : '⚔️'}
-              </div>
+              {personagemSelecionado.imagem ? (
+                <img src={personagemSelecionado.imagem} alt={personagemSelecionado.nome} className={`w-12 h-12 rounded-full object-cover border-2 ${
+                  derrotado ? 'border-gray-600 grayscale' : combateAtivo ? 'border-red-500' : 'border-cyan-500'
+                }`} />
+              ) : (
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${
+                  derrotado ? 'bg-gradient-to-r from-gray-600 to-gray-700' :
+                  combateAtivo ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                  'bg-gradient-to-r from-cyan-500 to-purple-500'
+                }`}>
+                  {derrotado ? '💀' : '⚔️'}
+                </div>
+              )}
               <div>
                 <h3 className="text-lg font-fantasy font-bold text-white">
                   {personagemSelecionado.nome || 'Personagem sem nome'}

@@ -141,13 +141,30 @@ function gerarAtributosFallback(estado) {
   return dist ? dist[1] : { forca: 10, destreza: 10, constituicao: 10, inteligencia: 10, agilidade: 10, carisma: 10 };
 }
 
+// Tipo esperado de sugestão por etapa
+const TIPO_ESPERADO = {
+  boas_vindas: 'nome',
+  raca: 'raca',
+  classe: 'classe',
+  background: 'background',
+  vantagens: 'vantagem',
+  desvantagens: 'desvantagem',
+};
+
 /** Valida e sanitiza sugestões da IA */
 function sanitizarSugestoes(sugestoes, etapa) {
   if (!Array.isArray(sugestoes)) return [];
+  const tipoEsperado = TIPO_ESPERADO[etapa] || null;
+
   return sugestoes.filter(s => {
     // Toda sugestão precisa ter tipo e nome
     if (!s.tipo || !s.nome) {
       console.warn('⚠️ MestreCriador: Sugestão sem tipo/nome descartada:', JSON.stringify(s));
+      return false;
+    }
+    // Validar que o tipo corresponde à etapa (ex: etapa "classe" só aceita tipo "classe")
+    if (tipoEsperado && s.tipo !== tipoEsperado) {
+      console.warn(`⚠️ MestreCriador [${etapa}]: Sugestão com tipo errado "${s.tipo}" descartada (esperado: "${tipoEsperado}"): "${s.nome}"`);
       return false;
     }
     // Sugestões de catálogo (raça, classe, vantagem, desvantagem) precisam de ID

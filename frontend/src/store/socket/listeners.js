@@ -19,6 +19,7 @@ export const createListenerActions = (set, get) => ({
       'fase_atualizada', 'aventura_iniciada', 'resultado_dado_inicial',
       'ordem_definida', 'turno_alterado', 'mestre_finalizou_turno',
       'turno_iniciado', 'rodada_finalizada', 'nova_rodada_iniciada',
+      'turno_estado_atualizado', 'teste_rejeitado',
       'erro_cooldown_roleplay', 'erro_turno', 'server_message', 'force_disconnect',
       'solicitacao_dados', 'mensagem_roleplay',
       'sessao_resetada', 'sessao_encerrada',
@@ -183,6 +184,12 @@ export const createListenerActions = (set, get) => ({
         if (estadoJogo.turnoIniciado !== undefined) {
           updateData.turnoIniciado = estadoJogo.turnoIniciado;
         }
+        if (estadoJogo.turno?.status) {
+          updateData.turnoStatus = estadoJogo.turno.status;
+        }
+        if (estadoJogo.testePendente !== undefined) {
+          updateData.testePendente = estadoJogo.testePendente;
+        }
         if (estadoJogo.rolagemInicial) {
           updateData.resultadosDados = estadoJogo.rolagemInicial;
         }
@@ -311,7 +318,9 @@ export const createListenerActions = (set, get) => ({
         jogadorAtual: data.jogadorAtual,
         ordemJogadores: ordemAtualizada,
         ehMeuTurno,
-        turnoIniciado: false
+        turnoIniciado: false,
+        turnoStatus: 'idle',
+        testePendente: null
       });
 
       if (ehMeuTurno) {
@@ -343,10 +352,35 @@ export const createListenerActions = (set, get) => ({
       const ehMeuTurno = currentUser && String(data.userId) === String(currentUser.id);
 
       if (ehMeuTurno) {
-        set({ turnoIniciado: true });
+        set({
+          turnoIniciado: true,
+          turnoStatus: data.turnoEstado?.status || 'active'
+        });
       }
 
       get().log('Turno iniciado', { userId: data.userId, success: true });
+    });
+
+    socket.on('turno_estado_atualizado', (data) => {
+      const currentUser = get().currentUser;
+      const jogadorAtual = data.turno?.jogadorAtual;
+      const ehMeuTurno = currentUser && jogadorAtual != null
+        ? String(jogadorAtual) === String(currentUser.id) || String(get().jogadorAtual?.userId) === String(currentUser.id)
+        : get().ehMeuTurno;
+
+      set({
+        turnoStatus: data.turno?.status || 'idle',
+        turnoIniciado: ['starting', 'active', 'awaiting_roll', 'resolving_roll'].includes(data.turno?.status),
+        testePendente: data.testePendente || null,
+        ehMeuTurno
+      });
+    });
+
+    socket.on('teste_rejeitado', (data) => {
+      if (window.showGameNotification) {
+        window.showGameNotification('Essa rolagem não corresponde ao teste pendente.', 'warning');
+      }
+      get().log('Teste rejeitado', data, 'warn');
     });
 
     socket.on('rodada_finalizada', (data) => {
@@ -422,6 +456,8 @@ export const createListenerActions = (set, get) => ({
         resultadosDados: {},
         ehMeuTurno: false,
         turnoIniciado: false,
+        turnoStatus: 'idle',
+        testePendente: null,
         cooldownRoleplay: 0,
         session: null,
         combateAtivo: false,
@@ -451,6 +487,8 @@ export const createListenerActions = (set, get) => ({
         resultadosDados: {},
         ehMeuTurno: false,
         turnoIniciado: false,
+        turnoStatus: 'idle',
+        testePendente: null,
         cooldownRoleplay: 0,
         session: null,
         combateAtivo: false,

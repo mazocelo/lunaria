@@ -20,6 +20,7 @@ const InputArea = ({
   faseJogo = 'aguardando_inicio',
   ehMeuTurno = false,
   turnoIniciado = false,
+  turnoStatus = 'idle',
   cooldownRoleplay = 0,
   onIniciarTurno,
   dadosSolicitados = false,
@@ -90,13 +91,17 @@ const InputArea = ({
     faseJogo === 'rolagem_inicial' ||
     (faseJogo === 'rodada_em_andamento' && ehMeuTurno && !turnoIniciado) ||
     dadosSolicitados ||
-    aguardandoMestre;
+    aguardandoMestre ||
+    turnoStatus === 'starting' ||
+    turnoStatus === 'finishing';
   const podeEnviarRoleplay = faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay === 0;
   const mostrarCooldown = faseJogo === 'rodada_em_andamento' && !ehMeuTurno && cooldownRoleplay > 0;
 
   // Placeholder dinamico
   const getPlaceholderDinamico = () => {
     if (aguardandoMestre) return '⏳ Aguardando resposta do Mestre...';
+    if (turnoStatus === 'starting') return '⏳ O Mestre está abrindo seu turno...';
+    if (turnoStatus === 'resolving_roll') return '🎲 O Mestre está interpretando sua rolagem...';
     if (dadosSolicitados) return '🎲 Role os dados antes de continuar!';
     if (faseJogo === 'rolagem_inicial') return 'Aguardando rolagem de dados inicial...';
     if (faseJogo === 'rodada_em_andamento') {
@@ -169,7 +174,7 @@ const InputArea = ({
             {faseJogo === 'rodada_em_andamento' && ehMeuTurno && turnoIniciado && (
               <div className="px-6 py-2.5 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border-2 border-cyan-400/70 rounded-xl shadow-xl animate-pulse">
                 <p className="text-cyan-200 font-bold drop-shadow-lg">
-                  ⚡ E SUA VEZ! Responda ao Mestre
+                  {turnoStatus === 'awaiting_roll' ? '🎲 Sua vez: resolva a rolagem pendente' : '⚡ E SUA VEZ! Responda ao Mestre'}
                 </p>
               </div>
             )}

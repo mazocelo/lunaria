@@ -178,6 +178,8 @@ const EtapaJogoRPG = ({
     resultadosDados: {},
     ehMeuTurno: false,
     turnoIniciado: false,
+    turnoStatus: 'idle',
+    testePendente: null,
     cooldownRoleplay: 0,
     combateAtivo: false,
     combateMonstros: [],
@@ -192,6 +194,28 @@ const EtapaJogoRPG = ({
   // Timer local para cooldown roleplay
   const [cooldownLocal, setCooldownLocal] = useState(0);
   const cooldownIntervalRef = useRef(null);
+
+  useEffect(() => {
+    const testePendente = socketState.testePendente;
+    const meuTeste = testePendente && String(testePendente.jogadorAlvo) === String(user?.id);
+
+    if (!meuTeste) {
+      setDadosSolicitados(false);
+      setDadoSolicitadoInfo(null);
+    } else {
+      setDadosSolicitados(true);
+      setDadoSolicitadoInfo(prev => ({
+        ...prev,
+        tipoDado: testePendente.tipoDado || prev?.tipoDado || 'd20',
+        teste: testePendente.teste || prev?.teste || '',
+        dificuldade: testePendente.dificuldade || prev?.dificuldade || 'Media',
+        atributo: testePendente.atributo || prev?.atributo || null,
+        contexto: testePendente.contexto || prev?.contexto || null
+      }));
+    }
+
+    setAguardandoMestre(socketState.turnoStatus === 'resolving_roll');
+  }, [socketState.testePendente, socketState.turnoStatus, user?.id]);
 
   // Estado para dropdown de informacoes da rodada
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
@@ -253,6 +277,8 @@ const EtapaJogoRPG = ({
       resultadosDados: state.resultadosDados ?? {},
       ehMeuTurno: state.ehMeuTurno ?? false,
       turnoIniciado: state.turnoIniciado ?? false,
+      turnoStatus: state.turnoStatus ?? 'idle',
+      testePendente: state.testePendente ?? null,
       cooldownRoleplay: state.cooldownRoleplay ?? 0,
       combateAtivo: state.combateAtivo ?? false,
       combateMonstros: state.combateMonstros ?? [],
@@ -437,9 +463,11 @@ const EtapaJogoRPG = ({
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const foiEuQueRolei = String(data.userId) === String(currentUser.id);
       if (foiEuQueRolei) {
-        setDadosSolicitados(false);
-        setDadoSolicitadoInfo(null);
-        setAguardandoMestre(true);
+        if (data.dadosSolicitados) {
+          setDadosSolicitados(false);
+          setDadoSolicitadoInfo(null);
+          setAguardandoMestre(true);
+        }
       }
       if (data.dadosSolicitados) return;
 
@@ -483,14 +511,21 @@ const EtapaJogoRPG = ({
     };
 
     const handleMestreSolicitaDados = (data) => {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const jogadorAlvo = String(data?.testePendente?.jogadorAlvo || currentUser.id);
+      if (String(jogadorAlvo) !== String(currentUser.id)) {
+        return;
+      }
       setDadosSolicitados(true);
       setDadoSolicitadoInfo({
         tipoDado: data.tipoDado || 'd20',
         teste: data.teste || '',
         dificuldade: data.dificuldade || 'Media',
         modificador: data.modificador || 0,
-        atributo: data.atributo || null
+        atributo: data.atributo || null,
+        contexto: data.contexto || null
       });
+      setAguardandoMestre(false);
     };
 
     const handleLevelUp = (data) => {
@@ -1196,6 +1231,7 @@ const EtapaJogoRPG = ({
               faseJogo={socketState.faseJogo}
               ehMeuTurno={socketState.ehMeuTurno}
               turnoIniciado={socketState.turnoIniciado}
+              turnoStatus={socketState.turnoStatus}
               cooldownRoleplay={cooldownLocal}
               onRolarDadoInicial={handleRolarDadoInicial}
               onIniciarTurno={handleIniciarTurno}

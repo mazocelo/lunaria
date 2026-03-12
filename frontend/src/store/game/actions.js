@@ -116,12 +116,13 @@ export const createGameActions = (set, get) => ({
   // ===== ACTIONS - JOGO ATIVO =====
   adicionarMensagem: (mensagem) => {
     const { mensagens } = get();
-    set({ mensagens: [...mensagens, mensagem] });
+    const msg = mensagem.id != null ? mensagem : { ...mensagem, id: mensagem.timestamp || Date.now() };
+    set({ mensagens: [...mensagens, msg] });
   },
 
   atualizarMensagem: (id, campos) => {
     const { mensagens } = get();
-    set({ mensagens: mensagens.map(m => String(m.id) === String(id) ? { ...m, ...campos } : m) });
+    set({ mensagens: mensagens.map(m => String(m.id) === String(id) || String(m.timestamp) === String(id) ? { ...m, ...campos } : m) });
   },
 
   setMensagens: (mensagens) => {

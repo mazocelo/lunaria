@@ -1,33 +1,247 @@
 /**
  * BlueprintService - Gera roteiros narrativos (Story Blueprints) usando Claude Sonnet 4.5
- * via API da Anthropic. O roteiro é um JSON massivo com 12 seções que guia o Mestre IA.
+ * via API da Anthropic. O roteiro e um JSON com secoes estruturadas que guia o Mestre IA.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import usageService from './usageService.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOKENS = 8000;
-const TIMEOUT_MS = 180000; // 180s timeout para geração de roteiro
+const TIMEOUT_MS = 180000;
+const BLUEPRINT_TEMPERATURE = 0.3;
+const REPAIR_TEMPERATURE = 0.1;
+
+function asTrimmedString(value, fallback = '') {
+  if (value === undefined || value === null) return fallback;
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function asStringArray(value, fallback = ['']) {
+  const source = Array.isArray(value) ? value : [];
+  const items = source
+    .map(item => asTrimmedString(item, ''))
+    .filter(Boolean);
+  return items.length > 0 ? items : fallback;
+}
+
+function asInteger(value, fallback = 0) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function asPercent(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.min(Math.max(parsed, 0), 100);
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeArcos(arcos = []) {
+  const normalized = ensureArray(arcos).map((arco, index) => ({
+    numero: asInteger(arco?.numero, index + 1),
+    titulo: asTrimmedString(arco?.titulo, `Arco ${index + 1}`),
+    descricao: asTrimmedString(arco?.descricao, 'Sem descricao'),
+    objetivos: asStringArray(arco?.objetivos, ['Objetivo nao definido']),
+    nivel_sugerido: asTrimmedString(arco?.nivel_sugerido, `${index + 1}-${index + 3}`)
+  }));
+
+  return normalized.length > 0 ? normalized : [{
+    numero: 1,
+    titulo: 'Arco 1',
+    descricao: 'Sem descricao',
+    objetivos: ['Objetivo nao definido'],
+    nivel_sugerido: '1-3'
+  }];
+}
+
+function normalizeRegioes(regioes = []) {
+  const normalized = ensureArray(regioes).map((regiao, index) => ({
+    nome: asTrimmedString(regiao?.nome, `Regiao ${index + 1}`),
+    descricao: asTrimmedString(regiao?.descricao, 'Sem descricao'),
+    perigo: asTrimmedString(regiao?.perigo, 'medio')
+  }));
+
+  return normalized.length > 0 ? normalized : [{
+    nome: 'Regiao Central',
+    descricao: 'Sem descricao',
+    perigo: 'medio'
+  }];
+}
+
+function normalizeLocais(locais = []) {
+  const normalized = ensureArray(locais).map((local, index) => ({
+    nome: asTrimmedString(local?.nome, `Local ${index + 1}`),
+    tipo: asTrimmedString(local?.tipo, 'outro'),
+    descricao: asTrimmedString(local?.descricao, 'Sem descricao'),
+    segredos: asStringArray(local?.segredos, ['Nenhum segredo definido']),
+    monstros_comuns: asStringArray(local?.monstros_comuns, ['Nenhum']),
+    arco_relacionado: asInteger(local?.arco_relacionado, 1)
+  }));
+
+  return normalized.length > 0 ? normalized : [{
+    nome: 'Local Central',
+    tipo: 'outro',
+    descricao: 'Sem descricao',
+    segredos: ['Nenhum segredo definido'],
+    monstros_comuns: ['Nenhum'],
+    arco_relacionado: 1
+  }];
+}
+
+function normalizeNpcs(npcs = []) {
+  const normalized = ensureArray(npcs).map((npc, index) => ({
+    nome: asTrimmedString(npc?.nome, `NPC ${index + 1}`),
+    papel: asTrimmedString(npc?.papel, 'neutro'),
+    descricao: asTrimmedString(npc?.descricao, 'Sem descricao'),
+    motivacao: asTrimmedString(npc?.motivacao, 'Nao definida'),
+    local: asTrimmedString(npc?.local, 'Desconhecido'),
+    segredo: asTrimmedString(npc?.segredo, 'Nenhum')
+  }));
+
+  return normalized.length > 0 ? normalized : [{
+    nome: 'NPC Central',
+    papel: 'neutro',
+    descricao: 'Sem descricao',
+    motivacao: 'Nao definida',
+    local: 'Desconhecido',
+    segredo: 'Nenhum'
+  }];
+}
+
+function normalizeSimpleObjects(items = [], defaults = {}) {
+  return ensureArray(items).map(item => {
+    const normalized = {};
+
+    for (const [key, fallback] of Object.entries(defaults)) {
+      if (Array.isArray(fallback)) {
+        normalized[key] = asStringArray(item?.[key], fallback);
+      } else if (typeof fallback === 'number') {
+        normalized[key] = asInteger(item?.[key], fallback);
+      } else if (typeof fallback === 'boolean') {
+        normalized[key] = typeof item?.[key] === 'boolean' ? item[key] : fallback;
+      } else {
+        normalized[key] = asTrimmedString(item?.[key], fallback);
+      }
+    }
+
+    return normalized;
+  });
+}
+
+function normalizeProgressao(progressao = {}) {
+  const marcosBrutos = ensureArray(progressao?.marcos);
+  const marcos = marcosBrutos.map((marco, index) => ({
+    id: asTrimmedString(marco?.id, `marco_${index + 1}`),
+    descricao: asTrimmedString(marco?.descricao, 'Marco nao definido'),
+    arco: asInteger(marco?.arco, 1),
+    concluido: typeof marco?.concluido === 'boolean' ? marco.concluido : false
+  }));
+
+  return {
+    marcos: marcos.length > 0 ? marcos : [{
+      id: 'marco_1',
+      descricao: 'Marco nao definido',
+      arco: 1,
+      concluido: false
+    }],
+    arco_atual: asInteger(progressao?.arco_atual, 1),
+    porcentagem_estimada: asPercent(progressao?.porcentagem_estimada)
+  };
+}
+
+function normalizeBlueprintStructure(roteiro) {
+  if (!roteiro || typeof roteiro !== 'object' || Array.isArray(roteiro)) {
+    return null;
+  }
+
+  return {
+    sinopse: asTrimmedString(roteiro.sinopse, 'Sinopse nao definida'),
+    antagonista: {
+      nome: asTrimmedString(roteiro.antagonista?.nome, 'Antagonista desconhecido'),
+      titulo: asTrimmedString(roteiro.antagonista?.titulo, ''),
+      descricao: asTrimmedString(roteiro.antagonista?.descricao, 'Sem descricao'),
+      motivacao: asTrimmedString(roteiro.antagonista?.motivacao, 'Nao definida'),
+      poderes: asStringArray(roteiro.antagonista?.poderes, ['Poder desconhecido']),
+      fraquezas: asStringArray(roteiro.antagonista?.fraquezas, ['Fraqueza desconhecida']),
+      conexao_com_historia: asTrimmedString(roteiro.antagonista?.conexao_com_historia, 'Nao definida')
+    },
+    arcos: normalizeArcos(roteiro.arcos),
+    mapaMundi: {
+      descricao_geral: asTrimmedString(roteiro.mapaMundi?.descricao_geral, 'Sem descricao'),
+      regioes: normalizeRegioes(roteiro.mapaMundi?.regioes)
+    },
+    locais: normalizeLocais(roteiro.locais),
+    npcs: normalizeNpcs(roteiro.npcs),
+    tesourosSegretos: normalizeSimpleObjects(roteiro.tesourosSegretos, {
+      nome: 'Tesouro desconhecido',
+      tipo: 'informacao',
+      descricao: 'Sem descricao',
+      localizacao: 'Desconhecida',
+      condicao: 'Nao definida'
+    }),
+    plotTwists: normalizeSimpleObjects(roteiro.plotTwists, {
+      momento: 'Momento indefinido',
+      revelacao: 'Revelacao nao definida',
+      impacto: 'Impacto nao definido'
+    }),
+    encontrosChave: normalizeSimpleObjects(roteiro.encontrosChave, {
+      nome: 'Encontro desconhecido',
+      tipo: 'exploracao',
+      descricao: 'Sem descricao',
+      monstros: ['Nenhum'],
+      dificuldade: 'media',
+      recompensas: ['Nenhuma'],
+      arco_relacionado: 1
+    }).map(encontro => ({
+      ...encontro,
+      monstros: asStringArray(encontro.monstros, ['Nenhum']),
+      recompensas: asStringArray(encontro.recompensas, ['Nenhuma']),
+      arco_relacionado: asInteger(encontro.arco_relacionado, 1)
+    })),
+    desfechosPossiveis: normalizeSimpleObjects(roteiro.desfechosPossiveis, {
+      tipo: 'vitoria_parcial',
+      condicao: 'Condicao nao definida',
+      descricao: 'Sem descricao'
+    }),
+    instrucoesGeraisParaOMestre: {
+      tom_narrativo: asTrimmedString(roteiro.instrucoesGeraisParaOMestre?.tom_narrativo, 'aventuresco'),
+      ritmo: asTrimmedString(roteiro.instrucoesGeraisParaOMestre?.ritmo, 'equilibrado'),
+      adaptacao: asTrimmedString(
+        roteiro.instrucoesGeraisParaOMestre?.adaptacao,
+        'Adapte conforme as decisoes dos jogadores'
+      ),
+      dicas_imersao: asStringArray(
+        roteiro.instrucoesGeraisParaOMestre?.dicas_imersao,
+        ['Use detalhes sensoriais e consequencias']
+      )
+    },
+    progressao: normalizeProgressao(roteiro.progressao)
+  };
+}
 
 function buildBlueprintPrompt(historia, catalogo, temasNomes) {
   const temas = temasNomes.join(', ');
 
-  return `Você é um roteirista de RPG. Crie um roteiro narrativo (Story Blueprint) para esta aventura.
+  return `Voce e um roteirista de RPG. Crie um roteiro narrativo (Story Blueprint) para esta aventura.
 
 ## AVENTURA
 Nome: ${historia.nome} | Temas: ${temas} | Jogadores: ${historia.maximo_de_participantes || 5}
-Descrição: ${historia.descricao || 'Não fornecida'}
-Prólogo: ${historia.prologo || 'Não fornecido'}
+Descricao: ${historia.descricao || 'Nao fornecida'}
+Prologo: ${historia.prologo || 'Nao fornecido'}
 
-## CATÁLOGO (monstros e equipamentos disponíveis)
+## CATALOGO (monstros e equipamentos disponiveis)
 ${catalogo || 'Crie monstros e itens originais coerentes com os temas.'}
 
-## INSTRUÇÕES
-Responda APENAS com JSON válido (sem markdown). Seja conciso mas criativo. Estrutura EXATA:
+## INSTRUCOES
+Responda APENAS com JSON valido (sem markdown). Seja conciso mas criativo. Estrutura EXATA:
 
-{"sinopse":"Resumo da aventura (2-3 parágrafos)","antagonista":{"nome":"","titulo":"","descricao":"descrição breve","motivacao":"","poderes":[""],"fraquezas":[""],"conexao_com_historia":""},"arcos":[{"numero":1,"titulo":"","descricao":"breve","objetivos":[""],"nivel_sugerido":"1-3"}],"mapaMundi":{"descricao_geral":"descrição do mundo","regioes":[{"nome":"","descricao":"breve","perigo":"baixo|medio|alto|extremo"}]},"locais":[{"nome":"","tipo":"cidade|dungeon|floresta|montanha|ruina|templo|outro","descricao":"1-2 frases","segredos":[""],"monstros_comuns":[""],"arco_relacionado":1}],"npcs":[{"nome":"","papel":"aliado|neutro|antagonista|quest_giver|mercador|informante","descricao":"1 frase","motivacao":"","local":"","segredo":""}],"tesourosSegretos":[{"nome":"","tipo":"equipamento|informacao|artefato","descricao":"","localizacao":"","condicao":""}],"plotTwists":[{"momento":"","revelacao":"","impacto":""}],"encontrosChave":[{"nome":"","tipo":"combate|social|exploracao|puzzle|boss","descricao":"1-2 frases","monstros":[""],"dificuldade":"facil|media|dificil|letal","recompensas":[""],"arco_relacionado":1}],"desfechosPossiveis":[{"tipo":"vitoria_total|vitoria_parcial|derrota|agridoce","condicao":"","descricao":"1-2 frases"}],"instrucoesGeraisParaOMestre":{"tom_narrativo":"","ritmo":"","adaptacao":"","dicas_imersao":[""]},"progressao":{"marcos":[{"id":"marco_1","descricao":"","arco":1,"concluido":false}],"arco_atual":1,"porcentagem_estimada":0}}
+{"sinopse":"Resumo da aventura (2-3 paragrafos)","antagonista":{"nome":"","titulo":"","descricao":"descricao breve","motivacao":"","poderes":[""],"fraquezas":[""],"conexao_com_historia":""},"arcos":[{"numero":1,"titulo":"","descricao":"breve","objetivos":[""],"nivel_sugerido":"1-3"}],"mapaMundi":{"descricao_geral":"descricao do mundo","regioes":[{"nome":"","descricao":"breve","perigo":"baixo|medio|alto|extremo"}]},"locais":[{"nome":"","tipo":"cidade|dungeon|floresta|montanha|ruina|templo|outro","descricao":"1-2 frases","segredos":[""],"monstros_comuns":[""],"arco_relacionado":1}],"npcs":[{"nome":"","papel":"aliado|neutro|antagonista|quest_giver|mercador|informante","descricao":"1 frase","motivacao":"","local":"","segredo":""}],"tesourosSegretos":[{"nome":"","tipo":"equipamento|informacao|artefato","descricao":"","localizacao":"","condicao":""}],"plotTwists":[{"momento":"","revelacao":"","impacto":""}],"encontrosChave":[{"nome":"","tipo":"combate|social|exploracao|puzzle|boss","descricao":"1-2 frases","monstros":[""],"dificuldade":"facil|media|dificil|letal","recompensas":[""],"arco_relacionado":1}],"desfechosPossiveis":[{"tipo":"vitoria_total|vitoria_parcial|derrota|agridoce","condicao":"","descricao":"1-2 frases"}],"instrucoesGeraisParaOMestre":{"tom_narrativo":"","ritmo":"","adaptacao":"","dicas_imersao":[""]},"progressao":{"marcos":[{"id":"marco_1","descricao":"","arco":1,"concluido":false}],"arco_atual":1,"porcentagem_estimada":0}}
 
-REGRAS: Crie 3 arcos, 4 locais, 5 NPCs, 2 plot twists, 4 encontros-chave. Use nomes do catálogo quando possível. Seja coerente com os temas: ${temas}.`;
+REGRAS: Crie 3 arcos, 4 locais, 5 NPCs, 2 plot twists, 4 encontros-chave. Use nomes do catalogo quando possivel. Seja coerente com os temas: ${temas}.`;
 }
 
 class BlueprintService {
@@ -35,32 +249,44 @@ class BlueprintService {
     this.client = null;
   }
 
+  normalizarRoteiro(roteiro) {
+    return normalizeBlueprintStructure(roteiro);
+  }
+
   _getClient() {
     if (!this.client) {
       const apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey) {
-        throw new Error('ANTHROPIC_API_KEY não configurada. Defina a variável de ambiente.');
+        throw new Error('ANTHROPIC_API_KEY nao configurada. Defina a variavel de ambiente.');
       }
       this.client = new Anthropic({ apiKey });
     }
     return this.client;
   }
 
-  /**
-   * Gera um roteiro narrativo completo para uma história
-   * @param {Object} historia - Dados da história (nome, descricao, prologo, temas, maximo_de_participantes)
-   * @param {string} catalogo - Catálogo completo de monstros/equipamentos/elementos
-   * @param {string[]} temasNomes - Nomes dos temas
-   * @param {number} userId - ID do usuário para tracking de usage
-   * @returns {Object} JSON do roteiro com 12 seções
-   */
   async gerarRoteiro(historia, catalogo, temasNomes, userId = null) {
-    const client = this._getClient();
     const prompt = buildBlueprintPrompt(historia, catalogo, temasNomes);
+    console.log(`BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5...`);
+
+    const content = await this._createMessage(prompt, userId, 'blueprint', BLUEPRINT_TEMPERATURE);
+    let roteiro = this._parseRoteiro(content);
+
+    if (!roteiro) {
+      console.warn('BlueprintService: primeira resposta invalida, tentando repair...');
+      roteiro = await this._repairRoteiro(content, userId);
+    }
+
+    const roteiroNormalizado = this.normalizarRoteiro(roteiro);
+    if (!roteiroNormalizado) {
+      throw new Error('Falha ao parsear roteiro da IA. Resposta nao e JSON valido.');
+    }
+
+    return roteiroNormalizado;
+  }
+
+  async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = BLUEPRINT_TEMPERATURE) {
+    const client = this._getClient();
     const startTime = Date.now();
-
-    console.log(`📜 BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5...`);
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -69,15 +295,13 @@ class BlueprintService {
       response = await client.messages.create({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        temperature: 1,
-        messages: [
-          { role: 'user', content: prompt }
-        ]
+        temperature,
+        messages: [{ role: 'user', content: prompt }]
       }, { signal: controller.signal });
     } catch (err) {
       clearTimeout(timeout);
       if (err.name === 'AbortError' || controller.signal.aborted) {
-        throw new Error(`Timeout: geração de roteiro excedeu ${TIMEOUT_MS / 1000}s`);
+        throw new Error(`Timeout: geracao de roteiro excedeu ${TIMEOUT_MS / 1000}s`);
       }
       throw err;
     }
@@ -85,53 +309,70 @@ class BlueprintService {
 
     const content = response.content[0]?.text || '';
     const duracao = Date.now() - startTime;
+    console.log(`BlueprintService: Resposta recebida em ${duracao}ms (${content.length} chars)`);
 
-    console.log(`📜 BlueprintService: Resposta recebida em ${duracao}ms (${content.length} chars)`);
-
-    // Track usage
     if (userId) {
       try {
         usageService.track({
           userId,
           provider: 'anthropic',
-          tipo: 'blueprint',
+          tipo,
           modelo: MODEL,
           input_tokens: response.usage?.input_tokens || 0,
           output_tokens: response.usage?.output_tokens || 0,
           duracao_ms: duracao,
         });
-      } catch (e) {
+      } catch (_) {
         // silent
       }
     }
 
-    // Parse JSON from response
-    const roteiro = this._parseRoteiro(content);
-    if (!roteiro) {
-      throw new Error('Falha ao parsear roteiro da IA. Resposta não é JSON válido.');
-    }
+    return content;
+  }
 
-    return roteiro;
+  async _repairRoteiro(content, userId = null) {
+    const repairPrompt = `O texto abaixo deveria ser um JSON valido de roteiro de RPG, mas esta malformado ou incompleto.
+Corrija APENAS a estrutura para a forma exigida e responda APENAS com JSON valido.
+Nao envolva em markdown. Nao adicione explicacoes fora do JSON.
+
+TEXTO ORIGINAL:
+${content}`;
+
+    const repairedContent = await this._createMessage(
+      repairPrompt,
+      userId,
+      'blueprint_repair',
+      REPAIR_TEMPERATURE
+    );
+
+    return this._parseRoteiro(repairedContent);
   }
 
   _parseRoteiro(content) {
-    // Try direct parse
     try {
       return JSON.parse(content);
-    } catch (_) { /* continue */ }
+    } catch (_) {
+      // continue
+    }
 
-    // Remove markdown wrappers
-    const cleaned = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    const cleaned = String(content || '')
+      .replace(/^```(?:json)?\s*\n?/i, '')
+      .replace(/\n?```\s*$/i, '')
+      .trim();
+
     try {
       return JSON.parse(cleaned);
-    } catch (_) { /* continue */ }
+    } catch (_) {
+      // continue
+    }
 
-    // Extract first JSON block
-    const match = content.match(/\{[\s\S]*\}/);
+    const match = String(content || '').match(/\{[\s\S]*\}/);
     if (match) {
       try {
         return JSON.parse(match[0]);
-      } catch (_) { /* failed */ }
+      } catch (_) {
+        // continue
+      }
     }
 
     return null;

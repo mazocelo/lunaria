@@ -8,7 +8,7 @@ import { useTTS } from '../../../hooks/useTTS';
  * Despacha renderizacao por tipo via MESSAGE_RENDERERS registry
  * Uma unica instancia de useTTS garante que so 1 audio toque por vez
  */
-const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, onSceneImageGenerated, estiloImagem }) => {
+const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
   const chatEndRef = useRef(null);
   const tts = useTTS();
   const currentTtsMessage = useMemo(
@@ -40,6 +40,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
           voiceProvider={voiceProvider}
           tts={tts}
           entidadesComImagem={entidadesComImagem}
+          contextoImagemCena={contextoImagemCena}
           onSceneImageGenerated={onSceneImageGenerated}
           estiloImagem={estiloImagem}
         />

@@ -78,7 +78,7 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   );
 };
 
-const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloImagem }) => {
+const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloImagem, temasHistoria = [], historiaContexto = '' }) => {
   // Ref para manter versão mais recente do roteiro (evita race condition em gerações paralelas)
   const roteiroRef = useRef(roteiro);
   useEffect(() => { roteiroRef.current = roteiro; }, [roteiro]);
@@ -180,7 +180,15 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloIm
                   <ImagemCard
                     imageUrl={local.imagem}
                     entityType="local"
-                    entityData={{ nome: local.nome, tipo: local.tipo, descricao: local.descricao, estilo_imagem: estiloImagem }}
+                    entityData={{
+                      nome: local.nome,
+                      tipo: local.tipo,
+                      perigo: local.perigo,
+                      descricao: local.descricao,
+                      temas: temasHistoria,
+                      contexto_historia: historiaContexto,
+                      estilo_imagem: estiloImagem
+                    }}
                     isLight={isLight}
                     onGenerated={(url) => updateItemImage('locais', i, url)}
                   />
@@ -213,7 +221,17 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloIm
                   <ImagemCard
                     imageUrl={npc.imagem}
                     entityType="npc"
-                    entityData={{ nome: npc.nome, papel: npc.papel, descricao: npc.descricao, local: npc.local, estilo_imagem: estiloImagem }}
+                    entityData={{
+                      nome: npc.nome,
+                      papel: npc.papel,
+                      descricao: npc.descricao,
+                      local: npc.local,
+                      motivacao: npc.motivacao,
+                      segredo: npc.segredo,
+                      temas: temasHistoria,
+                      contexto_historia: historiaContexto,
+                      estilo_imagem: estiloImagem
+                    }}
                     isLight={isLight}
                     onGenerated={(url) => updateItemImage('npcs', i, url)}
                   />

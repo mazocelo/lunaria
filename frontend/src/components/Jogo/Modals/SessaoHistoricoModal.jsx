@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Filter, Clock, Users, ScrollText, MessageCircle, Dice1, ArrowDown, Swords, Shield, TrendingUp, Package, Volume2, Square, Loader2 } from 'lucide-react';
 import { useTTS } from '../../../hooks/useTTS.js';
 
 const tipoConfig = {
-  mestre: { label: 'Mestre', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: '🎭' },
-  roleplay: { label: 'Roleplay', color: 'bg-slate-500/20 text-slate-300 border-slate-500/30', icon: '💬' },
-  dado: { label: 'Dados', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: '🎲' },
-  combate: { label: 'Combate', color: 'bg-red-500/20 text-red-300 border-red-500/30', icon: '⚔️' },
-  entre_rodadas: { label: 'Transição', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', icon: '📖' },
+  mestre: { label: 'Mestre', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: '\u{1F3AD}' },
+  roleplay: { label: 'Roleplay', color: 'bg-slate-500/20 text-slate-300 border-slate-500/30', icon: '\u{1F4AC}' },
+  dado: { label: 'Dados', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: '\u{1F3B2}' },
+  combate: { label: 'Combate', color: 'bg-red-500/20 text-red-300 border-red-500/30', icon: '\u{2694}\u{FE0F}' },
+  entre_rodadas: { label: 'Transicao', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', icon: '\u{1F4D6}' },
 };
 
 function formatTimestamp(ts) {
@@ -17,7 +17,7 @@ function formatTimestamp(ts) {
 }
 
 function formatDuration(start, end) {
-  if (!start) return '—';
+  if (!start) return '-';
   const s = new Date(start);
   const e = end ? new Date(end) : new Date();
   const diff = Math.floor((e - s) / 1000 / 60);
@@ -26,7 +26,7 @@ function formatDuration(start, end) {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '—';
+  if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
@@ -39,7 +39,6 @@ function getParticipantes(jogadores) {
   return Object.values(jogadores).map(j => j.personagemNome || j.username || j.nome || 'Jogador');
 }
 
-/** Extrai texto da mensagem (backend salva como 'mensagem', emit usa 'message') */
 function getConteudo(msg) {
   return msg.mensagem || msg.message || msg.conteudo || '';
 }
@@ -114,10 +113,10 @@ const MensagemItem = ({ msg, tts }) => {
   if (tipo === 'dado') {
     return (
       <div className="flex items-center gap-2 py-1">
-        <span className="text-xs">🎲</span>
+        <span className="text-xs">{'\u{1F3B2}'}</span>
         <span className="text-xs text-slate-400 font-modern">{msg.username || 'Jogador'}</span>
         <span className="text-sm font-bold text-amber-400">{msg.dice || conteudo}</span>
-        {msg.result != null && <span className="text-lg font-bold text-amber-300">→ {msg.result}</span>}
+        {msg.result != null && <span className="text-lg font-bold text-amber-300">{'\u{2192}'} {msg.result}</span>}
         <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
       </div>
     );
@@ -127,7 +126,7 @@ const MensagemItem = ({ msg, tts }) => {
     return (
       <div className="glass p-2 rounded-lg border border-red-500/20">
         <div className="flex items-center gap-2">
-          <span className="text-xs">⚔️</span>
+          <span className="text-xs">{'\u{2694}\u{FE0F}'}</span>
           <span className="text-sm text-red-300 font-modern">{conteudo}</span>
           {msg.dano && <span className="text-sm font-bold text-red-400">-{msg.dano} HP</span>}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
@@ -144,7 +143,6 @@ const MensagemItem = ({ msg, tts }) => {
     );
   }
 
-  // roleplay / default
   return (
     <div className="py-1">
       <div className="flex items-baseline gap-2">
@@ -163,7 +161,6 @@ const PersonagemCard = ({ personagem }) => {
 
   return (
     <div className="glass rounded-lg border border-slate-700/50 p-4">
-      {/* Header: nome + classe/raca */}
       <div className="flex items-center justify-between mb-3">
         <div>
           <h4 className="text-sm font-fantasy font-bold text-white">{personagem.nome}</h4>
@@ -182,9 +179,7 @@ const PersonagemCard = ({ personagem }) => {
         </span>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-        {/* Nivel */}
         <div className="glass rounded px-3 py-2 border border-slate-700/30">
           <div className="flex items-center gap-1.5">
             <Shield size={12} className="text-blue-400" />
@@ -193,12 +188,11 @@ const PersonagemCard = ({ personagem }) => {
           <div className="text-sm font-modern font-semibold text-white mt-0.5">
             {personagem.nivel_inicio || 1}
             {levelUp && (
-              <span className="text-green-400"> → {personagem.nivel_fim}</span>
+              <span className="text-green-400"> {'\u{2192}'} {personagem.nivel_fim}</span>
             )}
           </div>
         </div>
 
-        {/* XP Ganho */}
         <div className="glass rounded px-3 py-2 border border-slate-700/30">
           <div className="flex items-center gap-1.5">
             <TrendingUp size={12} className="text-yellow-400" />
@@ -211,7 +205,6 @@ const PersonagemCard = ({ personagem }) => {
           </div>
         </div>
 
-        {/* HP */}
         {personagem.hp_max > 0 && (
           <div className="glass rounded px-3 py-2 border border-slate-700/30">
             <div className="flex items-center gap-1.5">
@@ -225,7 +218,6 @@ const PersonagemCard = ({ personagem }) => {
         )}
       </div>
 
-      {/* Itens ganhos */}
       {itensGanhos.length > 0 && (
         <div className="mb-2">
           <div className="flex items-center gap-1.5 mb-1">
@@ -243,7 +235,6 @@ const PersonagemCard = ({ personagem }) => {
         </div>
       )}
 
-      {/* Itens perdidos */}
       {itensPerdidos.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-1">
@@ -263,9 +254,6 @@ const PersonagemCard = ({ personagem }) => {
   );
 };
 
-/**
- * Modal fullscreen para visualizar historico de uma sessao
- */
 const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
   const [filtros, setFiltros] = useState(new Set());
   const [abaAtiva, setAbaAtiva] = useState('mensagens');
@@ -306,7 +294,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
     return () => el.removeEventListener('scroll', handleScroll);
   }, [isOpen, abaAtiva]);
 
-  // Reset aba ao abrir novo modal
   useEffect(() => {
     if (isOpen) setAbaAtiva('mensagens');
   }, [isOpen]);
@@ -317,12 +304,9 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative w-full h-full max-w-4xl max-h-[90vh] mx-4 my-4 bg-slate-900/95 backdrop-blur-md rounded-xl border border-purple-500/20 flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="p-4 border-b border-slate-700/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -334,7 +318,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
             </button>
           </div>
 
-          {/* Metadata */}
           <div className="flex flex-wrap gap-4 text-xs text-slate-400 font-modern">
             <span className="flex items-center gap-1">
               <Clock size={12} /> {formatDate(sessao.iniciada_em)}
@@ -355,7 +338,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
             )}
           </div>
 
-          {/* Status badge */}
           <div className="mt-2">
             <span className={`text-xs px-2 py-0.5 rounded border font-modern ${
               sessao.status === 'finalizada'
@@ -367,7 +349,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
           </div>
         </div>
 
-        {/* Abas */}
         <div className="px-4 py-2 border-b border-slate-800/50 flex items-center gap-1">
           <button
             onClick={() => setAbaAtiva('mensagens')}
@@ -396,7 +377,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
           </button>
         </div>
 
-        {/* Aba Mensagens: Filtros */}
         {abaAtiva === 'mensagens' && (
           <div className="px-4 py-2 border-b border-slate-800/50 flex items-center gap-2 flex-wrap">
             <Filter size={14} className="text-slate-400" />
@@ -424,7 +404,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
           </div>
         )}
 
-        {/* Content area */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
           {abaAtiva === 'mensagens' ? (
             mensagens.length === 0 ? (
@@ -447,7 +426,6 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
           )}
         </div>
 
-        {/* Scroll to bottom (only on messages tab) */}
         {abaAtiva === 'mensagens' && showScrollBtn && (
           <button
             onClick={scrollToBottom}

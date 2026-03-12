@@ -184,7 +184,7 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instancia compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, onSceneImageGenerated, estiloImagem }) => {
+export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = RE_SOLICITACAO_DADOS.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;
@@ -218,7 +218,32 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const handleGenerateScene = async () => {
     setGeneratingScene(true);
     try {
-      const response = await imageGenerationService.generate({ entityType: 'cena', entityData: { narracao: conteudo, estilo_imagem: estiloImagem } });
+      const entidadePayload = entidadesMencionadas.map((e) => ({
+        tipo: e.tipo,
+        nome: e.nome,
+        descricao: e.descricao || '',
+        papel: e.papel || '',
+        local: e.local || '',
+        categoria: e.categoria || '',
+        perigo: e.perigo || '',
+        motivacao: e.motivacao || '',
+        segredo: e.segredo || ''
+      }));
+
+      const response = await imageGenerationService.generate({
+        entityType: 'cena',
+        entityData: {
+          narracao: conteudo,
+          estilo_imagem: estiloImagem,
+          temas: contextoImagemCena?.temas || [],
+          contexto_historia: [
+            contextoImagemCena?.historiaNome,
+            contextoImagemCena?.historiaDescricao,
+            contextoImagemCena?.historiaPrologo
+          ].filter(Boolean).join(' | '),
+          entidades: entidadePayload
+        }
+      });
       const url = response.data?.url;
       if (url) {
         setSceneImage(url);

@@ -104,13 +104,50 @@ const EtapaJogoRPG = ({
     if (!roteiro) return [];
     const itens = [];
     (roteiro.npcs || []).forEach(npc => {
-      if (npc.imagem) itens.push({ nome: npc.nome, imagem: npc.imagem, tipo: 'npc' });
+      if (npc.imagem) {
+        itens.push({
+          nome: npc.nome,
+          imagem: npc.imagem,
+          tipo: 'npc',
+          descricao: npc.descricao || '',
+          papel: npc.papel || '',
+          local: npc.local || '',
+          motivacao: npc.motivacao || '',
+          segredo: npc.segredo || ''
+        });
+      }
     });
     (roteiro.locais || []).forEach(local => {
-      if (local.imagem) itens.push({ nome: local.nome, imagem: local.imagem, tipo: 'local' });
+      if (local.imagem) {
+        itens.push({
+          nome: local.nome,
+          imagem: local.imagem,
+          tipo: 'local',
+          descricao: local.descricao || '',
+          categoria: local.tipo || '',
+          perigo: local.perigo || ''
+        });
+      }
     });
     return itens;
   }, [historia?.roteiro]);
+
+  const contextoImagemCena = useMemo(() => {
+    const temasRaw = historia?.temas;
+    const temas = Array.isArray(temasRaw)
+      ? temasRaw.map((t) => {
+          if (typeof t === 'string' || typeof t === 'number') return String(t);
+          return t?.nome || t?.name || t?.label || '';
+        }).filter(Boolean)
+      : [];
+
+    return {
+      temas,
+      historiaNome: historia?.nome || '',
+      historiaDescricao: historia?.descricao || '',
+      historiaPrologo: historia?.prologo || ''
+    };
+  }, [historia?.temas, historia?.nome, historia?.descricao, historia?.prologo]);
 
   // Socket store - acesso direto via hooks
   const socketStoreOn = useSocketStore(s => s.on);
@@ -1143,6 +1180,7 @@ const EtapaJogoRPG = ({
               voiceId={historia?.mestre?.voice_id || historia?.mestres?.voice_id}
               voiceProvider={historia?.mestre?.voice_provider || historia?.mestres?.voice_provider || 'elevenlabs'}
               entidadesComImagem={entidadesComImagem}
+              contextoImagemCena={contextoImagemCena}
               onSceneImageGenerated={handleSceneImageGenerated}
               estiloImagem={historia?.estilo_imagem}
             />

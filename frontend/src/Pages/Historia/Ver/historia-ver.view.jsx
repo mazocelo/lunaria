@@ -303,12 +303,13 @@ const VerHistoriaView = ({
                     entityType="historia"
                     entityData={{
                       nome: historiaAtual.nome,
-                      temas: nomesTemas.join(', '),
+                      temas: nomesTemas,
                       descricao: historiaAtual.descricao,
                       prologo: historiaAtual.prologo,
                       sinopse: roteiro?.sinopse,
                       antagonista: roteiro?.antagonista?.nome,
-                      locais: roteiro?.locais?.slice(0, 3).map(l => l.nome).join(', '),
+                      locais: roteiro?.locais?.slice(0, 3).map(l => l.nome) || [],
+                      contexto_historia: [historiaAtual.descricao, historiaAtual.prologo, roteiro?.sinopse].filter(Boolean).join(' | '),
                       estilo_imagem: estiloAtual,
                     }}
                     isLight={isLight}
@@ -377,9 +378,10 @@ const VerHistoriaView = ({
                     entityType="historia_mapa"
                     entityData={{
                       nome: historiaAtual.nome,
-                      temas: nomesTemas.join(', '),
-                      locais: roteiro?.locais?.slice(0, 5).map(l => l.nome).join(', '),
+                      temas: nomesTemas,
+                      locais: roteiro?.locais?.slice(0, 5).map(l => l.nome) || [],
                       mapaMundi: roteiro?.mapaMundi,
+                      contexto_historia: [historiaAtual.descricao, historiaAtual.prologo, roteiro?.sinopse].filter(Boolean).join(' | '),
                       estilo_imagem: estiloAtual,
                     }}
                     isLight={isLight}
@@ -451,7 +453,15 @@ const VerHistoriaView = ({
                     )}
                   </div>
                 ) : roteiro ? (
-                  <RoteiroViewer roteiro={roteiro} isLight={isLight} historiaId={historiaAtual?.id} onRoteiroUpdate={handleRoteiroUpdate} estiloImagem={estiloAtual} />
+                  <RoteiroViewer
+                    roteiro={roteiro}
+                    isLight={isLight}
+                    historiaId={historiaAtual?.id}
+                    onRoteiroUpdate={handleRoteiroUpdate}
+                    estiloImagem={estiloAtual}
+                    temasHistoria={nomesTemas}
+                    historiaContexto={[historiaAtual?.descricao, historiaAtual?.prologo, roteiro?.sinopse].filter(Boolean).join(' | ')}
+                  />
                 ) : (
                   <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
                     <p className={`font-modern text-sm italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>

@@ -390,18 +390,16 @@ const VerPersonagemView = ({
                     <div className={`text-xs font-modern ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {mod >= 0 ? '+' : ''}{mod}
                     </div>
-                    {bonuses.length > 0 && (
-                      <div className="mt-1.5 space-y-0.5">
-                        <div className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                          Base: {base}
-                        </div>
-                        {bonuses.map((b, i) => (
-                          <div key={i} className={`text-[10px] font-modern ${b.value > 0 ? 'text-cyan-400' : 'text-red-400'}`}>
-                            {b.value > 0 ? '+' : ''}{b.value} {b.label}
-                          </div>
-                        ))}
+                    <div className="mt-1.5 space-y-0.5">
+                      <div className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Base: {base}
                       </div>
-                    )}
+                      {bonuses.map((b, i) => (
+                        <div key={i} className={`text-[10px] font-modern ${b.value > 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                          {b.value > 0 ? '+' : ''}{b.value} {b.label}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 );
               })}

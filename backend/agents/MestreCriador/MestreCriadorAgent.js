@@ -363,28 +363,31 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       };
     }
 
-    // Validar etapa_proxima
+    // Validar etapa_proxima PRIMEIRO (sugestões dependem dela)
     const transicoesValidas = TRANSICOES[etapa] || [];
     if (!transicoesValidas.includes(resultado.etapa_proxima) && resultado.etapa_proxima !== 'confirmado') {
       resultado.etapa_proxima = transicoesValidas[0] || etapa;
     }
 
-    // Sanitizar sugestões
+    // As sugestões são para a PRÓXIMA etapa (etapa_proxima), não a etapa atual
+    const etapaDestino = resultado.etapa_proxima || etapa;
+
+    // Sanitizar sugestões usando etapa destino
     const sugestoes = sanitizarSugestoes(
       Array.isArray(resultado.sugestoes) ? resultado.sugestoes : [],
-      etapa
+      etapaDestino
     );
 
     // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
     let sugestoesFinal = sugestoes;
-    if (sugestoes.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapa)) {
-      console.warn(`⚠️ MestreCriador [${etapa}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback do catálogo.`);
-      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado);
+    if (sugestoes.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapaDestino)) {
+      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback do catálogo.`);
+      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado);
     }
 
     // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão
     let atributosSugeridos = resultado.atributos_sugeridos || null;
-    if (etapa === 'atributos' && !atributosSugeridos) {
+    if (etapaDestino === 'atributos' && !atributosSugeridos) {
       console.warn('⚠️ MestreCriador [atributos]: IA não retornou atributos_sugeridos. Gerando fallback.');
       atributosSugeridos = gerarAtributosFallback(estado);
     }
@@ -411,16 +414,19 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       refinamento: 'Deseja ajustar algo antes de finalizar?',
     };
 
-    // Mesmo em erro, tentar gerar sugestões do catálogo
-    const fallbackSugestoes = ETAPAS_COM_SUGESTOES.includes(etapa)
-      ? await gerarFallbackSugestoes(etapa, estado).catch(() => [])
+    // No catch, a próxima etapa é a transição padrão
+    const catchEtapaDestino = TRANSICOES[etapa]?.[0] || etapa;
+
+    // Mesmo em erro, tentar gerar sugestões do catálogo para a etapa destino
+    const fallbackSugestoes = ETAPAS_COM_SUGESTOES.includes(catchEtapaDestino)
+      ? await gerarFallbackSugestoes(catchEtapaDestino, estado).catch(() => [])
       : [];
 
     return {
-      mensagem: fallbacks[etapa] || 'Ocorreu um erro. Tente novamente.',
+      mensagem: fallbacks[catchEtapaDestino] || fallbacks[etapa] || 'Ocorreu um erro. Tente novamente.',
       sugestoes: fallbackSugestoes,
-      etapa_proxima: TRANSICOES[etapa]?.[0] || etapa,
-      atributos_sugeridos: etapa === 'atributos' ? gerarAtributosFallback(estado) : null,
+      etapa_proxima: catchEtapaDestino,
+      atributos_sugeridos: catchEtapaDestino === 'atributos' ? gerarAtributosFallback(estado) : null,
     };
   }
 }

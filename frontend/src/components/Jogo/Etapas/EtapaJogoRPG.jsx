@@ -1144,6 +1144,7 @@ const EtapaJogoRPG = ({
               voiceProvider={historia?.mestre?.voice_provider || historia?.mestres?.voice_provider || 'elevenlabs'}
               entidadesComImagem={entidadesComImagem}
               onSceneImageGenerated={handleSceneImageGenerated}
+              estiloImagem={historia?.estilo_imagem}
             />
 
             {/* Area de Input - Chat */}

@@ -1,7 +1,18 @@
 const LEONARDO_API_URL = 'https://cloud.leonardo.ai/api/rest/v1';
 const LEONARDO_API_KEY = process.env.LEONARDO_API_KEY;
-const DEFAULT_MODEL_ID = process.env.LEONARDO_MODEL_ID || 'e71a1c2f-4f80-4800-934f-2c68979d8cc8';
-const REALISTIC_MODEL_ID = process.env.LEONARDO_REALISTIC_MODEL_ID || DEFAULT_MODEL_ID;
+const FALLBACK_MODEL_ID = process.env.LEONARDO_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3'; // Phoenix/Lucid Origin family
+
+// Hardcoded strategy por estilo para reduzir viés de "desenho" em estilos realistas.
+// Observacao: env vars podem sobrescrever sem alterar codigo.
+const STYLE_MODEL_IDS = {
+  realistic: process.env.LEONARDO_REALISTIC_MODEL_ID || '05ce0082-2d80-4a2d-8653-4d1c85e2418e', // Lucid Realism
+  anime: process.env.LEONARDO_ANIME_MODEL_ID || 'e71a1c2f-4f80-4800-934f-2c68979d8cc8', // Leonardo Anime XL
+  fantasy_painting: process.env.LEONARDO_FANTASY_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
+  dark_gothic: process.env.LEONARDO_DARK_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
+  watercolor: process.env.LEONARDO_WATERCOLOR_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
+  pixel_art: process.env.LEONARDO_PIXEL_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
+  comic_book: process.env.LEONARDO_COMIC_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3',
+};
 
 const POLL_INTERVAL = 2000;
 const MAX_POLLS = 30;
@@ -17,7 +28,8 @@ async function generateImage(prompt, options = {}) {
 
   const requestedStyle = options.estilo_imagem;
   const isRealisticStyle = requestedStyle === 'realistic';
-  const modelId = options.modelId || (isRealisticStyle ? REALISTIC_MODEL_ID : DEFAULT_MODEL_ID);
+  const styleModelId = STYLE_MODEL_IDS[requestedStyle] || FALLBACK_MODEL_ID;
+  const modelId = options.modelId || styleModelId;
 
   const body = {
     prompt,

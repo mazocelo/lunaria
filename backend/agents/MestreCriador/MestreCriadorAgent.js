@@ -110,8 +110,17 @@ function converterHistorico(historico) {
 /**
  * Constrói o input contextual para a IA baseado na etapa e estado do wizard
  */
+// Seed de mitologias para variar nomes a cada sessão
+const MITOLOGIAS = ['celta', 'japonesa', 'africana', 'eslava', 'árabe', 'grega', 'indiana', 'nórdica', 'latina', 'persa', 'polinésia', 'tupi', 'asteca', 'egípcia', 'tibetana', 'gaélica', 'suméria', 'finlandesa', 'maori', 'iorubá'];
+
 function construirInput(etapa, estado, mensagemJogador) {
   const parts = [`[ETAPA ATUAL: ${etapa}]`];
+
+  // Seed aleatório para variar sugestões de nomes
+  if (etapa === 'boas_vindas') {
+    const shuffled = MITOLOGIAS.sort(() => Math.random() - 0.5).slice(0, 5);
+    parts.push(`[SEED DE VARIAÇÃO: use inspiração primária em mitologia ${shuffled.join(', ')}. Semente aleatória: ${Math.random().toString(36).substring(2, 8)}]`);
+  }
 
   // Contexto do personagem construído até agora
   if (estado.nome) parts.push(`Nome do personagem: ${estado.nome}`);
@@ -123,6 +132,11 @@ function construirInput(etapa, estado, mensagemJogador) {
   if (estado.atributos) {
     const attrs = estado.atributos;
     parts.push(`Atributos: FOR:${attrs.forca} DES:${attrs.destreza} CON:${attrs.constituicao} INT:${attrs.inteligencia} AGI:${attrs.agilidade} CAR:${attrs.carisma}`);
+  }
+
+  // Lembrete de contextualização para sugestões
+  if (['classe', 'vantagens', 'desvantagens', 'background'].includes(etapa)) {
+    parts.push(`[LEMBRETE: Suas sugestões DEVEM ser coerentes com as escolhas anteriores do personagem. Sugira opções que combinem narrativamente.]`);
   }
 
   parts.push(`\nMensagem do jogador: ${mensagemJogador}`);

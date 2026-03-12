@@ -362,6 +362,7 @@ const VerPersonagemView = ({
         loadingEquipamentos={loadingEquipamentos}
         bonusAgregados={bonusAgregados}
       />
+      <ImageLightbox src={lightboxSrc} alt={p.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };
@@ -549,7 +550,6 @@ const InventarioSection = ({
           </span>
         </div>
       )}
-      <ImageLightbox src={lightboxSrc} alt={p.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };

@@ -53,6 +53,27 @@ const MensagemItem = ({ msg, tts }) => {
     const voiceId = msg.voice_id;
     const voiceProvider = msg.voice_provider;
     const isThisPlaying = tts?.currentMessageId === msg.id;
+    const hasCachedAudio = !!tts?.hasAudioForMessage?.(msg.id);
+    const hasPersistedAudio = Boolean(msg.audio_cache_key || msg.audio_url || msg.audioUrl);
+    const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
+
+    const handlePlayAudio = async () => {
+      if (!voiceId || !tts) return;
+      if (isThisPlaying) {
+        tts.togglePause();
+        return;
+      }
+      await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: hasPersistedAudio });
+    };
+
+    const handleGenerateAudio = async () => {
+      if (!voiceId || !tts) return;
+      const confirmed = hasAnyAudio
+        ? window.confirm('Ja existe audio para esta mensagem. Deseja gerar novamente?')
+        : window.confirm('Deseja gerar audio para esta mensagem?');
+      if (!confirmed) return;
+      await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: true, forceRegenerate: hasAnyAudio });
+    };
 
     return (
       <div className="glass p-3 rounded-lg border border-purple-500/20 ml-0">
@@ -60,14 +81,28 @@ const MensagemItem = ({ msg, tts }) => {
           <span className="text-xs">{config.icon}</span>
           <span className="text-xs font-semibold text-purple-300 font-modern">Mestre</span>
           {voiceId && tts && (
-            <button
-              onClick={() => isThisPlaying && tts.isPlaying ? tts.stop() : tts.play(conteudo, voiceId, msg.id, voiceProvider)}
-              disabled={tts.isLoading && isThisPlaying}
-              className="p-0.5 rounded transition-all text-purple-400 hover:text-purple-200"
-              title={isThisPlaying && tts.isPlaying ? 'Parar' : 'Ouvir'}
-            >
-              {tts.isLoading && isThisPlaying ? <Loader2 size={12} className="animate-spin" /> : isThisPlaying && tts.isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
-            </button>
+            <>
+              <button
+                onClick={handlePlayAudio}
+                disabled={!hasAnyAudio || (tts.isLoading && isThisPlaying)}
+                className={`p-0.5 rounded transition-all ${
+                  !hasAnyAudio
+                    ? 'text-purple-400/40 cursor-not-allowed'
+                    : 'text-purple-400 hover:text-purple-200'
+                }`}
+                title={isThisPlaying && tts.isPlaying ? 'Pausar' : 'Ouvir'}
+              >
+                {tts.isLoading && isThisPlaying ? <Loader2 size={12} className="animate-spin" /> : isThisPlaying && tts.isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
+              </button>
+              <button
+                onClick={handleGenerateAudio}
+                disabled={tts.isLoading && isThisPlaying}
+                className="p-0.5 rounded transition-all text-purple-400 hover:text-purple-200"
+                title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
+              >
+                <span className="text-[10px]">{'\u{1F3A4}'}</span>
+              </button>
+            </>
           )}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
         </div>

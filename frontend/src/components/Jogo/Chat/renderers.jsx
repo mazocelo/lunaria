@@ -191,6 +191,9 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   // Usar voice da mensagem (permanente) com fallback para props (sessao atual)
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
+  const hasCachedAudio = tts.hasAudioForMessage(mensagem.id);
+  const hasPersistedAudio = Boolean(mensagem.audio_cache_key || mensagem.audio_url || mensagem.audioUrl);
+  const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
 
   // Inicializar e sincronizar com imagem persistida no payload/store
   const [sceneImage, setSceneImage] = useState(
@@ -223,6 +226,39 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
       }
     } catch (_) { /* silent */ }
     setGeneratingScene(false);
+  };
+
+  const handlePlayAudio = async () => {
+    if (isThisPlaying) {
+      tts.togglePause();
+      return;
+    }
+    await tts.play(
+      conteudo,
+      effectiveVoiceId,
+      mensagem.id,
+      effectiveVoiceProvider,
+      { allowGenerate: hasPersistedAudio }
+    );
+  };
+
+  const handleGenerateAudio = async () => {
+    const mustConfirm = hasAnyAudio;
+    if (mustConfirm) {
+      const confirmed = window.confirm('Ja existe audio para esta mensagem. Deseja gerar novamente?');
+      if (!confirmed) return;
+    } else {
+      const confirmed = window.confirm('Deseja gerar audio para esta mensagem?');
+      if (!confirmed) return;
+    }
+
+    await tts.play(
+      conteudo,
+      effectiveVoiceId,
+      mensagem.id,
+      effectiveVoiceProvider,
+      { allowGenerate: true, forceRegenerate: hasAnyAudio }
+    );
   };
 
   return (
@@ -259,24 +295,36 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                   ) : '\u{1F5BC}\u{FE0F}'}
                 </button>
                 {effectiveVoiceId && (
-                  <button
-                    onClick={() => (
-                      isThisPlaying
-                        ? tts.togglePause()
-                        : tts.play(conteudo, effectiveVoiceId, mensagem.id, effectiveVoiceProvider)
-                    )}
-                    disabled={tts.isLoading && isThisPlaying}
-                    className={`p-1.5 rounded-lg transition-all text-lg ${
-                      isThisPlaying && tts.isPlaying
-                        ? 'bg-purple-500/30 text-purple-200'
-                        : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
-                    }`}
-                    title={isThisPlaying && tts.isPlaying ? 'Pausar narracao' : 'Ouvir narracao'}
-                  >
-                    {tts.isLoading && isThisPlaying ? (
-                      <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                    ) : isThisPlaying && tts.isPlaying ? '\u{23F9}' : '\u{1F50A}'}
-                  </button>
+                  <>
+                    <button
+                      onClick={handlePlayAudio}
+                      disabled={!hasAnyAudio || (tts.isLoading && isThisPlaying)}
+                      className={`p-1.5 rounded-lg transition-all text-lg ${
+                        isThisPlaying && tts.isPlaying
+                          ? 'bg-purple-500/30 text-purple-200'
+                          : hasAnyAudio
+                            ? 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+                            : 'text-purple-400/40 cursor-not-allowed'
+                      }`}
+                      title={isThisPlaying && tts.isPlaying ? 'Pausar narracao' : 'Ouvir narracao'}
+                    >
+                      {tts.isLoading && isThisPlaying ? (
+                        <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                      ) : isThisPlaying && tts.isPlaying ? '\u{23F9}' : '\u{1F50A}'}
+                    </button>
+                    <button
+                      onClick={handleGenerateAudio}
+                      disabled={tts.isLoading && isThisPlaying}
+                      className={`p-1.5 rounded-lg transition-all text-lg ${
+                        tts.isLoading && isThisPlaying
+                          ? 'bg-purple-500/30 text-purple-200'
+                          : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+                      }`}
+                      title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
+                    >
+                      {'\u{1F3A4}'}
+                    </button>
+                  </>
                 )}
               </div>
             </div>

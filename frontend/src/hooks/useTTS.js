@@ -164,29 +164,57 @@ export const useTTS = () => {
     });
   }, []);
 
-  const play = useCallback(async (text, voiceId, messageId, provider = DEFAULT_TTS_PROVIDER) => {
-    if (String(currentMessageId) === String(messageId)) {
+  const play = useCallback(async (
+    text,
+    voiceId,
+    messageId,
+    provider = DEFAULT_TTS_PROVIDER,
+    options = {}
+  ) => {
+    const { allowGenerate = true, forceRegenerate = false } = options;
+    const isSameMessage = String(currentMessageId) === String(messageId);
+
+    if (forceRegenerate) {
+      const previous = cacheRef.current.get(messageId);
+      if (previous) {
+        URL.revokeObjectURL(previous);
+        cacheRef.current.delete(messageId);
+      }
+      clearPlayback(isSameMessage ? false : true);
+      setCurrentMessageId(messageId);
+    }
+
+    if (!forceRegenerate && isSameMessage) {
       if (audioRef.current) {
         togglePause();
-        return;
+        return true;
       }
 
-      // Mesmo messageId sem instancia ativa: recarregar do cache local se existir
       const cachedCurrent = cacheRef.current.get(messageId);
       if (cachedCurrent) {
         playUrl(cachedCurrent, messageId);
-        return;
+        return true;
       }
     }
 
-    // Troca de mensagem: limpar contexto atual
-    clearPlayback(true);
-    setCurrentMessageId(messageId);
+    if (!forceRegenerate && !isSameMessage) {
+      const cached = cacheRef.current.get(messageId);
+      if (cached) {
+        clearPlayback(true);
+        setCurrentMessageId(messageId);
+        playUrl(cached, messageId);
+        return true;
+      }
+    }
 
-    const cached = cacheRef.current.get(messageId);
-    if (cached) {
-      playUrl(cached, messageId);
-      return;
+    if (!allowGenerate) {
+      setCurrentMessageId(messageId);
+      return false;
+    }
+
+    if (!isSameMessage || forceRegenerate) {
+      clearPlayback(true);
+      setCurrentMessageId(messageId);
     }
 
     setIsLoading(true);
@@ -197,12 +225,16 @@ export const useTTS = () => {
 
       const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
+      const oldCached = cacheRef.current.get(messageId);
+      if (oldCached) URL.revokeObjectURL(oldCached);
       cacheRef.current.set(messageId, url);
 
       playUrl(url, messageId);
+      return true;
     } catch (error) {
       console.error('TTS error:', error.message);
       clearPlayback(true);
+      return false;
     } finally {
       setIsLoading(false);
     }

@@ -9,6 +9,10 @@ async function generateImage(prompt, options = {}) {
     throw new Error('LEONARDO_API_KEY não configurada');
   }
 
+  const isRealisticPrompt = /photorealistic|real-world|satellite-like|physically plausible/i.test(prompt);
+  const defaultNegative = 'blurry, low quality, distorted, deformed, ugly, bad anatomy';
+  const realisticNegative = 'cartoon, anime, manga, cel shading, hand-drawn, painterly, illustration style, comic style, stylized outlines, logo, watermark, text';
+
   const body = {
     prompt,
     modelId: options.modelId || 'e71a1c2f-4f80-4800-934f-2c68979d8cc8',
@@ -16,7 +20,7 @@ async function generateImage(prompt, options = {}) {
     height: options.height || 512,
     num_images: 1,
     guidance_scale: options.guidance_scale || 7,
-    negative_prompt: options.negative_prompt || 'blurry, low quality, distorted, deformed, ugly, bad anatomy',
+    negative_prompt: options.negative_prompt || (isRealisticPrompt ? `${defaultNegative}, ${realisticNegative}` : defaultNegative),
   };
 
   const response = await fetch(`${LEONARDO_API_URL}/generations`, {
@@ -131,6 +135,31 @@ function mapStyleDirectives(estiloImagem) {
 
 function stylePhrase(estiloImagem, kind = 'scene') {
   const isRealistic = estiloImagem === 'realistic';
+  if (kind === 'personagem') {
+    return isRealistic
+      ? 'photorealistic character portrait, natural skin texture, realistic clothing materials, real-world lighting'
+      : 'character portrait illustration';
+  }
+  if (kind === 'monstro') {
+    return isRealistic
+      ? 'photorealistic creature concept, realistic textures, plausible anatomy, cinematic lighting'
+      : 'creature illustration';
+  }
+  if (kind === 'equipamento') {
+    return isRealistic
+      ? 'photorealistic object render, realistic material detail, studio lighting, no characters'
+      : 'item illustration, no characters';
+  }
+  if (kind === 'historia') {
+    return isRealistic
+      ? 'photorealistic cinematic key art, dramatic framing, realistic materials and lighting'
+      : 'epic book cover illustration';
+  }
+  if (kind === 'mestre') {
+    return isRealistic
+      ? 'photorealistic game master portrait, wise narrator, realistic lighting'
+      : 'game master portrait, wise narrator';
+  }
   if (kind === 'npc') {
     return isRealistic
       ? 'photorealistic character portrait, natural skin texture, real-world lighting'
@@ -147,6 +176,11 @@ function stylePhrase(estiloImagem, kind = 'scene') {
       : 'scene illustration, dramatic lighting, cinematic composition';
   }
   return isRealistic ? 'photorealistic render' : 'illustration';
+}
+
+function realismGuard(estiloImagem) {
+  if (estiloImagem !== 'realistic') return '';
+  return 'no cartoon, no cel shading, no hand-drawn lines, no painterly style, no comic style';
 }
 
 function extractMapaMundiContext(mapaMundi) {
@@ -173,31 +207,43 @@ function buildPrompt(entityType, entityData) {
 
   switch (entityType) {
     case 'personagem': {
-      const parts = [`${style}, character portrait`];
+      const parts = [`${style}, ${stylePhrase(entityData.estilo_imagem, 'personagem')}`];
       if (entityData.raca) parts.push(entityData.raca);
       if (entityData.classe) parts.push(entityData.classe);
       if (entityData.nome) parts.push(`named ${entityData.nome}`);
       if (entityData.background) parts.push(entityData.background.slice(0, 200));
+      if (temas) parts.push(`themes: ${temas}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'monstro': {
-      const parts = [`${style}, creature illustration`];
+      const parts = [`${style}, ${stylePhrase(entityData.estilo_imagem, 'monstro')}`];
       if (entityData.nome) parts.push(entityData.nome);
       if (entityData.tipo) parts.push(Array.isArray(entityData.tipo) ? entityData.tipo.join(' ') : entityData.tipo);
       if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      if (temas) parts.push(`themes: ${temas}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'equipamento': {
-      const parts = [`${style}, item illustration, no characters`];
+      const parts = [`${style}, ${stylePhrase(entityData.estilo_imagem, 'equipamento')}`];
       if (entityData.nome) parts.push(entityData.nome);
       if (entityData.tipo) parts.push(Array.isArray(entityData.tipo) ? entityData.tipo.join(' ') : entityData.tipo);
       if (entityData.descricao) parts.push(entityData.descricao.slice(0, 250));
       if (entityData.raridade) parts.push(`${entityData.raridade} rarity`);
+      if (temas) parts.push(`themes: ${temas}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'historia': {
       const parts = [
-        `${style}, epic book cover illustration`,
+        `${style}, ${stylePhrase(entityData.estilo_imagem, 'historia')}`,
         'strictly follow the provided themes and story mood',
       ];
       if (entityData.nome) parts.push(`title: "${normalizeText(entityData.nome, 120)}"`);
@@ -207,6 +253,9 @@ function buildPrompt(entityType, entityData) {
       else if (entityData.descricao) parts.push(`description: ${normalizeText(entityData.descricao, 350)}`);
       if (entityData.antagonista) parts.push(`main antagonist: ${normalizeText(entityData.antagonista, 120)}`);
       if (entityData.locais) parts.push(`key locations: ${toListText(entityData.locais, 8)}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'historia_mapa': {
@@ -224,10 +273,14 @@ function buildPrompt(entityType, entityData) {
       return parts.join(', ');
     }
     case 'mestre': {
-      const parts = [`${style}, game master portrait, wise narrator`];
+      const parts = [`${style}, ${stylePhrase(entityData.estilo_imagem, 'mestre')}`];
       if (entityData.nome) parts.push(entityData.nome);
       if (entityData.tom_narrativo) parts.push(`${entityData.tom_narrativo} atmosphere`);
       if (entityData.personalidade) parts.push(entityData.personalidade.slice(0, 200));
+      if (temas) parts.push(`themes: ${temas}`);
+      if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'npc': {
@@ -243,6 +296,8 @@ function buildPrompt(entityType, entityData) {
       addIf(parts, `motivation: ${entityData.motivacao}`);
       addIf(parts, `secret: ${entityData.segredo}`);
       if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'local': {
@@ -256,6 +311,8 @@ function buildPrompt(entityType, entityData) {
       if (temas) parts.push(`themes: ${temas}`);
       addIf(parts, `description: ${entityData.descricao}`);
       if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
       return parts.join(', ');
     }
     case 'cena': {
@@ -266,9 +323,8 @@ function buildPrompt(entityType, entityData) {
       if (temas) parts.push(`themes: ${temas}`);
       if (contextoHistoria) parts.push(`story context: ${contextoHistoria}`);
       if (entityData.narracao) parts.push(`scene narration: ${normalizeText(entityData.narracao, 700)}`);
-      if (entityData.estilo_imagem === 'realistic') {
-        parts.push('no cartoon, no cel shading, no hand-drawn lines, no painterly style');
-      }
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
 
       const entidades = Array.isArray(entityData.entidades) ? entityData.entidades : [];
       if (entidades.length > 0) {

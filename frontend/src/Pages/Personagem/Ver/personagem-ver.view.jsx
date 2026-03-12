@@ -61,6 +61,8 @@ const VerPersonagemView = ({
   handleImagemGenerated,
   clearError,
 }) => {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -87,7 +89,6 @@ const VerPersonagemView = ({
     );
   }
 
-  const [lightboxSrc, setLightboxSrc] = useState(null);
   const p = personagem;
   if (!p) return null;
 

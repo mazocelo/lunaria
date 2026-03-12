@@ -118,6 +118,29 @@ async function gerarFallbackSugestoes(etapa, estado) {
   }
 }
 
+/** Gera distribuição de atributos fallback baseada na classe */
+function gerarAtributosFallback(estado) {
+  // Distribuições temáticas por classe (soma = 60, min 5, max 16)
+  const DISTRIBUICOES = {
+    guerreiro:   { forca: 14, destreza: 10, constituicao: 13, inteligencia: 7, agilidade: 9, carisma: 7 },
+    mago:        { forca: 6, destreza: 8, constituicao: 8, inteligencia: 16, agilidade: 10, carisma: 12 },
+    ladino:      { forca: 8, destreza: 14, constituicao: 8, inteligencia: 10, agilidade: 14, carisma: 6 },
+    clerigo:     { forca: 10, destreza: 8, constituicao: 12, inteligencia: 12, agilidade: 8, carisma: 10 },
+    ranger:      { forca: 10, destreza: 13, constituicao: 10, inteligencia: 8, agilidade: 13, carisma: 6 },
+    bardo:       { forca: 6, destreza: 10, constituicao: 8, inteligencia: 12, agilidade: 10, carisma: 14 },
+    paladino:    { forca: 13, destreza: 8, constituicao: 12, inteligencia: 8, agilidade: 8, carisma: 11 },
+    druida:      { forca: 8, destreza: 10, constituicao: 10, inteligencia: 14, agilidade: 10, carisma: 8 },
+    barbaro:     { forca: 16, destreza: 8, constituicao: 14, inteligencia: 5, agilidade: 10, carisma: 7 },
+    monge:       { forca: 10, destreza: 12, constituicao: 10, inteligencia: 8, agilidade: 14, carisma: 6 },
+    feiticeiro:  { forca: 6, destreza: 10, constituicao: 8, inteligencia: 14, agilidade: 8, carisma: 14 },
+    bruxo:       { forca: 7, destreza: 8, constituicao: 10, inteligencia: 13, agilidade: 8, carisma: 14 },
+  };
+
+  const classeNome = (estado.classe_nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const dist = Object.entries(DISTRIBUICOES).find(([k]) => classeNome.includes(k));
+  return dist ? dist[1] : { forca: 10, destreza: 10, constituicao: 10, inteligencia: 10, agilidade: 10, carisma: 10 };
+}
+
 /** Valida e sanitiza sugestões da IA */
 function sanitizarSugestoes(sugestoes, etapa) {
   if (!Array.isArray(sugestoes)) return [];
@@ -342,11 +365,18 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       sugestoesFinal = await gerarFallbackSugestoes(etapa, estado);
     }
 
+    // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão
+    let atributosSugeridos = resultado.atributos_sugeridos || null;
+    if (etapa === 'atributos' && !atributosSugeridos) {
+      console.warn('⚠️ MestreCriador [atributos]: IA não retornou atributos_sugeridos. Gerando fallback.');
+      atributosSugeridos = gerarAtributosFallback(estado);
+    }
+
     return {
       mensagem: resultado.mensagem || '',
       sugestoes: sugestoesFinal,
       etapa_proxima: resultado.etapa_proxima,
-      atributos_sugeridos: resultado.atributos_sugeridos || null,
+      atributos_sugeridos: atributosSugeridos,
     };
   } catch (error) {
     console.error('MestreCriador: Erro na interação:', error.message);
@@ -373,7 +403,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       mensagem: fallbacks[etapa] || 'Ocorreu um erro. Tente novamente.',
       sugestoes: fallbackSugestoes,
       etapa_proxima: TRANSICOES[etapa]?.[0] || etapa,
-      atributos_sugeridos: null,
+      atributos_sugeridos: etapa === 'atributos' ? gerarAtributosFallback(estado) : null,
     };
   }
 }

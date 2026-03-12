@@ -381,15 +381,19 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       etapaDestino
     );
 
-    // Determinar qual etapa precisa de sugestões (preferir destino, depois atual)
-    const etapaFallback = ETAPAS_COM_SUGESTOES.includes(etapaDestino) ? etapaDestino
-      : ETAPAS_COM_SUGESTOES.includes(etapa) ? etapa : null;
+    // Etapas que NÃO usam cards de sugestão (usam UI própria: distribuidor, botão salvar)
+    const ETAPAS_SEM_CARDS = ['atributos', 'resumo', 'refinamento'];
+
+    // Se destino não usa cards, limpar sugestões
+    let sugestoesFinal = ETAPAS_SEM_CARDS.includes(etapaDestino) ? [] : sugestoes;
 
     // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
-    let sugestoesFinal = sugestoes;
-    if (sugestoes.length === 0 && etapaFallback) {
-      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback para "${etapaFallback}".`);
-      sugestoesFinal = await gerarFallbackSugestoes(etapaFallback, estado);
+    if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapaDestino)) {
+      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback para "${etapaDestino}".`);
+      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado);
+    } else if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapa) && !ETAPAS_SEM_CARDS.includes(etapaDestino)) {
+      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: Sem sugestões. Gerando fallback para "${etapa}".`);
+      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado);
     }
 
     // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão

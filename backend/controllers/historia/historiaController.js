@@ -12,6 +12,45 @@ import { extrairNomesTemas } from '../../helpers/temasHelper.js';
  * Controller para gerenciar operações de história
  */
 class HistoriaController {
+  parseTemaQueryValue(req) {
+    const raw = req.query.temas ?? req.query.tema ?? req.query.tema_id;
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  async usuarioPodeAcessarHistoria(historia, user) {
+    if (!historia) return false;
+    if (historia.publica === true) return true;
+    if (!user || !user.id) return false;
+    if (user.role === 'superadmin') return true;
+    if (String(historia.id_usuario) === String(user.id)) return true;
+
+    const userId = parseInt(user.id, 10);
+    const historiaId = parseInt(historia.id, 10);
+
+    const [participacao, convite] = await Promise.all([
+      db.prisma.historias_personagens.findFirst({
+        where: {
+          historia_id: historiaId,
+          personagens: {
+            id_usuario: userId,
+            deleted_at: null
+          }
+        },
+        select: { id: true }
+      }),
+      db.prisma.historias_convite.findFirst({
+        where: {
+          historia_id: historiaId,
+          usuario_id: userId,
+          status: { in: ['pendente', 'aceito'] }
+        },
+        select: { id: true }
+      })
+    ]);
+
+    return Boolean(participacao || convite);
+  }
   
   /**
    * Criar uma nova história com prólogo gerado automaticamente
@@ -26,7 +65,7 @@ class HistoriaController {
       const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id, publica, imagem, mapas } = req.body;
       
       // Validações básicas
-      if (!temas) {
+      if (!Array.isArray(temas) || temas.length === 0) {
         return res.status(400).json({ 
           error: 'Temas são obrigatórios' 
         });
@@ -148,7 +187,8 @@ class HistoriaController {
    */
   async listarHistorias(req, res, next) {
     try {
-      const { status, temas, limit = 20, offset = 0, todas = false, incluir_personagens = true } = req.query;
+      const { status, limit = 20, offset = 0, todas = false, incluir_personagens = true } = req.query;
+      const temaIdFiltro = this.parseTemaQueryValue(req);
       const parsedLimit = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
       const parsedOffset = Math.max(parseInt(offset) || 0, 0);
 
@@ -175,7 +215,10 @@ class HistoriaController {
       } else {
         // Buscar histórias públicas (modo público)
         const result = await db.Historia.findPublicas({
-          limit: parsedLimit, offset: parsedOffset, status: status || undefined, temas: temas || undefined
+          limit: parsedLimit,
+          offset: parsedOffset,
+          status: status || undefined,
+          temas: temaIdFiltro || undefined
         });
         historias = result.data;
         total = result.total;
@@ -187,8 +230,8 @@ class HistoriaController {
         if (status) {
           historias = historias.filter(h => h.status === status);
         }
-        if (temas) {
-          historias = historias.filter(h => h.temas && h.temas.includes(temas));
+        if (temaIdFiltro !== null) {
+          historias = historias.filter(h => Array.isArray(h.temas) && h.temas.includes(temaIdFiltro));
         }
 
         if (!req.user || todas === 'true') {
@@ -282,13 +325,13 @@ class HistoriaController {
         });
       }
       
-      // Verificar se usuário tem permissão para ver esta história
-      // if (req.user && req.user.id && historia.id_usuario && historia.id_usuario !== req.user.id) {
-      //   return res.status(403).json({
-      //     success: false,
-      //     error: 'Você não tem permissão para acessar esta história'
-      //   });
-      // }
+      const podeAcessar = await this.usuarioPodeAcessarHistoria(historia, req.user);
+      if (!podeAcessar) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você não tem permissão para acessar esta história'
+        });
+      }
       
       console.log('✅ História encontrada');
       
@@ -424,7 +467,10 @@ class HistoriaController {
       
       await db.Historia.deleteHistoria(parseInt(id));
 
-      res.status(204).send();
+      res.status(200).json({
+        success: true,
+        message: 'História removida com sucesso (soft delete)'
+      });
       
     } catch (error) {
       console.error('❌ Erro ao excluir história:', error);
@@ -464,7 +510,7 @@ class HistoriaController {
       
       console.log('🤖 Gerando história com IA:', { temas, nome, temas_disponiveis: temas_disponiveis?.length || 0 });
       
-      if (!temas) {
+      if (!Array.isArray(temas) || temas.length === 0) {
         return res.status(400).json({
           success: false,
           error: 'Tema é obrigatório para gerar história com IA'
@@ -539,7 +585,7 @@ class HistoriaController {
       
       console.log('🎮 Gerando aventura completa:', { temas, nome, personagens: personagens?.length || 0 });
       
-      if (!temas) {
+      if (!Array.isArray(temas) || temas.length === 0) {
         return res.status(400).json({
           success: false,
           error: 'Tema é obrigatório para gerar aventura'
@@ -637,7 +683,7 @@ class HistoriaController {
       // Verificar status de sessão ativa para cada história
       const historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
         try {
-          const sessao = await gerenciadorSessoes.obterSessao(historia.id);
+          const sessao = await gerenciadorSessoes.obterSessao(`historia_${historia.id}`);
           
           if (sessao) {
             // Verificar se o usuário está na sessão
@@ -702,7 +748,8 @@ class HistoriaController {
     try {
       console.log('📋 Listando histórias onde personagens do usuário participam:', req.user.id);
       
-      const { status, temas, limit = 20, offset = 0 } = req.query;
+      const { status, limit = 20, offset = 0 } = req.query;
+      const temaIdFiltro = this.parseTemaQueryValue(req);
       
       // Buscar histórias onde personagens do usuário participam
       let historias = await db.Historia.findByPersonagensUsuario(req.user.id);
@@ -711,8 +758,8 @@ class HistoriaController {
       if (status) {
         historias = historias.filter(h => h.status === status);
       }
-      if (temas) {
-        historias = historias.filter(h => h.temas && h.temas.includes(temas));
+      if (temaIdFiltro !== null) {
+        historias = historias.filter(h => Array.isArray(h.temas) && h.temas.includes(temaIdFiltro));
       }
       
       // Ordenar por data de criação (mais recente primeiro)
@@ -834,6 +881,11 @@ class HistoriaController {
         return res.status(404).json({ success: false, error: 'História não encontrada' });
       }
 
+      const podeAcessar = await this.usuarioPodeAcessarHistoria(historia, req.user);
+      if (!podeAcessar) {
+        return res.status(403).json({ success: false, error: 'Você não tem permissão para acessar esta história' });
+      }
+
       res.status(200).json({
         success: true,
         data: {
@@ -894,6 +946,11 @@ class HistoriaController {
 
       if (!historia) {
         return res.status(404).json({ success: false, error: 'História não encontrada' });
+      }
+
+      const podeAcessar = await this.usuarioPodeAcessarHistoria(historia, req.user);
+      if (!podeAcessar) {
+        return res.status(403).json({ success: false, error: 'Você não tem permissão para acessar esta história' });
       }
 
       const progressao = historia.roteiro?.progressao || null;

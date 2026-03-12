@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import historiaController from '../controllers/historia/historiaController.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -106,7 +107,7 @@ const writeLimiter = rateLimit({
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/create', writeLimiter, historiaController.criarHistoria);
+router.post('/create', authenticateToken, writeLimiter, historiaController.criarHistoria);
 
 /**
  * @swagger
@@ -267,7 +268,7 @@ router.get('/', historiaController.listarHistorias);
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/minhas', historiaController.listarMinhasHistorias);
+router.get('/minhas', authenticateToken, historiaController.listarMinhasHistorias);
 
 /**
  * @swagger
@@ -337,7 +338,7 @@ router.get('/minhas', historiaController.listarMinhasHistorias);
  *                     hasMore:
  *                       type: boolean
  */
-router.get('/com-personagens', historiaController.listarHistoriasComPersonagens);
+router.get('/com-personagens', authenticateToken, historiaController.listarHistoriasComPersonagens);
 
 /**
  * @swagger
@@ -379,7 +380,7 @@ router.get('/com-personagens', historiaController.listarHistoriasComPersonagens)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-ia', writeLimiter, historiaController.gerarHistoriaComIA);
+router.post('/gerar-ia', authenticateToken, writeLimiter, historiaController.gerarHistoriaComIA);
 
 /**
  * @swagger
@@ -430,7 +431,7 @@ router.post('/gerar-ia', writeLimiter, historiaController.gerarHistoriaComIA);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/gerar-aventura-completa', writeLimiter, historiaController.gerarAventuraCompleta);
+router.post('/gerar-aventura-completa', authenticateToken, writeLimiter, historiaController.gerarAventuraCompleta);
 
 /**
  * @swagger
@@ -573,13 +574,13 @@ const blueprintLimiter = rateLimit({
 router.post('/:id/roteiro', blueprintLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.gerarRoteiro);
 
 // GET /:id/roteiro - Obter roteiro
-router.get('/:id/roteiro', historiaController.obterRoteiro);
+router.get('/:id/roteiro', authenticateToken, historiaController.obterRoteiro);
 
 // PUT /:id/roteiro - Atualizar roteiro manualmente (OWNER OU ADMIN)
 router.put('/:id/roteiro', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarRoteiro);
 
 // GET /:id/roteiro/progressao - Obter progressão do roteiro
-router.get('/:id/roteiro/progressao', historiaController.obterProgressao);
+router.get('/:id/roteiro/progressao', authenticateToken, historiaController.obterProgressao);
 
 // PUT /:id/roteiro/progressao - Atualizar progressão (OWNER OU ADMIN)
 router.put('/:id/roteiro/progressao', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarProgressao);
@@ -587,7 +588,7 @@ router.put('/:id/roteiro/progressao', writeLimiter, requireResourceOwnerOrSuperA
 /**
  * Verificar se há sessão ativa para uma história
  */
-router.get('/:id/sessao-ativa', async (req, res, next) => {
+router.get('/:id/sessao-ativa', authenticateToken, async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id;

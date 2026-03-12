@@ -93,7 +93,7 @@ router.use('/habilidades', authenticateToken, habilidadeRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória
-router.use('/historias', authenticateToken, historiaRoutes);
+router.use('/historias', optionalAuth, historiaRoutes);
 router.use('/personagens', authenticateToken, personagemRoutes);
 router.use('/usuarios', usuarioRoutes);
 router.use('/convites', authenticateToken, conviteRoutes);

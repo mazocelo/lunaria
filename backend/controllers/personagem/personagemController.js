@@ -77,7 +77,8 @@ class PersonagemController {
         custo: v.vantagem.custo,
         tipo: v.vantagem.tipo,
         nivel: v.vantagem.nivel,
-        elemento: v.vantagem.elemento
+        elemento: v.vantagem.elemento,
+        bonus: v.vantagem.bonus,
       }));
     }
 
@@ -91,7 +92,8 @@ class PersonagemController {
         custo: d.desvantagem.custo,
         tipo: d.desvantagem.tipo,
         nivel: d.desvantagem.nivel,
-        elemento: d.desvantagem.elemento
+        elemento: d.desvantagem.elemento,
+        bonus: d.desvantagem.bonus,
       }));
     }
 

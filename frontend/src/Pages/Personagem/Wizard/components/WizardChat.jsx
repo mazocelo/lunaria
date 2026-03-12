@@ -67,7 +67,7 @@ const WizardChat = ({
   };
 
   const showAtributos = ['atributos', 'resumo', 'refinamento'].includes(etapaAtual);
-  const showSave = etapaAtual === 'refinamento';
+  const showSave = etapaAtual === 'resumo' || etapaAtual === 'refinamento';
   const mostrarBusca = etapaAtual === 'raca' || etapaAtual === 'classe';
   const catalogoAtual = etapaAtual === 'raca' ? racasDisponiveis : etapaAtual === 'classe' ? classesDisponiveis : [];
   const tipoAtual = etapaAtual === 'raca' ? 'raca' : 'classe';
@@ -265,41 +265,42 @@ const WizardChat = ({
                 </div>
               )}
 
-              {/* Botão "Gerar novas sugestões" — última mensagem do mestre em etapas com sugestões */}
+              {/* Botões de ação — Gerar novas sugestões + Pesquisar */}
               {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && !enviando &&
                 ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
-                <button
-                  type="button"
-                  onClick={() => onEnviar('Mostre-me outras opções diferentes')}
-                  className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
-                    isLight
-                      ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200'
-                      : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30'
-                  }`}
-                >
-                  <RefreshCw size={12} />
-                  Gerar novas sugestões
-                </button>
-              )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onEnviar('Mostre-me outras opções diferentes')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
+                      isLight
+                        ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200'
+                        : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30'
+                    }`}
+                  >
+                    <RefreshCw size={12} />
+                    Gerar novas sugestões
+                  </button>
 
-              {/* Botão "Pesquisar outras" — na última mensagem do mestre em etapas raca/classe */}
-              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && mostrarBusca && !enviando && (
-                <button
-                  type="button"
-                  onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
-                  className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
-                    buscaAberta
-                      ? isLight
-                        ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                        : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                      : isLight
-                        ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
-                        : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30'
-                  }`}
-                >
-                  <Search size={12} />
-                  {buscaAberta ? `Fechar busca` : `Pesquisar todas as ${labelAtual}`}
-                </button>
+                  {mostrarBusca && (
+                    <button
+                      type="button"
+                      onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
+                        buscaAberta
+                          ? isLight
+                            ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                            : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                          : isLight
+                            ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                            : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30'
+                      }`}
+                    >
+                      <Search size={12} />
+                      {buscaAberta ? `Fechar busca` : `Pesquisar todas as ${labelAtual}`}
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Distribuidor de atributos inline — após última mensagem do mestre */}

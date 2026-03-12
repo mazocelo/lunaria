@@ -464,9 +464,43 @@ class SessaoController {
         success: true,
         data: estatisticas
       });
-      
+
     } catch (error) {
       console.error('❌ Erro ao obter estatísticas:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Atualizar campos de uma mensagem específica (ex: scene_image)
+   * Usa WATCH/MULTI/EXEC via atualizarSessao para evitar race conditions
+   */
+  async atualizarCampoMensagem(req, res, next) {
+    try {
+      const { salaId, mensagemId } = req.params;
+      const { campos } = req.body;
+
+      if (!campos || typeof campos !== 'object') {
+        return res.status(400).json({ success: false, error: 'campos é obrigatório' });
+      }
+
+      const sessao = await gerenciadorSessoes.obterSessao(salaId);
+      if (!sessao) {
+        return res.status(404).json({ success: false, error: 'Sessão não encontrada' });
+      }
+
+      const mensagens = sessao.mensagens || [];
+      const idx = mensagens.findIndex(m => String(m.id) === String(mensagemId));
+      if (idx === -1) {
+        return res.status(404).json({ success: false, error: 'Mensagem não encontrada' });
+      }
+
+      mensagens[idx] = { ...mensagens[idx], ...campos };
+      await gerenciadorSessoes.atualizarSessao(salaId, { mensagens });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('❌ Erro ao atualizar campo da mensagem:', error);
       next(error);
     }
   }

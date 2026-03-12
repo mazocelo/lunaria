@@ -244,6 +244,7 @@ router.get('/:salaId', sessaoController.obterSessao);
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/:salaId/mensagem', sessaoController.adicionarMensagem);
+router.patch('/:salaId/mensagem/:mensagemId', sessaoController.atualizarCampoMensagem);
 
 /**
  * @swagger

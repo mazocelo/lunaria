@@ -52,7 +52,26 @@ function parseIAJson(content) {
   if (match) {
     try { return JSON.parse(match[0]); } catch (_) { /* failed */ }
   }
+  console.warn('⚠️ MestreCriador: JSON parse falhou. Conteúdo bruto:', content.substring(0, 300));
   return null;
+}
+
+/** Valida e sanitiza sugestões da IA */
+function sanitizarSugestoes(sugestoes, etapa) {
+  if (!Array.isArray(sugestoes)) return [];
+  return sugestoes.filter(s => {
+    // Toda sugestão precisa ter tipo e nome
+    if (!s.tipo || !s.nome) {
+      console.warn('⚠️ MestreCriador: Sugestão sem tipo/nome descartada:', JSON.stringify(s));
+      return false;
+    }
+    // Sugestões de catálogo (raça, classe, vantagem, desvantagem) precisam de ID
+    if (['raca', 'classe', 'vantagem', 'desvantagem'].includes(s.tipo) && !s.id) {
+      console.warn(`⚠️ MestreCriador: Sugestão de ${s.tipo} sem ID descartada: "${s.nome}"`);
+      return false;
+    }
+    return true;
+  });
 }
 
 /** Track token usage */
@@ -138,6 +157,7 @@ async function getChain() {
       model: modelName,
       temperature,
       maxOutputTokens: maxTokens,
+      responseMimeType: 'application/json',
     });
   } else if (provider === 'anthropic') {
     model = new ChatAnthropic({
@@ -152,6 +172,7 @@ async function getChain() {
       model: modelName,
       temperature,
       maxTokens,
+      responseFormat: { type: 'json_object' },
     });
   }
 
@@ -216,6 +237,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     // Parse da resposta
     let resultado = parseIAJson(response.content);
     if (!resultado) {
+      console.warn(`⚠️ MestreCriador [${etapa}]: Fallback — IA não retornou JSON válido`);
       // Fallback: usar texto bruto como mensagem
       resultado = {
         mensagem: response.content,
@@ -231,9 +253,19 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       resultado.etapa_proxima = transicoesValidas[0] || etapa;
     }
 
+    // Sanitizar sugestões
+    const sugestoes = sanitizarSugestoes(
+      Array.isArray(resultado.sugestoes) ? resultado.sugestoes : [],
+      etapa
+    );
+
+    if (sugestoes.length === 0 && ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'].includes(etapa)) {
+      console.warn(`⚠️ MestreCriador [${etapa}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0})`);
+    }
+
     return {
       mensagem: resultado.mensagem || '',
-      sugestoes: Array.isArray(resultado.sugestoes) ? resultado.sugestoes : [],
+      sugestoes,
       etapa_proxima: resultado.etapa_proxima,
       atributos_sugeridos: resultado.atributos_sugeridos || null,
     };
@@ -248,7 +280,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       background: 'Conte-me sobre sua história. De onde você vem? O que o trouxe até aqui?',
       vantagens: 'Quais talentos especiais marcam sua jornada? Escolha suas vantagens.',
       desvantagens: 'Todo herói tem suas fraquezas. Quais são as suas?',
-      atributos: 'Distribua seus 75 pontos entre os atributos.',
+      atributos: 'Distribua seus 60 pontos entre os atributos (mín 5, máx 16 cada).',
       resumo: 'Seu personagem está quase pronto! Revise os detalhes.',
       refinamento: 'Deseja ajustar algo antes de finalizar?',
     };

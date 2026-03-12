@@ -118,7 +118,12 @@ export const createGameActions = (set, get) => ({
     const { mensagens } = get();
     set({ mensagens: [...mensagens, mensagem] });
   },
-  
+
+  atualizarMensagem: (id, campos) => {
+    const { mensagens } = get();
+    set({ mensagens: mensagens.map(m => String(m.id) === String(id) ? { ...m, ...campos } : m) });
+  },
+
   setMensagens: (mensagens) => {
     set({ mensagens });
   },

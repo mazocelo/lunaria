@@ -183,7 +183,7 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instância compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem }) => {
+export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, onSceneImageGenerated }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = /🎲.*[Rr]ole/i.test(conteudo);
   const isThisPlaying = tts.currentMessageId === mensagem.id;
@@ -191,7 +191,8 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
 
-  const [sceneImage, setSceneImage] = useState(null);
+  // Inicializar com imagem persistida no reload
+  const [sceneImage, setSceneImage] = useState(mensagem.scene_image || null);
   const [generatingScene, setGeneratingScene] = useState(false);
   const [sceneLightbox, setSceneLightbox] = useState(false);
   const [activeLightbox, setActiveLightbox] = useState(null);
@@ -208,7 +209,10 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     try {
       const response = await imageGenerationService.generate({ entityType: 'cena', entityData: { narracao: conteudo } });
       const url = response.data?.url;
-      if (url) setSceneImage(url);
+      if (url) {
+        setSceneImage(url);
+        onSceneImageGenerated?.(mensagem.id, url);
+      }
     } catch (_) { /* silent */ }
     setGeneratingScene(false);
   };

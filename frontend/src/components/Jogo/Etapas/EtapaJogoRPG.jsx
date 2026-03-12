@@ -122,6 +122,7 @@ const EtapaJogoRPG = ({
   // Game store - para mensagens
   const gameStoreMensagens = useGameStore(s => s.mensagens);
   const gameStoreSetMensagens = useGameStore(s => s.setMensagens);
+  const gameStoreAtualizarMensagem = useGameStore(s => s.atualizarMensagem);
 
   // --- Estado local (antes no ViewModel etapaJogoRPGViewModel) ---
   const [mobileDrawer, setMobileDrawer] = useState(null); // 'jogadores' | 'acoes' | null
@@ -596,6 +597,16 @@ const EtapaJogoRPG = ({
       handleEnviarMensagem();
     }
   };
+
+  // Persiste scene_image de mensagem do mestre no backend (Redis/DB)
+  const handleSceneImageGenerated = useCallback(async (mensagemId, url) => {
+    const salaId = `historia_${historia?.id}`;
+    gameStoreAtualizarMensagem(mensagemId, { scene_image: url });
+    try {
+      const { apiClient } = await import('../../../services');
+      await apiClient.patch(`/sessoes/${salaId}/mensagem/${mensagemId}`, { campos: { scene_image: url } });
+    } catch (_) { /* silent — imagem já aparece localmente */ }
+  }, [historia?.id, gameStoreAtualizarMensagem]);
 
   // Flag para prevenir envios duplicados
   const enviandoRef = useRef(false);
@@ -1132,6 +1143,7 @@ const EtapaJogoRPG = ({
               voiceId={historia?.mestre?.voice_id || historia?.mestres?.voice_id}
               voiceProvider={historia?.mestre?.voice_provider || historia?.mestres?.voice_provider || 'elevenlabs'}
               entidadesComImagem={entidadesComImagem}
+              onSceneImageGenerated={handleSceneImageGenerated}
             />
 
             {/* Area de Input - Chat */}

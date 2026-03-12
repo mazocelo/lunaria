@@ -6,7 +6,7 @@ import { Badge } from '../../../components/shared';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
-  Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus
+  Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus, Crown, Shield
 } from 'lucide-react';
 
 const atributosConfig = [
@@ -137,6 +137,60 @@ const VerPersonagemView = ({
           </button>
         </div>
       </div>
+
+      {/* Raca & Classe */}
+      {(p.racas || p.classes) && (
+        <div className="card-rpg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <Crown size={16} className="text-white" />
+            </div>
+            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              Raca & Classe
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {p.racas && (
+              <div className={`p-3 rounded-lg border ${isLight ? 'bg-purple-50/50 border-purple-200/50' : 'bg-purple-500/5 border-purple-500/20'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={14} className="text-purple-400" />
+                  <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{p.racas.nome}</span>
+                  {p.racas.custo != null && p.racas.custo !== 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-purple-500/15 text-purple-400">{p.racas.custo} pts</span>
+                  )}
+                </div>
+                {p.racas.descricao && (
+                  <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{p.racas.descricao}</p>
+                )}
+                {(() => {
+                  const bonus = typeof p.racas.bonus === 'string' ? (() => { try { return JSON.parse(p.racas.bonus); } catch { return null; } })() : p.racas.bonus;
+                  const txt = formatBonus(bonus);
+                  return txt ? <p className="text-xs font-modern text-purple-400">{txt}</p> : null;
+                })()}
+              </div>
+            )}
+            {p.classes && (
+              <div className={`p-3 rounded-lg border ${isLight ? 'bg-blue-50/50 border-blue-200/50' : 'bg-blue-500/5 border-blue-500/20'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield size={14} className="text-blue-400" />
+                  <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{p.classes.nome}</span>
+                  {p.classes.custo != null && p.classes.custo !== 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-blue-500/15 text-blue-400">{p.classes.custo} pts</span>
+                  )}
+                </div>
+                {p.classes.descricao && (
+                  <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{p.classes.descricao}</p>
+                )}
+                {(() => {
+                  const bonus = typeof p.classes.bonus === 'string' ? (() => { try { return JSON.parse(p.classes.bonus); } catch { return null; } })() : p.classes.bonus;
+                  const txt = formatBonus(bonus);
+                  return txt ? <p className="text-xs font-modern text-blue-400">{txt}</p> : null;
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -294,26 +348,62 @@ const VerPersonagemView = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {p.vantagens && p.vantagens.length > 0 && (
               <div>
-                <h3 className="text-cyan-400 font-modern text-sm font-semibold mb-2">Vantagens</h3>
-                <ul className="space-y-1">
-                  {p.vantagens.map((v, i) => (
-                    <li key={i} className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                      + {typeof v === 'object' ? v.nome : v}
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="text-cyan-400 font-modern text-sm font-semibold mb-3">Vantagens</h3>
+                <div className="space-y-2">
+                  {p.vantagens.map((v, i) => {
+                    const item = typeof v === 'object' ? v : { nome: v };
+                    const bonusText = formatBonus(item.bonus);
+                    return (
+                      <div key={item.id || i} className={`p-2.5 rounded-lg border ${isLight ? 'bg-cyan-50/50 border-cyan-200/50' : 'bg-cyan-500/5 border-cyan-500/20'}`}>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{item.nome}</span>
+                          {item.custo != null && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-cyan-500/15 text-cyan-400">
+                              {item.custo > 0 ? `+${item.custo}` : item.custo} pts
+                            </span>
+                          )}
+                          {item.tipo && <Badge variant="purple">{item.tipo}</Badge>}
+                        </div>
+                        {item.descricao && (
+                          <p className={`text-xs font-modern line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{item.descricao}</p>
+                        )}
+                        {bonusText && (
+                          <p className="text-xs font-modern text-cyan-400 mt-1">{bonusText}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {p.desvantagens && p.desvantagens.length > 0 && (
               <div>
-                <h3 className="text-red-400 font-modern text-sm font-semibold mb-2">Desvantagens</h3>
-                <ul className="space-y-1">
-                  {p.desvantagens.map((d, i) => (
-                    <li key={i} className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                      - {typeof d === 'object' ? d.nome : d}
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="text-red-400 font-modern text-sm font-semibold mb-3">Desvantagens</h3>
+                <div className="space-y-2">
+                  {p.desvantagens.map((d, i) => {
+                    const item = typeof d === 'object' ? d : { nome: d };
+                    const bonusText = formatBonus(item.bonus);
+                    return (
+                      <div key={item.id || i} className={`p-2.5 rounded-lg border ${isLight ? 'bg-red-50/50 border-red-200/50' : 'bg-red-500/5 border-red-500/20'}`}>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{item.nome}</span>
+                          {item.custo != null && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-red-500/15 text-red-400">
+                              {item.custo > 0 ? `+${item.custo}` : item.custo} pts
+                            </span>
+                          )}
+                          {item.tipo && <Badge variant="red">{item.tipo}</Badge>}
+                        </div>
+                        {item.descricao && (
+                          <p className={`text-xs font-modern line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{item.descricao}</p>
+                        )}
+                        {bonusText && (
+                          <p className="text-xs font-modern text-red-400 mt-1">{bonusText}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

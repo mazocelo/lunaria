@@ -97,6 +97,8 @@ const EtapaJogoRPG = ({
 }) => {
   // Theme
   const { theme, toggleTheme } = useTheme();
+  const socketSession = useSocketStore(s => s.session);
+
 
   // Entidades do roteiro que possuem imagem (NPCs e Locais)
   const entidadesComImagem = useMemo(() => {
@@ -148,6 +150,39 @@ const EtapaJogoRPG = ({
       historiaPrologo: historia?.prologo || ''
     };
   }, [historia?.temas, historia?.nome, historia?.descricao, historia?.prologo]);
+
+  const fallbackMensagemMestreComVoz = useMemo(() => (
+    (mensagens || []).find((mensagem) => {
+      const tipoMensagem = mensagem?.tipo || mensagem?.type;
+      return tipoMensagem === 'mestre' && (mensagem?.voice_id || mensagem?.voice_provider);
+    }) || null
+  ), [mensagens]);
+
+  const effectiveVoiceId = useMemo(() => (
+    historia?.mestre?.voice_id
+    || historia?.mestres?.voice_id
+    || socketSession?.mestreConfig?.voice_id
+    || fallbackMensagemMestreComVoz?.voice_id
+    || null
+  ), [
+    fallbackMensagemMestreComVoz?.voice_id,
+    historia?.mestre?.voice_id,
+    historia?.mestres?.voice_id,
+    socketSession?.mestreConfig?.voice_id
+  ]);
+
+  const effectiveVoiceProvider = useMemo(() => (
+    historia?.mestre?.voice_provider
+    || historia?.mestres?.voice_provider
+    || socketSession?.mestreConfig?.voice_provider
+    || fallbackMensagemMestreComVoz?.voice_provider
+    || 'elevenlabs'
+  ), [
+    fallbackMensagemMestreComVoz?.voice_provider,
+    historia?.mestre?.voice_provider,
+    historia?.mestres?.voice_provider,
+    socketSession?.mestreConfig?.voice_provider
+  ]);
 
   // Socket store - acesso direto via hooks
   const socketStoreOn = useSocketStore(s => s.on);
@@ -1219,8 +1254,8 @@ const EtapaJogoRPG = ({
               mensagens={mensagens}
               usuariosDigitando={[]}
               mensagensRef={null}
-              voiceId={historia?.mestre?.voice_id || historia?.mestres?.voice_id}
-              voiceProvider={historia?.mestre?.voice_provider || historia?.mestres?.voice_provider || 'elevenlabs'}
+              voiceId={effectiveVoiceId}
+              voiceProvider={effectiveVoiceProvider}
               entidadesComImagem={entidadesComImagem}
               contextoImagemCena={contextoImagemCena}
               onSceneImageGenerated={handleSceneImageGenerated}
@@ -1422,3 +1457,9 @@ const EtapaJogoRPG = ({
 };
 
 export default EtapaJogoRPG;
+
+
+
+
+
+

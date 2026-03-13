@@ -258,11 +258,15 @@ export const useJogo = () => {
       }
 
       if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
+        const fallbackVoiceId = sessao?.mestreConfig?.voice_id || null;
+        const fallbackVoiceProvider = sessao?.mestreConfig?.voice_provider || null;
         const mensagensFormatadas = sessao.mensagens.map((m, index) => ({
           ...m,
           id: m.id ?? m.timestamp ?? `msg_${Date.now()}_${index}`,
           message: m.mensagem || m.message,
           scene_image: m.scene_image || m.sceneImage || m.imagem_cena || null,
+          voice_id: m.voice_id || fallbackVoiceId,
+          voice_provider: m.voice_provider || fallbackVoiceProvider,
         }));
 
         storeSetMensagens(mensagensFormatadas);
@@ -607,3 +611,4 @@ export const useJogo = () => {
 };
 
 export default useJogo;
+

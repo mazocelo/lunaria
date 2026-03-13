@@ -212,11 +212,7 @@ export class HistoriaService {
   async getRoteiro(historiaId) {
     try {
       const response = await this.apiClient.get(`${this.baseUrl}/${historiaId}/roteiro`, {
-        params: { _ts: Date.now() },
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache'
-        }
+        params: { _ts: Date.now() }
       });
       if (response?.success) return response.data;
       return { roteiro: null, roteiro_status: null };

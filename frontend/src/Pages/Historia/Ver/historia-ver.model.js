@@ -176,9 +176,8 @@ export const useHistoriaVerModel = () => {
           setRoteiroStatus(updated.roteiro_status);
           setRoteiroLoading(false);
         }
-      } catch (_) {
-        stopRoteiroPoll();
-        setRoteiroLoading(false);
+      } catch (err) {
+        console.error('Erro transitório no polling do roteiro:', err);
       }
     }, 5000);
     roteiroTimeoutRef.current = setTimeout(() => { stopRoteiroPoll(); setRoteiroLoading(false); }, 200000);

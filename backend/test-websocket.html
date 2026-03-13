@@ -243,10 +243,6 @@
                     log(`👋 ${data.username} saiu da sala ${data.roomId}`, 'info');
                 });
 
-                socket.on('room_users', (data) => {
-                    log(`👥 Usuários na sala: ${data.users.join(', ')}`, 'info');
-                });
-
                 socket.on('chat_message', (data) => {
                     log(`💬 ${data.username}: ${data.message}`, 'info');
                 });
@@ -261,10 +257,6 @@
 
                 socket.on('status_update', (data) => {
                     log(`📊 ${data.username} atualizou status: ${data.status}`, 'info');
-                });
-
-                socket.on('pong', (data) => {
-                    log(`🏓 Pong recebido: ${data.timestamp}`, 'info');
                 });
 
             } catch (error) {

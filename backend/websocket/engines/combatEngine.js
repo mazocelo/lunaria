@@ -1,0 +1,616 @@
+import db from '../../Model/index.js';
+import {
+  calcularHP,
+  calcularEsquiva,
+  calcularArmadura,
+  gerarInstanciasCombate,
+  calcularMana
+} from '../../helpers/combateHelper.js';
+import { COMBAT_EVENTS } from '../events/eventTypes.js';
+import { verificarLevelUp, xpParaNivel } from '../../helpers/evolucaoHelper.js';
+import { rolarLootCombate } from '../../helpers/lootHelper.js';
+import { persistirEstadoClone } from '../../helpers/acoesProcessor.js';
+import {
+  appendMensagemSessao,
+  buildMestreMensagem as buildMestreMensagemHistorico
+} from '../utils/sessionMessages.js';
+import { resolveNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
+import ttsCacheService from '../../services/ttsCacheService.js';
+import { getDefaultProviderName } from '../../services/ttsService.js';
+
+const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
+
+/**
+ * Build mestre message with audio cache key (mirrors socketManager's module-level buildMestreMensagem)
+ */
+function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
+  const narrativaBase = String(conteudo || '').trim();
+  const segmentos = resolveNarrationSegments({
+    narrativa: narrativaBase,
+    segmentos: options.segmentos || [],
+    mestreConfig,
+    roteiro: options.roteiro || options.sessao?.historiaRoteiro || null,
+    historiaId: options.historiaId || options.sessao?.historiaId || null
+  });
+  const narrativaFinal = narrativaBase || aggregateNarrationFromSegments(segmentos);
+  const voiceId = mestreConfig?.voice_id || null;
+  const voiceProvider = mestreConfig?.voice_provider || null;
+
+  return buildMestreMensagemHistorico(narrativaFinal, mestreConfig, {
+    ...options,
+    segmentos,
+    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(narrativaFinal, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER) : null
+  });
+}
+
+export default class CombatEngine {
+  constructor(manager) {
+    this.manager = manager;
+  }
+
+  /**
+   * Iniciar combate baseado na sinalização da IA
+   * @param {string} roomId - ID da sala
+   * @param {Object} combateData - Dados de combate da IA { monstros, motivo, dificuldade }
+   * @param {Object} sessao - Sessão atual
+   * @param {string} userId - ID do jogador que provocou o combate
+   */
+  async iniciarCombate(roomId, combateData, sessao, userId) {
+    const sm = this.manager;
+
+    try {
+      console.log(`⚔️ Iniciando combate na sala ${roomId}: ${combateData.motivo}`);
+
+      const monstrosIA = combateData.monstros || [];
+      const dificuldade = combateData.dificuldade || 'media';
+
+      // Calcular nível médio dos jogadores
+      const jogadores = Array.isArray(sessao.jogadoresConectados)
+        ? sessao.jogadoresConectados
+        : Object.values(sessao.jogadores || {});
+      const personagensCompletos = sessao.personagensCompletos || {};
+
+      let somaLevels = 0;
+      let countLevels = 0;
+      for (const jogador of jogadores) {
+        const pId = String(jogador.personagemId || jogador.personagem_id);
+        const p = personagensCompletos[pId];
+        if (p?.nivel) {
+          somaLevels += p.nivel;
+          countLevels++;
+        }
+      }
+      const nivelMedio = countLevels > 0 ? Math.round(somaLevels / countLevels) : 1;
+
+      // Buscar monstros no banco
+      const monstrosBanco = [];
+      for (const sugestao of monstrosIA) {
+        const encontrado = await db.Monstro.buscarPorNomeSimilar(sugestao.nome);
+        if (encontrado) {
+          monstrosBanco.push(encontrado);
+        }
+      }
+
+      console.log(`📦 ${monstrosBanco.length}/${monstrosIA.length} monstros encontrados no banco`);
+
+      // Gerar instâncias de combate
+      const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio);
+
+      // Calcular HP/Esquiva/Armadura dos jogadores
+      const jogadoresCombate = {};
+      for (const jogador of jogadores) {
+        const jUserId = String(jogador.userId || jogador.id);
+        const pId = String(jogador.personagemId || jogador.personagem_id);
+        const p = personagensCompletos[pId];
+
+        if (p) {
+          const attrs = p.atributos || {}; // já inclui bonus de raça/classe
+          const bonusEquip = p.bonusEquip || {};
+          const personagemStats = {
+            constituicao: attrs.constituicao || 10,
+            destreza: attrs.destreza || 10,
+            agilidade: attrs.agilidade || 10,
+            nivel: p.nivel || 1
+          };
+          const hpMax = calcularHP(personagemStats);
+          // Preservar HP da narrativa (dano de armadilhas, aplicar_dano, etc.)
+          // Se p.hp_atual existe e é menor que hpMax, manter o dano sofrido
+          const hpAtual = (p.hp_atual != null && p.hp_atual < hpMax) ? Math.max(1, p.hp_atual) : hpMax;
+          const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, nivel: p.nivel || 1 });
+          jogadoresCombate[jUserId] = {
+            personagemId: parseInt(pId),
+            hp_max: hpMax,
+            hp_atual: hpAtual,
+            mana_max: manaMax,
+            mana_atual: (p.mana_atual != null && p.mana_atual < manaMax) ? p.mana_atual : manaMax,
+            esquiva: calcularEsquiva(personagemStats, bonusEquip),
+            armadura: calcularArmadura(bonusEquip),
+            bonusAtaque: bonusEquip.ataque || 0,
+            bonusDano: bonusEquip.dano || 0,
+            dano_base: p.melhorArma || null,
+            elemento: p.elementoArma || null,
+            status: 'vivo',
+            personagemNome: p.nome || jogador.username,
+            cooldowns: {}
+          };
+        } else {
+          jogadoresCombate[jUserId] = {
+            personagemId: parseInt(pId) || null,
+            hp_max: 15,
+            hp_atual: 15,
+            mana_max: 10,
+            mana_atual: 10,
+            esquiva: 5,
+            armadura: 0,
+            bonusAtaque: 0,
+            bonusDano: 0,
+            dano_base: null,
+            status: 'vivo',
+            personagemNome: jogador.username || 'Jogador',
+            cooldowns: {}
+          };
+        }
+      }
+
+      // Montar estado de combate
+      const combateState = {
+        ativo: true,
+        rodadaCombate: 1,
+        motivo: combateData.motivo,
+        dificuldade,
+        monstros: instancias,
+        jogadores: jogadoresCombate,
+        jogadoresQueAgiram: [],
+        log: [],
+        resultado: null
+      };
+
+      // Salvar no estadoJogo
+      const estadoJogo = sessao.estadoJogo || {};
+      estadoJogo.combate = combateState;
+      sessao.estadoJogo = estadoJogo;
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      console.log(`✅ Combate iniciado: ${instancias.length} monstros vs ${Object.keys(jogadoresCombate).length} jogadores`);
+
+      // Snapshot forçado ao iniciar combate (garante estado persistido)
+      sm._tentarSnapshot(roomId, sessao, true);
+
+      // Emitir evento de combate iniciado
+      sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_INICIADO, {
+        monstros: instancias,
+        jogadores: jogadoresCombate,
+        rodada: 1,
+        motivo: combateData.motivo,
+        dificuldade,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao iniciar combate:', error);
+    }
+  }
+
+  /**
+   * Processar ação de combate de um jogador
+   */
+  async processarAcaoCombate(roomId, userId, username, personagem, mensagem, respostaIA, sessao) {
+    const sm = this.manager;
+
+    try {
+      const estadoJogo = sessao.estadoJogo || {};
+      const combate = estadoJogo.combate;
+      if (!combate?.ativo) return;
+
+      // ✅ Usar resultados pré-resolvidos (mecânica já foi computada ANTES da IA narrar)
+      const r = sessao._combatePreResolvido;
+      if (!r) {
+        console.warn('⚠️ processarAcaoCombate: sem resultados pré-resolvidos, pulando');
+        return;
+      }
+      delete sessao._combatePreResolvido;
+
+      // Jogador derrotado
+      if (r.jogadorDerrotado) {
+        sm.io.to(roomId).emit('server_message', {
+          userId,
+          mensagem: `💀 ${personagem.nome} foi derrotado e não pode agir neste combate.`
+        });
+        return;
+      }
+
+      // --- EMITIR EVENTOS DE STATUS EFFECTS ---
+      for (const se of r.statusEfeitos) {
+        if (se.tipo === 'impedido') {
+          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+            tipo: 'status_efeito', personagem: se.personagem, userId: se.userId,
+            status: se.efeito, mensagem: `${se.personagem} está ${se.efeito} e não pode agir!`,
+            timestamp: Date.now()
+          });
+        } else if (se.tipo === 'dano') {
+          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+            tipo: 'status_dano', alvo: { userId: se.userId, nome: se.personagem },
+            status: se.efeito, dano: se.dano, hpRestante: se.hpRestante, hpMax: se.hpMax,
+            timestamp: Date.now()
+          });
+          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+            userId: se.userId, nome: se.personagem,
+            hp_atual: se.hpRestante, hp_max: se.hpMax,
+            derrotado: se.derrotado, fonte: se.efeito, timestamp: Date.now()
+          });
+          if (se.personagemId) {
+            await persistirEstadoClone(roomId, se.personagemId, { hp_atual: se.hpRestante });
+          }
+        }
+      }
+
+      // --- EMITIR RESULTADO DO ATAQUE DO JOGADOR ---
+      const atk = r.ataqueJogador;
+      if (atk) {
+        sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'ataque_jogador',
+          atacante: { userId: atk.userId, nome: atk.atacante },
+          alvo: { id: atk.alvoId, nome: atk.alvo },
+          rolagem: atk.rolagem, bonus: atk.bonus,
+          acertou: atk.acertou, esquivou: atk.esquivou, critico: atk.critico,
+          dano: atk.dano, armaduraAlvo: atk.armaduraAlvo,
+          hpRestante: atk.hpRestante, hpMax: atk.hpMax,
+          timestamp: Date.now()
+        });
+
+        if (atk.derrotado) {
+          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
+            monstro: { id: atk.alvoId, nome: atk.alvo },
+            xp: atk.xp, timestamp: Date.now()
+          });
+        }
+      }
+
+      // --- EMITIR CONTRA-ATAQUES DOS MONSTROS ---
+      for (const ca of r.contraAtaques) {
+        sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'ataque_monstro',
+          atacante: { id: ca.atacanteId, nome: ca.atacante },
+          alvo: { userId: ca.alvoId, nome: ca.alvoNome },
+          habilidade: ca.habilidade,
+          rolagem: ca.rolagem,
+          acertou: ca.acertou, esquivou: ca.esquivou, critico: ca.critico,
+          dano: ca.dano, armaduraAlvo: ca.armaduraAlvo,
+          hpRestante: ca.hpRestante, hpMax: ca.hpMax,
+          timestamp: Date.now()
+        });
+
+        if (ca.acertou && ca.dano > 0) {
+          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+            userId: ca.alvoId, nome: ca.alvoNome,
+            hp_atual: ca.hpRestante, hp_max: ca.hpMax,
+            derrotado: ca.inconsciente || false,
+            timestamp: Date.now()
+          });
+        }
+
+        // Persistir HP no clone
+        if (ca.personagemId && ca.dano > 0) {
+          await persistirEstadoClone(roomId, ca.personagemId, { hp_atual: ca.hpRestante });
+        }
+      }
+
+      // --- EMITIR STATUS REMOVIDOS ---
+      for (const sr of r.statusRemovidos) {
+        sm.emitirAcaoMestrePersistida(roomId, sessao, {
+          tipo: 'status_removido', personagem: sr.personagem,
+          userId: sr.userId, status: sr.status, timestamp: Date.now()
+        });
+        if (sr.personagemId) {
+          const pCompleto = Object.values(sessao.personagensCompletos || {}).find(p => p.nome === sr.personagem);
+          if (pCompleto) {
+            await persistirEstadoClone(roomId, sr.personagemId, { status_efeitos: pCompleto.status_efeitos });
+          }
+        }
+      }
+
+      if (r.rodadaAvancou) {
+        console.log(`🔄 Combate rodada ${combate.rodadaCombate} na sala ${roomId}`);
+      }
+
+      // Verificar fim de combate
+      if (r.combateFinalizado) {
+        await this.finalizarCombate(roomId, r.resultadoCombate);
+        return;
+      }
+
+      // Salvar estado atualizado no Redis
+      sessao.estadoJogo = estadoJogo;
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      // Emitir estado atualizado
+      sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_ESTADO, {
+        monstros: combate.monstros,
+        jogadores: combate.jogadores,
+        rodada: combate.rodadaCombate,
+        log: combate.log.slice(-5),
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao processar ação de combate:', error);
+    }
+  }
+
+  /**
+   * Finalizar combate
+   * @param {string} roomId - ID da sala
+   * @param {string} resultado - 'vitoria' | 'derrota' | 'fuga'
+   */
+  async finalizarCombate(roomId, resultado) {
+    const sm = this.manager;
+
+    try {
+      console.log(`🏁 Finalizando combate na sala ${roomId}: ${resultado}`);
+
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) return;
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const combate = estadoJogo.combate;
+      if (!combate) return;
+
+      // Calcular XP total
+      let xpTotal = 0;
+      if (resultado === 'vitoria') {
+        xpTotal = combate.monstros
+          .filter(m => m.status === 'derrotado')
+          .reduce((total, m) => total + (m.xp || 0), 0);
+      }
+
+      // Desativar combate
+      combate.ativo = false;
+      combate.resultado = resultado;
+
+      sessao.estadoJogo = estadoJogo;
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      console.log(`✅ Combate finalizado: ${resultado} | XP: ${xpTotal}`);
+
+      // Persistir HP final de todos os jogadores no clone (vivos e derrotados)
+      for (const [jId, jStats] of Object.entries(combate.jogadores)) {
+        if (jStats.personagemId) {
+          await persistirEstadoClone(roomId, jStats.personagemId, { hp_atual: jStats.hp_atual });
+        }
+      }
+
+      // Persistir XP no clone da sessão (não no personagem original)
+      const xpPorJogador = xpTotal > 0
+        ? Math.floor(xpTotal / Math.max(1, Object.values(combate.jogadores).filter(j => j.status === 'vivo').length))
+        : 0;
+
+      if (xpTotal > 0) {
+        try {
+          const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+
+          for (const [jUserId, jogadorCombate] of Object.entries(combate.jogadores)) {
+            if (jogadorCombate.status !== 'vivo') continue;
+            if (!jogadorCombate.personagemId) continue;
+
+            // Tentar gravar no clone primeiro
+            let gravouNoClone = false;
+            if (sessaoJogoRow) {
+              const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+                sessaoJogoRow.id, jogadorCombate.personagemId
+              );
+              if (clone) {
+                const xpTotalClone = (clone.xp_inicio + clone.xp_ganho) + xpPorJogador;
+                let nivelAtual = clone.nivel_fim || clone.nivel_inicio;
+
+                // Multi-level-up loop
+                let xpRestante = xpTotalClone;
+                let levelUp = verificarLevelUp(nivelAtual, xpRestante);
+                while (levelUp.podeEvoluir) {
+                  nivelAtual = levelUp.ganhos.novoNivel;
+                  xpRestante = levelUp.ganhos.xpRestante;
+
+                  sm.io.to(roomId).emit('level_up', {
+                    userId: jUserId,
+                    personagemNome: jogadorCombate.personagemNome,
+                    novoNivel: nivelAtual,
+                    ganhos: levelUp.ganhos,
+                    timestamp: Date.now()
+                  });
+                  console.log(`🎉 ${jogadorCombate.personagemNome} subiu para nivel ${nivelAtual}!`);
+
+                  // Post automático no feed
+                  db.FeedPost.createAutoEvent(parseInt(jUserId), 'level_up', { personagem: jogadorCombate.personagemNome, nivel: nivelAtual }, 'personagem', jogadorCombate.personagemId).catch(() => {});
+
+                  levelUp = verificarLevelUp(nivelAtual, xpRestante);
+                }
+
+                await db.PersonagemSessao.atualizarRuntime(clone.id, {
+                  xp_ganho: clone.xp_ganho + xpPorJogador,
+                  nivel_fim: nivelAtual
+                });
+                gravouNoClone = true;
+              }
+            }
+
+            // Fallback: se não tem clone, gravar direto no personagem
+            if (!gravouNoClone) {
+              const personagem = await db.prisma.personagens.findUnique({
+                where: { id: jogadorCombate.personagemId },
+                select: { id: true, nivel: true, xp_atual: true, xp_proximo_nivel: true, pontos_atributo_pendentes: true }
+              });
+              if (!personagem) continue;
+
+              let nivelAtual = personagem.nivel || 1;
+              let xpRestante = (personagem.xp_atual || 0) + xpPorJogador;
+              let pontosAtributoExtra = 0;
+              let ultimoGanhos = null;
+
+              let levelUp = verificarLevelUp(nivelAtual, xpRestante);
+              while (levelUp.podeEvoluir) {
+                pontosAtributoExtra += levelUp.ganhos.pontosAtributo;
+                ultimoGanhos = levelUp.ganhos;
+                nivelAtual = levelUp.ganhos.novoNivel;
+                xpRestante = levelUp.ganhos.xpRestante;
+                levelUp = verificarLevelUp(nivelAtual, xpRestante);
+              }
+
+              if (ultimoGanhos) {
+                await db.prisma.personagens.update({
+                  where: { id: jogadorCombate.personagemId },
+                  data: {
+                    xp_atual: xpRestante,
+                    xp_proximo_nivel: xpParaNivel(nivelAtual),
+                    nivel: nivelAtual,
+                    pontos_atributo_pendentes: (personagem.pontos_atributo_pendentes || 0) + pontosAtributoExtra,
+                    atualizado_em: new Date()
+                  }
+                });
+
+                sm.io.to(roomId).emit('level_up', {
+                  userId: jUserId,
+                  personagemNome: jogadorCombate.personagemNome,
+                  novoNivel: nivelAtual,
+                  ganhos: ultimoGanhos,
+                  timestamp: Date.now()
+                });
+
+                // Post automático no feed
+                db.FeedPost.createAutoEvent(parseInt(jUserId), 'level_up', { personagem: jogadorCombate.personagemNome, nivel: nivelAtual }, 'personagem', jogadorCombate.personagemId).catch(() => {});
+              } else {
+                await db.prisma.personagens.update({
+                  where: { id: jogadorCombate.personagemId },
+                  data: { xp_atual: xpRestante, atualizado_em: new Date() }
+                });
+              }
+            }
+          }
+
+          console.log(`💾 XP persistido: ${xpPorJogador} por jogador sobrevivente`);
+        } catch (errXP) {
+          console.error('❌ Erro ao persistir XP no banco:', errXP);
+        }
+      }
+
+      // Loot automático (se vitória e monstros têm loot table)
+      let lootResultado = null;
+      if (resultado === 'vitoria') {
+        try {
+          const monstrosDerrotados = combate.monstros
+            .filter(m => m.status === 'derrotado' && m.monstroId)
+            .map(m => ({ monstroDbId: m.monstroId, nome: m.nome }));
+
+          const jogadoresSobreviventes = Object.entries(combate.jogadores)
+            .filter(([_, j]) => j.status === 'vivo')
+            .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, personagemId: j.personagemId }));
+
+          const nivelMedio = jogadoresSobreviventes.length > 0
+            ? Math.round(Object.values(combate.jogadores)
+                .filter(j => j.status === 'vivo')
+                .reduce((sum, j) => sum + (j.nivel || 1), 0) / jogadoresSobreviventes.length)
+            : 1;
+
+          if (monstrosDerrotados.length > 0 && jogadoresSobreviventes.length > 0) {
+            lootResultado = await rolarLootCombate(monstrosDerrotados, jogadoresSobreviventes, nivelMedio);
+
+            if (lootResultado && lootResultado.todosItens.length > 0) {
+              // Persistir loot nos clones
+              const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+              if (sessaoJogoRow) {
+                for (const [uid, items] of Object.entries(lootResultado.lootPorJogador)) {
+                  const jogadorCombate = combate.jogadores[uid];
+                  if (!jogadorCombate?.personagemId) continue;
+                  const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+                    sessaoJogoRow.id, jogadorCombate.personagemId
+                  );
+                  if (clone) {
+                    for (const item of items) {
+                      await db.PersonagemSessao.registrarItemGanho(clone.id, {
+                        equipamento_id: item.equipamento_id,
+                        nome: item.nome,
+                        origem: 'loot'
+                      });
+                    }
+                  }
+                }
+              }
+
+              sm.io.to(roomId).emit('combate_loot', {
+                lootPorJogador: lootResultado.lootPorJogador,
+                todosItens: lootResultado.todosItens,
+                timestamp: Date.now()
+              });
+            }
+          }
+        } catch (errLoot) {
+          console.error('❌ Erro ao rolar loot:', errLoot);
+        }
+      }
+
+      // Emitir evento de combate finalizado
+      const monstrosDerrotados = combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome);
+      sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
+        resultado,
+        xpTotal,
+        xpPorJogador,
+        monstrosDerrotados,
+        jogadoresSobreviventes: Object.entries(combate.jogadores)
+          .filter(([, j]) => j.status === 'vivo')
+          .map(([uid, j]) => ({ userId: uid, nome: j.personagemNome, hp_atual: j.hp_atual })),
+        loot: lootResultado?.todosItens || [],
+        timestamp: Date.now()
+      });
+
+      // Posts automáticos no feed para sobreviventes
+      if (resultado === 'vitoria') {
+        for (const [uid, j] of Object.entries(combate.jogadores)) {
+          if (j.status === 'vivo') {
+            db.FeedPost.createAutoEvent(parseInt(uid), 'combate_finalizado', { resultado, monstros: monstrosDerrotados, xpGanho: xpPorJogador }, 'personagem', j.personagemId).catch(() => {});
+          }
+        }
+      }
+
+      // Narrar desfecho via IA
+      try {
+        const mestre = await sm.obterMestre(roomId, sessao.historiaTemas || [], sessao, null);
+        const desfecho = resultado === 'vitoria'
+          ? `Os monstros foram derrotados! Os jogadores ganham ${xpTotal} XP. Narre o desfecho da batalha de forma épica.`
+          : resultado === 'derrota'
+            ? `Os jogadores foram derrotados em combate. Narre a consequência dessa derrota de forma dramática, mas não mate os personagens.`
+            : `Os jogadores fugiram do combate. Narre a fuga de forma tensa.`;
+
+        const respostaDesfecho = await mestre.narrarAcao({
+          jogador: 'Sistema',
+          personagem: 'Narrador',
+          acao: desfecho,
+          chatHistory: sessao.mensagens || [],
+          resumo: null
+        });
+
+        // Emitir e salvar narração do desfecho
+        const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig, {
+          sessao,
+          segmentos: respostaDesfecho.segmentos || []
+        });
+        appendMensagemSessao(sessao, msgDesfecho);
+        await sm.aplicarMetadadosNarrativos(roomId, sessao, respostaDesfecho.metadados || {});
+
+        sm.io.to(roomId).emit('mensagem_mestre', {
+          id: Date.now().toString(),
+          ...msgDesfecho,
+          message: respostaDesfecho.narracao
+        });
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        await sm.executarCompactacaoSeNecessaria(roomId, sessao, {});
+
+      } catch (errIA) {
+        console.error('❌ Erro ao narrar desfecho do combate:', errIA);
+      }
+
+      // Snapshot forçado ao finalizar combate
+      sm._tentarSnapshot(roomId, sessao, true);
+
+    } catch (error) {
+      console.error('❌ Erro ao finalizar combate:', error);
+    }
+  }
+}

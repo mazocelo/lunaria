@@ -51,7 +51,8 @@
     "supported_but_non_primary": [
       "chat_message",
       "rpg_action",
-      "solicitar_dados"
+      "solicitar_dados",
+      "server_message"
     ],
     "notes": [
       "New gameplay clients should use mensagem_para_mestre as the canonical player action path.",
@@ -728,6 +729,15 @@
           "details": "object|null",
           "roomId": "string",
           "timestamp": "integer"
+        }
+      },
+      "server_message": {
+        "status": "canonical",
+        "description": "Server-originated informational message broadcast to the room. Currently emitted when a defeated player attempts to act during combat.",
+        "direction": "server_to_client",
+        "payload_shape": {
+          "userId": "string",
+          "mensagem": "string"
         }
       }
     },

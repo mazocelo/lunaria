@@ -52,9 +52,8 @@ export const useVoiceCatalog = () => {
 
     const bootstrap = async () => {
       const nextProviders = await ensureProviders();
-      const firstProvider = nextProviders[0] || DEFAULT_TTS_PROVIDER;
-      if (!active || !firstProvider) return;
-      await ensureVoices(firstProvider);
+      if (!active || nextProviders.length === 0) return;
+      await Promise.all(nextProviders.map((p) => ensureVoices(p)));
     };
 
     bootstrap();

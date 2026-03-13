@@ -128,28 +128,37 @@ export const useTTS = () => {
     });
   }, []);
 
-  const clearPlayback = useCallback((clearMessage = true) => {
-    playTokenRef.current += 1;
-
+  const resetActiveAudio = useCallback((resetProgress = true) => {
     if (audioRef.current) {
       audioRef.current.pause();
       detachAudioHandlers(audioRef.current);
       audioRef.current = null;
     }
 
+    if (resetProgress) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+    }
+  }, [detachAudioHandlers]);
+
+  const clearPlayback = useCallback((clearMessage = true) => {
+    playTokenRef.current += 1;
+
+    resetActiveAudio(true);
+
     queueRef.current = [];
     queueMetaRef.current = { messageId: null, sequenceKey: null };
     setIsSequence(false);
     setQueueIndex(-1);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
 
     if (clearMessage) {
       setCurrentMessageId(null);
       setCurrentSegmentId(null);
+    } else {
+      setCurrentSegmentId(null);
     }
-  }, [detachAudioHandlers]);
+  }, [resetActiveAudio]);
 
   const applyPlaybackRate = useCallback((audio) => {
     if (!audio) return;
@@ -189,6 +198,13 @@ export const useTTS = () => {
 
       setIsPlaying(false);
       setCurrentTime(0);
+      setDuration(0);
+      setCurrentSegmentId(null);
+      setQueueIndex(-1);
+      detachAudioHandlers(audio);
+      if (audioRef.current === audio) {
+        audioRef.current = null;
+      }
       try {
         audio.currentTime = 0;
       } catch (_) {
@@ -221,10 +237,12 @@ export const useTTS = () => {
     segmentId = null,
     allowGenerate = true,
     forceRegenerate = false,
-    emotion = null
+    emotion = null,
+    requestToken = null
   }) => {
     const normalizedText = String(text || '').trim();
     if (!normalizedText || !voiceId) return null;
+    if (requestToken != null && requestToken !== playTokenRef.current) return null;
 
     const itemKey = buildItemKey(messageId, segmentId);
 
@@ -254,12 +272,21 @@ export const useTTS = () => {
     const selectedEmotion = shouldSendEmotion(provider, emotion);
 
     for (const chunk of chunks) {
+      if (requestToken != null && requestToken !== playTokenRef.current) {
+        revokeCacheEntry({ urls });
+        return null;
+      }
+
       const body = { text: chunk, voiceId, provider };
       if (selectedEmotion) body.emotion = selectedEmotion;
 
       const response = await apiClient.post('/tts/generate', body, {
         responseType: 'blob'
       });
+      if (requestToken != null && requestToken !== playTokenRef.current) {
+        revokeCacheEntry({ urls });
+        return null;
+      }
 
       const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
       urls.push(createAudioUrlsFromBlob(blob));
@@ -275,6 +302,11 @@ export const useTTS = () => {
       text: normalizedText,
       urls
     };
+
+    if (requestToken != null && requestToken !== playTokenRef.current) {
+      revokeCacheEntry(entry);
+      return null;
+    }
 
     cacheRef.current.set(itemKey, entry);
     return entry;
@@ -350,13 +382,17 @@ export const useTTS = () => {
   }, [clearPlayback]);
 
   const stopAudio = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
-    setCurrentTime(0);
-    setIsPlaying(false);
-  }, []);
+    if (audioRef.current) {
+      try {
+        audioRef.current.currentTime = 0;
+      } catch (_) {
+        // no-op
+      }
+    }
+    resetActiveAudio(true);
+    setCurrentSegmentId(null);
+    setQueueIndex(-1);
+  }, [resetActiveAudio]);
 
   const seekTo = useCallback((value) => {
     const audio = audioRef.current;
@@ -415,6 +451,14 @@ export const useTTS = () => {
       return true;
     }
 
+    if (forceRegenerate || !isSameItem) {
+      clearPlayback(true);
+      setCurrentMessageId(messageId);
+      setCurrentSegmentId(segmentId || null);
+    }
+
+    const requestToken = playTokenRef.current + 1;
+    playTokenRef.current = requestToken;
     setIsLoading(true);
     try {
       const prepared = await prepareAudioEntry({
@@ -425,8 +469,10 @@ export const useTTS = () => {
         segmentId,
         allowGenerate,
         forceRegenerate,
-        emotion
+        emotion,
+        requestToken
       });
+      if (requestToken !== playTokenRef.current) return false;
 
       if (!prepared) {
         if (!forceRegenerate) {
@@ -439,15 +485,18 @@ export const useTTS = () => {
       const queue = buildQueueEntries([prepared], messageId, itemKey);
       if (queue.length === 0) return false;
 
-      playTokenRef.current += 1;
-      playQueueEntry(queue[0], playTokenRef.current);
+      if (requestToken !== playTokenRef.current) return false;
+      playQueueEntry(queue[0], requestToken);
       return true;
     } catch (error) {
+      if (requestToken !== playTokenRef.current) return false;
       console.error('TTS error:', error.message);
       clearPlayback(true);
       return false;
     } finally {
-      setIsLoading(false);
+      if (requestToken === playTokenRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [buildQueueEntries, clearPlayback, currentMessageId, currentSegmentId, playQueueEntry, prepareAudioEntry, togglePause]);
 
@@ -470,6 +519,14 @@ export const useTTS = () => {
       return true;
     }
 
+    if (forceRegenerate || !isSameSequence) {
+      clearPlayback(true);
+      setCurrentMessageId(messageId);
+      setCurrentSegmentId(null);
+    }
+
+    const requestToken = playTokenRef.current + 1;
+    playTokenRef.current = requestToken;
     setIsLoading(true);
     try {
       const preparedItems = [];
@@ -483,8 +540,10 @@ export const useTTS = () => {
           segmentId: item.segmentId || null,
           allowGenerate: item.allowGenerate ?? allowGenerate,
           forceRegenerate,
-          emotion: item.emotion || null
+          emotion: item.emotion || null,
+          requestToken
         });
+        if (requestToken !== playTokenRef.current) return false;
 
         if (prepared) preparedItems.push(prepared);
       }
@@ -496,15 +555,18 @@ export const useTTS = () => {
         return false;
       }
 
-      playTokenRef.current += 1;
-      playQueueEntry(queue[0], playTokenRef.current);
+      if (requestToken !== playTokenRef.current) return false;
+      playQueueEntry(queue[0], requestToken);
       return true;
     } catch (error) {
+      if (requestToken !== playTokenRef.current) return false;
       console.error('TTS sequence error:', error.message);
       clearPlayback(true);
       return false;
     } finally {
-      setIsLoading(false);
+      if (requestToken === playTokenRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [buildQueueEntries, clearPlayback, currentMessageId, playQueueEntry, prepareAudioEntry, togglePause]);
 

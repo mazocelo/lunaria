@@ -9,12 +9,23 @@ export const buildSegmentItemKey = (messageId, segmentId = null) => (
 );
 
 export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_PROVIDER) => {
+  const usedIds = new Set();
+
   return (Array.isArray(segments) ? segments : [])
     .map((segment, index) => {
       const text = String(segment?.text || segment?.message || segment?.mensagem || '').trim();
       if (!text) return null;
 
-      const segmentId = segment?.id || `seg_${index + 1}`;
+      const baseSegmentId = segment?.id || `seg_${index + 1}`;
+      let segmentId = baseSegmentId;
+      let suffix = 2;
+
+      while (usedIds.has(String(segmentId))) {
+        segmentId = `${baseSegmentId}_${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(String(segmentId));
+
       const voiceId = segment?.voice_id || defaultVoiceId || null;
       const provider = segment?.voice_provider || defaultVoiceProvider || DEFAULT_PROVIDER;
 
@@ -98,7 +109,7 @@ const NarrationSegments = ({
 
         return (
           <div
-            key={segmentItem.segmentId}
+            key={segmentItem.itemKey}
             className={`${compact ? 'p-2' : 'p-3'} rounded-lg border ${
               isNpc
                 ? isLight

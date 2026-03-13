@@ -547,7 +547,9 @@ class HistoriaController {
                 regras_especiais: novoMestre.regras_especiais,
                 modelo: novoMestre.modelo,
                 temperatura: novoMestre.temperatura,
-                max_tokens: novoMestre.max_tokens
+                max_tokens: novoMestre.max_tokens,
+                voice_id: novoMestre.voice_id || null,
+                voice_provider: novoMestre.voice_provider || null,
               };
             }
           }

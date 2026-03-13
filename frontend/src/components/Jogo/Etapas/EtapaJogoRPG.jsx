@@ -196,41 +196,12 @@ const EtapaJogoRPG = ({
   const [cooldownLocal, setCooldownLocal] = useState(0);
   const cooldownIntervalRef = useRef(null);
 
-  useEffect(() => {
-    const testesPendentes = Array.isArray(socketState.testesPendentes) ? socketState.testesPendentes : [];
-    const testePendente = testesPendentes.find(
-      (teste) => String(teste.jogadorAlvo) === String(user?.id)
-    ) || socketState.testePendente;
-    const meuTeste = testePendente && String(testePendente.jogadorAlvo) === String(user?.id);
-
-    if (!meuTeste) {
-      setDadosSolicitados(false);
-      setDadoSolicitadoInfo(null);
-    } else {
-      setDadosSolicitados(true);
-      setDadoSolicitadoInfo(prev => ({
-        ...prev,
-        tipoDado: testePendente.tipoDado || prev?.tipoDado || 'd20',
-        teste: testePendente.teste || prev?.teste || '',
-        dificuldade: testePendente.dificuldade || prev?.dificuldade || 'Media',
-        atributo: testePendente.atributo || prev?.atributo || null,
-        contexto: testePendente.contexto || prev?.contexto || null
-      }));
-    }
-
-    setAguardandoMestre(socketState.turnoStatus === 'resolving_roll');
-  }, [socketState.testePendente, socketState.testesPendentes, socketState.turnoStatus, user?.id]);
-
   // Estado para dropdown de informacoes da rodada
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
   // Estado para collapse do painel direito
   const [rightPanelExpanded, setRightPanelExpanded] = useState(true);
   const rodadaDropdownRef = useRef(null);
 
-  // Estado para controlar solicitacao de dados do Mestre
-  const [dadosSolicitados, setDadosSolicitados] = useState(false);
-  const [dadoSolicitadoInfo, setDadoSolicitadoInfo] = useState(null);
-  const [aguardandoMestre, setAguardandoMestre] = useState(false);
   const [fichaModalAberta, setFichaModalAberta] = useState(false);
   const [fichaSelecionada, setFichaSelecionada] = useState(null);
   const [fichaCarregando, setFichaCarregando] = useState(false);
@@ -307,6 +278,31 @@ const EtapaJogoRPG = ({
     return () => unsubscribe();
   }, []);
 
+  const testesPendentesAtivos = Array.isArray(socketState.testesPendentes)
+    ? socketState.testesPendentes.filter((teste) => teste?.status !== 'resolved' && teste?.status !== 'cancelled')
+    : [];
+  const meuTestePendente = testesPendentesAtivos.find(
+    (teste) => String(teste.jogadorAlvo) === String(user?.id)
+  ) || (
+    socketState.testePendente
+    && String(socketState.testePendente.jogadorAlvo) === String(user?.id)
+      ? socketState.testePendente
+      : null
+  );
+  const dadosSolicitados = !!meuTestePendente;
+  const dadoSolicitadoInfo = meuTestePendente
+    ? {
+        tipoDado: meuTestePendente.tipoDado || 'd20',
+        teste: meuTestePendente.teste || '',
+        dificuldade: meuTestePendente.dificuldade || 'Media',
+        atributo: meuTestePendente.atributo || null,
+        contexto: meuTestePendente.contexto || null,
+        modificador: meuTestePendente.modificador ?? null
+      }
+    : null;
+  const aguardandoMestre = socketState.turnoStatus === 'resolving_roll';
+  const loadingMensagensAtivas = gameStoreMensagens.some((mensagem) => mensagem.tipo === 'loading');
+
   // Timer para decrementar cooldown local
   useEffect(() => {
     if (cooldownLocal > 0) {
@@ -325,11 +321,10 @@ const EtapaJogoRPG = ({
     };
   }, [cooldownLocal]);
 
-  // Timeout de seguranca para aguardandoMestre (30s)
+  // Timeout de seguranca para mensagens de loading do Mestre (30s)
   useEffect(() => {
-    if (!aguardandoMestre) return;
+    if (!loadingMensagensAtivas) return;
     const timeout = setTimeout(() => {
-      setAguardandoMestre(false);
       showGameNotification('O Mestre demorou para responder. Tente novamente.', 'warning');
       // Remover mensagens de loading
       const msgs = useGameStore.getState().mensagens || [];
@@ -337,14 +332,13 @@ const EtapaJogoRPG = ({
       if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
     }, 30000);
     return () => clearTimeout(timeout);
-  }, [aguardandoMestre, gameStoreSetMensagens]);
+  }, [loadingMensagensAtivas, gameStoreSetMensagens]);
 
-  // Limpar loading e aguardandoMestre se socket desconectar
+  // Limpar loading se socket desconectar
   useEffect(() => {
     let wasConnected = useSocketStore.getState().isConnected;
     const unsubscribe = useSocketStore.subscribe((state) => {
-      if (wasConnected && !state.isConnected && aguardandoMestre) {
-        setAguardandoMestre(false);
+      if (wasConnected && !state.isConnected && loadingMensagensAtivas) {
         const msgs = useGameStore.getState().mensagens || [];
         const semLoading = msgs.filter(m => m.tipo !== 'loading');
         if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
@@ -352,7 +346,7 @@ const EtapaJogoRPG = ({
       wasConnected = state.isConnected;
     });
     return unsubscribe;
-  }, [aguardandoMestre, gameStoreSetMensagens]);
+  }, [loadingMensagensAtivas, gameStoreSetMensagens]);
 
   // Listener para limpar mensagens de dados quando ordem definida
   useEffect(() => {
@@ -389,10 +383,6 @@ const EtapaJogoRPG = ({
       if (mensagensAtuais.length !== mensagensSemLoading.length) {
         gameStoreSetMensagens(mensagensSemLoading);
       }
-
-      setAguardandoMestre(false);
-      setDadosSolicitados(false);
-      setDadoSolicitadoInfo(null);
 
       const mensagem = {
         id: data.id || Date.now(),
@@ -465,15 +455,6 @@ const EtapaJogoRPG = ({
     };
 
     const handleDiceRoll = (data) => {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const foiEuQueRolei = String(data.userId) === String(currentUser.id);
-      if (foiEuQueRolei) {
-        if (data.dadosSolicitados) {
-          setDadosSolicitados(false);
-          setDadoSolicitadoInfo(null);
-          setAguardandoMestre(true);
-        }
-      }
       if (data.dadosSolicitados) return;
 
       const mensagem = {
@@ -546,7 +527,6 @@ const EtapaJogoRPG = ({
       if (String(jogadorAlvo) !== String(currentUser.id)) {
         return;
       }
-      setAguardandoMestre(false);
     };
 
     const handleLevelUp = (data) => {
@@ -642,7 +622,6 @@ const EtapaJogoRPG = ({
     };
 
     const handleErroMensagem = (data) => {
-      setAguardandoMestre(false);
       if (data?.message) showGameNotification(data.message, 'warning');
       // Remover loading messages
       const msgs = useGameStore.getState().mensagens || [];
@@ -744,9 +723,6 @@ const EtapaJogoRPG = ({
           setMensagemAtual('');
         }
       } else {
-        // Ativar loading
-        setAguardandoMestre(true);
-
         // Adicionar mensagem temporaria de loading
         const loadingMsg = {
           id: `loading_${Date.now()}`,
@@ -773,7 +749,6 @@ const EtapaJogoRPG = ({
         if (enviado) {
           setMensagemAtual('');
         } else {
-          setAguardandoMestre(false);
           showGameNotification('Falha ao enviar mensagem. Verifique sua conexao.', 'error');
           const msgs = useGameStore.getState().mensagens || [];
           const semLoading = msgs.filter(m => m.tipo !== 'loading');
@@ -856,7 +831,6 @@ const EtapaJogoRPG = ({
 
       const descricao = `[USA HABILIDADE: ${vantagem.nome}]${vantagem.dano_base ? ` Dano base: ${vantagem.dano_base}` : ''}${vantagem.elemento?.length ? ` Elemento: ${vantagem.elemento.join(', ')}` : ''} - ${vantagem.descricao || ''}`;
 
-      setAguardandoMestre(true);
       onAdicionarMensagem({
         id: `loading_${Date.now()}`,
         userId: 'sistema',
@@ -878,7 +852,7 @@ const EtapaJogoRPG = ({
         }
       });
     } catch (error) {
-      setAguardandoMestre(false);
+      // silenced
     }
   };
 
@@ -889,7 +863,6 @@ const EtapaJogoRPG = ({
 
       const descricao = `[USA EQUIPAMENTO: ${equipamento.nome}]${equipamento.dano_base ? ` Dano: ${equipamento.dano_base}` : ''}${equipamento.elemento?.length ? ` Elemento: ${equipamento.elemento.join(', ')}` : ''} - ${equipamento.descricao || ''}`;
 
-      setAguardandoMestre(true);
       onAdicionarMensagem({
         id: `loading_${Date.now()}`,
         userId: 'sistema',
@@ -911,7 +884,7 @@ const EtapaJogoRPG = ({
         }
       });
     } catch (error) {
-      setAguardandoMestre(false);
+      // silenced
     }
   };
 

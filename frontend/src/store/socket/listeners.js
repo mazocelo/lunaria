@@ -21,7 +21,7 @@ export const createListenerActions = (set, get) => ({
       'turno_iniciado', 'rodada_finalizada', 'nova_rodada_iniciada',
       'turno_estado_atualizado', 'teste_rejeitado',
       'erro_cooldown_roleplay', 'erro_turno', 'server_message', 'force_disconnect',
-      'mestre_solicita_dados', 'solicitacao_dados', 'mensagem_roleplay',
+      'mestre_solicita_dados', 'mensagem_roleplay',
       'sessao_resetada', 'sessao_encerrada',
       'erro_sistema', 'erro_mensagem', 'erro_dado_inicial', 'rate_limit_exceeded',
       'combate_iniciado', 'combate_resultado_acao', 'combate_monstro_derrotado',
@@ -181,17 +181,29 @@ export const createListenerActions = (set, get) => ({
           updateData.jogadorAtual = jogadorAtual;
           updateData.ehMeuTurno = ehMeuTurno;
         }
-        if (estadoJogo.turnoIniciado !== undefined) {
-          updateData.turnoIniciado = estadoJogo.turnoIniciado;
-        }
-        if (estadoJogo.turno?.status) {
-          updateData.turnoStatus = estadoJogo.turno.status;
-        }
-        if (Array.isArray(estadoJogo.testesPendentes)) {
-          updateData.testesPendentes = estadoJogo.testesPendentes;
-        }
-        if (estadoJogo.testePendente !== undefined) {
-          updateData.testePendente = estadoJogo.testePendente;
+        const turnoStatus = estadoJogo.turno?.status || (estadoJogo.turnoIniciado ? 'active' : 'idle');
+        const testesPendentes = Array.isArray(estadoJogo.testesPendentes)
+          ? estadoJogo.testesPendentes.filter((teste) => teste?.status !== 'resolved' && teste?.status !== 'cancelled')
+          : [];
+        const testePendenteLegado = !testesPendentes.length && estadoJogo.dadosSolicitados && estadoJogo.testeInfo
+          ? {
+              ...estadoJogo.testeInfo,
+              status: 'pending',
+              jogadorAlvo: estadoJogo.testeInfo.jogadorAlvo || estadoJogo.turno?.jogadorAtual || null
+            }
+          : null;
+
+        updateData.turnoIniciado = ['starting', 'active', 'awaiting_roll', 'resolving_roll'].includes(turnoStatus);
+        updateData.turnoStatus = turnoStatus;
+        updateData.testesPendentes = testesPendentes.length > 0 ? testesPendentes : (testePendenteLegado ? [testePendenteLegado] : []);
+        updateData.testePendente = estadoJogo.testePendente ?? testePendenteLegado ?? updateData.testesPendentes[0] ?? null;
+
+        if (estadoJogo.turno?.jogadorAtual != null) {
+          const jogadorAtualTurno = (updateData.ordemJogadores || estadoJogo.ordemJogadores || []).find(
+            (jogador) => String(jogador.userId || jogador.id) === String(estadoJogo.turno.jogadorAtual)
+          ) || { userId: estadoJogo.turno.jogadorAtual };
+          updateData.jogadorAtual = jogadorAtualTurno;
+          updateData.ehMeuTurno = currentUser && String(estadoJogo.turno.jogadorAtual) === String(currentUser.id);
         }
         if (estadoJogo.rolagemInicial) {
           updateData.resultadosDados = estadoJogo.rolagemInicial;
@@ -352,16 +364,6 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.on('turno_iniciado', (data) => {
-      const currentUser = get().currentUser;
-      const ehMeuTurno = currentUser && String(data.userId) === String(currentUser.id);
-
-      if (ehMeuTurno) {
-        set({
-          turnoIniciado: true,
-          turnoStatus: data.turnoEstado?.status || 'active'
-        });
-      }
-
       get().log('Turno iniciado', { userId: data.userId, success: true });
     });
 
@@ -381,6 +383,7 @@ export const createListenerActions = (set, get) => ({
             : (get().ordemJogadores || []).find(j => String(j.userId || j.id) === String(jogadorAtual)) || { userId: jogadorAtual });
 
       set({
+        rodadaAtual: data.turno?.rodadaAtual ?? get().rodadaAtual,
         turnoStatus: data.turno?.status || 'idle',
         turnoIniciado: ['starting', 'active', 'awaiting_roll', 'resolving_roll'].includes(data.turno?.status),
         testePendente: data.testePendente || testesPendentes[0] || null,
@@ -456,7 +459,7 @@ export const createListenerActions = (set, get) => ({
       get().log('Force disconnect', { reason: data.reason });
     });
 
-    socket.on('solicitacao_dados', (data) => {
+    socket.on('mestre_solicita_dados', (data) => {
       if (window.showGameNotification) {
         window.showGameNotification(`🎲 O Mestre solicita rolagem de dados!`, 'info');
       }

@@ -1,3 +1,5 @@
+import { normalizeGameMessage, normalizeGameMessages } from '../../utils/gameMessageNormalizer.js';
+
 /**
  * 🎮 GAME ACTIONS - Lógicas e ações da sessão de jogo
  * 
@@ -116,40 +118,31 @@ export const createGameActions = (set, get) => ({
   // ===== ACTIONS - JOGO ATIVO =====
   adicionarMensagem: (mensagem) => {
     const { mensagens } = get();
-    const fallbackId = mensagem.timestamp || `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    let messageId = mensagem.id != null ? mensagem.id : fallbackId;
+    const mensagemNormalizada = normalizeGameMessage(mensagem);
+    let messageId = mensagemNormalizada.id;
 
     // Garantir id unico para evitar colisao de render/update entre mensagens
     if (mensagens.some(m => String(m.id) === String(messageId))) {
       messageId = `${messageId}_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
     }
 
-    const msg = { ...mensagem, id: messageId };
+    const msg = { ...mensagemNormalizada, id: messageId };
     set({ mensagens: [...mensagens, msg] });
   },
 
   atualizarMensagem: (id, campos) => {
     const { mensagens } = get();
-    set({ mensagens: mensagens.map(m => String(m.id) === String(id) ? { ...m, ...campos } : m) });
+    set({
+      mensagens: mensagens.map((mensagem) => (
+        String(mensagem.id) === String(id)
+          ? normalizeGameMessage({ ...mensagem, ...campos })
+          : mensagem
+      ))
+    });
   },
 
   setMensagens: (mensagens) => {
-    const usedIds = new Set();
-    const mensagensNormalizadas = (mensagens || []).map((mensagem, index) => {
-      const baseId = mensagem?.id != null
-        ? mensagem.id
-        : (mensagem?.timestamp || `msg_${Date.now()}_${index}`);
-      let nextId = baseId;
-
-      while (usedIds.has(String(nextId))) {
-        nextId = `${baseId}_${index}_${Math.random().toString(36).slice(2, 5)}`;
-      }
-
-      usedIds.add(String(nextId));
-      return { ...mensagem, id: nextId };
-    });
-
-    set({ mensagens: mensagensNormalizadas });
+    set({ mensagens: normalizeGameMessages(mensagens) });
   },
   
   setStatusPersonagem: (status) => {

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProvider, getConfiguredProviders } from '../services/ttsService.js';
+import { getDefaultProviderName, getProvider, getConfiguredProviders } from '../services/ttsService.js';
 import usageService from '../services/usageService.js';
 import ttsCacheService from '../services/ttsCacheService.js';
 
@@ -9,8 +9,15 @@ function getProviderContentType(provider) {
     : 'audio/mpeg';
 }
 
+function resolveVoiceId(provider, requestedVoiceId) {
+  if (requestedVoiceId) return requestedVoiceId;
+  return typeof provider.getDefaultVoiceId === 'function'
+    ? provider.getDefaultVoiceId()
+    : null;
+}
+
 const router = express.Router();
-const DEFAULT_PROVIDER = process.env.DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_PROVIDER = getDefaultProviderName();
 
 const MAX_TEXT_LENGTH = 5000;
 const PREVIEW_TEXT_PTBR = 'Olá aventureiros! Eu serei o mestre desta jornada épica. Preparem-se para uma aventura inesquecível!';
@@ -25,7 +32,7 @@ router.get('/providers', (req, res) => {
 });
 
 /**
- * GET /tts/voices?provider=elevenlabs|cartesia
+ * GET /tts/voices?provider=elevenlabs|cartesia|opensource
  * Lista vozes disponíveis no provider
  */
 router.get('/voices', async (req, res) => {
@@ -53,12 +60,13 @@ router.post('/generate', async (req, res) => {
   try {
     const { text, voiceId, provider: providerName = DEFAULT_PROVIDER, emotion } = req.body;
     const provider = getProvider(providerName);
+    const resolvedVoiceId = resolveVoiceId(provider, voiceId);
 
     if (!provider.isConfigured()) {
       return res.status(503).json({ success: false, error: `Provider ${providerName} não configurado` });
     }
 
-    if (!text || !voiceId) {
+    if (!text || !resolvedVoiceId) {
       return res.status(400).json({ success: false, error: 'text e voiceId são obrigatórios' });
     }
 
@@ -71,8 +79,8 @@ router.post('/generate', async (req, res) => {
 
     const tTTS = Date.now();
     const { audioBuffer, fromCache } = await ttsCacheService.getOrGenerate(
-      text, voiceId, providerName,
-      () => provider.generateSpeech(text, voiceId, options)
+      text, resolvedVoiceId, providerName,
+      () => provider.generateSpeech(text, resolvedVoiceId, options)
     );
 
     // Só trackeia billing quando gerou de verdade (não cache hit)
@@ -100,12 +108,13 @@ router.post('/preview', async (req, res) => {
   try {
     const { voiceId, provider: providerName = DEFAULT_PROVIDER, emotion } = req.body;
     const provider = getProvider(providerName);
+    const resolvedVoiceId = resolveVoiceId(provider, voiceId);
 
     if (!provider.isConfigured()) {
       return res.status(503).json({ success: false, error: `Provider ${providerName} não configurado` });
     }
 
-    if (!voiceId) {
+    if (!resolvedVoiceId) {
       return res.status(400).json({ success: false, error: 'voiceId é obrigatório' });
     }
 
@@ -113,7 +122,7 @@ router.post('/preview', async (req, res) => {
     if (emotion) options.emotion = emotion;
 
     const tPrev = Date.now();
-    const audioBuffer = await provider.generateSpeech(PREVIEW_TEXT_PTBR, voiceId, options);
+    const audioBuffer = await provider.generateSpeech(PREVIEW_TEXT_PTBR, resolvedVoiceId, options);
 
     if (req.user?.id) usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: PREVIEW_TEXT_PTBR.length, duracao_ms: Date.now() - tPrev, metadata: { preview: true } });
 

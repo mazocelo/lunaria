@@ -5,6 +5,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import usageService from './usageService.js';
 import { ensureNpcIds } from './narrationSegmentsService.js';
+import { getDefaultProviderName } from './ttsService.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOKENS = 8000;
@@ -12,6 +13,7 @@ const TIMEOUT_MS = 180000;
 const BLUEPRINT_TEMPERATURE = 0.3;
 const REGENERATE_TEMPERATURE = 0.7;
 const REPAIR_TEMPERATURE = 0.1;
+const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
 
 function asTrimmedString(value, fallback = '') {
   if (value === undefined || value === null) return fallback;
@@ -213,7 +215,7 @@ function normalizeNpcs(npcs = []) {
       imagem: asTrimmedString(npc?.imagem, '') || null,
       voice_id: voiceId,
       voice_provider: voiceId
-        ? (asTrimmedString(npc?.voice_provider, 'elevenlabs') || 'elevenlabs')
+        ? (asTrimmedString(npc?.voice_provider, DEFAULT_TTS_PROVIDER) || DEFAULT_TTS_PROVIDER)
         : null
     };
   });

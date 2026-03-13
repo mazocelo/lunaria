@@ -6,14 +6,38 @@ const prisma = new PrismaClient();
 
 const LOCK_TTL_MS = 30000; // 30s max lock
 const LOCK_PREFIX = 'tts_lock:';
+const CACHE_ENABLED = process.env.TTS_CACHE_ENABLED !== 'false';
+const CACHE_MAX_AUDIO_BYTES = Number.parseInt(process.env.TTS_CACHE_MAX_AUDIO_BYTES || `${2 * 1024 * 1024}`, 10);
+const CACHE_TTL_DAYS = Number.parseInt(process.env.TTS_CACHE_TTL_DAYS || '7', 10);
+const CACHE_CLEANUP_INTERVAL_MS = Number.parseInt(process.env.TTS_CACHE_CLEANUP_INTERVAL_MS || `${60 * 60 * 1000}`, 10);
+const CACHE_SKIPPED_PROVIDERS = new Set(
+  String(process.env.TTS_CACHE_SKIPPED_PROVIDERS || 'opensource')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+let cleanupPromise = null;
+let nextCleanupAt = 0;
 
 /**
  * Gera cache key determinística: SHA256(text + voiceId + provider)
  */
 function generateCacheKey(text, voiceId, provider) {
   return crypto.createHash('sha256')
-    .update(`${text}|${voiceId}|${provider}`)
+    .update(`${text}|${voiceId || '__default__'}|${provider}`)
     .digest('hex');
+}
+
+function shouldUseCache(provider) {
+  if (!CACHE_ENABLED) return false;
+  return !CACHE_SKIPPED_PROVIDERS.has(String(provider || '').toLowerCase());
+}
+
+function shouldPersistAudio(provider, audioBuffer) {
+  if (!shouldUseCache(provider)) return false;
+  if (!Number.isFinite(CACHE_MAX_AUDIO_BYTES) || CACHE_MAX_AUDIO_BYTES <= 0) return true;
+  return audioBuffer.length <= CACHE_MAX_AUDIO_BYTES;
 }
 
 /**
@@ -37,6 +61,8 @@ async function getFromCache(cacheKey) {
  * Salva áudio no cache do banco
  */
 async function saveToCache(cacheKey, provider, voiceId, caracteres, audioBuffer) {
+  if (!shouldPersistAudio(provider, audioBuffer)) return;
+
   try {
     await prisma.tts_cache.create({
       data: {
@@ -53,6 +79,38 @@ async function saveToCache(cacheKey, provider, voiceId, caracteres, audioBuffer)
     if (err.code === 'P2002') return;
     console.error('ttsCacheService.saveToCache error:', err.message);
   }
+}
+
+async function pruneExpiredEntries({ force = false } = {}) {
+  if (!Number.isFinite(CACHE_TTL_DAYS) || CACHE_TTL_DAYS <= 0) {
+    return { count: 0 };
+  }
+
+  if (!force && Date.now() < nextCleanupAt) {
+    return { count: 0 };
+  }
+
+  if (cleanupPromise) {
+    return cleanupPromise;
+  }
+
+  nextCleanupAt = Date.now() + CACHE_CLEANUP_INTERVAL_MS;
+  const cutoff = new Date(Date.now() - (CACHE_TTL_DAYS * 24 * 60 * 60 * 1000));
+
+  cleanupPromise = prisma.tts_cache.deleteMany({
+    where: {
+      criado_em: {
+        lt: cutoff
+      }
+    }
+  }).catch((err) => {
+    console.error('ttsCacheService.pruneExpiredEntries error:', err.message);
+    return { count: 0 };
+  }).finally(() => {
+    cleanupPromise = null;
+  });
+
+  return cleanupPromise;
 }
 
 /**
@@ -111,6 +169,13 @@ async function waitForLock(cacheKey, maxWaitMs = LOCK_TTL_MS) {
  * @returns {{ audioBuffer: Buffer, fromCache: boolean }}
  */
 async function getOrGenerate(text, voiceId, provider, generateFn) {
+  pruneExpiredEntries().catch(() => {});
+
+  if (!shouldUseCache(provider)) {
+    const audioBuffer = await generateFn();
+    return { audioBuffer, fromCache: false };
+  }
+
   const cacheKey = generateCacheKey(text, voiceId, provider);
 
   // 1. Check cache
@@ -139,4 +204,4 @@ async function getOrGenerate(text, voiceId, provider, generateFn) {
   }
 }
 
-export default { generateCacheKey, getOrGenerate };
+export default { generateCacheKey, getOrGenerate, pruneExpiredEntries };

@@ -19,6 +19,10 @@ export function getProvider(name) {
   return providers[name] || providers[defaultProviderName] || providers.elevenlabs;
 }
 
+export function getDefaultProviderName() {
+  return defaultProviderName;
+}
+
 export function getConfiguredProviders() {
   return Object.entries(providers)
     .filter(([_, p]) => p.isConfigured())

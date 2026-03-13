@@ -9,6 +9,10 @@ class OpenSourceProvider {
     return Boolean(this.baseUrl);
   }
 
+  getDefaultVoiceId() {
+    return this.defaultVoiceId;
+  }
+
   getContentType() {
     return this.contentType;
   }

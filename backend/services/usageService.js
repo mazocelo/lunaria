@@ -88,7 +88,7 @@ const usageService = {
    * Track API usage (fire-and-forget)
    * @param {object} params
    * @param {number} params.userId
-   * @param {string} params.provider - "groq", "gemini", "elevenlabs", "cartesia", "leonardo"
+   * @param {string} params.provider - "groq", "gemini", "elevenlabs", "cartesia", "opensource", "leonardo"
    * @param {string} params.tipo - "text", "tts", "image"
    * @param {string} [params.modelo]
    * @param {number} [params.input_tokens]

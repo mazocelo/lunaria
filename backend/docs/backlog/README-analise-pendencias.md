@@ -5,7 +5,7 @@ Este arquivo resume o estado atual das frentes abertas do projeto, com foco em:
 - o que ja foi fechado
 - o que esta parcialmente resolvido
 - o que ainda depende de implementacao
-- qual deve ser a ordem pratica depois da rodada atual
+- qual deve ser a ordem pratica a partir do estado atual
 
 Ele existe para servir como handoff rapido para outras instancias, sem precisar reconstruir o contexto a partir da conversa.
 
@@ -28,7 +28,7 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 | --- | --- | --- | --- |
 | 1 | Contrato publico do websocket | praticamente concluido | documentacao e catalogo do contrato ja foram alinhados ao runtime atual |
 | 2 | Modularizacao do motor do jogo | parcialmente concluido | houve extracao para gateway/engines, mas ainda sobra limpeza de codigo antigo |
-| 3 | Jobs duraveis para IA | parcialmente concluido | a v1 de roteiro async duravel esta em andamento, mas ainda precisa fechamento e validacao real |
+| 3 | Jobs duraveis para IA | parcialmente concluido | a v1 de roteiro async duravel foi fechada; expansao para imagem e TTS continua pendente |
 | 4 | Observabilidade e admin do motor | pendente | ainda nao existe camada operacional suficiente para diagnostico sem abrir codigo |
 | 5 | Controles de produto para IA | pendente | falta transformar os motores de geracao em ferramentas de direcao criativa |
 | 6 | Deploy e banco para HostGator/VPS | pendente | continua dependente da estabilizacao das decisoes de motor, jobs e operacao |
@@ -86,10 +86,10 @@ Essa frente nao esta quebrada, mas tambem nao esta definitivamente encerrada. O 
 
 **Recorte atual**
 
-- a v1 esta focada apenas em roteiro
+- a v1 de roteiro async duravel foi concluida
 - imagem, TTS, R2, admin e operacao mais rica ficaram para fases seguintes
 
-**O que ja entrou ou esta entrando**
+**O que ja entrou**
 
 - BullMQ + Redis como base da fila
 - worker separado da API
@@ -98,23 +98,24 @@ Essa frente nao esta quebrada, mas tambem nao esta definitivamente encerrada. O 
 - processamento de roteiro no worker
 - auto-geracao de roteiro saindo do processo web
 - polling de `GET /historias/:id/roteiro` aceitando `queued`
-
-**O que ainda falta para considerar a v1 fechada**
-
-- invalidacao confiavel do cache do mestre quando o worker atualizar o roteiro de uma historia com sessao ativa
-- aplicar migration no banco de dev/staging
-- validar o fluxo real com:
-  - API ativa
-  - worker ativo
-  - Redis ativo
+- migration aplicada no banco existente
+- validacao real com:
   - restart da API
   - restart do worker
-  - falha forzada do provider
-- commitar a rodada de forma isolada e limpa
+  - falha de provider
+- correcao do risco de `mestresCache` stale por comparacao com `estadoJogo.historiaRoteiroAtualizadoEm`
+
+**O que ainda falta nesta frente**
+
+- jobs duraveis para imagem
+- jobs duraveis para TTS
+- storage de artefatos para audio async, se a fase de TTS pedir isso
+- endpoints operacionais/admin para consulta e reprocessamento
+- politicas de limpeza e retencao mais maduras para filas e artefatos
 
 **Leitura pratica**
 
-Nao avancar para imagem e TTS antes de fechar a validacao do roteiro async v1.
+A frente deixou de ser uma discussao inicial e passou a ser expansao incremental. O roteiro async v1 serve como base para as proximas filas.
 
 ### 4. Observabilidade e admin do motor
 
@@ -136,7 +137,7 @@ Comecar com endpoints backend internos e uma camada de leitura/admin simples, se
 
 **Leitura pratica**
 
-Essa frente fica muito mais valiosa depois de fechar melhor a modularizacao e a v1 de jobs duraveis.
+Essa frente fica muito mais valiosa agora que o motor esta mais modular e o roteiro async v1 foi fechado.
 
 ### 5. Controles de produto para IA
 
@@ -177,45 +178,41 @@ Essa frente impacta diretamente a experiencia, mas rende mais quando:
 
 Essa frente deve vir por ultimo, quando motor e jobs estiverem mais estabilizados.
 
-## Ordem recomendada depois de fechar roteiro async v1
+## Ordem recomendada a partir do estado atual
 
-1. fechar a task 3 v1 de roteiro async duravel
-2. limpar a modularizacao residual do motor do jogo
-3. criar observabilidade e admin minima
-4. expandir jobs duraveis para imagem
-5. expandir jobs duraveis para TTS
-6. adicionar controles de produto para IA
-7. endurecer deploy e banco para HostGator/VPS
+1. limpar a modularizacao residual do motor do jogo
+2. criar observabilidade e admin minima
+3. expandir jobs duraveis para imagem
+4. expandir jobs duraveis para TTS
+5. adicionar controles de produto para IA
+6. endurecer deploy e banco para HostGator/VPS
 
 ## Pendencias imediatas
 
 Estas sao as pendencias mais concretas no curto prazo:
 
-### P-01 Fechar a v1 de roteiro async
-
-- invalidar `mestresCache` quando o worker atualizar um roteiro usado por sessao ativa
-- aplicar migration no banco
-- subir API + worker + Redis
-- validar restart da API
-- validar restart do worker
-- validar falha forzada do provider
-
-### P-02 Encerrar a limpeza da modularizacao
+### P-01 Encerrar a limpeza da modularizacao
 
 - remover copias antigas de metodos ja delegados
 - reduzir codigo morto no `socketManager`
 - revisar se toda emissao relevante ja passa por caminhos mais centralizados
 
-### P-03 Preparar a proxima rodada operacional
+### P-02 Criar observabilidade minima
 
-- definir o recorte minimo de observabilidade
-- decidir se a proxima expansao dos jobs vai ser imagem ou admin
+- listar sessoes ativas
+- expor estado de turno e testes pendentes
+- expor jobs do motor e de IA
+- facilitar debug sem abrir codigo ou depender so de log
+
+### P-03 Planejar a expansao da fila de IA
+
+- decidir se a proxima expansao vai ser imagem ou admin operacional
+- manter imagem e TTS fora do processo web, seguindo o mesmo modelo do roteiro
 
 ## O que nao deve acontecer agora
 
 Para evitar dispersao e overengineering, nao e recomendavel nesta fase:
 
-- abrir imagem async e TTS async antes de fechar roteiro async v1
 - construir UI admin completa antes dos endpoints operacionais
 - refatorar novamente o motor inteiro sem primeiro remover o codigo duplicado remanescente
 - endurecer deploy final de HostGator antes da estabilizacao do runtime
@@ -226,7 +223,7 @@ O projeto ja saiu da fase de exploracao e entrou numa fase de consolidacao estru
 
 O contrato publico do websocket esta praticamente resolvido.
 A modularizacao do motor melhorou bastante, mas ainda precisa limpeza final.
-Os jobs duraveis de IA deram o primeiro passo correto com roteiro async v1, que ainda precisa fechamento operacional.
+Os jobs duraveis de IA ja deram o primeiro passo correto com roteiro async v1 fechado.
 
 Depois disso, as frentes de maior retorno passam a ser:
 
@@ -240,5 +237,6 @@ Se outra instancia retomar daqui, a orientacao e:
 
 1. tratar o websocket publico como frente praticamente fechada
 2. considerar a modularizacao como parcialmente concluida, com limpeza final pendente
-3. fechar o roteiro async v1 antes de abrir imagem ou TTS async
-4. usar este arquivo como snapshot do estado das seis frentes
+3. considerar o roteiro async v1 como base pronta para expansao
+4. priorizar observabilidade e a proxima fila async sem reabrir discussoes ja fechadas
+5. usar este arquivo como snapshot do estado das seis frentes

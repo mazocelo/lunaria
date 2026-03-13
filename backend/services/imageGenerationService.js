@@ -85,6 +85,32 @@ const STYLE_GENERATION_CONFIG = {
 const POLL_INTERVAL = 2000;
 const MAX_POLLS = 30;
 
+async function requestGeneration(body) {
+  const response = await fetch(`${LEONARDO_API_URL}/generations`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LEONARDO_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error,
+    };
+  }
+
+  return {
+    ok: true,
+    data: await response.json(),
+  };
+}
+
 async function generateImage(prompt, options = {}) {
   if (!LEONARDO_API_KEY) {
     throw new Error('LEONARDO_API_KEY não configurada');
@@ -117,22 +143,29 @@ async function generateImage(prompt, options = {}) {
   if (body.contrast == null) delete body.contrast;
   if (!body.presetStyle) delete body.presetStyle;
 
-  const response = await fetch(`${LEONARDO_API_URL}/generations`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LEONARDO_API_KEY}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  let generationResponse = await requestGeneration(body);
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Leonardo API error: ${response.status} - ${error}`);
+  // Alguns modelos, como Kino 2.0, rejeitam alchemy mesmo quando o estilo pede.
+  // Fazemos um retry automático sem alchemy para evitar erro 500 desnecessário.
+  if (!generationResponse.ok) {
+    const alchemyUnsupported = body.alchemy
+      && generationResponse.status === 400
+      && /alchemy is not enabled/i.test(generationResponse.error || '');
+
+    if (alchemyUnsupported) {
+      console.warn(`[ImageGeneration] Modelo ${modelId} rejeitou alchemy. Tentando novamente com alchemy=false.`);
+      generationResponse = await requestGeneration({
+        ...body,
+        alchemy: false,
+      });
+    }
   }
 
-  const data = await response.json();
+  if (!generationResponse.ok) {
+    throw new Error(`Leonardo API error: ${generationResponse.status} - ${generationResponse.error}`);
+  }
+
+  const data = generationResponse.data;
   const generationId = data.sdGenerationJob?.generationId;
 
   if (!generationId) {

@@ -15,7 +15,8 @@
     "build": "prisma generate",
     "postinstall": "prisma generate",
     "heroku-postbuild": "npm install --include=dev && prisma generate && prisma db push --skip-generate --accept-data-loss",
-    "deploy": "prisma migrate deploy && prisma generate"
+    "deploy": "prisma migrate deploy && prisma generate",
+    "smoke-narration-segments": "node scripts/smoke-narration-segments.js"
   },
   "engines": {
     "node": "22.x"

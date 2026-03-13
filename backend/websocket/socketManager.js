@@ -24,6 +24,7 @@ import { persistirEstadoClone } from '../helpers/acoesProcessor.js';
 import analyticsService from '../services/analyticsService.js';
 import { MESTRE_CONFIG } from '../agents/Mestre/config.js';
 import ttsCacheService from '../services/ttsCacheService.js';
+import { aggregateNarrationFromSegments, resolveNarrationSegments } from '../services/narrationSegmentsService.js';
 import { buildTurnState, formatTurnStateText } from '../helpers/turnStateBuilder.js';
 import { isEnabled } from '../config/featureFlags.js';
 import { decrementCooldowns } from '../helpers/cooldownManager.js';
@@ -78,11 +79,22 @@ import {
  * Cria objeto de mensagem do mestre com campos de áudio vinculados
  */
 function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
+  const narrativaBase = String(conteudo || '').trim();
+  const segmentos = resolveNarrationSegments({
+    narrativa: narrativaBase,
+    segmentos: options.segmentos || [],
+    mestreConfig,
+    roteiro: options.roteiro || options.sessao?.historiaRoteiro || null,
+    historiaId: options.historiaId || options.sessao?.historiaId || null
+  });
+  const narrativaFinal = narrativaBase || aggregateNarrationFromSegments(segmentos);
   const voiceId = mestreConfig?.voice_id || null;
   const voiceProvider = mestreConfig?.voice_provider || null;
-  return buildMestreMensagemHistorico(conteudo, mestreConfig, {
+
+  return buildMestreMensagemHistorico(narrativaFinal, mestreConfig, {
     ...options,
-    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(conteudo, voiceId, voiceProvider || 'elevenlabs') : null
+    segmentos,
+    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(narrativaFinal, voiceId, voiceProvider || 'elevenlabs') : null
   });
 }
 
@@ -1534,7 +1546,10 @@ class SocketManager {
             resumo: invocationContext.resumo
           });
 
-          const msgInterpretacao = buildMestreMensagem(interpretacao.narracao, sessao.mestreConfig);
+          const msgInterpretacao = buildMestreMensagem(interpretacao.narracao, sessao.mestreConfig, {
+            sessao,
+            segmentos: interpretacao.segmentos || []
+          });
           appendMensagemSessao(sessao, msgInterpretacao);
           await this.aplicarMetadadosNarrativos(roomId, sessao, interpretacao.metadados || {});
 
@@ -1568,7 +1583,7 @@ class SocketManager {
           console.error('❌ Erro ao processar dado com Mestre IA:', errorIA);
 
           const textoFallback = `${personagemNome} rolou ${dice} e obteve **${result}**${description ? ` para ${description}` : ''}. Continue a aventura!`;
-          const mensagemFallback = buildMestreMensagem(textoFallback, sessao.mestreConfig);
+          const mensagemFallback = buildMestreMensagem(textoFallback, sessao.mestreConfig, { sessao });
           appendMensagemSessao(sessao, mensagemFallback);
           if (sessao.estadoJogo?.acoesPendentesTeste) {
             sessao.estadoJogo.acoesPendentesTeste = [];
@@ -2099,7 +2114,10 @@ class SocketManager {
       appendMensagemSessao(sessao, mensagemJogador);
 
       // 6. Salvar resposta do mestre na sessão
-      const mensagemMestre = buildMestreMensagem(resposta.narracao, sessao.mestreConfig);
+      const mensagemMestre = buildMestreMensagem(resposta.narracao, sessao.mestreConfig, {
+        sessao,
+        segmentos: resposta.segmentos || []
+      });
       appendMensagemSessao(sessao, mensagemMestre);
       await this.aplicarMetadadosNarrativos(roomId, sessao, resposta.metadados || {});
 
@@ -2435,7 +2453,10 @@ class SocketManager {
       const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
 
       const narrativaInicial = mensagemInicial.resposta || mensagemInicial.narracao || '';
-      const msgInicial = buildMestreMensagem(narrativaInicial, sessaoAtualizada.mestreConfig);
+      const msgInicial = buildMestreMensagem(narrativaInicial, sessaoAtualizada.mestreConfig, {
+        sessao: sessaoAtualizada,
+        segmentos: mensagemInicial.segmentos || []
+      });
       appendMensagemSessao(sessaoAtualizada, msgInicial);
       await this.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, mensagemInicial.metadados || {});
 
@@ -3376,7 +3397,7 @@ class SocketManager {
         const prologoTimestamp = Date.now();
 
         // Salvar na sessao.mensagens
-        const msgPrologo = buildMestreMensagem(prologoPendente, sessao.mestreConfig);
+        const msgPrologo = buildMestreMensagem(prologoPendente, sessao.mestreConfig, { sessao });
         msgPrologo.timestamp = prologoTimestamp;
         appendMensagemSessao(sessao, msgPrologo);
 
@@ -4380,7 +4401,10 @@ class SocketManager {
         });
 
         // Emitir e salvar narração do desfecho
-        const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig);
+        const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig, {
+          sessao,
+          segmentos: respostaDesfecho.segmentos || []
+        });
         appendMensagemSessao(sessao, msgDesfecho);
         await this.aplicarMetadadosNarrativos(roomId, sessao, respostaDesfecho.metadados || {});
 

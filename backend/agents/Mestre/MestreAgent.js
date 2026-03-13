@@ -9,6 +9,7 @@ import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider } from './config.js';
 import { isEnabled } from '../../config/featureFlags.js';
 import analyticsService from '../../services/analyticsService.js';
 import usageService from '../../services/usageService.js';
+import { normalizeNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
 
 // Timeout wrapper for AI calls
 function withTimeout(promise, ms = MESTRE_CONFIG.model.timeout) {
@@ -95,6 +96,23 @@ function extrairTeste(respostaJSON = {}) {
     jogadorAlvo: respostaJSON.solicitaDados.jogadorAlvo || null,
     tipoDado: respostaJSON.solicitaDados.tipo || 'd20',
     origem: respostaJSON.solicitaDados.origem || 'mestre'
+  };
+}
+
+function normalizeRespostaSegmentos(respostaJSON = {}) {
+  const narrativaBase = typeof respostaJSON?.narrativa === 'string'
+    ? respostaJSON.narrativa.trim()
+    : '';
+
+  const segmentos = normalizeNarrationSegments(respostaJSON?.segmentos, {
+    fallbackText: narrativaBase
+  });
+
+  const narrativa = narrativaBase || aggregateNarrationFromSegments(segmentos);
+
+  return {
+    narrativa,
+    segmentos
   };
 }
 
@@ -313,12 +331,13 @@ export class MestreAgent {
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
+      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
 
       // Adicionar ao historico local
       const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
       this.historico = adicionarMensagem(this.historico, mensagemJogador);
 
-      const respostaMestre = formatarRespostaMestre(respostaJSON.narrativa);
+      const respostaMestre = formatarRespostaMestre(narrativa);
       if (respostaJSON.metadados) {
         respostaMestre.contexto = {
           ...(respostaMestre.contexto || {}),
@@ -328,7 +347,8 @@ export class MestreAgent {
       this.historico = adicionarMensagem(this.historico, respostaMestre);
 
       return {
-        narracao: respostaJSON.narrativa,
+        narracao: narrativa,
+        segmentos,
         fimDeTurno: respostaJSON.fimDeTurno || false,
         solicitaDados: respostaJSON.solicitaDados || { solicita: false },
         teste: extrairTeste(respostaJSON),
@@ -344,8 +364,10 @@ export class MestreAgent {
     } catch (error) {
       console.error('MestreAgent: Erro ao narrar acao:', error.message);
       // Fallback narrative instead of crashing the game
+      const narrativaFallback = '*O Mestre faz uma pausa dramatica...* A magia que conecta os mundos vacila por um instante. (Erro temporario no servico de IA - tente novamente)';
       return {
-        narracao: '*O Mestre faz uma pausa dramatica...* A magia que conecta os mundos vacila por um instante. (Erro temporario no servico de IA - tente novamente)',
+        narracao: narrativaFallback,
+        segmentos: normalizeNarrationSegments(null, { fallbackText: narrativaFallback }),
         fimDeTurno: false,
         solicitaDados: { solicita: false },
         teste: null,
@@ -409,8 +431,10 @@ export class MestreAgent {
         };
       }
 
-      // Adicionar ao histórico
-      const respostaMestre = formatarRespostaMestre(respostaJSON.narrativa, {
+      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+
+      // Adicionar ao hist??rico
+      const respostaMestre = formatarRespostaMestre(narrativa, {
         tipo: 'inicio_sessao',
         tema: tema || this.temas.join(', ')
       });
@@ -419,7 +443,8 @@ export class MestreAgent {
       console.log('✅ MestreAgent: Sessão iniciada com sucesso');
 
       return {
-        introducao: respostaJSON.narrativa,
+        introducao: narrativa,
+        segmentos,
         tema: tema || this.temas.join(', '),
         personagens: personagensCustom || this.personagens,
         metadados: respostaJSON.metadados || {},
@@ -428,8 +453,10 @@ export class MestreAgent {
     } catch (error) {
       console.error('MestreAgent: Erro ao iniciar sessao:', error.message);
       // Fallback intro
+      const introducaoFallback = '*Uma nevoa mistica se dissipa lentamente...* A aventura esta prestes a comecar! (Erro temporario no servico de IA)';
       return {
-        introducao: '*Uma nevoa mistica se dissipa lentamente...* A aventura esta prestes a comecar! (Erro temporario no servico de IA)',
+        introducao: introducaoFallback,
+        segmentos: normalizeNarrationSegments(null, { fallbackText: introducaoFallback }),
         tema: tema || this.temas.join(', '),
         personagens: personagensCustom || this.personagens,
         metadados: {},
@@ -554,9 +581,11 @@ Mensagem do Jogador:
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
+      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
 
       return {
-        resposta: respostaJSON.narrativa,
+        resposta: narrativa,
+        segmentos,
         fimDeTurno: respostaJSON.fimDeTurno || false,
         solicitaDados: respostaJSON.solicitaDados || { solicita: false },
         teste: extrairTeste(respostaJSON),
@@ -572,8 +601,10 @@ Mensagem do Jogador:
       };
     } catch (error) {
       console.error('MestreAgent: Erro ao narrar turno:', error.message);
+      const respostaFallback = '*O Mestre faz uma pausa...* (Erro temporario no servico de IA - tente novamente)';
       return {
-        resposta: '*O Mestre faz uma pausa...* (Erro temporario no servico de IA - tente novamente)',
+        resposta: respostaFallback,
+        segmentos: normalizeNarrationSegments(null, { fallbackText: respostaFallback }),
         fimDeTurno: false,
         solicitaDados: { solicita: false },
         teste: null,
@@ -657,20 +688,25 @@ Narre a transição e apresente o novo desafio:`;
         };
       }
 
+      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+
       return {
-        narrativa: respostaJSON.narrativa,
+        narrativa,
+        segmentos,
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
         rodadaAnterior,
         proximaRodada,
-        novoDesafio: respostaJSON.narrativa,
+        novoDesafio: narrativa,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error('MestreAgent: Erro ao narrar entre rodadas:', error.message);
+      const narrativaFallbackEntreRodadas = '*O mundo estremece brevemente...* Uma nova rodada se inicia! (Erro temporario no servico de IA)';
       return {
-        narrativa: '*O mundo estremece brevemente...* Uma nova rodada se inicia! (Erro temporario no servico de IA)',
+        narrativa: narrativaFallbackEntreRodadas,
+        segmentos: normalizeNarrationSegments(null, { fallbackText: narrativaFallbackEntreRodadas }),
         metadados: {},
         rodadaAnterior,
         proximaRodada,

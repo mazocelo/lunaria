@@ -224,6 +224,10 @@ function montarRegrasBase() {
 6. **NUNCA se apresente, se nomeie ou se narre.** Você é um narrador invisível. NÃO diga "Eu sou [nome]", "Saudações, eu serei seu guia", ou qualquer variação. NÃO se descreva em terceira pessoa ("O Mestre sorri"). Comece DIRETO pela narrativa do mundo, sem introduções pessoais. Em vez de "Eu sou Thalion e serei seu guia", diga "A bruma se dissipa revelando..."
 7. **Se existir um NPC e um PJ com o mesmo nome, trate-os como entidades diferentes.** Internamente use a convenção mental "PJ:<nome>" para personagens dos jogadores e "NPC:<nome>" para NPCs.
 8. Nunca transfira atributos, memória, falas, objetivos, relações ou ações entre "PJ:<nome>" e "NPC:<nome>" quando o nome coincidir.
+9. SEMPRE preencha o campo "segmentos" no JSON com pelo menos 1 item.
+10. Use "tipo": "narracao" para trechos do narrador e "tipo": "fala_npc" para falas de NPC.
+11. Segmentos de NPC devem usar "speaker": "npc" e incluir "npc_id" quando o NPC existir no roteiro.
+12. Nao crie segmentos para fala de jogador. O jogador continua vindo fora desse campo.
 
 ## SISTEMA DE ATRIBUTOS
 
@@ -406,12 +410,27 @@ Quando houver rolagem pendente:
 
 function montarSchemaLegado() {
   return `
-## FORMATO DE RESPOSTA (OBRIGATÓRIO)
+## FORMATO DE RESPOSTA (OBRIGATORIO)
 
-Responda SEMPRE em JSON válido:
+Responda SEMPRE em JSON valido:
 
 {{
   "narrativa": "Sua narrativa em markdown. Use **negrito**, listas, etc.",
+  "segmentos": [
+    {{
+      "id": "seg_1",
+      "tipo": "narracao",
+      "speaker": "mestre",
+      "speaker_label": "Mestre",
+      "text": "Trecho da narracao",
+      "npc_id": null,
+      "narracao": {{
+        "emocao": "neutro",
+        "ritmo": "medio",
+        "intensidade": "media"
+      }}
+    }}
+  ],
   "fimDeTurno": false,
   "solicitaDados": {{ "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }},
   "acaoCompleta": false,
@@ -419,26 +438,49 @@ Responda SEMPRE em JSON válido:
   "acoes": []
 }}
 
-- **narrativa**: texto narrativo (markdown). Termine com gancho: "O que você faz?" ou pergunta contextual
+- **narrativa**: texto narrativo (markdown). Termine com gancho: "O que voce faz?" ou pergunta contextual
+- **segmentos**: array obrigatorio com os trechos da mensagem. Cada resposta deve ter ao menos 1 segmento
+- **segmentos[].tipo**: "narracao" ou "fala_npc"
+- **segmentos[].speaker**: "mestre" para narracao, "npc" para fala de NPC
+- **segmentos[].npc_id**: obrigatorio em "fala_npc" quando o NPC existir no roteiro
+- **segmentos[].narracao**: use apenas valores permitidos
+  emocao = neutro | calmo | sombrio | tenso | epico | frio | acolhedor | ameacador | triste | urgente
+  ritmo = lento | medio | rapido
+  intensidade = baixa | media | alta
 - **fimDeTurno**: true para encerrar turno do jogador
 - **solicitaDados.solicita**: true quando pedir rolagem
-- **solicitaDados.teste**: nome do teste (ex: Percepção, Força)
-- **solicitaDados.dificuldade**: nível (ex: Fácil, Média, Difícil)
-- **acaoCompleta**: true se ação do jogador está completamente resolvida
+- **solicitaDados.teste**: nome do teste (ex: Percepcao, Forca)
+- **solicitaDados.dificuldade**: nivel (ex: Facil, Media, Dificil)
+- **acaoCompleta**: true se a acao do jogador esta completamente resolvida
 - **combate**: null ou objeto de combate
-- **acoes**: array de ações mecânicas (vazio se nenhuma)`;
+- **acoes**: array de acoes mecanicas (vazio se nenhuma)`;
 }
 
-// ── Schema JSON expandido (4 Pilares) ──────────────────────────────
+// schema expandido
 
 function montarSchemaExpandido() {
   return `
-## FORMATO DE RESPOSTA (OBRIGATÓRIO)
+## FORMATO DE RESPOSTA (OBRIGATORIO)
 
-Responda SEMPRE em JSON válido:
+Responda SEMPRE em JSON valido:
 
 {{
-  "narrativa": "Texto narrativo imersivo em markdown. Descreva usando pelo menos 2 sentidos. Mínimo 3 frases.",
+  "narrativa": "Texto narrativo imersivo em markdown. Descreva usando pelo menos 2 sentidos. Minimo 3 frases.",
+  "segmentos": [
+    {{
+      "id": "seg_1",
+      "tipo": "narracao",
+      "speaker": "mestre",
+      "speaker_label": "Mestre",
+      "text": "Trecho da narracao",
+      "npc_id": null,
+      "narracao": {{
+        "emocao": "neutro",
+        "ritmo": "medio",
+        "intensidade": "media"
+      }}
+    }}
+  ],
   "fimDeTurno": false,
   "solicitaDados": {{
     "solicita": false,
@@ -458,18 +500,24 @@ Responda SEMPRE em JSON válido:
 }}
 
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
+- **segmentos**: array obrigatorio com ao menos 1 trecho da resposta
+- **segmentos[].tipo**: "narracao" ou "fala_npc"
+- **segmentos[].speaker**: "mestre" ou "npc"
+- **segmentos[].npc_id**: preenchido em fala de NPC quando ele existir no roteiro
+- **segmentos[].narracao**: use apenas os valores permitidos
+  emocao = neutro | calmo | sombrio | tenso | epico | frio | acolhedor | ameacador | triste | urgente
+  ritmo = lento | medio | rapido
+  intensidade = baixa | media | alta
 - **fimDeTurno**: true para encerrar turno do jogador
 - **solicitaDados.solicita**: true quando pedir rolagem
-- **solicitaDados.teste**: nome do teste (ex: Percepção, Força)
-- **solicitaDados.dificuldade**: nível (ex: Fácil, Média, Difícil)
-- **solicitaDados.origem**: fonte do teste se aplicável (ex: "desvantagem:Ganancioso", "habilidade:Golpe_Atordoante", "magia:Bola_de_Fogo")
-- **acaoCompleta**: true se ação do jogador está completamente resolvida
+- **solicitaDados.teste**: nome do teste (ex: Percepcao, Forca)
+- **solicitaDados.dificuldade**: nivel (ex: Facil, Media, Dificil)
+- **solicitaDados.origem**: fonte do teste se aplicavel (ex: "desvantagem:Ganancioso", "habilidade:Golpe_Atordoante", "magia:Bola_de_Fogo")
+- **acaoCompleta**: true se a acao do jogador esta completamente resolvida
 - **combate**: null ou objeto de combate
-- **acoes**: array de ações mecânicas (vazio se nenhuma)
-- **metadados**: informações contextuais opcionais (local, hora, NPCs presentes)`;
+- **acoes**: array de acoes mecanicas (vazio se nenhuma)
+- **metadados**: informacoes contextuais opcionais (local, hora, NPCs presentes)`;
 }
-
-// ── Função principal ───────────────────────────────────────────────
 
 export function criarPromptSistema(
   temas = [],

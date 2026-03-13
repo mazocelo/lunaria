@@ -4,6 +4,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import usageService from './usageService.js';
+import { ensureNpcIds } from './narrationSegmentsService.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOKENS = 8000;
@@ -196,25 +197,35 @@ function normalizeLocais(locais = []) {
 }
 
 function normalizeNpcs(npcs = []) {
-  const normalized = ensureArray(npcs).map((npc, index) => ({
-    ...npc,
-    nome: asTrimmedString(npc?.nome, `NPC ${index + 1}`),
-    papel: asTrimmedString(npc?.papel, 'neutro'),
-    descricao: asTrimmedString(npc?.descricao, 'Sem descricao'),
-    motivacao: asTrimmedString(npc?.motivacao, 'Nao definida'),
-    local: asTrimmedString(npc?.local, 'Desconhecido'),
-    segredo: asTrimmedString(npc?.segredo, 'Nenhum'),
-    imagem: asTrimmedString(npc?.imagem, '') || null
-  }));
+  const normalized = ensureArray(npcs).map((npc, index) => {
+    const voiceId = asTrimmedString(npc?.voice_id, '') || null;
 
-  return normalized.length > 0 ? normalized : [{
+    return {
+      ...npc,
+      id: asTrimmedString(npc?.id, '') || null,
+      nome: asTrimmedString(npc?.nome, `NPC ${index + 1}`),
+      papel: asTrimmedString(npc?.papel, 'neutro'),
+      descricao: asTrimmedString(npc?.descricao, 'Sem descricao'),
+      motivacao: asTrimmedString(npc?.motivacao, 'Nao definida'),
+      local: asTrimmedString(npc?.local, 'Desconhecido'),
+      segredo: asTrimmedString(npc?.segredo, 'Nenhum'),
+      dialogo_exemplo: asTrimmedString(npc?.dialogo_exemplo, '') || null,
+      imagem: asTrimmedString(npc?.imagem, '') || null,
+      voice_id: voiceId,
+      voice_provider: voiceId
+        ? (asTrimmedString(npc?.voice_provider, 'elevenlabs') || 'elevenlabs')
+        : null
+    };
+  });
+
+  return normalized.length > 0 ? ensureNpcIds(normalized) : ensureNpcIds([{
     nome: 'NPC Central',
     papel: 'neutro',
     descricao: 'Sem descricao',
     motivacao: 'Nao definida',
     local: 'Desconhecido',
     segredo: 'Nenhum'
-  }];
+  }]);
 }
 
 function normalizeSimpleObjects(items = [], defaults = {}) {

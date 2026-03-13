@@ -65,6 +65,7 @@ export function buildMestreMensagem(conteudo, mestreConfig = null, options = {})
     voice_id: voiceId,
     voice_provider: voiceProvider,
     audio_cache_key: options.audioCacheKey || null,
+    segmentos: Array.isArray(options.segmentos) ? options.segmentos : [],
     ...options.extraFields
   });
 }

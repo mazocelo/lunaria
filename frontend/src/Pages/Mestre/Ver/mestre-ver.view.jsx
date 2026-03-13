@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
@@ -71,11 +71,63 @@ const PromptPreviewSection = ({ promptPreview, isLight }) => {
   );
 };
 
+const InfoRow = ({ label, value, fallback = 'Nao definido', isLight }) => (
+  <div className="flex items-center justify-between">
+    <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{label}:</span>
+    <span className={`font-modern text-sm ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+      {value || fallback}
+    </span>
+  </div>
+);
+
+const buildPromptPreview = ({ nome, personalidade, tom_narrativo, regras_especiais }) => {
+  const parts = [];
+  parts.push('Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.');
+  if (nome) parts.push(`Seu nome como Mestre e "${nome}".`);
+  if (personalidade) parts.push(`PERSONALIDADE: ${personalidade}`);
+  if (tom_narrativo) parts.push(`TOM NARRATIVO: ${tom_narrativo}`);
+  if (regras_especiais) parts.push(`REGRAS ESPECIAIS: ${regras_especiais}`);
+  parts.push('');
+  parts.push('TEMAS DA CAMPANHA: [definidos pela historia]');
+  parts.push('PERSONAGENS JOGANDO: [definidos na sessao]');
+  parts.push('');
+  parts.push('## REGRAS FUNDAMENTAIS');
+  parts.push('1. Reaja com criatividade e coerencia a cada acao do jogador');
+  parts.push('2. Descreva ambiente, efeitos e desdobramentos narrativos');
+  parts.push('3. Nunca tome decisoes pelo personagem - apenas descreva consequencias');
+  parts.push('4. Mantenha imersao, suspense e ritmo adequado aos temas');
+  parts.push('5. SEMPRE responda em JSON valido');
+  parts.push('');
+  parts.push('## ROLAGEM DE DADOS');
+  parts.push('Solicite rolagem quando a acao for ARRISCADA, INCERTA ou de COMBATE (~30-40% das acoes).');
+  parts.push('Testes: Forca, Destreza, Constituicao, Inteligencia, Agilidade, Carisma, Atletismo, Intimidacao, Percepcao, Furtividade, etc.');
+  parts.push('Dificuldades: Muito Facil | Facil | Media | Dificil | Muito Dificil | Quase Impossivel');
+  parts.push('');
+  parts.push('## FORMATO DE RESPOSTA (JSON)');
+  parts.push('{ "narrativa": "...", "fimDeTurno": false, "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }, "combate": null, "acoes": [] }');
+  return parts.join('\n');
+};
+
 const VerMestreView = ({
   id, mestre, loading, error, isLight, voiceName,
   clearError, navigate, generateRoute,
 }) => {
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const {
+    nome,
+    descricao,
+    personalidade,
+    tags,
+    modelo,
+    temperatura,
+    max_tokens,
+    tom_narrativo,
+    regras_especiais,
+    imagem,
+    voice_id,
+    voice_provider,
+  } = mestre || {};
+  const promptPreview = buildPromptPreview({ nome, personalidade, tom_narrativo, regras_especiais });
 
   if (loading) {
     return (
@@ -116,45 +168,6 @@ const VerMestreView = ({
   }
 
   if (!mestre) return null;
-
-  const { nome, descricao, personalidade, modelo, temperatura, max_tokens, tom_narrativo, regras_especiais, imagem, voice_id, voice_provider } = mestre;
-
-  const promptPreview = useMemo(() => {
-    const parts = [];
-    parts.push('Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.');
-    if (nome) parts.push(`Seu nome como Mestre e "${nome}".`);
-    if (personalidade) parts.push(`PERSONALIDADE: ${personalidade}`);
-    if (tom_narrativo) parts.push(`TOM NARRATIVO: ${tom_narrativo}`);
-    if (regras_especiais) parts.push(`REGRAS ESPECIAIS: ${regras_especiais}`);
-    parts.push('');
-    parts.push('TEMAS DA CAMPANHA: [definidos pela historia]');
-    parts.push('PERSONAGENS JOGANDO: [definidos na sessao]');
-    parts.push('');
-    parts.push('## REGRAS FUNDAMENTAIS');
-    parts.push('1. Reaja com criatividade e coerencia a cada acao do jogador');
-    parts.push('2. Descreva ambiente, efeitos e desdobramentos narrativos');
-    parts.push('3. Nunca tome decisoes pelo personagem — apenas descreva consequencias');
-    parts.push('4. Mantenha imersao, suspense e ritmo adequado aos temas');
-    parts.push('5. SEMPRE responda em JSON valido');
-    parts.push('');
-    parts.push('## ROLAGEM DE DADOS');
-    parts.push('Solicite rolagem quando a acao for ARRISCADA, INCERTA ou de COMBATE (~30-40% das acoes).');
-    parts.push('Testes: Forca, Destreza, Constituicao, Inteligencia, Agilidade, Carisma, Atletismo, Intimidacao, Percepcao, Furtividade, etc.');
-    parts.push('Dificuldades: Muito Facil | Facil | Media | Dificil | Muito Dificil | Quase Impossivel');
-    parts.push('');
-    parts.push('## FORMATO DE RESPOSTA (JSON)');
-    parts.push('{ "narrativa": "...", "fimDeTurno": false, "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }, "combate": null, "acoes": [] }');
-    return parts.join('\n');
-  }, [nome, personalidade, tom_narrativo, regras_especiais]);
-
-  const InfoRow = ({ label, value, fallback = 'Nao definido' }) => (
-    <div className="flex items-center justify-between">
-      <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{label}:</span>
-      <span className={`font-modern text-sm ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-        {value || fallback}
-      </span>
-    </div>
-  );
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -237,6 +250,14 @@ const VerMestreView = ({
                 )}
               </div>
 
+              {Array.isArray(tags) && tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <Badge key={tag} variant="purple">{tag}</Badge>
+                  ))}
+                </div>
+              )}
+
               {descricao && (
                 <div>
                   <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
@@ -303,11 +324,16 @@ const VerMestreView = ({
               Configuracoes
             </h3>
             <div className="space-y-3">
-              <InfoRow label="Modelo" value={modelo} />
-              <InfoRow label="Temperatura" value={temperatura} />
-              <InfoRow label="Max Tokens" value={max_tokens} />
-              <InfoRow label="Tom Narrativo" value={tom_narrativo} />
-              <InfoRow label="Voz (TTS)" value={voice_id ? `${voiceName || voice_id} (${voice_provider === 'cartesia' ? 'Cartesia' : voice_provider === 'opensource' ? 'Open Source' : 'ElevenLabs'})` : null} fallback="Sem voz" />
+              <InfoRow label="Modelo" value={modelo} isLight={isLight} />
+              <InfoRow label="Temperatura" value={temperatura} isLight={isLight} />
+              <InfoRow label="Max Tokens" value={max_tokens} isLight={isLight} />
+              <InfoRow label="Tom Narrativo" value={tom_narrativo} isLight={isLight} />
+              <InfoRow
+                label="Voz (TTS)"
+                value={voice_id ? `${voiceName || voice_id} (${voice_provider === 'cartesia' ? 'Cartesia' : voice_provider === 'opensource' ? 'Open Source' : 'ElevenLabs'})` : null}
+                fallback="Sem voz"
+                isLight={isLight}
+              />
             </div>
           </RPGCard>
 

@@ -1,0 +1,132 @@
+# D-03 - Observabilidade e admin do motor
+
+## Tipo
+
+Discussao
+
+## Prioridade
+
+Maturar ideia
+
+## Contexto
+
+O motor do jogo ficou sofisticado. Hoje ele envolve:
+
+- turno
+- testes pendentes
+- resumo consolidado
+- contexto do mestre
+- combate
+- geracoes de IA
+- audio
+- imagens
+
+O problema deixa de ser apenas "fazer funcionar" e passa a ser "entender rapido o que aconteceu quando algo sai do esperado".
+
+## Pergunta central
+
+Isso deve ser um sistema separado para admin?
+
+## Recomendacao
+
+Nao no primeiro momento.
+
+Eu imagino duas fases:
+
+### Fase 1 - Admin interno ao proprio produto
+
+Criar uma area restrita para `admin/superadmin`, dentro do mesmo backend e frontend, reaproveitando:
+
+- auth atual
+- roles atuais
+- websocket e APIs ja existentes
+
+Telas sugeridas:
+
+- sessoes ativas
+- detalhe de sessao
+- turno atual
+- testes pendentes
+- ultimo prompt do mestre
+- ultimo output do mestre
+- resumo consolidado
+- jobs de IA recentes
+- uso de tokens
+- erros recentes
+
+### Fase 2 - Observabilidade separada
+
+Quando o volume crescer, ai sim vale considerar um sistema separado, mais tecnico, para:
+
+- logs estruturados
+- tracing
+- dashboards
+- alertas
+
+## Porque nao separar logo de inicio
+
+- maior custo de manutencao
+- mais auth e permissao para resolver
+- mais deploy para coordenar
+- ainda nao ha volume suficiente para justificar outro sistema inteiro
+
+## Como eu imagino a area admin interna
+
+Modulo novo do produto, algo como:
+
+- `/admin/motor`
+- `/admin/motor/sessoes`
+- `/admin/motor/sessoes/:roomId`
+- `/admin/motor/jobs`
+- `/admin/motor/uso-ia`
+
+Capacidades da primeira versao:
+
+- ver sessao ativa e estado do turno
+- ver jogadores conectados
+- ver `testesPendentes`
+- ver `mestreContexto`
+- ver resumo consolidado
+- ver ultimo prompt e resposta do mestre
+- ver falhas de geracao
+- reprocessar job preso
+
+## Dependencias tecnicas
+
+- logs estruturados por evento
+- persistencia minima de prompts/resultados
+- endpoints admin dedicados
+- guardas por role
+
+## Criterios de aceite da fase 1
+
+- um admin consegue entender o estado atual de uma sessao sem entrar no codigo
+- um admin consegue diagnosticar porque um turno travou
+- um admin consegue ver se um job de IA falhou e onde falhou
+- um admin consegue ver consumo basico de tokens e tempo de resposta
+
+## Handoff para outra instancia
+
+Objetivo: desenhar a primeira versao de observabilidade/admin do motor do jogo.
+
+Contexto atual:
+
+- o sistema ja tem estado rico e logs espalhados
+- falta uma superficie unica para inspecao operacional
+- a recomendacao atual e nao separar em outro sistema ainda
+
+O que fazer:
+
+- projetar um modulo admin interno
+- definir quais dados precisam ficar visiveis
+- decidir que nivel de persistencia de prompt e output e aceitavel
+
+Entregaveis:
+
+- desenho da area admin
+- endpoints e payloads
+- backlog da fase 1
+
+## Observacao de produto
+
+Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora a confianca para evoluir o motor.

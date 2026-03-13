@@ -9,6 +9,7 @@ const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOKENS = 8000;
 const TIMEOUT_MS = 180000;
 const BLUEPRINT_TEMPERATURE = 0.3;
+const REGENERATE_TEMPERATURE = 0.7;
 const REPAIR_TEMPERATURE = 0.1;
 
 function asTrimmedString(value, fallback = '') {
@@ -38,6 +39,106 @@ function asPercent(value) {
 
 function ensureArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function normalizeForComparison(value) {
+  return asTrimmedString(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function uniqueStrings(values = []) {
+  return [...new Set(
+    ensureArray(values)
+      .map(item => asTrimmedString(item, ''))
+      .filter(Boolean)
+  )];
+}
+
+function buildSourceStoryText(historia = {}) {
+  return normalizeForComparison([
+    historia?.nome,
+    historia?.descricao,
+    historia?.prologo
+  ].filter(Boolean).join('\n'));
+}
+
+function wasExplicitlyProvidedByStory(historia, value) {
+  const candidate = normalizeForComparison(value);
+  if (!candidate) return false;
+  return buildSourceStoryText(historia).includes(candidate);
+}
+
+function formatAvoidList(label, values, maxItems = 8) {
+  const items = uniqueStrings(values).slice(0, maxItems);
+  if (items.length === 0) return '';
+  return `- ${label}: ${items.join(', ')}`;
+}
+
+function buildRegenerationBlock(historia, previousBlueprint) {
+  if (!previousBlueprint || typeof previousBlueprint !== 'object') {
+    return '';
+  }
+
+  const itensParaEvitar = [
+    formatAvoidList(
+      'Titulos de arco ja usados',
+      ensureArray(previousBlueprint.arcos)
+        .map(arco => arco?.titulo)
+        .filter(titulo => !wasExplicitlyProvidedByStory(historia, titulo))
+    ),
+    formatAvoidList(
+      'Locais gerados anteriormente',
+      ensureArray(previousBlueprint.locais)
+        .map(local => local?.nome)
+        .filter(nome => !wasExplicitlyProvidedByStory(historia, nome))
+    ),
+    formatAvoidList(
+      'NPCs gerados anteriormente',
+      ensureArray(previousBlueprint.npcs)
+        .map(npc => npc?.nome)
+        .filter(nome => !wasExplicitlyProvidedByStory(historia, nome))
+    ),
+    formatAvoidList(
+      'Tesouros gerados anteriormente',
+      ensureArray(previousBlueprint.tesourosSegretos)
+        .map(tesouro => tesouro?.nome)
+        .filter(nome => !wasExplicitlyProvidedByStory(historia, nome))
+    ),
+    formatAvoidList(
+      'Encontros gerados anteriormente',
+      ensureArray(previousBlueprint.encontrosChave)
+        .map(encontro => encontro?.nome)
+        .filter(nome => !wasExplicitlyProvidedByStory(historia, nome))
+    ),
+    formatAvoidList(
+      'Titulos/variantes do antagonista anterior',
+      [
+        previousBlueprint.antagonista?.nome,
+        previousBlueprint.antagonista?.titulo
+      ].filter(nome => !wasExplicitlyProvidedByStory(historia, nome))
+    )
+  ].filter(Boolean);
+
+  if (itensParaEvitar.length === 0) {
+    return `
+## REGENERACAO ALTERNATIVA
+Voce esta criando UMA NOVA PROPOSTA DE ROTEIRO para a mesma premissa.
+Mantenha apenas o nucleo canonico explicitamente citado na aventura base.
+Todo o resto deve ser uma proposta nova: arcos, encontros, locais, NPCs secundarios, titulos, segredos e desfechos.
+`;
+  }
+
+  return `
+## REGENERACAO ALTERNATIVA
+Voce esta criando UMA NOVA PROPOSTA DE ROTEIRO para a mesma premissa.
+Mantenha apenas o nucleo canonico explicitamente citado na aventura base.
+Nao reutilize nomes, titulos, arcos, NPCs secundarios, locais, encontros, tesouros e variacoes do antagonista do roteiro anterior, exceto quando esse nome ja estiver explicitamente citado na aventura base.
+
+EVITE REUTILIZAR:
+${itensParaEvitar.join('\n')}
+`;
 }
 
 function normalizeArcos(arcos = []) {
@@ -227,8 +328,14 @@ function normalizeBlueprintStructure(roteiro) {
   };
 }
 
-function buildBlueprintPrompt(historia, catalogo, temasNomes) {
+function buildBlueprintPrompt(historia, catalogo, temasNomes, options = {}) {
   const temas = temasNomes.join(', ');
+  const regenerationBlock = options.mode === 'regenerate'
+    ? buildRegenerationBlock(historia, options.previousBlueprint)
+    : '';
+  const variationRule = options.mode === 'regenerate'
+    ? 'REGRAS EXTRAS DE REGENERACAO: entregue uma proposta claramente diferente do roteiro anterior. Preserve apenas a premissa-base e nomes explicitamente canonicos do texto da aventura. Todo o restante deve ser novo e nao apenas reescrito.'
+    : '';
 
   return `Voce e um roteirista de RPG. Crie um roteiro narrativo (Story Blueprint) para esta aventura.
 
@@ -236,6 +343,7 @@ function buildBlueprintPrompt(historia, catalogo, temasNomes) {
 Nome: ${historia.nome} | Temas: ${temas} | Jogadores: ${historia.maximo_de_participantes || 5}
 Descricao: ${historia.descricao || 'Nao fornecida'}
 Prologo: ${historia.prologo || 'Nao fornecido'}
+${regenerationBlock}
 
 ## CATALOGO (monstros e equipamentos disponiveis)
 ${catalogo || 'Crie monstros e itens originais coerentes com os temas.'}
@@ -245,7 +353,7 @@ Responda APENAS com JSON valido (sem markdown). Seja conciso mas criativo. Estru
 
 {"sinopse":"Resumo da aventura (2-3 paragrafos)","antagonista":{"nome":"","titulo":"","descricao":"descricao breve","motivacao":"","poderes":[""],"fraquezas":[""],"conexao_com_historia":""},"arcos":[{"numero":1,"titulo":"","descricao":"breve","objetivos":[""],"nivel_sugerido":"1-3"}],"mapaMundi":{"descricao_geral":"descricao do mundo","regioes":[{"nome":"","descricao":"breve","perigo":"baixo|medio|alto|extremo"}]},"locais":[{"nome":"","tipo":"cidade|dungeon|floresta|montanha|ruina|templo|outro","descricao":"1-2 frases","segredos":[""],"monstros_comuns":[""],"arco_relacionado":1}],"npcs":[{"nome":"","papel":"aliado|neutro|antagonista|quest_giver|mercador|informante","descricao":"1 frase","motivacao":"","local":"","segredo":""}],"tesourosSegretos":[{"nome":"","tipo":"equipamento|informacao|artefato","descricao":"","localizacao":"","condicao":""}],"plotTwists":[{"momento":"","revelacao":"","impacto":""}],"encontrosChave":[{"nome":"","tipo":"combate|social|exploracao|puzzle|boss","descricao":"1-2 frases","monstros":[""],"dificuldade":"facil|media|dificil|letal","recompensas":[""],"arco_relacionado":1}],"desfechosPossiveis":[{"tipo":"vitoria_total|vitoria_parcial|derrota|agridoce","condicao":"","descricao":"1-2 frases"}],"instrucoesGeraisParaOMestre":{"tom_narrativo":"","ritmo":"","adaptacao":"","dicas_imersao":[""]},"progressao":{"marcos":[{"id":"marco_1","descricao":"","arco":1,"concluido":false}],"arco_atual":1,"porcentagem_estimada":0}}
 
-REGRAS: Crie 3 arcos, 4 locais, 5 NPCs, 2 plot twists, 4 encontros-chave. Use nomes do catalogo quando possivel. Seja coerente com os temas: ${temas}.`;
+REGRAS: Crie 3 arcos, 4 locais, 5 NPCs, 2 plot twists, 4 encontros-chave. Use nomes do catalogo quando possivel. Seja coerente com os temas: ${temas}. ${variationRule}`.trim();
 }
 
 class BlueprintService {
@@ -268,11 +376,18 @@ class BlueprintService {
     return this.client;
   }
 
-  async gerarRoteiro(historia, catalogo, temasNomes, userId = null) {
-    const prompt = buildBlueprintPrompt(historia, catalogo, temasNomes);
-    console.log(`BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5...`);
+  async gerarRoteiro(historia, catalogo, temasNomes, userId = null, options = {}) {
+    const mode = options.mode === 'regenerate' ? 'regenerate' : 'initial';
+    const prompt = buildBlueprintPrompt(historia, catalogo, temasNomes, {
+      mode,
+      previousBlueprint: options.previousBlueprint || historia?.roteiro || null
+    });
+    const temperature = mode === 'regenerate' ? REGENERATE_TEMPERATURE : BLUEPRINT_TEMPERATURE;
+    console.log(
+      `BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5... modo=${mode}`
+    );
 
-    const content = await this._createMessage(prompt, userId, 'blueprint', BLUEPRINT_TEMPERATURE);
+    const content = await this._createMessage(prompt, userId, 'blueprint', temperature);
     let roteiro = this._parseRoteiro(content);
 
     if (!roteiro) {

@@ -132,12 +132,18 @@ class HistoriaController {
 
   async processarGeracaoRoteiro(historia, userId, options = {}) {
     const historiaId = parseInt(historia.id, 10);
-    const { emitirErroSocket = true } = options;
+    const {
+      emitirErroSocket = true,
+      mode = historia?.roteiro ? 'regenerate' : 'initial'
+    } = options;
 
     try {
       const catalogo = await buildCatalogoCompleto();
       const temasNomes = await this.gerarTemasNomes(historia.temas || []);
-      const roteiro = await blueprintService.gerarRoteiro(historia, catalogo, temasNomes, userId);
+      const roteiro = await blueprintService.gerarRoteiro(historia, catalogo, temasNomes, userId, {
+        mode,
+        previousBlueprint: historia?.roteiro || null
+      });
 
       await db.Historia.updateHistoria(historiaId, {
         roteiro,
@@ -965,7 +971,9 @@ class HistoriaController {
       // Gerar em background
       (async () => {
         try {
-          await this.processarGeracaoRoteiro(historia, userId);
+          await this.processarGeracaoRoteiro(historia, userId, {
+            mode: historia?.roteiro ? 'regenerate' : 'initial'
+          });
         } catch (error) {
           console.error(`Erro ao gerar roteiro para historia ${id}:`, error.message);
         }

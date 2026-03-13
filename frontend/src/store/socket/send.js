@@ -1,9 +1,9 @@
 /**
- * Socket Store - Métodos de envio: mensagens, ações, dados, sessão, turnos
+ * Socket Store - Metodos de envio: mensagens, acoes, dados, sessao e turnos
  */
 
 export const createSendActions = (set, get) => ({
-  // ===== MÉTODOS DE ENVIO =====
+  // ===== METODOS DE ENVIO =====
   playerAction: (actionData) => {
     const { socket, isConnected, safeEmit } = get();
     if (socket && isConnected) {
@@ -25,49 +25,19 @@ export const createSendActions = (set, get) => ({
     }
   },
 
-  startSession: async (sessionData) => {
-    const { socket, isConnected, configs, log } = get();
-
-    return new Promise((resolve, reject) => {
-      if (!socket || !isConnected) {
-        return reject(new Error('WebSocket não conectado'));
-      }
-
-      const timeout = setTimeout(() => {
-        reject(new Error(`Timeout ao iniciar sessão após ${configs.SESSION_TIMEOUT}ms`));
-      }, configs.SESSION_TIMEOUT);
-
-      const cleanup = () => {
-        clearTimeout(timeout);
-        socket.off('session_started', onStarted);
-        socket.off('start_session_error', onError);
-      };
-
-      const onStarted = (result) => {
-        cleanup();
-        set({ session: result.session });
-        log('Session started', { sessionId: result.session?.id, success: true });
-        resolve(result);
-      };
-
-      const onError = (error) => {
-        cleanup();
-        log('Start session error', { error: error.message }, 'error');
-        reject(new Error(error.message));
-      };
-
-      socket.once('session_started', onStarted);
-      socket.once('start_session_error', onError);
-      socket.emit('start_session', sessionData);
-    });
+  startSession: async () => {
+    const { log } = get();
+    const message = 'start_session nao faz parte do contrato websocket atual. Use join_room para entrar na sessao da historia.';
+    log('Start session is not supported by current websocket contract', { error: message }, 'error');
+    return Promise.reject(new Error(message));
   },
 
-  // ===== AÇÕES DO SISTEMA DE TURNOS =====
+  // ===== ACOES DO SISTEMA DE TURNOS =====
   rolarDadoInicial: () => {
     const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
 
     if (!socket || !isConnected) {
-      log('Não conectado para rolar dado', {}, 'error');
+      log('Nao conectado para rolar dado', {}, 'error');
       return false;
     }
 
@@ -90,7 +60,7 @@ export const createSendActions = (set, get) => ({
     const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
 
     if (!socket || !isConnected) {
-      log('Não conectado para iniciar turno', {}, 'error');
+      log('Nao conectado para iniciar turno', {}, 'error');
       return false;
     }
 

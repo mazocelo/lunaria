@@ -13,7 +13,7 @@ export const createListenerActions = (set, get) => ({
     // Limpar apenas listeners internos do socket (não os de componentes via socketStoreOn)
     // removeAllListeners() destruía listeners de EtapaJogoRPG registrados via on()
     const internalEvents = [
-      'connect', 'disconnect', 'connect_error',
+      'connect', 'disconnect', 'connect_error', 'error',
       'authenticated', 'authentication_error',
       'room_joined', 'room_left', 'room_users', 'connection_error',
       'fase_atualizada', 'aventura_iniciada', 'resultado_dado_inicial',
@@ -69,6 +69,18 @@ export const createListenerActions = (set, get) => ({
         error: error.message
       });
       get().log('Connection error', { error: error.message }, 'error');
+    });
+
+    socket.on('error', (data) => {
+      const message = data?.message || 'Erro no websocket';
+      set({
+        error: message,
+        erroMensagem: message
+      });
+      if (window.showGameNotification) {
+        window.showGameNotification(message, 'error');
+      }
+      get().log('Socket error', { error: message }, 'error');
     });
 
     // ===== LISTENERS DE RECONEXÃO =====

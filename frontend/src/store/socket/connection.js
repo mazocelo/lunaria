@@ -115,6 +115,7 @@ export const createConnectionActions = (set, get) => ({
         clearTimeout(timeout);
         socket.off('authenticated', onAuthenticated);
         socket.off('authentication_error', onAuthError);
+        socket.off('error', onGenericError);
       };
 
       const onAuthenticated = (data) => {
@@ -127,8 +128,14 @@ export const createConnectionActions = (set, get) => ({
         reject(new Error(error.message));
       };
 
+      const onGenericError = (error) => {
+        cleanup();
+        reject(new Error(error?.message || 'Erro ao autenticar no websocket'));
+      };
+
       socket.once('authenticated', onAuthenticated);
       socket.once('authentication_error', onAuthError);
+      socket.once('error', onGenericError);
       socket.emit('authenticate', authData);
     });
   },

@@ -9,11 +9,11 @@ export const createRoomActions = (set, get) => ({
 
     return new Promise((resolve, reject) => {
       if (!socket || !isConnected) {
-        return reject(new Error('WebSocket não conectado'));
+        return reject(new Error('WebSocket nao conectado'));
       }
 
       if (!isAuthenticated) {
-        return reject(new Error('Usuário não autenticado'));
+        return reject(new Error('Usuario nao autenticado'));
       }
 
       const sessionId = Date.now().toString();
@@ -22,7 +22,7 @@ export const createRoomActions = (set, get) => ({
       log('Joining room', { roomId: joinData.roomId, username: joinData.username });
 
       const timeout = setTimeout(() => {
-        reject(new Error(`Timeout ao entrar na sala após ${configs.ROOM_TIMEOUT}ms`));
+        reject(new Error(`Timeout ao entrar na sala apos ${configs.ROOM_TIMEOUT}ms`));
       }, configs.ROOM_TIMEOUT);
 
       const cleanup = () => {
@@ -37,7 +37,7 @@ export const createRoomActions = (set, get) => ({
         log('Room joined', { roomId: data.roomId, users: data.users?.length, success: true });
 
         if (data.sessao?.jogadoresConectados) {
-          const participantesFormatados = data.sessao.jogadoresConectados.map(j => ({
+          const participantesFormatados = data.sessao.jogadoresConectados.map((j) => ({
             userId: j.userId,
             username: j.username,
             personagemId: j.personagemId,
@@ -80,21 +80,26 @@ export const createRoomActions = (set, get) => ({
   },
 
   leaveRoom: async () => {
-    const { socket, isConnected, configs, log } = get();
+    const { socket, isConnected, configs, log, roomId, currentUser } = get();
 
     return new Promise((resolve, reject) => {
       if (!socket || !isConnected) {
-        return reject(new Error('WebSocket não conectado'));
+        return reject(new Error('WebSocket nao conectado'));
+      }
+
+      if (!roomId || !currentUser?.id) {
+        return reject(new Error('Room atual ou usuario autenticado ausente'));
       }
 
       const timeout = setTimeout(() => {
-        reject(new Error(`Timeout ao sair da sala após ${configs.ROOM_TIMEOUT}ms`));
+        reject(new Error(`Timeout ao sair da sala apos ${configs.ROOM_TIMEOUT}ms`));
       }, configs.ROOM_TIMEOUT);
 
       const cleanup = () => {
         clearTimeout(timeout);
         socket.off('room_left', onLeft);
         socket.off('leave_room_error', onError);
+        socket.off('error', onGenericError);
       };
 
       const onLeft = (result) => {
@@ -115,9 +120,20 @@ export const createRoomActions = (set, get) => ({
         reject(new Error(error.message));
       };
 
+      const onGenericError = (error) => {
+        cleanup();
+        log('Leave room generic error', { error: error.message || error }, 'error');
+        reject(new Error(error.message || 'Erro ao sair da sala'));
+      };
+
       socket.once('room_left', onLeft);
       socket.once('leave_room_error', onError);
-      socket.emit('leave_room', {});
+      socket.once('error', onGenericError);
+      socket.emit('leave_room', {
+        roomId,
+        userId: currentUser.id,
+        username: currentUser.username || currentUser.nome
+      });
     });
   },
 });

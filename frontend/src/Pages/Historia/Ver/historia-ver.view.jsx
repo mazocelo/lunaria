@@ -477,7 +477,7 @@ const VerHistoriaView = ({
                     <ScrollText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
                     Roteiro da Aventura
                   </h3>
-                  {canMutateHistoria && (!roteiro && roteiroStatus !== 'generating' && !roteiroLoading) && (
+                  {canMutateHistoria && (!roteiro && !['queued', 'generating'].includes(roteiroStatus) && !roteiroLoading) && (
                     <button
                       onClick={handleGerarRoteiro}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
@@ -486,7 +486,7 @@ const VerHistoriaView = ({
                       Gerar com IA
                     </button>
                   )}
-                  {canMutateHistoria && roteiro && !roteiroLoading && (
+                  {canMutateHistoria && roteiro && !roteiroLoading && !['queued', 'generating'].includes(roteiroStatus) && (
                     <button
                       onClick={handleGerarRoteiro}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
@@ -499,7 +499,7 @@ const VerHistoriaView = ({
                   )}
                 </div>
 
-                {(roteiroLoading || roteiroStatus === 'generating') ? (
+                {(roteiroLoading || ['queued', 'generating'].includes(roteiroStatus)) ? (
                   <div className={`p-6 rounded-lg text-center ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
                     <Loader2 size={24} className="animate-spin text-purple-400 mx-auto mb-3" />
                     <p className={`font-modern text-sm ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>

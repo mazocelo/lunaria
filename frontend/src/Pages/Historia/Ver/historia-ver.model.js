@@ -170,7 +170,7 @@ export const useHistoriaVerModel = () => {
     roteiroPollRef.current = setInterval(async () => {
       try {
         const updated = await historiaService.getRoteiro(historiaId);
-        if (updated.roteiro_status !== 'generating') {
+        if (!['queued', 'generating'].includes(updated.roteiro_status)) {
           stopRoteiroPoll();
           setRoteiro(updated.roteiro || null);
           setRoteiroStatus(updated.roteiro_status);
@@ -189,7 +189,7 @@ export const useHistoriaVerModel = () => {
       const data = await historiaService.getRoteiro(historiaId);
       setRoteiro(data.roteiro || null);
       setRoteiroStatus(data.roteiro_status || null);
-      if (data.roteiro_status === 'generating') {
+      if (['queued', 'generating'].includes(data.roteiro_status)) {
         startRoteiroPoll(historiaId);
       }
     } catch (err) {

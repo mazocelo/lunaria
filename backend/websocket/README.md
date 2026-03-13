@@ -23,6 +23,25 @@ Este contrato cobre:
 4. Para mensagens, `message` e o campo canonico de texto. `mensagem` continua existindo em varios payloads como espelho de compatibilidade.
 5. Em snapshots de sessao, `estadoJogo.turno` e o formato canonico. `turnoIniciado`, `dadosSolicitados`, `testeInfo` e `testePendente` ainda podem aparecer como aliases temporarios.
 
+## Caminho canonico de gameplay
+
+Para novos clientes, o fluxo principal do RPG deve ser este:
+
+1. `authenticate`
+2. `join_room`
+3. `room_joined`
+4. `mensagem_para_mestre` para acao formal do jogador
+5. `mensagem_roleplay` para fala lateral fora do turno
+6. `mestre_solicita_dados` quando houver teste
+7. `dice_roll` para responder ao teste
+8. `turno_estado_atualizado` como estado autoritativo do presente da mesa
+
+Eventos ainda suportados, mas fora do caminho principal:
+
+- `chat_message`: chat direto/eco, sem passar pelo pipeline principal do mestre
+- `rpg_action`: atalho estruturado de compatibilidade, nao e a entrada recomendada para acao narrativa do jogador
+- `solicitar_dados`: evento interno de tooling, mestre/admin e fluxos auxiliares
+
 ## Fluxo recomendado
 
 1. Conectar via Socket.IO.
@@ -39,14 +58,14 @@ Este contrato cobre:
 | `authenticate` | Finaliza autenticacao do socket | `userId`, `username` | `sessionId`, `email`, `token` |
 | `join_room` | Entrar em uma sala, normalmente `historia_<id>` | `roomId`, `userId` | `username`, `historiaId`, `historiaData`, `personagemId`, `personagemNome`, `sessionId` |
 | `leave_room` | Sair da sala atual | `roomId`, `userId` | `username` |
-| `chat_message` | Chat direto nao narrado pela IA | `roomId`, `userId`, `message` | `username`, `type` |
+| `chat_message` | Suportado, mas fora do caminho principal do RPG | `roomId`, `userId`, `message` | `username`, `type` |
 | `mensagem_para_mestre` | Acao principal do jogador no turno | `roomId`, `userId`, `mensagem`, `personagem` | `username` |
 | `mensagem_roleplay` | Fala lateral fora do turno | `roomId`, `userId`, `mensagem` | `username` |
-| `rpg_action` | Acao leve estruturada, sem passar pela IA | `roomId`, `userId`, `action` | `username`, `target`, `description` |
+| `rpg_action` | Suportado por compatibilidade, nao e a entrada recomendada para narrativa | `roomId`, `userId`, `action` | `username`, `target`, `description` |
 | `dice_roll` | Publicar uma rolagem | `roomId`, `userId`, `dice`, `result` | `username`, `description` |
 | `rolar_dado_inicial` | Rolagem de iniciativa d20 | `roomId`, `userId` | `username` |
 | `iniciar_turno` | Pedir abertura do turno ao mestre | `roomId`, `userId` | `username` |
-| `solicitar_dados` | Solicitar teste manualmente via mestre/admin | `roomId`, `motivo` | `tipoTeste`, `dificuldade`, `jogadores` |
+| `solicitar_dados` | Evento de tooling interno para mestre/admin | `roomId`, `motivo` | `tipoTeste`, `dificuldade`, `jogadores` |
 | `status_update` | Publicar status livre do jogador | `roomId`, `userId`, `status` | `username`, `details` |
 
 ## Servidor -> Cliente
@@ -79,7 +98,7 @@ Este contrato cobre:
 
 ### Mensagens e historico live
 
-- `chat_message`: mensagem de chat ao vivo
+- `chat_message`: mensagem de chat/eco ao vivo, fora do caminho canonico de acao narrativa
 - `mensagem_mestre`: narrativa do mestre
 - `mensagem_roleplay`: mensagem lateral de roleplay
 - `acao_mestre`: efeito mecanico persistido pelo mestre
@@ -236,6 +255,7 @@ Para consumidores novos:
 - use `message` como texto principal
 - trate `mensagem` como alias temporario
 - preserve `payload` quando existir
+- nao use `chat_message` como fonte canonica de acao narrativa do jogador
 
 ## Snapshot persistido vs evento live
 

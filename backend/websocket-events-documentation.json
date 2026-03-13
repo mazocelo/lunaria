@@ -1,7 +1,7 @@
 {
   "websocket": {
     "name": "Role Chat Game WebSocket API",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "protocol": "Socket.IO",
     "default_url": "ws://localhost:3001",
     "last_reviewed": "2026-03-13",
@@ -23,6 +23,41 @@
       "room_joined delivers the persisted snapshot for session, messages and estadoJogo.",
       "turno_estado_atualizado is the authoritative event for turn status and pending tests.",
       "Legacy aliases may still appear inside sessao.estadoJogo for compatibility with older UI code."
+    ]
+  },
+  "canonical_gameplay_path": {
+    "client_to_server": [
+      "authenticate",
+      "join_room",
+      "mensagem_para_mestre",
+      "mensagem_roleplay",
+      "dice_roll",
+      "rolar_dado_inicial",
+      "iniciar_turno",
+      "status_update"
+    ],
+    "server_to_client": [
+      "room_joined",
+      "turno_estado_atualizado",
+      "mestre_solicita_dados",
+      "resultado_teste",
+      "mensagem_mestre",
+      "acao_mestre",
+      "mensagem_roleplay",
+      "turno_alterado",
+      "rodada_finalizada",
+      "nova_rodada_iniciada"
+    ],
+    "supported_but_non_primary": [
+      "chat_message",
+      "rpg_action",
+      "solicitar_dados"
+    ],
+    "notes": [
+      "New gameplay clients should use mensagem_para_mestre as the canonical player action path.",
+      "turno_estado_atualizado is the authoritative live state for turn progression and pending tests.",
+      "chat_message remains supported for direct room chat or echo, but it is not the canonical RPG action input.",
+      "solicitar_dados remains supported for admin, mestre tooling and internal/manual flows."
     ]
   },
   "client_to_server": {
@@ -110,8 +145,8 @@
       }
     },
     "chat_message": {
-      "status": "canonical",
-      "description": "Direct room chat message that does not go through the Mestre AI pipeline.",
+      "status": "supported_non_primary",
+      "description": "Direct room chat message that does not go through the Mestre AI pipeline. Supported, but outside the canonical gameplay path.",
       "required_fields": [
         "roomId",
         "userId",
@@ -202,8 +237,8 @@
       }
     },
     "rpg_action": {
-      "status": "canonical",
-      "description": "Structured lightweight action that bypasses the Mestre narrative pipeline.",
+      "status": "supported_non_primary",
+      "description": "Structured lightweight action that bypasses the Mestre narrative pipeline. Supported for compatibility and side flows, but not recommended as the main gameplay input.",
       "required_fields": [
         "roomId",
         "userId",
@@ -314,8 +349,8 @@
       }
     },
     "solicitar_dados": {
-      "status": "canonical_but_internal_facing",
-      "description": "Manual data request, usually used by mestre/admin tooling.",
+      "status": "internal_tooling",
+      "description": "Manual data request, usually used by mestre/admin tooling and internal operational flows.",
       "required_fields": [
         "roomId",
         "motivo"
@@ -493,7 +528,7 @@
         }
       },
       "turno_iniciado": {
-        "status": "canonical",
+        "status": "canonical_informational",
         "payload_shape": {
           "userId": "string",
           "username": "string",
@@ -604,7 +639,7 @@
     },
     "messages": {
       "chat_message": {
-        "status": "canonical",
+        "status": "supported_non_primary",
         "variants": {
           "direct_chat": {
             "id": "string",
@@ -630,7 +665,8 @@
         },
         "notes": [
           "New consumers should read message first.",
-          "When tipo exists, the payload came from the persisted session message envelope."
+          "When tipo exists, the payload came from the persisted session message envelope.",
+          "This event is still supported, but it is not the canonical path for formal player action in the RPG flow."
         ]
       },
       "mensagem_mestre": {

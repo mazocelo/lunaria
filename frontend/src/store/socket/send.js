@@ -28,7 +28,7 @@ export const createSendActions = (set, get) => ({
   updateStatus: (statusData) => {
     const { socket, isConnected, safeEmit } = get();
     if (socket && isConnected) {
-      safeEmit('update_status', statusData);
+      safeEmit('status_update', statusData);
     }
   },
 

@@ -65,6 +65,7 @@ export const socketInitialStates = {
   turnoIniciado: false, // Se o jogador já clicou em "Iniciar Turno"
   turnoStatus: 'idle',
   testePendente: null,
+  testesPendentes: [],
   cooldownRoleplay: 0,
   rodadaFinalizada: null,
   estadoJogo: {},

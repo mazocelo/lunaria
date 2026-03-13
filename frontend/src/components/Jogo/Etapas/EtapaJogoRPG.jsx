@@ -180,6 +180,7 @@ const EtapaJogoRPG = ({
     turnoIniciado: false,
     turnoStatus: 'idle',
     testePendente: null,
+    testesPendentes: [],
     cooldownRoleplay: 0,
     combateAtivo: false,
     combateMonstros: [],
@@ -196,7 +197,10 @@ const EtapaJogoRPG = ({
   const cooldownIntervalRef = useRef(null);
 
   useEffect(() => {
-    const testePendente = socketState.testePendente;
+    const testesPendentes = Array.isArray(socketState.testesPendentes) ? socketState.testesPendentes : [];
+    const testePendente = testesPendentes.find(
+      (teste) => String(teste.jogadorAlvo) === String(user?.id)
+    ) || socketState.testePendente;
     const meuTeste = testePendente && String(testePendente.jogadorAlvo) === String(user?.id);
 
     if (!meuTeste) {
@@ -215,7 +219,7 @@ const EtapaJogoRPG = ({
     }
 
     setAguardandoMestre(socketState.turnoStatus === 'resolving_roll');
-  }, [socketState.testePendente, socketState.turnoStatus, user?.id]);
+  }, [socketState.testePendente, socketState.testesPendentes, socketState.turnoStatus, user?.id]);
 
   // Estado para dropdown de informacoes da rodada
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
@@ -279,6 +283,7 @@ const EtapaJogoRPG = ({
       turnoIniciado: state.turnoIniciado ?? false,
       turnoStatus: state.turnoStatus ?? 'idle',
       testePendente: state.testePendente ?? null,
+      testesPendentes: state.testesPendentes ?? [],
       cooldownRoleplay: state.cooldownRoleplay ?? 0,
       combateAtivo: state.combateAtivo ?? false,
       combateMonstros: state.combateMonstros ?? [],
@@ -488,8 +493,8 @@ const EtapaJogoRPG = ({
     const handleResultadoTeste = (data) => {
       if (onAdicionarMensagemRef.current) {
         onAdicionarMensagemRef.current({
-          id: `teste_${Date.now()}`,
-          userId: data.username,
+          id: data.testeId || `teste_${data.groupId || Date.now()}_${data.userId || data.username}`,
+          userId: data.userId || data.username,
           username: data.username,
           dice: data.dice || 'd20',
           result: data.rolagemBruta,
@@ -504,27 +509,43 @@ const EtapaJogoRPG = ({
           dc: data.dc,
           sucesso: data.sucesso,
           descricaoResultado: data.descricaoResultado,
-          tipo: 'dado',
+          tipo: 'resultado_teste',
+          payload: data,
           timestamp: data.timestamp || Date.now()
         });
       }
     };
 
     const handleMestreSolicitaDados = (data) => {
+      const groupId = data?.testePendente?.groupId || data?.testesPendentes?.[0]?.groupId || null;
+      if (groupId) {
+        const mensagensAtuais = useGameStore.getState().mensagens || [];
+        const jaExiste = mensagensAtuais.some(
+          (mensagem) => mensagem.tipo === 'solicitacao_dados'
+            && String(mensagem.payload?.groupId || mensagem.payload?.testePendente?.groupId) === String(groupId)
+        );
+        if (!jaExiste && onAdicionarMensagemRef.current) {
+          onAdicionarMensagemRef.current({
+            id: `solicitacao_${groupId}`,
+            tipo: 'solicitacao_dados',
+            userId: 'mestre',
+            username: 'Mestre',
+            message: data.narrativa || 'O Mestre solicita uma rolagem de dados.',
+            payload: {
+              groupId,
+              testePendente: data.testePendente || null,
+              testesPendentes: data.testesPendentes || []
+            },
+            timestamp: data.timestamp || Date.now()
+          });
+        }
+      }
+
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const jogadorAlvo = String(data?.testePendente?.jogadorAlvo || currentUser.id);
       if (String(jogadorAlvo) !== String(currentUser.id)) {
         return;
       }
-      setDadosSolicitados(true);
-      setDadoSolicitadoInfo({
-        tipoDado: data.tipoDado || 'd20',
-        teste: data.teste || '',
-        dificuldade: data.dificuldade || 'Media',
-        modificador: data.modificador || 0,
-        atributo: data.atributo || null,
-        contexto: data.contexto || null
-      });
       setAguardandoMestre(false);
     };
 
@@ -551,6 +572,17 @@ const EtapaJogoRPG = ({
     const handleAcaoMestre = (data) => {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const ehMeu = String(data.userId) === String(currentUser.id);
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current({
+          id: data.id || `acao_${data.tipo}_${data.userId || 'sistema'}_${data.timestamp || Date.now()}`,
+          tipo: 'acao_mestre',
+          userId: data.userId || 'sistema',
+          username: data.username || 'Sistema',
+          message: data.message || data.mensagem || '',
+          payload: data,
+          timestamp: data.timestamp || Date.now()
+        });
+      }
       if (data.tipo === 'item_recebido' && ehMeu) {
         if (data.item) showGameNotification(`Item recebido: ${data.item.nome || 'Novo item'}`, 'success');
       } else if (data.tipo === 'item_removido' && ehMeu) {
@@ -628,7 +660,6 @@ const EtapaJogoRPG = ({
     socketStoreOn('dice_roll', handleDiceRoll);
     socketStoreOn('resultado_teste', handleResultadoTeste);
     socketStoreOn('mestre_solicita_dados', handleMestreSolicitaDados);
-    socketStoreOn('solicitacao_dados', handleMestreSolicitaDados);
     socketStoreOn('level_up', handleLevelUp);
     socketStoreOn('acao_mestre', handleAcaoMestre);
     socketStoreOn('combate_finalizado', handleCombateFinalizado);
@@ -645,7 +676,6 @@ const EtapaJogoRPG = ({
       socketStoreOff('dice_roll', handleDiceRoll);
       socketStoreOff('resultado_teste', handleResultadoTeste);
       socketStoreOff('mestre_solicita_dados', handleMestreSolicitaDados);
-      socketStoreOff('solicitacao_dados', handleMestreSolicitaDados);
       socketStoreOff('level_up', handleLevelUp);
       socketStoreOff('acao_mestre', handleAcaoMestre);
       socketStoreOff('combate_finalizado', handleCombateFinalizado);

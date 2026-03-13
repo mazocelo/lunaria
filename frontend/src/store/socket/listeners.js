@@ -21,7 +21,7 @@ export const createListenerActions = (set, get) => ({
       'turno_iniciado', 'rodada_finalizada', 'nova_rodada_iniciada',
       'turno_estado_atualizado', 'teste_rejeitado',
       'erro_cooldown_roleplay', 'erro_turno', 'server_message', 'force_disconnect',
-      'solicitacao_dados', 'mensagem_roleplay',
+      'mestre_solicita_dados', 'solicitacao_dados', 'mensagem_roleplay',
       'sessao_resetada', 'sessao_encerrada',
       'erro_sistema', 'erro_mensagem', 'erro_dado_inicial', 'rate_limit_exceeded',
       'combate_iniciado', 'combate_resultado_acao', 'combate_monstro_derrotado',
@@ -187,6 +187,9 @@ export const createListenerActions = (set, get) => ({
         if (estadoJogo.turno?.status) {
           updateData.turnoStatus = estadoJogo.turno.status;
         }
+        if (Array.isArray(estadoJogo.testesPendentes)) {
+          updateData.testesPendentes = estadoJogo.testesPendentes;
+        }
         if (estadoJogo.testePendente !== undefined) {
           updateData.testePendente = estadoJogo.testePendente;
         }
@@ -320,7 +323,8 @@ export const createListenerActions = (set, get) => ({
         ehMeuTurno,
         turnoIniciado: false,
         turnoStatus: 'idle',
-        testePendente: null
+        testePendente: null,
+        testesPendentes: []
       });
 
       if (ehMeuTurno) {
@@ -364,14 +368,24 @@ export const createListenerActions = (set, get) => ({
     socket.on('turno_estado_atualizado', (data) => {
       const currentUser = get().currentUser;
       const jogadorAtual = data.turno?.jogadorAtual;
+      const testesPendentes = Array.isArray(data.testesPendentes)
+        ? data.testesPendentes
+        : (data.testePendente ? [data.testePendente] : []);
       const ehMeuTurno = currentUser && jogadorAtual != null
-        ? String(jogadorAtual) === String(currentUser.id) || String(get().jogadorAtual?.userId) === String(currentUser.id)
-        : get().ehMeuTurno;
+        ? String(jogadorAtual) === String(currentUser.id)
+        : false;
+      const jogadorAtualPayload = jogadorAtual == null
+        ? null
+        : (typeof jogadorAtual === 'object'
+            ? jogadorAtual
+            : (get().ordemJogadores || []).find(j => String(j.userId || j.id) === String(jogadorAtual)) || { userId: jogadorAtual });
 
       set({
         turnoStatus: data.turno?.status || 'idle',
         turnoIniciado: ['starting', 'active', 'awaiting_roll', 'resolving_roll'].includes(data.turno?.status),
-        testePendente: data.testePendente || null,
+        testePendente: data.testePendente || testesPendentes[0] || null,
+        testesPendentes,
+        jogadorAtual: jogadorAtualPayload,
         ehMeuTurno
       });
     });
@@ -386,7 +400,13 @@ export const createListenerActions = (set, get) => ({
     socket.on('rodada_finalizada', (data) => {
       set(state => ({
         faseJogo: transicaoFase(state.faseJogo, 'entre_rodadas'),
-        rodadaFinalizada: data.rodada
+        rodadaFinalizada: data.rodada,
+        ehMeuTurno: false,
+        turnoIniciado: false,
+        turnoStatus: 'idle',
+        jogadorAtual: null,
+        testePendente: null,
+        testesPendentes: []
       }));
       get().log('Rodada finalizada', { rodada: data.rodada, success: true });
     });
@@ -396,7 +416,11 @@ export const createListenerActions = (set, get) => ({
         faseJogo: transicaoFase(state.faseJogo, 'rodada_em_andamento'),
         rodadaAtual: data.rodada,
         turnoAtual: 0,
-        rodadaFinalizada: null
+        rodadaFinalizada: null,
+        turnoStatus: 'idle',
+        testePendente: null,
+        testesPendentes: [],
+        ehMeuTurno: false
       }));
       get().log('Nova rodada iniciada', { rodada: data.rodada, success: true });
     });
@@ -458,6 +482,7 @@ export const createListenerActions = (set, get) => ({
         turnoIniciado: false,
         turnoStatus: 'idle',
         testePendente: null,
+        testesPendentes: [],
         cooldownRoleplay: 0,
         session: null,
         combateAtivo: false,
@@ -489,6 +514,7 @@ export const createListenerActions = (set, get) => ({
         turnoIniciado: false,
         turnoStatus: 'idle',
         testePendente: null,
+        testesPendentes: [],
         cooldownRoleplay: 0,
         session: null,
         combateAtivo: false,

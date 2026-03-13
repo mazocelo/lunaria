@@ -133,6 +133,33 @@ export const renderAguardandoDados = (mensagem, key) => (
   </div>
 );
 
+export const renderAcaoMestre = (mensagem, key) => {
+  const conteudo = getConteudo(mensagem);
+  const payload = mensagem.payload || {};
+  return (
+    <div key={key} className="w-full animate-fade-in">
+      <div className="glass p-4 rounded-xl border border-emerald-500/40 bg-emerald-900/20 shadow-lg">
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl">{'\u2699\uFE0F'}</span>
+          <div className="flex-1">
+            <p className="text-emerald-300 font-semibold text-sm mb-1">
+              Sistema de Jogo
+            </p>
+            <p className="text-white text-base leading-relaxed">
+              {conteudo}
+            </p>
+            {payload?.personagem && (
+              <p className="text-emerald-200/80 text-sm mt-1">
+                Alvo: {payload.personagem}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const renderEntreRodadas = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in my-8">
     <div className="glass p-8 rounded-2xl border-2 border-cyan-400/70 bg-gradient-to-br from-cyan-900/40 to-purple-900/40 shadow-2xl">
@@ -423,11 +450,14 @@ export const MESSAGE_RENDERERS = {
   dado: renderDado,
   dados: renderDado,
   dice_roll: renderDado,
+  resultado_teste: renderDado,
   roleplay: renderRoleplay,
   loading: renderLoading,
   combate: renderCombate,
   transicao_turno: renderTransicaoTurno,
   aguardando_dados: renderAguardandoDados,
+  solicitacao_dados: renderAguardandoDados,
+  acao_mestre: renderAcaoMestre,
   entre_rodadas: renderEntreRodadas,
   rodada_finalizada: renderEntreRodadas,
   mestre: renderMestre,

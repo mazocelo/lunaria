@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./bin/www",
+    "worker": "node ./bin/worker",
     "dev": "nodemon ./bin/www",
     "check-db": "node check-db.js",
     "seed-mestres": "node scripts/seed-mestres-narracoes.js",
@@ -31,6 +32,7 @@
     "@prisma/client": "^6.12.0",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "~1.4.4",
+    "bullmq": "^5.71.0",
     "cors": "^2.8.5",
     "debug": "~2.6.9",
     "dotenv": "^16.4.7",
@@ -40,6 +42,7 @@
     "helmet": "^8.1.0",
     "http-errors": "~1.6.3",
     "jade": "^0.31.2",
+    "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.20",
     "morgan": "~1.9.1",

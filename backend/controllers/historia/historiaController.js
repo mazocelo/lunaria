@@ -4,8 +4,13 @@ import { criarGeradorPrologo } from '../../agents/historia/prologo/index.js';
 import { criarGeradorTitulo } from '../../agents/historia/titulos/aleatorios/index.js';
 import gerenciadorSessoes from '../../redis/sessoes.js';
 import blueprintService from '../../services/blueprintService.js';
-import { buildCatalogoCompleto } from '../../agents/Mestre/catalogo/catalogoMestre.js';
-import { buildMestreContext } from '../../agents/Mestre/contexto/mestreContextBuilder.js';
+import { isEnabled } from '../../config/featureFlags.js';
+import { enqueueRoteiroJob } from '../../jobs/enqueueRoteiroJob.js';
+import { findLatestRoteiroJobForHistoria, serializeAiJob } from '../../jobs/aiJobs.js';
+import {
+  processarGeracaoRoteiro as processarGeracaoRoteiroService,
+  sincronizarRoteiroNaSessao as sincronizarRoteiroNaSessaoService
+} from '../../services/roteiroGenerationService.js';
 
 /**
  * Controller para gerenciar operações de história
@@ -71,33 +76,9 @@ class HistoriaController {
   }
 
   async sincronizarRoteiroNaSessao(historia, roteiro, roteiroStatus = 'completed') {
+    await sincronizarRoteiroNaSessaoService(historia, roteiro, roteiroStatus);
+
     const salaId = `historia_${historia.id}`;
-    const sessao = await gerenciadorSessoes.obterSessao(salaId);
-    if (!sessao) return;
-
-    const historiaComRoteiro = { ...historia, roteiro, roteiro_status: roteiroStatus };
-    const estadoJogo = {
-      ...(sessao.estadoJogo || {}),
-      historiaRoteiroAtualizadoEm: new Date().toISOString()
-    };
-
-    const sessaoAtualizada = {
-      ...sessao,
-      historiaRoteiro: roteiro,
-      estadoJogo
-    };
-
-    const mestreContexto = buildMestreContext(sessaoAtualizada, historiaComRoteiro);
-
-    await gerenciadorSessoes.atualizarSessao(salaId, {
-      historiaRoteiro: roteiro,
-      mestreContexto,
-      estadoJogo: {
-        ...estadoJogo,
-        mestreContexto
-      }
-    });
-
     try {
       const socketManager = await this.obterSocketManager();
       if (socketManager?.mestresCache) {
@@ -131,44 +112,35 @@ class HistoriaController {
   }
 
   async processarGeracaoRoteiro(historia, userId, options = {}) {
-    const historiaId = parseInt(historia.id, 10);
     const {
       emitirErroSocket = true,
-      mode = historia?.roteiro ? 'regenerate' : 'initial'
+      onSuccess = null,
+      onError = null,
+      ...serviceOptions
     } = options;
 
-    try {
-      const catalogo = await buildCatalogoCompleto();
-      const temasNomes = await this.gerarTemasNomes(historia.temas || []);
-      const roteiro = await blueprintService.gerarRoteiro(historia, catalogo, temasNomes, userId, {
-        mode,
-        previousBlueprint: historia?.roteiro || null
-      });
+    return processarGeracaoRoteiroService(historia, userId, {
+      ...serviceOptions,
+      onSuccess: async (payload) => {
+        await this.emitirEventoRoteiro(payload.historiaId, 'roteiro_gerado');
+        console.log(`Roteiro gerado com sucesso para historia ${payload.historiaId}`);
 
-      await db.Historia.updateHistoria(historiaId, {
-        roteiro,
-        roteiro_status: 'completed'
-      });
+        if (typeof onSuccess === 'function') {
+          await onSuccess(payload);
+        }
+      },
+      onError: async (payload) => {
+        if (emitirErroSocket) {
+          await this.emitirEventoRoteiro(payload.historiaId, 'roteiro_erro', {
+            error: payload.error.message
+          });
+        }
 
-      const historiaAtualizada = {
-        ...historia,
-        roteiro,
-        roteiro_status: 'completed'
-      };
-
-      await this.sincronizarRoteiroNaSessao(historiaAtualizada, roteiro, 'completed');
-      await this.emitirEventoRoteiro(historiaId, 'roteiro_gerado');
-      console.log(`Roteiro gerado com sucesso para historia ${historiaId}`);
-      return roteiro;
-    } catch (error) {
-      await db.Historia.updateHistoria(historiaId, { roteiro_status: 'error' });
-
-      if (emitirErroSocket) {
-        await this.emitirEventoRoteiro(historiaId, 'roteiro_erro', { error: error.message });
+        if (typeof onError === 'function') {
+          await onError(payload);
+        }
       }
-
-      throw error;
-    }
+    });
   }
 
   async usuarioPodeAcessarHistoria(historia, user) {
@@ -279,6 +251,55 @@ class HistoriaController {
 
       // Auto-evento no feed
       db.FeedPost.createAutoEvent(userId, 'historia_criada', { nome: nomeHistoria }, 'historia', novaHistoria.id);
+
+      const asyncRoteiroEnabled = isEnabled('AI_ASYNC_ROTEIRO');
+      if (asyncRoteiroEnabled) {
+        let roteiroJob = null;
+        let roteiroStatus = novaHistoria.roteiro_status || null;
+
+        try {
+          const enqueued = await enqueueRoteiroJob({
+            historia: {
+              ...novaHistoria,
+              prologo: resultadoPrologo.prologo,
+              descricao: descricao || '',
+              temas,
+              maximo_de_participantes: maximo_de_participantes || 5
+            },
+            userId,
+            ensureQuota: () => this.consumirCotaBlueprint(userId)
+          });
+
+          roteiroJob = enqueued.job;
+          roteiroStatus = roteiroJob?.status === 'active' ? 'generating' : 'queued';
+        } catch (error) {
+          if (error.statusCode === 429) {
+            console.warn(`Geracao automatica de roteiro ignorada para historia ${novaHistoria.id}: ${error.message}`);
+          } else {
+            roteiroStatus = 'error';
+            console.error(`Erro ao enfileirar roteiro automatico para historia ${novaHistoria.id}:`, error.message);
+
+            try {
+              await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'error' });
+            } catch (_) {
+              // melhor esforco
+            }
+          }
+        }
+
+        return res.status(201).json({
+          success: true,
+          message: 'Historia criada com prologo gerado automaticamente',
+          data: {
+            ...novaHistoria,
+            prologo: resultadoPrologo.prologo,
+            temas_utilizados: resultadoPrologo.temasUtilizados,
+            titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null,
+            roteiro_status: roteiroStatus,
+            job: serializeAiJob(roteiroJob)
+          }
+        });
+      }
 
       res.status(201).json({
         success: true,
@@ -946,6 +967,7 @@ class HistoriaController {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
+      const asyncRoteiroEnabled = isEnabled('AI_ASYNC_ROTEIRO');
 
       const historia = await db.Historia.findById(parseInt(id));
       if (!historia) {
@@ -958,8 +980,26 @@ class HistoriaController {
       }
 
       // Verificar se j? est? gerando
-      if (historia.roteiro_status === 'generating') {
+      if (!asyncRoteiroEnabled && historia.roteiro_status === 'generating') {
         return res.status(409).json({ success: false, error: 'Roteiro j? est? sendo gerado' });
+      }
+
+      if (asyncRoteiroEnabled) {
+        const enqueued = await enqueueRoteiroJob({
+          historia,
+          userId,
+          ensureQuota: () => this.consumirCotaBlueprint(userId)
+        });
+
+        return res.status(202).json({
+          success: true,
+          data: {
+            jobId: enqueued.job?.id || null,
+            queue: 'roteiro',
+            status: enqueued.job?.status || 'queued',
+            existing: enqueued.existing
+          }
+        });
       }
 
       await this.consumirCotaBlueprint(userId);
@@ -1014,11 +1054,14 @@ class HistoriaController {
         'Surrogate-Control': 'no-store'
       });
 
+      const job = await findLatestRoteiroJobForHistoria(parseInt(id, 10));
+
       res.status(200).json({
         success: true,
         data: {
           roteiro: historia.roteiro || null,
-          roteiro_status: historia.roteiro_status || null
+          roteiro_status: historia.roteiro_status || null,
+          job: serializeAiJob(job)
         }
       });
     } catch (error) {

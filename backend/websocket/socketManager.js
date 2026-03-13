@@ -115,7 +115,7 @@ class SocketManager {
     this.gerenciadorSessoes = gerenciadorSessoes;
     this.connectedUsers = new Map(); // userId -> socket
     this.roomUsers = new Map(); // roomId -> Set of userIds
-    this.mestresCache = new Map(); // salaId -> { mestre, criadoEm, ultimoUso, rodadaInicial }
+    this.mestresCache = new Map(); // salaId -> { mestre, criadoEm, ultimoUso, rodadaInicial, historiaRoteiroAtualizadoEm }
     this._cacheCleaner = null; // interval reference for cleanup
     this._disconnectTimers = new Map(); // userId -> timeout for grace period
     this._snapshotCounters = new Map(); // roomId -> mensagens count since last snapshot
@@ -2967,10 +2967,15 @@ class SocketManager {
     // Verificar se já existe no cache
     if (this.mestresCache.has(salaId)) {
       const cache = this.mestresCache.get(salaId);
-      cache.ultimoUso = Date.now();
-      if (userId) cache.mestre.userId = userId;
+      if (this.isMestreCacheStale(cache, sessao)) {
+        this.mestresCache.delete(salaId);
+        console.log(`Mestre invalidado por roteiro mais recente na sessao ${salaId}`);
+      } else {
+        cache.ultimoUso = Date.now();
+        if (userId) cache.mestre.userId = userId;
       console.log(`♻️ Mestre reutilizado do cache para sala ${salaId}`);
-      return cache.mestre;
+        return cache.mestre;
+      }
     }
 
     // Criar novo mestre
@@ -3050,10 +3055,46 @@ class SocketManager {
       mestre,
       criadoEm: Date.now(),
       ultimoUso: Date.now(),
-      rodadaInicial: sessao?.estadoJogo?.rodadaAtual || 1
+      rodadaInicial: sessao?.estadoJogo?.rodadaAtual || 1,
+      historiaRoteiroAtualizadoEm: sessao?.estadoJogo?.historiaRoteiroAtualizadoEm || null
     });
 
     return mestre;
+  }
+
+  getHistoriaRoteiroAtualizadoEmMs(sessao) {
+    const raw = sessao?.estadoJogo?.historiaRoteiroAtualizadoEm;
+    if (!raw) return null;
+
+    const timestamp = new Date(raw).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  getCacheHistoriaRoteiroAtualizadoEmMs(cache) {
+    if (!cache) return null;
+
+    if (cache.historiaRoteiroAtualizadoEm) {
+      const timestamp = new Date(cache.historiaRoteiroAtualizadoEm).getTime();
+      if (Number.isFinite(timestamp)) {
+        return timestamp;
+      }
+    }
+
+    return Number.isFinite(cache.criadoEm) ? cache.criadoEm : null;
+  }
+
+  isMestreCacheStale(cache, sessao) {
+    const sessionTimestamp = this.getHistoriaRoteiroAtualizadoEmMs(sessao);
+    if (!sessionTimestamp) {
+      return false;
+    }
+
+    const cacheTimestamp = this.getCacheHistoriaRoteiroAtualizadoEmMs(cache);
+    if (!cacheTimestamp) {
+      return true;
+    }
+
+    return sessionTimestamp > cacheTimestamp;
   }
 
   /**

@@ -15,6 +15,7 @@ const defaults = {
   LOOT_SYSTEM: true,          // Drop de loot pos-combate
   FRIEND_SYSTEM: true,        // Sistema de amizades
   AI_RETRY: true,             // Retry automatico em timeout da IA
+  AI_ASYNC_ROTEIRO: false,    // Fila duravel para geracao de roteiro
   SESSION_RECAP: true,        // Recap ao encerrar sessao
   LEVEL_UP_NOTIFY: true,      // Notificacao de level up em tempo real
   FOUR_PILLARS: false,        // Secoes detalhadas de vant/desv/hab/mag no prompt do Mestre

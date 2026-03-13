@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+
+import { validateEnvironment } from '../helpers/startupValidation.js';
+validateEnvironment({ requireRedis: true, requireAuthSecrets: false });
+
+import { createRoteiroWorker } from '../jobs/processRoteiroJob.js';
+
+let roteiroWorker = null;
+let shuttingDown = false;
+
+async function startWorker() {
+  roteiroWorker = createRoteiroWorker();
+
+  roteiroWorker.on('ready', () => {
+    console.log('[worker] fila de roteiro pronta');
+  });
+
+  roteiroWorker.on('completed', (job) => {
+    console.log(`[worker] roteiro concluido para job ${job.id}`);
+  });
+
+  roteiroWorker.on('failed', (job, error) => {
+    console.error(`[worker] falha no job ${job?.id || 'desconhecido'}:`, error.message);
+  });
+
+  await roteiroWorker.waitUntilReady();
+}
+
+async function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`[worker] recebido ${signal}, encerrando...`);
+
+  try {
+    if (roteiroWorker) {
+      await roteiroWorker.close();
+    }
+    process.exit(0);
+  } catch (error) {
+    console.error('[worker] erro ao encerrar worker:', error.message);
+    process.exit(1);
+  }
+}
+
+startWorker().catch((error) => {
+  console.error('[worker] falha ao iniciar:', error);
+  process.exit(1);
+});
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

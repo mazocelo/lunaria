@@ -996,6 +996,14 @@ class HistoriaController {
         return res.status(403).json({ success: false, error: 'Você não tem permissão para acessar esta história' });
       }
 
+      // Evita 304/cache durante polling de geração/regeneração do roteiro.
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'Surrogate-Control': 'no-store'
+      });
+
       res.status(200).json({
         success: true,
         data: {

@@ -74,12 +74,14 @@ function normalizeRegioes(regioes = []) {
 
 function normalizeLocais(locais = []) {
   const normalized = ensureArray(locais).map((local, index) => ({
+    ...local,
     nome: asTrimmedString(local?.nome, `Local ${index + 1}`),
     tipo: asTrimmedString(local?.tipo, 'outro'),
     descricao: asTrimmedString(local?.descricao, 'Sem descricao'),
     segredos: asStringArray(local?.segredos, ['Nenhum segredo definido']),
     monstros_comuns: asStringArray(local?.monstros_comuns, ['Nenhum']),
-    arco_relacionado: asInteger(local?.arco_relacionado, 1)
+    arco_relacionado: asInteger(local?.arco_relacionado, 1),
+    imagem: asTrimmedString(local?.imagem, '') || null
   }));
 
   return normalized.length > 0 ? normalized : [{
@@ -94,12 +96,14 @@ function normalizeLocais(locais = []) {
 
 function normalizeNpcs(npcs = []) {
   const normalized = ensureArray(npcs).map((npc, index) => ({
+    ...npc,
     nome: asTrimmedString(npc?.nome, `NPC ${index + 1}`),
     papel: asTrimmedString(npc?.papel, 'neutro'),
     descricao: asTrimmedString(npc?.descricao, 'Sem descricao'),
     motivacao: asTrimmedString(npc?.motivacao, 'Nao definida'),
     local: asTrimmedString(npc?.local, 'Desconhecido'),
-    segredo: asTrimmedString(npc?.segredo, 'Nenhum')
+    segredo: asTrimmedString(npc?.segredo, 'Nenhum'),
+    imagem: asTrimmedString(npc?.imagem, '') || null
   }));
 
   return normalized.length > 0 ? normalized : [{

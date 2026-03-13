@@ -13,8 +13,10 @@ import {
   criarTestePendente,
   emitirSolicitacaoTeste,
   getTestePendente,
+  hasPendingTests,
   limparTestePendente
 } from './testePipeline.js';
+import { appendMensagemSessao, buildSolicitacaoDadosMensagem } from './sessionMessages.js';
 
 async function processarInicioCombate(resposta, ctx) {
   ctx.sm.log('INFO', 'COMBATE_DETECTADO_PELA_IA', ctx.socket.id, ctx.userId, {
@@ -77,6 +79,20 @@ async function criarSolicitacaoTeste(resposta, ctx) {
 }
 
 function emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atributoPreview) {
+  appendMensagemSessao(ctx.sessao, buildSolicitacaoDadosMensagem({
+    narrativa: resposta.narracao,
+    origem: testePendente.origem || 'mestre',
+    payload: {
+      testePendente,
+      tipoDado: testePendente.tipoDado,
+      teste: testePendente.teste,
+      dificuldade: testePendente.dificuldade,
+      modificador: modificadorPreview,
+      atributo: atributoPreview,
+      contexto: testePendente.contexto
+    }
+  }));
+
   emitSolicitacaoTeste(ctx.io, ctx.roomId, ctx.sessao, {
     narrativa: resposta.narracao,
     tipoDado: testePendente.tipoDado,
@@ -91,7 +107,7 @@ function emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atrib
 async function processarAcoesMecanicas(resposta, ctx) {
   if (!resposta.acoes?.length) return;
 
-  const existeTestePendente = !!getTestePendente(ctx.sessao);
+  const existeTestePendente = hasPendingTests(ctx.sessao);
   if (existeTestePendente) {
     const acoesPosTeste = resposta.acoes.filter(acao => {
       const stage = acao?.stage || (acao?.dependeDeTeste ? 'posTeste' : 'independente');
@@ -115,21 +131,27 @@ async function processarAcoesMecanicas(resposta, ctx) {
 }
 
 async function limparFlagDados(resposta, ctx) {
-  if (!getTestePendente(ctx.sessao)) return;
+  if (!hasPendingTests(ctx.sessao)) return;
   limparTestePendente(ctx.sessao, { nextTurnState: TURN_STATUS.ACTIVE });
   await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
   ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
 }
 
 async function processarControleTurno(resposta, ctx) {
+  if (ctx.skipTurnControl) {
+    ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
+    return;
+  }
+
   const turno = incrementTurnInteractions(ctx.sessao);
   await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
 
-  const existeTestePendente = !!getTestePendente(ctx.sessao);
+  const existeTestePendente = hasPendingTests(ctx.sessao, { groupId: turno.loteTesteAtivo });
   const mestreSinalizouFim = resposta.fimDeTurno || false;
   const acaoCompleta = resposta.acaoCompleta || false;
+  const atingiuLimiteInteracoes = turno.contadorInteracoes >= 4;
   const podeFinalizar = !existeTestePendente
-    && (mestreSinalizouFim || (acaoCompleta && turno.contadorInteracoes >= 4));
+    && (mestreSinalizouFim || atingiuLimiteInteracoes || acaoCompleta);
 
   if (!podeFinalizar) {
     if (existeTestePendente) {
@@ -153,7 +175,7 @@ async function processarControleTurno(resposta, ctx) {
   ctx.io.to(ctx.roomId).emit('mestre_finalizou_turno', {
     jogador: ctx.username,
     contador: turno.contadorInteracoes,
-    motivo: mestreSinalizouFim ? 'mestre_sinalizou' : 'limite_interacoes',
+    motivo: mestreSinalizouFim ? 'mestre_sinalizou' : (atingiuLimiteInteracoes ? 'limite_interacoes' : 'acao_completa'),
     timestamp: Date.now()
   });
 

@@ -28,7 +28,8 @@ export function getTurnState(sessao = {}) {
     rodadaAtual: turno.rodadaAtual ?? estadoJogo.rodadaAtual ?? 1,
     contadorInteracoes: turno.contadorInteracoes ?? estadoJogo.contadorMensagensTurno ?? 0,
     iniciadoEm: turno.iniciadoEm ?? null,
-    lockReason: turno.lockReason ?? null
+    lockReason: turno.lockReason ?? null,
+    loteTesteAtivo: turno.loteTesteAtivo ?? null
   };
 }
 
@@ -80,6 +81,9 @@ export function resetTurnInteractions(sessao = {}) {
 export function buildTurnEventPayload(sessao = {}) {
   const estadoJogo = sessao.estadoJogo || {};
   const turno = getTurnState(sessao);
+  const testesPendentes = Array.isArray(estadoJogo.testesPendentes)
+    ? estadoJogo.testesPendentes.filter(teste => teste?.status !== 'cancelled')
+    : [];
 
   return {
     turno: {
@@ -87,9 +91,11 @@ export function buildTurnEventPayload(sessao = {}) {
       jogadorAtual: turno.jogadorAtual,
       rodadaAtual: turno.rodadaAtual,
       contadorInteracoes: turno.contadorInteracoes,
-      lockReason: turno.lockReason
+      lockReason: turno.lockReason,
+      loteTesteAtivo: turno.loteTesteAtivo
     },
-    testePendente: estadoJogo.testePendente || null
+    testesPendentes,
+    testePendente: estadoJogo.testePendente || testesPendentes[0] || null
   };
 }
 

@@ -153,6 +153,65 @@ class SessaoRPG {
     }
   }
 
+  async mutateSessao(salaId, mutator, maxRetries = 3) {
+    const sessionId = `${this.prefix}${salaId}`;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await this.client.watch(sessionId);
+        const sessaoRaw = await this.client.get(sessionId);
+        if (!sessaoRaw) {
+          await this.client.unwatch();
+          throw new Error('Sessão não encontrada');
+        }
+
+        const sessaoAtual = JSON.parse(sessaoRaw);
+        const mutada = await mutator({
+          ...sessaoAtual,
+          estadoJogo: { ...(sessaoAtual.estadoJogo || {}) }
+        });
+
+        const sessaoAtualizada = {
+          ...sessaoAtual,
+          ...(mutada || {}),
+          estadoJogo: mergeEstadoJogo(sessaoAtual.estadoJogo || {}, mutada?.estadoJogo || {}),
+          mestreContexto: mergeMestreContext(
+            sessaoAtual.mestreContexto || sessaoAtual.estadoJogo?.mestreContexto || {},
+            mutada?.mestreContexto || mutada?.estadoJogo?.mestreContexto || {}
+          ),
+          atualizadaEm: new Date().toISOString()
+        };
+
+        if (sessaoAtualizada.mestreContexto && Object.keys(sessaoAtualizada.mestreContexto).length > 0) {
+          sessaoAtualizada.estadoJogo = sessaoAtualizada.estadoJogo || {};
+          sessaoAtualizada.estadoJogo.mestreContexto = sessaoAtualizada.mestreContexto;
+        }
+
+        sessaoAtualizada.estadoJogo = sessaoAtualizada.estadoJogo || {};
+        sessaoAtualizada.estadoJogo.compactacao = getCompactacaoState(
+          sessaoAtualizada.estadoJogo,
+          sessaoAtualizada.mensagens || []
+        );
+
+        const multi = this.client.multi();
+        multi.setEx(sessionId, this.ttl, JSON.stringify(sessaoAtualizada));
+        const results = await multi.exec();
+        if (results === null) {
+          if (attempt < maxRetries - 1) continue;
+          throw new Error('Conflito de concorrencia ao atualizar sessao');
+        }
+
+        return sessaoAtualizada;
+      } catch (error) {
+        if (error.message === 'Sessão não encontrada' || error.message.includes('Conflito')) {
+          throw error;
+        }
+        console.error('Erro ao mutar sessão:', error);
+        throw error;
+      }
+    }
+  }
+
   /**
    * Adicionar mensagem à sessão
    * @param {string} salaId - ID da sala
@@ -191,6 +250,27 @@ class SessaoRPG {
    * @param {Object} estadoJogo - Novo estado do jogo
    * @returns {Promise<Object>} - Sessão atualizada
    */
+  async adicionarMensagens(salaId, novasMensagens = []) {
+    try {
+      return await this.mutateSessao(salaId, (sessao) => {
+        const mensagens = Array.isArray(sessao.mensagens) ? [...sessao.mensagens] : [];
+        for (const mensagem of novasMensagens) {
+          mensagens.push({
+            ...mensagem,
+            timestamp: mensagem.timestamp || Date.now()
+          });
+        }
+        if (mensagens.length > 500) {
+          mensagens.splice(0, mensagens.length - 500);
+        }
+        return { mensagens };
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar mensagens:', error);
+      throw error;
+    }
+  }
+
   async atualizarEstadoJogo(salaId, estadoJogo) {
     try {
       return await this.atualizarSessao(salaId, { estadoJogo });
@@ -206,6 +286,33 @@ class SessaoRPG {
    * @param {Object} acao - Dados da ação
    * @returns {Promise<Object>} - Sessão atualizada
    */
+  async replaceEstadoJogo(salaId, estadoJogo) {
+    try {
+      return await this.mutateSessao(salaId, () => ({ estadoJogo }));
+    } catch (error) {
+      console.error('Erro ao substituir estado do jogo:', error);
+      throw error;
+    }
+  }
+
+  async appendTestesPendentes(salaId, testesPendentes = []) {
+    try {
+      return await this.mutateSessao(salaId, (sessao) => {
+        const estadoJogo = { ...(sessao.estadoJogo || {}) };
+        const atuais = Array.isArray(estadoJogo.testesPendentes) ? [...estadoJogo.testesPendentes] : [];
+        estadoJogo.testesPendentes = [...atuais, ...testesPendentes];
+        return { estadoJogo };
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar testes pendentes:', error);
+      throw error;
+    }
+  }
+
+  async appendAcaoMestre(salaId, mensagem) {
+    return this.adicionarMensagem(salaId, mensagem);
+  }
+
   async adicionarAcao(salaId, acao) {
     try {
       const sessao = await this.obterSessao(salaId);

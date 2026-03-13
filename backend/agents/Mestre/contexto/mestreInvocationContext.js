@@ -5,9 +5,18 @@ export function getResumoMaisRecente(sessao = {}) {
   return null;
 }
 
+function getFormalChatHistory(sessao = {}) {
+  const mensagens = Array.isArray(sessao.mensagens) ? sessao.mensagens : [];
+  return mensagens.filter((mensagem) => {
+    const canal = mensagem?.canal || 'formal';
+    const tipo = mensagem?.tipo || mensagem?.type;
+    return canal !== 'roleplay' && tipo !== 'roleplay';
+  });
+}
+
 function buildBaseContext(sessao = {}) {
   return {
-    chatHistory: sessao.mensagens || [],
+    chatHistory: getFormalChatHistory(sessao),
     resumo: getResumoMaisRecente(sessao)
   };
 }

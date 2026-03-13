@@ -45,7 +45,10 @@ import {
 } from './utils/turnStateMachine.js';
 import {
   criarTestePendente,
+  criarTestesPendentes,
   emitirSolicitacaoTeste,
+  getTestesPendentes,
+  hasPendingTests,
   getTestePendente,
   limparTestePendente,
   resolverTestePendente
@@ -55,23 +58,28 @@ import {
   buildNarracaoContext,
   buildTurnStartContext
 } from '../agents/Mestre/contexto/mestreInvocationContext.js';
+import {
+  appendMensagemSessao,
+  buildJogadorMensagem,
+  buildMestreMensagem as buildMestreMensagemHistorico,
+  buildResultadoTesteMensagem,
+  buildRoleplayMensagem,
+  buildSolicitacaoDadosMensagem,
+  buildSistemaMensagem,
+  buildAcaoMestreMensagem,
+  createMessageId
+} from './utils/sessionMessages.js';
 
 /**
  * Cria objeto de mensagem do mestre com campos de áudio vinculados
  */
-function buildMestreMensagem(conteudo, mestreConfig = null) {
+function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
   const voiceId = mestreConfig?.voice_id || null;
   const voiceProvider = mestreConfig?.voice_provider || null;
-  return {
-    tipo: 'mestre',
-    userId: 'mestre',
-    username: 'Mestre',
-    mensagem: conteudo,
-    timestamp: Date.now(),
-    voice_id: voiceId,
-    voice_provider: voiceProvider,
-    audio_cache_key: voiceId ? ttsCacheService.generateCacheKey(conteudo, voiceId, voiceProvider || 'elevenlabs') : null
-  };
+  return buildMestreMensagemHistorico(conteudo, mestreConfig, {
+    ...options,
+    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(conteudo, voiceId, voiceProvider || 'elevenlabs') : null
+  });
 }
 
 /**
@@ -144,6 +152,37 @@ class SocketManager {
       ...buildTurnEventPayload(sessao),
       timestamp: Date.now()
     });
+  }
+
+  emitirAcaoMestrePersistida(roomId, sessao, payload) {
+    const mensagem = buildAcaoMestreMensagem(payload);
+    appendMensagemSessao(sessao, mensagem);
+    this.io.to(roomId).emit('acao_mestre', {
+      ...payload,
+      id: mensagem.id,
+      message: mensagem.message,
+      mensagem: mensagem.message,
+      payload: mensagem.payload
+    });
+  }
+
+  buildRoleplayContextoLateral(sessao, maxItens = 2) {
+    const roleplays = Array.isArray(sessao?.roleplayRecente)
+      ? sessao.roleplayRecente.slice(-maxItens)
+      : [];
+    if (roleplays.length === 0) return '';
+
+    const linhas = roleplays
+      .map((item) => {
+        const texto = String(item?.message || item?.mensagem || '').trim().slice(0, 140);
+        if (!texto) return null;
+        return `- ${item.username || 'Jogador'}: ${texto}`;
+      })
+      .filter(Boolean);
+
+    if (linhas.length === 0) return '';
+
+    return `\n[CONTEXTO LATERAL DE ROLEPLAY - use apenas se ajudar a cena, sem transformar em fato canônico]\n${linhas.join('\n')}\n`;
   }
 
   /**
@@ -1358,136 +1397,154 @@ class SocketManager {
       const result = String(rawResult);
       const description = rawDescription ? String(rawDescription) : null;
 
-      const sessao = await this.obterSessaoHistoria(roomId);
-      if (!sessao) {
-        return socket.emit('error', { message: 'Sessão não encontrada' });
-      }
+      await this.withRoomLock(roomId, async () => {
+        const sessao = await this.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          socket.emit('error', { message: 'Sessão não encontrada' });
+          return;
+        }
 
-      const rollData = {
-        id: Date.now().toString(),
-        userId,
-        username,
-        dice,
-        result,
-        description,
-        roomId,
-        timestamp: Date.now()
-      };
-
-      // 1. Salvar rolagem na sessão unificada
-      if (roomId.startsWith('historia_')) {
-        await this.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
-      }
-
-      // ✅ 1.5. SALVAR MENSAGEM DE DADO NO REDIS
-      const mensagemDado = {
-        tipo: 'dado',
-        userId,
-        username,
-        dice,
-        result,
-        description,
-        timestamp: Date.now()
-      };
-
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
-      }
-      sessao.mensagens.push(mensagemDado);
-      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
-      await this.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
-
-      console.log(`💬 Mensagem de dado salva no Redis: ${username} rolou ${dice} = ${result}`);
-
-      const estadoJogo = sessao.estadoJogo || {};
-      const testePendente = getTestePendente(sessao);
-      const tentativaResolucao = resolverTestePendente(sessao, userId);
-      const dadosSolicitados = tentativaResolucao.ok;
-      if (tentativaResolucao.motivo === 'jogador_incorreto') {
-        console.log(`⚠️ Jogador ${userId} rolou, mas teste é para ${tentativaResolucao.teste?.jogadorAlvo}. Tratando como rolagem comum.`);
-        this.io.to(roomId).emit('teste_rejeitado', {
-          roomId,
-          motivo: 'jogador_incorreto',
-          jogadorAlvo: tentativaResolucao.teste?.jogadorAlvo || null,
+        const rollData = {
+          id: createMessageId('dice'),
           userId,
           username,
+          dice,
+          result,
+          description,
+          roomId,
           timestamp: Date.now()
-        });
-      }
+        };
 
-      // 2. Broadcast do resultado do dado para todos
-      // Inclui flag dadosSolicitados para frontend saber se resultado_teste vai seguir
-      this.io.to(roomId).emit('dice_roll', { ...rollData, dadosSolicitados });
+        if (roomId.startsWith('historia_')) {
+          await this.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
+        }
 
-      console.log(`🎲 ${username} rolou ${dice}: ${result} (sala ${roomId})`);
+        const mensagemDado = {
+          id: createMessageId('dado'),
+          tipo: 'dado',
+          canal: 'formal',
+          origem: 'turno',
+          userId,
+          username,
+          dice,
+          result,
+          description,
+          message: `${username} rolou ${dice}: ${result}${description ? ` (${description})` : ''}`,
+          mensagem: `${username} rolou ${dice}: ${result}${description ? ` (${description})` : ''}`,
+          payload: {
+            dice,
+            result,
+            description
+          },
+          timestamp: Date.now()
+        };
+        appendMensagemSessao(sessao, mensagemDado);
 
-      if (dadosSolicitados && testePendente) {
-        console.log('✅ Dados foram solicitados pelo Mestre, processando com IA...');
+        const tentativaResolucao = resolverTestePendente(sessao, userId);
+        const testeResolvido = tentativaResolucao.ok ? tentativaResolucao.teste : null;
+        const dadosSolicitados = !!testeResolvido;
 
-        // RESOLVER TESTE MECANICAMENTE + ENVIAR PARA IA NARRAR
+        if (tentativaResolucao.motivo === 'jogador_incorreto') {
+          this.io.to(roomId).emit('teste_rejeitado', {
+            roomId,
+            motivo: 'jogador_incorreto',
+            jogadorAlvo: tentativaResolucao.teste?.jogadorAlvo || null,
+            userId,
+            username,
+            timestamp: Date.now()
+          });
+        }
+
+        this.io.to(roomId).emit('dice_roll', { ...rollData, dadosSolicitados });
+
+        if (!testeResolvido) {
+          await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+          await this.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
+          this.emitirEstadoTurno(roomId, sessao);
+          return;
+        }
+
+        const jogadorInfo = sessao.jogadores?.[userId];
+        const personagemNome = jogadorInfo?.personagemNome || username;
+        const personagemId = jogadorInfo?.personagemId;
+        const personagemCompleto = personagemId
+          ? sessao.personagensCompletos?.[String(personagemId)]
+          : null;
+
+        let resultadoTestePayload;
+        let descricaoParaIA = `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`;
         try {
-          const jogadorInfo = sessao.jogadores?.[userId];
-          const personagemNome = jogadorInfo?.personagemNome || username;
+          const { resolverTeste } = await import('../helpers/testeHelper.js');
+          const resultadoTeste = resolverTeste(
+            personagemCompleto,
+            testeResolvido.teste || description,
+            parseInt(result, 10),
+            testeResolvido.dificuldade
+          );
 
-          // Buscar personagem completo para aplicar modificadores
-          const personagemId = jogadorInfo?.personagemId;
-          const personagemCompleto = personagemId
-            ? sessao.personagensCompletos?.[String(personagemId)]
-            : null;
+          resultadoTestePayload = {
+            ...resultadoTeste,
+            userId,
+            username,
+            personagemNome,
+            dice,
+            testeId: testeResolvido.id,
+            groupId: testeResolvido.groupId,
+            timestamp: Date.now()
+          };
 
-          // Resolver teste mecanicamente
-          let resultadoTeste = null;
-          let descricaoParaIA = `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`;
-
-          try {
-            const { resolverTeste } = await import('../helpers/testeHelper.js');
-            resultadoTeste = resolverTeste(
-              personagemCompleto,
-              testePendente.teste || description,
-              parseInt(result),
-              testePendente.dificuldade
-            );
-
-            // Construir descrição enriquecida para IA
-            if (resultadoTeste.atributo) {
-              descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} + ${resultadoTeste.totalModificador} (${resultadoTeste.atributoNome}) = ${resultadoTeste.total} vs DC ${resultadoTeste.dc} (${resultadoTeste.dificuldadeNome}) → ${resultadoTeste.descricaoResultado}`;
-            } else {
-              descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} (teste de Sorte) vs DC ${resultadoTeste.dc} → ${resultadoTeste.descricaoResultado}`;
-            }
-
-            console.log(`🎯 Teste resolvido: ${descricaoParaIA}`);
-
-            // Emitir resultado enriquecido do dado (substitui o dice_roll básico anterior)
-            this.io.to(roomId).emit('resultado_teste', {
-              ...resultadoTeste,
-              username,
-              personagemNome,
-              dice,
-              timestamp: Date.now()
-            });
-          } catch (testeError) {
-            console.warn('⚠️ Erro ao resolver teste mecanicamente, usando resultado bruto:', testeError.message);
-            // Fallback: emitir resultado_teste com dados básicos para frontend não ficar sem mensagem
-            this.io.to(roomId).emit('resultado_teste', {
-              rolagemBruta: parseInt(result) || 1,
-              total: parseInt(result) || 1,
-              totalModificador: 0,
-              atributoNome: null,
-              dc: null,
-              sucesso: null,
-              descricaoResultado: null,
-              username,
-              personagemNome,
-              dice,
-              timestamp: Date.now()
-            });
+          if (resultadoTeste.atributo) {
+            descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} + ${resultadoTeste.totalModificador} (${resultadoTeste.atributoNome}) = ${resultadoTeste.total} vs DC ${resultadoTeste.dc} (${resultadoTeste.dificuldadeNome}) → ${resultadoTeste.descricaoResultado}`;
+          } else {
+            descricaoParaIA = `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} (teste de Sorte) vs DC ${resultadoTeste.dc} → ${resultadoTeste.descricaoResultado}`;
           }
+        } catch (testeError) {
+          console.warn('⚠️ Erro ao resolver teste mecanicamente, usando resultado bruto:', testeError.message);
+          resultadoTestePayload = {
+            userId,
+            username,
+            personagemNome,
+            dice,
+            rolagemBruta: parseInt(result, 10) || 1,
+            total: parseInt(result, 10) || 1,
+            totalModificador: 0,
+            atributoNome: null,
+            dc: null,
+            sucesso: null,
+            descricaoResultado: null,
+            testeId: testeResolvido.id,
+            groupId: testeResolvido.groupId,
+            timestamp: Date.now()
+          };
+        }
 
+        appendMensagemSessao(
+          sessao,
+          buildResultadoTesteMensagem({
+            userId,
+            username,
+            personagemNome,
+            dice,
+            resultado: parseInt(result, 10) || 1,
+            rolagemBruta: resultadoTestePayload.rolagemBruta,
+            total: resultadoTestePayload.total,
+            totalModificador: resultadoTestePayload.totalModificador,
+            atributoNome: resultadoTestePayload.atributoNome,
+            dc: resultadoTestePayload.dc,
+            sucesso: resultadoTestePayload.sucesso,
+            descricaoResultado: resultadoTestePayload.descricaoResultado,
+            payload: resultadoTestePayload
+          })
+        );
+
+        this.io.to(roomId).emit('resultado_teste', resultadoTestePayload);
+
+        try {
           const mestre = await this.obterMestre(roomId, sessao.historiaTemas || [], sessao, userId);
-
           const invocationContext = buildDiceResolutionContext(sessao, {
-            testePendente,
-            resultadoBruto: result
+            testePendente: testeResolvido,
+            resultadoBruto: result,
+            resultadoTeste: resultadoTestePayload
           });
 
           const interpretacao = await mestre.narrarAcao({
@@ -1498,13 +1555,8 @@ class SocketManager {
             resumo: invocationContext.resumo
           });
 
-          // Salvar interpretação do Mestre
-          if (!sessao.mensagens) {
-            sessao.mensagens = [];
-          }
-
           const msgInterpretacao = buildMestreMensagem(interpretacao.narracao, sessao.mestreConfig);
-          sessao.mensagens.push(msgInterpretacao);
+          appendMensagemSessao(sessao, msgInterpretacao);
           await this.aplicarMetadadosNarrativos(roomId, sessao, interpretacao.metadados || {});
 
           const acoesPendentesTeste = sessao.estadoJogo?.acoesPendentesTeste || [];
@@ -1514,60 +1566,51 @@ class SocketManager {
             sessao.estadoJogo.acoesPendentesTeste = [];
           }
 
-          // ✅ Limpar flag de dados solicitados + testeInfo
-          limparTestePendente(sessao, { nextTurnState: TURN_STATUS.ACTIVE });
-          sessao.estadoJogo = sessao.estadoJogo || estadoJogo;
+          const outrosTestesNoLote = getTestesPendentes(sessao).some(
+            (teste) => String(teste.id) !== String(testeResolvido.id)
+              && String(teste.groupId) === String(testeResolvido.groupId)
+          );
+          limparTestePendente(sessao, {
+            testId: testeResolvido.id,
+            nextTurnState: outrosTestesNoLote ? TURN_STATUS.AWAITING_ROLL : TURN_STATUS.ACTIVE
+          });
 
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           await this.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
           this.emitirEstadoTurno(roomId, sessao);
 
-          // Enviar interpretação do Mestre
           this.io.to(roomId).emit('mensagem_mestre', {
-            id: (Date.now() + 1).toString(),
             ...msgInterpretacao,
             message: interpretacao.narracao
           });
-
-          console.log(`✅ Resultado do dado processado pelo Mestre`);
         } catch (errorIA) {
           console.error('❌ Erro ao processar dado com Mestre IA:', errorIA);
 
-          // ✅ FALLBACK: Mensagem simples sem IA
-          const jogadorInfo = sessao.jogadores?.[userId];
-          const personagemNome = jogadorInfo?.personagemNome || username;
-
           const textoFallback = `${personagemNome} rolou ${dice} e obteve **${result}**${description ? ` para ${description}` : ''}. Continue a aventura!`;
           const mensagemFallback = buildMestreMensagem(textoFallback, sessao.mestreConfig);
-
-          if (!sessao.mensagens) {
-            sessao.mensagens = [];
-          }
-          sessao.mensagens.push(mensagemFallback);
+          appendMensagemSessao(sessao, mensagemFallback);
           if (sessao.estadoJogo?.acoesPendentesTeste) {
             sessao.estadoJogo.acoesPendentesTeste = [];
           }
 
-          // ✅ Limpar flag mesmo com erro
-          limparTestePendente(sessao, { nextTurnState: TURN_STATUS.ACTIVE });
-          sessao.estadoJogo = sessao.estadoJogo || estadoJogo;
+          const outrosTestesNoLote = getTestesPendentes(sessao).some(
+            (teste) => String(teste.id) !== String(testeResolvido.id)
+              && String(teste.groupId) === String(testeResolvido.groupId)
+          );
+          limparTestePendente(sessao, {
+            testId: testeResolvido.id,
+            nextTurnState: outrosTestesNoLote ? TURN_STATUS.AWAITING_ROLL : TURN_STATUS.ACTIVE
+          });
 
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           this.emitirEstadoTurno(roomId, sessao);
 
           this.io.to(roomId).emit('mensagem_mestre', {
-            id: (Date.now() + 1).toString(),
             ...mensagemFallback,
             message: textoFallback
           });
-
-          console.log(`✅ Resultado do dado processado com mensagem fallback (IA falhou)`);
         }
-      } else {
-        console.log('ℹ️ Dados rolados sem solicitação do Mestre - apenas broadcast do resultado');
-        // Apenas salvar mensagem de dado (sem processar com IA)
-        // Mensagem já foi salva acima (linha ~1220)
-      }
+      });
 
     } catch (error) {
       console.error('❌ Erro ao processar dice_roll:', error);
@@ -1578,7 +1621,7 @@ class SocketManager {
         const roomId = String(data?.roomId || '');
         if (roomId) {
           const sessao = await this.gerenciadorSessoes.obterSessao(roomId);
-          if (getTestePendente(sessao)) {
+          if (hasPendingTests(sessao)) {
             limparTestePendente(sessao, { nextTurnState: TURN_STATUS.ACTIVE });
             await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
             console.log('🔄 Flags de teste limpas no outer catch');
@@ -1862,7 +1905,6 @@ class SocketManager {
       }
 
       // ✅ GUARD: Rejeitar mensagem se dados já foram solicitados (evita solicitação duplicada)
-      const estadoJogoGuard = sessao.estadoJogo || {};
       if (getTestePendente(sessao)) {
         this.log('WARN', 'MENSAGEM_PARA_MESTRE_DADOS_PENDENTES', socket.id, userId, {
           roomId,
@@ -1955,13 +1997,13 @@ class SocketManager {
         const concExpirada = decrementConcentracao(sessao, userId);
 
         if (efeitosExpirados.length > 0) {
-          io.to(roomId).emit('acao_mestre', {
+          this.emitirAcaoMestrePersistida(roomId, sessao, {
             tipo: 'efeitos_expirados', personagem: personagem.nome,
             efeitos: efeitosExpirados.map(e => e.nome), timestamp: Date.now()
           });
         }
         if (concExpirada) {
-          io.to(roomId).emit('acao_mestre', {
+          this.emitirAcaoMestrePersistida(roomId, sessao, {
             tipo: 'concentracao_quebrada', personagem: personagem.nome,
             magia: concExpirada.nome, motivo: 'expirou', timestamp: Date.now()
           });
@@ -1995,6 +2037,11 @@ class SocketManager {
           monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length,
           preResolvido: true
         });
+      }
+
+      const contextoRoleplayLateral = this.buildRoleplayContextoLateral(sessao);
+      if (contextoRoleplayLateral) {
+        acaoComContexto += `${contextoRoleplayLateral}\n`;
       }
 
       acaoComContexto += `Ação do jogador: "${mensagem}"`;
@@ -2045,23 +2092,18 @@ class SocketManager {
       }
 
       // 5. Salvar mensagem do jogador na sessão
-      const mensagemJogador = {
-        tipo: 'jogador',
+      const mensagemJogador = buildJogadorMensagem({
         userId,
         username,
         personagem: personagem.nome,
-        mensagem,
-        timestamp: Date.now()
-      };
-
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
-      }
-      sessao.mensagens.push(mensagemJogador);
+        message: mensagem,
+        origem: combateAtivo ? 'combate' : 'turno'
+      });
+      appendMensagemSessao(sessao, mensagemJogador);
 
       // 6. Salvar resposta do mestre na sessão
       const mensagemMestre = buildMestreMensagem(resposta.narracao, sessao.mestreConfig);
-      sessao.mensagens.push(mensagemMestre);
+      appendMensagemSessao(sessao, mensagemMestre);
       await this.aplicarMetadadosNarrativos(roomId, sessao, resposta.metadados || {});
 
       // 7. Atualizar sessão no Redis
@@ -2078,18 +2120,12 @@ class SocketManager {
 
       // 8. Enviar mensagem do jogador para todos (echo)
       this.io.to(roomId).emit('chat_message', {
-        id: Date.now().toString(),
-        userId,
-        username,
-        personagem: personagem.nome,
-        message: mensagem,
-        tipo: 'jogador',
-        timestamp: Date.now()
+        ...mensagemJogador,
+        message: mensagemJogador.message
       });
 
       // 9. Enviar resposta do mestre para todos na sala
       this.io.to(roomId).emit('mensagem_mestre', {
-        id: (Date.now() + 1).toString(),
         ...mensagemMestre,
         message: resposta.narracao
       });
@@ -2176,68 +2212,64 @@ class SocketManager {
         mensagemTruncated: mensagem.substring(0, 100)
       });
 
-      // Obter sessão
-      const sessao = await this.obterSessaoHistoria(roomId);
-      if (!sessao) {
-        this.log('ERROR', 'MENSAGEM_ROLEPLAY_SESSAO_NOT_FOUND', socket.id, userId, {
-          roomId
-        });
-        return socket.emit('error', { message: 'Sessão não encontrada' });
-      }
+      await this.withRoomLock(roomId, async () => {
+        const sessao = await this.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          this.log('ERROR', 'MENSAGEM_ROLEPLAY_SESSAO_NOT_FOUND', socket.id, userId, {
+            roomId
+          });
+          socket.emit('error', { message: 'Sessão não encontrada' });
+          return;
+        }
 
-      // Verificar cooldown de 12 segundos
-      const cooldownRestante = await this.gerenciadorSessoes.verificarCooldownRoleplay(roomId, userId);
-      
-      if (cooldownRestante > 0) {
-        this.log('WARN', 'MENSAGEM_ROLEPLAY_COOLDOWN_ATIVO', socket.id, userId, {
+        const estadoJogo = sessao.estadoJogo || {};
+        const cooldownRoleplay = estadoJogo.cooldownRoleplay || {};
+        const ultimoEnvio = cooldownRoleplay[userId];
+        const agora = Date.now();
+        const cooldownSegundos = 12;
+        const restante = ultimoEnvio
+          ? Math.max(0, cooldownSegundos - Math.floor((agora - new Date(ultimoEnvio).getTime()) / 1000))
+          : 0;
+
+        if (restante > 0) {
+          this.log('WARN', 'MENSAGEM_ROLEPLAY_COOLDOWN_ATIVO', socket.id, userId, {
+            roomId,
+            cooldownRestante: restante
+          });
+          socket.emit('erro_cooldown_roleplay', {
+            message: `Aguarde ${restante} segundos antes de enviar outra mensagem roleplay`,
+            segundosRestantes: restante
+          });
+          return;
+        }
+
+        cooldownRoleplay[userId] = new Date(agora).toISOString();
+        estadoJogo.cooldownRoleplay = cooldownRoleplay;
+        sessao.estadoJogo = estadoJogo;
+
+        const mensagemRoleplay = buildRoleplayMensagem({
+          userId,
+          username,
+          message: mensagem,
+          payload: {
+            cena: estadoJogo.turno?.rodadaAtual || estadoJogo.rodadaAtual || 1
+          }
+        });
+
+        appendMensagemSessao(sessao, mensagemRoleplay);
+        sessao.roleplayRecente = [...(sessao.roleplayRecente || []), mensagemRoleplay].slice(-20);
+
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+        this.log('SUCCESS', 'MENSAGEM_ROLEPLAY_SALVA', socket.id, userId, {
           roomId,
-          cooldownRestante
+          totalMensagens: sessao.mensagens.length
         });
-        return socket.emit('erro_cooldown_roleplay', { 
-          message: `Aguarde ${cooldownRestante} segundos antes de enviar outra mensagem roleplay`,
-          segundosRestantes: cooldownRestante
+
+        this.io.to(roomId).emit('mensagem_roleplay', {
+          ...mensagemRoleplay,
+          message: mensagemRoleplay.message
         });
-      }
-
-      this.log('INFO', 'MENSAGEM_ROLEPLAY_COOLDOWN_OK', socket.id, userId, {
-        roomId
-      });
-
-      // Atualizar cooldown
-      await this.gerenciadorSessoes.atualizarCooldownRoleplay(roomId, userId);
-
-      // Salvar mensagem na sessão (marcada como roleplay)
-      const mensagemRoleplay = {
-        tipo: 'roleplay',
-        userId,
-        username,
-        mensagem,
-        timestamp: Date.now()
-      };
-
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
-      }
-      sessao.mensagens.push(mensagemRoleplay);
-      sessao.roleplayRecente = [...(sessao.roleplayRecente || []), mensagemRoleplay].slice(-20);
-
-      // Atualizar sessão no Redis
-      sessao.atualizadaEm = new Date().toISOString();
-      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
-
-      this.log('SUCCESS', 'MENSAGEM_ROLEPLAY_SALVA', socket.id, userId, {
-        roomId,
-        totalMensagens: sessao.mensagens.length
-      });
-
-      // Enviar mensagem roleplay para todos na sala (NÃO vai para o Mestre IA)
-      this.io.to(roomId).emit('mensagem_roleplay', {
-        id: Date.now().toString(),
-        userId,
-        username,
-        message: mensagem,
-        tipo: 'roleplay',
-        timestamp: Date.now()
       });
 
       const processingTime = Date.now() - startTime;
@@ -2401,33 +2433,12 @@ class SocketManager {
       // Re-obter sessão (pode ter mudado durante chamada IA)
       const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
 
-      // Salvar mensagem do Mestre
-      if (!sessaoAtualizada.mensagens) {
-        sessaoAtualizada.mensagens = [];
-      }
-
-      const msgInicial = buildMestreMensagem(mensagemInicial.resposta, sessaoAtualizada.mestreConfig);
-      sessaoAtualizada.mensagens.push(msgInicial);
+      const narrativaInicial = mensagemInicial.resposta || mensagemInicial.narracao || '';
+      const msgInicial = buildMestreMensagem(narrativaInicial, sessaoAtualizada.mestreConfig);
+      appendMensagemSessao(sessaoAtualizada, msgInicial);
       await this.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, mensagemInicial.metadados || {});
 
-      // Processar ações mecânicas do Mestre (dar_item, curar, etc.)
-      if (mensagemInicial.acoes && Array.isArray(mensagemInicial.acoes) && mensagemInicial.acoes.length > 0) {
-        try {
-          const { processarAcoes } = await import('../helpers/acoesProcessor.js');
-          await processarAcoes(mensagemInicial.acoes, sessaoAtualizada, roomId, this.io);
-        } catch (acoesError) {
-          console.error('⚠️ Erro ao processar ações no inicio de turno:', acoesError.message);
-        }
-      }
-
-      transitionTurnState(sessaoAtualizada, TURN_STATUS.ACTIVE, {
-        jogadorAtual: String(userId),
-        rodadaAtual: estadoJogo.rodadaAtual || 1,
-        lockReason: null
-      });
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
-      await this.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, { userId });
-      this.emitirEstadoTurno(roomId, sessaoAtualizada);
 
       this.log('SUCCESS', 'INICIAR_TURNO_SESSAO_ATUALIZADA', socket.id, userId, {
         roomId
@@ -2435,10 +2446,50 @@ class SocketManager {
 
       // Enviar mensagem do Mestre para todos
       this.io.to(roomId).emit('mensagem_mestre', {
-        id: Date.now().toString(),
         ...msgInicial,
-        message: mensagemInicial.resposta
+        message: narrativaInicial
       });
+
+      const { despacharResposta } = await import('./utils/respostaDispatcher.js');
+      await despacharResposta({
+        narracao: narrativaInicial,
+        fimDeTurno: !!mensagemInicial.fimDeTurno,
+        acaoCompleta: !!mensagemInicial.acaoCompleta,
+        solicitaDados: mensagemInicial.solicitaDados || { solicita: false },
+        teste: mensagemInicial.teste || null,
+        acoes: Array.isArray(mensagemInicial.acoes) ? mensagemInicial.acoes : [],
+        combate: mensagemInicial.combate || null,
+        metadados: mensagemInicial.metadados || {}
+      }, {
+        roomId,
+        userId,
+        username,
+        personagem: {
+          nome: jogadorDaVez.personagemNome || username,
+          id: jogadorDaVez.personagemId || null
+        },
+        mensagem: `Início do turno de ${jogadorDaVez.personagemNome || username}`,
+        sessao: sessaoAtualizada,
+        socket,
+        io: this.io,
+        sm: this,
+        fase: estadoJogo.fase,
+        combateAtivo: !!estadoJogo.combate?.ativo,
+        skipTurnControl: true
+      });
+
+      const turnoFinal = getTurnState(sessaoAtualizada);
+      if (turnoFinal.status === TURN_STATUS.STARTING) {
+        transitionTurnState(sessaoAtualizada, TURN_STATUS.ACTIVE, {
+          jogadorAtual: String(userId),
+          rodadaAtual: estadoJogo.rodadaAtual || 1,
+          lockReason: null
+        });
+        await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+      }
+
+      await this.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, { userId });
+      this.emitirEstadoTurno(roomId, sessaoAtualizada);
 
       // Emitir evento de turno iniciado
       this.io.to(roomId).emit('turno_iniciado', {
@@ -2447,6 +2498,7 @@ class SocketManager {
         rodada: estadoJogo.rodadaAtual || 1,
         turno: turnoAtual,
         turnoEstado: buildTurnEventPayload(sessaoAtualizada).turno,
+        testesPendentes: buildTurnEventPayload(sessaoAtualizada).testesPendentes,
         timestamp: Date.now()
       });
 
@@ -2513,6 +2565,7 @@ class SocketManager {
         return socket.emit('error', { message: 'roomId e motivo são obrigatórios' });
       }
 
+      await this.withRoomLock(String(roomId), async () => {
       const sessao = await this.obterSessaoHistoria(roomId);
       if (!sessao) {
         this.log('ERROR', 'SOLICITAR_DADOS_SESSAO_NOT_FOUND', socket.id, socket.userId, {
@@ -2543,7 +2596,8 @@ class SocketManager {
         tipoTeste: tipoTeste || 'd20',
         dificuldade: dificuldade || 'Média',
         jogadores: jogadores || [],
-        chatHistory: sessao.mensagens || []
+        chatHistory: buildNarracaoContext(sessao).chatHistory,
+        resumo: buildNarracaoContext(sessao).resumo
       });
 
       this.log('SUCCESS', 'SOLICITAR_DADOS_NARRATIVA_GERADA', socket.id, socket.userId, {
@@ -2555,15 +2609,15 @@ class SocketManager {
         sessao.mensagens = [];
       }
 
-      sessao.mensagens.push({
-        tipo: 'solicitacao_dados',
-        userId: 'mestre',
-        username: 'Mestre',
-        mensagem: solicitacao.narrativa,
-        tipoTeste: solicitacao.tipoTeste,
-        dificuldade: solicitacao.dificuldade,
-        timestamp: Date.now()
-      });
+      appendMensagemSessao(sessao, buildSolicitacaoDadosMensagem({
+        narrativa: solicitacao.narrativa,
+        origem: 'manual',
+        payload: {
+          motivo,
+          tipoTeste: solicitacao.tipoTeste || tipoTeste || 'd20',
+          dificuldade: solicitacao.dificuldade || dificuldade || 'Média'
+        }
+      }));
 
       criarTestePendente(sessao, {
         origem: 'manual',
@@ -2575,6 +2629,31 @@ class SocketManager {
         tipoDado: solicitacao.tipoTeste || tipoTeste || 'd20',
         contexto: motivo
       }, socket.userId);
+
+      const jogadoresAlvo = Array.isArray(jogadores) && jogadores.length > 0
+        ? jogadores
+        : [{ userId: socket.userId, id: socket.userId }];
+      const [, ...jogadoresExtras] = jogadoresAlvo;
+      const testesCriados = [...getTestesPendentes(sessao)];
+      if (jogadoresExtras.length > 0) {
+        const testesExtras = criarTestesPendentes(sessao, jogadoresExtras.map((jogador) => ({
+          origem: 'manual',
+          jogadorAlvo: String(jogador?.userId || jogador?.id || socket.userId),
+          personagemAlvo: jogador?.personagemId || null,
+          teste: motivo,
+          dificuldade: solicitacao.dificuldade || dificuldade || 'Média',
+          tipoDado: solicitacao.tipoTeste || tipoTeste || 'd20',
+          contexto: motivo
+        })), socket.userId);
+        testesCriados.push(...testesExtras);
+      }
+      const ultimaMensagem = sessao.mensagens?.[sessao.mensagens.length - 1];
+      if (ultimaMensagem?.tipo === 'solicitacao_dados') {
+        ultimaMensagem.payload = {
+          ...(ultimaMensagem.payload || {}),
+          testesPendentes: testesCriados
+        };
+      }
 
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
       this.emitirEstadoTurno(roomId, sessao);
@@ -2589,7 +2668,9 @@ class SocketManager {
         tipoDado: solicitacao.tipoTeste,
         teste: motivo,
         dificuldade: solicitacao.dificuldade,
-        contexto: motivo
+        contexto: motivo,
+        testesPendentes: testesCriados
+      });
       });
 
       const processingTime = Date.now() - startTime;
@@ -3343,7 +3424,7 @@ class SocketManager {
             pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
               e.duracao = (e.duracao || 1) - 1;
               if (e.duracao <= 0) {
-                this.io.to(roomId).emit('acao_mestre', {
+                this.emitirAcaoMestrePersistida(roomId, sessao, {
                   tipo: 'status_removido',
                   personagem: pCompleto.nome,
                   status: e.nome,
@@ -3388,7 +3469,7 @@ class SocketManager {
           pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
             e.duracao = (e.duracao || 1) - 1;
             if (e.duracao <= 0) {
-              this.io.to(roomId).emit('acao_mestre', {
+              this.emitirAcaoMestrePersistida(roomId, sessao, {
                 tipo: 'status_removido',
                 personagem: pCompleto.nome,
                 status: e.nome,
@@ -3403,17 +3484,14 @@ class SocketManager {
       }
 
       // ✅ 1. SALVAR MENSAGEM DE TRANSIÇÃO PRIMEIRO (antes de avançar turno)
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
-      }
-      
-      sessao.mensagens.push({
-        tipo: 'transicao_turno',
-        userId: 'sistema',
-        username: 'Sistema',
-        mensagem: `🏁 Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
-        timestamp: Date.now()
-      });
+      const mensagemTransicao = buildSistemaMensagem(
+        `🏁 Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
+        {
+          tipo: 'transicao_turno',
+          origem: 'rodada'
+        }
+      );
+      appendMensagemSessao(sessao, mensagemTransicao);
 
       // ✅ 2. ATUALIZAR ESTADO DO JOGO (avançar turno)
       estadoJogo.turnoAtual = proximoTurno;
@@ -3433,12 +3511,8 @@ class SocketManager {
 
       // ✅ 3.5. EMITIR MENSAGEM DE TRANSIÇÃO EM TEMPO REAL
       this.io.to(roomId).emit('chat_message', {
-        id: `transicao_${Date.now()}`,
-        tipo: 'transicao_turno',
-        userId: 'sistema',
-        username: 'Sistema',
-        message: `🏁 Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
-        timestamp: Date.now()
+        ...mensagemTransicao,
+        message: mensagemTransicao.message
       });
 
       // ✅ 4. EMITIR EVENTO DE MUDANÇA DE TURNO
@@ -3480,8 +3554,14 @@ class SocketManager {
 
       console.log(`🏁 Finalizando rodada ${rodadaAtual} na sala ${roomId}`);
 
+      // Persistir reset do turno/testes antes de alterar a fase
+      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
       // Atualizar fase para entre rodadas
-      await this.gerenciadorSessoes.atualizarFaseJogo(roomId, 'entre_rodadas');
+      const sessaoComFase = await this.gerenciadorSessoes.atualizarFaseJogo(roomId, 'entre_rodadas');
+      if (sessaoComFase) {
+        sessao.estadoJogo = sessaoComFase.estadoJogo || sessao.estadoJogo;
+      }
 
       // Notificar mudança de fase
       this.notificarMudancaFase(roomId, 'entre_rodadas', {
@@ -3972,7 +4052,7 @@ class SocketManager {
 
       // --- EMITIR STATUS REMOVIDOS ---
       for (const sr of r.statusRemovidos) {
-        this.io.to(roomId).emit('acao_mestre', {
+        this.emitirAcaoMestrePersistida(roomId, sessao, {
           tipo: 'status_removido', personagem: sr.personagem,
           userId: sr.userId, status: sr.status, timestamp: Date.now()
         });

@@ -30,7 +30,12 @@ export class ResumoAgent {
    */
   async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null, userId }) {
     try {
-      const ultimasMensagens = mensagens.slice(-50);
+      const mensagensCanonicas = (mensagens || []).filter((mensagem) => {
+        const canal = mensagem?.canal || 'formal';
+        const tipo = mensagem?.tipo || mensagem?.type;
+        return canal !== 'roleplay' && tipo !== 'roleplay';
+      });
+      const ultimasMensagens = mensagensCanonicas.slice(-50);
 
       const blocoAnterior = resumoAnterior
         ? `\nRESUMO ANTERIOR (consolidar com as novas informações):\n${resumoAnterior}\n`
@@ -44,8 +49,8 @@ export class ResumoAgent {
       }).join('\n');
 
       const prompt = isEnabled('STRUCTURED_SUMMARY')
-        ? this._buildStructuredPrompt(temas, personagens, rodadasJogadas, mensagens.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length)
-        : this._buildNarrativePrompt(temas, personagens, rodadasJogadas, mensagens.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length);
+        ? this._buildStructuredPrompt(temas, personagens, rodadasJogadas, mensagensCanonicas.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length)
+        : this._buildNarrativePrompt(temas, personagens, rodadasJogadas, mensagensCanonicas.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length);
 
       const startTime = Date.now();
       const response = await this.model.invoke(prompt);
@@ -55,7 +60,7 @@ export class ResumoAgent {
 
       return {
         resumo: response.content,
-        mensagensResumiadas: mensagens.length,
+        mensagensResumiadas: mensagensCanonicas.length,
         rodadasResumiadas: rodadasJogadas,
         geradoEm: new Date().toISOString(),
         formato: isEnabled('STRUCTURED_SUMMARY') ? 'estruturado' : 'narrativo'

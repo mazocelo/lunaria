@@ -108,3 +108,35 @@ Entregaveis:
 ## Observacao de produto
 
 Esse item e um salto de qualidade para criacao assistida. Ele reduz frustracao e aumenta sensacao de autoria.
+
+---
+
+## Auditoria (2026-03-13)
+
+**Completude: ~15%** (analista: 10%, revisor: 15%)
+
+### Feitos (parciais)
+
+- Distincao `initial` vs `regenerate` implementada (`blueprintService.js:346-351`)
+- Temperaturas diferenciadas: 0.3 (initial) vs 0.7 (regenerate)
+- `buildRegenerationBlock` (L82-145) com logica anti-repeticao sofisticada (filtra nomes canonicos, NPCs, locais, tesouros)
+- Estrutura normalizada do roteiro bem definida (`normalizeBlueprintStructure`, L274-342) — facilitaria comparacao futura
+
+### Pendentes
+
+| # | Requisito | Status |
+|---|-----------|--------|
+| 1 | Modos de geracao criativos (sombrio, exploracao, intriga, etc.) | Nao iniciado |
+| 2 | Metadados de versao salvos junto da geracao (modo, modelo, temperatura, timestamp) | Nao iniciado |
+| 3 | Tabela `roteiro_versoes` no schema Prisma | Nao iniciado |
+| 4 | Historico de propostas (versao anterior e sobrescrita hoje) | Nao iniciado |
+| 5 | Comparacao side-by-side de propostas | Nao iniciado |
+| 6 | Workflow de aprovacao (marcar versao como "ativa") | Nao iniciado |
+| 7 | Seletor de modo no frontend (hoje so botao "Regenerar") | Nao iniciado |
+
+### Gap por camada
+
+- **Dados**: falta tabela `roteiro_versoes` (id, historia_id, versao, modo, metadados, roteiro_json, ativa, criado_em)
+- **Servico**: falta enum de modos criativos, mapeamento modo->prompt, versionamento sem sobrescrita
+- **Controller/Routes**: falta parametro `mode` no POST, GET versoes, PUT ativar, GET comparar
+- **Frontend**: falta seletor de modo, historico de versoes, comparacao visual, badge de versao ativa

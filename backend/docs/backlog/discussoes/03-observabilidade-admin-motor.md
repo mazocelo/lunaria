@@ -130,3 +130,51 @@ Entregaveis:
 ## Observacao de produto
 
 Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora a confianca para evoluir o motor.
+
+---
+
+## Auditoria (2026-03-13)
+
+**Completude: ~18%** (analista: 15%, revisor: 18%)
+
+### Feitos (infraestrutura base)
+
+| Item | Evidencia |
+|------|-----------|
+| Auth JWT com roles | `authMiddleware.js`: requireSuperAdmin (L224-240), requireOwnerOrSuperAdmin, requireResourceOwnerOrSuperAdmin |
+| SuperAdminRoute no frontend | `Frontend/src/components/SuperAdminRoute.jsx` |
+| `GET /websocket/stats` (superadmin) | `routes/websocket.js:43` — retorna connectedUsers, activeRooms, totalRooms |
+| `GET /billing/global` (admin/superadmin) | `routes/billing.js:31` — custos agregados |
+| `GET /analytics` (superadmin) | `routes/analytics.js:11` — aggregations via analyticsService |
+| Tracking de uso IA | `usageService.js` + tabela `api_usage` (tokens, custo, provider) |
+| `ai_jobs` table com rastreamento | Status, last_error, attempts_made, timestamps |
+| Rotas WebSocket admin | `/broadcast`, `/room/:roomId/message`, `/user/:userId/message` (superadmin) |
+
+### Pendentes (modulo admin/motor inteiro)
+
+| # | Item | Prioridade |
+|---|------|-----------|
+| 1 | Rotas `/admin/motor` (nenhuma existe) | Alta |
+| 2 | Listagem de sessoes ativas com estado de turno | Alta |
+| 3 | Inspecao de `testesPendentes` e `mestreContexto` por sessao | Alta |
+| 4 | Endpoint para listar/filtrar `ai_jobs` | Alta |
+| 5 | Reprocessamento manual de jobs (`POST /admin/motor/jobs/:id/retry`) | Media |
+| 6 | Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde) | Media |
+| 7 | Logs estruturados (backend usa 51+ `console.log/error` so no socketManager, sem winston/pino) | Media |
+| 8 | Tela admin no frontend (rota SuperAdminRoute ja pronta) | Media |
+| 9 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
+
+### Quick wins recomendados
+
+1. `GET /admin/motor/sessoes` — iterar `gerenciadorSessoes` e listar estado de cada sessao
+2. `GET /admin/motor/sessoes/:roomId` — dump completo (mestreContexto, testesPendentes, estadoJogo, resumoConsolidado)
+3. `GET /admin/motor/jobs` — consultar `ai_jobs` com filtro por status e paginacao
+
+### Criterios de aceite vs estado atual
+
+| Criterio | Status |
+|----------|--------|
+| Admin entende estado da sessao sem abrir codigo | **Nao atendido** |
+| Admin diagnostica turno travado | **Nao atendido** |
+| Admin ve job de IA falho e onde falhou | **Nao atendido** (dados existem em ai_jobs mas sem endpoint) |
+| Admin ve consumo de tokens e tempo de resposta | **Parcialmente atendido** (GET /billing/global e GET /analytics) |

@@ -236,3 +236,54 @@ Resultado esperado:
 - API mais leve
 - processamento resiliente a restart
 - base pronta para escalar `imagem` e `audio`
+
+---
+
+## Auditoria (2026-03-13)
+
+**Completude: ~55%** (analista: 59%, revisor: 55%)
+
+### v1 Feitos (13 itens)
+
+- BullMQ v5.71.0 sobre Redis (`package.json`)
+- Worker separado (`bin/worker`) com shutdown gracioso (SIGTERM/SIGINT)
+- Tabela `ai_jobs` com indices (`[queue, status]`, `[entity_type, entity_id, created_at]`)
+- POST retorna 202 com jobId quando flag ativo
+- GET com status persistido e serializeAiJob
+- Auto-geracao por fila ao criar historia
+- Idempotencia: um job ativo por entidade/tipo + lock Redis (TTL 10s)
+- Retry: attempts 2, backoff fixed 30s
+- Fila ROTEIRO em `queueNames.js`
+- Persistencia de estado em Postgres (transacao atomica)
+- Concorrencia configuravel via `BULLMQ_ROTEIRO_CONCURRENCY` (default 2)
+- Fallback se enqueue falhar (marca failed atomicamente)
+- Feature flag `AI_ASYNC_ROTEIRO` (default: false)
+
+### v1 Parciais
+
+| Item | Estado atual | Recomendado |
+|------|-------------|-------------|
+| Flag | OFF (`false`) | Ligar quando worker estiver deployado |
+| Backoff | Fixo 30s | Exponencial com jitter |
+| Stalled detection | Nenhum | Instanciar QueueEvents |
+| Attempts | 2 | 3 (conforme doc) |
+
+### v2 Nao iniciados
+
+| Item | Status |
+|------|--------|
+| Fila de imagem | Nao iniciado |
+| Fila de audio | Nao iniciado |
+| Storage R2 | Nao iniciado |
+| Admin/observabilidade de jobs | Nao iniciado |
+| Prioridade por fila | Nao iniciado |
+| Reprocessamento manual | Nao iniciado |
+
+### Riscos
+
+| Risco | Severidade |
+|-------|-----------|
+| Worker sem Procfile nem systemd service — nao e deployavel em producao | **Critico** |
+| Flag OFF = infraestrutura bypassed, roteiro processa in-process | Alto |
+| Sem deteccao de stalled jobs | Medio |
+| Backoff fixo pode causar thundering herd | Baixo |

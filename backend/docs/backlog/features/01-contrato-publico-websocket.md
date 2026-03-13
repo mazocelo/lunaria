@@ -107,3 +107,38 @@ Entregaveis:
 ## Observacao de produto
 
 Esse item e base para os proximos. Se o contrato publico continuar difuso, qualquer modularizacao do motor ou observabilidade futura vai herdar ambiguidade.
+
+---
+
+## Auditoria (2026-03-13)
+
+**Completude: ~89%** (analista: 92%, revisor: 89%)
+
+### Feitos
+
+- Contrato JSON v2.1.0 completo (`websocket-events-documentation.json`, 1063 linhas)
+- `canonical_gameplay_path` definido (8 client + 10 server)
+- `turno_estado_atualizado` marcado authoritative (JSON:552)
+- `mestre_solicita_dados` canonical (JSON:568)
+- 20 eventos legacy catalogados com status explicito
+- 5 legacy field aliases documentados
+- README.md atualizado com fluxo canonico
+- Exemplos usando apenas eventos canonicos (sem `send_message`/`player_action`)
+- Combate completo documentado (7 eventos)
+- `server_message` documentado
+- `pong` e `room_users` removidos do `test-websocket.html`
+
+### Pendentes
+
+| # | Item | Prioridade |
+|---|------|-----------|
+| P1 | `dice_roll` echo (server->client) nao documentado no JSON — testEngine.js:99 emite, frontend depende | Alta |
+| P2 | `rpg_action` echo (server->client) nao documentado no JSON — socketManager.js:811 emite | Media |
+| P3 | `rate_limit_exceeded` documentado como canonical mas nunca emitido — decidir: implementar ou reclassificar como `planned` | Media |
+| P4 | Frontend escuta 3 listeners orfaos: `room_users` (listeners.js:259), `connection_error` (listeners.js:264), `authentication_error` (listeners.js:156) — backend nunca emite | Baixa |
+| P5 | Backend sem annotations inline nos handlers (info so existe no JSON) | Baixa |
+
+### Riscos
+
+- Divergencia JSON vs runtime sem validacao automatica em CI — novo emit pode escapar da documentacao
+- `rate_limit_exceeded` promete protecao que nao existe no runtime

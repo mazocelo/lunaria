@@ -22,161 +22,163 @@ As seis frentes principais levantadas para amadurecer o projeto foram:
 
 Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo deste README e registrar o ponto atual com honestidade tecnica.
 
-## Status geral
+## Status geral (atualizado 2026-03-13)
 
-| Ordem | Tema | Status | Resumo |
-| --- | --- | --- | --- |
-| 1 | Contrato publico do websocket | praticamente concluido | documentacao e catalogo do contrato ja foram alinhados ao runtime atual |
-| 2 | Modularizacao do motor do jogo | parcialmente concluido | houve extracao para gateway/engines, mas ainda sobra limpeza de codigo antigo |
-| 3 | Jobs duraveis para IA | parcialmente concluido | a v1 de roteiro async duravel foi fechada; expansao para imagem e TTS continua pendente |
-| 4 | Observabilidade e admin do motor | pendente | ainda nao existe camada operacional suficiente para diagnostico sem abrir codigo |
-| 5 | Controles de produto para IA | pendente | falta transformar os motores de geracao em ferramentas de direcao criativa |
-| 6 | Deploy e banco para HostGator/VPS | pendente | continua dependente da estabilizacao das decisoes de motor, jobs e operacao |
+| Ordem | Tema | Status | % | Resumo |
+| --- | --- | --- | --- | --- |
+| F-01 | Contrato publico do websocket | praticamente concluido | ~89% | contrato JSON v2.1.0, canonical path, legacy catalogado. Faltam dice_roll echo e rate_limit_exceeded |
+| F-02 | Modularizacao do motor do jogo | parcialmente concluido | ~48% | 4 engines extraidos, mas 5+ handlers grandes permanecem no socketManager (2067L). Acoplamento pesado (262 refs sm.) |
+| D-01 | Jobs duraveis para IA | parcialmente concluido | ~55% | v1 roteiro com BullMQ pronta mas dormant (flag OFF). Worker nao deployavel. Filas imagem/audio pendentes |
+| D-02 | Deploy e banco VPS | parcialmente concluido | ~50% | CI/CD funcional nos 3 repos, db push eliminado. Faltam backup, rollback, healthcheck |
+| D-03 | Observabilidade e admin do motor | pendente | ~18% | infra auth/roles pronta, tracking de uso existe. Zero rotas /admin/motor |
+| F-03 | Controles de produto para IA | pendente | ~15% | apenas initial/regenerate existe. Sem modos criativos, versionamento ou comparacao |
 
 ## Analise por frente
 
-### 1. Contrato publico do websocket
+### F-01. Contrato publico do websocket (~89%)
 
 **Status:** praticamente concluido
 
 **O que ja foi feito**
 
-- o contrato publico do websocket foi revisado e documentado
-- o caminho canonico de gameplay foi separado de eventos suportados por compatibilidade
-- a documentacao estruturada foi alinhada ao runtime atual
+- contrato JSON v2.1.0 completo (1063 linhas), canonical_gameplay_path definido
+- turno_estado_atualizado marcado authoritative, mestre_solicita_dados canonical
+- 20 eventos legacy catalogados, 5 aliases documentados
+- server_message documentado, pong/room_users removidos do test-websocket.html
 
-**O que ainda pode aparecer**
+**O que ainda falta**
 
-- pequenos ajustes de documentacao quando o runtime mudar
-- saneamento de exemplos se surgirem novos eventos canonicos
+- documentar `dice_roll` echo como server_to_client (testEngine.js:99 emite, frontend depende)
+- documentar `rpg_action` echo como server_to_client (socketManager.js:811 emite)
+- decidir sobre `rate_limit_exceeded` (documentado mas nunca emitido): implementar ou marcar como planned
+- remover 3 listeners orfaos do frontend (room_users, connection_error, authentication_error)
 
 **Leitura pratica**
 
-Nao e mais uma frente aberta de arquitetura. Ela agora entrou em modo de manutencao.
+Em modo de manutencao com 4 gaps pontuais.
 
-### 2. Modularizacao do motor do jogo
+### F-02. Modularizacao do motor do jogo (~48%)
 
 **Status:** parcialmente concluido
 
 **O que ja foi feito**
 
-- o `socketManager` deixou de carregar sozinho todo o peso do dominio
-- surgiram extracoes como:
-  - `roomGateway`
-  - `turnEngine`
-  - `testEngine`
-  - `sessionEventBus`
-  - `stateProjector`
-- parte do runtime ja foi religada para usar essas extracoes de fato
+- 4 modulos extraidos: combatEngine (616L), testEngine (588L), turnEngine (589L), roomGateway (779L)
+- SessionEventBus (55L) e stateProjector (9L) criados
+- 4 utils compartilhados (respostaDispatcher, sessionMessages, testePipeline, turnStateMachine)
+- 7 duplicados e 13 imports removidos. socketManager: 4000+ -> 2067L
 
 **O que ainda falta**
 
-- remover codigo antigo ainda duplicado no `socketManager`
-- reduzir dependencia direta das engines em helpers e emissoes do manager
-- usar `SessionEventBus` e `stateProjector` de forma mais completa
-- medir novamente o tamanho e a responsabilidade residual do `socketManager`
+- extrair `masterNarrationEngine` (handleMensagemParaMestre, 325L — maior bloco monolitico)
+- extrair handleAuthentication (133L), handleMensagemRoleplay (127L), handleChatMessage (111L)
+- extrair camada de sessao: obterSessaoHistoria (133L), executarCompactacao (108L), obterMestre (98L)
+- combatEngine: 15 `sm.io.to()` diretos (bypassa EventBus)
+- SessionEventBus subutilizado (5 usos no socketManager vs 10 emits diretos)
+- acoplamento pesado: 262 refs `sm.` nos engines sem interface definida
 
 **Leitura pratica**
 
-Essa frente nao esta quebrada, mas tambem nao esta definitivamente encerrada. O trabalho mais arriscado ja foi feito; o que resta agora e consolidacao e limpeza final.
+Extracao fisica em ~64%, mas qualidade da modularizacao (contratos, desacoplamento) ainda precisa consolidacao. Engines sao "pedacos do monolito em outros arquivos".
 
-### 3. Jobs duraveis para IA
+### D-01. Jobs duraveis para IA (~55%)
 
-**Status:** parcialmente concluido
+**Status:** parcialmente concluido (v1 pronta, dormant)
 
-**Recorte atual**
+**O que ja entrou (v1)**
 
-- a v1 de roteiro async duravel foi concluida
-- imagem, TTS, R2, admin e operacao mais rica ficaram para fases seguintes
+- BullMQ v5.71.0 + Redis, worker separado (`bin/worker`) com shutdown gracioso
+- Tabela `ai_jobs` com indices, POST 202, GET com status persistido
+- Auto-geracao por fila, idempotencia com lock Redis, fallback se enqueue falhar
+- Feature flag `AI_ASYNC_ROTEIRO` (default: false — dormant)
 
-**O que ja entrou**
+**O que ainda falta**
 
-- BullMQ + Redis como base da fila
-- worker separado da API
-- tabela `ai_jobs`
-- enqueue de roteiro
-- processamento de roteiro no worker
-- auto-geracao de roteiro saindo do processo web
-- polling de `GET /historias/:id/roteiro` aceitando `queued`
-- migration aplicada no banco existente
-- validacao real com:
-  - restart da API
-  - restart do worker
-  - falha de provider
-- correcao do risco de `mestresCache` stale por comparacao com `estadoJogo.historiaRoteiroAtualizadoEm`
-
-**O que ainda falta nesta frente**
-
-- jobs duraveis para imagem
-- jobs duraveis para TTS
-- storage de artefatos para audio async, se a fase de TTS pedir isso
-- endpoints operacionais/admin para consulta e reprocessamento
-- politicas de limpeza e retencao mais maduras para filas e artefatos
+- **CRITICO**: Worker sem Procfile nem systemd service — nao e deployavel em producao
+- Flag OFF = infraestrutura bypassed, roteiro processa in-process
+- Backoff fixo 30s (deveria ser exponencial com jitter)
+- Sem deteccao de stalled jobs (QueueEvents)
+- Filas imagem e audio nao existem
+- Storage R2, admin de jobs, reprocessamento manual — nao iniciados
 
 **Leitura pratica**
 
-A frente deixou de ser uma discussao inicial e passou a ser expansao incremental. O roteiro async v1 serve como base para as proximas filas.
+v1 de roteiro existe no codigo mas **nao esta ativa em producao**. Antes de expandir, precisa: (1) criar service de deploy do worker, (2) ligar o flag, (3) ajustar retry policy.
 
-### 4. Observabilidade e admin do motor
+### D-03. Observabilidade e admin do motor (~18%)
 
-**Status:** pendente
+**Status:** infraestrutura base pronta, modulo admin nao existe
+
+**O que ja existe**
+
+- Auth JWT com roles (requireSuperAdmin, requireOwnerOrSuperAdmin)
+- `GET /websocket/stats` (superadmin) — contadores basicos
+- `GET /billing/global` e `GET /analytics` — custos e uso de IA
+- Tabela `ai_jobs` com dados de status e erro (mas sem endpoint para consulta)
+- Rotas WebSocket admin para broadcast/mensagem direta
 
 **O que falta construir**
 
-- visao de sessao ativa
-- estado de turno atual
-- testes pendentes
-- ultimo prompt e ultima resposta do mestre
-- jobs ativos, falhos e reprocessados
-- consumo operacional de IA
-- trilha de erros que hoje se perde em logs
-
-**Direcao recomendada**
-
-Comecar com endpoints backend internos e uma camada de leitura/admin simples, sem UI dedicada na primeira rodada.
+- Modulo `/admin/motor` completo (zero rotas existem)
+- Listagem de sessoes ativas com estado de turno
+- Inspecao de testesPendentes e mestreContexto por sessao
+- Endpoint para listar/filtrar ai_jobs
+- Persistencia de prompts/respostas do mestre (hoje so metricas)
+- Logs estruturados (51+ console.log so no socketManager, sem winston/pino)
+- Tela admin no frontend (SuperAdminRoute ja pronta)
+- Reprocessamento manual de jobs
 
 **Leitura pratica**
 
-Essa frente fica muito mais valiosa agora que o motor esta mais modular e o roteiro async v1 foi fechado.
+Quick wins: 3 endpoints (`GET /admin/motor/sessoes`, `GET /admin/motor/sessoes/:roomId`, `GET /admin/motor/jobs`) dariam visibilidade operacional imediata.
 
-### 5. Controles de produto para IA
+### F-03. Controles de produto para IA (~15%)
 
-**Status:** pendente
+**Status:** base minima existe, feature nao iniciada
+
+**O que ja existe**
+
+- Distincao `initial` vs `regenerate` (blueprintService.js:346-351)
+- Temperaturas diferenciadas (0.3 vs 0.7)
+- Logica anti-repeticao sofisticada (`buildRegenerationBlock`)
 
 **O que falta construir**
 
-- modos explicitos de geracao de roteiro
-- variacoes de proposta por intencao
-- comparacao entre versoes
-- direcao criativa por tema, tom, foco ou estilo
-- maior controle do usuario sobre regeneracao alternativa
+- Modos criativos (sombrio, exploracao, intriga, etc.)
+- Tabela `roteiro_versoes` (versionamento — hoje roteiro e sobrescrito)
+- Metadados de geracao (modo, modelo, temperatura, timestamp)
+- Comparacao side-by-side de propostas
+- Workflow de aprovacao (marcar versao ativa)
+- Seletor de modo no frontend (hoje so botao "Regenerar")
 
 **Leitura pratica**
 
-Essa frente impacta diretamente a experiencia, mas rende mais quando:
+Depende de jobs duraveis e observabilidade para render valor completo.
 
-- o pipeline de IA estiver duravel
-- houver observabilidade minima
-- o estado do job estiver mais transparente
+### D-02. Deploy e banco VPS (~50%)
 
-### 6. Deploy e banco para HostGator/VPS
+**Status:** core funcional, hardening pendente
 
-**Status:** pendente
+**O que ja foi feito**
+
+- `db push --accept-data-loss` eliminado de todo script executavel
+- 3 pipelines CI/CD (Backend, Frontend, TTS) via GitHub Actions + SSH
+- Migrations formais (0_baseline + ai_jobs) com baseline aplicado na VPS
+- Deploy automatico no push para main com systemd restart
 
 **O que falta construir**
 
-- processo de release mais seguro
-- migracoes mais maduras que `db push`
-- subida e reinicio coordenado de:
-  - backend
-  - worker
-  - frontend
-- preparacao para dominio, TLS e proxy reverso
-- operacao consistente fora do ambiente atual
+- Backup automatico antes de migracao
+- Rollback operacional
+- Healthcheck pos-deploy
+- Preflight de saude
+- Lock de release e coordenacao entre deploys
+- `git pull --ff-only` nos pipelines (hoje sem --ff-only)
+- Restart do worker no pipeline de deploy
 
 **Leitura pratica**
 
-Essa frente deve vir por ultimo, quando motor e jobs estiverem mais estabilizados.
+Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 
 ## Ordem recomendada a partir do estado atual
 
@@ -187,56 +189,63 @@ Essa frente deve vir por ultimo, quando motor e jobs estiverem mais estabilizado
 5. adicionar controles de produto para IA
 6. endurecer deploy e banco para HostGator/VPS
 
-## Pendencias imediatas
+## Pendencias imediatas (atualizado 2026-03-13)
 
-Estas sao as pendencias mais concretas no curto prazo:
+### P-01 Tornar worker deployavel (D-01, CRITICO)
 
-### P-01 Encerrar a limpeza da modularizacao
+- criar systemd service `lunaria-worker.service` na VPS
+- adicionar restart do worker no pipeline CI/CD do backend
+- ligar flag `AI_ASYNC_ROTEIRO` quando worker estiver ativo
 
-- remover copias antigas de metodos ja delegados
-- reduzir codigo morto no `socketManager`
-- revisar se toda emissao relevante ja passa por caminhos mais centralizados
+### P-02 Continuar modularizacao do motor (F-02)
 
-### P-02 Criar observabilidade minima
+- extrair `masterNarrationEngine` (handleMensagemParaMestre, 325L)
+- migrar combatEngine para usar sendToRoom ao inves de sm.io.to() direto
+- centralizar emissoes no SessionEventBus
 
-- listar sessoes ativas
-- expor estado de turno e testes pendentes
-- expor jobs do motor e de IA
-- facilitar debug sem abrir codigo ou depender so de log
+### P-03 Criar observabilidade minima (D-03)
 
-### P-03 Planejar a expansao da fila de IA
+- `GET /admin/motor/sessoes` — listar sessoes ativas
+- `GET /admin/motor/sessoes/:roomId` — dump completo
+- `GET /admin/motor/jobs` — consultar ai_jobs com filtro
 
-- decidir se a proxima expansao vai ser imagem ou admin operacional
-- manter imagem e TTS fora do processo web, seguindo o mesmo modelo do roteiro
+### P-04 Fechar gaps do contrato WebSocket (F-01)
+
+- documentar `dice_roll` echo e `rpg_action` echo como server_to_client
+- decidir sobre `rate_limit_exceeded`: implementar ou reclassificar
+- remover 3 listeners orfaos do frontend
+
+### P-05 Hardening de deploy (D-02)
+
+- adicionar `--ff-only` ao `git pull` nos 3 pipelines
+- adicionar backup pre-migracao (pg_dump)
+- adicionar healthcheck pos-deploy
 
 ## O que nao deve acontecer agora
 
-Para evitar dispersao e overengineering, nao e recomendavel nesta fase:
-
 - construir UI admin completa antes dos endpoints operacionais
-- refatorar novamente o motor inteiro sem primeiro remover o codigo duplicado remanescente
-- endurecer deploy final de HostGator antes da estabilizacao do runtime
+- refatorar o motor inteiro antes de resolver o acoplamento sm. nos engines
+- expandir filas de IA (imagem/audio) antes de tornar o worker deployavel
+- endurecer deploy antes de ter observabilidade minima
 
-## Resumo executivo
+## Resumo executivo (2026-03-13)
 
-O projeto ja saiu da fase de exploracao e entrou numa fase de consolidacao estrutural.
+O projeto avancou significativamente desde a abertura das 6 frentes:
 
-O contrato publico do websocket esta praticamente resolvido.
-A modularizacao do motor melhorou bastante, mas ainda precisa limpeza final.
-Os jobs duraveis de IA ja deram o primeiro passo correto com roteiro async v1 fechado.
+- **F-01 (~89%)**: contrato WebSocket praticamente fechado, em manutencao
+- **D-02 (~50%)**: CI/CD funcional, db push eliminado, baseline aplicado
+- **D-01 (~55%)**: v1 roteiro pronta no codigo mas dormant — worker nao deployavel
+- **F-02 (~48%)**: 4 engines extraidos, socketManager -48%, mas acoplamento pesado permanece
+- **D-03 (~18%)**: infraestrutura auth pronta, zero endpoints admin
+- **F-03 (~15%)**: apenas initial/regenerate existe, feature nao iniciada
 
-Depois disso, as frentes de maior retorno passam a ser:
-
-1. observabilidade/admin minima
-2. expansao dos jobs duraveis para outras midias
-3. endurecimento do deploy e da operacao
+Prioridades imediatas: (1) tornar worker deployavel, (2) continuar modularizacao, (3) observabilidade minima.
 
 ## Handoff para outra instancia
 
-Se outra instancia retomar daqui, a orientacao e:
-
-1. tratar o websocket publico como frente praticamente fechada
-2. considerar a modularizacao como parcialmente concluida, com limpeza final pendente
-3. considerar o roteiro async v1 como base pronta para expansao
-4. priorizar observabilidade e a proxima fila async sem reabrir discussoes ja fechadas
-5. usar este arquivo como snapshot do estado das seis frentes
+1. F-01 esta em manutencao — so fechar os 4 gaps pontuais
+2. F-02 precisa de mais uma rodada de extracao (masterNarrationEngine) e desacoplamento
+3. D-01 precisa tornar o worker deployavel ANTES de qualquer expansao
+4. D-02 Fase 1 esta feita, Fase 2 (hardening) e proxima
+5. D-03 e F-03 sao as frentes mais verdes — comecar por quick wins de D-03
+6. cada documento individual agora tem secao "Auditoria" com detalhes completos

@@ -170,25 +170,6 @@ class SocketManager {
     });
   }
 
-  buildRoleplayContextoLateral(sessao, maxItens = 2) {
-    const roleplays = Array.isArray(sessao?.roleplayRecente)
-      ? sessao.roleplayRecente.slice(-maxItens)
-      : [];
-    if (roleplays.length === 0) return '';
-
-    const linhas = roleplays
-      .map((item) => {
-        const texto = String(item?.message || item?.mensagem || '').trim().slice(0, 140);
-        if (!texto) return null;
-        return `- ${item.username || 'Jogador'}: ${texto}`;
-      })
-      .filter(Boolean);
-
-    if (linhas.length === 0) return '';
-
-    return `\n[CONTEXTO LATERAL DE ROLEPLAY - use apenas se ajudar a cena, sem transformar em fato canônico]\n${linhas.join('\n')}\n`;
-  }
-
   /**
    * Inicializar o servidor WebSocket
    * @param {Object} server - Servidor HTTP
@@ -2516,8 +2497,6 @@ class SocketManager {
         username,
         rodada: estadoJogo.rodadaAtual || 1,
         turno: turnoAtual,
-        turnoEstado: buildTurnEventPayload(sessaoAtualizada).turno,
-        testesPendentes: buildTurnEventPayload(sessaoAtualizada).testesPendentes,
         timestamp: Date.now()
       });
 
@@ -3709,7 +3688,7 @@ class SocketManager {
 
             await this.gerenciadorSessoes.salvarResumo(roomId, resumo);
 
-            console.log(`✅ Resumo gerado e salvo (${resumo.mensagensResumiadas} msgs resumidas)`);
+            console.log(`✅ Resumo gerado e salvo (${resumo.mensagensResumidas} msgs resumidas)`);
 
             // ✅ AUTO-PROGRESSÃO DO BLUEPRINT (atualiza arco, NPCs, twists)
             if (isEnabled('BLUEPRINT_V2') && sessaoParaResumo.historiaRoteiro) {

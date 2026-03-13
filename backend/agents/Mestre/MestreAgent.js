@@ -261,7 +261,7 @@ export class MestreAgent {
   /**
    * Narra uma ação do jogador
    */
-  async narrarAcao({ jogador, personagem, acao, chatHistory = [], resumo = null }) {
+  async narrarAcao({ jogador, personagem, acao, chatHistory = [], resumo = null, contextoLateralRoleplay = '' }) {
     const startTime = Date.now();
     try {
       console.log(`🎭 MestreAgent: Narrando ação de ${personagem}...`);
@@ -270,6 +270,9 @@ export class MestreAgent {
       const input = criarPromptNarracao(jogador, personagem, acao);
 
       // Converter histórico
+      const inputCompleto = contextoLateralRoleplay
+        ? `${contextoLateralRoleplay}\n\n${input}`
+        : input;
       let historico = converterHistoricoParaLangChain(chatHistory);
 
       // ✅ Se houver resumo, adicionar como contexto do sistema
@@ -291,7 +294,7 @@ export class MestreAgent {
 
       // Invocar chain with timeout + retry
       const response = await withRetry(() => withTimeout(this.chain.invoke({
-        input,
+        input: inputCompleto,
         chat_history: historico
       })));
 

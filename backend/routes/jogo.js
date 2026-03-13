@@ -804,7 +804,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
           userId: req.user?.id
         });
         resumoSessao = resultado.resumo;
-        console.log(`📝 Resumo da sessão gerado com sucesso (${resultado.mensagensResumiadas} mensagens)`);
+        console.log(`📝 Resumo da sessão gerado com sucesso (${resultado.mensagensResumidas} mensagens)`);
       }
     } catch (resumoError) {
       console.error('⚠️ Erro ao gerar resumo da sessão (não-bloqueante):', resumoError.message);

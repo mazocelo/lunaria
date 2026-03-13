@@ -114,7 +114,7 @@ export class ResumoAgent {
 
       return {
         resumo: resumoConsolidado,
-        mensagensResumiadas: mensagensCanonicas.length,
+        mensagensResumidas: mensagensCanonicas.length,
         rodadasResumiadas: rodadasJogadas,
         geradoEm: new Date().toISOString(),
         formato: isEnabled('STRUCTURED_SUMMARY') ? 'estruturado' : 'narrativo'

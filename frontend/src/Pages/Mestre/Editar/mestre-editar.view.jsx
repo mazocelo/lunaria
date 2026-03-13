@@ -52,6 +52,9 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
   } focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
 
   const selectedVoice = voices.find(v => v.voice_id === voice_id);
+  const effectiveVoices = !voice_id || selectedVoice
+    ? voices
+    : [{ voice_id, name: 'Voz salva indisponivel', category: 'persistida' }, ...voices];
 
   return (
     <div className={`p-4 rounded-lg space-y-4 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
@@ -91,7 +94,7 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
           <div className="flex items-center gap-3">
             <select value={voice_id} onChange={e => setField('voice_id', e.target.value)} className={selectClass}>
               <option value="">Sem voz</option>
-              {voices.map(v => (
+              {effectiveVoices.map(v => (
                 <option key={v.voice_id} value={v.voice_id}>
                   {v.name}{v.category ? ` (${v.category})` : ''}
                 </option>
@@ -122,9 +125,11 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
             </div>
           )}
 
-          {selectedVoice && (
+          {voice_id && (
             <p className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-              As mensagens do mestre poderao ser ouvidas com esta voz durante o jogo.
+              {selectedVoice
+                ? 'As mensagens do mestre poderao ser ouvidas com esta voz durante o jogo.'
+                : 'Esta voz esta salva no mestre, mas nao foi retornada pela lista atual do provider.'}
             </p>
           )}
         </>
@@ -135,7 +140,7 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
 
 const EditarMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
-  max_tokens, tom_narrativo, regras_especiais, imagem,
+  max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
   voice_id, voice_provider, voices, providers, loadingVoices,
   loading, saving, error, isLight,
   setField, handleSubmit, handleCancel, clearError,
@@ -237,6 +242,14 @@ const EditarMestreView = ({
           value={tom_narrativo}
           onChange={e => setField('tom_narrativo', e.target.value)}
           placeholder="Ex: Sombrio, Epico, Comico, Misterioso..."
+        />
+
+        <InputSimples
+          label="Etiquetas (2-6, separadas por virgula)"
+          name="tags_input"
+          value={tagsInput}
+          onChange={e => setField('tags_input', e.target.value)}
+          placeholder="Ex: kids, historias longas, poucas palavras"
         />
 
         <div>

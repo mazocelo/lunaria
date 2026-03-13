@@ -2,6 +2,7 @@
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
+import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 const RE_SOLICITACAO_DADOS = /(\u{1F3B2}\s*)?[Rr]ole/iu;
@@ -214,15 +215,24 @@ export const renderMestre = (mensagem, key) => {
 export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = RE_SOLICITACAO_DADOS.test(conteudo);
-  const isThisPlaying = tts.currentMessageId === mensagem.id;
-  // Usar voice da mensagem (permanente) com fallback para props (sessao atual)
+  const isThisPlaying = String(tts.currentMessageId) === String(mensagem.id);
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
+  const segmentItems = useMemo(
+    () => buildNarrationSequenceItems(mensagem.segmentos || [], mensagem.id, effectiveVoiceId, effectiveVoiceProvider),
+    [mensagem.segmentos, mensagem.id, effectiveVoiceId, effectiveVoiceProvider]
+  );
+  const hasSegmentedNarration = segmentItems.length > 0;
   const hasCachedAudio = tts.hasAudioForMessage(mensagem.id);
-  const hasPersistedAudio = Boolean(mensagem.audio_cache_key || mensagem.audio_url || mensagem.audioUrl);
+  const hasPersistedAudio = Boolean(
+    mensagem.audio_cache_key
+    || mensagem.audio_url
+    || mensagem.audioUrl
+    || segmentItems.some((segment) => segment.hasPersistedAudio)
+  );
   const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
+  const hasVoiceControls = Boolean(effectiveVoiceId || segmentItems.some((segment) => segment.voiceId));
 
-  // Inicializar e sincronizar com imagem persistida no payload/store
   const [sceneImage, setSceneImage] = useState(
     mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null
   );
@@ -235,11 +245,10 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     setSceneImage(persistedSceneImage);
   }, [mensagem.id, mensagem.scene_image, mensagem.sceneImage, mensagem.imagem_cena]);
 
-  // Detectar NPCs/Locais mencionados na narrativa que possuem imagem
   const entidadesMencionadas = useMemo(() => {
     if (!entidadesComImagem?.length || !conteudo) return [];
     const texto = conteudo.toLowerCase();
-    return entidadesComImagem.filter(e => texto.includes(e.nome.toLowerCase()));
+    return entidadesComImagem.filter((e) => texto.includes(e.nome.toLowerCase()));
   }, [conteudo, entidadesComImagem]);
 
   const handleGenerateScene = async () => {
@@ -276,7 +285,9 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
         setSceneImage(url);
         onSceneImageGenerated?.(mensagem.id, url);
       }
-    } catch (_) { /* silent */ }
+    } catch (_) {
+      // silent
+    }
     setGeneratingScene(false);
   };
 
@@ -285,6 +296,15 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
       tts.togglePause();
       return;
     }
+
+    if (hasSegmentedNarration) {
+      await tts.playSequence(segmentItems, mensagem.id, {
+        allowGenerate: hasPersistedAudio,
+        sequenceKey: `scene:${mensagem.id}`
+      });
+      return;
+    }
+
     await tts.play(
       conteudo,
       effectiveVoiceId,
@@ -302,6 +322,15 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     } else {
       const confirmed = window.confirm('Deseja gerar audio para esta mensagem?');
       if (!confirmed) return;
+    }
+
+    if (hasSegmentedNarration) {
+      await tts.playSequence(segmentItems, mensagem.id, {
+        allowGenerate: true,
+        forceRegenerate: hasAnyAudio,
+        sequenceKey: `scene:${mensagem.id}`
+      });
+      return;
     }
 
     await tts.play(
@@ -322,7 +351,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
       }`}>
         <div className="flex items-start space-x-4">
           <span className="text-4xl drop-shadow-lg">
-            {temSolicitacaoDados ? '\u{1F3B2}' : '\u{1F3AD}'}
+            {temSolicitacaoDados ? '🎲' : '🎭'}
           </span>
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
@@ -344,9 +373,9 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                 >
                   {generatingScene ? (
                     <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                  ) : '\u{1F5BC}\u{FE0F}'}
+                  ) : '🖼️'}
                 </button>
-                {effectiveVoiceId && (
+                {hasVoiceControls && (
                   <>
                     <button
                       onClick={handlePlayAudio}
@@ -358,11 +387,11 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                             ? 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
                             : 'text-purple-400/40 cursor-not-allowed'
                       }`}
-                      title={isThisPlaying && tts.isPlaying ? 'Pausar narracao' : 'Ouvir narracao'}
+                      title={isThisPlaying && tts.isPlaying ? 'Pausar narracao' : hasSegmentedNarration ? 'Ouvir cena' : 'Ouvir narracao'}
                     >
                       {tts.isLoading && isThisPlaying ? (
                         <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                      ) : isThisPlaying && tts.isPlaying ? '\u{23F9}' : '\u{1F50A}'}
+                      ) : isThisPlaying && tts.isPlaying ? '⏹' : hasSegmentedNarration ? '🎙️' : '🔊'}
                     </button>
                     <button
                       onClick={handleGenerateAudio}
@@ -374,15 +403,25 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                       }`}
                       title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
                     >
-                      {'\u{1F3A4}'}
+                      {'🎤'}
                     </button>
                   </>
                 )}
               </div>
             </div>
-            <MarkdownRenderer className="text-white text-lg leading-relaxed">
-              {conteudo}
-            </MarkdownRenderer>
+            {hasSegmentedNarration ? (
+              <NarrationSegments
+                segments={mensagem.segmentos || []}
+                messageId={mensagem.id}
+                tts={tts}
+                defaultVoiceId={effectiveVoiceId}
+                defaultVoiceProvider={effectiveVoiceProvider}
+              />
+            ) : (
+              <MarkdownRenderer className="text-white text-lg leading-relaxed">
+                {conteudo}
+              </MarkdownRenderer>
+            )}
             {entidadesMencionadas.length > 0 && (
               <div className="flex gap-2 mt-3 flex-wrap">
                 {entidadesMencionadas.map((e, i) => (
@@ -409,7 +448,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                   onClick={() => setSceneImage(null)}
                   className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent"
                 >
-                  <span className="text-xs">{'\u{2715}'}</span>
+                  <span className="text-xs">{'✕'}</span>
                 </button>
                 <ImageLightbox src={sceneImage} alt="Ilustracao da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
               </div>

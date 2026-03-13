@@ -7,6 +7,8 @@ import {
 import { imageGenerationService } from '../services';
 import ImageLightbox from './ImageLightbox.jsx';
 import NarrationAudioButton from './shared/NarrationAudioButton.jsx';
+import VoicePicker from './shared/VoicePicker.jsx';
+import { useVoiceCatalog } from '../hooks/useVoiceCatalog.js';
 
 const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -81,6 +83,18 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
 
 const joinNarrationParts = (...parts) => parts.filter(Boolean).join(' ');
 
+const slugify = (value, fallback = 'npc') => {
+  const normalized = String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return normalized || fallback;
+};
+
 const buildAntagonistaNarration = (antagonista) => {
   if (!antagonista) return '';
   return joinNarrationParts(
@@ -127,18 +141,47 @@ const RoteiroViewer = ({
   mestreVoiceId = null,
   mestreVoiceProvider = 'elevenlabs'
 }) => {
-  // Ref para manter versão mais recente do roteiro (evita race condition em gerações paralelas)
+  const voiceCatalog = useVoiceCatalog();
+
+  // Ref para manter versao mais recente do roteiro (evita race condition em geracoes paralelas)
   const roteiroRef = useRef(roteiro);
   useEffect(() => { roteiroRef.current = roteiro; }, [roteiro]);
 
   if (!roteiro) return null;
 
-  const updateItemImage = (arrayKey, index, url) => {
+  const updateArrayItem = (arrayKey, index, updater) => {
     if (!onRoteiroUpdate) return;
     const current = roteiroRef.current || roteiro;
-    const updated = { ...current, [arrayKey]: current[arrayKey].map((item, i) => i === index ? { ...item, imagem: url } : item) };
+    const currentItems = Array.isArray(current?.[arrayKey]) ? current[arrayKey] : [];
+    const updated = {
+      ...current,
+      [arrayKey]: currentItems.map((item, i) => {
+        if (i !== index) return item;
+        return typeof updater === 'function'
+          ? updater(item)
+          : { ...item, ...(updater || {}) };
+      })
+    };
     roteiroRef.current = updated;
     onRoteiroUpdate(updated);
+  };
+
+  const updateItemImage = (arrayKey, index, url) => {
+    updateArrayItem(arrayKey, index, { imagem: url });
+  };
+
+  const updateNpcVoice = (index, nextVoice = {}) => {
+    updateArrayItem('npcs', index, (npc) => {
+      const nome = npc?.nome || `NPC ${index + 1}`;
+      return {
+        ...npc,
+        id: npc?.id || `npc_${slugify(nome, `npc_${index + 1}`)}`,
+        voice_id: nextVoice.voice_id || null,
+        voice_provider: nextVoice.voice_id
+          ? (nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || 'elevenlabs')
+          : null
+      };
+    });
   };
 
   return (
@@ -293,10 +336,25 @@ const RoteiroViewer = ({
                   tts={tts}
                   text={buildNpcNarration(npc)}
                   itemId={`historia:${historiaId}:roteiro:npc:${i}`}
-                  voiceId={mestreVoiceId}
-                  voiceProvider={mestreVoiceProvider}
+                  voiceId={npc.voice_id || mestreVoiceId}
+                  voiceProvider={npc.voice_provider || mestreVoiceProvider}
                   isLight={isLight}
                 />
+                {onRoteiroUpdate && (
+                  <VoicePicker
+                    label="Voz do NPC"
+                    voiceId={npc.voice_id || ''}
+                    voiceProvider={npc.voice_provider || voiceCatalog.defaultProvider}
+                    providers={voiceCatalog.providers}
+                    voices={voiceCatalog.getVoices(npc.voice_provider || voiceCatalog.defaultProvider)}
+                    loadingVoices={voiceCatalog.isLoadingVoices(npc.voice_provider || voiceCatalog.defaultProvider)}
+                    ensureVoices={voiceCatalog.ensureVoices}
+                    onChange={(nextVoice) => updateNpcVoice(i, nextVoice)}
+                    isLight={isLight}
+                    compact
+                    helperText="Defina a voz usada nas falas deste NPC durante a sessao."
+                  />
+                )}
                 {onRoteiroUpdate && (
                   <ImagemCard
                     imageUrl={npc.imagem}

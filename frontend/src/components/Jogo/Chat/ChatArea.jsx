@@ -15,6 +15,10 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     () => mensagens.find(m => String(m.id) === String(tts.currentMessageId)),
     [mensagens, tts.currentMessageId]
   );
+  const currentTtsSegment = useMemo(
+    () => currentTtsMessage?.segmentos?.find((segmento) => String(segmento.id) === String(tts.currentSegmentId)) || null,
+    [currentTtsMessage, tts.currentSegmentId]
+  );
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -125,7 +129,9 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                   {`${tts.playbackRate}x`}
                 </button>
                 <span className="text-xs text-purple-200 truncate">
-                  {currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao do mestre'}
+                  {currentTtsSegment
+                    ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}`
+                    : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao do mestre'}
                 </span>
               </div>
               <div className="flex items-center gap-2">

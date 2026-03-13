@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Filter, Clock, Users, ScrollText, MessageCircle, Dice1, ArrowDown, Swords, Shield, TrendingUp, Package, Volume2, Square, Loader2 } from 'lucide-react';
 import { useTTS } from '../../../hooks/useTTS.js';
+import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 
 const tipoConfig = {
   mestre: { label: 'Mestre', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: '\u{1F3AD}' },
@@ -51,35 +52,66 @@ const MensagemItem = ({ msg, tts }) => {
   if (tipo === 'mestre') {
     const voiceId = msg.voice_id;
     const voiceProvider = msg.voice_provider;
-    const isThisPlaying = tts?.currentMessageId === msg.id;
+    const segmentItems = buildNarrationSequenceItems(msg.segmentos || [], msg.id, voiceId, voiceProvider);
+    const hasSegmentedNarration = segmentItems.length > 0;
+    const isThisPlaying = String(tts?.currentMessageId) === String(msg.id);
     const hasCachedAudio = !!tts?.hasAudioForMessage?.(msg.id);
-    const hasPersistedAudio = Boolean(msg.audio_cache_key || msg.audio_url || msg.audioUrl);
+    const hasPersistedAudio = Boolean(
+      msg.audio_cache_key
+      || msg.audio_url
+      || msg.audioUrl
+      || segmentItems.some((segment) => segment.hasPersistedAudio)
+    );
     const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
+    const hasVoiceControls = Boolean(voiceId || segmentItems.some((segment) => segment.voiceId));
 
     const handlePlayAudio = async () => {
-      if (!voiceId || !tts) return;
+      if (!tts) return;
       if (isThisPlaying) {
         tts.togglePause();
         return;
       }
+
+      if (hasSegmentedNarration) {
+        await tts.playSequence(segmentItems, msg.id, {
+          allowGenerate: hasPersistedAudio,
+          sequenceKey: `historico:${msg.id}`
+        });
+        return;
+      }
+
+      if (!voiceId) return;
+
       await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: hasPersistedAudio });
     };
 
     const handleGenerateAudio = async () => {
-      if (!voiceId || !tts) return;
+      if (!tts) return;
       const confirmed = hasAnyAudio
         ? window.confirm('Ja existe audio para esta mensagem. Deseja gerar novamente?')
         : window.confirm('Deseja gerar audio para esta mensagem?');
       if (!confirmed) return;
+
+      if (hasSegmentedNarration) {
+        await tts.playSequence(segmentItems, msg.id, {
+          allowGenerate: true,
+          forceRegenerate: hasAnyAudio,
+          sequenceKey: `historico:${msg.id}`
+        });
+        return;
+      }
+
+      if (!voiceId) return;
+
       await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: true, forceRegenerate: hasAnyAudio });
     };
 
     return (
       <div className="glass p-3 rounded-lg border border-purple-500/20 ml-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-2">
           <span className="text-xs">{config.icon}</span>
           <span className="text-xs font-semibold text-purple-300 font-modern">Mestre</span>
-          {voiceId && tts && (
+          {hasVoiceControls && tts && (
             <>
               <button
                 onClick={handlePlayAudio}
@@ -89,7 +121,7 @@ const MensagemItem = ({ msg, tts }) => {
                     ? 'text-purple-400/40 cursor-not-allowed'
                     : 'text-purple-400 hover:text-purple-200'
                 }`}
-                title={isThisPlaying && tts.isPlaying ? 'Pausar' : 'Ouvir'}
+                title={isThisPlaying && tts.isPlaying ? 'Pausar' : hasSegmentedNarration ? 'Ouvir cena' : 'Ouvir'}
               >
                 {tts.isLoading && isThisPlaying ? <Loader2 size={12} className="animate-spin" /> : isThisPlaying && tts.isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
               </button>
@@ -99,13 +131,25 @@ const MensagemItem = ({ msg, tts }) => {
                 className="p-0.5 rounded transition-all text-purple-400 hover:text-purple-200"
                 title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
               >
-                <span className="text-[10px]">{'\u{1F3A4}'}</span>
+                <span className="text-[10px]">{'??'}</span>
               </button>
             </>
           )}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
         </div>
-        <div className="text-sm text-slate-200 font-modern whitespace-pre-wrap">{conteudo}</div>
+        {hasSegmentedNarration ? (
+          <NarrationSegments
+            segments={msg.segmentos || []}
+            messageId={msg.id}
+            tts={tts}
+            defaultVoiceId={voiceId}
+            defaultVoiceProvider={voiceProvider}
+            compact
+            className="mt-1"
+          />
+        ) : (
+          <div className="text-sm text-slate-200 font-modern whitespace-pre-wrap">{conteudo}</div>
+        )}
       </div>
     );
   }
@@ -113,10 +157,10 @@ const MensagemItem = ({ msg, tts }) => {
   if (tipo === 'dado') {
     return (
       <div className="flex items-center gap-2 py-1">
-        <span className="text-xs">{'\u{1F3B2}'}</span>
+        <span className="text-xs">{'??'}</span>
         <span className="text-xs text-slate-400 font-modern">{msg.username || 'Jogador'}</span>
         <span className="text-sm font-bold text-amber-400">{msg.dice || conteudo}</span>
-        {msg.result != null && <span className="text-lg font-bold text-amber-300">{'\u{2192}'} {msg.result}</span>}
+        {msg.result != null && <span className="text-lg font-bold text-amber-300">{'?'} {msg.result}</span>}
         <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
       </div>
     );
@@ -126,7 +170,7 @@ const MensagemItem = ({ msg, tts }) => {
     return (
       <div className="glass p-2 rounded-lg border border-red-500/20">
         <div className="flex items-center gap-2">
-          <span className="text-xs">{'\u{2694}\u{FE0F}'}</span>
+          <span className="text-xs">{'??'}</span>
           <span className="text-sm text-red-300 font-modern">{conteudo}</span>
           {msg.dano && <span className="text-sm font-bold text-red-400">-{msg.dano} HP</span>}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>

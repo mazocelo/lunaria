@@ -57,14 +57,15 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
           <img
             src={imageUrl}
             alt="Preview"
-            className={`cursor-pointer ${imageClassName || `w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}`}
+            className={`cursor-pointer select-none caret-transparent ${imageClassName || `w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}`}
+            draggable={false}
             onError={(e) => { e.target.style.display = 'none'; }}
             onClick={() => setLightboxOpen(true)}
           />
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent"
             title="Remover imagem"
           >
             <X size={14} />

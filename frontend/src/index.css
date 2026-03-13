@@ -145,6 +145,27 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  img,
+  button,
+  [role='button'] {
+    -webkit-user-select: none;
+    user-select: none;
+    caret-color: transparent;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable='true'],
+  [contenteditable='plaintext-only'] {
+    -webkit-user-select: text;
+    user-select: text;
+    caret-color: auto;
+  }
   
   body {
     @apply bg-background text-foreground;

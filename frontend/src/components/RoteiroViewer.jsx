@@ -54,8 +54,8 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   if (imageUrl) {
     return (
       <div className="relative group mt-2">
-        <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg cursor-pointer" onError={(e) => { e.target.style.display = 'none'; }} onClick={() => setLightboxOpen(true)} />
-        <button onClick={() => onGenerated('')} className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" title="Remover">
+        <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg cursor-pointer select-none caret-transparent" draggable={false} onError={(e) => { e.target.style.display = 'none'; }} onClick={() => setLightboxOpen(true)} />
+        <button onClick={() => onGenerated('')} className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent" title="Remover">
           <X size={12} />
         </button>
         <ImageLightbox src={imageUrl} alt="Preview" isOpen={lightboxOpen} onClose={() => setLightboxOpen(false)} />

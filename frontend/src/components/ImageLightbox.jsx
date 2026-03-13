@@ -19,14 +19,15 @@ const ImageLightbox = ({ src, alt, isOpen, onClose }) => {
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all cursor-pointer z-10"
+        className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all cursor-pointer z-10 select-none caret-transparent"
       >
         <X size={24} />
       </button>
       <img
         src={src}
         alt={alt || ''}
-        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl select-none caret-transparent"
+        draggable={false}
         onClick={(e) => e.stopPropagation()}
       />
     </div>,

@@ -390,7 +390,8 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                     <img
                       src={e.imagem}
                       alt={e.nome}
-                      className="h-24 w-24 object-cover rounded-lg border border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all"
+                      className="h-24 w-24 object-cover rounded-lg border border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all select-none caret-transparent"
+                      draggable={false}
                       onClick={() => setActiveLightbox(e.imagem)}
                     />
                     <span className="absolute bottom-0 left-0 right-0 text-xs text-center bg-black/60 text-white rounded-b-lg px-1 py-0.5 truncate">
@@ -403,10 +404,10 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
             )}
             {sceneImage && (
               <div className="mt-3 relative group">
-                <img src={sceneImage} alt="Ilustracao da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer" onClick={() => setSceneLightbox(true)} />
+                <img src={sceneImage} alt="Ilustracao da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer select-none caret-transparent" draggable={false} onClick={() => setSceneLightbox(true)} />
                 <button
                   onClick={() => setSceneImage(null)}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent"
                 >
                   <span className="text-xs">{'\u{2715}'}</span>
                 </button>

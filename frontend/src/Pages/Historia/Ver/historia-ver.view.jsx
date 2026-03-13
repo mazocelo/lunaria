@@ -224,7 +224,8 @@ const VerHistoriaView = ({
             <img
               src={historiaAtual.imagem}
               alt={historiaAtual.nome}
-              className="flex-shrink-0 w-14 h-14 rounded-xl object-cover border-2 border-purple-500 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex-shrink-0 w-14 h-14 rounded-xl object-cover border-2 border-purple-500 cursor-pointer hover:opacity-80 transition-opacity select-none caret-transparent"
+              draggable={false}
               onClick={() => setLightboxSrc(historiaAtual.imagem)}
             />
           ) : (
@@ -398,7 +399,8 @@ const VerHistoriaView = ({
                       <img
                         src={historiaAtual.imagem}
                         alt={historiaAtual.nome}
-                        className="w-full h-full object-cover cursor-pointer"
+                        className="w-full h-full object-cover cursor-pointer select-none caret-transparent"
+                        draggable={false}
                         onClick={() => setLightboxSrc(historiaAtual.imagem)}
                       />
                     ) : (
@@ -426,7 +428,7 @@ const VerHistoriaView = ({
                             isLight ? 'border-slate-200 hover:border-purple-400' : 'border-slate-700 hover:border-purple-500'
                           }`}
                         >
-                          <img src={mapa.url} alt={mapa.nome || `Mapa ${i + 1}`} className="w-full h-36 object-cover" />
+                          <img src={mapa.url} alt={mapa.nome || `Mapa ${i + 1}`} className="w-full h-36 object-cover select-none caret-transparent" draggable={false} />
                           <div className={`px-2 py-1.5 text-xs font-modern ${isLight ? 'text-slate-600 bg-slate-50' : 'text-slate-300 bg-slate-800/50'}`}>
                             {mapa.nome || `Mapa ${i + 1}`}
                           </div>
@@ -435,7 +437,7 @@ const VerHistoriaView = ({
                           <button
                             type="button"
                             onClick={() => handleRemoveMapa(i)}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer select-none caret-transparent"
                           >
                             <X size={14} />
                           </button>

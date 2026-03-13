@@ -1,0 +1,589 @@
+import { extrairNomesTemas } from '../../helpers/temasHelper.js';
+import { isEnabled } from '../../config/featureFlags.js';
+import { buildTurnStartContext } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
+import {
+  buildEntreRodadasMensagem,
+  buildTransicaoTurnoMensagem,
+  appendMensagemSessao
+} from '../utils/sessionMessages.js';
+import {
+  getTurnState,
+  resetTurnInteractions,
+  transitionTurnState,
+  TURN_STATUS
+} from '../utils/turnStateMachine.js';
+import { limparTestePendente } from '../utils/testePipeline.js';
+
+function expirarStatusForaDeCombate(manager, roomId, sessao, contexto) {
+  const estadoJogo = sessao.estadoJogo || {};
+  if (estadoJogo.combate?.ativo) return;
+
+  for (const personagemCompleto of Object.values(sessao.personagensCompletos || {})) {
+    if (!Array.isArray(personagemCompleto.status_efeitos) || personagemCompleto.status_efeitos.length === 0) {
+      continue;
+    }
+
+    personagemCompleto.status_efeitos = personagemCompleto.status_efeitos.filter((efeito) => {
+      efeito.duracao = (efeito.duracao || 1) - 1;
+      if (efeito.duracao > 0) return true;
+
+      manager.emitirAcaoMestrePersistida(roomId, sessao, {
+        tipo: 'status_removido',
+        personagem: personagemCompleto.nome,
+        status: efeito.nome,
+        timestamp: Date.now()
+      });
+      console.log(`Status expirado ${contexto}: ${personagemCompleto.nome} <- ${efeito.nome}`);
+      return false;
+    });
+  }
+}
+
+export default class TurnEngine {
+  constructor(manager) {
+    this.manager = manager;
+  }
+
+  async handleIniciarTurno(socket, data) {
+    const sm = this.manager;
+    const startTime = Date.now();
+
+    sm.log('INFO', 'INICIAR_TURNO_PROCESSING_START', socket.id, socket.userId, {
+      receivedData: data
+    });
+
+    try {
+      const { roomId: rawRoomId, userId: rawUserId, username: rawUsername } = data || {};
+
+      if (!rawRoomId || !rawUserId) {
+        sm.log('ERROR', 'INICIAR_TURNO_VALIDATION_FAILED', socket.id, socket.userId, {
+          missingFields: {
+            roomId: !rawRoomId,
+            userId: !rawUserId
+          }
+        });
+        socket.emit('error', { message: 'roomId e userId sao obrigatorios' });
+        return;
+      }
+
+      const roomId = String(rawRoomId);
+      const userId = String(rawUserId);
+      const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
+
+      sm.log('INFO', 'INICIAR_TURNO_DATA_PARSED', socket.id, userId, { roomId, username });
+
+      await sm.withRoomLock(roomId, async () => {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          sm.log('ERROR', 'INICIAR_TURNO_SESSAO_NOT_FOUND', socket.id, userId, { roomId });
+          socket.emit('error', { message: 'Sessao nao encontrada' });
+          return;
+        }
+
+        const estadoJogo = sessao.estadoJogo || {};
+        const turnoAtual = estadoJogo.turnoAtual || 0;
+        const ordemJogadores = estadoJogo.ordemJogadores || [];
+        const jogadorDaVez = ordemJogadores[turnoAtual];
+
+        if (!jogadorDaVez || String(jogadorDaVez.userId) !== String(userId)) {
+          sm.log('WARN', 'INICIAR_TURNO_NAO_E_SEU_TURNO', socket.id, userId, {
+            roomId,
+            turnoAtual,
+            jogadorDaVez: jogadorDaVez?.username
+          });
+          socket.emit('erro_turno', { message: 'Nao e seu turno!' });
+          return;
+        }
+
+        const turnoState = getTurnState(sessao);
+        if (turnoState.status !== TURN_STATUS.IDLE) {
+          sm.log('WARN', 'INICIAR_TURNO_JA_INICIADO', socket.id, userId, { roomId });
+          return;
+        }
+
+        transitionTurnState(sessao, TURN_STATUS.STARTING, {
+          jogadorAtual: String(userId),
+          rodadaAtual: estadoJogo.rodadaAtual || 1,
+          contadorInteracoes: 0,
+          iniciadoEm: new Date().toISOString(),
+          lockReason: 'gerando_abertura'
+        });
+        sessao.estadoJogo = estadoJogo;
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+
+        const mestre = await sm.obterMestre(roomId, sessao.historiaTemas || [], sessao, userId);
+
+        let mensagemInicial;
+        try {
+          const invocationContext = buildTurnStartContext(sessao, userId);
+          const mensagemTurno = invocationContext.contextoLateralRoleplay
+            ? `${invocationContext.contextoLateralRoleplay}\n\nIniciar turno de ${jogadorDaVez.personagemNome || username}`
+            : `Iniciar turno de ${jogadorDaVez.personagemNome || username}`;
+
+          mensagemInicial = await mestre.narrarTurnoJogador({
+            jogador: username,
+            personagem: jogadorDaVez.personagemNome || username,
+            mensagem: mensagemTurno,
+            rodada: estadoJogo.rodadaAtual || 1,
+            turno: turnoAtual,
+            contadorMensagens: 0,
+            chatHistory: invocationContext.chatHistory,
+            resumo: invocationContext.resumo,
+            contextoLateralRoleplay: invocationContext.contextoLateralRoleplay
+          });
+        } catch (errorIA) {
+          console.error('Erro na IA ao iniciar turno:', errorIA);
+          sm.log('ERROR', 'INICIAR_TURNO_IA_FAILED', socket.id, userId, {
+            error: errorIA.message,
+            stack: errorIA.stack
+          });
+          mensagemInicial = {
+            resposta: `E agora, **${jogadorDaVez.personagemNome || username}**, o que voce faz?`
+          };
+        }
+
+        const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
+        const narrativaInicial = mensagemInicial.resposta || mensagemInicial.narracao || '';
+        const msgInicial = sm.criarMensagemMestre(narrativaInicial, sessaoAtualizada.mestreConfig, {
+          sessao: sessaoAtualizada,
+          segmentos: mensagemInicial.segmentos || []
+        });
+        appendMensagemSessao(sessaoAtualizada, msgInicial);
+        await sm.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, mensagemInicial.metadados || {});
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+
+        sm.sendToRoom(roomId, 'mensagem_mestre', {
+          ...msgInicial,
+          message: narrativaInicial
+        });
+
+        const { despacharResposta } = await import('../utils/respostaDispatcher.js');
+        await despacharResposta({
+          narracao: narrativaInicial,
+          fimDeTurno: !!mensagemInicial.fimDeTurno,
+          acaoCompleta: !!mensagemInicial.acaoCompleta,
+          solicitaDados: mensagemInicial.solicitaDados || { solicita: false },
+          teste: mensagemInicial.teste || null,
+          acoes: Array.isArray(mensagemInicial.acoes) ? mensagemInicial.acoes : [],
+          combate: mensagemInicial.combate || null,
+          metadados: mensagemInicial.metadados || {}
+        }, {
+          roomId,
+          userId,
+          username,
+          personagem: {
+            nome: jogadorDaVez.personagemNome || username,
+            id: jogadorDaVez.personagemId || null
+          },
+          mensagem: `Inicio do turno de ${jogadorDaVez.personagemNome || username}`,
+          sessao: sessaoAtualizada,
+          socket,
+          io: sm.io,
+          sm,
+          fase: estadoJogo.fase,
+          combateAtivo: !!estadoJogo.combate?.ativo,
+          skipTurnControl: true
+        });
+
+        const turnoFinal = getTurnState(sessaoAtualizada);
+        if (turnoFinal.status === TURN_STATUS.STARTING) {
+          transitionTurnState(sessaoAtualizada, TURN_STATUS.ACTIVE, {
+            jogadorAtual: String(userId),
+            rodadaAtual: estadoJogo.rodadaAtual || 1,
+            lockReason: null
+          });
+          await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+        }
+
+        await sm.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, { userId });
+        sm.emitirEstadoTurno(roomId, sessaoAtualizada);
+
+        sm.sendToRoom(roomId, 'turno_iniciado', {
+          userId,
+          username,
+          rodada: estadoJogo.rodadaAtual || 1,
+          turno: turnoAtual,
+          timestamp: Date.now()
+        });
+      });
+
+      const processingTime = Date.now() - startTime;
+      sm.log('SUCCESS', 'INICIAR_TURNO_COMPLETED', socket.id, userId, {
+        roomId,
+        username,
+        processingTimeMs: processingTime
+      });
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+
+      try {
+        const roomId = String(data?.roomId || '');
+        if (roomId) {
+          const sessao = await sm.obterSessaoHistoria(roomId);
+          if (sessao) {
+            const turno = getTurnState(sessao);
+            if (turno.status === TURN_STATUS.STARTING) {
+              transitionTurnState(sessao, TURN_STATUS.IDLE, {
+                lockReason: null,
+                contadorInteracoes: 0
+              });
+              await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+              sm.emitirEstadoTurno(roomId, sessao);
+            }
+          }
+        }
+      } catch (cleanupError) {
+        console.warn('Erro ao limpar estado de turno apos falha de inicio:', cleanupError.message);
+      }
+
+      sm.log('ERROR', 'INICIAR_TURNO_ERROR', socket.id, socket.userId, {
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: processingTime
+      });
+      if (!error.message?.includes('Operacao em andamento')) {
+        socket.emit('error', { message: 'Erro ao iniciar turno' });
+      }
+    }
+  }
+
+  async iniciarPrimeiroTurno(roomId) {
+    const sm = this.manager;
+
+    try {
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`Sessao nao encontrada ao iniciar primeiro turno: ${roomId}`);
+        return;
+      }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+      if (ordemJogadores.length === 0) {
+        console.error(`Nenhum jogador na ordem para iniciar turno: ${roomId}`);
+        return;
+      }
+
+      const primeiroJogador = ordemJogadores[0];
+      const prologoPendente = estadoJogo.prologoPendente;
+      if (prologoPendente) {
+        const prologoTimestamp = Date.now();
+        const msgPrologo = sm.criarMensagemMestre(prologoPendente, sessao.mestreConfig, { sessao });
+        msgPrologo.timestamp = prologoTimestamp;
+        appendMensagemSessao(sessao, msgPrologo);
+
+        delete estadoJogo.prologoPendente;
+        sessao.estadoJogo = estadoJogo;
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+        sm.sendToRoom(roomId, 'mensagem_mestre', {
+          id: prologoTimestamp.toString(),
+          ...msgPrologo,
+          message: prologoPendente
+        });
+      }
+
+      sm.notificarMudancaFase(roomId, 'rodada_em_andamento', {
+        rodadaAtual: estadoJogo.rodadaAtual || 1
+      });
+
+      sm.sendToRoom(roomId, 'turno_alterado', {
+        rodadaAtual: estadoJogo.rodadaAtual || 1,
+        turnoAtual: 0,
+        jogadorAtual: primeiroJogador,
+        ordemCompleta: ordemJogadores,
+        timestamp: Date.now()
+      });
+
+      const sessaoFinal = await sm.obterSessaoHistoria(roomId);
+      if (sessaoFinal) sm._tentarSnapshot(roomId, sessaoFinal, true);
+    } catch (error) {
+      console.error('Erro ao iniciar primeiro turno:', error);
+    }
+  }
+
+  async avancarProximoTurno(roomId) {
+    const sm = this.manager;
+
+    try {
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`Sessao nao encontrada ao avancar turno: ${roomId}`);
+        return;
+      }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const turnoAtual = estadoJogo.turnoAtual || 0;
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+
+      if (ordemJogadores.length === 1) {
+        resetTurnInteractions(sessao);
+        transitionTurnState(sessao, TURN_STATUS.IDLE, {
+          jogadorAtual: null,
+          lockReason: null
+        });
+        expirarStatusForaDeCombate(sm, roomId, sessao, '(solo)');
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+        return;
+      }
+
+      resetTurnInteractions(sessao);
+      transitionTurnState(sessao, TURN_STATUS.IDLE, {
+        jogadorAtual: null,
+        lockReason: null
+      });
+
+      const proximoTurno = turnoAtual + 1;
+      if (proximoTurno >= ordemJogadores.length) {
+        await this.finalizarRodada(roomId);
+        return;
+      }
+
+      const proximoJogador = ordemJogadores[proximoTurno];
+      const jogadorAnterior = ordemJogadores[turnoAtual];
+
+      expirarStatusForaDeCombate(sm, roomId, sessao, 'fora de combate');
+
+      const mensagemTransicao = buildTransicaoTurnoMensagem(
+        `Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
+        {
+          jogadorAnterior: jogadorAnterior?.userId || null,
+          proximoJogador: proximoJogador?.userId || null,
+          rodadaAtual: estadoJogo.rodadaAtual || 1
+        }
+      );
+      appendMensagemSessao(sessao, mensagemTransicao);
+
+      estadoJogo.turnoAtual = proximoTurno;
+      transitionTurnState(sessao, TURN_STATUS.IDLE, {
+        jogadorAtual: null,
+        rodadaAtual: estadoJogo.rodadaAtual || 1,
+        contadorInteracoes: 0,
+        lockReason: null
+      });
+      sessao.estadoJogo = estadoJogo;
+
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      sm.emitirEstadoTurno(roomId, sessao);
+
+      sm.sendToRoom(roomId, 'chat_message', {
+        ...mensagemTransicao,
+        message: mensagemTransicao.message
+      });
+      sm.sendToRoom(roomId, 'turno_alterado', {
+        rodadaAtual: estadoJogo.rodadaAtual || 1,
+        turnoAtual: proximoTurno,
+        jogadorAtual: proximoJogador,
+        ordemCompleta: ordemJogadores,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error('Erro ao avancar turno:', error);
+    }
+  }
+
+  async finalizarRodada(roomId) {
+    const sm = this.manager;
+
+    try {
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`Sessao nao encontrada ao finalizar rodada: ${roomId}`);
+        return;
+      }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const rodadaAtual = estadoJogo.rodadaAtual || 1;
+      const proximaRodada = rodadaAtual + 1;
+
+      transitionTurnState(sessao, TURN_STATUS.IDLE, {
+        jogadorAtual: null,
+        rodadaAtual,
+        contadorInteracoes: 0,
+        lockReason: null
+      });
+      limparTestePendente(sessao);
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      const sessaoComFase = await sm.gerenciadorSessoes.atualizarFaseJogo(roomId, 'entre_rodadas');
+      if (sessaoComFase) {
+        sessao.estadoJogo = sessaoComFase.estadoJogo || sessao.estadoJogo;
+      }
+
+      sm.notificarMudancaFase(roomId, 'entre_rodadas', {
+        rodadaFinalizada: rodadaAtual
+      });
+      sm.sendToRoom(roomId, 'rodada_finalizada', {
+        rodada: rodadaAtual,
+        timestamp: Date.now()
+      });
+
+      const acoesRodada = (estadoJogo.historicoTurnos || [])
+        .filter((turno) => turno.rodada === rodadaAtual)
+        .map((turno) => `${turno.personagem || turno.username}: ${turno.acao || turno.resumo || 'Acao realizada'}`);
+
+      try {
+        const mestre = await sm.obterMestre(roomId, sessao.historiaTemas || [], sessao, null);
+        const narrativa = await mestre.narrarEntreRodadas({
+          rodadaAnterior: rodadaAtual,
+          proximaRodada,
+          resumoAcoes: acoesRodada,
+          chatHistory: sessao.mensagens || []
+        });
+
+        const precisaResumir = false;
+        if (precisaResumir) {
+          try {
+            const resumoAgent = (await import('../../agents/Resumo/index.js')).default;
+            const sessaoParaResumo = await sm.obterSessaoHistoria(roomId);
+            const resumoAnteriorObj = await sm.gerenciadorSessoes.obterUltimoResumo(roomId);
+
+            const resumo = await resumoAgent.resumirAventura({
+              mensagens: sessaoParaResumo.mensagens || [],
+              temas: extrairNomesTemas(sessaoParaResumo.historiaTemas || []),
+              personagens: Object.values(sessaoParaResumo.jogadores || {}),
+              rodadasJogadas: rodadaAtual,
+              resumoAnterior: resumoAnteriorObj?.resumo || null,
+              userId: null
+            });
+
+            await sm.gerenciadorSessoes.salvarResumo(roomId, resumo);
+
+            if (isEnabled('BLUEPRINT_V2') && sessaoParaResumo.historiaRoteiro) {
+              try {
+                const { atualizarProgressao } = await import('../../agents/Mestre/prompts/roteiroCondenser.js');
+                const progressaoAtual = sessaoParaResumo.estadoJogo?.progressao || null;
+                const novaProgressao = await atualizarProgressao(
+                  sessaoParaResumo.historiaRoteiro,
+                  resumo.resumo,
+                  progressaoAtual,
+                  null
+                );
+                if (novaProgressao) {
+                  const estadoAtual = sessaoParaResumo.estadoJogo || {};
+                  await sm.gerenciadorSessoes.atualizarEstadoJogo(roomId, {
+                    ...estadoAtual,
+                    progressao: novaProgressao
+                  });
+                }
+              } catch (err) {
+                console.warn('Erro ao atualizar progressao:', err.message);
+              }
+            }
+
+            sm.invalidarMestreSeNecessario(roomId, proximaRodada);
+          } catch (error) {
+            console.error('Erro ao gerar resumo:', error);
+          }
+        }
+
+        if (Array.isArray(narrativa.acoes) && narrativa.acoes.length > 0) {
+          try {
+            const { processarAcoes } = await import('../../helpers/acoesProcessor.js');
+            const sessaoParaAcoes = await sm.obterSessaoHistoria(roomId);
+            await processarAcoes(narrativa.acoes, sessaoParaAcoes, roomId, sm.io);
+            await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaAcoes);
+          } catch (acoesError) {
+            console.error('Erro ao processar acoes entre rodadas:', acoesError.message);
+          }
+        }
+
+        if (narrativa.combate?.iniciado) {
+          const sessaoParaCombate = await sm.obterSessaoHistoria(roomId);
+          await sm.iniciarCombate(roomId, narrativa.combate, sessaoParaCombate, null);
+        }
+
+        const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
+        appendMensagemSessao(sessaoAtualizada, buildEntreRodadasMensagem({
+          message: narrativa.narrativa || narrativa.novoDesafio,
+          titulo: `Fim da Rodada ${rodadaAtual}`,
+          rodadaAnterior: rodadaAtual,
+          proximaRodada,
+          payload: narrativa
+        }));
+        await sm.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, narrativa.metadados || {});
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+        await sm.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, {
+          force: true,
+          userId: null,
+          forceRound: true
+        });
+      } catch (error) {
+        console.error('Erro ao gerar narrativa entre rodadas:', error);
+
+        const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
+        appendMensagemSessao(sessaoAtualizada, buildEntreRodadasMensagem({
+          message: `A rodada ${rodadaAtual} foi concluida. Preparando rodada ${proximaRodada}...`,
+          titulo: `Fim da Rodada ${rodadaAtual}`,
+          rodadaAnterior: rodadaAtual,
+          proximaRodada,
+          userId: 'sistema',
+          username: 'Sistema'
+        }));
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+      }
+
+      if (sm._roundTimers.has(roomId)) {
+        clearTimeout(sm._roundTimers.get(roomId));
+      }
+      const timerId = setTimeout(async () => {
+        sm._roundTimers.delete(roomId);
+        try {
+          await this.iniciarNovaRodada(roomId);
+        } catch (error) {
+          console.error('Erro ao iniciar nova rodada:', error);
+          sm.sendToRoom(roomId, 'erro_sistema', {
+            message: 'Erro ao iniciar nova rodada. Tente novamente.'
+          });
+        }
+      }, 5000);
+      sm._roundTimers.set(roomId, timerId);
+    } catch (error) {
+      console.error('Erro ao finalizar rodada:', error);
+    }
+  }
+
+  async iniciarNovaRodada(roomId) {
+    const sm = this.manager;
+
+    try {
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) {
+        console.error(`Sessao nao encontrada ao iniciar nova rodada: ${roomId}`);
+        return;
+      }
+
+      await sm.gerenciadorSessoes.iniciarNovaRodada(roomId);
+
+      const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
+      const estadoJogo = sessaoAtualizada.estadoJogo || {};
+      const novaRodada = estadoJogo.rodadaAtual || 2;
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+
+      sm.notificarMudancaFase(roomId, 'rodada_em_andamento', {
+        rodadaAtual: novaRodada
+      });
+      sm.sendToRoom(roomId, 'nova_rodada_iniciada', {
+        rodada: novaRodada,
+        primeiroJogador: ordemJogadores[0],
+        timestamp: Date.now()
+      });
+
+      if (ordemJogadores.length > 0) {
+        sm.sendToRoom(roomId, 'turno_alterado', {
+          rodadaAtual: novaRodada,
+          turnoAtual: 0,
+          jogadorAtual: ordemJogadores[0],
+          ordemCompleta: ordemJogadores,
+          timestamp: Date.now()
+        });
+      }
+
+      sm._tentarSnapshot(roomId, sessaoAtualizada, true);
+    } catch (error) {
+      console.error('Erro ao iniciar nova rodada:', error);
+    }
+  }
+}

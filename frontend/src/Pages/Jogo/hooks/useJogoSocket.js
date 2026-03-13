@@ -31,7 +31,6 @@ export const useJogoSocket = () => {
   const socketConnect = useSocketStore(s => s.connect);
   const socketAuthenticate = useSocketStore(s => s.authenticate);
   const socketJoinRoom = useSocketStore(s => s.joinRoom);
-  const socketSendMessage = useSocketStore(s => s.sendMessage);
   const socketOn = useSocketStore(s => s.on);
   const socketOff = useSocketStore(s => s.off);
 
@@ -257,19 +256,6 @@ export const useJogoSocket = () => {
   }, [validarAutenticacao, socketConnect, socketAuthenticate, socketJoinRoom]);
 
   // ------------------------------------------------------------------
-  // ENVIAR MENSAGEM
-  // ------------------------------------------------------------------
-  const enviarMensagem = useCallback(async (payload) => {
-    if (!socketSendMessage) return false;
-    try {
-      await socketSendMessage(payload);
-      return true;
-    } catch {
-      return false;
-    }
-  }, [socketSendMessage]);
-
-  // ------------------------------------------------------------------
   // LISTENERS (on/off)
   // ------------------------------------------------------------------
   const onSocketEvent = useCallback((event, handler) => {
@@ -319,7 +305,6 @@ export const useJogoSocket = () => {
     conectarSocket,
     conectarComoConvidado,
     garantirEntradaSala,
-    enviarMensagem,
 
     // Listeners
     onSocketEvent,

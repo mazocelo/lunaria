@@ -4,13 +4,6 @@
 
 export const createSendActions = (set, get) => ({
   // ===== MÉTODOS DE ENVIO =====
-  sendMessage: (messageData) => {
-    const { socket, isConnected, safeEmit } = get();
-    if (socket && isConnected) {
-      safeEmit('chat_message', messageData);
-    }
-  },
-
   playerAction: (actionData) => {
     const { socket, isConnected, safeEmit } = get();
     if (socket && isConnected) {

@@ -16,6 +16,8 @@ import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import NarrationAudioButton from '../../../components/shared/NarrationAudioButton.jsx';
 import { useTTS } from '../../../hooks/useTTS.js';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
   const handleCopy = () => {
@@ -132,7 +134,7 @@ const VerHistoriaView = ({
     try {
       const body = {
         voiceId: selectedMestre.voice_id,
-        provider: selectedMestre.voice_provider || 'elevenlabs',
+        provider: selectedMestre.voice_provider || DEFAULT_TTS_PROVIDER,
       };
       const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
       const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
@@ -162,7 +164,7 @@ const VerHistoriaView = ({
   ];
   const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
   const effectiveMestreVoiceId = selectedMestre?.voice_id || historiaAtual?.mestre?.voice_id || historiaAtual?.mestres?.voice_id || null;
-  const effectiveMestreVoiceProvider = selectedMestre?.voice_provider || historiaAtual?.mestre?.voice_provider || historiaAtual?.mestres?.voice_provider || 'elevenlabs';
+  const effectiveMestreVoiceProvider = selectedMestre?.voice_provider || historiaAtual?.mestre?.voice_provider || historiaAtual?.mestres?.voice_provider || DEFAULT_TTS_PROVIDER;
   const formatDisplayDate = (value) => {
     if (!value) return '-';
     const date = new Date(value);

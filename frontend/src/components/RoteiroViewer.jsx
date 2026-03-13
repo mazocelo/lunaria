@@ -10,6 +10,8 @@ import NarrationAudioButton from './shared/NarrationAudioButton.jsx';
 import VoicePicker from './shared/VoicePicker.jsx';
 import { useVoiceCatalog } from '../hooks/useVoiceCatalog.js';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -139,7 +141,7 @@ const RoteiroViewer = ({
   historiaContexto = '',
   tts = null,
   mestreVoiceId = null,
-  mestreVoiceProvider = 'elevenlabs'
+  mestreVoiceProvider = DEFAULT_TTS_PROVIDER
 }) => {
   const voiceCatalog = useVoiceCatalog();
 
@@ -178,7 +180,7 @@ const RoteiroViewer = ({
         id: npc?.id || `npc_${slugify(nome, `npc_${index + 1}`)}`,
         voice_id: nextVoice.voice_id || null,
         voice_provider: nextVoice.voice_id
-          ? (nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || 'elevenlabs')
+          ? (nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || DEFAULT_TTS_PROVIDER)
           : null
       };
     });

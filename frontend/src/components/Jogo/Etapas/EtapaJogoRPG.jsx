@@ -19,6 +19,8 @@ import { useTheme } from '../../../contexts/theme.jsx';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
 import { calcularMana } from '../../../utils/rpgHelpers';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 // --- Helper functions (antes no ViewModel) ---
 
 const extrairFacesDoDado = (tipoDado) => {
@@ -225,7 +227,7 @@ const EtapaJogoRPG = ({
   }, [baseVoiceId, baseVoiceProvider]);
 
   const effectiveVoiceId = baseVoiceId || defaultNarrationVoice.voiceId || null;
-  const effectiveVoiceProvider = baseVoiceProvider || defaultNarrationVoice.provider || 'elevenlabs';
+  const effectiveVoiceProvider = baseVoiceProvider || defaultNarrationVoice.provider || DEFAULT_TTS_PROVIDER;
 
   // Socket store - acesso direto via hooks
   const socketStoreOn = useSocketStore(s => s.on);

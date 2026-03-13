@@ -5,6 +5,8 @@ import { apiClient, mestreService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { generateRoute } from '../../../routes.jsx';
 
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
 export const useMestreListaModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -104,7 +106,7 @@ export const useMestreListaModel = () => {
     try {
       const body = {
         voiceId: mestre.voice_id,
-        provider: mestre.voice_provider || 'elevenlabs',
+        provider: mestre.voice_provider || DEFAULT_TTS_PROVIDER,
       };
       const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
       const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });

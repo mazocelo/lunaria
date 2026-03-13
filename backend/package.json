@@ -16,7 +16,7 @@
     "seed": "node populate-initial-data.js",
     "build": "prisma generate",
     "postinstall": "prisma generate",
-    "heroku-postbuild": "npm install --include=dev && prisma generate && prisma db push --skip-generate --accept-data-loss",
+    "heroku-postbuild": "npm install --include=dev && prisma generate && prisma migrate deploy",
     "deploy": "prisma migrate deploy && prisma generate",
     "smoke-narration-segments": "node scripts/smoke-narration-segments.js"
   },

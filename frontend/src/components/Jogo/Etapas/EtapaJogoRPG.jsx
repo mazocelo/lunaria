@@ -385,10 +385,11 @@ const EtapaJogoRPG = ({
       }
 
       const mensagem = {
+        ...data,
         id: data.id || Date.now(),
-        userId: 'mestre',
-        username: 'Mestre',
-        message: data.message,
+        userId: data.userId || 'mestre',
+        username: data.username || 'Mestre',
+        message: data.message || data.mensagem || '',
         tipo: 'mestre',
         timestamp: data.timestamp || Date.now()
       };

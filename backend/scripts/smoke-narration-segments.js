@@ -1,4 +1,4 @@
-import {
+ï»¿import {
   aggregateNarrationFromSegments,
   ensureNpcIds,
   normalizeNarrationSegments,
@@ -27,6 +27,13 @@ async function main() {
   assert(segmentosFallback.length === 1, 'Fallback de segmentos nao gerou item unico');
   assert(segmentosFallback[0].tipo === 'narracao', 'Fallback deveria gerar narracao');
 
+  const segmentosDuplicados = normalizeNarrationSegments([
+    { id: 'seg_1', tipo: 'narracao', text: 'Primeiro trecho.' },
+    { id: 'seg_1', tipo: 'fala_npc', speaker_label: 'Seraphina', text: 'Segundo trecho.' }
+  ]);
+  assert(segmentosDuplicados[0].id === 'seg_1', 'Primeiro segmento deveria manter o id original');
+  assert(segmentosDuplicados[1].id !== 'seg_1', 'Segmentos duplicados deveriam receber ids unicos');
+
   const segmentosResolvidos = resolveNarrationSegments({
     narrativa: 'As sombras dancam. Seraphina sorri. Brom observa em silencio.',
     segmentos: [
@@ -39,7 +46,7 @@ async function main() {
         tipo: 'fala_npc',
         npc_id: npcsComId[0].id,
         speaker_label: 'Seraphina',
-        text: 'Vocês demoraram.',
+        text: 'Voce chegou tarde.',
         narracao: { emocao: 'frio', ritmo: 'medio', intensidade: 'baixa' }
       },
       {
@@ -67,11 +74,12 @@ async function main() {
 
   const narrativaAgregada = aggregateNarrationFromSegments(segmentosResolvidos);
   assert(narrativaAgregada.includes('As sombras dancam'), 'Narrativa agregada nao contem narracao');
-  assert(narrativaAgregada.includes('Vocês demoraram.'), 'Narrativa agregada nao contem fala do NPC');
+  assert(narrativaAgregada.includes('Voce chegou tarde.'), 'Narrativa agregada nao contem fala do NPC');
 
   console.log(JSON.stringify({
     success: true,
     npcs_normalizados: npcsComId,
+    segmentos_duplicados_normalizados: segmentosDuplicados,
     segmentos_resolvidos: segmentosResolvidos,
     narrativa_agregada: narrativaAgregada
   }, null, 2));

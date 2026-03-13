@@ -1,4 +1,5 @@
 import ttsCacheService from './ttsCacheService.js';
+import { getDefaultProviderName } from './ttsService.js';
 
 const VALID_EMOCOES = new Set([
   'neutro',
@@ -21,6 +22,7 @@ const DEFAULT_NARRACAO = Object.freeze({
   ritmo: 'medio',
   intensidade: 'media'
 });
+const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
 
 function asTrimmedString(value, fallback = '') {
   if (value === undefined || value === null) return fallback;
@@ -82,6 +84,20 @@ function buildFallbackSegments(fallbackText = '') {
   }];
 }
 
+function buildUniqueSegmentId(baseId, usedIds, index) {
+  const normalizedBaseId = asTrimmedString(baseId, `seg_${index + 1}`);
+  let nextId = normalizedBaseId;
+  let suffix = 2;
+
+  while (usedIds.has(nextId)) {
+    nextId = `${normalizedBaseId}_${suffix}`;
+    suffix += 1;
+  }
+
+  usedIds.add(nextId);
+  return nextId;
+}
+
 export function ensureNpcIds(npcs = []) {
   const usedIds = new Set();
 
@@ -97,7 +113,7 @@ export function ensureNpcIds(npcs = []) {
 
     const voiceId = asTrimmedString(npc?.voice_id, '') || null;
     const voiceProvider = voiceId
-      ? asTrimmedString(npc?.voice_provider, 'elevenlabs')
+      ? asTrimmedString(npc?.voice_provider, DEFAULT_TTS_PROVIDER)
       : null;
     const dialogoExemplo = asTrimmedString(npc?.dialogo_exemplo, '') || null;
 
@@ -113,6 +129,7 @@ export function ensureNpcIds(npcs = []) {
 }
 
 export function normalizeNarrationSegments(segments = [], { fallbackText = '' } = {}) {
+  const usedIds = new Set();
   const normalized = (Array.isArray(segments) ? segments : [])
     .map((segment, index) => {
       const tipo = inferSegmentType(segment);
@@ -130,7 +147,7 @@ export function normalizeNarrationSegments(segments = [], { fallbackText = '' } 
 
       return {
         ...segment,
-        id: asTrimmedString(segment?.id, `seg_${index + 1}`),
+        id: buildUniqueSegmentId(segment?.id, usedIds, index),
         ordem: index + 1,
         tipo,
         speaker,
@@ -204,21 +221,21 @@ export function resolveNarrationSegments({
 
     if (explicitVoiceId) {
       voiceId = explicitVoiceId;
-      voiceProvider = explicitVoiceProvider || 'elevenlabs';
+      voiceProvider = explicitVoiceProvider || DEFAULT_TTS_PROVIDER;
       voiceOrigin = 'segmento';
     } else if (matchedNpc?.voice_id) {
       voiceId = matchedNpc.voice_id;
-      voiceProvider = matchedNpc.voice_provider || 'elevenlabs';
+      voiceProvider = matchedNpc.voice_provider || DEFAULT_TTS_PROVIDER;
       voiceOrigin = 'npc';
     } else if (mestreConfig?.voice_id) {
       voiceId = mestreConfig.voice_id;
-      voiceProvider = mestreConfig.voice_provider || 'elevenlabs';
+      voiceProvider = mestreConfig.voice_provider || DEFAULT_TTS_PROVIDER;
       voiceOrigin = segment.tipo === 'fala_npc' ? 'fallback_mestre' : 'mestre';
     }
 
     return {
       ...segment,
-      id: asTrimmedString(segment?.id, `seg_${index + 1}`),
+      id: segment.id,
       ordem: index + 1,
       npc_id: resolvedNpcId,
       speaker_label: segment.tipo === 'fala_npc'
@@ -229,7 +246,7 @@ export function resolveNarrationSegments({
       voice_provider: voiceProvider,
       voice_origin: voiceOrigin,
       audio_cache_key: voiceId
-        ? ttsCacheService.generateCacheKey(segment.text, voiceId, voiceProvider || 'elevenlabs')
+        ? ttsCacheService.generateCacheKey(segment.text, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER)
         : null
     };
   });

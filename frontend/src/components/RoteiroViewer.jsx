@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { imageGenerationService } from '../services';
 import ImageLightbox from './ImageLightbox.jsx';
+import NarrationAudioButton from './shared/NarrationAudioButton.jsx';
 
 const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -78,7 +79,54 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   );
 };
 
-const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloImagem, temasHistoria = [], historiaContexto = '' }) => {
+const joinNarrationParts = (...parts) => parts.filter(Boolean).join(' ');
+
+const buildAntagonistaNarration = (antagonista) => {
+  if (!antagonista) return '';
+  return joinNarrationParts(
+    `Antagonista ${antagonista.nome}.`,
+    antagonista.titulo ? `${antagonista.titulo}.` : '',
+    antagonista.descricao,
+    antagonista.motivacao ? `Motivacao: ${antagonista.motivacao}.` : '',
+    antagonista.poderes?.length ? `Poderes: ${antagonista.poderes.join(', ')}.` : '',
+    antagonista.fraquezas?.length ? `Fraquezas: ${antagonista.fraquezas.join(', ')}.` : ''
+  );
+};
+
+const buildLocalNarration = (local) => {
+  if (!local) return '';
+  return joinNarrationParts(
+    `Local ${local.nome}.`,
+    local.tipo ? `Tipo: ${local.tipo}.` : '',
+    local.perigo ? `Perigo: ${local.perigo}.` : '',
+    local.descricao
+  );
+};
+
+const buildNpcNarration = (npc) => {
+  if (!npc) return '';
+  return joinNarrationParts(
+    `NPC ${npc.nome}.`,
+    npc.papel ? `Papel: ${npc.papel}.` : '',
+    npc.descricao,
+    npc.motivacao ? `Motivacao: ${npc.motivacao}.` : '',
+    npc.local ? `Local associado: ${npc.local}.` : '',
+    npc.dialogo_exemplo ? `Dialogo exemplo: ${npc.dialogo_exemplo}.` : ''
+  );
+};
+
+const RoteiroViewer = ({
+  roteiro,
+  isLight,
+  historiaId,
+  onRoteiroUpdate,
+  estiloImagem,
+  temasHistoria = [],
+  historiaContexto = '',
+  tts = null,
+  mestreVoiceId = null,
+  mestreVoiceProvider = 'elevenlabs'
+}) => {
   // Ref para manter versão mais recente do roteiro (evita race condition em gerações paralelas)
   const roteiroRef = useRef(roteiro);
   useEffect(() => { roteiroRef.current = roteiro; }, [roteiro]);
@@ -99,6 +147,14 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloIm
       {roteiro.sinopse && (
         <Section title="Sinopse" icon={BookOpen} defaultOpen isLight={isLight}>
           <p className="whitespace-pre-line">{roteiro.sinopse}</p>
+          <NarrationAudioButton
+            tts={tts}
+            text={roteiro.sinopse}
+            itemId={`historia:${historiaId}:roteiro:sinopse`}
+            voiceId={mestreVoiceId}
+            voiceProvider={mestreVoiceProvider}
+            isLight={isLight}
+          />
         </Section>
       )}
 
@@ -115,6 +171,14 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloIm
             {roteiro.antagonista.fraquezas?.length > 0 && (
               <p><span className="font-semibold">Fraquezas:</span> {roteiro.antagonista.fraquezas.join(', ')}</p>
             )}
+            <NarrationAudioButton
+              tts={tts}
+              text={buildAntagonistaNarration(roteiro.antagonista)}
+              itemId={`historia:${historiaId}:roteiro:antagonista`}
+              voiceId={mestreVoiceId}
+              voiceProvider={mestreVoiceProvider}
+              isLight={isLight}
+            />
           </div>
         </Section>
       )}
@@ -176,6 +240,14 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloIm
                   <span className="text-purple-400">({local.tipo})</span>
                 </div>
                 <p className="opacity-80">{local.descricao?.substring(0, 120)}{local.descricao?.length > 120 ? '...' : ''}</p>
+                <NarrationAudioButton
+                  tts={tts}
+                  text={buildLocalNarration(local)}
+                  itemId={`historia:${historiaId}:roteiro:local:${i}`}
+                  voiceId={mestreVoiceId}
+                  voiceProvider={mestreVoiceProvider}
+                  isLight={isLight}
+                />
                 {onRoteiroUpdate && (
                   <ImagemCard
                     imageUrl={local.imagem}
@@ -217,6 +289,14 @@ const RoteiroViewer = ({ roteiro, isLight, historiaId, onRoteiroUpdate, estiloIm
                 {npc.dialogo_exemplo && (
                   <p className="mt-1 italic opacity-60">"{npc.dialogo_exemplo}"</p>
                 )}
+                <NarrationAudioButton
+                  tts={tts}
+                  text={buildNpcNarration(npc)}
+                  itemId={`historia:${historiaId}:roteiro:npc:${i}`}
+                  voiceId={mestreVoiceId}
+                  voiceProvider={mestreVoiceProvider}
+                  isLight={isLight}
+                />
                 {onRoteiroUpdate && (
                   <ImagemCard
                     imageUrl={npc.imagem}

@@ -13,6 +13,8 @@ import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoric
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
+import NarrationAudioButton from '../../../components/shared/NarrationAudioButton.jsx';
+import { useTTS } from '../../../hooks/useTTS.js';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -94,6 +96,7 @@ const VerHistoriaView = ({
   const [playingMestreId, setPlayingMestreId] = useState(null);
   const previewAudioRef = useRef(null);
   const previewUrlRef = useRef(null);
+  const tts = useTTS();
 
   const selectedMestre = useMemo(() => {
     if (!mestreSelecionadoId) return null;
@@ -158,6 +161,8 @@ const VerHistoriaView = ({
     { value: 'comic_book', label: 'Comic Book' },
   ];
   const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
+  const effectiveMestreVoiceId = selectedMestre?.voice_id || historiaAtual?.mestre?.voice_id || historiaAtual?.mestres?.voice_id || null;
+  const effectiveMestreVoiceProvider = selectedMestre?.voice_provider || historiaAtual?.mestre?.voice_provider || historiaAtual?.mestres?.voice_provider || 'elevenlabs';
   const formatDisplayDate = (value) => {
     if (!value) return '-';
     const date = new Date(value);
@@ -294,9 +299,19 @@ const VerHistoriaView = ({
                     : 'bg-slate-800/50 border border-slate-700'
                 }`}>
                   {historiaAtual.prologo ? (
-                    <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      {historiaAtual.prologo}
-                    </p>
+                    <>
+                      <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                        {historiaAtual.prologo}
+                      </p>
+                      <NarrationAudioButton
+                        tts={tts}
+                        text={historiaAtual.prologo}
+                        itemId={`historia:${historiaAtual.id}:prologo`}
+                        voiceId={effectiveMestreVoiceId}
+                        voiceProvider={effectiveMestreVoiceProvider}
+                        isLight={isLight}
+                      />
+                    </>
                   ) : (
                     <p className={`font-modern italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                       O prologo desta historia ainda nao foi gerado pelo sistema.
@@ -519,6 +534,9 @@ const VerHistoriaView = ({
                     estiloImagem={estiloAtual}
                     temasHistoria={nomesTemas}
                     historiaContexto={[historiaAtual?.descricao, historiaAtual?.prologo, roteiro?.sinopse].filter(Boolean).join(' | ')}
+                    tts={tts}
+                    mestreVoiceId={effectiveMestreVoiceId}
+                    mestreVoiceProvider={effectiveMestreVoiceProvider}
                   />
                 ) : (
                   <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>

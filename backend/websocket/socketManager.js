@@ -482,7 +482,21 @@ class SocketManager {
 
       // Log de eventos genéricos não tratados
       socket.onAny((eventName, ...args) => {
-        if (!['authenticate', 'join_room', 'leave_room', 'chat_message', 'rpg_action', 'dice_roll', 'status_update', 'ping', 'disconnect'].includes(eventName)) {
+        if (![
+          'authenticate',
+          'join_room',
+          'leave_room',
+          'chat_message',
+          'mensagem_para_mestre',
+          'mensagem_roleplay',
+          'rpg_action',
+          'dice_roll',
+          'rolar_dado_inicial',
+          'iniciar_turno',
+          'solicitar_dados',
+          'status_update',
+          'disconnect'
+        ].includes(eventName)) {
           this.log('WARN', 'UNKNOWN_EVENT_RECEIVED', socket.id, socket.userId, {
             eventName: eventName,
             argsCount: args.length,

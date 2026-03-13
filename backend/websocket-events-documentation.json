@@ -1,726 +1,1017 @@
 {
   "websocket": {
     "name": "Role Chat Game WebSocket API",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "protocol": "Socket.IO",
-    "url": "ws://localhost:3001",
-    "description": "Sistema de eventos WebSocket para RPG online em tempo real com chat, sessões de jogo e interações entre jogadores"
+    "default_url": "ws://localhost:3001",
+    "last_reviewed": "2026-03-13",
+    "source_of_truth": [
+      "Backend/websocket/socketManager.js",
+      "Backend/websocket/utils/turnStateMachine.js",
+      "Backend/websocket/utils/testePipeline.js",
+      "Frontend/src/store/socket/listeners.js",
+      "Frontend/src/store/socket/send.js"
+    ]
   },
-  "connection": {
-    "transport": ["websocket", "polling"],
-    "cors": {
-      "origin": "http://localhost:3000",
-      "credentials": true
-    },
-    "authentication": {
-      "required": true,
-      "type": "JWT Bearer Token",
-      "methods": ["query parameter", "auth object", "authenticate event"]
-    },
-    "heartbeat": {
-      "pingTimeout": 60000,
-      "pingInterval": 25000
-    }
+  "principles": {
+    "handshake_rule": "Connecting via Socket.IO is not enough. The client must emit authenticate before joining a room.",
+    "bootstrap_event": "room_joined",
+    "authoritative_live_state_event": "turno_estado_atualizado",
+    "canonical_text_field": "message",
+    "compatibility_text_field": "mensagem",
+    "notes": [
+      "room_joined delivers the persisted snapshot for session, messages and estadoJogo.",
+      "turno_estado_atualizado is the authoritative event for turn status and pending tests.",
+      "Legacy aliases may still appear inside sessao.estadoJogo for compatibility with older UI code."
+    ]
   },
-  "rate_limiting": {
-    "enabled": true,
-    "limits": {
-      "send_message": "30 per minute",
-      "player_action": "60 per minute",
-      "join_room": "10 per minute", 
-      "typing_start": "120 per minute",
-      "ping": "60 per minute"
+  "client_to_server": {
+    "authenticate": {
+      "status": "canonical",
+      "description": "Finalize websocket authentication for the current socket.",
+      "required_fields": [
+        "userId",
+        "username"
+      ],
+      "optional_fields": [
+        "sessionId",
+        "email",
+        "token"
+      ],
+      "success_events": [
+        "authenticated"
+      ],
+      "error_events": [
+        "error",
+        "force_disconnect"
+      ],
+      "payload_shape": {
+        "userId": "string",
+        "username": "string",
+        "sessionId": "string|null",
+        "email": "string|null",
+        "token": "string|null"
+      }
     },
-    "exceeded_response": {
-      "event": "rate_limit_exceeded",
-      "data": {
+    "join_room": {
+      "status": "canonical",
+      "description": "Join a websocket room. Main flow uses historia_<id> rooms.",
+      "required_fields": [
+        "roomId",
+        "userId"
+      ],
+      "optional_fields": [
+        "username",
+        "historiaId",
+        "historiaData",
+        "personagemId",
+        "personagemNome",
+        "sessionId"
+      ],
+      "success_events": [
+        "room_joined",
+        "user_joined"
+      ],
+      "error_events": [
+        "error"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
+        "historiaId": "string|null",
+        "historiaData": "object|null",
+        "personagemId": "string|number|null",
+        "personagemNome": "string|null",
+        "sessionId": "string|null"
+      }
+    },
+    "leave_room": {
+      "status": "canonical",
+      "description": "Leave the current room.",
+      "required_fields": [
+        "roomId",
+        "userId"
+      ],
+      "optional_fields": [
+        "username"
+      ],
+      "success_events": [
+        "room_left",
+        "user_left"
+      ],
+      "error_events": [
+        "error"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null"
+      }
+    },
+    "chat_message": {
+      "status": "canonical",
+      "description": "Direct room chat message that does not go through the Mestre AI pipeline.",
+      "required_fields": [
+        "roomId",
+        "userId",
+        "message"
+      ],
+      "optional_fields": [
+        "username",
+        "type"
+      ],
+      "success_events": [
+        "chat_message"
+      ],
+      "error_events": [
+        "error",
+        "erro_mensagem"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
         "message": "string",
-        "remainingMs": "integer"
+        "type": "string|null"
+      }
+    },
+    "mensagem_para_mestre": {
+      "status": "canonical",
+      "description": "Main gameplay action. The player sends a narrated action to the Mestre pipeline.",
+      "required_fields": [
+        "roomId",
+        "userId",
+        "mensagem",
+        "personagem"
+      ],
+      "optional_fields": [
+        "username"
+      ],
+      "success_events": [
+        "chat_message",
+        "mensagem_mestre",
+        "mestre_solicita_dados",
+        "turno_estado_atualizado",
+        "acao_mestre",
+        "combate_iniciado",
+        "combate_resultado_acao"
+      ],
+      "error_events": [
+        "error",
+        "erro_mensagem",
+        "erro_turno"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
+        "mensagem": "string",
+        "personagem": {
+          "nome": "string",
+          "classe": "string|null",
+          "nivel": "number|null",
+          "id": "string|number|null",
+          "personagemId": "string|number|null"
+        }
+      }
+    },
+    "mensagem_roleplay": {
+      "status": "canonical",
+      "description": "Side roleplay message for players outside the active turn.",
+      "required_fields": [
+        "roomId",
+        "userId",
+        "mensagem"
+      ],
+      "optional_fields": [
+        "username"
+      ],
+      "success_events": [
+        "mensagem_roleplay"
+      ],
+      "error_events": [
+        "error",
+        "erro_cooldown_roleplay"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
+        "mensagem": "string"
+      }
+    },
+    "rpg_action": {
+      "status": "canonical",
+      "description": "Structured lightweight action that bypasses the Mestre narrative pipeline.",
+      "required_fields": [
+        "roomId",
+        "userId",
+        "action"
+      ],
+      "optional_fields": [
+        "username",
+        "target",
+        "description"
+      ],
+      "success_events": [
+        "rpg_action"
+      ],
+      "error_events": [
+        "error"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
+        "action": "string",
+        "target": "string|null",
+        "description": "string|null"
+      }
+    },
+    "dice_roll": {
+      "status": "canonical",
+      "description": "Publish a dice roll. If the roll resolves a pending test, the server also emits resultado_teste and updates turn state.",
+      "required_fields": [
+        "roomId",
+        "userId",
+        "dice",
+        "result"
+      ],
+      "optional_fields": [
+        "username",
+        "description"
+      ],
+      "success_events": [
+        "dice_roll",
+        "resultado_teste",
+        "mensagem_mestre",
+        "turno_estado_atualizado"
+      ],
+      "error_events": [
+        "error",
+        "teste_rejeitado"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
+        "dice": "string",
+        "result": "string|number",
+        "description": "string|null"
+      }
+    },
+    "rolar_dado_inicial": {
+      "status": "canonical",
+      "description": "Roll initiative d20 at the beginning of the adventure.",
+      "required_fields": [
+        "roomId",
+        "userId"
+      ],
+      "optional_fields": [
+        "username"
+      ],
+      "success_events": [
+        "resultado_dado_inicial",
+        "ordem_definida",
+        "fase_atualizada",
+        "turno_alterado"
+      ],
+      "error_events": [
+        "error",
+        "erro_dado_inicial"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null"
+      }
+    },
+    "iniciar_turno": {
+      "status": "canonical",
+      "description": "Ask the Mestre to open the current player turn.",
+      "required_fields": [
+        "roomId",
+        "userId"
+      ],
+      "optional_fields": [
+        "username"
+      ],
+      "success_events": [
+        "mensagem_mestre",
+        "turno_iniciado",
+        "turno_estado_atualizado",
+        "mestre_solicita_dados"
+      ],
+      "error_events": [
+        "error",
+        "erro_turno"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null"
+      }
+    },
+    "solicitar_dados": {
+      "status": "canonical_but_internal_facing",
+      "description": "Manual data request, usually used by mestre/admin tooling.",
+      "required_fields": [
+        "roomId",
+        "motivo"
+      ],
+      "optional_fields": [
+        "tipoTeste",
+        "dificuldade",
+        "jogadores"
+      ],
+      "success_events": [
+        "mestre_solicita_dados",
+        "turno_estado_atualizado"
+      ],
+      "error_events": [
+        "error"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "motivo": "string",
+        "tipoTeste": "string|null",
+        "dificuldade": "string|null",
+        "jogadores": "array|null"
+      }
+    },
+    "status_update": {
+      "status": "canonical",
+      "description": "Broadcast free-form player status to the room.",
+      "required_fields": [
+        "roomId",
+        "userId",
+        "status"
+      ],
+      "optional_fields": [
+        "username",
+        "details"
+      ],
+      "success_events": [
+        "status_update"
+      ],
+      "error_events": [
+        "error"
+      ],
+      "payload_shape": {
+        "roomId": "string",
+        "userId": "string",
+        "username": "string|null",
+        "status": "string",
+        "details": "object|null"
       }
     }
   },
-  "events": {
-    "connection_and_authentication": {
-      "authenticate": {
-        "direction": "client_to_server",
-        "description": "Autenticar usuário no sistema",
-        "authentication_required": false,
-        "input": {
-          "userId": "string or integer",
+  "server_to_client": {
+    "bootstrap_and_room": {
+      "authenticated": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
           "username": "string",
-          "email": "string (optional)",
-          "token": "string (JWT token, optional)",
-          "sessionId": "string (optional)"
-        },
-        "outputs": {
-          "success": {
-            "event": "authenticated",
-            "data": {
-              "userId": "string",
-              "username": "string",
-              "email": "string",
-              "authenticated": true,
-              "timestamp": "string (ISO)",
-              "sessionId": "string (if provided)"
-            }
-          },
-          "error": {
-            "event": "error",
-            "data": {
-              "message": "string (userId e username são obrigatórios)"
-            }
-          },
-          "force_disconnect": {
-            "event": "force_disconnect",
-            "data": {
-              "reason": "string (Nova conexão do mesmo usuário)",
-              "timestamp": "string (ISO)"
-            },
-            "description": "Enviado para conexões anteriores do mesmo usuário"
-          }
+          "socketId": "string",
+          "sessionId": "string|null"
         }
       },
-      "join_room": {
-        "direction": "client_to_server",
-        "description": "Entrar em uma sala/sessão específica",
-        "authentication_required": true,
-        "input": {
+      "force_disconnect": {
+        "status": "canonical",
+        "payload_shape": {
+          "reason": "string",
+          "timestamp": "integer"
+        }
+      },
+      "room_joined": {
+        "status": "canonical",
+        "payload_shape": {
           "roomId": "string",
-          "sessionId": "string (optional)",
-          "historiaId": "string or integer (optional)",
-          "username": "string (optional, usa o do socket se não fornecido)"
-        },
-        "outputs": {
-          "success": {
-            "event": "room_joined",
-            "data": {
-              "roomId": "string",
-              "sessionId": "string",
-              "userId": "string",
-              "username": "string",
-              "timestamp": "string (ISO)",
-              "roomUsers": "array of user objects"
-            }
-          },
-          "broadcast_to_room": {
-            "event": "user_joined",
-            "data": {
-              "userId": "string",
-              "username": "string",
-              "joinedAt": "string (ISO)",
-              "roomId": "string"
-            },
-            "description": "Enviado para todos os outros usuários na sala"
-          },
-          "error": {
-            "event": "error",
-            "data": {
-              "message": "string (Usuário não autenticado / RoomId é obrigatório)"
-            }
+          "users": "array",
+          "sessao": {
+            "status": "string",
+            "historiaId": "string|number",
+            "historiaNome": "string",
+            "historiaTemas": "array",
+            "historiaPrologo": "string|null",
+            "mestreConfig": "object|null",
+            "donoId": "string|number",
+            "donoNome": "string",
+            "maxJogadores": "number",
+            "totalJogadores": "number",
+            "jogadores": "object",
+            "jogadoresConectados": "array",
+            "estadoJogo": "object",
+            "iniciadaEm": "string|null",
+            "mensagens": "array"
           }
         }
       },
-      "leave_room": {
-        "direction": "client_to_server",
-        "description": "Sair de uma sala/sessão",
-        "authentication_required": true,
-        "input": {
-          "roomId": "string (optional, usa a sala atual se não fornecido)"
-        },
-        "outputs": {
-          "success": {
-            "event": "room_left",
-            "data": {
-              "roomId": "string",
-              "userId": "string",
-              "username": "string",
-              "leftAt": "string (ISO)"
-            }
-          },
-          "broadcast_to_room": {
-            "event": "user_left",
-            "data": {
-              "userId": "string",
-              "username": "string",
-              "leftAt": "string (ISO)",
-              "roomId": "string"
-            },
-            "description": "Enviado para usuários restantes na sala"
-          }
+      "room_left": {
+        "status": "canonical",
+        "payload_shape": {
+          "roomId": "string",
+          "timestamp": "integer"
         }
       },
-      "ping": {
-        "direction": "bidirectional",
-        "description": "Verificar conectividade e latência",
-        "authentication_required": false,
-        "input": {
-          "timestamp": "integer (optional, client timestamp)"
-        },
-        "outputs": {
-          "success": {
-            "event": "pong",
-            "data": {
-              "timestamp": "string (ISO)",
-              "serverTime": "integer (timestamp)",
-              "clientTime": "integer (from input)",
-              "latency": "integer (ms, if client timestamp provided)"
-            }
-          }
+      "user_joined": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "username": "string",
+          "personagemId": "string|number|null",
+          "personagemNome": "string|null",
+          "status": "string",
+          "roomId": "string",
+          "timestamp": "integer",
+          "isReconnection": "boolean"
         }
       },
-      "get_status": {
-        "direction": "client_to_server",
-        "description": "Obter status atual do usuário e conexão",
-        "authentication_required": true,
-        "input": {},
-        "outputs": {
-          "success": {
-            "event": "status_response",
-            "data": {
-              "userId": "string",
-              "username": "string", 
-              "currentRoom": "string",
-              "authenticated": "boolean",
-              "connectedAt": "string (ISO)",
-              "lastActivity": "string (ISO)"
-            }
-          }
+      "user_left": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "username": "string",
+          "roomId": "string",
+          "timestamp": "integer"
+        }
+      },
+      "status_jogo_alterado": {
+        "status": "secondary",
+        "payload_shape": {
+          "statusJogo": "string",
+          "totalJogadores": "integer",
+          "timestamp": "integer"
         }
       }
     },
-    "chat_and_messaging": {
-      "send_message": {
-        "direction": "client_to_server",
-        "description": "Enviar mensagem para chat da sala",
-        "authentication_required": true,
-        "input": {
+    "turn_system": {
+      "fase_atualizada": {
+        "status": "canonical",
+        "payload_shape": {
+          "fase": "string",
+          "rodadaAtual": "integer|null",
+          "rodadaFinalizada": "integer|null",
+          "timestamp": "integer"
+        }
+      },
+      "aventura_iniciada": {
+        "status": "canonical",
+        "payload_shape": {
+          "historiaId": "string|number",
+          "historiaNome": "string",
+          "timestamp": "integer"
+        }
+      },
+      "resultado_dado_inicial": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "username": "string",
+          "personagemNome": "string|null",
+          "valor": "integer",
+          "timestamp": "integer"
+        }
+      },
+      "ordem_definida": {
+        "status": "canonical",
+        "payload_shape": {
+          "ordemJogadores": "array",
+          "timestamp": "integer"
+        }
+      },
+      "turno_alterado": {
+        "status": "canonical",
+        "payload_shape": {
+          "rodadaAtual": "integer",
+          "turnoAtual": "integer",
+          "jogadorAtual": "object",
+          "ordemCompleta": "array|null",
+          "timestamp": "integer"
+        }
+      },
+      "turno_iniciado": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "username": "string",
+          "rodada": "integer",
+          "turno": "integer",
+          "timestamp": "integer"
+        }
+      },
+      "mestre_finalizou_turno": {
+        "status": "canonical",
+        "payload_shape": {
+          "jogador": "string",
+          "contador": "integer",
+          "motivo": "string",
+          "timestamp": "integer"
+        }
+      },
+      "turno_estado_atualizado": {
+        "status": "canonical",
+        "authoritative": true,
+        "payload_shape": {
           "roomId": "string",
-          "sessionId": "string (optional)",
+          "turno": {
+            "status": "idle|starting|active|awaiting_roll|resolving_roll|finishing",
+            "jogadorAtual": "string|null",
+            "rodadaAtual": "integer",
+            "contadorInteracoes": "integer",
+            "lockReason": "string|null",
+            "loteTesteAtivo": "string|null"
+          },
+          "testesPendentes": "array",
+          "testePendente": "object|null",
+          "timestamp": "integer"
+        }
+      },
+      "mestre_solicita_dados": {
+        "status": "canonical",
+        "payload_shape": {
+          "narrativa": "string",
+          "tipoDado": "string",
+          "teste": "string",
+          "dificuldade": "string",
+          "modificador": "integer",
+          "atributo": "string|null",
+          "contexto": "string|null",
+          "origem": "string",
+          "groupId": "string|null",
+          "testePendente": "object|null",
+          "testesPendentes": "array",
+          "timestamp": "integer"
+        }
+      },
+      "teste_rejeitado": {
+        "status": "canonical",
+        "payload_shape": {
+          "roomId": "string",
+          "motivo": "string",
+          "jogadorAlvo": "string|null",
+          "userId": "string",
+          "username": "string",
+          "timestamp": "integer"
+        }
+      },
+      "resultado_teste": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "username": "string",
+          "personagemNome": "string",
+          "dice": "string",
+          "rolagemBruta": "integer",
+          "atributo": "string|null",
+          "atributoNome": "string|null",
+          "valorAtributo": "integer|null",
+          "modificador": "integer|null",
+          "bonusNivel": "integer|null",
+          "bonusVantDesvant": "integer|null",
+          "detalhesBonus": "array",
+          "totalModificador": "integer",
+          "total": "integer",
+          "dc": "integer|null",
+          "dificuldadeNome": "string|null",
+          "sucesso": "boolean|null",
+          "margem": "integer|null",
+          "critico": "boolean|null",
+          "falha_critica": "boolean|null",
+          "descricaoResultado": "string|null",
+          "testeId": "string",
+          "groupId": "string|null",
+          "timestamp": "integer"
+        }
+      },
+      "rodada_finalizada": {
+        "status": "canonical",
+        "payload_shape": {
+          "rodada": "integer",
+          "timestamp": "integer"
+        }
+      },
+      "nova_rodada_iniciada": {
+        "status": "canonical",
+        "payload_shape": {
+          "rodada": "integer",
+          "primeiroJogador": "object|null",
+          "timestamp": "integer"
+        }
+      }
+    },
+    "messages": {
+      "chat_message": {
+        "status": "canonical",
+        "variants": {
+          "direct_chat": {
+            "id": "string",
+            "userId": "string",
+            "username": "string",
+            "message": "string",
+            "type": "string",
+            "roomId": "string",
+            "timestamp": "string"
+          },
+          "session_message_echo": {
+            "id": "string",
+            "tipo": "string",
+            "canal": "string",
+            "origem": "string",
+            "userId": "string",
+            "username": "string",
+            "message": "string",
+            "mensagem": "string",
+            "payload": "object|null",
+            "timestamp": "integer"
+          }
+        },
+        "notes": [
+          "New consumers should read message first.",
+          "When tipo exists, the payload came from the persisted session message envelope."
+        ]
+      },
+      "mensagem_mestre": {
+        "status": "canonical",
+        "payload_shape": {
+          "id": "string",
+          "tipo": "mestre",
+          "canal": "formal|string",
+          "origem": "turno|string",
+          "userId": "mestre|string",
+          "username": "Mestre|string",
           "message": "string",
-          "messageType": "string [chat, ooc, ic, whisper, action, system, dice] (default: chat)",
-          "isPrivate": "boolean (default: false)",
-          "targetUser": "string (required if isPrivate: true)"
-        },
-        "outputs": {
-          "success_to_sender": {
-            "event": "message_sent",
-            "data": {
-              "messageId": "string",
-              "timestamp": "string (ISO)"
-            }
-          },
-          "broadcast_to_room": {
-            "event": "new_message",
-            "data": {
-              "id": "string",
-              "userId": "string",
-              "username": "string",
-              "message": "string",
-              "messageType": "string",
-              "formattedMessage": "string (processed message)",
-              "style": "string (message style)",
-              "timestamp": "string (ISO)",
-              "roomId": "string",
-              "sessionId": "string",
-              "isPrivate": "boolean",
-              "targetUser": "string (if private)",
-              "diceResult": "object (if messageType: dice)"
-            }
-          },
-          "private_message": {
-            "event": "private_message",
-            "data": "same as new_message",
-            "description": "Enviado apenas para targetUser se isPrivate: true"
-          },
-          "error": {
-            "event": "error",
-            "data": {
-              "message": "string (Usuário não autenticado / RoomId e message são obrigatórios / Mensagem não pode estar vazia)"
-            }
-          }
+          "mensagem": "string",
+          "payload": "object|null",
+          "voice_id": "string|null",
+          "voice_provider": "string|null",
+          "audio_cache_key": "string|null",
+          "segmentos": "array",
+          "timestamp": "integer"
         }
       },
-      "typing_start": {
-        "direction": "client_to_server",
-        "description": "Indicar que usuário começou a digitar",
-        "authentication_required": true,
-        "input": {
-          "roomId": "string"
-        },
-        "outputs": {
-          "broadcast_to_room": {
-            "event": "user_typing",
-            "data": {
-              "userId": "string",
-              "username": "string",
-              "roomId": "string",
-              "typing": true,
-              "timestamp": "string (ISO)"
-            },
-            "description": "Enviado para outros usuários na sala"
-          }
+      "mensagem_roleplay": {
+        "status": "canonical",
+        "payload_shape": {
+          "id": "string",
+          "tipo": "roleplay",
+          "canal": "roleplay",
+          "origem": "turno",
+          "userId": "string",
+          "username": "string",
+          "message": "string",
+          "mensagem": "string",
+          "payload": {
+            "cena": "integer"
+          },
+          "timestamp": "integer"
         }
       },
-      "typing_stop": {
-        "direction": "client_to_server",
-        "description": "Indicar que usuário parou de digitar",
-        "authentication_required": true,
-        "input": {
-          "roomId": "string"
-        },
-        "outputs": {
-          "broadcast_to_room": {
-            "event": "user_typing",
-            "data": {
-              "userId": "string",
-              "username": "string",
-              "roomId": "string",
-              "typing": false,
-              "timestamp": "string (ISO)"
-            },
-            "description": "Enviado para outros usuários na sala"
-          }
-        }
-      },
-      "get_message_history": {
-        "direction": "client_to_server",
-        "description": "Obter histórico de mensagens da sala",
-        "authentication_required": true,
-        "input": {
-          "roomId": "string",
-          "sessionId": "string (optional)",
-          "limit": "integer (default: 50)",
-          "before": "string (timestamp, optional)"
-        },
-        "outputs": {
-          "success": {
-            "event": "message_history",
-            "data": {
-              "roomId": "string",
-              "messages": "array of message objects",
-              "hasMore": "boolean",
-              "timestamp": "string (ISO)"
-            }
-          }
-        }
-      }
-    },
-    "game_and_sessions": {
-      "start_session": {
-        "direction": "client_to_server",
-        "description": "Iniciar uma sessão de RPG como mestre",
-        "authentication_required": true,
-        "input": {
-          "sessionId": "string",
-          "sessionData": {
-            "nome": "string (optional)",
-            "maxJogadores": "integer (default: 6)",
-            "configuracoes": "object (optional)"
-          }
-        },
-        "outputs": {
-          "success_to_sender": {
-            "event": "session_started",
-            "data": {
-              "sessionId": "string",
-              "session": {
-                "nome": "string",
-                "mestreId": "string",
-                "mestreNome": "string",
-                "jogadores": "array",
-                "maxJogadores": "integer",
-                "configuracoes": "object",
-                "estadoJogo": {
-                  "fase": "string",
-                  "turno": "integer",
-                  "jogadorAtivo": "string",
-                  "acoes": "array"
-                },
-                "mensagens": "array"
-              },
-              "role": "string (mestre)",
-              "timestamp": "string (ISO)"
-            }
-          },
-          "broadcast_global": {
-            "event": "new_session_available",
-            "data": {
-              "sessionId": "string",
-              "nome": "string",
-              "mestre": "string",
-              "maxJogadores": "integer",
-              "timestamp": "string (ISO)"
-            },
-            "description": "Notifica outros usuários sobre nova sessão"
-          },
-          "error": {
-            "event": "error",
-            "data": {
-              "message": "string (Usuário não autenticado / SessionId é obrigatório / Erro ao iniciar sessão)",
-              "details": "string (error details)"
-            }
-          }
-        }
-      },
-      "end_session": {
-        "direction": "client_to_server",
-        "description": "Finalizar sessão de RPG (apenas mestre)",
-        "authentication_required": true,
-        "input": {
-          "sessionId": "string",
-          "reason": "string (optional)"
-        },
-        "outputs": {
-          "broadcast_to_session": {
-            "event": "session_ended",
-            "data": {
-              "sessionId": "string",
-              "reason": "string",
-              "endedBy": "string (username)",
-              "timestamp": "string (ISO)",
-              "finalStats": "object (session statistics)"
-            }
-          },
-          "error": {
-            "event": "error",
-            "data": {
-              "message": "string (SessionId é obrigatório / Sessão não encontrada / Apenas o mestre pode finalizar a sessão)"
-            }
-          }
-        }
-      },
-      "player_action": {
-        "direction": "client_to_server",
-        "description": "Realizar ação de jogador na sessão",
-        "authentication_required": true,
-        "input": {
-          "sessionId": "string",
-          "action": "string [move, attack, skill, interact, roll_dice, use_item]",
-          "actionData": {
-            "target": "string (optional)",
-            "skillId": "string (for skill actions)",
-            "itemId": "string (for use_item actions)",
-            "position": "object (for move actions)",
-            "dice": "string (for roll_dice, e.g., '2d6+3')",
-            "modifier": "integer (optional)",
-            "reason": "string (optional description)"
-          }
-        },
-        "outputs": {
-          "broadcast_to_session": {
-            "event": "player_action",
-            "data": {
-              "actionId": "string",
-              "sessionId": "string",
-              "userId": "string",
-              "username": "string",
-              "action": "string",
-              "actionData": "object",
-              "result": "object",
-              "timestamp": "string (ISO)"
-            }
-          },
-          "action_result": {
-            "event": "action_result",
-            "data": {
-              "actionId": "string",
-              "success": "boolean",
-              "result": "object",
-              "damage": "integer (if applicable)",
-              "effects": "array (if applicable)",
-              "description": "string",
-              "timestamp": "string (ISO)"
-            }
-          },
-          "error": {
-            "event": "error",
-            "data": {
-              "message": "string (Usuário não autenticado / SessionId e action são obrigatórios / Sessão não encontrada)"
-            }
-          }
-        }
-      },
-      "dice_roll": {
-        "direction": "client_to_server",
-        "description": "Rolar dados na sessão",
-        "authentication_required": true,
-        "input": {
-          "roomId": "string",
-          "sessionId": "string (optional)",
-          "diceType": "string (e.g., 'd20', '2d6', '1d100')",
-          "quantity": "integer (default: 1)",
-          "modifier": "integer (default: 0)",
-          "reason": "string (optional description)"
-        },
-        "outputs": {
-          "broadcast_to_room": {
-            "event": "dice_result",
-            "data": {
-              "rollId": "string",
-              "userId": "string",
-              "username": "string",
-              "diceType": "string",
-              "quantity": "integer",
-              "modifier": "integer",
-              "results": "array of integers (individual dice results)",
-              "total": "integer (sum + modifier)",
-              "reason": "string",
-              "timestamp": "string (ISO)",
-              "roomId": "string",
-              "sessionId": "string"
-            }
-          }
+      "acao_mestre": {
+        "status": "canonical",
+        "payload_shape": {
+          "id": "string",
+          "tipo": "string",
+          "userId": "string|null",
+          "username": "string|null",
+          "personagem": "string|null",
+          "message": "string",
+          "mensagem": "string",
+          "payload": "object",
+          "timestamp": "integer"
         }
       },
       "status_update": {
-        "direction": "client_to_server",
-        "description": "Atualizar status do personagem/jogador",
-        "authentication_required": true,
-        "input": {
-          "roomId": "string",
-          "sessionId": "string (optional)",
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "username": "string",
           "status": "string",
-          "attribute": "string (optional)",
-          "value": "any (new value)",
-          "characterId": "string (optional)"
-        },
-        "outputs": {
-          "broadcast_to_room": {
-            "event": "character_update",
-            "data": {
-              "userId": "string",
-              "username": "string",
-              "characterId": "string",
-              "status": "string",
-              "attribute": "string",
-              "oldValue": "any",
-              "newValue": "any",
-              "timestamp": "string (ISO)",
-              "roomId": "string",
-              "sessionId": "string"
-            }
-          }
+          "details": "object|null",
+          "roomId": "string",
+          "timestamp": "integer"
         }
       }
     },
-    "system_events": {
-      "get_server_status": {
-        "direction": "client_to_server",
-        "description": "Obter estatísticas do servidor (admin apenas)",
-        "authentication_required": true,
-        "input": {
-          "detailed": "boolean (default: false)"
-        },
-        "outputs": {
-          "success": {
-            "event": "server_status",
-            "data": {
-              "connectedClients": "integer",
-              "activeRooms": "integer",
-              "activeSessions": "integer",
-              "uptime": "integer (seconds)",
-              "memory": "object (memory usage)",
-              "timestamp": "string (ISO)"
-            }
+    "session_lifecycle": {
+      "sessao_resetada": {
+        "status": "canonical",
+        "payload_shape": {
+          "historiaId": "string|number",
+          "historiaNome": "string",
+          "motivo": "string",
+          "timestamp": "integer"
+        }
+      },
+      "sessao_encerrada": {
+        "status": "canonical",
+        "payload_shape": {
+          "salaId": "string",
+          "motivo": "string",
+          "timestamp": "integer",
+          "resumo": "string|null",
+          "historiaNome": "string|null",
+          "xpGanho": "integer",
+          "loot": "array"
+        }
+      }
+    },
+    "combat_and_progression": {
+      "combate_iniciado": {
+        "status": "canonical",
+        "payload_shape": {
+          "monstros": "array",
+          "jogadores": "object",
+          "rodada": "integer",
+          "motivo": "string|null",
+          "dificuldade": "string|null",
+          "timestamp": "integer"
+        }
+      },
+      "combate_resultado_acao": {
+        "status": "canonical",
+        "payload_shape": {
+          "tipo": "string",
+          "atacante": "object|null",
+          "alvo": "object|null",
+          "rolagem": "integer|null",
+          "bonus": "integer|null",
+          "acertou": "boolean|null",
+          "esquivou": "boolean|null",
+          "critico": "boolean|null",
+          "dano": "integer|null",
+          "armaduraAlvo": "integer|null",
+          "hpRestante": "integer|null",
+          "hpMax": "integer|null",
+          "status": "string|null",
+          "mensagem": "string|null",
+          "timestamp": "integer"
+        }
+      },
+      "combate_monstro_derrotado": {
+        "status": "canonical",
+        "payload_shape": {
+          "monstro": {
+            "id": "string|number",
+            "nome": "string"
           },
-          "detailed_admin_only": {
-            "event": "server_stats_detailed",
-            "data": {
-              "connections": {
-                "current": "integer",
-                "total": "integer",
-                "peak": "integer"
-              },
-              "sessions": {
-                "active": "integer",
-                "total": "integer"
-              },
-              "rateLimit": {
-                "violations": "integer",
-                "activeBlocks": "integer"
-              },
-              "performance": {
-                "avgResponseTime": "integer (ms)",
-                "eventHandled": "integer"
-              }
-            }
-          }
+          "xp": "integer",
+          "timestamp": "integer"
         }
       },
-      "heartbeat": {
-        "direction": "bidirectional",
-        "description": "Heartbeat personalizado para monitoramento",
-        "authentication_required": false,
-        "input": {
-          "clientTime": "integer (timestamp)",
-          "status": "string (optional)"
-        },
-        "outputs": {
-          "success": {
-            "event": "heartbeat_response",
-            "data": {
-              "serverTime": "integer (timestamp)",
-              "clientTime": "integer (from input)",
-              "latency": "integer (ms)",
-              "status": "string (server status)"
-            }
-          }
+      "combate_jogador_ferido": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "nome": "string",
+          "hp_atual": "integer",
+          "hp_max": "integer",
+          "derrotado": "boolean",
+          "fonte": "string|null",
+          "timestamp": "integer"
         }
       },
-      "connection_test": {
-        "direction": "client_to_server",
-        "description": "Testar qualidade da conexão",
-        "authentication_required": false,
-        "input": {
-          "testData": "string (optional test payload)"
-        },
-        "outputs": {
-          "success": {
-            "event": "connection_test_result",
-            "data": {
-              "success": "boolean",
-              "latency": "integer (ms)",
-              "testData": "string (echoed back)",
-              "connectionQuality": "string [excellent, good, fair, poor]",
-              "timestamp": "string (ISO)"
-            }
-          }
+      "combate_estado": {
+        "status": "canonical",
+        "payload_shape": {
+          "monstros": "array",
+          "jogadores": "object",
+          "rodada": "integer",
+          "log": "array",
+          "timestamp": "integer"
+        }
+      },
+      "combate_finalizado": {
+        "status": "canonical",
+        "payload_shape": {
+          "resultado": "vitoria|derrota|fuga",
+          "xpTotal": "integer",
+          "xpPorJogador": "integer",
+          "monstrosDerrotados": "array",
+          "jogadoresSobreviventes": "array",
+          "loot": "array",
+          "timestamp": "integer"
+        }
+      },
+      "combate_loot": {
+        "status": "canonical",
+        "payload_shape": {
+          "lootPorJogador": "object",
+          "todosItens": "array",
+          "timestamp": "integer"
+        }
+      },
+      "level_up": {
+        "status": "canonical",
+        "payload_shape": {
+          "userId": "string",
+          "personagemNome": "string",
+          "novoNivel": "integer",
+          "ganhos": "object",
+          "timestamp": "integer"
         }
       }
     },
-    "automatic_server_events": {
-      "welcome": {
-        "direction": "server_to_client",
-        "description": "Mensagem automática ao conectar",
-        "data": {
-          "message": "string (Conectado ao servidor RPG Chat Game!)",
-          "socketId": "string",
-          "timestamp": "string (ISO)"
-        }
-      },
-      "connection_success": {
-        "direction": "server_to_client",
-        "description": "Confirmação de conexão bem-sucedida",
-        "data": {
-          "socketId": "string",
-          "serverTime": "string (ISO)",
-          "message": "string (Conectado com sucesso ao servidor RPG)"
-        }
-      },
+    "errors": {
       "error": {
-        "direction": "server_to_client",
-        "description": "Evento genérico de erro",
-        "data": {
-          "message": "string (error description)",
-          "details": "string (optional error details)",
-          "timestamp": "string (ISO)"
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string",
+          "code": "string|null"
         }
       },
-      "disconnect": {
-        "direction": "bidirectional",
-        "description": "Evento de desconexão",
-        "reasons": [
-          "transport close",
-          "client disconnect",
-          "ping timeout",
-          "transport error"
-        ]
+      "erro_mensagem": {
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string"
+        }
+      },
+      "erro_turno": {
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string",
+          "jogadorDaVez": "string|null"
+        }
+      },
+      "erro_dado_inicial": {
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string",
+          "valorAnterior": "integer|null"
+        }
+      },
+      "erro_cooldown_roleplay": {
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string",
+          "segundosRestantes": "integer"
+        }
+      },
+      "erro_sistema": {
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string"
+        }
+      },
+      "rate_limit_exceeded": {
+        "status": "canonical",
+        "payload_shape": {
+          "message": "string",
+          "retryAfter": "integer|null",
+          "remainingMs": "integer|null"
+        }
       }
     }
   },
-  "message_types": {
-    "chat": {
-      "description": "Mensagem normal de chat",
-      "format": "{username}: {message}",
-      "style": "chat"
+  "compatibility": {
+    "canonical_fields": {
+      "message_text": "message",
+      "turn_state": "sessao.estadoJogo.turno",
+      "live_turn_state": "turno_estado_atualizado.turno",
+      "pending_tests": "turno_estado_atualizado.testesPendentes"
     },
-    "ooc": {
-      "description": "Out of Character - conversa fora do personagem",
-      "format": "(({username})) {message}",
-      "style": "ooc"
-    },
-    "ic": {
-      "description": "In Character - fala do personagem",
-      "format": "{characterName}: \"{message}\"",
-      "style": "ic"
-    },
-    "action": {
-      "description": "Ação/emote do personagem",
-      "format": "*{characterName} {message}*",
-      "style": "action"
-    },
-    "whisper": {
-      "description": "Mensagem sussurrada/privada",
-      "format": "{username} sussurra: {message}",
-      "style": "whisper"
-    },
-    "system": {
-      "description": "Mensagem do sistema",
-      "format": "[SISTEMA] {message}",
-      "style": "system"
-    },
-    "dice": {
-      "description": "Rolagem de dados",
-      "format": "{username} rola {dice}: {result}",
-      "style": "dice",
-      "includes_result": true
-    }
-  },
-  "dice_rolling": {
-    "supported_formats": [
-      "1d20",
-      "2d6+3",
-      "1d100-10",
-      "3d4+2",
-      "1d20+5 (advantage)"
+    "legacy_aliases_still_seen": [
+      {
+        "field": "sessao.estadoJogo.turnoIniciado",
+        "replacement": "sessao.estadoJogo.turno.status",
+        "note": "Boolean alias derived from current turn status."
+      },
+      {
+        "field": "sessao.estadoJogo.dadosSolicitados",
+        "replacement": "turno_estado_atualizado.testesPendentes.length > 0",
+        "note": "Boolean alias for pending tests."
+      },
+      {
+        "field": "sessao.estadoJogo.testeInfo",
+        "replacement": "turno_estado_atualizado.testePendente",
+        "note": "Legacy summary object for the active test."
+      },
+      {
+        "field": "sessao.estadoJogo.testePendente",
+        "replacement": "turno_estado_atualizado.testePendente",
+        "note": "Legacy shortcut to the first pending test."
+      },
+      {
+        "field": "mensagem",
+        "replacement": "message",
+        "note": "Compatibility mirror still present in several persisted/live message payloads."
+      }
     ],
-    "result_format": {
-      "rollId": "string",
-      "diceType": "string",
-      "quantity": "integer",
-      "modifier": "integer",
-      "results": "array of integers",
-      "total": "integer",
-      "critical": "boolean (for d20 rolls)",
-      "fumble": "boolean (for d20 rolls)"
-    }
-  },
-  "error_handling": {
-    "authentication_errors": [
-      "Usuário não autenticado",
-      "Token inválido ou expirado",
-      "userId e username são obrigatórios"
-    ],
-    "validation_errors": [
-      "RoomId é obrigatório",
-      "SessionId é obrigatório",
-      "Mensagem não pode estar vazia",
-      "Dados de ação inválidos"
-    ],
-    "permission_errors": [
-      "Apenas o mestre pode finalizar a sessão",
-      "Usuário não tem permissão para esta ação",
-      "Acesso negado a estatísticas detalhadas"
-    ],
-    "session_errors": [
-      "Sessão não encontrada",
-      "Sessão já finalizada",
-      "Sala está cheia",
-      "Usuário já está na sala"
+    "legacy_or_removed_events": [
+      {
+        "event": "send_message",
+        "status": "removed_from_public_contract",
+        "replacement": "chat_message"
+      },
+      {
+        "event": "new_message",
+        "status": "removed_from_public_contract",
+        "replacement": "chat_message"
+      },
+      {
+        "event": "player_action",
+        "status": "removed_from_public_contract",
+        "replacement": "rpg_action"
+      },
+      {
+        "event": "action_result",
+        "status": "removed_from_public_contract",
+        "replacement": "resultado_teste or combate_resultado_acao"
+      },
+      {
+        "event": "start_session",
+        "status": "not_implemented_in_current_socketManager",
+        "replacement": "join_room"
+      },
+      {
+        "event": "session_started",
+        "status": "not_emitted_in_current_runtime"
+      },
+      {
+        "event": "session_ended",
+        "status": "not_emitted_in_current_runtime",
+        "replacement": "sessao_encerrada"
+      },
+      {
+        "event": "typing_start",
+        "status": "removed_from_public_contract"
+      },
+      {
+        "event": "typing_stop",
+        "status": "removed_from_public_contract"
+      },
+      {
+        "event": "user_typing",
+        "status": "removed_from_public_contract"
+      },
+      {
+        "event": "get_message_history",
+        "status": "removed_from_public_contract",
+        "replacement": "room_joined.sessao.mensagens"
+      },
+      {
+        "event": "message_history",
+        "status": "removed_from_public_contract",
+        "replacement": "room_joined.sessao.mensagens"
+      },
+      {
+        "event": "get_status",
+        "status": "not_handled_by_current_runtime"
+      },
+      {
+        "event": "status_response",
+        "status": "not_emitted_in_current_runtime"
+      },
+      {
+        "event": "welcome",
+        "status": "not_emitted_in_current_runtime"
+      },
+      {
+        "event": "pong",
+        "status": "not_emitted_in_current_runtime"
+      },
+      {
+        "event": "room_users",
+        "status": "not_emitted_in_current_runtime",
+        "replacement": "room_joined.users"
+      },
+      {
+        "event": "connection_error",
+        "status": "not_emitted_in_current_runtime",
+        "replacement": "error or connect_error"
+      },
+      {
+        "event": "authentication_error",
+        "status": "not_emitted_in_current_runtime",
+        "replacement": "error"
+      },
+      {
+        "event": "join_room_error",
+        "status": "not_emitted_in_current_runtime",
+        "replacement": "error"
+      },
+      {
+        "event": "leave_room_error",
+        "status": "not_emitted_in_current_runtime",
+        "replacement": "error"
+      },
+      {
+        "event": "start_session_error",
+        "status": "not_emitted_in_current_runtime"
+      }
     ]
   },
-  "usage_examples": {
-    "basic_connection": {
-      "javascript": "const socket = io('ws://localhost:3001', { auth: { token: 'jwt_token' } });\nsocket.on('welcome', (data) => console.log(data));\nsocket.emit('authenticate', { userId: '123', username: 'player1' });"
+  "examples": {
+    "connect_auth_join": {
+      "javascript": "const socket = io('ws://localhost:3001', { transports: ['websocket', 'polling'], autoConnect: false });\\nsocket.connect();\\nsocket.emit('authenticate', { userId: '42', username: 'Marcelo', sessionId: Date.now().toString() });\\nsocket.on('authenticated', () => {\\n  socket.emit('join_room', {\\n    roomId: 'historia_123',\\n    userId: '42',\\n    username: 'Marcelo',\\n    historiaId: '123',\\n    personagemId: '987',\\n    personagemNome: 'Arannis',\\n    sessionId: Date.now().toString()\\n  });\\n});"
     },
-    "join_room_and_chat": {
-      "javascript": "socket.emit('join_room', { roomId: 'room_1', sessionId: 'session_123' });\nsocket.emit('send_message', { roomId: 'room_1', message: 'Hello everyone!', messageType: 'chat' });"
+    "main_turn_action": {
+      "javascript": "socket.emit('mensagem_para_mestre', {\\n  roomId: 'historia_123',\\n  userId: '42',\\n  username: 'Marcelo',\\n  mensagem: 'Investigo o corredor com cuidado.',\\n  personagem: { nome: 'Arannis', classe: 'Ladino', nivel: 4 }\\n});"
     },
-    "roll_dice": {
-      "javascript": "socket.emit('dice_roll', { roomId: 'room_1', diceType: '1d20', modifier: 5, reason: 'Attack roll' });"
-    },
-    "player_action": {
-      "javascript": "socket.emit('player_action', { sessionId: 'session_123', action: 'attack', actionData: { target: 'orc_1', weapon: 'sword' } });"
+    "reply_to_pending_test": {
+      "javascript": "socket.on('mestre_solicita_dados', (data) => {\\n  socket.emit('dice_roll', {\\n    roomId: 'historia_123',\\n    userId: '42',\\n    username: 'Marcelo',\\n    dice: data.tipoDado || 'd20',\\n    result: '17',\\n    description: data.testePendente?.teste || data.teste || ''\\n  });\\n});"
     }
   }
-} 
+}

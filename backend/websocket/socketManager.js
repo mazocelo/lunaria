@@ -3149,6 +3149,37 @@ class SocketManager {
   /**
    * Fechar conexões
    */
+  // Facade overrides for extracted websocket modules.
+  // Keeping these at the end guarantees the delegated versions win while
+  // older inline implementations are phased out safely.
+  notificarInicioAventura(salaId, dados) {
+    this.eventBus.emitAdventureStart(salaId, dados);
+  }
+
+  notificarMudancaFase(salaId, fase, dadosAdicionais = {}) {
+    this.eventBus.emitPhaseUpdate(salaId, fase, dadosAdicionais);
+  }
+
+  async handleSolicitarDados(socket, data) {
+    return this.testEngine.handleSolicitarDados(socket, data);
+  }
+
+  async handleDisconnect(socket, reason = 'unknown') {
+    return this.roomGateway.handleDisconnect(socket, reason);
+  }
+
+  async iniciarPrimeiroTurno(roomId) {
+    return this.turnEngine.iniciarPrimeiroTurno(roomId);
+  }
+
+  async avancarProximoTurno(roomId) {
+    return this.turnEngine.avancarProximoTurno(roomId);
+  }
+
+  async iniciarNovaRodada(roomId) {
+    return this.turnEngine.iniciarNovaRodada(roomId);
+  }
+
   async close() {
     // Clear interval timer
     if (this._cacheCleaner) {
@@ -3184,4 +3215,3 @@ class SocketManager {
 }
 
 export default new SocketManager(); 
-

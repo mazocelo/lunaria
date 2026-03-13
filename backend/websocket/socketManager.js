@@ -24,6 +24,7 @@ import { persistirEstadoClone } from '../helpers/acoesProcessor.js';
 import analyticsService from '../services/analyticsService.js';
 import { MESTRE_CONFIG } from '../agents/Mestre/config.js';
 import ttsCacheService from '../services/ttsCacheService.js';
+import { getDefaultProviderName } from '../services/ttsService.js';
 import { aggregateNarrationFromSegments, resolveNarrationSegments } from '../services/narrationSegmentsService.js';
 import { buildTurnState, formatTurnStateText } from '../helpers/turnStateBuilder.js';
 import { isEnabled } from '../config/featureFlags.js';
@@ -79,6 +80,8 @@ import RoomGateway from './gateways/roomGateway.js';
 import TurnEngine from './engines/turnEngine.js';
 import TestEngine from './engines/testEngine.js';
 
+const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
+
 /**
  * Cria objeto de mensagem do mestre com campos de áudio vinculados
  */
@@ -98,7 +101,7 @@ function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
   return buildMestreMensagemHistorico(narrativaFinal, mestreConfig, {
     ...options,
     segmentos,
-    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(narrativaFinal, voiceId, voiceProvider || 'elevenlabs') : null
+    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(narrativaFinal, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER) : null
   });
 }
 
@@ -3181,5 +3184,4 @@ class SocketManager {
 }
 
 export default new SocketManager(); 
-
 

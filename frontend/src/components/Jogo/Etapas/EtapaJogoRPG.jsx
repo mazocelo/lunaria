@@ -399,6 +399,9 @@ const EtapaJogoRPG = ({
     };
 
     const handleChatMessage = (data) => {
+      if (!data?.tipo) {
+        return;
+      }
       if (data.userId !== 'mestre' && data.tipo !== 'mestre') {
         if (onAdicionarMensagemRef.current) {
           onAdicionarMensagemRef.current(data);

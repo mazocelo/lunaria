@@ -463,7 +463,7 @@ export const createListenerActions = (set, get) => ({
       if (window.showGameNotification) {
         window.showGameNotification(`🎲 O Mestre solicita rolagem de dados!`, 'info');
       }
-      get().log('Solicitação de dados manual', { data });
+      get().log('Solicitação de dados do Mestre', { data });
     });
 
     socket.on('mensagem_roleplay', (data) => {

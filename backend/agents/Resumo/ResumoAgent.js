@@ -6,60 +6,114 @@ import { trackLLMUsage } from '../../services/llmTracker.js';
 dotenv.config();
 
 /**
- * Agente responsável por resumir aventuras de RPG
- * Condensa o histórico de mensagens para manter o contexto do Mestre eficiente
+ * Agente responsavel por resumir aventuras de RPG
+ * Condensa o historico canonico de mensagens para manter o contexto do Mestre eficiente.
  */
 export class ResumoAgent {
   constructor() {
     this.model = new ChatGroq({
       apiKey: process.env.GROQ_API_KEY,
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      temperature: 0.3, // Baixa criatividade para resumo fiel
+      temperature: 0.3,
       maxTokens: 2000
     });
   }
 
-  /**
-   * Resumir a aventura até o momento
-   * @param {Object} params - Parâmetros do resumo
-   * @param {Array} params.mensagens - Array de mensagens da sessão
-   * @param {Array<string>} params.temas - Temas da aventura
-   * @param {Array} params.personagens - Personagens jogando
-   * @param {number} params.rodadasJogadas - Número de rodadas jogadas
-   * @returns {Promise<Object>} - Resumo gerado
-   */
+  _filtrarMensagensCanonicas(mensagens = []) {
+    return (mensagens || []).filter((mensagem) => {
+      const canal = mensagem?.canal || 'formal';
+      const tipo = mensagem?.tipo || mensagem?.type;
+      return canal !== 'roleplay' && tipo !== 'roleplay';
+    });
+  }
+
+  _formatarMensagens(mensagens = []) {
+    return mensagens.map((mensagem) => {
+      const tipo = mensagem?.tipo || mensagem?.type || 'desconhecido';
+      const autor = mensagem?.username || 'Sistema';
+      const texto = (mensagem?.mensagem || mensagem?.message || '').substring(0, 150);
+      return `[${tipo.toUpperCase()}] ${autor}: ${texto}`;
+    }).join('\n');
+  }
+
+  _chunkMensagens(mensagens = [], chunkSize = 120) {
+    const chunks = [];
+    for (let index = 0; index < mensagens.length; index += chunkSize) {
+      chunks.push(mensagens.slice(index, index + chunkSize));
+    }
+    return chunks;
+  }
+
+  async _executarResumo({
+    mensagensCanonicas,
+    temas,
+    personagens,
+    rodadasJogadas,
+    resumoAnterior = null,
+    userId = null
+  }) {
+    const blocoAnterior = resumoAnterior
+      ? `\nRESUMO ANTERIOR (consolidar com as novas informacoes):\n${resumoAnterior}\n`
+      : '';
+    const mensagensFormatadas = this._formatarMensagens(mensagensCanonicas);
+    const prompt = isEnabled('STRUCTURED_SUMMARY')
+      ? this._buildStructuredPrompt(
+          temas,
+          personagens,
+          rodadasJogadas,
+          mensagensCanonicas.length,
+          blocoAnterior,
+          resumoAnterior,
+          mensagensFormatadas,
+          mensagensCanonicas.length
+        )
+      : this._buildNarrativePrompt(
+          temas,
+          personagens,
+          rodadasJogadas,
+          mensagensCanonicas.length,
+          blocoAnterior,
+          resumoAnterior,
+          mensagensFormatadas,
+          mensagensCanonicas.length
+        );
+
+    const startTime = Date.now();
+    const response = await this.model.invoke(prompt);
+    trackLLMUsage(response, {
+      modelName: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      userId,
+      startTime,
+      agent: 'ResumoAgent'
+    });
+    return response.content;
+  }
+
   async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null, userId }) {
     try {
-      const mensagensCanonicas = (mensagens || []).filter((mensagem) => {
-        const canal = mensagem?.canal || 'formal';
-        const tipo = mensagem?.tipo || mensagem?.type;
-        return canal !== 'roleplay' && tipo !== 'roleplay';
-      });
-      const ultimasMensagens = mensagensCanonicas.slice(-50);
+      const mensagensCanonicas = this._filtrarMensagensCanonicas(mensagens);
+      const blocos = this._chunkMensagens(mensagensCanonicas, 120);
+      let resumoConsolidado = resumoAnterior || null;
 
-      const blocoAnterior = resumoAnterior
-        ? `\nRESUMO ANTERIOR (consolidar com as novas informações):\n${resumoAnterior}\n`
-        : '';
-
-      const mensagensFormatadas = ultimasMensagens.map(m => {
-        const tipo = m.tipo || m.type || 'desconhecido';
-        const autor = m.username || 'Sistema';
-        const texto = (m.mensagem || m.message || '').substring(0, 150);
-        return `[${tipo.toUpperCase()}] ${autor}: ${texto}`;
-      }).join('\n');
-
-      const prompt = isEnabled('STRUCTURED_SUMMARY')
-        ? this._buildStructuredPrompt(temas, personagens, rodadasJogadas, mensagensCanonicas.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length)
-        : this._buildNarrativePrompt(temas, personagens, rodadasJogadas, mensagensCanonicas.length, blocoAnterior, resumoAnterior, mensagensFormatadas, ultimasMensagens.length);
-
-      const startTime = Date.now();
-      const response = await this.model.invoke(prompt);
-      trackLLMUsage(response, { modelName: 'meta-llama/llama-4-scout-17b-16e-instruct', userId, startTime, agent: 'ResumoAgent' });
+      if (blocos.length === 0) {
+        resumoConsolidado = resumoAnterior || '';
+      } else {
+        for (const bloco of blocos) {
+          resumoConsolidado = await this._executarResumo({
+            mensagensCanonicas: bloco,
+            temas,
+            personagens,
+            rodadasJogadas,
+            resumoAnterior: resumoConsolidado,
+            userId
+          });
+        }
+      }
 
       console.log('✅ ResumoAgent: Resumo gerado com sucesso');
 
       return {
-        resumo: response.content,
+        resumo: resumoConsolidado,
         mensagensResumiadas: mensagensCanonicas.length,
         rodadasResumiadas: rodadasJogadas,
         geradoEm: new Date().toISOString(),
@@ -71,11 +125,8 @@ export class ResumoAgent {
     }
   }
 
-  /**
-   * Prompt narrativo (legado)
-   */
   _buildNarrativePrompt(temas, personagens, rodadasJogadas, totalMensagens, blocoAnterior, resumoAnterior, mensagensFormatadas, qtdMensagens) {
-    return `Você é um assistente que resume aventuras de RPG de forma concisa.
+    return `Voce e um assistente que resume aventuras de RPG de forma concisa.
 
 CONTEXTO:
 - Temas: ${temas.join(', ')}
@@ -83,10 +134,10 @@ CONTEXTO:
 - Rodadas Jogadas: ${rodadasJogadas}
 - Total de Mensagens: ${totalMensagens}
 ${blocoAnterior}
-${resumoAnterior ? 'Consolide o resumo anterior com as novas mensagens abaixo em um ÚNICO resumo coeso.' : 'Crie um resumo'} MUITO CONCISO (máximo 300 palavras) cobrindo:
+${resumoAnterior ? 'Consolide o resumo anterior com as novas mensagens abaixo em um UNICO resumo coeso.' : 'Crie um resumo'} MUITO CONCISO (maximo 300 palavras) cobrindo:
 1. Principais eventos ocorridos
-2. Decisões importantes dos jogadores
-3. Situação/desafio atual
+2. Decisoes importantes dos jogadores
+3. Situacao/desafio atual
 4. NPCs ou inimigos encontrados
 
 MENSAGENS RECENTES (${qtdMensagens}):
@@ -95,12 +146,8 @@ ${mensagensFormatadas}
 RESUMO CONCISO:`;
   }
 
-  /**
-   * Prompt estruturado (STRUCTURED_SUMMARY=true)
-   * Gera resumo em tópicos objetivos, máximo 500 palavras
-   */
   _buildStructuredPrompt(temas, personagens, rodadasJogadas, totalMensagens, blocoAnterior, resumoAnterior, mensagensFormatadas, qtdMensagens) {
-    return `Você é um assistente que resume aventuras de RPG em formato ESTRUTURADO.
+    return `Voce e um assistente que resume aventuras de RPG em formato ESTRUTURADO.
 
 CONTEXTO:
 - Temas: ${temas.join(', ')}
@@ -108,12 +155,12 @@ CONTEXTO:
 - Rodadas Jogadas: ${rodadasJogadas}
 - Total de Mensagens: ${totalMensagens}
 ${blocoAnterior}
-${resumoAnterior ? 'Consolide o resumo anterior com as novas informações em um ÚNICO resumo estruturado.' : 'Crie um resumo estruturado.'}
+${resumoAnterior ? 'Consolide o resumo anterior com as novas informacoes em um UNICO resumo estruturado.' : 'Crie um resumo estruturado.'}
 
-FORMATO OBRIGATÓRIO (use exatamente estas seções, omita seções vazias):
+FORMATO OBRIGATORIO (use exatamente estas secoes, omita secoes vazias):
 
 FATOS:
-- [Eventos objetivos que aconteceram, em ordem cronológica]
+- [Eventos objetivos que aconteceram, em ordem cronologica]
 
 ITENS:
 - [Jogador]: ganhou [item] / perdeu [item]
@@ -125,15 +172,15 @@ COMBATE:
 - [Estado atual: fora de combate / em combate contra X / combate encerrado]
 
 DECISOES:
-- [Decisões importantes tomadas pelos jogadores]
+- [Decisoes importantes tomadas pelos jogadores]
 
 PISTAS:
-- [Informações descobertas, segredos revelados]
+- [Informacoes descobertas, segredos revelados]
 
 DESVANTAGENS_ATIVADAS:
 - [Desvantagem]: [resultado]
 
-Máximo 500 palavras. Use tópicos curtos, NÃO parágrafos.
+Maximo 500 palavras. Use topicos curtos, NAO paragrafos.
 
 MENSAGENS RECENTES (${qtdMensagens}):
 ${mensagensFormatadas}
@@ -142,5 +189,4 @@ RESUMO ESTRUTURADO:`;
   }
 }
 
-export default new ResumoAgent(); // Singleton
-
+export default new ResumoAgent();

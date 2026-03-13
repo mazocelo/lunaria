@@ -488,7 +488,8 @@ export class MestreAgent {
     turno,
     contadorMensagens = 0,
     chatHistory = [],
-    resumo = null
+    resumo = null,
+    contextoLateralRoleplay = ''
   }) {
     const startTime = Date.now();
     try {
@@ -684,13 +685,25 @@ Narre a transição e apresente o novo desafio:`;
     tipoTeste = 'd20', 
     dificuldade = 'Média',
     jogadores = [],
-    chatHistory = [] 
+    chatHistory = [],
+    resumo = null,
+    contextoLateralRoleplay = ''
   }) {
     try {
       console.log(`🎲 MestreAgent: Solicitando rolagem - ${tipoTeste}`);
 
       const jogadoresTexto = jogadores.length > 0 
-        ? jogadores.join(', ') 
+        ? jogadores
+            .map((jogador) => {
+              if (typeof jogador === 'string') return jogador;
+              return jogador?.username
+                || jogador?.nome
+                || jogador?.personagemNome
+                || jogador?.userId
+                || jogador?.id
+                || 'Jogador';
+            })
+            .join(', ')
         : 'todos os jogadores';
 
       const input = `SOLICITAÇÃO DE ROLAGEM DE DADOS
@@ -709,15 +722,29 @@ Termine com "🎲 Rolem seus dados!"
 
 Seja conciso (máximo 100 palavras).`;
 
+      const inputCompleto = contextoLateralRoleplay
+        ? `${input}\n\n${contextoLateralRoleplay}`
+        : input;
+
       if (!this.chain) {
         throw new Error('Modelo de IA nao inicializado');
       }
 
-      const historico = converterHistoricoParaLangChain(chatHistory);
+      let historico = converterHistoricoParaLangChain(chatHistory);
+      if (resumo) {
+        const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
+        historico = [
+          {
+            role: 'system',
+            content: `RESUMO DA AVENTURA:\n${resumoTruncado}`
+          },
+          ...historico.slice(-HISTORY_LIMIT)
+        ];
+      }
 
       const startTime = Date.now();
       const response = await withRetry(() => withTimeout(this.chain.invoke({
-        input,
+        input: inputCompleto,
         chat_history: historico.slice(-HISTORY_LIMIT)
       })));
       trackLLMUsage(response, this.modelName, this.userId, startTime);

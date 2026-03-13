@@ -82,7 +82,7 @@ export function buildTurnEventPayload(sessao = {}) {
   const estadoJogo = sessao.estadoJogo || {};
   const turno = getTurnState(sessao);
   const testesPendentes = Array.isArray(estadoJogo.testesPendentes)
-    ? estadoJogo.testesPendentes.filter(teste => teste?.status !== 'cancelled')
+    ? estadoJogo.testesPendentes.filter(teste => teste?.status === 'pending')
     : [];
 
   return {

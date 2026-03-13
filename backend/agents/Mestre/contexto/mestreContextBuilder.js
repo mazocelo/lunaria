@@ -235,11 +235,21 @@ export function buildPersonagensContext(sessao = {}) {
 }
 
 export function getCompactacaoState(estadoJogo = {}, mensagens = []) {
+  const mensagensCanonicas = Array.isArray(mensagens)
+    ? mensagens.filter((mensagem) => {
+        const canal = mensagem?.canal || 'formal';
+        const tipo = mensagem?.tipo || mensagem?.type;
+        return canal !== 'roleplay' && tipo !== 'roleplay';
+      })
+    : [];
   return {
     ultimaMensagemIndex: estadoJogo?.compactacao?.ultimaMensagemIndex || 0,
     ultimaRodadaCompactada: estadoJogo?.compactacao?.ultimaRodadaCompactada || 0,
     ultimaCompactacaoEm: estadoJogo?.compactacao?.ultimaCompactacaoEm || null,
-    totalMensagens: Array.isArray(mensagens) ? mensagens.length : 0
+    ultimaMensagemCompactadaId: estadoJogo?.compactacao?.ultimaMensagemCompactadaId || null,
+    ultimoIndiceCanonicoCompactado: estadoJogo?.compactacao?.ultimoIndiceCanonicoCompactado || 0,
+    totalMensagens: Array.isArray(mensagens) ? mensagens.length : 0,
+    totalMensagensCanonicas: mensagensCanonicas.length
   };
 }
 

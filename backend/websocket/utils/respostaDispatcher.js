@@ -10,7 +10,8 @@ import {
   TURN_STATUS
 } from './turnStateMachine.js';
 import {
-  criarTestePendente,
+  compactarTestesPendentes,
+  criarTestesPendentes,
   emitirSolicitacaoTeste,
   getTestePendente,
   hasPendingTests,
@@ -40,7 +41,7 @@ async function processarFugaCombate(resposta, ctx) {
 
 async function criarSolicitacaoTeste(resposta, ctx) {
   const teste = resposta.teste || resposta.solicitaDados || {};
-  const testePendente = criarTestePendente(ctx.sessao, {
+  const testesCriados = criarTestesPendentes(ctx.sessao, {
     origem: teste.origem || 'mestre',
     jogadorAlvo: teste.jogadorAlvo || ctx.userId,
     personagemAlvo: ctx.personagem?.id || ctx.personagem?.personagemId || null,
@@ -54,11 +55,17 @@ async function criarSolicitacaoTeste(resposta, ctx) {
       origemNarrativa: ctx.mensagem
     }
   }, ctx.userId);
+  const testePendente = testesCriados[0] || null;
+
+  if (!testePendente) {
+    return;
+  }
 
   let modificadorPreview = 0;
   let atributoPreview = null;
   try {
-    const jogadorInfo = ctx.sessao.jogadores?.[ctx.userId];
+    const alvoUserId = testePendente.jogadorAlvo || ctx.userId;
+    const jogadorInfo = ctx.sessao.jogadores?.[String(alvoUserId)];
     const personagemId = jogadorInfo?.personagemId;
     const personagemCompleto = personagemId
       ? ctx.sessao.personagensCompletos?.[String(personagemId)]
@@ -73,17 +80,19 @@ async function criarSolicitacaoTeste(resposta, ctx) {
     console.warn('⚠️ Erro ao calcular modificador preview:', error.message);
   }
 
-  emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atributoPreview);
+  emitSolicitacao(ctx, resposta, testePendente, testesCriados, modificadorPreview, atributoPreview);
   await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
   ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
 }
 
-function emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atributoPreview) {
+function emitSolicitacao(ctx, resposta, testePendente, testesCriados, modificadorPreview, atributoPreview) {
   appendMensagemSessao(ctx.sessao, buildSolicitacaoDadosMensagem({
     narrativa: resposta.narracao,
     origem: testePendente.origem || 'mestre',
     payload: {
+      groupId: testePendente.groupId,
       testePendente,
+      testesPendentes: testesCriados,
       tipoDado: testePendente.tipoDado,
       teste: testePendente.teste,
       dificuldade: testePendente.dificuldade,
@@ -100,7 +109,9 @@ function emitSolicitacao(ctx, resposta, testePendente, modificadorPreview, atrib
     dificuldade: testePendente.dificuldade,
     modificador: modificadorPreview,
     atributo: atributoPreview,
-    contexto: testePendente.contexto
+    contexto: testePendente.contexto,
+    testesPendentes: testesCriados,
+    testePendente
   });
 }
 
@@ -132,7 +143,8 @@ async function processarAcoesMecanicas(resposta, ctx) {
 
 async function limparFlagDados(resposta, ctx) {
   if (!hasPendingTests(ctx.sessao)) return;
-  limparTestePendente(ctx.sessao, { nextTurnState: TURN_STATUS.ACTIVE });
+  limparTestePendente(ctx.sessao, { nextTurnState: TURN_STATUS.ACTIVE, mode: 'cancel' });
+  compactarTestesPendentes(ctx.sessao);
   await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
   ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
 }

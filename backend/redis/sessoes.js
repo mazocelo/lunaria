@@ -19,6 +19,14 @@ function mergeEstadoJogo(estadoAtual = {}, proximoEstado = {}) {
   };
 }
 
+function filtrarMensagensCanonicas(mensagens = []) {
+  return (mensagens || []).filter((mensagem) => {
+    const canal = mensagem?.canal || 'formal';
+    const tipo = mensagem?.tipo || mensagem?.type;
+    return canal !== 'roleplay' && tipo !== 'roleplay';
+  });
+}
+
 /**
  * Classe para gerenciar sessões de RPG usando Redis
  */
@@ -823,11 +831,11 @@ class SessaoRPG {
       if (!sessao) return false;
 
       const rodadas = sessao.estadoJogo?.rodadaAtual || 0;
-      const mensagens = (sessao.mensagens || []).length;
+      const mensagensCanonicas = filtrarMensagensCanonicas(sessao.mensagens || []);
       const compactacao = getCompactacaoState(sessao.estadoJogo || {}, sessao.mensagens || []);
 
       const precisaPorRodadas = rodadas > compactacao.ultimaRodadaCompactada;
-      const precisaPorMensagens = mensagens - compactacao.ultimaMensagemIndex >= 30;
+      const precisaPorMensagens = mensagensCanonicas.length - compactacao.ultimoIndiceCanonicoCompactado >= 30;
 
       return precisaPorRodadas || precisaPorMensagens;
     } catch (error) {
@@ -845,6 +853,8 @@ class SessaoRPG {
   async salvarResumo(salaId, resumo, meta = {}) {
     try {
       const sessao = await this.obterSessao(salaId);
+      const mensagensCanonicas = filtrarMensagensCanonicas(sessao?.mensagens || []);
+      const ultimaMensagemCanonica = mensagensCanonicas[mensagensCanonicas.length - 1] || null;
 
       if (!sessao.resumos) {
         sessao.resumos = [];
@@ -858,8 +868,11 @@ class SessaoRPG {
       sessao.estadoJogo.compactacao = {
         ultimaMensagemIndex: meta.ultimaMensagemIndex ?? (sessao.mensagens || []).length,
         ultimaRodadaCompactada: meta.ultimaRodadaCompactada ?? (sessao.estadoJogo?.rodadaAtual || 0),
+        ultimaMensagemCompactadaId: meta.ultimaMensagemCompactadaId ?? ultimaMensagemCanonica?.id ?? null,
+        ultimoIndiceCanonicoCompactado: meta.ultimoIndiceCanonicoCompactado ?? mensagensCanonicas.length,
         ultimaCompactacaoEm: new Date().toISOString(),
-        totalMensagens: (sessao.mensagens || []).length
+        totalMensagens: (sessao.mensagens || []).length,
+        totalMensagensCanonicas: mensagensCanonicas.length
       };
 
       // Trim de mensagens: manter últimas 200 após resumo consolidar as anteriores

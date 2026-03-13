@@ -44,7 +44,7 @@ import {
   TURN_STATUS
 } from './utils/turnStateMachine.js';
 import {
-  criarTestePendente,
+  compactarTestesPendentes,
   criarTestesPendentes,
   emitirSolicitacaoTeste,
   getTestesPendentes,
@@ -60,12 +60,16 @@ import {
 } from '../agents/Mestre/contexto/mestreInvocationContext.js';
 import {
   appendMensagemSessao,
+  buildDadoMensagem,
+  buildEntreRodadasMensagem,
   buildJogadorMensagem,
   buildMestreMensagem as buildMestreMensagemHistorico,
+  buildOrdemDefinidaMensagem,
+  buildResultadoDadoInicialMensagem,
   buildResultadoTesteMensagem,
   buildRoleplayMensagem,
   buildSolicitacaoDadosMensagem,
-  buildSistemaMensagem,
+  buildTransicaoTurnoMensagem,
   buildAcaoMestreMensagem,
   createMessageId
 } from './utils/sessionMessages.js';
@@ -1419,25 +1423,15 @@ class SocketManager {
           await this.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
         }
 
-        const mensagemDado = {
-          id: createMessageId('dado'),
-          tipo: 'dado',
-          canal: 'formal',
-          origem: 'turno',
+        const mensagemDado = buildDadoMensagem({
           userId,
           username,
+          personagemNome: username,
           dice,
           result,
           description,
-          message: `${username} rolou ${dice}: ${result}${description ? ` (${description})` : ''}`,
-          mensagem: `${username} rolou ${dice}: ${result}${description ? ` (${description})` : ''}`,
-          payload: {
-            dice,
-            result,
-            description
-          },
-          timestamp: Date.now()
-        };
+          origem: 'turno'
+        });
         appendMensagemSessao(sessao, mensagemDado);
 
         const tentativaResolucao = resolverTestePendente(sessao, userId);
@@ -1546,11 +1540,14 @@ class SocketManager {
             resultadoBruto: result,
             resultadoTeste: resultadoTestePayload
           });
+          const descricaoComContexto = invocationContext.contextoLateralRoleplay
+            ? `${invocationContext.contextoLateralRoleplay}\n\n${descricaoParaIA}`
+            : descricaoParaIA;
 
           const interpretacao = await mestre.narrarAcao({
             jogador: username,
             personagem: personagemNome,
-            acao: descricaoParaIA,
+            acao: descricaoComContexto,
             chatHistory: invocationContext.chatHistory,
             resumo: invocationContext.resumo
           });
@@ -1572,8 +1569,10 @@ class SocketManager {
           );
           limparTestePendente(sessao, {
             testId: testeResolvido.id,
-            nextTurnState: outrosTestesNoLote ? TURN_STATUS.AWAITING_ROLL : TURN_STATUS.ACTIVE
+            nextTurnState: outrosTestesNoLote ? TURN_STATUS.AWAITING_ROLL : TURN_STATUS.ACTIVE,
+            mode: 'resolved'
           });
+          compactarTestesPendentes(sessao);
 
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           await this.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
@@ -1599,8 +1598,10 @@ class SocketManager {
           );
           limparTestePendente(sessao, {
             testId: testeResolvido.id,
-            nextTurnState: outrosTestesNoLote ? TURN_STATUS.AWAITING_ROLL : TURN_STATUS.ACTIVE
+            nextTurnState: outrosTestesNoLote ? TURN_STATUS.AWAITING_ROLL : TURN_STATUS.ACTIVE,
+            mode: 'resolved'
           });
+          compactarTestesPendentes(sessao);
 
           await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           this.emitirEstadoTurno(roomId, sessao);
@@ -1732,6 +1733,14 @@ class SocketManager {
 
       // ✅ SALVAR MENSAGEM DE DADO ROLADO NO REDIS
       const sessaoParaDado = await this.obterSessaoHistoria(roomId);
+      const mensagemDadoCanonica = buildResultadoDadoInicialMensagem({
+        userId: resultadoData.userId,
+        username: resultadoData.username,
+        personagemNome: resultadoData.personagemNome,
+        valor: resultadoData.valor,
+        payload: resultadoData
+      });
+      appendMensagemSessao(sessaoParaDado, mensagemDadoCanonica);
       const mensagemDado = {
         tipo: 'dado',
         userId: resultadoData.userId,
@@ -1745,7 +1754,7 @@ class SocketManager {
       if (!sessaoParaDado.mensagens) {
         sessaoParaDado.mensagens = [];
       }
-      sessaoParaDado.mensagens.push(mensagemDado);
+      // legado desativado: a mensagem canonica ja foi persistida via appendMensagemSessao
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaDado);
 
       console.log(`💬 Mensagem de dado salva no Redis: ${resultadoData.username} rolou ${resultadoData.valor}`);
@@ -1788,6 +1797,12 @@ class SocketManager {
         });
 
         // ✅ SALVAR MENSAGEM DE ORDEM DEFINIDA NO REDIS
+        appendMensagemSessao(sessaoComOrdem, buildOrdemDefinidaMensagem({
+          ordemJogadores,
+          payload: {
+            ordemJogadores
+          }
+        }));
         const mensagemOrdem = {
           tipo: 'sistema',
           userId: 'sistema',
@@ -1799,7 +1814,7 @@ class SocketManager {
         if (!sessaoComOrdem.mensagens) {
           sessaoComOrdem.mensagens = [];
         }
-        sessaoComOrdem.mensagens.push(mensagemOrdem);
+        // legado desativado: mensagem canonica ja persistida
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoComOrdem);
 
         console.log(`💬 Mensagem de ordem definida salva no Redis`);
@@ -2039,7 +2054,7 @@ class SocketManager {
         });
       }
 
-      const contextoRoleplayLateral = this.buildRoleplayContextoLateral(sessao);
+      const contextoRoleplayLateral = invocationContext.contextoLateralRoleplay;
       if (contextoRoleplayLateral) {
         acaoComContexto += `${contextoRoleplayLateral}\n`;
       }
@@ -2398,15 +2413,19 @@ class SocketManager {
       let mensagemInicial;
       try {
         const invocationContext = buildTurnStartContext(sessao, userId);
+        const mensagemTurno = invocationContext.contextoLateralRoleplay
+          ? `${invocationContext.contextoLateralRoleplay}\n\nIniciar turno de ${jogadorDaVez.personagemNome || username}`
+          : `Iniciar turno de ${jogadorDaVez.personagemNome || username}`;
         mensagemInicial = await mestre.narrarTurnoJogador({
           jogador: username,
           personagem: jogadorDaVez.personagemNome || username,
-          mensagem: `Iniciar turno de ${jogadorDaVez.personagemNome || username}`,
+          mensagem: mensagemTurno,
           rodada: estadoJogo.rodadaAtual || 1,
           turno: turnoAtual,
           contadorMensagens: 0,
           chatHistory: invocationContext.chatHistory,
-          resumo: invocationContext.resumo
+          resumo: invocationContext.resumo,
+          contextoLateralRoleplay: invocationContext.contextoLateralRoleplay
         });
 
         this.log('SUCCESS', 'INICIAR_TURNO_MENSAGEM_GERADA', socket.id, userId, {
@@ -2591,13 +2610,15 @@ class SocketManager {
         tipoTeste: tipoTeste || 'd20'
       });
 
+      const invocationContext = buildNarracaoContext(sessao);
       const solicitacao = await mestre.solicitarRolagemDados({
         motivo,
         tipoTeste: tipoTeste || 'd20',
         dificuldade: dificuldade || 'Média',
         jogadores: jogadores || [],
-        chatHistory: buildNarracaoContext(sessao).chatHistory,
-        resumo: buildNarracaoContext(sessao).resumo
+        chatHistory: invocationContext.chatHistory,
+        resumo: invocationContext.resumo,
+        contextoLateralRoleplay: invocationContext.contextoLateralRoleplay
       });
 
       this.log('SUCCESS', 'SOLICITAR_DADOS_NARRATIVA_GERADA', socket.id, socket.userId, {
@@ -2605,11 +2626,7 @@ class SocketManager {
       });
 
       // Salvar mensagem do Mestre no Redis
-      if (!sessao.mensagens) {
-        sessao.mensagens = [];
-      }
-
-      appendMensagemSessao(sessao, buildSolicitacaoDadosMensagem({
+      const mensagemSolicitacaoDetalhada = buildSolicitacaoDadosMensagem({
         narrativa: solicitacao.narrativa,
         origem: 'manual',
         payload: {
@@ -2617,9 +2634,42 @@ class SocketManager {
           tipoTeste: solicitacao.tipoTeste || tipoTeste || 'd20',
           dificuldade: solicitacao.dificuldade || dificuldade || 'Média'
         }
-      }));
+      });
 
-      criarTestePendente(sessao, {
+      const turnoAtual = getTurnState(sessao);
+      const jogadorPadrao = turnoAtual.jogadorAtual || socket.userId;
+      const jogadoresAlvo = Array.isArray(jogadores) && jogadores.length > 0
+        ? jogadores
+        : [{ userId: jogadorPadrao, id: jogadorPadrao }];
+      const testesCriados = criarTestesPendentes(
+        sessao,
+        jogadoresAlvo.map((jogador) => {
+          const alvoUserId = String(jogador?.userId || jogador?.id || jogadorPadrao);
+          const jogadorSessao = sessao.jogadores?.[alvoUserId] || {};
+          return {
+            origem: 'manual',
+            jogadorAlvo: alvoUserId,
+            personagemAlvo: jogador?.personagemId || jogadorSessao.personagemId || null,
+            teste: motivo,
+            dificuldade: solicitacao.dificuldade || dificuldade || 'Media',
+            tipoDado: solicitacao.tipoTeste || tipoTeste || 'd20',
+            contexto: motivo
+          };
+        }),
+        socket.userId
+      );
+
+      mensagemSolicitacaoDetalhada.payload = {
+        ...(mensagemSolicitacaoDetalhada.payload || {}),
+        groupId: testesCriados[0]?.groupId || null,
+        motivo,
+        tipoTeste: solicitacao.tipoTeste || tipoTeste || 'd20',
+        dificuldade: solicitacao.dificuldade || dificuldade || 'Media',
+        testesPendentes: testesCriados
+      };
+      appendMensagemSessao(sessao, mensagemSolicitacaoDetalhada);
+
+      /* legacy-single-target-removed
         origem: 'manual',
         jogadorAlvo: Array.isArray(jogadores) && jogadores.length > 0
           ? String(jogadores[0]?.userId || jogadores[0]?.id || socket.userId)
@@ -2654,6 +2704,7 @@ class SocketManager {
           testesPendentes: testesCriados
         };
       }
+      */
 
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
       this.emitirEstadoTurno(roomId, sessao);
@@ -2958,8 +3009,14 @@ class SocketManager {
     const estadoJogo = sessao.estadoJogo || {};
     const compactacao = getCompactacaoState(estadoJogo, sessao.mensagens || []);
     const totalMensagens = (sessao.mensagens || []).length;
+    const mensagensCanonicas = (sessao.mensagens || []).filter((mensagem) => {
+      const canal = mensagem?.canal || 'formal';
+      const tipo = mensagem?.tipo || mensagem?.type;
+      return canal !== 'roleplay' && tipo !== 'roleplay';
+    });
+    const totalMensagensCanonicas = mensagensCanonicas.length;
     const rodadaAtual = estadoJogo.rodadaAtual || 0;
-    const deveCompactarPorMensagens = totalMensagens - compactacao.ultimaMensagemIndex >= 30;
+    const deveCompactarPorMensagens = totalMensagensCanonicas - compactacao.ultimoIndiceCanonicoCompactado >= 30;
     const deveCompactarPorRodada = !!options.forceRound && rodadaAtual > compactacao.ultimaRodadaCompactada;
 
     if (!deveCompactarPorMensagens && !deveCompactarPorRodada && !options.force) {
@@ -2967,10 +3024,31 @@ class SocketManager {
     }
 
     try {
+      let mensagensParaResumo = [];
+      if (compactacao.ultimaMensagemCompactadaId) {
+        const indiceUltima = mensagensCanonicas.findIndex(
+          (mensagem) => String(mensagem?.id) === String(compactacao.ultimaMensagemCompactadaId)
+        );
+        if (indiceUltima >= 0) {
+          mensagensParaResumo = mensagensCanonicas.slice(indiceUltima + 1);
+        }
+      }
+      if (!mensagensParaResumo.length && compactacao.ultimoIndiceCanonicoCompactado > 0) {
+        mensagensParaResumo = mensagensCanonicas.slice(
+          Math.min(compactacao.ultimoIndiceCanonicoCompactado, mensagensCanonicas.length)
+        );
+      }
+      if (!mensagensParaResumo.length && (options.force || deveCompactarPorRodada)) {
+        mensagensParaResumo = mensagensCanonicas.slice(-50);
+      }
+      if (!mensagensParaResumo.length) {
+        return sessao;
+      }
+
       const resumoAgent = (await import('../agents/Resumo/index.js')).default;
       const resumoAnteriorObj = await this.gerenciadorSessoes.obterUltimoResumo(roomId);
       const resumo = await resumoAgent.resumirAventura({
-        mensagens: sessao.mensagens || [],
+        mensagens: mensagensParaResumo,
         temas: extrairNomesTemas(sessao.historiaTemas || []),
         personagens: Object.values(sessao.jogadores || {}),
         rodadasJogadas: rodadaAtual,
@@ -3004,8 +3082,12 @@ class SocketManager {
 
       const sessaoComResumo = applyResumoToSessao(sessao, resumo, historia, novaProgressao);
       sessaoComResumo.estadoJogo = sessaoComResumo.estadoJogo || {};
+      const ultimaMensagemCanonica = mensagensCanonicas[mensagensCanonicas.length - 1] || null;
       sessaoComResumo.estadoJogo.compactacao = {
         ultimaMensagemIndex: totalMensagens,
+        ultimaMensagemCompactadaId: ultimaMensagemCanonica?.id || compactacao.ultimaMensagemCompactadaId || null,
+        ultimoIndiceCanonicoCompactado: totalMensagensCanonicas,
+        totalMensagensCanonicas,
         ultimaRodadaCompactada: deveCompactarPorRodada ? rodadaAtual : compactacao.ultimaRodadaCompactada,
         ultimaCompactacaoEm: new Date().toISOString()
       };
@@ -3351,10 +3433,9 @@ class SocketManager {
         const prologoTimestamp = Date.now();
 
         // Salvar na sessao.mensagens
-        if (!sessao.mensagens) sessao.mensagens = [];
         const msgPrologo = buildMestreMensagem(prologoPendente, sessao.mestreConfig);
         msgPrologo.timestamp = prologoTimestamp;
-        sessao.mensagens.push(msgPrologo);
+        appendMensagemSessao(sessao, msgPrologo);
 
         // Limpar flag
         delete estadoJogo.prologoPendente;
@@ -3484,11 +3565,12 @@ class SocketManager {
       }
 
       // ✅ 1. SALVAR MENSAGEM DE TRANSIÇÃO PRIMEIRO (antes de avançar turno)
-      const mensagemTransicao = buildSistemaMensagem(
+      const mensagemTransicao = buildTransicaoTurnoMensagem(
         `🏁 Turno de ${jogadorAnterior?.username || 'jogador'} finalizado. Vez de ${proximoJogador.username}!`,
         {
-          tipo: 'transicao_turno',
-          origem: 'rodada'
+          jogadorAnterior: jogadorAnterior?.userId || null,
+          proximoJogador: proximoJogador?.userId || null,
+          rodadaAtual: estadoJogo.rodadaAtual || 1
         }
       );
       appendMensagemSessao(sessao, mensagemTransicao);
@@ -3680,6 +3762,13 @@ class SocketManager {
 
         // Salvar narrativa do Mestre no Redis
         const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+        appendMensagemSessao(sessaoAtualizada, buildEntreRodadasMensagem({
+          message: narrativa.narrativa || narrativa.novoDesafio,
+          titulo: `Fim da Rodada ${rodadaAtual}`,
+          rodadaAnterior: rodadaAtual,
+          proximaRodada,
+          payload: narrativa
+        }));
         const mensagemMestre = {
           tipo: 'entre_rodadas',
           userId: 'mestre',
@@ -3693,7 +3782,7 @@ class SocketManager {
         if (!sessaoAtualizada.mensagens) {
           sessaoAtualizada.mensagens = [];
         }
-        sessaoAtualizada.mensagens.push(mensagemMestre);
+        // legado desativado: narrativa entre rodadas ja persistida de forma canonica
         await this.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, narrativa.metadados || {});
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
         await this.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, {
@@ -3708,6 +3797,14 @@ class SocketManager {
         
         // Fallback: mensagem simples se a IA falhar
         const sessaoAtualizada = await this.obterSessaoHistoria(roomId);
+        appendMensagemSessao(sessaoAtualizada, buildEntreRodadasMensagem({
+          message: `A rodada ${rodadaAtual} foi concluÃ­da. Preparando rodada ${proximaRodada}...`,
+          titulo: `Fim da Rodada ${rodadaAtual}`,
+          rodadaAnterior: rodadaAtual,
+          proximaRodada,
+          userId: 'sistema',
+          username: 'Sistema'
+        }));
         const mensagemFallback = {
           tipo: 'entre_rodadas',
           userId: 'sistema',
@@ -3719,7 +3816,7 @@ class SocketManager {
         if (!sessaoAtualizada.mensagens) {
           sessaoAtualizada.mensagens = [];
         }
-        sessaoAtualizada.mensagens.push(mensagemFallback);
+        // legado desativado: fallback entre rodadas ja persistido de forma canonica
         await this.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
       }
 
@@ -4341,8 +4438,7 @@ class SocketManager {
 
         // Emitir e salvar narração do desfecho
         const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig);
-        sessao.mensagens = sessao.mensagens || [];
-        sessao.mensagens.push(msgDesfecho);
+        appendMensagemSessao(sessao, msgDesfecho);
         await this.aplicarMetadadosNarrativos(roomId, sessao, respostaDesfecho.metadados || {});
 
         this.io.to(roomId).emit('mensagem_mestre', {

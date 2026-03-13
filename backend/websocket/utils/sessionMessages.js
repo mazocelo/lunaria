@@ -106,6 +106,61 @@ export function buildRoleplayMensagem({
   });
 }
 
+export function buildDadoMensagem({
+  userId,
+  username,
+  personagemNome = null,
+  dice = 'd20',
+  result = null,
+  description = null,
+  origem = 'turno',
+  payload = null,
+  tipo = 'dado'
+} = {}) {
+  const texto = `${personagemNome || username || 'Jogador'} rolou ${dice}: ${result ?? '?'}${description ? ` (${description})` : ''}`;
+  return createSessionMessage({
+    tipo,
+    canal: 'formal',
+    origem,
+    userId,
+    username: username || personagemNome || 'Jogador',
+    message: texto,
+    payload: payload || {
+      personagemNome,
+      dice,
+      result,
+      description
+    },
+    personagemNome,
+    dice,
+    result,
+    description
+  });
+}
+
+export function buildResultadoDadoInicialMensagem({
+  userId,
+  username,
+  personagemNome = null,
+  valor = null,
+  payload = null
+} = {}) {
+  return createSessionMessage({
+    tipo: 'resultado_dado_inicial',
+    canal: 'formal',
+    origem: 'sistema',
+    userId,
+    username: username || personagemNome || 'Jogador',
+    message: `${personagemNome || username || 'Jogador'} rolou a iniciativa: ${valor ?? '?'}`,
+    payload: payload || {
+      personagemNome,
+      valor
+    },
+    personagemNome,
+    valor
+  });
+}
+
 export function buildSolicitacaoDadosMensagem({
   narrativa,
   origem = 'manual',
@@ -242,5 +297,73 @@ export function buildSistemaMensagem(message, options = {}) {
     message,
     payload: options.payload || null,
     ...options.extraFields
+  });
+}
+
+export function buildOrdemDefinidaMensagem({
+  ordemJogadores = [],
+  payload = null
+} = {}) {
+  const nomes = ordemJogadores.map((jogador) => jogador?.username || jogador?.nome || 'Jogador').join(', ');
+  return buildSistemaMensagem(
+    `Ordem de jogadores definida: ${nomes || 'nenhum jogador'}`,
+    {
+      tipo: 'ordem_definida',
+      origem: 'sistema',
+      payload: payload || {
+        ordemJogadores
+      }
+    }
+  );
+}
+
+export function buildTransicaoTurnoMensagem(message, payload = null) {
+  return buildSistemaMensagem(message, {
+    tipo: 'transicao_turno',
+    origem: 'rodada',
+    payload
+  });
+}
+
+export function buildEntreRodadasMensagem({
+  message,
+  titulo = null,
+  rodadaAnterior = null,
+  proximaRodada = null,
+  payload = null,
+  username = 'Mestre',
+  userId = 'mestre'
+} = {}) {
+  return createSessionMessage({
+    tipo: 'entre_rodadas',
+    canal: 'sistema',
+    origem: 'rodada',
+    userId,
+    username,
+    message,
+    payload: payload || {
+      titulo,
+      rodadaAnterior,
+      proximaRodada
+    },
+    titulo,
+    rodadaAnterior,
+    proximaRodada
+  });
+}
+
+export function buildCombateMensagem({
+  message,
+  payload = null,
+  origem = 'combate'
+} = {}) {
+  return createSessionMessage({
+    tipo: 'combate',
+    canal: 'sistema',
+    origem,
+    userId: 'sistema',
+    username: 'Sistema',
+    message,
+    payload
   });
 }

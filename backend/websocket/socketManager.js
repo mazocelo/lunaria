@@ -2648,43 +2648,6 @@ class SocketManager {
       };
       appendMensagemSessao(sessao, mensagemSolicitacaoDetalhada);
 
-      /* legacy-single-target-removed
-        origem: 'manual',
-        jogadorAlvo: Array.isArray(jogadores) && jogadores.length > 0
-          ? String(jogadores[0]?.userId || jogadores[0]?.id || socket.userId)
-          : String(socket.userId),
-        teste: motivo,
-        dificuldade: solicitacao.dificuldade || dificuldade || 'MÃ©dia',
-        tipoDado: solicitacao.tipoTeste || tipoTeste || 'd20',
-        contexto: motivo
-      }, socket.userId);
-
-      const jogadoresAlvo = Array.isArray(jogadores) && jogadores.length > 0
-        ? jogadores
-        : [{ userId: socket.userId, id: socket.userId }];
-      const [, ...jogadoresExtras] = jogadoresAlvo;
-      const testesCriados = [...getTestesPendentes(sessao)];
-      if (jogadoresExtras.length > 0) {
-        const testesExtras = criarTestesPendentes(sessao, jogadoresExtras.map((jogador) => ({
-          origem: 'manual',
-          jogadorAlvo: String(jogador?.userId || jogador?.id || socket.userId),
-          personagemAlvo: jogador?.personagemId || null,
-          teste: motivo,
-          dificuldade: solicitacao.dificuldade || dificuldade || 'Média',
-          tipoDado: solicitacao.tipoTeste || tipoTeste || 'd20',
-          contexto: motivo
-        })), socket.userId);
-        testesCriados.push(...testesExtras);
-      }
-      const ultimaMensagem = sessao.mensagens?.[sessao.mensagens.length - 1];
-      if (ultimaMensagem?.tipo === 'solicitacao_dados') {
-        ultimaMensagem.payload = {
-          ...(ultimaMensagem.payload || {}),
-          testesPendentes: testesCriados
-        };
-      }
-      */
-
       await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
       this.emitirEstadoTurno(roomId, sessao);
 

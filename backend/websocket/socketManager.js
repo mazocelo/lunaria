@@ -976,6 +976,7 @@ class SocketManager {
               historiaNome: sessao.historiaNome,
               historiaTemas: sessao.historiaTemas,
               historiaPrologo: sessao.historiaPrologo,
+              mestreConfig: sessao.mestreConfig || null,
               donoId: sessao.donoId,
               donoNome: sessao.donoNome,
               maxJogadores: sessao.maxJogadores,
@@ -4628,3 +4629,5 @@ class SocketManager {
 }
 
 export default new SocketManager(); 
+
+

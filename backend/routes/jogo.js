@@ -313,6 +313,7 @@ router.post('/start', async (req, res, next) => {
           },
           sessao: {
             status: sessao.status,
+          mestreConfig: sessao.mestreConfig || null,
             iniciadaEm: sessao.iniciadaEm,
             estadoJogo: sessao.estadoJogo,
             maxJogadores: sessao.maxJogadores
@@ -501,6 +502,7 @@ router.post('/start', async (req, res, next) => {
         },
         sessao: {
           status: sessao.status,
+          mestreConfig: sessao.mestreConfig || null,
           iniciadaEm: sessao.iniciadaEm,
           estadoJogo: sessao.estadoJogo,
           maxJogadores: sessao.maxJogadores
@@ -564,6 +566,7 @@ router.get('/status/:historiaId', async (req, res, next) => {
         sessao: sessao ? {
           salaId,
           status: sessao.status,
+          mestreConfig: sessao.mestreConfig || null,
           jogadores: sessao.jogadores || {}, // Mapa IMUTÁVEL de jogadores
           jogadoresConectados: sessao.jogadoresConectados || [], // Array dinâmico de IDs
           totalJogadores: sessao.jogadores ? Object.keys(sessao.jogadores).length : 0,
@@ -836,3 +839,4 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
 });
 
 export default router;
+

@@ -9,6 +9,7 @@
     "check-db": "node check-db.js",
     "seed-mestres": "node scripts/seed-mestres-narracoes.js",
     "assign-mestre-voices": "node scripts/assign-mestre-voices.js",
+    "audit-mestres": "node scripts/audit-mestres.js",
     "populate-data": "node populate-initial-data.js",
     "seed": "node populate-initial-data.js",
     "build": "prisma generate",

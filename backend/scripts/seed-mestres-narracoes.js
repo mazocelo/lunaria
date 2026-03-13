@@ -144,7 +144,7 @@ async function main() {
 
   if (!owner) throw new Error('Nenhum usuario ativo encontrado para vincular mestres.');
 
-  const result = { owner, created: [], skipped: [] };
+  const result = { owner, created: [], updated: [] };
 
   let voiceIndex = 0;
 
@@ -155,18 +155,30 @@ async function main() {
         nome: mestre.nome,
         deleted_at: null,
       },
-      select: { id: true, nome: true },
+      select: { id: true, nome: true, tags: true, voice_id: true, voice_provider: true },
     });
-
-    if (existing) {
-      result.skipped.push(existing.nome);
-      continue;
-    }
 
     const assignedVoice =
       voicePool.voices.length > 0
         ? voicePool.voices[voiceIndex % voicePool.voices.length]
         : null;
+
+    if (existing) {
+      const updated = await prisma.mestres.update({
+        where: { id: existing.id },
+        data: {
+          ...mestre,
+          voice_id: existing.voice_id || assignedVoice?.voice_id || null,
+          voice_provider: existing.voice_provider || (assignedVoice ? voicePool.providerName : null),
+          atualizado_em: new Date(),
+        },
+        select: { id: true, nome: true, tags: true, voice_id: true, voice_provider: true },
+      });
+
+      result.updated.push(updated);
+      if (!existing.voice_id && assignedVoice) voiceIndex += 1;
+      continue;
+    }
 
     const created = await prisma.mestres.create({
       data: {
@@ -187,7 +199,7 @@ async function main() {
   result.voice_assignment = {
     provider: voicePool.providerName,
     voices_available: voicePool.voices.length,
-    assigned_count: result.created.filter((m) => !!m.voice_id).length,
+    assigned_count: [...result.created, ...result.updated].filter((m) => !!m.voice_id).length,
   };
 
   console.log(JSON.stringify(result, null, 2));

@@ -21,11 +21,15 @@ export const validatePagination = [
 ];
 
 export const validateMestreCriacao = [
-  body('nome').trim().notEmpty().withMessage('Nome e obrigatorio').isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres')
+  body('nome').trim().notEmpty().withMessage('Nome e obrigatorio').isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('tags').isArray({ min: 2, max: 6 }).withMessage('Tags devem ter entre 2 e 6 itens'),
+  body('tags.*').isString().trim().isLength({ min: 2, max: 30 }).withMessage('Cada tag deve ter entre 2 e 30 caracteres')
 ];
 
 export const validateMestreAtualizacao = [
-  body('nome').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres')
+  body('nome').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('tags').optional().isArray({ min: 2, max: 6 }).withMessage('Tags devem ter entre 2 e 6 itens'),
+  body('tags.*').optional().isString().trim().isLength({ min: 2, max: 30 }).withMessage('Cada tag deve ter entre 2 e 30 caracteres')
 ];
 
 export function handleValidationErrors(req, res, next) {

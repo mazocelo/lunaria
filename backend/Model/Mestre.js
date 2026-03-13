@@ -19,7 +19,7 @@ const Mestre = (prisma) => {
     },
 
     async findByUsuario(id_usuario, { limit, offset = 0 } = {}) {
-      const where = { id_usuario: parseInt(id_usuario), deleted_at: null };
+      const where = { id_usuario: parseInt(id_usuario, 10), deleted_at: null };
       const query = { where, orderBy: { criado_em: 'desc' } };
       if (limit !== undefined) {
         query.take = limit;
@@ -38,6 +38,7 @@ const Mestre = (prisma) => {
           nome: data.nome,
           descricao: data.descricao,
           personalidade: data.personalidade,
+          tags: data.tags ?? [],
           modelo: data.modelo,
           temperatura: data.temperatura,
           max_tokens: data.max_tokens,
@@ -60,6 +61,7 @@ const Mestre = (prisma) => {
           ...(data.nome !== undefined && { nome: data.nome }),
           ...(data.descricao !== undefined && { descricao: data.descricao }),
           ...(data.personalidade !== undefined && { personalidade: data.personalidade }),
+          ...(data.tags !== undefined && { tags: data.tags }),
           ...(data.modelo !== undefined && { modelo: data.modelo }),
           ...(data.temperatura !== undefined && { temperatura: data.temperatura }),
           ...(data.max_tokens !== undefined && { max_tokens: data.max_tokens }),
@@ -83,9 +85,17 @@ const Mestre = (prisma) => {
 
     // Restaurar soft-deleted
     async restoreMestre(id) {
-      return await prisma.mestres.update({
+      const restored = await prisma.mestres.updateMany({
         where: { id, deleted_at: { not: null } },
         data: { deleted_at: null }
+      });
+
+      if (!restored.count) {
+        return null;
+      }
+
+      return await model.findUnique({
+        where: { id }
       });
     }
   };

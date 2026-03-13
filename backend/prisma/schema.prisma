@@ -300,6 +300,7 @@ model mestres {
   nome             String      @db.VarChar(100)
   descricao        String?
   personalidade    String?
+  tags             String[]    @default([])
   modelo           String?     @default("gemini-2.5-flash") @db.VarChar(100)
   temperatura      Float?      @default(0.9)
   max_tokens       Int?        @default(8000)

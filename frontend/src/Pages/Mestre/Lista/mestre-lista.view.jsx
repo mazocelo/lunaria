@@ -81,6 +81,24 @@ const MestreListaView = ({
           {row.tom_narrativo || 'Nao definido'}
         </span>
       )
+    },
+    {
+      key: 'tags',
+      label: 'Etiquetas',
+      align: 'left',
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {(Array.isArray(row.tags) ? row.tags : []).slice(0, 3).map((tag) => (
+            <Badge key={`${row.id}-${tag}`} variant="purple">{tag}</Badge>
+          ))}
+          {Array.isArray(row.tags) && row.tags.length > 3 && (
+            <Badge variant="slate">+{row.tags.length - 3}</Badge>
+          )}
+          {(!Array.isArray(row.tags) || row.tags.length === 0) && (
+            <span className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Sem tags</span>
+          )}
+        </div>
+      )
     }
   ];
 
@@ -163,7 +181,7 @@ const MestreListaView = ({
       <ConfirmationModal
         isOpen={showDeleteModal}
         title="Deletar Mestre"
-        message={`Tem certeza de que deseja deletar o mestre "${mestreToDelete?.nome}"? Esta acao nao pode ser desfeita.`}
+        message={`Tem certeza de que deseja ocultar o mestre "${mestreToDelete?.nome}"? Ele sera removido da lista ativa via soft delete.`}
         confirmText="Deletar"
         cancelText="Cancelar"
         onConfirm={handleConfirmDelete}

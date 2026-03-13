@@ -53,7 +53,8 @@ export const useMestreListaModel = () => {
     return mestres.filter(m =>
       m.nome?.toLowerCase().includes(term) ||
       m.modelo?.toLowerCase().includes(term) ||
-      m.tom_narrativo?.toLowerCase().includes(term)
+      m.tom_narrativo?.toLowerCase().includes(term) ||
+      (Array.isArray(m.tags) && m.tags.some((tag) => String(tag).toLowerCase().includes(term)))
     );
   }, [mestres, searchTerm]);
 

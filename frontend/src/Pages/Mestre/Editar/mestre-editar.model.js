@@ -24,6 +24,7 @@ export const useMestreEditarModel = () => {
   const max_tokens = 32000;
   const [tom_narrativo, setTomNarrativo] = useState('');
   const [regras_especiais, setRegrasEspeciais] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [imagem, setImagem] = useState('');
   const [voice_id, setVoiceId] = useState('');
   const [voice_provider, setVoiceProvider] = useState(DEFAULT_TTS_PROVIDER);
@@ -77,6 +78,7 @@ export const useMestreEditarModel = () => {
       setTemperatura(data.temperatura ?? 0.9);
       setTomNarrativo(data.tom_narrativo || '');
       setRegrasEspeciais(data.regras_especiais || '');
+      setTagsInput(Array.isArray(data.tags) ? data.tags.join(', ') : '');
       setImagem(data.imagem || '');
       setVoiceId(data.voice_id || '');
       const mestreProvider = data.voice_provider || DEFAULT_TTS_PROVIDER;
@@ -99,6 +101,7 @@ export const useMestreEditarModel = () => {
       temperatura: setTemperatura,
       tom_narrativo: setTomNarrativo,
       regras_especiais: setRegrasEspeciais,
+      tags_input: setTagsInput,
       imagem: setImagem,
       voice_id: setVoiceId,
       voice_provider: setVoiceProvider,
@@ -108,10 +111,17 @@ export const useMestreEditarModel = () => {
 
   const _buildData = () => {
     const temp = parseFloat(temperatura);
+    const tags = Array.from(new Set(
+      (tagsInput || '')
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length >= 2 && t.length <= 30)
+    )).slice(0, 6);
     return {
       nome,
       descricao: descricao || null,
       personalidade: personalidade || null,
+      tags,
       modelo: modelo || null,
       temperatura: isNaN(temp) ? 0.9 : temp,
       max_tokens: 32000,
@@ -130,6 +140,11 @@ export const useMestreEditarModel = () => {
     }
     if (nome.trim().length < 2) {
       setError('Nome deve ter pelo menos 2 caracteres');
+      return { success: false };
+    }
+    const tags = _buildData().tags || [];
+    if (tags.length < 2 || tags.length > 6) {
+      setError('Informe entre 2 e 6 etiquetas (separadas por virgula)');
       return { success: false };
     }
     setSaving(true);
@@ -157,7 +172,7 @@ export const useMestreEditarModel = () => {
 
   return {
     nome, descricao, personalidade, modelo, temperatura,
-    max_tokens, tom_narrativo, regras_especiais, imagem,
+    max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
     voice_id, voice_provider, voices, providers, loadingVoices,
     loading, saving, error, isLight,
     setField, handleSubmit, handleCancel, clearError,

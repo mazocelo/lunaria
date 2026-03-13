@@ -158,7 +158,7 @@ const EtapaJogoRPG = ({
     }) || null
   ), [mensagens]);
 
-  const effectiveVoiceId = useMemo(() => (
+  const baseVoiceId = useMemo(() => (
     historia?.mestre?.voice_id
     || historia?.mestres?.voice_id
     || socketSession?.mestreConfig?.voice_id
@@ -171,18 +171,61 @@ const EtapaJogoRPG = ({
     socketSession?.mestreConfig?.voice_id
   ]);
 
-  const effectiveVoiceProvider = useMemo(() => (
+  const baseVoiceProvider = useMemo(() => (
     historia?.mestre?.voice_provider
     || historia?.mestres?.voice_provider
     || socketSession?.mestreConfig?.voice_provider
     || fallbackMensagemMestreComVoz?.voice_provider
-    || 'elevenlabs'
+    || null
   ), [
     fallbackMensagemMestreComVoz?.voice_provider,
     historia?.mestre?.voice_provider,
     historia?.mestres?.voice_provider,
     socketSession?.mestreConfig?.voice_provider
   ]);
+
+  const [defaultNarrationVoice, setDefaultNarrationVoice] = useState({ voiceId: null, provider: null });
+
+  useEffect(() => {
+    let active = true;
+
+    if (baseVoiceId) {
+      setDefaultNarrationVoice((prev) => (
+        prev.voiceId || prev.provider
+          ? { voiceId: null, provider: null }
+          : prev
+      ));
+      return undefined;
+    }
+
+    const carregarVoicePadrao = async () => {
+      try {
+        const query = baseVoiceProvider ? `?provider=${encodeURIComponent(baseVoiceProvider)}` : '';
+        const response = await apiClient.get(`/tts/voices${query}`);
+        const voices = Array.isArray(response?.data) ? response.data : [];
+        const firstVoice = voices[0];
+
+        if (!active || !firstVoice?.voice_id) return;
+
+        setDefaultNarrationVoice({
+          voiceId: firstVoice.voice_id,
+          provider: response?.provider || baseVoiceProvider || null,
+        });
+      } catch (_) {
+        if (!active) return;
+        setDefaultNarrationVoice({ voiceId: null, provider: null });
+      }
+    };
+
+    carregarVoicePadrao();
+
+    return () => {
+      active = false;
+    };
+  }, [baseVoiceId, baseVoiceProvider]);
+
+  const effectiveVoiceId = baseVoiceId || defaultNarrationVoice.voiceId || null;
+  const effectiveVoiceProvider = baseVoiceProvider || defaultNarrationVoice.provider || 'elevenlabs';
 
   // Socket store - acesso direto via hooks
   const socketStoreOn = useSocketStore(s => s.on);

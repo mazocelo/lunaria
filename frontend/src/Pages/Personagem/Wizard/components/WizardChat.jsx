@@ -239,7 +239,7 @@ const WizardChat = ({
                     </div>
                   )}
 
-                  <div className={`text-[15px] font-modern leading-relaxed ${isSistema ? (isLight ? 'text-blue-700' : 'text-blue-200') : isJogador ? 'text-white' : isLight ? 'text-slate-700' : 'text-slate-100'}`}>
+                  <div className={`text-[15px] font-modern leading-relaxed ${isSistema ? (isLight ? 'text-amber-800' : 'text-amber-200') : isJogador ? 'text-white' : isLight ? 'text-slate-700' : 'text-slate-100'}`}>
                     <MarkdownRenderer>{msg.content}</MarkdownRenderer>
                   </div>
                 </div>

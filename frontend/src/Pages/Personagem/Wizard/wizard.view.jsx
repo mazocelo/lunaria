@@ -425,7 +425,7 @@ const WizardView = (props) => {
                 )}
 
                 {draftRestaurado && (
-                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-sky-700' : 'text-sky-200'}`}>
+                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>
                     <div className="flex items-center gap-3">
                       <Hammer size={16} className="shrink-0 text-[var(--wa-info)]" />
                       <div className="min-w-0 flex-1">

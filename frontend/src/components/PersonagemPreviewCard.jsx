@@ -235,7 +235,7 @@ const PersonagemPreviewCard = ({
 
       <div className={`${collapsed ? 'hidden md:block' : ''}`}>
         <div className="relative overflow-hidden border-b border-[var(--wa-border)] p-4">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(155,124,255,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(214,168,95,0.14),transparent_24%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(214,168,95,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(214,168,95,0.10),transparent_24%)]" />
           <div className="relative flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="wa-brass-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">

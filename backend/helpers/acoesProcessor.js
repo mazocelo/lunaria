@@ -12,7 +12,7 @@ import { setCooldown, checkCooldown } from './cooldownManager.js';
 import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
 import { aplicarEfeito, removerEfeito } from './effectManager.js';
 import { applyMetadadosToSessao } from '../agents/Mestre/contexto/mestreContextBuilder.js';
-import { normalizarTerrenoInput, getTerrenoLabel, addEfeitoTerreno, clearEfeitosTerreno, ensurePersonagemBucket, registrarItemGanhoBucket, registrarItemPerdidoBucket } from './estadoTatico.js';
+import { normalizarTerrenoInput, getTerrenoLabel, addEfeitoTerreno, clearEfeitosTerreno, ensurePersonagemBucket, registrarItemGanhoBucket, registrarItemPerdidoBucket, setBossFase, setBatalhaGrande, setMissaoTatica } from './estadoTatico.js';
 import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 import { appendMensagemSessao, buildAcaoMestreMensagem } from '../websocket/utils/sessionMessages.js';
 
@@ -81,6 +81,9 @@ const ACTION_HANDLERS = new Map([
   ['dano_ambiental', processarDanoAmbiental],
   ['estabilizar_personagem', processarEstabilizarPersonagem],
   ['danificar_equipamento', processarDanificarEquipamento],
+  // B4-F05D — Ações de runtime tático
+  ['iniciar_fase_boss', processarIniciarFaseBoss],
+  ['missao_batalha', processarMissaoBatalha],
 ]);
 
 function shouldProcessAction(acao, stage = 'all') {
@@ -1033,6 +1036,60 @@ function ensureManaState(sessao, userId, personagem) {
     sessao.estadoJogo.manaState[uid] = { mana_atual: manaMax, mana_max: manaMax };
   }
   return sessao.estadoJogo.manaState[uid];
+}
+
+// ── B4-F05D — Ações de runtime tático ────────────────────────────
+
+/**
+ * iniciar_fase_boss — cria/atualiza combate.boss
+ * Requer combate ativo. No-op seguro caso contrário.
+ */
+function processarIniciarFaseBoss(acao, sessao, roomId, sm) {
+  const { nome, fase, fases } = acao;
+  const combate = sessao.estadoJogo?.combate;
+
+  if (!combate?.ativo) {
+    log.warn({ acao: 'iniciar_fase_boss' }, 'Ignorada: sem combate ativo');
+    return;
+  }
+
+  const faseAnterior = combate.boss?.fase_atual ?? null;
+  const boss = setBossFase(sessao, { nome, fase, fases });
+  if (!boss) return;
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'boss_fase_alterada',
+    boss: boss.nome,
+    fase_atual: boss.fase_atual,
+    fase_anterior: faseAnterior,
+    timestamp: Date.now()
+  });
+
+  log.info({ boss: boss.nome, fase: boss.fase_atual }, 'Boss fase atualizada');
+}
+
+/**
+ * missao_batalha — cria/atualiza missao_tatica e opcionalmente batalha_grande
+ */
+function processarMissaoBatalha(acao, sessao, roomId, sm) {
+  const { objetivo, descricao, status, progresso, recompensa_xp } = acao;
+
+  // Missão tática
+  const mt = setMissaoTatica(sessao, { descricao, objetivo, status, progresso, recompensa_xp });
+
+  // Se a ação incluir contexto de batalha, inicializar/atualizar batalha_grande
+  if (acao.batalha) {
+    setBatalhaGrande(sessao, acao.batalha);
+  }
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'missao_batalha_registrada',
+    missao: mt,
+    batalha_grande: sessao.estadoJogo.batalha_grande || null,
+    timestamp: Date.now()
+  });
+
+  log.info({ objetivo: mt?.objetivo, status: mt?.status }, 'Missão/batalha registrada');
 }
 
 export { persistirEstadoClone };

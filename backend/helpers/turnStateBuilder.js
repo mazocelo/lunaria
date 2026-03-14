@@ -4,7 +4,10 @@
  * Inclui HP, mana, cooldowns, concentração, alertas de vantagens/desvantagens.
  */
 import { calcularHP, calcularMana } from './combateHelper.js';
-import { normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno } from './estadoTatico.js';
+import {
+  normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno,
+  getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo
+} from './estadoTatico.js';
 
 /**
  * Monta state object estruturado para um jogador no turno
@@ -82,9 +85,15 @@ export function buildTurnState(sessao, userId, personagem) {
 
   // Contexto tático — terreno normalizado para shape canônico (objeto ou legado string)
   state.terreno = normalizarTerrenoInput(estadoJogo.terreno);
+  state.terreno_tags = state.terreno?.tags || [];
   state.efeitos_terreno = getEfeitosTerreno(sessao);
   state.tensao = estadoJogo.tensao || null;
   state.ameacas = Array.isArray(estadoJogo.ameacas) ? estadoJogo.ameacas : [];
+
+  // Runtime tático avançado (populados por F05-D+)
+  state.boss = getBossResumo(sessao);
+  state.batalha_grande = getBatalhaGrandeResumo(sessao);
+  state.missao_tatica = getMissaoTaticaResumo(sessao);
 
   return state;
 }
@@ -149,7 +158,8 @@ export function formatTurnStateText(state) {
   // Contexto tático (populado via metadados da IA)
   if (state.terreno) {
     const label = getTerrenoLabel(state.terreno);
-    if (label) lines.push(`Terreno: ${label}`);
+    const tags = state.terreno_tags?.length > 0 ? ` [${state.terreno_tags.join(', ')}]` : '';
+    if (label) lines.push(`Terreno: ${label}${tags}`);
   }
   if (state.efeitos_terreno?.length > 0) {
     const efLabels = state.efeitos_terreno
@@ -159,6 +169,31 @@ export function formatTurnStateText(state) {
   }
   if (state.tensao) lines.push(`Tensão: ${state.tensao}`);
   if (state.ameacas?.length > 0) lines.push(`Ameaças: ${state.ameacas.join(', ')}`);
+
+  // Boss ativo
+  if (state.boss) {
+    lines.push(`Boss: ${state.boss.nome} (Fase ${state.boss.fase_atual})`);
+  }
+
+  // Batalha grande
+  if (state.batalha_grande) {
+    const bg = state.batalha_grande;
+    const header = bg.nome || 'Batalha';
+    const obj = bg.objetivo ? ` | Objetivo: ${bg.objetivo.slice(0, 60)}` : '';
+    lines.push(`Batalha: ${header}${obj}`);
+    if (bg.frentes?.length > 0) {
+      const fLabels = bg.frentes.map(f => `${f.nome}(${f.status || '?'} ${f.progresso ?? '?'}%)`);
+      lines.push(`Frentes: ${fLabels.join(', ')}`);
+    }
+  }
+
+  // Missão tática
+  if (state.missao_tatica) {
+    const mt = state.missao_tatica;
+    const desc = mt.objetivo || mt.descricao || 'Missão';
+    const prog = mt.progresso != null ? ` ${mt.progresso}%` : '';
+    lines.push(`Missão tática: ${desc.slice(0, 60)} [${mt.status}${prog}]`);
+  }
 
   return lines.join('\n');
 }

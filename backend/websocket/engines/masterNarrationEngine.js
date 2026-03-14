@@ -10,6 +10,7 @@ import { decrementCooldowns } from '../../helpers/cooldownManager.js';
 import { decrementConcentracao } from '../../helpers/concentrationManager.js';
 import { decrementEfeitos, aplicarEfeitosPorTurno } from '../../helpers/effectManager.js';
 import { buildTurnState, formatTurnStateText } from '../../helpers/turnStateBuilder.js';
+import { expireEfeitosTerreno } from '../../helpers/estadoTatico.js';
 import {
   buildNarracaoContext
 } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
@@ -203,12 +204,13 @@ export default class MasterNarrationEngine {
         userId
       );
 
-      // 4. Início de turno: decrementar cooldowns, efeitos, concentração
+      // 4. Início de turno: decrementar cooldowns, efeitos, concentração, efeitos de terreno
       decrementCooldowns(sessao, userId);
       const pcId = String(personagem.id || personagem.personagemId);
       const efeitosExpirados = decrementEfeitos(sessao, pcId);
       const efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
       const concExpirada = decrementConcentracao(sessao, userId);
+      const efTerrenoExpirados = expireEfeitosTerreno(sessao, estadoJogo.rodadaAtual || 1);
 
       if (efeitosExpirados.length > 0) {
         sm.emitirAcaoMestrePersistida(roomId, sessao, {
@@ -220,6 +222,13 @@ export default class MasterNarrationEngine {
         sm.emitirAcaoMestrePersistida(roomId, sessao, {
           tipo: 'concentracao_quebrada', personagem: personagem.nome,
           magia: concExpirada.nome, motivo: 'expirou', timestamp: Date.now()
+        });
+      }
+      if (efTerrenoExpirados.length > 0) {
+        sm.emitirAcaoMestrePersistida(roomId, sessao, {
+          tipo: 'efeitos_terreno_expirados',
+          efeitos: efTerrenoExpirados.map(e => e.descricao || e.elemento || 'efeito'),
+          timestamp: Date.now()
         });
       }
 

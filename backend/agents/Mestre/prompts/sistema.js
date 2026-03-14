@@ -419,6 +419,10 @@ Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
   Estabiliza personagem inconsciente/derrotado. Use apos teste de primeiros socorros ou cura minima.
 - **danificar_equipamento**: {{ "tipo": "danificar_equipamento", "personagem": "Nome", "item": "Espada de Ferro", "severidade": "destruido", "motivo": "acido corrosivo" }}
   severidade: "danificado" (marca narrativa) ou "destruido" (item removido). Use com moderacao.
+- **iniciar_fase_boss**: {{ "tipo": "iniciar_fase_boss", "nome": "Dragao Anciao", "fase": 2 }}
+  Registra ou avanca fase de um boss. So use quando combate estiver ativo e a narrativa justificar a transicao de fase. Opcional: "fases" (array de objetos com nome e habilidades).
+- **missao_batalha**: {{ "tipo": "missao_batalha", "objetivo": "Defender o portao ate o amanhecer", "descricao": "Cerco ao Castelo", "progresso": 40 }}
+  Registra objetivo tatico de missao ou batalha grande. Opcional: "batalha" com {{ "nome", "objetivo", "frentes": [{{ "nome", "status", "progresso" }}] }} para inicializar uma batalha grande. Nao concede XP automaticamente.
 
 Quando houver rolagem pendente:
 - NUNCA use acoes que resolvam o efeito final antes do dado

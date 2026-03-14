@@ -123,6 +123,42 @@ export function registrarItemGanhoBucket(sessao, userId, item) {
   });
 }
 
+// ── Selectors de runtime tático ──────────────────────────────────
+
+/** Retorna resumo compacto do boss ativo ou null. */
+export function getBossResumo(sessao) {
+  const boss = sessao?.estadoJogo?.combate?.boss;
+  if (!boss || !boss.nome) return null;
+  return { nome: boss.nome, fase_atual: boss.fase_atual ?? 1 };
+}
+
+/** Retorna resumo compacto da batalha grande ativa ou null. */
+export function getBatalhaGrandeResumo(sessao) {
+  const bg = sessao?.estadoJogo?.batalha_grande;
+  if (!bg || !bg.ativa) return null;
+  return {
+    nome: bg.nome || null,
+    objetivo: bg.objetivo || null,
+    frentes: Array.isArray(bg.frentes) ? bg.frentes.slice(0, 2).map(f => ({
+      nome: f.nome || f.id,
+      status: f.status || null,
+      progresso: f.progresso ?? null
+    })) : []
+  };
+}
+
+/** Retorna resumo compacto da missão tática ativa ou null. */
+export function getMissaoTaticaResumo(sessao) {
+  const mt = sessao?.estadoJogo?.missao_tatica;
+  if (!mt || mt.status === 'concluida' || mt.status === 'falhada') return null;
+  return {
+    descricao: mt.descricao || mt.objetivo || null,
+    objetivo: mt.objetivo || null,
+    status: mt.status || 'em_andamento',
+    progresso: mt.progresso ?? null
+  };
+}
+
 /** Registra item perdido no bucket per-player. */
 export function registrarItemPerdidoBucket(sessao, userId, item) {
   const bucket = ensurePersonagemBucket(sessao, userId);
@@ -133,4 +169,95 @@ export function registrarItemPerdidoBucket(sessao, userId, item) {
     motivo: item.motivo || null,
     timestamp: Date.now()
   });
+}
+
+// ── Boss / Batalha Grande / Missão Tática ────────────────────────
+
+/**
+ * Cria ou atualiza combate.boss com shape canônico.
+ * Requer combate ativo. Retorna o boss criado ou null se sem combate.
+ */
+export function setBossFase(sessao, payload) {
+  const combate = sessao?.estadoJogo?.combate;
+  if (!combate || !combate.ativo) return null;
+
+  if (!combate.boss) {
+    combate.boss = {
+      nome: payload.nome || 'Boss',
+      fase_atual: payload.fase || 1,
+      fases: Array.isArray(payload.fases) ? payload.fases : null,
+      atualizado_em: Date.now()
+    };
+  } else {
+    if (payload.nome) combate.boss.nome = payload.nome;
+    if (payload.fase != null) combate.boss.fase_atual = payload.fase;
+    if (Array.isArray(payload.fases)) combate.boss.fases = payload.fases;
+    combate.boss.atualizado_em = Date.now();
+  }
+
+  return combate.boss;
+}
+
+/**
+ * Inicializa ou atualiza estadoJogo.batalha_grande com shape canônico.
+ */
+export function setBatalhaGrande(sessao, payload) {
+  if (!sessao?.estadoJogo) return null;
+
+  if (!sessao.estadoJogo.batalha_grande) {
+    sessao.estadoJogo.batalha_grande = {
+      ativa: true,
+      nome: payload.nome || null,
+      objetivo: payload.objetivo || null,
+      frentes: Array.isArray(payload.frentes) ? payload.frentes.map(f => ({
+        id: f.id || f.nome?.toLowerCase().replace(/\s+/g, '_') || String(Date.now()),
+        nome: f.nome || f.id,
+        status: f.status || 'ativa',
+        progresso: f.progresso ?? 0
+      })) : [],
+      turno_inicio: sessao.estadoJogo.rodadaAtual || 1
+    };
+  } else {
+    const bg = sessao.estadoJogo.batalha_grande;
+    if (payload.nome) bg.nome = payload.nome;
+    if (payload.objetivo) bg.objetivo = payload.objetivo;
+    if (Array.isArray(payload.frentes)) {
+      bg.frentes = payload.frentes.map(f => ({
+        id: f.id || f.nome?.toLowerCase().replace(/\s+/g, '_') || String(Date.now()),
+        nome: f.nome || f.id,
+        status: f.status || 'ativa',
+        progresso: f.progresso ?? 0
+      }));
+    }
+    bg.ativa = true;
+  }
+
+  return sessao.estadoJogo.batalha_grande;
+}
+
+/** Encerra batalha grande. */
+export function clearBatalhaGrande(sessao) {
+  if (sessao?.estadoJogo) sessao.estadoJogo.batalha_grande = null;
+}
+
+/**
+ * Cria ou atualiza estadoJogo.missao_tatica com shape canônico.
+ */
+export function setMissaoTatica(sessao, payload) {
+  if (!sessao?.estadoJogo) return null;
+
+  sessao.estadoJogo.missao_tatica = {
+    descricao: payload.descricao || payload.objetivo || null,
+    objetivo: payload.objetivo || null,
+    status: payload.status || 'em_andamento',
+    progresso: payload.progresso ?? 0,
+    recompensa_xp: payload.recompensa_xp ?? null
+  };
+
+  return sessao.estadoJogo.missao_tatica;
+}
+
+/** Limpa missão tática. */
+export function clearMissaoTatica(sessao) {
+  if (sessao?.estadoJogo) sessao.estadoJogo.missao_tatica = null;
 }

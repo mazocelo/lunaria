@@ -3,6 +3,7 @@ import gerenciadorSessoes from '../redis/sessoes.js';
 import blueprintService from './blueprintService.js';
 import { buildCatalogoCompleto } from '../agents/Mestre/catalogo/catalogoMestre.js';
 import { buildMestreContext } from '../agents/Mestre/contexto/mestreContextBuilder.js';
+import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
 
 export async function gerarTemasNomes(temas = []) {
   const temasDB = await db.Temas.findAll();
@@ -76,6 +77,34 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
     };
 
     await sincronizarRoteiroNaSessao(historiaAtualizada, roteiro, 'completed');
+
+    // Salvar versão no histórico
+    try {
+      await db.prisma.roteiro_versoes.updateMany({
+        where: { historia_id: historiaId, ativa: true },
+        data: { ativa: false }
+      });
+
+      const lastVersion = await db.prisma.roteiro_versoes.findFirst({
+        where: { historia_id: historiaId },
+        orderBy: { versao: 'desc' }
+      });
+
+      await db.prisma.roteiro_versoes.create({
+        data: {
+          historia_id: historiaId,
+          versao: (lastVersion?.versao || 0) + 1,
+          modo: mode,
+          temperatura: MODE_TEMPERATURES[mode] || 0.3,
+          modelo: 'claude-sonnet-4-5-20250929',
+          roteiro,
+          ativa: true,
+          metadados: { userId, geradoEm: new Date().toISOString() }
+        }
+      });
+    } catch (versionError) {
+      console.warn(`Erro ao salvar versão do roteiro para historia ${historiaId}:`, versionError.message);
+    }
 
     if (typeof onSuccess === 'function') {
       await onSuccess({

@@ -19,11 +19,13 @@ export default class SessionEventBus {
     }
   }
 
+  // @event turno_estado_atualizado → room (broadcast) | projeção do estado do turno
   emitTurnState(roomId, sessao) {
     if (!roomId || !sessao) return;
     this.emitToRoom(roomId, 'turno_estado_atualizado', buildTurnStateProjection(roomId, sessao));
   }
 
+  // @event acao_mestre → room (broadcast) | ação do mestre persistida na sessão
   emitPersistedMasterAction(roomId, sessao, payload) {
     const mensagem = buildAcaoMestreMensagem(payload);
     appendMensagemSessao(sessao, mensagem);
@@ -37,6 +39,7 @@ export default class SessionEventBus {
     });
   }
 
+  // @event aventura_iniciada → room (broadcast) | aventura iniciada na sala
   emitAdventureStart(salaId, dados) {
     this.emitToRoom(salaId, 'aventura_iniciada', {
       ...dados,
@@ -45,6 +48,7 @@ export default class SessionEventBus {
     analyticsService.track('sessao_inicio', { salaId, totalJogadores: dados.totalJogadores });
   }
 
+  // @event fase_atualizada → room (broadcast) | fase do jogo alterada
   emitPhaseUpdate(salaId, fase, dadosAdicionais = {}) {
     this.emitToRoom(salaId, 'fase_atualizada', {
       fase,

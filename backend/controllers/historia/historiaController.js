@@ -11,6 +11,7 @@ import {
   processarGeracaoRoteiro as processarGeracaoRoteiroService,
   sincronizarRoteiroNaSessao as sincronizarRoteiroNaSessaoService
 } from '../../services/roteiroGenerationService.js';
+import { isValidMode } from '../../config/blueprintModes.js';
 
 /**
  * Controller para gerenciar operações de história
@@ -984,10 +985,17 @@ class HistoriaController {
         return res.status(409).json({ success: false, error: 'Roteiro j? est? sendo gerado' });
       }
 
+      // Resolver modo: do body, ou auto-detect
+      const requestedMode = req.body?.mode;
+      const resolvedMode = (requestedMode && isValidMode(requestedMode))
+        ? requestedMode
+        : (historia?.roteiro ? 'regenerate' : 'initial');
+
       if (asyncRoteiroEnabled) {
         const enqueued = await enqueueRoteiroJob({
           historia,
           userId,
+          mode: resolvedMode,
           ensureQuota: () => this.consumirCotaBlueprint(userId)
         });
 
@@ -1014,7 +1022,7 @@ class HistoriaController {
       (async () => {
         try {
           await this.processarGeracaoRoteiro(historia, userId, {
-            mode: historia?.roteiro ? 'regenerate' : 'initial'
+            mode: resolvedMode
           });
         } catch (error) {
           console.error(`Erro ao gerar roteiro para historia ${id}:`, error.message);
@@ -1164,6 +1172,74 @@ class HistoriaController {
       res.status(200).json({ success: true, message: 'Progress?o atualizada' });
     } catch (error) {
       console.error('? Erro ao atualizar progress?o:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Listar versões de roteiro de uma história
+   */
+  async listarVersoesRoteiro(req, res, next) {
+    try {
+      const { id } = req.params;
+      const versoes = await db.prisma.roteiro_versoes.findMany({
+        where: { historia_id: parseInt(id) },
+        orderBy: { versao: 'desc' },
+        select: {
+          id: true,
+          versao: true,
+          modo: true,
+          temperatura: true,
+          modelo: true,
+          ativa: true,
+          criado_em: true
+        }
+      });
+      res.json({ success: true, data: { versoes } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Ativar uma versão específica do roteiro
+   */
+  async ativarVersaoRoteiro(req, res, next) {
+    try {
+      const { id, versaoId } = req.params;
+      const historiaId = parseInt(id);
+      const versaoIdInt = parseInt(versaoId);
+
+      const versao = await db.prisma.roteiro_versoes.findFirst({
+        where: { id: versaoIdInt, historia_id: historiaId }
+      });
+
+      if (!versao) {
+        return res.status(404).json({ success: false, error: 'Versão não encontrada' });
+      }
+
+      await db.prisma.$transaction([
+        db.prisma.roteiro_versoes.updateMany({
+          where: { historia_id: historiaId, ativa: true },
+          data: { ativa: false }
+        }),
+        db.prisma.roteiro_versoes.update({
+          where: { id: versaoIdInt },
+          data: { ativa: true }
+        }),
+        db.prisma.historias.update({
+          where: { id: historiaId },
+          data: { roteiro: versao.roteiro, roteiro_status: 'completed' }
+        })
+      ]);
+
+      const historia = await db.Historia.findById(historiaId);
+      if (historia) {
+        await this.sincronizarRoteiroNaSessao(historia, versao.roteiro, 'completed');
+      }
+
+      res.json({ success: true, message: 'Versão ativada' });
+    } catch (error) {
       next(error);
     }
   }

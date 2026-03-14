@@ -585,6 +585,12 @@ router.get('/:id/roteiro/progressao', authenticateToken, historiaController.obte
 // PUT /:id/roteiro/progressao - Atualizar progressão (OWNER OU ADMIN)
 router.put('/:id/roteiro/progressao', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.atualizarProgressao);
 
+// GET /:id/roteiro/versoes - Listar versões do roteiro
+router.get('/:id/roteiro/versoes', authenticateToken, historiaController.listarVersoesRoteiro);
+
+// PUT /:id/roteiro/versoes/:versaoId/ativar - Ativar versão específica (OWNER OU ADMIN)
+router.put('/:id/roteiro/versoes/:versaoId/ativar', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.ativarVersaoRoteiro);
+
 /**
  * Verificar se há sessão ativa para uma história
  */

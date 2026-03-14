@@ -125,6 +125,7 @@ model historias {
   historias_convite       historias_convite[]
   historias_personagens   historias_personagens[]
   sessoes_jogo            sessoes_jogo[]
+  roteiro_versoes         roteiro_versoes[]
 
   @@index([id_usuario])
   @@index([id_usuario, deleted_at])
@@ -693,6 +694,24 @@ model ai_jobs {
   @@index([queue, status])
   @@index([entity_type, entity_id, created_at])
   @@index([owner_user_id, created_at])
+}
+
+model roteiro_versoes {
+  id          Int      @id @default(autoincrement())
+  historia_id Int
+  versao      Int      @default(1)
+  modo        String   @db.VarChar(30)
+  temperatura Float
+  modelo      String   @db.VarChar(60)
+  roteiro     Json
+  ativa       Boolean  @default(false)
+  metadados   Json?
+  criado_em   DateTime @default(now()) @db.Timestamptz(6)
+
+  historia    historias @relation(fields: [historia_id], references: [id], onDelete: Cascade)
+
+  @@index([historia_id, criado_em])
+  @@index([historia_id, ativa])
 }
 
 model ingredientes {

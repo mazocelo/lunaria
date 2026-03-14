@@ -102,7 +102,7 @@ class SocketManager {
     const maxWait = Date.now() + 15000;
     while (this._roomLocks.has(roomId)) {
       if (Date.now() > maxWait) {
-        console.error(`❌ withRoomLock: timeout esperando lock da sala ${roomId}. Rejeitando operação.`);
+        this.log('ERROR', 'ROOM_LOCK_TIMEOUT', null, null, { roomId });
         throw new Error('Operação em andamento na sala. Tente novamente em alguns segundos.');
       }
       await this._roomLocks.get(roomId).catch(() => {});
@@ -134,7 +134,7 @@ class SocketManager {
     }
     this._snapshotCounters.set(roomId, 0);
     sessaoSnapshotService.salvarSnapshot(roomId, sessao).catch(err =>
-      console.error(`❌ Erro ao salvar snapshot para ${roomId}:`, err.message)
+      this.log('ERROR', 'SNAPSHOT_ERROR', null, null, { roomId, error: err.message })
     );
   }
 
@@ -185,7 +185,7 @@ class SocketManager {
       await this.gerenciadorSessoes.initialize();
       console.log('✅ Gerenciador de sessões inicializado');
     } catch (error) {
-      console.error('❌ Erro ao inicializar gerenciador de sessões:', error);
+      this.log('ERROR', 'SESSION_MANAGER_INIT_ERROR', null, null, { error: error.message });
     }
 
     // Configurar eventos
@@ -212,7 +212,7 @@ class SocketManager {
       await this.redis.connect();
       console.log('✅ Conectado ao Redis para WebSocket');
     } catch (error) {
-      console.error('❌ Erro ao conectar ao Redis:', error);
+      this.log('ERROR', 'REDIS_CONNECTION_ERROR', null, null, { error: error.message });
       // Continuar sem Redis se não estiver disponível
     }
   }
@@ -577,7 +577,7 @@ class SocketManager {
       try {
         historia = await db.Historia.findById(parseInt(sessao.historiaId));
       } catch (error) {
-        console.warn(`⚠️ Erro ao buscar história ${sessao.historiaId} para metadados:`, error.message);
+        this.log('WARN', 'METADATA_APPLY_ERROR', null, null, { historiaId: sessao.historiaId, error: error.message });
       }
     }
 
@@ -696,7 +696,7 @@ class SocketManager {
       try {
         await this.redis.quit();
       } catch (error) {
-        console.error('Erro ao fechar Redis do WebSocket:', error.message);
+        this.log('ERROR', 'REDIS_CLOSE_ERROR', null, null, { error: error.message });
       }
     }
 

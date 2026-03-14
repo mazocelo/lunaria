@@ -50,7 +50,7 @@ async function releaseRoteiroLock(lock) {
   }
 }
 
-export async function enqueueRoteiroJob({ historia, userId, ensureQuota = null }) {
+export async function enqueueRoteiroJob({ historia, userId, mode: externalMode = null, ensureQuota = null }) {
   const historiaId = parseInt(historia?.id, 10);
   if (Number.isNaN(historiaId)) {
     throw Object.assign(new Error('Historia invalida para enfileirar roteiro'), { statusCode: 400 });
@@ -92,7 +92,7 @@ export async function enqueueRoteiroJob({ historia, userId, ensureQuota = null }
     const requestPayload = {
       historiaId,
       userId: parseUserId(userId),
-      mode: resolveMode(historiaAtual)
+      mode: externalMode || resolveMode(historiaAtual)
     };
 
     const aiJob = await db.prisma.$transaction(async (tx) => {

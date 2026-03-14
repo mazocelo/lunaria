@@ -47,27 +47,36 @@ jobs:
             set -e
             cd /opt/role-chat-game/backend
 
-            # Acquire deploy lock
+            # Acquire deploy lock (antes do pull — sem corrida)
             if [ -f /tmp/lunaria-deploy.lock ]; then
               echo "ERROR: Deploy locked by $(cat /tmp/lunaria-deploy.lock)"
               exit 1
             fi
-            echo "backend:$GITHUB_SHA:$(date -Iseconds)" > /tmp/lunaria-deploy.lock
+            echo "backend:$(date -Iseconds)" > /tmp/lunaria-deploy.lock
             trap 'rm -f /tmp/lunaria-deploy.lock' EXIT
 
             # Preflight checks
             pg_isready -d "$DATABASE_URL" -t 5 || { echo "ERROR: DB inacessivel"; exit 1; }
             redis-cli -u "$UPSTASH_REDIS_URL" ping 2>/dev/null || echo "WARN: Redis check indisponivel (continuando)"
 
+            # Salvar SHA pre-deploy para rollback
+            PRE_DEPLOY_SHA=$(git rev-parse HEAD)
+
             # Deploy
             git pull --ff-only origin main
             npm ci
             npx prisma generate
 
+            # Atualizar lock com SHA real
+            echo "backend:$(git rev-parse --short HEAD):$(date -Iseconds)" > /tmp/lunaria-deploy.lock
+
             # Backup
             BACKUP_FILE="/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump"
             mkdir -p /opt/backups
             pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "$BACKUP_FILE" || { echo "ERROR: backup falhou"; exit 1; }
+
+            # Parar worker antes da migracao (evitar codigo stale)
+            systemctl stop lunaria-worker || true
 
             # Migrate + Restart
             npx prisma migrate deploy
@@ -75,14 +84,13 @@ jobs:
             systemctl restart lunaria-worker || true
             sleep 5
 
-            # Healthcheck com rollback
+            # Healthcheck com rollback para SHA pre-deploy
             if ! curl -sf http://localhost:3001/health | grep -q '"status":"ok"'; then
-              echo "ERROR: healthcheck falhou — iniciando rollback"
-              LATEST_BACKUP=$(ls -t /opt/backups/lunaria-*.dump 2>/dev/null | head -1)
-              if [ -n "$LATEST_BACKUP" ]; then
-                pg_restore -d "$DATABASE_URL" --clean --if-exists --no-owner "$LATEST_BACKUP" || true
+              echo "ERROR: healthcheck falhou — iniciando rollback para $PRE_DEPLOY_SHA"
+              if [ -n "$BACKUP_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+                pg_restore -d "$DATABASE_URL" --clean --if-exists --no-owner "$BACKUP_FILE" || true
               fi
-              git checkout HEAD~1 -- .
+              git reset --hard "$PRE_DEPLOY_SHA"
               npm ci
               npx prisma generate
               systemctl restart lunaria-backend

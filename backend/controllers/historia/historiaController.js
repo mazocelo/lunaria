@@ -1204,10 +1204,13 @@ class HistoriaController {
       }
 
       const historia = await db.prisma.historias.findUnique({ where: { id: historiaId } });
-      const isOwner = historia && historia.criador_id === userId;
-      const isAdmin = req.user?.perfil === 'admin';
+      const isOwner = historia && historia.id_usuario === userId;
+      const isAdmin = req.user?.role === 'superadmin' || req.user?.role === 'admin';
 
       // Validar transições
+      if (status === 'draft' && versao.status !== 'draft' && !isOwner && !isAdmin) {
+        return res.status(403).json({ success: false, error: 'Apenas o dono ou admin pode retornar para draft' });
+      }
       if (status === 'pending' && versao.status !== 'draft') {
         return res.status(400).json({ success: false, error: 'Só é possível submeter para revisão a partir de draft' });
       }

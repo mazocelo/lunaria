@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw, Shield, CheckCircle2 } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -31,6 +31,7 @@ const WizardChat = ({
   vantagensDisponiveis,
   chatEndRef,
   isLight,
+  podeCriar,
   atributos,
   setAtributo,
   pontosDistribuidos,
@@ -289,9 +290,16 @@ const WizardChat = ({
 
                 <div className={`rounded-2xl px-4 py-3.5 ${bubbleClass}`}>
                   {isUltimaMensagemMestre && (
-                    <div className={`mb-2 flex items-center gap-2 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-purple-600' : 'text-purple-300'}`}>
-                      <Sparkles size={13} />
-                      Escolha guiada desta etapa
+                    <div className={`mb-2 flex items-center gap-2 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] ${
+                      ['resumo', 'refinamento'].includes(etapaAtual)
+                        ? isLight ? 'text-emerald-600' : 'text-emerald-300'
+                        : isLight ? 'text-purple-600' : 'text-purple-300'
+                    }`}>
+                      {['resumo', 'refinamento'].includes(etapaAtual) ? (
+                        <><CheckCircle2 size={13} />Revisao final</>
+                      ) : (
+                        <><Sparkles size={13} />Escolha guiada desta etapa</>
+                      )}
                     </div>
                   )}
                   <div className="text-[15px] font-modern leading-relaxed">
@@ -414,42 +422,72 @@ const WizardChat = ({
 
                 {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && showAtributos && !enviando && (
                   <div className="mt-3 space-y-3">
-                    <AttributeDistributor
-                      atributos={atributos}
-                      setAtributo={setAtributo}
-                      pontosDistribuidos={pontosDistribuidos}
-                      pontosRestantes={pontosRestantes}
-                      pontosTotais={pontosTotais}
-                      atributosSugeridos={atributosSugeridos}
-                      aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-                      isLight={isLight}
-                      disabled={bonusAplicados}
-                      attrMin={attrMin}
-                      attrMax={attrMax}
-                    />
-
-                    {bonusAplicados && bonusDetalhes && Object.keys(bonusDetalhes).length > 0 ? (
-                      <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-modern leading-relaxed ${
-                        isLight ? 'bg-green-50 text-green-600 border-green-200' : 'bg-green-500/10 text-green-300 border-green-500/20'
+                    {bonusAplicados ? (
+                      <div className={`rounded-xl border p-4 ${
+                        isLight ? 'border-green-200 bg-green-50/50' : 'border-green-500/20 bg-green-500/5'
                       }`}>
-                        <Check size={14} className="mt-0.5 shrink-0" />
-                        <span>
-                          Bonus aplicados: {Object.entries(bonusDetalhes).map(([k, v]) => {
-                            const abbr = k.substring(0, 3).toUpperCase();
-                            return `${abbr} ${v > 0 ? '+' : ''}${v}`;
-                          }).join(', ')}
-                        </span>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Shield size={16} className="text-green-400" />
+                          <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                            Atributos confirmados
+                          </span>
+                          <CheckCircle2 size={14} className="text-green-400 ml-auto" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {Object.entries({
+                            forca: 'FOR', destreza: 'DES', constituicao: 'CON',
+                            inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR',
+                          }).map(([key, abbr]) => {
+                            const val = atributos[key] || 10;
+                            const bonus = bonusDetalhes?.[key] || 0;
+                            const finalVal = val + bonus;
+                            const mod = Math.floor((finalVal - 10) / 2);
+                            return (
+                              <div key={key} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 ${
+                                isLight ? 'bg-white/80' : 'bg-slate-800/40'
+                              }`}>
+                                <span className={`text-xs font-mono font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-sm font-mono font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{finalVal}</span>
+                                  {bonus !== 0 && (
+                                    <span className={`text-[10px] font-mono ${bonus > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      {bonus > 0 ? '+' : ''}{bonus}
+                                    </span>
+                                  )}
+                                  <span className={`text-[10px] font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    ({mod >= 0 ? '+' : ''}{mod})
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    ) : !bonusAplicados ? (
-                      <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-modern leading-relaxed ${
-                        isLight ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                      }`}>
-                        <Info size={14} className="mt-0.5 shrink-0" />
-                        <span>
-                          Estes sao os pontos base. Bonus de raca, classe, vantagens e desvantagens serao aplicados automaticamente depois da confirmacao.
-                        </span>
-                      </div>
-                    ) : null}
+                    ) : (
+                      <>
+                        <AttributeDistributor
+                          atributos={atributos}
+                          setAtributo={setAtributo}
+                          pontosDistribuidos={pontosDistribuidos}
+                          pontosRestantes={pontosRestantes}
+                          pontosTotais={pontosTotais}
+                          atributosSugeridos={atributosSugeridos}
+                          aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+                          isLight={isLight}
+                          disabled={false}
+                          attrMin={attrMin}
+                          attrMax={attrMax}
+                        />
+                        <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-modern leading-relaxed ${
+                          isLight ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                        }`}>
+                          <Info size={14} className="mt-0.5 shrink-0" />
+                          <span>
+                            Estes sao os pontos base. Bonus de raca, classe, vantagens e desvantagens serao aplicados automaticamente depois da confirmacao.
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -546,6 +584,22 @@ const WizardChat = ({
                 <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
+          </div>
+        )}
+
+        {['resumo', 'refinamento'].includes(etapaAtual) && podeCriar && !enviando && (
+          <div className={`rounded-2xl border-2 p-4 text-center ${
+            isLight
+              ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50'
+              : 'border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-green-500/5'
+          }`}>
+            <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-400" />
+            <p className={`text-base font-fantasy font-bold mb-1 ${isLight ? 'text-emerald-700' : 'text-emerald-300'}`}>
+              Personagem pronto para a aventura
+            </p>
+            <p className={`text-xs font-modern ${isLight ? 'text-emerald-600/70' : 'text-emerald-400/60'}`}>
+              Todas as escolhas foram definidas. Use o botao abaixo para criar o personagem.
+            </p>
           </div>
         )}
 

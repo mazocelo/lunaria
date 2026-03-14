@@ -133,7 +133,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false }) => {
           </div>
 
           {sugestao.descricao && (
-            <p className={`mt-2 line-clamp-2 text-xs leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <p className={`mt-2 text-xs leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               {sugestao.descricao}
             </p>
           )}

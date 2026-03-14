@@ -294,6 +294,7 @@ const WizardView = (props) => {
               vantagensDisponiveis={vantagensDisponiveis}
               chatEndRef={chatEndRef}
               isLight={isLight}
+              podeCriar={podeCriar}
               atributos={atributosBase}
               setAtributo={setAtributo}
               pontosDistribuidos={pontosDistribuidos}

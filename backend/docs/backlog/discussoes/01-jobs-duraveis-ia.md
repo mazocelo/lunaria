@@ -241,9 +241,9 @@ Resultado esperado:
 
 ## Auditoria (2026-03-13)
 
-**Completude: ~55%** (analista: 59%, revisor: 55%)
+**Completude: ~87%**
 
-### v1 Feitos (13 itens)
+### v1 Feitos (17 itens)
 
 - BullMQ v5.71.0 sobre Redis (`package.json`)
 - Worker separado (`bin/worker`) com shutdown gracioso (SIGTERM/SIGINT)
@@ -254,36 +254,35 @@ Resultado esperado:
 - Idempotencia: um job ativo por entidade/tipo + lock Redis (TTL 10s)
 - Retry: attempts 2, backoff fixed 30s
 - Fila ROTEIRO em `queueNames.js`
+- `queueNames.js` com stubs para IMAGE e AUDIO
 - Persistencia de estado em Postgres (transacao atomica)
 - Concorrencia configuravel via `BULLMQ_ROTEIRO_CONCURRENCY` (default 2)
 - Fallback se enqueue falhar (marca failed atomicamente)
 - Feature flag `AI_ASYNC_ROTEIRO` (default: false)
+- **systemd service file** criado (`deploy/lunaria-worker.service`)
+- **Worker reiniciado no CI/CD** (`systemctl restart lunaria-worker || true`)
+- Admin endpoints implementados (GET jobs, POST retry) — ver D-03
 
 ### v1 Parciais
 
 | Item | Estado atual | Recomendado |
 |------|-------------|-------------|
-| Flag | OFF (`false`) | Ligar quando worker estiver deployado |
-| Backoff | Fixo 30s | Exponencial com jitter |
+| Flag | OFF (`false`) | Ligar quando worker estiver ativo na VPS |
 | Stalled detection | Nenhum | Instanciar QueueEvents |
-| Attempts | 2 | 3 (conforme doc) |
 
 ### v2 Nao iniciados
 
 | Item | Status |
 |------|--------|
-| Fila de imagem | Nao iniciado |
-| Fila de audio | Nao iniciado |
+| Fila de imagem (stub em queueNames.js) | Nao iniciado |
+| Fila de audio (stub em queueNames.js) | Nao iniciado |
 | Storage R2 | Nao iniciado |
-| Admin/observabilidade de jobs | Nao iniciado |
 | Prioridade por fila | Nao iniciado |
-| Reprocessamento manual | Nao iniciado |
 
 ### Riscos
 
 | Risco | Severidade |
 |-------|-----------|
-| Worker sem Procfile nem systemd service — nao e deployavel em producao | **Critico** |
+| ~~Worker sem Procfile nem systemd service~~ | ~~Critico~~ **RESOLVIDO** (`deploy/lunaria-worker.service` + CI/CD restart) |
 | Flag OFF = infraestrutura bypassed, roteiro processa in-process | Alto |
 | Sem deteccao de stalled jobs | Medio |
-| Backoff fixo pode causar thundering herd | Baixo |

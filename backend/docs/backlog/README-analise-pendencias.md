@@ -26,16 +26,16 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 | Ordem | Tema | Status | % | Resumo |
 | --- | --- | --- | --- | --- |
-| F-01 | Contrato publico do websocket | concluido | ~100% | contrato JSON v2.1.0, P5 annotations em todos handlers/engines/utils, zero io.to() direto |
-| F-02 | Modularizacao do motor do jogo | concluido | ~96% | 8 engines/handlers + masterCacheManager + sessionEngine extraidos, socketManager 4000+→920L (-77%), zero io.to() direto |
-| D-01 | Jobs duraveis para IA | em progresso | ~87% | systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat, queue names IMAGE/AUDIO. Falta ligar flag |
-| D-02 | Deploy e banco VPS | parcialmente concluido | ~50% | CI/CD funcional nos 3 repos, db push eliminado. Faltam backup, rollback, healthcheck |
-| D-03 | Observabilidade e admin do motor | em progresso | ~40% | Phase 1: 4 endpoints /admin/motor (sessoes, sessao detail, jobs, retry) |
+| F-01 | Contrato publico do websocket | concluido | ~100% | contrato JSON v2.1.0, 65+ @event annotations, zero io.to() direto em engines/handlers/utils |
+| F-02 | Modularizacao do motor do jogo | concluido | ~98% | 5 engines + 5 utils + sessionEventBus + stateProjector, socketManager 4000+→920L (-77%), zero io.to() direto |
+| D-01 | Jobs duraveis para IA | em progresso | ~87% | systemd service, CI/CD restart, queueNames IMAGE/AUDIO stubs. Falta ligar flag, stalled detection |
+| D-02 | Deploy e banco VPS | parcialmente concluido | ~70% | CI/CD com --ff-only, pg_dump backup, healthcheck pos-deploy, /health endpoint. Faltam rollback, preflight, lock |
+| D-03 | Observabilidade e admin do motor | em progresso | ~55% | 4 endpoints /admin/motor + tela AdminMotor frontend (MVVM). Faltam logs estruturados, persistencia prompts |
 | F-03 | Controles de produto para IA | pendente | ~15% | apenas initial/regenerate existe. Sem modos criativos, versionamento ou comparacao |
 
 ## Analise por frente
 
-### F-01. Contrato publico do websocket (~99%)
+### F-01. Contrato publico do websocket (~100%)
 
 **Status:** concluido
 
@@ -48,92 +48,91 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 - `dice_roll` echo documentado como server_to_client com payload completo
 - `rpg_action` echo documentado como server_to_client com payload completo
 - `rate_limit_exceeded` reclassificado de `canonical` para `planned` (nunca emitido)
-- P5: annotations inline `// @event` em authHandler, chatHandler, masterNarrationEngine
+- 65+ `@event` annotations em todos engines/handlers/utils (combatEngine 15, testEngine 18, turnEngine 14, roomGateway 18, respostaDispatcher, testePipeline, acoesProcessor)
+- ALL `io.to()` migradas para sendToRoom/EventBus — zero bypasses em engines/handlers/utils
+- acoesProcessor.js migrado de `io` para `sm`, respostaDispatcher.js migrado de `ctx.io` para `ctx.sm`
 - 3 listeners orfaos removidos do frontend (room_users, connection_error, authentication_error)
 
 **O que ainda falta**
 
-- P5: annotations inline nos handlers do backend (cosmético, baixa prioridade)
+Nenhum pendente funcional.
 
 **Leitura pratica**
 
-Concluido. Unico gap remanescente e cosmético (annotations inline).
+Concluido. Unico risco operacional: divergencia JSON vs runtime sem validacao automatica em CI.
 
-### F-02. Modularizacao do motor do jogo (~96%)
+### F-02. Modularizacao do motor do jogo (~98%)
 
 **Status:** concluido
 
 **O que ja foi feito**
 
-- 8 modulos extraidos: combatEngine, testEngine, turnEngine, roomGateway, masterNarrationEngine, authHandler, chatHandler, sessionEngine
-- masterCacheManager extraido (85L) — cache LRU do Mestre IA
-- sessionEngine extraido (~310L) — obterSessaoHistoria, executarCompactacao, obterMestre, limparSessaoCompleta
-- SessionEventBus (55L) e stateProjector (9L) criados
-- 4 utils compartilhados (respostaDispatcher, sessionMessages, testePipeline, turnStateMachine)
-- combatEngine: 15 io.to() migrados para sendToRoom (EventBus)
-- socketManager + respostaDispatcher: zero io.to() direto restante
-- socketManager: 4000+ → 920L (-77%)
+- socketManager reduzido de ~4000+ para 920 linhas (-77%), agora fachada com delegate methods
+- 5 engines extraidos: combatEngine (616L), testEngine (588L), turnEngine (589L), roomGateway (779L), sessionEngine (424L)
+- 5 utils: respostaDispatcher (232L), sessionMessages (370L), testePipeline (319L), turnStateMachine (102L), masterCacheManager
+- sessionEventBus (55L) e stateProjector (9L) criados
+- combatEngine: 15 io.to() migrados para sendToRoom/EventBus
+- acoesProcessor.js migrado de `io` para `sm` parameter
+- respostaDispatcher.js migrado de `ctx.io` para `ctx.sm`
+- Zero io.to() direto em engines/handlers/utils
 
 **O que ainda falta**
 
-- testePipeline.js: 3 `io.to()` diretos (recebe io como parametro)
-- acoesProcessor.js: 1 `io.to()` direto (recebe io como parametro)
-- acoplamento residual: refs `sm.` nos engines sem interface definida
+- Formalizar interfaces dos engines (262 refs `sm.` sem interface definida)
+- masterNarrationEngine ainda grande (506L)
 
 **Leitura pratica**
 
-Extracao fisica ~96%. socketManager e agora orquestrador leve (920L). Gaps restantes sao io.to() em utils que recebem io como argumento (testePipeline, acoesProcessor).
+Extracao ~98%. socketManager e fachada leve (920L). Gaps restantes sao de formalizacao de interfaces, nao de extracao.
 
-### D-01. Jobs duraveis para IA (~55%)
+### D-01. Jobs duraveis para IA (~87%)
 
-**Status:** parcialmente concluido (v1 pronta, dormant)
+**Status:** v1 completa e validada, flag OFF pendente ativacao na VPS
 
 **O que ja entrou (v1)**
 
 - BullMQ v5.71.0 + Redis, worker separado (`bin/worker`) com shutdown gracioso
 - Tabela `ai_jobs` com indices, POST 202, GET com status persistido
 - Auto-geracao por fila, idempotencia com lock Redis, fallback se enqueue falhar
-- Feature flag `AI_ASYNC_ROTEIRO` (default: false — dormant)
+- Feature flag `AI_ASYNC_ROTEIRO` (default: false)
+- systemd service file (`deploy/lunaria-worker.service`)
+- Worker reiniciado no CI/CD (`systemctl restart lunaria-worker || true`)
+- `queueNames.js` com stubs IMAGE e AUDIO
 
 **O que ainda falta**
 
-- **CRITICO**: Worker sem Procfile nem systemd service — nao e deployavel em producao
-- Flag OFF = infraestrutura bypassed, roteiro processa in-process
-- Backoff fixo 30s (deveria ser exponencial com jitter)
-- Sem deteccao de stalled jobs (QueueEvents)
-- Filas imagem e audio nao existem
-- Storage R2, admin de jobs, reprocessamento manual — nao iniciados
+- Ativar flag `AI_ASYNC_ROTEIRO` na VPS
+- Stalled detection (instanciar QueueEvents)
+- Filas imagem e audio (stubs existem, processadores nao)
+- Storage R2, prioridade por fila
 
 **Leitura pratica**
 
-v1 de roteiro existe no codigo mas **nao esta ativa em producao**. Antes de expandir, precisa: (1) criar service de deploy do worker, (2) ligar o flag, (3) ajustar retry policy.
+v1 completa e deployavel. Risco critico do worker sem service **resolvido**. Proximo passo: ativar flag na VPS e validar em producao.
 
-### D-03. Observabilidade e admin do motor (~18%)
+### D-03. Observabilidade e admin do motor (~55%)
 
-**Status:** infraestrutura base pronta, modulo admin nao existe
+**Status:** Phase 1 implementada (endpoints + tela admin)
 
 **O que ja existe**
 
 - Auth JWT com roles (requireSuperAdmin, requireOwnerOrSuperAdmin)
 - `GET /websocket/stats` (superadmin) — contadores basicos
 - `GET /billing/global` e `GET /analytics` — custos e uso de IA
-- Tabela `ai_jobs` com dados de status e erro (mas sem endpoint para consulta)
+- Tabela `ai_jobs` com dados de status e erro
 - Rotas WebSocket admin para broadcast/mensagem direta
+- 4 endpoints `/admin/motor` implementados (sessoes, sessao detail, jobs, retry)
+- Tela AdminMotor no frontend (MVVM pattern) protegida por SuperAdminRoute
 
 **O que falta construir**
 
-- Modulo `/admin/motor` completo (zero rotas existem)
-- Listagem de sessoes ativas com estado de turno
-- Inspecao de testesPendentes e mestreContexto por sessao
-- Endpoint para listar/filtrar ai_jobs
-- Persistencia de prompts/respostas do mestre (hoje so metricas)
-- Logs estruturados (51+ console.log so no socketManager, sem winston/pino)
-- Tela admin no frontend (SuperAdminRoute ja pronta)
-- Reprocessamento manual de jobs
+- Logs estruturados (backend ainda usa `console.*` apenas, sem pino/winston)
+- Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde)
+- `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao
 
 **Leitura pratica**
 
-Quick wins: 3 endpoints (`GET /admin/motor/sessoes`, `GET /admin/motor/sessoes/:roomId`, `GET /admin/motor/jobs`) dariam visibilidade operacional imediata.
+Phase 1 completa com endpoints e tela admin. Phase 2 foca em logging estruturado e persistencia de AI prompt/response.
 
 ### F-03. Controles de produto para IA (~15%)
 
@@ -158,9 +157,9 @@ Quick wins: 3 endpoints (`GET /admin/motor/sessoes`, `GET /admin/motor/sessoes/:
 
 Depende de jobs duraveis e observabilidade para render valor completo.
 
-### D-02. Deploy e banco VPS (~50%)
+### D-02. Deploy e banco VPS (~70%)
 
-**Status:** core funcional, hardening pendente
+**Status:** core funcional + hardening parcial
 
 **O que ja foi feito**
 
@@ -168,20 +167,22 @@ Depende de jobs duraveis e observabilidade para render valor completo.
 - 3 pipelines CI/CD (Backend, Frontend, TTS) via GitHub Actions + SSH
 - Migrations formais (0_baseline + ai_jobs) com baseline aplicado na VPS
 - Deploy automatico no push para main com systemd restart
+- `git pull --ff-only` em todos os 3 pipelines
+- pg_dump backup antes de `prisma migrate deploy`
+- Healthcheck pos-deploy (`curl /health`)
+- Endpoint `/health` criado
+- Frontend CI/CD usa `npm ci`
 
 **O que falta construir**
 
-- Backup automatico antes de migracao
 - Rollback operacional
-- Healthcheck pos-deploy
 - Preflight de saude
-- Lock de release e coordenacao entre deploys
-- `git pull --ff-only` nos pipelines (hoje sem --ff-only)
-- Restart do worker no pipeline de deploy
+- Lock de release
+- Coordenacao entre deploys dos 3 servicos
 
 **Leitura pratica**
 
-Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
+Fase 1 completa + parte da Fase 2 (backup, healthcheck, --ff-only). Restam rollback e coordenacao de deploys.
 
 ## Ordem recomendada a partir do estado atual
 
@@ -206,7 +207,7 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 - ~~extrair `masterNarrationEngine` (handleMensagemParaMestre + handleMensagemRoleplay)~~ feito
 - ~~extrair authHandler e chatHandler~~ feito
 - ~~migrar combatEngine para usar sendToRoom ao inves de sm.io.to() direto~~ feito (15 calls migradas)
-- socketManager: 2067L → 1370L (-33.7%)
+- socketManager: 4000+ → 920L (-77%)
 
 ### ~~P-03 Criar observabilidade minima (D-03)~~ CONCLUIDO
 
@@ -221,37 +222,40 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 - ~~decidir sobre `rate_limit_exceeded`: implementar ou reclassificar~~ reclassificado como `planned`
 - ~~remover 3 listeners orfaos do frontend~~ removidos
 
-### P-05 Hardening de deploy (D-02)
+### ~~P-05 Hardening de deploy (D-02)~~ PARCIALMENTE CONCLUIDO
 
-- adicionar `--ff-only` ao `git pull` nos 3 pipelines
-- adicionar backup pre-migracao (pg_dump)
-- adicionar healthcheck pos-deploy
+- ~~adicionar `--ff-only` ao `git pull` nos 3 pipelines~~ feito
+- ~~adicionar backup pre-migracao (pg_dump)~~ feito
+- ~~adicionar healthcheck pos-deploy~~ feito
+- rollback operacional (pendente)
+- preflight de saude (pendente)
+- lock de release (pendente)
 
 ## O que nao deve acontecer agora
 
-- construir UI admin completa antes dos endpoints operacionais
-- refatorar o motor inteiro antes de resolver o acoplamento sm. nos engines
-- expandir filas de IA (imagem/audio) antes de tornar o worker deployavel
-- endurecer deploy antes de ter observabilidade minima
+- expandir filas de IA (imagem/audio) antes de ativar flag e validar v1 em producao
+- investir em F-03 (controles de produto IA) antes de D-01 e D-03 estarem mais maduros
+- separar observabilidade em sistema externo antes de explorar Phase 2 interna
 
 ## Resumo executivo (2026-03-13)
 
 O projeto avancou significativamente desde a abertura das 6 frentes:
 
-- **F-01 (~100%)**: contrato WebSocket concluido, P5 annotations em todos handlers/engines/utils, zero io.to() direto
-- **F-02 (~96%)**: 8 engines/handlers + sessionEngine + masterCacheManager, socketManager 4000+→920L (-77%), zero io.to() direto
-- **D-01 (~87%)**: systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat, queue names IMAGE/AUDIO. Falta ligar flag
-- **D-02 (~50%)**: CI/CD funcional, db push eliminado, baseline aplicado
-- **D-03 (~40%)**: Phase 1 quick wins: 4 endpoints /admin/motor implementados
+- **F-01 (~100%)**: contrato WebSocket concluido, 65+ @event annotations, zero io.to() direto em engines/handlers/utils
+- **F-02 (~98%)**: 5 engines + 5 utils extraidos, socketManager 4000+→920L (-77%), zero io.to() direto
+- **D-01 (~87%)**: v1 completa, systemd service, CI/CD restart, queueNames IMAGE/AUDIO stubs. Falta ligar flag
+- **D-02 (~70%)**: CI/CD com --ff-only, pg_dump backup, healthcheck, /health endpoint. Faltam rollback, preflight, lock
+- **D-03 (~55%)**: 4 endpoints /admin/motor + tela AdminMotor frontend. Faltam logs estruturados, persistencia prompts
 - **F-03 (~15%)**: apenas initial/regenerate existe, feature nao iniciada
 
 Proximos passos: (1) hardening deploy D-02, (2) Phase 2 observabilidade D-03, (3) controles de produto F-03.
 
 ## Handoff para outra instancia
 
-1. F-01 esta em manutencao — so fechar os 4 gaps pontuais
-2. F-02 precisa de mais uma rodada de extracao (masterNarrationEngine) e desacoplamento
-3. D-01 precisa tornar o worker deployavel ANTES de qualquer expansao
-4. D-02 Fase 1 esta feita, Fase 2 (hardening) e proxima
-5. D-03 e F-03 sao as frentes mais verdes — comecar por quick wins de D-03
-6. cada documento individual agora tem secao "Auditoria" com detalhes completos
+1. F-01 concluido (~100%) — em manutencao, sem pendencias funcionais
+2. F-02 concluido (~98%) — restam formalizacao de interfaces e reducao do masterNarrationEngine
+3. D-01 v1 completa (~87%) — worker deployavel, proximo passo: ativar flag na VPS
+4. D-02 avancado (~70%) — backup, healthcheck e --ff-only feitos. Faltam rollback, preflight, lock
+5. D-03 em progresso (~55%) — Phase 1 completa (endpoints + tela admin). Phase 2: logs estruturados
+6. F-03 pendente (~15%) — feature nao iniciada, depende de D-01 e D-03 para render valor
+7. cada documento individual tem secao "Auditoria" com detalhes completos

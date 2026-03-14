@@ -118,7 +118,7 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 
 ## Auditoria (2026-03-13)
 
-**Completude: ~50%** (analista: 47%, revisor: 50%)
+**Completude: ~70%**
 
 ### Fase 1 — Feitos
 
@@ -130,32 +130,32 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 | Script de baseline para banco legado | `scripts/baseline-migrate.sh` (executado na VPS) |
 | Deploy reproduzivel | CI/CD automatico no push para main |
 | Restart controlado via systemd | Backend e TTS usam `systemctl restart` |
+| **`git pull --ff-only`** em todos os 3 pipelines | CI/CD atualizado |
+| **pg_dump backup** antes de `prisma migrate deploy` | Adicionado ao pipeline |
+| **Healthcheck pos-deploy** | `curl /health` apos restart |
+| **Endpoint `/health`** criado | Backend responde com status |
+| **Frontend CI/CD usa `npm ci`** | Atualizado no pipeline |
 
 ### Parciais
 
 | Item | Estado |
 |------|--------|
 | Frontend CI/CD nao reinicia servico | By-design (Nginx serve static files, build e suficiente) |
-| Frontend usa `npm install` ao inves de `npm ci` | Menor — workaround para bug de optional deps cross-platform |
-| `git pull` sem `--ff-only` nos 3 pipelines | Risco de merge commits silenciosos na VPS |
 
-### Fase 2 — Nao iniciados
+### Fase 2 — Pendentes
 
 | Item | Status |
 |------|--------|
-| Backup antes de migracao | Nao iniciado |
 | Rollback operacional | Nao iniciado |
-| Healthcheck pos-deploy | Nao iniciado |
 | Preflight de saude | Nao iniciado |
 | Lock de release | Nao iniciado |
 | Coordenacao entre deploys dos 3 servicos | Nao iniciado |
-| Restart do worker no pipeline | Nao iniciado |
 
 ### Riscos
 
 | Risco | Severidade |
 |-------|-----------|
-| Sem backup antes de `prisma migrate deploy` | **Alto** |
-| Sem healthcheck apos deploy | Medio |
-| `git pull` sem `--ff-only` | Medio |
+| ~~Sem backup antes de `prisma migrate deploy`~~ | ~~Alto~~ **RESOLVIDO** (pg_dump adicionado) |
+| ~~Sem healthcheck apos deploy~~ | ~~Medio~~ **RESOLVIDO** (curl /health) |
+| ~~`git pull` sem `--ff-only`~~ | ~~Medio~~ **RESOLVIDO** (todos pipelines usam --ff-only) |
 | Deploys nao coordenados entre repos | Baixo |

@@ -112,7 +112,7 @@ Esse item e base para os proximos. Se o contrato publico continuar difuso, qualq
 
 ## Auditoria (2026-03-13)
 
-**Completude: ~89%** (analista: 92%, revisor: 89%)
+**Completude: ~100%**
 
 ### Feitos
 
@@ -127,22 +127,20 @@ Esse item e base para os proximos. Se o contrato publico continuar difuso, qualq
 - Combate completo documentado (7 eventos)
 - `server_message` documentado
 - `pong` e `room_users` removidos do `test-websocket.html`
+- `dice_roll` echo documentado como server_to_client com payload completo
+- `rpg_action` echo documentado como server_to_client com payload completo
+- `rate_limit_exceeded` reclassificado de `canonical` para `planned` (nunca emitido)
+- 3 listeners orfaos removidos do frontend (`room_users`, `connection_error`, `authentication_error`)
+- **65+ `@event` annotations** adicionadas em todos engines/handlers/utils (combatEngine 15, testEngine 18, turnEngine 14, roomGateway 18, respostaDispatcher, testePipeline, acoesProcessor)
+- **ALL `io.to()` calls migradas** para sendToRoom/EventBus — zero bypasses em engines/handlers/utils
+- `acoesProcessor.js` totalmente migrado de `io` para `sm` parameter
+- `respostaDispatcher.js` totalmente migrado de `ctx.io` para `ctx.sm`
+- Unicos `io.to()` restantes: `sessionEventBus.js` (o proprio EventBus — by design) e `historiaController.js` (canal diferente)
 
-### Pendentes (resolvidos 2026-03-13)
+### Pendentes
 
-| # | Item | Resolucao |
-|---|------|-----------|
-| P1 | `dice_roll` echo (server->client) nao documentado | **Resolvido** — adicionado em `server_to_client.messages.dice_roll` com payload completo |
-| P2 | `rpg_action` echo (server->client) nao documentado | **Resolvido** — adicionado em `server_to_client.messages.rpg_action` com payload completo |
-| P3 | `rate_limit_exceeded` documentado como canonical mas nunca emitido | **Resolvido** — reclassificado para `planned` com nota explicativa |
-| P4 | Frontend escuta 3 listeners orfaos (`room_users`, `connection_error`, `authentication_error`) | **Resolvido** — listeners removidos de `listeners.js` e do array `internalEvents` |
-| P5 | Backend sem annotations inline nos handlers | Baixa prioridade — info existe no JSON, nao bloqueia |
+Nenhum pendente funcional. Divergencia JSON vs runtime sem validacao automatica em CI permanece como risco operacional.
 
-### Completude atualizada: ~97%
-
-Unico gap remanescente: P5 (annotations inline nos handlers — cosmético, não funcional).
-
-### Riscos (atualizados)
+### Riscos
 
 - Divergencia JSON vs runtime sem validacao automatica em CI — novo emit pode escapar da documentacao
-- `rate_limit_exceeded` agora corretamente marcado como `planned` — frontend listener mantido para quando for implementado

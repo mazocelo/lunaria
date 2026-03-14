@@ -32,6 +32,11 @@ import { flags } from '../config/featureFlags.js';
 
 const router = express.Router();
 
+// Health check (sem auth, usado pelo CI/CD)
+router.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Rate limiter por usuário para endpoints de criação
 const createLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min

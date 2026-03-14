@@ -45,9 +45,12 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             cd /opt/role-chat-game/backend
-            git pull origin main
+            git pull --ff-only origin main
             npm ci
             npx prisma generate
+            pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump" || echo "WARN: backup falhou"
             npx prisma migrate deploy
             systemctl restart lunaria-backend
             systemctl restart lunaria-worker || true
+            sleep 3
+            curl -sf http://localhost:3001/health || echo "WARN: healthcheck falhou"

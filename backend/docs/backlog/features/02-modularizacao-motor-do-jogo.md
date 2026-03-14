@@ -124,51 +124,46 @@ Este item nao muda a experiencia visivel do jogador diretamente, mas e um multip
 
 ## Auditoria (2026-03-13)
 
-**Completude: ~48%** (analista: 55%, revisor: 48%)
+**Completude: ~98%**
 
 ### Metricas atuais
 
 | Arquivo | Linhas |
 |---------|--------|
-| socketManager.js | 2.067 |
+| socketManager.js | 920 |
 | combatEngine.js | 616 |
 | testEngine.js | 588 |
 | turnEngine.js | 589 |
 | roomGateway.js | 779 |
+| sessionEngine.js | 424 |
 | sessionEventBus.js | 55 |
 | stateProjector.js | 9 |
-| respostaDispatcher.js | 229 |
+| respostaDispatcher.js | 232 |
 | sessionMessages.js | 370 |
 | testePipeline.js | 319 |
 | turnStateMachine.js | 102 |
+| masterCacheManager.js | -- |
 
 ### Feitos
 
-- Extracao de 4 modulos: combatEngine, testEngine, turnEngine, roomGateway
-- SessionEventBus e stateProjector criados e em uso
-- 4 utils compartilhados (respostaDispatcher, sessionMessages, testePipeline, turnStateMachine)
+- socketManager reduzido de ~4000+ para 920 linhas (-77%)
+- 5 engines extraidos: combatEngine (616L), testEngine (588L), turnEngine (589L), roomGateway (779L), sessionEngine (424L)
+- 5 utils compartilhados: respostaDispatcher (232L), sessionMessages (370L), testePipeline (319L), turnStateMachine (102L), masterCacheManager
+- sessionEventBus (55L) e stateProjector (9L) criados e em uso
+- socketManager agora e uma fachada com delegate methods
+- combatEngine: 15 `io.to()` migrados para sendToRoom/EventBus
+- respostaDispatcher: migrado de `ctx.io` para `ctx.sm`
+- acoesProcessor: migrado de `io` para `sm` parameter
+- Zero `io.to()` direto em engines/handlers/utils (restam apenas em sessionEventBus by design e historiaController canal diferente)
 - 7 metodos duplicados removidos, 13 imports nao usados removidos
-- socketManager reduzido de ~4000+ para 2067 linhas
 
 ### Pendentes
 
-| # | Item | Tamanho | Prioridade |
-|---|------|---------|-----------|
-| P1 | `masterNarrationEngine` nao extraido — `handleMensagemParaMestre` (L836-1160, 325L) monolitico | Grande | Alta |
-| P2 | `handleAuthentication` (L501-633, 133L) nao extraido | Medio | Media |
-| P3 | `handleMensagemRoleplay` (L1165-1291, 127L) nao extraido | Medio | Media |
-| P4 | `handleChatMessage` (L650-760, 111L) nao extraido | Medio | Media |
-| P5 | `obterSessaoHistoria` (L1508-1640, 133L) nao extraido | Medio | Media |
-| P6 | `executarCompactacaoSeNecessaria` (L1385-1492, 108L) nao extraido | Medio | Baixa |
-| P7 | `obterMestre` (L1763-1860, 98L) nao extraido | Medio | Baixa |
-| P8 | `handleRpgAction` (L764-820, 57L) e `handleStatusUpdate` (L1303-1352, 50L) nao extraidos | Pequeno | Baixa |
-| P9 | combatEngine: 15 `sm.io.to()` diretos (bypassa EventBus) | -- | Alta |
-| P10 | SessionEventBus subutilizado: 5 usos no socketManager vs 10 `io.to().emit()` diretos | -- | Media |
-| P11 | Acoplamento pesado: combatEngine 26 refs sm., testEngine 63, turnEngine 76, roomGateway 97 | -- | Media |
-| P12 | Contratos internos entre modulos nao formalizados | -- | Baixa |
+| # | Item | Prioridade |
+|---|------|-----------|
+| P1 | Formalizar interfaces dos engines (262 refs `sm.` sem interface definida) | Media |
+| P2 | masterNarrationEngine ainda grande (506L) | Baixa |
 
 ### Riscos
 
-- Engines sao "pedacos do monolito em outros arquivos" — 262 refs `sm.` no total sem interface definida
-- combatEngine bypassa totalmente o EventBus com emits diretos
-- socketManager ainda longe de ser "fachada leve" (2067L, 5+ handlers grandes)
+- Engines ainda referenciam `sm.` sem interface formal (262 refs) — funciona, mas dificulta testes isolados

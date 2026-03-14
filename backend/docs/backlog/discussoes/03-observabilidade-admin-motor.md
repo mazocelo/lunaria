@@ -135,7 +135,7 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 
 ## Auditoria (2026-03-13)
 
-**Completude: ~40%** (atualizado 2026-03-13)
+**Completude: ~55%**
 
 ### Feitos (infraestrutura base)
 
@@ -150,7 +150,7 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | `ai_jobs` table com rastreamento | Status, last_error, attempts_made, timestamps |
 | Rotas WebSocket admin | `/broadcast`, `/room/:roomId/message`, `/user/:userId/message` (superadmin) |
 
-### Implementados (Phase 1 quick wins — 2026-03-13)
+### Implementados (Phase 1 — 2026-03-13)
 
 | # | Item | Evidencia |
 |---|------|-----------|
@@ -158,21 +158,16 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | 2 | `GET /admin/motor/sessoes/:roomId` — dump completo (estadoJogo, mestreContexto, testesPendentes, resumos, ultimas 20 msgs) | `routes/adminMotor.js` |
 | 3 | `GET /admin/motor/jobs` — consulta ai_jobs com filtro (status, queue, entity_type) e paginacao | `routes/adminMotor.js` |
 | 4 | `POST /admin/motor/jobs/:id/retry` — reprocessa job falhado via BullMQ | `routes/adminMotor.js` |
+| 5 | **Tela AdminMotor no frontend** (MVVM pattern) | Pagina admin criada |
+| 6 | **SuperAdminRoute** protegendo a pagina admin | Guard implementado |
 
 ### Pendentes (Phase 2)
 
 | # | Item | Prioridade |
 |---|------|-----------|
-| 6 | Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde) | Media |
-| 7 | Logs estruturados (backend usa 51+ `console.log/error` so no socketManager, sem winston/pino) | Media |
-| 8 | Tela admin no frontend (rota SuperAdminRoute ja pronta) | Media |
-| 9 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
-
-### Quick wins recomendados
-
-1. `GET /admin/motor/sessoes` — iterar `gerenciadorSessoes` e listar estado de cada sessao
-2. `GET /admin/motor/sessoes/:roomId` — dump completo (mestreContexto, testesPendentes, estadoJogo, resumoConsolidado)
-3. `GET /admin/motor/jobs` — consultar `ai_jobs` com filtro por status e paginacao
+| 1 | Logs estruturados (backend ainda usa `console.*` apenas, sem pino/winston) | Media |
+| 2 | Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde) | Media |
+| 3 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
 
 ### Criterios de aceite vs estado atual
 

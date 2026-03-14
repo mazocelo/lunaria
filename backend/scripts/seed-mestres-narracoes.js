@@ -88,7 +88,7 @@ const MESTRES_ELEVENLABS = [
     temperatura: 0.80,
     max_tokens: 32000,
     tags: ['combate', 'tatico', 'militar', 'desafiador', 'estrategia'],
-    voice_name: 'Adam',            // dominant, firm — autoridade militar
+    voice_name: 'Harry',           // fierce warrior — autoridade militar
     voice_provider: 'elevenlabs',
   },
   {
@@ -268,7 +268,7 @@ async function main() {
   Removidos:    ${result.removed}
   Total ativo:  ${result.created.length + result.updated.length}
   Com voz:      ${comVoz}
-  ElevenLabs:   ${MESTRES_ELEVENLABS.length}  (Daniel, Lily, Adam, Callum, Roger)
+  ElevenLabs:   ${MESTRES_ELEVENLABS.length}  (Daniel, Lily, Harry, Callum, Roger)
   Kokoro:       3                             (pt-br-kokoro-santa, pt-br-kokoro-alex, pt-br-kokoro-dora)
   Piper:        2                             (pt-br-faber-medium)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);

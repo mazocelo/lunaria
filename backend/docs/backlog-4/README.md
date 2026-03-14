@@ -13,7 +13,7 @@ O foco aqui nao e "reescrever completamente o MestreAgent". O foco e:
 
 ## Status
 
-`backlog-4` esta em planejamento ativo.
+`backlog-4` em execucao. F01–F04 entregues, D01 documentado. Proxima frente: F05.
 
 ## Dependencias
 
@@ -28,6 +28,7 @@ Este backlog depende das seguintes premissas:
 | Tipo | Tema | Documento |
 |------|------|-----------|
 | Discussao | Integracao avancada do Mestre IA | [discussoes/01-integracao-avancada-mestre-ia.md](./discussoes/01-integracao-avancada-mestre-ia.md) |
+| Discussao | Arquitetura de estado tatico | [discussoes/02-estado-tatico.md](./discussoes/02-estado-tatico.md) |
 
 ## Principios
 
@@ -38,17 +39,19 @@ Este backlog depende das seguintes premissas:
 5. Nao recolocar TTS no hot path sincrono do Mestre.
 6. Fazer extensoes incrementais, validaveis e revertiveis.
 
-## Frentes candidatas
+## Frentes
 
-1. `B4-F01` State block do turno v2
-2. `B4-F02` Prompt 4 pilares e regras de cenario v2
-3. `B4-F03` Schema JSON compativel v2
-4. `B4-F04` Acoes mecanicas de cenario e combate expandido
-5. `B4-F05` Runtime unificado de inventario temporario, efeitos e estado tatico
-6. `B4-F06` Blueprint contextual v2
-7. `B4-F07` Resumo estruturado v2
-8. `B4-D01` Spike de fonte de verdade para terreno, boss, batalha grande e transicao de cenario
-9. `B4-D02` Validacao E2E, compatibilidade e fallbacks
+| Frente | Tema | Status |
+|--------|------|--------|
+| `B4-F01` | State block do turno v2 | concluido (`be9531f`) |
+| `B4-F02` | Prompt 4 pilares e regras de cenario v2 | concluido (`500646f`) |
+| `B4-F03` | Schema JSON compativel v2 | concluido (`3006b7f`) |
+| `B4-F04` | Acoes mecanicas de cenario e combate expandido | concluido (`c7ccc22`) |
+| `B4-D01` | Arquitetura de estado tatico (spec) | documentado |
+| `B4-F05` | Runtime unificado de estado tatico | pendente |
+| `B4-F06` | Blueprint contextual v2 | pendente |
+| `B4-F07` | Resumo estruturado v2 | pendente |
+| `B4-D02` | Validacao E2E, compatibilidade e fallbacks | pendente |
 
 ## Fora de escopo imediato
 

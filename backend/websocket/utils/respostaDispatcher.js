@@ -184,7 +184,8 @@ async function processarControleTurno(resposta, ctx) {
   await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
   ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
 
-  ctx.io.to(ctx.roomId).emit('mestre_finalizou_turno', {
+  // @event mestre_finalizou_turno → room (broadcast) | turno do jogador encerrado pelo mestre
+  ctx.sm.sendToRoom(ctx.roomId, 'mestre_finalizou_turno', {
     jogador: ctx.username,
     contador: turno.contadorInteracoes,
     motivo: mestreSinalizouFim ? 'mestre_sinalizou' : (atingiuLimiteInteracoes ? 'limite_interacoes' : 'acao_completa'),
@@ -196,7 +197,8 @@ async function processarControleTurno(resposta, ctx) {
       await ctx.sm.avancarProximoTurno(ctx.roomId);
     } catch (error) {
       console.error('❌ Erro ao avançar turno:', error);
-      ctx.io.to(ctx.roomId).emit('erro_sistema', { message: 'Erro ao avançar turno. Tente novamente.' });
+      // @event erro_sistema → room (broadcast) | erro ao avançar turno
+      ctx.sm.sendToRoom(ctx.roomId, 'erro_sistema', { message: 'Erro ao avançar turno. Tente novamente.' });
     }
   }, 500);
 }
@@ -221,7 +223,8 @@ export async function despacharResposta(resposta, ctx) {
     }
   }
 
-  ctx.io.to(ctx.roomId).emit('turno_estado_atualizado', {
+  // @event turno_estado_atualizado → room (broadcast) | estado do turno após despacho
+  ctx.sm.sendToRoom(ctx.roomId, 'turno_estado_atualizado', {
     roomId: ctx.roomId,
     ...buildTurnEventPayload(ctx.sessao),
     timestamp: Date.now()

@@ -25,7 +25,9 @@ jobs:
         run: npx prisma generate
 
       - name: Syntax Check
-        run: node --check bin/www
+        run: |
+          node --check bin/www
+          node --check bin/worker
 
   deploy:
     name: Deploy to VPS
@@ -48,3 +50,4 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
             systemctl restart lunaria-backend
+            systemctl restart lunaria-worker || true

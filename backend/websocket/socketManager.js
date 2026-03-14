@@ -5,22 +5,12 @@ import criarMestreRPG from '../agents/Mestre/index.js';
 import { buscarTemasCompletos, extrairNomesTemas } from '../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../helpers/personagensHelper.js';
 import db from '../Model/index.js';
-import {
-  formatarContextoCombate,
-  resolverMecanicaCombate,
-  formatarResultadoMecanico
-} from '../helpers/combateHelper.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import analyticsService from '../services/analyticsService.js';
 import { MESTRE_CONFIG } from '../agents/Mestre/config.js';
 import ttsCacheService from '../services/ttsCacheService.js';
 import { getDefaultProviderName } from '../services/ttsService.js';
 import { aggregateNarrationFromSegments, resolveNarrationSegments } from '../services/narrationSegmentsService.js';
-import { buildTurnState, formatTurnStateText } from '../helpers/turnStateBuilder.js';
-import { isEnabled } from '../config/featureFlags.js';
-import { decrementCooldowns } from '../helpers/cooldownManager.js';
-import { decrementConcentracao } from '../helpers/concentrationManager.js';
-import { decrementEfeitos, aplicarEfeitosPorTurno } from '../helpers/effectManager.js';
 import {
   applyMetadadosToSessao,
   applyResumoToSessao,
@@ -30,21 +20,11 @@ import {
 } from '../agents/Mestre/contexto/mestreContextBuilder.js';
 import {
   buildTurnEventPayload,
-  getTurnState,
-  transitionTurnState,
-  TURN_STATUS
+  getTurnState
 } from './utils/turnStateMachine.js';
 import {
-  getTestePendente
-} from './utils/testePipeline.js';
-import {
-  buildNarracaoContext
-} from '../agents/Mestre/contexto/mestreInvocationContext.js';
-import {
   appendMensagemSessao,
-  buildJogadorMensagem,
   buildMestreMensagem as buildMestreMensagemHistorico,
-  buildRoleplayMensagem,
   buildAcaoMestreMensagem
 } from './utils/sessionMessages.js';
 import SessionEventBus from './sessionEventBus.js';
@@ -52,6 +32,9 @@ import RoomGateway from './gateways/roomGateway.js';
 import TurnEngine from './engines/turnEngine.js';
 import TestEngine from './engines/testEngine.js';
 import CombatEngine from './engines/combatEngine.js';
+import MasterNarrationEngine from './engines/masterNarrationEngine.js';
+import AuthHandler from './handlers/authHandler.js';
+import ChatHandler from './handlers/chatHandler.js';
 
 const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
 
@@ -99,6 +82,16 @@ class SocketManager {
     this.turnEngine = new TurnEngine(this);
     this.testEngine = new TestEngine(this);
     this.combatEngine = new CombatEngine(this);
+    this.masterNarrationEngine = new MasterNarrationEngine(this);
+    this.authHandler = new AuthHandler(this);
+    this.chatHandler = new ChatHandler(this);
+  }
+
+  /**
+   * Expõe buildMestreMensagem como método da instância para uso nos engines
+   */
+  buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
+    return buildMestreMensagem(conteudo, mestreConfig, options);
   }
 
   /**
@@ -499,137 +492,7 @@ class SocketManager {
    * Handler para autenticação
    */
   async handleAuthentication(socket, data) {
-    const startTime = Date.now();
-    this.log('INFO', 'AUTH_PROCESSING_START', socket.id, data?.userId, {
-      receivedData: {
-        userId: data?.userId,
-        username: data?.username,
-        email: data?.email,
-        sessionId: data?.sessionId,
-        token: data?.token ? `${data.token.substring(0, 10)}...` : 'absent'
-      }
-    });
-
-    try {
-      const { userId: rawUserId, username: rawUsername, sessionId: rawSessionId } = data || {};
-
-      if (!rawUserId || !rawUsername) {
-        this.log('ERROR', 'AUTH_VALIDATION_FAILED', socket.id, rawUserId, {
-          missingFields: {
-            userId: !rawUserId,
-            username: !rawUsername
-          },
-          receivedData: data
-        });
-        socket.emit('error', { message: 'userId e username são obrigatórios' });
-        return;
-      }
-
-      // Fazer parsing dos dados para tipos corretos
-      const userId = String(rawUserId);
-      const username = String(rawUsername);
-      const sessionId = rawSessionId ? String(rawSessionId) : null;
-
-      this.log('INFO', 'AUTH_DATA_PARSED', socket.id, userId, {
-        parsedData: {
-          userId: userId,
-          username: username,
-          sessionId: sessionId,
-          hasEmail: !!data?.email,
-          hasToken: !!data?.token
-        }
-      });
-
-      // Verificar se usuário já está conectado
-      const existingSocket = this.connectedUsers.get(userId);
-      if (existingSocket && existingSocket.id !== socket.id) {
-        this.log('WARN', 'AUTH_USER_ALREADY_CONNECTED', socket.id, userId, {
-          existingSocketId: existingSocket.id,
-          existingSocketConnected: existingSocket.connected
-        });
-        
-        // Desconectar conexão anterior
-        existingSocket.emit('force_disconnect', { 
-          reason: 'Nova conexão detectada',
-          timestamp: Date.now()
-        });
-        existingSocket.disconnect(true);
-        this.log('INFO', 'AUTH_PREVIOUS_CONNECTION_TERMINATED', existingSocket.id, userId);
-      }
-
-      // Armazenar informações do usuário
-      socket.userId = userId;
-      socket.username = username;
-      socket.sessionId = sessionId;
-      socket.authenticatedAt = Date.now();
-
-      this.connectedUsers.set(userId, socket);
-
-      this.log('INFO', 'AUTH_USER_DATA_STORED', socket.id, userId, {
-        connectedUsersCount: this.connectedUsers.size,
-        socketProperties: {
-          userId: socket.userId,
-          username: socket.username,
-          sessionId: socket.sessionId
-        }
-      });
-
-      // Salvar no Redis com valores parseados
-      if (this.redis) {
-        const redisData = {
-          socketId: socket.id,
-          username: username,
-          connectedAt: Date.now().toString()
-        };
-
-        // Adicionar sessionId apenas se existir
-        if (sessionId) {
-          redisData.sessionId = sessionId;
-        }
-
-        this.log('INFO', 'AUTH_REDIS_SAVE_START', socket.id, userId, {
-          redisKey: `user:${userId}`,
-          redisData: redisData
-        });
-
-        await this.redis.hSet(`user:${userId}`, redisData);
-        
-        this.log('SUCCESS', 'AUTH_REDIS_SAVE_SUCCESS', socket.id, userId, {
-          redisKey: `user:${userId}`
-        });
-      } else {
-        this.log('WARN', 'AUTH_REDIS_UNAVAILABLE', socket.id, userId, {
-          message: 'Redis não disponível para salvar dados do usuário'
-        });
-      }
-
-      const authResponse = {
-        userId,
-        username,
-        socketId: socket.id,
-        sessionId: sessionId
-      };
-
-      socket.emit('authenticated', authResponse);
-
-      const processingTime = Date.now() - startTime;
-      this.log('SUCCESS', 'AUTH_COMPLETED', socket.id, userId, {
-        username: username,
-        sessionId: sessionId,
-        processingTimeMs: processingTime,
-        responseData: authResponse
-      });
-
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-      this.log('ERROR', 'AUTH_ERROR', socket.id, data?.userId, {
-        error: error.message,
-        stack: error.stack,
-        processingTimeMs: processingTime,
-        inputData: data
-      });
-      socket.emit('error', { message: 'Erro na autenticação' });
-    }
+    return this.authHandler.handleAuthentication(socket, data);
   }
 
   /**
@@ -648,114 +511,7 @@ class SocketManager {
    * Handler para mensagem de chat
    */
   async handleChatMessage(socket, data) {
-    const startTime = Date.now();
-    this.log('INFO', 'CHAT_MESSAGE_PROCESSING_START', socket.id, socket.userId, {
-      receivedData: {
-        roomId: data?.roomId,
-        userId: data?.userId,
-        username: data?.username,
-        messageLength: data?.message?.length,
-        type: data?.type
-      }
-    });
-
-    try {
-      const { 
-        roomId: rawRoomId, 
-        userId: rawUserId, 
-        username: rawUsername, 
-        message: rawMessage, 
-        type: rawType = 'chat' 
-      } = data || {};
-
-      if (!rawRoomId || !rawUserId || !rawMessage) {
-        this.log('ERROR', 'CHAT_MESSAGE_VALIDATION_FAILED', socket.id, socket.userId, {
-          missingFields: {
-            roomId: !rawRoomId,
-            userId: !rawUserId,
-            message: !rawMessage
-          },
-          receivedData: data
-        });
-        socket.emit('error', { message: 'roomId, userId e message são obrigatórios' });
-        return;
-      }
-
-      // Validar userId corresponde ao autenticado
-      if (String(rawUserId) !== String(socket.userId)) {
-        this.log('ERROR', 'CHAT_USER_MISMATCH', socket.id, socket.userId, {
-          authenticatedUserId: socket.userId,
-          requestedUserId: rawUserId
-        });
-        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
-        return;
-      }
-
-      // Validar tamanho da mensagem
-      const MAX_MESSAGE_LENGTH = 5000;
-      if (rawMessage && String(rawMessage).length > MAX_MESSAGE_LENGTH) {
-        socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
-        return;
-      }
-
-      // Fazer parsing dos dados para tipos corretos
-      const roomId = String(rawRoomId);
-      const userId = String(rawUserId);
-      const username = rawUsername ? String(rawUsername) : 'Usuario';
-      const message = String(rawMessage);
-      const type = String(rawType);
-
-      this.log('INFO', 'CHAT_MESSAGE_DATA_PARSED', socket.id, userId, {
-        roomId: roomId,
-        username: username,
-        messageLength: message.length,
-        type: type,
-        messageTruncated: message.length > 100 ? `${message.substring(0, 100)}...` : message
-      });
-
-      const messageData = {
-        id: Date.now().toString(),
-        userId,
-        username,
-        message,
-        type,
-        roomId,
-        timestamp: Date.now().toString()
-      };
-
-      // Mensagens de chat não precisam persistência separada
-      // handleMensagemParaMestre já salva mensagens importantes na rpg_session
-
-      // Enviar para todos na sala
-      this.log('INFO', 'CHAT_MESSAGE_BROADCASTING', socket.id, userId, {
-        roomId: roomId,
-        messageId: messageData.id,
-        type: type
-      });
-
-      this.io.to(roomId).emit('chat_message', messageData);
-
-      const processingTime = Date.now() - startTime;
-      this.log('SUCCESS', 'CHAT_MESSAGE_COMPLETED', socket.id, userId, {
-        roomId: roomId,
-        messageId: messageData.id,
-        username: username,
-        messageLength: message.length,
-        type: type,
-        processingTimeMs: processingTime
-      });
-
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-      this.log('ERROR', 'CHAT_MESSAGE_ERROR', socket.id, socket.userId, {
-        roomId: data?.roomId,
-        error: error.message,
-        stack: error.stack,
-        processingTimeMs: processingTime,
-        inputData: data
-      });
-      socket.emit('error', { message: 'Erro ao processar mensagem' });
-    }
+    return this.chatHandler.handleChatMessage(socket, data);
   }
 
   /**
@@ -830,464 +586,11 @@ class SocketManager {
   async handleRolarDadoInicial(socket, data) {
     return this.testEngine.handleRolarDadoInicial(socket, data);
   }
-  /**
-   * Handler para mensagem destinada ao Mestre (IA)
-   */
   async handleMensagemParaMestre(socket, data) {
-    const startTime = Date.now();
-    this.log('INFO', 'MENSAGEM_PARA_MESTRE_PROCESSING_START', socket.id, socket.userId, {
-      receivedData: {
-        roomId: data?.roomId,
-        userId: data?.userId,
-        username: data?.username,
-        personagem: data?.personagem?.nome,
-        mensagemLength: data?.mensagem?.length
-      }
-    });
-
-    try {
-      const { 
-        roomId: rawRoomId, 
-        userId: rawUserId, 
-        username: rawUsername, 
-        mensagem: rawMensagem,
-        personagem: rawPersonagem
-      } = data || {};
-
-      if (!rawRoomId || !rawUserId || !rawMensagem || !rawPersonagem) {
-        this.log('ERROR', 'MENSAGEM_PARA_MESTRE_VALIDATION_FAILED', socket.id, socket.userId, {
-          missingFields: {
-            roomId: !rawRoomId,
-            userId: !rawUserId,
-            mensagem: !rawMensagem,
-            personagem: !rawPersonagem
-          }
-        });
-        socket.emit('error', { message: 'roomId, userId, mensagem e personagem são obrigatórios' });
-        return;
-      }
-
-      // Validar tamanho da mensagem
-      const MAX_MESSAGE_LENGTH = 5000;
-      if (rawMensagem && String(rawMensagem).length > MAX_MESSAGE_LENGTH) {
-        socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
-        return;
-      }
-
-      // Parsing dos dados
-      const roomId = String(rawRoomId);
-      const userId = String(rawUserId);
-      const username = rawUsername ? String(rawUsername) : 'Jogador';
-      const mensagem = String(rawMensagem);
-      const personagem = rawPersonagem;
-
-      // ✅ MUTEX: Garantir que apenas uma operação por vez na sala
-      return await this.withRoomLock(roomId, async () => {
-
-      this.log('INFO', 'MENSAGEM_PARA_MESTRE_DATA_PARSED', socket.id, userId, {
-        roomId,
-        username,
-        personagemNome: personagem.nome,
-        mensagemTruncated: mensagem.substring(0, 100)
-      });
-
-      // 1. Obter sessão da história
-      const sessao = await this.obterSessaoHistoria(roomId);
-      if (!sessao) {
-        this.log('ERROR', 'MENSAGEM_PARA_MESTRE_SESSAO_NOT_FOUND', socket.id, userId, {
-          roomId
-        });
-        return socket.emit('error', { message: 'Sessão não encontrada' });
-      }
-
-      // ✅ GUARD: Rejeitar mensagem se dados já foram solicitados (evita solicitação duplicada)
-      if (getTestePendente(sessao)) {
-        this.log('WARN', 'MENSAGEM_PARA_MESTRE_DADOS_PENDENTES', socket.id, userId, {
-          roomId,
-          mensagem: mensagem.substring(0, 50)
-        });
-        socket.emit('erro_mensagem', {
-          message: 'Aguarde a rolagem de dados antes de enviar uma nova mensagem.'
-        });
-        return;
-      }
-
-      this.log('INFO', 'MENSAGEM_PARA_MESTRE_SESSAO_FOUND', socket.id, userId, {
-        sessaoStatus: sessao.status,
-        historiaNome: sessao.historiaNome,
-        totalMensagens: sessao.mensagens?.length || 0
-      });
-
-      // 2. VERIFICAR SISTEMA DE TURNOS
-      const estadoJogo = sessao.estadoJogo || {};
-      const fase = estadoJogo.fase;
-      const combateAtualAtivo = estadoJogo.combate?.ativo || false;
-
-      // Se o jogo está em fase de rodadas, verificar turnos
-      // EXCEÇÃO: durante combate ativo, qualquer jogador vivo pode agir (combate tem seu próprio tracking via jogadoresQueAgiram)
-      if (fase === 'rodada_em_andamento' && !combateAtualAtivo) {
-        const turnoAtual = estadoJogo.turnoAtual || 0;
-        const ordemJogadores = estadoJogo.ordemJogadores || [];
-
-        if (ordemJogadores.length === 0) {
-          this.log('ERROR', 'MENSAGEM_PARA_MESTRE_SEM_ORDEM', socket.id, userId, {
-            roomId
-          });
-          return socket.emit('error', { message: 'Ordem de jogadores não definida' });
-        }
-
-        const jogadorDaVez = ordemJogadores[turnoAtual];
-
-        // Verificar se é o turno do jogador
-        if (String(jogadorDaVez.userId) !== String(userId)) {
-          this.log('WARN', 'MENSAGEM_PARA_MESTRE_NAO_E_SEU_TURNO', socket.id, userId, {
-            roomId,
-            turnoAtual,
-            jogadorDaVez: jogadorDaVez.username
-          });
-          return socket.emit('erro_turno', { 
-            message: `Não é seu turno! Aguarde a vez de ${jogadorDaVez.username}`,
-            jogadorDaVez: jogadorDaVez.username
-          });
-        }
-        
-        this.log('INFO', 'MENSAGEM_PARA_MESTRE_TURNO_VALIDADO', socket.id, userId, {
-          roomId,
-          turnoAtual,
-          jogador: username
-        });
-
-        transitionTurnState(sessao, TURN_STATUS.ACTIVE, {
-          jogadorAtual: String(userId),
-          rodadaAtual: estadoJogo.rodadaAtual || 1,
-          lockReason: null
-        });
-      }
-
-      // 3. Obter histórico de mensagens
-      const invocationContext = buildNarracaoContext(sessao);
-      const historico = invocationContext.chatHistory;
-      const resumoMaisRecente = invocationContext.resumo ? { resumo: invocationContext.resumo } : null;
-
-      // 3. Criar instância do Mestre com temas e personagens da história
-      this.log('INFO', 'MENSAGEM_PARA_MESTRE_CREATING_MESTRE', socket.id, userId, {
-        temas: sessao.historiaTemas,
-        jogadoresCount: sessao.jogadoresConectados?.length || 0,
-        temResumo: !!resumoMaisRecente
-      });
-
-      // Obter Mestre (com cache)
-      const mestre = await this.obterMestre(
-        roomId,
-        sessao.historiaTemas || [],
-        sessao,
-        userId
-      );
-
-      // 4. Início de turno: decrementar cooldowns, efeitos, concentração
-      if (isEnabled('EXPANDED_STATE')) {
-        decrementCooldowns(sessao, userId);
-        const pcId = String(personagem.id || personagem.personagemId);
-        const efeitosExpirados = decrementEfeitos(sessao, pcId);
-        const efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
-        const concExpirada = decrementConcentracao(sessao, userId);
-
-        if (efeitosExpirados.length > 0) {
-          this.emitirAcaoMestrePersistida(roomId, sessao, {
-            tipo: 'efeitos_expirados', personagem: personagem.nome,
-            efeitos: efeitosExpirados.map(e => e.nome), timestamp: Date.now()
-          });
-        }
-        if (concExpirada) {
-          this.emitirAcaoMestrePersistida(roomId, sessao, {
-            tipo: 'concentracao_quebrada', personagem: personagem.nome,
-            magia: concExpirada.nome, motivo: 'expirou', timestamp: Date.now()
-          });
-        }
-      }
-
-      // Injetar contexto dinâmico do personagem + combate na ação
-      let acaoComContexto = '';
-
-      // Estado dinâmico do personagem (via turnStateBuilder)
-      const turnState = buildTurnState(sessao, userId, personagem);
-      acaoComContexto = formatTurnStateText(turnState) + '\n';
-
-      const combateAtivo = estadoJogo.combate?.ativo;
-      let resultadosCombatePreResolvido = null;
-      if (combateAtivo) {
-        // Contexto ANTES da resolução (estado atual dos monstros/jogadores)
-        const contextoCombate = formatarContextoCombate(estadoJogo.combate, userId);
-        acaoComContexto += `${contextoCombate}\n`;
-
-        // ✅ Resolver mecânica ANTES da IA para que ela narre baseada em fatos
-        resultadosCombatePreResolvido = resolverMecanicaCombate(estadoJogo.combate, userId, sessao, personagem);
-        const resumoMecanico = formatarResultadoMecanico(resultadosCombatePreResolvido, personagem.nome);
-        acaoComContexto += resumoMecanico + '\n';
-
-        // Guardar para o processarAcaoCombate usar (sem re-rolar)
-        sessao._combatePreResolvido = resultadosCombatePreResolvido;
-
-        this.log('INFO', 'MENSAGEM_PARA_MESTRE_COMBATE_CONTEXTO', socket.id, userId, {
-          roomId,
-          monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length,
-          preResolvido: true
-        });
-      }
-
-      const contextoRoleplayLateral = invocationContext.contextoLateralRoleplay;
-      if (contextoRoleplayLateral) {
-        acaoComContexto += `${contextoRoleplayLateral}\n`;
-      }
-
-      acaoComContexto += `Ação do jogador: "${mensagem}"`;
-
-      // 5. Narrar ação do jogador (COM FALLBACK SE IA FALHAR)
-      this.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {
-        jogador: username,
-        personagem: personagem.nome,
-        historicoLength: historico.length,
-        usandoResumo: !!resumoMaisRecente,
-        combateAtivo: !!combateAtivo
-      });
-
-      let resposta;
-      try {
-        resposta = await mestre.narrarAcao({
-          jogador: username,
-          personagem: personagem.nome,
-          acao: acaoComContexto,
-          chatHistory: historico,
-          resumo: resumoMaisRecente?.resumo || null
-        });
-
-        this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_IA_RESPONDED', socket.id, userId, {
-          narracaoLength: resposta.narracao?.length || 0
-        });
-      } catch (errorIA) {
-        console.error('❌ Erro na IA ao narrar ação:', errorIA);
-        
-        this.log('ERROR', 'MENSAGEM_PARA_MESTRE_IA_FAILED', socket.id, userId, {
-          error: errorIA.message,
-          stack: errorIA.stack
-        });
-        
-        // ✅ FALLBACK: Resposta simples — auto-avançar turno se já houve 2+ mensagens
-        const estadoJogoFallback = sessao.estadoJogo || {};
-        const contadorFallback = estadoJogoFallback.contadorMensagensTurno || 0;
-        resposta = {
-          narracao: `**${personagem.nome}** ${mensagem}.\n\n*O Mestre faz uma pausa...* O que acontece a seguir?`,
-          fimDeTurno: contadorFallback >= 2,
-          solicitaDados: { solicita: false },
-          acaoCompleta: contadorFallback >= 2
-        };
-        
-        this.log('INFO', 'MENSAGEM_PARA_MESTRE_USANDO_FALLBACK', socket.id, userId, {
-          mensagemFallback: resposta.narracao
-        });
-      }
-
-      // 5. Salvar mensagem do jogador na sessão
-      const mensagemJogador = buildJogadorMensagem({
-        userId,
-        username,
-        personagem: personagem.nome,
-        message: mensagem,
-        origem: combateAtivo ? 'combate' : 'turno'
-      });
-      appendMensagemSessao(sessao, mensagemJogador);
-
-      // 6. Salvar resposta do mestre na sessão
-      const mensagemMestre = buildMestreMensagem(resposta.narracao, sessao.mestreConfig, {
-        sessao,
-        segmentos: resposta.segmentos || []
-      });
-      appendMensagemSessao(sessao, mensagemMestre);
-      await this.aplicarMetadadosNarrativos(roomId, sessao, resposta.metadados || {});
-
-      // 7. Atualizar sessão no Redis
-      sessao.atualizadaEm = new Date().toISOString();
-      await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
-
-      // Snapshot periodico (a cada 10 mensagens)
-      this._tentarSnapshot(roomId, sessao);
-
-      this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_SESSAO_UPDATED', socket.id, userId, {
-        roomId,
-        totalMensagens: sessao.mensagens.length
-      });
-
-      // 8. Enviar mensagem do jogador para todos (echo)
-      this.io.to(roomId).emit('chat_message', {
-        ...mensagemJogador,
-        message: mensagemJogador.message
-      });
-
-      // 9. Enviar resposta do mestre para todos na sala
-      this.io.to(roomId).emit('mensagem_mestre', {
-        ...mensagemMestre,
-        message: resposta.narracao
-      });
-
-      // ✅ DESPACHAR RESPOSTA DA IA (combate, ações, dados, turnos)
-      const { despacharResposta } = await import('./utils/respostaDispatcher.js');
-      await despacharResposta(resposta, {
-        roomId, userId, username, personagem, mensagem, sessao,
-        socket, io: this.io, sm: this, fase, combateAtivo
-      });
-      this.emitirEstadoTurno(roomId, sessao);
-
-      const processingTime = Date.now() - startTime;
-      this.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_COMPLETED', socket.id, userId, {
-        roomId,
-        jogador: username,
-        personagem: personagem.nome,
-        processingTimeMs: processingTime
-      });
-
-      }); // fecha withRoomLock
-
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-      this.log('ERROR', 'MENSAGEM_PARA_MESTRE_ERROR', socket.id, socket.userId, {
-        roomId: data?.roomId,
-        error: error.message,
-        stack: error.stack,
-        processingTimeMs: processingTime
-      });
-      socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
-    }
+    return this.masterNarrationEngine.handleMensagemParaMestre(socket, data);
   }
-
-  /**
-   * Handler para mensagem roleplay (jogadores fora do turno)
-   */
   async handleMensagemRoleplay(socket, data) {
-    const startTime = Date.now();
-    this.log('INFO', 'MENSAGEM_ROLEPLAY_PROCESSING_START', socket.id, socket.userId, {
-      receivedData: {
-        roomId: data?.roomId,
-        userId: data?.userId,
-        username: data?.username,
-        mensagemLength: data?.mensagem?.length
-      }
-    });
-
-    try {
-      const { 
-        roomId: rawRoomId, 
-        userId: rawUserId, 
-        username: rawUsername, 
-        mensagem: rawMensagem
-      } = data || {};
-
-      if (!rawRoomId || !rawUserId || !rawMensagem) {
-        this.log('ERROR', 'MENSAGEM_ROLEPLAY_VALIDATION_FAILED', socket.id, socket.userId, {
-          missingFields: {
-            roomId: !rawRoomId,
-            userId: !rawUserId,
-            mensagem: !rawMensagem
-          }
-        });
-        socket.emit('error', { message: 'roomId, userId e mensagem são obrigatórios' });
-        return;
-      }
-
-      // Validar userId corresponde ao autenticado
-      if (String(rawUserId) !== String(socket.userId)) {
-        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
-        return;
-      }
-
-      // Parsing dos dados
-      const roomId = String(rawRoomId);
-      const userId = String(rawUserId);
-      const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
-      const mensagem = String(rawMensagem);
-
-      this.log('INFO', 'MENSAGEM_ROLEPLAY_DATA_PARSED', socket.id, userId, {
-        roomId,
-        username,
-        mensagemTruncated: mensagem.substring(0, 100)
-      });
-
-      await this.withRoomLock(roomId, async () => {
-        const sessao = await this.obterSessaoHistoria(roomId);
-        if (!sessao) {
-          this.log('ERROR', 'MENSAGEM_ROLEPLAY_SESSAO_NOT_FOUND', socket.id, userId, {
-            roomId
-          });
-          socket.emit('error', { message: 'Sessão não encontrada' });
-          return;
-        }
-
-        const estadoJogo = sessao.estadoJogo || {};
-        const cooldownRoleplay = estadoJogo.cooldownRoleplay || {};
-        const ultimoEnvio = cooldownRoleplay[userId];
-        const agora = Date.now();
-        const cooldownSegundos = 12;
-        const restante = ultimoEnvio
-          ? Math.max(0, cooldownSegundos - Math.floor((agora - new Date(ultimoEnvio).getTime()) / 1000))
-          : 0;
-
-        if (restante > 0) {
-          this.log('WARN', 'MENSAGEM_ROLEPLAY_COOLDOWN_ATIVO', socket.id, userId, {
-            roomId,
-            cooldownRestante: restante
-          });
-          socket.emit('erro_cooldown_roleplay', {
-            message: `Aguarde ${restante} segundos antes de enviar outra mensagem roleplay`,
-            segundosRestantes: restante
-          });
-          return;
-        }
-
-        cooldownRoleplay[userId] = new Date(agora).toISOString();
-        estadoJogo.cooldownRoleplay = cooldownRoleplay;
-        sessao.estadoJogo = estadoJogo;
-
-        const mensagemRoleplay = buildRoleplayMensagem({
-          userId,
-          username,
-          message: mensagem,
-          payload: {
-            cena: estadoJogo.turno?.rodadaAtual || estadoJogo.rodadaAtual || 1
-          }
-        });
-
-        appendMensagemSessao(sessao, mensagemRoleplay);
-        sessao.roleplayRecente = [...(sessao.roleplayRecente || []), mensagemRoleplay].slice(-20);
-
-        await this.gerenciadorSessoes.atualizarSessao(roomId, sessao);
-
-        this.log('SUCCESS', 'MENSAGEM_ROLEPLAY_SALVA', socket.id, userId, {
-          roomId,
-          totalMensagens: sessao.mensagens.length
-        });
-
-        this.io.to(roomId).emit('mensagem_roleplay', {
-          ...mensagemRoleplay,
-          message: mensagemRoleplay.message
-        });
-      });
-
-      const processingTime = Date.now() - startTime;
-      this.log('SUCCESS', 'MENSAGEM_ROLEPLAY_COMPLETED', socket.id, userId, {
-        roomId,
-        jogador: username,
-        processingTimeMs: processingTime
-      });
-
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-      this.log('ERROR', 'MENSAGEM_ROLEPLAY_ERROR', socket.id, socket.userId, {
-        roomId: data?.roomId,
-        error: error.message,
-        stack: error.stack,
-        processingTimeMs: processingTime
-      });
-      socket.emit('error', { message: 'Erro ao processar mensagem roleplay' });
-    }
+    return this.masterNarrationEngine.handleMensagemRoleplay(socket, data);
   }
 
   /**

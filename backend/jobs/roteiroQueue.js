@@ -10,10 +10,10 @@ export function getRoteiroQueue() {
       connection: createBullmqConnection(),
       prefix: getBullmqPrefix(),
       defaultJobOptions: {
-        attempts: 2,
+        attempts: 3,
         backoff: {
-          type: 'fixed',
-          delay: 30000
+          type: 'exponential',
+          delay: 5000
         },
         removeOnComplete: 100,
         removeOnFail: 100

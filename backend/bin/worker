@@ -3,9 +3,13 @@
 import { validateEnvironment } from '../helpers/startupValidation.js';
 validateEnvironment({ requireRedis: true, requireAuthSecrets: false });
 
+import { QueueEvents } from 'bullmq';
 import { createRoteiroWorker } from '../jobs/processRoteiroJob.js';
+import { createBullmqConnection, getBullmqPrefix } from '../jobs/connection.js';
+import { QUEUE_NAMES } from '../jobs/queueNames.js';
 
 let roteiroWorker = null;
+let queueEvents = null;
 let shuttingDown = false;
 
 async function startWorker() {
@@ -23,6 +27,16 @@ async function startWorker() {
     console.error(`[worker] falha no job ${job?.id || 'desconhecido'}:`, error.message);
   });
 
+  // QueueEvents para detectar jobs travados (stalled)
+  queueEvents = new QueueEvents(QUEUE_NAMES.ROTEIRO, {
+    connection: createBullmqConnection(),
+    prefix: getBullmqPrefix()
+  });
+
+  queueEvents.on('stalled', ({ jobId }) => {
+    console.warn(`[worker] job ${jobId} ficou stalled — sera retentado automaticamente`);
+  });
+
   await roteiroWorker.waitUntilReady();
 }
 
@@ -33,6 +47,9 @@ async function gracefulShutdown(signal) {
   console.log(`[worker] recebido ${signal}, encerrando...`);
 
   try {
+    if (queueEvents) {
+      await queueEvents.close();
+    }
     if (roteiroWorker) {
       await roteiroWorker.close();
     }

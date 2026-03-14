@@ -177,7 +177,7 @@ export default class CombatEngine {
       sm._tentarSnapshot(roomId, sessao, true);
 
       // Emitir evento de combate iniciado
-      sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_INICIADO, {
+      sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_INICIADO, {
         monstros: instancias,
         jogadores: jogadoresCombate,
         rodada: 1,
@@ -212,7 +212,7 @@ export default class CombatEngine {
 
       // Jogador derrotado
       if (r.jogadorDerrotado) {
-        sm.io.to(roomId).emit('server_message', {
+        sm.sendToRoom(roomId,'server_message', {
           userId,
           mensagem: `💀 ${personagem.nome} foi derrotado e não pode agir neste combate.`
         });
@@ -222,18 +222,18 @@ export default class CombatEngine {
       // --- EMITIR EVENTOS DE STATUS EFFECTS ---
       for (const se of r.statusEfeitos) {
         if (se.tipo === 'impedido') {
-          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
             tipo: 'status_efeito', personagem: se.personagem, userId: se.userId,
             status: se.efeito, mensagem: `${se.personagem} está ${se.efeito} e não pode agir!`,
             timestamp: Date.now()
           });
         } else if (se.tipo === 'dano') {
-          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
             tipo: 'status_dano', alvo: { userId: se.userId, nome: se.personagem },
             status: se.efeito, dano: se.dano, hpRestante: se.hpRestante, hpMax: se.hpMax,
             timestamp: Date.now()
           });
-          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+          sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
             userId: se.userId, nome: se.personagem,
             hp_atual: se.hpRestante, hp_max: se.hpMax,
             derrotado: se.derrotado, fonte: se.efeito, timestamp: Date.now()
@@ -247,7 +247,7 @@ export default class CombatEngine {
       // --- EMITIR RESULTADO DO ATAQUE DO JOGADOR ---
       const atk = r.ataqueJogador;
       if (atk) {
-        sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+        sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
           tipo: 'ataque_jogador',
           atacante: { userId: atk.userId, nome: atk.atacante },
           alvo: { id: atk.alvoId, nome: atk.alvo },
@@ -259,7 +259,7 @@ export default class CombatEngine {
         });
 
         if (atk.derrotado) {
-          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
+          sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
             monstro: { id: atk.alvoId, nome: atk.alvo },
             xp: atk.xp, timestamp: Date.now()
           });
@@ -268,7 +268,7 @@ export default class CombatEngine {
 
       // --- EMITIR CONTRA-ATAQUES DOS MONSTROS ---
       for (const ca of r.contraAtaques) {
-        sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+        sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
           tipo: 'ataque_monstro',
           atacante: { id: ca.atacanteId, nome: ca.atacante },
           alvo: { userId: ca.alvoId, nome: ca.alvoNome },
@@ -281,7 +281,7 @@ export default class CombatEngine {
         });
 
         if (ca.acertou && ca.dano > 0) {
-          sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
+          sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
             userId: ca.alvoId, nome: ca.alvoNome,
             hp_atual: ca.hpRestante, hp_max: ca.hpMax,
             derrotado: ca.inconsciente || false,
@@ -324,7 +324,7 @@ export default class CombatEngine {
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       // Emitir estado atualizado
-      sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_ESTADO, {
+      sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_ESTADO, {
         monstros: combate.monstros,
         jogadores: combate.jogadores,
         rodada: combate.rodadaCombate,
@@ -409,7 +409,7 @@ export default class CombatEngine {
                   nivelAtual = levelUp.ganhos.novoNivel;
                   xpRestante = levelUp.ganhos.xpRestante;
 
-                  sm.io.to(roomId).emit('level_up', {
+                  sm.sendToRoom(roomId,'level_up', {
                     userId: jUserId,
                     personagemNome: jogadorCombate.personagemNome,
                     novoNivel: nivelAtual,
@@ -466,7 +466,7 @@ export default class CombatEngine {
                   }
                 });
 
-                sm.io.to(roomId).emit('level_up', {
+                sm.sendToRoom(roomId,'level_up', {
                   userId: jUserId,
                   personagemNome: jogadorCombate.personagemNome,
                   novoNivel: nivelAtual,
@@ -534,7 +534,7 @@ export default class CombatEngine {
                 }
               }
 
-              sm.io.to(roomId).emit('combate_loot', {
+              sm.sendToRoom(roomId,'combate_loot', {
                 lootPorJogador: lootResultado.lootPorJogador,
                 todosItens: lootResultado.todosItens,
                 timestamp: Date.now()
@@ -548,7 +548,7 @@ export default class CombatEngine {
 
       // Emitir evento de combate finalizado
       const monstrosDerrotados = combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome);
-      sm.io.to(roomId).emit(COMBAT_EVENTS.COMBATE_FINALIZADO, {
+      sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_FINALIZADO, {
         resultado,
         xpTotal,
         xpPorJogador,
@@ -594,7 +594,7 @@ export default class CombatEngine {
         appendMensagemSessao(sessao, msgDesfecho);
         await sm.aplicarMetadadosNarrativos(roomId, sessao, respostaDesfecho.metadados || {});
 
-        sm.io.to(roomId).emit('mensagem_mestre', {
+        sm.sendToRoom(roomId,'mensagem_mestre', {
           id: Date.now().toString(),
           ...msgDesfecho,
           message: respostaDesfecho.narracao

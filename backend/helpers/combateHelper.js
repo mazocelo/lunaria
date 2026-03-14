@@ -13,6 +13,7 @@ import {
   STATUS_DANO_POR_TURNO,
   STATUS_PENALIDADE_ATAQUE,
   STATUS_COMBATENTE,
+  RESULTADO_COMBATE,
 } from '../config/domainConstants.js';
 const log = logger.child({ module: 'combateHelper' });
 
@@ -372,11 +373,11 @@ export function verificarFimCombate(combateState) {
   const jogadoresVivos = Object.values(combateState.jogadores).filter(j => j.status === 'vivo');
 
   if (monstrosVivos.length === 0) {
-    return { finalizado: true, resultado: 'vitoria' };
+    return { finalizado: true, resultado: RESULTADO_COMBATE.VITORIA };
   }
 
   if (jogadoresVivos.length === 0) {
-    return { finalizado: true, resultado: 'derrota' };
+    return { finalizado: true, resultado: RESULTADO_COMBATE.DERROTA };
   }
 
   return { finalizado: false, resultado: null };
@@ -652,7 +653,7 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
   }
 
   if (resultados.combateFinalizado) {
-    linhas.push(`COMBATE FINALIZADO: ${resultados.resultadoCombate === 'vitoria' ? 'VITÓRIA dos jogadores!' : 'DERROTA dos jogadores!'}`);
+    linhas.push(`COMBATE FINALIZADO: ${resultados.resultadoCombate === RESULTADO_COMBATE.VITORIA ? 'VITÓRIA dos jogadores!' : 'DERROTA dos jogadores!'}`);
   }
 
   return '\n' + linhas.join('\n');

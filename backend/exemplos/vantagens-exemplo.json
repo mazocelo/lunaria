@@ -17,7 +17,7 @@
         "valor": 2
       },
       "usar": null,
-      "elemento": ["fisico"],
+      "elemento": ["contundente"],
       "nivel": 5,
       "requisitos": {
         "forca": 14

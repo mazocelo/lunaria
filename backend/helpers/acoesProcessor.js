@@ -506,12 +506,15 @@ async function processarUsarHabilidade(acao, sessao, roomId, sm) {
     setCooldown(sessao, alvo.userId, 'hab', habilidade_id, cooldown_turnos);
   }
 
+  const elementoNorm = normalizarElemento(acao.elemento);
+  if (acao.elemento && !elementoNorm) log.warn({ raw: acao.elemento }, 'usar_habilidade: elemento desconhecido ignorado');
+
   log.info({ personagem: nomePersonagem, habilidade: nome, custoMana: custo_mana, cooldown: cooldown_turnos }, 'usar_habilidade: habilidade usada');
 
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'habilidade_usada', personagem: nomePersonagem, userId: alvo.userId,
     nome, habilidade_id, custo_mana, cooldown_turnos,
-    dano_base: acao.dano_base || null, elemento: normalizarElemento(acao.elemento),
+    dano_base: acao.dano_base || null, elemento: elementoNorm,
     timestamp: Date.now()
   });
 }
@@ -573,12 +576,15 @@ async function processarConjurarMagia(acao, sessao, roomId, sm) {
     }
   }
 
+  const elementoNormMagia = normalizarElemento(acao.elemento);
+  if (acao.elemento && !elementoNormMagia) log.warn({ raw: acao.elemento }, 'conjurar_magia: elemento desconhecido ignorado');
+
   log.info({ personagem: nomePersonagem, magia: nome, custoMana: custo_mana, concentracao: usa_concentracao }, 'conjurar_magia: magia conjurada');
 
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'magia_conjurada', personagem: nomePersonagem, userId: alvo.userId,
     nome, magia_id, custo_mana, usa_concentracao,
-    dano_base: acao.dano_base || null, elemento: normalizarElemento(acao.elemento),
+    dano_base: acao.dano_base || null, elemento: elementoNormMagia,
     concentracao_anterior_quebrada: concentracaoQuebrada?.nome || null,
     timestamp: Date.now()
   });

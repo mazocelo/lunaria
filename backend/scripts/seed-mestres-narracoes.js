@@ -75,7 +75,7 @@ const MESTRES_ELEVENLABS = [
     temperatura: 0.90,
     max_tokens: 32000,
     tags: ['misterio', 'sobrenatural', 'investigacao', 'intriga', 'adulto'],
-    voice_name: 'Dorothy',         // deep mature British female — elegância sombria
+    voice_name: 'Lily',            // velvety actress — elegância sombria para mistério
     voice_provider: 'elevenlabs',
   },
   {
@@ -88,7 +88,7 @@ const MESTRES_ELEVENLABS = [
     temperatura: 0.80,
     max_tokens: 32000,
     tags: ['combate', 'tatico', 'militar', 'desafiador', 'estrategia'],
-    voice_name: 'Arnold',          // deep powerful American male — autoridade militar
+    voice_name: 'Adam',            // dominant, firm — autoridade militar
     voice_provider: 'elevenlabs',
   },
   {
@@ -114,7 +114,7 @@ const MESTRES_ELEVENLABS = [
     temperatura: 1.05,
     max_tokens: 32000,
     tags: ['comedia', 'improviso', 'absurdo', 'ironico', 'criativo'],
-    voice_name: 'Clyde',           // deep gravelly American male — humor com peso
+    voice_name: 'Roger',           // laid-back, casual, resonant — humor com peso
     voice_provider: 'elevenlabs',
   },
 ];
@@ -268,7 +268,7 @@ async function main() {
   Removidos:    ${result.removed}
   Total ativo:  ${result.created.length + result.updated.length}
   Com voz:      ${comVoz}
-  ElevenLabs:   ${MESTRES_ELEVENLABS.length}  (Daniel, Dorothy, Arnold, Callum, Clyde)
+  ElevenLabs:   ${MESTRES_ELEVENLABS.length}  (Daniel, Lily, Adam, Callum, Roger)
   Kokoro:       3                             (pt-br-kokoro-santa, pt-br-kokoro-alex, pt-br-kokoro-dora)
   Piper:        2                             (pt-br-faber-medium)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);

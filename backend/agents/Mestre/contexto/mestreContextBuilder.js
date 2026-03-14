@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { extrairNomesTemas } from '../../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../../helpers/personagensHelper.js';
 import { condensarRoteiro } from '../prompts/roteiroCondenser.js';
@@ -7,6 +8,13 @@ const log = logger.child({ module: 'mestreContextBuilder' });
 
 const MAX_BLOCK_CHARS = 1800;
 const MAX_LIST_ITEMS = 8;
+
+// ── Memória Semântica ─────────────────────────────────────────────
+const TIPOS_MEMORIA_VALIDOS = ['promessa', 'segredo', 'decisao', 'relacao', 'ameaca', 'fato'];
+const MAX_MEMORIA_POR_RESPOSTA = 3;
+const MAX_NON_PERMANENTES = 30;
+const MAX_PERMANENTES = 10;
+const MAX_RENDER_ENTRIES = 12;
 
 function truncateText(value, max = MAX_BLOCK_CHARS) {
   if (!value) return '';
@@ -22,6 +30,157 @@ function uniqueList(values = []) {
       .map(value => String(value).trim())
       .filter(Boolean)
   )];
+}
+
+// ── Semantic Memory helpers ────────────────────────────────────────
+
+function validarEntradaMemoria(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  const tipo = String(item.tipo || '').toLowerCase().trim();
+  if (!TIPOS_MEMORIA_VALIDOS.includes(tipo)) return null;
+
+  const descricao = String(item.descricao || '').trim().slice(0, 200);
+  if (!descricao) return null;
+
+  const envolvidos = uniqueList(
+    (Array.isArray(item.envolvidos) ? item.envolvidos : []).slice(0, 5)
+  );
+
+  const importancia = Math.max(1, Math.min(5, Math.round(Number(item.importancia) || 3)));
+  const permanente = Boolean(item.permanente);
+
+  return { tipo, descricao, envolvidos, importancia, permanente };
+}
+
+function memoriaDedupeKey(item) {
+  return `${item.tipo}::${item.descricao.toLowerCase().trim()}`;
+}
+
+function calcMemoriaScore(item, rodadaAtual) {
+  const age = Math.max(0, (rodadaAtual || 1) - (item.rodadaCriada || 1));
+  return item.importancia * 10 - Math.min(8, Math.floor(age / 5));
+}
+
+function sortForEviction(a, b) {
+  if (a.importancia !== b.importancia) return a.importancia - b.importancia;
+  if (a.rodadaCriada !== b.rodadaCriada) return a.rodadaCriada - b.rodadaCriada;
+  return (a.criadaEm || '').localeCompare(b.criadaEm || '');
+}
+
+export function extrairMemoriaSemantica(metadados = {}, sessao = {}) {
+  const rodadaAtual = sessao.estadoJogo?.rodadaAtual || sessao.mestreContexto?.sessao?.rodadaAtual || 1;
+  const existente = Array.isArray(sessao.mestreContexto?.sessao?.memoriaSemantica)
+    ? [...sessao.mestreContexto.sessao.memoriaSemantica]
+    : [];
+
+  const novasRaw = Array.isArray(metadados.memoria_semantica) ? metadados.memoria_semantica : [];
+  const novas = novasRaw.slice(0, MAX_MEMORIA_POR_RESPOSTA)
+    .map(validarEntradaMemoria)
+    .filter(Boolean);
+
+  if (!novas.length && !existente.length) return [];
+
+  // Dedup map keyed by tipo::descricao
+  const mapa = new Map();
+  for (const item of existente) {
+    mapa.set(memoriaDedupeKey(item), item);
+  }
+
+  for (const item of novas) {
+    const key = memoriaDedupeKey(item);
+    const existenteItem = mapa.get(key);
+    if (existenteItem) {
+      // Merge: union envolvidos, max importancia, OR permanente
+      existenteItem.envolvidos = uniqueList([...existenteItem.envolvidos, ...item.envolvidos]).slice(0, 5);
+      existenteItem.importancia = Math.max(existenteItem.importancia, item.importancia);
+      existenteItem.permanente = existenteItem.permanente || item.permanente;
+    } else {
+      mapa.set(key, {
+        id: crypto.randomUUID(),
+        ...item,
+        rodadaCriada: rodadaAtual,
+        criadaEm: new Date().toISOString()
+      });
+    }
+  }
+
+  let todos = Array.from(mapa.values());
+
+  // Enforce permanentes hard cap (10)
+  const permanentes = todos.filter(i => i.permanente);
+  if (permanentes.length > MAX_PERMANENTES) {
+    permanentes.sort(sortForEviction);
+    const excesso = permanentes.length - MAX_PERMANENTES;
+    for (let i = 0; i < excesso; i++) {
+      permanentes[i].permanente = false;
+    }
+    if (novas.length > 0) {
+      log.warn({ total: permanentes.length, demoted: excesso }, 'Demoted excess permanent memories');
+    }
+  }
+
+  // Enforce non-permanentes soft cap (30)
+  const nonPerm = todos.filter(i => !i.permanente);
+  if (nonPerm.length > MAX_NON_PERMANENTES) {
+    nonPerm.sort(sortForEviction);
+    const remover = nonPerm.length - MAX_NON_PERMANENTES;
+    const idsRemover = new Set(nonPerm.slice(0, remover).map(i => i.id));
+    todos = todos.filter(i => !idsRemover.has(i.id));
+    if (novas.length > 0) {
+      log.info({ removed: remover }, 'Evicted low-score memories');
+    }
+  }
+
+  return todos;
+}
+
+export function formatarBlocoMemoriaSemantica(memoriaSemantica = [], rodadaAtual = 1) {
+  if (!memoriaSemantica.length) return '';
+
+  // Score, sort, and take top entries
+  const scored = memoriaSemantica.map(item => ({
+    ...item,
+    _score: calcMemoriaScore(item, rodadaAtual)
+  }));
+
+  scored.sort((a, b) => {
+    if (b._score !== a._score) return b._score - a._score;
+    if (b.importancia !== a.importancia) return b.importancia - a.importancia;
+    return (b.rodadaCriada || 0) - (a.rodadaCriada || 0);
+  });
+
+  const top = scored.slice(0, MAX_RENDER_ENTRIES);
+
+  // Group by tipo
+  const grupos = {};
+  for (const item of top) {
+    if (!grupos[item.tipo]) grupos[item.tipo] = [];
+    grupos[item.tipo].push(item);
+  }
+
+  const labels = {
+    promessa: 'Promessas',
+    segredo: 'Segredos',
+    decisao: 'Decisões',
+    relacao: 'Relações',
+    ameaca: 'Ameaças',
+    fato: 'Fatos'
+  };
+
+  const linhas = [];
+  for (const tipo of TIPOS_MEMORIA_VALIDOS) {
+    const itens = grupos[tipo];
+    if (!itens?.length) continue;
+    linhas.push(`**${labels[tipo]}:**`);
+    for (const item of itens) {
+      const perm = item.permanente ? '[P]' : '';
+      const envol = item.envolvidos.length ? ` (${item.envolvidos.join(', ')})` : '';
+      linhas.push(`- [!${item.importancia}]${perm} ${item.descricao}${envol}`);
+    }
+  }
+
+  return `### MEMORIA SEMANTICA DA CAMPANHA\n\n${linhas.join('\n')}`;
 }
 
 function mergeObjects(baseValue, nextValue) {
@@ -283,6 +442,7 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
     npcsEmergentes: uniqueList(contextoExistente.npcsEmergentes || []).slice(0, MAX_LIST_ITEMS),
     locaisVisitados: uniqueList(contextoExistente.locaisVisitados || []).slice(0, MAX_LIST_ITEMS),
     objetivosAbertos: uniqueList(contextoExistente.objetivosAbertos || []).slice(0, MAX_LIST_ITEMS),
+    memoriaSemantica: Array.isArray(contextoExistente.memoriaSemantica) ? contextoExistente.memoriaSemantica : [],
     relacoesNPC: Array.isArray(contextoExistente.relacoesNPC) ? contextoExistente.relacoesNPC.slice(0, MAX_LIST_ITEMS) : [],
     roleplayRecente: uniqueList(
       (sessao.roleplayRecente || []).map(item => `${item.username}: ${item.mensagem || item.message || ''}`)
@@ -366,8 +526,17 @@ ${formatList('Objetivos em aberto', sessao.objetivosAbertos)}
 ${formatList('Pistas descobertas', sessao.pistasDescobertas)}
 ${formatList('Fatos importantes', sessao.fatosImportantes)}
 ${formatList('Itens relevantes', sessao.itensRelevantes)}
-${formatList('Roleplay recente', sessao.roleplayRecente)}` 
+${formatList('Roleplay recente', sessao.roleplayRecente)}`
   ];
+
+  // Append semantic memory block if available
+  const blocoMemoria = formatarBlocoMemoriaSemantica(
+    sessao.memoriaSemantica || [],
+    sessao.rodadaAtual || 1
+  );
+  if (blocoMemoria) {
+    blocos.push(blocoMemoria);
+  }
 
   return blocos.join('\n\n');
 }
@@ -463,6 +632,9 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
     estadoJogo.npcs = presentes;
   }
 
+  // Extrair e processar memória semântica
+  const memoriaSemantica = extrairMemoriaSemantica(metadados, sessao);
+
   const mestreContexto = mergeMestreContext(contextoAtual, {
     sessao: {
       cenaAtual: estadoJogo.cenaAtual || contextoAtual?.sessao?.cenaAtual || '',
@@ -478,7 +650,8 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
       npcsEmergentes: uniqueList([
         ...(contextoAtual?.sessao?.npcsEmergentes || []),
         ...emergentes
-      ])
+      ]),
+      memoriaSemantica
     }
   });
 

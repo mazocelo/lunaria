@@ -403,7 +403,8 @@ Responda SEMPRE em JSON valido:
   "metadados": {{
     "local_atual": null,
     "hora_ficcional": null,
-    "npcs_presentes": []
+    "npcs_presentes": [],
+    "memoria_semantica": []
   }}
 }}
 
@@ -424,7 +425,47 @@ Responda SEMPRE em JSON valido:
 - **acaoCompleta**: true se a acao do jogador esta completamente resolvida
 - **combate**: null ou objeto de combate
 - **acoes**: array de acoes mecanicas (vazio se nenhuma)
-- **metadados**: informacoes contextuais opcionais (local, hora, NPCs presentes)`;
+- **metadados**: informacoes contextuais opcionais (local, hora, NPCs presentes)
+- **metadados.memoria_semantica**: array opcional (max 3 por resposta) de fatos canonicos a registrar na memoria de longo prazo
+
+## MEMORIA SEMANTICA
+
+Registre fatos canonicos importantes no campo metadados.memoria_semantica para que sobrevivam ao longo da campanha.
+
+Formato de cada entrada:
+{{
+  "tipo": "promessa|segredo|decisao|relacao|ameaca|fato",
+  "descricao": "texto curto do fato (max 200 chars)",
+  "envolvidos": ["nomes de PJs ou NPCs relevantes"],
+  "permanente": false,
+  "importancia": 3
+}}
+
+**Quando registrar:**
+- Promessa feita por PJ ou NPC a alguem
+- Segredo revelado ou descoberto
+- Decisao irreversivel tomada pelo grupo
+- Relacao nova estabelecida (alianca, inimizade, divida)
+- Ameaca declarada ou iminente
+- Fato canonico que define o mundo (lore, consequencia de acao)
+
+**Quando marcar permanente: true:**
+- Mortes de NPCs ou PJs importantes
+- Decisoes que alteram permanentemente o mundo
+- Aliancas ou inimizades fundamentais da campanha
+
+**Escala de importancia:**
+- 1 = trivial (mencao casual)
+- 2 = menor (detalhe util)
+- 3 = relevante (afeta decisoes futuras)
+- 4 = importante (muda direcao da aventura)
+- 5 = define a campanha (consequencia permanente)
+
+**Regras:**
+- Max 3 entradas por resposta
+- NAO repita fatos ja registrados em respostas anteriores
+- Se um fato ja aparece na MEMORIA SEMANTICA DA CAMPANHA no contexto, NAO envie novamente
+- Prefira qualidade a quantidade — so registre o que realmente importa`;
 }
 
 export function criarPromptSistema(

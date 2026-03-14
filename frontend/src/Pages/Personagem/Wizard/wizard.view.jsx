@@ -219,7 +219,7 @@ const WizardView = (props) => {
           )}
 
           <button
-            onClick={avancarComMestre}
+            onClick={() => avancarComMestre()}
             disabled={!etapaValida || enviando}
             className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
               !etapaValida || enviando

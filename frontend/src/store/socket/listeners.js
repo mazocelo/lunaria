@@ -14,8 +14,8 @@ export const createListenerActions = (set, get) => ({
     // removeAllListeners() destruía listeners de EtapaJogoRPG registrados via on()
     const internalEvents = [
       'connect', 'disconnect', 'connect_error', 'error',
-      'authenticated', 'authentication_error',
-      'room_joined', 'room_left', 'room_users', 'connection_error',
+      'authenticated',
+      'room_joined', 'room_left',
       'fase_atualizada', 'aventura_iniciada', 'resultado_dado_inicial',
       'ordem_definida', 'turno_alterado', 'mestre_finalizou_turno',
       'turno_iniciado', 'rodada_finalizada', 'nova_rodada_iniciada',
@@ -153,16 +153,6 @@ export const createListenerActions = (set, get) => ({
       get().log('Authenticated', { userId: user.id, username: user.username, success: true });
     });
 
-    socket.on('authentication_error', (error) => {
-      set({
-        isAuthenticated: false,
-        currentUser: null,
-        userRole: null,
-        error: error.message
-      });
-      get().log('Authentication failed', { error: error.message }, 'error');
-    });
-
     // ===== LISTENERS DE ROOM =====
     socket.on('room_joined', (data) => {
       // Recuperar estado do jogo ao reconectar
@@ -254,16 +244,6 @@ export const createListenerActions = (set, get) => ({
         roomUsers: []
       });
       get().log('Room left', { success: true });
-    });
-
-    socket.on('room_users', (users) => {
-      set({ roomUsers: users });
-      get().log('Room users updated', { count: users.length });
-    });
-
-    socket.on('connection_error', (error) => {
-      set({ error: error.message });
-      get().log('Connection error', { error: error.message }, 'error');
     });
 
     // ===== LISTENERS DO SISTEMA DE TURNOS E RODADAS =====

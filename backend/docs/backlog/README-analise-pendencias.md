@@ -26,7 +26,7 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 | Ordem | Tema | Status | % | Resumo |
 | --- | --- | --- | --- | --- |
-| F-01 | Contrato publico do websocket | praticamente concluido | ~89% | contrato JSON v2.1.0, canonical path, legacy catalogado. Faltam dice_roll echo e rate_limit_exceeded |
+| F-01 | Contrato publico do websocket | concluido | ~97% | contrato JSON v2.1.0 completo, dice_roll/rpg_action echo documentados, rate_limit_exceeded reclassificado, listeners orfaos removidos. Resta apenas P5 (annotations inline) |
 | F-02 | Modularizacao do motor do jogo | parcialmente concluido | ~48% | 4 engines extraidos, mas 5+ handlers grandes permanecem no socketManager (2067L). Acoplamento pesado (262 refs sm.) |
 | D-01 | Jobs duraveis para IA | parcialmente concluido | ~55% | v1 roteiro com BullMQ pronta mas dormant (flag OFF). Worker nao deployavel. Filas imagem/audio pendentes |
 | D-02 | Deploy e banco VPS | parcialmente concluido | ~50% | CI/CD funcional nos 3 repos, db push eliminado. Faltam backup, rollback, healthcheck |
@@ -35,27 +35,28 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 ## Analise por frente
 
-### F-01. Contrato publico do websocket (~89%)
+### F-01. Contrato publico do websocket (~97%)
 
-**Status:** praticamente concluido
+**Status:** concluido
 
 **O que ja foi feito**
 
-- contrato JSON v2.1.0 completo (1063 linhas), canonical_gameplay_path definido
+- contrato JSON v2.1.0 completo (1063+ linhas), canonical_gameplay_path definido
 - turno_estado_atualizado marcado authoritative, mestre_solicita_dados canonical
 - 20 eventos legacy catalogados, 5 aliases documentados
 - server_message documentado, pong/room_users removidos do test-websocket.html
+- `dice_roll` echo documentado como server_to_client com payload completo
+- `rpg_action` echo documentado como server_to_client com payload completo
+- `rate_limit_exceeded` reclassificado de `canonical` para `planned` (nunca emitido)
+- 3 listeners orfaos removidos do frontend (room_users, connection_error, authentication_error)
 
 **O que ainda falta**
 
-- documentar `dice_roll` echo como server_to_client (testEngine.js:99 emite, frontend depende)
-- documentar `rpg_action` echo como server_to_client (socketManager.js:811 emite)
-- decidir sobre `rate_limit_exceeded` (documentado mas nunca emitido): implementar ou marcar como planned
-- remover 3 listeners orfaos do frontend (room_users, connection_error, authentication_error)
+- P5: annotations inline nos handlers do backend (cosmético, baixa prioridade)
 
 **Leitura pratica**
 
-Em modo de manutencao com 4 gaps pontuais.
+Concluido. Unico gap remanescente e cosmético (annotations inline).
 
 ### F-02. Modularizacao do motor do jogo (~48%)
 
@@ -209,11 +210,11 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 - `GET /admin/motor/sessoes/:roomId` — dump completo
 - `GET /admin/motor/jobs` — consultar ai_jobs com filtro
 
-### P-04 Fechar gaps do contrato WebSocket (F-01)
+### P-04 ~~Fechar gaps do contrato WebSocket (F-01)~~ CONCLUIDO
 
-- documentar `dice_roll` echo e `rpg_action` echo como server_to_client
-- decidir sobre `rate_limit_exceeded`: implementar ou reclassificar
-- remover 3 listeners orfaos do frontend
+- ~~documentar `dice_roll` echo e `rpg_action` echo como server_to_client~~ feito
+- ~~decidir sobre `rate_limit_exceeded`: implementar ou reclassificar~~ reclassificado como `planned`
+- ~~remover 3 listeners orfaos do frontend~~ removidos
 
 ### P-05 Hardening de deploy (D-02)
 
@@ -232,7 +233,7 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 
 O projeto avancou significativamente desde a abertura das 6 frentes:
 
-- **F-01 (~89%)**: contrato WebSocket praticamente fechado, em manutencao
+- **F-01 (~97%)**: contrato WebSocket concluido, apenas P5 cosmético pendente
 - **D-02 (~50%)**: CI/CD funcional, db push eliminado, baseline aplicado
 - **D-01 (~55%)**: v1 roteiro pronta no codigo mas dormant — worker nao deployavel
 - **F-02 (~48%)**: 4 engines extraidos, socketManager -48%, mas acoplamento pesado permanece

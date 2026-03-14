@@ -128,17 +128,21 @@ Esse item e base para os proximos. Se o contrato publico continuar difuso, qualq
 - `server_message` documentado
 - `pong` e `room_users` removidos do `test-websocket.html`
 
-### Pendentes
+### Pendentes (resolvidos 2026-03-13)
 
-| # | Item | Prioridade |
+| # | Item | Resolucao |
 |---|------|-----------|
-| P1 | `dice_roll` echo (server->client) nao documentado no JSON — testEngine.js:99 emite, frontend depende | Alta |
-| P2 | `rpg_action` echo (server->client) nao documentado no JSON — socketManager.js:811 emite | Media |
-| P3 | `rate_limit_exceeded` documentado como canonical mas nunca emitido — decidir: implementar ou reclassificar como `planned` | Media |
-| P4 | Frontend escuta 3 listeners orfaos: `room_users` (listeners.js:259), `connection_error` (listeners.js:264), `authentication_error` (listeners.js:156) — backend nunca emite | Baixa |
-| P5 | Backend sem annotations inline nos handlers (info so existe no JSON) | Baixa |
+| P1 | `dice_roll` echo (server->client) nao documentado | **Resolvido** — adicionado em `server_to_client.messages.dice_roll` com payload completo |
+| P2 | `rpg_action` echo (server->client) nao documentado | **Resolvido** — adicionado em `server_to_client.messages.rpg_action` com payload completo |
+| P3 | `rate_limit_exceeded` documentado como canonical mas nunca emitido | **Resolvido** — reclassificado para `planned` com nota explicativa |
+| P4 | Frontend escuta 3 listeners orfaos (`room_users`, `connection_error`, `authentication_error`) | **Resolvido** — listeners removidos de `listeners.js` e do array `internalEvents` |
+| P5 | Backend sem annotations inline nos handlers | Baixa prioridade — info existe no JSON, nao bloqueia |
 
-### Riscos
+### Completude atualizada: ~97%
+
+Unico gap remanescente: P5 (annotations inline nos handlers — cosmético, não funcional).
+
+### Riscos (atualizados)
 
 - Divergencia JSON vs runtime sem validacao automatica em CI — novo emit pode escapar da documentacao
-- `rate_limit_exceeded` promete protecao que nao existe no runtime
+- `rate_limit_exceeded` agora corretamente marcado como `planned` — frontend listener mantido para quando for implementado

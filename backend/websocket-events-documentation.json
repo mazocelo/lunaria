@@ -731,6 +731,37 @@
           "timestamp": "integer"
         }
       },
+      "dice_roll": {
+        "status": "canonical",
+        "description": "Echo of a player dice roll broadcast to the entire room. Emitted by testEngine after validating the roll. When the roll resolves a pending test, dadosSolicitados is true and resultado_teste follows.",
+        "direction": "server_to_client",
+        "payload_shape": {
+          "id": "string",
+          "userId": "string",
+          "username": "string",
+          "dice": "string",
+          "result": "string",
+          "description": "string|null",
+          "roomId": "string",
+          "timestamp": "integer",
+          "dadosSolicitados": "boolean"
+        }
+      },
+      "rpg_action": {
+        "status": "supported_non_primary",
+        "description": "Echo of a structured lightweight RPG action broadcast to the room. Emitted by socketManager after validation. Action is persisted to session history for historia_ rooms.",
+        "direction": "server_to_client",
+        "payload_shape": {
+          "id": "string",
+          "userId": "string",
+          "username": "string",
+          "action": "string",
+          "target": "string|null",
+          "description": "string|null",
+          "roomId": "string",
+          "timestamp": "string"
+        }
+      },
       "server_message": {
         "status": "canonical",
         "description": "Server-originated informational message broadcast to the room. Currently emitted when a defeated player attempts to act during combat.",
@@ -902,7 +933,8 @@
         }
       },
       "rate_limit_exceeded": {
-        "status": "canonical",
+        "status": "planned",
+        "description": "Planned but not yet emitted by the backend. Frontend listener exists and is ready. Will be implemented when WebSocket-level rate limiting is added.",
         "payload_shape": {
           "message": "string",
           "retryAfter": "integer|null",

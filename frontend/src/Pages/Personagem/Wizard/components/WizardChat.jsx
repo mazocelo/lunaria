@@ -153,7 +153,7 @@ const WizardChat = ({
 
   return (
     <div className={embedded ? 'flex h-full flex-col' : 'wa-chat-shell mx-4 mb-4 mt-3 flex h-full flex-col rounded-[24px] md:mx-5 md:mb-5'}>
-      {etapaAtual !== 'boas_vindas' && (
+      {['vantagens', 'desvantagens'].includes(etapaAtual) && (
         <div className="shrink-0 wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -193,7 +193,7 @@ const WizardChat = ({
         </div>
       )}
 
-      {showAtributos && (
+      {etapaAtual === 'atributos' && (
         <div className="shrink-0 wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">

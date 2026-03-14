@@ -280,13 +280,14 @@ export function hasPendingTests(sessao = {}, options = {}) {
   return testes.some((teste) => String(teste.groupId) === String(groupId));
 }
 
-export function emitirSolicitacaoTeste(io, roomId, sessao = {}, payload = {}) {
+export function emitirSolicitacaoTeste(sm, roomId, sessao = {}, payload = {}) {
   const testes = Array.isArray(payload.testesPendentes) && payload.testesPendentes.length > 0
     ? payload.testesPendentes.filter((teste) => teste?.status === 'pending')
     : getTestesPendentes(sessao);
 
   if (!testes.length) {
-    io.to(roomId).emit('turno_estado_atualizado', {
+    // @event turno_estado_atualizado → room (broadcast) | nenhum teste pendente
+    sm.sendToRoom(roomId, 'turno_estado_atualizado', {
       roomId,
       ...buildTurnEventPayload(sessao),
       timestamp: Date.now()
@@ -310,8 +311,10 @@ export function emitirSolicitacaoTeste(io, roomId, sessao = {}, payload = {}) {
     timestamp: Date.now()
   };
 
-  io.to(roomId).emit('mestre_solicita_dados', evento);
-  io.to(roomId).emit('turno_estado_atualizado', {
+  // @event mestre_solicita_dados → room (broadcast) | mestre solicita rolagem de dados
+  sm.sendToRoom(roomId, 'mestre_solicita_dados', evento);
+  // @event turno_estado_atualizado → room (broadcast) | estado do turno após solicitação
+  sm.sendToRoom(roomId, 'turno_estado_atualizado', {
     roomId,
     ...buildTurnEventPayload(sessao),
     timestamp: Date.now()

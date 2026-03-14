@@ -27,6 +27,7 @@ export default class RoomGateway {
           socketId: socket.id,
           receivedData: data
         });
+        // @event error → socket (direct) | join attempt rejected because socket is not authenticated
         socket.emit('error', {
           message: 'Socket nao autenticado. Execute authenticate() primeiro.',
           code: 'NOT_AUTHENTICATED'
@@ -49,6 +50,7 @@ export default class RoomGateway {
           },
           receivedData: data
         });
+        // @event error → socket (direct) | join attempt rejected: roomId or userId missing from payload
         socket.emit('error', {
           message: 'roomId e userId sao obrigatorios',
           code: 'MISSING_REQUIRED_FIELDS'
@@ -61,6 +63,7 @@ export default class RoomGateway {
           authenticatedUserId: socket.userId,
           requestedUserId: rawUserId
         });
+        // @event error → socket (direct) | join attempt rejected: userId in payload does not match authenticated socket
         socket.emit('error', {
           message: 'userId nao corresponde ao usuario autenticado.',
           code: 'USER_MISMATCH'
@@ -111,6 +114,7 @@ export default class RoomGateway {
             roomId,
             historiaId
           });
+          // @event error → socket (direct) | no session found for the requested historia roomId
           socket.emit('error', {
             message: 'Historia nao encontrada.',
             code: 'HISTORIA_NAO_ENCONTRADA'
@@ -147,6 +151,7 @@ export default class RoomGateway {
               statusJogo: sessao.statusJogo,
               motivo: 'O jogo ja iniciou - usuario nao esta no mapa de jogadores'
             });
+            // @event error → socket (direct) | join blocked: game already started and user is not a registered player
             socket.emit('error', {
               message: 'O jogo ja foi iniciado. Nao e possivel entrar agora.',
               code: 'JOGO_INICIADO'
@@ -175,6 +180,7 @@ export default class RoomGateway {
               roomId,
               motivo: 'Sessao antiga (sem statusJogo) mas status=iniciada'
             });
+            // @event error → socket (direct) | join blocked: legacy session with status=iniciada and user not in player map
             socket.emit('error', {
               message: 'A aventura ja foi iniciada. Nao e possivel entrar agora.',
               code: 'AVENTURA_INICIADA'
@@ -201,6 +207,7 @@ export default class RoomGateway {
                 maxJogadores: sessao.maxJogadores,
                 roomId
               });
+              // @event error → socket (direct) | join blocked: room is at max capacity and user has no prior connection
               socket.emit('error', {
                 message: `Sala lotada. Maximo de ${sessao.maxJogadores} jogadores.`,
                 code: 'SALA_LOTADA'
@@ -305,6 +312,7 @@ export default class RoomGateway {
         status: userJoinedEvent.status
       });
 
+      // @event user_joined → room (broadcast) | notifies existing room members that a new player has joined or reconnected
       socket.to(roomId).emit('user_joined', userJoinedEvent);
 
       const roomUsers = Array.from(sm.roomUsers.get(roomId) || []);
@@ -324,6 +332,7 @@ export default class RoomGateway {
             roomId,
             message: 'Sessao deveria existir mas retornou null'
           });
+          // @event error → socket (direct) | sessao disappeared between join processing and response building
           socket.emit('error', { message: 'Erro ao conectar a historia' });
           return;
         }
@@ -356,6 +365,7 @@ export default class RoomGateway {
           jogadores: responseData.sessao.jogadoresConectados
         });
 
+        // @event room_joined → socket (direct) | confirms join for a historia room, includes full session state
         socket.emit('room_joined', responseData);
 
         const processingTime = Date.now() - startTime;
@@ -379,6 +389,7 @@ export default class RoomGateway {
         users: roomUsers
       };
 
+      // @event room_joined → socket (direct) | confirms join for a generic (non-historia) room
       socket.emit('room_joined', responseData);
 
       const processingTime = Date.now() - startTime;
@@ -397,6 +408,7 @@ export default class RoomGateway {
         processingTimeMs: processingTime,
         inputData: data
       });
+      // @event error → socket (direct) | unhandled exception during join room flow
       socket.emit('error', { message: 'Erro ao entrar na sala' });
     }
   }
@@ -421,6 +433,7 @@ export default class RoomGateway {
           },
           receivedData: data
         });
+        // @event error → socket (direct) | leave attempt rejected: roomId or userId missing
         socket.emit('error', { message: 'roomId e userId sao obrigatorios' });
         return;
       }
@@ -485,8 +498,10 @@ export default class RoomGateway {
         eventData: userLeftEvent
       });
 
+      // @event user_left → room (broadcast) | notifies remaining room members that a player has voluntarily left
       socket.to(roomId).emit('user_left', userLeftEvent);
 
+      // @event room_left → socket (direct) | confirms to the leaving player that they have exited the room
       socket.emit('room_left', {
         roomId,
         timestamp: Date.now()
@@ -507,6 +522,7 @@ export default class RoomGateway {
         processingTimeMs: processingTime,
         inputData: data
       });
+      // @event error → socket (direct) | unhandled exception during leave room flow
       socket.emit('error', { message: 'Erro ao sair da sala' });
     }
   }
@@ -636,6 +652,7 @@ export default class RoomGateway {
         remainingUsersInRoom: userSet.size
       });
 
+      // @event user_left → room (broadcast) | notifies remaining room members that a player disconnected
       socket.to(roomId).emit('user_left', userLeftEvent);
     }
 
@@ -722,6 +739,7 @@ export default class RoomGateway {
         console.log(`Jogador ${dadosJogador.username} adicionado a sessao ${salaId}`);
 
         if (statusAnterior !== sessao.statusJogo && sm.io) {
+          // @event status_jogo_alterado → room (broadcast) | fires when game lobby status changes (e.g. waiting → ready)
           sm.sendToRoom(salaId, 'status_jogo_alterado', {
             statusJogo: sessao.statusJogo,
             totalJogadores: jogadoresAtuais.length,

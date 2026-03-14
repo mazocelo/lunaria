@@ -38,6 +38,7 @@ export default class TestEngine {
       } = data || {};
 
       if (!rawRoomId || !rawUserId || !rawDice || !rawResult) {
+        // @event error → socket (direct) | validation failed: missing required fields on dice_roll
         socket.emit('error', { message: 'roomId, userId, dice e result sao obrigatorios' });
         return;
       }
@@ -52,6 +53,7 @@ export default class TestEngine {
       await sm.withRoomLock(roomId, async () => {
         const sessao = await sm.obterSessaoHistoria(roomId);
         if (!sessao) {
+          // @event error → socket (direct) | session not found when processing dice_roll
           socket.emit('error', { message: 'Sessao nao encontrada' });
           return;
         }
@@ -86,6 +88,7 @@ export default class TestEngine {
         const dadosSolicitados = !!testeResolvido;
 
         if (tentativaResolucao.motivo === 'jogador_incorreto') {
+          // @event teste_rejeitado → room (broadcast) | dice roll rejected because it came from the wrong player
           sm.sendToRoom(roomId, 'teste_rejeitado', {
             roomId,
             motivo: 'jogador_incorreto',
@@ -96,6 +99,7 @@ export default class TestEngine {
           });
         }
 
+        // @event dice_roll → room (broadcast) | broadcasts every dice roll result to the room
         sm.sendToRoom(roomId, 'dice_roll', { ...rollData, dadosSolicitados });
 
         if (!testeResolvido) {
@@ -181,6 +185,7 @@ export default class TestEngine {
           payload: resultadoTestePayload
         }));
 
+        // @event resultado_teste → room (broadcast) | fires after a pending skill test is mechanically resolved
         sm.sendToRoom(roomId, 'resultado_teste', resultadoTestePayload);
 
         try {
@@ -212,7 +217,7 @@ export default class TestEngine {
           const acoesPendentesTeste = sessao.estadoJogo?.acoesPendentesTeste || [];
           if (acoesPendentesTeste.length > 0) {
             const { processarAcoes } = await import('../../helpers/acoesProcessor.js');
-            await processarAcoes(acoesPendentesTeste, sessao, roomId, sm.io, { stage: 'posTeste' });
+            await processarAcoes(acoesPendentesTeste, sessao, roomId, sm, { stage: 'posTeste' });
             sessao.estadoJogo.acoesPendentesTeste = [];
           }
 
@@ -233,6 +238,7 @@ export default class TestEngine {
           await sm.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
           sm.emitirEstadoTurno(roomId, sessao);
 
+          // @event mensagem_mestre → room (broadcast) | AI Master narrates the outcome of the resolved test
           sm.sendToRoom(roomId, 'mensagem_mestre', {
             ...msgInterpretacao,
             message: interpretacao.narracao
@@ -266,6 +272,7 @@ export default class TestEngine {
           await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           sm.emitirEstadoTurno(roomId, sessao);
 
+          // @event mensagem_mestre → room (broadcast) | fallback Master message when AI narration fails after test resolution
           sm.sendToRoom(roomId, 'mensagem_mestre', {
             ...mensagemFallback,
             message: textoFallback
@@ -274,6 +281,7 @@ export default class TestEngine {
       });
     } catch (error) {
       console.error('Erro ao processar dice_roll:', error);
+      // @event error → socket (direct) | unhandled exception in handleDiceRoll outer catch
       socket.emit('error', { message: 'Erro ao processar rolagem' });
 
       try {
@@ -314,6 +322,7 @@ export default class TestEngine {
             userId: !rawUserId
           }
         });
+        // @event error → socket (direct) | validation failed: missing roomId or userId on rolar_dado_inicial
         socket.emit('error', { message: 'roomId e userId sao obrigatorios' });
         return;
       }
@@ -331,6 +340,7 @@ export default class TestEngine {
         const sessao = await sm.obterSessaoHistoria(roomId);
         if (!sessao) {
           sm.log('ERROR', 'ROLAR_DADO_INICIAL_SESSAO_NOT_FOUND', socket.id, userId, { roomId });
+          // @event error → socket (direct) | session not found when processing rolar_dado_inicial
           socket.emit('error', { message: 'Sessao nao encontrada' });
           return;
         }
@@ -342,6 +352,7 @@ export default class TestEngine {
             roomId,
             valorAnterior: rolagemInicial[userId].valor
           });
+          // @event erro_dado_inicial → socket (direct) | player already rolled the initial die in this session
           socket.emit('erro_dado_inicial', {
             message: 'Voce ja rolou o dado inicial',
             valorAnterior: rolagemInicial[userId].valor
@@ -374,6 +385,7 @@ export default class TestEngine {
           resultadoData
         });
 
+        // @event resultado_dado_inicial → room (broadcast) | broadcasts a player's initial d20 roll result to the room
         sm.sendToRoom(roomId, 'resultado_dado_inicial', resultadoData);
 
         const sessaoParaDado = await sm.obterSessaoHistoria(roomId);
@@ -418,6 +430,7 @@ export default class TestEngine {
           ordemJogadores: ordemJogadores.map((jogadorTurno) => `${jogadorTurno.username} (${jogadorTurno.valorDado})`)
         });
 
+        // @event ordem_definida → room (broadcast) | fires when all players have rolled and turn order is established
         sm.sendToRoom(roomId, 'ordem_definida', {
           ordemJogadores,
           timestamp: Date.now()
@@ -449,6 +462,7 @@ export default class TestEngine {
         processingTimeMs: processingTime
       });
       if (!error.message?.includes('Operacao em andamento')) {
+        // @event error → socket (direct) | unhandled exception in handleRolarDadoInicial
         socket.emit('error', { message: 'Erro ao rolar dado inicial' });
       }
     }
@@ -472,6 +486,7 @@ export default class TestEngine {
             motivo: !motivo
           }
         });
+        // @event error → socket (direct) | validation failed: missing roomId or motivo on solicitar_dados
         socket.emit('error', { message: 'roomId e motivo sao obrigatorios' });
         return;
       }
@@ -480,6 +495,7 @@ export default class TestEngine {
         const sessao = await sm.obterSessaoHistoria(roomId);
         if (!sessao) {
           sm.log('ERROR', 'SOLICITAR_DADOS_SESSAO_NOT_FOUND', socket.id, socket.userId, { roomId });
+          // @event error → socket (direct) | session not found when processing solicitar_dados
           socket.emit('error', { message: 'Sessao nao encontrada' });
           return;
         }
@@ -558,7 +574,7 @@ export default class TestEngine {
 
         sm.log('SUCCESS', 'SOLICITAR_DADOS_SESSAO_UPDATED', socket.id, socket.userId, { roomId });
 
-        emitirSolicitacaoTeste(sm.io, roomId, sessao, {
+        emitirSolicitacaoTeste(sm, roomId, sessao, {
           narrativa: solicitacao.narrativa,
           tipoDado: solicitacao.tipoTeste,
           teste: motivo,
@@ -582,6 +598,7 @@ export default class TestEngine {
         stack: error.stack,
         processingTimeMs: processingTime
       });
+      // @event error → socket (direct) | unhandled exception in handleSolicitarDados
       socket.emit('error', { message: 'Erro ao solicitar dados' });
     }
   }

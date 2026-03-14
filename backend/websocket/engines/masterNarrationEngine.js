@@ -339,7 +339,7 @@ export default class MasterNarrationEngine {
       const { despacharResposta } = await import('../utils/respostaDispatcher.js');
       await despacharResposta(resposta, {
         roomId, userId, username, personagem, mensagem, sessao,
-        socket, io: sm.io, sm, fase, combateAtivo
+        socket, sm, fase, combateAtivo
       });
       sm.emitirEstadoTurno(roomId, sessao);
 

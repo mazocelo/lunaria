@@ -177,6 +177,7 @@ export default class CombatEngine {
       sm._tentarSnapshot(roomId, sessao, true);
 
       // Emitir evento de combate iniciado
+      // @event combate_iniciado → room (broadcast) | fires once when a new combat starts, sends monster instances and player stats
       sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_INICIADO, {
         monstros: instancias,
         jogadores: jogadoresCombate,
@@ -212,6 +213,7 @@ export default class CombatEngine {
 
       // Jogador derrotado
       if (r.jogadorDerrotado) {
+        // @event server_message → room (broadcast) | fires when a defeated player tries to act in combat
         sm.sendToRoom(roomId,'server_message', {
           userId,
           mensagem: `💀 ${personagem.nome} foi derrotado e não pode agir neste combate.`
@@ -222,17 +224,20 @@ export default class CombatEngine {
       // --- EMITIR EVENTOS DE STATUS EFFECTS ---
       for (const se of r.statusEfeitos) {
         if (se.tipo === 'impedido') {
+          // @event combate_resultado_acao → room (broadcast) | fires when a status effect prevents a player from acting (tipo: status_efeito)
           sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
             tipo: 'status_efeito', personagem: se.personagem, userId: se.userId,
             status: se.efeito, mensagem: `${se.personagem} está ${se.efeito} e não pode agir!`,
             timestamp: Date.now()
           });
         } else if (se.tipo === 'dano') {
+          // @event combate_resultado_acao → room (broadcast) | fires when a status effect deals damage over time (tipo: status_dano)
           sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
             tipo: 'status_dano', alvo: { userId: se.userId, nome: se.personagem },
             status: se.efeito, dano: se.dano, hpRestante: se.hpRestante, hpMax: se.hpMax,
             timestamp: Date.now()
           });
+          // @event combate_jogador_ferido → room (broadcast) | fires when a status effect damages a player, updating their HP
           sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
             userId: se.userId, nome: se.personagem,
             hp_atual: se.hpRestante, hp_max: se.hpMax,
@@ -247,6 +252,7 @@ export default class CombatEngine {
       // --- EMITIR RESULTADO DO ATAQUE DO JOGADOR ---
       const atk = r.ataqueJogador;
       if (atk) {
+        // @event combate_resultado_acao → room (broadcast) | fires with the result of a player attack against a monster (tipo: ataque_jogador)
         sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
           tipo: 'ataque_jogador',
           atacante: { userId: atk.userId, nome: atk.atacante },
@@ -259,6 +265,7 @@ export default class CombatEngine {
         });
 
         if (atk.derrotado) {
+          // @event combate_monstro_derrotado → room (broadcast) | fires when a monster's HP reaches 0, carrying XP reward
           sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
             monstro: { id: atk.alvoId, nome: atk.alvo },
             xp: atk.xp, timestamp: Date.now()
@@ -268,6 +275,7 @@ export default class CombatEngine {
 
       // --- EMITIR CONTRA-ATAQUES DOS MONSTROS ---
       for (const ca of r.contraAtaques) {
+        // @event combate_resultado_acao → room (broadcast) | fires for each monster counter-attack against a player (tipo: ataque_monstro)
         sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
           tipo: 'ataque_monstro',
           atacante: { id: ca.atacanteId, nome: ca.atacante },
@@ -281,6 +289,7 @@ export default class CombatEngine {
         });
 
         if (ca.acertou && ca.dano > 0) {
+          // @event combate_jogador_ferido → room (broadcast) | fires when a monster counter-attack lands and damages a player
           sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_JOGADOR_FERIDO, {
             userId: ca.alvoId, nome: ca.alvoNome,
             hp_atual: ca.hpRestante, hp_max: ca.hpMax,
@@ -324,6 +333,7 @@ export default class CombatEngine {
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
       // Emitir estado atualizado
+      // @event combate_estado → room (broadcast) | fires at end of each player action round, broadcasting updated monster/player HP and round number
       sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_ESTADO, {
         monstros: combate.monstros,
         jogadores: combate.jogadores,
@@ -409,6 +419,7 @@ export default class CombatEngine {
                   nivelAtual = levelUp.ganhos.novoNivel;
                   xpRestante = levelUp.ganhos.xpRestante;
 
+                  // @event level_up → room (broadcast) | fires for each level gained via clone path when combat XP causes one or more level-ups
                   sm.sendToRoom(roomId,'level_up', {
                     userId: jUserId,
                     personagemNome: jogadorCombate.personagemNome,
@@ -466,6 +477,7 @@ export default class CombatEngine {
                   }
                 });
 
+                // @event level_up → room (broadcast) | fires when combat XP causes a level-up via fallback direct-write path (no clone)
                 sm.sendToRoom(roomId,'level_up', {
                   userId: jUserId,
                   personagemNome: jogadorCombate.personagemNome,
@@ -534,6 +546,7 @@ export default class CombatEngine {
                 }
               }
 
+              // @event combate_loot → room (broadcast) | fires after victory when defeated monsters drop one or more items
               sm.sendToRoom(roomId,'combate_loot', {
                 lootPorJogador: lootResultado.lootPorJogador,
                 todosItens: lootResultado.todosItens,
@@ -548,6 +561,7 @@ export default class CombatEngine {
 
       // Emitir evento de combate finalizado
       const monstrosDerrotados = combate.monstros.filter(m => m.status === 'derrotado').map(m => m.nome);
+      // @event combate_finalizado → room (broadcast) | fires once when combat ends (vitoria/derrota/fuga), carrying XP, survivors and loot summary
       sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_FINALIZADO, {
         resultado,
         xpTotal,
@@ -594,6 +608,7 @@ export default class CombatEngine {
         appendMensagemSessao(sessao, msgDesfecho);
         await sm.aplicarMetadadosNarrativos(roomId, sessao, respostaDesfecho.metadados || {});
 
+        // @event mensagem_mestre → room (broadcast) | fires after combat ends with the AI-narrated epilogue (victory, defeat or escape)
         sm.sendToRoom(roomId,'mensagem_mestre', {
           id: Date.now().toString(),
           ...msgDesfecho,

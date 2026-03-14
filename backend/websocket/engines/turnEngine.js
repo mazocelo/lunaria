@@ -62,6 +62,7 @@ export default class TurnEngine {
             userId: !rawUserId
           }
         });
+        // @event error → socket (direct) | validation failed: roomId or userId missing
         socket.emit('error', { message: 'roomId e userId sao obrigatorios' });
         return;
       }
@@ -76,6 +77,7 @@ export default class TurnEngine {
         const sessao = await sm.obterSessaoHistoria(roomId);
         if (!sessao) {
           sm.log('ERROR', 'INICIAR_TURNO_SESSAO_NOT_FOUND', socket.id, userId, { roomId });
+          // @event error → socket (direct) | sessao not found for the given roomId
           socket.emit('error', { message: 'Sessao nao encontrada' });
           return;
         }
@@ -91,6 +93,7 @@ export default class TurnEngine {
             turnoAtual,
             jogadorDaVez: jogadorDaVez?.username
           });
+          // @event erro_turno → socket (direct) | player tried to start a turn that is not theirs
           socket.emit('erro_turno', { message: 'Nao e seu turno!' });
           return;
         }
@@ -153,6 +156,7 @@ export default class TurnEngine {
         await sm.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, mensagemInicial.metadados || {});
         await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
 
+        // @event mensagem_mestre → room (broadcast) | AI narration for the start of a player's turn
         sm.sendToRoom(roomId, 'mensagem_mestre', {
           ...msgInicial,
           message: narrativaInicial
@@ -179,7 +183,6 @@ export default class TurnEngine {
           mensagem: `Inicio do turno de ${jogadorDaVez.personagemNome || username}`,
           sessao: sessaoAtualizada,
           socket,
-          io: sm.io,
           sm,
           fase: estadoJogo.fase,
           combateAtivo: !!estadoJogo.combate?.ativo,
@@ -199,6 +202,7 @@ export default class TurnEngine {
         await sm.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, { userId });
         sm.emitirEstadoTurno(roomId, sessaoAtualizada);
 
+        // @event turno_iniciado → room (broadcast) | confirms the active player's turn has been started
         sm.sendToRoom(roomId, 'turno_iniciado', {
           userId,
           username,
@@ -243,6 +247,7 @@ export default class TurnEngine {
         processingTimeMs: processingTime
       });
       if (!error.message?.includes('Operacao em andamento')) {
+        // @event error → socket (direct) | unhandled exception during turn start flow
         socket.emit('error', { message: 'Erro ao iniciar turno' });
       }
     }
@@ -277,6 +282,7 @@ export default class TurnEngine {
         sessao.estadoJogo = estadoJogo;
         await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
+        // @event mensagem_mestre → room (broadcast) | delivers the pending prologue message before the first turn
         sm.sendToRoom(roomId, 'mensagem_mestre', {
           id: prologoTimestamp.toString(),
           ...msgPrologo,
@@ -288,6 +294,7 @@ export default class TurnEngine {
         rodadaAtual: estadoJogo.rodadaAtual || 1
       });
 
+      // @event turno_alterado → room (broadcast) | announces the first player's turn at the start of the session
       sm.sendToRoom(roomId, 'turno_alterado', {
         rodadaAtual: estadoJogo.rodadaAtual || 1,
         turnoAtual: 0,
@@ -368,10 +375,12 @@ export default class TurnEngine {
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
       sm.emitirEstadoTurno(roomId, sessao);
 
+      // @event chat_message → room (broadcast) | system transition message indicating whose turn it is next
       sm.sendToRoom(roomId, 'chat_message', {
         ...mensagemTransicao,
         message: mensagemTransicao.message
       });
+      // @event turno_alterado → room (broadcast) | notifies all players of the new active turn and player order
       sm.sendToRoom(roomId, 'turno_alterado', {
         rodadaAtual: estadoJogo.rodadaAtual || 1,
         turnoAtual: proximoTurno,
@@ -415,6 +424,7 @@ export default class TurnEngine {
       sm.notificarMudancaFase(roomId, 'entre_rodadas', {
         rodadaFinalizada: rodadaAtual
       });
+      // @event rodada_finalizada → room (broadcast) | fires when all players have completed their turns for the round
       sm.sendToRoom(roomId, 'rodada_finalizada', {
         rodada: rodadaAtual,
         timestamp: Date.now()
@@ -483,7 +493,7 @@ export default class TurnEngine {
           try {
             const { processarAcoes } = await import('../../helpers/acoesProcessor.js');
             const sessaoParaAcoes = await sm.obterSessaoHistoria(roomId);
-            await processarAcoes(narrativa.acoes, sessaoParaAcoes, roomId, sm.io);
+            await processarAcoes(narrativa.acoes, sessaoParaAcoes, roomId, sm);
             await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaAcoes);
           } catch (acoesError) {
             console.error('Erro ao processar acoes entre rodadas:', acoesError.message);
@@ -534,6 +544,7 @@ export default class TurnEngine {
           await this.iniciarNovaRodada(roomId);
         } catch (error) {
           console.error('Erro ao iniciar nova rodada:', error);
+          // @event erro_sistema → room (broadcast) | unhandled error prevented the next round from starting
           sm.sendToRoom(roomId, 'erro_sistema', {
             message: 'Erro ao iniciar nova rodada. Tente novamente.'
           });
@@ -565,6 +576,7 @@ export default class TurnEngine {
       sm.notificarMudancaFase(roomId, 'rodada_em_andamento', {
         rodadaAtual: novaRodada
       });
+      // @event nova_rodada_iniciada → room (broadcast) | fires after between-rounds narration when a new round begins
       sm.sendToRoom(roomId, 'nova_rodada_iniciada', {
         rodada: novaRodada,
         primeiroJogador: ordemJogadores[0],
@@ -572,6 +584,7 @@ export default class TurnEngine {
       });
 
       if (ordemJogadores.length > 0) {
+        // @event turno_alterado → room (broadcast) | announces the first player's turn at the start of the new round
         sm.sendToRoom(roomId, 'turno_alterado', {
           rodadaAtual: novaRodada,
           turnoAtual: 0,

@@ -102,7 +102,7 @@ function emitSolicitacao(ctx, resposta, testePendente, testesCriados, modificado
     }
   }));
 
-  emitSolicitacaoTeste(ctx.io, ctx.roomId, ctx.sessao, {
+  emitSolicitacaoTeste(ctx.sm, ctx.roomId, ctx.sessao, {
     narrativa: resposta.narracao,
     tipoDado: testePendente.tipoDado,
     teste: testePendente.teste,
@@ -128,7 +128,7 @@ async function processarAcoesMecanicas(resposta, ctx) {
     ctx.sessao.estadoJogo.acoesPendentesTeste = acoesPosTeste;
   }
 
-  await processarAcoes(resposta.acoes, ctx.sessao, ctx.roomId, ctx.io, {
+  await processarAcoes(resposta.acoes, ctx.sessao, ctx.roomId, ctx.sm, {
     stage: existeTestePendente ? 'preTeste' : 'all',
     onTesteSolicitado: async (testePayload) => {
       await criarSolicitacaoTeste({

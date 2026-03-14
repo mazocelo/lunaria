@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, AlertCircle, AlertTriangle, Trash2, X, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
+import { ArrowLeft, AlertCircle, AlertTriangle, Trash2, X, ChevronDown, ChevronUp, ScrollText, ArrowRight, Check, Save, Loader2 } from 'lucide-react';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
@@ -43,6 +43,8 @@ const WizardView = (props) => {
     setAtributo,
     confirmarAtributos,
     salvarPersonagem,
+    avancarEtapa,
+    navegarParaEtapa,
     clearError,
 
     // Bonus
@@ -53,6 +55,10 @@ const WizardView = (props) => {
     // Draft
     draftRestaurado,
     descartarDraft,
+
+    // Navigation
+    etapasConcluidas,
+    etapasVisitadas,
 
     // Limites de seleção
     pontosCriacaoTotal,
@@ -102,10 +108,10 @@ const WizardView = (props) => {
             Criação guiada de personagem
           </p>
         </div>
-        {/* Botão toggle ficha — dourado */}
+        {/* Botão toggle ficha — dourado (hidden on xl+ where sidebar is always visible) */}
         <button
           onClick={() => setFichaAberta(prev => !prev)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-bold transition-all cursor-pointer ${
+          className={`xl:hidden flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-bold transition-all cursor-pointer ${
             fichaAberta
               ? isLight
                 ? 'bg-amber-100 text-amber-700 border-2 border-amber-400 shadow-md shadow-amber-200/50'
@@ -123,7 +129,14 @@ const WizardView = (props) => {
 
       {/* Progress Bar */}
       <div className="shrink-0">
-        <WizardProgressBar etapas={etapas} etapaIndex={etapaIndex} isLight={isLight} />
+        <WizardProgressBar
+          etapas={etapas}
+          etapaIndex={etapaIndex}
+          isLight={isLight}
+          onEtapaClick={navegarParaEtapa}
+          etapasConcluidas={etapasConcluidas}
+          etapasVisitadas={etapasVisitadas}
+        />
       </div>
 
       {/* Error banner */}
@@ -169,9 +182,9 @@ const WizardView = (props) => {
         </div>
       )}
 
-      {/* Ficha collapse */}
+      {/* Ficha collapse (hidden on xl+ where sidebar is always visible) */}
       {fichaAberta && (
-        <div className={`border-b overflow-y-auto max-h-[40vh] shrink-0 ${
+        <div className={`xl:hidden border-b overflow-y-auto max-h-[40vh] shrink-0 ${
           isLight ? 'border-slate-200 bg-white/95' : 'border-slate-700/50 bg-slate-900/95'
         } backdrop-blur-sm`}>
           <div className="p-4 max-w-lg mx-auto space-y-3">
@@ -232,8 +245,12 @@ const WizardView = (props) => {
         </div>
       )}
 
-      {/* Chat (full width) */}
-      <div className="flex-1 flex flex-col min-h-0">
+      {/* Main content area: Chat + optional sidebar */}
+      <div className="flex-1 flex flex-row min-h-0">
+        {/* Left: Chat + Footer */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        {/* Chat */}
+        <div className="flex-1 flex flex-col min-h-0">
         <WizardChat
           mensagens={mensagens}
           inputTexto={inputTexto}
@@ -246,6 +263,7 @@ const WizardView = (props) => {
           etapaAtual={etapaAtual}
           racasDisponiveis={racasDisponiveis}
           classesDisponiveis={classesDisponiveis}
+          vantagensDisponiveis={vantagensDisponiveis}
           chatEndRef={chatEndRef}
           isLight={isLight}
           atributos={atributosBase}
@@ -255,7 +273,6 @@ const WizardView = (props) => {
           pontosTotais={pontosTotais}
           atributosSugeridos={atributosSugeridos}
           aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-          confirmarAtributos={confirmarAtributos}
           bonusAplicados={bonusAplicados}
           bonusDetalhes={bonusDetalhes}
           pontosCriacaoTotal={pontosCriacaoTotal}
@@ -263,13 +280,192 @@ const WizardView = (props) => {
           pontosVantagem={pontosVantagem}
           pontosDesvantagem={pontosDesvantagem}
           maxDesvantagens={maxDesvantagens}
-          salvarPersonagem={salvarPersonagem}
-          salvando={salvando}
-          gerandoBackground={gerandoBackground}
           attrMin={attrMin}
           attrMax={attrMax}
         />
       </div>
+
+      {/* Footer sticky com CTA contextual (T5) */}
+      <div className={`shrink-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${
+        isLight ? 'border-slate-200 bg-white/95' : 'border-slate-700/50 bg-slate-900/95'
+      } backdrop-blur-sm`}>
+        {(() => {
+          const etapasLineares = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
+          if (etapasLineares.includes(etapaAtual)) {
+            const etapaValida = etapasConcluidas.includes(etapaAtual);
+            return (
+              <button
+                onClick={avancarEtapa}
+                disabled={!etapaValida}
+                className={`w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
+                  etapaValida
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
+                    : isLight
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                <ArrowRight size={18} />
+                Continuar
+              </button>
+            );
+          }
+          if (etapaAtual === 'atributos') {
+            return (
+              <button
+                onClick={confirmarAtributos}
+                disabled={enviando || pontosRestantes !== 0}
+                className={`w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
+                  pontosRestantes !== 0
+                    ? isLight
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/20'
+                }`}
+              >
+                <Check size={18} />
+                {pontosRestantes !== 0
+                  ? `Distribua todos os pontos (${pontosRestantes} restantes)`
+                  : 'Confirmar Atributos'
+                }
+              </button>
+            );
+          }
+          if (etapaAtual === 'resumo' || etapaAtual === 'refinamento') {
+            return (
+              <button
+                onClick={salvarPersonagem}
+                disabled={salvando || gerandoBackground || !bonusAplicados}
+                className={`w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
+                  salvando || gerandoBackground
+                    ? 'bg-slate-600 text-slate-400 cursor-wait'
+                    : !bonusAplicados
+                      ? isLight
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
+                }`}
+              >
+                {salvando || gerandoBackground ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    {gerandoBackground ? 'Gerando background...' : 'Salvando...'}
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    {!bonusAplicados ? 'Confirme seus atributos primeiro' : 'Criar Personagem'}
+                  </>
+                )}
+              </button>
+            );
+          }
+          return null;
+        })()}
+      </div>
+      </div>{/* end left column */}
+
+        {/* T7: Sidebar — ficha lateral fixa (xl+ only) */}
+        <aside className={`hidden xl:flex xl:flex-col xl:w-80 xl:shrink-0 border-l overflow-y-auto ${
+          isLight ? 'border-slate-200 bg-white/95' : 'border-slate-700/50 bg-slate-900/95'
+        } backdrop-blur-sm`}>
+          <div className="p-4 space-y-3">
+            <PersonagemPreviewCard
+              nome={nome}
+              raca={racaId}
+              classe={classeId}
+              atributos={atributosFinal}
+              vantagensSelecionadas={allSelecoes}
+              vantagensDisponiveis={vantagensDisponiveis}
+              racasDisponiveis={racasDisponiveis}
+              classesDisponiveis={classesDisponiveis}
+            />
+
+            {/* Pending fields indicators */}
+            <div className={`rounded-lg border p-3 space-y-1.5 ${
+              isLight ? 'border-slate-200 bg-white/80' : 'border-slate-700/50 bg-slate-800/30'
+            }`}>
+              <h4 className={`text-xs font-modern font-semibold uppercase tracking-wider mb-2 ${
+                isLight ? 'text-slate-600' : 'text-slate-500'
+              }`}>
+                Progresso
+              </h4>
+              {[
+                { label: 'Nome', done: !!nome },
+                { label: 'Raça', done: !!racaId },
+                { label: 'Classe', done: !!classeId },
+                { label: 'Vantagens', done: vantagensIds.length > 0 },
+                { label: 'Desvantagens', done: desvantagensIds.length > 0 },
+                { label: 'Atributos', done: bonusAplicados },
+              ].map(({ label, done }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                    done
+                      ? 'bg-green-500/20'
+                      : isLight ? 'bg-slate-200' : 'bg-slate-700'
+                  }`}>
+                    {done ? (
+                      <Check size={10} className="text-green-400" />
+                    ) : (
+                      <span className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-slate-400' : 'bg-slate-500'}`} />
+                    )}
+                  </span>
+                  <span className={`text-xs font-modern ${
+                    done
+                      ? isLight ? 'text-slate-700' : 'text-slate-300'
+                      : isLight ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Seleções removíveis */}
+            {(vantagensIds.length > 0 || desvantagensIds.length > 0) && (
+              <div className={`rounded-lg border p-3 ${
+                isLight ? 'border-slate-200 bg-white/80' : 'border-slate-700/50 bg-slate-800/30'
+              }`}>
+                <h4 className={`text-xs font-modern font-semibold uppercase tracking-wider mb-2 ${
+                  isLight ? 'text-slate-600' : 'text-slate-500'
+                }`}>
+                  Seleções
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {vantagensIds.map(id => {
+                    const item = vantagensDisponiveis.find(v => v.id === id);
+                    if (!item) return null;
+                    return (
+                      <button
+                        key={`sv-${id}`}
+                        onClick={() => removerSelecao('vantagem', id)}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 hover:bg-red-500/15 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Clique para remover"
+                      >
+                        {item.nome} ×
+                      </button>
+                    );
+                  })}
+                  {desvantagensIds.map(id => {
+                    const item = vantagensDisponiveis.find(d => d.id === id);
+                    if (!item) return null;
+                    return (
+                      <button
+                        key={`sd-${id}`}
+                        onClick={() => removerSelecao('desvantagem', id)}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 hover:bg-slate-500/15 hover:text-slate-400 transition-colors cursor-pointer"
+                        title="Clique para remover"
+                      >
+                        {item.nome} ×
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>{/* end main content row */}
     </div>
   );
 };

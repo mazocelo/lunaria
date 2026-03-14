@@ -1,6 +1,7 @@
 import React from 'react';
+import { Check } from 'lucide-react';
 
-const WizardProgressBar = ({ etapas, etapaIndex, isLight }) => {
+const WizardProgressBar = ({ etapas, etapaIndex, isLight, onEtapaClick, etapasConcluidas = [], etapasVisitadas = [] }) => {
   const progresso = ((etapaIndex + 1) / etapas.length) * 100;
 
   return (
@@ -17,22 +18,38 @@ const WizardProgressBar = ({ etapas, etapaIndex, isLight }) => {
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
         {etapas.map((etapa, i) => {
           const isActive = i === etapaIndex;
-          const isDone = i < etapaIndex;
+          const isConcluida = etapasConcluidas.includes(etapa.id);
+          const isVisitada = etapasVisitadas.includes(etapa.id);
+          const isFuture = !isActive && !isConcluida && !isVisitada;
+          const isClickable = isConcluida && !isActive && !!onEtapaClick;
 
           return (
-            <div
+            <button
               key={etapa.id}
+              type="button"
+              onClick={isClickable ? () => onEtapaClick(etapa.id) : undefined}
+              disabled={!isClickable}
               className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-modern whitespace-nowrap transition-all ${
+                isClickable ? 'cursor-pointer hover:bg-purple-500/10' : isActive ? '' : 'cursor-default'
+              } ${
                 isActive
                   ? 'bg-purple-500/20 text-purple-400 font-semibold'
-                  : isDone
-                    ? isLight ? 'text-slate-600' : 'text-slate-500'
-                    : isLight ? 'text-slate-400' : 'text-slate-600'
+                  : isConcluida
+                    ? isLight ? 'text-green-600' : 'text-green-400'
+                    : isFuture
+                      ? isLight ? 'text-slate-400 opacity-50' : 'text-slate-600 opacity-50'
+                      : isLight ? 'text-slate-600' : 'text-slate-500'
               }`}
             >
-              <span>{etapa.icon}</span>
-              {isActive && <span>{etapa.label}</span>}
-            </div>
+              {isConcluida && !isActive ? (
+                <span className="flex items-center justify-center w-4 h-4">
+                  <Check size={12} />
+                </span>
+              ) : (
+                <span>{etapa.icon}</span>
+              )}
+              {(isActive || isConcluida) && <span>{etapa.label}</span>}
+            </button>
           );
         })}
       </div>

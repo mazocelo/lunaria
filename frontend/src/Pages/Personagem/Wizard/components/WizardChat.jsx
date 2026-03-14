@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, Save, BookOpen, Check, Info, RefreshCw } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -16,6 +16,7 @@ const WizardChat = ({
   etapaAtual,
   racasDisponiveis,
   classesDisponiveis,
+  vantagensDisponiveis,
   chatEndRef,
   isLight,
   // Atributos (inline no chat)
@@ -26,7 +27,6 @@ const WizardChat = ({
   pontosTotais,
   atributosSugeridos,
   aplicarAtributosSugeridos,
-  confirmarAtributos,
   bonusAplicados,
   bonusDetalhes,
   // Limites de seleção
@@ -38,10 +38,6 @@ const WizardChat = ({
   // Limites de atributos
   attrMin,
   attrMax,
-  // Salvar (inline no chat)
-  salvarPersonagem,
-  salvando,
-  gerandoBackground,
 }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -67,11 +63,18 @@ const WizardChat = ({
   };
 
   const showAtributos = ['atributos', 'resumo', 'refinamento'].includes(etapaAtual);
-  const showSave = etapaAtual === 'resumo' || etapaAtual === 'refinamento';
-  const mostrarBusca = etapaAtual === 'raca' || etapaAtual === 'classe';
-  const catalogoAtual = etapaAtual === 'raca' ? racasDisponiveis : etapaAtual === 'classe' ? classesDisponiveis : [];
-  const tipoAtual = etapaAtual === 'raca' ? 'raca' : 'classe';
-  const labelAtual = etapaAtual === 'raca' ? 'raças' : 'classes';
+  const mostrarBusca = ['raca', 'classe', 'vantagens', 'desvantagens'].includes(etapaAtual);
+
+  const catalogoAtual = useMemo(() => {
+    if (etapaAtual === 'raca') return racasDisponiveis || [];
+    if (etapaAtual === 'classe') return classesDisponiveis || [];
+    if (etapaAtual === 'vantagens') return (vantagensDisponiveis || []).filter(v => v.custo > 0);
+    if (etapaAtual === 'desvantagens') return (vantagensDisponiveis || []).filter(v => v.custo < 0);
+    return [];
+  }, [etapaAtual, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
+
+  const tipoAtual = etapaAtual === 'raca' ? 'raca' : etapaAtual === 'classe' ? 'classe' : etapaAtual === 'vantagens' ? 'vantagem' : etapaAtual === 'desvantagens' ? 'desvantagem' : 'raca';
+  const labelAtual = etapaAtual === 'raca' ? 'raças' : etapaAtual === 'classe' ? 'classes' : etapaAtual === 'vantagens' ? 'vantagens' : etapaAtual === 'desvantagens' ? 'desvantagens' : '';
 
   const catalogoFiltrado = useMemo(() => {
     if (!filtro.trim()) return catalogoAtual;
@@ -83,12 +86,18 @@ const WizardChat = ({
   }, [catalogoAtual, filtro]);
 
   const handleSelecionarCatalogo = (item) => {
-    onSelecionarSugestao({
+    const payload = {
       tipo: tipoAtual,
       id: item.id,
       nome: item.nome,
       descricao: item.descricao,
-    });
+    };
+    if (item.custo != null) payload.custo = item.custo;
+    onSelecionarSugestao(payload);
+    if (tipoAtual === 'vantagem' || tipoAtual === 'desvantagem') {
+      // Keep search open for multi-select
+      return;
+    }
     setBuscaAberta(false);
     setFiltro('');
   };
@@ -345,56 +354,6 @@ const WizardChat = ({
                     </div>
                   ) : null}
 
-                  {/* Botão Confirmar Atributos */}
-                  {etapaAtual === 'atributos' && !bonusAplicados && (
-                    <button
-                      onClick={confirmarAtributos}
-                      disabled={enviando || pontosRestantes !== 0}
-                      className={`w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
-                        pontosRestantes !== 0
-                          ? isLight
-                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/20'
-                      }`}
-                    >
-                      <Check size={18} />
-                      {pontosRestantes !== 0
-                        ? `Distribua todos os pontos (${pontosRestantes} restantes)`
-                        : 'Confirmar Atributos'
-                      }
-                    </button>
-                  )}
-
-                  {/* Botão Criar Personagem */}
-                  {showSave && (
-                    <button
-                      onClick={salvarPersonagem}
-                      disabled={salvando || gerandoBackground || pontosRestantes !== 0}
-                      className={`w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
-                        salvando || gerandoBackground
-                          ? 'bg-slate-600 text-slate-400 cursor-wait'
-                          : pontosRestantes !== 0
-                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
-                      }`}
-                    >
-                      {salvando || gerandoBackground ? (
-                        <>
-                          <Loader2 size={18} className="animate-spin" />
-                          {gerandoBackground ? 'Gerando background...' : 'Salvando...'}
-                        </>
-                      ) : (
-                        <>
-                          <Save size={18} />
-                          {pontosRestantes !== 0
-                            ? `Distribua todos os pontos (${pontosRestantes} restantes)`
-                            : 'Criar Personagem'
-                          }
-                        </>
-                      )}
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -430,34 +389,56 @@ const WizardChat = ({
                       <p className={`px-3 py-4 text-xs text-center font-modern ${
                         isLight ? 'text-slate-400' : 'text-slate-500'
                       }`}>
-                        Nenhuma {tipoAtual === 'raca' ? 'raça' : 'classe'} encontrada
+                        Nenhum(a) {labelAtual.slice(0, -1)} encontrado(a)
                       </p>
                     ) : (
-                      catalogoFiltrado.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleSelecionarCatalogo(item)}
-                          className={`w-full text-left px-3 py-2 transition-colors cursor-pointer ${
-                            isLight
-                              ? 'hover:bg-purple-50 border-b border-slate-100 last:border-b-0'
-                              : 'hover:bg-purple-500/10 border-b border-slate-700/30 last:border-b-0'
-                          }`}
-                        >
-                          <span className={`text-sm font-fantasy font-bold block ${
-                            isLight ? 'text-slate-800' : 'text-white'
-                          }`}>
-                            {item.nome}
-                          </span>
-                          {item.descricao && (
-                            <span className={`text-[11px] font-modern line-clamp-1 ${
-                              isLight ? 'text-slate-500' : 'text-slate-400'
-                            }`}>
-                              {item.descricao}
+                      catalogoFiltrado.map((item) => {
+                        const isSelected = (tipoAtual === 'vantagem' && vantagensIds.includes(item.id)) ||
+                          (tipoAtual === 'desvantagem' && desvantagensIds.includes(item.id));
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelecionarCatalogo(item)}
+                            className={`w-full text-left px-3 py-2 transition-colors cursor-pointer ${
+                              isSelected
+                                ? isLight
+                                  ? 'bg-purple-100 border-b border-purple-200 last:border-b-0'
+                                  : 'bg-purple-500/20 border-b border-purple-500/30 last:border-b-0'
+                                : isLight
+                                  ? 'hover:bg-purple-50 border-b border-slate-100 last:border-b-0'
+                                  : 'hover:bg-purple-500/10 border-b border-slate-700/30 last:border-b-0'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className={`text-sm font-fantasy font-bold ${
+                                isLight ? 'text-slate-800' : 'text-white'
+                              }`}>
+                                {item.nome}
+                              </span>
+                              {item.custo != null && (
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full shrink-0 ${
+                                  item.custo > 0
+                                    ? isLight ? 'bg-green-100 text-green-700' : 'bg-green-500/15 text-green-400'
+                                    : isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/15 text-red-400'
+                                }`}>
+                                  {item.custo > 0 ? '+' : ''}{item.custo} pts
+                                </span>
+                              )}
+                              {isSelected && (
+                                <Check size={12} className="text-purple-400 shrink-0" />
+                              )}
                             </span>
-                          )}
-                        </button>
-                      ))
+                            {item.descricao && (
+                              <span className={`text-[11px] font-modern line-clamp-1 block mt-0.5 ${
+                                isLight ? 'text-slate-500' : 'text-slate-400'
+                              }`}>
+                                {item.descricao}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </div>

@@ -207,7 +207,19 @@ async function main() {
   console.log(`\n👑 Owner: ${owner.nome} (id=${owner.id})`);
   console.log(`🔊 Modo: ${FORCE_VOICE ? 'FORCE (sobrescreve vozes)' : 'NORMAL (mantém voz existente)'}\n`);
 
-  const result = { owner, created: [], updated: [] };
+  // Soft-delete mestres do owner que não estão mais no seed
+  const nomesDoSeed = [...MESTRES_ELEVENLABS, ...MESTRES_OPENSOURCE].map((m) => m.nome);
+  const { count: removidos } = await prisma.mestres.updateMany({
+    where: {
+      id_usuario: owner.id,
+      deleted_at: null,
+      nome: { notIn: nomesDoSeed },
+    },
+    data: { deleted_at: new Date() },
+  });
+  if (removidos > 0) console.log(`  🗑️  Removidos (soft-delete): ${removidos} mestre(s) obsoleto(s)\n`);
+
+  const result = { owner, created: [], updated: [], removed: removidos };
 
   for (const mestre of [...MESTRES_ELEVENLABS, ...MESTRES_OPENSOURCE]) {
     const { voice_name, voice_provider, ...dadosMestre } = mestre;
@@ -253,7 +265,8 @@ async function main() {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Criados:      ${result.created.length}
   Atualizados:  ${result.updated.length}
-  Total:        ${result.created.length + result.updated.length}
+  Removidos:    ${result.removed}
+  Total ativo:  ${result.created.length + result.updated.length}
   Com voz:      ${comVoz}
   ElevenLabs:   ${MESTRES_ELEVENLABS.length}  (Daniel, Dorothy, Arnold, Callum, Clyde)
   Kokoro:       3                             (pm_santa, pm_alex, pf_dora)

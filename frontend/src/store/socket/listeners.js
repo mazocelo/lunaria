@@ -6,6 +6,14 @@ import { transicaoFase } from './faseMachine.js';
 import { playSound } from '../../utils/audio.js';
 import { sendNotification } from '../../utils/notifications.js';
 import { showGameNotification } from '../../components/Jogo/NotificationManager.jsx';
+import {
+  normalizeCombateIniciado,
+  normalizeResultadoAcao,
+  normalizeJogadorFerido,
+  normalizeMonstruoDerrotado,
+  normalizeCombateFinalizado,
+  normalizeCombateEstado,
+} from './dtos.js';
 
 export const createListenerActions = (set, get) => ({
   setupInternalListeners: () => {
@@ -558,87 +566,92 @@ export const createListenerActions = (set, get) => ({
     // ===== LISTENERS DE COMBATE =====
 
     socket.on('combate_iniciado', (data) => {
+      const dto = normalizeCombateIniciado(data);
       set({
         combateAtivo: true,
-        combateMonstros: data.monstros || [],
-        combateJogadores: data.jogadores || {},
-        combateRodada: data.rodada || 1,
+        combateMonstros: dto.monstros,
+        combateJogadores: dto.jogadores,
+        combateRodada: dto.rodada,
         combateResultado: null,
         combateLog: [],
         combateXpGanho: 0
       });
-      get().log('Combate iniciado', { monstros: data.monstros?.length, success: true });
+      get().log('Combate iniciado', { monstros: dto.monstros.length, success: true });
     });
 
     socket.on('combate_resultado_acao', (data) => {
+      const dto = normalizeResultadoAcao(data);
       const { combateMonstros, combateJogadores, combateLog } = get();
 
-      if (data.tipo === 'ataque_jogador' && data.alvo?.id) {
+      if (dto.tipo === 'ataque_jogador' && dto.alvo?.id) {
         const monstrosAtualizados = combateMonstros.map(m => {
-          if (m.id === data.alvo.id) {
-            return { ...m, hp_atual: data.hpRestante, status: data.hpRestante <= 0 ? 'derrotado' : m.status };
+          if (m.id === dto.alvo.id) {
+            return { ...m, hp_atual: dto.hpRestante, status: dto.hpRestante <= 0 ? 'derrotado' : m.status };
           }
           return m;
         });
         set({ combateMonstros: monstrosAtualizados });
       }
 
-      if (data.tipo === 'ataque_monstro' && data.alvo?.userId) {
+      if (dto.tipo === 'ataque_monstro' && dto.alvo?.userId) {
         const jogadoresAtualizados = { ...combateJogadores };
-        if (jogadoresAtualizados[data.alvo.userId]) {
-          jogadoresAtualizados[data.alvo.userId] = {
-            ...jogadoresAtualizados[data.alvo.userId],
-            hp_atual: data.hpRestante,
-            status: data.hpRestante <= 0 ? 'derrotado' : 'vivo'
+        if (jogadoresAtualizados[dto.alvo.userId]) {
+          jogadoresAtualizados[dto.alvo.userId] = {
+            ...jogadoresAtualizados[dto.alvo.userId],
+            hp_atual: dto.hpRestante,
+            status: dto.hpRestante <= 0 ? 'derrotado' : 'vivo'
           };
         }
         set({ combateJogadores: jogadoresAtualizados });
-        if (data.acertou && data.dano > 0) playSound('combat_hit');
+        if (dto.acertou && dto.dano > 0) playSound('combat_hit');
       }
 
-      set({ combateLog: [...combateLog.slice(-(COMBAT.LOG_MAX_ENTRIES - 1)), data] });
-      get().log('Ação combate processada', { tipo: data.tipo, acertou: data.acertou });
+      set({ combateLog: [...combateLog.slice(-(COMBAT.LOG_MAX_ENTRIES - 1)), dto] });
+      get().log('Ação combate processada', { tipo: dto.tipo, acertou: dto.acertou });
     });
 
     socket.on('combate_monstro_derrotado', (data) => {
+      const dto = normalizeMonstruoDerrotado(data);
       const { combateMonstros } = get();
       const monstrosAtualizados = combateMonstros.map(m => {
-        if (m.id === data.monstro?.id) {
+        if (m.id === dto.monstro?.id) {
           return { ...m, status: 'derrotado', hp_atual: 0 };
         }
         return m;
       });
       set({ combateMonstros: monstrosAtualizados });
-      get().log('Monstro derrotado', { nome: data.monstro?.nome, xp: data.xp });
+      get().log('Monstro derrotado', { nome: dto.monstro?.nome, xp: dto.xp });
     });
 
     socket.on('combate_jogador_ferido', (data) => {
+      const dto = normalizeJogadorFerido(data);
       const { combateJogadores } = get();
       const jogadoresAtualizados = { ...combateJogadores };
-      if (jogadoresAtualizados[data.userId]) {
-        jogadoresAtualizados[data.userId] = {
-          ...jogadoresAtualizados[data.userId],
-          hp_atual: data.hp_atual,
-          status: data.derrotado ? 'derrotado' : 'vivo'
+      if (jogadoresAtualizados[dto.userId]) {
+        jogadoresAtualizados[dto.userId] = {
+          ...jogadoresAtualizados[dto.userId],
+          hp_atual: dto.hp_atual,
+          status: dto.derrotado ? 'derrotado' : 'vivo'
         };
       }
       set({ combateJogadores: jogadoresAtualizados });
-      playSound(data.derrotado ? 'death' : 'combat_hit');
-      get().log('Jogador ferido', { nome: data.nome, hp: data.hp_atual });
+      playSound(dto.derrotado ? 'death' : 'combat_hit');
+      get().log('Jogador ferido', { nome: dto.nome, hp: dto.hp_atual });
     });
 
     socket.on('combate_finalizado', (data) => {
+      const dto = normalizeCombateFinalizado(data);
       set({
         combateAtivo: false,
-        combateResultado: data.resultado,
-        combateXpGanho: data.xpTotal || 0
+        combateResultado: dto.resultado,
+        combateXpGanho: dto.xpTotal
       });
-      get().log('Combate finalizado', { resultado: data.resultado, xp: data.xpTotal, success: true });
+      get().log('Combate finalizado', { resultado: dto.resultado, xp: dto.xpTotal, success: true });
 
       // Auto-limpar resultado após 8s para desmontar o BatalhaUI
       setTimeout(() => {
         const current = get();
-        if (current.combateResultado === data.resultado && !current.combateAtivo) {
+        if (current.combateResultado === dto.resultado && !current.combateAtivo) {
           set({
             combateResultado: null,
             combateMonstros: [],
@@ -652,11 +665,12 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.on('combate_estado', (data) => {
+      const dto = normalizeCombateEstado(data);
       set({
-        combateMonstros: data.monstros ?? get().combateMonstros,
-        combateJogadores: data.jogadores ?? get().combateJogadores,
-        combateRodada: data.rodada ?? get().combateRodada,
-        combateLog: data.log ?? get().combateLog
+        combateMonstros: dto.monstros ?? get().combateMonstros,
+        combateJogadores: dto.jogadores ?? get().combateJogadores,
+        combateRodada: dto.rodada ?? get().combateRodada,
+        combateLog: dto.log ?? get().combateLog
       });
     });
 

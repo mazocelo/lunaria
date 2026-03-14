@@ -354,8 +354,9 @@ export const useWizardModel = () => {
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
 
-  /** P3: Avança etapa + dispara resposta do Mestre na primeira visita */
-  const avancarComMestre = useCallback(async () => {
+  /** P3: Avança etapa + dispara resposta do Mestre na primeira visita.
+   *  @param {Object} [estadoOverride] - se fornecido, sobrescreve campos em getEstado() (ex: skip limpa seleções) */
+  const avancarComMestre = useCallback(async (estadoOverride) => {
     if (enviando) return;
     const result = navigation.avancarEtapa();
     if (!result) return;
@@ -366,9 +367,10 @@ export const useWizardModel = () => {
     // Primeira visita — buscar resposta do Mestre
     setEnviando(true);
     try {
+      const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
       const resultado = await mestreCriadorService.interagir({
         etapa,
-        estado: getEstado(),
+        estado,
         mensagemJogador: '',
         historico: getHistorico(),
       });
@@ -397,6 +399,23 @@ export const useWizardModel = () => {
       setEnviando(false);
     }
   }, [enviando, navigation.avancarEtapa, getEstado, getHistorico]);
+
+  /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
+  const pularEtapa = useCallback((tipo) => {
+    const override = {};
+    if (tipo === 'vantagens') {
+      pointSystem.vantagensIds.forEach(id => pointSystem.removerSelecao('vantagem', id));
+      pointSystem.setSkipVantagens(true);
+      override.vantagens_ids = [];
+      override.vantagens_nomes = [];
+    } else {
+      pointSystem.desvantagensIds.forEach(id => pointSystem.removerSelecao('desvantagem', id));
+      pointSystem.setSkipDesvantagens(true);
+      override.desvantagens_ids = [];
+      override.desvantagens_nomes = [];
+    }
+    avancarComMestre(override);
+  }, [avancarComMestre, pointSystem]);
 
   /** Salva o personagem */
   const salvarPersonagem = useCallback(async () => {
@@ -466,6 +485,7 @@ export const useWizardModel = () => {
     etapasVisitadas: navigation.etapasVisitadas,
     etapasConcluidas: navigation.etapasConcluidas,
     avancarComMestre,
+    pularEtapa,
     navegarParaEtapa: navigation.navegarParaEtapa,
 
     // Chat

@@ -44,6 +44,7 @@ const WizardView = (props) => {
     confirmarAtributos,
     salvarPersonagem,
     avancarComMestre,
+    pularEtapa,
     navegarParaEtapa,
     clearError,
 
@@ -54,9 +55,7 @@ const WizardView = (props) => {
 
     // Skip
     skipVantagens,
-    setSkipVantagens,
     skipDesvantagens,
-    setSkipDesvantagens,
 
     // Background
     background,
@@ -208,6 +207,7 @@ const WizardView = (props) => {
               classesDisponiveis={classesDisponiveis}
               bonusJaAplicado={true}
               mostrarPendencias={true}
+              bonusAplicados={bonusAplicados}
               skipVantagens={skipVantagens}
               skipDesvantagens={skipDesvantagens}
             />
@@ -307,21 +307,11 @@ const WizardView = (props) => {
           const podeSkip = etapaAtual === 'vantagens' || etapaAtual === 'desvantagens';
           if (etapasLineares.includes(etapaAtual)) {
             const etapaValida = etapasConcluidas.includes(etapaAtual);
-            const handleSkip = () => {
-              if (etapaAtual === 'vantagens') {
-                vantagensIds.forEach(id => removerSelecao('vantagem', id));
-                setSkipVantagens(true);
-              } else {
-                desvantagensIds.forEach(id => removerSelecao('desvantagem', id));
-                setSkipDesvantagens(true);
-              }
-              avancarComMestre();
-            };
             return (
               <div className="flex gap-2">
                 {podeSkip && (
                   <button
-                    onClick={handleSkip}
+                    onClick={() => pularEtapa(etapaAtual)}
                     disabled={enviando}
                     className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-modern font-medium text-sm transition-all cursor-pointer ${
                       enviando
@@ -423,6 +413,7 @@ const WizardView = (props) => {
               classesDisponiveis={classesDisponiveis}
               bonusJaAplicado={true}
               mostrarPendencias={true}
+              bonusAplicados={bonusAplicados}
               skipVantagens={skipVantagens}
               skipDesvantagens={skipDesvantagens}
             />

@@ -35,6 +35,7 @@ const PersonagemPreviewCard = ({
   imagem,
   bonusJaAplicado = false,
   mostrarPendencias = false,
+  bonusAplicados = false,
   skipVantagens = false,
   skipDesvantagens = false,
 }) => {
@@ -84,10 +85,14 @@ const PersonagemPreviewCard = ({
 
   const hpEstimado = calcHP(atributosEfetivos.constituicao, 1);
 
-  // P4: Detectar se atributos estão no padrão (todos 10 = não distribuídos)
-  const atributosSomaPadrao = Object.values(atributos || {})
-    .map(v => Number(v) || 0)
-    .reduce((a, b) => a + b, 0) === ATRIBUTOS_DEFAULT_SUM;
+  // P4: Detectar se atributos ainda não foram confirmados.
+  // Quando mostrarPendencias=true, usamos bonusAplicados (prop explícita do wizard).
+  // Fallback: heurística de soma padrão para contextos sem mostrarPendencias.
+  const atributosSomaPadrao = mostrarPendencias
+    ? !bonusAplicados
+    : Object.values(atributos || {})
+        .map(v => Number(v) || 0)
+        .reduce((a, b) => a + b, 0) === ATRIBUTOS_DEFAULT_SUM;
 
   const vantagensNomes = (vantagensSelecionadas || []).map(id => {
     const v = vantagensDisponiveis?.find(vt => String(vt.id) === String(id));

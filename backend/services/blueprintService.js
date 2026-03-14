@@ -6,12 +6,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import usageService from './usageService.js';
 import { ensureNpcIds } from './narrationSegmentsService.js';
 import { getDefaultProviderName } from './ttsService.js';
+import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOKENS = 8000;
 const TIMEOUT_MS = 180000;
-const BLUEPRINT_TEMPERATURE = 0.3;
-const REGENERATE_TEMPERATURE = 0.7;
 const REPAIR_TEMPERATURE = 0.1;
 const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
 
@@ -341,14 +340,24 @@ function normalizeBlueprintStructure(roteiro) {
   };
 }
 
+const MODE_DIRECTIVES = {
+  initial: '',
+  regenerate: '',
+  darker: 'DIRETIVA DE MODO: Tom sombrio. Enfatize dilemas morais, consequencias tragicas, ambiguidade etica, atmosfera opressiva. Antagonista com motivacao compreensivel. NPCs com segredos perturbadores. Pelo menos 1 desfecho agridoce.',
+  exploration: 'DIRETIVA DE MODO: Foco em exploracao. Priorize locais detalhados com segredos ocultos, tesouros escondidos, dungeons com multiplas salas, mapas com regioes inexploradas. Menos combate, mais descoberta e puzzles.',
+  intrigue: 'DIRETIVA DE MODO: Foco em intriga. NPCs com agendas ocultas, traicoes planejadas, espionagem, informacoes falsas. Plot twists envolvendo aliados. Antagonista operando nas sombras. Encontros sociais mais que combate.',
+  political: 'DIRETIVA DE MODO: Foco politico. Faccoes em conflito, disputas de poder, aliancas frageis, diplomacia. NPCs representam interesses de grupos. Decisoes dos jogadores afetam equilibrio de poder. Mapa com territorios disputados.'
+};
+
 function buildBlueprintPrompt(historia, catalogo, temasNomes, options = {}) {
   const temas = temasNomes.join(', ');
-  const regenerationBlock = options.mode === 'regenerate'
+  const regenerationBlock = (options.mode !== 'initial' && options.previousBlueprint)
     ? buildRegenerationBlock(historia, options.previousBlueprint)
     : '';
   const variationRule = options.mode === 'regenerate'
     ? 'REGRAS EXTRAS DE REGENERACAO: entregue uma proposta claramente diferente do roteiro anterior. Preserve apenas a premissa-base e nomes explicitamente canonicos do texto da aventura. Todo o restante deve ser novo e nao apenas reescrito.'
     : '';
+  const modeDirective = MODE_DIRECTIVES[options.mode] || '';
 
   return `Voce e um roteirista de RPG. Crie um roteiro narrativo (Story Blueprint) para esta aventura.
 
@@ -366,6 +375,7 @@ Responda APENAS com JSON valido (sem markdown). Seja conciso mas criativo. Estru
 
 {"sinopse":"Resumo da aventura (2-3 paragrafos)","antagonista":{"nome":"","titulo":"","descricao":"descricao breve","motivacao":"","poderes":[""],"fraquezas":[""],"conexao_com_historia":""},"arcos":[{"numero":1,"titulo":"","descricao":"breve","objetivos":[""],"nivel_sugerido":"1-3"}],"mapaMundi":{"descricao_geral":"descricao do mundo","regioes":[{"nome":"","descricao":"breve","perigo":"baixo|medio|alto|extremo"}]},"locais":[{"nome":"","tipo":"cidade|dungeon|floresta|montanha|ruina|templo|outro","descricao":"1-2 frases","segredos":[""],"monstros_comuns":[""],"arco_relacionado":1}],"npcs":[{"nome":"","papel":"aliado|neutro|antagonista|quest_giver|mercador|informante","descricao":"1 frase","motivacao":"","local":"","segredo":""}],"tesourosSegretos":[{"nome":"","tipo":"equipamento|informacao|artefato","descricao":"","localizacao":"","condicao":""}],"plotTwists":[{"momento":"","revelacao":"","impacto":""}],"encontrosChave":[{"nome":"","tipo":"combate|social|exploracao|puzzle|boss","descricao":"1-2 frases","monstros":[""],"dificuldade":"facil|media|dificil|letal","recompensas":[""],"arco_relacionado":1}],"desfechosPossiveis":[{"tipo":"vitoria_total|vitoria_parcial|derrota|agridoce","condicao":"","descricao":"1-2 frases"}],"instrucoesGeraisParaOMestre":{"tom_narrativo":"","ritmo":"","adaptacao":"","dicas_imersao":[""]},"progressao":{"marcos":[{"id":"marco_1","descricao":"","arco":1,"concluido":false}],"arco_atual":1,"porcentagem_estimada":0}}
 
+${modeDirective}
 REGRAS: Crie 3 arcos, 4 locais, 5 NPCs, 2 plot twists, 4 encontros-chave. Use nomes do catalogo quando possivel. Seja coerente com os temas: ${temas}. ${variationRule}`.trim();
 }
 
@@ -390,12 +400,12 @@ class BlueprintService {
   }
 
   async gerarRoteiro(historia, catalogo, temasNomes, userId = null, options = {}) {
-    const mode = options.mode === 'regenerate' ? 'regenerate' : 'initial';
+    const mode = options.mode || 'initial';
     const prompt = buildBlueprintPrompt(historia, catalogo, temasNomes, {
       mode,
       previousBlueprint: options.previousBlueprint || historia?.roteiro || null
     });
-    const temperature = mode === 'regenerate' ? REGENERATE_TEMPERATURE : BLUEPRINT_TEMPERATURE;
+    const temperature = MODE_TEMPERATURES[mode] || 0.3;
     console.log(
       `BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5... modo=${mode}`
     );
@@ -416,7 +426,7 @@ class BlueprintService {
     return roteiroNormalizado;
   }
 
-  async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = BLUEPRINT_TEMPERATURE) {
+  async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = 0.3) {
     const client = this._getClient();
     const startTime = Date.now();
     const controller = new AbortController();

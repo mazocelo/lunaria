@@ -60,6 +60,7 @@
 }
 
 .wizard-atelier .wa-shell,
+.wizard-atelier .wa-main-shell,
 .wizard-atelier .wa-panel,
 .wizard-atelier .wa-panel-soft,
 .wizard-atelier .wa-panel-strong,
@@ -76,13 +77,13 @@
   backdrop-filter: blur(18px);
 }
 
+.wizard-atelier .wa-main-shell,
 .wizard-atelier .wa-panel,
 .wizard-atelier .wa-sidebar-panel,
 .wizard-atelier .wa-progress-rail,
 .wizard-atelier .wa-choice-card,
 .wizard-atelier .wa-system-card,
 .wizard-atelier .wa-player-card,
-.wizard-atelier .wa-top-rail,
 .wizard-atelier .wa-dock,
 .wizard-atelier .wa-chat-shell {
   background: var(--wa-panel);
@@ -90,6 +91,7 @@
   box-shadow: var(--wa-shadow);
 }
 
+.wizard-atelier .wa-main-shell,
 .wizard-atelier .wa-panel-strong,
 .wizard-atelier .wa-hero,
 .wizard-atelier .wa-master-card,
@@ -105,6 +107,7 @@
 }
 
 .wizard-atelier .wa-etched::before,
+.wizard-atelier .wa-main-shell::before,
 .wizard-atelier .wa-panel::before,
 .wizard-atelier .wa-panel-strong::before,
 .wizard-atelier .wa-choice-card::before,
@@ -117,6 +120,19 @@
   inset: 0;
   pointer-events: none;
   background: linear-gradient(120deg, rgba(255,255,255,0.03), transparent 26%, transparent 74%, rgba(214,168,95,0.05));
+}
+
+.wizard-atelier .wa-main-shell {
+  background:
+    radial-gradient(circle at top left, rgba(155, 124, 255, 0.08), transparent 0 28%),
+    radial-gradient(circle at bottom right, rgba(214, 168, 95, 0.08), transparent 0 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--wa-panel-strong) 92%, transparent), color-mix(in srgb, var(--wa-panel) 92%, transparent));
+}
+
+.wizard-atelier .wa-main-shell > .wa-dock {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .wizard-atelier .wa-rune-step {

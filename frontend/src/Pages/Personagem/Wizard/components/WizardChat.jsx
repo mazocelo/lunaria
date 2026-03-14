@@ -58,6 +58,7 @@ const WizardChat = ({
   maxDesvantagens,
   attrMin,
   attrMax,
+  embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [filtro, setFiltro] = useState('');
@@ -77,8 +78,8 @@ const WizardChat = ({
   };
 
   const isSugestaoSelecionada = (sugestao) => {
-    if (sugestao.tipo === 'vantagem') return vantagensIds.includes(sugestao.id);
-    if (sugestao.tipo === 'desvantagem') return desvantagensIds.includes(sugestao.id);
+    if (sugestao.tipo === 'vantagem') return vantagensIds.some(id => String(id) === String(sugestao.id));
+    if (sugestao.tipo === 'desvantagem') return desvantagensIds.some(id => String(id) === String(sugestao.id));
     return false;
   };
 
@@ -139,7 +140,7 @@ const WizardChat = ({
   const inputPlaceholder = INPUT_PLACEHOLDERS[etapaAtual] || 'Peca ajuda ao Mestre ou refine a escolha atual...';
 
   return (
-    <div className="wa-chat-shell mx-4 mb-4 mt-3 flex h-full flex-col rounded-[24px] md:mx-5 md:mb-5">
+    <div className={embedded ? 'flex h-full flex-col' : 'wa-chat-shell mx-4 mb-4 mt-3 flex h-full flex-col rounded-[24px] md:mx-5 md:mb-5'}>
       {etapaAtual !== 'boas_vindas' && (
         <div className="wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -392,7 +393,7 @@ const WizardChat = ({
                         </p>
                       ) : (
                         catalogoFiltrado.map((item) => {
-                          const isSelected = (tipoAtual === 'vantagem' && vantagensIds.includes(item.id)) || (tipoAtual === 'desvantagem' && desvantagensIds.includes(item.id));
+                          const isSelected = (tipoAtual === 'vantagem' && vantagensIds.some(id => String(id) === String(item.id))) || (tipoAtual === 'desvantagem' && desvantagensIds.some(id => String(id) === String(item.id)));
                           return (
                             <button
                               key={item.id}

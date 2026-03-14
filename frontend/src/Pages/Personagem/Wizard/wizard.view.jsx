@@ -1,13 +1,9 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft,
   AlertCircle,
   AlertTriangle,
   Trash2,
   X,
-  ChevronDown,
-  ChevronUp,
-  ScrollText,
   ArrowRight,
   Check,
   Save,
@@ -338,137 +334,6 @@ const WizardView = (props) => {
   return (
     <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
       <div className="relative z-[1] flex h-full min-h-0 flex-col">
-        <header className="wa-top-rail mx-4 mt-4 rounded-[24px] px-4 py-3 md:mx-5 md:mt-5 md:px-5">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/personagens')}
-              className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors cursor-pointer ${
-                isLight
-                  ? 'border-slate-300 bg-white/70 text-slate-600 hover:bg-white'
-                  : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-900'
-              }`}
-            >
-              <ArrowLeft size={19} />
-            </button>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="wa-brass-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-                  Header rail
-                </p>
-                {etapaAtualObj?.label && (
-                  <span className="wa-violet-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-                    {etapaAtualObj.label}
-                  </span>
-                )}
-              </div>
-              <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-                <h1 className={`text-[1.7rem] font-fantasy font-bold leading-none md:text-[1.95rem] ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  Forja do Destino
-                </h1>
-                <p className={`pb-0.5 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                  Bancada ritual de criacao guiada
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setFichaAberta(prev => !prev)}
-              className={`xl:hidden inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-modern font-semibold transition-all cursor-pointer ${
-                fichaAberta
-                  ? 'wa-brass-chip'
-                  : isLight
-                    ? 'border-slate-300 bg-white/70 text-slate-600 hover:bg-white'
-                    : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-900'
-              }`}
-            >
-              <ScrollText size={16} />
-              Ficha
-              {fichaAberta ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-          </div>
-        </header>
-
-        <WizardProgressBar
-          etapas={etapas}
-          etapaIndex={etapaIndex}
-          isLight={isLight}
-          onEtapaClick={navegarParaEtapa}
-          etapasConcluidas={etapasConcluidas}
-          etapasVisitadas={etapasVisitadas}
-          tooltipMap={tooltipMap}
-        />
-
-        <WizardStageHero
-          etapas={etapas}
-          etapaAtual={etapaAtual}
-          etapaIndex={etapaIndex}
-          nome={nome}
-          racaId={racaId}
-          classeId={classeId}
-          background={background}
-          vantagensIds={vantagensIds}
-          desvantagensIds={desvantagensIds}
-          skipVantagens={skipVantagens}
-          skipDesvantagens={skipDesvantagens}
-          racasDisponiveis={racasDisponiveis}
-          classesDisponiveis={classesDisponiveis}
-          isLight={isLight}
-          compact={heroCompact}
-          onToggleCompact={() => setHeroCompact(prev => !prev)}
-          readinessState={readinessState}
-          stageSummary={stageSummary}
-        />
-
-        {(error || bonusInvalidado || draftRestaurado) && (
-          <div className="mx-4 mt-3 space-y-3 md:mx-5">
-            {error && (
-              <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-red-700' : 'text-red-300'}`}>
-                <div className="flex items-center gap-3">
-                  <AlertCircle size={16} className="shrink-0" />
-                  <span className="flex-1 text-sm font-modern">{error}</span>
-                  <button onClick={clearError} className="cursor-pointer opacity-70 transition-opacity hover:opacity-100">
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {bonusInvalidado && (
-              <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-ember)]">Leitura mecanica em revisao</p>
-                    <p className="mt-1 text-sm font-modern">Os bonus foram invalidados por uma mudanca estrutural. Reconfirme os atributos antes de selar a ficha.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {draftRestaurado && (
-              <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-sky-700' : 'text-sky-200'}`}>
-                <div className="flex items-center gap-3">
-                  <Hammer size={16} className="shrink-0 text-[var(--wa-info)]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-info)]">Forja retomada</p>
-                    <p className="mt-1 text-sm font-modern">O rascunho anterior foi reaberto e o estado atual da ficha foi restaurado.</p>
-                  </div>
-                  <button
-                    onClick={descartarDraft}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-modern font-semibold transition-colors cursor-pointer ${
-                      isLight ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-red-500/12 text-red-300 hover:bg-red-500/18'
-                    }`}
-                  >
-                    <Trash2 size={12} />
-                    Descartar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {fichaAberta && (
           <div className="mx-4 mt-3 shrink-0 xl:hidden md:mx-5">
             <div className="wa-sidebar-panel rounded-[24px] p-4">
@@ -493,9 +358,96 @@ const WizardView = (props) => {
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-3 md:px-5 md:pb-5 xl:gap-5">
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <div className="min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-4 md:px-5 md:pb-5 xl:gap-5">
+          <div className="wa-main-shell flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border">
+            <WizardProgressBar
+              etapas={etapas}
+              etapaIndex={etapaIndex}
+              isLight={isLight}
+              onEtapaClick={navegarParaEtapa}
+              etapasConcluidas={etapasConcluidas}
+              etapasVisitadas={etapasVisitadas}
+              tooltipMap={tooltipMap}
+              onBack={() => navigate('/personagens')}
+              onToggleFicha={() => setFichaAberta(prev => !prev)}
+              fichaAberta={fichaAberta}
+              embedded
+            />
+
+            <div className="border-t border-[var(--wa-border)]">
+              <WizardStageHero
+                etapas={etapas}
+                etapaAtual={etapaAtual}
+                etapaIndex={etapaIndex}
+                nome={nome}
+                racaId={racaId}
+                classeId={classeId}
+                background={background}
+                vantagensIds={vantagensIds}
+                desvantagensIds={desvantagensIds}
+                skipVantagens={skipVantagens}
+                skipDesvantagens={skipDesvantagens}
+                racasDisponiveis={racasDisponiveis}
+                classesDisponiveis={classesDisponiveis}
+                isLight={isLight}
+                compact={heroCompact}
+                onToggleCompact={() => setHeroCompact(prev => !prev)}
+                readinessState={readinessState}
+                stageSummary={stageSummary}
+                embedded
+              />
+            </div>
+
+            {(error || bonusInvalidado || draftRestaurado) && (
+              <div className="space-y-3 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
+                {error && (
+                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-red-700' : 'text-red-300'}`}>
+                    <div className="flex items-center gap-3">
+                      <AlertCircle size={16} className="shrink-0" />
+                      <span className="flex-1 text-sm font-modern">{error}</span>
+                      <button onClick={clearError} className="cursor-pointer opacity-70 transition-opacity hover:opacity-100">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {bonusInvalidado && (
+                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-ember)]">Leitura mecanica em revisao</p>
+                        <p className="mt-1 text-sm font-modern">Os bonus foram invalidados por uma mudanca estrutural. Reconfirme os atributos antes de selar a ficha.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {draftRestaurado && (
+                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-sky-700' : 'text-sky-200'}`}>
+                    <div className="flex items-center gap-3">
+                      <Hammer size={16} className="shrink-0 text-[var(--wa-info)]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-info)]">Forja retomada</p>
+                        <p className="mt-1 text-sm font-modern">O rascunho anterior foi reaberto e o estado atual da ficha foi restaurado.</p>
+                      </div>
+                      <button
+                        onClick={descartarDraft}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-modern font-semibold transition-colors cursor-pointer ${
+                          isLight ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-red-500/12 text-red-300 hover:bg-red-500/18'
+                        }`}
+                      >
+                        <Trash2 size={12} />
+                        Descartar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 border-t border-[var(--wa-border)]">
               <WizardChat
                 mensagens={mensagens}
                 inputTexto={inputTexto}
@@ -531,10 +483,11 @@ const WizardView = (props) => {
                 maxDesvantagens={maxDesvantagens}
                 attrMin={attrMin}
                 attrMax={attrMax}
+                embedded
               />
             </div>
 
-            <div className="wa-dock shrink-0 rounded-[24px] px-4 py-4 md:px-5">
+            <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">

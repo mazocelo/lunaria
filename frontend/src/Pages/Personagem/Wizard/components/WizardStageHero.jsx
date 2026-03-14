@@ -69,6 +69,7 @@ const WizardStageHero = ({
   onToggleCompact,
   readinessState = 'open',
   stageSummary,
+  embedded = false,
 }) => {
   const etapa = etapas?.[etapaIndex];
   const copy = STAGE_COPY[etapaAtual] || STAGE_COPY.boas_vindas;
@@ -98,8 +99,11 @@ const WizardStageHero = ({
   }, [stageSummary, racasDisponiveis, classesDisponiveis, racaId, classeId, nome, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens]);
 
   return (
-    <section className="wa-stage-enter shrink-0 px-4 pt-3 md:px-5">
-      <div className={[ 'wa-hero wa-etched rounded-[24px] px-4 py-4 md:px-5', compact ? 'wa-hero-compact' : '' ].join(' ')}>
+    <section className={`wa-stage-enter shrink-0 ${embedded ? '' : 'px-4 pt-3 md:px-5'}`}>
+      <div className={[
+        embedded ? 'px-5 py-5 md:px-6' : 'wa-hero wa-etched rounded-[24px] px-4 py-4 md:px-5',
+        compact ? 'wa-hero-compact' : '',
+      ].join(' ')}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">

@@ -27,10 +27,10 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 | Ordem | Tema | Status | % | Resumo |
 | --- | --- | --- | --- | --- |
 | F-01 | Contrato publico do websocket | concluido | ~97% | contrato JSON v2.1.0 completo, dice_roll/rpg_action echo documentados, rate_limit_exceeded reclassificado, listeners orfaos removidos. Resta apenas P5 (annotations inline) |
-| F-02 | Modularizacao do motor do jogo | parcialmente concluido | ~48% | 4 engines extraidos, mas 5+ handlers grandes permanecem no socketManager (2067L). Acoplamento pesado (262 refs sm.) |
-| D-01 | Jobs duraveis para IA | parcialmente concluido | ~55% | v1 roteiro com BullMQ pronta mas dormant (flag OFF). Worker nao deployavel. Filas imagem/audio pendentes |
+| F-02 | Modularizacao do motor do jogo | concluido | ~85% | 7 engines/handlers extraidos, socketManager 2067→1370L (-33.7%), combatEngine migrado para EventBus |
+| D-01 | Jobs duraveis para IA | em progresso | ~80% | systemd service, CI/CD restart, retry exponencial, stalled detection. Falta ligar flag e filas imagem/audio |
 | D-02 | Deploy e banco VPS | parcialmente concluido | ~50% | CI/CD funcional nos 3 repos, db push eliminado. Faltam backup, rollback, healthcheck |
-| D-03 | Observabilidade e admin do motor | pendente | ~18% | infra auth/roles pronta, tracking de uso existe. Zero rotas /admin/motor |
+| D-03 | Observabilidade e admin do motor | em progresso | ~40% | Phase 1: 4 endpoints /admin/motor (sessoes, sessao detail, jobs, retry) |
 | F-03 | Controles de produto para IA | pendente | ~15% | apenas initial/regenerate existe. Sem modos criativos, versionamento ou comparacao |
 
 ## Analise por frente
@@ -192,23 +192,26 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 
 ## Pendencias imediatas (atualizado 2026-03-13)
 
-### P-01 Tornar worker deployavel (D-01, CRITICO)
+### ~~P-01 Tornar worker deployavel (D-01, CRITICO)~~ CONCLUIDO
 
-- criar systemd service `lunaria-worker.service` na VPS
-- adicionar restart do worker no pipeline CI/CD do backend
-- ligar flag `AI_ASYNC_ROTEIRO` quando worker estiver ativo
+- ~~criar systemd service `lunaria-worker.service` na VPS~~ feito (deploy/lunaria-worker.service)
+- ~~adicionar restart do worker no pipeline CI/CD do backend~~ feito (ci-cd.yml)
+- ~~retry exponencial + QueueEvents stalled detection~~ feito
+- ligar flag `AI_ASYNC_ROTEIRO` quando worker estiver ativo na VPS (pendente deploy)
 
-### P-02 Continuar modularizacao do motor (F-02)
+### ~~P-02 Continuar modularizacao do motor (F-02)~~ CONCLUIDO
 
-- extrair `masterNarrationEngine` (handleMensagemParaMestre, 325L)
-- migrar combatEngine para usar sendToRoom ao inves de sm.io.to() direto
-- centralizar emissoes no SessionEventBus
+- ~~extrair `masterNarrationEngine` (handleMensagemParaMestre + handleMensagemRoleplay)~~ feito
+- ~~extrair authHandler e chatHandler~~ feito
+- ~~migrar combatEngine para usar sendToRoom ao inves de sm.io.to() direto~~ feito (15 calls migradas)
+- socketManager: 2067L → 1370L (-33.7%)
 
-### P-03 Criar observabilidade minima (D-03)
+### ~~P-03 Criar observabilidade minima (D-03)~~ CONCLUIDO
 
-- `GET /admin/motor/sessoes` — listar sessoes ativas
-- `GET /admin/motor/sessoes/:roomId` — dump completo
-- `GET /admin/motor/jobs` — consultar ai_jobs com filtro
+- ~~`GET /admin/motor/sessoes` — listar sessoes ativas~~ feito
+- ~~`GET /admin/motor/sessoes/:roomId` — dump completo~~ feito
+- ~~`GET /admin/motor/jobs` — consultar ai_jobs com filtro~~ feito
+- ~~`POST /admin/motor/jobs/:id/retry` — reprocessar job falhado~~ feito
 
 ### P-04 ~~Fechar gaps do contrato WebSocket (F-01)~~ CONCLUIDO
 
@@ -234,13 +237,13 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 O projeto avancou significativamente desde a abertura das 6 frentes:
 
 - **F-01 (~97%)**: contrato WebSocket concluido, apenas P5 cosmético pendente
+- **F-02 (~85%)**: 7 engines/handlers extraidos, socketManager 2067→1370L, combatEngine no EventBus
+- **D-01 (~80%)**: systemd service, CI/CD restart, retry exponencial, stalled detection. Falta ligar flag
 - **D-02 (~50%)**: CI/CD funcional, db push eliminado, baseline aplicado
-- **D-01 (~55%)**: v1 roteiro pronta no codigo mas dormant — worker nao deployavel
-- **F-02 (~48%)**: 4 engines extraidos, socketManager -48%, mas acoplamento pesado permanece
-- **D-03 (~18%)**: infraestrutura auth pronta, zero endpoints admin
+- **D-03 (~40%)**: Phase 1 quick wins: 4 endpoints /admin/motor implementados
 - **F-03 (~15%)**: apenas initial/regenerate existe, feature nao iniciada
 
-Prioridades imediatas: (1) tornar worker deployavel, (2) continuar modularizacao, (3) observabilidade minima.
+Proximos passos: (1) hardening deploy D-02, (2) Phase 2 observabilidade D-03, (3) controles de produto F-03.
 
 ## Handoff para outra instancia
 

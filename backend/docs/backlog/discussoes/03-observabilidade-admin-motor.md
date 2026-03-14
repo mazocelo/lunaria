@@ -178,7 +178,7 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 
 | Criterio | Status |
 |----------|--------|
-| Admin entende estado da sessao sem abrir codigo | **Nao atendido** |
-| Admin diagnostica turno travado | **Nao atendido** |
-| Admin ve job de IA falho e onde falhou | **Nao atendido** (dados existem em ai_jobs mas sem endpoint) |
+| Admin entende estado da sessao sem abrir codigo | **Atendido** (GET /admin/motor/sessoes/:roomId) |
+| Admin diagnostica turno travado | **Atendido** (estadoJogo.fase, turnoAtual, testesPendentes visiveis) |
+| Admin ve job de IA falho e onde falhou | **Atendido** (GET /admin/motor/jobs?status=failed + last_error) |
 | Admin ve consumo de tokens e tempo de resposta | **Parcialmente atendido** (GET /billing/global e GET /analytics) |

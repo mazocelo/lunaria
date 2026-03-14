@@ -184,6 +184,8 @@ model personagens {
   pontos_atributo_pendentes Int?                     @default(0)
   xp_atual                  Int?                     @default(0)
   xp_proximo_nivel          Int?                     @default(100)
+  hp_atual                  Int?
+  mp_atual                  Int?
   historias_personagens     historias_personagens[]
   personagem_vantagem       personagem_vantagem[]
   personagem_desvantagem    personagem_desvantagem[]

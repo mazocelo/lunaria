@@ -198,6 +198,8 @@ const PersonagemSessao = (prisma) => {
             nivel: nivelAtual,
             xp_proximo_nivel: xpParaNivel(nivelAtual),
             pontos_atributo_pendentes: pontosAtributoPendentes,
+            hp_atual: clone.hp_atual ?? undefined,
+            mp_atual: clone.mana_atual ?? undefined,
             atualizado_em: new Date()
           }
         });

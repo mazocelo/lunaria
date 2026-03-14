@@ -95,17 +95,32 @@ router.get('/stats', requireSuperAdmin, (req, res) => {
  *                 message:
  *                   type: string
  */
+// S-08: Whitelist de eventos permitidos no broadcast admin
+const ALLOWED_BROADCAST_EVENTS = [
+  'server_message',
+  'system_notification',
+  'maintenance_warning'
+];
+
 router.post('/broadcast', requireSuperAdmin, (req, res) => {
   try {
     const { event, data } = req.body;
-    
+
     if (!event || !data) {
       return res.status(400).json({
         success: false,
         error: 'event e data são obrigatórios'
       });
     }
-    
+
+    if (!ALLOWED_BROADCAST_EVENTS.includes(event)) {
+      log.warn({ event, adminUser: req.user?.id }, 'Tentativa de broadcast com evento nao permitido');
+      return res.status(400).json({
+        success: false,
+        error: `Evento '${event}' não permitido. Eventos válidos: ${ALLOWED_BROADCAST_EVENTS.join(', ')}`
+      });
+    }
+
     // Enviar para todos os clientes conectados
     socketManager.io.emit(event, data);
     

@@ -21,8 +21,8 @@ const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 
 const corsOptions = {
-  origin: isProduction 
-    ? process.env.FRONTEND_URL || 'https://lunaria-frontend.herokuapp.com'
+  origin: isProduction
+    ? process.env.FRONTEND_URL || false
     : true, // Em dev, permite todas as origens
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],

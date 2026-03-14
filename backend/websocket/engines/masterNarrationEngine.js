@@ -18,6 +18,7 @@ import {
   buildJogadorMensagem,
   buildRoleplayMensagem
 } from '../utils/sessionMessages.js';
+import { sanitizePromptInput } from '../../helpers/sanitize.js';
 import {
   getTestePendente
 } from '../utils/testePipeline.js';
@@ -84,6 +85,16 @@ export default class MasterNarrationEngine {
       const username = rawUsername ? String(rawUsername) : 'Jogador';
       const mensagem = String(rawMensagem);
       const personagem = rawPersonagem;
+
+      // S-02: Rejeitar se userId do payload diverge do socket autenticado
+      if (String(rawUserId) !== String(socket.userId)) {
+        sm.log('WARN', 'MENSAGEM_PARA_MESTRE_USERID_MISMATCH', socket.id, socket.userId, {
+          payloadUserId: rawUserId,
+          socketUserId: socket.userId
+        });
+        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado' });
+        return;
+      }
 
       // ✅ MUTEX: Garantir que apenas uma operação por vez na sala
       return await sm.withRoomLock(roomId, async () => {
@@ -246,7 +257,8 @@ export default class MasterNarrationEngine {
         acaoComContexto += `${contextoRoleplayLateral}\n`;
       }
 
-      acaoComContexto += `Ação do jogador: "${mensagem}"`;
+      acaoComContexto += `Ação do jogador: "${sanitizePromptInput(mensagem)}"`;
+
 
       // 5. Narrar ação do jogador (COM FALLBACK SE IA FALHAR)
       sm.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {

@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+
 export default class AuthHandler {
   constructor(manager) {
     this.manager = manager;
@@ -17,25 +19,40 @@ export default class AuthHandler {
     });
 
     try {
-      const { userId: rawUserId, username: rawUsername, sessionId: rawSessionId } = data || {};
+      // S-01: Validar JWT do socketToken antes de aceitar autenticação
+      const token = socket.handshake?.auth?.token || data?.token;
 
-      if (!rawUserId || !rawUsername) {
-        sm.log('ERROR', 'AUTH_VALIDATION_FAILED', socket.id, rawUserId, {
-          missingFields: {
-            userId: !rawUserId,
-            username: !rawUsername
-          },
-          receivedData: data
+      if (!token) {
+        sm.log('ERROR', 'AUTH_TOKEN_MISSING', socket.id, data?.userId, {
+          message: 'Token ausente no handshake e no payload'
         });
-        // @event error → socket (sender) | campos obrigatórios ausentes
-        socket.emit('error', { message: 'userId e username são obrigatórios' });
+        socket.emit('error', { message: 'Token de autenticação obrigatório' });
         return;
       }
 
-      // Fazer parsing dos dados para tipos corretos
-      const userId = String(rawUserId);
-      const username = String(rawUsername);
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (jwtError) {
+        sm.log('ERROR', 'AUTH_TOKEN_INVALID', socket.id, data?.userId, {
+          error: jwtError.message,
+          tokenPrefix: token.substring(0, 10)
+        });
+        socket.emit('error', { message: 'Token inválido ou expirado' });
+        return;
+      }
+
+      // Usar userId e username do token verificado (fonte confiável)
+      const userId = String(decoded.userId);
+      const username = decoded.nome || decoded.username || String(data?.username || 'Jogador');
+      const rawSessionId = data?.sessionId;
       const sessionId = rawSessionId ? String(rawSessionId) : null;
+
+      sm.log('INFO', 'AUTH_TOKEN_VERIFIED', socket.id, userId, {
+        tokenUserId: decoded.userId,
+        tokenEmail: decoded.email,
+        payloadUserId: data?.userId
+      });
 
       sm.log('INFO', 'AUTH_DATA_PARSED', socket.id, userId, {
         parsedData: {
@@ -43,7 +60,7 @@ export default class AuthHandler {
           username: username,
           sessionId: sessionId,
           hasEmail: !!data?.email,
-          hasToken: !!data?.token
+          tokenVerified: true
         }
       });
 

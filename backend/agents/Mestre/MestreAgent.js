@@ -6,7 +6,6 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import dotenv from 'dotenv';
 
 import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider } from './config.js';
-import { isEnabled } from '../../config/featureFlags.js';
 import analyticsService from '../../services/analyticsService.js';
 import usageService from '../../services/usageService.js';
 import { normalizeNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
@@ -19,9 +18,8 @@ function withTimeout(promise, ms = MESTRE_CONFIG.model.timeout) {
   ]);
 }
 
-// Retry controlado por feature flag AI_RETRY
 async function withRetry(fn, retries) {
-  if (retries === undefined) retries = isEnabled('AI_RETRY') ? 1 : 0;
+  if (retries === undefined) retries = 1;
   try {
     return await fn();
   } catch (error) {

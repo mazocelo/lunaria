@@ -3,7 +3,6 @@ import {
   resolverMecanicaCombate,
   formatarResultadoMecanico
 } from '../../helpers/combateHelper.js';
-import { isEnabled } from '../../config/featureFlags.js';
 import { decrementCooldowns } from '../../helpers/cooldownManager.js';
 import { decrementConcentracao } from '../../helpers/concentrationManager.js';
 import { decrementEfeitos, aplicarEfeitosPorTurno } from '../../helpers/effectManager.js';
@@ -191,25 +190,23 @@ export default class MasterNarrationEngine {
       );
 
       // 4. Início de turno: decrementar cooldowns, efeitos, concentração
-      if (isEnabled('EXPANDED_STATE')) {
-        decrementCooldowns(sessao, userId);
-        const pcId = String(personagem.id || personagem.personagemId);
-        const efeitosExpirados = decrementEfeitos(sessao, pcId);
-        const efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
-        const concExpirada = decrementConcentracao(sessao, userId);
+      decrementCooldowns(sessao, userId);
+      const pcId = String(personagem.id || personagem.personagemId);
+      const efeitosExpirados = decrementEfeitos(sessao, pcId);
+      const efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
+      const concExpirada = decrementConcentracao(sessao, userId);
 
-        if (efeitosExpirados.length > 0) {
-          sm.emitirAcaoMestrePersistida(roomId, sessao, {
-            tipo: 'efeitos_expirados', personagem: personagem.nome,
-            efeitos: efeitosExpirados.map(e => e.nome), timestamp: Date.now()
-          });
-        }
-        if (concExpirada) {
-          sm.emitirAcaoMestrePersistida(roomId, sessao, {
-            tipo: 'concentracao_quebrada', personagem: personagem.nome,
-            magia: concExpirada.nome, motivo: 'expirou', timestamp: Date.now()
-          });
-        }
+      if (efeitosExpirados.length > 0) {
+        sm.emitirAcaoMestrePersistida(roomId, sessao, {
+          tipo: 'efeitos_expirados', personagem: personagem.nome,
+          efeitos: efeitosExpirados.map(e => e.nome), timestamp: Date.now()
+        });
+      }
+      if (concExpirada) {
+        sm.emitirAcaoMestrePersistida(roomId, sessao, {
+          tipo: 'concentracao_quebrada', personagem: personagem.nome,
+          magia: concExpirada.nome, motivo: 'expirou', timestamp: Date.now()
+        });
       }
 
       // Injetar contexto dinâmico do personagem + combate na ação

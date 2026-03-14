@@ -1,6 +1,5 @@
 import { ChatGroq } from '@langchain/groq';
 import dotenv from 'dotenv';
-import { isEnabled } from '../../config/featureFlags.js';
 import { trackLLMUsage } from '../../services/llmTracker.js';
 
 dotenv.config();
@@ -56,27 +55,16 @@ export class ResumoAgent {
       ? `\nRESUMO ANTERIOR (consolidar com as novas informacoes):\n${resumoAnterior}\n`
       : '';
     const mensagensFormatadas = this._formatarMensagens(mensagensCanonicas);
-    const prompt = isEnabled('STRUCTURED_SUMMARY')
-      ? this._buildStructuredPrompt(
-          temas,
-          personagens,
-          rodadasJogadas,
-          mensagensCanonicas.length,
-          blocoAnterior,
-          resumoAnterior,
-          mensagensFormatadas,
-          mensagensCanonicas.length
-        )
-      : this._buildNarrativePrompt(
-          temas,
-          personagens,
-          rodadasJogadas,
-          mensagensCanonicas.length,
-          blocoAnterior,
-          resumoAnterior,
-          mensagensFormatadas,
-          mensagensCanonicas.length
-        );
+    const prompt = this._buildStructuredPrompt(
+      temas,
+      personagens,
+      rodadasJogadas,
+      mensagensCanonicas.length,
+      blocoAnterior,
+      resumoAnterior,
+      mensagensFormatadas,
+      mensagensCanonicas.length
+    );
 
     const startTime = Date.now();
     const response = await this.model.invoke(prompt);
@@ -117,33 +105,12 @@ export class ResumoAgent {
         mensagensResumidas: mensagensCanonicas.length,
         rodadasResumiadas: rodadasJogadas,
         geradoEm: new Date().toISOString(),
-        formato: isEnabled('STRUCTURED_SUMMARY') ? 'estruturado' : 'narrativo'
+        formato: 'estruturado'
       };
     } catch (error) {
       console.error('❌ ResumoAgent: Erro ao gerar resumo:', error);
       throw new Error(`Erro ao gerar resumo: ${error.message}`);
     }
-  }
-
-  _buildNarrativePrompt(temas, personagens, rodadasJogadas, totalMensagens, blocoAnterior, resumoAnterior, mensagensFormatadas, qtdMensagens) {
-    return `Voce e um assistente que resume aventuras de RPG de forma concisa.
-
-CONTEXTO:
-- Temas: ${temas.join(', ')}
-- Personagens: ${personagens.map(p => p.personagemNome || p.username || p.nome || p).join(', ')}
-- Rodadas Jogadas: ${rodadasJogadas}
-- Total de Mensagens: ${totalMensagens}
-${blocoAnterior}
-${resumoAnterior ? 'Consolide o resumo anterior com as novas mensagens abaixo em um UNICO resumo coeso.' : 'Crie um resumo'} MUITO CONCISO (maximo 300 palavras) cobrindo:
-1. Principais eventos ocorridos
-2. Decisoes importantes dos jogadores
-3. Situacao/desafio atual
-4. NPCs ou inimigos encontrados
-
-MENSAGENS RECENTES (${qtdMensagens}):
-${mensagensFormatadas}
-
-RESUMO CONCISO:`;
   }
 
   _buildStructuredPrompt(temas, personagens, rodadasJogadas, totalMensagens, blocoAnterior, resumoAnterior, mensagensFormatadas, qtdMensagens) {

@@ -14,7 +14,6 @@ import dotenv from 'dotenv';
 
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
 import { DEPRECATED_MODELS } from '../Mestre/config.js';
-import { isEnabled } from '../../config/featureFlags.js';
 import usageService from '../../services/usageService.js';
 import { criarPromptSistemaCriador } from './prompts/sistema.js';
 import { buildCatalogoCriacao, fetchData as fetchCatalogo } from './catalogo/catalogoCriacao.js';
@@ -29,9 +28,8 @@ function withTimeout(promise, ms = CRIADOR_CONFIG.model.timeout) {
   ]);
 }
 
-// Retry controlado por feature flag
 async function withRetry(fn, retries) {
-  if (retries === undefined) retries = isEnabled('AI_RETRY') ? 1 : 0;
+  if (retries === undefined) retries = 1;
   try {
     return await fn();
   } catch (error) {

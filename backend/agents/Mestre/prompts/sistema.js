@@ -8,7 +8,6 @@
  */
 
 import { sanitizePromptInput } from '../../../helpers/sanitize.js';
-import { isEnabled } from '../../../config/featureFlags.js';
 
 // ── Helpers de formatação ──────────────────────────────────────────
 
@@ -57,30 +56,6 @@ function montarTemas(temas) {
   if (!temas || temas.length === 0) return '';
   return `\nTEMAS DA CAMPANHA: ${temas.map(t => sanitizePromptInput(String(t), 100)).join(', ')}
 Use estes temas para compor cenário, clima, criaturas, eventos e ameaças. Misture-os com criatividade.\n`;
-}
-
-// ── Personagens (legado — sem 4 pilares) ───────────────────────────
-
-function montarPersonagensLegado(personagens) {
-  if (!personagens || personagens.length === 0) return '';
-  return `\nPERSONAGENS JOGANDO:\n${personagens.map((p, i) => {
-    const info = [`${i + 1}. **[PJ] ${sanitizePromptInput(p.nome || String(p), 100)}**`];
-    if (p.jogador) info.push(`Jogador: ${sanitizePromptInput(p.jogador, 100)}`);
-    if (p.raca && p.classe) info.push(`${p.raca} ${p.classe}`);
-    else if (p.classe) info.push(`(${p.classe})`);
-    if (p.nivel) info.push(`Nv${p.nivel}`);
-    if (p.atributos) {
-      const a = p.atributos;
-      info.push(`FOR${a.forca||10} DES${a.destreza||10} INT${a.inteligencia||10} CON${a.constituicao||10} AGI${a.agilidade||10} CAR${a.carisma||10}`);
-    }
-    if (p.vantagens?.length) info.push(`Vantagens: ${p.vantagens.map(v => v.nome).join(', ')}`);
-    if (p.desvantagens?.length) info.push(`Desvantagens: ${p.desvantagens.map(d => d.nome).join(', ')}`);
-    if (p.equipamentos?.length) info.push(`Equipamentos: ${p.equipamentos.map(e => e.nome).join(', ')}`);
-    if (p.background) info.push(`Background: ${sanitizePromptInput(p.background, 300)}`);
-    return info.join(' | ');
-  }).join('\n')}
-
-Considere atributos, vantagens, desvantagens e equipamentos de cada personagem ao narrar ações e definir consequências.\n`;
 }
 
 // ── Personagens com 4 Pilares ──────────────────────────────────────
@@ -358,24 +333,7 @@ function montarRegras4Pilares() {
 `;
 }
 
-// ── Ações mecânicas (legado) ───────────────────────────────────────
-
-function montarAcoesLegado() {
-  return `
-## AÇÕES MECÂNICAS
-
-Campo "acoes" no JSON (array, opcional):
-
-- **dar_item**: {{ "tipo": "dar_item", "item": "Nome Exato", "personagem": "Nome" }} — tesouro, recompensa, loja
-- **remover_item**: {{ "tipo": "remover_item", "item": "Nome", "personagem": "Nome" }} — item quebra, roubado
-- **curar**: {{ "tipo": "curar", "personagem": "Nome", "hp": 10 }} — descanso, poção, magia
-- **aplicar_dano**: {{ "tipo": "aplicar_dano", "personagem": "Nome", "dano": 8, "elemento": "fogo" }} — armadilha, veneno (NÃO combate)
-- **aplicar_status**: {{ "tipo": "aplicar_status", "personagem": "Nome", "status": "envenenado", "duracao": 3 }}
-- **remover_status**: {{ "tipo": "remover_status", "personagem": "Nome", "status": "envenenado" }}
-`;
-}
-
-// ── Ações mecânicas (4 Pilares) ────────────────────────────────────
+// ── Ações mecânicas ────────────────────────────────────────────────
 
 function montarAcoes4Pilares() {
   return `
@@ -406,57 +364,7 @@ Quando houver rolagem pendente:
 `;
 }
 
-// ── Schema JSON legado ─────────────────────────────────────────────
-
-function montarSchemaLegado() {
-  return `
-## FORMATO DE RESPOSTA (OBRIGATORIO)
-
-Responda SEMPRE em JSON valido:
-
-{{
-  "narrativa": "Sua narrativa em markdown. Use **negrito**, listas, etc.",
-  "segmentos": [
-    {{
-      "id": "seg_1",
-      "tipo": "narracao",
-      "speaker": "mestre",
-      "speaker_label": "Mestre",
-      "text": "Trecho da narracao",
-      "npc_id": null,
-      "narracao": {{
-        "emocao": "neutro",
-        "ritmo": "medio",
-        "intensidade": "media"
-      }}
-    }}
-  ],
-  "fimDeTurno": false,
-  "solicitaDados": {{ "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }},
-  "acaoCompleta": false,
-  "combate": null,
-  "acoes": []
-}}
-
-- **narrativa**: texto narrativo (markdown). Termine com gancho: "O que voce faz?" ou pergunta contextual
-- **segmentos**: array obrigatorio com os trechos da mensagem. Cada resposta deve ter ao menos 1 segmento
-- **segmentos[].tipo**: "narracao" ou "fala_npc"
-- **segmentos[].speaker**: "mestre" para narracao, "npc" para fala de NPC
-- **segmentos[].npc_id**: obrigatorio em "fala_npc" quando o NPC existir no roteiro
-- **segmentos[].narracao**: use apenas valores permitidos
-  emocao = neutro | calmo | sombrio | tenso | epico | frio | acolhedor | ameacador | triste | urgente
-  ritmo = lento | medio | rapido
-  intensidade = baixa | media | alta
-- **fimDeTurno**: true para encerrar turno do jogador
-- **solicitaDados.solicita**: true quando pedir rolagem
-- **solicitaDados.teste**: nome do teste (ex: Percepcao, Forca)
-- **solicitaDados.dificuldade**: nivel (ex: Facil, Media, Dificil)
-- **acaoCompleta**: true se a acao do jogador esta completamente resolvida
-- **combate**: null ou objeto de combate
-- **acoes**: array de acoes mecanicas (vazio se nenhuma)`;
-}
-
-// schema expandido
+// ── Schema JSON ───────────────────────────────────────────────────
 
 function montarSchemaExpandido() {
   return `
@@ -527,30 +435,16 @@ export function criarPromptSistema(
   roteiroCondensado = '',
   contextoPersistente = ''
 ) {
-  const usarPilares = isEnabled('FOUR_PILLARS');
-
   let prompt = montarIntro(mestreConfig);
   prompt += montarTemas(temas);
-
-  if (usarPilares) {
-    prompt += montarPersonagens4Pilares(personagens);
-  } else {
-    prompt += montarPersonagensLegado(personagens);
-  }
-
+  prompt += montarPersonagens4Pilares(personagens);
   prompt += montarContextoPersistente(contextoPersistente);
   prompt += montarRoteiro(roteiroCondensado);
   prompt += montarRegrasBase();
   prompt += montarCatalogo(catalogo);
-
-  if (usarPilares) {
-    prompt += montarRegras4Pilares();
-    prompt += montarAcoes4Pilares();
-    prompt += montarSchemaExpandido();
-  } else {
-    prompt += montarAcoesLegado();
-    prompt += montarSchemaLegado();
-  }
+  prompt += montarRegras4Pilares();
+  prompt += montarAcoes4Pilares();
+  prompt += montarSchemaExpandido();
 
   return prompt;
 }

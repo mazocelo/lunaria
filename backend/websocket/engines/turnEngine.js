@@ -1,5 +1,4 @@
 import { extrairNomesTemas } from '../../helpers/temasHelper.js';
-import { isEnabled } from '../../config/featureFlags.js';
 import { buildTurnStartContext } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
 import {
   buildEntreRodadasMensagem,
@@ -461,7 +460,7 @@ export default class TurnEngine {
 
             await sm.gerenciadorSessoes.salvarResumo(roomId, resumo);
 
-            if (isEnabled('BLUEPRINT_V2') && sessaoParaResumo.historiaRoteiro) {
+            if (sessaoParaResumo.historiaRoteiro) {
               try {
                 const { atualizarProgressao } = await import('../../agents/Mestre/prompts/roteiroCondenser.js');
                 const progressaoAtual = sessaoParaResumo.estadoJogo?.progressao || null;

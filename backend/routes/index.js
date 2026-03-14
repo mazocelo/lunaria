@@ -28,8 +28,6 @@ import habilidadeRoutes from './habilidades.js';
 import mestreCriadorRoutes from './mestreCriador.js';
 import adminMotorRoutes from './adminMotor.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
-import { flags } from '../config/featureFlags.js';
-
 const router = express.Router();
 
 // Health check (sem auth, usado pelo CI/CD)
@@ -77,11 +75,6 @@ router.get('/', async (req, res, next) => {
       analytics: '/analytics'
     }
   });
-});
-
-// Feature flags (publico, sem auth)
-router.get('/features', (req, res) => {
-  res.json({ success: true, data: flags });
 });
 
 // Rotas da API

@@ -4,7 +4,6 @@ import { criarGeradorPrologo } from '../../agents/historia/prologo/index.js';
 import { criarGeradorTitulo } from '../../agents/historia/titulos/aleatorios/index.js';
 import gerenciadorSessoes from '../../redis/sessoes.js';
 import blueprintService from '../../services/blueprintService.js';
-import { isEnabled } from '../../config/featureFlags.js';
 import { enqueueRoteiroJob } from '../../jobs/enqueueRoteiroJob.js';
 import { findLatestRoteiroJobForHistoria, serializeAiJob } from '../../jobs/aiJobs.js';
 import {
@@ -253,93 +252,51 @@ class HistoriaController {
       // Auto-evento no feed
       db.FeedPost.createAutoEvent(userId, 'historia_criada', { nome: nomeHistoria }, 'historia', novaHistoria.id);
 
-      const asyncRoteiroEnabled = isEnabled('AI_ASYNC_ROTEIRO');
-      if (asyncRoteiroEnabled) {
-        let roteiroJob = null;
-        let roteiroStatus = novaHistoria.roteiro_status || null;
+      let roteiroJob = null;
+      let roteiroStatus = novaHistoria.roteiro_status || null;
 
-        try {
-          const enqueued = await enqueueRoteiroJob({
-            historia: {
-              ...novaHistoria,
-              prologo: resultadoPrologo.prologo,
-              descricao: descricao || '',
-              temas,
-              maximo_de_participantes: maximo_de_participantes || 5
-            },
-            userId,
-            ensureQuota: () => this.consumirCotaBlueprint(userId)
-          });
-
-          roteiroJob = enqueued.job;
-          roteiroStatus = roteiroJob?.status === 'active' ? 'generating' : 'queued';
-        } catch (error) {
-          if (error.statusCode === 429) {
-            console.warn(`Geracao automatica de roteiro ignorada para historia ${novaHistoria.id}: ${error.message}`);
-          } else {
-            roteiroStatus = 'error';
-            console.error(`Erro ao enfileirar roteiro automatico para historia ${novaHistoria.id}:`, error.message);
-
-            try {
-              await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'error' });
-            } catch (_) {
-              // melhor esforco
-            }
-          }
-        }
-
-        return res.status(201).json({
-          success: true,
-          message: 'Historia criada com prologo gerado automaticamente',
-          data: {
+      try {
+        const enqueued = await enqueueRoteiroJob({
+          historia: {
             ...novaHistoria,
             prologo: resultadoPrologo.prologo,
-            temas_utilizados: resultadoPrologo.temasUtilizados,
-            titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null,
-            roteiro_status: roteiroStatus,
-            job: serializeAiJob(roteiroJob)
-          }
+            descricao: descricao || '',
+            temas,
+            maximo_de_participantes: maximo_de_participantes || 5
+          },
+          userId,
+          ensureQuota: () => this.consumirCotaBlueprint(userId)
         });
+
+        roteiroJob = enqueued.job;
+        roteiroStatus = roteiroJob?.status === 'active' ? 'generating' : 'queued';
+      } catch (error) {
+        if (error.statusCode === 429) {
+          console.warn(`Geracao automatica de roteiro ignorada para historia ${novaHistoria.id}: ${error.message}`);
+        } else {
+          roteiroStatus = 'error';
+          console.error(`Erro ao enfileirar roteiro automatico para historia ${novaHistoria.id}:`, error.message);
+
+          try {
+            await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'error' });
+          } catch (_) {
+            // melhor esforco
+          }
+        }
       }
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
-        message: 'História criada com prólogo gerado automaticamente',
+        message: 'Historia criada com prologo gerado automaticamente',
         data: {
           ...novaHistoria,
           prologo: resultadoPrologo.prologo,
           temas_utilizados: resultadoPrologo.temasUtilizados,
-          titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null
+          titulo_gerado: !nome || nome.trim() === '' ? nomeHistoria : null,
+          roteiro_status: roteiroStatus,
+          job: serializeAiJob(roteiroJob)
         }
       });
-      let roteiroAutoSkipped = false;
-      try {
-        await this.consumirCotaBlueprint(userId);
-      } catch (error) {
-        if (error.statusCode === 429) {
-          roteiroAutoSkipped = true;
-          console.warn(`Geracao automatica de roteiro ignorada para historia ${novaHistoria.id}: ${error.message}`);
-        } else {
-          throw error;
-        }
-      }
-
-      // Gerar roteiro em background (nao bloqueia a resposta)
-      (async () => {
-        if (roteiroAutoSkipped) {
-          return;
-        }
-
-        try {
-          await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'generating' });
-          await this.processarGeracaoRoteiro(
-            { ...novaHistoria, prologo: resultadoPrologo.prologo, descricao: descricao || '', temas, maximo_de_participantes: maximo_de_participantes || 5 },
-            userId
-          );
-        } catch (error) {
-          console.error(`Erro ao gerar roteiro automatico para historia ${novaHistoria.id}:`, error.message);
-        }
-      })();
       
     } catch (error) {
       console.error('? Erro ao criar hist?ria:', error);
@@ -968,21 +925,14 @@ class HistoriaController {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
-      const asyncRoteiroEnabled = isEnabled('AI_ASYNC_ROTEIRO');
-
       const historia = await db.Historia.findById(parseInt(id));
       if (!historia) {
-        return res.status(404).json({ success: false, error: 'Hist?ria n?o encontrada' });
+        return res.status(404).json({ success: false, error: 'Historia nao encontrada' });
       }
 
       // Verificar ownership
       if (String(historia.id_usuario) !== String(userId) && !['admin', 'superadmin'].includes(req.user?.role)) {
         return res.status(403).json({ success: false, error: 'Apenas o dono pode gerar roteiro' });
-      }
-
-      // Verificar se j? est? gerando
-      if (!asyncRoteiroEnabled && historia.roteiro_status === 'generating') {
-        return res.status(409).json({ success: false, error: 'Roteiro j? est? sendo gerado' });
       }
 
       // Resolver modo: do body, ou auto-detect
@@ -991,43 +941,22 @@ class HistoriaController {
         ? requestedMode
         : (historia?.roteiro ? 'regenerate' : 'initial');
 
-      if (asyncRoteiroEnabled) {
-        const enqueued = await enqueueRoteiroJob({
-          historia,
-          userId,
-          mode: resolvedMode,
-          ensureQuota: () => this.consumirCotaBlueprint(userId)
-        });
+      const enqueued = await enqueueRoteiroJob({
+        historia,
+        userId,
+        mode: resolvedMode,
+        ensureQuota: () => this.consumirCotaBlueprint(userId)
+      });
 
-        return res.status(202).json({
-          success: true,
-          data: {
-            jobId: enqueued.job?.id || null,
-            queue: 'roteiro',
-            status: enqueued.job?.status || 'queued',
-            existing: enqueued.existing
-          }
-        });
-      }
-
-      await this.consumirCotaBlueprint(userId);
-
-      // Marcar como generating
-      await db.Historia.updateHistoria(parseInt(id), { roteiro_status: 'generating' });
-
-      // Responder imediatamente
-      res.status(202).json({ success: true, status: 'generating', message: 'Gera??o do roteiro iniciada' });
-
-      // Gerar em background
-      (async () => {
-        try {
-          await this.processarGeracaoRoteiro(historia, userId, {
-            mode: resolvedMode
-          });
-        } catch (error) {
-          console.error(`Erro ao gerar roteiro para historia ${id}:`, error.message);
+      return res.status(202).json({
+        success: true,
+        data: {
+          jobId: enqueued.job?.id || null,
+          queue: 'roteiro',
+          status: enqueued.job?.status || 'queued',
+          existing: enqueued.existing
         }
-      })();
+      });
     } catch (error) {
       console.error('? Erro ao iniciar gera??o de roteiro:', error);
       if (error.statusCode) {

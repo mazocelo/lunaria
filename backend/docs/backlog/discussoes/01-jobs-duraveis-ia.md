@@ -248,7 +248,7 @@ Resultado esperado:
 - BullMQ v5.71.0 sobre Redis (`package.json`)
 - Worker separado (`bin/worker`) com shutdown gracioso (SIGTERM/SIGINT)
 - Tabela `ai_jobs` com indices (`[queue, status]`, `[entity_type, entity_id, created_at]`)
-- POST retorna 202 com jobId quando flag ativo
+- POST retorna 202 com jobId (async-only, flag removida)
 - GET com status persistido e serializeAiJob
 - Auto-geracao por fila ao criar historia
 - Idempotencia: um job ativo por entidade/tipo + lock Redis (TTL 10s)
@@ -258,7 +258,7 @@ Resultado esperado:
 - Persistencia de estado em Postgres (transacao atomica)
 - Concorrencia configuravel via `BULLMQ_ROTEIRO_CONCURRENCY` (default 2)
 - Fallback se enqueue falhar (marca failed atomicamente)
-- Feature flag `AI_ASYNC_ROTEIRO` (default: false)
+- ~~Feature flag `AI_ASYNC_ROTEIRO`~~ removida (Rodada 7) — async-only permanente
 - **systemd service file** criado (`deploy/lunaria-worker.service`)
 - **Worker reiniciado no CI/CD** (`systemctl restart lunaria-worker || true`)
 - Admin endpoints implementados (GET jobs, POST retry) — ver D-03

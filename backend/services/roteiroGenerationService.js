@@ -4,6 +4,7 @@ import blueprintService from './blueprintService.js';
 import { buildCatalogoCompleto } from '../agents/Mestre/catalogo/catalogoMestre.js';
 import { buildMestreContext } from '../agents/Mestre/contexto/mestreContextBuilder.js';
 import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
+import logger from '../helpers/logger.js';
 
 export async function gerarTemasNomes(temas = []) {
   const temasDB = await db.Temas.findAll();
@@ -44,7 +45,7 @@ export async function sincronizarRoteiroNaSessao(historia, roteiro, roteiroStatu
       }
     });
   } catch (error) {
-    console.warn(`Erro ao sincronizar roteiro na sessao ${salaId}:`, error.message);
+    logger.warn({ salaId, err: error.message }, 'Erro ao sincronizar roteiro na sessao');
   }
 }
 
@@ -104,7 +105,7 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
         }
       });
     } catch (versionError) {
-      console.warn(`Erro ao salvar versão do roteiro para historia ${historiaId}:`, versionError.message);
+      logger.warn({ historiaId, err: versionError.message }, 'Erro ao salvar versao do roteiro');
     }
 
     // Persistir prompt/response no ai_job (se aiJobId fornecido)

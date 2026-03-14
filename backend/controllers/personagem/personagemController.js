@@ -67,8 +67,17 @@ class PersonagemController {
       personagemData.raca = personagemData.racas.nome;
     }
 
-    // Processar vantagens (buscar separadamente)
-    const vantagens = await db.Personagem.listarVantagens(personagemData.id);
+    // Buscar todos os relacionamentos em paralelo (evita 4 queries sequenciais)
+    const [vantagens, desvantagens, equipamentos, historiasVinculadas] = await Promise.all([
+      db.Personagem.listarVantagens(personagemData.id),
+      db.Personagem.listarDesvantagens(personagemData.id),
+      db.Personagem.listarEquipamentos(personagemData.id),
+      db.Personagem.listarHistoriasPersonagem(personagemData.id).catch(err => {
+        console.error('❌ Erro ao processar histórias:', err);
+        return [];
+      })
+    ]);
+
     if (vantagens.length > 0) {
       personagemData.vantagens = vantagens.map(v => ({
         id: v.vantagem.id,
@@ -82,8 +91,6 @@ class PersonagemController {
       }));
     }
 
-    // Processar desvantagens (buscar separadamente)
-    const desvantagens = await db.Personagem.listarDesvantagens(personagemData.id);
     if (desvantagens.length > 0) {
       personagemData.desvantagens = desvantagens.map(d => ({
         id: d.desvantagem.id,
@@ -97,8 +104,6 @@ class PersonagemController {
       }));
     }
 
-    // Processar equipamentos (buscar separadamente)
-    const equipamentos = await db.Personagem.listarEquipamentos(personagemData.id);
     if (equipamentos.length > 0) {
       personagemData.equipamentos = equipamentos.map(e => ({
         id: e.equipamento.id,
@@ -110,26 +115,17 @@ class PersonagemController {
       }));
     }
 
-    // Processar histórias vinculadas (retornar TODAS as histórias)
-    try {
-      const historiasVinculadas = await db.Personagem.listarHistoriasPersonagem(personagemData.id);
-      
-      // Mapear array completo de histórias
-      personagemData.historias = historiasVinculadas.map(vinculo => ({
-        id: vinculo.historias.id,
-        nome: vinculo.historias.nome,
-        papel: vinculo.papel || 'jogador'
-      }));
-      
-      // Compatibilidade: manter primeira história como referência
-      if (historiasVinculadas.length > 0 && historiasVinculadas[0].historias) {
-        personagemData.historia_nome = historiasVinculadas[0].historias.nome;
-        personagemData.historia_id = historiasVinculadas[0].historias.id;
-      } else {
-        personagemData.historias = [];
-      }
-    } catch (error) {
-      console.error('❌ Erro ao processar histórias:', error);
+    // Processar histórias vinculadas
+    personagemData.historias = historiasVinculadas.map(vinculo => ({
+      id: vinculo.historias.id,
+      nome: vinculo.historias.nome,
+      papel: vinculo.papel || 'jogador'
+    }));
+
+    if (historiasVinculadas.length > 0 && historiasVinculadas[0].historias) {
+      personagemData.historia_nome = historiasVinculadas[0].historias.nome;
+      personagemData.historia_id = historiasVinculadas[0].historias.id;
+    } else {
       personagemData.historias = [];
     }
     

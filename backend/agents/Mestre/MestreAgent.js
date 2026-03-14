@@ -9,6 +9,9 @@ import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider } from './config.js';
 import analyticsService from '../../services/analyticsService.js';
 import usageService from '../../services/usageService.js';
 import { normalizeNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
+import logger from '../../helpers/logger.js';
+
+const log = logger.child({ module: 'MestreAgent' });
 
 // Timeout wrapper for AI calls
 function withTimeout(promise, ms = MESTRE_CONFIG.model.timeout) {
@@ -24,7 +27,7 @@ async function withRetry(fn, retries) {
     return await fn();
   } catch (error) {
     if (error.message === 'AI_TIMEOUT' && retries > 0) {
-      console.warn('⚠️ MestreAgent: AI timeout, retrying...');
+      log.warn('AI timeout, retrying...');
       return withRetry(fn, retries - 1);
     }
     throw error;
@@ -72,7 +75,7 @@ function fallbackSolicitaDados(respostaJSON) {
   if (match) {
     const teste = match[1].trim();
     const dificuldade = match[2]?.trim() || 'Média';
-    console.log(`🔄 Fallback solicitaDados detectado na narrativa: teste="${teste}", dificuldade="${dificuldade}"`);
+    log.info({ teste, dificuldade }, 'Fallback solicitaDados detectado na narrativa');
     respostaJSON.solicitaDados = {
       solicita: true,
       tipo: 'd20',
@@ -173,7 +176,7 @@ export class MestreAgent {
 
     // Log de validação se necessário
     if (Array.isArray(temas) && temas.length > 0 && typeof temas[0] === 'number') {
-      console.warn('⚠️ MestreAgent: Recebidos temas como IDs numéricos. Convertendo para nomes...');
+      log.warn('Recebidos temas como IDs numericos, convertendo para nomes');
     }
 
     this.personagens = personagens.map(p => extrairInfoPersonagem(p));
@@ -206,7 +209,7 @@ export class MestreAgent {
       // Fallback de modelos deprecados
       if (DEPRECATED_MODELS[modelName]) {
         const newModel = DEPRECATED_MODELS[modelName];
-        console.warn(`⚠️ MestreAgent: Modelo deprecado "${modelName}" → migrando para "${newModel}"`);
+        log.warn({ from: modelName, to: newModel }, 'Modelo deprecado, migrando');
         modelName = newModel;
       }
 
@@ -221,7 +224,7 @@ export class MestreAgent {
           temperature,
           maxOutputTokens: maxTokens
         });
-        console.log(`🤖 MestreAgent: Usando Google Gemini (${modelName})`);
+        log.info({ provider: 'gemini', modelName }, 'Modelo inicializado');
       } else if (provider === 'anthropic') {
         this.model = new ChatAnthropic({
           apiKey: process.env.ANTHROPIC_API_KEY,
@@ -229,7 +232,7 @@ export class MestreAgent {
           temperature,
           maxTokens,
         });
-        console.log(`🤖 MestreAgent: Usando Anthropic (${modelName})`);
+        log.info({ provider: 'anthropic', modelName }, 'Modelo inicializado');
       } else {
         this.model = new ChatGroq({
           apiKey: process.env.GROQ_API_KEY,
@@ -238,7 +241,7 @@ export class MestreAgent {
           maxTokens,
           topP: MESTRE_CONFIG.model.topP
         });
-        console.log(`🤖 MestreAgent: Usando Groq (${modelName})`);
+        log.info({ provider: 'groq', modelName }, 'Modelo inicializado');
       }
 
       // Criar prompt template (com personalidade custom se houver)
@@ -266,9 +269,9 @@ export class MestreAgent {
         this.model
       ]);
 
-      console.log('✅ MestreAgent: Modelo inicializado com sucesso');
+      log.info('Chain criada com sucesso');
     } catch (error) {
-      console.error('MestreAgent: Erro ao inicializar modelo:', error.message);
+      log.error({ err: error.message }, 'Erro ao inicializar modelo');
       this.model = null;
       this.chain = null;
     }
@@ -280,7 +283,7 @@ export class MestreAgent {
   async narrarAcao({ jogador, personagem, acao, chatHistory = [], resumo = null, contextoLateralRoleplay = '' }) {
     const startTime = Date.now();
     try {
-      console.log(`🎭 MestreAgent: Narrando ação de ${personagem}...`);
+      log.info({ personagem }, 'Narrando acao');
 
       // Formatar input
       const input = criarPromptNarracao(jogador, personagem, acao);
@@ -293,7 +296,7 @@ export class MestreAgent {
 
       // ✅ Se houver resumo, adicionar como contexto do sistema
       if (resumo) {
-        console.log(`📖 MestreAgent: Usando resumo da aventura no contexto`);
+        log.debug('Usando resumo da aventura no contexto');
         const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
         historico = [
           {
@@ -360,7 +363,7 @@ export class MestreAgent {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('MestreAgent: Erro ao narrar acao:', error.message);
+      log.error({ err: error.message }, 'Erro ao narrar acao');
       // Fallback narrative instead of crashing the game
       const narrativaFallback = '*O Mestre faz uma pausa dramatica...* A magia que conecta os mundos vacila por um instante. (Erro temporario no servico de IA - tente novamente)';
       return {
@@ -385,7 +388,7 @@ export class MestreAgent {
   async iniciarSessao({ tema, personagens: personagensCustom, cenaInicial, historiaNome }) {
     const startTime = Date.now();
     try {
-      console.log('🎮 MestreAgent: Iniciando nova sessão...');
+      log.info('Iniciando nova sessao');
 
       let input;
       
@@ -420,7 +423,7 @@ export class MestreAgent {
       // Parsear JSON
       let respostaJSON = parseIAJson(response.content);
       if (!respostaJSON) {
-        console.warn('⚠️ Resposta iniciarSessao não é JSON, usando fallback');
+        log.warn('Resposta iniciarSessao nao e JSON, usando fallback');
         respostaJSON = {
           narrativa: response.content,
           fimDeTurno: false,
@@ -438,7 +441,7 @@ export class MestreAgent {
       });
       this.historico = [respostaMestre];
 
-      console.log('✅ MestreAgent: Sessão iniciada com sucesso');
+      log.info('Sessao iniciada com sucesso');
 
       return {
         introducao: narrativa,
@@ -449,7 +452,7 @@ export class MestreAgent {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('MestreAgent: Erro ao iniciar sessao:', error.message);
+      log.error({ err: error.message }, 'Erro ao iniciar sessao');
       // Fallback intro
       const introducaoFallback = '*Uma nevoa mistica se dissipa lentamente...* A aventura esta prestes a comecar! (Erro temporario no servico de IA)';
       return {
@@ -492,7 +495,7 @@ export class MestreAgent {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('MestreAgent: Erro ao processar resposta:', error.message);
+      log.error({ err: error.message }, 'Erro ao processar resposta');
       analyticsService.track('ai_response', {
         duration_ms: Date.now() - startTime,
         fallback: true,
@@ -521,7 +524,7 @@ export class MestreAgent {
   }) {
     const startTime = Date.now();
     try {
-      console.log(`🎯 MestreAgent: Narrando turno ${turno} de ${personagem} (rodada ${rodada})...`);
+      log.info({ turno, personagem, rodada }, 'Narrando turno');
 
       // Criar prompt específico para turno
       let input = `TURNO DO JOGADOR ${personagem} (Jogador: ${jogador})
@@ -544,7 +547,7 @@ Mensagem do Jogador:
 
       // ✅ Se houver resumo, adicionar como contexto do sistema
       if (resumo) {
-        console.log(`📖 MestreAgent: Usando resumo no turno`);
+        log.debug('Usando resumo no turno');
         const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
         historico = [
           {
@@ -598,7 +601,7 @@ Mensagem do Jogador:
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('MestreAgent: Erro ao narrar turno:', error.message);
+      log.error({ err: error.message }, 'Erro ao narrar turno');
       const respostaFallback = '*O Mestre faz uma pausa...* (Erro temporario no servico de IA - tente novamente)';
       return {
         resposta: respostaFallback,
@@ -629,7 +632,7 @@ Mensagem do Jogador:
   }) {
     const startTime = Date.now();
     try {
-      console.log(`🔄 MestreAgent: Narrando transição da rodada ${rodadaAnterior} para ${proximaRodada}...`);
+      log.info({ rodadaAnterior, proximaRodada }, 'Narrando transicao entre rodadas');
 
       // Criar resumo das ações da rodada anterior
       const resumoTexto = resumoAcoes.length > 0 
@@ -654,7 +657,7 @@ Narre a transição e apresente o novo desafio:`;
 
       // ✅ Se houver resumo, adicionar como contexto do sistema
       if (resumo) {
-        console.log(`📖 MestreAgent: Usando resumo entre rodadas`);
+        log.debug('Usando resumo entre rodadas');
         const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
         historico = [
           {
@@ -700,7 +703,7 @@ Narre a transição e apresente o novo desafio:`;
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('MestreAgent: Erro ao narrar entre rodadas:', error.message);
+      log.error({ err: error.message }, 'Erro ao narrar entre rodadas');
       const narrativaFallbackEntreRodadas = '*O mundo estremece brevemente...* Uma nova rodada se inicia! (Erro temporario no servico de IA)';
       return {
         narrativa: narrativaFallbackEntreRodadas,
@@ -727,7 +730,7 @@ Narre a transição e apresente o novo desafio:`;
     contextoLateralRoleplay = ''
   }) {
     try {
-      console.log(`🎲 MestreAgent: Solicitando rolagem - ${tipoTeste}`);
+      log.info({ tipoTeste }, 'Solicitando rolagem');
 
       const jogadoresTexto = jogadores.length > 0 
         ? jogadores
@@ -794,7 +797,7 @@ Seja conciso (máximo 100 palavras).`;
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('MestreAgent: Erro ao solicitar dados:', error.message);
+      log.error({ err: error.message }, 'Erro ao solicitar dados');
       return {
         narrativa: 'O destino aguarda sua rolagem de dados!',
         tipoTeste,
@@ -860,7 +863,7 @@ export async function criarMestreRPG(
     );
     return mestre;
   } catch (error) {
-    console.error('❌ Erro ao criar mestre de RPG:', error);
+    log.error({ err: error }, 'Erro ao criar mestre de RPG');
     throw new Error(`Erro ao criar mestre de RPG: ${error.message}`);
   }
 }

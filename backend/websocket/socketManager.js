@@ -30,6 +30,7 @@ import RpgActionHandler from './handlers/rpgActionHandler.js';
 import StatusUpdateHandler from './handlers/statusUpdateHandler.js';
 import MasterCacheManager from './utils/masterCacheManager.js';
 import SessionEngine from './engines/sessionEngine.js';
+import logger from '../helpers/logger.js';
 
 const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
 
@@ -164,7 +165,7 @@ class SocketManager {
    * @param {Object} server - Servidor HTTP
    */
   async initialize(server) {
-    console.log('🔌 Inicializando WebSocket...');
+    logger.info('Inicializando WebSocket...');
     
     // Criar servidor Socket.IO
     const isProduction = process.env.NODE_ENV === 'production';
@@ -183,7 +184,7 @@ class SocketManager {
     // Inicializar gerenciador de sessões
     try {
       await this.gerenciadorSessoes.initialize();
-      console.log('✅ Gerenciador de sessões inicializado');
+      logger.info('Gerenciador de sessoes inicializado');
     } catch (error) {
       this.log('ERROR', 'SESSION_MANAGER_INIT_ERROR', null, null, { error: error.message });
     }
@@ -196,7 +197,7 @@ class SocketManager {
       this.masterCacheManager.limparCacheMestres();
     }, 600000);
 
-    console.log('✅ WebSocket inicializado com sucesso');
+    logger.info('WebSocket inicializado com sucesso');
   }
 
   /**
@@ -210,7 +211,7 @@ class SocketManager {
       });
 
       await this.redis.connect();
-      console.log('✅ Conectado ao Redis para WebSocket');
+      logger.info('Conectado ao Redis para WebSocket');
     } catch (error) {
       this.log('ERROR', 'REDIS_CONNECTION_ERROR', null, null, { error: error.message });
       // Continuar sem Redis se não estiver disponível
@@ -218,22 +219,12 @@ class SocketManager {
   }
 
   /**
-   * Log estruturado para eventos WebSocket
+   * Log estruturado para eventos WebSocket (via pino)
    */
   log(level, event, socketId, userId = null, data = {}) {
-    const timestamp = new Date().toISOString();
-    const prefix = {
-      'INFO': '📡',
-      'WARN': '⚠️',
-      'ERROR': '❌',
-      'SUCCESS': '✅',
-      'DEBUG': '🔍'
-    }[level] || '📡';
-    
-    const userInfo = userId ? `[User:${userId}]` : '';
-    const socketInfo = `[Socket:${socketId?.substring(0, 8)}...]`;
-    
-    console.log(`${prefix} ${timestamp} ${event} ${socketInfo}${userInfo}`, data);
+    const pinoLevel = { 'INFO': 'info', 'WARN': 'warn', 'ERROR': 'error', 'SUCCESS': 'info', 'DEBUG': 'debug' }[level] || 'info';
+    const logData = { event, socketId: socketId?.substring(0, 8), userId, ...data };
+    logger[pinoLevel](logData, event);
   }
 
   /**

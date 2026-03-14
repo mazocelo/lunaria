@@ -11,6 +11,17 @@ import app from '../app.js';
 import debugLib from 'debug';
 import http from 'http';
 import socketManager from '../websocket/socketManager.js';
+import logger from '../helpers/logger.js';
+
+// Global error handlers — capturar crashes silenciosos
+process.on('unhandledRejection', (reason, promise) => {
+  logger.fatal({ reason, promise }, 'Unhandled Rejection');
+});
+
+process.on('uncaughtException', (error) => {
+  logger.fatal({ err: error }, 'Uncaught Exception');
+  process.exit(1);
+});
 
 const debug = debugLib('role-chat-game:server');
 
@@ -41,7 +52,7 @@ async function startServer() {
     server.on('error', onError);
     server.on('listening', onListening);
   } catch (error) {
-    console.error('❌ Erro ao inicializar servidor:', error);
+    logger.fatal({ err: error }, 'Erro ao inicializar servidor');
     process.exit(1);
   }
 }
@@ -49,7 +60,7 @@ async function startServer() {
 startServer();
 
 const gracefulShutdown = async (signal) => {
-  console.log(`Received ${signal}, shutting down gracefully...`);
+  logger.info({ signal }, 'Shutting down gracefully');
   if (socketManager.close) await socketManager.close();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 10000);
@@ -93,11 +104,11 @@ function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      logger.fatal({ bind }, 'Port requires elevated privileges');
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      logger.fatal({ bind }, 'Port is already in use');
       process.exit(1);
       break;
     default:

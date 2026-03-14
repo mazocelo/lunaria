@@ -11,7 +11,7 @@ const INPUT_PLACEHOLDERS = {
   background: 'Escreva a origem do personagem ou peca ajuda ao Mestre...',
   vantagens: 'Peca dons mais especificos ou refine o conceito do personagem...',
   desvantagens: 'Descreva falhas, custos ou conflitos interessantes...',
-  atributos: 'Peça uma sugestao de distribuicao ou refine a build...',
+  atributos: 'Peï¿½a uma sugestao de distribuicao ou refine a build...',
   resumo: 'Peca ajustes finais ou confirme a direcao do personagem...',
   refinamento: 'Traga os ultimos ajustes antes de concluir...',
 };
@@ -134,68 +134,125 @@ const WizardChat = ({
 
   return (
     <div className="flex h-full flex-col">
-      {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
-        <div className={`shrink-0 border-b px-4 py-2.5 md:px-5 ${
-          isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
-        }`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <Sparkles size={14} className="text-green-400" />
-                <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Pontos livres:{' '}
-                  <span className={`font-bold ${pontosCriacaoRestantes >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {pontosCriacaoRestantes}/{pontosCriacaoTotal}
-                  </span>
+      {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (() => {
+        const pctUsado = pontosCriacaoTotal > 0
+          ? ((pontosCriacaoTotal - pontosCriacaoRestantes) / pontosCriacaoTotal) * 100
+          : 0;
+        const barColor = pontosCriacaoRestantes <= 0
+          ? 'bg-red-500'
+          : pontosCriacaoRestantes < pontosCriacaoTotal
+            ? 'bg-amber-500'
+            : 'bg-green-500';
+        const nadaGasto = pontosCriacaoRestantes === pontosCriacaoTotal;
+
+        return (
+          <div className={`shrink-0 border-b px-4 py-3 md:px-5 ${
+            isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
+          }`}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-purple-400" />
+                <span className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Pontos de criacao
                 </span>
               </div>
-              <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                Desvantagens: <span className={`font-bold ${desvantagensIds.length >= maxDesvantagens ? 'text-red-400' : 'text-amber-400'}`}>{desvantagensIds.length}/{maxDesvantagens}</span>
+              <span className={`text-lg font-mono font-bold tabular-nums ${
+                pontosCriacaoRestantes <= 0 ? 'text-red-400' : pontosCriacaoRestantes < pontosCriacaoTotal ? 'text-amber-400' : 'text-green-400'
+              }`}>
+                {pontosCriacaoRestantes}<span className={`text-sm ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>/{pontosCriacaoTotal}</span>
               </span>
             </div>
 
-            {pontosVantagem > 0 && (
-              <span className={`rounded px-2 py-0.5 text-xs font-mono ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'}`}>
-                {-pontosVantagem + pontosCriacaoRestantes <= pontosCriacaoTotal ? `-${pontosVantagem} pts gastos` : `-${pontosVantagem} pts`}
-              </span>
-            )}
-            {pontosDesvantagem < 0 && (
-              <span className={`rounded px-2 py-0.5 text-xs font-mono ${isLight ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                +{Math.abs(pontosDesvantagem)} pts devolvidos
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+            <div className={`w-full h-2 rounded-full mb-2.5 ${isLight ? 'bg-slate-200' : 'bg-slate-700/50'}`}>
+              <div
+                className={`h-full rounded-full ${barColor} transition-all duration-300`}
+                style={{ width: `${Math.min(100, pctUsado)}%` }}
+              />
+            </div>
 
-      {showAtributos && (
-        <div className={`shrink-0 border-b px-4 py-2.5 md:px-5 ${
-          isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
-        }`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Dices size={18} className="text-purple-400" />
-              <div>
-                <p className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              {nadaGasto ? (
+                <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Nenhum ponto gasto â€” voce pode pular esta etapa
+                </span>
+              ) : (
+                <>
+                  {pontosVantagem > 0 && (
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-mono font-medium ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'}`}>
+                      -{pontosVantagem} gastos
+                    </span>
+                  )}
+                  {pontosDesvantagem < 0 && (
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-mono font-medium ${isLight ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                      +{Math.abs(pontosDesvantagem)} devolvidos
+                    </span>
+                  )}
+                </>
+              )}
+              <span className={`ml-auto rounded-md px-2 py-0.5 text-xs font-mono font-medium ${
+                desvantagensIds.length >= maxDesvantagens
+                  ? isLight ? 'bg-red-50 text-red-600' : 'bg-red-500/10 text-red-400'
+                  : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'
+              }`}>
+                Marcas {desvantagensIds.length}/{maxDesvantagens}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {showAtributos && (() => {
+        const pctAttr = pontosTotais > 0 ? (pontosDistribuidos / pontosTotais) * 100 : 0;
+        const attrBarColor = pontosRestantes === 0
+          ? 'bg-green-500'
+          : pontosRestantes < 0
+            ? 'bg-red-500'
+            : 'bg-purple-500';
+
+        return (
+          <div className={`shrink-0 border-b px-4 py-3 md:px-5 ${
+            isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
+          }`}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <Dices size={16} className="text-purple-400" />
+                <span className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   Atributos base
-                </p>
-                <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                  Ajuste a distribuicao antes de aplicar os bonus finais.
-                </p>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-lg font-mono font-bold tabular-nums ${
+                  pontosRestantes === 0 ? 'text-green-400' : pontosRestantes < 0 ? 'text-red-400' : isLight ? 'text-slate-700' : 'text-white'
+                }`}>
+                  {pontosDistribuidos}<span className={`text-sm ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>/{pontosTotais}</span>
+                </span>
+                <span className={`rounded-md px-2 py-0.5 text-xs font-mono font-medium ${
+                  pontosRestantes === 0
+                    ? isLight ? 'bg-green-50 text-green-600' : 'bg-green-500/10 text-green-400'
+                    : pontosRestantes < 0
+                      ? isLight ? 'bg-red-50 text-red-600' : 'bg-red-500/10 text-red-400'
+                      : isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'
+                }`}>
+                  {pontosRestantes === 0 ? 'Completo' : `${pontosRestantes} restantes`}
+                </span>
               </div>
             </div>
-            <span className={`rounded-lg px-2.5 py-1 text-sm font-mono font-bold ${
-              pontosRestantes === 0
-                ? 'bg-green-500/15 text-green-400'
-                : pontosRestantes < 0
-                  ? 'bg-red-500/15 text-red-400'
-                  : 'bg-amber-500/15 text-amber-400'
-            }`}>
-              {pontosDistribuidos}/{pontosTotais}
-            </span>
+
+            <div className={`w-full h-2 rounded-full mb-2 ${isLight ? 'bg-slate-200' : 'bg-slate-700/50'}`}>
+              <div
+                className={`h-full rounded-full ${attrBarColor} transition-all duration-300`}
+                style={{ width: `${Math.max(0, Math.min(100, pctAttr))}%` }}
+              />
+            </div>
+
+            <p className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              {pontosRestantes === 0
+                ? 'Todos os pontos distribuidos. Confirme no botao abaixo.'
+                : 'Ajuste a distribuicao antes de aplicar os bonus finais.'}
+            </p>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="flex-1 overflow-y-auto px-4 py-3 md:px-5 md:py-4 space-y-4 min-h-0">
         {mensagens.map((msg, msgIndex) => {

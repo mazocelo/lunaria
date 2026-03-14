@@ -135,7 +135,7 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 
 ## Auditoria (2026-03-13)
 
-**Completude: ~18%** (analista: 15%, revisor: 18%)
+**Completude: ~40%** (atualizado 2026-03-13)
 
 ### Feitos (infraestrutura base)
 
@@ -150,15 +150,19 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | `ai_jobs` table com rastreamento | Status, last_error, attempts_made, timestamps |
 | Rotas WebSocket admin | `/broadcast`, `/room/:roomId/message`, `/user/:userId/message` (superadmin) |
 
-### Pendentes (modulo admin/motor inteiro)
+### Implementados (Phase 1 quick wins — 2026-03-13)
+
+| # | Item | Evidencia |
+|---|------|-----------|
+| 1 | `GET /admin/motor/sessoes` — lista sessoes ativas com estado de turno | `routes/adminMotor.js` |
+| 2 | `GET /admin/motor/sessoes/:roomId` — dump completo (estadoJogo, mestreContexto, testesPendentes, resumos, ultimas 20 msgs) | `routes/adminMotor.js` |
+| 3 | `GET /admin/motor/jobs` — consulta ai_jobs com filtro (status, queue, entity_type) e paginacao | `routes/adminMotor.js` |
+| 4 | `POST /admin/motor/jobs/:id/retry` — reprocessa job falhado via BullMQ | `routes/adminMotor.js` |
+
+### Pendentes (Phase 2)
 
 | # | Item | Prioridade |
 |---|------|-----------|
-| 1 | Rotas `/admin/motor` (nenhuma existe) | Alta |
-| 2 | Listagem de sessoes ativas com estado de turno | Alta |
-| 3 | Inspecao de `testesPendentes` e `mestreContexto` por sessao | Alta |
-| 4 | Endpoint para listar/filtrar `ai_jobs` | Alta |
-| 5 | Reprocessamento manual de jobs (`POST /admin/motor/jobs/:id/retry`) | Media |
 | 6 | Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde) | Media |
 | 7 | Logs estruturados (backend usa 51+ `console.log/error` so no socketManager, sem winston/pino) | Media |
 | 8 | Tela admin no frontend (rota SuperAdminRoute ja pronta) | Media |

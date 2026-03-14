@@ -26,6 +26,7 @@ import analyticsRoutes from './analytics.js';
 import billingRoutes from './billing.js';
 import habilidadeRoutes from './habilidades.js';
 import mestreCriadorRoutes from './mestreCriador.js';
+import adminMotorRoutes from './adminMotor.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import { flags } from '../config/featureFlags.js';
 
@@ -123,5 +124,8 @@ router.use('/analytics', analyticsRoutes);
 
 // Billing
 router.use('/billing', authenticateToken, billingRoutes);
+
+// Admin Motor (auth aplicado internamente - superadmin only)
+router.use('/admin/motor', adminMotorRoutes);
 
 export default router;

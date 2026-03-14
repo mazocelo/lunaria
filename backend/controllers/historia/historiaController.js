@@ -6,11 +6,10 @@ import gerenciadorSessoes from '../../redis/sessoes.js';
 import blueprintService from '../../services/blueprintService.js';
 import { enqueueRoteiroJob } from '../../jobs/enqueueRoteiroJob.js';
 import { findLatestRoteiroJobForHistoria, serializeAiJob } from '../../jobs/aiJobs.js';
-import {
-  processarGeracaoRoteiro as processarGeracaoRoteiroService,
-  sincronizarRoteiroNaSessao as sincronizarRoteiroNaSessaoService
-} from '../../services/roteiroGenerationService.js';
+import { processarGeracaoRoteiro as processarGeracaoRoteiroService } from '../../services/roteiroGenerationService.js';
 import { isValidMode } from '../../config/blueprintModes.js';
+import { consumirCotaBlueprint } from '../../services/blueprintQuotaService.js';
+import { usuarioPodeAcessarHistoria, sincronizarRoteiroNaSessao } from '../../helpers/historiaAuthPolicy.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'historiaController' });
 
@@ -42,53 +41,8 @@ class HistoriaController {
     return Number.isNaN(parsed) ? null : parsed;
   }
 
-  async consumirCotaBlueprint(userId, limit = 5, windowSeconds = 60 * 60) {
-    if (!userId) {
-      throw Object.assign(new Error('Autenticacao necessaria para gerar roteiro'), { statusCode: 401 });
-    }
-
-    try {
-      await gerenciadorSessoes.initialize();
-      const redis = gerenciadorSessoes.client;
-      if (!redis) return { allowed: true, remaining: limit };
-
-      const key = `rate_limit:blueprint:${userId}`;
-      const total = await redis.incr(key);
-      if (total === 1) {
-        await redis.expire(key, windowSeconds);
-      }
-
-      if (total > limit) {
-        throw Object.assign(
-          new Error('Limite de geracao de roteiros atingido. Tente novamente em 1 hora.'),
-          { statusCode: 429 }
-        );
-      }
-
-      return { allowed: true, remaining: Math.max(limit - total, 0) };
-    } catch (error) {
-      if (error.statusCode) throw error;
-      log.warn({ err: error }, 'Falha ao validar cota de blueprint no Redis, seguindo sem bloqueio');
-      return { allowed: true, remaining: limit };
-    }
-  }
-
   async obterSocketManager() {
     return (await import('../../websocket/socketManager.js')).default;
-  }
-
-  async sincronizarRoteiroNaSessao(historia, roteiro, roteiroStatus = 'completed') {
-    await sincronizarRoteiroNaSessaoService(historia, roteiro, roteiroStatus);
-
-    const salaId = `historia_${historia.id}`;
-    try {
-      const socketManager = await this.obterSocketManager();
-      if (socketManager?.mestresCache) {
-        socketManager.mestresCache.delete(salaId);
-      }
-    } catch (error) {
-      log.warn({ err: error, salaId }, 'Erro ao invalidar cache do Mestre');
-    }
   }
 
   async emitirEventoRoteiro(historiaId, evento, payload = {}) {
@@ -145,39 +99,6 @@ class HistoriaController {
     });
   }
 
-  async usuarioPodeAcessarHistoria(historia, user) {
-    if (!historia) return false;
-    if (historia.publica === true) return true;
-    if (!user || !user.id) return false;
-    if (user.role === 'superadmin') return true;
-    if (String(historia.id_usuario) === String(user.id)) return true;
-
-    const userId = parseInt(user.id, 10);
-    const historiaId = parseInt(historia.id, 10);
-
-    const [participacao, convite] = await Promise.all([
-      db.prisma.historias_personagens.findFirst({
-        where: {
-          historia_id: historiaId,
-          personagens: {
-            id_usuario: userId,
-            deleted_at: null
-          }
-        },
-        select: { id: true }
-      }),
-      db.prisma.historias_convite.findFirst({
-        where: {
-          historia_id: historiaId,
-          usuario_id: userId,
-          status: { in: ['pendente', 'aceito'] }
-        },
-        select: { id: true }
-      })
-    ]);
-
-    return Boolean(participacao || convite);
-  }
   
   /**
    * Criar uma nova história com prólogo gerado automaticamente
@@ -267,7 +188,7 @@ class HistoriaController {
             maximo_de_participantes: maximo_de_participantes || 5
           },
           userId,
-          ensureQuota: () => this.consumirCotaBlueprint(userId)
+          ensureQuota: () => consumirCotaBlueprint(userId)
         });
 
         roteiroJob = enqueued.job;
@@ -451,7 +372,7 @@ class HistoriaController {
         });
       }
       
-      const podeAcessar = await this.usuarioPodeAcessarHistoria(historia, req.user);
+      const podeAcessar = await usuarioPodeAcessarHistoria(historia, req.user);
       if (!podeAcessar) {
         return res.status(403).json({
           success: false,
@@ -947,7 +868,7 @@ class HistoriaController {
         historia,
         userId,
         mode: resolvedMode,
-        ensureQuota: () => this.consumirCotaBlueprint(userId)
+        ensureQuota: () => consumirCotaBlueprint(userId)
       });
 
       return res.status(202).json({
@@ -980,7 +901,7 @@ class HistoriaController {
         return res.status(404).json({ success: false, error: 'História não encontrada' });
       }
 
-      const podeAcessar = await this.usuarioPodeAcessarHistoria(historia, req.user);
+      const podeAcessar = await usuarioPodeAcessarHistoria(historia, req.user);
       if (!podeAcessar) {
         return res.status(403).json({ success: false, error: 'Você não tem permissão para acessar esta história' });
       }
@@ -1036,7 +957,7 @@ class HistoriaController {
         roteiro_status: 'completed'
       });
 
-      await this.sincronizarRoteiroNaSessao(
+      await sincronizarRoteiroNaSessao(
         { ...historia, roteiro: roteiroNormalizado, roteiro_status: 'completed' },
         roteiroNormalizado,
         'completed'
@@ -1062,7 +983,7 @@ class HistoriaController {
         return res.status(404).json({ success: false, error: 'História não encontrada' });
       }
 
-      const podeAcessar = await this.usuarioPodeAcessarHistoria(historia, req.user);
+      const podeAcessar = await usuarioPodeAcessarHistoria(historia, req.user);
       if (!podeAcessar) {
         return res.status(403).json({ success: false, error: 'Você não tem permissão para acessar esta história' });
       }
@@ -1094,7 +1015,7 @@ class HistoriaController {
 
       const roteiroAtualizado = { ...historia.roteiro, progressao };
       await db.Historia.updateHistoria(parseInt(id), { roteiro: roteiroAtualizado });
-      await this.sincronizarRoteiroNaSessao(
+      await sincronizarRoteiroNaSessao(
         { ...historia, roteiro: roteiroAtualizado, roteiro_status: historia.roteiro_status || 'completed' },
         roteiroAtualizado,
         historia.roteiro_status || 'completed'
@@ -1166,7 +1087,7 @@ class HistoriaController {
 
       const historia = await db.Historia.findById(historiaId);
       if (historia) {
-        await this.sincronizarRoteiroNaSessao(historia, versao.roteiro, 'completed');
+        await sincronizarRoteiroNaSessao(historia, versao.roteiro, 'completed');
       }
 
       res.json({ success: true, message: 'Versão ativada' });
@@ -1251,7 +1172,7 @@ class HistoriaController {
         ]);
 
         if (historia) {
-          await this.sincronizarRoteiroNaSessao(historia, versao.roteiro, 'completed');
+          await sincronizarRoteiroNaSessao(historia, versao.roteiro, 'completed');
         }
 
         log.info({ versaoId: versaoIdInt, historiaId, reviewer: userId }, 'Versão aprovada e ativada');

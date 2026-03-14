@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import db from '../Model/index.js';
+import { redisClient } from '../redis/redis-config.js';
 import logger from '../helpers/logger.js';
 const log = logger.child({ module: 'authMiddleware' });
 
@@ -133,13 +135,14 @@ export const generateAccessToken = (userId, email, role = 'player') => {
  */
 export const generateRefreshToken = (userId, email, role = 'player', rememberMe = false) => {
   const expiresIn = rememberMe ? '30d' : '25m'; // 30 dias se "lembrar de mim", senão 25 minutos
-  
+
   return jwt.sign(
-    { 
-      userId, 
-      email, 
+    {
+      userId,
+      email,
       role,
       type: 'refresh',
+      jti: crypto.randomUUID(),
       iat: Math.floor(Date.now() / 1000)
     },
     process.env.JWT_REFRESH_SECRET,
@@ -175,28 +178,60 @@ export const generateSocketToken = (userId, email, role = 'player') => {
 /**
  * Verificar e renovar access token usando refresh token
  */
-export const refreshToken = (refreshTokenValue) => {
+export const refreshToken = async (refreshTokenValue) => {
   try {
     const decoded = jwt.verify(
-      refreshTokenValue, 
+      refreshTokenValue,
       process.env.JWT_REFRESH_SECRET
     );
-    
+
     // Verificar se é um refresh token
     if (decoded.type !== 'refresh') {
       throw new Error('Token deve ser um refresh token');
     }
-    
+
+    // Verificar blacklist (jti pode nao existir em tokens antigos)
+    if (decoded.jti) {
+      try {
+        const blacklisted = await redisClient.get(`blacklist:${decoded.jti}`);
+        if (blacklisted) {
+          throw new Error('Token revogado');
+        }
+      } catch (redisErr) {
+        if (redisErr.message === 'Token revogado') throw redisErr;
+        log.warn({ err: redisErr }, 'Redis indisponivel para blacklist check — permitindo refresh');
+      }
+    }
+
     // Gerar novos tokens
     const accessToken = generateAccessToken(decoded.userId, decoded.email, decoded.role);
     const newRefreshToken = generateRefreshToken(decoded.userId, decoded.email, decoded.role, false);
-    
+
     return {
       accessToken,
       refreshToken: newRefreshToken
     };
   } catch (error) {
-    throw new Error('Refresh token inválido ou expirado');
+    throw new Error(error.message || 'Refresh token inválido ou expirado');
+  }
+};
+
+/**
+ * Adicionar refresh token à blacklist no Redis
+ * TTL = tempo restante até expiração do token
+ */
+export const blacklistRefreshToken = async (refreshTokenValue) => {
+  try {
+    const decoded = jwt.verify(refreshTokenValue, process.env.JWT_REFRESH_SECRET, { ignoreExpiration: true });
+    if (!decoded.jti) return; // Tokens antigos sem jti — ignorar
+
+    const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 0;
+    if (ttl <= 0) return; // Já expirado
+
+    await redisClient.set(`blacklist:${decoded.jti}`, '1', { EX: ttl });
+    log.info({ jti: decoded.jti, ttl }, 'Refresh token adicionado à blacklist');
+  } catch (err) {
+    log.warn({ err }, 'Falha ao blacklistar refresh token');
   }
 };
 

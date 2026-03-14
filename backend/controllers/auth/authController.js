@@ -7,7 +7,8 @@ import {
   generateRefreshToken,
   generateSocketToken,
   refreshToken as renewToken,
-  verifyRefreshToken
+  verifyRefreshToken,
+  blacklistRefreshToken
 } from '../../middleware/authMiddleware.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'authController' });
@@ -264,8 +265,8 @@ class AuthController {
         });
       }
 
-      // Gerar novos tokens
-      const novosTokens = renewToken(refreshToken);
+      // Gerar novos tokens (async — verifica blacklist no Redis)
+      const novosTokens = await renewToken(refreshToken);
       const socketToken = generateSocketToken(decoded.userId, decoded.email, decoded.role);
 
       // Configurar cookies HttpOnly
@@ -306,10 +307,16 @@ class AuthController {
    */
   async logout(req, res) {
     try {
+      // Blacklistar refresh token no Redis antes de limpar cookies
+      const currentRefreshToken = req.cookies.refreshToken;
+      if (currentRefreshToken) {
+        await blacklistRefreshToken(currentRefreshToken);
+      }
+
       // Limpar cookies HttpOnly
       res.cookie('accessToken', '', getCookieConfig(0));
       res.cookie('refreshToken', '', getCookieConfig(0));
-      
+
       log.info({ id: req.user?.id }, 'Logout realizado');
 
       res.status(200).json({

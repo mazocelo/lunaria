@@ -136,7 +136,11 @@ const Historia = (prisma) => {
         prisma.historias.findMany({
           where,
           orderBy: { criada_em: 'desc' },
-          include: { mestres: true, usuarios: { select: { id: true, nome: true } } },
+          include: {
+            mestres: true,
+            usuarios: { select: { id: true, nome: true } },
+            _count: { select: { historias_personagens: true } },
+          },
           skip: offset,
           take: limit,
         }),

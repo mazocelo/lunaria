@@ -179,9 +179,7 @@ const RoteiroViewer = ({
         ...npc,
         id: npc?.id || `npc_${slugify(nome, `npc_${index + 1}`)}`,
         voice_id: nextVoice.voice_id || null,
-        voice_provider: nextVoice.voice_id
-          ? (nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || DEFAULT_TTS_PROVIDER)
-          : null
+        voice_provider: nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || DEFAULT_TTS_PROVIDER
       };
     });
   };

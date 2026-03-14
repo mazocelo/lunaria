@@ -39,93 +39,100 @@ Auditar o `Backlog-2` nas frentes abaixo:
 
 ## Veredito atual
 
-O `Backlog-2` esta majoritariamente correto, mas nao esta 100% limpo.
+O `Backlog-2` agora pode ser tratado como funcionalmente concluido.
 
 Status consolidado:
 
-- Implementado e confirmado: maior parte dos itens
-- Parcial: `S-01`, `S-05`, `P-03`
+- Implementado e confirmado: itens do backlog
+- Reauditado e fechado: `S-01`, `S-05`, `P-03`
 - Adiado por design: `T-04`, `T-01`
 
 Conclusao pratica:
 
 - o `Backlog-2` avancou de verdade;
-- o resumo "22 implementados, 2 adiados" precisa nuance;
-- tres itens ainda nao devem ser tratados como totalmente fechados.
+- os tres pontos que estavam parciais foram corrigidos;
+- o resumo "22 implementados, 2 adiados" agora esta coerente com o runtime.
 
-## Achados principais
+## Reauditoria dos 3 itens parciais
 
-### 1. S-01 - JWT no WebSocket ficou parcial
+### 1. S-01 - Username confiavel no WebSocket
 
-**Status:** Parcial
-**Arquivo:** `Backend/websocket/handlers/authHandler.js`
+**Status:** Resolvido
+**Arquivos:**
 
-O `socketToken` agora e verificado com `jwt.verify`, e o `userId` deixa de vir do cliente.
-Isso corrige a parte principal do problema.
+- `Backend/middleware/authMiddleware.js`
+- `Backend/controllers/auth/authController.js`
+- `Backend/websocket/handlers/authHandler.js`
 
-Mas o `username` ainda pode cair no payload do cliente se o token nao trouxer `nome` ou `username`:
+O `nome` agora entra no payload JWT de:
+
+- access token
+- refresh token
+- socket token
+
+O handler de auth websocket deixou de usar fallback do cliente:
 
 ```js
-const username = decoded.nome || decoded.username || String(data?.username || 'Jogador');
+const username = decoded.nome || 'Jogador';
 ```
 
-Impacto:
+Resultado:
 
-- impede impersonacao forte por `userId`;
-- ainda deixa spoof semantico de nome no socket.
+- o `userId` continua vindo do token verificado;
+- o `username` deixa de depender de `data.username`;
+- o spoof semantico via payload do cliente foi removido.
 
-Tratamento correto:
+Observacao residual:
 
-- considerar `S-01` como **parcial**, nao totalmente concluido;
-- o ideal e reconstruir `username` a partir de fonte confiavel, nao do payload.
+- tokens antigos sem `nome` ainda podem aparecer como `Jogador` ate novo login/renovacao;
+- isso e compatibilidade de transicao, nao bug aberto.
 
-### 2. S-05 - Blacklist de refresh token implementada, mas rotacao quebra lembrarDeMim
+### 2. S-05 - rememberMe preservado na rotacao
 
-**Status:** Parcial
+**Status:** Resolvido
 **Arquivos:**
 
 - `Backend/middleware/authMiddleware.js`
 - `Backend/controllers/auth/authController.js`
 
-O `jti` foi adicionado, o logout blacklista e o refresh verifica Redis.
-Essa parte esta correta.
+O `refresh token` agora carrega `rememberMe` no payload.
+Na renovacao:
 
-O problema restante esta na rotacao:
+- `refreshToken()` le `decoded.rememberMe`
+- propaga isso para o novo refresh token
+- retorna `rememberMe` ao controller
+- o controller recalcula `maxAge` do cookie com base nesse valor
 
-- no login, `rememberMe=true` gera refresh token de `30d`;
-- no refresh, o backend sempre recria o refresh token com `false`;
-- o cookie renovado sempre volta com `25m`.
+Resultado:
 
-Impacto:
+- sessao com `rememberMe=true` continua em `30d`;
+- sessao comum continua em `25m`;
+- a blacklist com `jti` permanece funcionando.
 
-- sessoes "lembrar de mim" perdem duracao longa no primeiro refresh;
-- a seguranca avancou, mas a semantica do produto ficou incompleta.
+Observacao residual:
 
-Tratamento correto:
+- refresh tokens antigos sem `rememberMe` continuam caindo no fallback `false`;
+- isso e comportamento aceitavel de compatibilidade, nao pendencia aberta.
 
-- considerar `S-05` como **parcial** ate a rotacao preservar a politica original.
+### 3. P-03 - Confirmacao ao sair da sala de espera
 
-### 3. P-03 - Confirmacao ao sair ficou incompleta
-
-**Status:** Parcial
+**Status:** Resolvido
 **Arquivos:**
 
-- `Frontend/src/Pages/Jogo/JogoAtivo/jogo-ativo.view.jsx`
-- `Frontend/src/components/Jogo/Etapas/EtapaSalaEspera.jsx`
+- `Frontend/src/Pages/Jogo/SalaEspera/sala-espera.model.js`
+- `Frontend/src/Pages/Jogo/SalaEspera/sala-espera.view.jsx`
 
-O `ConfirmationModal` foi aplicado no jogo ativo.
-Isso esta correto.
+O fluxo da sala de espera agora segue o mesmo padrao do jogo ativo:
 
-Mas a sala de espera ainda chama `onSair` diretamente no botao "Sair da Sala".
+- `handleSair` abre modal
+- `confirmarSair` executa a saida
+- `cancelarSair` fecha o modal
+- a view renderiza `ConfirmationModal` com `type="danger"`
 
-Impacto:
+Resultado:
 
-- a protecao existe em parte do fluxo;
-- ainda ha saida direta sem confirmacao antes da aventura iniciar.
-
-Tratamento correto:
-
-- considerar `P-03` como **parcial** se o objetivo era cobrir a saida do jogo/sala como um todo.
+- a saida passou a ser consistente entre sala de espera e jogo ativo;
+- o fluxo agora protege contra clique acidental antes do inicio da aventura.
 
 ## Itens auditados e confirmados
 
@@ -171,21 +178,21 @@ Os itens abaixo conferem com o runtime atual:
 
 Leitura recomendada da rodada:
 
-- **Concluido com ressalvas** no nivel macro
-- **Nao totalmente limpo** no nivel item-a-item
+- **Concluido** no nivel do backlog planejado
+- **Com observacoes de compatibilidade** apenas para tokens antigos
 
 Forma mais precisa de comunicar:
 
-- `Backlog-2`: majoritariamente implementado
-- `Pendencias restantes`: `S-01`, `S-05`, `P-03`
+- `Backlog-2`: implementado e reauditado
+- `Pendencias restantes`: nenhuma dentro do escopo fechado
 - `Adiados por design`: `T-04`, `T-01`
 
 ## Proximo passo recomendado
 
-Antes de arquivar o `Backlog-2`, fechar estes tres pontos:
+O `Backlog-2` ja pode ser tratado como encerrado.
 
-1. `S-01`: remover fallback de `username` vindo do cliente no auth websocket
-2. `S-05`: preservar `rememberMe` na rotacao do refresh token
-3. `P-03`: aplicar confirmacao tambem na saida da sala de espera
+Proximos movimentos naturais:
 
-Depois disso, o `Backlog-2` pode ser tratado como efetivamente encerrado.
+1. arquivar o `Backlog-2` quando voce quiser consolidar a rodada
+2. manter apenas nota operacional sobre compatibilidade de tokens antigos
+3. seguir para `backlog-3` ou para novas reviews de runtime

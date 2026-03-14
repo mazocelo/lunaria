@@ -1,50 +1,51 @@
 import React, { useMemo } from 'react';
-import { ArrowRight, CheckCircle2, Compass, ScrollText, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Compass, ScrollText, Sparkles } from 'lucide-react';
+import WizardReadinessSeal from './WizardReadinessSeal.jsx';
 
 const STAGE_COPY = {
   boas_vindas: {
-    title: 'De um nome ao seu heroi',
-    description: 'Escolha um nome que combine com o tom da campanha ou peca novas sugestoes ao Mestre.',
-    action: 'Defina como ele sera conhecido no mundo.'
+    title: 'Batize a centelha do heroi',
+    description: 'Escolha um nome que abra caminho para o resto da identidade do personagem.',
+    action: 'Defina como ele sera lembrado no mundo.'
   },
   raca: {
-    title: 'Escolha a linhagem',
-    description: 'A linhagem define afinidades, imaginario e boa parte da primeira impressao do personagem.',
-    action: 'Selecione uma opcao abaixo ou abra o catalogo completo.'
+    title: 'Sele a linhagem',
+    description: 'A linhagem define imaginario, afinidades e o primeiro impacto da ficha.',
+    action: 'Escolha a origem que sustenta a fantasia base.'
   },
   classe: {
-    title: 'Defina a vocacao',
-    description: 'A classe traduz o papel do personagem em jogo: combate, suporte, exploracao ou controle.',
-    action: 'Escolha a funcao que mais combina com o estilo que voce quer jogar.'
+    title: 'Forje a vocacao',
+    description: 'A vocacao define papel tatico, ritmo e como esse personagem atua em cena.',
+    action: 'Escolha a funcao principal antes dos refinamentos.'
   },
   background: {
     title: 'Amarre a origem',
-    description: 'O background precisa explicar de onde esse heroi veio e o que o empurra para a aventura.',
-    action: 'Escreva uma origem curta ou aproveite as sugestoes do Mestre.'
+    description: 'Agora a ficha precisa de um passado que explique as marcas e ambicoes do heroi.',
+    action: 'Escreva uma origem curta ou refine uma sugestao do Mestre.'
   },
   vantagens: {
     title: 'Escolha os dons',
-    description: 'As vantagens refinam talento, reputacao e recursos especiais.',
-    action: 'Adicione apenas o que reforca a fantasia do personagem.'
+    description: 'Os dons ampliam recursos, reputacao e versatilidade mecanica.',
+    action: 'Adicione apenas o que reforca o conceito do personagem.'
   },
   desvantagens: {
     title: 'Aceite as marcas',
-    description: 'Desvantagens bem escolhidas tornam o personagem mais memoravel e devolvem pontos.',
+    description: 'Marcas bem escolhidas devolvem pontos e criam conflitos memoraveis.',
     action: 'Assuma custos que voce realmente queira interpretar.'
   },
   atributos: {
-    title: 'Distribua a essencia',
-    description: 'Agora voce fecha o corpo mecanico do personagem antes da criacao final.',
-    action: 'Distribua todos os pontos e confirme os atributos.'
+    title: 'Calibre a essencia',
+    description: 'Aqui a ficha deixa de ser conceito e passa a ter proporcao mecanica real.',
+    action: 'Distribua os pontos base e confirme a leitura final.'
   },
   resumo: {
     title: 'Revise o destino',
-    description: 'Confirme se nome, escolhas e atributos estao coerentes entre si.',
-    action: 'Ajuste o que for necessario antes de criar o personagem.'
+    description: 'Confirme se identidade, custo e atributos contam a mesma historia.',
+    action: 'Ajuste o necessario antes de selar a ficha.'
   },
   refinamento: {
     title: 'Feche os ultimos ajustes',
-    description: 'Ultima checagem antes de gravar a ficha.',
+    description: 'Ultima checagem ritual antes do personagem entrar no mundo.',
     action: 'Se tudo estiver consistente, conclua a criacao.'
   }
 };
@@ -64,12 +65,17 @@ const WizardStageHero = ({
   racasDisponiveis,
   classesDisponiveis,
   isLight,
+  compact = false,
+  onToggleCompact,
+  readinessState = 'open',
+  stageSummary,
 }) => {
   const etapa = etapas?.[etapaIndex];
-  const nextEtapa = etapas?.[etapaIndex + 1];
   const copy = STAGE_COPY[etapaAtual] || STAGE_COPY.boas_vindas;
 
   const resumo = useMemo(() => {
+    if (stageSummary?.length) return stageSummary;
+
     const raca = racasDisponiveis?.find(item => String(item.id) === String(racaId));
     const classe = classesDisponiveis?.find(item => String(item.id) === String(classeId));
 
@@ -79,133 +85,100 @@ const WizardStageHero = ({
       classe ? { label: 'Vocacao', value: classe.nome } : null,
       background?.trim() ? { label: 'Origem', value: 'Definida' } : null,
       vantagensIds?.length > 0
-        ? { label: 'Dons', value: `${vantagensIds.length} escolhida${vantagensIds.length > 1 ? 's' : ''}` }
+        ? { label: 'Dons', value: `${vantagensIds.length} ativos` }
         : skipVantagens
           ? { label: 'Dons', value: 'Pulados' }
           : null,
       desvantagensIds?.length > 0
-        ? { label: 'Marcas', value: `${desvantagensIds.length} escolhida${desvantagensIds.length > 1 ? 's' : ''}` }
+        ? { label: 'Marcas', value: `${desvantagensIds.length} ativas` }
         : skipDesvantagens
           ? { label: 'Marcas', value: 'Puladas' }
           : null,
     ].filter(Boolean);
-  }, [
-    nome,
-    racaId,
-    classeId,
-    background,
-    vantagensIds,
-    desvantagensIds,
-    skipVantagens,
-    skipDesvantagens,
-    racasDisponiveis,
-    classesDisponiveis,
-  ]);
+  }, [stageSummary, racasDisponiveis, classesDisponiveis, racaId, classeId, nome, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens]);
 
   return (
-    <section
-      className={`shrink-0 border-b px-4 py-4 md:px-5 md:py-4 ${
-        isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-950/55'
-      } backdrop-blur-sm`}
-    >
-      <div
-        className={`rounded-2xl border px-4 py-4 md:px-5 md:py-4 ${
-          isLight
-            ? 'border-slate-200 bg-gradient-to-r from-white via-purple-50/70 to-indigo-50/60'
-            : 'border-slate-700/50 bg-gradient-to-r from-slate-900 via-purple-950/35 to-slate-900'
-        }`}
-      >
+    <section className="wa-stage-enter shrink-0 px-4 pt-3 md:px-5">
+      <div className={[ 'wa-hero wa-etched rounded-[24px] px-4 py-4 md:px-5', compact ? 'wa-hero-compact' : '' ].join(' ')}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] ${
-                  isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/15 text-purple-300'
-                }`}
-              >
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="wa-violet-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                 <Sparkles size={12} />
                 Etapa atual
               </span>
-              <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                {`Passo ${etapaIndex + 1} de ${etapas.length}`}
+              <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                Passo {etapaIndex + 1} de {etapas.length}
               </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className={`text-lg font-fantasy font-bold md:text-xl ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                {copy.title}
-              </h2>
               {etapa?.label && (
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-modern font-semibold ${
-                    isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-800 text-slate-300'
-                  }`}
-                >
+                <span className="wa-brass-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                   {etapa.label}
                 </span>
               )}
             </div>
 
-            <p className={`mt-2 max-w-3xl text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <h2 className={`text-xl font-fantasy font-bold md:text-[1.55rem] ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              {copy.title}
+            </h2>
+
+            <p className={`mt-2 max-w-3xl text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
               {copy.description}
             </p>
 
-            <div
-              className={`mt-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 ${
-                isLight ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700' : 'border-indigo-500/20 bg-indigo-500/10 text-indigo-200'
-              }`}
-            >
-              <Compass size={16} className="mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-[11px] font-modern font-semibold uppercase tracking-[0.18em] opacity-80">
-                  Proximo passo
-                </p>
-                <p className="text-sm font-modern">
-                  {copy.action}
-                </p>
+            <div className="mt-4 flex flex-wrap items-start gap-3">
+              <div className="wa-panel-soft rounded-2xl px-3 py-2.5">
+                <div className="flex items-start gap-2">
+                  <Compass size={15} className="mt-0.5 shrink-0 text-[var(--wa-info)]" />
+                  <div>
+                    <p className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                      Linha operacional
+                    </p>
+                    <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-100'}`}>{copy.action}</p>
+                  </div>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={onToggleCompact}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-modern font-semibold transition-all cursor-pointer ${
+                  isLight
+                    ? 'border-slate-300 bg-white/70 text-slate-600 hover:bg-white'
+                    : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-900'
+                }`}
+              >
+                {compact ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                {compact ? 'Expandir contexto' : 'Compactar contexto'}
+              </button>
             </div>
           </div>
 
-          <div className="w-full max-w-xl xl:w-[26rem] xl:shrink-0">
-            <div
-              className={`rounded-xl border px-4 py-3 ${
-                isLight ? 'border-slate-200 bg-white/80' : 'border-slate-700/50 bg-slate-900/70'
-              }`}
-            >
-              <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="w-full xl:w-[27rem] xl:shrink-0">
+            <div className="wa-panel rounded-2xl px-4 py-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <ScrollText size={15} className={isLight ? 'text-slate-500' : 'text-slate-400'} />
-                  <span className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Estado atual
+                  <ScrollText size={15} className={isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'} />
+                  <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                    Estado condensado
                   </span>
                 </div>
-                {nextEtapa && (
-                  <span className={`inline-flex items-center gap-1 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    <ArrowRight size={12} />
-                    {nextEtapa.label}
-                  </span>
-                )}
+                <WizardReadinessSeal readinessState={readinessState} compact />
               </div>
 
               {resumo.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {resumo.map(item => (
-                    <span
-                      key={`${item.label}-${item.value}`}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-modern ${
-                        isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'
-                      }`}
-                    >
-                      <CheckCircle2 size={12} className="text-green-400" />
-                      <span className="opacity-70">{item.label}:</span>
+                    <span key={`${item.label}-${item.value}`} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-modern ${
+                      isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'
+                    }`}>
+                      <span className="opacity-65">{item.label}</span>
                       <span className="font-medium">{item.value}</span>
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Nenhuma decisao fixa ainda. Comece pelo passo atual e avance etapa por etapa.
+                <p className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                  Nenhum selo fixado ainda. Comece pelo passo atual e siga etapa por etapa.
                 </p>
               )}
             </div>

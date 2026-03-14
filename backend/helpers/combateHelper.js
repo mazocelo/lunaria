@@ -7,6 +7,13 @@
  * - Armadura: reducao flat de dano nos hits
  */
 import logger from './logger.js';
+import {
+  TAMANHO_MODS,
+  STATUS_IMPEDE_ACAO,
+  STATUS_DANO_POR_TURNO,
+  STATUS_PENALIDADE_ATAQUE,
+  STATUS_COMBATENTE,
+} from '../config/domainConstants.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -169,16 +176,7 @@ export function calcularStatsEfetivos(monstro, nivel) {
  * Modificadores de combate por tamanho do monstro
  */
 function _getModTamanho(tamanho) {
-  const mods = {
-    minusculo:    { armadura: -2, esquiva: 10 },
-    pequeno:      { armadura: -1, esquiva: 5 },
-    medio:        { armadura: 0,  esquiva: 0 },
-    grande:       { armadura: 3,  esquiva: -5 },
-    enorme:       { armadura: 5,  esquiva: -10 },
-    gargantuesco: { armadura: 7,  esquiva: -13 },
-    colossal:     { armadura: 8,  esquiva: -15 },
-  };
-  return mods[tamanho] || mods.medio;
+  return TAMANHO_MODS[tamanho] || TAMANHO_MODS.medio;
 }
 
 /**
@@ -479,26 +477,19 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem) {
   let impedidoDeAgir = false;
 
   for (const efeito of statusEfeitos) {
-    switch (efeito.nome) {
-      case 'atordoado':
-      case 'paralizado':
-      case 'congelado':
-        impedidoDeAgir = true;
-        resultados.statusEfeitos.push({ tipo: 'impedido', efeito: efeito.nome, personagem: personagem.nome, userId });
-        break;
-      case 'envenenado':
-      case 'queimando': {
-        const danoPorTurno = efeito.nome === 'envenenado' ? rolarDado('1d4') : rolarDado('1d6');
-        jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
-        if (jogadorStats.hp_atual <= 0 && jogadorStats.status === 'vivo') jogadorStats.status = 'inconsciente';
-        resultados.statusEfeitos.push({
-          tipo: 'dano', efeito: efeito.nome, dano: danoPorTurno,
-          hpRestante: jogadorStats.hp_atual, hpMax: jogadorStats.hp_max,
-          personagem: personagem.nome, userId, personagemId: jogadorStats.personagemId,
-          derrotado: jogadorStats.status === 'derrotado',
-        });
-        break;
-      }
+    if (STATUS_IMPEDE_ACAO.includes(efeito.nome)) {
+      impedidoDeAgir = true;
+      resultados.statusEfeitos.push({ tipo: 'impedido', efeito: efeito.nome, personagem: personagem.nome, userId });
+    } else if (STATUS_DANO_POR_TURNO[efeito.nome]) {
+      const danoPorTurno = rolarDado(STATUS_DANO_POR_TURNO[efeito.nome]);
+      jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
+      if (jogadorStats.hp_atual <= 0 && jogadorStats.status === STATUS_COMBATENTE.VIVO) jogadorStats.status = STATUS_COMBATENTE.INCONSCIENTE;
+      resultados.statusEfeitos.push({
+        tipo: 'dano', efeito: efeito.nome, dano: danoPorTurno,
+        hpRestante: jogadorStats.hp_atual, hpMax: jogadorStats.hp_max,
+        personagem: personagem.nome, userId, personagemId: jogadorStats.personagemId,
+        derrotado: jogadorStats.status === STATUS_COMBATENTE.DERROTADO,
+      });
     }
   }
 
@@ -510,7 +501,8 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem) {
       const attrs = pc.atributos || {};
       const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
       const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
-      const penalidadeCego = statusEfeitos.some(e => e.nome === 'cego') ? 5 : 0;
+      const penalidadeCego = Object.entries(STATUS_PENALIDADE_ATAQUE)
+        .reduce((acc, [nome, val]) => statusEfeitos.some(e => e.nome === nome) ? acc + val : acc, 0);
       const bonusAtaque = modForca + Math.floor((pc.nivel || 1) * 0.7) + bonusAtaqueEquip - penalidadeCego;
 
       const rolagemAtaque = Math.floor(Math.random() * 20) + 1;

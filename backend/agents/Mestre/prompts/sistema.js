@@ -401,7 +401,7 @@ Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
 - **aplicar_dano**: {{ "tipo": "aplicar_dano", "personagem": "Nome", "dano": 8, "elemento": "fogo" }}
 - **aplicar_status**: {{ "tipo": "aplicar_status", "personagem": "Nome", "status": "envenenado", "duracao": 3 }}
 - **remover_status**: {{ "tipo": "remover_status", "personagem": "Nome", "status": "envenenado" }}
-- **usar_habilidade**: {{ "tipo": "usar_habilidade", "personagem": "Nome", "habilidade_id": 15, "nome": "Golpe Atordoante", "custo_mana": 4, "cooldown_turnos": 2, "dano_base": "2d6", "elemento": "fisico" }}
+- **usar_habilidade**: {{ "tipo": "usar_habilidade", "personagem": "Nome", "habilidade_id": 15, "nome": "Golpe Atordoante", "custo_mana": 4, "cooldown_turnos": 2, "dano_base": "2d6", "elemento": "contundente" }}
 - **conjurar_magia**: {{ "tipo": "conjurar_magia", "personagem": "Nome", "magia_id": 354, "nome": "Bola de Fogo", "custo_mana": 7, "cooldown_turnos": 1, "usa_concentracao": false, "dano_base": "4d6", "elemento": "fogo" }}
 - **ativar_desvantagem**: {{ "tipo": "ativar_desvantagem", "personagem": "Nome", "nome": "Ganancioso", "dc": 12, "atributo": "carisma", "penalidade": "compelido a pegar o tesouro" }}
 - **aplicar_vantagem**: {{ "tipo": "aplicar_vantagem", "personagem": "Nome", "nome": "Sentidos Aguçados", "bonus": "+2 percepção" }}

@@ -27,6 +27,7 @@ export default class AuthHandler {
           },
           receivedData: data
         });
+        // @event error → socket (sender) | campos obrigatórios ausentes
         socket.emit('error', { message: 'userId e username são obrigatórios' });
         return;
       }
@@ -54,7 +55,7 @@ export default class AuthHandler {
           existingSocketConnected: existingSocket.connected
         });
 
-        // Desconectar conexão anterior
+        // @event force_disconnect → socket (anterior) | nova conexão do mesmo usuário
         existingSocket.emit('force_disconnect', {
           reason: 'Nova conexão detectada',
           timestamp: Date.now()
@@ -116,6 +117,7 @@ export default class AuthHandler {
         sessionId: sessionId
       };
 
+      // @event authenticated → socket (sender) | autenticação bem-sucedida
       socket.emit('authenticated', authResponse);
 
       const processingTime = Date.now() - startTime;
@@ -134,6 +136,7 @@ export default class AuthHandler {
         processingTimeMs: processingTime,
         inputData: data
       });
+      // @event error → socket (sender) | erro inesperado na autenticação
       socket.emit('error', { message: 'Erro na autenticação' });
     }
   }

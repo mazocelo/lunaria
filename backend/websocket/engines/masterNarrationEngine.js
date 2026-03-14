@@ -63,6 +63,7 @@ export default class MasterNarrationEngine {
             personagem: !rawPersonagem
           }
         });
+        // @event error → socket (sender) | campos obrigatórios ausentes
         socket.emit('error', { message: 'roomId, userId, mensagem e personagem são obrigatórios' });
         return;
       }
@@ -70,6 +71,7 @@ export default class MasterNarrationEngine {
       // Validar tamanho da mensagem
       const MAX_MESSAGE_LENGTH = 5000;
       if (rawMensagem && String(rawMensagem).length > MAX_MESSAGE_LENGTH) {
+        // @event erro_mensagem → socket (sender) | mensagem excede limite de caracteres
         socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
         return;
       }
@@ -97,6 +99,7 @@ export default class MasterNarrationEngine {
         sm.log('ERROR', 'MENSAGEM_PARA_MESTRE_SESSAO_NOT_FOUND', socket.id, userId, {
           roomId
         });
+        // @event error → socket (sender) | sessão não encontrada para roomId
         return socket.emit('error', { message: 'Sessão não encontrada' });
       }
 
@@ -106,6 +109,7 @@ export default class MasterNarrationEngine {
           roomId,
           mensagem: mensagem.substring(0, 50)
         });
+        // @event erro_mensagem → socket (sender) | dados pendentes bloqueiam nova ação
         socket.emit('erro_mensagem', {
           message: 'Aguarde a rolagem de dados antes de enviar uma nova mensagem.'
         });
@@ -133,6 +137,7 @@ export default class MasterNarrationEngine {
           sm.log('ERROR', 'MENSAGEM_PARA_MESTRE_SEM_ORDEM', socket.id, userId, {
             roomId
           });
+          // @event error → socket (sender) | ordemJogadores vazia
           return socket.emit('error', { message: 'Ordem de jogadores não definida' });
         }
 
@@ -145,6 +150,7 @@ export default class MasterNarrationEngine {
             turnoAtual,
             jogadorDaVez: jogadorDaVez.username
           });
+          // @event erro_turno → socket (sender) | não é o turno do jogador
           return socket.emit('erro_turno', {
             message: `Não é seu turno! Aguarde a vez de ${jogadorDaVez.username}`,
             jogadorDaVez: jogadorDaVez.username
@@ -317,14 +323,14 @@ export default class MasterNarrationEngine {
         totalMensagens: sessao.mensagens.length
       });
 
-      // 8. Enviar mensagem do jogador para todos (echo)
-      sm.io.to(roomId).emit('chat_message', {
+      // @event chat_message → room (broadcast) | echo da mensagem do jogador para todos
+      sm.sendToRoom(roomId, 'chat_message', {
         ...mensagemJogador,
         message: mensagemJogador.message
       });
 
-      // 9. Enviar resposta do mestre para todos na sala
-      sm.io.to(roomId).emit('mensagem_mestre', {
+      // @event mensagem_mestre → room (broadcast) | resposta narrativa do Mestre IA
+      sm.sendToRoom(roomId, 'mensagem_mestre', {
         ...mensagemMestre,
         message: resposta.narracao
       });
@@ -355,6 +361,7 @@ export default class MasterNarrationEngine {
         stack: error.stack,
         processingTimeMs: processingTime
       });
+      // @event error → socket (sender) | erro inesperado no processamento de mensagem
       socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
     }
   }
@@ -390,12 +397,14 @@ export default class MasterNarrationEngine {
             mensagem: !rawMensagem
           }
         });
+        // @event error → socket (sender) | campos obrigatórios ausentes (roleplay)
         socket.emit('error', { message: 'roomId, userId e mensagem são obrigatórios' });
         return;
       }
 
       // Validar userId corresponde ao autenticado
       if (String(rawUserId) !== String(socket.userId)) {
+        // @event error → socket (sender) | userId não corresponde ao autenticado
         socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
         return;
       }
@@ -418,6 +427,7 @@ export default class MasterNarrationEngine {
           sm.log('ERROR', 'MENSAGEM_ROLEPLAY_SESSAO_NOT_FOUND', socket.id, userId, {
             roomId
           });
+          // @event error → socket (sender) | sessão não encontrada (roleplay)
           socket.emit('error', { message: 'Sessão não encontrada' });
           return;
         }
@@ -436,6 +446,7 @@ export default class MasterNarrationEngine {
             roomId,
             cooldownRestante: restante
           });
+          // @event erro_cooldown_roleplay → socket (sender) | cooldown de roleplay ativo
           socket.emit('erro_cooldown_roleplay', {
             message: `Aguarde ${restante} segundos antes de enviar outra mensagem roleplay`,
             segundosRestantes: restante
@@ -466,7 +477,8 @@ export default class MasterNarrationEngine {
           totalMensagens: sessao.mensagens.length
         });
 
-        sm.io.to(roomId).emit('mensagem_roleplay', {
+        // @event mensagem_roleplay → room (broadcast) | mensagem roleplay para todos na sala
+        sm.sendToRoom(roomId, 'mensagem_roleplay', {
           ...mensagemRoleplay,
           message: mensagemRoleplay.message
         });
@@ -487,6 +499,7 @@ export default class MasterNarrationEngine {
         stack: error.stack,
         processingTimeMs: processingTime
       });
+      // @event error → socket (sender) | erro inesperado no roleplay
       socket.emit('error', { message: 'Erro ao processar mensagem roleplay' });
     }
   }

@@ -34,6 +34,7 @@ export default class ChatHandler {
           },
           receivedData: data
         });
+        // @event error → socket (sender) | campos obrigatórios ausentes
         socket.emit('error', { message: 'roomId, userId e message são obrigatórios' });
         return;
       }
@@ -44,6 +45,7 @@ export default class ChatHandler {
           authenticatedUserId: socket.userId,
           requestedUserId: rawUserId
         });
+        // @event error → socket (sender) | userId não corresponde ao autenticado
         socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
         return;
       }
@@ -51,6 +53,7 @@ export default class ChatHandler {
       // Validar tamanho da mensagem
       const MAX_MESSAGE_LENGTH = 5000;
       if (rawMessage && String(rawMessage).length > MAX_MESSAGE_LENGTH) {
+        // @event erro_mensagem → socket (sender) | mensagem excede limite de caracteres
         socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
         return;
       }
@@ -87,7 +90,8 @@ export default class ChatHandler {
         type: type
       });
 
-      sm.io.to(roomId).emit('chat_message', messageData);
+      // @event chat_message → room (broadcast) | mensagem de chat enviada para todos na sala
+      sm.sendToRoom(roomId, 'chat_message', messageData);
 
       const processingTime = Date.now() - startTime;
       sm.log('SUCCESS', 'CHAT_MESSAGE_COMPLETED', socket.id, userId, {
@@ -108,6 +112,7 @@ export default class ChatHandler {
         processingTimeMs: processingTime,
         inputData: data
       });
+      // @event error → socket (sender) | erro inesperado no processamento de chat
       socket.emit('error', { message: 'Erro ao processar mensagem' });
     }
   }

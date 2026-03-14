@@ -38,6 +38,11 @@ async function startWorker() {
   });
 
   await roteiroWorker.waitUntilReady();
+
+  // Heartbeat a cada 60s para monitoramento via logs/systemd
+  setInterval(() => {
+    console.log(`[worker] heartbeat | uptime=${process.uptime().toFixed(0)}s`);
+  }, 60_000);
 }
 
 async function gracefulShutdown(signal) {

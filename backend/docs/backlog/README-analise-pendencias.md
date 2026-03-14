@@ -26,16 +26,16 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 | Ordem | Tema | Status | % | Resumo |
 | --- | --- | --- | --- | --- |
-| F-01 | Contrato publico do websocket | concluido | ~97% | contrato JSON v2.1.0 completo, dice_roll/rpg_action echo documentados, rate_limit_exceeded reclassificado, listeners orfaos removidos. Resta apenas P5 (annotations inline) |
-| F-02 | Modularizacao do motor do jogo | concluido | ~85% | 7 engines/handlers extraidos, socketManager 2067→1370L (-33.7%), combatEngine migrado para EventBus |
-| D-01 | Jobs duraveis para IA | em progresso | ~80% | systemd service, CI/CD restart, retry exponencial, stalled detection. Falta ligar flag e filas imagem/audio |
+| F-01 | Contrato publico do websocket | concluido | ~99% | contrato JSON v2.1.0 completo, P5 annotations inline nos 3 handlers. Resta apenas respostaDispatcher (cosmético) |
+| F-02 | Modularizacao do motor do jogo | concluido | ~92% | 7 engines/handlers extraidos, masterCacheManager extraido, socketManager 2067→1305L (-36.9%), zero io.to() direto no socketManager/engines/handlers |
+| D-01 | Jobs duraveis para IA | em progresso | ~85% | systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat. Falta ligar flag e filas imagem/audio |
 | D-02 | Deploy e banco VPS | parcialmente concluido | ~50% | CI/CD funcional nos 3 repos, db push eliminado. Faltam backup, rollback, healthcheck |
 | D-03 | Observabilidade e admin do motor | em progresso | ~40% | Phase 1: 4 endpoints /admin/motor (sessoes, sessao detail, jobs, retry) |
 | F-03 | Controles de produto para IA | pendente | ~15% | apenas initial/regenerate existe. Sem modos criativos, versionamento ou comparacao |
 
 ## Analise por frente
 
-### F-01. Contrato publico do websocket (~97%)
+### F-01. Contrato publico do websocket (~99%)
 
 **Status:** concluido
 
@@ -48,6 +48,7 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 - `dice_roll` echo documentado como server_to_client com payload completo
 - `rpg_action` echo documentado como server_to_client com payload completo
 - `rate_limit_exceeded` reclassificado de `canonical` para `planned` (nunca emitido)
+- P5: annotations inline `// @event` em authHandler, chatHandler, masterNarrationEngine
 - 3 listeners orfaos removidos do frontend (room_users, connection_error, authentication_error)
 
 **O que ainda falta**
@@ -58,29 +59,30 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 Concluido. Unico gap remanescente e cosmético (annotations inline).
 
-### F-02. Modularizacao do motor do jogo (~48%)
+### F-02. Modularizacao do motor do jogo (~92%)
 
-**Status:** parcialmente concluido
+**Status:** concluido
 
 **O que ja foi feito**
 
-- 4 modulos extraidos: combatEngine (616L), testEngine (588L), turnEngine (589L), roomGateway (779L)
+- 7 modulos extraidos: combatEngine, testEngine, turnEngine, roomGateway, masterNarrationEngine, authHandler, chatHandler
+- masterCacheManager extraido (85L) — cache LRU do Mestre IA
 - SessionEventBus (55L) e stateProjector (9L) criados
 - 4 utils compartilhados (respostaDispatcher, sessionMessages, testePipeline, turnStateMachine)
-- 7 duplicados e 13 imports removidos. socketManager: 4000+ -> 2067L
+- combatEngine: 15 io.to() migrados para sendToRoom (EventBus)
+- socketManager: 6 io.to() migrados para sendToRoom — zero io.to() direto restante
+- chatHandler e masterNarrationEngine: 4 io.to() migrados para sendToRoom
+- socketManager: 4000+ → 1305L (-67.4%)
 
 **O que ainda falta**
 
-- extrair `masterNarrationEngine` (handleMensagemParaMestre, 325L — maior bloco monolitico)
-- extrair handleAuthentication (133L), handleMensagemRoleplay (127L), handleChatMessage (111L)
 - extrair camada de sessao: obterSessaoHistoria (133L), executarCompactacao (108L), obterMestre (98L)
-- combatEngine: 15 `sm.io.to()` diretos (bypassa EventBus)
-- SessionEventBus subutilizado (5 usos no socketManager vs 10 emits diretos)
-- acoplamento pesado: 262 refs `sm.` nos engines sem interface definida
+- respostaDispatcher: 3 `ctx.io.to()` diretos (recebe io via contexto, nao usa EventBus)
+- acoplamento residual: refs `sm.` nos engines sem interface definida
 
 **Leitura pratica**
 
-Extracao fisica em ~64%, mas qualidade da modularizacao (contratos, desacoplamento) ainda precisa consolidacao. Engines sao "pedacos do monolito em outros arquivos".
+Extracao fisica ~92%. Engines usam sendToRoom via EventBus. Maior gap restante e a camada de sessao (obterSessaoHistoria, obterMestre) que ainda vive no socketManager.
 
 ### D-01. Jobs duraveis para IA (~55%)
 
@@ -236,9 +238,9 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 
 O projeto avancou significativamente desde a abertura das 6 frentes:
 
-- **F-01 (~97%)**: contrato WebSocket concluido, apenas P5 cosmético pendente
-- **F-02 (~85%)**: 7 engines/handlers extraidos, socketManager 2067→1370L, combatEngine no EventBus
-- **D-01 (~80%)**: systemd service, CI/CD restart, retry exponencial, stalled detection. Falta ligar flag
+- **F-01 (~99%)**: contrato WebSocket concluido, P5 annotations inline feitas nos 3 handlers
+- **F-02 (~92%)**: 7 engines/handlers + masterCacheManager extraidos, socketManager 4000+→1305L (-67.4%), zero io.to() direto
+- **D-01 (~85%)**: systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat. Falta ligar flag
 - **D-02 (~50%)**: CI/CD funcional, db push eliminado, baseline aplicado
 - **D-03 (~40%)**: Phase 1 quick wins: 4 endpoints /admin/motor implementados
 - **F-03 (~15%)**: apenas initial/regenerate existe, feature nao iniciada

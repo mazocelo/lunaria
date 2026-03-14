@@ -35,6 +35,7 @@ import CombatEngine from './engines/combatEngine.js';
 import MasterNarrationEngine from './engines/masterNarrationEngine.js';
 import AuthHandler from './handlers/authHandler.js';
 import ChatHandler from './handlers/chatHandler.js';
+import MasterCacheManager from './utils/masterCacheManager.js';
 
 const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
 
@@ -85,6 +86,7 @@ class SocketManager {
     this.masterNarrationEngine = new MasterNarrationEngine(this);
     this.authHandler = new AuthHandler(this);
     this.chatHandler = new ChatHandler(this);
+    this.masterCacheManager = new MasterCacheManager(this.mestresCache);
   }
 
   /**
@@ -141,7 +143,7 @@ class SocketManager {
 
   emitirEstadoTurno(roomId, sessao) {
     if (!this.io || !roomId || !sessao) return;
-    this.io.to(roomId).emit('turno_estado_atualizado', {
+    this.sendToRoom(roomId, 'turno_estado_atualizado', {
       roomId,
       ...buildTurnEventPayload(sessao),
       timestamp: Date.now()
@@ -151,7 +153,7 @@ class SocketManager {
   emitirAcaoMestrePersistida(roomId, sessao, payload) {
     const mensagem = buildAcaoMestreMensagem(payload);
     appendMensagemSessao(sessao, mensagem);
-    this.io.to(roomId).emit('acao_mestre', {
+    this.sendToRoom(roomId, 'acao_mestre', {
       ...payload,
       id: mensagem.id,
       message: mensagem.message,
@@ -194,7 +196,7 @@ class SocketManager {
 
     // Timer para limpar cache de mestres a cada 10 minutos (store reference for cleanup)
     this._cacheCleaner = setInterval(() => {
-      this.limparCacheMestres();
+      this.masterCacheManager.limparCacheMestres();
     }, 600000);
 
     console.log('✅ WebSocket inicializado com sucesso');
@@ -564,7 +566,7 @@ class SocketManager {
       }
 
       // Enviar para todos na sala
-      this.io.to(roomId).emit('rpg_action', actionData);
+      this.sendToRoom(roomId, 'rpg_action', actionData);
 
       console.log(`⚔️ ${username} executou ação: ${action} (sala ${roomId})`);
 
@@ -644,7 +646,7 @@ class SocketManager {
       // Não precisamos mais salvar em room:* duplicado
 
       // Enviar para todos na sala
-      this.io.to(roomId).emit('status_update', statusData);
+      this.sendToRoom(roomId, 'status_update', statusData);
 
       console.log(`📊 ${username} atualizou status: ${status} (sala ${roomId})`);
 
@@ -997,7 +999,7 @@ class SocketManager {
             
             // ✅ EMITIR EVENTO DE MUDANÇA DE STATUS
             if (statusAnterior !== sessao.statusJogo && this.io) {
-              this.io.to(salaId).emit('status_jogo_alterado', {
+              this.sendToRoom(salaId, 'status_jogo_alterado', {
                 statusJogo: sessao.statusJogo,
                 totalJogadores: jogadoresAtuais.length,
                 timestamp: Date.now()
@@ -1067,7 +1069,7 @@ class SocketManager {
     // Verificar se já existe no cache
     if (this.mestresCache.has(salaId)) {
       const cache = this.mestresCache.get(salaId);
-      if (this.isMestreCacheStale(cache, sessao)) {
+      if (this.masterCacheManager.isMestreCacheStale(cache, sessao)) {
         this.mestresCache.delete(salaId);
         console.log(`Mestre invalidado por roteiro mais recente na sessao ${salaId}`);
       } else {
@@ -1162,76 +1164,9 @@ class SocketManager {
     return mestre;
   }
 
-  getHistoriaRoteiroAtualizadoEmMs(sessao) {
-    const raw = sessao?.estadoJogo?.historiaRoteiroAtualizadoEm;
-    if (!raw) return null;
-
-    const timestamp = new Date(raw).getTime();
-    return Number.isFinite(timestamp) ? timestamp : null;
-  }
-
-  getCacheHistoriaRoteiroAtualizadoEmMs(cache) {
-    if (!cache) return null;
-
-    if (cache.historiaRoteiroAtualizadoEm) {
-      const timestamp = new Date(cache.historiaRoteiroAtualizadoEm).getTime();
-      if (Number.isFinite(timestamp)) {
-        return timestamp;
-      }
-    }
-
-    return Number.isFinite(cache.criadoEm) ? cache.criadoEm : null;
-  }
-
-  isMestreCacheStale(cache, sessao) {
-    const sessionTimestamp = this.getHistoriaRoteiroAtualizadoEmMs(sessao);
-    if (!sessionTimestamp) {
-      return false;
-    }
-
-    const cacheTimestamp = this.getCacheHistoriaRoteiroAtualizadoEmMs(cache);
-    if (!cacheTimestamp) {
-      return true;
-    }
-
-    return sessionTimestamp > cacheTimestamp;
-  }
-
-  /**
-   * Invalidar cache do Mestre (a cada 5 rodadas)
-   */
+  // Delegates para masterCacheManager (usado por turnEngine via sm.invalidarMestreSeNecessario)
   invalidarMestreSeNecessario(salaId, rodadaAtual) {
-    if (!this.mestresCache.has(salaId)) return false;
-
-    const cache = this.mestresCache.get(salaId);
-    
-    // Invalidar a cada 5 rodadas
-    if (rodadaAtual - cache.rodadaInicial >= 5) {
-      console.log(`♻️ Invalidando cache do Mestre (5 rodadas completas)`);
-      this.mestresCache.delete(salaId);
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Limpar cache de mestres antigos (> 1h sem uso)
-   */
-  limparCacheMestres() {
-    const agora = Date.now();
-    let removidos = 0;
-
-    for (const [salaId, cache] of this.mestresCache.entries()) {
-      if (agora - cache.ultimoUso > MESTRE_CONFIG.cache.ttl * 1000) {
-        this.mestresCache.delete(salaId);
-        removidos++;
-      }
-    }
-
-    if (removidos > 0) {
-      console.log(`🧹 Removidos ${removidos} mestres inativos do cache`);
-    }
+    return this.masterCacheManager.invalidarMestreSeNecessario(salaId, rodadaAtual);
   }
 
   /**
@@ -1257,7 +1192,7 @@ class SocketManager {
 
     // 3. Emitir evento e forcar todos os sockets a sairem da room
     if (this.io) {
-      this.io.to(salaId).emit('sessao_encerrada', {
+      this.sendToRoom(salaId, 'sessao_encerrada', {
         salaId,
         motivo: 'Sessão encerrada pelo administrador',
         timestamp: Date.now(),

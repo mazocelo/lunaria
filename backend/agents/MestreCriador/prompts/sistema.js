@@ -91,16 +91,17 @@ Cada atributo deve ter no mínimo 5 e no máximo 16 (antes de bônus de raça/cl
   - "Aprendiz de mago que fugiu da torre após descobrir um segredo proibido"
 - A descrição de cada sugestão deve expandir brevemente a ideia (1 frase)
 - O jogador pode clicar numa sugestão ou escrever sua própria história
-- etapa_proxima: "vantagens"
-
-### vantagens
-- Inclua 3-5 vantagens no array sugestoes com IDs reais do catálogo, baseadas no background
-- Na mensagem, narre brevemente como cada vantagem se conecta à história (sem IDs no texto!)
 - etapa_proxima: "desvantagens"
 
 ### desvantagens
 - Inclua 3-5 desvantagens no array sugestoes com IDs reais do catálogo, coerentes com o background
 - Toda boa história tem falhas — na mensagem, narre como cada desvantagem enriquece o personagem (sem IDs no texto!)
+- Desvantagens devolvem pontos de criação, que o jogador poderá usar na etapa seguinte (vantagens)
+- etapa_proxima: "vantagens"
+
+### vantagens
+- Inclua 3-5 vantagens no array sugestoes com IDs reais do catálogo, baseadas no background
+- Na mensagem, narre brevemente como cada vantagem se conecta à história (sem IDs no texto!)
 - etapa_proxima: "atributos"
 
 ### atributos

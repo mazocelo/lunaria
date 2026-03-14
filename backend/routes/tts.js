@@ -107,6 +107,7 @@ router.post('/generate', async (req, res) => {
             'Content-Length': r2Buffer.length,
             'Cache-Control': 'public, max-age=86400',
             'X-Cache': 'HIT-R2',
+            'X-Audio-Cache-Key': cacheKey,
           });
           return res.send(r2Buffer);
         } catch (fetchErr) {
@@ -129,6 +130,7 @@ router.post('/generate', async (req, res) => {
         'Content-Length': audioBuffer.length,
         'Cache-Control': 'no-cache',
         'X-Cache': 'MISS',
+        'X-Audio-Cache-Key': cacheKey,
       });
       res.send(audioBuffer);
 
@@ -153,6 +155,7 @@ router.post('/generate', async (req, res) => {
     }
 
     // ── Fluxo padrão: cache binário em PostgreSQL ────────────────────────────
+    const cacheKey = ttsCacheService.generateCacheKey(text, resolvedVoiceId, providerName);
     const tTTS = Date.now();
     const { audioBuffer, fromCache } = await ttsCacheService.getOrGenerate(
       text, resolvedVoiceId, providerName,
@@ -166,7 +169,8 @@ router.post('/generate', async (req, res) => {
     res.set({
       'Content-Type': getProviderContentType(provider),
       'Content-Length': audioBuffer.length,
-      'Cache-Control': fromCache ? 'public, max-age=86400' : 'no-cache'
+      'Cache-Control': fromCache ? 'public, max-age=86400' : 'no-cache',
+      'X-Audio-Cache-Key': cacheKey,
     });
     res.send(audioBuffer);
   } catch (error) {
@@ -196,6 +200,7 @@ router.post('/preview', async (req, res) => {
     const options = {};
     if (emotion) options.emotion = emotion;
 
+    const cacheKey = ttsCacheService.generateCacheKey(PREVIEW_TEXT_PTBR, resolvedVoiceId, providerName);
     const tPrev = Date.now();
     const audioBuffer = await provider.generateSpeech(PREVIEW_TEXT_PTBR, resolvedVoiceId, options);
 
@@ -204,7 +209,8 @@ router.post('/preview', async (req, res) => {
     res.set({
       'Content-Type': getProviderContentType(provider),
       'Content-Length': audioBuffer.length,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      'X-Audio-Cache-Key': cacheKey,
     });
     res.send(audioBuffer);
   } catch (error) {

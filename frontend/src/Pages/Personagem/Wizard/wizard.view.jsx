@@ -87,7 +87,7 @@ const WizardView = (props) => {
     custoRaca,
     custoClasse,
     pontosGastos,
-    maxDesvantagens,
+    maxCustoDesvantagem,
     attrMin,
     attrMax,
     salvando,
@@ -443,7 +443,7 @@ const WizardView = (props) => {
                 pontosDesvantagem={pontosDesvantagem}
                 custoRaca={custoRaca}
                 custoClasse={custoClasse}
-                maxDesvantagens={maxDesvantagens}
+                maxCustoDesvantagem={maxCustoDesvantagem}
                 attrMin={attrMin}
                 attrMax={attrMax}
                 embedded

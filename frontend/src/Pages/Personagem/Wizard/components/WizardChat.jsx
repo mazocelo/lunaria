@@ -55,7 +55,7 @@ const WizardChat = ({
   pontosDesvantagem,
   custoRaca,
   custoClasse,
-  maxDesvantagens,
+  maxCustoDesvantagem,
   attrMin,
   attrMax,
   embedded = false,
@@ -168,8 +168,8 @@ const WizardChat = ({
             {pontosVantagem > 0 && <span className="wa-ember-chip rounded-full px-2 py-1 text-[10px] font-mono">Dons -{pontosVantagem}</span>}
             {pontosDesvantagem < 0 && <span className="wa-emerald-chip rounded-full px-2 py-1 text-[10px] font-mono">+{Math.abs(pontosDesvantagem)} devolvidos</span>}
             {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
-              <span className={`ml-auto rounded-full px-2 py-1 text-[10px] font-mono ${desvantagensIds.length >= maxDesvantagens ? 'wa-ember-chip' : 'wa-panel-soft'}`}>
-                Marcas {desvantagensIds.length}/{maxDesvantagens}
+              <span className={`ml-auto rounded-full px-2 py-1 text-[10px] font-mono ${Math.abs(pontosDesvantagem) >= maxCustoDesvantagem ? 'wa-ember-chip' : 'wa-panel-soft'}`}>
+                Marcas {Math.abs(pontosDesvantagem)}/{maxCustoDesvantagem} pts
               </span>
             )}
             {pontosGastos === 0 && pontosDesvantagem === 0 && (

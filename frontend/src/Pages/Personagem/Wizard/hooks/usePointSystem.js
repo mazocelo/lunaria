@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 
-const MAX_DESVANTAGENS = 3;
-const MAX_PONTOS_DESVANTAGEM = -4;
-const PONTOS_CRIACAO_BASE = 5;
+// Alinhado com Backend/helpers/evolucaoHelper.js
+const MAX_CUSTO_DESVANTAGEM = -3; // maxCustoDesvantagem(nivel=1) = 3
+const PONTOS_CRIACAO_BASE = 10;   // pontosVantagemBase(nivel=1) = 10
 
 /**
  * Gerencia pontos de criação, seleção de vantagens/desvantagens e limites.
@@ -57,8 +57,9 @@ export const usePointSystem = ({
     return classe ? Number(classe.custo) || 0 : 0;
   }, [classeId, classesDisponiveis]);
 
-  // Pontos de criação disponíveis (inclui custos de raça + classe + vantagens)
-  const pontosDevolvidos = Math.min(Math.abs(MAX_PONTOS_DESVANTAGEM), Math.abs(pontosDesvantagem));
+  // Pontos de criação: base - custos + devolução de desvantagens
+  // Fórmula backend: pontosVantagemBase(nivel) - racaCusto - classeCusto + custoDesvantagensAceitas
+  const pontosDevolvidos = Math.min(Math.abs(MAX_CUSTO_DESVANTAGEM), Math.abs(pontosDesvantagem));
   const pontosCriacaoTotal = PONTOS_CRIACAO_BASE + pontosDevolvidos;
   const pontosGastos = custoRaca + custoClasse + pontosVantagem;
   const pontosCriacaoRestantes = pontosCriacaoTotal - pontosGastos;
@@ -75,12 +76,9 @@ export const usePointSystem = ({
       setVantagensNomes(prev => [...prev, nome]);
     } else if (tipo === 'desvantagem') {
       if (desvantagensIds.includes(id)) return null;
-      if (desvantagensIds.length >= MAX_DESVANTAGENS) {
-        return `Máximo de ${MAX_DESVANTAGENS} desvantagens por personagem`;
-      }
       const custoNum = Number(custo) || 0;
-      if (pontosDesvantagem + custoNum < MAX_PONTOS_DESVANTAGEM) {
-        return `Limite de ${Math.abs(MAX_PONTOS_DESVANTAGEM)} pontos de desvantagem atingido (atual: ${Math.abs(pontosDesvantagem)})`;
+      if (pontosDesvantagem + custoNum < MAX_CUSTO_DESVANTAGEM) {
+        return `Limite de ${Math.abs(MAX_CUSTO_DESVANTAGEM)} pontos de desvantagem atingido (atual: ${Math.abs(pontosDesvantagem)})`;
       }
       setDesvantagensIds(prev => [...prev, id]);
       setDesvantagensNomes(prev => [...prev, nome]);
@@ -131,7 +129,7 @@ export const usePointSystem = ({
     pontosGastos,
     pontosCriacaoTotal,
     pontosCriacaoRestantes,
-    maxDesvantagens: MAX_DESVANTAGENS,
+    maxCustoDesvantagem: Math.abs(MAX_CUSTO_DESVANTAGEM),
     selecionarVantagemDesvantagem,
     removerSelecao,
     resetarSelecoes,

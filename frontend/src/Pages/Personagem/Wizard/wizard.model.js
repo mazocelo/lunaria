@@ -553,7 +553,7 @@ export const useWizardModel = () => {
     pontosDesvantagem: pointSystem.pontosDesvantagem,
     custoRaca: pointSystem.custoRaca,
     custoClasse: pointSystem.custoClasse,
-    maxDesvantagens: pointSystem.maxDesvantagens,
+    maxCustoDesvantagem: pointSystem.maxCustoDesvantagem,
 
     // Catálogos
     racasDisponiveis,

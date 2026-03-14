@@ -135,7 +135,7 @@ const MESTRES_OPENSOURCE = [
     temperatura: 0.91,
     max_tokens: 32000,
     tags: ['pirata', 'maritimo', 'aventura', 'humor', 'liberdade'],
-    voice_name: 'pm_santa',        // Kokoro — melhor voz pt-BR, grave e marcante
+    voice_name: 'pt-br-kokoro-santa', // Kokoro — melhor voz pt-BR, grave e marcante
     voice_provider: 'opensource',
   },
   {
@@ -148,7 +148,7 @@ const MESTRES_OPENSOURCE = [
     temperatura: 0.82,
     max_tokens: 32000,
     tags: ['exploracao', 'dungeon', 'aventura', 'equilibrado'],
-    voice_name: 'pm_alex',         // Kokoro — voz masculina pt-BR clara e confiante
+    voice_name: 'pt-br-kokoro-alex', // Kokoro — voz masculina pt-BR clara e confiante
     voice_provider: 'opensource',
   },
   {
@@ -161,7 +161,7 @@ const MESTRES_OPENSOURCE = [
     temperatura: 0.84,
     max_tokens: 32000,
     tags: ['social', 'diplomatico', 'cura', 'pacifista', 'emocional'],
-    voice_name: 'pf_dora',         // Kokoro — melhor voz feminina pt-BR disponível
+    voice_name: 'pt-br-kokoro-dora', // Kokoro — melhor voz feminina pt-BR disponível
     voice_provider: 'opensource',
   },
   {
@@ -269,7 +269,7 @@ async function main() {
   Total ativo:  ${result.created.length + result.updated.length}
   Com voz:      ${comVoz}
   ElevenLabs:   ${MESTRES_ELEVENLABS.length}  (Daniel, Dorothy, Arnold, Callum, Clyde)
-  Kokoro:       3                             (pm_santa, pm_alex, pf_dora)
+  Kokoro:       3                             (pt-br-kokoro-santa, pt-br-kokoro-alex, pt-br-kokoro-dora)
   Piper:        2                             (pt-br-faber-medium)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 

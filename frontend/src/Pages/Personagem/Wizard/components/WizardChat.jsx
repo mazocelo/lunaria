@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight, Save } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -60,6 +60,10 @@ const WizardChat = ({
   maxCustoDesvantagem,
   attrMin,
   attrMax,
+  onConfirmarAtributos,
+  onSalvarPersonagem,
+  salvando = false,
+  gerandoBackground = false,
   embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -444,17 +448,68 @@ const WizardChat = ({
             }}
           />
 
-          <button
-            type="submit"
-            disabled={!inputTexto.trim() || enviando}
-            className={`inline-flex h-[54px] w-[54px] items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              inputTexto.trim() && !enviando
-                ? 'bg-gradient-to-br from-[var(--wa-accent)] via-[var(--wa-accent-bright)] to-[var(--wa-accent)] text-white shadow-lg'
-                : isLight ? 'bg-slate-200 text-slate-400' : 'bg-slate-800 text-slate-500'
-            }`}
-          >
-            {enviando ? <Loader2 size={20} className="animate-spin" /> : etapaAtual === 'background' ? <ScrollText size={20} /> : <Send size={20} />}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {etapaAtual === 'atributos' && !bonusAplicados && onConfirmarAtributos && (
+              <button
+                type="button"
+                onClick={onConfirmarAtributos}
+                disabled={enviando || pontosRestantes !== 0}
+                className={`inline-flex h-[54px] items-center gap-2 rounded-2xl px-4 text-sm font-modern font-semibold transition-all cursor-pointer ${
+                  pontosRestantes !== 0
+                    ? isLight ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-gradient-to-br from-[var(--wa-teal)] to-[#0d9488] text-white shadow-lg hover:-translate-y-0.5'
+                }`}
+              >
+                <Check size={16} />
+                {pontosRestantes !== 0 ? `${pontosRestantes} pts` : 'Confirmar'}
+              </button>
+            )}
+
+            {etapaAtual === 'atributos' && bonusAplicados && (
+              <button
+                type="button"
+                onClick={() => onAvancarComMestre?.()}
+                disabled={enviando}
+                className="inline-flex h-[54px] items-center gap-2 rounded-2xl bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] px-4 text-sm font-modern font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 cursor-pointer"
+              >
+                <ArrowRight size={16} />
+                Continuar
+              </button>
+            )}
+
+            {['resumo', 'refinamento'].includes(etapaAtual) && onSalvarPersonagem && (
+              <button
+                type="button"
+                onClick={onSalvarPersonagem}
+                disabled={salvando || gerandoBackground || !podeCriar}
+                className={`inline-flex h-[54px] items-center gap-2 rounded-2xl px-4 text-sm font-modern font-semibold transition-all cursor-pointer ${
+                  salvando || gerandoBackground
+                    ? 'cursor-wait bg-slate-600 text-slate-300'
+                    : !podeCriar
+                      ? isLight ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+                }`}
+              >
+                {salvando || gerandoBackground
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <Save size={16} />
+                }
+                {salvando ? 'Selando...' : gerandoBackground ? 'Gerando...' : !podeCriar ? 'Incompleto' : 'Criar'}
+              </button>
+            )}
+
+            <button
+              type="submit"
+              disabled={!inputTexto.trim() || enviando}
+              className={`inline-flex h-[54px] w-[54px] items-center justify-center rounded-2xl transition-all cursor-pointer ${
+                inputTexto.trim() && !enviando
+                  ? 'bg-gradient-to-br from-[var(--wa-accent)] via-[var(--wa-accent-bright)] to-[var(--wa-accent)] text-white shadow-lg'
+                  : isLight ? 'bg-slate-200 text-slate-400' : 'bg-slate-800 text-slate-500'
+              }`}
+            >
+              {enviando ? <Loader2 size={20} className="animate-spin" /> : etapaAtual === 'background' ? <ScrollText size={20} /> : <Send size={20} />}
+            </button>
+          </div>
         </div>
       </form>
     </div>

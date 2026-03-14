@@ -4,10 +4,7 @@ import {
   AlertTriangle,
   Trash2,
   X,
-  ArrowRight,
   Check,
-  Save,
-  Loader2,
   Sparkles,
   Hammer,
 } from 'lucide-react';
@@ -15,18 +12,6 @@ import './wizard-theme.css';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
-
-const FOOTER_COPY = {
-  boas_vindas: 'Fixe o nome do heroi e abra a trilha da identidade.',
-  raca: 'Sele a linhagem que sustenta a fantasia base do personagem.',
-  classe: 'Escolha a vocacao que define o papel do heroi em cena.',
-  background: 'Amarre a origem antes de seguir para os refinamentos.',
-  vantagens: 'Escolha apenas os dons que reforcam o conceito.',
-  desvantagens: 'Assuma marcas que voce queira interpretar em jogo.',
-  atributos: 'Calibre os atributos e confirme a leitura mecanica da build.',
-  resumo: 'Revise tudo e feche a ficha com coerencia.',
-  refinamento: 'Ultima checagem antes de selar o personagem.',
-};
 
 const getResumoTexto = ({ done, skipped, doneText, skippedText, pendingText }) => {
   if (done) return doneText;
@@ -124,7 +109,6 @@ const WizardView = (props) => {
     return 'sealed';
   }, [nome, racaId, classeId, pendingCount, bonusInvalidado]);
 
-  const footerHint = FOOTER_COPY[etapaAtual] || 'Avance para a proxima etapa da forja.';
 
   const progressoItems = useMemo(() => ([
     { label: 'Nome', done: !!nome?.trim(), skipped: false },
@@ -191,76 +175,6 @@ const WizardView = (props) => {
         : null,
   ].filter(Boolean)), [nome, racaAtual, classeAtual, background, vantagensIds, skipVantagens, desvantagensIds, skipDesvantagens]);
 
-  const renderFooterAction = () => {
-    if (etapaAtual === 'atributos') {
-      if (bonusAplicados) {
-        return (
-          <button
-            onClick={() => avancarComMestre()}
-            disabled={enviando}
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
-              enviando
-                ? isLight
-                  ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                  : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_55%,var(--wa-teal))] text-white shadow-[0_18px_38px_rgba(139,92,246,0.28)] hover:-translate-y-0.5'
-            }`}
-          >
-            {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-            Continuar
-          </button>
-        );
-      }
-      return (
-        <button
-          onClick={confirmarAtributos}
-          disabled={enviando || pontosRestantes !== 0}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
-            pontosRestantes !== 0
-              ? isLight
-                ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                : 'cursor-not-allowed bg-slate-800 text-slate-500'
-              : 'bg-[linear-gradient(135deg,var(--wa-teal),#14b8a6_55%,#0d9488)] text-white shadow-[0_18px_38px_rgba(45,212,191,0.24)] hover:-translate-y-0.5'
-          }`}
-        >
-          <Check size={18} />
-          {pontosRestantes !== 0 ? `Distribua todos os pontos (${pontosRestantes} restantes)` : 'Confirmar atributos'}
-        </button>
-      );
-    }
-
-    if (etapaAtual === 'resumo' || etapaAtual === 'refinamento') {
-      return (
-        <button
-          onClick={salvarPersonagem}
-          disabled={salvando || gerandoBackground || !podeCriar}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-base font-fantasy font-bold transition-all ${
-            salvando || gerandoBackground
-              ? 'cursor-wait bg-slate-600 text-slate-300'
-              : !podeCriar
-                ? isLight
-                  ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                  : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_45%,var(--wa-teal))] text-white shadow-[0_18px_42px_rgba(139,92,246,0.22)] hover:-translate-y-0.5'
-          }`}
-        >
-          {salvando || gerandoBackground ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              {gerandoBackground ? 'Gerando background...' : 'Selando personagem...'}
-            </>
-          ) : (
-            <>
-              <Save size={18} />
-              {!podeCriar ? 'A ficha ainda precisa de ajustes' : 'Criar personagem'}
-            </>
-          )}
-        </button>
-      );
-    }
-
-    return null;
-  };
 
   return (
     <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
@@ -399,15 +313,15 @@ const WizardView = (props) => {
                 maxCustoDesvantagem={maxCustoDesvantagem}
                 attrMin={attrMin}
                 attrMax={attrMax}
+                onConfirmarAtributos={confirmarAtributos}
+                onSalvarPersonagem={salvarPersonagem}
+                salvando={salvando}
+                gerandoBackground={gerandoBackground}
+                podeCriar={podeCriar}
                 embedded
               />
             </div>
 
-            {renderFooterAction() && (
-              <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-2.5 md:px-6">
-                {renderFooterAction()}
-              </div>
-            )}
           </div>
 
           <aside className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:flex-col">

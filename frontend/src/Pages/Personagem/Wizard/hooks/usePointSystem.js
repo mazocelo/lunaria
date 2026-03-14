@@ -64,10 +64,32 @@ export const usePointSystem = ({
   const pontosGastos = custoRaca + custoClasse + pontosVantagem;
   const pontosCriacaoRestantes = pontosCriacaoTotal - pontosGastos;
 
-  /** Seleciona uma vantagem ou desvantagem, validando limites. Retorna erro string ou null. */
-  const selecionarVantagemDesvantagem = useCallback((tipo, id, nome, custo) => {
+  /** Remove uma vantagem/desvantagem selecionada */
+  const removerSelecao = useCallback((tipo, id) => {
     if (tipo === 'vantagem') {
-      if (vantagensIds.includes(id)) return null;
+      setVantagensIds(prev => prev.filter(v => String(v) !== String(id)));
+      setVantagensNomes(prev => {
+        const item = (vantagensStore || []).find(v => String(v.id) === String(id));
+        return prev.filter(n => n !== item?.nome);
+      });
+    } else {
+      setDesvantagensIds(prev => prev.filter(d => String(d) !== String(id)));
+      setDesvantagensNomes(prev => {
+        const item = (desvantagensStore || []).find(d => String(d.id) === String(id));
+        return prev.filter(n => n !== item?.nome);
+      });
+    }
+  }, [vantagensStore, desvantagensStore]);
+
+  /** Seleciona ou desseleciona uma vantagem/desvantagem, validando limites. Retorna erro string ou null. */
+  const selecionarVantagemDesvantagem = useCallback((tipo, id, nome, custo) => {
+    const matchId = (stored) => String(stored) === String(id);
+    if (tipo === 'vantagem') {
+      const existente = vantagensIds.find(matchId);
+      if (existente !== undefined) {
+        removerSelecao('vantagem', existente);
+        return null;
+      }
       const custoNum = Number(custo) || 0;
       if (custoNum > pontosCriacaoRestantes) {
         return `Pontos de criação insuficientes. Disponível: ${pontosCriacaoRestantes}, Custo: ${custoNum}`;
@@ -75,7 +97,11 @@ export const usePointSystem = ({
       setVantagensIds(prev => [...prev, id]);
       setVantagensNomes(prev => [...prev, nome]);
     } else if (tipo === 'desvantagem') {
-      if (desvantagensIds.includes(id)) return null;
+      const existente = desvantagensIds.find(matchId);
+      if (existente !== undefined) {
+        removerSelecao('desvantagem', existente);
+        return null;
+      }
       const custoNum = Number(custo) || 0;
       if (pontosDesvantagem + custoNum < MAX_CUSTO_DESVANTAGEM) {
         return `Limite de ${Math.abs(MAX_CUSTO_DESVANTAGEM)} pontos de desvantagem atingido (atual: ${Math.abs(pontosDesvantagem)})`;
@@ -84,24 +110,7 @@ export const usePointSystem = ({
       setDesvantagensNomes(prev => [...prev, nome]);
     }
     return null;
-  }, [vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem]);
-
-  /** Remove uma vantagem/desvantagem selecionada */
-  const removerSelecao = useCallback((tipo, id) => {
-    if (tipo === 'vantagem') {
-      setVantagensIds(prev => prev.filter(v => v !== id));
-      setVantagensNomes(prev => {
-        const item = (vantagensStore || []).find(v => v.id === id);
-        return prev.filter(n => n !== item?.nome);
-      });
-    } else {
-      setDesvantagensIds(prev => prev.filter(d => d !== id));
-      setDesvantagensNomes(prev => {
-        const item = (desvantagensStore || []).find(d => d.id === id);
-        return prev.filter(n => n !== item?.nome);
-      });
-    }
-  }, [vantagensStore, desvantagensStore]);
+  }, [vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem, removerSelecao]);
 
   /** Reseta todas as seleções */
   const resetarSelecoes = useCallback(() => {

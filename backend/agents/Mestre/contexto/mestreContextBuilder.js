@@ -423,10 +423,15 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
   const estadoJogo = sessao.estadoJogo || {};
   const contextoExistente = sessao.mestreContexto?.sessao || {};
   const compactacao = getCompactacaoState(estadoJogo, sessao.mensagens || []);
+  const terrenoAtual = getTerrenoLabel(normalizarTerrenoInput(estadoJogo.terreno));
 
   return {
     cenaAtual: estadoJogo.cenaAtual || contextoExistente.cenaAtual || '',
     ambiente: estadoJogo.ambiente || contextoExistente.ambiente || '',
+    cenarioAtual: contextoExistente.cenarioAtual || estadoJogo.cenaAtual || '',
+    terrenoAtual: contextoExistente.terrenoAtual || terrenoAtual || '',
+    recursosConsumidos: uniqueList(contextoExistente.recursosConsumidos || []).slice(0, MAX_LIST_ITEMS),
+    moralGrupo: contextoExistente.moralGrupo || '',
     ultimaAtualizacao: new Date().toISOString(),
     rodadaAtual: estadoJogo.rodadaAtual || contextoExistente.rodadaAtual || 1,
     fase: estadoJogo.fase || contextoExistente.fase || 'aguardando_inicio',
@@ -532,6 +537,16 @@ ${formatList('Fatos importantes', sessao.fatosImportantes)}
 ${formatList('Itens relevantes', sessao.itensRelevantes)}
 ${formatList('Roleplay recente', sessao.roleplayRecente)}`
   ];
+
+  if (blocos.length > 2) {
+    const sessaoResumoExtra = [
+      `Cenario atual (resumo): ${sessao.cenarioAtual || 'nenhum'}`,
+      `Terreno atual (resumo): ${sessao.terrenoAtual || 'nenhum'}`,
+      `Moral do grupo: ${sessao.moralGrupo || 'nenhuma'}`,
+      formatList('Recursos consumidos', sessao.recursosConsumidos)
+    ].join('\n');
+    blocos[2] = `${blocos[2]}\n${sessaoResumoExtra}`;
+  }
 
   // Append semantic memory block if available
   const blocoMemoria = formatarBlocoMemoriaSemantica(

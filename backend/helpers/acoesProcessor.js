@@ -13,6 +13,7 @@ import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './c
 import { aplicarEfeito, removerEfeito } from './effectManager.js';
 import { applyMetadadosToSessao } from '../agents/Mestre/contexto/mestreContextBuilder.js';
 import { normalizarTerrenoInput, getTerrenoLabel, addEfeitoTerreno, clearEfeitosTerreno, ensurePersonagemBucket, registrarItemGanhoBucket, registrarItemPerdidoBucket, setBossFase, setBatalhaGrande, setMissaoTatica } from './estadoTatico.js';
+import { normalizarElemento } from '../config/domainConstants.js';
 import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 import { appendMensagemSessao, buildAcaoMestreMensagem } from '../websocket/utils/sessionMessages.js';
 
@@ -307,7 +308,9 @@ async function processarCurar(acao, sessao, roomId, sm) {
  * aplicar_dano: Aplica dano direto (armadilhas, veneno, etc.)
  */
 async function processarAplicarDano(acao, sessao, roomId, sm) {
-  const { personagem: nomePersonagem, dano, elemento } = acao;
+  const { personagem: nomePersonagem, dano } = acao;
+  const elemento = normalizarElemento(acao.elemento);
+  if (acao.elemento && !elemento) log.warn({ raw: acao.elemento }, 'aplicar_dano: elemento desconhecido ignorado');
   if (!nomePersonagem || dano == null || dano <= 0) return;
 
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
@@ -508,7 +511,7 @@ async function processarUsarHabilidade(acao, sessao, roomId, sm) {
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'habilidade_usada', personagem: nomePersonagem, userId: alvo.userId,
     nome, habilidade_id, custo_mana, cooldown_turnos,
-    dano_base: acao.dano_base || null, elemento: acao.elemento || null,
+    dano_base: acao.dano_base || null, elemento: normalizarElemento(acao.elemento),
     timestamp: Date.now()
   });
 }
@@ -575,7 +578,7 @@ async function processarConjurarMagia(acao, sessao, roomId, sm) {
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'magia_conjurada', personagem: nomePersonagem, userId: alvo.userId,
     nome, magia_id, custo_mana, usa_concentracao,
-    dano_base: acao.dano_base || null, elemento: acao.elemento || null,
+    dano_base: acao.dano_base || null, elemento: normalizarElemento(acao.elemento),
     concentracao_anterior_quebrada: concentracaoQuebrada?.nome || null,
     timestamp: Date.now()
   });
@@ -857,7 +860,9 @@ async function processarMudarCenario(acao, sessao, roomId, sm) {
  * Difere de aplicar_dano: ignora_armadura é true por padrão
  */
 async function processarDanoAmbiental(acao, sessao, roomId, sm) {
-  const { personagem: nomePersonagem, dano, elemento, fonte, ignora_armadura } = acao;
+  const { personagem: nomePersonagem, dano, fonte, ignora_armadura } = acao;
+  const elemento = normalizarElemento(acao.elemento);
+  if (acao.elemento && !elemento) log.warn({ raw: acao.elemento }, 'dano_ambiental: elemento desconhecido ignorado');
   if (!nomePersonagem || dano == null || dano <= 0) return;
 
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);

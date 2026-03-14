@@ -1,5 +1,6 @@
 import db from '../../Model/index.js';
 import { HabilidadeMonstroSchema, ResistenciasSchema, VelocidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
+import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'monstroController' });
 
@@ -184,7 +185,14 @@ class MonstroController {
         if (!v.success) return res.status(400).json({ success: false, error: `habilidades invalido: ${v.error}` });
         dados.habilidades = v.data;
       }
-      if (elemento !== undefined) dados.elemento = elemento;
+      if (elemento !== undefined) {
+        const arr = Array.isArray(elemento) ? elemento : [elemento];
+        const invalidos = arr.filter(e => e && !normalizarElemento(e));
+        if (invalidos.length > 0) {
+          return res.status(400).json({ success: false, error: `Elementos inválidos: ${invalidos.join(', ')}. Válidos: ${ELEMENTOS.join(', ')}` });
+        }
+        dados.elemento = arr.map(e => normalizarElemento(e)).filter(Boolean);
+      }
       if (temas !== undefined) dados.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dados.xp_base = parseInt(xp_base);
       if (imagem !== undefined) dados.imagem = imagem;
@@ -258,7 +266,14 @@ class MonstroController {
         if (!v.success) return res.status(400).json({ success: false, error: `habilidades invalido: ${v.error}` });
         dadosAtualizacao.habilidades = v.data;
       }
-      if (elemento !== undefined) dadosAtualizacao.elemento = elemento;
+      if (elemento !== undefined) {
+        const arr = Array.isArray(elemento) ? elemento : [elemento];
+        const invalidos = arr.filter(e => e && !normalizarElemento(e));
+        if (invalidos.length > 0) {
+          return res.status(400).json({ success: false, error: `Elementos inválidos: ${invalidos.join(', ')}. Válidos: ${ELEMENTOS.join(', ')}` });
+        }
+        dadosAtualizacao.elemento = arr.map(e => normalizarElemento(e)).filter(Boolean);
+      }
       if (temas !== undefined) dadosAtualizacao.temas = Array.isArray(temas) ? temas.map(t => parseInt(t)).filter(n => !isNaN(n)) : [];
       if (xp_base !== undefined) dadosAtualizacao.xp_base = parseInt(xp_base);
       if (imagem !== undefined) dadosAtualizacao.imagem = imagem;

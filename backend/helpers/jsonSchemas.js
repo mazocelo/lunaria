@@ -3,6 +3,7 @@
  * Usados nos controllers antes de persistir dados.
  */
 import { z } from 'zod';
+import { TIPO_HABILIDADE_MONSTRO } from '../config/domainConstants.js';
 
 // ===== EQUIPAMENTO =====
 
@@ -34,7 +35,7 @@ const EfeitoHabilidadeSchema = z.object({
 export const HabilidadeMonstroSchema = z.array(z.object({
   nome: z.string().min(1),
   descricao: z.string().optional(),
-  tipo: z.enum(['ofensiva', 'suporte', 'defensiva']).optional(),
+  tipo: z.enum(TIPO_HABILIDADE_MONSTRO).optional(),
   dano: z.string().nullable().optional(),
   efeito: EfeitoHabilidadeSchema,
   cooldown: z.number().int().min(0).default(0),

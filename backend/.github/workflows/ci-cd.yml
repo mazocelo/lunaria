@@ -19,7 +19,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --include=dev
 
       - name: Prisma Generate
         run: npx prisma generate
@@ -47,6 +47,20 @@ jobs:
             set -e
             cd /opt/role-chat-game/backend
 
+            if [ ! -f .env ]; then
+              echo "ERROR: .env ausente em /opt/role-chat-game/backend"
+              exit 1
+            fi
+
+            set -a
+            . ./.env
+            set +a
+
+            if [ -z "${DATABASE_URL:-}" ]; then
+              echo "ERROR: DATABASE_URL ausente no .env"
+              exit 1
+            fi
+
             # Acquire deploy lock (antes do pull — sem corrida)
             if [ -f /tmp/lunaria-deploy.lock ]; then
               echo "ERROR: Deploy locked by $(cat /tmp/lunaria-deploy.lock)"
@@ -64,7 +78,7 @@ jobs:
 
             # Deploy
             git pull --ff-only origin main
-            npm ci
+            npm ci --include=dev
             npx prisma generate
 
             # Atualizar lock com SHA real
@@ -73,7 +87,7 @@ jobs:
             # Backup
             BACKUP_FILE="/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump"
             mkdir -p /opt/backups
-            pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "$BACKUP_FILE" || { echo "ERROR: backup falhou"; exit 1; }
+            pg_dump --dbname="$DATABASE_URL" --no-owner --no-acl -Fc > "$BACKUP_FILE" || { echo "ERROR: backup falhou"; exit 1; }
 
             # Parar worker antes da migracao (evitar codigo stale)
             systemctl stop lunaria-worker || true
@@ -88,10 +102,10 @@ jobs:
             if ! curl -sf http://localhost:3001/health | grep -q '"status":"ok"'; then
               echo "ERROR: healthcheck falhou — iniciando rollback para $PRE_DEPLOY_SHA"
               if [ -n "$BACKUP_FILE" ] && [ -f "$BACKUP_FILE" ]; then
-                pg_restore -d "$DATABASE_URL" --clean --if-exists --no-owner "$BACKUP_FILE" || true
+                pg_restore --dbname="$DATABASE_URL" --clean --if-exists --no-owner "$BACKUP_FILE" || true
               fi
               git reset --hard "$PRE_DEPLOY_SHA"
-              npm ci
+              npm ci --include=dev
               npx prisma generate
               systemctl restart lunaria-backend
               systemctl restart lunaria-worker || true

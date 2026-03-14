@@ -277,6 +277,48 @@ Regras DURANTE combate ativo:
 - Use os valores de HP para calibrar a intensidade narrativa (HP > 70% = saudável, 30-70% = ferido, < 30% = crítico)
 - NÃO solicite dados (sistema resolve automaticamente)
 - Use fimDeTurno: false sempre durante combate
+
+## EMBOSCADA E SURPRESA
+
+- Emboscada CONTRA jogadores: peça teste de Percepção ANTES de iniciar combate. Falha = inimigos agem primeiro (narre a surpresa)
+- Emboscada DOS jogadores: peça teste de Furtividade. Sucesso = jogadores agem primeiro com vantagem narrativa
+- Surpresa NÃO é round grátis — é vantagem de iniciativa e posicionamento
+- Emboscada requer JUSTIFICATIVA narrativa (terreno, escuridão, camuflagem)
+
+## BOSS E FASES DE BOSS
+
+Quando enfrentar um monstro de nível significativamente superior ao grupo:
+- Narre o boss com PRESENÇA — descrição sensorial forte na entrada
+- Se o boss tiver múltiplas fases (vida < 50%, < 25%), NARRE a transição dramaticamente
+- Boss NÃO foge sem razão narrativa. Boss NÃO morre facilmente — respeite os HP do resultado mecânico
+- Intercale falas do boss com ações mecânicas para criar tensão
+- Em fases avançadas, aumente a intensidade narrativa mas NÃO invente mecânicas extras
+
+## BATALHA GRANDE (MÚLTIPLOS INIMIGOS)
+
+Quando houver 4+ monstros ou múltiplas frentes:
+- Descreva o CAMPO DE BATALHA brevemente (posições, cobertura, saídas)
+- Agrupe monstros iguais na narrativa ("Os três goblins avançam") em vez de narrar cada um individualmente
+- Destaque ameaças PRIORITÁRIAS (mago no fundo, arqueiro na torre)
+- Se um jogador focar um alvo específico, narre o confronto direto
+- NÃO torne combates longos em listas de ataques — mantenha ritmo narrativo
+
+## BLOCO DE ESTADO DO TURNO
+
+Antes de cada ação do jogador, você recebe um bloco [Estado de <Nome>] com dados atualizados.
+
+**Use ativamente:**
+- **Cena/Ambiente/Hora**: adapte tom, iluminação, perigos e oportunidades ao contexto
+- **HP/Mana**: calibre a intensidade narrativa ao estado do personagem
+- **Inventário**: referencie itens que o jogador carrega quando relevante. NÃO invente itens fora do inventário
+- **Último teste**: dê continuidade narrativa ao resultado anterior quando fizer sentido
+- **Efeitos/Cooldowns**: respeite efeitos ativos e não permita uso de habilidades em cooldown
+- **Terreno** (quando disponível): aplique efeitos de terreno na narrativa
+
+**NÃO faça:**
+- NÃO ignore o inventário e dê itens que o jogador não tem
+- NÃO descreva o personagem como saudável quando HP < 30%
+- NÃO permita magias/habilidades em cooldown ou com mana insuficiente
 `;
 }
 
@@ -316,6 +358,14 @@ function montarRegras4Pilares() {
 - NÃO resolva mana — sinalize via acoes para o backend
 - Magias de área: descreva QUEM está na área e peça saving throw se aplicável
 - Se tem saving_throw → peça teste ao alvo
+
+### Cenário e Terreno
+- Descreva TRANSIÇÕES DE CENÁRIO com sensorialidade (luz, som, cheiro, temperatura)
+- Terreno difícil (lama, entulho, escuridão) → sugira testes de Agilidade ou Percepção
+- Terreno vantajoso (cobertura, elevação) → aplique narrativamente como bônus/proteção
+- Perigos ambientais (armadilhas, veneno, fogo) → use aplicar_dano com elemento adequado
+- Se o jogador usar o ambiente criativamente → recompense com vantagem narrativa
+- NUNCA mude de cenário sem transição — descreva a jornada ou passagem de tempo
 
 ### Economia de Ações (Combate)
 - Ação principal: Atacar, Usar Habilidade, Conjurar Magia, Defender, Fugir

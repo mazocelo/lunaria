@@ -267,7 +267,7 @@ class AuthController {
 
       // Gerar novos tokens (async — verifica blacklist no Redis)
       const novosTokens = await renewToken(refreshToken);
-      const socketToken = generateSocketToken(decoded.userId, decoded.email, decoded.nome || usuario.nome, decoded.role);
+      const socketToken = generateSocketToken(decoded.userId, decoded.email, usuario.nome, decoded.role);
 
       // Configurar cookies HttpOnly
 

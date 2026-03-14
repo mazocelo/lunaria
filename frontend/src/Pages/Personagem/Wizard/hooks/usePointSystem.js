@@ -13,6 +13,10 @@ export const usePointSystem = ({
   vantagensDisponiveis,
   vantagensStore,
   desvantagensStore,
+  racaId,
+  classeId,
+  racasDisponiveis,
+  classesDisponiveis,
 }) => {
   const [vantagensIds, setVantagensIds] = useState(draftInicial?.vantagensIds || []);
   const [vantagensNomes, setVantagensNomes] = useState(draftInicial?.vantagensNomes || []);
@@ -40,10 +44,24 @@ export const usePointSystem = ({
     }, 0);
   }, [vantagensIds, vantagensDisponiveis]);
 
-  // Pontos de criação disponíveis
+  // Custo de raça e classe
+  const custoRaca = useMemo(() => {
+    if (!racaId) return 0;
+    const raca = (racasDisponiveis || []).find(r => r.id === racaId);
+    return raca ? Number(raca.custo) || 0 : 0;
+  }, [racaId, racasDisponiveis]);
+
+  const custoClasse = useMemo(() => {
+    if (!classeId) return 0;
+    const classe = (classesDisponiveis || []).find(c => c.id === classeId);
+    return classe ? Number(classe.custo) || 0 : 0;
+  }, [classeId, classesDisponiveis]);
+
+  // Pontos de criação disponíveis (inclui custos de raça + classe + vantagens)
   const pontosDevolvidos = Math.min(Math.abs(MAX_PONTOS_DESVANTAGEM), Math.abs(pontosDesvantagem));
   const pontosCriacaoTotal = PONTOS_CRIACAO_BASE + pontosDevolvidos;
-  const pontosCriacaoRestantes = pontosCriacaoTotal - pontosVantagem;
+  const pontosGastos = custoRaca + custoClasse + pontosVantagem;
+  const pontosCriacaoRestantes = pontosCriacaoTotal - pontosGastos;
 
   /** Seleciona uma vantagem ou desvantagem, validando limites. Retorna erro string ou null. */
   const selecionarVantagemDesvantagem = useCallback((tipo, id, nome, custo) => {
@@ -108,6 +126,9 @@ export const usePointSystem = ({
     setSkipDesvantagens,
     pontosVantagem,
     pontosDesvantagem,
+    custoRaca,
+    custoClasse,
+    pontosGastos,
     pontosCriacaoTotal,
     pontosCriacaoRestantes,
     maxDesvantagens: MAX_DESVANTAGENS,

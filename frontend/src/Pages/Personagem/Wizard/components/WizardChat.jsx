@@ -43,8 +43,11 @@ const WizardChat = ({
   bonusDetalhes,
   pontosCriacaoTotal,
   pontosCriacaoRestantes,
+  pontosGastos,
   pontosVantagem,
   pontosDesvantagem,
+  custoRaca,
+  custoClasse,
   maxDesvantagens,
   attrMin,
   attrMax,
@@ -135,7 +138,7 @@ const WizardChat = ({
 
   return (
     <div className="flex h-full flex-col">
-      {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (() => {
+      {etapaAtual !== 'boas_vindas' && (() => {
         const pctUsado = pontosCriacaoTotal > 0
           ? ((pontosCriacaoTotal - pontosCriacaoRestantes) / pontosCriacaoTotal) * 100
           : 0;
@@ -144,7 +147,8 @@ const WizardChat = ({
           : pontosCriacaoRestantes < pontosCriacaoTotal
             ? 'bg-amber-500'
             : 'bg-green-500';
-        const nadaGasto = pontosCriacaoRestantes === pontosCriacaoTotal;
+        const nadaGasto = pontosGastos === 0 && pontosDesvantagem === 0;
+        const etapaVantDesv = etapaAtual === 'vantagens' || etapaAtual === 'desvantagens';
 
         return (
           <div className={`shrink-0 border-b px-4 py-3 md:px-5 ${
@@ -174,13 +178,23 @@ const WizardChat = ({
             <div className="flex flex-wrap items-center gap-2">
               {nadaGasto ? (
                 <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Nenhum ponto gasto — voce pode pular esta etapa
+                  {etapaVantDesv ? 'Nenhum ponto gasto — voce pode pular esta etapa' : 'Nenhum ponto gasto ainda'}
                 </span>
               ) : (
                 <>
+                  {custoRaca > 0 && (
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-mono font-medium ${isLight ? 'bg-purple-50 text-purple-600' : 'bg-purple-500/10 text-purple-400'}`}>
+                      Linhagem -{custoRaca}
+                    </span>
+                  )}
+                  {custoClasse > 0 && (
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-mono font-medium ${isLight ? 'bg-blue-50 text-blue-600' : 'bg-blue-500/10 text-blue-400'}`}>
+                      Vocacao -{custoClasse}
+                    </span>
+                  )}
                   {pontosVantagem > 0 && (
                     <span className={`rounded-md px-2 py-0.5 text-xs font-mono font-medium ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'}`}>
-                      -{pontosVantagem} gastos
+                      Dons -{pontosVantagem}
                     </span>
                   )}
                   {pontosDesvantagem < 0 && (
@@ -190,13 +204,15 @@ const WizardChat = ({
                   )}
                 </>
               )}
-              <span className={`ml-auto rounded-md px-2 py-0.5 text-xs font-mono font-medium ${
-                desvantagensIds.length >= maxDesvantagens
-                  ? isLight ? 'bg-red-50 text-red-600' : 'bg-red-500/10 text-red-400'
-                  : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'
-              }`}>
-                Marcas {desvantagensIds.length}/{maxDesvantagens}
-              </span>
+              {etapaVantDesv && (
+                <span className={`ml-auto rounded-md px-2 py-0.5 text-xs font-mono font-medium ${
+                  desvantagensIds.length >= maxDesvantagens
+                    ? isLight ? 'bg-red-50 text-red-600' : 'bg-red-500/10 text-red-400'
+                    : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  Marcas {desvantagensIds.length}/{maxDesvantagens}
+                </span>
+              )}
             </div>
           </div>
         );

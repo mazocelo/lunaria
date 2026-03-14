@@ -69,6 +69,10 @@ export const useWizardModel = () => {
     vantagensDisponiveis,
     vantagensStore: vantagens,
     desvantagensStore: desvantagens,
+    racaId,
+    classeId,
+    racasDisponiveis,
+    classesDisponiveis,
   });
 
   // --- Bonus Calculation ---
@@ -531,8 +535,11 @@ export const useWizardModel = () => {
     // Pontos de criação
     pontosCriacaoTotal: pointSystem.pontosCriacaoTotal,
     pontosCriacaoRestantes: pointSystem.pontosCriacaoRestantes,
+    pontosGastos: pointSystem.pontosGastos,
     pontosVantagem: pointSystem.pontosVantagem,
     pontosDesvantagem: pointSystem.pontosDesvantagem,
+    custoRaca: pointSystem.custoRaca,
+    custoClasse: pointSystem.custoClasse,
     maxDesvantagens: pointSystem.maxDesvantagens,
 
     // Catálogos

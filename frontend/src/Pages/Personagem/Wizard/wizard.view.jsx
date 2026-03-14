@@ -81,6 +81,9 @@ const WizardView = (props) => {
     pontosCriacaoRestantes,
     pontosVantagem,
     pontosDesvantagem,
+    custoRaca,
+    custoClasse,
+    pontosGastos,
     maxDesvantagens,
     attrMin,
     attrMax,
@@ -306,8 +309,11 @@ const WizardView = (props) => {
               bonusDetalhes={bonusDetalhes}
               pontosCriacaoTotal={pontosCriacaoTotal}
               pontosCriacaoRestantes={pontosCriacaoRestantes}
+              pontosGastos={pontosGastos}
               pontosVantagem={pontosVantagem}
               pontosDesvantagem={pontosDesvantagem}
+              custoRaca={custoRaca}
+              custoClasse={custoClasse}
               maxDesvantagens={maxDesvantagens}
               attrMin={attrMin}
               attrMax={attrMax}

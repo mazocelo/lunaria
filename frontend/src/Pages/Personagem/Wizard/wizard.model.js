@@ -26,6 +26,11 @@ const PONTOS_TOTAIS = 60;
 const ATTR_MIN = 5;
 const ATTR_MAX = 16; // max na criação (antes de bônus)
 
+const ATRIBUTOS_INICIAIS = {
+  forca: 10, destreza: 10, constituicao: 10,
+  inteligencia: 10, agilidade: 10, carisma: 10,
+};
+
 function somaAtributos(atributos) {
   return Object.values(atributos)
     .map((v) => Number(v) || 0)
@@ -63,11 +68,13 @@ export const useWizardModel = () => {
   const desvantagensCarregadas = useDesvantagemStore(s => s.desvantagensCarregadas);
   const carregarDesvantagens = useDesvantagemStore(s => s.carregarDesvantagens);
 
-  // P-02: Auto-save — chave versionada para evitar quebra se shape mudar
-  const DRAFT_KEY = 'lunaria_wizard_draft_v1';
+  // T4: Draft v2 — shape novo com atributosBase, skip flags
+  const DRAFT_KEY = 'lunaria_wizard_draft_v2';
 
   const loadDraft = () => {
     try {
+      // Descartar v1 silenciosamente
+      localStorage.removeItem('lunaria_wizard_draft_v1');
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return null;
       return JSON.parse(raw);
@@ -76,12 +83,22 @@ export const useWizardModel = () => {
 
   const draft = useRef(loadDraft());
 
+  // T4: Flag de draft restaurado
+  const [draftRestaurado, setDraftRestaurado] = useState(false);
+
   // Wizard state (restaura do draft se existir)
   const [etapaAtual, setEtapaAtual] = useState(draft.current?.etapaAtual || 'boas_vindas');
   const [mensagens, setMensagens] = useState([]);
   const [inputTexto, setInputTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
+
+  // Navegacao: etapas visitadas e skip flags
+  const [etapasVisitadas, setEtapasVisitadas] = useState(
+    draft.current?.etapasVisitadas || [draft.current?.etapaAtual || 'boas_vindas']
+  );
+  const [skipVantagens, setSkipVantagens] = useState(draft.current?.skipVantagens || false);
+  const [skipDesvantagens, setSkipDesvantagens] = useState(draft.current?.skipDesvantagens || false);
 
   // Personagem state (restaura do draft se existir)
   const [nome, setNome] = useState(draft.current?.nome || '');
@@ -94,37 +111,150 @@ export const useWizardModel = () => {
   const [vantagensNomes, setVantagensNomes] = useState(draft.current?.vantagensNomes || []);
   const [desvantagensIds, setDesvantagensIds] = useState(draft.current?.desvantagensIds || []);
   const [desvantagensNomes, setDesvantagensNomes] = useState(draft.current?.desvantagensNomes || []);
-  const [atributos, setAtributos] = useState(draft.current?.atributos || {
-    forca: 10, destreza: 10, constituicao: 10,
-    inteligencia: 10, agilidade: 10, carisma: 10,
-  });
+
+  // T3: atributosBase — distribuição do jogador (60 pontos), sem bônus
+  const [atributosBase, setAtributosBase] = useState(
+    draft.current?.atributosBase || { ...ATRIBUTOS_INICIAIS }
+  );
 
   // Sugestões ativas (vindas da IA)
   const [sugestoes, setSugestoes] = useState([]);
   const [atributosSugeridos, setAtributosSugeridos] = useState(null);
 
-  // Bônus de raça/classe
+  // T3: bonusAplicados = confirmação do jogador
   const [bonusAplicados, setBonusAplicados] = useState(draft.current?.bonusAplicados || false);
-  const [bonusDetalhes, setBonusDetalhes] = useState(draft.current?.bonusDetalhes || null);
+
+  // T3: Flag para banner de invalidação em etapas avançadas
+  const [bonusInvalidado, setBonusInvalidado] = useState(false);
 
   // Saving
   const [salvando, setSalvando] = useState(false);
   const [gerandoBackground, setGerandoBackground] = useState(false);
 
-  // P-02: Salvar draft a cada mudanca de etapa ou dados relevantes
+  // Dados para preview card
+  const racasDisponiveis = racas || [];
+  const classesDisponiveis = classes || [];
+  const vantagensDisponiveis = useMemo(() => {
+    return [...(vantagens || []), ...(desvantagens || [])];
+  }, [vantagens, desvantagens]);
+
+  // T3: Bônus calculado como derivação pura (useMemo, sem side-effect)
+  const bonusDetalhes = useMemo(() => {
+    const ATTR_BASE = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
+
+    const parseRacaClasseBonus = (raw) => {
+      if (!raw) return null;
+      try {
+        const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return Array.isArray(obj) ? obj[0] : obj;
+      } catch { return null; }
+    };
+
+    const racaObj = racasDisponiveis.find(r => r.id === racaId);
+    const classeObj = classesDisponiveis.find(c => c.id === classeId);
+    const racaBonus = parseRacaClasseBonus(racaObj?.bonus);
+    const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
+
+    const bonus = {};
+    for (const key of ATTR_BASE) {
+      let b = 0;
+      if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
+        b += Number(racaBonus[key]) || 0;
+      }
+      if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
+        b += Number(classeBonus[key]) || 0;
+      }
+      if (b !== 0) bonus[key] = b;
+    }
+
+    // Vantagens/desvantagens bonus
+    const allItems = vantagensDisponiveis || [];
+    const selectedIds = [...vantagensIds, ...desvantagensIds];
+    for (const id of selectedIds) {
+      const item = allItems.find(v => v.id === id);
+      if (!item?.bonus) continue;
+      const bonusArr = Array.isArray(item.bonus) ? item.bonus : [item.bonus];
+      for (const entry of bonusArr) {
+        if (entry?.atributo && ATTR_BASE.includes(entry.atributo)) {
+          bonus[entry.atributo] = (bonus[entry.atributo] || 0) + (Number(entry.valor) || 0);
+        }
+      }
+    }
+
+    // Remove zeros
+    for (const key of Object.keys(bonus)) {
+      if (bonus[key] === 0) delete bonus[key];
+    }
+
+    return bonus;
+  }, [racaId, classeId, racasDisponiveis, classesDisponiveis, vantagensIds, desvantagensIds, vantagensDisponiveis]);
+
+  // T3: atributosFinal = atributosBase + bônus (sempre derivado)
+  const atributosFinal = useMemo(() => {
+    const result = { ...atributosBase };
+    for (const [key, val] of Object.entries(bonusDetalhes)) {
+      result[key] = (result[key] || 10) + val;
+    }
+    return result;
+  }, [atributosBase, bonusDetalhes]);
+
+  // T3: Pontos baseados apenas em atributosBase (sem bônus)
+  const pontosDistribuidos = useMemo(() => somaAtributos(atributosBase), [atributosBase]);
+  const pontosRestantes = PONTOS_TOTAIS - pontosDistribuidos;
+
+  // T3: Invalidar bonusAplicados quando build muda
+  const buildDepsRef = useRef({ racaId, classeId, vantagensIds, desvantagensIds });
   useEffect(() => {
-    // Nao salvar na etapa inicial se nada foi preenchido
+    const prev = buildDepsRef.current;
+    const changed = prev.racaId !== racaId
+      || prev.classeId !== classeId
+      || prev.vantagensIds !== vantagensIds
+      || prev.desvantagensIds !== desvantagensIds;
+    buildDepsRef.current = { racaId, classeId, vantagensIds, desvantagensIds };
+
+    if (!changed) return;
+    if (etapaAtual === 'boas_vindas') return;
+
+    if (bonusAplicados) {
+      setBonusAplicados(false);
+      if (etapaAtual === 'resumo' || etapaAtual === 'refinamento') {
+        setBonusInvalidado(true);
+      }
+    }
+  }, [racaId, classeId, vantagensIds, desvantagensIds, etapaAtual, bonusAplicados]);
+
+  // Etapas concluídas (derivadas do estado atual)
+  const etapasConcluidas = useMemo(() => {
+    const concluidas = [];
+    if (nome.trim()) concluidas.push('boas_vindas');
+    if (racaId) concluidas.push('raca');
+    if (classeId) concluidas.push('classe');
+    if (background.trim()) concluidas.push('background');
+    if (vantagensIds.length > 0 || skipVantagens) concluidas.push('vantagens');
+    if (desvantagensIds.length > 0 || skipDesvantagens) concluidas.push('desvantagens');
+    if (bonusAplicados) concluidas.push('atributos');
+    return concluidas;
+  }, [nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados]);
+
+  const etapaIndex = useMemo(() => {
+    return ETAPAS.findIndex(e => e.id === etapaAtual);
+  }, [etapaAtual]);
+
+  // T4: Draft v2 — salvar com shape novo
+  useEffect(() => {
     if (etapaAtual === 'boas_vindas' && !nome) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         etapaAtual, nome, racaId, racaNome, classeId, classeNome,
         background, vantagensIds, vantagensNomes, desvantagensIds,
-        desvantagensNomes, atributos, bonusAplicados, bonusDetalhes
+        desvantagensNomes, atributosBase, bonusAplicados,
+        skipVantagens, skipDesvantagens, etapasVisitadas, etapasConcluidas,
       }));
     } catch { /* quota exceeded — ignore */ }
-  }, [etapaAtual, nome, racaId, classeId, background, vantagensIds, desvantagensIds, atributos, bonusAplicados]);
+  }, [etapaAtual, nome, racaId, classeId, background, vantagensIds, desvantagensIds,
+      atributosBase, bonusAplicados, skipVantagens, skipDesvantagens, etapasVisitadas, etapasConcluidas]);
 
-  // P-02: Aviso ao fechar aba com wizard em andamento
+  // Aviso ao fechar aba com wizard em andamento
   useEffect(() => {
     const handler = (e) => {
       if (nome || racaId) {
@@ -135,25 +265,6 @@ export const useWizardModel = () => {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [nome, racaId]);
-
-  // Dados para preview card
-  const racasDisponiveis = racas || [];
-  const classesDisponiveis = classes || [];
-  const vantagensDisponiveis = useMemo(() => {
-    return [...(vantagens || []), ...(desvantagens || [])];
-  }, [vantagens, desvantagens]);
-
-  // Pontos base distribuídos (descontar bônus aplicados)
-  const bonusTotal = useMemo(() => {
-    if (!bonusAplicados || !bonusDetalhes) return 0;
-    return Object.values(bonusDetalhes).reduce((s, v) => s + (Number(v) || 0), 0);
-  }, [bonusAplicados, bonusDetalhes]);
-  const pontosDistribuidos = useMemo(() => somaAtributos(atributos) - bonusTotal, [atributos, bonusTotal]);
-  const pontosRestantes = PONTOS_TOTAIS - pontosDistribuidos;
-
-  const etapaIndex = useMemo(() => {
-    return ETAPAS.findIndex(e => e.id === etapaAtual);
-  }, [etapaAtual]);
 
   // Load catalogs on mount
   useEffect(() => {
@@ -173,9 +284,19 @@ export const useWizardModel = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // Iniciar wizard automaticamente
+  // T4: Inserir mensagem de draft restaurado OU iniciar wizard
   useEffect(() => {
-    iniciarWizard();
+    if (draft.current) {
+      setDraftRestaurado(true);
+      setMensagens([{
+        id: Date.now(),
+        role: 'sistema',
+        content: '**Rascunho restaurado.** Seu progresso anterior foi recuperado. Você pode continuar de onde parou ou descartar o rascunho para recomeçar.',
+        timestamp: new Date(),
+      }]);
+    } else {
+      iniciarWizard();
+    }
   }, []);
 
   const iniciarWizard = useCallback(async () => {
@@ -224,18 +345,18 @@ export const useWizardModel = () => {
     vantagens_nomes: vantagensNomes,
     desvantagens_ids: desvantagensIds,
     desvantagens_nomes: desvantagensNomes,
-    atributos,
-  }), [nome, racaId, racaNome, classeId, classeNome, background, vantagensIds, vantagensNomes, desvantagensIds, desvantagensNomes, atributos]);
+    atributos: atributosFinal,
+  }), [nome, racaId, racaNome, classeId, classeNome, background, vantagensIds, vantagensNomes, desvantagensIds, desvantagensNomes, atributosFinal]);
 
   /** Monta histórico de chat para enviar ao backend */
   const getHistorico = useCallback(() => {
-    return mensagens.map(m => ({
+    return mensagens.filter(m => m.role !== 'sistema').map(m => ({
       role: m.role === 'mestre' ? 'assistant' : 'user',
       content: m.content,
     }));
   }, [mensagens]);
 
-  /** Envia mensagem do jogador */
+  /** Envia mensagem do jogador (input textual livre) */
   const enviarMensagem = useCallback(async (texto) => {
     if (!texto?.trim() || enviando) return;
 
@@ -284,9 +405,11 @@ export const useWizardModel = () => {
       // Atualizar atributos sugeridos
       if (resultado.atributos_sugeridos) setAtributosSugeridos(resultado.atributos_sugeridos);
 
-      // Avançar etapa
+      // Avançar etapa (mantido para mensagens textuais do jogador)
       if (resultado.etapa_proxima && resultado.etapa_proxima !== etapaAtual) {
-        setEtapaAtual(resultado.etapa_proxima);
+        const proxima = resultado.etapa_proxima;
+        setEtapaAtual(proxima);
+        setEtapasVisitadas(prev => prev.includes(proxima) ? prev : [...prev, proxima]);
       }
     } catch (err) {
       setError(err.message);
@@ -323,7 +446,7 @@ export const useWizardModel = () => {
   const pontosCriacaoTotal = PONTOS_CRIACAO_BASE + pontosDevolvidos;
   const pontosCriacaoRestantes = pontosCriacaoTotal - pontosVantagem;
 
-  /** Seleciona uma sugestão (raça, classe, vantagem, etc.) */
+  /** T1: Seleciona sugestão silenciosamente (sem enviarMensagem) */
   const selecionarSugestao = useCallback((sugestao) => {
     const { tipo, id, nome: sugestaoNome, custo: sugCusto } = sugestao;
 
@@ -368,10 +491,8 @@ export const useWizardModel = () => {
         break;
       }
     }
-
-    // Enviar como mensagem do jogador
-    enviarMensagem(`Escolho: ${sugestaoNome}`);
-  }, [enviarMensagem, vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem]);
+    // T1: Seleção NÃO envia mensagem de chat — estado atualiza silenciosamente
+  }, [vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem]);
 
   /** Remove uma vantagem/desvantagem selecionada */
   const removerSelecao = useCallback((tipo, id) => {
@@ -390,102 +511,71 @@ export const useWizardModel = () => {
     }
   }, [vantagens, desvantagens]);
 
-  /** Aplica sugestão de atributos da IA */
+  /** Aplica sugestão de atributos da IA (opera sobre atributosBase) */
   const aplicarAtributosSugeridos = useCallback(() => {
     if (atributosSugeridos) {
-      setAtributos({ ...atributosSugeridos });
+      setAtributosBase({ ...atributosSugeridos });
     }
   }, [atributosSugeridos]);
 
-  /** Calcula bônus de raça/classe/vantagens/desvantagens para atributos base */
-  const calcularBonus = useCallback(() => {
-    const ATTR_BASE = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
-
-    const parseRacaClasseBonus = (raw) => {
-      if (!raw) return null;
-      try {
-        const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return Array.isArray(obj) ? obj[0] : obj;
-      } catch { return null; }
-    };
-
-    const racaObj = racasDisponiveis.find(r => r.id === racaId);
-    const classeObj = classesDisponiveis.find(c => c.id === classeId);
-    const racaBonus = parseRacaClasseBonus(racaObj?.bonus);
-    const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
-
-    const bonus = {};
-    for (const key of ATTR_BASE) {
-      let b = 0;
-      // Raça bonus (object format: { forca: "+2", agilidade: 1 })
-      if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
-        b += Number(racaBonus[key]) || 0;
-      }
-      // Classe bonus (same format)
-      if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
-        b += Number(classeBonus[key]) || 0;
-      }
-      if (b !== 0) bonus[key] = b;
-    }
-
-    // Vantagens bonus (array format: [{ atributo: "carisma", valor: 1 }])
-    const allItems = vantagensDisponiveis || [];
-    const selectedIds = [...vantagensIds, ...desvantagensIds];
-    for (const id of selectedIds) {
-      const item = allItems.find(v => v.id === id);
-      if (!item?.bonus) continue;
-      const bonusArr = Array.isArray(item.bonus) ? item.bonus : [item.bonus];
-      for (const entry of bonusArr) {
-        if (entry?.atributo && ATTR_BASE.includes(entry.atributo)) {
-          bonus[entry.atributo] = (bonus[entry.atributo] || 0) + (Number(entry.valor) || 0);
-        }
-      }
-    }
-
-    // Remove zeros
-    for (const key of Object.keys(bonus)) {
-      if (bonus[key] === 0) delete bonus[key];
-    }
-
-    return bonus;
-  }, [racaId, classeId, racasDisponiveis, classesDisponiveis, vantagensIds, desvantagensIds, vantagensDisponiveis]);
-
-  /** Confirma atributos e aplica bônus de raça/classe */
+  /** T3: Confirma atributos — apenas marca como confirmado */
   const confirmarAtributos = useCallback(() => {
     if (bonusAplicados) return;
-
-    const bonus = calcularBonus();
-    setBonusDetalhes(bonus);
-
-    // Aplicar bônus nos atributos
-    if (Object.keys(bonus).length > 0) {
-      setAtributos(prev => {
-        const novo = { ...prev };
-        for (const [key, val] of Object.entries(bonus)) {
-          novo[key] = (novo[key] || 10) + val;
-        }
-        return novo;
-      });
-    }
-
     setBonusAplicados(true);
+    setBonusInvalidado(false);
+  }, [bonusAplicados]);
 
-    // Enviar mensagem de confirmação
-    const resumo = Object.entries(atributos)
-      .map(([k, v]) => {
-        const b = bonus[k];
-        const abbr = k.substring(0, 3).toUpperCase();
-        return b ? `${abbr}=${v}+${b}` : `${abbr}=${v}`;
-      })
-      .join(', ');
-    enviarMensagem(`Confirmo meus atributos: ${resumo}`);
-  }, [bonusAplicados, calcularBonus, atributos, enviarMensagem]);
-
-  /** Atualiza um atributo individual */
+  /** T3: Atualiza um atributo individual (opera sobre atributosBase) */
   const setAtributo = useCallback((key, value) => {
     const val = Math.min(ATTR_MAX, Math.max(ATTR_MIN, Number(value) || ATTR_MIN));
-    setAtributos(prev => ({ ...prev, [key]: val }));
+    setAtributosBase(prev => ({ ...prev, [key]: val }));
   }, []);
+
+  /** Avança para a próxima etapa (usado pelo CTA "Continuar") */
+  const avancarEtapa = useCallback(() => {
+    const idx = ETAPAS.findIndex(e => e.id === etapaAtual);
+    if (idx < 0 || idx >= ETAPAS.length - 1) return null;
+    const proxima = ETAPAS[idx + 1].id;
+    const primeiraVisita = !etapasVisitadas.includes(proxima);
+    setEtapaAtual(proxima);
+    setEtapasVisitadas(prev => primeiraVisita ? [...prev, proxima] : prev);
+    return { etapa: proxima, primeiraVisita };
+  }, [etapaAtual, etapasVisitadas]);
+
+  /** Navega para uma etapa específica (usado pelo progress bar — T2) */
+  const navegarParaEtapa = useCallback((etapaId) => {
+    if (!etapasConcluidas.includes(etapaId)) return;
+    setEtapaAtual(etapaId);
+    setEtapasVisitadas(prev => prev.includes(etapaId) ? prev : [...prev, etapaId]);
+  }, [etapasConcluidas]);
+
+  /** T4: Descarta draft e reseta todo estado */
+  const descartarDraft = useCallback(() => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    setEtapaAtual('boas_vindas');
+    setNome('');
+    setRacaId(null);
+    setRacaNome('');
+    setClasseId(null);
+    setClasseNome('');
+    setBackground('');
+    setVantagensIds([]);
+    setVantagensNomes([]);
+    setDesvantagensIds([]);
+    setDesvantagensNomes([]);
+    setAtributosBase({ ...ATRIBUTOS_INICIAIS });
+    setBonusAplicados(false);
+    setBonusInvalidado(false);
+    setSkipVantagens(false);
+    setSkipDesvantagens(false);
+    setEtapasVisitadas(['boas_vindas']);
+    setSugestoes([]);
+    setAtributosSugeridos(null);
+    setDraftRestaurado(false);
+    setMensagens([]);
+    setError(null);
+    iniciarWizard();
+  }, [iniciarWizard]);
 
   /** Salva o personagem */
   const salvarPersonagem = useCallback(async () => {
@@ -502,7 +592,6 @@ export const useWizardModel = () => {
       return;
     }
 
-    // N-02: Garantir que bonus de raca/classe foram aplicados
     if (!bonusAplicados) {
       setError('Confirme seus atributos antes de salvar (aplique os bônus de raça/classe)');
       return;
@@ -512,7 +601,7 @@ export const useWizardModel = () => {
     setError(null);
 
     try {
-      // Atributos já incluem bônus (aplicados em confirmarAtributos)
+      // T3: Enviar atributosFinal (base + bônus derivados)
       const dados = {
         nome,
         raca_id: racaId || undefined,
@@ -520,12 +609,12 @@ export const useWizardModel = () => {
         sugestao_background: 'guiado',
         background,
         historias: [],
-        forca: atributos.forca,
-        destreza: atributos.destreza,
-        constituicao: atributos.constituicao,
-        inteligencia: atributos.inteligencia,
-        agilidade: atributos.agilidade,
-        carisma: atributos.carisma,
+        forca: atributosFinal.forca,
+        destreza: atributosFinal.destreza,
+        constituicao: atributosFinal.constituicao,
+        inteligencia: atributosFinal.inteligencia,
+        agilidade: atributosFinal.agilidade,
+        carisma: atributosFinal.carisma,
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
         nivel: 1,
@@ -546,7 +635,7 @@ export const useWizardModel = () => {
         }
       }
 
-      // P-02: Limpar draft apos salvar com sucesso
+      // Limpar draft após salvar com sucesso
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       await recarregarPersonagens();
       navigate('/personagens');
@@ -555,7 +644,7 @@ export const useWizardModel = () => {
     } finally {
       setSalvando(false);
     }
-  }, [nome, racaId, classeId, background, atributos, vantagensIds, desvantagensIds, navigate, recarregarPersonagens]);
+  }, [nome, racaId, classeId, background, atributosFinal, vantagensIds, desvantagensIds, bonusAplicados, navigate, recarregarPersonagens]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -572,6 +661,10 @@ export const useWizardModel = () => {
     atributosSugeridos,
     chatEndRef,
 
+    // T3: Atributos separados
+    atributosBase,
+    atributosFinal,
+
     // Personagem
     nome,
     racaId,
@@ -583,7 +676,6 @@ export const useWizardModel = () => {
     vantagensNomes,
     desvantagensIds,
     desvantagensNomes,
-    atributos,
     pontosDistribuidos,
     pontosRestantes,
     pontosTotais: PONTOS_TOTAIS,
@@ -603,11 +695,26 @@ export const useWizardModel = () => {
     setAtributo,
     confirmarAtributos,
     salvarPersonagem,
+    avancarEtapa,
+    navegarParaEtapa,
     clearError,
 
     // Bonus
     bonusAplicados,
     bonusDetalhes,
+    bonusInvalidado,
+
+    // Navegação
+    etapasVisitadas,
+    etapasConcluidas,
+    skipVantagens,
+    setSkipVantagens,
+    skipDesvantagens,
+    setSkipDesvantagens,
+
+    // Draft
+    draftRestaurado,
+    descartarDraft,
 
     // Limites de seleção
     pontosCriacaoTotal,

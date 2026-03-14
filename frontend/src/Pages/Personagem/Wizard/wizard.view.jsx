@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, AlertCircle, X, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
+import { ArrowLeft, AlertCircle, AlertTriangle, Trash2, X, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
@@ -22,7 +22,8 @@ const WizardView = (props) => {
     nome,
     racaId,
     classeId,
-    atributos,
+    atributosBase,
+    atributosFinal,
     vantagensIds,
     desvantagensIds,
     pontosDistribuidos,
@@ -47,6 +48,11 @@ const WizardView = (props) => {
     // Bonus
     bonusAplicados,
     bonusDetalhes,
+    bonusInvalidado,
+
+    // Draft
+    draftRestaurado,
+    descartarDraft,
 
     // Limites de seleção
     pontosCriacaoTotal,
@@ -131,6 +137,38 @@ const WizardView = (props) => {
         </div>
       )}
 
+      {/* T3: Banner de bônus invalidados */}
+      {bonusInvalidado && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 shrink-0 ${
+          isLight ? 'bg-amber-50 text-amber-700' : 'bg-amber-500/10 text-amber-300'
+        }`}>
+          <AlertTriangle size={16} />
+          <span className="flex-1 text-sm font-modern">
+            Bônus invalidados — confirme novamente seus atributos antes de salvar.
+          </span>
+        </div>
+      )}
+
+      {/* T4: Opção de descartar draft */}
+      {draftRestaurado && (
+        <div className={`flex items-center gap-2 px-4 py-2 shrink-0 ${
+          isLight ? 'bg-blue-50 text-blue-600' : 'bg-blue-500/10 text-blue-300'
+        }`}>
+          <span className="flex-1 text-sm font-modern">Rascunho restaurado.</span>
+          <button
+            onClick={descartarDraft}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-modern font-medium transition-colors cursor-pointer ${
+              isLight
+                ? 'hover:bg-red-100 text-red-600'
+                : 'hover:bg-red-500/20 text-red-400'
+            }`}
+          >
+            <Trash2 size={12} />
+            Descartar e recomeçar
+          </button>
+        </div>
+      )}
+
       {/* Ficha collapse */}
       {fichaAberta && (
         <div className={`border-b overflow-y-auto max-h-[40vh] shrink-0 ${
@@ -141,7 +179,7 @@ const WizardView = (props) => {
               nome={nome}
               raca={racaId}
               classe={classeId}
-              atributos={atributos}
+              atributos={atributosFinal}
               vantagensSelecionadas={allSelecoes}
               vantagensDisponiveis={vantagensDisponiveis}
               racasDisponiveis={racasDisponiveis}
@@ -210,7 +248,7 @@ const WizardView = (props) => {
           classesDisponiveis={classesDisponiveis}
           chatEndRef={chatEndRef}
           isLight={isLight}
-          atributos={atributos}
+          atributos={atributosBase}
           setAtributo={setAtributo}
           pontosDistribuidos={pontosDistribuidos}
           pontosRestantes={pontosRestantes}

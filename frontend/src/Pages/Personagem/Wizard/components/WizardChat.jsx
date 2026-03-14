@@ -156,10 +156,13 @@ const WizardChat = ({
                 {msg.role === 'mestre' && (
                   <span className="text-xl">🧙</span>
                 )}
+                {msg.role === 'sistema' && (
+                  <span className="text-xl">📋</span>
+                )}
                 <span className={`text-xs font-modern font-semibold uppercase tracking-wider ${
                   isLight ? 'text-slate-600' : 'text-slate-500'
                 }`}>
-                  {msg.role === 'mestre' ? 'Mestre Criador' : 'Você'}
+                  {msg.role === 'mestre' ? 'Mestre Criador' : msg.role === 'sistema' ? 'Sistema' : 'Você'}
                 </span>
               </div>
 

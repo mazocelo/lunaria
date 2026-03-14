@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { Send, Loader2, Sparkles, Search, X, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight, Save } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
@@ -15,6 +15,14 @@ const INPUT_PLACEHOLDERS = {
   atributos: 'Peca uma sugestao de distribuicao ou refine a build...',
   resumo: 'Peca ajustes finais ou confirme a direcao do personagem...',
   refinamento: 'Traga os ultimos ajustes antes de concluir...',
+};
+
+const REFRESH_PROMPTS = {
+  raca: 'Mostre-me outras linhagens diferentes para esta etapa. Nao avance para a proxima etapa.',
+  classe: 'Mostre-me outras vocacoes diferentes para esta etapa. Nao avance para a proxima etapa.',
+  background: 'Mostre-me outras sugestoes de origem para esta etapa. Nao avance para a proxima etapa.',
+  desvantagens: 'Mostre-me outras desvantagens diferentes para esta etapa. Continue focado apenas nas desvantagens e nao avance.',
+  vantagens: 'Mostre-me outras vantagens diferentes para esta etapa. Continue focado apenas nas vantagens e nao avance.',
 };
 
 const getStageLabel = (etapaAtual) => {
@@ -59,6 +67,8 @@ const WizardChat = ({
   custoRaca,
   custoClasse,
   maxCustoDesvantagem,
+  skipVantagens = false,
+  skipDesvantagens = false,
   attrMin,
   attrMax,
   onConfirmarAtributos,
@@ -133,9 +143,16 @@ const WizardChat = ({
   const ultimaMensagem = mensagens[mensagens.length - 1];
   const ultimaMensagemEhMestreDaEtapa = ultimaMensagem?.role === 'mestre' && ultimaMensagem?.etapa === etapaAtual;
   const saldoCriacaoInvalido = pontosCriacaoRestantes < 0;
+  const refreshPrompt = REFRESH_PROMPTS[etapaAtual] || 'Mostre-me outras opcoes diferentes para esta etapa sem avancar.';
+  const podeContinuarSelecoes = etapaAtual === 'desvantagens'
+    ? (desvantagensIds.length > 0 || skipDesvantagens)
+    : etapaAtual === 'vantagens'
+      ? (vantagensIds.length > 0 || skipVantagens)
+      : false;
+  const textoContinuarSelecoes = etapaAtual === 'desvantagens' ? 'Continuar para dons' : 'Continuar para essencia';
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
-  /** Seleciona e auto-avança para raca/classe; só seleciona para vantagem/desvantagem */
+  /** Seleciona e auto-avanÃƒÂ§a para raca/classe; sÃƒÂ³ seleciona para vantagem/desvantagem */
   const handleSelectAndAdvance = (sugestao) => {
     onSelecionarSugestao(sugestao);
     if (sugestao.tipo === 'raca') {
@@ -255,7 +272,7 @@ const WizardChat = ({
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onEnviar('Mostre-me outras opcoes diferentes', { manterEtapa: true })}
+                      onClick={() => onEnviar(refreshPrompt, { manterEtapa: true })}
                       className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
                     >
                       <RefreshCw size={12} />
@@ -401,7 +418,7 @@ const WizardChat = ({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => onEnviar('Mostre-me outras opcoes diferentes', { manterEtapa: true })}
+                  onClick={() => onEnviar(refreshPrompt, { manterEtapa: true })}
                   className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
                 >
                   <RefreshCw size={12} />
@@ -561,7 +578,7 @@ const WizardChat = ({
                   Orcamento de criacao
                 </p>
                 <p className={`mt-1 text-sm font-modern ${saldoCriacaoInvalido ? 'text-red-400' : isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-                  Total {pontosCriacaoTotal} � gastos {pontosGastos} � saldo {pontosCriacaoRestantes}
+                  Total {pontosCriacaoTotal} | gastos {pontosGastos} | saldo {pontosCriacaoRestantes}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-modern">
@@ -666,6 +683,24 @@ const WizardChat = ({
               </button>
             )}
 
+            {['desvantagens', 'vantagens'].includes(etapaAtual) && (
+              <button
+                type="button"
+                onClick={() => onAvancarComMestre?.()}
+                disabled={enviando || !podeContinuarSelecoes}
+                className={`inline-flex h-[54px] items-center gap-2 rounded-2xl px-4 text-sm font-modern font-semibold transition-all cursor-pointer ${
+                  enviando
+                    ? 'cursor-wait bg-slate-600 text-slate-300'
+                    : !podeContinuarSelecoes
+                      ? isLight ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+                }`}
+              >
+                <ArrowRight size={16} />
+                {podeContinuarSelecoes ? textoContinuarSelecoes : 'Selecione ou pule'}
+              </button>
+            )}
+
             {['resumo', 'refinamento'].includes(etapaAtual) && onSalvarPersonagem && (
               <button
                 type="button"
@@ -706,6 +741,7 @@ const WizardChat = ({
 };
 
 export default WizardChat;
+
 
 
 

@@ -48,6 +48,16 @@ const getReadinessState = ({ pendingCount, bonusAplicados, nome, raca, classe })
   return 'sealed';
 };
 
+const parseBonus = (raw) => {
+  if (!raw) return null;
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(obj) ? obj[0] : obj;
+  } catch {
+    return null;
+  }
+};
+
 const PersonagemPreviewCard = ({
   nome,
   raca,

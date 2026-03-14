@@ -48,9 +48,10 @@ jobs:
             git pull --ff-only origin main
             npm ci
             npx prisma generate
-            pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump" || echo "WARN: backup falhou"
+            mkdir -p /opt/backups
+            pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump" || { echo "ERROR: backup falhou"; exit 1; }
             npx prisma migrate deploy
             systemctl restart lunaria-backend
             systemctl restart lunaria-worker || true
             sleep 3
-            curl -sf http://localhost:3001/health || echo "WARN: healthcheck falhou"
+            curl -sf http://localhost:3001/health || { echo "ERROR: healthcheck falhou"; exit 1; }

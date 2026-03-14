@@ -7,7 +7,6 @@ const log = logger.child({ module: 'respostaDispatcher' });
 import { processarAcoes } from '../../helpers/acoesProcessor.js';
 import { calcularModificadorTeste } from '../../helpers/testeHelper.js';
 import {
-  buildTurnEventPayload,
   incrementTurnInteractions,
   transitionTurnState,
   TURN_STATUS
@@ -227,9 +226,5 @@ export async function despacharResposta(resposta, ctx) {
   }
 
   // @event turno_estado_atualizado → room (broadcast) | estado do turno após despacho
-  ctx.sm.sendToRoom(ctx.roomId, 'turno_estado_atualizado', {
-    roomId: ctx.roomId,
-    ...buildTurnEventPayload(ctx.sessao),
-    timestamp: Date.now()
-  });
+  ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
 }

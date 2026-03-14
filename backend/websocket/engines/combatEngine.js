@@ -14,37 +14,8 @@ import { verificarLevelUp, xpParaNivel } from '../../helpers/evolucaoHelper.js';
 import { rolarLootCombate } from '../../helpers/lootHelper.js';
 import { persistirEstadoClone } from '../../helpers/acoesProcessor.js';
 import {
-  appendMensagemSessao,
-  buildMestreMensagem as buildMestreMensagemHistorico
+  appendMensagemSessao
 } from '../utils/sessionMessages.js';
-import { resolveNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
-import ttsCacheService from '../../services/ttsCacheService.js';
-import { getDefaultProviderName } from '../../services/ttsService.js';
-
-const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
-
-/**
- * Build mestre message with audio cache key (mirrors socketManager's module-level buildMestreMensagem)
- */
-function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
-  const narrativaBase = String(conteudo || '').trim();
-  const segmentos = resolveNarrationSegments({
-    narrativa: narrativaBase,
-    segmentos: options.segmentos || [],
-    mestreConfig,
-    roteiro: options.roteiro || options.sessao?.historiaRoteiro || null,
-    historiaId: options.historiaId || options.sessao?.historiaId || null
-  });
-  const narrativaFinal = narrativaBase || aggregateNarrationFromSegments(segmentos);
-  const voiceId = mestreConfig?.voice_id || null;
-  const voiceProvider = mestreConfig?.voice_provider || null;
-
-  return buildMestreMensagemHistorico(narrativaFinal, mestreConfig, {
-    ...options,
-    segmentos,
-    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(narrativaFinal, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER) : null
-  });
-}
 
 export default class CombatEngine {
   constructor(manager) {
@@ -604,7 +575,7 @@ export default class CombatEngine {
         });
 
         // Emitir e salvar narração do desfecho
-        const msgDesfecho = buildMestreMensagem(respostaDesfecho.narracao, sessao.mestreConfig, {
+        const msgDesfecho = sm.criarMensagemMestre(respostaDesfecho.narracao, sessao.mestreConfig, {
           sessao,
           segmentos: respostaDesfecho.segmentos || []
         });

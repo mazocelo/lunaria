@@ -49,15 +49,16 @@ export async function processAudioJob(job) {
       }
     });
 
+    if (!r2StorageService.isConfigured()) {
+      throw new Error('R2 nao configurado — audio nao pode ser armazenado');
+    }
+
     log.info({ aiJobId, entityType, voiceId }, 'Sintetizando audio');
     const audioBuffer = await synthesizeSpeech(text, voiceId, provider || 'openai');
 
-    let finalUrl = null;
-    if (r2StorageService.isConfigured()) {
-      const key = `audio/${entityType || 'narration'}/${entityId || aiJobId}-${Date.now()}.wav`;
-      finalUrl = await r2StorageService.upload(key, audioBuffer, 'audio/wav');
-      log.info({ aiJobId, key }, 'Audio salvo no R2');
-    }
+    const key = `audio/${entityType || 'narration'}/${entityId || aiJobId}-${Date.now()}.wav`;
+    const finalUrl = await r2StorageService.upload(key, audioBuffer, 'audio/wav');
+    log.info({ aiJobId, key }, 'Audio salvo no R2');
 
     await db.prisma.ai_jobs.update({
       where: { id: aiJobId },
@@ -67,7 +68,7 @@ export async function processAudioJob(job) {
         attempts_made: attemptsMade,
         last_error: null,
         finished_at: new Date(),
-        response_text: finalUrl || 'audio_generated_no_r2',
+        response_text: finalUrl,
         request_prompt: text.slice(0, 4000)
       }
     });

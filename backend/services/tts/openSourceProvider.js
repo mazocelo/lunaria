@@ -61,7 +61,7 @@ class OpenSourceProvider {
     return (data.data || []).map((voice) => ({
       voice_id: voice.voice_id,
       name: voice.name,
-      category: 'open-source',
+      category: voice.provider || 'open-source',
       labels: {
         language: voice.language,
         provider: voice.provider || 'piper',

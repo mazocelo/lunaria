@@ -1,5 +1,6 @@
 import React from 'react';
 import Notification from '../../../components/Notification.jsx';
+import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { EtapaSalaEspera } from '../../../components/Jogo';
 import { AuthLoading, GameTransitionLoading } from '../../../components/Jogo/Shared/LoadingStates';
 
@@ -27,6 +28,11 @@ const SalaEsperaView = ({
   handleSair,
   handleVoltar,
   handleClearErrors,
+
+  // P-03: Confirmacao ao sair
+  showConfirmSair,
+  confirmarSair,
+  cancelarSair,
 }) => {
   // Retomando sessao ativa — tela de transicao tematica
   if (isResumingSession) {
@@ -49,6 +55,18 @@ const SalaEsperaView = ({
   // Renderizacao
   return (
     <div className="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* P-03: Modal de confirmacao ao sair */}
+      <ConfirmationModal
+        isOpen={showConfirmSair}
+        onClose={cancelarSair}
+        onConfirm={confirmarSair}
+        title="Sair da Sala"
+        message="Tem certeza que deseja sair da sala de espera?"
+        confirmText="Sair"
+        cancelText="Ficar"
+        type="danger"
+      />
+
       {/* Notificacoes */}
       {error && (
         <Notification

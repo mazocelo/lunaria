@@ -195,10 +195,22 @@ export const useSalaEsperaModel = () => {
     }
   }, [iniciarJogo, navigate, id]);
 
+  // P-03: Confirmacao antes de sair da sala
+  const [showConfirmSair, setShowConfirmSair] = useState(false);
+
   const handleSair = useCallback(() => {
+    setShowConfirmSair(true);
+  }, []);
+
+  const confirmarSair = useCallback(() => {
+    setShowConfirmSair(false);
     sairDoJogo();
     navigate('/historias');
   }, [sairDoJogo, navigate]);
+
+  const cancelarSair = useCallback(() => {
+    setShowConfirmSair(false);
+  }, []);
 
   const handleVoltar = useCallback(() => {
     navigate(`/jogo/${id}/selecao-personagem`);
@@ -230,6 +242,11 @@ export const useSalaEsperaModel = () => {
     handleSair,
     handleVoltar,
     handleClearErrors,
+
+    // P-03: Confirmacao ao sair
+    showConfirmSair,
+    confirmarSair,
+    cancelarSair,
   };
 };
 

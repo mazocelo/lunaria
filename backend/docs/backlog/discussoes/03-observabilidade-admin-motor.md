@@ -133,9 +133,9 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 
 ---
 
-## Auditoria (2026-03-14)
+## Auditoria (2026-03-14, atualizado pos-R13)
 
-**Completude: ~95%**
+**Completude: ~97%**
 
 ### Feitos (infraestrutura base)
 
@@ -161,19 +161,21 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | 5 | **Tela AdminMotor no frontend** (MVVM pattern) | Pagina admin criada |
 | 6 | **SuperAdminRoute** protegendo a pagina admin | Guard implementado |
 
-### Implementados (Phase 2 parcial — Rodada 9+10)
+### Implementados (Phase 2 parcial — Rodada 9+10+11+12)
 
 | # | Item | Evidencia |
 |---|------|-----------|
 | 7 | `GET /admin/motor/worker/health` — status do worker via Redis heartbeat | `routes/adminMotor.js` (Rodada 9) |
 | 8 | **Persistencia de prompts/respostas** — campos `request_prompt` e `response_text` em `ai_jobs` | Migration `add_ai_jobs_prompt_fields`, `roteiroGenerationService.js` (Rodada 10) |
 | 9 | `GET /admin/motor/jobs/:id/prompt` — consultar prompt e response de um job | `routes/adminMotor.js` (Rodada 10) |
+| 10 | **Pino structured logging** — facade `helpers/logger.js`, 6 arquivos criticos migrados | bin/www, socketManager, roteiroGenerationService, MestreAgent, processRoteiroJob, masterCacheManager (Rodada 11+12) |
+| 11 | **Global error handlers** — `unhandledRejection` e `uncaughtException` com logger.fatal | bin/www (Rodada 11) |
 
 ### Pendentes (Phase 2 restante)
 
 | # | Item | Prioridade |
 |---|------|-----------|
-| 1 | Logs estruturados (backend ainda usa `console.*` apenas, sem pino/winston) | Media |
+| 1 | Migrar pino para ~83 arquivos restantes com `console.*` (incremental) | Baixa |
 | 2 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
 
 ### Criterios de aceite vs estado atual

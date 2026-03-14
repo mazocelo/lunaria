@@ -111,9 +111,9 @@ Esse item e um salto de qualidade para criacao assistida. Ele reduz frustracao e
 
 ---
 
-## Auditoria (2026-03-14)
+## Auditoria (2026-03-14, atualizado pos-R12)
 
-**Completude: ~95%**
+**Completude: ~98%**
 
 ### Feitos
 
@@ -131,13 +131,13 @@ Esse item e um salto de qualidade para criacao assistida. Ele reduz frustracao e
 | 10 | Fix URL mismatch (`/roteiro-versoes` aliases) | **Feito** | R10 |
 | 11 | Endpoint detalhe de versao (`GET /:id/roteiro-versoes/:versaoId`) | **Feito** | R10 |
 | 12 | Frontend service `obterVersaoRoteiro()` | **Feito** | R10 |
+| 13 | Modal side-by-side com comparacao visual | **Feito** | R12 |
 
 ### Pendentes
 
 | # | Requisito | Status |
 |---|-----------|--------|
-| 1 | Modal side-by-side com dois RoteiroViewer | Nao iniciado |
-| 2 | Workflow avancado de aprovacao (review, comentarios) | Nao iniciado |
+| 1 | Workflow avancado de aprovacao (review, comentarios) | Nao iniciado |
 
 ### Criterios de aceite vs estado atual
 
@@ -145,4 +145,4 @@ Esse item e um salto de qualidade para criacao assistida. Ele reduz frustracao e
 |----------|--------|
 | Usuario entende qual tipo de roteiro esta pedindo | **Atendido** (seletor de modo com 4 modos criativos + regenerate) |
 | Sistema produz propostas realmente diferentes | **Atendido** (diretivas por modo + anti-repeticao + temperaturas diferenciadas) |
-| Possivel comparar e escolher versao antes de substituir | **Parcialmente atendido** (backend pronto, falta modal visual side-by-side) |
+| Possivel comparar e escolher versao antes de substituir | **Atendido** (modal side-by-side com diff por secao, metadados, botao "Ativar esta versao") |

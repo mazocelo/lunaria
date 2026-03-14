@@ -22,16 +22,16 @@ As seis frentes principais levantadas para amadurecer o projeto foram:
 
 Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo deste README e registrar o ponto atual com honestidade tecnica.
 
-## Status geral (atualizado 2026-03-14)
+## Status geral (atualizado 2026-03-14, pos-R13)
 
 | Ordem | Tema | Status | % | Resumo |
 | --- | --- | --- | --- | --- |
 | F-01 | Contrato publico do websocket | concluido | ~100% | contrato JSON v2.1.0, 65+ @event annotations, zero io.to() direto em engines/handlers/utils |
 | F-02 | Modularizacao do motor do jogo | concluido | ~100% | 5 engines + 5 utils + sessionEventBus + stateProjector, socketManager 4000+→920L (-77%), feature flags removidas |
 | D-01 | Jobs duraveis para IA | concluido | ~98% | async-only, systemd service, CI/CD restart, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2) |
-| D-02 | Deploy e banco VPS | concluido | ~95% | CI/CD com --ff-only, pg_dump backup, healthcheck robusto (DB+Redis), preflight checks, rollback automatico. Faltam lock de release, coordenacao multi-servico |
-| D-03 | Observabilidade e admin do motor | concluido | ~95% | 5 endpoints /admin/motor (sessoes, jobs, retry, prompt, worker/health), persistencia de prompt/response no ai_jobs, tela AdminMotor frontend. Faltam logs estruturados (pino) |
-| F-03 | Controles de produto para IA | concluido | ~95% | modos criativos (4+regenerate), historico de versoes com ativacao, endpoint detalhe de versao, fix URL mismatch, frontend service para comparacao. Faltam modal side-by-side, workflow avancado |
+| D-02 | Deploy e banco VPS | concluido | ~95% | CI/CD com --ff-only, pg_dump backup, healthcheck robusto (DB+Redis), preflight checks, rollback automatico, indexes compostos. Faltam lock de release, coordenacao multi-servico |
+| D-03 | Observabilidade e admin do motor | concluido | ~97% | 5 endpoints /admin/motor, persistencia de prompt/response, pino em 6 arquivos criticos, global error handlers. Faltam ~83 arquivos com console.* |
+| F-03 | Controles de produto para IA | concluido | ~98% | modos criativos (4+regenerate), historico de versoes, modal side-by-side com diff por secao. Falta workflow avancado de aprovacao |
 
 ## Analise por frente
 
@@ -112,9 +112,9 @@ Extracao ~98%. socketManager e fachada leve (920L). Gaps restantes sao de formal
 
 v1 completa, stalled detection funcional, worker health observavel via API. Restam apenas filas de imagem/audio (v2) e storage R2.
 
-### D-03. Observabilidade e admin do motor (~95%)
+### D-03. Observabilidade e admin do motor (~97%)
 
-**Status:** Phase 1 + Phase 2 parcial (Rodada 10)
+**Status:** Phase 1 + Phase 2 parcial + pino parcial (Rodada 10+11+12)
 
 **O que ja existe**
 
@@ -129,19 +129,21 @@ v1 completa, stalled detection funcional, worker health observavel via API. Rest
 - Blueprint V2 sempre ativo (roteiro condensado com segredos, dialogos, foreshadowing)
 - Resumo estruturado sempre ativo (formato com secoes FATOS/ITENS/NPCS/COMBATE/DECISOES/PISTAS)
 - **Persistencia de prompts/respostas** (Rodada 10): blueprintService retorna `{ roteiro, prompt, responseText }`, roteiroGenerationService persiste em `ai_jobs`
+- **Pino structured logging** (Rodada 11+12): facade `helpers/logger.js`, 6 arquivos migrados (bin/www, socketManager, roteiroGenerationService, MestreAgent, processRoteiroJob, masterCacheManager). JSON em producao, pino-pretty em dev
+- **Global error handlers** (Rodada 11): `unhandledRejection` e `uncaughtException` em bin/www com logger.fatal
 
 **O que falta construir**
 
-- Logs estruturados (backend ainda usa `console.*` apenas, sem pino/winston)
+- Migrar pino para ~83 arquivos restantes com `console.*` (incremental, sem urgencia)
 - `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao
 
 **Leitura pratica**
 
-Phase 1 completa + Phase 2 parcial. Persistencia de prompts IA funcional (prompt → DB → admin endpoint). Restam logs estruturados (pino) como unico gap significativo.
+Phase 1 completa + Phase 2 parcial. Pino ativo nos 6 arquivos mais criticos. Restam ~83 arquivos com console.* (migracao incremental).
 
-### F-03. Controles de produto para IA (~95%)
+### F-03. Controles de produto para IA (~98%)
 
-**Status:** modos criativos + historico de versoes + detalhe de versao + fix URL (Rodada 8+10)
+**Status:** modos criativos + historico de versoes + comparacao visual side-by-side (Rodada 8+10+12)
 
 **O que ja existe**
 
@@ -160,15 +162,15 @@ Phase 1 completa + Phase 2 parcial. Persistencia de prompts IA funcional (prompt
 - **Fix URL mismatch** (Rodada 10): rotas aliases `/roteiro-versoes` adicionadas (frontend chamava `/roteiro-versoes`, backend registrava `/roteiro/versoes`)
 - **Endpoint detalhe de versao** (Rodada 10): `GET /:id/roteiro-versoes/:versaoId` retorna roteiro completo
 - **Frontend service** (Rodada 10): `obterVersaoRoteiro()` para carregar conteudo completo de uma versao
+- **Modal side-by-side** (Rodada 12): RoteiroComparisonModal com duas colunas, diff por secao (9 secoes), badge "diferente", metadados de ambas versoes, botao "Ativar esta versao"
 
 **O que falta construir**
 
-- Modal side-by-side com dois RoteiroViewer para comparacao visual
-- Workflow avancado de aprovacao
+- Workflow avancado de aprovacao (review, comentarios)
 
 **Leitura pratica**
 
-Backend completo para comparacao (endpoints de listagem + detalhe + ativacao). Frontend service pronto. Faltam componentes visuais de comparacao (modal side-by-side).
+Comparacao visual completa (modal side-by-side com diff por secao + ativacao). Resta apenas workflow avancado de aprovacao.
 
 ### D-02. Deploy e banco VPS (~95%)
 
@@ -206,24 +208,23 @@ Pipeline robusto com preflight → backup → deploy → healthcheck → rollbac
 | D-01 | Storage R2 | Baixa (v2) |
 | D-02 | Lock de release (file-based ou Redis) | Baixa |
 | D-02 | Coordenacao entre deploys dos 3 servicos | Baixa |
-| D-03 | Logs estruturados (pino) | Media |
+| D-03 | Migrar pino para ~83 arquivos restantes | Baixa |
 | D-03 | socketManager.getStats() detalhe de sessao | Baixa |
 | F-02 | Formalizar interfaces dos engines | Baixa |
-| F-03 | Modal side-by-side com dois RoteiroViewer | Media |
 | F-03 | Workflow avancado de aprovacao | Baixa |
 
 ## Resumo executivo (2026-03-14)
 
-O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 10** fechou os 3 fronts restantes (D-03, D-02, F-03) em uma unica rodada:
+O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 12** fechou o modal side-by-side (F-03) e indexes compostos (D-02). **Rodada 13** decompos o monolito EtapaJogoRPG.jsx (1510L) em MVVM com 5 sub-hooks.
 
 - **F-01 (~100%)**: contrato WebSocket concluido, 65+ @event annotations, zero io.to() direto em engines/handlers/utils
 - **F-02 (~100%)**: 5 engines + 5 utils extraidos, socketManager 4000+→920L (-77%), feature flags removidas
 - **D-01 (~98%)**: async-only, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2)
-- **D-02 (~95%)**: healthcheck robusto (DB+Redis), preflight checks, rollback automatico. Faltam lock de release, coordenacao multi-servico
-- **D-03 (~95%)**: 5 endpoints admin, persistencia de prompt/response no ai_jobs, tela frontend. Faltam logs estruturados (pino)
-- **F-03 (~95%)**: modos criativos, historico de versoes, fix URL mismatch, endpoint detalhe, frontend service. Faltam modal side-by-side, workflow avancado
+- **D-02 (~95%)**: healthcheck robusto (DB+Redis), preflight checks, rollback automatico, indexes compostos. Faltam lock de release, coordenacao multi-servico
+- **D-03 (~97%)**: 5 endpoints admin, persistencia de prompt/response, pino em 6 arquivos criticos, global error handlers. Faltam ~83 arquivos com console.*
+- **F-03 (~98%)**: modos criativos, historico de versoes, modal side-by-side com diff por secao. Falta workflow avancado de aprovacao
 
-Todas as 6 frentes estao acima de 95%. Gaps restantes sao incrementais (pino, lock, modal UI, filas v2).
+Todas as 6 frentes estao acima de 95%. Gaps restantes sao incrementais (pino, lock, filas v2).
 
 ## Handoff para outra instancia
 
@@ -231,10 +232,13 @@ Todas as 6 frentes estao acima de 95%. Gaps restantes sao incrementais (pino, lo
 2. F-02 concluido (~100%) — feature flags removidas, restam formalizacao de interfaces
 3. D-01 v1 completa (~98%) — stalled detection + worker health + timeout config (Rodada 9). Restam filas IMAGE/AUDIO (v2)
 4. D-02 concluido (~95%) — healthcheck robusto, preflight, rollback automatico. Faltam lock de release, coordenacao multi-servico
-5. D-03 concluido (~95%) — 5 endpoints admin, persistencia prompt/response. Faltam logs estruturados (pino)
-6. F-03 concluido (~95%) — modos criativos, historico versoes, fix URL, endpoint detalhe, frontend service. Faltam modal side-by-side
+5. D-03 concluido (~97%) — 5 endpoints admin, persistencia prompt/response, pino em 6 criticos, global error handlers. Faltam ~83 arquivos com console.*
+6. F-03 concluido (~98%) — modos criativos, historico versoes, modal side-by-side com diff por secao. Falta workflow avancado de aprovacao
 7. **Rodada 7 concluida**: toda infraestrutura de feature flags removida
 8. **Rodada 8 concluida**: modos criativos funcionais (bug blueprintService.js:393 corrigido), diretivas por modo no prompt, MODE_TEMPERATURES, seletor frontend, painel de versoes
 9. **Rodada 9 concluida**: stalled detection → DB update, worker heartbeat via Redis (setex TTL 90s), GET /admin/motor/worker/health, lockDuration/stalledInterval/maxStalledCount configurados
 10. **Rodada 10 concluida**: D-03 (persistencia prompt/response + endpoint admin), D-02 (healthcheck DB/Redis + preflight + rollback), F-03 (fix URL mismatch + endpoint detalhe versao + frontend service)
-11. cada documento individual tem secao "Auditoria" com detalhes completos
+11. **Rodada 11 concluida**: pino logging (5 arquivos criticos), unhandledRejection/uncaughtException em bin/www, N+1 fix personagemController (Promise.all)
+12. **Rodada 12 concluida**: indexes compostos DB (3 tabelas), modal side-by-side comparacao roteiro, pino masterCacheManager
+13. **Rodada 13 concluida**: refactor EtapaJogoRPG.jsx monolito (1510L) → MVVM com 5 sub-hooks, elimina socketState anti-pattern
+14. cada documento individual tem secao "Auditoria" com detalhes completos

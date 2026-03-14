@@ -21,7 +21,7 @@ class MestreCriadorController {
       });
     }
 
-    if (!mensagemJogador || typeof mensagemJogador !== 'string') {
+    if (mensagemJogador == null || typeof mensagemJogador !== 'string') {
       return res.status(400).json({
         success: false,
         error: 'mensagemJogador é obrigatória',

@@ -3,7 +3,9 @@ import { Sparkles, Shield, Sword, Zap } from 'lucide-react';
 const TIPO_CONFIG = {
   raca: {
     icon: Sparkles,
-    label: 'Raça',
+    label: 'Linhagem',
+    helper: 'Define a fantasia base e afinidades naturais.',
+    cta: 'Escolher linhagem',
     text: 'text-purple-400',
     bgLight: 'bg-purple-100',
     bgDark: 'bg-purple-500/15',
@@ -13,7 +15,9 @@ const TIPO_CONFIG = {
   },
   classe: {
     icon: Sword,
-    label: 'Classe',
+    label: 'Vocacao',
+    helper: 'Determina papel, ritmo e estilo de jogo.',
+    cta: 'Escolher vocacao',
     text: 'text-blue-400',
     bgLight: 'bg-blue-100',
     bgDark: 'bg-blue-500/15',
@@ -23,7 +27,9 @@ const TIPO_CONFIG = {
   },
   vantagem: {
     icon: Zap,
-    label: 'Vantagem',
+    label: 'Dom',
+    helper: 'Amplia poder e versatilidade do personagem.',
+    cta: 'Adicionar dom',
     text: 'text-green-400',
     bgLight: 'bg-green-100',
     bgDark: 'bg-green-500/15',
@@ -33,7 +39,9 @@ const TIPO_CONFIG = {
   },
   desvantagem: {
     icon: Shield,
-    label: 'Desvantagem',
+    label: 'Marca',
+    helper: 'Adiciona custo narrativo e devolve pontos.',
+    cta: 'Assumir marca',
     text: 'text-red-400',
     bgLight: 'bg-red-100',
     bgDark: 'bg-red-500/15',
@@ -51,52 +59,85 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false }) => {
     <button
       onClick={() => !selected && onSelect(sugestao)}
       disabled={selected}
-      className={`group w-full text-left p-3 rounded-lg border transition-all ${
+      className={`group w-full text-left rounded-xl border p-3.5 transition-all ${
         selected
-          ? `${config.borderSelected} ${isLight ? config.selectedLight : config.selectedDark} opacity-60 cursor-default`
-          : `cursor-pointer ${isLight
-            ? 'border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 bg-white'
-            : 'border-slate-700/50 hover:border-purple-500/30 hover:bg-slate-800/50 bg-slate-800/30'
-          }`
+          ? `${config.borderSelected} ${isLight ? config.selectedLight : config.selectedDark} ring-1 ${
+              isLight ? 'ring-slate-200' : 'ring-slate-700/40'
+            } cursor-default`
+          : `cursor-pointer ${
+              isLight
+                ? 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                : 'border-slate-700/50 bg-slate-800/30 hover:border-purple-500/30 hover:bg-slate-800/50'
+            }`
       }`}
     >
-      <div className="flex items-start gap-2">
-        <div className={`p-1.5 rounded-md ${isLight ? config.bgLight : config.bgDark}`}>
+      <div className="flex items-start gap-3">
+        <div className={`rounded-lg p-2 ${isLight ? config.bgLight : config.bgDark}`}>
           <Icon size={14} className={config.text} />
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-fantasy font-bold ${
-              selected
-                ? isLight ? 'text-slate-500' : 'text-slate-400'
-                : isLight ? 'text-slate-800' : 'text-white'
-            }`}>
-              {sugestao.nome}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`text-sm font-fantasy font-bold ${
+                    selected
+                      ? isLight
+                        ? 'text-slate-700'
+                        : 'text-slate-200'
+                      : isLight
+                        ? 'text-slate-800'
+                        : 'text-white'
+                  }`}
+                >
+                  {sugestao.nome}
+                </span>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${
+                    isLight ? config.bgLight : config.bgDark
+                  } ${config.text}`}
+                >
+                  {config.label}
+                </span>
+                {sugestao.custo != null && (
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-mono ${
+                      sugestao.custo > 0
+                        ? 'bg-amber-500/15 text-amber-400'
+                        : sugestao.custo < 0
+                          ? 'bg-green-500/15 text-green-400'
+                          : 'bg-slate-500/15 text-slate-400'
+                    }`}
+                  >
+                    {sugestao.custo > 0 ? `+${sugestao.custo}` : sugestao.custo} pts
+                  </span>
+                )}
+              </div>
+              <p className={`mt-1 text-[11px] font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                {config.helper}
+              </p>
+            </div>
+
+            <span
+              className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-modern font-semibold ${
+                selected
+                  ? 'bg-green-500/15 text-green-400'
+                  : isLight
+                    ? 'bg-slate-100 text-slate-600'
+                    : 'bg-slate-800 text-slate-300'
+              }`}
+            >
+              {selected ? 'Escolhida' : config.cta}
             </span>
-            {sugestao.custo != null && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                sugestao.custo > 0
-                  ? 'bg-amber-500/15 text-amber-400'
-                  : sugestao.custo < 0
-                    ? 'bg-green-500/15 text-green-400'
-                    : 'bg-slate-500/15 text-slate-400'
-              }`}>
-                {sugestao.custo > 0 ? `+${sugestao.custo}` : sugestao.custo}
-              </span>
-            )}
           </div>
 
           {sugestao.descricao && (
-            <p className={`text-xs mt-0.5 line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <p className={`mt-2 line-clamp-2 text-xs leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               {sugestao.descricao}
             </p>
           )}
         </div>
-
-        {selected && (
-          <span className="text-green-400 text-xs font-bold">✓ Selecionado</span>
-        )}
       </div>
     </button>
   );

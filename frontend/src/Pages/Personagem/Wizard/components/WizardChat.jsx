@@ -4,6 +4,18 @@ import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
 
+const INPUT_PLACEHOLDERS = {
+  boas_vindas: 'Descreva o nome que voce procura ou escolha uma sugestao...',
+  raca: 'Peca outra linhagem ou descreva o tipo de heroi que imagina...',
+  classe: 'Peca outra vocacao ou descreva como quer jogar...',
+  background: 'Escreva a origem do personagem ou peca ajuda ao Mestre...',
+  vantagens: 'Peca dons mais especificos ou refine o conceito do personagem...',
+  desvantagens: 'Descreva falhas, custos ou conflitos interessantes...',
+  atributos: 'Pe�a uma sugestao de distribuicao ou refine a build...',
+  resumo: 'Peca ajustes finais ou confirme a direcao do personagem...',
+  refinamento: 'Traga os ultimos ajustes antes de concluir...',
+};
+
 const WizardChat = ({
   mensagens,
   inputTexto,
@@ -19,7 +31,6 @@ const WizardChat = ({
   vantagensDisponiveis,
   chatEndRef,
   isLight,
-  // Atributos (inline no chat)
   atributos,
   setAtributo,
   pontosDistribuidos,
@@ -29,16 +40,17 @@ const WizardChat = ({
   aplicarAtributosSugeridos,
   bonusAplicados,
   bonusDetalhes,
-  // Limites de seleção
   pontosCriacaoTotal,
   pontosCriacaoRestantes,
   pontosVantagem,
   pontosDesvantagem,
   maxDesvantagens,
-  // Limites de atributos
   attrMin,
   attrMax,
 }) => {
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [filtro, setFiltro] = useState('');
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (inputTexto.trim() && !enviando) {
@@ -53,9 +65,6 @@ const WizardChat = ({
     }
   };
 
-  const [buscaAberta, setBuscaAberta] = useState(false);
-  const [filtro, setFiltro] = useState('');
-
   const isSugestaoSelecionada = (sugestao) => {
     if (sugestao.tipo === 'vantagem') return vantagensIds.includes(sugestao.id);
     if (sugestao.tipo === 'desvantagem') return desvantagensIds.includes(sugestao.id);
@@ -68,13 +77,30 @@ const WizardChat = ({
   const catalogoAtual = useMemo(() => {
     if (etapaAtual === 'raca') return racasDisponiveis || [];
     if (etapaAtual === 'classe') return classesDisponiveis || [];
-    if (etapaAtual === 'vantagens') return (vantagensDisponiveis || []).filter(v => (v.custo ?? 0) > 0);
-    if (etapaAtual === 'desvantagens') return (vantagensDisponiveis || []).filter(v => (v.custo ?? 0) < 0);
+    if (etapaAtual === 'vantagens') return (vantagensDisponiveis || []).filter(v => v.custo > 0);
+    if (etapaAtual === 'desvantagens') return (vantagensDisponiveis || []).filter(v => v.custo < 0);
     return [];
   }, [etapaAtual, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
 
-  const tipoAtual = etapaAtual === 'raca' ? 'raca' : etapaAtual === 'classe' ? 'classe' : etapaAtual === 'vantagens' ? 'vantagem' : etapaAtual === 'desvantagens' ? 'desvantagem' : 'raca';
-  const labelAtual = etapaAtual === 'raca' ? 'raças' : etapaAtual === 'classe' ? 'classes' : etapaAtual === 'vantagens' ? 'vantagens' : etapaAtual === 'desvantagens' ? 'desvantagens' : '';
+  const tipoAtual = etapaAtual === 'raca'
+    ? 'raca'
+    : etapaAtual === 'classe'
+      ? 'classe'
+      : etapaAtual === 'vantagens'
+        ? 'vantagem'
+        : etapaAtual === 'desvantagens'
+          ? 'desvantagem'
+          : 'raca';
+
+  const labelAtual = etapaAtual === 'raca'
+    ? 'linhagens'
+    : etapaAtual === 'classe'
+      ? 'vocacoes'
+      : etapaAtual === 'vantagens'
+        ? 'vantagens'
+        : etapaAtual === 'desvantagens'
+          ? 'desvantagens'
+          : '';
 
   const catalogoFiltrado = useMemo(() => {
     if (!filtro.trim()) return catalogoAtual;
@@ -92,372 +118,375 @@ const WizardChat = ({
       nome: item.nome,
       descricao: item.descricao,
     };
+
     if (item.custo != null) payload.custo = item.custo;
     onSelecionarSugestao(payload);
+
     if (tipoAtual === 'vantagem' || tipoAtual === 'desvantagem') {
-      // Keep search open for multi-select
       return;
     }
+
     setBuscaAberta(false);
     setFiltro('');
   };
 
+  const inputPlaceholder = INPUT_PLACEHOLDERS[etapaAtual] || 'Peca ajuda ao Mestre ou refine a escolha atual...';
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header badge — pontos de criação (vantagens/desvantagens) */}
+    <div className="flex h-full flex-col">
       {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
-        <div className={`flex items-center justify-between px-5 py-2.5 border-b shrink-0 ${
+        <div className={`shrink-0 border-b px-4 py-2.5 md:px-5 ${
           isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
         }`}>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <Sparkles size={14} className="text-green-400" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={14} className="text-green-400" />
+                <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Pontos livres:{' '}
+                  <span className={`font-bold ${pontosCriacaoRestantes >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {pontosCriacaoRestantes}/{pontosCriacaoTotal}
+                  </span>
+                </span>
+              </div>
               <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                Pontos: <span className={`font-bold ${pontosCriacaoRestantes >= 0 ? 'text-green-400' : 'text-red-400'}`}>{pontosCriacaoRestantes}/{pontosCriacaoTotal}</span>
+                Desvantagens: <span className={`font-bold ${desvantagensIds.length >= maxDesvantagens ? 'text-red-400' : 'text-amber-400'}`}>{desvantagensIds.length}/{maxDesvantagens}</span>
               </span>
             </div>
-            {desvantagensIds.length > 0 && (
-              <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                Desv: <span className={`font-bold ${desvantagensIds.length >= maxDesvantagens ? 'text-red-400' : 'text-amber-400'}`}>{desvantagensIds.length}/{maxDesvantagens}</span>
+
+            {pontosVantagem > 0 && (
+              <span className={`rounded px-2 py-0.5 text-xs font-mono ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'}`}>
+                {-pontosVantagem + pontosCriacaoRestantes <= pontosCriacaoTotal ? `-${pontosVantagem} pts gastos` : `-${pontosVantagem} pts`}
+              </span>
+            )}
+            {pontosDesvantagem < 0 && (
+              <span className={`rounded px-2 py-0.5 text-xs font-mono ${isLight ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                +{Math.abs(pontosDesvantagem)} pts devolvidos
               </span>
             )}
           </div>
-          {pontosDesvantagem < 0 && (
-            <span className={`text-xs font-mono px-2 py-0.5 rounded ${
-              isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-500/10 text-amber-400'
-            }`}>
-              +{Math.abs(pontosDesvantagem)} pts devolvidos
-            </span>
-          )}
         </div>
       )}
 
-      {/* Header badge — pontos de atributo */}
       {showAtributos && (
-        <div className={`flex items-center justify-between px-5 py-2.5 border-b shrink-0 ${
+        <div className={`shrink-0 border-b px-4 py-2.5 md:px-5 ${
           isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
         }`}>
-          <div className="flex items-center gap-2">
-            <Dices size={18} className="text-purple-400" />
-            <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-              Distribuição de Atributos
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Dices size={18} className="text-purple-400" />
+              <div>
+                <p className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Atributos base
+                </p>
+                <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                  Ajuste a distribuicao antes de aplicar os bonus finais.
+                </p>
+              </div>
+            </div>
+            <span className={`rounded-lg px-2.5 py-1 text-sm font-mono font-bold ${
+              pontosRestantes === 0
+                ? 'bg-green-500/15 text-green-400'
+                : pontosRestantes < 0
+                  ? 'bg-red-500/15 text-red-400'
+                  : 'bg-amber-500/15 text-amber-400'
+            }`}>
+              {pontosDistribuidos}/{pontosTotais}
             </span>
           </div>
-          <span className={`text-sm font-mono px-2.5 py-1 rounded-lg font-bold ${
-            pontosRestantes === 0
-              ? 'bg-green-500/15 text-green-400'
-              : pontosRestantes < 0
-                ? 'bg-red-500/15 text-red-400'
-                : 'bg-amber-500/15 text-amber-400'
-          }`}>
-            🎲 {pontosDistribuidos}/{pontosTotais}
-          </span>
         </div>
       )}
 
-      {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 min-h-0">
-        {mensagens.map((msg, msgIndex) => (
-          <div key={msg.id} className={`flex ${msg.role === 'jogador' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] ${msg.role === 'jogador' ? 'order-1' : ''}`}>
-              {/* Avatar + Nome */}
-              <div className={`flex items-center gap-2 mb-1.5 ${msg.role === 'jogador' ? 'justify-end' : ''}`}>
-                {msg.role === 'mestre' && (
-                  <span className="text-xl">🧙</span>
-                )}
-                {msg.role === 'sistema' && (
-                  <span className="text-xl">📋</span>
-                )}
-                <span className={`text-xs font-modern font-semibold uppercase tracking-wider ${
-                  isLight ? 'text-slate-600' : 'text-slate-500'
-                }`}>
-                  {msg.role === 'mestre' ? 'Mestre Criador' : msg.role === 'sistema' ? 'Sistema' : 'Você'}
-                </span>
-              </div>
+      <div className="flex-1 overflow-y-auto px-4 py-3 md:px-5 md:py-4 space-y-4 min-h-0">
+        {mensagens.map((msg, msgIndex) => {
+          const isJogador = msg.role === 'jogador';
+          const isSistema = msg.role === 'sistema';
+          const isUltimaMensagemMestre = msg.role === 'mestre' && msgIndex === mensagens.length - 1;
 
-              {/* Balão */}
-              <div className={`rounded-xl px-4 py-3 ${
-                msg.role === 'jogador'
-                  ? isLight
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-purple-600 text-white'
-                  : isLight
-                    ? 'bg-white border border-slate-200 text-slate-700'
-                    : 'bg-slate-800/60 border border-slate-700/30 text-slate-200'
-              }`}>
-                <div className="text-[15px] font-modern leading-relaxed">
-                  <MarkdownRenderer>{msg.content}</MarkdownRenderer>
+          const bubbleClass = isJogador
+            ? isLight
+              ? 'bg-purple-500 text-white'
+              : 'bg-purple-600 text-white'
+            : isSistema
+              ? isLight
+                ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                : 'bg-blue-500/10 border border-blue-500/20 text-blue-200'
+              : isUltimaMensagemMestre
+                ? isLight
+                  ? 'bg-white border border-purple-200 text-slate-700 shadow-sm shadow-purple-100/70'
+                  : 'bg-gradient-to-br from-slate-800/95 to-purple-950/30 border border-purple-500/20 text-slate-100 shadow-lg shadow-purple-950/20'
+                : isLight
+                  ? 'bg-white border border-slate-200 text-slate-700'
+                  : 'bg-slate-800/60 border border-slate-700/30 text-slate-200';
+
+          return (
+            <div key={msg.id} className={`flex ${isJogador ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[92%] lg:max-w-[86%] ${isJogador ? 'order-1' : ''}`}>
+                <div className={`mb-1.5 flex items-center gap-2 ${isJogador ? 'justify-end' : ''}`}>
+                  {msg.role === 'mestre' && <span className="text-xl">??</span>}
+                  {msg.role === 'sistema' && <span className="text-xl">??</span>}
+                  <span className={`text-xs font-modern font-semibold uppercase tracking-wider ${isLight ? 'text-slate-600' : 'text-slate-500'}`}>
+                    {msg.role === 'mestre' ? 'Mestre Criador' : msg.role === 'sistema' ? 'Sistema' : 'Voce'}
+                  </span>
                 </div>
-              </div>
 
-              {/* Sugestões de nome (chips) */}
-              {msg.sugestoes?.some(s => s.tipo === 'nome') && (
-                <div className="mt-3">
-                  <div className={`flex items-center gap-1.5 mb-2 ${
-                    isLight ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    <Sparkles size={14} />
-                    <span className="text-xs font-modern font-semibold uppercase tracking-wider">
-                      Sugestões de nome
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {msg.sugestoes.filter(s => s.tipo === 'nome').map((sug, i) => (
-                      <button
-                        key={`nome-${i}`}
-                        type="button"
-                        onClick={() => onEnviar(sug.nome)}
-                        className={`px-3.5 py-1.5 rounded-full text-sm font-modern font-medium transition-all cursor-pointer ${
-                          isLight
-                            ? 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 hover:border-purple-300'
-                            : 'bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40'
-                        }`}
-                        title={sug.descricao || ''}
-                      >
-                        {sug.nome}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Sugestões de background (cards clicáveis) */}
-              {msg.sugestoes?.some(s => s.tipo === 'background') && (
-                <div className="mt-3">
-                  <div className={`flex items-center gap-1.5 mb-2 ${
-                    isLight ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    <BookOpen size={14} />
-                    <span className="text-xs font-modern font-semibold uppercase tracking-wider">
-                      Sugestões de origem
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {msg.sugestoes.filter(s => s.tipo === 'background').map((sug, i) => (
-                      <button
-                        key={`bg-${i}`}
-                        type="button"
-                        onClick={() => onEnviar(sug.nome)}
-                        className={`text-left px-4 py-2.5 rounded-lg transition-all cursor-pointer ${
-                          isLight
-                            ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300'
-                            : 'bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/15 hover:border-amber-500/40'
-                        }`}
-                      >
-                        <span className={`text-sm font-modern font-semibold block ${
-                          isLight ? 'text-amber-700' : 'text-amber-300'
-                        }`}>
-                          {sug.nome}
-                        </span>
-                        {sug.descricao && (
-                          <span className={`text-xs font-modern block mt-0.5 ${
-                            isLight ? 'text-amber-600/70' : 'text-amber-400/60'
-                          }`}>
-                            {sug.descricao}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Sugestões inline (raça, classe, vantagem, desvantagem) */}
-              {msg.sugestoes?.some(s => !['nome', 'background'].includes(s.tipo)) && (
-                <div className="mt-2 grid grid-cols-1 gap-2">
-                  {msg.sugestoes.filter(s => !['nome', 'background'].includes(s.tipo)).map((sug, i) => (
-                    <SuggestionCard
-                      key={`${sug.id}-${i}`}
-                      sugestao={sug}
-                      onSelect={onSelecionarSugestao}
-                      isLight={isLight}
-                      selected={isSugestaoSelecionada(sug)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Botões de ação — Gerar novas sugestões + Pesquisar */}
-              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && !enviando &&
-                ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onEnviar('Mostre-me outras opções diferentes')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
-                      isLight
-                        ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200'
-                        : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30'
-                    }`}
-                  >
-                    <RefreshCw size={12} />
-                    Gerar novas sugestões
-                  </button>
-
-                  {mostrarBusca && (
-                    <button
-                      type="button"
-                      onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-medium transition-all cursor-pointer ${
-                        buscaAberta
-                          ? isLight
-                            ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                            : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                          : isLight
-                            ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
-                            : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30'
-                      }`}
-                    >
-                      <Search size={12} />
-                      {buscaAberta ? `Fechar busca` : `Pesquisar todas as ${labelAtual}`}
-                    </button>
+                <div className={`rounded-2xl px-4 py-3.5 ${bubbleClass}`}>
+                  {isUltimaMensagemMestre && (
+                    <div className={`mb-2 flex items-center gap-2 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-purple-600' : 'text-purple-300'}`}>
+                      <Sparkles size={13} />
+                      Escolha guiada desta etapa
+                    </div>
                   )}
+                  <div className="text-[15px] font-modern leading-relaxed">
+                    <MarkdownRenderer>{msg.content}</MarkdownRenderer>
+                  </div>
                 </div>
-              )}
 
-              {/* Distribuidor de atributos inline — após última mensagem do mestre */}
-              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && showAtributos && !enviando && (
-                <div className="mt-3 space-y-3">
-                  <AttributeDistributor
-                    atributos={atributos}
-                    setAtributo={setAtributo}
-                    pontosDistribuidos={pontosDistribuidos}
-                    pontosRestantes={pontosRestantes}
-                    pontosTotais={pontosTotais}
-                    atributosSugeridos={atributosSugeridos}
-                    aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-                    isLight={isLight}
-                    disabled={bonusAplicados}
-                    attrMin={attrMin}
-                    attrMax={attrMax}
-                  />
-
-                  {/* Nota sobre bônus / Bônus aplicados */}
-                  {bonusAplicados && bonusDetalhes && Object.keys(bonusDetalhes).length > 0 ? (
-                    <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs font-modern leading-relaxed ${
-                      isLight ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-green-500/10 text-green-300 border border-green-500/20'
-                    }`}>
-                      <Check size={14} className="mt-0.5 shrink-0" />
-                      <span>
-                        Bônus aplicados: {Object.entries(bonusDetalhes).map(([k, v]) => {
-                          const abbr = k.substring(0, 3).toUpperCase();
-                          return `${abbr} ${v > 0 ? '+' : ''}${v}`;
-                        }).join(', ')}
+                {msg.sugestoes?.some(s => s.tipo === 'nome') && (
+                  <div className="mt-3">
+                    <div className={`mb-2 flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <Sparkles size={14} />
+                      <span className="text-xs font-modern font-semibold uppercase tracking-wider">
+                        Sugestoes de nome
                       </span>
                     </div>
-                  ) : !bonusAplicados ? (
-                    <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs font-modern leading-relaxed ${
-                      isLight ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
-                    }`}>
-                      <Info size={14} className="mt-0.5 shrink-0" />
-                      <span>Estes são os pontos base. Bônus de <strong>raça</strong>, <strong>classe</strong>, <strong>vantagens</strong> e <strong>desvantagens</strong> serão aplicados automaticamente após a confirmação.</span>
+                    <div className="flex flex-wrap gap-2">
+                      {msg.sugestoes.filter(s => s.tipo === 'nome').map((sug, i) => (
+                        <button
+                          key={`nome-${i}`}
+                          type="button"
+                          onClick={() => onEnviar(sug.nome)}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm font-modern font-medium transition-all cursor-pointer ${
+                            isLight
+                              ? 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100 hover:border-purple-300'
+                              : 'bg-purple-500/10 text-purple-300 border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40'
+                          }`}
+                          title={sug.descricao || ''}
+                        >
+                          {sug.nome}
+                        </button>
+                      ))}
                     </div>
-                  ) : null}
+                  </div>
+                )}
 
-                </div>
-              )}
+                {msg.sugestoes?.some(s => s.tipo === 'background') && (
+                  <div className="mt-3">
+                    <div className={`mb-2 flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <BookOpen size={14} />
+                      <span className="text-xs font-modern font-semibold uppercase tracking-wider">
+                        Sugestoes de origem
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {msg.sugestoes.filter(s => s.tipo === 'background').map((sug, i) => (
+                        <button
+                          key={`bg-${i}`}
+                          type="button"
+                          onClick={() => onEnviar(sug.nome)}
+                          className={`rounded-lg border px-4 py-2.5 text-left transition-all cursor-pointer ${
+                            isLight
+                              ? 'bg-amber-50 border-amber-200 hover:bg-amber-100 hover:border-amber-300'
+                              : 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/15 hover:border-amber-500/40'
+                          }`}
+                        >
+                          <span className={`block text-sm font-modern font-semibold ${isLight ? 'text-amber-700' : 'text-amber-300'}`}>
+                            {sug.nome}
+                          </span>
+                          {sug.descricao && (
+                            <span className={`mt-0.5 block text-xs font-modern ${isLight ? 'text-amber-600/70' : 'text-amber-400/60'}`}>
+                              {sug.descricao}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* Painel de busca expandido */}
-              {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && mostrarBusca && buscaAberta && (
-                <div className={`mt-2 rounded-lg border overflow-hidden ${
-                  isLight ? 'border-slate-200 bg-white' : 'border-slate-700/50 bg-slate-800/60'
-                }`}>
-                  {/* Search input */}
-                  <div className={`flex items-center gap-2 px-3 py-2 border-b ${
-                    isLight ? 'border-slate-200' : 'border-slate-700/50'
-                  }`}>
-                    <Search size={14} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
-                    <input
-                      type="text"
-                      value={filtro}
-                      onChange={(e) => setFiltro(e.target.value)}
-                      placeholder={`Buscar ${labelAtual}...`}
-                      className={`flex-1 text-xs font-modern bg-transparent outline-none ${
-                        isLight ? 'text-slate-700 placeholder-slate-400' : 'text-slate-200 placeholder-slate-500'
+                {msg.sugestoes?.some(s => !['nome', 'background'].includes(s.tipo)) && (
+                  <div className="mt-3 grid grid-cols-1 gap-2.5">
+                    {msg.sugestoes.filter(s => !['nome', 'background'].includes(s.tipo)).map((sug, i) => (
+                      <SuggestionCard
+                        key={`${sug.id}-${i}`}
+                        sugestao={sug}
+                        onSelect={onSelecionarSugestao}
+                        isLight={isLight}
+                        selected={isSugestaoSelecionada(sug)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && !enviando &&
+                  ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onEnviar('Mostre-me outras opcoes diferentes')}
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-modern font-medium transition-all cursor-pointer ${
+                        isLight
+                          ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200'
+                          : 'bg-slate-800/50 text-slate-400 border-slate-700/50 hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30'
                       }`}
-                    />
-                    {filtro && (
-                      <button onClick={() => setFiltro('')} className="cursor-pointer">
-                        <X size={12} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                    >
+                      <RefreshCw size={12} />
+                      Outras sugestoes
+                    </button>
+
+                    {mostrarBusca && (
+                      <button
+                        type="button"
+                        onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
+                        className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-modern font-medium transition-all cursor-pointer ${
+                          buscaAberta
+                            ? isLight
+                              ? 'bg-purple-100 text-purple-700 border-purple-300'
+                              : 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                            : isLight
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                              : 'bg-slate-800/50 text-slate-400 border-slate-700/50 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30'
+                        }`}
+                      >
+                        <Search size={12} />
+                        {buscaAberta ? 'Fechar catalogo' : `Abrir catalogo de ${labelAtual}`}
                       </button>
                     )}
                   </div>
+                )}
 
-                  {/* Lista */}
-                  <div className="max-h-48 overflow-y-auto">
-                    {catalogoFiltrado.length === 0 ? (
-                      <p className={`px-3 py-4 text-xs text-center font-modern ${
-                        isLight ? 'text-slate-400' : 'text-slate-500'
+                {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && showAtributos && !enviando && (
+                  <div className="mt-3 space-y-3">
+                    <AttributeDistributor
+                      atributos={atributos}
+                      setAtributo={setAtributo}
+                      pontosDistribuidos={pontosDistribuidos}
+                      pontosRestantes={pontosRestantes}
+                      pontosTotais={pontosTotais}
+                      atributosSugeridos={atributosSugeridos}
+                      aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+                      isLight={isLight}
+                      disabled={bonusAplicados}
+                      attrMin={attrMin}
+                      attrMax={attrMax}
+                    />
+
+                    {bonusAplicados && bonusDetalhes && Object.keys(bonusDetalhes).length > 0 ? (
+                      <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-modern leading-relaxed ${
+                        isLight ? 'bg-green-50 text-green-600 border-green-200' : 'bg-green-500/10 text-green-300 border-green-500/20'
                       }`}>
-                        Nenhum(a) {labelAtual.slice(0, -1)} encontrado(a)
-                      </p>
-                    ) : (
-                      catalogoFiltrado.map((item) => {
-                        const isSelected = (tipoAtual === 'vantagem' && vantagensIds.includes(item.id)) ||
-                          (tipoAtual === 'desvantagem' && desvantagensIds.includes(item.id));
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => handleSelecionarCatalogo(item)}
-                            className={`w-full text-left px-3 py-2 transition-colors cursor-pointer ${
-                              isSelected
-                                ? isLight
-                                  ? 'bg-purple-100 border-b border-purple-200 last:border-b-0'
-                                  : 'bg-purple-500/20 border-b border-purple-500/30 last:border-b-0'
-                                : isLight
-                                  ? 'hover:bg-purple-50 border-b border-slate-100 last:border-b-0'
-                                  : 'hover:bg-purple-500/10 border-b border-slate-700/30 last:border-b-0'
-                            }`}
-                          >
-                            <span className="flex items-center gap-2">
-                              <span className={`text-sm font-fantasy font-bold ${
-                                isLight ? 'text-slate-800' : 'text-white'
-                              }`}>
-                                {item.nome}
-                              </span>
-                              {item.custo != null && (
-                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full shrink-0 ${
-                                  item.custo > 0
-                                    ? isLight ? 'bg-green-100 text-green-700' : 'bg-green-500/15 text-green-400'
-                                    : isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/15 text-red-400'
-                                }`}>
-                                  {item.custo > 0 ? '+' : ''}{item.custo} pts
+                        <Check size={14} className="mt-0.5 shrink-0" />
+                        <span>
+                          Bonus aplicados: {Object.entries(bonusDetalhes).map(([k, v]) => {
+                            const abbr = k.substring(0, 3).toUpperCase();
+                            return `${abbr} ${v > 0 ? '+' : ''}${v}`;
+                          }).join(', ')}
+                        </span>
+                      </div>
+                    ) : !bonusAplicados ? (
+                      <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-modern leading-relaxed ${
+                        isLight ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                      }`}>
+                        <Info size={14} className="mt-0.5 shrink-0" />
+                        <span>
+                          Estes sao os pontos base. Bonus de raca, classe, vantagens e desvantagens serao aplicados automaticamente depois da confirmacao.
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && mostrarBusca && buscaAberta && (
+                  <div className={`mt-3 overflow-hidden rounded-xl border ${
+                    isLight ? 'border-slate-200 bg-white' : 'border-slate-700/50 bg-slate-800/60'
+                  }`}>
+                    <div className={`border-b px-3 py-2.5 ${isLight ? 'border-slate-200' : 'border-slate-700/50'}`}>
+                      <div className="flex items-center gap-2">
+                        <Search size={14} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                        <input
+                          type="text"
+                          value={filtro}
+                          onChange={(e) => setFiltro(e.target.value)}
+                          placeholder={`Buscar ${labelAtual}...`}
+                          className={`flex-1 bg-transparent text-xs font-modern outline-none ${
+                            isLight ? 'text-slate-700 placeholder-slate-400' : 'text-slate-200 placeholder-slate-500'
+                          }`}
+                        />
+                        {filtro && (
+                          <button type="button" onClick={() => setFiltro('')} className="cursor-pointer">
+                            <X size={12} className={isLight ? 'text-slate-400' : 'text-slate-500'} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto">
+                      {catalogoFiltrado.length === 0 ? (
+                        <p className={`px-3 py-4 text-center text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Nenhum resultado para essa busca.
+                        </p>
+                      ) : (
+                        catalogoFiltrado.map((item) => {
+                          const isSelected = (tipoAtual === 'vantagem' && vantagensIds.includes(item.id)) ||
+                            (tipoAtual === 'desvantagem' && desvantagensIds.includes(item.id));
+
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => handleSelecionarCatalogo(item)}
+                              className={`w-full border-b px-3 py-2.5 text-left transition-colors last:border-b-0 cursor-pointer ${
+                                isSelected
+                                  ? isLight
+                                    ? 'bg-purple-100 border-purple-200'
+                                    : 'bg-purple-500/20 border-purple-500/30'
+                                  : isLight
+                                    ? 'border-slate-100 hover:bg-purple-50'
+                                    : 'border-slate-700/30 hover:bg-purple-500/10'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                                  {item.nome}
+                                </span>
+                                {item.custo != null && (
+                                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono ${
+                                    item.custo > 0
+                                      ? isLight ? 'bg-green-100 text-green-700' : 'bg-green-500/15 text-green-400'
+                                      : isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/15 text-red-400'
+                                  }`}>
+                                    {item.custo > 0 ? '+' : ''}{item.custo} pts
+                                  </span>
+                                )}
+                                {isSelected && <Check size={12} className="shrink-0 text-purple-400" />}
+                              </div>
+                              {item.descricao && (
+                                <span className={`mt-0.5 block line-clamp-1 text-[11px] font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {item.descricao}
                                 </span>
                               )}
-                              {isSelected && (
-                                <Check size={12} className="text-purple-400 shrink-0" />
-                              )}
-                            </span>
-                            {item.descricao && (
-                              <span className={`text-[11px] font-modern line-clamp-1 block mt-0.5 ${
-                                isLight ? 'text-slate-500' : 'text-slate-400'
-                              }`}>
-                                {item.descricao}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })
-                    )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
-        {/* Typing indicator */}
         {enviando && (
           <div className="flex justify-start">
-            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl ${
+            <div className={`flex items-center gap-2 rounded-xl px-4 py-3 ${
               isLight ? 'bg-white border border-slate-200' : 'bg-slate-800/60 border border-slate-700/30'
             }`}>
-              <span className="text-lg">🧙</span>
+              <span className="text-lg">??</span>
               <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -466,10 +495,9 @@ const WizardChat = ({
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
       <form
         onSubmit={handleSubmit}
-        className={`flex items-end gap-3 p-4 border-t shrink-0 ${
+        className={`flex items-end gap-3 border-t p-4 shrink-0 ${
           isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700/50 bg-slate-900/90'
         }`}
       >
@@ -477,7 +505,7 @@ const WizardChat = ({
           value={inputTexto}
           onChange={(e) => setInputTexto(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Digite sua resposta..."
+          placeholder={inputPlaceholder}
           disabled={enviando}
           rows={1}
           className={`flex-1 resize-none rounded-xl px-4 py-3 text-[15px] font-modern transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/30 ${
@@ -495,7 +523,7 @@ const WizardChat = ({
         <button
           type="submit"
           disabled={!inputTexto.trim() || enviando}
-          className={`p-3 rounded-xl transition-all cursor-pointer ${
+          className={`rounded-xl p-3 transition-all cursor-pointer ${
             inputTexto.trim() && !enviando
               ? 'bg-purple-500 text-white hover:bg-purple-600 shadow-lg shadow-purple-500/20'
               : isLight

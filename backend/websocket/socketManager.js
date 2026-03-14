@@ -26,6 +26,8 @@ import CombatEngine from './engines/combatEngine.js';
 import MasterNarrationEngine from './engines/masterNarrationEngine.js';
 import AuthHandler from './handlers/authHandler.js';
 import ChatHandler from './handlers/chatHandler.js';
+import RpgActionHandler from './handlers/rpgActionHandler.js';
+import StatusUpdateHandler from './handlers/statusUpdateHandler.js';
 import MasterCacheManager from './utils/masterCacheManager.js';
 import SessionEngine from './engines/sessionEngine.js';
 
@@ -78,6 +80,8 @@ class SocketManager {
     this.masterNarrationEngine = new MasterNarrationEngine(this);
     this.authHandler = new AuthHandler(this);
     this.chatHandler = new ChatHandler(this);
+    this.rpgActionHandler = new RpgActionHandler(this);
+    this.statusUpdateHandler = new StatusUpdateHandler(this);
     this.masterCacheManager = new MasterCacheManager(this.mestresCache);
     this.sessionEngine = new SessionEngine(this);
   }
@@ -243,7 +247,7 @@ class SocketManager {
         userAgent: socket.handshake.headers['user-agent']?.substring(0, 50)
       });
 
-      // Evento de autenticação
+      // @listen authenticate → authHandler | autentica conexao websocket via JWT
       socket.on('authenticate', async (data) => {
         this.log('INFO', 'AUTH_REQUEST_RECEIVED', socket.id, data?.userId, {
           username: data?.username,
@@ -260,7 +264,7 @@ class SocketManager {
         }
       });
 
-      // Evento de entrar em sala
+      // @listen join_room → roomGateway | jogador entra na sala de jogo
       socket.on('join_room', async (data) => {
         this.log('INFO', 'JOIN_ROOM_REQUEST', socket.id, socket.userId, {
           roomId: data?.roomId,
@@ -278,7 +282,7 @@ class SocketManager {
         }
       });
 
-      // Evento de sair da sala
+      // @listen leave_room → roomGateway | jogador sai da sala
       socket.on('leave_room', async (data) => {
         this.log('INFO', 'LEAVE_ROOM_REQUEST', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom
@@ -293,7 +297,7 @@ class SocketManager {
         }
       });
 
-      // Evento de mensagem de chat
+      // @listen chat_message → chatHandler | mensagem de chat entre jogadores
       socket.on('chat_message', async (data) => {
         this.log('INFO', 'CHAT_MESSAGE_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -309,7 +313,7 @@ class SocketManager {
         }
       });
 
-      // Evento de mensagem para o Mestre (IA)
+      // @listen mensagem_para_mestre → masterNarrationEngine | jogador envia acao para mestre IA
       socket.on('mensagem_para_mestre', async (data) => {
         this.log('INFO', 'MENSAGEM_PARA_MESTRE_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -326,7 +330,7 @@ class SocketManager {
         }
       });
 
-      // Evento de mensagem roleplay (jogadores fora do turno)
+      // @listen mensagem_roleplay → masterNarrationEngine | roleplay livre fora do turno
       socket.on('mensagem_roleplay', async (data) => {
         this.log('INFO', 'MENSAGEM_ROLEPLAY_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -343,7 +347,7 @@ class SocketManager {
         }
       });
 
-      // Evento de ação RPG
+      // @listen rpg_action → rpgActionHandler | acao RPG declarada pelo jogador
       socket.on('rpg_action', async (data) => {
         this.log('INFO', 'RPG_ACTION_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -360,7 +364,7 @@ class SocketManager {
         }
       });
 
-      // Evento de rolagem de dados
+      // @listen dice_roll → testEngine | jogador rola dados em teste de habilidade
       socket.on('dice_roll', async (data) => {
         this.log('INFO', 'DICE_ROLL_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -377,7 +381,7 @@ class SocketManager {
         }
       });
 
-      // Evento de rolagem de dado inicial (d20 para definir ordem)
+      // @listen rolar_dado_inicial → testEngine | d20 para definir ordem de jogadores
       socket.on('rolar_dado_inicial', async (data) => {
         this.log('INFO', 'ROLAR_DADO_INICIAL_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -393,7 +397,7 @@ class SocketManager {
         }
       });
 
-      // Evento de iniciar turno (jogador clica para receber mensagem inicial do Mestre)
+      // @listen iniciar_turno → turnEngine | jogador inicia seu turno com o mestre
       socket.on('iniciar_turno', async (data) => {
         this.log('INFO', 'INICIAR_TURNO_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -410,7 +414,7 @@ class SocketManager {
         }
       });
 
-      // Evento de solicitar rolagem de dados
+      // @listen solicitar_dados → testEngine | mestre solicita teste de habilidade
       socket.on('solicitar_dados', async (data) => {
         this.log('INFO', 'SOLICITAR_DADOS_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -427,7 +431,7 @@ class SocketManager {
         }
       });
 
-      // Evento de atualização de status
+      // @listen status_update → statusUpdateHandler | jogador atualiza seu status
       socket.on('status_update', async (data) => {
         this.log('INFO', 'STATUS_UPDATE_RECEIVED', socket.id, socket.userId, {
           roomId: data?.roomId || socket.currentRoom,
@@ -443,7 +447,7 @@ class SocketManager {
         }
       });
 
-      // Evento de desconexão
+      // @listen disconnect → roomGateway | cliente desconecta (grace period antes de remover)
       socket.on('disconnect', (reason) => {
         this.log('WARN', 'CLIENT_DISCONNECTING', socket.id, socket.userId, {
           reason: reason,
@@ -513,60 +517,7 @@ class SocketManager {
    * Handler para ação RPG
    */
   async handleRpgAction(socket, data) {
-    try {
-      const { 
-        roomId: rawRoomId, 
-        userId: rawUserId, 
-        username: rawUsername, 
-        action: rawAction, 
-        target: rawTarget, 
-        description: rawDescription 
-      } = data || {};
-
-      if (!rawRoomId || !rawUserId || !rawAction) {
-        socket.emit('error', { message: 'roomId, userId e action são obrigatórios' });
-        return;
-      }
-
-      // Validar userId corresponde ao autenticado
-      if (String(rawUserId) !== String(socket.userId)) {
-        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
-        return;
-      }
-
-      // Fazer parsing dos dados para tipos corretos
-      const roomId = String(rawRoomId);
-      const userId = String(rawUserId);
-      const username = rawUsername ? String(rawUsername) : 'Usuario';
-      const action = String(rawAction);
-      const target = rawTarget ? String(rawTarget) : null;
-      const description = rawDescription ? String(rawDescription) : null;
-
-      const actionData = {
-        id: Date.now().toString(),
-        userId,
-        username,
-        action,
-        target,
-        description,
-        roomId,
-        timestamp: Date.now().toString()
-      };
-
-      // Salvar ação na sessão unificada
-      if (roomId.startsWith('historia_')) {
-        await this.gerenciadorSessoes.adicionarAcao(roomId, actionData);
-      }
-
-      // Enviar para todos na sala
-      this.sendToRoom(roomId, 'rpg_action', actionData);
-
-      console.log(`⚔️ ${username} executou ação: ${action} (sala ${roomId})`);
-
-    } catch (error) {
-      console.error('❌ Erro ao processar ação RPG:', error);
-      socket.emit('error', { message: 'Erro ao processar ação RPG' });
-    }
+    return this.rpgActionHandler.handleRpgAction(socket, data);
   }
 
   /**
@@ -599,54 +550,7 @@ class SocketManager {
    * Handler para atualização de status
    */
   async handleStatusUpdate(socket, data) {
-    try {
-      const { 
-        roomId: rawRoomId, 
-        userId: rawUserId, 
-        username: rawUsername, 
-        status: rawStatus, 
-        details: rawDetails 
-      } = data || {};
-
-      if (!rawRoomId || !rawUserId || !rawStatus) {
-        socket.emit('error', { message: 'roomId, userId e status são obrigatórios' });
-        return;
-      }
-
-      // Validar userId corresponde ao autenticado
-      if (String(rawUserId) !== String(socket.userId)) {
-        socket.emit('error', { message: 'userId não corresponde ao usuário autenticado.', code: 'USER_MISMATCH' });
-        return;
-      }
-
-      // Fazer parsing dos dados para tipos corretos
-      const roomId = String(rawRoomId);
-      const userId = String(rawUserId);
-      const username = rawUsername ? String(rawUsername) : 'Usuario';
-      const status = String(rawStatus);
-      const details = rawDetails || null;
-
-      const statusData = {
-        userId,
-        username,
-        status,
-        details,
-        roomId,
-        timestamp: Date.now()
-      };
-
-      // Status do jogador já está gerenciado em jogadoresConectados na rpg_session
-      // Não precisamos mais salvar em room:* duplicado
-
-      // Enviar para todos na sala
-      this.sendToRoom(roomId, 'status_update', statusData);
-
-      console.log(`📊 ${username} atualizou status: ${status} (sala ${roomId})`);
-
-    } catch (error) {
-      console.error('❌ Erro ao atualizar status:', error);
-      socket.emit('error', { message: 'Erro ao atualizar status' });
-    }
+    return this.statusUpdateHandler.handleStatusUpdate(socket, data);
   }
 
   /**
@@ -699,120 +603,6 @@ class SocketManager {
   // Delegate → sessionEngine
   obterSessaoHistoria(salaId) {
     return this.sessionEngine.obterSessaoHistoria(salaId);
-  }
-
-  /**
-   * Adicionar jogador à sessão
-   */
-  async adicionarJogadorSessao(salaId, dadosJogador) {
-    try {
-      // Garantir que o gerenciador de sessões está inicializado
-      await this.gerenciadorSessoes.initialize();
-      
-      const sessao = await this.gerenciadorSessoes.obterSessao(salaId);
-      
-      if (sessao) {
-        const userId = String(dadosJogador.userId);
-        
-        // Verificar se sessão já foi iniciada
-        if (sessao.status === 'iniciada') {
-          // APÓS INICIAR: jogadoresConectados é array de IDs
-          const jogadoresConectados = Array.isArray(sessao.jogadoresConectados) ? sessao.jogadoresConectados : [];
-          
-          if (!jogadoresConectados.includes(userId)) {
-            jogadoresConectados.push(userId);
-            sessao.jogadoresConectados = jogadoresConectados;
-            sessao.atualizadaEm = new Date().toISOString();
-            
-            await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-            console.log(`👤 Jogador ${userId} (${dadosJogador.username}) reconectado à sessão iniciada ${salaId}`);
-          } else {
-            console.log(`🔄 Jogador ${userId} já está em jogadoresConectados`);
-          }
-        } else {
-          // ANTES DE INICIAR: jogadoresConectados é array de objetos
-          const jogadoresAtuais = sessao.jogadoresConectados || [];
-          const jaExiste = jogadoresAtuais.find(j => String(j.userId) === userId);
-          
-          if (!jaExiste) {
-            // Adicionar novo jogador com dados completos
-            jogadoresAtuais.push(dadosJogador);
-            sessao.jogadoresConectados = jogadoresAtuais;
-            
-            // ✅ ATUALIZAR statusJogo baseado na quantidade de jogadores
-            const statusAnterior = sessao.statusJogo;
-            if (jogadoresAtuais.length === 1) {
-              sessao.statusJogo = 'esperando'; // Primeiro jogador entrou
-              console.log(`🎮 Primeiro jogador entrou, status: esperando`);
-            } else if (jogadoresAtuais.length > 1) {
-              sessao.statusJogo = 'esperando'; // Mais jogadores, ainda esperando
-              console.log(`🎮 ${jogadoresAtuais.length} jogadores esperando`);
-            }
-            
-            sessao.atualizadaEm = new Date().toISOString();
-            
-            await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-            console.log(`👤 Jogador ${dadosJogador.username} adicionado à sessão ${salaId}`);
-            
-            // ✅ EMITIR EVENTO DE MUDANÇA DE STATUS
-            if (statusAnterior !== sessao.statusJogo && this.io) {
-              this.sendToRoom(salaId, 'status_jogo_alterado', {
-                statusJogo: sessao.statusJogo,
-                totalJogadores: jogadoresAtuais.length,
-                timestamp: Date.now()
-              });
-              console.log(`📢 Evento status_jogo_alterado emitido: ${statusAnterior} → ${sessao.statusJogo}`);
-            }
-          } else {
-            // Atualizar dados do jogador existente (reconexão)
-            Object.assign(jaExiste, dadosJogador);
-            sessao.atualizadaEm = new Date().toISOString();
-            
-            await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-            console.log(`🔄 Dados do jogador ${dadosJogador.username} atualizados na sessão ${salaId}`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao adicionar jogador à sessão:', error);
-    }
-  }
-
-  /**
-   * Remover jogador da sessão
-   */
-  async removerJogadorSessao(salaId, userId) {
-    try {
-      // Garantir que o gerenciador de sessões está inicializado
-      await this.gerenciadorSessoes.initialize();
-      
-      const sessao = await this.gerenciadorSessoes.obterSessao(salaId);
-      
-      if (sessao && sessao.jogadoresConectados) {
-        const userIdString = String(userId);
-        
-        // Verificar se sessão já foi iniciada
-        if (sessao.status === 'iniciada') {
-          // APÓS INICIAR: jogadoresConectados é array de IDs
-          const jogadoresConectados = Array.isArray(sessao.jogadoresConectados) ? sessao.jogadoresConectados : [];
-          sessao.jogadoresConectados = jogadoresConectados.filter(id => String(id) !== userIdString);
-          sessao.atualizadaEm = new Date().toISOString();
-          
-          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-          console.log(`👤 Jogador ${userId} desconectado da sessão iniciada ${salaId}`);
-        } else {
-          // ANTES DE INICIAR: jogadoresConectados é array de objetos
-          const jogadoresAtuais = sessao.jogadoresConectados.filter(j => String(j.userId) !== userIdString);
-          sessao.jogadoresConectados = jogadoresAtuais;
-          sessao.atualizadaEm = new Date().toISOString();
-          
-          await this.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-          console.log(`👤 Jogador ${userId} removido da sessão ${salaId}`);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao remover jogador da sessão:', error);
-    }
   }
 
   /**

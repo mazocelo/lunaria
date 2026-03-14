@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
+import RoteiroComparisonModal from '../../../components/RoteiroComparisonModal.jsx';
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import NarrationAudioButton from '../../../components/shared/NarrationAudioButton.jsx';
@@ -93,6 +94,12 @@ const VerHistoriaView = ({
   handleRoteiroUpdate,
   handleToggleVersoes,
   handleAtivarVersao,
+  handleCompararVersao,
+  handleFecharComparacao,
+  versaoComparacao,
+  metadadosComparacao,
+  loadingComparacao,
+  comparacaoOpen,
 
   // Navegacao
   handleIniciarSessao,
@@ -601,12 +608,21 @@ const VerHistoriaView = ({
                                   {v.ativa && <span className="ml-2 text-purple-400 font-semibold">ativa</span>}
                                 </div>
                                 {!v.ativa && (
-                                  <button
-                                    onClick={() => handleAtivarVersao(v.id)}
-                                    className="px-2 py-0.5 rounded text-xs bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors cursor-pointer"
-                                  >
-                                    Ativar
-                                  </button>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => handleCompararVersao(v)}
+                                      disabled={loadingComparacao}
+                                      className="px-2 py-0.5 rounded text-xs bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                                    >
+                                      {loadingComparacao ? <Loader2 size={10} className="animate-spin" /> : 'Comparar'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleAtivarVersao(v.id)}
+                                      className="px-2 py-0.5 rounded text-xs bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors cursor-pointer"
+                                    >
+                                      Ativar
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             ))
@@ -884,6 +900,18 @@ const VerHistoriaView = ({
         alt={historiaAtual.nome}
         isOpen={!!lightboxSrc}
         onClose={() => setLightboxSrc(null)}
+      />
+
+      {/* Modal de comparacao de versoes */}
+      <RoteiroComparisonModal
+        isOpen={comparacaoOpen}
+        onClose={handleFecharComparacao}
+        roteiroAtivo={roteiro}
+        versaoComparacao={versaoComparacao}
+        metadadosAtiva={versoes.find(v => v.ativa) ? { modo: versoes.find(v => v.ativa).modo, temperatura: versoes.find(v => v.ativa).temperatura, modelo: versoes.find(v => v.ativa).modelo, criado_em: versoes.find(v => v.ativa).criado_em, versao: versoes.find(v => v.ativa).versao } : null}
+        metadadosComparacao={metadadosComparacao}
+        onAtivarVersao={metadadosComparacao ? () => handleAtivarVersao(versoes.find(v => v.versao === metadadosComparacao.versao)?.id) : null}
+        isLight={isLight}
       />
     </div>
   );

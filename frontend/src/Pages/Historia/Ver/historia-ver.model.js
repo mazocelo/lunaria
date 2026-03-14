@@ -49,6 +49,12 @@ export const useHistoriaVerModel = () => {
   const roteiroPollRef = useRef(null);
   const roteiroTimeoutRef = useRef(null);
 
+  // Comparacao de versoes
+  const [versaoComparacao, setVersaoComparacao] = useState(null);
+  const [metadadosComparacao, setMetadadosComparacao] = useState(null);
+  const [loadingComparacao, setLoadingComparacao] = useState(false);
+  const [comparacaoOpen, setComparacaoOpen] = useState(false);
+
   // Carregar historia
   const loadHistoria = useCallback(async (historiaId) => {
     setLoading(true);
@@ -260,6 +266,28 @@ export const useHistoriaVerModel = () => {
     }
   }, [historiaAtual, loadVersoes]);
 
+  // Comparacao handlers
+  const handleCompararVersao = useCallback(async (versao) => {
+    if (!historiaAtual) return;
+    setLoadingComparacao(true);
+    try {
+      const data = await historiaService.obterVersaoRoteiro(historiaAtual.id, versao.id);
+      setVersaoComparacao(data?.roteiro || null);
+      setMetadadosComparacao({ modo: versao.modo, temperatura: versao.temperatura, modelo: versao.modelo, criado_em: versao.criado_em, versao: versao.versao });
+      setComparacaoOpen(true);
+    } catch (err) {
+      console.error('Erro ao carregar versão para comparação:', err);
+    } finally {
+      setLoadingComparacao(false);
+    }
+  }, [historiaAtual]);
+
+  const handleFecharComparacao = useCallback(() => {
+    setComparacaoOpen(false);
+    setVersaoComparacao(null);
+    setMetadadosComparacao(null);
+  }, []);
+
   // Imagem handlers
   const handleCapaGenerated = useCallback(async (url) => {
     if (!historiaAtual) return;
@@ -364,6 +392,12 @@ export const useHistoriaVerModel = () => {
     handleRoteiroUpdate,
     handleToggleVersoes,
     handleAtivarVersao,
+    handleCompararVersao,
+    handleFecharComparacao,
+    versaoComparacao,
+    metadadosComparacao,
+    loadingComparacao,
+    comparacaoOpen,
 
     // Imagens
     handleCapaGenerated,

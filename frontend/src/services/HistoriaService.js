@@ -220,6 +220,16 @@ export class HistoriaService {
     }
   }
 
+  async obterVersaoRoteiro(historiaId, versaoId) {
+    try {
+      const response = await this.apiClient.get(`${this.baseUrl}/${historiaId}/roteiro-versoes/${versaoId}`);
+      if (response?.success) return response.data;
+      return null;
+    } catch (error) {
+      throw new Error(`Erro ao obter versão: ${error.message}`);
+    }
+  }
+
   async ativarVersaoRoteiro(historiaId, versaoId) {
     try {
       return await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro-versoes/${versaoId}/ativar`);

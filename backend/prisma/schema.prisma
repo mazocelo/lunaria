@@ -383,6 +383,7 @@ model sessoes_jogo {
 
   @@index([historia_id])
   @@index([status])
+  @@index([historia_id, status])
 }
 
 model elementos {
@@ -474,6 +475,7 @@ model amizades {
   @@unique([requester_id, receiver_id], map: "unq_amizade")
   @@index([receiver_id])
   @@index([status])
+  @@index([receiver_id, status])
 }
 
 model feed_posts {
@@ -494,6 +496,7 @@ model feed_posts {
   @@index([visibilidade])
   @@index([criado_em])
   @@index([deleted_at])
+  @@index([user_id, deleted_at, criado_em])
 }
 
 model feed_curtidas {

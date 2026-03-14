@@ -1,4 +1,5 @@
 import { MESTRE_CONFIG } from '../../agents/Mestre/config.js';
+import logger from '../../helpers/logger.js';
 
 /**
  * Gerencia o cache LRU de instâncias de Mestre IA.
@@ -54,7 +55,7 @@ export default class MasterCacheManager {
 
     // Invalidar a cada 5 rodadas
     if (rodadaAtual - cache.rodadaInicial >= 5) {
-      console.log(`♻️ Invalidando cache do Mestre (5 rodadas completas)`);
+      logger.info({ salaId }, 'Invalidando cache do Mestre (5 rodadas completas)');
       this.mestresCache.delete(salaId);
       return true;
     }
@@ -77,7 +78,7 @@ export default class MasterCacheManager {
     }
 
     if (removidos > 0) {
-      console.log(`🧹 Removidos ${removidos} mestres inativos do cache`);
+      logger.info({ removidos }, 'Removidos mestres inativos do cache');
     }
   }
 }

@@ -26,9 +26,9 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 | Ordem | Tema | Status | % | Resumo |
 | --- | --- | --- | --- | --- |
-| F-01 | Contrato publico do websocket | concluido | ~99% | contrato JSON v2.1.0 completo, P5 annotations inline nos 3 handlers. Resta apenas respostaDispatcher (cosmético) |
-| F-02 | Modularizacao do motor do jogo | concluido | ~92% | 7 engines/handlers extraidos, masterCacheManager extraido, socketManager 2067→1305L (-36.9%), zero io.to() direto no socketManager/engines/handlers |
-| D-01 | Jobs duraveis para IA | em progresso | ~85% | systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat. Falta ligar flag e filas imagem/audio |
+| F-01 | Contrato publico do websocket | concluido | ~100% | contrato JSON v2.1.0, P5 annotations em todos handlers/engines/utils, zero io.to() direto |
+| F-02 | Modularizacao do motor do jogo | concluido | ~96% | 8 engines/handlers + masterCacheManager + sessionEngine extraidos, socketManager 4000+→920L (-77%), zero io.to() direto |
+| D-01 | Jobs duraveis para IA | em progresso | ~87% | systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat, queue names IMAGE/AUDIO. Falta ligar flag |
 | D-02 | Deploy e banco VPS | parcialmente concluido | ~50% | CI/CD funcional nos 3 repos, db push eliminado. Faltam backup, rollback, healthcheck |
 | D-03 | Observabilidade e admin do motor | em progresso | ~40% | Phase 1: 4 endpoints /admin/motor (sessoes, sessao detail, jobs, retry) |
 | F-03 | Controles de produto para IA | pendente | ~15% | apenas initial/regenerate existe. Sem modos criativos, versionamento ou comparacao |
@@ -59,30 +59,30 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 
 Concluido. Unico gap remanescente e cosmético (annotations inline).
 
-### F-02. Modularizacao do motor do jogo (~92%)
+### F-02. Modularizacao do motor do jogo (~96%)
 
 **Status:** concluido
 
 **O que ja foi feito**
 
-- 7 modulos extraidos: combatEngine, testEngine, turnEngine, roomGateway, masterNarrationEngine, authHandler, chatHandler
+- 8 modulos extraidos: combatEngine, testEngine, turnEngine, roomGateway, masterNarrationEngine, authHandler, chatHandler, sessionEngine
 - masterCacheManager extraido (85L) — cache LRU do Mestre IA
+- sessionEngine extraido (~310L) — obterSessaoHistoria, executarCompactacao, obterMestre, limparSessaoCompleta
 - SessionEventBus (55L) e stateProjector (9L) criados
 - 4 utils compartilhados (respostaDispatcher, sessionMessages, testePipeline, turnStateMachine)
 - combatEngine: 15 io.to() migrados para sendToRoom (EventBus)
-- socketManager: 6 io.to() migrados para sendToRoom — zero io.to() direto restante
-- chatHandler e masterNarrationEngine: 4 io.to() migrados para sendToRoom
-- socketManager: 4000+ → 1305L (-67.4%)
+- socketManager + respostaDispatcher: zero io.to() direto restante
+- socketManager: 4000+ → 920L (-77%)
 
 **O que ainda falta**
 
-- extrair camada de sessao: obterSessaoHistoria (133L), executarCompactacao (108L), obterMestre (98L)
-- respostaDispatcher: 3 `ctx.io.to()` diretos (recebe io via contexto, nao usa EventBus)
+- testePipeline.js: 3 `io.to()` diretos (recebe io como parametro)
+- acoesProcessor.js: 1 `io.to()` direto (recebe io como parametro)
 - acoplamento residual: refs `sm.` nos engines sem interface definida
 
 **Leitura pratica**
 
-Extracao fisica ~92%. Engines usam sendToRoom via EventBus. Maior gap restante e a camada de sessao (obterSessaoHistoria, obterMestre) que ainda vive no socketManager.
+Extracao fisica ~96%. socketManager e agora orquestrador leve (920L). Gaps restantes sao io.to() em utils que recebem io como argumento (testePipeline, acoesProcessor).
 
 ### D-01. Jobs duraveis para IA (~55%)
 
@@ -238,9 +238,9 @@ Fase 1 resolvida. Fase 2 (hardening operacional) ainda nao iniciada.
 
 O projeto avancou significativamente desde a abertura das 6 frentes:
 
-- **F-01 (~99%)**: contrato WebSocket concluido, P5 annotations inline feitas nos 3 handlers
-- **F-02 (~92%)**: 7 engines/handlers + masterCacheManager extraidos, socketManager 4000+→1305L (-67.4%), zero io.to() direto
-- **D-01 (~85%)**: systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat. Falta ligar flag
+- **F-01 (~100%)**: contrato WebSocket concluido, P5 annotations em todos handlers/engines/utils, zero io.to() direto
+- **F-02 (~96%)**: 8 engines/handlers + sessionEngine + masterCacheManager, socketManager 4000+→920L (-77%), zero io.to() direto
+- **D-01 (~87%)**: systemd service, CI/CD restart, retry exponencial, stalled detection, worker heartbeat, queue names IMAGE/AUDIO. Falta ligar flag
 - **D-02 (~50%)**: CI/CD funcional, db push eliminado, baseline aplicado
 - **D-03 (~40%)**: Phase 1 quick wins: 4 endpoints /admin/motor implementados
 - **F-03 (~15%)**: apenas initial/regenerate existe, feature nao iniciada

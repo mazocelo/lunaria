@@ -9,7 +9,7 @@ O objetivo nao e reescrever o plano em abstrato. O objetivo e responder:
 1. o que desse plano ja existe;
 2. o que esta parcial;
 3. o que conflita com a arquitetura atual;
-4. o que deve entrar no backlog-3 como evolucao legitima;
+4. o que deve entrar no backlog-4 como evolucao legitima;
 5. em que ordem isso deve ser executado sem quebrar o contrato atual do Mestre.
 
 ## Fonte de verdade usada na auditoria
@@ -47,7 +47,7 @@ O runtime atual ja possui:
 - roteiro condensado com progressao parcial;
 - pipeline de segmentos narrativos e TTS desacoplado.
 
-Portanto, a direcao correta para o backlog-3 nao e "reescrever tudo". A direcao correta e:
+Portanto, a direcao correta para o backlog-4 nao e "reescrever tudo". A direcao correta e:
 
 - preservar contratos publicos;
 - expandir o que ja existe;
@@ -222,7 +222,7 @@ Gaps reais:
 
 Veredito:
 
-- esta tarefa entra no backlog-3 como extensao incremental;
+- esta tarefa entra no backlog-4 como extensao incremental;
 - nao como modulo novo greenfield.
 
 ### R3-08 - Tarefa 3 ja existe em forma condensada
@@ -287,7 +287,7 @@ Ja existem:
 - `Backend/helpers/cooldownManager.js`
 - `Backend/helpers/effectManager.js`
 
-O backlog-3 correto aqui nao e "criar". E:
+O backlog-4 correto aqui nao e "criar". E:
 
 - expandir o contrato atual;
 - reforcar integracao com combate/turno;
@@ -357,7 +357,7 @@ O gap real nao e "nada existe". O gap real e:
 
 ## O que deste plano ja nao e mais necessario como esta escrito
 
-Itens que precisam ser reescritos antes de entrar no backlog-3:
+Itens que precisam ser reescritos antes de entrar no backlog-4:
 
 1. "Refatorar completamente o MestreAgent"
 2. "Criar actionProcessor" do zero
@@ -366,11 +366,11 @@ Itens que precisam ser reescritos antes de entrar no backlog-3:
 5. "Integrar blueprint no prompt" como se nao existisse nada hoje
 6. "Trocar o schema atual por outro schema incompatvel"
 
-## O que deve virar backlog-3 de verdade
+## O que deve virar backlog-4 de verdade
 
 ### B3-F01 - Memoria semantica persistente do Mestre
 
-Ja validada como primeira prioridade.
+**Concluida** (commit `2a4bd6a`). Implementada em `mestreContextBuilder.js` e `sistema.js`. Serve como baseline para as frentes seguintes.
 
 ### B3-F02 - Expansao incremental do state block do turno
 
@@ -434,9 +434,9 @@ Escopo recomendado:
 - nao mover TTS para o loop sincrono do Mestre;
 - tratar `persona_falando` como opcional/complementar se necessario.
 
-## Ordem recomendada apos F-01
+## Ordem recomendada
 
-1. Fechar `B3-F01` memoria semantica
+1. ~~`B3-F01` memoria semantica~~ — **Concluida** (2a4bd6a)
 2. Executar `B3-F02` expansao do state block
 3. Executar `B3-F03` extensao compativel do schema
 4. Executar `B3-F04` extensao do processador de acoes
@@ -496,5 +496,5 @@ Status final:
 
 - `aproveitar como backlog de evolucao`: sim
 - `executar como reescrita completa`: nao
-- `converter em epics menores do backlog-3`: obrigatorio
+- `converter em epics menores do backlog-4`: obrigatorio
 

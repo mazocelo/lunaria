@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../../components/LoadingSpinner.jsx';
 import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
 import { Badge } from '../../../components/shared';
-import { apiClient } from '../../../services/ApiClient.js';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw, Pause, History
+  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw, Pause, History,
+  FileText, Volume2
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
@@ -15,9 +15,7 @@ import RoteiroComparisonModal from '../../../components/RoteiroComparisonModal.j
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import NarrationAudioButton from '../../../components/shared/NarrationAudioButton.jsx';
-import { useTTS } from '../../../hooks/useTTS.js';
-
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+import { ESTILOS_IMAGEM, MODOS_ROTEIRO } from './historia-ver.model';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -45,13 +43,6 @@ const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   );
 };
 
-const MODOS_ROTEIRO = [
-  { value: 'darker', label: 'Sombrio', desc: 'Moral ambígua, tragédia' },
-  { value: 'exploration', label: 'Exploração', desc: 'Segredos, dungeons, puzzles' },
-  { value: 'intrigue', label: 'Intriga', desc: 'Traição, espionagem' },
-  { value: 'political', label: 'Político', desc: 'Facções, poder, diplomacia' },
-];
-
 const VerHistoriaView = ({
   // Data
   historiaAtual,
@@ -71,6 +62,23 @@ const VerHistoriaView = ({
   handleEditarMestre,
   handleCancelarEditarMestre,
   handleMestreSelecionadoChange,
+  selectedMestre,
+  mestreProviderLabel,
+
+  // Voice preview
+  loadingPreview,
+  playingMestreId,
+  handlePreviewMestre,
+
+  // TTS
+  tts,
+  effectiveMestreVoiceId,
+  effectiveMestreVoiceProvider,
+
+  // Lightbox
+  lightboxSrc,
+  handleOpenLightbox,
+  handleCloseLightbox,
 
   // Sessoes
   sessoes,
@@ -106,6 +114,7 @@ const VerHistoriaView = ({
   handleVoltar,
 
   // Imagens
+  estiloAtual,
   handleCapaGenerated,
   handleMapaGenerated,
   handleRemoveMapa,
@@ -114,78 +123,6 @@ const VerHistoriaView = ({
   // Utils
   clearError,
 }) => {
-  const [lightboxSrc, setLightboxSrc] = useState(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
-  const [playingMestreId, setPlayingMestreId] = useState(null);
-  const previewAudioRef = useRef(null);
-  const previewUrlRef = useRef(null);
-  const tts = useTTS();
-
-  const selectedMestre = useMemo(() => {
-    if (!mestreSelecionadoId) return null;
-    return (mestresAtivos || []).find((m) => String(m.id) === String(mestreSelecionadoId)) || null;
-  }, [mestresAtivos, mestreSelecionadoId]);
-
-  const stopPreview = () => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current = null;
-    }
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
-      previewUrlRef.current = null;
-    }
-    setPlayingMestreId(null);
-  };
-
-  useEffect(() => {
-    return () => stopPreview();
-  }, []);
-
-  const handlePreviewMestre = async () => {
-    if (!selectedMestre?.voice_id || loadingPreview) return;
-
-    if (playingMestreId && String(playingMestreId) === String(selectedMestre.id)) {
-      stopPreview();
-      return;
-    }
-
-    stopPreview();
-    setLoadingPreview(true);
-    try {
-      const body = {
-        voiceId: selectedMestre.voice_id,
-        provider: selectedMestre.voice_provider || DEFAULT_TTS_PROVIDER,
-      };
-      const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      previewUrlRef.current = url;
-      previewAudioRef.current = audio;
-      audio.onended = () => stopPreview();
-      audio.onpause = () => setPlayingMestreId(null);
-      await audio.play();
-      setPlayingMestreId(selectedMestre.id);
-    } catch (_) {
-      stopPreview();
-    } finally {
-      setLoadingPreview(false);
-    }
-  };
-
-  const ESTILOS_IMAGEM = [
-    { value: 'fantasy_painting', label: 'Fantasy Painting' },
-    { value: 'anime', label: 'Anime / Manga' },
-    { value: 'realistic', label: 'Realista' },
-    { value: 'dark_gothic', label: 'Dark / Gótico' },
-    { value: 'watercolor', label: 'Aquarela' },
-    { value: 'pixel_art', label: 'Pixel Art' },
-    { value: 'comic_book', label: 'Comic Book' },
-  ];
-  const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
-  const effectiveMestreVoiceId = selectedMestre?.voice_id || historiaAtual?.mestre?.voice_id || historiaAtual?.mestres?.voice_id || null;
-  const effectiveMestreVoiceProvider = selectedMestre?.voice_provider || historiaAtual?.mestre?.voice_provider || historiaAtual?.mestres?.voice_provider || DEFAULT_TTS_PROVIDER;
   const formatDisplayDate = (value) => {
     if (!value) return '-';
     const date = new Date(value);
@@ -249,7 +186,7 @@ const VerHistoriaView = ({
               alt={historiaAtual.nome}
               className="flex-shrink-0 w-14 h-14 rounded-xl object-cover border-2 border-purple-500 cursor-pointer hover:opacity-80 transition-opacity select-none caret-transparent"
               draggable={false}
-              onClick={() => setLightboxSrc(historiaAtual.imagem)}
+              onClick={() => handleOpenLightbox(historiaAtual.imagem)}
             />
           ) : (
             <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center ${
@@ -308,8 +245,29 @@ const VerHistoriaView = ({
                     ID: #{historiaAtual.id}
                   </p>
                 </div>
-                <Badge variant="green" dot>Ativa</Badge>
+                <Badge variant={historiaAtual.deleted_at ? 'red' : 'green'} dot>
+                  {historiaAtual.deleted_at ? 'Removida' : 'Ativa'}
+                </Badge>
               </div>
+
+              {/* Descricao */}
+              {historiaAtual.descricao && (
+                <div>
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <FileText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Descricao
+                  </h3>
+                  <div className={`p-4 rounded-lg ${
+                    isLight
+                      ? 'bg-slate-50 border border-slate-200'
+                      : 'bg-slate-800/50 border border-slate-700'
+                  }`}>
+                    <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      {historiaAtual.descricao}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Prologo */}
               <div>
@@ -424,7 +382,7 @@ const VerHistoriaView = ({
                         alt={historiaAtual.nome}
                         className="w-full h-full object-cover cursor-pointer select-none caret-transparent"
                         draggable={false}
-                        onClick={() => setLightboxSrc(historiaAtual.imagem)}
+                        onClick={() => handleOpenLightbox(historiaAtual.imagem)}
                       />
                     ) : (
                       <span className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -446,7 +404,7 @@ const VerHistoriaView = ({
                     {historiaAtual.mapas.map((mapa, i) => (
                       <div key={i} className="relative group">
                         <div
-                          onClick={() => setLightboxSrc(mapa.url)}
+                          onClick={() => handleOpenLightbox(mapa.url)}
                           className={`block rounded-lg overflow-hidden border transition-all hover:scale-[1.02] cursor-pointer ${
                             isLight ? 'border-slate-200 hover:border-purple-400' : 'border-slate-700 hover:border-purple-500'
                           }`}
@@ -652,23 +610,13 @@ const VerHistoriaView = ({
               <Users size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
               Participantes
             </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                  Maximo de jogadores:
-                </span>
-                <span className="font-semibold text-cyan-400 font-modern">
-                  {historiaAtual.maximo_de_participantes}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                  Vagas disponiveis:
-                </span>
-                <span className="font-semibold text-green-400 font-modern">
-                  {historiaAtual.maximo_de_participantes}
-                </span>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                Maximo de jogadores:
+              </span>
+              <span className="font-semibold text-cyan-400 font-modern">
+                {historiaAtual.maximo_de_participantes}
+              </span>
             </div>
           </RPGCard>
 
@@ -694,6 +642,18 @@ const VerHistoriaView = ({
                     <option key={m.id} value={m.id}>{m.nome}</option>
                   ))}
                 </select>
+                {selectedMestre && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="purple">
+                      {selectedMestre.voice_provider === 'opensource' ? 'Open Source' : selectedMestre.voice_provider === 'cartesia' ? 'Cartesia' : 'ElevenLabs'}
+                    </Badge>
+                    {selectedMestre.voice_id && (
+                      <span className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {selectedMestre.voice_id}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {selectedMestre?.voice_id && (
                   <button
                     type="button"
@@ -737,10 +697,19 @@ const VerHistoriaView = ({
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                <div>
+                  <span className={`font-modern font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
                     {getMestreNome(historiaAtual)}
                   </span>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Badge variant="purple">{mestreProviderLabel}</Badge>
+                    {effectiveMestreVoiceId && (
+                      <span className={`text-xs font-modern flex items-center gap-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <Volume2 size={12} />
+                        {effectiveMestreVoiceId}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {canMutateHistoria && (
                   <button
@@ -899,7 +868,7 @@ const VerHistoriaView = ({
         src={lightboxSrc}
         alt={historiaAtual.nome}
         isOpen={!!lightboxSrc}
-        onClose={() => setLightboxSrc(null)}
+        onClose={handleCloseLightbox}
       />
 
       {/* Modal de comparacao de versoes */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useMestreStore } from '../../../store/mestre/index.js';
@@ -6,6 +6,33 @@ import { useTheme } from '../../../contexts/theme.jsx';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { historiaService } from '../../../services/index.js';
 import { sessaoService } from '../../../services/index.js';
+import { apiClient } from '../../../services/ApiClient.js';
+import { useTTS } from '../../../hooks/useTTS.js';
+
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
+const PROVIDER_LABELS = {
+  elevenlabs: 'ElevenLabs',
+  cartesia: 'Cartesia',
+  opensource: 'Open Source',
+};
+
+export const ESTILOS_IMAGEM = [
+  { value: 'fantasy_painting', label: 'Fantasy Painting' },
+  { value: 'anime', label: 'Anime / Manga' },
+  { value: 'realistic', label: 'Realista' },
+  { value: 'dark_gothic', label: 'Dark / Gótico' },
+  { value: 'watercolor', label: 'Aquarela' },
+  { value: 'pixel_art', label: 'Pixel Art' },
+  { value: 'comic_book', label: 'Comic Book' },
+];
+
+export const MODOS_ROTEIRO = [
+  { value: 'darker', label: 'Sombrio', desc: 'Moral ambígua, tragédia' },
+  { value: 'exploration', label: 'Exploração', desc: 'Segredos, dungeons, puzzles' },
+  { value: 'intrigue', label: 'Intriga', desc: 'Traição, espionagem' },
+  { value: 'political', label: 'Político', desc: 'Facções, poder, diplomacia' },
+];
 
 export const useHistoriaVerModel = () => {
   const { id } = useParams();
@@ -13,6 +40,7 @@ export const useHistoriaVerModel = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const isLight = theme === 'light';
+  const tts = useTTS();
 
   // Tema store
   const carregarTemas = useTemaStore(s => s.carregarTemas);
@@ -27,10 +55,19 @@ export const useHistoriaVerModel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Lightbox
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   // Mestre editing
   const [editandoMestre, setEditandoMestre] = useState(false);
   const [mestreSelecionadoId, setMestreSelecionadoId] = useState(null);
   const [salvandoMestre, setSalvandoMestre] = useState(false);
+
+  // Voice preview
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [playingMestreId, setPlayingMestreId] = useState(null);
+  const previewAudioRef = useRef(null);
+  const previewUrlRef = useRef(null);
 
   // Sessoes anteriores
   const [sessoes, setSessoes] = useState([]);
@@ -346,6 +383,76 @@ export const useHistoriaVerModel = () => {
 
   const clearError = useCallback(() => setError(null), []);
 
+  // Lightbox handlers
+  const handleOpenLightbox = useCallback((src) => setLightboxSrc(src), []);
+  const handleCloseLightbox = useCallback(() => setLightboxSrc(null), []);
+
+  // Selected mestre (derived)
+  const selectedMestre = useMemo(() => {
+    if (!mestreSelecionadoId) return null;
+    return (mestresAtivos || []).find((m) => String(m.id) === String(mestreSelecionadoId)) || null;
+  }, [mestresAtivos, mestreSelecionadoId]);
+
+  // Effective voice (for narration buttons)
+  const effectiveMestreVoiceId = selectedMestre?.voice_id || historiaAtual?.mestre?.voice_id || historiaAtual?.mestres?.voice_id || null;
+  const effectiveMestreVoiceProvider = selectedMestre?.voice_provider || historiaAtual?.mestre?.voice_provider || historiaAtual?.mestres?.voice_provider || DEFAULT_TTS_PROVIDER;
+
+  // Provider label for display
+  const mestreProviderLabel = PROVIDER_LABELS[effectiveMestreVoiceProvider] || effectiveMestreVoiceProvider;
+
+  // Estilo imagem atual
+  const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
+
+  // Voice preview
+  const stopPreview = useCallback(() => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setPlayingMestreId(null);
+  }, []);
+
+  const handlePreviewMestre = useCallback(async () => {
+    if (!selectedMestre?.voice_id || loadingPreview) return;
+
+    if (playingMestreId && String(playingMestreId) === String(selectedMestre.id)) {
+      stopPreview();
+      return;
+    }
+
+    stopPreview();
+    setLoadingPreview(true);
+    try {
+      const body = {
+        voiceId: selectedMestre.voice_id,
+        provider: selectedMestre.voice_provider || DEFAULT_TTS_PROVIDER,
+      };
+      const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
+      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      previewUrlRef.current = url;
+      previewAudioRef.current = audio;
+      audio.onended = () => stopPreview();
+      audio.onpause = () => setPlayingMestreId(null);
+      await audio.play();
+      setPlayingMestreId(selectedMestre.id);
+    } catch (_) {
+      stopPreview();
+    } finally {
+      setLoadingPreview(false);
+    }
+  }, [selectedMestre, loadingPreview, playingMestreId, stopPreview]);
+
+  // Cleanup preview on unmount
+  useEffect(() => {
+    return () => stopPreview();
+  }, [stopPreview]);
+
   return {
     // Data
     historiaAtual,
@@ -365,6 +472,23 @@ export const useHistoriaVerModel = () => {
     handleEditarMestre,
     handleCancelarEditarMestre,
     handleMestreSelecionadoChange,
+    selectedMestre,
+    mestreProviderLabel,
+
+    // Voice preview
+    loadingPreview,
+    playingMestreId,
+    handlePreviewMestre,
+
+    // TTS
+    tts,
+    effectiveMestreVoiceId,
+    effectiveMestreVoiceProvider,
+
+    // Lightbox
+    lightboxSrc,
+    handleOpenLightbox,
+    handleCloseLightbox,
 
     // Sessoes
     sessoes,
@@ -400,6 +524,7 @@ export const useHistoriaVerModel = () => {
     comparacaoOpen,
 
     // Imagens
+    estiloAtual,
     handleCapaGenerated,
     handleMapaGenerated,
     handleRemoveMapa,

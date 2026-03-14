@@ -3,6 +3,7 @@ import Button from '../../../components/form/button';
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import { Badge } from '../../../components/shared';
+import { BONUS_ATTR_KEYS, parseBonusMap } from '../../../utils/personagemBonus.js';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
@@ -31,55 +32,25 @@ const bonusLabels = {
   agilidade: 'Agilidade', destreza: 'Destreza', carisma: 'Carisma',
 };
 
-const parseBonus = (raw) => {
-  if (!raw) return null;
-  try {
-    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return Array.isArray(obj) ? obj[0] : obj;
-  } catch { return null; }
-};
-
-// Normalize bonus to flat {key: number} — handles both {forca: "+2"} and [{atributo: "forca", valor: 2}]
-const normalizeBonusObj = (raw) => {
-  if (!raw) return null;
-  const parsed = typeof raw === 'string' ? parseBonus(raw) : raw;
-  if (!parsed) return null;
-  // Array format: [{atributo: "forca", valor: 2}, ...]
-  if (Array.isArray(parsed)) {
-    const result = {};
-    parsed.forEach(item => {
-      if (item?.atributo && item?.valor != null) {
-        result[item.atributo] = Number(item.valor);
-      }
-    });
-    return Object.keys(result).length > 0 ? result : null;
-  }
-  // Object format: {forca: "+2", vantagens: [...], ...} — filter to primitives only
-  if (typeof parsed === 'object') return parsed;
-  return null;
-};
-
 const formatBonus = (bonus) => {
-  const obj = normalizeBonusObj(bonus);
-  if (!obj || typeof obj !== 'object') return null;
+  const obj = parseBonusMap(bonus);
+  if (!obj) return null;
   const parts = Object.entries(obj)
-    .filter(([, v]) => (typeof v === 'number' || typeof v === 'string') && v !== 0 && v != null)
-    .filter(([, v]) => !isNaN(Number(v)))
     .map(([k, v]) => { const n = Number(v); return `${n > 0 ? '+' : ''}${n} ${bonusLabels[k] || k}`; });
   return parts.length > 0 ? parts.join(', ') : null;
 };
 
-const atributoKeys = new Set(['forca', 'inteligencia', 'constituicao', 'agilidade', 'destreza', 'carisma']);
+const atributoKeys = new Set(BONUS_ATTR_KEYS);
 
 const calcularBonusAtributos = (p) => {
   const result = {};
   atributosConfig.forEach(a => { result[a.key] = []; });
 
   const addBonus = (label, bonus) => {
-    const obj = normalizeBonusObj(bonus);
-    if (!obj || typeof obj !== 'object') return;
+    const obj = parseBonusMap(bonus, BONUS_ATTR_KEYS);
+    if (!obj) return;
     Object.entries(obj).forEach(([k, v]) => {
-      if (atributoKeys.has(k) && v != null && !isNaN(Number(v)) && Number(v) !== 0 && result[k]) {
+      if (atributoKeys.has(k) && Number(v) !== 0 && result[k]) {
         result[k].push({ label, value: Number(v) });
       }
     });
@@ -739,3 +710,4 @@ const InventarioSection = ({
 };
 
 export default VerPersonagemView;
+

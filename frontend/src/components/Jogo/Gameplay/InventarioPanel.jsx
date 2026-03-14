@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { X, Package, Sword, Shield, Zap, Gem } from 'lucide-react';
-import { agregarBonus } from '../../../utils/bonusHelper';
+import { agregarBonusEquipamentos as agregarBonus } from '../../../utils/personagemBonus';
 
 const raridadeStyles = {
   comum: { border: 'border-slate-500/40', text: 'text-slate-400', label: 'Comum' },

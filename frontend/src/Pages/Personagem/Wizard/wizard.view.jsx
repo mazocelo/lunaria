@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -28,6 +28,7 @@ const WizardView = (props) => {
     inputTexto,
     setInputTexto,
     enviando,
+    sugestoes,
     atributosSugeridos,
     chatEndRef,
     nome,
@@ -84,8 +85,6 @@ const WizardView = (props) => {
   const [fichaAberta, setFichaAberta] = useState(false);
 
   const allSelecoes = useMemo(() => [...vantagensIds, ...desvantagensIds], [vantagensIds, desvantagensIds]);
-  const etapaAtualObj = etapas[etapaIndex];
-  const proximaEtapa = etapas[etapaIndex + 1];
 
   const racaAtual = useMemo(
     () => racasDisponiveis.find(item => String(item.id) === String(racaId)),
@@ -98,10 +97,10 @@ const WizardView = (props) => {
   );
 
 
-
-  const podeCriar = !!(nome?.trim() && racaId && classeId && background?.trim() && bonusAplicados);
+  const orcamentoCriacaoValido = pontosCriacaoRestantes >= 0;
+  const podeCriar = !!(nome?.trim() && racaId && classeId && background?.trim() && bonusAplicados && orcamentoCriacaoValido);
   const pendenciasOpcionais = Number(vantagensIds.length === 0 && !skipVantagens) + Number(desvantagensIds.length === 0 && !skipDesvantagens);
-  const pendingCount = [!nome?.trim(), !racaId, !classeId, !background?.trim(), !bonusAplicados].filter(Boolean).length + pendenciasOpcionais;
+  const pendingCount = [!nome?.trim(), !racaId, !classeId, !background?.trim(), !bonusAplicados, !orcamentoCriacaoValido].filter(Boolean).length + pendenciasOpcionais;
 
   const readinessState = useMemo(() => {
     if (!nome?.trim() || !racaId || !classeId) return 'open';
@@ -158,22 +157,6 @@ const WizardView = (props) => {
     podeCriar,
   ]);
 
-  const stageSummary = useMemo(() => ([
-    nome?.trim() ? { label: 'Nome', value: nome.trim() } : null,
-    racaAtual?.nome ? { label: 'Linhagem', value: racaAtual.nome } : null,
-    classeAtual?.nome ? { label: 'Vocacao', value: classeAtual.nome } : null,
-    background?.trim() ? { label: 'Origem', value: 'Definida' } : null,
-    vantagensIds.length > 0
-      ? { label: 'Dons', value: `${vantagensIds.length} ativos` }
-      : skipVantagens
-        ? { label: 'Dons', value: 'Pulados' }
-        : null,
-    desvantagensIds.length > 0
-      ? { label: 'Marcas', value: `${desvantagensIds.length} ativas` }
-      : skipDesvantagens
-        ? { label: 'Marcas', value: 'Puladas' }
-        : null,
-  ].filter(Boolean)), [nome, racaAtual, classeAtual, background, vantagensIds, skipVantagens, desvantagensIds, skipDesvantagens]);
 
 
   return (
@@ -317,7 +300,7 @@ const WizardView = (props) => {
                 onSalvarPersonagem={salvarPersonagem}
                 salvando={salvando}
                 gerandoBackground={gerandoBackground}
-                podeCriar={podeCriar}
+                sugestoes={sugestoes}
                 embedded
               />
             </div>
@@ -433,4 +416,6 @@ const WizardView = (props) => {
 };
 
 export default WizardView;
+
+
 

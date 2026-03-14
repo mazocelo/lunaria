@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mestreCriadorService, personagemService } from '../../../services/index.js';
@@ -19,6 +20,7 @@ export const useWizardModel = () => {
   const isLight = theme === 'light';
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
   const chatEndRef = useRef(null);
+  const wizardInitRef = useRef(false);
 
   // Zustand stores
   const racas = useRacaStore(s => s.racas);
@@ -192,6 +194,7 @@ export const useWizardModel = () => {
         id: Date.now(),
         role: 'mestre',
         content: resultado.mensagem,
+        etapa: 'boas_vindas',
         sugestoes: resultado.sugestoes,
         timestamp: new Date(),
       }]);
@@ -202,25 +205,12 @@ export const useWizardModel = () => {
         id: Date.now(),
         role: 'mestre',
         content: '**Bem-vindo, aventureiro!** Você chega a uma taverna antiga onde pergaminhos e mapas cobrem as paredes. Um sábio ancião sorri ao vê-lo.\n\n*"Ah, mais um herói em busca de destino! Diga-me, como deseja ser chamado neste mundo?"*',
+        etapa: 'boas_vindas',
         sugestoes: [],
         timestamp: new Date(),
       }]);
     } finally {
       setEnviando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (draftInicial) {
-      setDraftRestaurado(true);
-      setMensagens([{
-        id: Date.now(),
-        role: 'sistema',
-        content: '**Rascunho restaurado.** Seu progresso anterior foi recuperado. Você pode continuar de onde parou ou descartar o rascunho para recomeçar.',
-        timestamp: new Date(),
-      }]);
-    } else {
-      iniciarWizard();
     }
   }, []);
 
@@ -265,24 +255,95 @@ export const useWizardModel = () => {
     }));
   }, []);
 
+  const rehidratarEtapaAtual = useCallback(async () => {
+    const etapa = navigation.etapaAtual;
+    if (!etapa || etapa === 'boas_vindas' || enviandoRef.current) return;
+
+    enviandoRef.current = true;
+    setEnviando(true);
+    try {
+      const resultado = await mestreCriadorService.interagir({
+        etapa,
+        estado: getEstado(),
+        mensagemJogador: '',
+        historico: [],
+      });
+
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        role: 'mestre',
+        content: resultado.mensagem,
+        etapa,
+        sugestoes: resultado.sugestoes,
+        timestamp: new Date(),
+      }]);
+
+      setSugestoes(resultado.sugestoes || []);
+      if (resultado.atributos_sugeridos) {
+        bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
+      }
+    } catch (err) {
+      console.error('[wizard] reidratarEtapaAtual falhou:', err);
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        role: 'sistema',
+        content: 'Nao foi possivel reabrir a fala do Mestre para esta etapa. Voce ainda pode seguir normalmente pelo painel da etapa.',
+        etapa,
+        timestamp: new Date(),
+      }]);
+      setSugestoes([]);
+    } finally {
+      enviandoRef.current = false;
+      setEnviando(false);
+    }
+  }, [navigation.etapaAtual, getEstado, bonusCalc.setAtributosSugeridos]);
+
+  useEffect(() => {
+    if (wizardInitRef.current) return;
+    wizardInitRef.current = true;
+
+    if (draftInicial) {
+      setDraftRestaurado(true);
+      setMensagens([{
+        id: Date.now(),
+        role: 'sistema',
+        content: '**Rascunho restaurado.** Seu progresso anterior foi recuperado. Voce pode continuar de onde parou ou descartar o rascunho para recomecar.',
+        etapa: draftInicial.etapaAtual || 'boas_vindas',
+        timestamp: new Date(),
+      }]);
+      if (draftInicial.etapaAtual && draftInicial.etapaAtual !== 'boas_vindas') {
+        rehidratarEtapaAtual();
+      }
+      return;
+    }
+
+    iniciarWizard();
+  }, [draftInicial, iniciarWizard, rehidratarEtapaAtual]);
+
   /** Envia mensagem textual do jogador */
-  const enviarMensagem = useCallback(async (texto) => {
+  const enviarMensagem = useCallback(async (texto, options = {}) => {
     if (!texto?.trim() || enviandoRef.current) return;
     const mensagemJogador = texto.trim();
+    const manterEtapa = options?.manterEtapa === true;
+    const estadoOverride = {};
 
     if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome) {
       setNome(mensagemJogador);
+      estadoOverride.nome = mensagemJogador;
     } else if (navigation.etapaAtual === 'background') {
-      setBackground(prev => {
-        const novo = prev ? `${prev}\n${mensagemJogador}` : mensagemJogador;
-        return novo.slice(0, 2000); // cap em 2000 chars
-      });
+      const backgroundAtualizado = [estadoRef.current.background, mensagemJogador]
+        .filter(Boolean)
+        .join('\n')
+        .slice(0, 2000);
+      setBackground(backgroundAtualizado);
+      estadoOverride.background = backgroundAtualizado;
     }
 
     setMensagens(prev => [...prev, {
       id: Date.now(),
       role: 'jogador',
       content: mensagemJogador,
+      etapa: navigation.etapaAtual,
       timestamp: new Date(),
     }]);
     setInputTexto('');
@@ -293,25 +354,28 @@ export const useWizardModel = () => {
     try {
       const resultado = await mestreCriadorService.interagir({
         etapa: navigation.etapaAtual,
-        estado: { ...getEstado(), nome: navigation.etapaAtual === 'boas_vindas' ? mensagemJogador : estadoRef.current.nome },
+        estado: { ...getEstado(), ...estadoOverride },
         mensagemJogador,
         historico: getHistorico(),
       });
+
+      const etapaMensagem = manterEtapa
+        ? navigation.etapaAtual
+        : (resultado.etapa_proxima || navigation.etapaAtual);
 
       setMensagens(prev => [...prev, {
         id: Date.now() + 1,
         role: 'mestre',
         content: resultado.mensagem,
+        etapa: etapaMensagem,
         sugestoes: resultado.sugestoes,
         timestamp: new Date(),
       }]);
 
-      if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
-      else setSugestoes([]);
-
+      setSugestoes(resultado.sugestoes || []);
       if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
 
-      if (resultado.etapa_proxima && resultado.etapa_proxima !== navigation.etapaAtual) {
+      if (!manterEtapa && resultado.etapa_proxima && resultado.etapa_proxima !== navigation.etapaAtual) {
         navigation.registrarVisita(resultado.etapa_proxima);
       }
     } catch (err) {
@@ -320,7 +384,18 @@ export const useWizardModel = () => {
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.etapaAtual, getEstado, getHistorico]);
+  }, [navigation.etapaAtual, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, navigation.registrarVisita]);
+
+  const aplicarSugestaoAtributos = useCallback(() => {
+    const resultado = bonusCalc.aplicarAtributosSugeridos();
+    if (!resultado?.applied) {
+      setError(resultado?.reason || 'A sugestao de atributos do Mestre veio invalida e nao foi aplicada.');
+      return resultado;
+    }
+    setError(null);
+    return resultado;
+  }, [bonusCalc.aplicarAtributosSugeridos]);
+
 
   /** Seleciona sugestão silenciosamente (T1) */
   const selecionarSugestao = useCallback((sugestao) => {
@@ -371,19 +446,27 @@ export const useWizardModel = () => {
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
 
-  /** P3: Avança etapa + dispara resposta do Mestre na primeira visita.
-   *  @param {Object} [estadoOverride] - se fornecido, sobrescreve campos em getEstado() (ex: skip limpa seleções) */
+  /** P3: Avanca etapa + dispara resposta do Mestre apenas na primeira visita.
+   *  @param {Object} [estadoOverride] - se fornecido, sobrescreve campos em getEstado() (ex: skip limpa selecoes) */
   const avancarComMestre = useCallback(async (estadoOverride) => {
     if (enviandoRef.current) return;
     const result = navigation.avancarEtapa();
     if (!result) return;
 
-    const { etapa } = result;
+    const { etapa, primeiraVisita } = result;
+    const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
+
+    if (!primeiraVisita) {
+      setSugestoes([]);
+      if (etapa !== 'atributos') {
+        bonusCalc.setAtributosSugeridos(null);
+      }
+      return;
+    }
 
     enviandoRef.current = true;
     setEnviando(true);
     try {
-      const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
       const resultado = await mestreCriadorService.interagir({
         etapa,
         estado,
@@ -395,28 +478,27 @@ export const useWizardModel = () => {
         id: Date.now(),
         role: 'mestre',
         content: resultado.mensagem,
+        etapa,
         sugestoes: resultado.sugestoes,
         timestamp: new Date(),
       }]);
 
-      if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
-      else setSugestoes([]);
-
+      setSugestoes(resultado.sugestoes || []);
       if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
     } catch (err) {
       console.error('[wizard] avancarComMestre falhou:', err);
       setMensagens(prev => [...prev, {
         id: Date.now(),
         role: 'sistema',
-        content: 'Não foi possível contatar o Mestre Criador. Continue normalmente ou envie uma mensagem.',
+        content: 'Nao foi possivel contatar o Mestre Criador. Continue normalmente ou envie uma mensagem.',
+        etapa,
         timestamp: new Date(),
       }]);
     } finally {
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.avancarEtapa, getEstado, getHistorico]);
-
+  }, [navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos]);
   /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
   const pularEtapa = useCallback((tipo) => {
     const override = {};
@@ -440,12 +522,15 @@ export const useWizardModel = () => {
     if (!s.nome?.trim()) { setError('Nome do personagem é obrigatório'); return; }
     if (!s.racaId) { setError('Selecione uma raça antes de salvar'); return; }
     if (!s.classeId) { setError('Selecione uma classe antes de salvar'); return; }
-    if (!s.background?.trim()) { setError('Preencha o background antes de salvar'); return; }
+    if (!s.background?.trim()) { setError('Descreva a origem do personagem antes de salvar'); return; }
     if (!bonusCalc.bonusAplicados) {
-      setError('Confirme seus atributos antes de salvar (aplique os bônus de raça/classe)');
+      setError('Confirme seus atributos antes de salvar (aplique os bonus de raca/classe)');
       return;
     }
-
+    if (pointSystem.pontosCriacaoRestantes < 0) {
+      setError('A ficha excede o orcamento de criacao. Revise vantagens, desvantagens, linhagem ou vocacao antes de salvar.');
+      return;
+    }
     setSalvando(true);
     setError(null);
 
@@ -490,7 +575,7 @@ export const useWizardModel = () => {
     } finally {
       setSalvando(false);
     }
-  }, [bonusCalc.bonusAplicados, navigate, recarregarPersonagens, limparDraft]);
+  }, [bonusCalc.bonusAplicados, pointSystem.pontosCriacaoRestantes, navigate, recarregarPersonagens, limparDraft]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -527,7 +612,7 @@ export const useWizardModel = () => {
     attrMax: bonusCalc.attrMax,
     confirmarAtributos: bonusCalc.confirmarAtributos,
     setAtributo: bonusCalc.setAtributo,
-    aplicarAtributosSugeridos: bonusCalc.aplicarAtributosSugeridos,
+    aplicarAtributosSugeridos: aplicarSugestaoAtributos,
 
     // Personagem
     nome,
@@ -581,3 +666,7 @@ export const useWizardModel = () => {
     navigate,
   };
 };
+
+
+
+

@@ -9,6 +9,10 @@ import { useClasseStore } from '../../../store/classe';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { Personagem } from '../../../models/Personagem';
 
+const PONTOS_ATRIBUTO_CRIACAO = 60;
+const ATTR_MIN_CRIACAO = 5;
+const ATTR_MAX_CRIACAO = 16;
+
 const atributosIniciais = {
   forca: '',
   inteligencia: '',
@@ -151,6 +155,33 @@ export const usePersonagemNovoModel = () => {
       return;
     }
 
+    const atributosNormalizados = {
+      forca: Number(atributos.forca),
+      destreza: Number(atributos.destreza),
+      constituicao: Number(atributos.constituicao),
+      inteligencia: Number(atributos.inteligencia),
+      agilidade: Number(atributos.agilidade),
+      carisma: Number(atributos.carisma),
+    };
+    const atributosInvalidos = Object.entries(atributosNormalizados).filter(([, value]) => !Number.isFinite(value) || value < ATTR_MIN_CRIACAO || value > ATTR_MAX_CRIACAO);
+    if (atributosInvalidos.length > 0) {
+      setError('Cada atributo deve ficar entre ' + ATTR_MIN_CRIACAO + ' e ' + ATTR_MAX_CRIACAO + ' na criacao.');
+      return;
+    }
+
+    if (somaAtributos(atributosNormalizados) !== PONTOS_ATRIBUTO_CRIACAO) {
+      setError('A distribuicao inicial deve somar ' + PONTOS_ATRIBUTO_CRIACAO + ' pontos.');
+      return;
+    }
+
+    if (!background.trim()) {
+      setError(backgroundTipo === 'guiado'
+        ? 'Descreva a origem que a IA deve lapidar em um background final.'
+        : 'Escreva o background final do personagem.');
+      return;
+    }
+
+
     setLoading(true);
     setError(null);
     try {
@@ -180,12 +211,7 @@ export const usePersonagemNovoModel = () => {
         sugestao_background: backgroundTipo,
         background,
         historias: historiasIds,
-        forca: Number(atributos.forca) || 10,
-        destreza: Number(atributos.destreza) || 10,
-        constituicao: Number(atributos.constituicao) || 10,
-        inteligencia: Number(atributos.inteligencia) || 10,
-        agilidade: Number(atributos.agilidade) || 10,
-        carisma: Number(atributos.carisma) || 10,
+        ...atributosNormalizados,
         vantagens: vantagensIds,
         desvantagens: desvantagensIds,
         nivel: 1,
@@ -261,3 +287,4 @@ export const usePersonagemNovoModel = () => {
     setImagem,
   };
 };
+

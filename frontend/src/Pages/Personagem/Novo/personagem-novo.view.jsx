@@ -271,29 +271,29 @@ const NovoPersonagemView = ({
           {backgroundTipo === 'guiado' ? (
             <div className="space-y-3">
               <label className={`text-sm font-semibold font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-                Descreva o que a IA deve criar
+                Descreva a origem que a IA vai lapidar
               </label>
               <textarea
                 value={background}
                 onChange={e => setBackground(e.target.value)}
-                placeholder="Ex: Um guerreiro que perdeu sua familia em uma guerra e busca vinganca... ou apenas 'nobre caido em desgraca'"
+                placeholder="Ex: Nobre caido em desgraca, criado por monges nas montanhas, agora em busca de redencao."
                 rows={3}
                 className={`w-full px-4 py-3 rounded-lg font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all resize-none
                   ${isLight ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'}`}
               />
               <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                A IA vai criar o background usando seu prompt, atributos, classe, raca, vantagens e equipamentos
+                A IA vai transformar essa origem em um background final usando classe, raca, atributos, tracos e contexto da ficha
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               <label className={`text-sm font-semibold font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-                Escreva o background do personagem
+                Escreva o background final do personagem
               </label>
               <textarea
                 value={background}
                 onChange={e => setBackground(e.target.value)}
-                placeholder="Conte a historia de origem do seu personagem..."
+                placeholder="Escreva o texto final do background do personagem..."
                 rows={5}
                 className={`w-full px-4 py-3 rounded-lg font-modern border focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all resize-none
                   ${isLight ? 'bg-slate-100 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'}`}

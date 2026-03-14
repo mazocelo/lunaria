@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight, Save } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight, Save } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -9,7 +9,7 @@ const INPUT_PLACEHOLDERS = {
   boas_vindas: 'Descreva o nome que voce procura ou aceite uma sugestao...',
   raca: 'Peca outra linhagem ou descreva o heroi que imagina...',
   classe: 'Peca outra vocacao ou descreva como quer jogar...',
-  background: 'Escreva a origem do personagem ou peca ajuda ao Mestre...',
+  background: 'Descreva a origem do personagem ou peca ajuda ao Mestre...',
   vantagens: 'Peca dons mais especificos ou refine o conceito...',
   desvantagens: 'Descreva falhas, custos ou conflitos interessantes...',
   atributos: 'Peca uma sugestao de distribuicao ou refine a build...',
@@ -28,6 +28,7 @@ const WizardChat = ({
   inputTexto,
   setInputTexto,
   enviando,
+  sugestoes = [],
   onEnviar,
   onSelecionarSugestao,
   onAvancarComMestre,
@@ -129,6 +130,11 @@ const WizardChat = ({
     );
   }, [catalogoAtual, filtro]);
 
+  const ultimaMensagem = mensagens[mensagens.length - 1];
+  const ultimaMensagemEhMestreDaEtapa = ultimaMensagem?.role === 'mestre' && ultimaMensagem?.etapa === etapaAtual;
+  const saldoCriacaoInvalido = pontosCriacaoRestantes < 0;
+
+  const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
   /** Seleciona e auto-avanÃ§a para raca/classe; sÃ³ seleciona para vantagem/desvantagem */
   const handleSelectAndAdvance = (sugestao) => {
     onSelecionarSugestao(sugestao);
@@ -161,7 +167,7 @@ const WizardChat = ({
         {mensagens.map((msg, msgIndex) => {
           const isJogador = msg.role === 'jogador';
           const isSistema = msg.role === 'sistema';
-          const isUltimaMensagemMestre = msg.role === 'mestre' && msgIndex === mensagens.length - 1;
+          const isUltimaMensagemMestre = msg.role === 'mestre' && msgIndex === mensagens.length - 1 && msg.etapa === etapaAtual;
 
           const wrapperClass = isJogador
             ? 'wa-player-card rounded-[22px] px-4 py-3 text-white'
@@ -198,7 +204,7 @@ const WizardChat = ({
                   </div>
                 </div>
 
-                {msg.sugestoes?.some(s => s.tipo === 'nome') && (
+                {isUltimaMensagemMestre && msg.sugestoes?.some(s => s.tipo === 'nome') && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {msg.sugestoes.filter(s => s.tipo === 'nome').map((sug, i) => (
                       <button
@@ -214,7 +220,7 @@ const WizardChat = ({
                   </div>
                 )}
 
-                {msg.sugestoes?.some(s => s.tipo === 'background') && (
+                {isUltimaMensagemMestre && msg.sugestoes?.some(s => s.tipo === 'background') && (
                   <div className="mt-3 grid grid-cols-1 gap-2">
                     {msg.sugestoes.filter(s => s.tipo === 'background').map((sug, i) => (
                       <button
@@ -230,7 +236,7 @@ const WizardChat = ({
                   </div>
                 )}
 
-                {msg.sugestoes?.some(s => !['nome', 'background'].includes(s.tipo)) && (
+                {isUltimaMensagemMestre && msg.sugestoes?.some(s => !['nome', 'background'].includes(s.tipo)) && (
                   <div className="mt-3 grid grid-cols-1 gap-2.5">
                     {msg.sugestoes.filter(s => !['nome', 'background'].includes(s.tipo)).map((sug, i) => (
                       <SuggestionCard
@@ -245,11 +251,11 @@ const WizardChat = ({
                   </div>
                 )}
 
-                {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && !enviando && ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
+                {isUltimaMensagemMestre && !enviando && ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onEnviar('Mostre-me outras opcoes diferentes')}
+                      onClick={() => onEnviar('Mostre-me outras opcoes diferentes', { manterEtapa: true })}
                       className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
                     >
                       <RefreshCw size={12} />
@@ -281,7 +287,7 @@ const WizardChat = ({
                   </div>
                 )}
 
-                {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && showAtributos && !enviando && (
+                {isUltimaMensagemMestre && showAtributos && !enviando && (
                   <div className="mt-3 space-y-3">
                     {bonusAplicados ? (
                       <div className="wa-panel-soft rounded-[22px] p-4">
@@ -332,7 +338,7 @@ const WizardChat = ({
                   </div>
                 )}
 
-                {msg.role === 'mestre' && msgIndex === mensagens.length - 1 && mostrarBusca && buscaAberta && (
+                {isUltimaMensagemMestre && mostrarBusca && buscaAberta && (
                   <div className="wa-panel mt-3 overflow-hidden rounded-2xl">
                     <div className="border-b border-[var(--wa-border)] px-3 py-3">
                       <div className="flex items-center gap-2">
@@ -389,6 +395,184 @@ const WizardChat = ({
           );
         })}
 
+        {!enviando && !ultimaMensagemEhMestreDaEtapa && (
+          <div className="space-y-3">
+            {['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onEnviar('Mostre-me outras opcoes diferentes', { manterEtapa: true })}
+                  className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <RefreshCw size={12} />
+                  Novas leituras
+                </button>
+
+                {mostrarBusca && (
+                  <button
+                    type="button"
+                    onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all cursor-pointer ${buscaAberta ? 'wa-accent-chip' : 'wa-panel-soft hover:-translate-y-0.5'}`}
+                  >
+                    <Search size={12} />
+                    {buscaAberta ? 'Fechar catalogo' : `Abrir catalogo de ${labelAtual}`}
+                  </button>
+                )}
+
+                {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
+                  <button
+                    type="button"
+                    onClick={() => onPularEtapa?.(etapaAtual)}
+                    disabled={enviando}
+                    className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <ArrowRight size={12} />
+                    Pular etapa
+                  </button>
+                )}
+              </div>
+            )}
+
+            {etapaAtual === 'background' && backgroundSugestoesAtuais.length > 0 && (
+              <div className="grid grid-cols-1 gap-2">
+                {backgroundSugestoesAtuais.map((sug, i) => (
+                  <button
+                    key={`bg-stage-${i}`}
+                    type="button"
+                    onClick={() => onEnviar(sug.nome)}
+                    className="wa-choice-card rounded-2xl border p-3 text-left cursor-pointer"
+                  >
+                    <span className={`block text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{sug.nome}</span>
+                    {sug.descricao && <span className={`mt-1 block text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{sug.descricao}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {showAtributos && (
+              bonusAplicados ? (
+                <div className="wa-panel-soft rounded-[22px] p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Shield size={16} className="text-[var(--wa-teal)]" />
+                    <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Atributos confirmados</span>
+                    <CheckCircle2 size={14} className="ml-auto text-[var(--wa-teal)]" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
+                      const val = atributos[key] || 10;
+                      const bonus = bonusDetalhes?.[key] || 0;
+                      const finalVal = val + bonus;
+                      const mod = Math.floor((finalVal - 10) / 2);
+                      return (
+                        <div key={key} className={`rounded-xl border px-2.5 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
+                          <div className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</div>
+                          <div className={`mt-1 text-base font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{finalVal}</div>
+                          <div className={`text-[10px] font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>{mod >= 0 ? '+' : ''}{mod}{bonus !== 0 ? ` (${bonus > 0 ? '+' : ''}${bonus})` : ''}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <AttributeDistributor
+                    atributos={atributos}
+                    setAtributo={setAtributo}
+                    pontosDistribuidos={pontosDistribuidos}
+                    pontosRestantes={pontosRestantes}
+                    pontosTotais={pontosTotais}
+                    atributosSugeridos={atributosSugeridos}
+                    aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+                    isLight={isLight}
+                    disabled={false}
+                    attrMin={attrMin}
+                    attrMax={attrMax}
+                  />
+                  <div className="wa-panel-soft flex items-start gap-2 rounded-2xl px-3 py-3 text-xs font-modern leading-relaxed">
+                    <Info size={14} className="mt-0.5 shrink-0 text-[var(--wa-accent)]" />
+                    <span>
+                      Estes sao os pontos base. Bonus de linhagem, vocacao, dons e marcas entram automaticamente depois da confirmacao.
+                    </span>
+                  </div>
+                </>
+              )
+            )}
+
+            {mostrarBusca && buscaAberta && (
+              <div className="wa-panel overflow-hidden rounded-2xl">
+                <div className="border-b border-[var(--wa-border)] px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <Search size={14} className={isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'} />
+                    <input
+                      type="text"
+                      value={filtro}
+                      onChange={(e) => setFiltro(e.target.value)}
+                      placeholder={`Buscar ${labelAtual}...`}
+                      className={`flex-1 bg-transparent text-xs font-modern outline-none ${isLight ? 'text-slate-700 placeholder-slate-400' : 'text-slate-100 placeholder-slate-500'}`}
+                    />
+                    {filtro && (
+                      <button type="button" onClick={() => setFiltro('')} className="cursor-pointer">
+                        <X size={12} className={isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="max-h-56 overflow-y-auto">
+                  {catalogoFiltrado.length === 0 ? (
+                    <p className={`px-3 py-4 text-center text-xs font-modern ${isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'}`}>
+                      Nenhum resultado para essa busca.
+                    </p>
+                  ) : (
+                    catalogoFiltrado.map((item) => {
+                      const isSelected = (tipoAtual === 'vantagem' && vantagensIds.some(id => String(id) === String(item.id))) || (tipoAtual === 'desvantagem' && desvantagensIds.some(id => String(id) === String(item.id)));
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelecionarCatalogo(item)}
+                          className={`block w-full border-b border-[var(--wa-border)] px-3 py-3 text-left transition-colors last:border-b-0 cursor-pointer ${isSelected ? (isLight ? 'bg-purple-100/70' : 'bg-purple-500/14') : isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-900/60'}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{item.nome}</span>
+                            {item.custo != null && (
+                              <span className={`rounded-full px-2 py-1 text-[10px] font-mono ${item.custo > 0 ? 'wa-ember-chip' : 'wa-emerald-chip'}`}>
+                                {item.custo > 0 ? `-${item.custo}` : `+${Math.abs(item.custo)}`} pts
+                              </span>
+                            )}
+                            {isSelected && <Check size={12} className="text-[var(--wa-accent)]" />}
+                          </div>
+                          {item.descricao && <span className={`mt-1 block text-[11px] font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{item.descricao}</span>}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {['desvantagens', 'vantagens', 'resumo', 'refinamento'].includes(etapaAtual) && !enviando && (
+          <div className={`wa-panel-soft rounded-2xl border px-4 py-3 ${saldoCriacaoInvalido ? 'border-red-500/40' : ''}`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
+                  Orcamento de criacao
+                </p>
+                <p className={`mt-1 text-sm font-modern ${saldoCriacaoInvalido ? 'text-red-400' : isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+                  Total {pontosCriacaoTotal} · gastos {pontosGastos} · saldo {pontosCriacaoRestantes}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-modern">
+                <span className="wa-ember-chip rounded-full px-2 py-1">Raca {custoRaca}</span>
+                <span className="wa-ember-chip rounded-full px-2 py-1">Classe {custoClasse}</span>
+                <span className="wa-ember-chip rounded-full px-2 py-1">Vantagens {pontosVantagem}</span>
+                <span className="wa-emerald-chip rounded-full px-2 py-1">Desvantagens +{Math.min(maxCustoDesvantagem, Math.abs(pontosDesvantagem))}</span>
+              </div>
+            </div>
+          </div>
+        )}
         {enviando && (
           <div className="flex justify-start">
             <div className="wa-master-card inline-flex items-center gap-3 rounded-[22px] px-4 py-3">
@@ -448,6 +632,11 @@ const WizardChat = ({
             }}
           />
 
+          {['resumo', 'refinamento'].includes(etapaAtual) && saldoCriacaoInvalido && (
+            <div className="mr-2 max-w-[16rem] text-right text-xs font-modern text-red-400">
+              Ajuste o orcamento de criacao antes de selar a ficha.
+            </div>
+          )}
           <div className="flex shrink-0 items-center gap-2">
             {etapaAtual === 'atributos' && !bonusAplicados && onConfirmarAtributos && (
               <button
@@ -494,7 +683,7 @@ const WizardChat = ({
                   ? <Loader2 size={16} className="animate-spin" />
                   : <Save size={16} />
                 }
-                {salvando ? 'Selando...' : gerandoBackground ? 'Gerando...' : !podeCriar ? 'Incompleto' : 'Criar'}
+                {salvando ? 'Selando...' : gerandoBackground ? 'Gerando...' : saldoCriacaoInvalido ? 'Orcamento excedido' : !podeCriar ? 'Incompleto' : 'Criar'}
               </button>
             )}
 
@@ -517,3 +706,10 @@ const WizardChat = ({
 };
 
 export default WizardChat;
+
+
+
+
+
+
+

@@ -1,7 +1,8 @@
-ï»¿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTheme } from '../contexts/theme.jsx';
 import { Heart, Shield, Eye, EyeOff, Sparkles, User, AlertTriangle, SkipForward, CheckCircle2, Clock3, ShieldCheck, ScrollText } from 'lucide-react';
 import WizardReadinessSeal from '../Pages/Personagem/Wizard/components/WizardReadinessSeal.jsx';
+import { BONUS_ATTR_KEYS, parseRacaClasseBonus, somarBonusAtributos } from '../utils/personagemBonus.js';
 
 const ATTR_LABELS = {
   forca: { label: 'FOR', color: 'bg-red-500' },
@@ -48,16 +49,6 @@ const getReadinessState = ({ pendingCount, bonusAplicados, nome, raca, classe })
   return 'sealed';
 };
 
-const parseBonus = (raw) => {
-  if (!raw) return null;
-  try {
-    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return Array.isArray(obj) ? obj[0] : obj;
-  } catch {
-    return null;
-  }
-};
-
 const PersonagemPreviewCard = ({
   nome,
   raca,
@@ -85,18 +76,23 @@ const PersonagemPreviewCard = ({
   const racaNome = racaObj?.nome;
   const classeNome = classeObj?.nome;
 
-  const racaBonus = parseBonus(racaObj?.bonus);
-  const classeBonus = parseBonus(classeObj?.bonus);
+  const racaBonus = parseRacaClasseBonus(racaObj?.bonus);
+  const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
   const temBonus = racaBonus || classeBonus;
 
   const mergedAttrBonus = useMemo(() => {
+    const selecionados = (vantagensSelecionadas || [])
+      .map(id => (vantagensDisponiveis || []).find(item => String(item.id) === String(id)))
+      .filter(Boolean);
+    const tracosBonus = somarBonusAtributos(selecionados, BONUS_ATTR_KEYS);
+
     const merged = {};
     for (const key of Object.keys(ATTR_LABELS)) {
-      const bonus = (Number(racaBonus?.[key]) || 0) + (Number(classeBonus?.[key]) || 0);
+      const bonus = (Number(racaBonus?.[key]) || 0) + (Number(classeBonus?.[key]) || 0) + (Number(tracosBonus[key]) || 0);
       if (bonus !== 0) merged[key] = bonus;
     }
     return merged;
-  }, [racaBonus, classeBonus]);
+  }, [racaBonus, classeBonus, vantagensSelecionadas, vantagensDisponiveis]);
 
   const atributosEfetivos = useMemo(() => {
     const result = {};
@@ -243,7 +239,7 @@ const PersonagemPreviewCard = ({
               </div>
               <h3 className={`mt-3 truncate text-xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{nome || 'Heroi sem selo'}</h3>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                {racaNome || 'Linhagem pendente'} {classeNome ? `Â· ${classeNome}` : 'Â· Vocacao pendente'}
+                {racaNome || 'Linhagem pendente'} {classeNome ? `· ${classeNome}` : '· Vocacao pendente'}
               </p>
             </div>
             <WizardReadinessSeal readinessState={finalReadinessState} />
@@ -369,5 +365,6 @@ const PersonagemPreviewCard = ({
 };
 
 export default PersonagemPreviewCard;
+
 
 

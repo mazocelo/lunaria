@@ -239,11 +239,11 @@ Resultado esperado:
 
 ---
 
-## Auditoria (2026-03-13)
+## Auditoria (2026-03-14)
 
-**Completude: ~87%**
+**Completude: ~98%**
 
-### v1 Feitos (17 itens)
+### v1 Feitos (20 itens)
 
 - BullMQ v5.71.0 sobre Redis (`package.json`)
 - Worker separado (`bin/worker`) com shutdown gracioso (SIGTERM/SIGINT)
@@ -262,13 +262,13 @@ Resultado esperado:
 - **systemd service file** criado (`deploy/lunaria-worker.service`)
 - **Worker reiniciado no CI/CD** (`systemctl restart lunaria-worker || true`)
 - Admin endpoints implementados (GET jobs, POST retry) — ver D-03
+- **Stalled detection** (Rodada 9): QueueEvents + listener que atualiza `ai_jobs.last_error` na DB
+- **Worker timeout config** (Rodada 9): lockDuration=120s, stalledInterval=30s, maxStalledCount=2
+- **Worker health endpoint** (Rodada 9): heartbeat via Redis (setex TTL 90s) + `GET /admin/motor/worker/health`
 
 ### v1 Parciais
 
-| Item | Estado atual | Recomendado |
-|------|-------------|-------------|
-| Flag | OFF (`false`) | Ligar quando worker estiver ativo na VPS |
-| Stalled detection | Nenhum | Instanciar QueueEvents |
+Nenhum item parcial restante.
 
 ### v2 Nao iniciados
 
@@ -284,5 +284,5 @@ Resultado esperado:
 | Risco | Severidade |
 |-------|-----------|
 | ~~Worker sem Procfile nem systemd service~~ | ~~Critico~~ **RESOLVIDO** (`deploy/lunaria-worker.service` + CI/CD restart) |
-| Flag OFF = infraestrutura bypassed, roteiro processa in-process | Alto |
-| Sem deteccao de stalled jobs | Medio |
+| ~~Flag OFF = infraestrutura bypassed~~ | ~~Alto~~ **RESOLVIDO** (flag removida, async-only permanente) |
+| ~~Sem deteccao de stalled jobs~~ | ~~Medio~~ **RESOLVIDO** (QueueEvents + DB update + lockDuration/stalledInterval/maxStalledCount) |

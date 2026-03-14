@@ -28,10 +28,10 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 | --- | --- | --- | --- | --- |
 | F-01 | Contrato publico do websocket | concluido | ~100% | contrato JSON v2.1.0, 65+ @event annotations, zero io.to() direto em engines/handlers/utils |
 | F-02 | Modularizacao do motor do jogo | concluido | ~100% | 5 engines + 5 utils + sessionEventBus + stateProjector, socketManager 4000+→920L (-77%), feature flags removidas |
-| D-01 | Jobs duraveis para IA | concluido | ~95% | async-only (flag removida), systemd service, CI/CD restart, queueNames IMAGE/AUDIO stubs. Falta stalled detection |
+| D-01 | Jobs duraveis para IA | concluido | ~98% | async-only, systemd service, CI/CD restart, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2) |
 | D-02 | Deploy e banco VPS | parcialmente concluido | ~88% | CI/CD com --ff-only, pg_dump backup, healthcheck pos-deploy, /health endpoint, Redis sempre obrigatorio. Faltam rollback, preflight, lock |
 | D-03 | Observabilidade e admin do motor | em progresso | ~75% | 4 endpoints /admin/motor + tela AdminMotor frontend (MVVM), expanded state sempre ativo, blueprint V2, resumo estruturado. Faltam logs estruturados, persistencia prompts |
-| F-03 | Controles de produto para IA | em progresso | ~45% | 4 pilares sempre ativos, mana/cooldowns/concentracao no state, resumo estruturado. Modos criativos cosmeticos (bug). Faltam modos funcionais, versionamento, comparacao |
+| F-03 | Controles de produto para IA | em progresso | ~70% | 4 pilares, expanded state, blueprint V2, resumo estruturado, modos criativos funcionais (4 modos + regenerate), historico de versoes com ativacao. Faltam comparacao side-by-side, workflow avancado |
 
 ## Analise por frente
 
@@ -85,11 +85,11 @@ Concluido. Unico risco operacional: divergencia JSON vs runtime sem validacao au
 
 Extracao ~98%. socketManager e fachada leve (920L). Gaps restantes sao de formalizacao de interfaces, nao de extracao.
 
-### D-01. Jobs duraveis para IA (~95%)
+### D-01. Jobs duraveis para IA (~98%)
 
-**Status:** v1 completa, async-only (feature flags removidas na Rodada 7)
+**Status:** v1 completa + stalled detection + worker health (Rodada 9)
 
-**O que ja entrou (v1)**
+**O que ja entrou (v1 + Rodada 9)**
 
 - BullMQ v5.71.0 + Redis, worker separado (`bin/worker`) com shutdown gracioso
 - Tabela `ai_jobs` com indices, POST 202, GET com status persistido
@@ -99,16 +99,18 @@ Extracao ~98%. socketManager e fachada leve (920L). Gaps restantes sao de formal
 - systemd service file (`deploy/lunaria-worker.service`)
 - Worker reiniciado no CI/CD (`systemctl restart lunaria-worker || true`)
 - `queueNames.js` com stubs IMAGE e AUDIO
+- **Stalled detection** (Rodada 9): QueueEvents listener atualiza `ai_jobs.last_error` na DB quando job fica stalled
+- **Worker timeout config** (Rodada 9): lockDuration=120s, stalledInterval=30s, maxStalledCount=2
+- **Worker health via Redis** (Rodada 9): heartbeat setex TTL 90s + `GET /admin/motor/worker/health` (healthy/stale/offline)
 
-**O que ainda falta**
+**O que ainda falta (v2)**
 
-- Stalled detection (instanciar QueueEvents)
 - Filas imagem e audio (stubs existem, processadores nao)
 - Storage R2, prioridade por fila
 
 **Leitura pratica**
 
-v1 completa e async-only. Risco critico do worker sem service **resolvido**. Feature flags **removidas** — sistema opera direto sem transicao.
+v1 completa, stalled detection funcional, worker health observavel via API. Restam apenas filas de imagem/audio (v2) e storage R2.
 
 ### D-03. Observabilidade e admin do motor (~75%)
 
@@ -138,37 +140,33 @@ v1 completa e async-only. Risco critico do worker sem service **resolvido**. Fea
 
 Phase 1 completa com endpoints e tela admin. Expanded state, blueprint V2 e resumo estruturado ativos permanentemente. Phase 2 foca em logging estruturado e persistencia de AI prompt/response.
 
-### F-03. Controles de produto para IA (~45%)
+### F-03. Controles de produto para IA (~70%)
 
-**Status:** base ativa com 4 pilares, expanded state e resumo estruturado. Modos criativos cosmeticos (bug conhecido)
+**Status:** modos criativos funcionais + historico de versoes (Rodada 8)
 
 **O que ja existe**
 
 - Distincao `initial` vs `regenerate` (blueprintService.js:346-351)
-- Temperaturas diferenciadas (0.3 vs 0.7)
-- Logica anti-repeticao sofisticada (`buildRegenerationBlock`)
+- Temperaturas por modo via `MODE_TEMPERATURES` (initial=0.3, regenerate=0.7, criativos=0.6)
+- Logica anti-repeticao sofisticada (`buildRegenerationBlock`) — tambem ativa para modos criativos
 - 4 pilares sempre ativos (vantagens, desvantagens, habilidades, magias no prompt)
 - Expanded state sempre ativo (mana, cooldowns, concentracao, alertas no turn state)
 - Blueprint V2 sempre ativo (roteiro condensado expandido com segredos, dialogos)
 - Resumo estruturado sempre ativo (formato FATOS/ITENS/NPCS/COMBATE/DECISOES/PISTAS)
 - AI retry sempre ativo (1 retry em timeout)
-
-**Bug conhecido**
-
-- blueprintService.js:393 converte silenciosamente todos os modos criativos para 'initial' — modos sao 100% cosmeticos (so mudam UI, nao afetam prompt da IA)
+- **4 modos criativos funcionais** (Rodada 8): darker, exploration, intrigue, political — cada um injeta diretivas especificas no prompt da IA
+- **Seletor de modo no frontend** com dropdown antes do botao "Gerar"
+- **Historico de versoes** com listagem e ativacao (tabela `roteiro_versoes` + endpoints + UI)
+- Metadados de geracao (modo, modelo, temperatura, timestamp) persistidos em cada versao
 
 **O que falta construir**
 
-- Corrigir bug de modos cosmeticos (fazer modos afetarem o prompt da IA)
-- Tabela `roteiro_versoes` (versionamento — hoje roteiro e sobrescrito)
-- Metadados de geracao (modo, modelo, temperatura, timestamp)
 - Comparacao side-by-side de propostas
-- Workflow de aprovacao (marcar versao ativa)
-- Seletor de modo no frontend (hoje so botao "Regenerar")
+- Workflow avancado de aprovacao
 
 **Leitura pratica**
 
-Base funcional ativa (4 pilares, expanded state, blueprint V2, resumo estruturado). Proximo passo critico: corrigir bug dos modos cosmeticos para que afetem o prompt da IA.
+Modos criativos funcionais end-to-end (frontend selector → backend directives → AI prompt → versao salva). Historico de versoes com ativacao funcional. Proximos passos: comparacao side-by-side e workflow avancado.
 
 ### D-02. Deploy e banco VPS (~88%)
 
@@ -257,20 +255,22 @@ O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 7*
 
 - **F-01 (~100%)**: contrato WebSocket concluido, 65+ @event annotations, zero io.to() direto em engines/handlers/utils
 - **F-02 (~100%)**: 5 engines + 5 utils extraidos, socketManager 4000+→920L (-77%), feature flags removidas
-- **D-01 (~95%)**: async-only permanente (flag removida), systemd service, CI/CD restart. Falta stalled detection
+- **D-01 (~98%)**: async-only, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2)
 - **D-02 (~88%)**: CI/CD com --ff-only, pg_dump backup, healthcheck, Redis obrigatorio. Faltam rollback, preflight, lock
 - **D-03 (~75%)**: 4 endpoints admin + tela frontend, expanded state/blueprint V2/resumo estruturado ativos. Faltam logs estruturados, persistencia prompts
-- **F-03 (~45%)**: 4 pilares, expanded state, blueprint V2, resumo estruturado ativos. Bug: modos criativos cosmeticos. Faltam modos funcionais, versionamento
+- **F-03 (~70%)**: modos criativos funcionais (4 modos + regenerate), historico de versoes com ativacao, seletor no frontend. Faltam comparacao side-by-side, workflow avancado
 
-Proximos passos: (1) Rodada 8 — corrigir modos criativos cosmeticos (F-03), (2) hardening deploy D-02, (3) Phase 2 observabilidade D-03.
+Proximos passos: (1) hardening deploy D-02, (2) Phase 2 observabilidade D-03, (3) F-03 comparacao side-by-side.
 
 ## Handoff para outra instancia
 
 1. F-01 concluido (~100%) — em manutencao, sem pendencias funcionais
 2. F-02 concluido (~100%) — feature flags removidas, restam formalizacao de interfaces
-3. D-01 v1 completa (~95%) — async-only permanente, feature flag removida. Falta stalled detection
+3. D-01 v1 completa (~98%) — stalled detection + worker health + timeout config (Rodada 9). Restam filas IMAGE/AUDIO (v2)
 4. D-02 avancado (~88%) — backup, healthcheck, --ff-only, Redis obrigatorio. Faltam rollback, preflight, lock
 5. D-03 em progresso (~75%) — Phase 1 completa + expanded state/blueprint V2/resumo estruturado. Phase 2: logs estruturados
-6. F-03 em progresso (~45%) — base funcional ativa, bug conhecido: modos criativos cosmeticos em blueprintService.js:393
-7. **Rodada 7 concluida**: toda infraestrutura de feature flags removida (featureFlags.js deletado, FeatureFlagService.js deletado, isEnabled removido de 11 arquivos, sync path removido, 3 funcoes legado deletadas)
-8. cada documento individual tem secao "Auditoria" com detalhes completos
+6. F-03 em progresso (~70%) — modos criativos funcionais, historico de versoes, seletor no frontend
+7. **Rodada 7 concluida**: toda infraestrutura de feature flags removida
+8. **Rodada 8 concluida**: modos criativos funcionais (bug blueprintService.js:393 corrigido), diretivas por modo no prompt, MODE_TEMPERATURES, seletor frontend, painel de versoes
+9. **Rodada 9 concluida**: stalled detection → DB update, worker heartbeat via Redis (setex TTL 90s), GET /admin/motor/worker/health, lockDuration/stalledInterval/maxStalledCount configurados
+10. cada documento individual tem secao "Auditoria" com detalhes completos

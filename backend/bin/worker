@@ -7,9 +7,13 @@ import { QueueEvents } from 'bullmq';
 import { createRoteiroWorker } from '../jobs/processRoteiroJob.js';
 import { createBullmqConnection, getBullmqPrefix } from '../jobs/connection.js';
 import { QUEUE_NAMES } from '../jobs/queueNames.js';
+import db from '../Model/index.js';
+import { AI_JOB_STATUS } from '../jobs/aiJobs.js';
 
 let roteiroWorker = null;
 let queueEvents = null;
+let heartbeatRedis = null;
+let heartbeatKey = null;
 let shuttingDown = false;
 
 async function startWorker() {
@@ -33,14 +37,46 @@ async function startWorker() {
     prefix: getBullmqPrefix()
   });
 
-  queueEvents.on('stalled', ({ jobId }) => {
+  queueEvents.on('stalled', async ({ jobId }) => {
     console.warn(`[worker] job ${jobId} ficou stalled — sera retentado automaticamente`);
+    try {
+      const aiJob = await db.prisma.ai_jobs.findUnique({ where: { id: jobId } });
+      if (aiJob && aiJob.status !== AI_JOB_STATUS.FAILED && aiJob.status !== AI_JOB_STATUS.COMPLETED) {
+        await db.prisma.ai_jobs.update({
+          where: { id: jobId },
+          data: {
+            last_error: `Stalled detectado em ${new Date().toISOString()} (tentativa ${aiJob.attempts_made || 0})`,
+            updated_at: new Date()
+          }
+        });
+      }
+    } catch (err) {
+      console.error(`[worker] erro ao registrar stalled job ${jobId}:`, err.message);
+    }
   });
 
   await roteiroWorker.waitUntilReady();
 
-  // Heartbeat a cada 60s para monitoramento via logs/systemd
-  setInterval(() => {
+  // Heartbeat via Redis — permite que a API verifique se o worker esta vivo
+  heartbeatRedis = createBullmqConnection();
+  heartbeatKey = `${getBullmqPrefix()}:worker:heartbeat`;
+
+  async function writeHeartbeat() {
+    try {
+      const payload = JSON.stringify({
+        uptime: Math.floor(process.uptime()),
+        pid: process.pid,
+        ts: Date.now()
+      });
+      await heartbeatRedis.setex(heartbeatKey, 90, payload);
+    } catch (err) {
+      console.error('[worker] erro ao escrever heartbeat:', err.message);
+    }
+  }
+
+  await writeHeartbeat();
+  setInterval(async () => {
+    await writeHeartbeat();
     console.log(`[worker] heartbeat | uptime=${process.uptime().toFixed(0)}s`);
   }, 60_000);
 }
@@ -58,6 +94,12 @@ async function gracefulShutdown(signal) {
     if (roteiroWorker) {
       await roteiroWorker.close();
     }
+    try {
+      if (heartbeatRedis && heartbeatKey) {
+        await heartbeatRedis.del(heartbeatKey);
+        await heartbeatRedis.quit();
+      }
+    } catch (_) { /* best effort */ }
     process.exit(0);
   } catch (error) {
     console.error('[worker] erro ao encerrar worker:', error.message);

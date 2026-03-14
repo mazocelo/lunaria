@@ -5,6 +5,7 @@ import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import { AI_JOB_STATUS } from '../jobs/aiJobs.js';
 import { getRoteiroQueue } from '../jobs/roteiroQueue.js';
+import { getBullmqPrefix } from '../jobs/connection.js';
 
 const router = express.Router();
 
@@ -148,6 +149,39 @@ router.post('/jobs/:id/retry', authenticateToken, requireSuperAdmin, asyncHandle
     success: true,
     data: { job: updatedJob },
     message: 'Job reenfileirado com sucesso'
+  });
+}));
+
+// GET /admin/motor/worker/health — verificar se worker esta vivo via Redis heartbeat
+router.get('/worker/health', authenticateToken, requireSuperAdmin, asyncHandler(async (req, res) => {
+  await gerenciadorSessoes.initialize();
+  const redis = gerenciadorSessoes.client;
+  const heartbeatKey = `${getBullmqPrefix()}:worker:heartbeat`;
+
+  const raw = await redis.get(heartbeatKey);
+
+  if (!raw) {
+    return res.status(503).json({
+      success: false,
+      data: {
+        status: 'offline',
+        message: 'Worker heartbeat nao encontrado ou expirado'
+      }
+    });
+  }
+
+  const heartbeat = JSON.parse(raw);
+  const ageMs = Date.now() - heartbeat.ts;
+
+  res.json({
+    success: true,
+    data: {
+      status: ageMs < 90_000 ? 'healthy' : 'stale',
+      uptime: heartbeat.uptime,
+      pid: heartbeat.pid,
+      lastHeartbeat: new Date(heartbeat.ts).toISOString(),
+      ageMs
+    }
   });
 }));
 

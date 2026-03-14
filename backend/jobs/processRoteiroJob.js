@@ -89,7 +89,10 @@ export function createRoteiroWorker() {
   return new Worker(QUEUE_NAMES.ROTEIRO, processRoteiroJob, {
     connection: createBullmqConnection(),
     prefix: getBullmqPrefix(),
-    concurrency: getRoteiroWorkerConcurrency()
+    concurrency: getRoteiroWorkerConcurrency(),
+    lockDuration: 120_000,
+    stalledInterval: 30_000,
+    maxStalledCount: 2
   });
 }
 

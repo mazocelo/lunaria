@@ -7,7 +7,7 @@ import { Badge } from '../../../components/shared';
 import { apiClient } from '../../../services/ApiClient.js';
 import {
   BookOpen, ArrowLeft, Play, X, Users, Crown, Settings, Target,
-  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw, Pause
+  RefreshCw, ScrollText, Clock, MessageCircle, Loader2, Link2, Check, Map, Sparkles, RotateCcw, Pause, History
 } from 'lucide-react';
 import SessaoHistoricoModal from '../../../components/Jogo/Modals/SessaoHistoricoModal.jsx';
 import RoteiroViewer from '../../../components/RoteiroViewer.jsx';
@@ -44,6 +44,13 @@ const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   );
 };
 
+const MODOS_ROTEIRO = [
+  { value: 'darker', label: 'Sombrio', desc: 'Moral ambígua, tragédia' },
+  { value: 'exploration', label: 'Exploração', desc: 'Segredos, dungeons, puzzles' },
+  { value: 'intrigue', label: 'Intriga', desc: 'Traição, espionagem' },
+  { value: 'political', label: 'Político', desc: 'Facções, poder, diplomacia' },
+];
+
 const VerHistoriaView = ({
   // Data
   historiaAtual,
@@ -77,8 +84,15 @@ const VerHistoriaView = ({
   roteiro,
   roteiroStatus,
   roteiroLoading,
+  selectedMode,
+  setSelectedMode,
+  versoes,
+  versoesOpen,
+  versoesLoading,
   handleGerarRoteiro,
   handleRoteiroUpdate,
+  handleToggleVersoes,
+  handleAtivarVersao,
 
   // Navegacao
   handleIniciarSessao,
@@ -489,15 +503,29 @@ const VerHistoriaView = ({
                     </button>
                   )}
                   {canMutateHistoria && roteiro && !roteiroLoading && !['queued', 'generating'].includes(roteiroStatus) && (
-                    <button
-                      onClick={handleGerarRoteiro}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
-                        isLight ? 'bg-slate-200 hover:bg-slate-300 text-slate-600' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                      }`}
-                    >
-                      <RotateCcw size={12} />
-                      Regenerar
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedMode || ''}
+                        onChange={(e) => setSelectedMode(e.target.value || null)}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-modern ${
+                          isLight ? 'bg-slate-100 border border-slate-200 text-slate-600' : 'bg-slate-700 border border-slate-600 text-slate-300'
+                        }`}
+                      >
+                        <option value="">Regenerar (padrão)</option>
+                        {MODOS_ROTEIRO.map(m => (
+                          <option key={m.value} value={m.value}>{m.label} — {m.desc}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleGerarRoteiro}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
+                          isLight ? 'bg-slate-200 hover:bg-slate-300 text-slate-600' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                        }`}
+                      >
+                        <RotateCcw size={12} />
+                        Gerar
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -530,6 +558,7 @@ const VerHistoriaView = ({
                     )}
                   </div>
                 ) : roteiro ? (
+                  <>
                   <RoteiroViewer
                     roteiro={roteiro}
                     isLight={isLight}
@@ -542,6 +571,51 @@ const VerHistoriaView = ({
                     mestreVoiceId={effectiveMestreVoiceId}
                     mestreVoiceProvider={effectiveMestreVoiceProvider}
                   />
+                  {/* Versões do Roteiro */}
+                  {canMutateHistoria && (
+                    <div className="mt-3">
+                      <button
+                        onClick={handleToggleVersoes}
+                        className={`flex items-center gap-1.5 text-xs font-modern ${
+                          isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'
+                        } transition-colors cursor-pointer`}
+                      >
+                        <History size={12} />
+                        {versoesOpen ? 'Ocultar versões' : 'Ver versões anteriores'}
+                      </button>
+                      {versoesOpen && (
+                        <div className={`mt-2 rounded-lg p-3 space-y-2 ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
+                          {versoesLoading ? (
+                            <Loader2 size={16} className="animate-spin text-purple-400" />
+                          ) : versoes.length === 0 ? (
+                            <p className={`text-xs font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Nenhuma versão salva.</p>
+                          ) : (
+                            versoes.map(v => (
+                              <div key={v.id} className={`flex items-center justify-between text-xs font-modern p-2 rounded ${
+                                v.ativa ? (isLight ? 'bg-purple-50 border border-purple-200' : 'bg-purple-500/10 border border-purple-500/30') : ''
+                              }`}>
+                                <div>
+                                  <span className={isLight ? 'text-slate-700' : 'text-slate-300'}>v{v.versao}</span>
+                                  <span className={`ml-2 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{v.modo} · {v.temperatura}</span>
+                                  <span className={`ml-2 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{new Date(v.criado_em).toLocaleString('pt-BR')}</span>
+                                  {v.ativa && <span className="ml-2 text-purple-400 font-semibold">ativa</span>}
+                                </div>
+                                {!v.ativa && (
+                                  <button
+                                    onClick={() => handleAtivarVersao(v.id)}
+                                    className="px-2 py-0.5 rounded text-xs bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors cursor-pointer"
+                                  >
+                                    Ativar
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  </>
                 ) : (
                   <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/50 border border-slate-700'}`}>
                     <p className={`font-modern text-sm italic ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>

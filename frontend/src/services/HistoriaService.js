@@ -201,11 +201,30 @@ export class HistoriaService {
     }
   }
 
-  async gerarRoteiro(historiaId) {
+  async gerarRoteiro(historiaId, mode = null) {
     try {
-      return await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro`);
+      const body = mode ? { mode } : {};
+      return await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro`, body);
     } catch (error) {
       throw new Error(`Erro ao gerar roteiro: ${error.message}`);
+    }
+  }
+
+  async listarVersoesRoteiro(historiaId) {
+    try {
+      const response = await this.apiClient.get(`${this.baseUrl}/${historiaId}/roteiro-versoes`);
+      if (response?.success) return response.data;
+      return [];
+    } catch (error) {
+      throw new Error(`Erro ao listar versões: ${error.message}`);
+    }
+  }
+
+  async ativarVersaoRoteiro(historiaId, versaoId) {
+    try {
+      return await this.apiClient.post(`${this.baseUrl}/${historiaId}/roteiro-versoes/${versaoId}/ativar`);
+    } catch (error) {
+      throw new Error(`Erro ao ativar versão: ${error.message}`);
     }
   }
 

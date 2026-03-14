@@ -42,6 +42,10 @@ export const useHistoriaVerModel = () => {
   const [roteiro, setRoteiro] = useState(null);
   const [roteiroStatus, setRoteiroStatus] = useState(null);
   const [roteiroLoading, setRoteiroLoading] = useState(false);
+  const [selectedMode, setSelectedMode] = useState(null);
+  const [versoes, setVersoes] = useState([]);
+  const [versoesOpen, setVersoesOpen] = useState(false);
+  const [versoesLoading, setVersoesLoading] = useState(false);
   const roteiroPollRef = useRef(null);
   const roteiroTimeoutRef = useRef(null);
 
@@ -202,7 +206,9 @@ export const useHistoriaVerModel = () => {
     setRoteiroLoading(true);
     setRoteiroStatus('generating');
     try {
-      await historiaService.gerarRoteiro(historiaAtual.id);
+      const mode = selectedMode || (roteiro ? 'regenerate' : 'initial');
+      await historiaService.gerarRoteiro(historiaAtual.id, mode);
+      setSelectedMode(null);
       startRoteiroPoll(historiaAtual.id);
     } catch (err) {
       console.error('Erro ao gerar roteiro:', err);
@@ -221,6 +227,38 @@ export const useHistoriaVerModel = () => {
       console.error('Erro ao salvar roteiro:', err);
     }
   }, [historiaAtual]);
+
+  const loadVersoes = useCallback(async () => {
+    if (!historiaAtual) return;
+    setVersoesLoading(true);
+    try {
+      const data = await historiaService.listarVersoesRoteiro(historiaAtual.id);
+      setVersoes(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar versões:', err);
+    } finally {
+      setVersoesLoading(false);
+    }
+  }, [historiaAtual]);
+
+  const handleToggleVersoes = useCallback(() => {
+    const next = !versoesOpen;
+    setVersoesOpen(next);
+    if (next) loadVersoes();
+  }, [versoesOpen, loadVersoes]);
+
+  const handleAtivarVersao = useCallback(async (versaoId) => {
+    if (!historiaAtual) return;
+    try {
+      const response = await historiaService.ativarVersaoRoteiro(historiaAtual.id, versaoId);
+      if (response?.data?.roteiro) {
+        setRoteiro(response.data.roteiro);
+      }
+      await loadVersoes();
+    } catch (err) {
+      console.error('Erro ao ativar versão:', err);
+    }
+  }, [historiaAtual, loadVersoes]);
 
   // Imagem handlers
   const handleCapaGenerated = useCallback(async (url) => {
@@ -317,8 +355,15 @@ export const useHistoriaVerModel = () => {
     roteiro,
     roteiroStatus,
     roteiroLoading,
+    selectedMode,
+    setSelectedMode,
+    versoes,
+    versoesOpen,
+    versoesLoading,
     handleGerarRoteiro,
     handleRoteiroUpdate,
+    handleToggleVersoes,
+    handleAtivarVersao,
 
     // Imagens
     handleCapaGenerated,

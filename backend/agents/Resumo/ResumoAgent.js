@@ -52,7 +52,8 @@ export class ResumoAgent {
     personagens,
     rodadasJogadas,
     resumoAnterior = null,
-    userId = null
+    userId = null,
+    contextoResumo = null
   }) {
     const blocoAnterior = resumoAnterior
       ? `\nRESUMO ANTERIOR (consolidar com as novas informacoes):\n${resumoAnterior}\n`
@@ -66,7 +67,8 @@ export class ResumoAgent {
       blocoAnterior,
       resumoAnterior,
       mensagensFormatadas,
-      mensagensCanonicas.length
+      mensagensCanonicas.length,
+      contextoResumo
     );
 
     const startTime = Date.now();
@@ -80,7 +82,7 @@ export class ResumoAgent {
     return response.content;
   }
 
-  async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null, userId }) {
+  async resumirAventura({ mensagens, temas, personagens, rodadasJogadas, resumoAnterior = null, userId, contextoResumo = null }) {
     try {
       const mensagensCanonicas = this._filtrarMensagensCanonicas(mensagens);
       const blocos = this._chunkMensagens(mensagensCanonicas, 120);
@@ -96,7 +98,8 @@ export class ResumoAgent {
             personagens,
             rodadasJogadas,
             resumoAnterior: resumoConsolidado,
-            userId
+            userId,
+            contextoResumo
           });
         }
       }
@@ -116,7 +119,22 @@ export class ResumoAgent {
     }
   }
 
-  _buildStructuredPrompt(temas, personagens, rodadasJogadas, totalMensagens, blocoAnterior, resumoAnterior, mensagensFormatadas, qtdMensagens) {
+  _formatContextoResumo(contextoResumo) {
+    if (!contextoResumo) return '';
+    const parts = [];
+    if (contextoResumo.cenaAtual) parts.push(`- Cena atual: ${contextoResumo.cenaAtual}`);
+    if (contextoResumo.terreno) parts.push(`- Terreno: ${contextoResumo.terreno}`);
+    if (contextoResumo.tensao) parts.push(`- Tensao: ${contextoResumo.tensao}`);
+    if (contextoResumo.boss) parts.push(`- Boss ativo: ${contextoResumo.boss}`);
+    if (contextoResumo.batalha) parts.push(`- Batalha: ${contextoResumo.batalha}`);
+    if (contextoResumo.missao) parts.push(`- Missao tatica: ${contextoResumo.missao}`);
+    if (contextoResumo.recursos) parts.push(`- Recursos: ${contextoResumo.recursos}`);
+    if (parts.length === 0) return '';
+    return `\nESTADO ATUAL DA SESSAO (use para preencher CENARIO_ATUAL, TERRENO_ATUAL, RECURSOS_CONSUMIDOS e MORAL_GRUPO):\n${parts.join('\n')}\n`;
+  }
+
+  _buildStructuredPrompt(temas, personagens, rodadasJogadas, totalMensagens, blocoAnterior, resumoAnterior, mensagensFormatadas, qtdMensagens, contextoResumo = null) {
+    const blocoContexto = this._formatContextoResumo(contextoResumo);
     return `Voce e um assistente que resume aventuras de RPG em formato ESTRUTURADO.
 
 CONTEXTO:
@@ -124,7 +142,7 @@ CONTEXTO:
 - Personagens: ${personagens.map(p => p.personagemNome || p.username || p.nome || p).join(', ')}
 - Rodadas Jogadas: ${rodadasJogadas}
 - Total de Mensagens: ${totalMensagens}
-${blocoAnterior}
+${blocoAnterior}${blocoContexto}
 ${resumoAnterior ? 'Consolide o resumo anterior com as novas informacoes em um UNICO resumo estruturado.' : 'Crie um resumo estruturado.'}
 
 FORMATO OBRIGATORIO (use exatamente estas secoes, omita secoes vazias):
@@ -150,7 +168,19 @@ PISTAS:
 DESVANTAGENS_ATIVADAS:
 - [Desvantagem]: [resultado]
 
-Maximo 500 palavras. Use topicos curtos, NAO paragrafos.
+CENARIO_ATUAL:
+- [Cena/local onde o grupo esta agora]
+
+TERRENO_ATUAL:
+- [Tipo de terreno e condicoes ambientais relevantes]
+
+RECURSOS_CONSUMIDOS:
+- [HP, mana, itens consumiveis usados — resumo geral do grupo]
+
+MORAL_GRUPO:
+- [Estado emocional/moral do grupo: determinado/abalado/dividido/etc]
+
+Maximo 600 palavras. Use topicos curtos, NAO paragrafos.
 
 MENSAGENS RECENTES (${qtdMensagens}):
 ${mensagensFormatadas}

@@ -61,9 +61,26 @@ export function condensarRoteiro(roteiro, estadoAtual = null) {
     parts.push(arcoText);
   }
 
-  // 4. NPCs (expandido com segredos e diálogos)
+  // 3b. Cena/local atual (do contexto de sessão)
+  const cenaParts = [];
+  if (estadoAtual?.cenaAtual) cenaParts.push(`Local: ${estadoAtual.cenaAtual}`);
+  if (estadoAtual?.ambiente && estadoAtual.ambiente !== estadoAtual?.cenaAtual) cenaParts.push(`Ambiente: ${estadoAtual.ambiente}`);
+  if (cenaParts.length > 0) parts.push(`**CENA ATUAL:** ${cenaParts.join(' | ')}`);
+
+  // 4. NPCs (priorizados por presença na cena e encontros)
   if (roteiro.npcs?.length) {
-    const npcsRelevantes = roteiro.npcs.slice(0, 8);
+    const npcsPresentes = new Set((estadoAtual?.npcs || []).map(n => typeof n === 'string' ? n.toLowerCase() : ''));
+    const npcsEncontrados = new Set((estadoAtual?.npcsEncontrados || []).map(n => typeof n === 'string' ? n.toLowerCase() : ''));
+    const scored = roteiro.npcs.map(n => {
+      const nome = (n.nome || '').toLowerCase();
+      let score = 0;
+      if (npcsPresentes.has(nome)) score += 10;
+      if (npcsEncontrados.has(nome)) score += 5;
+      if (n.arco_relacionado === arcoAtual) score += 3;
+      return { npc: n, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const npcsRelevantes = scored.slice(0, 8).map(s => s.npc);
     const npcLines = npcsRelevantes.map(n => {
       let line = `${n.nome} (${n.papel}) — ${(n.descricao || '').substring(0, 80)}`;
       if (n.segredo) line += `\n    [Segredo: ${n.segredo.substring(0, 100)}]`;
@@ -85,9 +102,11 @@ export function condensarRoteiro(roteiro, estadoAtual = null) {
     parts.push(`**LOCAIS:** ${locaisList}`);
   }
 
-  // 6. Plot twists (expandido com gatilho e foreshadowing)
+  // 6. Plot twists (pendentes — exclui já ativados, foca em arco atual e futuros)
   if (roteiro.plotTwists?.length) {
-    const twistsRelevantes = roteiro.plotTwists.filter(t => {
+    const twistsAtivados = new Set((progressaoAtual?.twists_ativados || []).map(t => typeof t === 'number' ? t : parseInt(t)).filter(n => !isNaN(n)));
+    const twistsRelevantes = roteiro.plotTwists.filter((t, idx) => {
+      if (twistsAtivados.has(idx) || twistsAtivados.has(idx + 1)) return false;
       const match = t.momento?.match(/arco\s*(\d+)/i);
       return match ? parseInt(match[1]) >= arcoAtual : true;
     }).slice(0, 4);
@@ -149,6 +168,21 @@ export function condensarRoteiro(roteiro, estadoAtual = null) {
   }
   if (Array.isArray(estadoAtual?.locaisVisitados) && estadoAtual.locaisVisitados.length > 0) {
     parts.push(`**LOCAIS JÁ VISITADOS:** ${estadoAtual.locaisVisitados.slice(0, 8).join('; ')}`);
+  }
+
+  // 10. Contexto recente da sessão (objetivos, pistas, notas de progressão)
+  const ctxRecente = [];
+  if (estadoAtual?.objetivosAbertos?.length > 0) {
+    ctxRecente.push(`Objetivos abertos: ${estadoAtual.objetivosAbertos.slice(0, 4).join('; ')}`);
+  }
+  if (estadoAtual?.pistasDescobertas?.length > 0) {
+    ctxRecente.push(`Pistas: ${estadoAtual.pistasDescobertas.slice(0, 4).join('; ')}`);
+  }
+  if (progressaoAtual?.notas) {
+    ctxRecente.push(`Nota de progressão: ${progressaoAtual.notas.substring(0, 120)}`);
+  }
+  if (ctxRecente.length > 0) {
+    parts.push(`**CONTEXTO RECENTE:**\n  ${ctxRecente.join('\n  ')}`);
   }
 
   let resultado = parts.join('\n\n');

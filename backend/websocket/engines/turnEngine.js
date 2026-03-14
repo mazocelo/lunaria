@@ -452,13 +452,15 @@ export default class TurnEngine {
             const sessaoParaResumo = await sm.obterSessaoHistoria(roomId);
             const resumoAnteriorObj = await sm.gerenciadorSessoes.obterUltimoResumo(roomId);
 
+            const { buildContextoResumo } = await import('../../agents/Mestre/contexto/mestreContextBuilder.js');
             const resumo = await resumoAgent.resumirAventura({
               mensagens: sessaoParaResumo.mensagens || [],
               temas: extrairNomesTemas(sessaoParaResumo.historiaTemas || []),
               personagens: Object.values(sessaoParaResumo.jogadores || {}),
               rodadasJogadas: rodadaAtual,
               resumoAnterior: resumoAnteriorObj?.resumo || null,
-              userId: null
+              userId: null,
+              contextoResumo: buildContextoResumo(sessaoParaResumo)
             });
 
             await sm.gerenciadorSessoes.salvarResumo(roomId, resumo);

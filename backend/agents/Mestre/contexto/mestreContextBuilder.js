@@ -2,7 +2,10 @@ import crypto from 'crypto';
 import { extrairNomesTemas } from '../../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../../helpers/personagensHelper.js';
 import { condensarRoteiro } from '../prompts/roteiroCondenser.js';
-import { normalizarTerrenoInput } from '../../../helpers/estadoTatico.js';
+import {
+  normalizarTerrenoInput, getTerrenoLabel,
+  getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo
+} from '../../../helpers/estadoTatico.js';
 import logger from '../../../helpers/logger.js';
 
 const log = logger.child({ module: 'mestreContextBuilder' });
@@ -453,7 +456,7 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
 }
 
 export function buildMestreContext(sessao = {}, historia = null, extras = {}) {
-  const roteiro = extras.roteiroCondensado || condensarRoteiro(inferRoteiro(sessao, historia), sessao.estadoJogo || null);
+  const roteiro = extras.roteiroCondensado || condensarRoteiro(inferRoteiro(sessao, historia), buildBlueprintContext(sessao));
   const contextoBase = sessao.mestreContexto || {};
   const progressao = extras.progressao || sessao.estadoJogo?.progressao || null;
   const resumoRecente = extras.resumoRecente || null;
@@ -583,6 +586,76 @@ function parseStructuredSection(summary = '', title = '') {
     .filter(Boolean);
 }
 
+/**
+ * Monta contexto enriquecido para condensarRoteiro.
+ * Agrega estadoJogo + mestreContexto.sessao em objeto flat.
+ * Leitura pura — não muta sessão.
+ */
+export function buildBlueprintContext(sessao) {
+  const ej = sessao?.estadoJogo || {};
+  const ctx = sessao?.mestreContexto?.sessao || {};
+  const progressao = ej.progressao || null;
+
+  return {
+    arcoAtual: progressao?.arco_atual || null,
+    cenaAtual: ej.cenaAtual || ctx.cenaAtual || null,
+    ambiente: ej.ambiente || ctx.ambiente || null,
+    terreno: ej.terreno || null,
+    npcs: Array.isArray(ej.npcs) ? ej.npcs : (ctx.npcsPresentes || []),
+    npcsEncontrados: ctx.npcsEncontrados || [],
+    locaisVisitados: ctx.locaisVisitados || [],
+    objetivosAbertos: ctx.objetivosAbertos || [],
+    pistasDescobertas: ctx.pistasDescobertas || [],
+    resumoRecente: ctx.resumoRecente || null,
+    progressao
+  };
+}
+
+/**
+ * Monta objeto compacto de contexto runtime para injetar no prompt do ResumoAgent.
+ * Leitura pura — não muta sessão.
+ */
+export function buildContextoResumo(sessao) {
+  const ej = sessao?.estadoJogo || {};
+  const ctx = {};
+
+  if (ej.cenaAtual) ctx.cenaAtual = ej.cenaAtual;
+
+  const terreno = normalizarTerrenoInput(ej.terreno);
+  if (terreno) {
+    const label = getTerrenoLabel(terreno);
+    const tags = terreno.tags?.length > 0 ? ` [${terreno.tags.join(', ')}]` : '';
+    ctx.terreno = `${label}${tags}`;
+  }
+
+  if (ej.tensao) ctx.tensao = ej.tensao;
+
+  const boss = getBossResumo(sessao);
+  if (boss) ctx.boss = `${boss.nome} (Fase ${boss.fase_atual})`;
+
+  const bg = getBatalhaGrandeResumo(sessao);
+  if (bg) ctx.batalha = bg.nome || 'Batalha em curso';
+
+  const mt = getMissaoTaticaResumo(sessao);
+  if (mt) ctx.missao = `${(mt.objetivo || mt.descricao || 'Missao').slice(0, 60)} [${mt.status}]`;
+
+  // Recursos: snapshot compacto de HP/mana dos jogadores
+  const pSessao = ej.personagemSessao || {};
+  const pcCompletos = sessao?.personagensCompletos || {};
+  const recursoParts = [];
+  for (const [uid, bucket] of Object.entries(pSessao)) {
+    const pc = pcCompletos[uid] || Object.values(pcCompletos).find(p => String(p.userId) === uid);
+    const nome = pc?.nome || `J${uid}`;
+    const hp = bucket.hp_atual != null ? `HP ${bucket.hp_atual}/${bucket.hp_max || '?'}` : null;
+    const mana = bucket.mana_atual != null ? `Mana ${bucket.mana_atual}/${bucket.mana_max || '?'}` : null;
+    const parts = [hp, mana].filter(Boolean);
+    if (parts.length > 0) recursoParts.push(`${nome}: ${parts.join(', ')}`);
+  }
+  if (recursoParts.length > 0) ctx.recursos = recursoParts.join('; ');
+
+  return Object.keys(ctx).length > 0 ? ctx : null;
+}
+
 export function extractSummarySignals(summary = '') {
   const fatosImportantes = parseStructuredSection(summary, 'FATOS');
   const pistasDescobertas = parseStructuredSection(summary, 'PISTAS');
@@ -591,12 +664,22 @@ export function extractSummarySignals(summary = '') {
   const npcLines = parseStructuredSection(summary, 'NPCS');
   const npcsEncontrados = npcLines.map(line => line.split(':')[0]?.trim()).filter(Boolean);
 
+  // F07: novas seções
+  const cenarioAtual = parseStructuredSection(summary, 'CENARIO_ATUAL');
+  const terrenoAtual = parseStructuredSection(summary, 'TERRENO_ATUAL');
+  const recursosConsumidos = parseStructuredSection(summary, 'RECURSOS_CONSUMIDOS');
+  const moralGrupo = parseStructuredSection(summary, 'MORAL_GRUPO');
+
   return {
     fatosImportantes: uniqueList(fatosImportantes).slice(0, MAX_LIST_ITEMS),
     pistasDescobertas: uniqueList(pistasDescobertas).slice(0, MAX_LIST_ITEMS),
     itensRelevantes: uniqueList(itens).slice(0, MAX_LIST_ITEMS),
     objetivosAbertos: uniqueList(objetivos).slice(0, MAX_LIST_ITEMS),
-    npcsEncontrados: uniqueList(npcsEncontrados).slice(0, MAX_LIST_ITEMS)
+    npcsEncontrados: uniqueList(npcsEncontrados).slice(0, MAX_LIST_ITEMS),
+    cenarioAtual: cenarioAtual[0] || null,
+    terrenoAtual: terrenoAtual[0] || null,
+    recursosConsumidos: uniqueList(recursosConsumidos).slice(0, MAX_LIST_ITEMS),
+    moralGrupo: moralGrupo[0] || null
   };
 }
 
@@ -723,6 +806,13 @@ export function applyResumoToSessao(sessao = {}, resumo = null, historia = null,
         ...(progressao?.npcs_encontrados || []),
         ...sinais.npcsEncontrados
       ]),
+      // F07: novos sinais do resumo (sobrescrevem com último valor, não acumulam)
+      cenarioAtual: sinais.cenarioAtual || contextoBase?.sessao?.cenarioAtual || null,
+      terrenoAtual: sinais.terrenoAtual || contextoBase?.sessao?.terrenoAtual || null,
+      recursosConsumidos: sinais.recursosConsumidos.length > 0
+        ? sinais.recursosConsumidos
+        : (contextoBase?.sessao?.recursosConsumidos || []),
+      moralGrupo: sinais.moralGrupo || contextoBase?.sessao?.moralGrupo || null,
       ultimaAtualizacao: new Date().toISOString()
     }
   });
@@ -754,7 +844,7 @@ export async function prepareMestrePayload(sessao = {}, historia = null) {
     log.warn({ err: error }, 'Erro ao construir catalogo para Mestre');
   }
 
-  const roteiroCondensado = condensarRoteiro(inferRoteiro(sessao, historia), sessao.estadoJogo || null);
+  const roteiroCondensado = condensarRoteiro(inferRoteiro(sessao, historia), buildBlueprintContext(sessao));
   const mestreContexto = buildMestreContext(sessao, historia, {
     roteiroCondensado
   });

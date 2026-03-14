@@ -9,7 +9,7 @@ import { buscarTemasCompletos } from '../helpers/temasHelper.js';
 import { buscarPersonagensCompletos } from '../helpers/personagensHelper.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import resumoAgent from '../agents/Resumo/ResumoAgent.js';
-import { buildMestreContext, prepareMestrePayload } from '../agents/Mestre/contexto/mestreContextBuilder.js';
+import { buildMestreContext, buildContextoResumo, prepareMestrePayload } from '../agents/Mestre/contexto/mestreContextBuilder.js';
 
 const router = express.Router();
 
@@ -776,36 +776,42 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
       log.error({ err: mergeError }, 'Erro ao mesclar clones');
     }
 
-    // 2. Excluir sessão do Redis
+    // 2. Snapshot da sessão em memória antes de excluir do Redis
+    let sessaoRedisSnapshot = null;
+    try {
+      sessaoRedisSnapshot = await gerenciadorSessoes.obterSessao(salaId);
+    } catch (_) { /* sessão pode não existir no Redis */ }
+
+    // 3. Excluir sessão do Redis
     try {
       await gerenciadorSessoes.excluirSessao(salaId);
     } catch (_) { /* sessão pode não existir no Redis */ }
 
-    // 3. Finalizar snapshot no DB
+    // 4. Finalizar snapshot no DB
     try {
       await sessaoSnapshotService.finalizarSnapshot(salaId);
     } catch (_) { /* snapshot pode não existir */ }
 
-    // 4. Gerar resumo da sessão via IA (antes de limpar Redis)
+    // 5. Gerar resumo da sessão via IA (usa snapshot já em memória)
     let resumoSessao = null;
     try {
-      const sessaoRedis = await gerenciadorSessoes.obterSessao(salaId);
-      if (sessaoRedis && sessaoRedis.mensagens && sessaoRedis.mensagens.length > 0) {
-        const personagens = sessaoRedis.jogadores
-          ? Object.values(sessaoRedis.jogadores).map(j => ({
+      if (sessaoRedisSnapshot && sessaoRedisSnapshot.mensagens && sessaoRedisSnapshot.mensagens.length > 0) {
+        const personagens = sessaoRedisSnapshot.jogadores
+          ? Object.values(sessaoRedisSnapshot.jogadores).map(j => ({
               personagemNome: j.personagemNome || j.username,
               username: j.username
             }))
           : [];
-        const temas = sessaoRedis.temas || historia.temas || [];
-        const rodadasJogadas = sessaoRedis.estadoJogo?.rodadaAtual || 0;
+        const temas = sessaoRedisSnapshot.temas || historia.temas || [];
+        const rodadasJogadas = sessaoRedisSnapshot.estadoJogo?.rodadaAtual || 0;
 
         const resultado = await resumoAgent.resumirAventura({
-          mensagens: sessaoRedis.mensagens,
+          mensagens: sessaoRedisSnapshot.mensagens,
           temas: Array.isArray(temas) ? temas : [temas],
           personagens,
           rodadasJogadas,
-          userId: req.user?.id
+          userId: req.user?.id,
+          contextoResumo: buildContextoResumo(sessaoRedisSnapshot)
         });
         resumoSessao = resultado.resumo;
         log.info({ mensagensResumidas: resultado.mensagensResumidas }, 'Resumo da sessao gerado com sucesso');
@@ -814,7 +820,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
       log.error({ err: resumoError }, 'Erro ao gerar resumo da sessao (nao-bloqueante)');
     }
 
-    // 5. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
+    // 6. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
     socketManager.limparSessaoCompleta(salaId, {
       resumo: resumoSessao,
       historiaNome: historia.nome,

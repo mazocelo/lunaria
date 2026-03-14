@@ -14,6 +14,8 @@ import { atualizarProgressao, condensarRoteiro } from '../../agents/Mestre/promp
 import {
   applyResumoToSessao,
   buildMestreContext,
+  buildBlueprintContext,
+  buildContextoResumo,
   getCompactacaoState,
   prepareMestrePayload
 } from '../../agents/Mestre/contexto/mestreContextBuilder.js';
@@ -209,7 +211,8 @@ export default class SessionEngine {
         personagens: Object.values(sessao.jogadores || {}),
         rodadasJogadas: rodadaAtual,
         resumoAnterior: resumoAnteriorObj?.resumo || null,
-        userId: options.userId || null
+        userId: options.userId || null,
+        contextoResumo: buildContextoResumo(sessao)
       });
 
       let novaProgressao = estadoJogo.progressao || null;
@@ -324,7 +327,7 @@ export default class SessionEngine {
     if (sessao.historiaRoteiro) {
       try {
         // condensarRoteiro importado estaticamente no topo
-        roteiroCondensado = condensarRoteiro(sessao.historiaRoteiro, sessao.estadoJogo || null);
+        roteiroCondensado = condensarRoteiro(sessao.historiaRoteiro, buildBlueprintContext(sessao));
         if (roteiroCondensado) {
           log.info({ salaId, chars: roteiroCondensado.length }, 'Roteiro condensado');
         }

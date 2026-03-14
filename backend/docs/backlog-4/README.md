@@ -13,7 +13,7 @@ O foco aqui nao e "reescrever completamente o MestreAgent". O foco e:
 
 ## Status
 
-`backlog-4` em execucao. F01–F05 entregues, D01 documentado. Proxima frente: F07.
+`backlog-4` concluido. F01–F07 entregues, D01 documentado, D02 validado (smoke 29/29).
 
 ## Dependencias
 
@@ -49,9 +49,9 @@ Este backlog depende das seguintes premissas:
 | `B4-F04` | Acoes mecanicas de cenario e combate expandido | concluido (`c7ccc22`) |
 | `B4-D01` | Arquitetura de estado tatico (spec) | documentado |
 | `B4-F05` | Runtime unificado de estado tatico | concluido (`53c1183`..`e6d9428`+F05E) |
-| `B4-F06` | Blueprint contextual v2 | pendente |
-| `B4-F07` | Resumo estruturado v2 | pendente |
-| `B4-D02` | Validacao E2E, compatibilidade e fallbacks | pendente |
+| `B4-F06` | Blueprint contextual v2 | concluido |
+| `B4-F07` | Resumo estruturado v2 | concluido |
+| `B4-D02` | Validacao smoke backend, compatibilidade e fallbacks | concluido (smoke 29/29) |
 
 ## Fora de escopo imediato
 

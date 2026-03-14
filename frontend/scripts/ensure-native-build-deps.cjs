@@ -1,3 +1,4 @@
+const { readFileSync } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { platform, arch } = require('node:process');
 
@@ -44,20 +45,51 @@ function installPackages(packages) {
   }
 }
 
+function isMuslLinux() {
+  if (platform !== 'linux') {
+    return false;
+  }
+
+  try {
+    return readFileSync('/usr/bin/ldd', 'utf8').includes('musl');
+  } catch {
+    try {
+      const result = spawnSync('ldd', ['--version'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      return `${result.stdout || ''}\n${result.stderr || ''}`.includes('musl');
+    } catch {
+      return false;
+    }
+  }
+}
+
 if (platform === 'linux' && arch === 'x64') {
   const missingPackages = [];
+  const linuxVariant = isMuslLinux() ? 'musl' : 'gnu';
 
-  if (!hasPackage('@rollup/rollup-linux-x64-gnu')) {
-    const version = resolveOptionalVersion('rollup', '@rollup/rollup-linux-x64-gnu');
+  const rollupNativePackage = `@rollup/rollup-linux-x64-${linuxVariant}`;
+  if (!hasPackage(rollupNativePackage)) {
+    const version = resolveOptionalVersion('rollup', rollupNativePackage);
     if (version) {
-      missingPackages.push(`@rollup/rollup-linux-x64-gnu@${version}`);
+      missingPackages.push(`${rollupNativePackage}@${version}`);
     }
   }
 
-  if (!hasPackage('lightningcss-linux-x64-gnu')) {
-    const version = resolveOptionalVersion('lightningcss', 'lightningcss-linux-x64-gnu');
+  const lightningCssNativePackage = `lightningcss-linux-x64-${linuxVariant}`;
+  if (!hasPackage(lightningCssNativePackage)) {
+    const version = resolveOptionalVersion('lightningcss', lightningCssNativePackage);
     if (version) {
-      missingPackages.push(`lightningcss-linux-x64-gnu@${version}`);
+      missingPackages.push(`${lightningCssNativePackage}@${version}`);
+    }
+  }
+
+  const oxideNativePackage = `@tailwindcss/oxide-linux-x64-${linuxVariant}`;
+  if (!hasPackage(oxideNativePackage)) {
+    const version = resolveOptionalVersion('@tailwindcss/oxide', oxideNativePackage);
+    if (version) {
+      missingPackages.push(`${oxideNativePackage}@${version}`);
     }
   }
 

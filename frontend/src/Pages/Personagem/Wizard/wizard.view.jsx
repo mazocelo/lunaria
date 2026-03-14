@@ -336,19 +336,7 @@ const WizardView = (props) => {
                 etapas={etapas}
                 etapaAtual={etapaAtual}
                 etapaIndex={etapaIndex}
-                nome={nome}
-                racaId={racaId}
-                classeId={classeId}
-                background={background}
-                vantagensIds={vantagensIds}
-                desvantagensIds={desvantagensIds}
-                skipVantagens={skipVantagens}
-                skipDesvantagens={skipDesvantagens}
-                racasDisponiveis={racasDisponiveis}
-                classesDisponiveis={classesDisponiveis}
                 isLight={isLight}
-                readinessState={readinessState}
-                stageSummary={stageSummary}
                 embedded
               />
             </div>

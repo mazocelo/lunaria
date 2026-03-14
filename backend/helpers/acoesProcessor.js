@@ -12,7 +12,7 @@ import { setCooldown, checkCooldown } from './cooldownManager.js';
 import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
 import { aplicarEfeito, removerEfeito } from './effectManager.js';
 import { applyMetadadosToSessao } from '../agents/Mestre/contexto/mestreContextBuilder.js';
-import { normalizarTerrenoInput, getTerrenoLabel } from './estadoTatico.js';
+import { normalizarTerrenoInput, getTerrenoLabel, addEfeitoTerreno, clearEfeitosTerreno, ensurePersonagemBucket, registrarItemGanhoBucket, registrarItemPerdidoBucket } from './estadoTatico.js';
 import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 import { appendMensagemSessao, buildAcaoMestreMensagem } from '../websocket/utils/sessionMessages.js';
 
@@ -168,6 +168,9 @@ async function processarDarItem(acao, sessao, roomId, sm) {
 
   log.info({ item: equipamento.nome, personagem: nomePersonagem }, 'dar_item: item entregue');
 
+  // Registrar no bucket per-player (B4-F05B)
+  registrarItemGanhoBucket(sessao, alvo.userId, { nome: equipamento.nome, id: equipamento.id });
+
   // Persistir no clone da sessão (se existir)
   try {
     const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
@@ -217,6 +220,9 @@ async function processarRemoverItem(acao, sessao, roomId, sm) {
 
   const removido = alvo.personagem.equipamentos.splice(idx, 1)[0];
   log.info({ item: removido.nome, personagem: nomePersonagem }, 'remover_item: item removido');
+
+  // Registrar no bucket per-player (B4-F05B)
+  registrarItemPerdidoBucket(sessao, alvo.userId, { nome: removido.nome, id: removido.id, motivo: 'narrativa' });
 
   // Persistir no clone da sessão (se existir)
   try {
@@ -712,7 +718,7 @@ async function processarDarXP(acao, sessao, roomId, sm) {
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
   if (!alvo) return;
 
-  const pSessao = ensurePersonagemSessao(sessao, alvo.userId);
+  const pSessao = ensurePersonagemBucket(sessao, alvo.userId);
   pSessao.xp_ganho = (pSessao.xp_ganho || 0) + xp;
 
   log.info({ personagem: nomePersonagem, xp, xpTotalSessao: pSessao.xp_ganho }, 'dar_xp: XP concedido');
@@ -781,11 +787,17 @@ async function processarAlterarTerreno(acao, sessao, roomId, sm) {
   const terrenoAnteriorNorm = normalizarTerrenoInput(terrenoAnteriorRaw);
   sessao.estadoJogo.terreno = terrenoNorm;
 
-  // terrenoEfeito: write-only na v1 — migração para efeitos_terreno[] em F05-B
+  // efeitos_terreno[]: shape canônico (B4-F05B). Terreno novo sem efeito limpa efeitos anteriores.
   if (efeito && typeof efeito === 'string') {
-    sessao.estadoJogo.terrenoEfeito = { descricao: efeito, duracao: duracao || null, aplicado_em: Date.now() };
+    clearEfeitosTerreno(sessao);
+    addEfeitoTerreno(sessao, {
+      descricao: efeito,
+      duracao: typeof duracao === 'number' ? duracao : null,
+      aplicado_em: sessao.estadoJogo.rodadaAtual || 1,
+      fonte: 'alterar_terreno'
+    });
   } else {
-    sessao.estadoJogo.terrenoEfeito = null;
+    clearEfeitosTerreno(sessao);
   }
 
   log.info({ terreno: terrenoNorm, terrenoAnterior: terrenoAnteriorNorm, efeito: efeito || null }, 'alterar_terreno: terreno alterado');
@@ -820,8 +832,8 @@ async function processarMudarCenario(acao, sessao, roomId, sm) {
 
   applyMetadadosToSessao(sessao, metadados);
 
-  // Limpar efeito de terreno do local anterior
-  if (sessao.estadoJogo) sessao.estadoJogo.terrenoEfeito = null;
+  // Limpar efeitos de terreno do local anterior (B4-F05B)
+  clearEfeitosTerreno(sessao);
 
   log.info({ cenario, cenarioAnterior, terreno: terreno || null }, 'mudar_cenario: cenario mudado');
 
@@ -972,6 +984,9 @@ async function processarDanificarEquipamento(acao, sessao, roomId, sm) {
     alvo.personagem.equipamentos.splice(idx, 1);
     log.info({ item: nomeItem, personagem: nomePersonagem, motivo }, 'danificar_equipamento: item destruido');
 
+    // Registrar no bucket per-player (B4-F05B)
+    registrarItemPerdidoBucket(sessao, alvo.userId, { nome: nomeItem, id: equipRef.id, motivo: motivo || 'destruido' });
+
     // Persistir perda no clone
     try {
       const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
@@ -1018,19 +1033,6 @@ function ensureManaState(sessao, userId, personagem) {
     sessao.estadoJogo.manaState[uid] = { mana_atual: manaMax, mana_max: manaMax };
   }
   return sessao.estadoJogo.manaState[uid];
-}
-
-/**
- * Garante que personagemSessao existe para o jogador
- */
-function ensurePersonagemSessao(sessao, userId) {
-  if (!sessao.estadoJogo) sessao.estadoJogo = {};
-  if (!sessao.estadoJogo.personagemSessao) sessao.estadoJogo.personagemSessao = {};
-  const uid = String(userId);
-  if (!sessao.estadoJogo.personagemSessao[uid]) {
-    sessao.estadoJogo.personagemSessao[uid] = {};
-  }
-  return sessao.estadoJogo.personagemSessao[uid];
 }
 
 export { persistirEstadoClone };

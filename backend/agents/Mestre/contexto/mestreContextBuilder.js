@@ -622,9 +622,10 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
   }
 
   if (localMudou) {
-    // Terreno e ameaças do local anterior não se aplicam mais
+    // Terreno, ameaças e efeitos de terreno do local anterior não se aplicam mais
     if (!presenteOrTruthy(metadados.terreno)) estadoJogo.terreno = null;
     if (!Array.isArray(metadados.ameacas)) estadoJogo.ameacas = [];
+    estadoJogo.efeitos_terreno = [];
   }
 
   if (presenteOrTruthy(metadados.ambiente)) {

@@ -13,6 +13,7 @@ import { COMBAT_EVENTS } from '../events/eventTypes.js';
 import { verificarLevelUp, xpParaNivel } from '../../helpers/evolucaoHelper.js';
 import { rolarLootCombate } from '../../helpers/lootHelper.js';
 import { persistirEstadoClone } from '../../helpers/acoesProcessor.js';
+import { ensurePersonagemBucket, registrarItemGanhoBucket } from '../../helpers/estadoTatico.js';
 import {
   appendMensagemSessao
 } from '../utils/sessionMessages.js';
@@ -414,6 +415,10 @@ export default class CombatEngine {
                   nivel_fim: nivelAtual
                 });
                 gravouNoClone = true;
+
+                // Bucket runtime — acumula XP para state block do próximo turno
+                const bucketXp = ensurePersonagemBucket(sessao, jUserId);
+                bucketXp.xp_ganho = (bucketXp.xp_ganho || 0) + xpPorJogador;
               }
             }
 
@@ -468,6 +473,10 @@ export default class CombatEngine {
                   data: { xp_atual: xpRestante, atualizado_em: new Date() }
                 });
               }
+
+              // Bucket runtime — fallback path (sem clone)
+              const bucketXpFb = ensurePersonagemBucket(sessao, jUserId);
+              bucketXpFb.xp_ganho = (bucketXpFb.xp_ganho || 0) + xpPorJogador;
             }
           }
 
@@ -517,6 +526,13 @@ export default class CombatEngine {
                       });
                     }
                   }
+                }
+              }
+
+              // Bucket runtime — loot para state block (independente de clone/sessaoJogoRow)
+              for (const [uid, items] of Object.entries(lootResultado.lootPorJogador)) {
+                for (const item of items) {
+                  registrarItemGanhoBucket(sessao, uid, { nome: item.nome, id: item.equipamento_id || null });
                 }
               }
 

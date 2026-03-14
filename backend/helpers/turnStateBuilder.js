@@ -4,7 +4,7 @@
  * Inclui HP, mana, cooldowns, concentração, alertas de vantagens/desvantagens.
  */
 import { calcularHP, calcularMana } from './combateHelper.js';
-import { normalizarTerrenoInput, getTerrenoLabel } from './estadoTatico.js';
+import { normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno } from './estadoTatico.js';
 
 /**
  * Monta state object estruturado para um jogador no turno
@@ -82,6 +82,7 @@ export function buildTurnState(sessao, userId, personagem) {
 
   // Contexto tático — terreno normalizado para shape canônico (objeto ou legado string)
   state.terreno = normalizarTerrenoInput(estadoJogo.terreno);
+  state.efeitos_terreno = getEfeitosTerreno(sessao);
   state.tensao = estadoJogo.tensao || null;
   state.ameacas = Array.isArray(estadoJogo.ameacas) ? estadoJogo.ameacas : [];
 
@@ -149,6 +150,12 @@ export function formatTurnStateText(state) {
   if (state.terreno) {
     const label = getTerrenoLabel(state.terreno);
     if (label) lines.push(`Terreno: ${label}`);
+  }
+  if (state.efeitos_terreno?.length > 0) {
+    const efLabels = state.efeitos_terreno
+      .map(ef => ef.descricao || ef.elemento || 'efeito')
+      .slice(0, 3);
+    lines.push(`Efeitos terreno: ${efLabels.join(', ')}`);
   }
   if (state.tensao) lines.push(`Tensão: ${state.tensao}`);
   if (state.ameacas?.length > 0) lines.push(`Ameaças: ${state.ameacas.join(', ')}`);

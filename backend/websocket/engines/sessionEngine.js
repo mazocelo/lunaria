@@ -3,11 +3,14 @@ const log = logger.child({ module: 'sessionEngine' });
 
 import db from '../../Model/index.js';
 import criarMestreRPG from '../../agents/Mestre/index.js';
+import resumoAgent from '../../agents/Resumo/index.js';
 import { buscarTemasCompletos, extrairNomesTemas } from '../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../helpers/personagensHelper.js';
 import sessaoSnapshotService from '../../services/sessaoSnapshot.js';
 import analyticsService from '../../services/analyticsService.js';
 import { MESTRE_CONFIG } from '../../agents/Mestre/config.js';
+import { buildCatalogo } from '../../agents/Mestre/catalogo/catalogoMestre.js';
+import { atualizarProgressao, condensarRoteiro } from '../../agents/Mestre/prompts/roteiroCondenser.js';
 import {
   applyResumoToSessao,
   buildMestreContext,
@@ -198,7 +201,7 @@ export default class SessionEngine {
         return sessao;
       }
 
-      const resumoAgent = (await import('../../agents/Resumo/index.js')).default;
+      // resumoAgent importado estaticamente no topo
       const resumoAnteriorObj = await sm.gerenciadorSessoes.obterUltimoResumo(roomId);
       const resumo = await resumoAgent.resumirAventura({
         mensagens: mensagensParaResumo,
@@ -212,7 +215,7 @@ export default class SessionEngine {
       let novaProgressao = estadoJogo.progressao || null;
       if (sessao.historiaRoteiro) {
         try {
-          const { atualizarProgressao } = await import('../../agents/Mestre/prompts/roteiroCondenser.js');
+          // atualizarProgressao importado estaticamente no topo
           novaProgressao = await atualizarProgressao(
             sessao.historiaRoteiro,
             resumo.resumo,
@@ -304,7 +307,7 @@ export default class SessionEngine {
     // Construir catálogo filtrado por nível dos jogadores
     let catalogo = '';
     try {
-      const { buildCatalogo } = await import('../../agents/Mestre/catalogo/catalogoMestre.js');
+      // buildCatalogo importado estaticamente no topo
       const niveisJogadores = jogadoresConectados
         .map(j => {
           const pc = (sessao.personagensCompletos || {})[j.personagemId || j.id];
@@ -320,7 +323,7 @@ export default class SessionEngine {
     let roteiroCondensado = '';
     if (sessao.historiaRoteiro) {
       try {
-        const { condensarRoteiro } = await import('../../agents/Mestre/prompts/roteiroCondenser.js');
+        // condensarRoteiro importado estaticamente no topo
         roteiroCondensado = condensarRoteiro(sessao.historiaRoteiro, sessao.estadoJogo || null);
         if (roteiroCondensado) {
           log.info({ salaId, chars: roteiroCondensado.length }, 'Roteiro condensado');

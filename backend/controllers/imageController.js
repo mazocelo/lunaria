@@ -1,6 +1,8 @@
 import { generateImage, buildPrompt } from '../services/imageGenerationService.js';
 import usageService from '../services/usageService.js';
 import { redisClient } from '../redis/redis-config.js';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'imageController' });
 
 const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre', 'npc', 'local', 'cena'];
 const LOCK_PREFIX = 'img_lock:';
@@ -55,10 +57,10 @@ async function gerarImagem(req, res) {
     }
 
     try {
-      console.log(`[ImageController] entityType=${entityType} estilo=${entityData.estilo_imagem || 'DEFAULT'}`);
-      console.log(`[ImageController] entityData:`, JSON.stringify(entityData, null, 2));
+      log.info({ entityType, estilo: entityData.estilo_imagem || 'DEFAULT' }, 'Gerando imagem');
+      log.debug({ entityData }, 'entityData');
       const prompt = buildPrompt(entityType, entityData);
-      console.log(`[ImageController] prompt final:`, prompt);
+      log.debug({ prompt }, 'Prompt final');
       const tImg = Date.now();
       const imageUrl = await generateImage(prompt, {
         ...(options || {}),
@@ -72,7 +74,7 @@ async function gerarImagem(req, res) {
       releaseLock(lockKey);
     }
   } catch (error) {
-    console.error('[ImageController] Erro ao gerar imagem:', error.message);
+    log.error({ err: error }, '[ImageController] Erro ao gerar imagem');
     return res.status(500).json({
       success: false,
       error: error.message || 'Erro ao gerar imagem',

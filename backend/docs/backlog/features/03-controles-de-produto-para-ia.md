@@ -113,7 +113,7 @@ Esse item e um salto de qualidade para criacao assistida. Ele reduz frustracao e
 
 ## Auditoria (2026-03-14, atualizado pos-R12)
 
-**Completude: ~98%**
+**Completude: ~100%**
 
 ### Feitos
 
@@ -132,12 +132,13 @@ Esse item e um salto de qualidade para criacao assistida. Ele reduz frustracao e
 | 11 | Endpoint detalhe de versao (`GET /:id/roteiro-versoes/:versaoId`) | **Feito** | R10 |
 | 12 | Frontend service `obterVersaoRoteiro()` | **Feito** | R10 |
 | 13 | Modal side-by-side com comparacao visual | **Feito** | R12 |
+| 14 | Approval workflow — campos `status`, `reviewer_id`, `reviewed_at`, `review_comment` em `roteiro_versoes` | **Feito** | R13 |
+| 15 | `PATCH /:id/roteiro-versoes/:versaoId/status` — endpoint de transicao de status | **Feito** | R13 |
+| 16 | Transicoes `draft → pending → approved/rejected` com auto-ativacao ao aprovar | **Feito** | R13 |
 
 ### Pendentes
 
-| # | Requisito | Status |
-|---|-----------|--------|
-| 1 | Workflow avancado de aprovacao (review, comentarios) | Nao iniciado |
+Nenhum item pendente.
 
 ### Criterios de aceite vs estado atual
 

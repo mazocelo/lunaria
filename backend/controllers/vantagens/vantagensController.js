@@ -1,5 +1,7 @@
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'vantagensController' });
 
 /**
  * Controller para gerenciar operações de vantagens
@@ -14,7 +16,7 @@ class VantagemController {
    */
   async criarVantagem(req, res, next) {
     try {
-      console.log('📝 Criando nova vantagem:', req.body);
+      log.info({ req_body: req.body }, 'Criando nova vantagem');
       
       const {
         nome,
@@ -65,7 +67,7 @@ class VantagemController {
         requisitos: requisitos || {}
       });
       
-      console.log('✅ Vantagem criada com sucesso:', novaVantagem.id);
+      log.info({ novaVantagem_id: novaVantagem.id }, 'Vantagem criada com sucesso');
       
       res.status(201).json({
         success: true,
@@ -74,7 +76,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao criar vantagem:', error);
+      log.error({ err: error }, 'Erro ao criar vantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -122,7 +124,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar vantagens:', error);
+      log.error({ err: error }, 'Erro ao listar vantagens');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -139,7 +141,7 @@ class VantagemController {
     try {
       const { id } = req.params;
       
-      console.log(`🔍 Buscando vantagem ID: ${id}`);
+      log.info({ id: id }, 'Buscando vantagem ID');
       
       const vantagem = await db.Vantagem.findById(parseInt(id));
       
@@ -149,7 +151,7 @@ class VantagemController {
         });
       }
       
-      console.log('✅ Vantagem encontrada');
+      log.info('Vantagem encontrada');
       
       res.status(200).json({
         success: true,
@@ -157,7 +159,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao obter vantagem:', error);
+      log.error({ err: error }, 'Erro ao obter vantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -176,11 +178,11 @@ class VantagemController {
     try {
       const { elemento } = req.params;
       
-      console.log(`📋 Listando vantagens do elemento: ${elemento}`);
+      log.info({ elemento: elemento }, 'Listando vantagens do elemento');
       
       const vantagens = await db.Vantagem.findByElemento(elemento);
       
-      console.log(`✅ ${vantagens.length} vantagens encontradas do elemento ${elemento}`);
+      log.info({ vantagens_length: vantagens.length, elemento: elemento }, 'vantagens encontradas do elemento');
       
       res.status(200).json({
         success: true,
@@ -188,7 +190,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar vantagens por elemento:', error);
+      log.error({ err: error }, 'Erro ao listar vantagens por elemento');
       next(error);
     }
   }
@@ -203,11 +205,11 @@ class VantagemController {
     try {
       const { tipo } = req.params;
       
-      console.log(`📋 Listando vantagens do tipo: ${tipo}`);
+      log.info({ tipo: tipo }, 'Listando vantagens do tipo');
       
       const vantagens = await db.Vantagem.findByTipo(tipo);
       
-      console.log(`✅ ${vantagens.length} vantagens encontradas do tipo ${tipo}`);
+      log.info({ vantagens_length: vantagens.length, tipo: tipo }, 'vantagens encontradas do tipo');
       
       res.status(200).json({
         success: true,
@@ -215,7 +217,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar vantagens por tipo:', error);
+      log.error({ err: error }, 'Erro ao listar vantagens por tipo');
       next(error);
     }
   }
@@ -230,11 +232,11 @@ class VantagemController {
     try {
       const { nivel } = req.params;
       
-      console.log(`📋 Listando vantagens do nível: ${nivel}`);
+      log.info({ nivel: nivel }, 'Listando vantagens do nível');
       
       const vantagens = await db.Vantagem.findByNivel(nivel);
       
-      console.log(`✅ ${vantagens.length} vantagens encontradas do nível ${nivel}`);
+      log.info({ vantagens_length: vantagens.length, nivel: nivel }, 'vantagens encontradas do nível');
       
       res.status(200).json({
         success: true,
@@ -242,7 +244,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar vantagens por nível:', error);
+      log.error({ err: error }, 'Erro ao listar vantagens por nível');
       next(error);
     }
   }
@@ -263,11 +265,11 @@ class VantagemController {
         });
       }
       
-      console.log(`🔍 Buscando vantagens com termo: ${termo}`);
+      log.info({ termo: termo }, 'Buscando vantagens com termo');
       
       const vantagens = await db.Vantagem.search(termo);
       
-      console.log(`✅ ${vantagens.length} vantagens encontradas para "${termo}"`);
+      log.info({ vantagens_length: vantagens.length, termo: termo }, 'vantagens encontradas para ""');
       
       res.status(200).json({
         success: true,
@@ -275,7 +277,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao buscar vantagens:', error);
+      log.error({ err: error }, 'Erro ao buscar vantagens');
       next(error);
     }
   }
@@ -288,7 +290,7 @@ class VantagemController {
    */
   async obterEstatisticas(req, res, next) {
     try {
-      console.log('📊 Obtendo estatísticas das vantagens');
+      log.info('Obtendo estatísticas das vantagens');
       
       const totalVantagens = await db.Vantagem.count();
       
@@ -316,7 +318,7 @@ class VantagemController {
         porUsar
       };
       
-      console.log('✅ Estatísticas obtidas com sucesso');
+      log.info('Estatísticas obtidas com sucesso');
       
       res.status(200).json({
         success: true,
@@ -324,7 +326,7 @@ class VantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao obter estatísticas:', error);
+      log.error({ err: error }, 'Erro ao obter estatísticas');
       next(error);
     }
   }
@@ -354,7 +356,7 @@ class VantagemController {
       const atualizada = await db.Vantagem.update(parseInt(id), dados);
       res.json({ success: true, message: 'Vantagem atualizada com sucesso', data: atualizada });
     } catch (error) {
-      console.error('❌ Erro ao atualizar vantagem:', error);
+      log.error({ err: error }, 'Erro ao atualizar vantagem');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -369,7 +371,7 @@ class VantagemController {
       await db.Vantagem.delete(parseInt(id));
       res.status(204).send();
     } catch (error) {
-      console.error('❌ Erro ao deletar vantagem:', error);
+      log.error({ err: error }, 'Erro ao deletar vantagem');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

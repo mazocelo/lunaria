@@ -1,5 +1,7 @@
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'classeController' });
 
 /**
  * Controller para gerenciar operações de classe
@@ -14,7 +16,7 @@ class ClasseController {
    */
   async criarClasse(req, res, next) {
     try {
-      console.log('⚔️ Criando nova classe:', req.body);
+      log.info({ body: req.body }, 'Criando nova classe');
 
       const { nome, custo = 0, descricao = null, bonus = null } = req.body;
 
@@ -47,7 +49,7 @@ class ClasseController {
         bonus: bonus ? JSON.stringify(bonus) : null
       });
 
-      console.log('✅ Classe criada:', novaClasse.id);
+      log.info({ id: novaClasse.id }, 'Classe criada');
 
       res.status(201).json({
         success: true,
@@ -56,7 +58,7 @@ class ClasseController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao criar classe:', error);
+      log.error({ err: error }, 'Erro ao criar classe');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -97,7 +99,7 @@ class ClasseController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar classes:', error);
+      log.error({ err: error }, 'Erro ao listar classes');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -114,7 +116,7 @@ class ClasseController {
     try {
       const { id } = req.params;
 
-      console.log(`🔍 Buscando classe ID: ${id}`);
+      log.info({ id }, 'Buscando classe');
 
       const classe = await db.Classe.findById(parseInt(id));
 
@@ -124,7 +126,7 @@ class ClasseController {
         });
       }
 
-      console.log('✅ Classe encontrada:', classe.nome);
+      log.info({ nome: classe.nome }, 'Classe encontrada');
 
       res.status(200).json({
         success: true,
@@ -132,7 +134,7 @@ class ClasseController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter classe:', error);
+      log.error({ err: error }, 'Erro ao obter classe');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -155,11 +157,11 @@ class ClasseController {
         });
       }
 
-      console.log(`🔍 Buscando classes por: ${termo}`);
+      log.info({ termo }, 'Buscando classes');
 
       const classes = await db.Classe.search(termo);
 
-      console.log(`✅ ${classes.length} classes encontradas`);
+      log.info({ count: classes.length }, 'Classes encontradas');
 
       res.status(200).json({
         success: true,
@@ -168,7 +170,7 @@ class ClasseController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao buscar classes:', error);
+      log.error({ err: error }, 'Erro ao buscar classes');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -192,7 +194,7 @@ class ClasseController {
       const atualizada = await db.Classe.update(parseInt(id), dados);
       res.json({ success: true, message: 'Classe atualizada com sucesso', data: atualizada });
     } catch (error) {
-      console.error('❌ Erro ao atualizar classe:', error);
+      log.error({ err: error }, 'Erro ao atualizar classe');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -207,7 +209,7 @@ class ClasseController {
       await db.Classe.delete(parseInt(id));
       res.status(204).send();
     } catch (error) {
-      console.error('❌ Erro ao deletar classe:', error);
+      log.error({ err: error }, 'Erro ao deletar classe');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

@@ -2,6 +2,8 @@
  * Helper de Loot - Rola loot para monstros derrotados e distribui entre jogadores
  */
 import db from '../Model/index.js';
+import logger from './logger.js';
+const log = logger.child({ module: 'lootHelper' });
 
 /** Fisher-Yates shuffle (in-place) */
 function shuffle(arr) {
@@ -36,7 +38,7 @@ export async function rolarLootCombate(monstrosDerrotados, jogadoresSobrevivente
         });
       }
     } catch (error) {
-      console.error(`Erro ao rolar loot do monstro ${monstro.nome}:`, error.message);
+      log.error({ err: error, monstro: monstro.nome }, 'Erro ao rolar loot do monstro');
     }
   }
 

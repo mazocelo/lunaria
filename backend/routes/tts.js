@@ -1,4 +1,6 @@
 import express from 'express';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'tts' });
 import { getDefaultProviderName, getProvider, getConfiguredProviders } from '../services/ttsService.js';
 import usageService from '../services/usageService.js';
 import ttsCacheService from '../services/ttsCacheService.js';
@@ -52,7 +54,7 @@ router.get('/voices', async (req, res) => {
     const voices = await provider.listVoices();
     res.json({ success: true, data: voices, provider: providerName });
   } catch (error) {
-    console.error('TTS voices error:', error.message);
+    log.error({ err: error }, 'TTS voices error');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -108,7 +110,7 @@ router.post('/generate', async (req, res) => {
           });
           return res.send(r2Buffer);
         } catch (fetchErr) {
-          console.warn('[tts-r2] falha ao buscar do R2, regera:', fetchErr.message);
+          log.warn({ err: fetchErr }, '[tts-r2] falha ao buscar do R2, regera');
           // Continua para regenerar
         }
       }
@@ -140,9 +142,9 @@ router.post('/generate', async (req, res) => {
           const url = await r2StorageService.upload(r2Key, audioBuffer, contentType);
           await ttsCacheService.saveUrlToCache(cacheKey, providerName, resolvedVoiceId, text.length, audioBuffer.length, url);
           await ttsLocalService.remove(localPath);
-          console.log(`[tts-r2] cached: ${r2Key}`);
+          log.info({ r2Key }, '[tts-r2] cached');
         } catch (err) {
-          console.error(`[tts-r2] upload falhou para ${r2Key}:`, err.message);
+          log.error({ err, r2Key }, '[tts-r2] upload falhou');
           // Local fica para cleanup de 24h
         }
       });
@@ -168,7 +170,7 @@ router.post('/generate', async (req, res) => {
     });
     res.send(audioBuffer);
   } catch (error) {
-    console.error('TTS generate error:', error.message);
+    log.error({ err: error }, 'TTS generate error');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -206,7 +208,7 @@ router.post('/preview', async (req, res) => {
     });
     res.send(audioBuffer);
   } catch (error) {
-    console.error('TTS preview error:', error.message);
+    log.error({ err: error }, 'TTS preview error');
     res.status(500).json({ success: false, error: error.message });
   }
 });

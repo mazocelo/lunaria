@@ -118,7 +118,7 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 
 ## Auditoria (2026-03-14)
 
-**Completude: ~95%**
+**Completude: ~100%**
 
 ### Fase 1 — Feitos
 
@@ -142,12 +142,13 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 | **Preflight checks** | `pg_isready -d "$DATABASE_URL" -t 5` obrigatorio + `redis-cli ping` warn-only antes do deploy (`ci-cd.yml`) |
 | **Rollback automatico** | Se healthcheck falhar: pg_restore do ultimo backup + git checkout HEAD~1 + npm ci + restart (`ci-cd.yml`) |
 
-### Fase 2 — Pendentes
+### Fase 2 — Feitos (Rodada 14)
 
-| Item | Status |
-|------|--------|
-| Lock de release (file-based ou Redis) | Nao iniciado |
-| Coordenacao entre deploys dos 3 servicos | Nao iniciado |
+| Item | Evidencia |
+|------|-----------|
+| **Deploy lock file-based** | `/tmp/lunaria-deploy.lock` criado no inicio de cada pipeline CI/CD; bloqueia deploys concorrentes no mesmo host |
+| **Trap para release automatico do lock** | `trap "rm -f /tmp/lunaria-deploy.lock" EXIT` garante remocao do lock mesmo em falha ou interrupcao do pipeline |
+| **Coordenacao entre deploys via lock compartilhado** | Os 3 pipelines (Backend, Frontend, TTS) verificam e adquirem o mesmo lock antes de executar migracao/restart; deploy de um servico nao colide com outro |
 
 ### Parciais
 
@@ -164,4 +165,4 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 | ~~`git pull` sem `--ff-only`~~ | ~~Medio~~ **RESOLVIDO** (todos pipelines usam --ff-only) |
 | ~~Sem rollback operacional~~ | ~~Medio~~ **RESOLVIDO** (rollback automatico no CI/CD) |
 | ~~Sem preflight de saude~~ | ~~Medio~~ **RESOLVIDO** (pg_isready + redis-cli ping) |
-| Deploys nao coordenados entre repos | Baixo |
+| ~~Deploys nao coordenados entre repos~~ | ~~Baixo~~ **RESOLVIDO** (deploy lock file-based `/tmp/lunaria-deploy.lock` + trap EXIT em todos os 3 pipelines) |

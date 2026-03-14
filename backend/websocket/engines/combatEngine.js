@@ -1,3 +1,6 @@
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'combatEngine' });
+
 import db from '../../Model/index.js';
 import {
   calcularHP,
@@ -59,7 +62,7 @@ export default class CombatEngine {
     const sm = this.manager;
 
     try {
-      console.log(`⚔️ Iniciando combate na sala ${roomId}: ${combateData.motivo}`);
+      log.info({ roomId, motivo: combateData.motivo }, 'Iniciando combate');
 
       const monstrosIA = combateData.monstros || [];
       const dificuldade = combateData.dificuldade || 'media';
@@ -91,7 +94,7 @@ export default class CombatEngine {
         }
       }
 
-      console.log(`📦 ${monstrosBanco.length}/${monstrosIA.length} monstros encontrados no banco`);
+      log.info({ encontrados: monstrosBanco.length, total: monstrosIA.length }, 'Monstros encontrados no banco');
 
       // Gerar instâncias de combate
       const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio);
@@ -171,7 +174,7 @@ export default class CombatEngine {
       sessao.estadoJogo = estadoJogo;
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
-      console.log(`✅ Combate iniciado: ${instancias.length} monstros vs ${Object.keys(jogadoresCombate).length} jogadores`);
+      log.info({ monstros: instancias.length, jogadores: Object.keys(jogadoresCombate).length }, 'Combate iniciado');
 
       // Snapshot forçado ao iniciar combate (garante estado persistido)
       sm._tentarSnapshot(roomId, sessao, true);
@@ -188,7 +191,7 @@ export default class CombatEngine {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao iniciar combate:', error);
+      log.error({ err: error, roomId }, 'Erro ao iniciar combate');
     }
   }
 
@@ -206,7 +209,7 @@ export default class CombatEngine {
       // ✅ Usar resultados pré-resolvidos (mecânica já foi computada ANTES da IA narrar)
       const r = sessao._combatePreResolvido;
       if (!r) {
-        console.warn('⚠️ processarAcaoCombate: sem resultados pré-resolvidos, pulando');
+        log.warn({ roomId, userId }, 'processarAcaoCombate: sem resultados pre-resolvidos, pulando');
         return;
       }
       delete sessao._combatePreResolvido;
@@ -319,7 +322,7 @@ export default class CombatEngine {
       }
 
       if (r.rodadaAvancou) {
-        console.log(`🔄 Combate rodada ${combate.rodadaCombate} na sala ${roomId}`);
+        log.info({ roomId, rodadaCombate: combate.rodadaCombate }, 'Combate avancou rodada');
       }
 
       // Verificar fim de combate
@@ -343,7 +346,7 @@ export default class CombatEngine {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao processar ação de combate:', error);
+      log.error({ err: error, roomId, userId }, 'Erro ao processar acao de combate');
     }
   }
 
@@ -356,7 +359,7 @@ export default class CombatEngine {
     const sm = this.manager;
 
     try {
-      console.log(`🏁 Finalizando combate na sala ${roomId}: ${resultado}`);
+      log.info({ roomId, resultado }, 'Finalizando combate');
 
       const sessao = await sm.obterSessaoHistoria(roomId);
       if (!sessao) return;
@@ -380,7 +383,7 @@ export default class CombatEngine {
       sessao.estadoJogo = estadoJogo;
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
-      console.log(`✅ Combate finalizado: ${resultado} | XP: ${xpTotal}`);
+      log.info({ roomId, resultado, xpTotal }, 'Combate finalizado');
 
       // Persistir HP final de todos os jogadores no clone (vivos e derrotados)
       for (const [jId, jStats] of Object.entries(combate.jogadores)) {
@@ -427,7 +430,7 @@ export default class CombatEngine {
                     ganhos: levelUp.ganhos,
                     timestamp: Date.now()
                   });
-                  console.log(`🎉 ${jogadorCombate.personagemNome} subiu para nivel ${nivelAtual}!`);
+                  log.info({ personagem: jogadorCombate.personagemNome, novoNivel: nivelAtual }, 'Level up!');
 
                   // Post automático no feed
                   db.FeedPost.createAutoEvent(parseInt(jUserId), 'level_up', { personagem: jogadorCombate.personagemNome, nivel: nivelAtual }, 'personagem', jogadorCombate.personagemId).catch(() => {});
@@ -497,9 +500,9 @@ export default class CombatEngine {
             }
           }
 
-          console.log(`💾 XP persistido: ${xpPorJogador} por jogador sobrevivente`);
+          log.info({ xpPorJogador }, 'XP persistido por jogador sobrevivente');
         } catch (errXP) {
-          console.error('❌ Erro ao persistir XP no banco:', errXP);
+          log.error({ err: errXP }, 'Erro ao persistir XP no banco');
         }
       }
 
@@ -555,7 +558,7 @@ export default class CombatEngine {
             }
           }
         } catch (errLoot) {
-          console.error('❌ Erro ao rolar loot:', errLoot);
+          log.error({ err: errLoot }, 'Erro ao rolar loot');
         }
       }
 
@@ -618,14 +621,14 @@ export default class CombatEngine {
         await sm.executarCompactacaoSeNecessaria(roomId, sessao, {});
 
       } catch (errIA) {
-        console.error('❌ Erro ao narrar desfecho do combate:', errIA);
+        log.error({ err: errIA }, 'Erro ao narrar desfecho do combate');
       }
 
       // Snapshot forçado ao finalizar combate
       sm._tentarSnapshot(roomId, sessao, true);
 
     } catch (error) {
-      console.error('❌ Erro ao finalizar combate:', error);
+      log.error({ err: error, roomId }, 'Erro ao finalizar combate');
     }
   }
 }

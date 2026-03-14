@@ -1,4 +1,6 @@
 import db from '../Model/index.js';
+import logger from './logger.js';
+const log = logger.child({ module: 'personagensHelper' });
 import {
   parsearBonusEntidade,
   agregarBonusEquipamentos,
@@ -23,7 +25,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
           const personagem = await db.Personagem.findByIdWithRelations(parseInt(id));
           
           if (!personagem) {
-            console.warn(`⚠️ Personagem ${id} não encontrado`);
+            log.warn({ personagemId: id }, 'Personagem nao encontrado');
             return null;
           }
 
@@ -53,7 +55,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
               h.classe_id == null && h.raca_id == null && h.escola_magia && h.escola_magia !== 'nenhuma'
             );
           } catch (e) {
-            console.warn(`⚠️ Erro ao buscar habilidades do personagem ${personagem.id}:`, e.message);
+            log.warn({ err: e, personagemId: personagem.id }, 'Erro ao buscar habilidades do personagem');
           }
 
           // Calcular atributos efetivos com bonus de raça e classe
@@ -141,7 +143,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
             descricaoCompleta: `${personagem.nome} - ${personagem.racas?.nome || 'Humano'} ${personagem.classes?.nome || 'Aventureiro'} Nível ${personagem.nivel || 1}`
           };
         } catch (error) {
-          console.error(`❌ Erro ao buscar personagem ${id}:`, error);
+          log.error({ err: error, personagemId: id }, 'Erro ao buscar personagem');
           return null;
         }
       })
@@ -150,7 +152,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
     // Filtrar nulos
     return personagens.filter(Boolean);
   } catch (error) {
-    console.error('❌ Erro ao buscar personagens completos:', error);
+    log.error({ err: error }, 'Erro ao buscar personagens completos');
     return [];
   }
 }

@@ -1,5 +1,8 @@
 import ttsCacheService from './ttsCacheService.js';
 import { getDefaultProviderName } from './ttsService.js';
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'narrationSegmentsService' });
 
 const VALID_EMOCOES = new Set([
   'neutro',
@@ -208,11 +211,7 @@ export function resolveNarrationSegments({
       : null;
 
     if (segment.tipo === 'fala_npc' && segment.npc_id && !matchedNpc && !explicitVoiceId) {
-      console.warn('[narrationSegmentsService] NPC nao encontrado para segmento', {
-        historiaId,
-        npc_id: segment.npc_id,
-        speaker_label: segment.speaker_label
-      });
+      log.warn({ historiaId, npc_id: segment.npc_id, speaker_label: segment.speaker_label }, 'NPC nao encontrado para segmento');
     }
 
     let voiceId = null;

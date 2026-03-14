@@ -1,4 +1,6 @@
 import db from '../../Model/index.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'conviteController' });
 
 /**
  * Controller para gerenciamento de convites para histórias
@@ -103,7 +105,7 @@ class ConviteController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao criar convite:', error);
+      log.error({ err: error }, 'Erro ao criar convite');
       return res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -264,7 +266,7 @@ class ConviteController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao aceitar convite:', error);
+      log.error({ err: error }, 'Erro ao aceitar convite');
       return res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -330,7 +332,7 @@ class ConviteController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao recusar convite:', error);
+      log.error({ err: error }, 'Erro ao recusar convite');
       return res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -433,7 +435,7 @@ class ConviteController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar convites enviados:', error);
+      log.error({ err: error }, 'Erro ao listar convites enviados');
       return res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'

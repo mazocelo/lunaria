@@ -1,5 +1,7 @@
 import db from '../../Model/index.js';
 import { HabilidadeMonstroSchema, ResistenciasSchema, VelocidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'monstroController' });
 
 /**
  * Controller para gerenciar operações de monstro
@@ -44,7 +46,7 @@ class MonstroController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar monstros:', error);
+      log.error({ err: error }, 'Erro ao listar monstros');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -62,7 +64,7 @@ class MonstroController {
     try {
       const { id } = req.params;
 
-      console.log(`🔍 Buscando monstro ID: ${id}`);
+      log.info({ id: id }, 'Buscando monstro ID');
 
       const monstro = await db.Monstro.findById(parseInt(id));
 
@@ -73,7 +75,7 @@ class MonstroController {
         });
       }
 
-      console.log('✅ Monstro encontrado:', monstro.nome);
+      log.info({ monstro_nome: monstro.nome }, 'Monstro encontrado');
 
       res.status(200).json({
         success: true,
@@ -81,7 +83,7 @@ class MonstroController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao buscar monstro:', error);
+      log.error({ err: error }, 'Erro ao buscar monstro');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -99,7 +101,7 @@ class MonstroController {
     try {
       const { nivel, temas, dificuldade } = req.query;
 
-      console.log(`⚔️ Buscando monstros para combate - nivel: ${nivel}, temas: ${temas}, dificuldade: ${dificuldade}`);
+      log.info({ nivel: nivel, temas: temas, dificuldade: dificuldade }, 'Buscando monstros para combate - nivel: , temas: , dificuldade');
 
       if (!nivel) {
         return res.status(400).json({
@@ -120,7 +122,7 @@ class MonstroController {
         parametros.dificuldade
       );
 
-      console.log(`✅ ${monstros.length} monstros selecionados para combate`);
+      log.info({ monstros_length: monstros.length }, 'monstros selecionados para combate');
 
       res.status(200).json({
         success: true,
@@ -129,7 +131,7 @@ class MonstroController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao buscar monstros para combate:', error);
+      log.error({ err: error }, 'Erro ao buscar monstros para combate');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -145,7 +147,7 @@ class MonstroController {
    */
   criar = async (req, res, next) => {
     try {
-      console.log('Criando novo monstro');
+      log.info('Criando novo monstro');
 
       const {
         nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max,
@@ -189,7 +191,7 @@ class MonstroController {
 
       const novoMonstro = await db.Monstro.create(dados);
 
-      console.log('✅ Monstro criado:', novoMonstro.id);
+      log.info({ novoMonstro_id: novoMonstro.id }, 'Monstro criado');
 
       res.status(201).json({
         success: true,
@@ -198,7 +200,7 @@ class MonstroController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao criar monstro:', error);
+      log.error({ err: error }, 'Erro ao criar monstro');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -216,7 +218,7 @@ class MonstroController {
     try {
       const { id } = req.params;
 
-      console.log(`✏️ Atualizando monstro ID: ${id}`);
+      log.info({ id: id }, 'Atualizando monstro ID');
 
       const monstro = await db.Monstro.findById(parseInt(id));
 
@@ -263,7 +265,7 @@ class MonstroController {
 
       const monstroAtualizado = await db.Monstro.update(parseInt(id), dadosAtualizacao);
 
-      console.log('✅ Monstro atualizado:', id);
+      log.info({ id: id }, 'Monstro atualizado');
 
       res.status(200).json({
         success: true,
@@ -272,7 +274,7 @@ class MonstroController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao atualizar monstro:', error);
+      log.error({ err: error }, 'Erro ao atualizar monstro');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -290,7 +292,7 @@ class MonstroController {
     try {
       const { id } = req.params;
 
-      console.log(`🗑️ Deletando monstro ID: ${id}`);
+      log.info({ id: id }, 'Deletando monstro ID');
 
       const monstro = await db.Monstro.findById(parseInt(id));
 
@@ -306,7 +308,7 @@ class MonstroController {
       res.status(204).send();
 
     } catch (error) {
-      console.error('❌ Erro ao deletar monstro:', error);
+      log.error({ err: error }, 'Erro ao deletar monstro');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'

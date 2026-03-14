@@ -3,7 +3,10 @@
  * via API da Anthropic. O roteiro e um JSON com secoes estruturadas que guia o Mestre IA.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import logger from '../helpers/logger.js';
 import usageService from './usageService.js';
+
+const log = logger.child({ module: 'blueprintService' });
 import { ensureNpcIds } from './narrationSegmentsService.js';
 import { getDefaultProviderName } from './ttsService.js';
 import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
@@ -406,15 +409,13 @@ class BlueprintService {
       previousBlueprint: options.previousBlueprint || historia?.roteiro || null
     });
     const temperature = MODE_TEMPERATURES[mode] || 0.3;
-    console.log(
-      `BlueprintService: Gerando roteiro para "${historia.nome}" com Claude Sonnet 4.5... modo=${mode}`
-    );
+    log.info({ historia: historia.nome, mode }, 'Gerando roteiro com Claude Sonnet 4.5');
 
     const content = await this._createMessage(prompt, userId, 'blueprint', temperature);
     let roteiro = this._parseRoteiro(content);
 
     if (!roteiro) {
-      console.warn('BlueprintService: primeira resposta invalida, tentando repair...');
+      log.warn('Primeira resposta invalida, tentando repair');
       roteiro = await this._repairRoteiro(content, userId);
     }
 
@@ -451,7 +452,7 @@ class BlueprintService {
 
     const content = response.content[0]?.text || '';
     const duracao = Date.now() - startTime;
-    console.log(`BlueprintService: Resposta recebida em ${duracao}ms (${content.length} chars)`);
+    log.info({ duracao, chars: content.length }, 'Resposta recebida');
 
     if (userId) {
       try {

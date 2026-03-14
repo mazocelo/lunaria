@@ -3,6 +3,9 @@ import { createValidacaoModel } from './model.js';
 import { createValidacaoPrompt } from './prompts.js';
 import { DEFAULT_MODEL_SETTINGS } from './config.js';
 import { trackLLMUsage } from '../../../../services/llmTracker.js';
+import logger from '../../../../helpers/logger.js';
+
+const log = logger.child({ module: 'ValidadorPersonagem' });
 
 /**
  * Cria o agente para validação de coerência de personagens
@@ -44,12 +47,12 @@ async function criarValidadorPersonagem() {
                     const content = response.content.trim();
                     const jsonMatch = content.match(/\{[\s\S]*\}/);
                     if (!jsonMatch) {
-                        console.warn('⚠️ Resposta da IA não é JSON válido:', content);
+                        log.warn({ content }, 'Resposta da IA nao e JSON valido');
                         return { valido: true, avisos: [], sugestoes: [] };
                     }
 
                     const resultado = JSON.parse(jsonMatch[0]);
-                    console.log('🔍 Validação de coerência concluída para:', nome);
+                    log.info({ nome }, 'Validacao de coerencia concluida');
 
                     return {
                         valido: resultado.valido !== false,
@@ -57,13 +60,13 @@ async function criarValidadorPersonagem() {
                         sugestoes: Array.isArray(resultado.sugestoes) ? resultado.sugestoes.slice(0, 3) : []
                     };
                 } catch (error) {
-                    console.error('❌ Erro ao validar personagem:', error);
+                    log.error({ err: error }, 'Erro ao validar personagem');
                     return { valido: true, avisos: [], sugestoes: ['Não foi possível validar coerência no momento.'] };
                 }
             }
         };
     } catch (error) {
-        console.error('❌ Erro ao criar validador de personagem:', error.message);
+        log.error({ err: error }, 'Erro ao criar validador de personagem');
         throw new Error(`Erro ao criar validador de personagem: ${error.message}`);
     }
 }

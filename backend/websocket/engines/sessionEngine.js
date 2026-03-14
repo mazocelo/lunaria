@@ -1,3 +1,6 @@
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'sessionEngine' });
+
 import criarMestreRPG from '../../agents/Mestre/index.js';
 import { buscarTemasCompletos, extrairNomesTemas } from '../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../helpers/personagensHelper.js';
@@ -31,7 +34,7 @@ export default class SessionEngine {
       const historiaId = parseInt(salaId.replace('historia_', ''));
 
       if (isNaN(historiaId)) {
-        console.error('❌ ID de história inválido:', salaId);
+        log.error({ salaId }, 'ID de historia invalido');
         return null;
       }
 
@@ -39,7 +42,7 @@ export default class SessionEngine {
       let sessao = await sm.gerenciadorSessoes.obterSessao(salaId);
 
       if (sessao) {
-        console.log(`📋 Sessão existente encontrada para história ${historiaId}`);
+        log.info({ historiaId }, 'Sessao existente encontrada');
         return sessao;
       }
 
@@ -47,22 +50,22 @@ export default class SessionEngine {
       try {
         const sessaoRestaurada = await sessaoSnapshotService.restaurarSessao(salaId);
         if (sessaoRestaurada) {
-          console.log(`♻️ Sessão restaurada do PostgreSQL para história ${historiaId}`);
+          log.info({ historiaId }, 'Sessao restaurada do PostgreSQL');
           return sessaoRestaurada;
         }
       } catch (restoreErr) {
-        console.warn(`⚠️ Falha ao restaurar sessão do PostgreSQL: ${restoreErr.message}`);
+        log.warn({ err: restoreErr }, 'Falha ao restaurar sessao do PostgreSQL');
       }
 
       // Se não existe nem no snapshot, buscar dados da história no banco e criar sessão
-      console.log(`🔍 Criando nova sessão para história ${historiaId}`);
+      log.info({ historiaId }, 'Criando nova sessao');
 
       const { default: db } = await import('../../Model/index.js');
 
       const historia = await db.Historia.findById(historiaId);
 
       if (!historia) {
-        console.error(`❌ História ${historiaId} não encontrada no banco`);
+        log.error({ historiaId }, 'Historia nao encontrada no banco');
         return null;
       }
 
@@ -75,13 +78,13 @@ export default class SessionEngine {
             donoNome = usuario.nome;
           }
         } catch (error) {
-          console.warn('⚠️ Erro ao buscar dados do usuário dono:', error.message);
+          log.warn({ err: error }, 'Erro ao buscar dados do usuario dono');
         }
       }
 
       // Buscar temas completos antes de criar sessão
       const temasCompletos = await buscarTemasCompletos(historia.temas || []);
-      console.log(`🎨 Temas completos para sessão:`, temasCompletos);
+      log.info({ temas: temasCompletos }, 'Temas completos para sessao');
 
       // Montar mestreConfig a partir do mestre atribuido (se existir)
       const mestreConfig = historia.mestres ? {
@@ -139,12 +142,12 @@ export default class SessionEngine {
       dadosSessao.mestreContexto = buildMestreContext(dadosSessao, historia);
       sessao = await sm.gerenciadorSessoes.criarSessao(salaId, dadosSessao);
 
-      console.log(`✅ Nova sessão criada para história "${historia.nome}" (ID: ${historiaId})`);
+      log.info({ historiaId, historiaNome: historia.nome }, 'Nova sessao criada');
 
       return sessao;
 
     } catch (error) {
-      console.error('❌ Erro ao obter/criar sessão da história:', error.message);
+      log.error({ err: error }, 'Erro ao obter/criar sessao da historia');
       return null;
     }
   }
@@ -217,7 +220,7 @@ export default class SessionEngine {
             options.userId || null
           );
         } catch (error) {
-          console.warn('⚠️ Erro ao atualizar progressão na compactação:', error.message);
+          log.warn({ err: error }, 'Erro ao atualizar progressao na compactacao');
         }
       }
 
@@ -227,7 +230,7 @@ export default class SessionEngine {
           const { default: db } = await import('../../Model/index.js');
           historia = await db.Historia.findById(parseInt(sessao.historiaId));
         } catch (error) {
-          console.warn(`⚠️ Erro ao carregar história ${sessao.historiaId} para compactação:`, error.message);
+          log.warn({ historiaId: sessao.historiaId, err: error }, 'Erro ao carregar historia para compactacao');
         }
       }
 
@@ -258,7 +261,7 @@ export default class SessionEngine {
 
       return sessaoComResumo;
     } catch (error) {
-      console.error(`❌ Erro ao compactar contexto da sala ${roomId}:`, error);
+      log.error({ roomId, err: error }, 'Erro ao compactar contexto da sala');
       return sessao;
     }
   }
@@ -274,17 +277,17 @@ export default class SessionEngine {
       const cache = sm.mestresCache.get(salaId);
       if (sm.masterCacheManager.isMestreCacheStale(cache, sessao)) {
         sm.mestresCache.delete(salaId);
-        console.log(`Mestre invalidado por roteiro mais recente na sessao ${salaId}`);
+        log.info({ salaId }, 'Mestre invalidado por roteiro mais recente');
       } else {
         cache.ultimoUso = Date.now();
         if (userId) cache.mestre.userId = userId;
-        console.log(`♻️ Mestre reutilizado do cache para sala ${salaId}`);
+        log.info({ salaId }, 'Mestre reutilizado do cache');
         return cache.mestre;
       }
     }
 
     // Criar novo mestre
-    console.log(`🆕 Criando novo Mestre para sala ${salaId}`);
+    log.info({ salaId }, 'Criando novo Mestre');
     const payloadMestre = await prepareMestrePayload(sessao);
 
     // Formatar personagens com dados completos
@@ -297,7 +300,7 @@ export default class SessionEngine {
       sessao.personagensCompletos || {}
     );
 
-    console.log(`🎭 Criando Mestre com ${personagensFormatados.length} personagens formatados`);
+    log.info({ personagensCount: personagensFormatados.length }, 'Criando Mestre com personagens formatados');
 
     // Construir catálogo filtrado por nível dos jogadores
     let catalogo = '';
@@ -311,7 +314,7 @@ export default class SessionEngine {
         .filter(n => typeof n === 'number');
       catalogo = await buildCatalogo({ niveisJogadores });
     } catch (error) {
-      console.warn('⚠️ Erro ao construir catálogo para Mestre:', error.message);
+      log.warn({ err: error }, 'Erro ao construir catalogo para Mestre');
     }
 
     // Condensar roteiro se disponível
@@ -321,10 +324,10 @@ export default class SessionEngine {
         const { condensarRoteiro } = await import('../../agents/Mestre/prompts/roteiroCondenser.js');
         roteiroCondensado = condensarRoteiro(sessao.historiaRoteiro, sessao.estadoJogo || null);
         if (roteiroCondensado) {
-          console.log(`📜 Roteiro condensado para sala ${salaId} (${roteiroCondensado.length} chars)`);
+          log.info({ salaId, chars: roteiroCondensado.length }, 'Roteiro condensado');
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao condensar roteiro:', error.message);
+        log.warn({ err: error }, 'Erro ao condensar roteiro');
       }
     }
 
@@ -351,7 +354,7 @@ export default class SessionEngine {
       }
       if (oldestKey) {
         sm.mestresCache.delete(oldestKey);
-        console.log(`🧹 Cache de mestre evicted (LRU): ${oldestKey}`);
+        log.info({ evictedKey: oldestKey }, 'Cache de mestre evicted (LRU)');
       }
     }
 
@@ -419,6 +422,6 @@ export default class SessionEngine {
       sm.roomUsers.delete(salaId);
     }
 
-    console.log(`🧹 Sessão ${salaId} limpa completamente (cache, room, sockets)`);
+    log.info({ salaId }, 'Sessao limpa completamente (cache, room, sockets)');
   }
 }

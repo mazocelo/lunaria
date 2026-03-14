@@ -5,8 +5,10 @@
  * Queries síncronas para billing dashboard
  */
 import { PrismaClient } from '@prisma/client';
+import logger from '../helpers/logger.js';
 
 const prisma = new PrismaClient();
+const log = logger.child({ module: 'usageService' });
 
 // Custos estimados por provider (USD)
 const COST_TABLE = {
@@ -115,7 +117,7 @@ const usageService = {
         metadata: metadata || {},
       }
     }).catch(err => {
-      console.warn('Usage tracking error:', err.message);
+      log.warn({ err }, 'Usage tracking error');
     });
   },
 

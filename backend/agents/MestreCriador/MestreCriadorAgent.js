@@ -12,7 +12,10 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import dotenv from 'dotenv';
 
+import logger from '../../helpers/logger.js';
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
+
+const log = logger.child({ module: 'MestreCriadorAgent' });
 import { DEPRECATED_MODELS } from '../Mestre/config.js';
 import usageService from '../../services/usageService.js';
 import { criarPromptSistemaCriador } from './prompts/sistema.js';
@@ -34,7 +37,7 @@ async function withRetry(fn, retries) {
     return await fn();
   } catch (error) {
     if (error.message === 'AI_TIMEOUT' && retries > 0) {
-      console.warn('⚠️ MestreCriador: AI timeout, retrying...');
+      log.warn('AI timeout, retrying');
       return withRetry(fn, retries - 1);
     }
     throw error;
@@ -50,7 +53,7 @@ function parseIAJson(content) {
   if (match) {
     try { return JSON.parse(match[0]); } catch (_) { /* failed */ }
   }
-  console.warn('⚠️ MestreCriador: JSON parse falhou. Conteúdo bruto:', content.substring(0, 300));
+  log.warn({ rawContent: content.substring(0, 300) }, 'JSON parse falhou');
   return null;
 }
 
@@ -111,7 +114,7 @@ async function gerarFallbackSugestoes(etapa, estado) {
 
     return [];
   } catch (err) {
-    console.warn('⚠️ MestreCriador: Falha ao gerar fallback de sugestões:', err.message);
+    log.warn({ err }, 'Falha ao gerar fallback de sugestoes');
     return [];
   }
 }
@@ -160,17 +163,17 @@ function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino) {
   return sugestoes.filter(s => {
     // Toda sugestão precisa ter tipo e nome
     if (!s.tipo || !s.nome) {
-      console.warn('⚠️ MestreCriador: Sugestão sem tipo/nome descartada:', JSON.stringify(s));
+      log.warn({ sugestao: s }, 'Sugestao sem tipo/nome descartada');
       return false;
     }
     // Validar que o tipo corresponde à etapa atual ou destino
     if (tiposAceitos.size > 0 && !tiposAceitos.has(s.tipo)) {
-      console.warn(`⚠️ MestreCriador [${etapaAtual}→${etapaDestino}]: Sugestão tipo "${s.tipo}" descartada (aceitos: ${[...tiposAceitos].join(',')}): "${s.nome}"`);
+      log.warn({ etapaAtual, etapaDestino, tipo: s.tipo, nome: s.nome, aceitos: [...tiposAceitos] }, 'Sugestao com tipo invalido descartada');
       return false;
     }
     // Sugestões de catálogo (raça, classe, vantagem, desvantagem) precisam de ID
     if (['raca', 'classe', 'vantagem', 'desvantagem'].includes(s.tipo) && !s.id) {
-      console.warn(`⚠️ MestreCriador: Sugestão de ${s.tipo} sem ID descartada: "${s.nome}"`);
+      log.warn({ tipo: s.tipo, nome: s.nome }, 'Sugestao de catalogo sem ID descartada');
       return false;
     }
     return true;
@@ -309,7 +312,7 @@ async function getChain() {
     model,
   ]);
 
-  console.log(`✅ MestreCriador: Chain inicializada (${provider}/${modelName})`);
+  log.info({ provider, modelName }, 'Chain inicializada');
   return { chain: _chain, modelName: _modelName };
 }
 
@@ -354,7 +357,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     // Parse da resposta
     let resultado = parseIAJson(response.content);
     if (!resultado) {
-      console.warn(`⚠️ MestreCriador [${etapa}]: Fallback — IA não retornou JSON válido`);
+      log.warn({ etapa }, 'Fallback - IA nao retornou JSON valido');
       // Fallback: usar texto bruto como mensagem
       resultado = {
         mensagem: response.content,
@@ -387,17 +390,17 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
 
     // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
     if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapaDestino)) {
-      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: IA retornou 0 sugestões válidas (original: ${resultado.sugestoes?.length || 0}). Gerando fallback para "${etapaDestino}".`);
+      log.warn({ etapa, etapaDestino, originalCount: resultado.sugestoes?.length || 0 }, 'IA retornou 0 sugestoes validas, gerando fallback');
       sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado);
     } else if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapa) && !ETAPAS_SEM_CARDS.includes(etapaDestino)) {
-      console.warn(`⚠️ MestreCriador [${etapa}→${etapaDestino}]: Sem sugestões. Gerando fallback para "${etapa}".`);
+      log.warn({ etapa, etapaDestino }, 'Sem sugestoes, gerando fallback');
       sugestoesFinal = await gerarFallbackSugestoes(etapa, estado);
     }
 
     // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão
     let atributosSugeridos = resultado.atributos_sugeridos || null;
     if (etapaDestino === 'atributos' && !atributosSugeridos) {
-      console.warn('⚠️ MestreCriador [atributos]: IA não retornou atributos_sugeridos. Gerando fallback.');
+      log.warn('IA nao retornou atributos_sugeridos, gerando fallback');
       atributosSugeridos = gerarAtributosFallback(estado);
     }
 
@@ -408,7 +411,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       atributos_sugeridos: atributosSugeridos,
     };
   } catch (error) {
-    console.error('MestreCriador: Erro na interação:', error.message);
+    log.error({ err: error }, 'Erro na interacao');
 
     // Fallback graceful
     const fallbacks = {

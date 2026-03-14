@@ -1,5 +1,7 @@
 import { redisClient, inicializarRedis, fecharConexaoRedis } from './redis-config.js';
 import { getCompactacaoState, mergeMestreContext } from '../agents/Mestre/contexto/mestreContextBuilder.js';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'sessoes' });
 
 function mergeEstadoJogo(estadoAtual = {}, proximoEstado = {}) {
   return {
@@ -67,10 +69,10 @@ class SessaoRPG {
       };
 
       await this.client.setEx(sessionId, this.ttl, JSON.stringify(sessao));
-      console.log(`Sessão criada para sala ${salaId}`);
+      log.info({ salaId }, 'Sessao criada');
       return sessao;
     } catch (error) {
-      console.error('Erro ao criar sessão:', error);
+      log.error({ err: error }, 'Erro ao criar sessao');
       throw error;
     }
   }
@@ -92,7 +94,7 @@ class SessaoRPG {
 
       return JSON.parse(sessao);
     } catch (error) {
-      console.error('Erro ao obter sessão:', error);
+      log.error({ err: error }, 'Erro ao obter sessao');
       throw error;
     }
   }
@@ -155,7 +157,7 @@ class SessaoRPG {
         if (error.message === 'Sessão não encontrada' || error.message.includes('Conflito')) {
           throw error;
         }
-        console.error('Erro ao atualizar sessão:', error);
+        log.error({ err: error }, 'Erro ao atualizar sessao');
         throw error;
       }
     }
@@ -214,7 +216,7 @@ class SessaoRPG {
         if (error.message === 'Sessão não encontrada' || error.message.includes('Conflito')) {
           throw error;
         }
-        console.error('Erro ao mutar sessão:', error);
+        log.error({ err: error }, 'Erro ao mutar sessao');
         throw error;
       }
     }
@@ -247,7 +249,7 @@ class SessaoRPG {
 
       return await this.atualizarSessao(salaId, { mensagens });
     } catch (error) {
-      console.error('Erro ao adicionar mensagem:', error);
+      log.error({ err: error }, 'Erro ao adicionar mensagem');
       throw error;
     }
   }
@@ -274,7 +276,7 @@ class SessaoRPG {
         return { mensagens };
       });
     } catch (error) {
-      console.error('Erro ao adicionar mensagens:', error);
+      log.error({ err: error }, 'Erro ao adicionar mensagens');
       throw error;
     }
   }
@@ -283,7 +285,7 @@ class SessaoRPG {
     try {
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao atualizar estado do jogo:', error);
+      log.error({ err: error }, 'Erro ao atualizar estado do jogo');
       throw error;
     }
   }
@@ -298,7 +300,7 @@ class SessaoRPG {
     try {
       return await this.mutateSessao(salaId, () => ({ estadoJogo }));
     } catch (error) {
-      console.error('Erro ao substituir estado do jogo:', error);
+      log.error({ err: error }, 'Erro ao substituir estado do jogo');
       throw error;
     }
   }
@@ -312,7 +314,7 @@ class SessaoRPG {
         return { estadoJogo };
       });
     } catch (error) {
-      console.error('Erro ao adicionar testes pendentes:', error);
+      log.error({ err: error }, 'Erro ao adicionar testes pendentes');
       throw error;
     }
   }
@@ -342,7 +344,7 @@ class SessaoRPG {
 
       return await this.atualizarSessao(salaId, { acoes });
     } catch (error) {
-      console.error('Erro ao adicionar ação:', error);
+      log.error({ err: error }, 'Erro ao adicionar acao');
       throw error;
     }
   }
@@ -374,7 +376,7 @@ class SessaoRPG {
 
       return await this.atualizarSessao(salaId, { rolagens });
     } catch (error) {
-      console.error('Erro ao adicionar rolagem:', error);
+      log.error({ err: error }, 'Erro ao adicionar rolagem');
       throw error;
     }
   }
@@ -401,10 +403,10 @@ class SessaoRPG {
       };
 
       await this.client.setEx(sessionId, this.ttl, JSON.stringify(sessaoFinalizada));
-      console.log(`Sessão finalizada para sala ${salaId}`);
+      log.info({ salaId }, 'Sessao finalizada');
       return true;
     } catch (error) {
-      console.error('Erro ao finalizar sessão:', error);
+      log.error({ err: error }, 'Erro ao finalizar sessao');
       throw error;
     }
   }
@@ -418,10 +420,10 @@ class SessaoRPG {
     try {
       const sessionId = `${this.prefix}${salaId}`;
       const resultado = await this.client.del(sessionId);
-      console.log(`Sessão excluída para sala ${salaId}`);
+      log.info({ salaId }, 'Sessao excluida');
       return resultado > 0;
     } catch (error) {
-      console.error('Erro ao excluir sessão:', error);
+      log.error({ err: error }, 'Erro ao excluir sessao');
       throw error;
     }
   }
@@ -448,7 +450,7 @@ class SessaoRPG {
 
       return sessoes;
     } catch (error) {
-      console.error('Erro ao listar sessões:', error);
+      log.error({ err: error }, 'Erro ao listar sessoes');
       throw error;
     }
   }
@@ -464,7 +466,7 @@ class SessaoRPG {
       const existe = await this.client.exists(sessionId);
       return existe === 1;
     } catch (error) {
-      console.error('Erro ao verificar existência da sessão:', error);
+      log.error({ err: error }, 'Erro ao verificar existencia da sessao');
       throw error;
     }
   }
@@ -480,7 +482,7 @@ class SessaoRPG {
       const resultado = await this.client.expire(sessionId, this.ttl);
       return resultado === 1;
     } catch (error) {
-      console.error('Erro ao renovar sessão:', error);
+      log.error({ err: error }, 'Erro ao renovar sessao');
       throw error;
     }
   }
@@ -492,7 +494,7 @@ class SessaoRPG {
     try {
       await fecharConexaoRedis();
     } catch (error) {
-      console.error('Erro ao fechar conexão com Redis:', error);
+      log.error({ err: error }, 'Erro ao fechar conexao com Redis');
     }
   }
 
@@ -515,10 +517,10 @@ class SessaoRPG {
       const estadoJogo = sessao.estadoJogo || {};
       estadoJogo.fase = fase;
 
-      console.log(`🎮 Fase do jogo atualizada para "${fase}" na sala ${salaId}`);
+      log.info({ fase, salaId }, 'Fase do jogo atualizada');
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao atualizar fase do jogo:', error);
+      log.error({ err: error }, 'Erro ao atualizar fase do jogo');
       throw error;
     }
   }
@@ -548,10 +550,10 @@ class SessaoRPG {
 
       estadoJogo.rolagemInicial = rolagemInicial;
 
-      console.log(`🎲 Jogador ${userId} rolou ${valor} na sala ${salaId}`);
+      log.info({ userId, valor, salaId }, 'Jogador rolou dado');
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao registrar rolagem de dado:', error);
+      log.error({ err: error }, 'Erro ao registrar rolagem de dado');
       throw error;
     }
   }
@@ -592,10 +594,10 @@ class SessaoRPG {
       estadoJogo.ordemJogadores = ordemJogadores;
       estadoJogo.turnoAtual = 0; // Começa com o primeiro jogador
 
-      console.log(`📋 Ordem dos jogadores definida na sala ${salaId}:`, ordemJogadores.map(j => `${j.username} (${j.valorDado})`).join(', '));
+      log.info({ salaId, ordem: ordemJogadores.map(j => ({ username: j.username, valorDado: j.valorDado })) }, 'Ordem dos jogadores definida');
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao definir ordem dos jogadores:', error);
+      log.error({ err: error }, 'Erro ao definir ordem dos jogadores');
       throw error;
     }
   }
@@ -631,13 +633,13 @@ class SessaoRPG {
         const proximoTurno = turnoAtual + 1;
         estadoJogo.turnoAtual = proximoTurno;
 
-        console.log(`Avancando turno na sala ${salaId}: ${turnoAtual} -> ${proximoTurno}`);
+        log.info({ salaId, turnoAnterior: turnoAtual, proximoTurno }, 'Avancando turno');
         return await this.atualizarSessao(salaId, { estadoJogo });
       } finally {
         await this.client.del(lockKey);
       }
     } catch (error) {
-      console.error('Erro ao avançar turno:', error);
+      log.error({ err: error }, 'Erro ao avancar turno');
       throw error;
     }
   }
@@ -662,12 +664,12 @@ class SessaoRPG {
       const fimRodada = turnoAtual >= ordemJogadores.length;
       
       if (fimRodada) {
-        console.log(`🏁 Rodada finalizada na sala ${salaId}`);
+        log.info({ salaId }, 'Rodada finalizada');
       }
 
       return fimRodada;
     } catch (error) {
-      console.error('Erro ao verificar fim de rodada:', error);
+      log.error({ err: error }, 'Erro ao verificar fim de rodada');
       throw error;
     }
   }
@@ -692,7 +694,7 @@ class SessaoRPG {
       await this.atualizarSessao(salaId, { estadoJogo });
       return contador;
     } catch (error) {
-      console.error('Erro ao incrementar contador de mensagens:', error);
+      log.error({ err: error }, 'Erro ao incrementar contador de mensagens');
       throw error;
     }
   }
@@ -728,7 +730,7 @@ class SessaoRPG {
       const restante = Math.max(0, cooldownSeg - diferencaSeg);
       return restante;
     } catch (error) {
-      console.error('Erro ao verificar cooldown roleplay:', error);
+      log.error({ err: error }, 'Erro ao verificar cooldown roleplay');
       throw error;
     }
   }
@@ -755,7 +757,7 @@ class SessaoRPG {
 
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao atualizar cooldown roleplay:', error);
+      log.error({ err: error }, 'Erro ao atualizar cooldown roleplay');
       throw error;
     }
   }
@@ -786,7 +788,7 @@ class SessaoRPG {
 
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao adicionar histórico de turno:', error);
+      log.error({ err: error }, 'Erro ao adicionar historico de turno');
       throw error;
     }
   }
@@ -812,10 +814,10 @@ class SessaoRPG {
       estadoJogo.contadorMensagensTurno = 0;
       estadoJogo.fase = 'rodada_em_andamento';
 
-      console.log(`🔄 Nova rodada iniciada (${rodadaAtual}) na sala ${salaId}`);
+      log.info({ rodada: rodadaAtual, salaId }, 'Nova rodada iniciada');
       return await this.atualizarSessao(salaId, { estadoJogo });
     } catch (error) {
-      console.error('Erro ao iniciar nova rodada:', error);
+      log.error({ err: error }, 'Erro ao iniciar nova rodada');
       throw error;
     }
   }
@@ -839,7 +841,7 @@ class SessaoRPG {
 
       return precisaPorRodadas || precisaPorMensagens;
     } catch (error) {
-      console.error('Erro ao verificar se precisa resumir:', error);
+      log.error({ err: error }, 'Erro ao verificar se precisa resumir');
       return false;
     }
   }
@@ -880,7 +882,7 @@ class SessaoRPG {
       if (sessao.mensagens && sessao.mensagens.length > MAX_MENSAGENS_REDIS) {
         const trimmed = sessao.mensagens.length - MAX_MENSAGENS_REDIS;
         sessao.mensagens = sessao.mensagens.slice(-MAX_MENSAGENS_REDIS);
-        console.log(`🧹 Trim: ${trimmed} mensagens antigas removidas do Redis (mantidas ${MAX_MENSAGENS_REDIS})`);
+        log.info({ trimmed, mantidas: MAX_MENSAGENS_REDIS }, 'Trim: mensagens antigas removidas do Redis');
       }
 
       // Manter apenas último resumo (cumulativo — já consolida anteriores)
@@ -888,11 +890,11 @@ class SessaoRPG {
         sessao.resumos = sessao.resumos.slice(-2);
       }
 
-      console.log(`📝 Resumo salvo - Rodada ${sessao.ultimoResumoRodada}, ${sessao.ultimoResumoMensagens} mensagens`);
+      log.info({ rodada: sessao.ultimoResumoRodada, mensagens: sessao.ultimoResumoMensagens }, 'Resumo salvo');
 
       return await this.atualizarSessao(salaId, sessao);
     } catch (error) {
-      console.error('Erro ao salvar resumo:', error);
+      log.error({ err: error }, 'Erro ao salvar resumo');
       throw error;
     }
   }
@@ -912,7 +914,7 @@ class SessaoRPG {
 
       return sessao.resumos[sessao.resumos.length - 1];
     } catch (error) {
-      console.error('Erro ao obter último resumo:', error);
+      log.error({ err: error }, 'Erro ao obter ultimo resumo');
       return null;
     }
   }

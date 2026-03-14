@@ -2,13 +2,15 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import db from '../../Model/index.js';
 import { enviarEmailResetSenha } from '../../services/emailService.js';
-import { 
-  generateAccessToken, 
+import {
+  generateAccessToken,
   generateRefreshToken,
   generateSocketToken,
   refreshToken as renewToken,
-  verifyRefreshToken 
+  verifyRefreshToken
 } from '../../middleware/authMiddleware.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'authController' });
 
 /**
  * Helper: Configuração de cookies baseada no ambiente
@@ -41,7 +43,7 @@ class AuthController {
    */
   async registrar(req, res) {
     try {
-      console.log('Registrando novo usuario');
+      log.info('Registrando novo usuario');
 
       const { nome, email, senha } = req.body;
 
@@ -103,7 +105,7 @@ class AuthController {
       // Cookie do refresh token (25 minutos por padrão no registro)
       res.cookie('refreshToken', refreshToken, getCookieConfig(25 * 60 * 1000));
 
-      console.log('✅ Usuário registrado com sucesso:', novoUsuario.id);
+      log.info({ id: novoUsuario.id }, 'Usuario registrado com sucesso');
 
       res.status(201).json({
         success: true,
@@ -120,7 +122,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao registrar usuário:', error);
+      log.error({ err: error }, 'Erro ao registrar usuario');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -135,7 +137,7 @@ class AuthController {
    */
   async login(req, res) {
     try {
-      console.log('Tentativa de login recebida');
+      log.info('Tentativa de login recebida');
 
       const { email, senha, lembrarDeMim = false } = req.body;
 
@@ -183,7 +185,7 @@ class AuthController {
         
       res.cookie('refreshToken', refreshToken, getCookieConfig(refreshMaxAge));
 
-      console.log('✅ Login realizado com sucesso:', usuario.id, lembrarDeMim ? '(lembrar de mim ativado)' : '');
+      log.info({ id: usuario.id, lembrarDeMim }, 'Login realizado com sucesso');
 
       res.status(200).json({
         success: true,
@@ -201,7 +203,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('❌ Erro no login:', error);
+      log.error({ err: error }, 'Erro no login');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -226,7 +228,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao verificar token:', error);
+      log.error({ err: error }, 'Erro ao verificar token');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -289,7 +291,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao renovar tokens:', error);
+      log.error({ err: error }, 'Erro ao renovar tokens');
       res.status(401).json({
         success: false,
         error: 'Refresh token inválido ou expirado'
@@ -308,7 +310,7 @@ class AuthController {
       res.cookie('accessToken', '', getCookieConfig(0));
       res.cookie('refreshToken', '', getCookieConfig(0));
       
-      console.log('Logout realizado:', req.user?.id);
+      log.info({ id: req.user?.id }, 'Logout realizado');
 
       res.status(200).json({
         success: true,
@@ -316,7 +318,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('❌ Erro no logout:', error);
+      log.error({ err: error }, 'Erro no logout');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -362,7 +364,7 @@ class AuthController {
       try {
         await enviarEmailResetSenha(usuario.email, usuario.nome, resetToken);
       } catch (emailError) {
-        console.error('Erro ao enviar email de reset:', emailError);
+        log.error({ err: emailError }, 'Erro ao enviar email de reset');
         // Não revelar falha de email ao usuário (segurança + SMTP pode não estar configurado)
       }
 
@@ -372,7 +374,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('Erro em forgotPassword:', error);
+      log.error({ err: error }, 'Erro em forgotPassword');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -425,7 +427,7 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('Erro em resetPassword:', error);
+      log.error({ err: error }, 'Erro em resetPassword');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

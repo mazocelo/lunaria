@@ -47,6 +47,14 @@ jobs:
             set -e
             cd /opt/role-chat-game/backend
 
+            # Acquire deploy lock
+            if [ -f /tmp/lunaria-deploy.lock ]; then
+              echo "ERROR: Deploy locked by $(cat /tmp/lunaria-deploy.lock)"
+              exit 1
+            fi
+            echo "backend:$GITHUB_SHA:$(date -Iseconds)" > /tmp/lunaria-deploy.lock
+            trap 'rm -f /tmp/lunaria-deploy.lock' EXIT
+
             # Preflight checks
             pg_isready -d "$DATABASE_URL" -t 5 || { echo "ERROR: DB inacessivel"; exit 1; }
             redis-cli -u "$UPSTASH_REDIS_URL" ping 2>/dev/null || echo "WARN: Redis check indisponivel (continuando)"

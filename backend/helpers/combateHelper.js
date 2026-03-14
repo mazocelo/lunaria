@@ -6,6 +6,8 @@
  * - Esquiva: chance percentual de desviar completamente
  * - Armadura: reducao flat de dano nos hits
  */
+import logger from './logger.js';
+const log = logger.child({ module: 'combateHelper' });
 
 /**
  * Parseia notacao de dado (ex: "2d6+3") e retorna resultado
@@ -14,13 +16,13 @@
  */
 export function rolarDado(notacao) {
   if (!notacao || typeof notacao !== 'string') {
-    console.warn(`⚠️ rolarDado: notação inválida (tipo ${typeof notacao}):`, notacao);
+    log.warn({ tipo: typeof notacao, notacao }, 'rolarDado: notacao invalida');
     return 1;
   }
 
   const match = notacao.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
   if (!match) {
-    console.warn(`⚠️ rolarDado: notação não reconhecida: "${notacao}"`);
+    log.warn({ notacao }, 'rolarDado: notacao nao reconhecida');
     return 1;
   }
 

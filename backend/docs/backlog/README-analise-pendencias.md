@@ -202,38 +202,45 @@ Pipeline robusto com preflight → backup → deploy → healthcheck → rollbac
 
 ## Gaps residuais (todos incrementais)
 
-| Front | Gap | Prioridade |
-|-------|-----|-----------|
-| D-01 | Filas IMAGE/AUDIO (stubs existem, processadores nao) | Baixa (v2) |
-| D-01 | Storage R2 | Baixa (v2) |
-| D-02 | Lock de release (file-based ou Redis) | Baixa |
-| D-02 | Coordenacao entre deploys dos 3 servicos | Baixa |
-| D-03 | Migrar pino para ~83 arquivos restantes | Baixa |
-| D-03 | socketManager.getStats() detalhe de sessao | Baixa |
-| F-02 | Formalizar interfaces dos engines | Baixa |
-| F-03 | Workflow avancado de aprovacao | Baixa |
+**TODOS OS GAPS FORAM FECHADOS (R14-R17)**
 
-## Resumo executivo (2026-03-14)
+| Front | Gap | Status |
+|-------|-----|--------|
+| F-02 | interfaces: ISocketManager.js created | ✓ Resolvido (R14) |
+| D-03 | getStats: enriched with rooms, mestresCache, lockedRooms, uptime | ✓ Resolvido (R14) |
+| D-03 | pino: migrated ALL runtime files (0 console.* remaining) | ✓ Resolvido (R15) |
+| D-01 | IMAGE/AUDIO: fully implemented with BullMQ workers | ✓ Resolvido (R16) |
+| D-01 | R2 images: integrated in processImageJob | ✓ Resolvido (R16) |
+| D-02 | release lock: file-based deploy lock in CI/CD | ✓ Resolvido (R17) |
+| D-02 | coordenacao: lock prevents concurrent deploys across services | ✓ Resolvido (R17) |
+| F-03 | approval workflow: schema + migration + PATCH endpoint | ✓ Resolvido (R17) |
 
-O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 12** fechou o modal side-by-side (F-03) e indexes compostos (D-02). **Rodada 13** decompos o monolito EtapaJogoRPG.jsx (1510L) em MVVM com 5 sub-hooks.
+## Resumo executivo (2026-03-14, pós-R17)
+
+O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 12** fechou o modal side-by-side (F-03) e indexes compostos (D-02). **Rodada 13** decompos o monolito EtapaJogoRPG.jsx (1510L) em MVVM com 5 sub-hooks. **Rodadas 14-17** fecharam todos os gaps residuais e elevaram as 6 frentes para ~100%.
 
 - **F-01 (~100%)**: contrato WebSocket concluido, 65+ @event annotations, zero io.to() direto em engines/handlers/utils
-- **F-02 (~100%)**: 5 engines + 5 utils extraidos, socketManager 4000+→920L (-77%), feature flags removidas
-- **D-01 (~98%)**: async-only, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2)
-- **D-02 (~95%)**: healthcheck robusto (DB+Redis), preflight checks, rollback automatico, indexes compostos. Faltam lock de release, coordenacao multi-servico
-- **D-03 (~97%)**: 5 endpoints admin, persistencia de prompt/response, pino em 6 arquivos criticos, global error handlers. Faltam ~83 arquivos com console.*
-- **F-03 (~98%)**: modos criativos, historico de versoes, modal side-by-side com diff por secao. Falta workflow avancado de aprovacao
+- **F-02 (~100%)**: 5 engines + 5 utils extraidos, socketManager 4000+→920L (-77%), ISocketManager.js interface formalizada
+- **D-01 (~100%)**: async-only, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount, filas IMAGE/AUDIO com processadores, R2 integration
+- **D-02 (~100%)**: healthcheck robusto (DB+Redis), preflight checks, rollback automatico, indexes compostos, file-based deploy lock, coordenacao multi-servico
+- **D-03 (~100%)**: 5 endpoints admin, persistencia de prompt/response, pino em 100% dos arquivos runtime (0 console.* restante), global error handlers, getStats() enriched
+- **F-03 (~100%)**: modos criativos, historico de versoes, modal side-by-side com diff por secao, workflow de aprovacao (schema + migration + PATCH endpoint)
 
-Todas as 6 frentes estao acima de 95%. Gaps restantes sao incrementais (pino, lock, filas v2).
+Todas as 6 frentes completadas em ~100%. Infraestrutura amadurecida. Pronto para manutencao e evolucao de features.
 
 ## Handoff para outra instancia
 
-1. F-01 concluido (~100%) — em manutencao, sem pendencias funcionais
-2. F-02 concluido (~100%) — feature flags removidas, restam formalizacao de interfaces
-3. D-01 v1 completa (~98%) — stalled detection + worker health + timeout config (Rodada 9). Restam filas IMAGE/AUDIO (v2)
-4. D-02 concluido (~95%) — healthcheck robusto, preflight, rollback automatico. Faltam lock de release, coordenacao multi-servico
-5. D-03 concluido (~97%) — 5 endpoints admin, persistencia prompt/response, pino em 6 criticos, global error handlers. Faltam ~83 arquivos com console.*
-6. F-03 concluido (~98%) — modos criativos, historico versoes, modal side-by-side com diff por secao. Falta workflow avancado de aprovacao
+### Status geral das 6 frentes (pós-R17)
+
+1. **F-01 (~100%)**concluido — em manutencao, sem pendencias funcionais
+2. **F-02 (~100%)** concluido — ISocketManager.js interface formalizada, zero pendencias
+3. **D-01 (~100%)** concluido — filas IMAGE/AUDIO implementadas, R2 integration, stalled detection + worker health
+4. **D-02 (~100%)** concluido — file-based deploy lock em CI/CD, coordenacao multi-servico, healthcheck robusto
+5. **D-03 (~100%)** concluido — pino 100% dos arquivos runtime, getStats() enriched, persistencia prompt/response
+6. **F-03 (~100%)** concluido — approval workflow com schema + migration + PATCH endpoint
+
+### Histórico de Rodadas
+
 7. **Rodada 7 concluida**: toda infraestrutura de feature flags removida
 8. **Rodada 8 concluida**: modos criativos funcionais (bug blueprintService.js:393 corrigido), diretivas por modo no prompt, MODE_TEMPERATURES, seletor frontend, painel de versoes
 9. **Rodada 9 concluida**: stalled detection → DB update, worker heartbeat via Redis (setex TTL 90s), GET /admin/motor/worker/health, lockDuration/stalledInterval/maxStalledCount configurados
@@ -241,4 +248,12 @@ Todas as 6 frentes estao acima de 95%. Gaps restantes sao incrementais (pino, lo
 11. **Rodada 11 concluida**: pino logging (5 arquivos criticos), unhandledRejection/uncaughtException em bin/www, N+1 fix personagemController (Promise.all)
 12. **Rodada 12 concluida**: indexes compostos DB (3 tabelas), modal side-by-side comparacao roteiro, pino masterCacheManager
 13. **Rodada 13 concluida**: refactor EtapaJogoRPG.jsx monolito (1510L) → MVVM com 5 sub-hooks, elimina socketState anti-pattern
-14. cada documento individual tem secao "Auditoria" com detalhes completos
+14. **Rodada 14 concluida**: ISocketManager.js interface criada (262 refs `sm.*` formalizadas), getStats() enriched com rooms, mestresCache, lockedRooms, uptime, fix criarMensagemMestre
+15. **Rodada 15 concluida**: pino bulk migration em ~52 arquivos runtime, 0 console.* restante em producao
+16. **Rodada 16 concluida**: IMAGE/AUDIO queues implementadas (6 novos arquivos), processImageJob + processAudioJob com BullMQ, worker refatorado para 3 filas paralelas
+17. **Rodada 17 concluida**: file-based deploy lock (`.deploy.lock`) em CI/CD, approval workflow (Prisma schema + migration + PATCH `/roteiro/:id/approve`), coordenacao multi-servico
+18. **Rodada 18 (handoff)**: final backlog review + commit + push
+
+### Documentacao
+
+Cada documento individual tem secao "Auditoria" com detalhes completos dos arquivos modificados, linhas alteradas, e validacoes realizadas.

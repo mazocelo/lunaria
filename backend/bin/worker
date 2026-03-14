@@ -3,42 +3,48 @@
 import { validateEnvironment } from '../helpers/startupValidation.js';
 validateEnvironment({ requireRedis: true, requireAuthSecrets: false });
 
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'worker' });
+
 import { QueueEvents } from 'bullmq';
 import { createRoteiroWorker } from '../jobs/processRoteiroJob.js';
+import { createImageWorker } from '../jobs/processImageJob.js';
+import { createAudioWorker } from '../jobs/processAudioJob.js';
 import { createBullmqConnection, getBullmqPrefix } from '../jobs/connection.js';
 import { QUEUE_NAMES } from '../jobs/queueNames.js';
 import db from '../Model/index.js';
 import { AI_JOB_STATUS } from '../jobs/aiJobs.js';
 
 let roteiroWorker = null;
-let queueEvents = null;
+let imageWorker = null;
+let audioWorker = null;
+const queueEventsList = [];
 let heartbeatRedis = null;
 let heartbeatKey = null;
 let shuttingDown = false;
 
-async function startWorker() {
-  roteiroWorker = createRoteiroWorker();
-
-  roteiroWorker.on('ready', () => {
-    console.log('[worker] fila de roteiro pronta');
+function setupWorkerEvents(worker, queueName) {
+  worker.on('ready', () => {
+    log.info({ queue: queueName }, 'fila pronta');
   });
 
-  roteiroWorker.on('completed', (job) => {
-    console.log(`[worker] roteiro concluido para job ${job.id}`);
+  worker.on('completed', (job) => {
+    log.info({ queue: queueName, jobId: job.id }, 'job concluido');
   });
 
-  roteiroWorker.on('failed', (job, error) => {
-    console.error(`[worker] falha no job ${job?.id || 'desconhecido'}:`, error.message);
+  worker.on('failed', (job, error) => {
+    log.error({ queue: queueName, jobId: job?.id, err: error }, 'falha no job');
   });
+}
 
-  // QueueEvents para detectar jobs travados (stalled)
-  queueEvents = new QueueEvents(QUEUE_NAMES.ROTEIRO, {
+function setupStalledDetection(queueName) {
+  const events = new QueueEvents(queueName, {
     connection: createBullmqConnection(),
     prefix: getBullmqPrefix()
   });
 
-  queueEvents.on('stalled', async ({ jobId }) => {
-    console.warn(`[worker] job ${jobId} ficou stalled — sera retentado automaticamente`);
+  events.on('stalled', async ({ jobId }) => {
+    log.warn({ queue: queueName, jobId }, 'job ficou stalled — sera retentado automaticamente');
     try {
       const aiJob = await db.prisma.ai_jobs.findUnique({ where: { id: jobId } });
       if (aiJob && aiJob.status !== AI_JOB_STATUS.FAILED && aiJob.status !== AI_JOB_STATUS.COMPLETED) {
@@ -51,11 +57,33 @@ async function startWorker() {
         });
       }
     } catch (err) {
-      console.error(`[worker] erro ao registrar stalled job ${jobId}:`, err.message);
+      log.error({ queue: queueName, jobId, err }, 'erro ao registrar stalled job');
     }
   });
 
-  await roteiroWorker.waitUntilReady();
+  queueEventsList.push(events);
+}
+
+async function startWorker() {
+  // Criar workers para as 3 filas
+  roteiroWorker = createRoteiroWorker();
+  imageWorker = createImageWorker();
+  audioWorker = createAudioWorker();
+
+  setupWorkerEvents(roteiroWorker, QUEUE_NAMES.ROTEIRO);
+  setupWorkerEvents(imageWorker, QUEUE_NAMES.IMAGE);
+  setupWorkerEvents(audioWorker, QUEUE_NAMES.AUDIO);
+
+  // Stalled detection para todas as filas
+  setupStalledDetection(QUEUE_NAMES.ROTEIRO);
+  setupStalledDetection(QUEUE_NAMES.IMAGE);
+  setupStalledDetection(QUEUE_NAMES.AUDIO);
+
+  await Promise.all([
+    roteiroWorker.waitUntilReady(),
+    imageWorker.waitUntilReady(),
+    audioWorker.waitUntilReady()
+  ]);
 
   // Heartbeat via Redis — permite que a API verifique se o worker esta vivo
   heartbeatRedis = createBullmqConnection();
@@ -66,18 +94,19 @@ async function startWorker() {
       const payload = JSON.stringify({
         uptime: Math.floor(process.uptime()),
         pid: process.pid,
+        queues: [QUEUE_NAMES.ROTEIRO, QUEUE_NAMES.IMAGE, QUEUE_NAMES.AUDIO],
         ts: Date.now()
       });
       await heartbeatRedis.setex(heartbeatKey, 90, payload);
     } catch (err) {
-      console.error('[worker] erro ao escrever heartbeat:', err.message);
+      log.error({ err }, 'erro ao escrever heartbeat');
     }
   }
 
   await writeHeartbeat();
   setInterval(async () => {
     await writeHeartbeat();
-    console.log(`[worker] heartbeat | uptime=${process.uptime().toFixed(0)}s`);
+    log.info({ uptimeSeconds: Math.floor(process.uptime()) }, 'heartbeat');
   }, 60_000);
 }
 
@@ -85,15 +114,15 @@ async function gracefulShutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
 
-  console.log(`[worker] recebido ${signal}, encerrando...`);
+  log.info({ signal }, 'recebido sinal, encerrando...');
 
   try {
-    if (queueEvents) {
-      await queueEvents.close();
+    for (const events of queueEventsList) {
+      await events.close();
     }
-    if (roteiroWorker) {
-      await roteiroWorker.close();
-    }
+    if (roteiroWorker) await roteiroWorker.close();
+    if (imageWorker) await imageWorker.close();
+    if (audioWorker) await audioWorker.close();
     try {
       if (heartbeatRedis && heartbeatKey) {
         await heartbeatRedis.del(heartbeatKey);
@@ -102,13 +131,13 @@ async function gracefulShutdown(signal) {
     } catch (_) { /* best effort */ }
     process.exit(0);
   } catch (error) {
-    console.error('[worker] erro ao encerrar worker:', error.message);
+    log.error({ err: error }, 'erro ao encerrar worker');
     process.exit(1);
   }
 }
 
 startWorker().catch((error) => {
-  console.error('[worker] falha ao iniciar:', error);
+  log.error({ err: error }, 'falha ao iniciar');
   process.exit(1);
 });
 

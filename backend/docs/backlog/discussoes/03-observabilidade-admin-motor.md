@@ -135,7 +135,7 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 
 ## Auditoria (2026-03-14, atualizado pos-R13)
 
-**Completude: ~97%**
+**Completude: ~100%**
 
 ### Feitos (infraestrutura base)
 
@@ -170,13 +170,12 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | 9 | `GET /admin/motor/jobs/:id/prompt` — consultar prompt e response de um job | `routes/adminMotor.js` (Rodada 10) |
 | 10 | **Pino structured logging** — facade `helpers/logger.js`, 6 arquivos criticos migrados | bin/www, socketManager, roteiroGenerationService, MestreAgent, processRoteiroJob, masterCacheManager (Rodada 11+12) |
 | 11 | **Global error handlers** — `unhandledRejection` e `uncaughtException` com logger.fatal | bin/www (Rodada 11) |
+| 12 | **Pino migrado em TODOS os arquivos runtime** — ~87 arquivos, ~636 chamadas substituidas; zero `console.*` restante em codigo runtime | Migracao incremental concluida (Rodada 13+14) |
+| 13 | **getStats() enriquecido** — retorna `rooms` (lista de roomIds), `mestresCache` (contagem), `lockedRooms` (lista de salas bloqueadas), `uptime` (segundos desde init) | `socketManager.js` (Rodada 14) |
 
 ### Pendentes (Phase 2 restante)
 
-| # | Item | Prioridade |
-|---|------|-----------|
-| 1 | Migrar pino para ~83 arquivos restantes com `console.*` (incremental) | Baixa |
-| 2 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
+Nenhum item pendente.
 
 ### Criterios de aceite vs estado atual
 

@@ -1,4 +1,6 @@
 import db from '../../Model/index.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'temasController' });
 
 class TemasController {
   async listarTemas(req, res) {
@@ -28,7 +30,7 @@ class TemasController {
         pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
     } catch (error) {
-      console.error('❌ Erro ao listar temas:', error);
+      log.error({ err: error }, 'Erro ao listar temas');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -42,7 +44,7 @@ class TemasController {
       }
       res.json({ success: true, data: tema });
     } catch (error) {
-      console.error('❌ Erro ao obter tema:', error);
+      log.error({ err: error }, 'Erro ao obter tema');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -62,7 +64,7 @@ class TemasController {
       const novoTema = await db.Temas.create({ nome, descricao: descricao || null });
       res.status(201).json({ success: true, message: 'Tema criado com sucesso', data: novoTema });
     } catch (error) {
-      console.error('❌ Erro ao criar tema:', error);
+      log.error({ err: error }, 'Erro ao criar tema');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -83,7 +85,7 @@ class TemasController {
       const atualizado = await db.Temas.update(parseInt(id), dados);
       res.json({ success: true, message: 'Tema atualizado com sucesso', data: atualizado });
     } catch (error) {
-      console.error('❌ Erro ao atualizar tema:', error);
+      log.error({ err: error }, 'Erro ao atualizar tema');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -98,7 +100,7 @@ class TemasController {
       await db.Temas.delete(parseInt(id));
       res.status(204).send();
     } catch (error) {
-      console.error('❌ Erro ao deletar tema:', error);
+      log.error({ err: error }, 'Erro ao deletar tema');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

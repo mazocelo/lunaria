@@ -4,6 +4,9 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cors from 'cors';
+import pinoLogger from './helpers/logger.js';
+
+const log = pinoLogger.child({ module: 'app' });
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
@@ -27,11 +30,11 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-console.log('🌐 CORS configurado:', {
+log.info({
   environment: isProduction ? 'production' : 'development',
   origin: corsOptions.origin,
   credentials: corsOptions.credentials
-});
+}, 'CORS configurado');
 
 // Trust proxy (necessário para Heroku / reverse proxies)
 if (isProduction) {

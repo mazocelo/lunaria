@@ -6,6 +6,9 @@
  * diálogos exemplo, e plot twists detalhados.
  */
 
+import logger from '../../../helpers/logger.js';
+
+const log = logger.child({ module: 'roteiroCondenser' });
 const MAX_CONDENSED_CHARS_V2 = 4000;
 
 /**
@@ -229,7 +232,7 @@ Responda APENAS com JSON válido:
       atualizado_em: new Date().toISOString()
     };
   } catch (error) {
-    console.warn('⚠️ Falha ao atualizar progressão:', error.message);
+    log.warn({ err: error }, 'Falha ao atualizar progressao');
     return progressaoAnterior;
   }
 }

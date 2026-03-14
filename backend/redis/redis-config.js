@@ -1,5 +1,7 @@
 import { createClient } from 'redis';
 import dotenv from 'dotenv';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'redis-config' });
 
 dotenv.config();
 
@@ -10,7 +12,7 @@ const redisClient = createClient({
     connectTimeout: 10000,
     reconnectStrategy: (retries) => {
       if (retries > 10) {
-        console.error('Redis: max reconnect attempts reached');
+        log.error('Redis: max reconnect attempts reached');
         return new Error('Redis max retries exceeded');
       }
       // Exponential backoff: 100ms, 200ms, 400ms... max 5s
@@ -21,19 +23,19 @@ const redisClient = createClient({
 
 // Event listeners para conexao
 redisClient.on('error', (err) => {
-  console.error('Erro na conexao com Redis:', err.message);
+  log.error({ err }, 'Erro na conexao com Redis');
 });
 
 redisClient.on('connect', () => {
-  console.log('Conectado ao Redis com sucesso');
+  log.info('Conectado ao Redis com sucesso');
 });
 
 redisClient.on('ready', () => {
-  console.log('Redis esta pronto para uso');
+  log.info('Redis esta pronto para uso');
 });
 
 redisClient.on('end', () => {
-  console.log('Conexao com Redis encerrada');
+  log.info('Conexao com Redis encerrada');
 });
 
 // Funcao para inicializar a conexao
@@ -42,7 +44,7 @@ async function inicializarRedis() {
     await redisClient.connect();
     return redisClient;
   } catch (error) {
-    console.error('Falha ao conectar com Redis:', error.message);
+    log.error({ err: error }, 'Falha ao conectar com Redis');
     throw error;
   }
 }
@@ -52,10 +54,10 @@ async function fecharConexaoRedis() {
   try {
     if (redisClient.isOpen) {
       await redisClient.quit();
-      console.log('Conexao com Redis fechada adequadamente');
+      log.info('Conexao com Redis fechada adequadamente');
     }
   } catch (error) {
-    console.error('Erro ao fechar conexao com Redis:', error.message);
+    log.error({ err: error }, 'Erro ao fechar conexao com Redis');
   }
 }
 

@@ -1,4 +1,6 @@
 import db from '../../Model/index.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'habilidadesController' });
 
 function buildData(body) {
   return {
@@ -57,7 +59,7 @@ class HabilidadesController {
       const habilidade = await db.Habilidade.create({ data: buildData(req.body) });
       return res.status(201).json(habilidade);
     } catch (error) {
-      console.error('Erro ao criar habilidade:', error);
+      log.error({ err: error }, 'Erro ao criar habilidade');
       if (error.code === 'P2002') return res.status(409).json({ error: 'Ja existe uma habilidade com esse nome' });
       return res.status(500).json({ error: 'Erro ao criar habilidade' });
     }
@@ -80,7 +82,7 @@ class HabilidadesController {
         hasMore: parseInt(offset) + result.data.length < result.total
       });
     } catch (error) {
-      console.error('Erro ao listar habilidades:', error);
+      log.error({ err: error }, 'Erro ao listar habilidades');
       return res.status(500).json({ error: 'Erro ao listar habilidades' });
     }
   }
@@ -91,7 +93,7 @@ class HabilidadesController {
       if (!habilidade) return res.status(404).json({ error: 'Habilidade nao encontrada' });
       return res.json(habilidade);
     } catch (error) {
-      console.error('Erro ao obter habilidade:', error);
+      log.error({ err: error }, 'Erro ao obter habilidade');
       return res.status(500).json({ error: 'Erro ao obter habilidade' });
     }
   }
@@ -101,7 +103,7 @@ class HabilidadesController {
       const habilidade = await db.Habilidade.update(parseInt(req.params.id), buildUpdateData(req.body));
       return res.json(habilidade);
     } catch (error) {
-      console.error('Erro ao atualizar habilidade:', error);
+      log.error({ err: error }, 'Erro ao atualizar habilidade');
       if (error.code === 'P2025') return res.status(404).json({ error: 'Habilidade nao encontrada' });
       if (error.code === 'P2002') return res.status(409).json({ error: 'Ja existe uma habilidade com esse nome' });
       return res.status(500).json({ error: 'Erro ao atualizar habilidade' });
@@ -113,7 +115,7 @@ class HabilidadesController {
       await db.Habilidade.delete(parseInt(req.params.id));
       return res.json({ message: 'Habilidade deletada com sucesso' });
     } catch (error) {
-      console.error('Erro ao deletar habilidade:', error);
+      log.error({ err: error }, 'Erro ao deletar habilidade');
       if (error.code === 'P2025') return res.status(404).json({ error: 'Habilidade nao encontrada' });
       return res.status(500).json({ error: 'Erro ao deletar habilidade' });
     }
@@ -124,7 +126,7 @@ class HabilidadesController {
       const stats = await db.Habilidade.getEstatisticas();
       return res.json(stats);
     } catch (error) {
-      console.error('Erro ao obter estatisticas:', error);
+      log.error({ err: error }, 'Erro ao obter estatisticas');
       return res.status(500).json({ error: 'Erro ao obter estatisticas' });
     }
   }

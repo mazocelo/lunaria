@@ -1,5 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'ttsLocalService' });
 
 const LOCAL_DIR = process.env.TTS_LOCAL_DIR || '/tmp/lunaria-tts';
 const CLEANUP_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
@@ -60,10 +63,10 @@ async function cleanup() {
       }
     }));
 
-    console.log(`[ttsLocalService] cleanup: ${removed}/${files.length} arquivo(s) removido(s)`);
+    log.info({ removed, total: files.length }, 'Cleanup concluido');
     return removed;
   } catch (err) {
-    console.error('[ttsLocalService] cleanup error:', err.message);
+    log.error({ err }, 'Cleanup error');
     return 0;
   }
 }
@@ -77,7 +80,7 @@ function scheduleCleanup() {
   cleanupScheduled = true;
 
   const runCleanup = () => {
-    cleanup().catch((err) => console.error('[ttsLocalService] scheduled cleanup error:', err.message));
+    cleanup().catch((err) => log.error({ err }, 'Scheduled cleanup error'));
     setTimeout(runCleanup, CLEANUP_MAX_AGE_MS).unref();
   };
 

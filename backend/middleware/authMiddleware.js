@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import db from '../Model/index.js';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'authMiddleware' });
 
 /**
  * Middleware de autenticação JWT para rotas HTTP
@@ -45,8 +47,8 @@ export const authenticateToken = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('❌ Erro na autenticação:', error);
-    
+    log.error({ err: error }, 'Erro na autenticacao');
+
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
@@ -325,7 +327,7 @@ export const requireResourceOwnerOrSuperAdmin = (modelName) => {
       req.resource = resource;
       next();
     } catch (error) {
-      console.error('❌ Erro ao verificar ownership:', error);
+      log.error({ err: error }, 'Erro ao verificar ownership');
       return res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'

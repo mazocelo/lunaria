@@ -3,6 +3,9 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 import dotenv from 'dotenv'
+import logger from '../../helpers/logger.js'
+
+const log = logger.child({ module: 'Criador' })
 import { criarGeradorPrologo } from './prologo/index.js'
 import criarMestreRPG from '../Mestre/index.js'
 import { extrairNomesTemas } from '../../helpers/temasHelper.js'
@@ -77,12 +80,12 @@ async function criadorDeHistoria() {
                 const startTime = Date.now();
                 const response = await chain.invoke({ input });
                 trackLLMUsage(response, { modelName: DEFAULT_MODEL_SETTINGS.model, userId, startTime, agent: 'CriadorTriagem' });
-                console.log('Resposta do auxiliar question', response.content);
+                log.info({ content: response.content }, 'Resposta do auxiliar question');
                 return { response: response.content };
             },
         };
     } catch (error) {
-        console.error('Erro ao criar agente:', error.message);
+        log.error({ err: error }, 'Erro ao criar agente');
         throw new Error(`Erro ao criar agente: ${error.message}`);
     }
 }
@@ -95,10 +98,7 @@ async function criadorCompleto(temas = [], personagens = []) {
         // Se receber strings, mantém como está
         const nomesTemas = extrairNomesTemas(temas);
         
-        console.log(`🎨 CriadorCompleto: Convertendo temas para nomes:`, {
-            temasOriginais: temas,
-            nomesTemas: nomesTemas
-        });
+        log.info({ temasOriginais: temas, nomesTemas }, 'Convertendo temas para nomes');
         
         // Criar os agentes separados
         const agenteHistoria = await criadorDeHistoria();
@@ -156,17 +156,17 @@ async function criadorCompleto(temas = [], personagens = []) {
                         }
                     };
 
-                    console.log('🎮 Aventura completa criada:', aventuraCompleta.nome);
+                    log.info({ nome: aventuraCompleta.nome }, 'Aventura completa criada');
                     return aventuraCompleta;
 
                 } catch (error) {
-                    console.error('Erro ao criar aventura completa:', error);
+                    log.error({ err: error }, 'Erro ao criar aventura completa');
                     throw error;
                 }
             }
         };
     } catch (error) {
-        console.error('Erro ao criar criador completo:', error.message);
+        log.error({ err: error }, 'Erro ao criar criador completo');
         throw new Error(`Erro ao criar criador completo: ${error.message}`);
     }
 }

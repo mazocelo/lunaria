@@ -11,10 +11,10 @@ Todas as 6 frentes originais estao acima de 95%. Gaps restantes sao incrementais
 |-------|------|---|-----|
 | F-01 | Contrato publico do websocket | ~100% | [features/01](./features/01-contrato-publico-websocket.md) |
 | F-02 | Modularizacao do motor do jogo | ~100% | [features/02](./features/02-modularizacao-motor-do-jogo.md) |
-| D-01 | Jobs duraveis para IA | ~98% | [discussoes/01](./discussoes/01-jobs-duraveis-ia.md) |
-| D-02 | Deploy e banco VPS | ~95% | [discussoes/02](./discussoes/02-deploy-banco-hostgator.md) |
-| D-03 | Observabilidade e admin do motor | ~97% | [discussoes/03](./discussoes/03-observabilidade-admin-motor.md) |
-| F-03 | Controles de produto para IA | ~98% | [features/03](./features/03-controles-de-produto-para-ia.md) |
+| D-01 | Jobs duraveis para IA | ~100% | [discussoes/01](./discussoes/01-jobs-duraveis-ia.md) |
+| D-02 | Deploy e banco VPS | ~100% | [discussoes/02](./discussoes/02-deploy-banco-hostgator.md) |
+| D-03 | Observabilidade e admin do motor | ~100% | [discussoes/03](./discussoes/03-observabilidade-admin-motor.md) |
+| F-03 | Controles de produto para IA | ~100% | [features/03](./features/03-controles-de-produto-para-ia.md) |
 
 Para analise detalhada e handoff: [README-analise-pendencias.md](./README-analise-pendencias.md)
 
@@ -48,3 +48,8 @@ Todos os arquivos seguem a mesma ideia:
 | R11 | Pino logging (5 arquivos criticos) + unhandledRejection + N+1 fix personagemController | D-03, Perf |
 | R12 | Indexes compostos DB (3 tabelas) + modal side-by-side comparacao roteiro + pino masterCacheManager | D-02, F-03, D-03 |
 | R13 | Refactor EtapaJogoRPG.jsx monolito (1510L) → MVVM com 5 sub-hooks, elimina socketState anti-pattern | Tech Debt |
+| R14 | Engine interfaces (ISocketManager.js), getStats() enriquecido, pino nos 12 arquivos críticos, fix criarMensagemMestre | F-02, D-03 |
+| R15 | Pino migration bulk — ~52 arquivos restantes migrados (controllers, helpers, services, routes, redis, middleware, agents) | D-03 |
+| R16 | IMAGE/AUDIO queues — processImageJob, processAudioJob, enqueueImageJob, enqueueAudioJob, imageQueue, audioQueue, worker com 3 filas | D-01 |
+| R17 | Deploy lock no CI/CD, approval workflow (schema + migration + PATCH endpoint) | D-02, F-03 |
+| R18 | Revisão final de backlogs, commit + push | Housekeeping |

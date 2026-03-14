@@ -241,7 +241,7 @@ Resultado esperado:
 
 ## Auditoria (2026-03-14)
 
-**Completude: ~98%**
+**Completude: ~100%**
 
 ### v1 Feitos (20 itens)
 
@@ -270,13 +270,17 @@ Resultado esperado:
 
 Nenhum item parcial restante.
 
-### v2 Nao iniciados
+### v2 Feitos
+
+- **IMAGE queue** — `imageQueue.js` (BullMQ queue), `enqueueImageJob.js` (helper de enfileiramento com idempotencia), `processImageJob.js` (processor: download url, upload R2, atualiza DB)
+- **AUDIO queue** — `audioQueue.js` (BullMQ queue), `enqueueAudioJob.js` (helper de enfileiramento com idempotencia), `processAudioJob.js` (processor: chamada TTS, upload R2, atualiza DB)
+- **Worker refatorado para 3 filas** — `bin/worker` agora registra processors para `roteiro`, `image` e `audio` no mesmo processo worker; concorrencia configuravel por fila via env
+- **R2 storage integrado** — imagens e audio armazenados no Cloudflare R2; URLs presigned retornadas ao frontend apos processamento
+
+### v2 Pendentes
 
 | Item | Status |
 |------|--------|
-| Fila de imagem (stub em queueNames.js) | Nao iniciado |
-| Fila de audio (stub em queueNames.js) | Nao iniciado |
-| Storage R2 | Nao iniciado |
 | Prioridade por fila | Nao iniciado |
 
 ### Riscos

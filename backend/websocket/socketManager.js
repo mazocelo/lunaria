@@ -95,6 +95,13 @@ class SocketManager {
   }
 
   /**
+   * Alias para buildMestreMensagem — usado por turnEngine e testEngine
+   */
+  criarMensagemMestre(conteudo, mestreConfig = null, options = {}) {
+    return buildMestreMensagem(conteudo, mestreConfig, options);
+  }
+
+  /**
    * Mutex por sala - garante que apenas uma operação por vez modifique a sessão
    * Previne race conditions quando múltiplos jogadores agem simultaneamente
    */
@@ -584,10 +591,20 @@ class SocketManager {
    * Obter estatísticas do servidor
    */
   getStats() {
+    const rooms = {};
+    for (const [roomId, users] of this.roomUsers.entries()) {
+      rooms[roomId] = { playerCount: users.size, players: [...users] };
+    }
+
     return {
       connectedUsers: this.connectedUsers.size,
       activeRooms: this.roomUsers.size,
-      totalRooms: this.io ? this.io.sockets.adapter.rooms.size : 0
+      totalRooms: this.io ? this.io.sockets.adapter.rooms.size : 0,
+      rooms,
+      mestresCache: this.mestresCache.size,
+      lockedRooms: this._roomLocks.size,
+      disconnectGracePeriods: this._disconnectTimers.size,
+      uptime: Math.floor(process.uptime())
     };
   }
 

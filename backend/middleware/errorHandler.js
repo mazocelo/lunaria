@@ -1,6 +1,8 @@
 /**
  * Middleware de tratamento de erros centralizado
  */
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'errorHandler' });
 
 // Middleware para capturar erros assíncronos
 export const asyncHandler = (fn) => {
@@ -18,12 +20,7 @@ export const asyncHandlerWithContext = (fn, context) => {
 
 // Middleware de tratamento de erros
 export const errorHandler = (err, req, res, next) => {
-  console.error('❌ Erro na aplicação:', err);
-  
-  // Log detalhado em desenvolvimento
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Stack trace:', err.stack);
-  }
+  log.error({ err }, 'Erro na aplicacao');
   
   // Prisma: record not found (P2025)
   if (err.code === 'P2025') {
@@ -97,8 +94,11 @@ export const requestLogger = (req, res, next) => {
     const method = req.method;
     const url = req.originalUrl;
     
-    const logLevel = status >= 400 ? '❌' : '✅';
-    console.log(`${logLevel} ${method} ${url} - ${status} (${duration}ms)`);
+    if (status >= 400) {
+      log.warn({ method, url, status, duration }, 'Request completed with error');
+    } else {
+      log.info({ method, url, status, duration }, 'Request completed');
+    }
   });
   
   next();

@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { PreferenciasSchema, PrivacidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'usuarioController' });
 
 /**
  * Controller para gerenciar operações CRUD de usuários
@@ -15,7 +17,7 @@ class UsuarioController {
    */
   async listarUsuarios(req, res) {
     try {
-      console.log('📋 Listando usuários');
+      log.info('Listando usuários');
 
       const { limit = 50, offset = 0 } = req.query;
 
@@ -29,7 +31,7 @@ class UsuarioController {
 
       const total = await db.Usuario.count();
 
-      console.log(`✅ ${usuarios.length} usuários encontrados`);
+      log.info({ usuarios_length: usuarios.length }, 'usuários encontrados');
 
       res.status(200).json({
         success: true,
@@ -40,7 +42,7 @@ class UsuarioController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar usuários:', error);
+      log.error({ err: error }, 'Erro ao listar usuários');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -58,7 +60,7 @@ class UsuarioController {
       const { id } = req.params;
       const usuarioId = parseInt(id);
 
-      console.log(`👤 Buscando usuário ID: ${usuarioId}`);
+      log.info({ usuarioId: usuarioId }, 'Buscando usuário ID');
 
       if (isNaN(usuarioId)) {
         return res.status(400).json({
@@ -76,7 +78,7 @@ class UsuarioController {
         });
       }
 
-      console.log('✅ Usuário encontrado:', usuario.nome);
+      log.info({ usuario_nome: usuario.nome }, 'Usuário encontrado');
 
       res.status(200).json({
         success: true,
@@ -84,7 +86,7 @@ class UsuarioController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter usuário:', error);
+      log.error({ err: error }, 'Erro ao obter usuário');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -140,7 +142,7 @@ class UsuarioController {
 
       res.status(200).json({ success: true, data: dadosPublicos });
     } catch (error) {
-      console.error('❌ Erro ao obter perfil público:', error);
+      log.error({ err: error }, 'Erro ao obter perfil público');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -154,7 +156,7 @@ class UsuarioController {
     try {
       const usuarioId = req.user.id;
 
-      console.log(`👤 Buscando perfil do usuário ID: ${usuarioId}`);
+      log.info({ usuarioId: usuarioId }, 'Buscando perfil do usuário ID');
 
       const usuario = await db.Usuario.findById(usuarioId);
 
@@ -165,7 +167,7 @@ class UsuarioController {
         });
       }
 
-      console.log('✅ Perfil encontrado:', usuario.nome);
+      log.info({ usuario_nome: usuario.nome }, 'Perfil encontrado');
 
       res.status(200).json({
         success: true,
@@ -173,7 +175,7 @@ class UsuarioController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter perfil:', error);
+      log.error({ err: error }, 'Erro ao obter perfil');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -192,7 +194,7 @@ class UsuarioController {
       const usuarioId = parseInt(id);
       const { nome, email, senha, senha_atual, avatar, bio, preferencias, privacidade } = req.body;
 
-      console.log(`✏️ Atualizando usuário ID: ${usuarioId}`);
+      log.info({ usuarioId: usuarioId }, 'Atualizando usuário ID');
 
       if (isNaN(usuarioId)) {
         return res.status(400).json({
@@ -303,7 +305,7 @@ class UsuarioController {
       // Atualizar usuário
       const usuarioAtualizado = await db.Usuario.update(usuarioId, dadosAtualizacao);
 
-      console.log('✅ Usuário atualizado com sucesso:', usuarioAtualizado.id);
+      log.info({ usuarioAtualizado_id: usuarioAtualizado.id }, 'Usuário atualizado com sucesso');
 
       res.status(200).json({
         success: true,
@@ -312,7 +314,7 @@ class UsuarioController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao atualizar usuário:', error);
+      log.error({ err: error }, 'Erro ao atualizar usuário');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -330,7 +332,7 @@ class UsuarioController {
       const { id } = req.params;
       const usuarioId = parseInt(id);
 
-      console.log(`🗑️ Deletando usuário ID: ${usuarioId}`);
+      log.info({ usuarioId: usuarioId }, 'Deletando usuário ID');
 
       if (isNaN(usuarioId)) {
         return res.status(400).json({
@@ -362,7 +364,7 @@ class UsuarioController {
       res.status(204).send();
 
     } catch (error) {
-      console.error('❌ Erro ao deletar usuário:', error);
+      log.error({ err: error }, 'Erro ao deletar usuário');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -385,7 +387,7 @@ class UsuarioController {
         data: usuario
       });
     } catch (error) {
-      console.error('Erro ao restaurar usuário:', error);
+      log.error({ err: error }, 'Erro ao restaurar usuário');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -403,7 +405,7 @@ class UsuarioController {
       const { id } = req.params;
       const usuarioId = parseInt(id);
 
-      console.log(`📊 Obtendo estatísticas do usuário ID: ${usuarioId}`);
+      log.info({ usuarioId: usuarioId }, 'Obtendo estatísticas do usuário ID');
 
       if (isNaN(usuarioId)) {
         return res.status(400).json({
@@ -438,7 +440,7 @@ class UsuarioController {
         }, {}) || {}
       };
 
-      console.log('✅ Estatísticas obtidas com sucesso');
+      log.info('Estatísticas obtidas com sucesso');
 
       res.status(200).json({
         success: true,
@@ -452,7 +454,7 @@ class UsuarioController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter estatísticas:', error);
+      log.error({ err: error }, 'Erro ao obter estatísticas');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -470,7 +472,7 @@ class UsuarioController {
       const usuario_id = req.user.id;
       const { limit = 20, offset = 0 } = req.query;
 
-      console.log(`📬 Buscando novidades para usuário ${usuario_id}`);
+      log.info({ usuario_id: usuario_id }, 'Buscando novidades para usuário');
 
       // Por enquanto, buscar apenas convites pendentes
       const convites = await db.prisma.historias_convite.findMany({
@@ -522,7 +524,7 @@ class UsuarioController {
       const solicitacoesAmizade = await db.Amizade.findPendingReceived(usuario_id);
       const totalSolicitacoes = solicitacoesAmizade.length;
 
-      console.log(`✅ ${convites.length} convites + ${totalSolicitacoes} solicitacoes de amizade`);
+      log.info({ convites_length: convites.length, totalSolicitacoes: totalSolicitacoes }, 'convites + solicitacoes de amizade');
 
       return res.status(200).json({
         success: true,
@@ -557,7 +559,7 @@ class UsuarioController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao buscar novidades:', error);
+      log.error({ err: error }, 'Erro ao buscar novidades');
       return res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -573,7 +575,7 @@ class UsuarioController {
       const { id } = req.params;
       const usuarioId = parseInt(id);
 
-      console.log(`👑 Promovendo usuário ${usuarioId} a superadmin`);
+      log.info({ usuarioId: usuarioId }, 'Promovendo usuário a superadmin');
 
       const usuario = await db.Usuario.update(usuarioId, { role: 'superadmin' });
 
@@ -583,7 +585,7 @@ class UsuarioController {
         data: usuario
       });
     } catch (error) {
-      console.error('❌ Erro ao promover usuário:', error);
+      log.error({ err: error }, 'Erro ao promover usuário');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'

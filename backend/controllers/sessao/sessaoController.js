@@ -2,6 +2,8 @@ import db from '../../Model/index.js';
 import gerenciadorSessoes from '../../redis/sessoes.js';
 import sessaoSnapshotService from '../../services/sessaoSnapshot.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'sessaoController' });
 
 /**
  * Controller para gerenciar sessões de RPG
@@ -19,7 +21,7 @@ class SessaoController {
       const { historiaId } = req.params;
       const { salaId, jogadores, mestre } = req.body;
       
-      console.log(`🎮 Iniciando sessão para história ID: ${historiaId}`);
+      log.info({ historiaId: historiaId }, 'Iniciando sessão para história ID');
       
       // Verificar se a história existe
       const historia = await db.Historia.findById(parseInt(historiaId));
@@ -69,7 +71,7 @@ class SessaoController {
       
       const sessao = await gerenciadorSessoes.criarSessao(salaIdFinal, dadosSessao);
       
-      console.log('✅ Sessão iniciada com sucesso:', salaIdFinal);
+      log.info({ salaIdFinal: salaIdFinal }, 'Sessão iniciada com sucesso');
       
       res.status(200).json({
         success: true,
@@ -81,7 +83,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao iniciar sessão:', error);
+      log.error({ err: error }, 'Erro ao iniciar sessão');
       next(error);
     }
   }
@@ -96,7 +98,7 @@ class SessaoController {
     try {
       const { salaId } = req.params;
       
-      console.log(`🔍 Buscando sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Buscando sessão');
       
       const sessao = await gerenciadorSessoes.obterSessao(salaId);
       
@@ -107,7 +109,7 @@ class SessaoController {
         });
       }
       
-      console.log('✅ Sessão encontrada');
+      log.info('Sessão encontrada');
       
       res.status(200).json({
         success: true,
@@ -115,7 +117,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao obter sessão:', error);
+      log.error({ err: error }, 'Erro ao obter sessão');
       next(error);
     }
   }
@@ -131,7 +133,7 @@ class SessaoController {
       const { salaId } = req.params;
       const { autor, tipo, conteudo } = req.body;
       
-      console.log(`💬 Adicionando mensagem à sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Adicionando mensagem à sessão');
       
       if (!autor || !tipo || !conteudo) {
         return res.status(400).json({
@@ -157,7 +159,7 @@ class SessaoController {
       
       const sessao = await gerenciadorSessoes.adicionarMensagem(salaId, mensagem);
       
-      console.log('✅ Mensagem adicionada com sucesso');
+      log.info('Mensagem adicionada com sucesso');
       
       res.status(200).json({
         success: true,
@@ -166,7 +168,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao adicionar mensagem:', error);
+      log.error({ err: error }, 'Erro ao adicionar mensagem');
       next(error);
     }
   }
@@ -182,7 +184,7 @@ class SessaoController {
       const { salaId } = req.params;
       const { estadoJogo } = req.body;
       
-      console.log(`🎯 Atualizando estado do jogo na sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Atualizando estado do jogo na sessão');
       
       if (!estadoJogo) {
         return res.status(400).json({
@@ -193,7 +195,7 @@ class SessaoController {
       
       const sessao = await gerenciadorSessoes.atualizarEstadoJogo(salaId, estadoJogo);
       
-      console.log('✅ Estado do jogo atualizado com sucesso');
+      log.info('Estado do jogo atualizado com sucesso');
       
       res.status(200).json({
         success: true,
@@ -202,7 +204,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao atualizar estado do jogo:', error);
+      log.error({ err: error }, 'Erro ao atualizar estado do jogo');
       next(error);
     }
   }
@@ -218,7 +220,7 @@ class SessaoController {
       const { salaId } = req.params;
       const { nomeJogador } = req.body;
       
-      console.log(`👤 Adicionando jogador à sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Adicionando jogador à sessão');
       
       if (!nomeJogador) {
         return res.status(400).json({
@@ -258,7 +260,7 @@ class SessaoController {
         jogadores: jogadoresAtualizados
       });
       
-      console.log('✅ Jogador adicionado com sucesso');
+      log.info('Jogador adicionado com sucesso');
       
       res.status(200).json({
         success: true,
@@ -267,7 +269,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao adicionar jogador:', error);
+      log.error({ err: error }, 'Erro ao adicionar jogador');
       next(error);
     }
   }
@@ -282,7 +284,7 @@ class SessaoController {
     try {
       const { salaId, nomeJogador } = req.params;
       
-      console.log(`👤 Removendo jogador da sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Removendo jogador da sessão');
       
       const sessao = await gerenciadorSessoes.obterSessao(salaId);
       
@@ -307,7 +309,7 @@ class SessaoController {
         jogadores: jogadoresAtualizados
       });
       
-      console.log('✅ Jogador removido com sucesso');
+      log.info('Jogador removido com sucesso');
       
       res.status(200).json({
         success: true,
@@ -316,7 +318,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao remover jogador:', error);
+      log.error({ err: error }, 'Erro ao remover jogador');
       next(error);
     }
   }
@@ -331,16 +333,16 @@ class SessaoController {
     try {
       const { salaId } = req.params;
 
-      console.log(`🏁 Finalizando sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Finalizando sessão');
 
       // Forçar snapshot antes de finalizar (preservar último estado)
       const sessaoAtual = await gerenciadorSessoes.obterSessao(salaId);
       if (sessaoAtual) {
         try {
           await sessaoSnapshotService.salvarSnapshot(salaId, sessaoAtual);
-          console.log('📸 Snapshot final salvo antes de finalizar sessão');
+          log.info('Snapshot final salvo antes de finalizar sessão');
         } catch (snapErr) {
-          console.error('⚠️ Erro ao salvar snapshot final (continuando):', snapErr.message);
+          log.error({ err: snapErr }, 'Erro ao salvar snapshot final (continuando)');
         }
       }
 
@@ -353,7 +355,7 @@ class SessaoController {
         });
       }
 
-      console.log('✅ Sessão finalizada com sucesso');
+      log.info('Sessão finalizada com sucesso');
 
       res.status(200).json({
         success: true,
@@ -361,7 +363,7 @@ class SessaoController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao finalizar sessão:', error);
+      log.error({ err: error }, 'Erro ao finalizar sessão');
       next(error);
     }
   }
@@ -374,11 +376,11 @@ class SessaoController {
    */
   async listarSessoesAtivas(req, res, next) {
     try {
-      console.log('📋 Listando sessões ativas...');
+      log.info('Listando sessões ativas...');
       
       const sessoes = await gerenciadorSessoes.listarSessoesAtivas();
       
-      console.log(`✅ ${sessoes.length} sessões ativas encontradas`);
+      log.info({ sessoes_length: sessoes.length }, 'sessões ativas encontradas');
       
       res.status(200).json({
         success: true,
@@ -386,7 +388,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar sessões:', error);
+      log.error({ err: error }, 'Erro ao listar sessões');
       next(error);
     }
   }
@@ -401,7 +403,7 @@ class SessaoController {
     try {
       const { salaId } = req.params;
       
-      console.log(`🔄 Renovando sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Renovando sessão');
       
       const renovada = await gerenciadorSessoes.renovarSessao(salaId);
       
@@ -412,7 +414,7 @@ class SessaoController {
         });
       }
       
-      console.log('✅ Sessão renovada com sucesso');
+      log.info('Sessão renovada com sucesso');
       
       res.status(200).json({
         success: true,
@@ -420,7 +422,7 @@ class SessaoController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao renovar sessão:', error);
+      log.error({ err: error }, 'Erro ao renovar sessão');
       next(error);
     }
   }
@@ -435,7 +437,7 @@ class SessaoController {
     try {
       const { salaId } = req.params;
       
-      console.log(`📊 Obtendo estatísticas da sessão: ${salaId}`);
+      log.info({ salaId: salaId }, 'Obtendo estatísticas da sessão');
       
       const sessao = await gerenciadorSessoes.obterSessao(salaId);
       
@@ -458,7 +460,7 @@ class SessaoController {
         status: sessao.status
       };
       
-      console.log('✅ Estatísticas obtidas com sucesso');
+      log.info('Estatísticas obtidas com sucesso');
       
       res.status(200).json({
         success: true,
@@ -466,7 +468,7 @@ class SessaoController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter estatísticas:', error);
+      log.error({ err: error }, 'Erro ao obter estatísticas');
       next(error);
     }
   }
@@ -500,7 +502,7 @@ class SessaoController {
 
       res.json({ success: true });
     } catch (error) {
-      console.error('❌ Erro ao atualizar campo da mensagem:', error);
+      log.error({ err: error }, 'Erro ao atualizar campo da mensagem');
       next(error);
     }
   }

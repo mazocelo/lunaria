@@ -1,5 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'historia' });
 import historiaController from '../controllers/historia/historiaController.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
 import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
@@ -594,10 +596,14 @@ router.put('/:id/roteiro/versoes/:versaoId/ativar', writeLimiter, requireResourc
 // GET /:id/roteiro/versoes/:versaoId - Detalhe completo de uma versão (com roteiro)
 router.get('/:id/roteiro/versoes/:versaoId', authenticateToken, historiaController.obterVersaoRoteiro);
 
+// PATCH /:id/roteiro/versoes/:versaoId/status - Approval workflow (autenticado)
+router.patch('/:id/roteiro/versoes/:versaoId/status', writeLimiter, authenticateToken, historiaController.atualizarStatusVersaoRoteiro);
+
 // Aliases com hífen (frontend usa este formato)
 router.get('/:id/roteiro-versoes', authenticateToken, historiaController.listarVersoesRoteiro);
 router.get('/:id/roteiro-versoes/:versaoId', authenticateToken, historiaController.obterVersaoRoteiro);
 router.put('/:id/roteiro-versoes/:versaoId/ativar', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.ativarVersaoRoteiro);
+router.patch('/:id/roteiro-versoes/:versaoId/status', writeLimiter, authenticateToken, historiaController.atualizarStatusVersaoRoteiro);
 
 /**
  * Verificar se há sessão ativa para uma história
@@ -608,20 +614,14 @@ router.get('/:id/sessao-ativa', authenticateToken, async (req, res, next) => {
     const userId = req.user?.id;
     const salaId = `historia_${id}`;
 
-    console.log(`🔍 Verificando sessão ativa para história ${id} (usuário: ${userId})`);
+    log.info({ historiaId: id, userId }, 'Verificando sessao ativa');
 
     // Verificar se há sessão no Redis
     const sessao = await gerenciadorSessoes.obterSessao(salaId);
-    console.log('📊 Sessão obtida do Redis:', {
-      salaId,
-      status: sessao?.status,
-      jogadores: sessao?.jogadores,
-      jogadoresConectados: sessao?.jogadoresConectados,
-      donoId: sessao?.donoId
-    });
+    log.info({ salaId, status: sessao?.status, donoId: sessao?.donoId }, 'Sessao obtida do Redis');
 
     if (!sessao) {
-      console.log(`📭 Nenhuma sessão ativa encontrada para história ${id}`);
+      log.info({ historiaId: id }, 'Nenhuma sessao ativa encontrada');
       return res.json({
         success: true,
         data: { hasActiveSession: false }
@@ -639,17 +639,7 @@ router.get('/:id/sessao-ativa', authenticateToken, async (req, res, next) => {
     const jogoIniciado = sessao.statusJogo === 'iniciado';
     const estaJogando = jogoIniciado && (!!estaEmJogadores || ehDono);
 
-    console.log(`📋 Sessão encontrada:`, {
-      status: sessao.status,
-      statusJogo: sessao.statusJogo,
-      totalJogadores: sessao.jogadores ? Object.keys(sessao.jogadores).length : 0,
-      jogadoresConectadosAgora: sessao.jogadoresConectados?.length || 0,
-      estaEmJogadores: !!estaEmJogadores,
-      ehDono,
-      estaConectado,
-      jogoIniciado,
-      estaJogando
-    });
+    log.info({ status: sessao.status, statusJogo: sessao.statusJogo, estaJogando, jogoIniciado }, 'Sessao encontrada');
 
     res.json({
       success: true,
@@ -666,7 +656,7 @@ router.get('/:id/sessao-ativa', authenticateToken, async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('❌ Erro ao verificar sessão ativa:', error);
+    log.error({ err: error }, 'Erro ao verificar sessao ativa');
     next(error);
   }
 });

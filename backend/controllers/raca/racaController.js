@@ -1,5 +1,7 @@
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'racaController' });
 
 /**
  * Controller para gerenciar operações de raça
@@ -14,7 +16,7 @@ class RacaController {
    */
   async criarRaca(req, res, next) {
     try {
-      console.log('🏃 Criando nova raça:', req.body);
+      log.info({ req_body: req.body }, 'Criando nova raça');
 
       const { nome, custo = 0, descricao = null, bonus = null } = req.body;
 
@@ -47,7 +49,7 @@ class RacaController {
         bonus: bonus ? JSON.stringify(bonus) : null
       });
 
-      console.log('✅ Raça criada:', novaRaca.id);
+      log.info({ novaRaca_id: novaRaca.id }, 'Raça criada');
 
       res.status(201).json({
         success: true,
@@ -56,7 +58,7 @@ class RacaController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao criar raça:', error);
+      log.error({ err: error }, 'Erro ao criar raça');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -97,7 +99,7 @@ class RacaController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar raças:', error);
+      log.error({ err: error }, 'Erro ao listar raças');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -114,7 +116,7 @@ class RacaController {
     try {
       const { id } = req.params;
 
-      console.log(`🔍 Buscando raça ID: ${id}`);
+      log.info({ id: id }, 'Buscando raça ID');
 
       const raca = await db.Raca.findById(parseInt(id));
 
@@ -124,7 +126,7 @@ class RacaController {
         });
       }
 
-      console.log('✅ Raça encontrada:', raca.nome);
+      log.info({ raca_nome: raca.nome }, 'Raça encontrada');
 
       res.status(200).json({
         success: true,
@@ -132,7 +134,7 @@ class RacaController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter raça:', error);
+      log.error({ err: error }, 'Erro ao obter raça');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -157,11 +159,11 @@ class RacaController {
         });
       }
 
-      console.log(`🔍 Buscando raças por: ${termo}`);
+      log.info({ termo: termo }, 'Buscando raças por');
 
       const racas = await db.Raca.search(termo);
 
-      console.log(`✅ ${racas.length} raças encontradas`);
+      log.info({ racas_length: racas.length }, 'raças encontradas');
 
       res.status(200).json({
         success: true,
@@ -170,7 +172,7 @@ class RacaController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao buscar raças:', error);
+      log.error({ err: error }, 'Erro ao buscar raças');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -194,7 +196,7 @@ class RacaController {
       const atualizada = await db.Raca.update(parseInt(id), dados);
       res.json({ success: true, message: 'Raça atualizada com sucesso', data: atualizada });
     } catch (error) {
-      console.error('❌ Erro ao atualizar raça:', error);
+      log.error({ err: error }, 'Erro ao atualizar raça');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -209,7 +211,7 @@ class RacaController {
       await db.Raca.delete(parseInt(id));
       res.status(204).send();
     } catch (error) {
-      console.error('❌ Erro ao deletar raça:', error);
+      log.error({ err: error }, 'Erro ao deletar raça');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

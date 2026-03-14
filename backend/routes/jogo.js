@@ -1,5 +1,7 @@
 import express from 'express';
 import db from '../Model/index.js';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'jogo' });
 import gerenciadorSessoes from '../redis/sessoes.js';
 import criarMestreRPG from '../agents/Mestre/index.js';
 import socketManager from '../websocket/socketManager.js';
@@ -30,7 +32,7 @@ function converterJogadoresParaMapa(jogadoresArray) {
       }
     });
   }
-  console.log(`✅ Convertidos ${Object.keys(mapa).length} jogadores para mapa`);
+  log.info({ count: Object.keys(mapa).length }, 'Jogadores convertidos para mapa');
   return mapa;
 }
 
@@ -79,7 +81,7 @@ router.post('/start', async (req, res, next) => {
     const { historiaId, mensagemInicial } = req.body;
     const userId = req.user.id;
 
-    console.log(`🎮 Solicitação para iniciar aventura - História: ${historiaId}, Usuário: ${userId}`);
+    log.info({ historiaId, userId }, 'Solicitacao para iniciar aventura');
 
     // Verificar se a história existe
     const historia = await db.Historia.findById(parseInt(historiaId));
@@ -102,7 +104,7 @@ router.post('/start', async (req, res, next) => {
     // Config do mestre customizado (já incluso no findById via include)
     const mestreConfig = historia.mestres || null;
     if (mestreConfig) {
-      console.log(`🧙‍♂️ Mestre customizado carregado: "${mestreConfig.nome}"`);
+      log.info({ mestreNome: mestreConfig.nome }, 'Mestre customizado carregado');
     }
 
     // ID da sala será baseado na história
@@ -112,7 +114,7 @@ router.post('/start', async (req, res, next) => {
     try {
       await db.SessaoJogo.archiveActiveByHistoriaId(parseInt(historiaId));
     } catch (archiveErr) {
-      console.warn('⚠️ Erro ao arquivar sessões stale (não-bloqueante):', archiveErr.message);
+      log.warn({ err: archiveErr }, 'Erro ao arquivar sessoes stale (nao-bloqueante)');
     }
 
     // Verificar se já existe uma sessão ativa no Redis
@@ -122,10 +124,10 @@ router.post('/start', async (req, res, next) => {
     if (!sessaoExistente) {
       const snapshot = await sessaoSnapshotService.obterSnapshot(salaId);
       if (snapshot && snapshot.status === 'ativa') {
-        console.log(`♻️ Restaurando sessão do PostgreSQL para ${salaId}`);
+        log.info({ salaId }, 'Restaurando sessao do PostgreSQL');
         sessaoExistente = await sessaoSnapshotService.restaurarSessao(salaId);
         if (sessaoExistente) {
-          console.log(`✅ Sessão restaurada do banco de dados`);
+          log.info('Sessao restaurada do banco de dados');
         }
       }
     }
@@ -139,12 +141,12 @@ router.post('/start', async (req, res, next) => {
 
     // Se já existe uma sessão mas não iniciada, atualizá-la ao invés de criar nova
     if (sessaoExistente) {
-      console.log(`📝 Atualizando sessão existente para história ${historia.id}`);
-      console.log(`👥 Jogadores conectados na sala de espera:`, sessaoExistente.jogadoresConectados);
+      log.info({ historiaId: historia.id }, 'Atualizando sessao existente');
+      log.info({ jogadoresConectados: sessaoExistente.jogadoresConectados }, 'Jogadores conectados na sala de espera');
       
       // Buscar temas completos
       const temasCompletos = await buscarTemasCompletos(historia.temas || []);
-      console.log(`🎨 Temas completos obtidos:`, temasCompletos);
+      log.info({ temas: temasCompletos }, 'Temas completos obtidos');
 
       // Buscar personagens completos do banco
       const personagensIds = (sessaoExistente.jogadoresConectados || [])
@@ -157,7 +159,7 @@ router.post('/start', async (req, res, next) => {
         personagensMap[p.id] = p;
       });
       
-      console.log(`🎭 Personagens completos obtidos: ${personagensCompletos.length}`);
+      log.info({ count: personagensCompletos.length }, 'Personagens completos obtidos');
       
       const dadosAtualizacao = {
         status: 'iniciada',
@@ -204,12 +206,12 @@ router.post('/start', async (req, res, next) => {
 
       // 1. Tentar usar o prólogo da história se existir
       if (historia.prologo && historia.prologo.trim().length > 0) {
-        console.log(`📜 Usando prólogo da história como mensagem inicial`);
+        log.info('Usando prologo da historia como mensagem inicial');
         mensagemIntrodutoria = historia.prologo;
       } else {
         // 2. Fallback: Gerar mensagem de boas-vindas do Mestre IA
         try {
-          console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
+          log.info({ historiaNome: historia.nome }, 'Gerando mensagem de boas-vindas do Mestre');
           
           const payloadMestre = await prepareMestrePayload({
             ...sessao,
@@ -239,9 +241,9 @@ router.post('/start', async (req, res, next) => {
           });
 
           mensagemIntrodutoria = boasVindas.introducao;
-          console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+          log.info('Mensagem de boas-vindas gerada pelo Mestre');
         } catch (error) {
-          console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
+          log.error({ err: error }, 'Erro ao gerar mensagem de boas-vindas do Mestre');
           mensagemIntrodutoria = mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`;
         }
       }
@@ -254,7 +256,7 @@ router.post('/start', async (req, res, next) => {
         }
 
         await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-        console.log(`🎭 Prólogo salvo como pendente (será emitido após rolagem de dados)`);
+        log.info('Prologo salvo como pendente (sera emitido apos rolagem de dados)');
       }
 
       // Notificar via WebSocket
@@ -290,15 +292,15 @@ router.post('/start', async (req, res, next) => {
               );
             }
           }
-          console.log(`📋 Clones de personagens criados para ${jogadoresParaClonar.length} jogadores`);
+          log.info({ jogadores: jogadoresParaClonar.length }, 'Clones de personagens criados');
         } else {
-          console.warn('⚠️ Não foi possível obter sessaoJogoRow para criar clones');
+          log.warn('Nao foi possivel obter sessaoJogoRow para criar clones');
         }
       } catch (cloneError) {
-        console.error('⚠️ Erro ao criar clones de personagens:', cloneError.message);
+        log.error({ err: cloneError }, 'Erro ao criar clones de personagens');
       }
 
-      console.log(`✅ Aventura iniciada com sucesso para história ${historia.id} - Sala: ${salaId}`);
+      log.info({ historiaId: historia.id, salaId }, 'Aventura iniciada com sucesso');
 
       return res.status(200).json({
         success: true,
@@ -322,8 +324,7 @@ router.post('/start', async (req, res, next) => {
       });
     }
 
-    // Gerar o mestre (por enquanto apenas console.log como solicitado)
-    console.log(`🧙‍♂️ Gerando Mestre para a história "${historia.nome}" com temas: ${historia.temas.join(', ')}`);
+    log.info({ historiaNome: historia.nome, temas: historia.temas }, 'Gerando Mestre para a historia');
     
     // Aqui futuramente criaremos o mestre com IA
     // const mestre = await criarMestreRPG(historia.temas, []);
@@ -334,12 +335,12 @@ router.post('/start', async (req, res, next) => {
     
     if (sessaoPrevia && sessaoPrevia.jogadoresConectados) {
       jogadoresDaSalaEspera = sessaoPrevia.jogadoresConectados;
-      console.log(`✅ Preservando ${jogadoresDaSalaEspera.length} jogadores da sala de espera`);
+      log.info({ count: jogadoresDaSalaEspera.length }, 'Preservando jogadores da sala de espera');
     }
 
     // Buscar temas completos
     const temasCompletos = await buscarTemasCompletos(historia.temas || []);
-    console.log(`🎨 Temas completos obtidos:`, temasCompletos);
+    log.info({ temas: temasCompletos }, 'Temas completos obtidos');
 
     // Buscar personagens completos do banco
     const personagensIds = jogadoresDaSalaEspera
@@ -352,7 +353,7 @@ router.post('/start', async (req, res, next) => {
       personagensMap[p.id] = p;
     });
     
-    console.log(`🎭 Personagens completos obtidos: ${personagensCompletos.length}`);
+    log.info({ count: personagensCompletos.length }, 'Personagens completos obtidos');
 
     // Criar/atualizar sessão no Redis
     const dadosSessao = {
@@ -404,12 +405,12 @@ router.post('/start', async (req, res, next) => {
     let mensagemIntrodutoria = '';
 
     if (historia.prologo && historia.prologo.trim().length > 0) {
-      console.log(`📜 Usando prólogo da história como mensagem inicial`);
+      log.info('Usando prologo da historia como mensagem inicial');
       mensagemIntrodutoria = historia.prologo;
     } else {
       // Fallback: Gerar mensagem de boas-vindas do Mestre IA
       try {
-        console.log(`🎭 Gerando mensagem de boas-vindas do Mestre para história "${historia.nome}"...`);
+        log.info({ historia: historia.nome }, 'Gerando mensagem de boas-vindas do Mestre');
         
         const payloadMestre = await prepareMestrePayload(sessao, historia);
         const mestre = await criarMestreRPG(
@@ -429,9 +430,9 @@ router.post('/start', async (req, res, next) => {
         });
 
         mensagemIntrodutoria = boasVindas.introducao;
-        console.log(`✅ Mensagem de boas-vindas gerada pelo Mestre`);
+        log.info('Mensagem de boas-vindas gerada pelo Mestre');
       } catch (error) {
-        console.error('❌ Erro ao gerar mensagem de boas-vindas do Mestre:', error);
+        log.error({ err: error }, 'Erro ao gerar mensagem de boas-vindas do Mestre');
         mensagemIntrodutoria = mensagemInicial || `Bem-vindos à aventura "${historia.nome}"!`;
       }
     }
@@ -444,7 +445,7 @@ router.post('/start', async (req, res, next) => {
       }
 
       await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-      console.log(`🎭 Prólogo salvo como pendente (será emitido após rolagem de dados)`);
+      log.info('Prologo salvo como pendente (sera emitido apos rolagem de dados)');
     }
 
     // Notificar via WebSocket todos os usuários conectados à sala sobre o início
@@ -479,15 +480,15 @@ router.post('/start', async (req, res, next) => {
             );
           }
         }
-        console.log(`📋 Clones de personagens criados para ${jogadoresDaSalaEspera.length} jogadores`);
+        log.info({ jogadores: jogadoresDaSalaEspera.length }, 'Clones de personagens criados');
       } else {
-        console.warn('⚠️ Não foi possível obter sessaoJogoRow para criar clones');
+        log.warn('Nao foi possivel obter sessaoJogoRow para criar clones');
       }
     } catch (cloneError) {
-      console.error('⚠️ Erro ao criar clones de personagens:', cloneError.message);
+      log.error({ err: cloneError }, 'Erro ao criar clones de personagens');
     }
 
-    console.log(`✅ Aventura iniciada com sucesso para história ${historia.id} - Sala: ${salaId}`);
+    log.info({ historiaId: historia.id, salaId }, 'Aventura iniciada com sucesso');
 
     res.status(200).json({
       success: true,
@@ -511,7 +512,7 @@ router.post('/start', async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao iniciar aventura:', error);
+    log.error({ err: error }, 'Erro ao iniciar aventura');
     next(error);
   }
 });
@@ -580,7 +581,7 @@ router.get('/status/:historiaId', async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao obter status da sessão:', error);
+    log.error({ err: error }, 'Erro ao obter status da sessao');
     next(error);
   }
 });
@@ -613,7 +614,7 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
     const { historiaId } = req.params;
     const userId = req.user.id;
 
-    console.log(`🔄 Solicitação para resetar sessão - História: ${historiaId}, Usuário: ${userId}`);
+    log.info({ historiaId, userId }, 'Solicitacao para resetar sessao');
 
     // Verificar se a história existe
     const historia = await db.Historia.findById(parseInt(historiaId));
@@ -655,14 +656,14 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
             try {
               await db.PersonagemSessao.marcarAbandonada(clone.id);
             } catch (e) {
-              console.error(`⚠️ Falha ao abandonar clone ${clone.id}:`, e.message);
+              log.error({ err: e, cloneId: clone.id }, 'Falha ao abandonar clone');
             }
           }
         }
-        console.log(`📋 ${clones.length} clones marcados como abandonados`);
+        log.info({ count: clones.length }, 'Clones marcados como abandonados');
       }
     } catch (abandonError) {
-      console.error('⚠️ Erro ao abandonar clones:', abandonError.message);
+      log.error({ err: abandonError }, 'Erro ao abandonar clones');
     }
 
     // Excluir sessão do Redis
@@ -682,7 +683,7 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
       timestamp: Date.now()
     });
 
-    console.log(`✅ Sessão resetada com sucesso para história ${historia.id}`);
+    log.info({ historiaId: historia.id }, 'Sessao resetada com sucesso');
 
     res.status(200).json({
       success: true,
@@ -694,7 +695,7 @@ router.delete('/reset/:historiaId', async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao resetar sessão:', error);
+    log.error({ err: error }, 'Erro ao resetar sessao');
     next(error);
   }
 });
@@ -725,7 +726,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    console.log(`⛔ Solicitação para encerrar sessão - História: ${historiaId}, Usuário: ${userId}, Role: ${userRole}`);
+    log.info({ historiaId, userId, userRole }, 'Solicitacao para encerrar sessao');
 
     const historia = await db.Historia.findById(parseInt(historiaId));
 
@@ -765,14 +766,14 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
               await db.PersonagemSessao.finalizarEMesclar(clone.id);
               mergeCount++;
             } catch (e) {
-              console.error(`⚠️ Falha ao mesclar clone ${clone.id} (${clone.nome}):`, e.message);
+              log.error({ err: e, cloneId: clone.id, cloneNome: clone.nome }, 'Falha ao mesclar clone');
             }
           }
         }
-        console.log(`📋 ${mergeCount}/${clones.length} clones de personagens mesclados | XP total: ${totalXpGanho} | Itens: ${todosItensGanhos.length}`);
+        log.info({ mergeCount, totalClones: clones.length, totalXpGanho, totalItens: todosItensGanhos.length }, 'Clones de personagens mesclados');
       }
     } catch (mergeError) {
-      console.error('⚠️ Erro ao mesclar clones:', mergeError.message);
+      log.error({ err: mergeError }, 'Erro ao mesclar clones');
     }
 
     // 2. Excluir sessão do Redis
@@ -807,10 +808,10 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
           userId: req.user?.id
         });
         resumoSessao = resultado.resumo;
-        console.log(`📝 Resumo da sessão gerado com sucesso (${resultado.mensagensResumidas} mensagens)`);
+        log.info({ mensagensResumidas: resultado.mensagensResumidas }, 'Resumo da sessao gerado com sucesso');
       }
     } catch (resumoError) {
-      console.error('⚠️ Erro ao gerar resumo da sessão (não-bloqueante):', resumoError.message);
+      log.error({ err: resumoError }, 'Erro ao gerar resumo da sessao (nao-bloqueante)');
     }
 
     // 5. Limpeza completa do socketManager (mestresCache, roomUsers, sockets, emite evento)
@@ -821,7 +822,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
       loot: todosItensGanhos
     });
 
-    console.log(`✅ Sessão encerrada com sucesso para história ${historia.id}`);
+    log.info({ historiaId: historia.id }, 'Sessao encerrada com sucesso');
 
     res.status(200).json({
       success: true,
@@ -833,7 +834,7 @@ router.delete('/encerrar/:historiaId', async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao encerrar sessão:', error);
+    log.error({ err: error }, 'Erro ao encerrar sessao');
     next(error);
   }
 });

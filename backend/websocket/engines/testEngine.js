@@ -1,3 +1,6 @@
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'testEngine' });
+
 import {
   compactarTestesPendentes,
   criarTestesPendentes,
@@ -150,7 +153,7 @@ export default class TestEngine {
               `vs DC ${resultadoTeste.dc} -> ${resultadoTeste.descricaoResultado}`;
           }
         } catch (testeError) {
-          console.warn('Erro ao resolver teste mecanicamente, usando resultado bruto:', testeError.message);
+          log.warn({ err: testeError }, 'Erro ao resolver teste mecanicamente, usando resultado bruto');
           resultadoTestePayload = {
             userId,
             username,
@@ -244,7 +247,7 @@ export default class TestEngine {
             message: interpretacao.narracao
           });
         } catch (errorIA) {
-          console.error('Erro ao processar dado com Mestre IA:', errorIA);
+          log.error({ err: errorIA }, 'Erro ao processar dado com Mestre IA');
 
           const textoFallback =
             `${personagemNome} rolou ${dice} e obteve **${result}**` +
@@ -280,7 +283,7 @@ export default class TestEngine {
         }
       });
     } catch (error) {
-      console.error('Erro ao processar dice_roll:', error);
+      log.error({ err: error }, 'Erro ao processar dice_roll');
       // @event error → socket (direct) | unhandled exception in handleDiceRoll outer catch
       socket.emit('error', { message: 'Erro ao processar rolagem' });
 
@@ -292,10 +295,10 @@ export default class TestEngine {
         if (hasPendingTests(sessao)) {
           limparTestePendente(sessao, { nextTurnState: TURN_STATUS.ACTIVE });
           await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
-          console.log('Flags de teste limpas no outer catch');
+          log.info('Flags de teste limpas no outer catch');
         }
       } catch (cleanupErr) {
-        console.warn('Erro ao limpar flags no outer catch:', cleanupErr.message);
+        log.warn({ err: cleanupErr }, 'Erro ao limpar flags no outer catch');
       }
     }
   }
@@ -398,7 +401,7 @@ export default class TestEngine {
         }));
         await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaDado);
 
-        console.log(`Mensagem de dado salva no Redis: ${resultadoData.username} rolou ${resultadoData.valor}`);
+        log.info({ username: resultadoData.username, valor: resultadoData.valor }, 'Mensagem de dado salva no Redis');
 
         const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
         const rolagemInicialAtualizada = sessaoAtualizada.estadoJogo?.rolagemInicial || {};
@@ -442,7 +445,7 @@ export default class TestEngine {
         }));
         await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoComOrdem);
 
-        console.log('Mensagem de ordem definida salva no Redis');
+        log.info('Mensagem de ordem definida salva no Redis');
 
         await sm.gerenciadorSessoes.atualizarFaseJogo(roomId, 'rodada_em_andamento');
         await sm.iniciarPrimeiroTurno(roomId);
@@ -590,7 +593,7 @@ export default class TestEngine {
         processingTimeMs: processingTime
       });
 
-      console.log(`Solicitacao de dados enviada para sala ${roomId}`);
+      log.info({ roomId }, 'Solicitacao de dados enviada para sala');
     } catch (error) {
       const processingTime = Date.now() - startTime;
       sm.log('ERROR', 'SOLICITAR_DADOS_ERROR', socket.id, socket.userId, {

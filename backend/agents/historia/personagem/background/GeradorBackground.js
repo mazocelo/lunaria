@@ -2,6 +2,9 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { createBackgroundModel } from './model.js';
 import { createBackgroundPrompt } from './prompts.js';
 import { trackLLMUsage } from '../../../../services/llmTracker.js';
+import logger from '../../../../helpers/logger.js';
+
+const log = logger.child({ module: 'GeradorBackground' });
 
 const BACKGROUND_MODEL_NAME = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
@@ -45,7 +48,7 @@ async function criarGeradorBackground(temas = []) {
                     });
                     trackLLMUsage(response, { modelName: BACKGROUND_MODEL_NAME, userId, startTime, agent: 'GeradorBackground' });
 
-                    console.log('👤 Background gerado para personagem:', nome);
+                    log.info({ nome }, 'Background gerado para personagem');
 
                     return {
                         background: response.content.trim(),
@@ -54,13 +57,13 @@ async function criarGeradorBackground(temas = []) {
                         temasUtilizados: temas
                     };
                 } catch (error) {
-                    console.error('❌ Erro ao gerar background:', error);
+                    log.error({ err: error }, 'Erro ao gerar background');
                     throw error;
                 }
             }
         };
     } catch (error) {
-        console.error('❌ Erro ao criar gerador de background:', error.message);
+        log.error({ err: error }, 'Erro ao criar gerador de background');
         throw new Error(`Erro ao criar gerador de background: ${error.message}`);
     }
 }

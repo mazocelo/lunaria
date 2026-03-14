@@ -1,5 +1,7 @@
 import db from '../../Model/index.js';
 import { BonusEquipSchema, RequisitosEquipSchema, VinculoSchema, validateJson } from '../../helpers/jsonSchemas.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'equipamentoController' });
 
 class EquipamentoController {
   async listarEquipamentos(req, res) {
@@ -30,7 +32,7 @@ class EquipamentoController {
         pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
     } catch (error) {
-      console.error('Erro ao listar equipamentos:', error);
+      log.error({ err: error }, 'Erro ao listar equipamentos');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -42,7 +44,7 @@ class EquipamentoController {
       if (!equipamento) return res.status(404).json({ success: false, error: 'Equipamento nao encontrado' });
       res.json({ success: true, data: equipamento });
     } catch (error) {
-      console.error('Erro ao obter equipamento:', error);
+      log.error({ err: error }, 'Erro ao obter equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -76,7 +78,7 @@ class EquipamentoController {
       const equipamento = await db.Equipamento.create(dados);
       res.status(201).json({ success: true, message: 'Equipamento criado com sucesso', data: equipamento });
     } catch (error) {
-      console.error('Erro ao criar equipamento:', error);
+      log.error({ err: error }, 'Erro ao criar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -108,7 +110,7 @@ class EquipamentoController {
       const atualizado = await db.Equipamento.update(parseInt(id), dados);
       res.json({ success: true, message: 'Equipamento atualizado com sucesso', data: atualizado });
     } catch (error) {
-      console.error('Erro ao atualizar equipamento:', error);
+      log.error({ err: error }, 'Erro ao atualizar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -122,7 +124,7 @@ class EquipamentoController {
       await db.Equipamento.delete(parseInt(id));
       res.status(204).send();
     } catch (error) {
-      console.error('Erro ao deletar equipamento:', error);
+      log.error({ err: error }, 'Erro ao deletar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -135,7 +137,7 @@ class EquipamentoController {
       const equipamentos = await db.Equipamento.search(termo);
       res.json({ success: true, data: equipamentos, total: equipamentos.length });
     } catch (error) {
-      console.error('Erro ao buscar equipamentos:', error);
+      log.error({ err: error }, 'Erro ao buscar equipamentos');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

@@ -1,6 +1,9 @@
 /**
  * AI Response Dispatcher - processa blocos da resposta do Mestre IA em sequencia.
  */
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'respostaDispatcher' });
+
 import { processarAcoes } from '../../helpers/acoesProcessor.js';
 import { calcularModificadorTeste } from '../../helpers/testeHelper.js';
 import {
@@ -77,7 +80,7 @@ async function criarSolicitacaoTeste(resposta, ctx) {
       atributoPreview = modInfo.atributoNome;
     }
   } catch (error) {
-    console.warn('⚠️ Erro ao calcular modificador preview:', error.message);
+    log.warn({ err: error }, 'Erro ao calcular modificador preview');
   }
 
   emitSolicitacao(ctx, resposta, testePendente, testesCriados, modificadorPreview, atributoPreview);
@@ -196,7 +199,7 @@ async function processarControleTurno(resposta, ctx) {
     try {
       await ctx.sm.avancarProximoTurno(ctx.roomId);
     } catch (error) {
-      console.error('❌ Erro ao avançar turno:', error);
+      log.error({ err: error }, 'Erro ao avancar turno');
       // @event erro_sistema → room (broadcast) | erro ao avançar turno
       ctx.sm.sendToRoom(ctx.roomId, 'erro_sistema', { message: 'Erro ao avançar turno. Tente novamente.' });
     }
@@ -219,7 +222,7 @@ export async function despacharResposta(resposta, ctx) {
     try {
       await handler.process(resposta, ctx);
     } catch (err) {
-      console.error(`❌ RespostaDispatcher [${handler.nome}]:`, err.message);
+      log.error({ err, handler: handler.nome }, 'RespostaDispatcher erro no handler');
     }
   }
 

@@ -1,5 +1,7 @@
 import express from 'express';
 import usageService from '../services/usageService.js';
+import logger from '../helpers/logger.js';
+const log = logger.child({ module: 'billing' });
 
 const router = express.Router();
 
@@ -18,7 +20,7 @@ router.get('/usage', async (req, res) => {
 
     res.json({ success: true, data });
   } catch (error) {
-    console.error('Billing usage error:', error.message);
+    log.error({ err: error }, 'Billing usage error');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -40,7 +42,7 @@ router.get('/global', async (req, res) => {
 
     res.json({ success: true, data });
   } catch (error) {
-    console.error('Billing global error:', error.message);
+    log.error({ err: error }, 'Billing global error');
     res.status(500).json({ success: false, error: error.message });
   }
 });

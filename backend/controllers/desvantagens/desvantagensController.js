@@ -1,5 +1,7 @@
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'desvantagensController' });
 
 /**
  * Controller para gerenciar operações de desvantagens
@@ -14,7 +16,7 @@ class DesvantagemController {
    */
   async criarDesvantagem(req, res, next) {
     try {
-      console.log('📝 Criando nova desvantagem:', req.body);
+      log.info({ body: req.body }, 'Criando nova desvantagem');
       
       const {
         nome,
@@ -65,7 +67,7 @@ class DesvantagemController {
         requisitos: requisitos || {}
       });
       
-      console.log('✅ Desvantagem criada com sucesso:', novaDesvantagem.id);
+      log.info({ id: novaDesvantagem.id }, 'Desvantagem criada com sucesso');
       
       res.status(201).json({
         success: true,
@@ -74,7 +76,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao criar desvantagem:', error);
+      log.error({ err: error }, 'Erro ao criar desvantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -122,7 +124,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar desvantagens:', error);
+      log.error({ err: error }, 'Erro ao listar desvantagens');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -139,7 +141,7 @@ class DesvantagemController {
     try {
       const { id } = req.params;
       
-      console.log(`🔍 Buscando desvantagem ID: ${id}`);
+      log.info({ id: id }, 'Buscando desvantagem ID');
       
       const desvantagem = await db.Desvantagem.findById(parseInt(id));
       
@@ -149,7 +151,7 @@ class DesvantagemController {
         });
       }
       
-      console.log('✅ Desvantagem encontrada');
+      log.info('Desvantagem encontrada');
       
       res.status(200).json({
         success: true,
@@ -157,7 +159,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao obter desvantagem:', error);
+      log.error({ err: error }, 'Erro ao obter desvantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -176,11 +178,11 @@ class DesvantagemController {
     try {
       const { elemento } = req.params;
       
-      console.log(`📋 Listando desvantagens do elemento: ${elemento}`);
+      log.info({ elemento: elemento }, 'Listando desvantagens do elemento');
       
       const desvantagens = await db.Desvantagem.findByElemento(elemento);
       
-      console.log(`✅ ${desvantagens.length} desvantagens encontradas do elemento ${elemento}`);
+      log.info({ desvantagens_length: desvantagens.length, elemento: elemento }, 'desvantagens encontradas do elemento');
       
       res.status(200).json({
         success: true,
@@ -188,7 +190,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar desvantagens por elemento:', error);
+      log.error({ err: error }, 'Erro ao listar desvantagens por elemento');
       next(error);
     }
   }
@@ -203,11 +205,11 @@ class DesvantagemController {
     try {
       const { tipo } = req.params;
       
-      console.log(`📋 Listando desvantagens do tipo: ${tipo}`);
+      log.info({ tipo: tipo }, 'Listando desvantagens do tipo');
       
       const desvantagens = await db.Desvantagem.findByTipo(tipo);
       
-      console.log(`✅ ${desvantagens.length} desvantagens encontradas do tipo ${tipo}`);
+      log.info({ desvantagens_length: desvantagens.length, tipo: tipo }, 'desvantagens encontradas do tipo');
       
       res.status(200).json({
         success: true,
@@ -215,7 +217,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar desvantagens por tipo:', error);
+      log.error({ err: error }, 'Erro ao listar desvantagens por tipo');
       next(error);
     }
   }
@@ -230,11 +232,11 @@ class DesvantagemController {
     try {
       const { nivel } = req.params;
       
-      console.log(`📋 Listando desvantagens do nível: ${nivel}`);
+      log.info({ nivel: nivel }, 'Listando desvantagens do nível');
       
       const desvantagens = await db.Desvantagem.findByNivel(nivel);
       
-      console.log(`✅ ${desvantagens.length} desvantagens encontradas do nível ${nivel}`);
+      log.info({ desvantagens_length: desvantagens.length, nivel: nivel }, 'desvantagens encontradas do nível');
       
       res.status(200).json({
         success: true,
@@ -242,7 +244,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar desvantagens por nível:', error);
+      log.error({ err: error }, 'Erro ao listar desvantagens por nivel');
       next(error);
     }
   }
@@ -263,11 +265,11 @@ class DesvantagemController {
         });
       }
       
-      console.log(`🔍 Buscando desvantagens com termo: ${termo}`);
+      log.info({ termo: termo }, 'Buscando desvantagens com termo');
       
       const desvantagens = await db.Desvantagem.search(termo);
       
-      console.log(`✅ ${desvantagens.length} desvantagens encontradas para "${termo}"`);
+      log.info({ desvantagens_length: desvantagens.length, termo: termo }, 'desvantagens encontradas para ""');
       
       res.status(200).json({
         success: true,
@@ -275,7 +277,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao buscar desvantagens:', error);
+      log.error({ err: error }, 'Erro ao buscar desvantagens');
       next(error);
     }
   }
@@ -288,7 +290,7 @@ class DesvantagemController {
    */
   async obterEstatisticas(req, res, next) {
     try {
-      console.log('📊 Obtendo estatísticas das desvantagens');
+      log.info('Obtendo estatisticas das desvantagens');
       
       const totalDesvantagens = await db.Desvantagem.count();
       
@@ -316,7 +318,7 @@ class DesvantagemController {
         porUsar
       };
       
-      console.log('✅ Estatísticas obtidas com sucesso');
+      log.info('Estatisticas obtidas com sucesso');
       
       res.status(200).json({
         success: true,
@@ -324,7 +326,7 @@ class DesvantagemController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao obter estatísticas:', error);
+      log.error({ err: error }, 'Erro ao obter estatisticas');
       next(error);
     }
   }
@@ -354,7 +356,7 @@ class DesvantagemController {
       const atualizada = await db.Desvantagem.update(parseInt(id), dados);
       res.json({ success: true, message: 'Desvantagem atualizada com sucesso', data: atualizada });
     } catch (error) {
-      console.error('❌ Erro ao atualizar desvantagem:', error);
+      log.error({ err: error }, 'Erro ao atualizar desvantagem');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -369,7 +371,7 @@ class DesvantagemController {
       await db.Desvantagem.delete(parseInt(id));
       res.status(204).send();
     } catch (error) {
-      console.error('❌ Erro ao deletar desvantagem:', error);
+      log.error({ err: error }, 'Erro ao deletar desvantagem');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

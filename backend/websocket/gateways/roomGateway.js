@@ -1,3 +1,6 @@
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'roomGateway' });
+
 export default class RoomGateway {
   constructor(manager) {
     this.manager = manager;
@@ -159,11 +162,7 @@ export default class RoomGateway {
             return;
           }
 
-          console.log('Permitindo reconexao de jogador existente no jogo iniciado:', {
-            userId,
-            username: socket.username,
-            personagem: estaNoMapaJogadores.personagemNome
-          });
+          log.info({ userId, username: socket.username, personagem: estaNoMapaJogadores.personagemNome }, 'Permitindo reconexao de jogador existente no jogo iniciado');
           sm.log('INFO', 'JOIN_ROOM_RECONNECTION_ALLOWED', socket.id, userId, {
             username,
             sessaoStatus: sessao.status,
@@ -250,7 +249,7 @@ export default class RoomGateway {
         if (sessao) {
           isOwner = sessao.donoId === userId;
           isGuest = !isOwner && !wasAlreadyInRoom;
-          console.log(`Status da sala: ${sessao.statusJogo || 'null'} | Status sessao: ${sessao.status}`);
+          log.info({ statusJogo: sessao.statusJogo || 'null', statusSessao: sessao.status }, 'Status da sala');
         }
       }
 
@@ -305,12 +304,7 @@ export default class RoomGateway {
         hasPersonagem: !!data.personagemNome
       });
 
-      console.log('SocketManager: Notificando outros jogadores sobre novo usuario:', {
-        userId,
-        username,
-        personagemNome: data.personagemNome,
-        status: userJoinedEvent.status
-      });
+      log.info({ userId, username, personagemNome: data.personagemNome, status: userJoinedEvent.status }, 'Notificando outros jogadores sobre novo usuario');
 
       // @event user_joined → room (broadcast) | notifies existing room members that a new player has joined or reconnected
       socket.to(roomId).emit('user_joined', userJoinedEvent);
@@ -359,11 +353,7 @@ export default class RoomGateway {
           }
         };
 
-        console.log('SocketManager: Enviando room_joined com jogadores:', {
-          roomId: responseData.roomId,
-          totalJogadores: responseData.sessao.jogadoresConectados.length,
-          jogadores: responseData.sessao.jogadoresConectados
-        });
+        log.info({ roomId: responseData.roomId, totalJogadores: responseData.sessao.jogadoresConectados.length, jogadores: responseData.sessao.jogadoresConectados }, 'Enviando room_joined com jogadores');
 
         // @event room_joined → socket (direct) | confirms join for a historia room, includes full session state
         socket.emit('room_joined', responseData);
@@ -711,9 +701,9 @@ export default class RoomGateway {
           sessao.atualizadaEm = new Date().toISOString();
 
           await sm.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-          console.log(`Jogador ${userId} (${dadosJogador.username}) reconectado a sessao iniciada ${salaId}`);
+          log.info({ userId, username: dadosJogador.username, salaId }, 'Jogador reconectado a sessao iniciada');
         } else {
-          console.log(`Jogador ${userId} ja esta em jogadoresConectados`);
+          log.info({ userId }, 'Jogador ja esta em jogadoresConectados');
         }
         return;
       }
@@ -728,15 +718,15 @@ export default class RoomGateway {
         const statusAnterior = sessao.statusJogo;
         sessao.statusJogo = 'esperando';
         if (jogadoresAtuais.length === 1) {
-          console.log('Primeiro jogador entrou, status: esperando');
+          log.info('Primeiro jogador entrou, status: esperando');
         } else {
-          console.log(`${jogadoresAtuais.length} jogadores esperando`);
+          log.info({ count: jogadoresAtuais.length }, 'Jogadores esperando');
         }
 
         sessao.atualizadaEm = new Date().toISOString();
 
         await sm.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-        console.log(`Jogador ${dadosJogador.username} adicionado a sessao ${salaId}`);
+        log.info({ username: dadosJogador.username, salaId }, 'Jogador adicionado a sessao');
 
         if (statusAnterior !== sessao.statusJogo && sm.io) {
           // @event status_jogo_alterado → room (broadcast) | fires when game lobby status changes (e.g. waiting → ready)
@@ -745,7 +735,7 @@ export default class RoomGateway {
             totalJogadores: jogadoresAtuais.length,
             timestamp: Date.now()
           });
-          console.log(`Evento status_jogo_alterado emitido: ${statusAnterior} -> ${sessao.statusJogo}`);
+          log.info({ statusAnterior, statusNovo: sessao.statusJogo }, 'Evento status_jogo_alterado emitido');
         }
         return;
       }
@@ -754,9 +744,9 @@ export default class RoomGateway {
       sessao.atualizadaEm = new Date().toISOString();
 
       await sm.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-      console.log(`Dados do jogador ${dadosJogador.username} atualizados na sessao ${salaId}`);
+      log.info({ username: dadosJogador.username, salaId }, 'Dados do jogador atualizados na sessao');
     } catch (error) {
-      console.error('Erro ao adicionar jogador a sessao:', error);
+      log.error({ err: error }, 'Erro ao adicionar jogador a sessao');
     }
   }
 
@@ -779,7 +769,7 @@ export default class RoomGateway {
         sessao.atualizadaEm = new Date().toISOString();
 
         await sm.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-        console.log(`Jogador ${userId} desconectado da sessao iniciada ${salaId}`);
+        log.info({ userId, salaId }, 'Jogador desconectado da sessao iniciada');
         return;
       }
 
@@ -789,9 +779,9 @@ export default class RoomGateway {
       sessao.atualizadaEm = new Date().toISOString();
 
       await sm.gerenciadorSessoes.atualizarSessao(salaId, sessao);
-      console.log(`Jogador ${userId} removido da sessao ${salaId}`);
+      log.info({ userId, salaId }, 'Jogador removido da sessao');
     } catch (error) {
-      console.error('Erro ao remover jogador da sessao:', error);
+      log.error({ err: error }, 'Erro ao remover jogador da sessao');
     }
   }
 }

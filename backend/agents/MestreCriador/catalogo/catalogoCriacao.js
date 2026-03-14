@@ -3,6 +3,9 @@
  * para injetar no system prompt do Mestre Criador.
  */
 import db from '../../../Model/index.js';
+import logger from '../../../helpers/logger.js';
+
+const log = logger.child({ module: 'catalogoCriacao' });
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutos
 let _cachedCatalogo = null;
@@ -98,7 +101,7 @@ export async function buildCatalogoCriacao() {
 
     return sections.join('\n');
   } catch (error) {
-    console.error('CatalogoCriacao: Erro ao construir catálogo:', error.message);
+    log.error({ err: error }, 'Erro ao construir catalogo');
     return '(Catálogo indisponível — sugira opções genéricas)';
   }
 }

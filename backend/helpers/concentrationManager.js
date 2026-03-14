@@ -6,6 +6,8 @@
  *
  * Armazena em sessao.estadoJogo.concentracao[userId] = { magia_id, nome, turnos_restantes } | null
  */
+import logger from './logger.js';
+const log = logger.child({ module: 'concentrationManager' });
 
 /**
  * Inicializa estrutura de concentração se não existir
@@ -54,7 +56,7 @@ export function quebrarConcentracao(sessao, userId, motivo = 'manual') {
   sessao.estadoJogo.concentracao[uid] = null;
 
   if (ativa) {
-    console.log(`🔮 Concentração quebrada: ${ativa.nome} (${motivo}) — jogador ${uid}`);
+    log.info({ magia: ativa.nome, motivo, userId: uid }, 'Concentracao quebrada');
   }
   return ativa;
 }
@@ -85,7 +87,7 @@ export function decrementConcentracao(sessao, userId) {
   conc.turnos_restantes--;
   if (conc.turnos_restantes <= 0) {
     sessao.estadoJogo.concentracao[uid] = null;
-    console.log(`🔮 Concentração expirou: ${conc.nome} — jogador ${uid}`);
+    log.info({ magia: conc.nome, userId: uid }, 'Concentracao expirou');
     return conc;
   }
   return null;

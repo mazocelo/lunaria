@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import logger from './logger.js';
+const log = logger.child({ module: 'startupValidation' });
 
 const BASE_REQUIRED_ENV_VARS = ['DATABASE_URL'];
 const AUTH_REQUIRED_ENV_VARS = ['JWT_SECRET', 'JWT_REFRESH_SECRET'];
@@ -26,7 +28,7 @@ export function validateEnvironment(options = {}) {
   }
 
   if (missing.length > 0) {
-    console.error(`FATAL: Variaveis de ambiente obrigatorias nao definidas: ${missing.join(', ')}`);
+    log.error({ missing }, 'FATAL: Variaveis de ambiente obrigatorias nao definidas');
     process.exit(1);
   }
 }

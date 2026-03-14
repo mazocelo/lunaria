@@ -1,6 +1,9 @@
 import express from 'express';
 import socketManager from '../websocket/socketManager.js';
 import { requireSuperAdmin } from '../middleware/authMiddleware.js';
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'websocketRoute' });
 
 const router = express.Router();
 
@@ -49,7 +52,7 @@ router.get('/stats', requireSuperAdmin, (req, res) => {
       data: stats
     });
   } catch (error) {
-    console.error('❌ Erro ao obter estatísticas do WebSocket:', error);
+    log.error({ err: error }, 'Erro ao obter estatisticas do WebSocket');
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -111,7 +114,7 @@ router.post('/broadcast', requireSuperAdmin, (req, res) => {
       message: 'Mensagem broadcast enviada com sucesso'
     });
   } catch (error) {
-    console.error('❌ Erro ao enviar broadcast:', error);
+    log.error({ err: error }, 'Erro ao enviar broadcast');
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -181,7 +184,7 @@ router.post('/room/:roomId/message', requireSuperAdmin, (req, res) => {
       message: `Mensagem enviada para sala ${roomId}`
     });
   } catch (error) {
-    console.error('❌ Erro ao enviar mensagem para sala:', error);
+    log.error({ err: error, roomId }, 'Erro ao enviar mensagem para sala');
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -251,7 +254,7 @@ router.post('/user/:userId/message', requireSuperAdmin, (req, res) => {
       message: `Mensagem enviada para usuário ${userId}`
     });
   } catch (error) {
-    console.error('❌ Erro ao enviar mensagem para usuário:', error);
+    log.error({ err: error, userId }, 'Erro ao enviar mensagem para usuario');
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

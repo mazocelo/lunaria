@@ -1,5 +1,8 @@
 import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'sessaoSnapshot' });
 
 /**
  * Servico de snapshot: sincroniza sessoes entre Redis (fonte primaria) e PostgreSQL (backup duravel)
@@ -12,7 +15,7 @@ class SessaoSnapshotService {
    */
   async salvarSnapshot(salaId, sessaoRedis) {
     if (!sessaoRedis || !sessaoRedis.historiaId) {
-      console.warn(`⚠️ Snapshot ignorado: sessao invalida para sala ${salaId}`);
+      log.warn({ salaId }, 'Snapshot ignorado: sessao invalida');
       return null;
     }
 
@@ -32,7 +35,7 @@ class SessaoSnapshotService {
     };
 
     const result = await db.SessaoJogo.upsertSnapshot(salaId, snapshotData);
-    console.log(`💾 Snapshot salvo para sala ${salaId} (rodada ${snapshotData.rodada_atual})`);
+    log.info({ salaId, rodada: snapshotData.rodada_atual }, 'Snapshot salvo');
     return result;
   }
 
@@ -89,12 +92,12 @@ class SessaoSnapshotService {
         sessaoReconstruida.jogadoresConectados = Object.keys(snapshot.jogadores || {});
       }
     } catch (err) {
-      console.warn(`⚠️ Erro ao enriquecer sessao restaurada: ${err.message}`);
+      log.warn({ err }, 'Erro ao enriquecer sessao restaurada');
     }
 
     // Salvar no Redis
     await gerenciadorSessoes.criarSessao(salaId, sessaoReconstruida);
-    console.log(`♻️ Sessao restaurada do PostgreSQL para Redis: ${salaId}`);
+    log.info({ salaId }, 'Sessao restaurada do PostgreSQL para Redis');
     return sessaoReconstruida;
   }
 
@@ -105,7 +108,7 @@ class SessaoSnapshotService {
   async sincronizar(salaId) {
     const sessaoRedis = await gerenciadorSessoes.obterSessao(salaId);
     if (!sessaoRedis) {
-      console.warn(`⚠️ Sincronizacao: sessao ${salaId} nao encontrada no Redis`);
+      log.warn({ salaId }, 'Sincronizacao: sessao nao encontrada no Redis');
       return null;
     }
     return await this.salvarSnapshot(salaId, sessaoRedis);
@@ -127,7 +130,7 @@ class SessaoSnapshotService {
   async finalizarSnapshot(salaId) {
     try {
       await db.SessaoJogo.finalize(salaId);
-      console.log(`🏁 Snapshot finalizado para sala ${salaId}`);
+      log.info({ salaId }, 'Snapshot finalizado');
     } catch (error) {
       // Se nao existe snapshot, ignorar silenciosamente
       if (error.code === 'P2025') return;

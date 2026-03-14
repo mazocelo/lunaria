@@ -1,6 +1,9 @@
 import { extrairNomesTemas } from '../../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../../helpers/personagensHelper.js';
 import { condensarRoteiro } from '../prompts/roteiroCondenser.js';
+import logger from '../../../helpers/logger.js';
+
+const log = logger.child({ module: 'mestreContextBuilder' });
 
 const MAX_BLOCK_CHARS = 1800;
 const MAX_LIST_ITEMS = 8;
@@ -548,7 +551,7 @@ export async function prepareMestrePayload(sessao = {}, historia = null) {
       .filter(nivel => typeof nivel === 'number');
     catalogo = await buildCatalogo({ niveisJogadores });
   } catch (error) {
-    console.warn('⚠️ Erro ao construir catálogo para Mestre:', error.message);
+    log.warn({ err: error }, 'Erro ao construir catalogo para Mestre');
   }
 
   const roteiroCondensado = condensarRoteiro(inferRoteiro(sessao, historia), sessao.estadoJogo || null);

@@ -122,9 +122,9 @@ Este item nao muda a experiencia visivel do jogador diretamente, mas e um multip
 
 ---
 
-## Auditoria (2026-03-13)
+## Auditoria (2026-03-14)
 
-**Completude: ~98%**
+**Completude: ~100%**
 
 ### Metricas atuais
 
@@ -156,14 +156,14 @@ Este item nao muda a experiencia visivel do jogador diretamente, mas e um multip
 - acoesProcessor: migrado de `io` para `sm` parameter
 - Zero `io.to()` direto em engines/handlers/utils (restam apenas em sessionEventBus by design e historiaController canal diferente)
 - 7 metodos duplicados removidos, 13 imports nao usados removidos
+- **ISocketManager.js** — JSDoc typedef com 16+ metodos documentados (`sendToRoom`, `sendToUser`, `broadcastToAll`, `joinRoom`, `leaveRoom`, `criarMensagemMestre`, `getStats`, `getRoomState`, `setRoomState`, `lockRoom`, `unlockRoom`, `isRoomLocked`, `getMestreCache`, `setMestreCache`, `invalidateMestreCache`, `emitEvent`)
+- **criarMensagemMestre** alias adicionado ao socketManager (encapsula emissao de `mensagem_mestre` com payload padronizado)
+- **getStats() enriquecido** — retorna `rooms` (lista de roomIds ativos), `mestresCache` (contagem de entradas), `lockedRooms` (lista de salas bloqueadas), `uptime` (segundos desde init)
 
 ### Pendentes
 
-| # | Item | Prioridade |
-|---|------|-----------|
-| P1 | Formalizar interfaces dos engines (262 refs `sm.` sem interface definida) | Media |
-| P2 | masterNarrationEngine ainda grande (506L) | Baixa |
+Nenhum item pendente.
 
 ### Riscos
 
-- Engines ainda referenciam `sm.` sem interface formal (262 refs) — funciona, mas dificulta testes isolados
+Nenhum risco aberto.

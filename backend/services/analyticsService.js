@@ -4,8 +4,10 @@
  * Usage: analyticsService.track('ai_response', { duration_ms: 1200, fallback: false }, userId);
  */
 import { PrismaClient } from '@prisma/client';
+import logger from '../helpers/logger.js';
 
 const prisma = new PrismaClient();
+const log = logger.child({ module: 'analyticsService' });
 
 const analyticsService = {
   /**
@@ -22,7 +24,7 @@ const analyticsService = {
         user_id: userId ? parseInt(userId) : null,
       }
     }).catch(err => {
-      console.warn('⚠️ Analytics: Erro ao salvar evento:', err.message);
+      log.warn({ err }, 'Erro ao salvar evento de analytics');
     });
   },
 

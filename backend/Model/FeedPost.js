@@ -1,3 +1,7 @@
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'FeedPost' });
+
 /**
  * Model para gerenciar posts do feed social
  * @param {PrismaClient} prisma - Cliente Prisma
@@ -109,7 +113,7 @@ export default function FeedPost(prisma) {
         });
       } catch (error) {
         // Evento automatico nao deve quebrar o fluxo principal
-        console.error('Erro ao criar evento de feed:', error.message);
+        log.error({ err: error }, 'Erro ao criar evento de feed');
         return null;
       }
     },

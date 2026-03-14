@@ -6,6 +6,9 @@
  * spawnar monstros que existem no banco, dar itens reais, etc.
  */
 import db from '../../../Model/index.js';
+import logger from '../../../helpers/logger.js';
+
+const log = logger.child({ module: 'catalogoMestre' });
 
 /**
  * Formata bonus JSON de equipamento em string compacta
@@ -36,7 +39,7 @@ let _cacheTimestamp = 0;
 export function invalidarCacheCatalogo() {
   _cachedRawData = null;
   _cacheTimestamp = 0;
-  console.log('📦 CatalogoMestre: cache invalidado');
+  log.info('Cache invalidado');
 }
 
 async function fetchRawData() {
@@ -143,10 +146,10 @@ export async function buildCatalogo({ niveisJogadores = [] } = {}) {
       catalogo += `\n\n(Catálogo truncado. +${monstros.length} monstros e ${equipamentos.length} equipamentos disponíveis no mundo)`;
     }
 
-    console.log(`📦 CatalogoMestre: ${monstrosFiltrados.length}/${monstros.length} monstros, ${equipamentos.length} equipamentos, ${elementos.length} elementos (${catalogo.length} chars)`);
+    log.info({ monstros: `${monstrosFiltrados.length}/${monstros.length}`, equipamentos: equipamentos.length, elementos: elementos.length, chars: catalogo.length }, 'Catalogo construido');
     return catalogo;
   } catch (error) {
-    console.error('❌ CatalogoMestre: Erro ao construir catálogo:', error.message);
+    log.error({ err: error }, 'Erro ao construir catalogo');
     return '';
   }
 }
@@ -206,10 +209,10 @@ export async function buildCatalogoCompleto() {
     if (catalogo.length > MAX_CHARS) {
       catalogo = catalogo.slice(0, MAX_CHARS) + '\n...(catálogo truncado)';
     }
-    console.log(`📦 CatalogoCompleto: ${monstros.length} monstros, ${equipamentos.length} equipamentos, ${elementos.length} elementos (${catalogo.length} chars)`);
+    log.info({ monstros: monstros.length, equipamentos: equipamentos.length, elementos: elementos.length, chars: catalogo.length }, 'Catalogo completo construido');
     return catalogo;
   } catch (error) {
-    console.error('❌ CatalogoCompleto: Erro ao construir catálogo:', error.message);
+    log.error({ err: error }, 'Erro ao construir catalogo completo');
     return '';
   }
 }

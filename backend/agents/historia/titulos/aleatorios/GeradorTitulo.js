@@ -3,6 +3,9 @@ import { createTituloModel, createTituloCriativoModel } from './model.js';
 import { createTituloPrompt, createTituloGeneroPrompt } from './prompts.js';
 import { DEFAULT_MODEL_SETTINGS } from './config.js';
 import { trackLLMUsage } from '../../../../services/llmTracker.js';
+import logger from '../../../../helpers/logger.js';
+
+const log = logger.child({ module: 'GeradorTitulo' });
 
 /**
  * Cria o agente para geração de títulos aleatórios
@@ -25,7 +28,7 @@ async function criarGeradorTitulo(temas = []) {
                 const startTime = Date.now();
                 const response = await chain.invoke({ tema });
                 trackLLMUsage(response, { modelName, userId, startTime, agent: 'GeradorTitulo' });
-                console.log('📝 Título gerado para tema:', tema);
+                log.info({ tema }, 'Titulo gerado');
                 return {
                     titulo: response.content.trim(),
                     tema: tema,
@@ -47,7 +50,7 @@ async function criarGeradorTitulo(temas = []) {
                     const startTime = Date.now();
                     const response = await chainGenero.invoke({ tema });
                     trackLLMUsage(response, { modelName, userId, startTime, agent: 'GeradorTitulo' });
-                    console.log('📝 Título com gênero gerado:', { tema, genero });
+                    log.info({ tema, genero }, 'Titulo com genero gerado');
 
                     return {
                         titulo: response.content.trim(),
@@ -57,7 +60,7 @@ async function criarGeradorTitulo(temas = []) {
                         temasUtilizados: temas
                     };
                 } catch (error) {
-                    console.error('❌ Erro ao gerar título com gênero:', error);
+                    log.error({ err: error }, 'Erro ao gerar titulo com genero');
                     throw error;
                 }
             },
@@ -73,7 +76,7 @@ async function criarGeradorTitulo(temas = []) {
                         titulos.push(resultado.content.trim());
                     }
 
-                    console.log(`📝 ${quantidade} títulos gerados para tema:`, tema);
+                    log.info({ tema, quantidade }, 'Multiplos titulos gerados');
 
                     return {
                         titulos: titulos,
@@ -83,13 +86,13 @@ async function criarGeradorTitulo(temas = []) {
                         temasUtilizados: temas
                     };
                 } catch (error) {
-                    console.error('❌ Erro ao gerar múltiplos títulos:', error);
+                    log.error({ err: error }, 'Erro ao gerar multiplos titulos');
                     throw error;
                 }
             }
         };
     } catch (error) {
-        console.error('❌ Erro ao criar gerador de títulos:', error.message);
+        log.error({ err: error }, 'Erro ao criar gerador de titulos');
         throw new Error(`Erro ao criar gerador de títulos: ${error.message}`);
     }
 }

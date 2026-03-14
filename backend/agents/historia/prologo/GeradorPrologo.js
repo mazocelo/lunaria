@@ -3,6 +3,9 @@ import { createPrologoModel } from './model.js';
 import { createPrologoPrompt } from './prompts.js';
 import { DEFAULT_MODEL_SETTINGS } from './config.js';
 import { trackLLMUsage } from '../../../services/llmTracker.js';
+import logger from '../../../helpers/logger.js';
+
+const log = logger.child({ module: 'GeradorPrologo' });
 
 /**
  * Cria o agente para geração de prólogo
@@ -28,7 +31,7 @@ async function criarGeradorPrologo(temas = []) {
                     descricao: descricao || 'Nenhuma descrição fornecida — crie livremente baseado nos temas.',
                 });
                 trackLLMUsage(response, { modelName, userId, startTime, agent: 'GeradorPrologo' });
-                console.log('📖 Prólogo gerado para temas:', temasInput);
+                log.info({ temas: temasInput }, 'Prologo gerado');
                 return {
                     prologo: response.content,
                     tema: temasInput,
@@ -62,17 +65,17 @@ async function criarGeradorPrologo(temas = []) {
                         }
                     };
 
-                    console.log('📚 História completa criada:', historiaCompleta.nome);
+                    log.info({ nome: historiaCompleta.nome }, 'Historia completa criada');
                     return historiaCompleta;
 
                 } catch (error) {
-                    console.error('❌ Erro ao criar história completa:', error);
+                    log.error({ err: error }, 'Erro ao criar historia completa');
                     throw error;
                 }
             }
         };
     } catch (error) {
-        console.error('❌ Erro ao criar gerador de prólogo:', error.message);
+        log.error({ err: error }, 'Erro ao criar gerador de prologo');
         throw new Error(`Erro ao criar gerador de prólogo: ${error.message}`);
     }
 }

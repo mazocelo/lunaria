@@ -1,3 +1,7 @@
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'SessaoJogo' });
+
 /**
  * Modelo de SessaoJogo - Persistencia de sessoes de jogo em PostgreSQL
  * Armazena snapshots periodicos do estado Redis para durabilidade
@@ -104,7 +108,7 @@ const SessaoJogo = (prisma) => {
         });
       }
       if (activeSessions.length > 0) {
-        console.log(`🗄️ Arquivadas ${activeSessions.length} sessoes stale da historia ${historiaId}`);
+        log.info({ count: activeSessions.length, historiaId }, 'Arquivadas sessoes stale');
       }
       return activeSessions.length;
     },

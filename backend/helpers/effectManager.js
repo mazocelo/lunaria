@@ -6,6 +6,8 @@
  *
  * Cada efeito: { nome, duracao, tipo?, dano_por_turno?, cura_por_turno?, aplicado_em }
  */
+import logger from './logger.js';
+const log = logger.child({ module: 'effectManager' });
 
 /**
  * Aplica um efeito ao alvo (personagem na sessão)
@@ -34,7 +36,7 @@ export function aplicarEfeito(sessao, alvoId, efeito) {
     });
   }
 
-  console.log(`⚡ Efeito aplicado: ${efeito.nome} → alvo ${alvoId} (${efeito.duracao || 3}t)`);
+  log.info({ efeito: efeito.nome, alvoId, duracao: efeito.duracao || 3 }, 'Efeito aplicado');
   return true;
 }
 
@@ -49,7 +51,7 @@ export function removerEfeito(sessao, alvoId, nomeEfeito) {
   if (idx === -1) return false;
 
   personagem.status_efeitos.splice(idx, 1);
-  console.log(`✨ Efeito removido: ${nomeEfeito} ← alvo ${alvoId}`);
+  log.info({ efeito: nomeEfeito, alvoId }, 'Efeito removido');
   return true;
 }
 
@@ -73,7 +75,7 @@ export function decrementEfeitos(sessao, alvoId) {
   });
 
   if (expirados.length > 0) {
-    console.log(`⏳ Efeitos expirados para alvo ${alvoId}: ${expirados.map(e => e.nome).join(', ')}`);
+    log.info({ alvoId, efeitos: expirados.map(e => e.nome) }, 'Efeitos expirados');
   }
   return expirados;
 }

@@ -5,6 +5,8 @@
  * Cada ação é processada mecanicamente e emitida via WebSocket.
  */
 import db from '../Model/index.js';
+import logger from './logger.js';
+const log = logger.child({ module: 'acoesProcessor' });
 import { calcularHP, calcularMana, calcularEsquiva, calcularArmadura, aplicarResistencias } from './combateHelper.js';
 import { setCooldown, checkCooldown } from './cooldownManager.js';
 import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
@@ -26,7 +28,7 @@ async function persistirEstadoClone(roomId, personagemId, dados) {
     if (!clone) return;
     await db.PersonagemSessao.atualizarRuntime(clone.id, dados);
   } catch (e) {
-    console.warn(`⚠️ persistirEstadoClone: Erro ao persistir no clone:`, e.message);
+    log.warn({ err: e }, 'persistirEstadoClone: Erro ao persistir no clone');
   }
 }
 
@@ -44,7 +46,7 @@ function encontrarPersonagemPorNome(sessao, nome) {
         String(j.personagemId || j.personagem_id) === String(pId)
       );
       if (!jogador) {
-        console.warn(`⚠️ Personagem "${nome}" encontrado mas sem jogador conectado`);
+        log.warn({ personagem: nome }, 'Personagem encontrado mas sem jogador conectado');
       }
       return { personagemId: pId, userId: jogador ? String(jogador.userId || jogador.id) : null, personagem: p };
     }
@@ -112,10 +114,10 @@ export async function processarAcoes(acoes, sessao, roomId, sm, options = {}) {
       if (handler) {
         await handler(acao, sessao, roomId, sm, options);
       } else {
-        console.warn(`⚠️ AcoesProcessor: tipo de ação desconhecido: ${acao.tipo}`);
+        log.warn({ tipo: acao.tipo }, 'AcoesProcessor: tipo de acao desconhecido');
       }
     } catch (error) {
-      console.error(`❌ AcoesProcessor: Erro ao processar ação ${acao.tipo}:`, error.message);
+      log.error({ err: error, tipo: acao.tipo }, 'AcoesProcessor: Erro ao processar acao');
     }
   }
 }
@@ -129,14 +131,14 @@ async function processarDarItem(acao, sessao, roomId, sm) {
 
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
   if (!alvo) {
-    console.warn(`⚠️ dar_item: Personagem "${nomePersonagem}" não encontrado na sessão`);
+    log.warn({ personagem: nomePersonagem }, 'dar_item: Personagem nao encontrado na sessao');
     return;
   }
 
   // Buscar equipamento no banco
   const equipamento = await db.Equipamento.findByNome(item);
   if (!equipamento) {
-    console.warn(`⚠️ dar_item: Equipamento "${item}" não encontrado no banco`);
+    log.warn({ item }, 'dar_item: Equipamento nao encontrado no banco');
     return;
   }
 
@@ -144,7 +146,7 @@ async function processarDarItem(acao, sessao, roomId, sm) {
   if (!alvo.personagem.equipamentos) alvo.personagem.equipamentos = [];
   const jaTemItem = alvo.personagem.equipamentos.some(e => e.id === equipamento.id);
   if (jaTemItem) {
-    console.warn(`⚠️ dar_item: ${nomePersonagem} ja possui ${equipamento.nome}, ignorando duplicata`);
+    log.warn({ personagem: nomePersonagem, item: equipamento.nome }, 'dar_item: personagem ja possui item, ignorando duplicata');
     return;
   }
   alvo.personagem.equipamentos.push({
@@ -156,7 +158,7 @@ async function processarDarItem(acao, sessao, roomId, sm) {
     dano_base: equipamento.dano_base
   });
 
-  console.log(`🎁 dar_item: ${equipamento.nome} → ${nomePersonagem}`);
+  log.info({ item: equipamento.nome, personagem: nomePersonagem }, 'dar_item: item entregue');
 
   // Persistir no clone da sessão (se existir)
   try {
@@ -172,7 +174,7 @@ async function processarDarItem(acao, sessao, roomId, sm) {
       }
     }
   } catch (e) {
-    console.warn(`⚠️ dar_item: Erro ao persistir no clone:`, e.message);
+    log.warn({ err: e }, 'dar_item: Erro ao persistir no clone');
   }
 
   emitAcaoMestre(sessao, roomId, sm, {
@@ -206,7 +208,7 @@ async function processarRemoverItem(acao, sessao, roomId, sm) {
   if (idx === -1) return;
 
   const removido = alvo.personagem.equipamentos.splice(idx, 1)[0];
-  console.log(`🗑️ remover_item: ${removido.nome} ← ${nomePersonagem}`);
+  log.info({ item: removido.nome, personagem: nomePersonagem }, 'remover_item: item removido');
 
   // Persistir no clone da sessão (se existir)
   try {
@@ -222,7 +224,7 @@ async function processarRemoverItem(acao, sessao, roomId, sm) {
       }
     }
   } catch (e) {
-    console.warn(`⚠️ remover_item: Erro ao persistir no clone:`, e.message);
+    log.warn({ err: e }, 'remover_item: Erro ao persistir no clone');
   }
 
   emitAcaoMestre(sessao, roomId, sm, {
@@ -266,7 +268,7 @@ async function processarCurar(acao, sessao, roomId, sm) {
     alvo.personagem.hp_atual = hpNovo;
   }
 
-  console.log(`💚 curar: ${nomePersonagem} +${hp}HP (${hpAnterior} → ${hpNovo})`);
+  log.info({ personagem: nomePersonagem, hp, hpAnterior, hpNovo }, 'curar: HP restaurado');
 
   // Persistir HP no clone da sessão
   if (alvo.personagemId) {
@@ -341,7 +343,7 @@ async function processarAplicarDano(acao, sessao, roomId, sm) {
     alvo.personagem.hp_atual = hpNovo;
   }
 
-  console.log(`💔 aplicar_dano: ${nomePersonagem} -${danoFinal}HP${elemento ? ` (${elemento})` : ''} (${hpAnterior} → ${hpNovo})`);
+  log.info({ personagem: nomePersonagem, dano: danoFinal, elemento: elemento || null, hpAnterior, hpNovo }, 'aplicar_dano: dano aplicado');
 
   // Persistir HP no clone da sessão
   if (alvo.personagemId) {
@@ -386,7 +388,7 @@ async function processarAplicarStatus(acao, sessao, roomId, sm) {
     });
   }
 
-  console.log(`⚡ aplicar_status: ${nomePersonagem} → ${status} (${duracao || 3} turnos)`);
+  log.info({ personagem: nomePersonagem, status, duracao: duracao || 3 }, 'aplicar_status: status aplicado');
 
   // Persistir status_efeitos no clone da sessão
   if (alvo.personagemId) {
@@ -420,7 +422,7 @@ async function processarRemoverStatus(acao, sessao, roomId, sm) {
 
   alvo.personagem.status_efeitos.splice(idx, 1);
 
-  console.log(`✨ remover_status: ${nomePersonagem} ← ${status}`);
+  log.info({ personagem: nomePersonagem, status }, 'remover_status: status removido');
 
   // Persistir status_efeitos no clone da sessão
   if (alvo.personagemId) {
@@ -455,7 +457,7 @@ async function processarUsarHabilidade(acao, sessao, roomId, sm) {
 
   // Verificar cooldown
   if (habilidade_id && checkCooldown(sessao, alvo.userId, 'hab', habilidade_id)) {
-    console.warn(`⚠️ usar_habilidade: ${nome} em cooldown para ${nomePersonagem}`);
+    log.warn({ habilidade: nome, personagem: nomePersonagem }, 'usar_habilidade: habilidade em cooldown');
     emitAcaoMestre(sessao, roomId, sm, {
       tipo: 'habilidade_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
       nome, motivo: 'cooldown', timestamp: Date.now()
@@ -467,7 +469,7 @@ async function processarUsarHabilidade(acao, sessao, roomId, sm) {
   if (custo_mana > 0) {
     const manaState = ensureManaState(sessao, alvo.userId, alvo.personagem);
     if (manaState.mana_atual < custo_mana) {
-      console.warn(`⚠️ usar_habilidade: Mana insuficiente para ${nome} (${manaState.mana_atual}/${custo_mana})`);
+      log.warn({ habilidade: nome, manaAtual: manaState.mana_atual, custoMana: custo_mana }, 'usar_habilidade: mana insuficiente');
       emitAcaoMestre(sessao, roomId, sm, {
         tipo: 'habilidade_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
         nome, motivo: 'mana_insuficiente', mana_atual: manaState.mana_atual, custo: custo_mana,
@@ -484,7 +486,7 @@ async function processarUsarHabilidade(acao, sessao, roomId, sm) {
     setCooldown(sessao, alvo.userId, 'hab', habilidade_id, cooldown_turnos);
   }
 
-  console.log(`⚔️ usar_habilidade: ${nomePersonagem} usou ${nome} (mana: -${custo_mana}, cd: ${cooldown_turnos}t)`);
+  log.info({ personagem: nomePersonagem, habilidade: nome, custoMana: custo_mana, cooldown: cooldown_turnos }, 'usar_habilidade: habilidade usada');
 
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'habilidade_usada', personagem: nomePersonagem, userId: alvo.userId,
@@ -507,7 +509,7 @@ async function processarConjurarMagia(acao, sessao, roomId, sm) {
 
   // Verificar cooldown
   if (magia_id && checkCooldown(sessao, alvo.userId, 'mag', magia_id)) {
-    console.warn(`⚠️ conjurar_magia: ${nome} em cooldown para ${nomePersonagem}`);
+    log.warn({ magia: nome, personagem: nomePersonagem }, 'conjurar_magia: magia em cooldown');
     emitAcaoMestre(sessao, roomId, sm, {
       tipo: 'magia_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
       nome, motivo: 'cooldown', timestamp: Date.now()
@@ -551,7 +553,7 @@ async function processarConjurarMagia(acao, sessao, roomId, sm) {
     }
   }
 
-  console.log(`🔮 conjurar_magia: ${nomePersonagem} conjurou ${nome} (mana: -${custo_mana}, conc: ${usa_concentracao})`);
+  log.info({ personagem: nomePersonagem, magia: nome, custoMana: custo_mana, concentracao: usa_concentracao }, 'conjurar_magia: magia conjurada');
 
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'magia_conjurada', personagem: nomePersonagem, userId: alvo.userId,
@@ -593,7 +595,7 @@ async function processarAtivarDesvantagem(acao, sessao, roomId, sm, options = {}
       return;
     }
     // Requer teste — emitir pedido
-    console.log(`🎭 ativar_desvantagem: ${nome} → ${nomePersonagem} (DC ${dc} ${atributo})`);
+    log.info({ desvantagem: nome, personagem: nomePersonagem, dc, atributo }, 'ativar_desvantagem: teste requerido');
     emitAcaoMestre(sessao, roomId, sm, {
       tipo: 'desvantagem_teste_requerido', personagem: nomePersonagem, userId: alvo.userId,
       desvantagem: nome, dc, atributo, penalidade: acao.penalidade || null,
@@ -601,7 +603,7 @@ async function processarAtivarDesvantagem(acao, sessao, roomId, sm, options = {}
     });
   } else {
     // Ativação automática (narrativa)
-    console.log(`🎭 ativar_desvantagem: ${nome} → ${nomePersonagem} (auto)`);
+    log.info({ desvantagem: nome, personagem: nomePersonagem }, 'ativar_desvantagem: ativacao automatica');
     emitAcaoMestre(sessao, roomId, sm, {
       tipo: 'desvantagem_ativada', personagem: nomePersonagem, userId: alvo.userId,
       desvantagem: nome, penalidade: acao.penalidade || null,
@@ -621,7 +623,7 @@ async function processarAplicarVantagem(acao, sessao, roomId, sm) {
   const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
   if (!alvo) return;
 
-  console.log(`✅ aplicar_vantagem: ${nome} → ${nomePersonagem}`);
+  log.info({ vantagem: nome, personagem: nomePersonagem }, 'aplicar_vantagem: vantagem aplicada');
 
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'vantagem_aplicada', personagem: nomePersonagem, userId: alvo.userId,
@@ -705,7 +707,7 @@ async function processarDarXP(acao, sessao, roomId, sm) {
   const pSessao = ensurePersonagemSessao(sessao, alvo.userId);
   pSessao.xp_ganho = (pSessao.xp_ganho || 0) + xp;
 
-  console.log(`⭐ dar_xp: ${nomePersonagem} +${xp}XP (total sessão: ${pSessao.xp_ganho})`);
+  log.info({ personagem: nomePersonagem, xp, xpTotalSessao: pSessao.xp_ganho }, 'dar_xp: XP concedido');
 
   // Persistir XP no clone
   if (alvo.personagemId) {
@@ -720,7 +722,7 @@ async function processarDarXP(acao, sessao, roomId, sm) {
         }
       }
     } catch (e) {
-      console.warn(`⚠️ dar_xp: Erro ao persistir:`, e.message);
+      log.warn({ err: e }, 'dar_xp: Erro ao persistir');
     }
   }
 

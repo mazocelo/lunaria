@@ -1,6 +1,9 @@
 import { ChatGroq } from '@langchain/groq';
 import dotenv from 'dotenv';
 import { trackLLMUsage } from '../../services/llmTracker.js';
+import logger from '../../helpers/logger.js';
+
+const log = logger.child({ module: 'ResumoAgent' });
 
 dotenv.config();
 
@@ -98,7 +101,7 @@ export class ResumoAgent {
         }
       }
 
-      console.log('✅ ResumoAgent: Resumo gerado com sucesso');
+      log.info('Resumo gerado com sucesso');
 
       return {
         resumo: resumoConsolidado,
@@ -108,7 +111,7 @@ export class ResumoAgent {
         formato: 'estruturado'
       };
     } catch (error) {
-      console.error('❌ ResumoAgent: Erro ao gerar resumo:', error);
+      log.error({ err: error }, 'Erro ao gerar resumo');
       throw new Error(`Erro ao gerar resumo: ${error.message}`);
     }
   }

@@ -2,6 +2,8 @@
  * Helper de Bonus — parsing e agregação de bonus de raça, classe e equipamentos
  * Funções puras, sem estado.
  */
+import logger from './logger.js';
+const log = logger.child({ module: 'bonusHelper' });
 
 const ATRIBUTOS = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
 
@@ -26,7 +28,7 @@ export function parsearBonusEntidade(bonusStr) {
       }
     }
   } catch (e) {
-    console.warn('⚠️ Erro ao parsear bonus:', e.message);
+    log.warn({ err: e }, 'Erro ao parsear bonus');
   }
 
   return resultado;

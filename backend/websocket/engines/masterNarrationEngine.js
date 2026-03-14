@@ -1,3 +1,6 @@
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'masterNarrationEngine' });
+
 import {
   formatarContextoCombate,
   resolverMecanicaCombate,
@@ -268,7 +271,7 @@ export default class MasterNarrationEngine {
           narracaoLength: resposta.narracao?.length || 0
         });
       } catch (errorIA) {
-        console.error('❌ Erro na IA ao narrar ação:', errorIA);
+        log.error({ err: errorIA }, 'Erro na IA ao narrar acao');
 
         sm.log('ERROR', 'MENSAGEM_PARA_MESTRE_IA_FAILED', socket.id, userId, {
           error: errorIA.message,

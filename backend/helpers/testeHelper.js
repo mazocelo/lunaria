@@ -11,6 +11,8 @@
 
 import { TESTES_CONFIG } from '../config/testesConfig.js';
 import { calcularBonusTeste } from './bonusHelper.js';
+import logger from './logger.js';
+const log = logger.child({ module: 'testeHelper' });
 
 /**
  * Calcula modificador de um atributo (mesma fórmula usada em combate)
@@ -72,7 +74,7 @@ export function mapearTesteParaAtributo(nomeTeste) {
     return testeLC;
   }
 
-  console.warn(`⚠️ testeHelper: Teste "${nomeTeste}" não mapeado — usando d20 puro`);
+  log.warn({ teste: nomeTeste }, 'testeHelper: Teste nao mapeado, usando d20 puro');
   return null;
 }
 
@@ -101,7 +103,7 @@ export function obterDC(dificuldade) {
     if (semAcento(key) === difSA) return value;
   }
 
-  console.warn(`⚠️ testeHelper: Dificuldade "${dificuldade}" não reconhecida — usando DC ${TESTES_CONFIG.DC_PADRAO}`);
+  log.warn({ dificuldade, dcPadrao: TESTES_CONFIG.DC_PADRAO }, 'testeHelper: Dificuldade nao reconhecida, usando DC padrao');
   return TESTES_CONFIG.DC_PADRAO;
 }
 

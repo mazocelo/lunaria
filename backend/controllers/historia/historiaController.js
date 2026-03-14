@@ -11,6 +11,8 @@ import {
   sincronizarRoteiroNaSessao as sincronizarRoteiroNaSessaoService
 } from '../../services/roteiroGenerationService.js';
 import { isValidMode } from '../../config/blueprintModes.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'historiaController' });
 
 /**
  * Controller para gerenciar operações de história
@@ -66,7 +68,7 @@ class HistoriaController {
       return { allowed: true, remaining: Math.max(limit - total, 0) };
     } catch (error) {
       if (error.statusCode) throw error;
-      console.warn('Falha ao validar cota de blueprint no Redis, seguindo sem bloqueio:', error.message);
+      log.warn({ err: error }, 'Falha ao validar cota de blueprint no Redis, seguindo sem bloqueio');
       return { allowed: true, remaining: limit };
     }
   }
@@ -85,7 +87,7 @@ class HistoriaController {
         socketManager.mestresCache.delete(salaId);
       }
     } catch (error) {
-      console.warn(`Erro ao invalidar cache do Mestre para ${salaId}:`, error.message);
+      log.warn({ err: error, salaId }, 'Erro ao invalidar cache do Mestre');
     }
   }
 
@@ -123,7 +125,7 @@ class HistoriaController {
       ...serviceOptions,
       onSuccess: async (payload) => {
         await this.emitirEventoRoteiro(payload.historiaId, 'roteiro_gerado');
-        console.log(`Roteiro gerado com sucesso para historia ${payload.historiaId}`);
+        log.info({ payload_historiaId: payload.historiaId }, 'Roteiro gerado com sucesso para historia');
 
         if (typeof onSuccess === 'function') {
           await onSuccess(payload);
@@ -185,7 +187,7 @@ class HistoriaController {
    */
   async criarHistoria(req, res, next) {
     try {
-      console.log('Criando nova historia');
+      log.info('Criando nova historia');
       
       const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id, publica, imagem, mapas } = req.body;
       
@@ -210,7 +212,7 @@ class HistoriaController {
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
-      console.log(`Usando ${temasParaUsar.length} temas para geração`);
+      log.info({ temasParaUsar_length: temasParaUsar.length }, 'Usando temas para geração');
       
       // Verificar autenticação antecipado (para tracking)
       const userId = req.user?.id;
@@ -218,11 +220,11 @@ class HistoriaController {
       // Gerar título se não fornecido
       let nomeHistoria = nome;
       if (!nome || nome.trim() === '') {
-        console.log('📝 Gerando título automático...');
+        log.info('Gerando título automático...');
         const geradorTitulo = await criarGeradorTitulo(temasParaUsar);
         const resultadoTitulo = await geradorTitulo.gerarTitulo({ tema: temas, userId });
         nomeHistoria = resultadoTitulo.titulo;
-        console.log('✅ Título gerado:', nomeHistoria);
+        log.info({ nomeHistoria: nomeHistoria }, 'Título gerado');
       }
 
       // Gerar prólogo automaticamente
@@ -247,7 +249,7 @@ class HistoriaController {
         ...(mapas && Array.isArray(mapas) ? { mapas } : {})
       });
       
-      console.log('✅ História criada com prólogo gerado automaticamente:', novaHistoria.id);
+      log.info({ novaHistoria_id: novaHistoria.id }, 'História criada com prólogo gerado automaticamente');
 
       // Auto-evento no feed
       db.FeedPost.createAutoEvent(userId, 'historia_criada', { nome: nomeHistoria }, 'historia', novaHistoria.id);
@@ -272,10 +274,10 @@ class HistoriaController {
         roteiroStatus = roteiroJob?.status === 'active' ? 'generating' : 'queued';
       } catch (error) {
         if (error.statusCode === 429) {
-          console.warn(`Geracao automatica de roteiro ignorada para historia ${novaHistoria.id}: ${error.message}`);
+          log.warn({ novaHistoria_id: novaHistoria.id, error_message: error.message }, 'Geracao automatica de roteiro ignorada para historia');
         } else {
           roteiroStatus = 'error';
-          console.error(`Erro ao enfileirar roteiro automatico para historia ${novaHistoria.id}:`, error.message);
+          log.error({ err: error, historiaId: novaHistoria.id }, 'Erro ao enfileirar roteiro automatico');
 
           try {
             await db.Historia.updateHistoria(novaHistoria.id, { roteiro_status: 'error' });
@@ -299,7 +301,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('? Erro ao criar hist?ria:', error);
+      log.error({ err: error }, '? Erro ao criar hist?ria');
       next(error);
     }
   }
@@ -397,7 +399,7 @@ class HistoriaController {
               totalJogadores: 0
             };
           } catch (error) {
-            console.error(`⚠️ Erro ao verificar sessão da história ${historia.id}:`, error.message);
+            log.error({ err: error, historiaId: historia.id }, 'Erro ao verificar sessao da historia');
             return {
               ...historia,
               sessaoAtiva: false,
@@ -423,7 +425,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar histórias:', error);
+      log.error({ err: error }, 'Erro ao listar histórias');
       next(error);
     }
   }
@@ -438,7 +440,7 @@ class HistoriaController {
     try {
       const { id } = req.params;
       
-      console.log(`🔍 Buscando história ID: ${id}`);
+      log.info({ id: id }, 'Buscando história ID');
       
       const historia = await db.Historia.findById(parseInt(id));
       
@@ -457,7 +459,7 @@ class HistoriaController {
         });
       }
       
-      console.log('✅ História encontrada');
+      log.info('História encontrada');
       
       res.status(200).json({
         success: true,
@@ -465,7 +467,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao obter história:', error);
+      log.error({ err: error }, 'Erro ao obter história');
       next(error);
     }
   }
@@ -480,7 +482,7 @@ class HistoriaController {
     try {
       const { id } = req.params;
 
-      console.log(`📝 Atualizando história ID: ${id}`);
+      log.info({ id: id }, 'Atualizando história ID');
 
       const historia = await db.Historia.findById(parseInt(id));
 
@@ -537,24 +539,24 @@ class HistoriaController {
           const sessao = await gerenciadorSessoes.obterSessao(salaId);
           if (sessao) {
             await gerenciadorSessoes.atualizarSessao(salaId, { mestreConfig: novoMestreConfig });
-            console.log(`🔄 mestreConfig atualizado no Redis para sala ${salaId}`);
+            log.info({ salaId: salaId }, 'mestreConfig atualizado no Redis para sala');
           }
 
           // Invalidar cache em memoria do socketManager
           const socketManager = (await import('../../websocket/socketManager.js')).default;
           if (socketManager?.mestresCache) {
             socketManager.mestresCache.delete(salaId);
-            console.log(`🗑️ mestresCache invalidado para sala ${salaId}`);
+            log.info({ salaId: salaId }, 'mestresCache invalidado para sala');
           }
         } catch (cacheError) {
-          console.warn('⚠️ Erro ao invalidar cache de mestre (nao critico):', cacheError.message);
+          log.warn({ err: cacheError }, 'Erro ao invalidar cache de mestre (nao critico)');
         }
       }
 
       // Buscar a história atualizada
       const historiaAtualizada = await db.Historia.findById(parseInt(id));
 
-      console.log('✅ História atualizada com sucesso');
+      log.info('História atualizada com sucesso');
       
       res.status(200).json({
         success: true,
@@ -563,7 +565,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao atualizar história:', error);
+      log.error({ err: error }, 'Erro ao atualizar história');
       next(error);
     }
   }
@@ -578,7 +580,7 @@ class HistoriaController {
     try {
       const { id } = req.params;
       
-      console.log(`🗑️ Excluindo história ID: ${id}`);
+      log.info({ id: id }, 'Excluindo história ID');
       
       const historia = await db.Historia.findById(parseInt(id));
       
@@ -599,7 +601,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao excluir história:', error);
+      log.error({ err: error }, 'Erro ao excluir história');
       next(error);
     }
   }
@@ -619,7 +621,7 @@ class HistoriaController {
         data: historia
       });
     } catch (error) {
-      console.error('Erro ao restaurar história:', error);
+      log.error({ err: error }, 'Erro ao restaurar história');
       next(error);
     }
   }
@@ -634,7 +636,7 @@ class HistoriaController {
     try {
       const { temas, nome, descricao, maximo_de_participantes, temas_disponiveis } = req.body;
       
-      console.log('🤖 Gerando história com IA:', { temas, nome, temas_disponiveis: temas_disponiveis?.length || 0 });
+      log.info({ temas, nome, temas_disponiveis: temas_disponiveis?.length || 0 }, 'Gerando historia com IA');
       
       if (!Array.isArray(temas) || temas.length === 0) {
         return res.status(400).json({
@@ -651,7 +653,7 @@ class HistoriaController {
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
-      console.log(`🎲 Usando ${temasParaUsar.length} temas para geração`);
+      log.info({ temasParaUsar_length: temasParaUsar.length }, 'Usando temas para geração');
       
       // Verificar autenticação
       const userId = req.user?.id;
@@ -679,7 +681,7 @@ class HistoriaController {
         id_usuario: userId
       });
       
-      console.log('✅ História gerada com IA e salva:', novaHistoria.id);
+      log.info({ novaHistoria_id: novaHistoria.id }, 'História gerada com IA e salva');
       
       res.status(201).json({
         success: true,
@@ -692,7 +694,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao gerar história com IA:', error);
+      log.error({ err: error }, 'Erro ao gerar história com IA');
       next(error);
     }
   }
@@ -709,7 +711,7 @@ class HistoriaController {
     try {
       const { temas, nome, descricao, personagens, temas_disponiveis } = req.body;
       
-      console.log('🎮 Gerando aventura completa:', { temas, nome, personagens: personagens?.length || 0 });
+      log.info({ temas, nome, personagens: personagens?.length || 0 }, 'Gerando aventura completa');
       
       if (!Array.isArray(temas) || temas.length === 0) {
         return res.status(400).json({
@@ -727,7 +729,7 @@ class HistoriaController {
         temasParaUsar = temasDB.map(t => t.nome);
       }
       
-      console.log(`🎲 Usando ${temasParaUsar.length} temas e ${personagens?.length || 0} personagens`);
+      log.info({ temasParaUsar_length: temasParaUsar.length, personagens_length: personagens?.length || 0 }, 'Usando temas e personagens');
       
       // Usar o criador completo com agentes separados
       // Verificar autenticação
@@ -758,7 +760,7 @@ class HistoriaController {
         id_usuario: userId
       });
       
-      console.log('✅ Aventura completa gerada e salva:', novaHistoria.id);
+      log.info({ novaHistoria_id: novaHistoria.id }, 'Aventura completa gerada e salva');
       
       res.status(201).json({
         success: true,
@@ -774,7 +776,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao gerar aventura completa:', error);
+      log.error({ err: error }, 'Erro ao gerar aventura completa');
       next(error);
     }
   }
@@ -834,7 +836,7 @@ class HistoriaController {
             totalJogadores: 0
           };
         } catch (error) {
-          console.error(`⚠️ Erro ao verificar sessão da história ${historia.id}:`, error.message);
+          log.error({ err: error, historiaId: historia.id }, 'Erro ao verificar sessao da historia');
           // Em caso de erro, retornar história sem informação de sessão
           return {
             ...historia,
@@ -859,7 +861,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar histórias criadas:', error);
+      log.error({ err: error }, 'Erro ao listar histórias criadas');
       next(error);
     }
   }
@@ -872,7 +874,7 @@ class HistoriaController {
    */
   async listarHistoriasComPersonagens(req, res, next) {
     try {
-      console.log('📋 Listando histórias onde personagens do usuário participam:', req.user.id);
+      log.info({ req_user_id: req.user.id }, 'Listando histórias onde personagens do usuário participam');
       
       const { status, limit = 20, offset = 0 } = req.query;
       const temaIdFiltro = this.parseTemaQueryValue(req);
@@ -898,7 +900,7 @@ class HistoriaController {
       const endIndex = startIndex + parseInt(limit || 20);
       const historiasPaginadas = historias.slice(startIndex, endIndex);
       
-      console.log(`✅ ${historiasPaginadas.length} histórias com personagens encontradas (${total} total)`);
+      log.info({ historiasPaginadas_length: historiasPaginadas.length, total: total }, 'histórias com personagens encontradas ( total)');
       
       res.status(200).json({
         success: true,
@@ -913,7 +915,7 @@ class HistoriaController {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao listar histórias com personagens:', error);
+      log.error({ err: error }, 'Erro ao listar histórias com personagens');
       next(error);
     }
   }
@@ -958,7 +960,7 @@ class HistoriaController {
         }
       });
     } catch (error) {
-      console.error('? Erro ao iniciar gera??o de roteiro:', error);
+      log.error({ err: error }, '? Erro ao iniciar gera??o de roteiro');
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, error: error.message });
       }
@@ -1002,7 +1004,7 @@ class HistoriaController {
         }
       });
     } catch (error) {
-      console.error('❌ Erro ao obter roteiro:', error);
+      log.error({ err: error }, 'Erro ao obter roteiro');
       next(error);
     }
   }
@@ -1043,7 +1045,7 @@ class HistoriaController {
 
       res.status(200).json({ success: true, message: 'Roteiro atualizado' });
     } catch (error) {
-      console.error('? Erro ao atualizar roteiro:', error);
+      log.error({ err: error }, '? Erro ao atualizar roteiro');
       next(error);
     }
   }
@@ -1068,7 +1070,7 @@ class HistoriaController {
       const progressao = historia.roteiro?.progressao || null;
       res.status(200).json({ success: true, data: progressao });
     } catch (error) {
-      console.error('❌ Erro ao obter progressão:', error);
+      log.error({ err: error }, 'Erro ao obter progressão');
       next(error);
     }
   }
@@ -1100,7 +1102,7 @@ class HistoriaController {
 
       res.status(200).json({ success: true, message: 'Progress?o atualizada' });
     } catch (error) {
-      console.error('? Erro ao atualizar progress?o:', error);
+      log.error({ err: error }, '? Erro ao atualizar progress?o');
       next(error);
     }
   }
@@ -1168,6 +1170,98 @@ class HistoriaController {
       }
 
       res.json({ success: true, message: 'Versão ativada' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Atualizar status de uma versão do roteiro (approval workflow)
+   * Transições permitidas:
+   *   - Owner: draft → pending
+   *   - Admin/reviewer: pending → approved | rejected
+   *   - Approved auto-ativa a versão
+   */
+  async atualizarStatusVersaoRoteiro(req, res, next) {
+    try {
+      const { id, versaoId } = req.params;
+      const { status, comment } = req.body;
+      const historiaId = parseInt(id);
+      const versaoIdInt = parseInt(versaoId);
+      const userId = req.user?.id;
+
+      const validStatuses = ['draft', 'pending', 'approved', 'rejected'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ success: false, error: `Status inválido. Use: ${validStatuses.join(', ')}` });
+      }
+
+      const versao = await db.prisma.roteiro_versoes.findFirst({
+        where: { id: versaoIdInt, historia_id: historiaId }
+      });
+
+      if (!versao) {
+        return res.status(404).json({ success: false, error: 'Versão não encontrada' });
+      }
+
+      const historia = await db.prisma.historias.findUnique({ where: { id: historiaId } });
+      const isOwner = historia && historia.criador_id === userId;
+      const isAdmin = req.user?.perfil === 'admin';
+
+      // Validar transições
+      if (status === 'pending' && versao.status !== 'draft') {
+        return res.status(400).json({ success: false, error: 'Só é possível submeter para revisão a partir de draft' });
+      }
+      if (status === 'pending' && !isOwner && !isAdmin) {
+        return res.status(403).json({ success: false, error: 'Apenas o dono pode submeter para revisão' });
+      }
+      if ((status === 'approved' || status === 'rejected') && versao.status !== 'pending') {
+        return res.status(400).json({ success: false, error: 'Só é possível aprovar/rejeitar versões pendentes' });
+      }
+      if ((status === 'approved' || status === 'rejected') && !isAdmin) {
+        return res.status(403).json({ success: false, error: 'Apenas admins podem aprovar ou rejeitar versões' });
+      }
+
+      const updateData = {
+        status,
+        ...(status === 'approved' || status === 'rejected' ? {
+          reviewer_id: userId,
+          reviewed_at: new Date(),
+          review_comment: comment || null
+        } : {})
+      };
+
+      // Se aprovado, auto-ativar a versão
+      if (status === 'approved') {
+        await db.prisma.$transaction([
+          db.prisma.roteiro_versoes.updateMany({
+            where: { historia_id: historiaId, ativa: true },
+            data: { ativa: false }
+          }),
+          db.prisma.roteiro_versoes.update({
+            where: { id: versaoIdInt },
+            data: { ...updateData, ativa: true }
+          }),
+          db.prisma.historias.update({
+            where: { id: historiaId },
+            data: { roteiro: versao.roteiro, roteiro_status: 'completed' }
+          })
+        ]);
+
+        if (historia) {
+          await this.sincronizarRoteiroNaSessao(historia, versao.roteiro, 'completed');
+        }
+
+        log.info({ versaoId: versaoIdInt, historiaId, reviewer: userId }, 'Versão aprovada e ativada');
+      } else {
+        await db.prisma.roteiro_versoes.update({
+          where: { id: versaoIdInt },
+          data: updateData
+        });
+        log.info({ versaoId: versaoIdInt, historiaId, status }, 'Status da versão atualizado');
+      }
+
+      const updated = await db.prisma.roteiro_versoes.findUnique({ where: { id: versaoIdInt } });
+      res.json({ success: true, data: { versao: updated } });
     } catch (error) {
       next(error);
     }

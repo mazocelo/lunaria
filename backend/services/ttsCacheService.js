@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { redisClient } from '../redis/redis-config.js';
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'ttsCacheService' });
 
 const prisma = new PrismaClient();
 
@@ -52,7 +55,7 @@ async function getFromCache(cacheKey) {
     });
     return cached?.audio_data || null;
   } catch (err) {
-    console.error('ttsCacheService.getFromCache error:', err.message);
+    log.error({ err }, 'getFromCache error');
     return null;
   }
 }
@@ -69,7 +72,7 @@ async function getUrlFromCache(cacheKey) {
     });
     return cached?.audio_url || null;
   } catch (err) {
-    console.error('ttsCacheService.getUrlFromCache error:', err.message);
+    log.error({ err }, 'getUrlFromCache error');
     return null;
   }
 }
@@ -92,7 +95,7 @@ async function saveUrlToCache(cacheKey, provider, voiceId, caracteres, tamanhoBy
       update: { audio_url: audioUrl },
     });
   } catch (err) {
-    console.error('ttsCacheService.saveUrlToCache error:', err.message);
+    log.error({ err }, 'saveUrlToCache error');
   }
 }
 
@@ -116,7 +119,7 @@ async function saveToCache(cacheKey, provider, voiceId, caracteres, audioBuffer)
   } catch (err) {
     // Unique constraint = outro processo salvou primeiro — OK
     if (err.code === 'P2002') return;
-    console.error('ttsCacheService.saveToCache error:', err.message);
+    log.error({ err }, 'saveToCache error');
   }
 }
 
@@ -143,7 +146,7 @@ async function pruneExpiredEntries({ force = false } = {}) {
       }
     }
   }).catch((err) => {
-    console.error('ttsCacheService.pruneExpiredEntries error:', err.message);
+    log.error({ err }, 'pruneExpiredEntries error');
     return { count: 0 };
   }).finally(() => {
     cleanupPromise = null;
@@ -163,7 +166,7 @@ async function acquireLock(cacheKey) {
     const result = await redisClient.set(key, '1', { NX: true, PX: LOCK_TTL_MS });
     return result === 'OK';
   } catch (err) {
-    console.error('ttsCacheService.acquireLock error:', err.message);
+    log.error({ err }, 'acquireLock error');
     return true; // falha no Redis → prossegue sem lock
   }
 }
@@ -176,7 +179,7 @@ async function releaseLock(cacheKey) {
     if (!redisClient.isOpen) return;
     await redisClient.del(LOCK_PREFIX + cacheKey);
   } catch (err) {
-    console.error('ttsCacheService.releaseLock error:', err.message);
+    log.error({ err }, 'releaseLock error');
   }
 }
 

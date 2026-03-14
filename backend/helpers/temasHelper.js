@@ -1,4 +1,6 @@
 import db from '../Model/index.js';
+import logger from './logger.js';
+const log = logger.child({ module: 'temasHelper' });
 
 /**
  * Busca temas completos (id e nome) a partir de um array de IDs
@@ -20,7 +22,7 @@ export async function buscarTemasCompletos(temasIds) {
       .filter(Boolean)
       .map(t => ({ id: t.id, nome: t.nome }));
   } catch (error) {
-    console.error('❌ Erro ao buscar temas completos:', error);
+    log.error({ err: error }, 'Erro ao buscar temas completos');
     return [];
   }
 }
@@ -48,7 +50,7 @@ export function extrairNomesTemas(temasCompletos) {
       // Se for número (ID), retorna null (será filtrado)
       // IDs não podem ser convertidos sem consulta ao banco
       if (typeof t === 'number') {
-        console.warn(`⚠️ extrairNomesTemas: Recebido ID numérico (${t}), mas não é possível converter sem consulta ao banco. Retornando null.`);
+        log.warn({ temaId: t }, 'extrairNomesTemas: Recebido ID numerico, nao e possivel converter sem consulta ao banco');
         return null;
       }
       // Qualquer outro tipo, tenta converter para string

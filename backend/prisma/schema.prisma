@@ -239,6 +239,7 @@ model usuarios {
   feed_curtidas        feed_curtidas[]
   feed_comentarios     feed_comentarios[]
   api_usage            api_usage[]
+  roteiro_reviews      roteiro_versoes[]  @relation("roteiro_reviewer")
 
   @@index([deleted_at])
 }
@@ -702,21 +703,27 @@ model ai_jobs {
 }
 
 model roteiro_versoes {
-  id          Int      @id @default(autoincrement())
-  historia_id Int
-  versao      Int      @default(1)
-  modo        String   @db.VarChar(30)
-  temperatura Float
-  modelo      String   @db.VarChar(60)
-  roteiro     Json
-  ativa       Boolean  @default(false)
-  metadados   Json?
-  criado_em   DateTime @default(now()) @db.Timestamptz(6)
+  id             Int       @id @default(autoincrement())
+  historia_id    Int
+  versao         Int       @default(1)
+  modo           String    @db.VarChar(30)
+  temperatura    Float
+  modelo         String    @db.VarChar(60)
+  roteiro        Json
+  ativa          Boolean   @default(false)
+  status         String    @default("draft") @db.VarChar(20)
+  reviewer_id    Int?
+  reviewed_at    DateTime? @db.Timestamptz(6)
+  review_comment String?
+  metadados      Json?
+  criado_em      DateTime  @default(now()) @db.Timestamptz(6)
 
-  historia    historias @relation(fields: [historia_id], references: [id], onDelete: Cascade)
+  historia       historias  @relation(fields: [historia_id], references: [id], onDelete: Cascade)
+  reviewer       usuarios?  @relation("roteiro_reviewer", fields: [reviewer_id], references: [id])
 
   @@index([historia_id, criado_em])
   @@index([historia_id, ativa])
+  @@index([historia_id, status])
 }
 
 model ingredientes {

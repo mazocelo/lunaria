@@ -1,5 +1,8 @@
 import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'enqueueRoteiroJob' });
 import { AI_JOB_STATUS, findOpenRoteiroJobForHistoria } from './aiJobs.js';
 import { QUEUE_NAMES } from './queueNames.js';
 import { getRoteiroQueue } from './roteiroQueue.js';
@@ -46,7 +49,7 @@ async function releaseRoteiroLock(lock) {
       await redis.del(lock.key);
     }
   } catch (error) {
-    console.warn(`Erro ao liberar lock de roteiro ${lock.key}:`, error.message);
+    log.warn({ err: error, key: lock.key }, 'Erro ao liberar lock de roteiro');
   }
 }
 

@@ -1,3 +1,6 @@
+import logger from '../helpers/logger.js';
+
+const log = logger.child({ module: 'imageGenerationService' });
 const LEONARDO_API_URL = 'https://cloud.leonardo.ai/api/rest/v1';
 const LEONARDO_API_KEY = process.env.LEONARDO_API_KEY;
 const FALLBACK_MODEL_ID = process.env.LEONARDO_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3'; // Phoenix/Lucid Origin family
@@ -153,7 +156,7 @@ async function generateImage(prompt, options = {}) {
       && /alchemy is not enabled/i.test(generationResponse.error || '');
 
     if (alchemyUnsupported) {
-      console.warn(`[ImageGeneration] Modelo ${modelId} rejeitou alchemy. Tentando novamente com alchemy=false.`);
+      log.warn({ modelId }, 'Modelo rejeitou alchemy, tentando novamente com alchemy=false');
       generationResponse = await requestGeneration({
         ...body,
         alchemy: false,

@@ -14,6 +14,8 @@ import {
   maxCustoDesvantagem,
   EVOLUCAO
 } from '../../helpers/evolucaoHelper.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'personagemController' });
 
 /**
  * Controller para gerenciar operações de personagem
@@ -73,7 +75,7 @@ class PersonagemController {
       db.Personagem.listarDesvantagens(personagemData.id),
       db.Personagem.listarEquipamentos(personagemData.id),
       db.Personagem.listarHistoriasPersonagem(personagemData.id).catch(err => {
-        console.error('❌ Erro ao processar histórias:', err);
+        log.error({ err: err }, 'Erro ao processar histórias');
         return [];
       })
     ]);
@@ -140,7 +142,7 @@ class PersonagemController {
    */
   criarPersonagem = async (req, res, next) => {
     try {
-      console.log('Criando novo personagem');
+      log.info('Criando novo personagem');
 
       const {
         nome,
@@ -261,7 +263,7 @@ class PersonagemController {
       // Criar personagem no banco
       const novoPersonagem = await db.Personagem.createPersonagem(dadosPersonagem);
 
-      console.log('✅ Personagem criado:', novoPersonagem.id);
+      log.info({ novoPersonagem_id: novoPersonagem.id }, 'Personagem criado');
 
       // Criar vínculos em transação (atômico)
       await db.prisma.$transaction(async (tx) => {
@@ -316,7 +318,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao criar personagem:', error);
+      log.error({ err: error }, 'Erro ao criar personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -331,7 +333,7 @@ class PersonagemController {
    */
   listarPersonagens = async (req, res, next) => {
     try {
-      console.log('📋 Listando personagens...', req.user ? `para usuário ${req.user.id}` : 'público');
+      log.info('Listando personagens...', req.user ? `para usuário ${req.user.id}` : 'público');
 
       const { id_usuario, status, limit = 20, offset = 0, todos = false } = req.query;
 
@@ -366,7 +368,7 @@ class PersonagemController {
         )
       );
 
-      console.log(`✅ ${personagensProcessados.length} personagens encontrados`);
+      log.info({ personagensProcessados_length: personagensProcessados.length }, 'personagens encontrados');
 
       res.status(200).json({
         success: true,
@@ -381,7 +383,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar personagens:', error);
+      log.error({ err: error }, 'Erro ao listar personagens');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -398,7 +400,7 @@ class PersonagemController {
     try {
       const { id } = req.params;
 
-      console.log(`🔍 Buscando personagem ID: ${id}`);
+      log.info({ id: id }, 'Buscando personagem ID');
 
       const personagem = await this.buscarPersonagemComRelacionamentos(parseInt(id));
 
@@ -419,7 +421,7 @@ class PersonagemController {
 
       const personagemData = await this.processarDadosPersonagem(personagem);
 
-      console.log('✅ Personagem encontrado');
+      log.info('Personagem encontrado');
 
       res.status(200).json({
         success: true,
@@ -427,7 +429,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao obter personagem:', error);
+      log.error({ err: error }, 'Erro ao obter personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -445,7 +447,7 @@ class PersonagemController {
       const { id } = req.params;
       const { vantagens, desvantagens, equipamentos, historias, ...dadosAtualizacao } = req.body;
 
-      console.log(`📝 Atualizando personagem ID: ${id}`, dadosAtualizacao);
+      log.info({ id, dadosAtualizacao }, 'Atualizando personagem');
 
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
 
@@ -559,7 +561,7 @@ class PersonagemController {
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       const personagemData = await this.processarDadosPersonagem(personagemCompleto);
 
-      console.log('✅ Personagem atualizado com sucesso');
+      log.info('Personagem atualizado com sucesso');
 
       res.status(200).json({
         success: true,
@@ -568,7 +570,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao atualizar personagem:', error);
+      log.error({ err: error }, 'Erro ao atualizar personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -585,7 +587,7 @@ class PersonagemController {
     try {
       const { id } = req.params;
 
-      console.log(`🗑️ Excluindo personagem ID: ${id}`);
+      log.info({ id: id }, 'Excluindo personagem ID');
 
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
 
@@ -609,7 +611,7 @@ class PersonagemController {
       res.status(204).send();
 
     } catch (error) {
-      console.error('❌ Erro ao excluir personagem:', error);
+      log.error({ err: error }, 'Erro ao excluir personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -631,7 +633,7 @@ class PersonagemController {
         data: personagem
       });
     } catch (error) {
-      console.error('Erro ao restaurar personagem:', error);
+      log.error({ err: error }, 'Erro ao restaurar personagem');
       res.status(500).json({
         success: false,
         error: 'Erro interno do servidor'
@@ -650,7 +652,7 @@ class PersonagemController {
       const { id } = req.params;
       const { sugestao_background = '' } = req.body;
 
-      console.log(`📝 Gerando background para personagem ID: ${id}`);
+      log.info({ id: id }, 'Gerando background para personagem ID');
 
       // Buscar personagem completo com todos os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(parseInt(id));
@@ -723,7 +725,7 @@ class PersonagemController {
       const personagemAtualizado = await this.buscarPersonagemComRelacionamentos(parseInt(id));
       const dadosFinais = await this.processarDadosPersonagem(personagemAtualizado);
 
-      console.log('✅ Background gerado e salvo');
+      log.info('Background gerado e salvo');
 
       res.status(200).json({
         success: true,
@@ -735,7 +737,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao gerar background:', error);
+      log.error({ err: error }, 'Erro ao gerar background');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -751,7 +753,7 @@ class PersonagemController {
       const { historia_id } = req.params;
       const { status, limit = 20, offset = 0, search } = req.query;
 
-      console.log(`📋 Listando personagens da história ID: ${historia_id}`);
+      log.info({ historia_id: historia_id }, 'Listando personagens da história ID');
 
       // Verificar se a história existe
       const historia = await db.Historia.findById(parseInt(historia_id));
@@ -797,7 +799,7 @@ class PersonagemController {
         )
       );
 
-      console.log(`✅ ${personagensProcessados.length} personagens encontrados para a história "${historia.nome}"`);
+      log.info({ personagensProcessados_length: personagensProcessados.length, historia_nome: historia.nome }, 'personagens encontrados para a história ""');
 
       res.status(200).json({
         success: true,
@@ -818,7 +820,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar personagens por história:', error);
+      log.error({ err: error }, 'Erro ao listar personagens por história');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -838,7 +840,7 @@ class PersonagemController {
       const { id } = req.params;
       const { vantagem_id } = req.body;
 
-      console.log(`➕ Adicionando vantagem ${vantagem_id} ao personagem ${id}`);
+      log.info({ vantagem_id: vantagem_id, id: id }, 'Adicionando vantagem ao personagem');
 
       if (!vantagem_id) {
         return res.status(400).json({
@@ -865,7 +867,7 @@ class PersonagemController {
       // Adicionar vantagem ao personagem
       await db.Personagem.adicionarVantagem(id, vantagem_id);
 
-      console.log('✅ Vantagem adicionada com sucesso');
+      log.info('Vantagem adicionada com sucesso');
 
       res.status(200).json({
         success: true,
@@ -873,7 +875,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao adicionar vantagem:', error);
+      log.error({ err: error }, 'Erro ao adicionar vantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -890,7 +892,7 @@ class PersonagemController {
     try {
       const { id, vantagem_id } = req.params;
 
-      console.log(`➖ Removendo vantagem ${vantagem_id} do personagem ${id}`);
+      log.info({ vantagem_id: vantagem_id, id: id }, 'Removendo vantagem do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -903,7 +905,7 @@ class PersonagemController {
       // Remover vantagem do personagem
       await db.Personagem.removerVantagem(id, vantagem_id);
 
-      console.log('✅ Vantagem removida com sucesso');
+      log.info('Vantagem removida com sucesso');
 
       res.status(200).json({
         success: true,
@@ -911,7 +913,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao remover vantagem:', error);
+      log.error({ err: error }, 'Erro ao remover vantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -928,7 +930,7 @@ class PersonagemController {
     try {
       const { id } = req.params;
 
-      console.log(`📋 Listando vantagens do personagem ${id}`);
+      log.info({ id: id }, 'Listando vantagens do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -941,7 +943,7 @@ class PersonagemController {
       // Listar vantagens do personagem
       const vantagens = await db.Personagem.listarVantagens(id);
 
-      console.log(`✅ ${vantagens.length} vantagens encontradas`);
+      log.info({ vantagens_length: vantagens.length }, 'vantagens encontradas');
 
       res.status(200).json({
         success: true,
@@ -949,7 +951,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar vantagens:', error);
+      log.error({ err: error }, 'Erro ao listar vantagens');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -969,7 +971,7 @@ class PersonagemController {
       const { id } = req.params;
       const { desvantagem_id } = req.body;
 
-      console.log(`➕ Adicionando desvantagem ${desvantagem_id} ao personagem ${id}`);
+      log.info({ desvantagem_id: desvantagem_id, id: id }, 'Adicionando desvantagem ao personagem');
 
       if (!desvantagem_id) {
         return res.status(400).json({
@@ -996,7 +998,7 @@ class PersonagemController {
       // Adicionar desvantagem ao personagem
       await db.Personagem.adicionarDesvantagem(id, desvantagem_id);
 
-      console.log('✅ Desvantagem adicionada com sucesso');
+      log.info('Desvantagem adicionada com sucesso');
 
       res.status(200).json({
         success: true,
@@ -1004,7 +1006,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao adicionar desvantagem:', error);
+      log.error({ err: error }, 'Erro ao adicionar desvantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1021,7 +1023,7 @@ class PersonagemController {
     try {
       const { id, desvantagem_id } = req.params;
 
-      console.log(`➖ Removendo desvantagem ${desvantagem_id} do personagem ${id}`);
+      log.info({ desvantagem_id: desvantagem_id, id: id }, 'Removendo desvantagem do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -1034,7 +1036,7 @@ class PersonagemController {
       // Remover desvantagem do personagem
       await db.Personagem.removerDesvantagem(id, desvantagem_id);
 
-      console.log('✅ Desvantagem removida com sucesso');
+      log.info('Desvantagem removida com sucesso');
 
       res.status(200).json({
         success: true,
@@ -1042,7 +1044,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao remover desvantagem:', error);
+      log.error({ err: error }, 'Erro ao remover desvantagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1059,7 +1061,7 @@ class PersonagemController {
     try {
       const { id } = req.params;
 
-      console.log(`📋 Listando desvantagens do personagem ${id}`);
+      log.info({ id: id }, 'Listando desvantagens do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -1072,7 +1074,7 @@ class PersonagemController {
       // Listar desvantagens do personagem
       const desvantagens = await db.Personagem.listarDesvantagens(id);
 
-      console.log(`✅ ${desvantagens.length} desvantagens encontradas`);
+      log.info({ desvantagens_length: desvantagens.length }, 'desvantagens encontradas');
 
       res.status(200).json({
         success: true,
@@ -1080,7 +1082,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar desvantagens:', error);
+      log.error({ err: error }, 'Erro ao listar desvantagens');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1100,7 +1102,7 @@ class PersonagemController {
       const { id } = req.params;
       const { equipamento_id } = req.body;
 
-      console.log(`➕ Adicionando equipamento ${equipamento_id} ao personagem ${id}`);
+      log.info({ equipamento_id: equipamento_id, id: id }, 'Adicionando equipamento ao personagem');
 
       if (!equipamento_id) {
         return res.status(400).json({
@@ -1127,7 +1129,7 @@ class PersonagemController {
       // Adicionar equipamento ao personagem
       await db.Personagem.adicionarEquipamento(id, equipamento_id);
 
-      console.log('✅ Equipamento adicionado com sucesso');
+      log.info('Equipamento adicionado com sucesso');
 
       res.status(200).json({
         success: true,
@@ -1135,7 +1137,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao adicionar equipamento:', error);
+      log.error({ err: error }, 'Erro ao adicionar equipamento');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1152,7 +1154,7 @@ class PersonagemController {
     try {
       const { id, equipamento_id } = req.params;
 
-      console.log(`➖ Removendo equipamento ${equipamento_id} do personagem ${id}`);
+      log.info({ equipamento_id: equipamento_id, id: id }, 'Removendo equipamento do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -1165,7 +1167,7 @@ class PersonagemController {
       // Remover equipamento do personagem
       await db.Personagem.removerEquipamento(id, equipamento_id);
 
-      console.log('✅ Equipamento removido com sucesso');
+      log.info('Equipamento removido com sucesso');
 
       res.status(200).json({
         success: true,
@@ -1173,7 +1175,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao remover equipamento:', error);
+      log.error({ err: error }, 'Erro ao remover equipamento');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1190,7 +1192,7 @@ class PersonagemController {
     try {
       const { id } = req.params;
 
-      console.log(`📋 Listando equipamentos do personagem ${id}`);
+      log.info({ id: id }, 'Listando equipamentos do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -1203,7 +1205,7 @@ class PersonagemController {
       // Listar equipamentos do personagem
       const equipamentos = await db.Personagem.listarEquipamentos(id);
 
-      console.log(`✅ ${equipamentos.length} equipamentos encontrados`);
+      log.info({ equipamentos_length: equipamentos.length }, 'equipamentos encontrados');
 
       res.status(200).json({
         success: true,
@@ -1211,7 +1213,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar equipamentos:', error);
+      log.error({ err: error }, 'Erro ao listar equipamentos');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1231,7 +1233,7 @@ class PersonagemController {
       const { id } = req.params;
       const { historia_id, papel } = req.body;
 
-      console.log(`🔗 Vinculando personagem ${id} à história ${historia_id}`);
+      log.info({ id: id, historia_id: historia_id }, 'Vinculando personagem à história');
 
       if (!historia_id) {
         return res.status(400).json({
@@ -1268,7 +1270,7 @@ class PersonagemController {
       // Criar vínculo
       await db.Personagem.vincularHistoria(id, historia_id, papel || 'jogador');
 
-      console.log('✅ Vínculo criado com sucesso');
+      log.info('Vínculo criado com sucesso');
 
       res.status(200).json({
         success: true,
@@ -1276,7 +1278,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao vincular personagem à história:', error);
+      log.error({ err: error }, 'Erro ao vincular personagem à história');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1293,7 +1295,7 @@ class PersonagemController {
     try {
       const { id, historia_id } = req.params;
 
-      console.log(`🔗 Desvinculando personagem ${id} da história ${historia_id}`);
+      log.info({ id: id, historia_id: historia_id }, 'Desvinculando personagem da história');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -1306,7 +1308,7 @@ class PersonagemController {
       // Desvincular
       await db.Personagem.desvincularHistoria(id, historia_id);
 
-      console.log('✅ Vínculo removido com sucesso');
+      log.info('Vínculo removido com sucesso');
 
       res.status(200).json({
         success: true,
@@ -1314,7 +1316,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao desvincular personagem da história:', error);
+      log.error({ err: error }, 'Erro ao desvincular personagem da história');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1331,7 +1333,7 @@ class PersonagemController {
     try {
       const { id } = req.params;
 
-      console.log(`📋 Listando histórias do personagem ${id}`);
+      log.info({ id: id }, 'Listando histórias do personagem');
 
       // Verificar se o personagem existe
       const personagem = await db.Personagem.findPersonagemById(parseInt(id));
@@ -1344,7 +1346,7 @@ class PersonagemController {
       // Listar histórias do personagem
       const historias = await db.Personagem.listarHistoriasPersonagem(id);
 
-      console.log(`✅ ${historias.length} histórias encontradas`);
+      log.info({ historias_length: historias.length }, 'histórias encontradas');
 
       res.status(200).json({
         success: true,
@@ -1352,7 +1354,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('❌ Erro ao listar histórias do personagem:', error);
+      log.error({ err: error }, 'Erro ao listar histórias do personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
       });
@@ -1432,7 +1434,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('Erro ao adicionar XP:', error);
+      log.error({ err: error }, 'Erro ao adicionar XP');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -1504,7 +1506,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('Erro ao distribuir pontos:', error);
+      log.error({ err: error }, 'Erro ao distribuir pontos');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -1571,7 +1573,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('Erro ao obter evolucao:', error);
+      log.error({ err: error }, 'Erro ao obter evolucao');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -1631,7 +1633,7 @@ class PersonagemController {
       });
 
     } catch (error) {
-      console.error('Erro ao validar coerência:', error);
+      log.error({ err: error }, 'Erro ao validar coerência');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

@@ -1,3 +1,6 @@
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'turnEngine' });
+
 import { extrairNomesTemas } from '../../helpers/temasHelper.js';
 import { buildTurnStartContext } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
 import {
@@ -32,7 +35,7 @@ function expirarStatusForaDeCombate(manager, roomId, sessao, contexto) {
         status: efeito.nome,
         timestamp: Date.now()
       });
-      console.log(`Status expirado ${contexto}: ${personagemCompleto.nome} <- ${efeito.nome}`);
+      log.info({ contexto, personagem: personagemCompleto.nome, efeito: efeito.nome }, 'Status expirado');
       return false;
     });
   }
@@ -135,7 +138,7 @@ export default class TurnEngine {
             contextoLateralRoleplay: invocationContext.contextoLateralRoleplay
           });
         } catch (errorIA) {
-          console.error('Erro na IA ao iniciar turno:', errorIA);
+          log.error({ err: errorIA }, 'Erro na IA ao iniciar turno');
           sm.log('ERROR', 'INICIAR_TURNO_IA_FAILED', socket.id, userId, {
             error: errorIA.message,
             stack: errorIA.stack
@@ -237,7 +240,7 @@ export default class TurnEngine {
           }
         }
       } catch (cleanupError) {
-        console.warn('Erro ao limpar estado de turno apos falha de inicio:', cleanupError.message);
+        log.warn({ err: cleanupError }, 'Erro ao limpar estado de turno apos falha de inicio');
       }
 
       sm.log('ERROR', 'INICIAR_TURNO_ERROR', socket.id, socket.userId, {
@@ -258,14 +261,14 @@ export default class TurnEngine {
     try {
       const sessao = await sm.obterSessaoHistoria(roomId);
       if (!sessao) {
-        console.error(`Sessao nao encontrada ao iniciar primeiro turno: ${roomId}`);
+        log.error({ roomId }, 'Sessao nao encontrada ao iniciar primeiro turno');
         return;
       }
 
       const estadoJogo = sessao.estadoJogo || {};
       const ordemJogadores = estadoJogo.ordemJogadores || [];
       if (ordemJogadores.length === 0) {
-        console.error(`Nenhum jogador na ordem para iniciar turno: ${roomId}`);
+        log.error({ roomId }, 'Nenhum jogador na ordem para iniciar turno');
         return;
       }
 
@@ -305,7 +308,7 @@ export default class TurnEngine {
       const sessaoFinal = await sm.obterSessaoHistoria(roomId);
       if (sessaoFinal) sm._tentarSnapshot(roomId, sessaoFinal, true);
     } catch (error) {
-      console.error('Erro ao iniciar primeiro turno:', error);
+      log.error({ err: error }, 'Erro ao iniciar primeiro turno');
     }
   }
 
@@ -315,7 +318,7 @@ export default class TurnEngine {
     try {
       const sessao = await sm.obterSessaoHistoria(roomId);
       if (!sessao) {
-        console.error(`Sessao nao encontrada ao avancar turno: ${roomId}`);
+        log.error({ roomId }, 'Sessao nao encontrada ao avancar turno');
         return;
       }
 
@@ -388,7 +391,7 @@ export default class TurnEngine {
         timestamp: Date.now()
       });
     } catch (error) {
-      console.error('Erro ao avancar turno:', error);
+      log.error({ err: error }, 'Erro ao avancar turno');
     }
   }
 
@@ -398,7 +401,7 @@ export default class TurnEngine {
     try {
       const sessao = await sm.obterSessaoHistoria(roomId);
       if (!sessao) {
-        console.error(`Sessao nao encontrada ao finalizar rodada: ${roomId}`);
+        log.error({ roomId }, 'Sessao nao encontrada ao finalizar rodada');
         return;
       }
 
@@ -478,13 +481,13 @@ export default class TurnEngine {
                   });
                 }
               } catch (err) {
-                console.warn('Erro ao atualizar progressao:', err.message);
+                log.warn({ err }, 'Erro ao atualizar progressao');
               }
             }
 
             sm.invalidarMestreSeNecessario(roomId, proximaRodada);
           } catch (error) {
-            console.error('Erro ao gerar resumo:', error);
+            log.error({ err: error }, 'Erro ao gerar resumo');
           }
         }
 
@@ -495,7 +498,7 @@ export default class TurnEngine {
             await processarAcoes(narrativa.acoes, sessaoParaAcoes, roomId, sm);
             await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoParaAcoes);
           } catch (acoesError) {
-            console.error('Erro ao processar acoes entre rodadas:', acoesError.message);
+            log.error({ err: acoesError }, 'Erro ao processar acoes entre rodadas');
           }
         }
 
@@ -520,7 +523,7 @@ export default class TurnEngine {
           forceRound: true
         });
       } catch (error) {
-        console.error('Erro ao gerar narrativa entre rodadas:', error);
+        log.error({ err: error }, 'Erro ao gerar narrativa entre rodadas');
 
         const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
         appendMensagemSessao(sessaoAtualizada, buildEntreRodadasMensagem({
@@ -542,7 +545,7 @@ export default class TurnEngine {
         try {
           await this.iniciarNovaRodada(roomId);
         } catch (error) {
-          console.error('Erro ao iniciar nova rodada:', error);
+          log.error({ err: error, roomId }, 'Erro ao iniciar nova rodada');
           // @event erro_sistema → room (broadcast) | unhandled error prevented the next round from starting
           sm.sendToRoom(roomId, 'erro_sistema', {
             message: 'Erro ao iniciar nova rodada. Tente novamente.'
@@ -551,7 +554,7 @@ export default class TurnEngine {
       }, 5000);
       sm._roundTimers.set(roomId, timerId);
     } catch (error) {
-      console.error('Erro ao finalizar rodada:', error);
+      log.error({ err: error }, 'Erro ao finalizar rodada');
     }
   }
 
@@ -561,7 +564,7 @@ export default class TurnEngine {
     try {
       const sessao = await sm.obterSessaoHistoria(roomId);
       if (!sessao) {
-        console.error(`Sessao nao encontrada ao iniciar nova rodada: ${roomId}`);
+        log.error({ roomId }, 'Sessao nao encontrada ao iniciar nova rodada');
         return;
       }
 
@@ -595,7 +598,7 @@ export default class TurnEngine {
 
       sm._tentarSnapshot(roomId, sessaoAtualizada, true);
     } catch (error) {
-      console.error('Erro ao iniciar nova rodada:', error);
+      log.error({ err: error }, 'Erro ao iniciar nova rodada');
     }
   }
 }

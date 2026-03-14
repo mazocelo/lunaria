@@ -46,7 +46,13 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
+            set -euxo pipefail
             cd /opt/role-chat-game/frontend
             git pull --ff-only origin main
             npm install --include=dev
             npm run build
+            sudo mkdir -p /var/www/lunaria-front
+            sudo rsync -av --delete dist/ /var/www/lunaria-front/
+            sudo chown -R www-data:www-data /var/www/lunaria-front
+            sudo nginx -t
+            sudo systemctl reload nginx

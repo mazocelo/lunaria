@@ -27,16 +27,35 @@ require_dir() {
 require_dir "$BACKEND_DIR"
 require_dir "$FRONTEND_DIR"
 
+read_env_value() {
+  local key="$1"
+  local file="$2"
+  local line value
+  line=$(grep -m1 "^${key}=" "$file" || true)
+  if [[ -z "$line" ]]; then
+    return 1
+  fi
+  value="${line#*=}"
+  value="${value%$'\r'}"
+  if [[ ${value:0:1} == '"' && ${value: -1} == '"' ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ ${value:0:1} == "'" && ${value: -1} == "'" ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  printf '%s' "$value"
+}
+
 if [[ ! -f "$BACKEND_DIR/.env" ]]; then
   echo "Arquivo .env nao encontrado em: $BACKEND_DIR/.env" >&2
   exit 1
 fi
 
-set -a
-. "$BACKEND_DIR/.env"
-set +a
+DATABASE_URL="$(read_env_value DATABASE_URL "$BACKEND_DIR/.env" || true)"
+UPSTASH_REDIS_URL="$(read_env_value UPSTASH_REDIS_URL "$BACKEND_DIR/.env" || true)"
+export DATABASE_URL
+export UPSTASH_REDIS_URL
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
+if [[ -z "$DATABASE_URL" ]]; then
   echo "DATABASE_URL ausente no .env do backend" >&2
   exit 1
 fi

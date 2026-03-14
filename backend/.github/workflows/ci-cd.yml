@@ -47,16 +47,37 @@ jobs:
             set -e
             cd /opt/role-chat-game/backend
 
+            read_env_value() {
+              local key="$1"
+              local file="$2"
+              local line value
+              line=$(grep -m1 "^${key}=" "$file" || true)
+              if [ -z "$line" ]; then
+                return 1
+              fi
+              value="${line#*=}"
+              value="${value%$'\r'}"
+              if [ "${value#\"}" != "$value" ] && [ "${value%\"}" != "$value" ]; then
+                value="${value#\"}"
+                value="${value%\"}"
+              elif [ "${value#\'}" != "$value" ] && [ "${value%\'}" != "$value" ]; then
+                value="${value#\'}"
+                value="${value%\'}"
+              fi
+              printf '%s' "$value"
+            }
+
             if [ ! -f .env ]; then
               echo "ERROR: .env ausente em /opt/role-chat-game/backend"
               exit 1
             fi
 
-            set -a
-            . ./.env
-            set +a
+            DATABASE_URL="$(read_env_value DATABASE_URL .env || true)"
+            UPSTASH_REDIS_URL="$(read_env_value UPSTASH_REDIS_URL .env || true)"
+            export DATABASE_URL
+            export UPSTASH_REDIS_URL
 
-            if [ -z "${DATABASE_URL:-}" ]; then
+            if [ -z "$DATABASE_URL" ]; then
               echo "ERROR: DATABASE_URL ausente no .env"
               exit 1
             fi

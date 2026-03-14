@@ -554,7 +554,7 @@ export const useWizardModel = () => {
       };
 
       const personagem = new Personagem(dados);
-      const criado = await personagemService.create(personagem);
+      const criado = await personagemService.create(personagem, { context: 'criacao' });
 
       if (criado?.id && s.background) {
         try {

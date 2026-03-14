@@ -35,6 +35,16 @@ const NovoPersonagemView = ({
   vantagens,
   setVantagens,
   pontosDistribuidos,
+  custoRaca,
+  custoClasse,
+  pontosVantagem,
+  pontosDesvantagem,
+  pontosDevolvidos,
+  pontosCriacaoTotal,
+  pontosGastos,
+  pontosCriacaoRestantes,
+  maxCustoDesvantagem,
+  orcamentoCriacaoValido,
   racasDisponiveis,
   classesDisponiveis,
   vantagensDisponiveis,
@@ -52,6 +62,8 @@ const NovoPersonagemView = ({
   imagem,
   setImagem,
 }) => {
+  const saldoCriacaoNegativo = pontosCriacaoRestantes < 0;
+
   return (
     <div className="animate-fade-in max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
       {/* Preview Card - sidebar sticky (desktop) / collapsible top (mobile) */}
@@ -221,8 +233,63 @@ const NovoPersonagemView = ({
               emptyText="Nenhuma vantagem encontrada."
             />
           )}
+          <div className={`rounded-xl border px-4 py-3 ${
+            saldoCriacaoNegativo
+              ? 'border-red-500/40 bg-red-500/10'
+              : isLight
+                ? 'border-slate-200 bg-slate-50'
+                : 'border-slate-700 bg-slate-900/50'
+          }`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`text-xs font-semibold uppercase tracking-[0.24em] ${
+                isLight ? 'text-slate-500' : 'text-slate-400'
+              }`}>
+                Orcamento de criacao
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                saldoCriacaoNegativo
+                  ? 'bg-red-500/20 text-red-300'
+                  : 'bg-emerald-500/15 text-emerald-300'
+              }`}>
+                Saldo {pontosCriacaoRestantes}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm font-modern md:grid-cols-3">
+              <div>
+                <div className="text-slate-400">Total disponivel</div>
+                <div className={isLight ? 'text-slate-700' : 'text-white'}>{pontosCriacaoTotal}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Raca</div>
+                <div className={isLight ? 'text-slate-700' : 'text-white'}>-{custoRaca}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Classe</div>
+                <div className={isLight ? 'text-slate-700' : 'text-white'}>-{custoClasse}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Vantagens</div>
+                <div className={isLight ? 'text-slate-700' : 'text-white'}>-{pontosVantagem}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Desvantagens</div>
+                <div className="text-emerald-400">+{pontosDevolvidos} / {maxCustoDesvantagem}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Gasto total</div>
+                <div className={isLight ? 'text-slate-700' : 'text-white'}>{pontosGastos}</div>
+              </div>
+            </div>
+            <p className={`mt-3 text-xs font-modern ${
+              saldoCriacaoNegativo
+                ? 'text-red-300'
+                : isLight ? 'text-slate-500' : 'text-slate-400'
+            }`}>
+              Raca, classe e vantagens consomem pontos. Desvantagens devolvem ate {maxCustoDesvantagem} pontos.
+            </p>
+          </div>
           <p className="text-xs text-slate-400 font-modern">
-            Selecione ate 5 vantagens e desvantagens para personalizar seu personagem
+            Selecione ate 5 vantagens e desvantagens para personalizar seu personagem sem estourar o orcamento.
           </p>
         </div>
 
@@ -351,7 +418,7 @@ const NovoPersonagemView = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={loading || gerandoBackground}
+            disabled={loading || gerandoBackground || !orcamentoCriacaoValido}
             className="flex-1"
           >
             {loading || gerandoBackground ? (
@@ -367,6 +434,11 @@ const NovoPersonagemView = ({
             )}
           </Button>
         </div>
+        {!orcamentoCriacaoValido && (
+          <p className="text-sm font-modern text-red-300">
+            Ajuste o orcamento de criacao antes de salvar. A ficha excedeu o saldo em {Math.abs(pontosCriacaoRestantes)} ponto(s).
+          </p>
+        )}
       </form>
 
       {/* Tips */}

@@ -54,10 +54,10 @@ export class PersonagemService {
    * @param {Personagem} personagem - Dados do personagem
    * @returns {Promise<Personagem>} Personagem criado
    */
-  async create(personagem) {
+  async create(personagem, validationOptions = {}) {
     try {
       // Validar antes de enviar
-      const validation = personagem.validate();
+      const validation = personagem.validate(validationOptions);
       if (!validation.isValid) {
         throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
       }

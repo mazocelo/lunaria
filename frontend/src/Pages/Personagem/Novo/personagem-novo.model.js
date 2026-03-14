@@ -12,6 +12,8 @@ import { Personagem } from '../../../models/Personagem';
 const PONTOS_ATRIBUTO_CRIACAO = 60;
 const ATTR_MIN_CRIACAO = 5;
 const ATTR_MAX_CRIACAO = 16;
+const PONTOS_CRIACAO_BASE = 10;
+const MAX_CUSTO_DESVANTAGEM = 3;
 
 const atributosIniciais = {
   forca: '',
@@ -26,6 +28,10 @@ function somaAtributos(atributos) {
   return Object.values(atributos)
     .map((v) => Number(v) || 0)
     .reduce((a, b) => a + b, 0);
+}
+
+function toNumericCost(value) {
+  return Number(value) || 0;
 }
 
 export const usePersonagemNovoModel = () => {
@@ -143,6 +149,46 @@ export const usePersonagemNovoModel = () => {
 
   const pontosDistribuidos = useMemo(() => somaAtributos(atributos), [atributos]);
 
+  const racaSelecionada = useMemo(() => (
+    (racasDisponiveis || []).find(item => String(item.id) === String(raca))
+  ), [racasDisponiveis, raca]);
+
+  const classeSelecionada = useMemo(() => (
+    (classesDisponiveis || []).find(item => String(item.id) === String(classe))
+  ), [classesDisponiveis, classe]);
+
+  const desvantagemIdSet = useMemo(() => (
+    new Set((desvantagens || []).map(item => String(item.id)))
+  ), [desvantagens]);
+
+  const tracosSelecionados = useMemo(() => (
+    (vantagensSelecionadas || [])
+      .map((id) => (vantagensDisponiveis || []).find(item => String(item.id) === String(id)))
+      .filter(Boolean)
+  ), [vantagensSelecionadas, vantagensDisponiveis]);
+
+  const pontosDesvantagem = useMemo(() => (
+    tracosSelecionados
+      .filter(item => desvantagemIdSet.has(String(item.id)))
+      .reduce((sum, item) => sum + toNumericCost(item.custo), 0)
+  ), [tracosSelecionados, desvantagemIdSet]);
+
+  const pontosVantagem = useMemo(() => (
+    tracosSelecionados
+      .filter(item => !desvantagemIdSet.has(String(item.id)))
+      .reduce((sum, item) => sum + toNumericCost(item.custo), 0)
+  ), [tracosSelecionados, desvantagemIdSet]);
+
+  const custoRaca = useMemo(() => toNumericCost(racaSelecionada?.custo), [racaSelecionada]);
+  const custoClasse = useMemo(() => toNumericCost(classeSelecionada?.custo), [classeSelecionada]);
+  const pontosDevolvidos = useMemo(() => (
+    Math.min(MAX_CUSTO_DESVANTAGEM, Math.abs(Math.min(0, pontosDesvantagem)))
+  ), [pontosDesvantagem]);
+  const pontosCriacaoTotal = useMemo(() => PONTOS_CRIACAO_BASE + pontosDevolvidos, [pontosDevolvidos]);
+  const pontosGastos = useMemo(() => custoRaca + custoClasse + pontosVantagem, [custoRaca, custoClasse, pontosVantagem]);
+  const pontosCriacaoRestantes = useMemo(() => pontosCriacaoTotal - pontosGastos, [pontosCriacaoTotal, pontosGastos]);
+  const orcamentoCriacaoValido = pontosCriacaoRestantes >= 0;
+
   const setAtributo = useCallback((key, value) => {
     setAtributos(prev => ({ ...prev, [key]: value }));
   }, []);
@@ -181,6 +227,11 @@ export const usePersonagemNovoModel = () => {
       return;
     }
 
+    if (!orcamentoCriacaoValido) {
+      setError(`A ficha excedeu o orcamento de criacao em ${Math.abs(pontosCriacaoRestantes)} ponto(s). Ajuste raca, classe, vantagens ou desvantagens antes de criar.`);
+      return;
+    }
+
 
     setLoading(true);
     setError(null);
@@ -190,7 +241,6 @@ export const usePersonagemNovoModel = () => {
 
       if (Array.isArray(vantagensSelecionadas)) {
         // Criar set de IDs que vieram da store de desvantagens para separação correta
-        const desvantagemIdSet = new Set((desvantagens || []).map(d => String(d.id)));
         vantagensSelecionadas.forEach(id => {
           if (desvantagemIdSet.has(String(id))) {
             desvantagensIds.push(Number(id));
@@ -219,7 +269,7 @@ export const usePersonagemNovoModel = () => {
       };
 
       const personagem = new Personagem(dados);
-      const criado = await personagemService.create(personagem);
+      const criado = await personagemService.create(personagem, { context: 'criacao' });
 
       // Se modo guiado, gerar background via IA apos criacao
       if (backgroundTipo === 'guiado' && criado?.id) {
@@ -228,9 +278,6 @@ export const usePersonagemNovoModel = () => {
           await personagemService.gerarBackground(criado.id, background);
         } catch (bgError) {
           console.warn('Background IA nao gerado:', bgError.message);
-          setGerandoBackground(false);
-          setError('Personagem criado com sucesso! Porem o background nao pode ser gerado pela IA. Voce pode edita-lo depois.');
-          return;
         } finally {
           setGerandoBackground(false);
         }
@@ -243,7 +290,7 @@ export const usePersonagemNovoModel = () => {
     } finally {
       setLoading(false);
     }
-  }, [nome, raca, classe, backgroundTipo, background, historias, atributos, vantagensSelecionadas, vantagensDisponiveis, navigate]);
+  }, [nome, raca, classe, backgroundTipo, background, historias, atributos, vantagensSelecionadas, desvantagemIdSet, orcamentoCriacaoValido, pontosCriacaoRestantes, imagem, recarregarPersonagens, navigate]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -266,6 +313,16 @@ export const usePersonagemNovoModel = () => {
     vantagens: vantagensSelecionadas,
     setVantagens: setVantagensSelecionadas,
     pontosDistribuidos,
+    custoRaca,
+    custoClasse,
+    pontosVantagem,
+    pontosDesvantagem,
+    pontosDevolvidos,
+    pontosCriacaoTotal,
+    pontosGastos,
+    pontosCriacaoRestantes,
+    maxCustoDesvantagem: MAX_CUSTO_DESVANTAGEM,
+    orcamentoCriacaoValido,
     // Options
     racasDisponiveis,
     classesDisponiveis,

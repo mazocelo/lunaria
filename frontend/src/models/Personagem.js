@@ -45,8 +45,9 @@ export class Personagem {
    * Valida se o modelo está correto
    * @returns {Object} Resultado da validação
    */
-  validate() {
+  validate(options = {}) {
     const errors = [];
+    const { context = 'default' } = options;
 
     if (!this.nome || this.nome.trim().length === 0) {
       errors.push('Nome do personagem é obrigatório');
@@ -66,11 +67,33 @@ export class Personagem {
 
     // Validar atributos (1-20) — deve receber valores BASE (sem bônus)
     const atributos = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
-    atributos.forEach(atributo => {
-      if (this[atributo] < 1 || this[atributo] > 20) {
-        errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 20`);
+    const atributosNumericos = atributos.map((atributo) => ({
+      atributo,
+      valor: Number(this[atributo]),
+    }));
+
+    if (context === 'criacao') {
+      atributosNumericos.forEach(({ atributo, valor }) => {
+        if (!Number.isFinite(valor) || valor < 5 || valor > 16) {
+          errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 5 e 16 na criacao`);
+        }
+      });
+
+      const somaAtributos = atributosNumericos.reduce(
+        (sum, item) => sum + (Number.isFinite(item.valor) ? item.valor : 0),
+        0
+      );
+
+      if (somaAtributos !== 60) {
+        errors.push('A distribuicao inicial deve somar 60 pontos');
       }
-    });
+    } else {
+      atributosNumericos.forEach(({ atributo, valor }) => {
+        if (!Number.isFinite(valor) || valor < 1 || valor > 20) {
+          errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 20`);
+        }
+      });
+    }
 
     return {
       isValid: errors.length === 0,

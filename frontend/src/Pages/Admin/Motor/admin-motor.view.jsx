@@ -64,19 +64,19 @@ function SessoesTab({ sessoes, loading, isDark, fetchSessaoDetalhe, selectedRoom
         <tbody>
           {sessoes.map((s, i) => (
             <tr
-              key={s.roomId || i}
-              onClick={() => fetchSessaoDetalhe(s.roomId)}
+              key={s.id || i}
+              onClick={() => fetchSessaoDetalhe(s.id)}
               className={`cursor-pointer transition-colors ${
-                selectedRoomId === s.roomId
+                selectedRoomId === s.id
                   ? isDark ? 'bg-indigo-900/30' : 'bg-indigo-50'
                   : isDark ? 'hover:bg-gray-800/50 border-b border-gray-800' : 'hover:bg-gray-50 border-b border-gray-100'
               }`}
             >
-              <td className="py-2 pr-4 font-mono text-xs">{s.roomId || '-'}</td>
-              <td className="py-2 px-2">{s.fase || '-'}</td>
-              <td className="text-center py-2 px-2">{s.turno ?? '-'}</td>
-              <td className="text-center py-2 px-2">{s.jogadores ?? '-'}</td>
-              <td className="text-center py-2 px-2">{s.testesPendentes ?? 0}</td>
+              <td className="py-2 pr-4 font-mono text-xs">{s.id || '-'}</td>
+              <td className="py-2 px-2">{s.estadoJogo?.fase || '-'}</td>
+              <td className="text-center py-2 px-2">{s.estadoJogo?.turnoAtual ?? '-'}</td>
+              <td className="text-center py-2 px-2">{s.jogadoresCount ?? '-'}</td>
+              <td className="text-center py-2 px-2">{s.estadoJogo?.testesPendentesCount ?? 0}</td>
               <td className="py-2 pl-2"><StatusBadge status={s.status} isDark={isDark} /></td>
             </tr>
           ))}
@@ -146,11 +146,11 @@ function JobsTab({ jobs, loading, isDark, jobFilters, handleJobFilterChange, ret
                   <td className="py-2 pr-2 font-mono text-xs">{job.id || '-'}</td>
                   <td className="py-2 px-2">{job.queue || '-'}</td>
                   <td className="py-2 px-2"><StatusBadge status={job.status} isDark={isDark} /></td>
-                  <td className="py-2 px-2">{job.entityType || '-'}</td>
-                  <td className="py-2 px-2 text-xs max-w-xs" title={job.lastError || ''}>
-                    {truncate(job.lastError, 80)}
+                  <td className="py-2 px-2">{job.entity_type || '-'}</td>
+                  <td className="py-2 px-2 text-xs max-w-xs" title={job.last_error || ''}>
+                    {truncate(job.last_error, 80)}
                   </td>
-                  <td className="py-2 px-2 text-xs">{formatDate(job.createdAt)}</td>
+                  <td className="py-2 px-2 text-xs">{formatDate(job.created_at)}</td>
                   <td className="py-2 pl-2 text-center">
                     {job.status === 'failed' && (
                       <button
@@ -199,7 +199,7 @@ function DetailPanel({ sessaoDetalhe, isDark, closeSessaoDetalhe }) {
         </div>
         <div>
           <p className={`text-xs uppercase tracking-wide mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Testes Pendentes</p>
-          <JsonBlock data={sessaoDetalhe.testesPendentes} isDark={isDark} />
+          <JsonBlock data={sessaoDetalhe.estadoJogo?.testesPendentes} isDark={isDark} />
         </div>
       </div>
     </div>

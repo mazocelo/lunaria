@@ -16,7 +16,7 @@ export function useAdminMotorModel() {
     setError(null);
     try {
       const response = await apiClient.get('/admin/motor/sessoes');
-      if (response.success) setSessoes(response.data || []);
+      if (response.success) setSessoes(response.data?.sessoes || []);
     } catch (err) {
       setError(err.message || 'Erro ao carregar sessoes');
     } finally {
@@ -36,7 +36,7 @@ export function useAdminMotorModel() {
       const suffix = queryString ? `?${queryString}` : '';
 
       const response = await apiClient.get(`/admin/motor/jobs${suffix}`);
-      if (response.success) setJobs(response.data || []);
+      if (response.success) setJobs(response.data?.jobs || []);
     } catch (err) {
       setError(err.message || 'Erro ao carregar jobs');
     } finally {

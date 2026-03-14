@@ -342,7 +342,7 @@ const RoteiroViewer = ({
                   voiceProvider={npc.voice_provider || mestreVoiceProvider}
                   isLight={isLight}
                 />
-                {onRoteiroUpdate && (
+                {onRoteiroUpdate && voiceCatalog.providers.length > 0 && (
                   <VoicePicker
                     label="Voz do NPC"
                     voiceId={npc.voice_id || ''}

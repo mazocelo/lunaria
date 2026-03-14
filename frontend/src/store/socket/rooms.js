@@ -28,7 +28,6 @@ export const createRoomActions = (set, get) => ({
       const cleanup = () => {
         clearTimeout(timeout);
         socket.off('room_joined', onJoined);
-        socket.off('join_room_error', onError);
         socket.off('error', onGenericError);
       };
 
@@ -51,20 +50,13 @@ export const createRoomActions = (set, get) => ({
         resolve(data);
       };
 
-      const onError = (error) => {
-        cleanup();
-        log('Join room error', { error: error.message }, 'error');
-        reject(new Error(error.message));
-      };
-
       const onGenericError = (error) => {
         cleanup();
-        log('Join room generic error', { error: error.message || error }, 'error');
+        log('Join room error', { error: error.message || error }, 'error');
         reject(new Error(error.message || 'Erro ao entrar na sala'));
       };
 
       socket.once('room_joined', onJoined);
-      socket.once('join_room_error', onError);
       socket.once('error', onGenericError);
 
       log('Emitting join_room', {
@@ -98,7 +90,6 @@ export const createRoomActions = (set, get) => ({
       const cleanup = () => {
         clearTimeout(timeout);
         socket.off('room_left', onLeft);
-        socket.off('leave_room_error', onError);
         socket.off('error', onGenericError);
       };
 
@@ -114,20 +105,13 @@ export const createRoomActions = (set, get) => ({
         resolve(result);
       };
 
-      const onError = (error) => {
-        cleanup();
-        log('Leave room error', { error: error.message }, 'error');
-        reject(new Error(error.message));
-      };
-
       const onGenericError = (error) => {
         cleanup();
-        log('Leave room generic error', { error: error.message || error }, 'error');
+        log('Leave room error', { error: error.message || error }, 'error');
         reject(new Error(error.message || 'Erro ao sair da sala'));
       };
 
       socket.once('room_left', onLeft);
-      socket.once('leave_room_error', onError);
       socket.once('error', onGenericError);
       socket.emit('leave_room', {
         roomId,

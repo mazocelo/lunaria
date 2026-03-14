@@ -52,6 +52,8 @@ export const socketInitialStates = {
 
   // ===== CONTROLE DE AVENTURA =====
   aventuraIniciada: false,
+  statusJogo: null,
+  totalJogadoresSala: 0,
 
   // ===== SISTEMA DE TURNOS E RODADAS =====
   faseJogo: 'aguardando_inicio', // 'aguardando_inicio' | 'rolagem_inicial' | 'rodada_em_andamento' | 'entre_rodadas'

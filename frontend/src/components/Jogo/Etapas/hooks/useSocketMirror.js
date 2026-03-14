@@ -292,6 +292,14 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         showGameNotification(`Status: ${data.status} (${data.duracao || 3} turnos)`, 'warning');
       } else if (data.tipo === 'status_removido' && ehMeu) {
         showGameNotification(`Status removido: ${data.status}`, 'info');
+      } else if (data.tipo === 'dano_ambiental' && ehMeu) {
+        if (data.imune) {
+          showGameNotification(`Imune ao dano ambiental${data.elemento ? ` de ${data.elemento}` : ''}!`, 'info');
+        } else {
+          showGameNotification(`-${data.dano} HP ambiental${data.fonte ? ` (${data.fonte})` : ''}${data.derrotado ? ' - Derrotado!' : ''}`, 'error');
+        }
+      } else if (data.tipo === 'personagem_estabilizado' && ehMeu) {
+        showGameNotification(`Estabilizado! HP: ${data.hp_atual}`, 'success');
       }
     };
 

@@ -37,6 +37,7 @@ export const createListenerActions = (set, get) => ({
       'combate_jogador_ferido', 'combate_finalizado', 'combate_estado',
       'acao_mestre', 'level_up', 'combate_loot',
       'user_joined', 'user_left',
+      'status_jogo_alterado',
     ];
     for (const event of internalEvents) {
       socket.removeAllListeners(event);
@@ -541,6 +542,11 @@ export const createListenerActions = (set, get) => ({
       showGameNotification(`Sessão encerrada: ${data.motivo || 'Encerrada pelo administrador'}`, 'info');
     });
 
+    socket.on('status_jogo_alterado', (data) => {
+      set({ statusJogo: data.statusJogo, totalJogadoresSala: data.totalJogadores });
+      get().log('Status jogo alterado', { statusJogo: data.statusJogo });
+    });
+
     // ===== LISTENERS DE ERROS =====
 
     socket.on('erro_sistema', (data) => {
@@ -604,6 +610,19 @@ export const createListenerActions = (set, get) => ({
         }
         set({ combateJogadores: jogadoresAtualizados });
         if (dto.acertou && dto.dano > 0) playSound('combat_hit');
+      }
+
+      if (dto.tipo === 'status_dano' && dto.alvo?.userId) {
+        const jogadoresAtualizados = { ...combateJogadores };
+        if (jogadoresAtualizados[dto.alvo.userId]) {
+          jogadoresAtualizados[dto.alvo.userId] = {
+            ...jogadoresAtualizados[dto.alvo.userId],
+            hp_atual: dto.hpRestante,
+            status: dto.hpRestante <= 0 ? 'derrotado' : 'vivo'
+          };
+        }
+        set({ combateJogadores: jogadoresAtualizados });
+        playSound('combat_hit');
       }
 
       set({ combateLog: [...combateLog.slice(-(COMBAT.LOG_MAX_ENTRIES - 1)), dto] });
@@ -708,6 +727,32 @@ export const createListenerActions = (set, get) => ({
         const efeitos = (updated[data.userId].status_efeitos || []).filter(e => e.nome !== data.status);
         updated[data.userId] = { ...updated[data.userId], status_efeitos: efeitos };
         set({ combateJogadores: updated });
+      }
+      if (data.tipo === 'dano_ambiental' && get().combateAtivo && jogador) {
+        const updated = { ...combateJogadores };
+        updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.derrotado ? 'derrotado' : 'vivo' };
+        set({ combateJogadores: updated });
+        if (!data.imune) playSound('combat_hit');
+      }
+      if (data.tipo === 'personagem_estabilizado' && get().combateAtivo && jogador) {
+        const updated = { ...combateJogadores };
+        updated[data.userId] = { ...updated[data.userId], hp_atual: data.hp_atual, status: data.hp_atual > 0 ? 'vivo' : updated[data.userId].status };
+        set({ combateJogadores: updated });
+        playSound('heal');
+      }
+      if (data.tipo === 'efeitos_expirados' && get().combateAtivo) {
+        // efeitos_expirados não tem userId — resolver por personagem nome
+        const targetUserId = data.userId || Object.keys(combateJogadores).find(uid => {
+          const j = combateJogadores[uid];
+          return j && (j.nome === data.personagem || j.personagemNome === data.personagem);
+        });
+        if (targetUserId && combateJogadores[targetUserId]) {
+          const updated = { ...combateJogadores };
+          const efeitosNomes = data.efeitos || [];
+          const efeitos = (updated[targetUserId].status_efeitos || []).filter(e => !efeitosNomes.includes(e.nome));
+          updated[targetUserId] = { ...updated[targetUserId], status_efeitos: efeitos };
+          set({ combateJogadores: updated });
+        }
       }
       get().log('Ação do Mestre', { tipo: data.tipo, personagem: data.personagem });
     });

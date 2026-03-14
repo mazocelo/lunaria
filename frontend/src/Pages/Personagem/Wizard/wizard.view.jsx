@@ -98,7 +98,6 @@ const WizardView = (props) => {
   } = props;
 
   const [fichaAberta, setFichaAberta] = useState(false);
-  const [heroCompact, setHeroCompact] = useState(false);
 
   const allSelecoes = useMemo(() => [...vantagensIds, ...desvantagensIds], [vantagensIds, desvantagensIds]);
   const etapaAtualObj = etapas[etapaIndex];
@@ -114,49 +113,7 @@ const WizardView = (props) => {
     [classesDisponiveis, classeId],
   );
 
-  const etapaHasInteraction = useMemo(() => {
-    switch (etapaAtual) {
-      case 'boas_vindas':
-        return !!nome?.trim();
-      case 'raca':
-        return !!racaId;
-      case 'classe':
-        return !!classeId;
-      case 'background':
-        return !!background?.trim();
-      case 'vantagens':
-        return vantagensIds.length > 0 || skipVantagens;
-      case 'desvantagens':
-        return desvantagensIds.length > 0 || skipDesvantagens;
-      case 'atributos':
-        return bonusAplicados || bonusInvalidado;
-      case 'resumo':
-      case 'refinamento':
-        return true;
-      default:
-        return false;
-    }
-  }, [
-    etapaAtual,
-    nome,
-    racaId,
-    classeId,
-    background,
-    vantagensIds,
-    desvantagensIds,
-    skipVantagens,
-    skipDesvantagens,
-    bonusAplicados,
-    bonusInvalidado,
-  ]);
 
-  useEffect(() => {
-    const compactOnMobileLaterStage = typeof window !== 'undefined'
-      && window.matchMedia('(max-width: 767px)').matches
-      && etapaIndex > 0;
-
-    setHeroCompact(etapaHasInteraction || compactOnMobileLaterStage);
-  }, [etapaAtual, etapaIndex, etapaHasInteraction]);
 
   const podeCriar = !!(nome?.trim() && racaId && classeId && background?.trim() && bonusAplicados);
   const pendenciasOpcionais = Number(vantagensIds.length === 0 && !skipVantagens) + Number(desvantagensIds.length === 0 && !skipDesvantagens);
@@ -390,8 +347,6 @@ const WizardView = (props) => {
                 racasDisponiveis={racasDisponiveis}
                 classesDisponiveis={classesDisponiveis}
                 isLight={isLight}
-                compact={heroCompact}
-                onToggleCompact={() => setHeroCompact(prev => !prev)}
                 readinessState={readinessState}
                 stageSummary={stageSummary}
                 embedded

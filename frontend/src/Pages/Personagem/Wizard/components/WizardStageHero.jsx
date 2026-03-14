@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ChevronDown, ChevronUp, Compass, ScrollText, Sparkles } from 'lucide-react';
+import { Compass, ScrollText, Sparkles } from 'lucide-react';
 import WizardReadinessSeal from './WizardReadinessSeal.jsx';
 
 const STAGE_COPY = {
@@ -65,8 +65,6 @@ const WizardStageHero = ({
   racasDisponiveis,
   classesDisponiveis,
   isLight,
-  compact = false,
-  onToggleCompact,
   readinessState = 'open',
   stageSummary,
   embedded = false,
@@ -102,8 +100,7 @@ const WizardStageHero = ({
     <section className={`wa-stage-enter shrink-0 ${embedded ? '' : 'px-4 pt-3 md:px-5'}`}>
       <div className={[
         embedded ? 'px-5 py-5 md:px-6' : 'wa-hero wa-etched rounded-[24px] px-4 py-4 md:px-5',
-        compact ? 'wa-hero-compact' : '',
-      ].join(' ')}>
+      ].filter(Boolean).join(' ')}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -142,18 +139,6 @@ const WizardStageHero = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onToggleCompact}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-modern font-semibold transition-all cursor-pointer ${
-                  isLight
-                    ? 'border-slate-300 bg-white/70 text-slate-600 hover:bg-white'
-                    : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-900'
-                }`}
-              >
-                {compact ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                {compact ? 'Expandir contexto' : 'Compactar contexto'}
-              </button>
             </div>
           </div>
 

@@ -60,7 +60,6 @@ async function main() {
   // 5. Personagem
   let personagem = await prisma.personagens.findFirst({
     where: { nome: 'Aldric', id_usuario: usuario.id, deleted_at: null },
-    select: { id: true, nome: true, nivel: true, forca: true, destreza: true, constituicao: true, inteligencia: true, agilidade: true, carisma: true },
   });
   if (!personagem) {
     personagem = await prisma.personagens.create({
@@ -80,7 +79,6 @@ async function main() {
         pontos_iniciais: 60,
         background: 'Um guerreiro veterano das fronteiras do norte, marcado por cicatrizes de batalha.',
       },
-      select: { id: true, nome: true, nivel: true, forca: true, destreza: true, constituicao: true, inteligencia: true, agilidade: true, carisma: true },
     });
     console.log(`  ✓ Personagem: ${personagem.nome} (id=${personagem.id}) [criado]`);
   } else {
@@ -90,7 +88,6 @@ async function main() {
   // 6. História com prólogo
   let historia = await prisma.historias.findFirst({
     where: { nome: 'A Cripta dos Reis Esquecidos', id_usuario: usuario.id, deleted_at: null },
-    select: { id: true, nome: true },
   });
   if (!historia) {
     historia = await prisma.historias.create({
@@ -103,7 +100,6 @@ async function main() {
         publica: true,
         prologo: `As tochas tremem nas paredes de pedra úmida enquanto vocês descem os degraus da Cripta dos Reis Esquecidos. O ar é denso, carregado de poeira e o cheiro de séculos de abandono. Segundo os pergaminhos encontrados na biblioteca da cidade, esta cripta abriga os restos dos antigos reis de Valdoria — e com eles, artefatos de poder inimaginável.\n\nO mercador que contratou vocês foi claro: "Tragam a Coroa de Ossos e serão recompensados com ouro suficiente para uma vida inteira." Mas os olhos dele traíam algo mais — medo, talvez. Ou ganância.\n\nAgora, diante de vocês, o corredor se divide em três passagens escuras. Da esquerda vem um som ritmado, como batidas de um coração gigante. Do centro, silêncio absoluto. Da direita, um brilho pálido e azulado pulsa fraco.\n\nO que vocês fazem?`,
       },
-      select: { id: true, nome: true },
     });
     console.log(`  ✓ História: ${historia.nome} (id=${historia.id}) [criada]`);
   } else {
@@ -165,9 +161,9 @@ async function main() {
   ];
 
   for (const m of monstrosDemo) {
-    const existente = await prisma.monstros.findFirst({ where: { nome: m.nome }, select: { id: true, nome: true } });
+    const existente = await prisma.monstros.findFirst({ where: { nome: m.nome } });
     if (!existente) {
-      const criado = await prisma.monstros.create({ data: m, select: { id: true, nome: true } });
+      const criado = await prisma.monstros.create({ data: m });
       console.log(`  ✓ Monstro: ${criado.nome} (id=${criado.id}) [criado]`);
     } else {
       console.log(`  ✓ Monstro: ${existente.nome} (id=${existente.id}) [já existia]`);

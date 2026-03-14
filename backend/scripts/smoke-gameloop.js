@@ -59,13 +59,7 @@ async function main() {
 
   const personagem = await prisma.personagens.findFirst({
     where: { id_usuario: usuario.id, deleted_at: null },
-    select: {
-      id: true, nome: true, nivel: true,
-      forca: true, destreza: true, constituicao: true,
-      inteligencia: true, agilidade: true, carisma: true,
-      racas: { select: { id: true, nome: true } },
-      classes: { select: { id: true, nome: true } },
-    },
+    include: { racas: true, classes: true },
   });
 
   await test('demo character exists', async () => {
@@ -83,13 +77,13 @@ async function main() {
   });
 
   await test('HP calculation works', async () => {
-    const hp = calcularHP(personagem.constituicao, personagem.nivel);
+    const hp = calcularHP(personagem);
     assert.ok(hp > 0, `HP deveria ser > 0, got ${hp}`);
     console.log(`      → HP: ${hp}`);
   });
 
   await test('Mana calculation works', async () => {
-    const mana = calcularMana(personagem.inteligencia, personagem.nivel);
+    const mana = calcularMana(personagem);
     assert.ok(mana > 0, `Mana deveria ser > 0, got ${mana}`);
     console.log(`      → Mana: ${mana}`);
   });
@@ -101,7 +95,7 @@ async function main() {
   });
 
   await test('Armadura calculation works', async () => {
-    const armadura = calcularArmadura(personagem);
+    const armadura = calcularArmadura({});
     assert.ok(typeof armadura === 'number', 'Armadura deve ser número');
     console.log(`      → Armadura: ${armadura}`);
   });
@@ -111,7 +105,6 @@ async function main() {
 
   const historia = await prisma.historias.findFirst({
     where: { id_usuario: usuario.id, deleted_at: null },
-    select: { id: true, nome: true, prologo: true, temas: true },
   });
 
   await test('demo story exists', async () => {
@@ -138,7 +131,7 @@ async function main() {
   // ── Demo Monsters ──
   console.log('\n── Demo Monsters ──');
 
-  const monstros = await prisma.monstros.findMany({ take: 5, select: { id: true, nome: true, hp_base: true, dano_base: true } });
+  const monstros = await prisma.monstros.findMany({ take: 5 });
 
   await test('at least 1 monster in DB', async () => {
     assert.ok(monstros.length > 0, 'Nenhum monstro encontrado. Execute: node Backend/scripts/seed-demo.js');

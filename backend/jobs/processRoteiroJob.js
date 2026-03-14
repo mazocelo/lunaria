@@ -39,7 +39,8 @@ export async function processRoteiroJob(job) {
 
     await processarGeracaoRoteiro(historia, userId, {
       mode: job?.data?.mode,
-      markErrorStatus: false
+      markErrorStatus: false,
+      aiJobId
     });
 
     await db.prisma.ai_jobs.update({

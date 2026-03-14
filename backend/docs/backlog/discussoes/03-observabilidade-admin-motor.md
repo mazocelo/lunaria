@@ -133,21 +133,21 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 
 ---
 
-## Auditoria (2026-03-13)
+## Auditoria (2026-03-14)
 
-**Completude: ~55%**
+**Completude: ~95%**
 
 ### Feitos (infraestrutura base)
 
 | Item | Evidencia |
 |------|-----------|
-| Auth JWT com roles | `authMiddleware.js`: requireSuperAdmin (L224-240), requireOwnerOrSuperAdmin, requireResourceOwnerOrSuperAdmin |
+| Auth JWT com roles | `authMiddleware.js`: requireSuperAdmin, requireOwnerOrSuperAdmin, requireResourceOwnerOrSuperAdmin |
 | SuperAdminRoute no frontend | `Frontend/src/components/SuperAdminRoute.jsx` |
-| `GET /websocket/stats` (superadmin) | `routes/websocket.js:43` — retorna connectedUsers, activeRooms, totalRooms |
-| `GET /billing/global` (admin/superadmin) | `routes/billing.js:31` — custos agregados |
-| `GET /analytics` (superadmin) | `routes/analytics.js:11` — aggregations via analyticsService |
+| `GET /websocket/stats` (superadmin) | `routes/websocket.js` — connectedUsers, activeRooms, totalRooms |
+| `GET /billing/global` (admin/superadmin) | `routes/billing.js` — custos agregados |
+| `GET /analytics` (superadmin) | `routes/analytics.js` — aggregations via analyticsService |
 | Tracking de uso IA | `usageService.js` + tabela `api_usage` (tokens, custo, provider) |
-| `ai_jobs` table com rastreamento | Status, last_error, attempts_made, timestamps |
+| `ai_jobs` table com rastreamento | Status, last_error, attempts_made, timestamps, **request_prompt, response_text** |
 | Rotas WebSocket admin | `/broadcast`, `/room/:roomId/message`, `/user/:userId/message` (superadmin) |
 
 ### Implementados (Phase 1 — 2026-03-13)
@@ -161,13 +161,20 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | 5 | **Tela AdminMotor no frontend** (MVVM pattern) | Pagina admin criada |
 | 6 | **SuperAdminRoute** protegendo a pagina admin | Guard implementado |
 
-### Pendentes (Phase 2)
+### Implementados (Phase 2 parcial — Rodada 9+10)
+
+| # | Item | Evidencia |
+|---|------|-----------|
+| 7 | `GET /admin/motor/worker/health` — status do worker via Redis heartbeat | `routes/adminMotor.js` (Rodada 9) |
+| 8 | **Persistencia de prompts/respostas** — campos `request_prompt` e `response_text` em `ai_jobs` | Migration `add_ai_jobs_prompt_fields`, `roteiroGenerationService.js` (Rodada 10) |
+| 9 | `GET /admin/motor/jobs/:id/prompt` — consultar prompt e response de um job | `routes/adminMotor.js` (Rodada 10) |
+
+### Pendentes (Phase 2 restante)
 
 | # | Item | Prioridade |
 |---|------|-----------|
 | 1 | Logs estruturados (backend ainda usa `console.*` apenas, sem pino/winston) | Media |
-| 2 | Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde) | Media |
-| 3 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
+| 2 | `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao | Baixa |
 
 ### Criterios de aceite vs estado atual
 
@@ -176,4 +183,5 @@ Esse item nao e so tecnico. Ele reduz tempo de suporte, acelera debug e melhora 
 | Admin entende estado da sessao sem abrir codigo | **Atendido** (GET /admin/motor/sessoes/:roomId) |
 | Admin diagnostica turno travado | **Atendido** (estadoJogo.fase, turnoAtual, testesPendentes visiveis) |
 | Admin ve job de IA falho e onde falhou | **Atendido** (GET /admin/motor/jobs?status=failed + last_error) |
-| Admin ve consumo de tokens e tempo de resposta | **Parcialmente atendido** (GET /billing/global e GET /analytics) |
+| Admin ve consumo de tokens e tempo de resposta | **Atendido** (GET /billing/global, GET /analytics, GET /admin/motor/jobs/:id/prompt) |
+| Admin ve prompt e resposta da IA | **Atendido** (GET /admin/motor/jobs/:id/prompt) |

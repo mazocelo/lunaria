@@ -29,9 +29,9 @@ Desde a abertura dessa lista, parte relevante do trabalho ja avancou. O objetivo
 | F-01 | Contrato publico do websocket | concluido | ~100% | contrato JSON v2.1.0, 65+ @event annotations, zero io.to() direto em engines/handlers/utils |
 | F-02 | Modularizacao do motor do jogo | concluido | ~100% | 5 engines + 5 utils + sessionEventBus + stateProjector, socketManager 4000+→920L (-77%), feature flags removidas |
 | D-01 | Jobs duraveis para IA | concluido | ~98% | async-only, systemd service, CI/CD restart, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2) |
-| D-02 | Deploy e banco VPS | parcialmente concluido | ~88% | CI/CD com --ff-only, pg_dump backup, healthcheck pos-deploy, /health endpoint, Redis sempre obrigatorio. Faltam rollback, preflight, lock |
-| D-03 | Observabilidade e admin do motor | em progresso | ~75% | 4 endpoints /admin/motor + tela AdminMotor frontend (MVVM), expanded state sempre ativo, blueprint V2, resumo estruturado. Faltam logs estruturados, persistencia prompts |
-| F-03 | Controles de produto para IA | em progresso | ~70% | 4 pilares, expanded state, blueprint V2, resumo estruturado, modos criativos funcionais (4 modos + regenerate), historico de versoes com ativacao. Faltam comparacao side-by-side, workflow avancado |
+| D-02 | Deploy e banco VPS | concluido | ~95% | CI/CD com --ff-only, pg_dump backup, healthcheck robusto (DB+Redis), preflight checks, rollback automatico. Faltam lock de release, coordenacao multi-servico |
+| D-03 | Observabilidade e admin do motor | concluido | ~95% | 5 endpoints /admin/motor (sessoes, jobs, retry, prompt, worker/health), persistencia de prompt/response no ai_jobs, tela AdminMotor frontend. Faltam logs estruturados (pino) |
+| F-03 | Controles de produto para IA | concluido | ~95% | modos criativos (4+regenerate), historico de versoes com ativacao, endpoint detalhe de versao, fix URL mismatch, frontend service para comparacao. Faltam modal side-by-side, workflow avancado |
 
 ## Analise por frente
 
@@ -112,37 +112,36 @@ Extracao ~98%. socketManager e fachada leve (920L). Gaps restantes sao de formal
 
 v1 completa, stalled detection funcional, worker health observavel via API. Restam apenas filas de imagem/audio (v2) e storage R2.
 
-### D-03. Observabilidade e admin do motor (~75%)
+### D-03. Observabilidade e admin do motor (~95%)
 
-**Status:** Phase 1 implementada + expanded state/blueprint V2/resumo estruturado sempre ativos
+**Status:** Phase 1 + Phase 2 parcial (Rodada 10)
 
 **O que ja existe**
 
 - Auth JWT com roles (requireSuperAdmin, requireOwnerOrSuperAdmin)
 - `GET /websocket/stats` (superadmin) — contadores basicos
 - `GET /billing/global` e `GET /analytics` — custos e uso de IA
-- Tabela `ai_jobs` com dados de status e erro
+- Tabela `ai_jobs` com dados de status, erro, **prompt e response** (campos `request_prompt`, `response_text`)
 - Rotas WebSocket admin para broadcast/mensagem direta
-- 4 endpoints `/admin/motor` implementados (sessoes, sessao detail, jobs, retry)
+- 5 endpoints `/admin/motor` implementados (sessoes, sessao detail, jobs, retry, **jobs/:id/prompt**)
 - Tela AdminMotor no frontend (MVVM pattern) protegida por SuperAdminRoute
 - Expanded state sempre ativo (mana, cooldowns, concentracao, efeitos expirados)
 - Blueprint V2 sempre ativo (roteiro condensado com segredos, dialogos, foreshadowing)
 - Resumo estruturado sempre ativo (formato com secoes FATOS/ITENS/NPCS/COMBATE/DECISOES/PISTAS)
-- Feature flags removidas — sem infraestrutura de flags no backend ou frontend
+- **Persistencia de prompts/respostas** (Rodada 10): blueprintService retorna `{ roteiro, prompt, responseText }`, roteiroGenerationService persiste em `ai_jobs`
 
 **O que falta construir**
 
 - Logs estruturados (backend ainda usa `console.*` apenas, sem pino/winston)
-- Persistencia de prompts/respostas do mestre (hoje so metricas, conteudo se perde)
 - `socketManager.getStats()` so retorna contadores basicos — sem detalhe de sessao
 
 **Leitura pratica**
 
-Phase 1 completa com endpoints e tela admin. Expanded state, blueprint V2 e resumo estruturado ativos permanentemente. Phase 2 foca em logging estruturado e persistencia de AI prompt/response.
+Phase 1 completa + Phase 2 parcial. Persistencia de prompts IA funcional (prompt → DB → admin endpoint). Restam logs estruturados (pino) como unico gap significativo.
 
-### F-03. Controles de produto para IA (~70%)
+### F-03. Controles de produto para IA (~95%)
 
-**Status:** modos criativos funcionais + historico de versoes (Rodada 8)
+**Status:** modos criativos + historico de versoes + detalhe de versao + fix URL (Rodada 8+10)
 
 **O que ja existe**
 
@@ -158,19 +157,22 @@ Phase 1 completa com endpoints e tela admin. Expanded state, blueprint V2 e resu
 - **Seletor de modo no frontend** com dropdown antes do botao "Gerar"
 - **Historico de versoes** com listagem e ativacao (tabela `roteiro_versoes` + endpoints + UI)
 - Metadados de geracao (modo, modelo, temperatura, timestamp) persistidos em cada versao
+- **Fix URL mismatch** (Rodada 10): rotas aliases `/roteiro-versoes` adicionadas (frontend chamava `/roteiro-versoes`, backend registrava `/roteiro/versoes`)
+- **Endpoint detalhe de versao** (Rodada 10): `GET /:id/roteiro-versoes/:versaoId` retorna roteiro completo
+- **Frontend service** (Rodada 10): `obterVersaoRoteiro()` para carregar conteudo completo de uma versao
 
 **O que falta construir**
 
-- Comparacao side-by-side de propostas
+- Modal side-by-side com dois RoteiroViewer para comparacao visual
 - Workflow avancado de aprovacao
 
 **Leitura pratica**
 
-Modos criativos funcionais end-to-end (frontend selector → backend directives → AI prompt → versao salva). Historico de versoes com ativacao funcional. Proximos passos: comparacao side-by-side e workflow avancado.
+Backend completo para comparacao (endpoints de listagem + detalhe + ativacao). Frontend service pronto. Faltam componentes visuais de comparacao (modal side-by-side).
 
-### D-02. Deploy e banco VPS (~88%)
+### D-02. Deploy e banco VPS (~95%)
 
-**Status:** core funcional + hardening avancado
+**Status:** core funcional + hardening avancado + preflight/rollback (Rodada 10)
 
 **O que ja foi feito**
 
@@ -180,97 +182,59 @@ Modos criativos funcionais end-to-end (frontend selector → backend directives 
 - Deploy automatico no push para main com systemd restart
 - `git pull --ff-only` em todos os 3 pipelines
 - pg_dump backup antes de `prisma migrate deploy`
-- Healthcheck pos-deploy (`curl /health`)
-- Endpoint `/health` criado
 - Frontend CI/CD usa `npm ci`
 - Redis sempre obrigatorio na startup validation (Rodada 7)
 - Feature flags removidas — sem overhead de configuracao por ambiente
+- **Healthcheck robusto** (Rodada 10): `/health` verifica DB (`SELECT 1`) e Redis (`PING`) com timeout 3s, retorna `ok`/`degraded` + checks detalhados
+- **Preflight checks** (Rodada 10): `pg_isready` obrigatorio + `redis-cli ping` (warn-only) antes do deploy
+- **Rollback automatico** (Rodada 10): se healthcheck falhar pos-deploy, restaura ultimo backup via pg_restore + git checkout HEAD~1 + restart
 
 **O que falta construir**
 
-- Rollback operacional
-- Preflight de saude
-- Lock de release
+- Lock de release (file-based ou Redis)
 - Coordenacao entre deploys dos 3 servicos
 
 **Leitura pratica**
 
-Fase 1 completa + Fase 2 avancada (backup, healthcheck, --ff-only, Redis obrigatorio). Restam rollback e coordenacao de deploys.
+Pipeline robusto com preflight → backup → deploy → healthcheck → rollback automatico. Restam lock de release e coordenacao multi-servico.
 
-## Ordem recomendada a partir do estado atual
+## Gaps residuais (todos incrementais)
 
-1. limpar a modularizacao residual do motor do jogo
-2. criar observabilidade e admin minima
-3. expandir jobs duraveis para imagem
-4. expandir jobs duraveis para TTS
-5. adicionar controles de produto para IA
-6. endurecer deploy e banco para HostGator/VPS
-
-## Pendencias imediatas (atualizado 2026-03-13)
-
-### ~~P-01 Tornar worker deployavel (D-01, CRITICO)~~ CONCLUIDO
-
-- ~~criar systemd service `lunaria-worker.service` na VPS~~ feito (deploy/lunaria-worker.service)
-- ~~adicionar restart do worker no pipeline CI/CD do backend~~ feito (ci-cd.yml)
-- ~~retry exponencial + QueueEvents stalled detection~~ feito
-- ~~ligar flag `AI_ASYNC_ROTEIRO`~~ flag removida (Rodada 7) — async-only permanente
-
-### ~~P-02 Continuar modularizacao do motor (F-02)~~ CONCLUIDO
-
-- ~~extrair `masterNarrationEngine` (handleMensagemParaMestre + handleMensagemRoleplay)~~ feito
-- ~~extrair authHandler e chatHandler~~ feito
-- ~~migrar combatEngine para usar sendToRoom ao inves de sm.io.to() direto~~ feito (15 calls migradas)
-- socketManager: 4000+ → 920L (-77%)
-
-### ~~P-03 Criar observabilidade minima (D-03)~~ CONCLUIDO
-
-- ~~`GET /admin/motor/sessoes` — listar sessoes ativas~~ feito
-- ~~`GET /admin/motor/sessoes/:roomId` — dump completo~~ feito
-- ~~`GET /admin/motor/jobs` — consultar ai_jobs com filtro~~ feito
-- ~~`POST /admin/motor/jobs/:id/retry` — reprocessar job falhado~~ feito
-
-### P-04 ~~Fechar gaps do contrato WebSocket (F-01)~~ CONCLUIDO
-
-- ~~documentar `dice_roll` echo e `rpg_action` echo como server_to_client~~ feito
-- ~~decidir sobre `rate_limit_exceeded`: implementar ou reclassificar~~ reclassificado como `planned`
-- ~~remover 3 listeners orfaos do frontend~~ removidos
-
-### ~~P-05 Hardening de deploy (D-02)~~ PARCIALMENTE CONCLUIDO
-
-- ~~adicionar `--ff-only` ao `git pull` nos 3 pipelines~~ feito
-- ~~adicionar backup pre-migracao (pg_dump)~~ feito
-- ~~adicionar healthcheck pos-deploy~~ feito
-- rollback operacional (pendente)
-- preflight de saude (pendente)
-- lock de release (pendente)
-
-## O que nao deve acontecer agora
-
-- expandir filas de IA (imagem/audio) antes de validar v1 async em producao
-- separar observabilidade em sistema externo antes de explorar Phase 2 interna
+| Front | Gap | Prioridade |
+|-------|-----|-----------|
+| D-01 | Filas IMAGE/AUDIO (stubs existem, processadores nao) | Baixa (v2) |
+| D-01 | Storage R2 | Baixa (v2) |
+| D-02 | Lock de release (file-based ou Redis) | Baixa |
+| D-02 | Coordenacao entre deploys dos 3 servicos | Baixa |
+| D-03 | Logs estruturados (pino) | Media |
+| D-03 | socketManager.getStats() detalhe de sessao | Baixa |
+| F-02 | Formalizar interfaces dos engines | Baixa |
+| F-03 | Modal side-by-side com dois RoteiroViewer | Media |
+| F-03 | Workflow avancado de aprovacao | Baixa |
 
 ## Resumo executivo (2026-03-14)
 
-O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 7** removeu toda a infraestrutura de feature flags (13 arquivos, 2 deletados, 11 editados):
+O projeto avancou significativamente desde a abertura das 6 frentes. **Rodada 10** fechou os 3 fronts restantes (D-03, D-02, F-03) em uma unica rodada:
 
 - **F-01 (~100%)**: contrato WebSocket concluido, 65+ @event annotations, zero io.to() direto em engines/handlers/utils
 - **F-02 (~100%)**: 5 engines + 5 utils extraidos, socketManager 4000+→920L (-77%), feature flags removidas
 - **D-01 (~98%)**: async-only, stalled detection com DB update, worker health via Redis, lockDuration/stalledInterval/maxStalledCount. Restam filas IMAGE/AUDIO (v2)
-- **D-02 (~88%)**: CI/CD com --ff-only, pg_dump backup, healthcheck, Redis obrigatorio. Faltam rollback, preflight, lock
-- **D-03 (~75%)**: 4 endpoints admin + tela frontend, expanded state/blueprint V2/resumo estruturado ativos. Faltam logs estruturados, persistencia prompts
-- **F-03 (~70%)**: modos criativos funcionais (4 modos + regenerate), historico de versoes com ativacao, seletor no frontend. Faltam comparacao side-by-side, workflow avancado
+- **D-02 (~95%)**: healthcheck robusto (DB+Redis), preflight checks, rollback automatico. Faltam lock de release, coordenacao multi-servico
+- **D-03 (~95%)**: 5 endpoints admin, persistencia de prompt/response no ai_jobs, tela frontend. Faltam logs estruturados (pino)
+- **F-03 (~95%)**: modos criativos, historico de versoes, fix URL mismatch, endpoint detalhe, frontend service. Faltam modal side-by-side, workflow avancado
 
-Proximos passos: (1) hardening deploy D-02, (2) Phase 2 observabilidade D-03, (3) F-03 comparacao side-by-side.
+Todas as 6 frentes estao acima de 95%. Gaps restantes sao incrementais (pino, lock, modal UI, filas v2).
 
 ## Handoff para outra instancia
 
 1. F-01 concluido (~100%) — em manutencao, sem pendencias funcionais
 2. F-02 concluido (~100%) — feature flags removidas, restam formalizacao de interfaces
 3. D-01 v1 completa (~98%) — stalled detection + worker health + timeout config (Rodada 9). Restam filas IMAGE/AUDIO (v2)
-4. D-02 avancado (~88%) — backup, healthcheck, --ff-only, Redis obrigatorio. Faltam rollback, preflight, lock
-5. D-03 em progresso (~75%) — Phase 1 completa + expanded state/blueprint V2/resumo estruturado. Phase 2: logs estruturados
-6. F-03 em progresso (~70%) — modos criativos funcionais, historico de versoes, seletor no frontend
+4. D-02 concluido (~95%) — healthcheck robusto, preflight, rollback automatico. Faltam lock de release, coordenacao multi-servico
+5. D-03 concluido (~95%) — 5 endpoints admin, persistencia prompt/response. Faltam logs estruturados (pino)
+6. F-03 concluido (~95%) — modos criativos, historico versoes, fix URL, endpoint detalhe, frontend service. Faltam modal side-by-side
 7. **Rodada 7 concluida**: toda infraestrutura de feature flags removida
 8. **Rodada 8 concluida**: modos criativos funcionais (bug blueprintService.js:393 corrigido), diretivas por modo no prompt, MODE_TEMPERATURES, seletor frontend, painel de versoes
 9. **Rodada 9 concluida**: stalled detection → DB update, worker heartbeat via Redis (setex TTL 90s), GET /admin/motor/worker/health, lockDuration/stalledInterval/maxStalledCount configurados
-10. cada documento individual tem secao "Auditoria" com detalhes completos
+10. **Rodada 10 concluida**: D-03 (persistencia prompt/response + endpoint admin), D-02 (healthcheck DB/Redis + preflight + rollback), F-03 (fix URL mismatch + endpoint detalhe versao + frontend service)
+11. cada documento individual tem secao "Auditoria" com detalhes completos

@@ -116,9 +116,9 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 
 ---
 
-## Auditoria (2026-03-13)
+## Auditoria (2026-03-14)
 
-**Completude: ~70%**
+**Completude: ~95%**
 
 ### Fase 1 — Feitos
 
@@ -126,15 +126,28 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 |------|-----------|
 | `db push --accept-data-loss` removido de todo script executavel | `package.json` e `ci-cd.yml` usam `prisma migrate deploy` |
 | 3 pipelines CI/CD via GitHub Actions + SSH | Backend, Frontend, TTS — todos funcionando |
-| Migrations formais | `0_baseline` (schema completo) + `20260313170000_add_ai_jobs` |
+| Migrations formais | `0_baseline` + `add_ai_jobs` + `tts_cache_r2` + `add_roteiro_versoes` + `add_ai_jobs_prompt_fields` |
 | Script de baseline para banco legado | `scripts/baseline-migrate.sh` (executado na VPS) |
 | Deploy reproduzivel | CI/CD automatico no push para main |
 | Restart controlado via systemd | Backend e TTS usam `systemctl restart` |
-| **`git pull --ff-only`** em todos os 3 pipelines | CI/CD atualizado |
-| **pg_dump backup** antes de `prisma migrate deploy` | Adicionado ao pipeline |
-| **Healthcheck pos-deploy** | `curl /health` apos restart |
-| **Endpoint `/health`** criado | Backend responde com status |
-| **Frontend CI/CD usa `npm ci`** | Atualizado no pipeline |
+| `git pull --ff-only` em todos os 3 pipelines | CI/CD atualizado |
+| pg_dump backup antes de `prisma migrate deploy` | Adicionado ao pipeline |
+| Frontend CI/CD usa `npm ci` | Atualizado no pipeline |
+
+### Fase 2 — Feitos (Rodada 10)
+
+| Item | Evidencia |
+|------|-----------|
+| **Healthcheck robusto** | `/health` verifica DB (`SELECT 1`) + Redis (`PING`) com timeout 3s, retorna `ok`/`degraded` + checks detalhados (`routes/index.js`) |
+| **Preflight checks** | `pg_isready -d "$DATABASE_URL" -t 5` obrigatorio + `redis-cli ping` warn-only antes do deploy (`ci-cd.yml`) |
+| **Rollback automatico** | Se healthcheck falhar: pg_restore do ultimo backup + git checkout HEAD~1 + npm ci + restart (`ci-cd.yml`) |
+
+### Fase 2 — Pendentes
+
+| Item | Status |
+|------|--------|
+| Lock de release (file-based ou Redis) | Nao iniciado |
+| Coordenacao entre deploys dos 3 servicos | Nao iniciado |
 
 ### Parciais
 
@@ -142,20 +155,13 @@ O script criado agora e um template de partida. Ele nao substitui a validacao do
 |------|--------|
 | Frontend CI/CD nao reinicia servico | By-design (Nginx serve static files, build e suficiente) |
 
-### Fase 2 — Pendentes
-
-| Item | Status |
-|------|--------|
-| Rollback operacional | Nao iniciado |
-| Preflight de saude | Nao iniciado |
-| Lock de release | Nao iniciado |
-| Coordenacao entre deploys dos 3 servicos | Nao iniciado |
-
 ### Riscos
 
 | Risco | Severidade |
 |-------|-----------|
 | ~~Sem backup antes de `prisma migrate deploy`~~ | ~~Alto~~ **RESOLVIDO** (pg_dump adicionado) |
-| ~~Sem healthcheck apos deploy~~ | ~~Medio~~ **RESOLVIDO** (curl /health) |
+| ~~Sem healthcheck apos deploy~~ | ~~Medio~~ **RESOLVIDO** (healthcheck robusto com DB+Redis) |
 | ~~`git pull` sem `--ff-only`~~ | ~~Medio~~ **RESOLVIDO** (todos pipelines usam --ff-only) |
+| ~~Sem rollback operacional~~ | ~~Medio~~ **RESOLVIDO** (rollback automatico no CI/CD) |
+| ~~Sem preflight de saude~~ | ~~Medio~~ **RESOLVIDO** (pg_isready + redis-cli ping) |
 | Deploys nao coordenados entre repos | Baixo |

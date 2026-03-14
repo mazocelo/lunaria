@@ -1174,6 +1174,26 @@ class HistoriaController {
   }
 
   /**
+   * Obter detalhe completo de uma versão do roteiro (incluindo roteiro JSON)
+   */
+  async obterVersaoRoteiro(req, res, next) {
+    try {
+      const { id, versaoId } = req.params;
+      const versao = await db.prisma.roteiro_versoes.findFirst({
+        where: { id: parseInt(versaoId), historia_id: parseInt(id) }
+      });
+
+      if (!versao) {
+        return res.status(404).json({ success: false, error: 'Versão não encontrada' });
+      }
+
+      res.json({ success: true, data: { versao } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Determinar gênero baseado no temas
    * @param {string} temas - Tema da história
    * @returns {string} Gênero determinado

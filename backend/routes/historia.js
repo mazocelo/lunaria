@@ -591,6 +591,14 @@ router.get('/:id/roteiro/versoes', authenticateToken, historiaController.listarV
 // PUT /:id/roteiro/versoes/:versaoId/ativar - Ativar versão específica (OWNER OU ADMIN)
 router.put('/:id/roteiro/versoes/:versaoId/ativar', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.ativarVersaoRoteiro);
 
+// GET /:id/roteiro/versoes/:versaoId - Detalhe completo de uma versão (com roteiro)
+router.get('/:id/roteiro/versoes/:versaoId', authenticateToken, historiaController.obterVersaoRoteiro);
+
+// Aliases com hífen (frontend usa este formato)
+router.get('/:id/roteiro-versoes', authenticateToken, historiaController.listarVersoesRoteiro);
+router.get('/:id/roteiro-versoes/:versaoId', authenticateToken, historiaController.obterVersaoRoteiro);
+router.put('/:id/roteiro-versoes/:versaoId/ativar', writeLimiter, requireResourceOwnerOrSuperAdmin('Historia'), historiaController.ativarVersaoRoteiro);
+
 /**
  * Verificar se há sessão ativa para uma história
  */

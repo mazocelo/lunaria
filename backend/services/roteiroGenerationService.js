@@ -60,10 +60,11 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
   try {
     const catalogo = await buildCatalogoCompleto();
     const temasNomes = await gerarTemasNomes(historia.temas || []);
-    const roteiro = await blueprintService.gerarRoteiro(historia, catalogo, temasNomes, userId, {
+    const resultado = await blueprintService.gerarRoteiro(historia, catalogo, temasNomes, userId, {
       mode,
       previousBlueprint: historia?.roteiro || null
     });
+    const { roteiro, prompt: requestPrompt, responseText } = resultado;
 
     await db.Historia.updateHistoria(historiaId, {
       roteiro,
@@ -104,6 +105,21 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
       });
     } catch (versionError) {
       console.warn(`Erro ao salvar versão do roteiro para historia ${historiaId}:`, versionError.message);
+    }
+
+    // Persistir prompt/response no ai_job (se aiJobId fornecido)
+    if (options.aiJobId && requestPrompt) {
+      try {
+        await db.prisma.ai_jobs.update({
+          where: { id: options.aiJobId },
+          data: {
+            request_prompt: requestPrompt,
+            response_text: responseText || null
+          }
+        });
+      } catch (_) {
+        // melhor esforço
+      }
     }
 
     if (typeof onSuccess === 'function') {

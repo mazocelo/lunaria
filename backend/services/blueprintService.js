@@ -423,7 +423,7 @@ class BlueprintService {
       throw new Error('Falha ao parsear roteiro da IA. Resposta nao e JSON valido.');
     }
 
-    return roteiroNormalizado;
+    return { roteiro: roteiroNormalizado, prompt, responseText: content };
   }
 
   async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = 0.3) {

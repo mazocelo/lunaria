@@ -152,6 +152,28 @@ router.post('/jobs/:id/retry', authenticateToken, requireSuperAdmin, asyncHandle
   });
 }));
 
+// GET /admin/motor/jobs/:id/prompt — ver prompt e response de um job
+router.get('/jobs/:id/prompt', authenticateToken, requireSuperAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const job = await db.prisma.ai_jobs.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      request_prompt: true,
+      response_text: true,
+      created_at: true,
+      finished_at: true
+    }
+  });
+
+  if (!job) {
+    return res.status(404).json({ success: false, error: 'Job nao encontrado' });
+  }
+
+  res.json({ success: true, data: { job } });
+}));
+
 // GET /admin/motor/worker/health — verificar se worker esta vivo via Redis heartbeat
 router.get('/worker/health', authenticateToken, requireSuperAdmin, asyncHandler(async (req, res) => {
   await gerenciadorSessoes.initialize();

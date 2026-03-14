@@ -682,6 +682,8 @@ model ai_jobs {
   status          String    @db.VarChar(20)
   bullmq_job_id   String?   @unique @db.VarChar(191)
   request_payload Json?
+  request_prompt  String?   @db.Text
+  response_text   String?   @db.Text
   attempts_total  Int       @default(2)
   attempts_made   Int       @default(0)
   last_error      String?

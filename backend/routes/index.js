@@ -28,11 +28,41 @@ import habilidadeRoutes from './habilidades.js';
 import mestreCriadorRoutes from './mestreCriador.js';
 import adminMotorRoutes from './adminMotor.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
+import db from '../Model/index.js';
+import gerenciadorSessoes from '../redis/sessoes.js';
 const router = express.Router();
 
 // Health check (sem auth, usado pelo CI/CD)
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+router.get('/health', async (req, res) => {
+  const checks = { api: 'ok', db: 'ok', redis: 'ok' };
+  let httpStatus = 200;
+
+  try {
+    await Promise.race([
+      db.prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
+  } catch {
+    checks.db = 'error';
+    httpStatus = 503;
+  }
+
+  try {
+    await gerenciadorSessoes.initialize();
+    await Promise.race([
+      gerenciadorSessoes.client.ping(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
+  } catch {
+    checks.redis = 'error';
+    httpStatus = 503;
+  }
+
+  res.status(httpStatus).json({
+    status: httpStatus === 200 ? 'ok' : 'degraded',
+    checks,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Rate limiter por usuário para endpoints de criação

@@ -44,14 +44,42 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
+            set -e
             cd /opt/role-chat-game/backend
+
+            # Preflight checks
+            pg_isready -d "$DATABASE_URL" -t 5 || { echo "ERROR: DB inacessivel"; exit 1; }
+            redis-cli -u "$UPSTASH_REDIS_URL" ping 2>/dev/null || echo "WARN: Redis check indisponivel (continuando)"
+
+            # Deploy
             git pull --ff-only origin main
             npm ci
             npx prisma generate
+
+            # Backup
+            BACKUP_FILE="/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump"
             mkdir -p /opt/backups
-            pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump" || { echo "ERROR: backup falhou"; exit 1; }
+            pg_dump "$DATABASE_URL" --no-owner --no-acl -Fc > "$BACKUP_FILE" || { echo "ERROR: backup falhou"; exit 1; }
+
+            # Migrate + Restart
             npx prisma migrate deploy
             systemctl restart lunaria-backend
             systemctl restart lunaria-worker || true
-            sleep 3
-            curl -sf http://localhost:3001/health || { echo "ERROR: healthcheck falhou"; exit 1; }
+            sleep 5
+
+            # Healthcheck com rollback
+            if ! curl -sf http://localhost:3001/health | grep -q '"status":"ok"'; then
+              echo "ERROR: healthcheck falhou — iniciando rollback"
+              LATEST_BACKUP=$(ls -t /opt/backups/lunaria-*.dump 2>/dev/null | head -1)
+              if [ -n "$LATEST_BACKUP" ]; then
+                pg_restore -d "$DATABASE_URL" --clean --if-exists --no-owner "$LATEST_BACKUP" || true
+              fi
+              git checkout HEAD~1 -- .
+              npm ci
+              npx prisma generate
+              systemctl restart lunaria-backend
+              systemctl restart lunaria-worker || true
+              echo "Rollback concluido"
+              exit 1
+            fi
+            echo "Deploy OK"

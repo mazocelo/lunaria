@@ -3,13 +3,27 @@
 Este backlog foi organizado para ser reutilizado por outras instancias de trabalho.
 Cada item tem contexto suficiente para uma outra instancia abrir o arquivo e continuar a execucao sem depender desta conversa.
 
+## Status (2026-03-14)
+
+Todas as 6 frentes originais estao acima de 95%. Gaps restantes sao incrementais.
+
+| Ordem | Tema | % | Doc |
+|-------|------|---|-----|
+| F-01 | Contrato publico do websocket | ~100% | [features/01](./features/01-contrato-publico-websocket.md) |
+| F-02 | Modularizacao do motor do jogo | ~100% | [features/02](./features/02-modularizacao-motor-do-jogo.md) |
+| D-01 | Jobs duraveis para IA | ~98% | [discussoes/01](./discussoes/01-jobs-duraveis-ia.md) |
+| D-02 | Deploy e banco VPS | ~95% | [discussoes/02](./discussoes/02-deploy-banco-hostgator.md) |
+| D-03 | Observabilidade e admin do motor | ~95% | [discussoes/03](./discussoes/03-observabilidade-admin-motor.md) |
+| F-03 | Controles de produto para IA | ~95% | [features/03](./features/03-controles-de-produto-para-ia.md) |
+
+Para analise detalhada e handoff: [README-analise-pendencias.md](./README-analise-pendencias.md)
+
 ## Como usar
 
 Cada arquivo foi separado por tipo:
 
 - `features/`: backlog de implementacao direta
 - `discussoes/`: backlog de decisao, arquitetura ou maturacao de ideia
-- `assets/`: materiais de apoio, templates e scripts
 
 Todos os arquivos seguem a mesma ideia:
 
@@ -20,18 +34,14 @@ Todos os arquivos seguem a mesma ideia:
 - plano de execucao
 - criterios de aceite
 - handoff pronto para outra instancia
+- **auditoria** com % de completude e itens feitos/pendentes
 
-## Ordem recomendada
+## Historico de rodadas
 
-1. [F-01 Fechar contrato publico do websocket](./features/01-contrato-publico-websocket.md)
-2. [F-02 Modularizar o motor do jogo](./features/02-modularizacao-motor-do-jogo.md)
-3. [D-01 Jobs duraveis para IA](./discussoes/01-jobs-duraveis-ia.md)
-4. [F-03 Controles de produto para IA](./features/03-controles-de-produto-para-ia.md)
-5. [D-02 Deploy e banco na HostGator](./discussoes/02-deploy-banco-hostgator.md)
-6. [D-03 Observabilidade e admin do motor](./discussoes/03-observabilidade-admin-motor.md)
-
-## Observacoes
-
-- O item de websocket esta marcado como alta prioridade porque o runtime real ja mudou, mas a documentacao e parte do contrato publico ainda nao refletem isso.
-- O item de deploy/banco e o item de observabilidade estao marcados como "maturar ideia", mas ja possuem direcao recomendada e material inicial para acelerar a decisao.
-- O script de deploy inicial para HostGator/VPS esta em [assets/hostgator-release-template.sh](./assets/hostgator-release-template.sh).
+| Rodada | Escopo | Fronts |
+|--------|--------|--------|
+| R1-R6 | Implementacao inicial das 6 frentes | F-01, F-02, D-01, D-02, D-03, F-03 |
+| R7 | Remocao de feature flags (13 arquivos) | F-02, D-01 |
+| R8 | Modos criativos + historico de versoes | F-03 |
+| R9 | Stalled detection + worker health + timeout config | D-01 |
+| R10 | Persistencia prompts + healthcheck robusto + preflight/rollback + fix URL + endpoint versao | D-03, D-02, F-03 |

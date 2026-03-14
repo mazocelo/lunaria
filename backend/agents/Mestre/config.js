@@ -61,7 +61,7 @@ export const MESTRE_CONFIG = {
 
   // Configurações de cache
   cache: {
-    enabled: process.env.MESTRE_CACHE_ENABLED !== 'false',
+    enabled: true,
     ttl: parseInt(process.env.MESTRE_CACHE_TTL) || 3600,
     maxSize: parseInt(process.env.MESTRE_CACHE_MAX_SIZE) || 30,
   }

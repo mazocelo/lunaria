@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 const LOCK_TTL_MS = 30000; // 30s max lock
 const LOCK_PREFIX = 'tts_lock:';
-const CACHE_ENABLED = process.env.TTS_CACHE_ENABLED !== 'false';
+const CACHE_ENABLED = true;
 const CACHE_MAX_AUDIO_BYTES = Number.parseInt(process.env.TTS_CACHE_MAX_AUDIO_BYTES || `${2 * 1024 * 1024}`, 10);
 const CACHE_TTL_DAYS = Number.parseInt(process.env.TTS_CACHE_TTL_DAYS || '7', 10);
 const CACHE_CLEANUP_INTERVAL_MS = Number.parseInt(process.env.TTS_CACHE_CLEANUP_INTERVAL_MS || `${60 * 60 * 1000}`, 10);

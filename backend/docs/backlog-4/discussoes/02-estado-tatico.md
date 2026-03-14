@@ -183,6 +183,16 @@ B4-F04 (acoes cenario) ----+                         +-- B4-F07 (resumo v2)
 
 ## Riscos residuais
 
-- Documento e spec, nao enforcement — enforcement vem em B4-F05
-- Migracao v1->v2 de `terreno` (string->objeto) pode quebrar `buildTurnState` se nao tratada com type guard
-- `efeitos_terreno[]` substitui `terrenoEfeito` — acao `alterar_terreno` de B4-F04 precisara ser atualizada em B4-F05
+- `effectManager` continua usando `alvoId` (personagemId) em vez de `userId` — alinhamento com bucket per-player deferido
+- `batalha_grande` e `combate.boss` sao scaffolding minimo, sem simulacao completa
+
+---
+
+## Nota de implementacao (B4-F05 concluido)
+
+- `terreno` canonico (objeto `{ tipo, label, tags }`) ativo desde F05-A. Migracao oportunista de string legado via `migrarEstadoTaticoLegado()`.
+- `efeitos_terreno[]` substituiu `terrenoEfeito` desde F05-B. Legado migrado em memoria e removido.
+- Bucket per-player `estadoJogo.personagemSessao[userId]` consolidado para XP e inventario (F05-B).
+- State block expandido com selectors de boss, batalha grande e missao tatica (F05-C).
+- Scaffolding de `combate.boss`, `batalha_grande`, `missao_tatica` com acoes `iniciar_fase_boss` e `missao_batalha` (F05-D).
+- Expiracao de `efeitos_terreno[]` integrada ao inicio do turno em `masterNarrationEngine` (F05-C).

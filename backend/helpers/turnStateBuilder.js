@@ -6,13 +6,17 @@
 import { calcularHP, calcularMana } from './combateHelper.js';
 import {
   normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno,
-  getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo
+  getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo,
+  migrarEstadoTaticoLegado
 } from './estadoTatico.js';
 
 /**
  * Monta state object estruturado para um jogador no turno
  */
 export function buildTurnState(sessao, userId, personagem) {
+  // Migração oportunista de legado (idempotente)
+  migrarEstadoTaticoLegado(sessao);
+
   const estadoJogo = sessao.estadoJogo || {};
   const mestreCtx = sessao.mestreContexto || {};
   const pcCompleto = (sessao.personagensCompletos || {})[String(personagem.id || personagem.personagemId)] || personagem;
@@ -83,14 +87,14 @@ export function buildTurnState(sessao, userId, personagem) {
     .slice(0, 10)
     .map(e => ({ nome: e.nome, tipo: e.tipo || null }));
 
-  // Contexto tático — terreno normalizado para shape canônico (objeto ou legado string)
+  // Contexto tático
   state.terreno = normalizarTerrenoInput(estadoJogo.terreno);
   state.terreno_tags = state.terreno?.tags || [];
   state.efeitos_terreno = getEfeitosTerreno(sessao);
   state.tensao = estadoJogo.tensao || null;
   state.ameacas = Array.isArray(estadoJogo.ameacas) ? estadoJogo.ameacas : [];
 
-  // Runtime tático avançado (populados por F05-D+)
+  // Runtime tático avançado
   state.boss = getBossResumo(sessao);
   state.batalha_grande = getBatalhaGrandeResumo(sessao);
   state.missao_tatica = getMissaoTaticaResumo(sessao);

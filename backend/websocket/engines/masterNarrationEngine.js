@@ -10,7 +10,7 @@ import { decrementCooldowns } from '../../helpers/cooldownManager.js';
 import { decrementConcentracao } from '../../helpers/concentrationManager.js';
 import { decrementEfeitos, aplicarEfeitosPorTurno } from '../../helpers/effectManager.js';
 import { buildTurnState, formatTurnStateText } from '../../helpers/turnStateBuilder.js';
-import { expireEfeitosTerreno } from '../../helpers/estadoTatico.js';
+import { expireEfeitosTerreno, migrarEstadoTaticoLegado } from '../../helpers/estadoTatico.js';
 import {
   buildNarracaoContext
 } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
@@ -204,7 +204,8 @@ export default class MasterNarrationEngine {
         userId
       );
 
-      // 4. Início de turno: decrementar cooldowns, efeitos, concentração, efeitos de terreno
+      // 4. Início de turno: migração legado + decrementar cooldowns, efeitos, concentração, efeitos de terreno
+      migrarEstadoTaticoLegado(sessao);
       decrementCooldowns(sessao, userId);
       const pcId = String(personagem.id || personagem.personagemId);
       const efeitosExpirados = decrementEfeitos(sessao, pcId);

@@ -123,6 +123,41 @@ export function registrarItemGanhoBucket(sessao, userId, item) {
   });
 }
 
+// ── Migração oportunista de legado ───────────────────────────────
+
+/**
+ * Migra estado tático legado em memória para shape canônico.
+ * Idempotente — seguro chamar múltiplas vezes na mesma sessão.
+ *
+ * Converte:
+ * - estadoJogo.terreno string → objeto canônico
+ * - estadoJogo.terrenoEfeito (singular) → estadoJogo.efeitos_terreno[]
+ */
+export function migrarEstadoTaticoLegado(sessao) {
+  const ej = sessao?.estadoJogo;
+  if (!ej) return;
+
+  // terreno string → objeto canônico
+  if (typeof ej.terreno === 'string') {
+    ej.terreno = normalizarTerrenoInput(ej.terreno);
+  }
+
+  // terrenoEfeito (legado singular) → efeitos_terreno[]
+  if (ej.terrenoEfeito && typeof ej.terrenoEfeito === 'object') {
+    if (!Array.isArray(ej.efeitos_terreno) || ej.efeitos_terreno.length === 0) {
+      ej.efeitos_terreno = [{
+        descricao: ej.terrenoEfeito.descricao || ej.terrenoEfeito.efeito || null,
+        elemento: ej.terrenoEfeito.elemento || null,
+        dano_por_turno: ej.terrenoEfeito.dano_por_turno || null,
+        duracao: ej.terrenoEfeito.duracao || null,
+        aplicado_em: ej.terrenoEfeito.aplicado_em || null,
+        fonte: 'migracao_legado'
+      }];
+    }
+    delete ej.terrenoEfeito;
+  }
+}
+
 // ── Selectors de runtime tático ──────────────────────────────────
 
 /** Retorna resumo compacto do boss ativo ou null. */

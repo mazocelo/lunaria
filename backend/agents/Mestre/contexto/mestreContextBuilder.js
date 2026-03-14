@@ -608,6 +608,9 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
     historia
   );
 
+  // Mudança de local → reset de terreno e ameaças (contexto antigo fica stale)
+  const localMudou = presenteOrTruthy(metadados.local_atual) || presenteOrTruthy(metadados.local);
+
   if (presenteOrTruthy(metadados.local_atual)) {
     estadoJogo.cenaAtual = metadados.local_atual;
     estadoJogo.ambiente = metadados.local_atual;
@@ -615,6 +618,12 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
   if (presenteOrTruthy(metadados.local)) {
     estadoJogo.cenaAtual = metadados.local;
     estadoJogo.ambiente = metadados.local;
+  }
+
+  if (localMudou) {
+    // Terreno e ameaças do local anterior não se aplicam mais
+    if (!presenteOrTruthy(metadados.terreno)) estadoJogo.terreno = null;
+    if (!Array.isArray(metadados.ameacas)) estadoJogo.ameacas = [];
   }
 
   if (presenteOrTruthy(metadados.ambiente)) {
@@ -626,6 +635,21 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
   }
   if (presenteOrTruthy(metadados.hora)) {
     estadoJogo.horaFiccional = metadados.hora;
+  }
+
+  if (presenteOrTruthy(metadados.terreno) && typeof metadados.terreno === 'string') {
+    estadoJogo.terreno = metadados.terreno;
+  }
+
+  if (presenteOrTruthy(metadados.tensao) && typeof metadados.tensao === 'string') {
+    estadoJogo.tensao = metadados.tensao;
+  }
+
+  // ameacas: presente → salvar (slice 5, só strings); vazio → limpar; ausente → manter
+  if (Array.isArray(metadados.ameacas)) {
+    estadoJogo.ameacas = metadados.ameacas.length > 0
+      ? metadados.ameacas.filter(a => typeof a === 'string' && a.trim()).slice(0, 5)
+      : [];
   }
 
   if (presentes.length > 0) {

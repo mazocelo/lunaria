@@ -79,9 +79,10 @@ export function buildTurnState(sessao, userId, personagem) {
     .slice(0, 10)
     .map(e => ({ nome: e.nome, tipo: e.tipo || null }));
 
-  // Terreno e tensão — placeholders para B4-D01
+  // Terreno, tensão e ameaças — populados via metadados da IA
   state.terreno = estadoJogo.terreno || null;
   state.tensao = estadoJogo.tensao || null;
+  state.ameacas = Array.isArray(estadoJogo.ameacas) ? estadoJogo.ameacas : [];
 
   return state;
 }
@@ -143,9 +144,10 @@ export function formatTurnStateText(state) {
     lines.push(`Último teste: ${partes.join(' ')}`);
   }
 
-  // Placeholders B4-D01
+  // Contexto tático (populado via metadados da IA)
   if (state.terreno) lines.push(`Terreno: ${state.terreno}`);
   if (state.tensao) lines.push(`Tensão: ${state.tensao}`);
+  if (state.ameacas?.length > 0) lines.push(`Ameaças: ${state.ameacas.join(', ')}`);
 
   return lines.join('\n');
 }

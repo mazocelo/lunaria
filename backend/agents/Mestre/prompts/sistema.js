@@ -454,7 +454,10 @@ Responda SEMPRE em JSON valido:
     "local_atual": null,
     "hora_ficcional": null,
     "npcs_presentes": [],
-    "memoria_semantica": []
+    "memoria_semantica": [],
+    "terreno": null,
+    "tensao": null,
+    "ameacas": []
   }}
 }}
 
@@ -476,6 +479,9 @@ Responda SEMPRE em JSON valido:
 - **combate**: null ou objeto de combate
 - **acoes**: array de acoes mecanicas (vazio se nenhuma)
 - **metadados**: informacoes contextuais opcionais (local, hora, NPCs presentes)
+- **metadados.terreno**: string opcional — tipo de terreno atual (ex: "floresta densa", "caverna escura", "campo aberto")
+- **metadados.tensao**: string opcional — nivel de tensao narrativa (ex: "calmo", "alerta", "combate iminente", "desespero")
+- **metadados.ameacas**: array opcional (max 5) — ameacas percebidas no ambiente. Envie [] para limpar. (ex: ["emboscada possivel", "armadilha detectada"])
 - **metadados.memoria_semantica**: array opcional (max 3 por resposta) de fatos canonicos a registrar na memoria de longo prazo
 
 ## MEMORIA SEMANTICA

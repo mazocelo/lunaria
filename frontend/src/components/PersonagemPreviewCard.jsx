@@ -283,7 +283,7 @@ const PersonagemPreviewCard = ({
           })()}
 
           {/* Vantagens/Desvantagens */}
-          {vantagensNomes.length > 0 ? (
+          {(vantagensNomes.length > 0 || mostrarPendencias) && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Sparkles size={12} className="text-yellow-400" />
@@ -306,25 +306,12 @@ const PersonagemPreviewCard = ({
                     {v.nome}
                   </span>
                 ))}
-              </div>
-            </div>
-          ) : mostrarPendencias && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles size={12} className="text-yellow-400" />
-                <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
-                  isLight ? 'text-slate-600' : 'text-slate-400'
-                }`}>
-                  Tracos
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {!temVantagens && (
+                {mostrarPendencias && !temVantagens && (
                   skipVantagens
                     ? <SkippedBadge>Vantagens puladas</SkippedBadge>
                     : <PendingBadge>Vantagens pendentes</PendingBadge>
                 )}
-                {!temDesvantagens && (
+                {mostrarPendencias && !temDesvantagens && (
                   skipDesvantagens
                     ? <SkippedBadge>Desvantagens puladas</SkippedBadge>
                     : <PendingBadge>Desvantagens pendentes</PendingBadge>

@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import habilidadesController from '../controllers/habilidades/habilidadesController.js';
-import { requireSuperAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -23,12 +23,12 @@ router.get('/estatisticas', (req, res) => habilidadesController.obterEstatistica
 router.get('/:id', (req, res) => habilidadesController.obterHabilidade(req, res));
 
 // POST /habilidades — criar (superadmin only)
-router.post('/', writeLimiter, requireSuperAdmin, (req, res) => habilidadesController.criarHabilidade(req, res));
+router.post('/', writeLimiter, authenticateToken, requireSuperAdmin, (req, res) => habilidadesController.criarHabilidade(req, res));
 
 // PUT /habilidades/:id — atualizar (superadmin only)
-router.put('/:id', writeLimiter, requireSuperAdmin, (req, res) => habilidadesController.atualizarHabilidade(req, res));
+router.put('/:id', writeLimiter, authenticateToken, requireSuperAdmin, (req, res) => habilidadesController.atualizarHabilidade(req, res));
 
 // DELETE /habilidades/:id — deletar (superadmin only)
-router.delete('/:id', writeLimiter, requireSuperAdmin, (req, res) => habilidadesController.deletarHabilidade(req, res));
+router.delete('/:id', writeLimiter, authenticateToken, requireSuperAdmin, (req, res) => habilidadesController.deletarHabilidade(req, res));
 
 export default router;

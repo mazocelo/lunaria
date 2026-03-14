@@ -65,7 +65,7 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
       mode,
       previousBlueprint: historia?.roteiro || null
     });
-    const { roteiro, prompt: requestPrompt, responseText } = resultado;
+    const { roteiro, prompt: requestPrompt, responseText, model: usedModel } = resultado;
 
     await db.Historia.updateHistoria(historiaId, {
       roteiro,
@@ -98,7 +98,7 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
           versao: (lastVersion?.versao || 0) + 1,
           modo: mode,
           temperatura: MODE_TEMPERATURES[mode] || 0.3,
-          modelo: 'claude-sonnet-4-5-20250929',
+          modelo: usedModel || 'unknown',
           roteiro,
           ativa: true,
           metadados: { userId, geradoEm: new Date().toISOString() }

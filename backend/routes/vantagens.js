@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import vantagemController from '../controllers/vantagens/vantagensController.js';
-import { requireSuperAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -169,7 +169,7 @@ const writeLimiter = rateLimit({
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', writeLimiter, requireSuperAdmin, vantagemController.criarVantagem);
+router.post('/', writeLimiter, authenticateToken, requireSuperAdmin, vantagemController.criarVantagem);
 
 /**
  * @swagger
@@ -446,7 +446,7 @@ router.get('/estatisticas', vantagemController.obterEstatisticas);
  */
 router.get('/:id', vantagemController.obterVantagem);
 
-router.put('/:id', writeLimiter, requireSuperAdmin, vantagemController.atualizarVantagem);
-router.delete('/:id', writeLimiter, requireSuperAdmin, vantagemController.deletarVantagem);
+router.put('/:id', writeLimiter, authenticateToken, requireSuperAdmin, vantagemController.atualizarVantagem);
+router.delete('/:id', writeLimiter, authenticateToken, requireSuperAdmin, vantagemController.deletarVantagem);
 
 export default router; 

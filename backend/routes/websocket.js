@@ -1,6 +1,6 @@
 import express from 'express';
 import socketManager from '../websocket/socketManager.js';
-import { requireSuperAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 import logger from '../helpers/logger.js';
 
 const log = logger.child({ module: 'websocketRoute' });
@@ -43,7 +43,7 @@ const router = express.Router();
  *                       type: integer
  *                       description: Total de salas no servidor
  */
-router.get('/stats', requireSuperAdmin, (req, res) => {
+router.get('/stats', authenticateToken, requireSuperAdmin, (req, res) => {
   try {
     const stats = socketManager.getStats();
     
@@ -102,7 +102,7 @@ const ALLOWED_BROADCAST_EVENTS = [
   'maintenance_warning'
 ];
 
-router.post('/broadcast', requireSuperAdmin, (req, res) => {
+router.post('/broadcast', authenticateToken, requireSuperAdmin, (req, res) => {
   try {
     const { event, data } = req.body;
 
@@ -179,7 +179,7 @@ router.post('/broadcast', requireSuperAdmin, (req, res) => {
  *                 message:
  *                   type: string
  */
-router.post('/room/:roomId/message', requireSuperAdmin, (req, res) => {
+router.post('/room/:roomId/message', authenticateToken, requireSuperAdmin, (req, res) => {
   try {
     const { roomId } = req.params;
     const { event, data } = req.body;
@@ -249,7 +249,7 @@ router.post('/room/:roomId/message', requireSuperAdmin, (req, res) => {
  *                 message:
  *                   type: string
  */
-router.post('/user/:userId/message', requireSuperAdmin, (req, res) => {
+router.post('/user/:userId/message', authenticateToken, requireSuperAdmin, (req, res) => {
   try {
     const { userId } = req.params;
     const { event, data } = req.body;

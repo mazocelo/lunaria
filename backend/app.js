@@ -46,7 +46,7 @@ app.set('views', path.join(path.resolve(), 'views'));
 app.set('view engine', 'jade');
 
 app.use(helmet());
-app.use(logger('dev'));
+app.use(logger(isProduction ? 'combined' : 'dev'));
 app.use(cors(corsOptions));
 
 const globalLimiter = rateLimit({

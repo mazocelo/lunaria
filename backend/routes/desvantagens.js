@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import desvantagemController from '../controllers/desvantagens/desvantagensController.js';
-import { requireSuperAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -169,7 +169,7 @@ const writeLimiter = rateLimit({
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', writeLimiter, requireSuperAdmin, desvantagemController.criarDesvantagem);
+router.post('/', writeLimiter, authenticateToken, requireSuperAdmin, desvantagemController.criarDesvantagem);
 
 /**
  * @swagger
@@ -446,7 +446,7 @@ router.get('/estatisticas', desvantagemController.obterEstatisticas);
  */
 router.get('/:id', desvantagemController.obterDesvantagem);
 
-router.put('/:id', writeLimiter, requireSuperAdmin, desvantagemController.atualizarDesvantagem);
-router.delete('/:id', writeLimiter, requireSuperAdmin, desvantagemController.deletarDesvantagem);
+router.put('/:id', writeLimiter, authenticateToken, requireSuperAdmin, desvantagemController.atualizarDesvantagem);
+router.delete('/:id', writeLimiter, authenticateToken, requireSuperAdmin, desvantagemController.deletarDesvantagem);
 
 export default router; 

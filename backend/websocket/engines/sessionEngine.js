@@ -1,6 +1,7 @@
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'sessionEngine' });
 
+import db from '../../Model/index.js';
 import criarMestreRPG from '../../agents/Mestre/index.js';
 import { buscarTemasCompletos, extrairNomesTemas } from '../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../helpers/personagensHelper.js';
@@ -60,7 +61,6 @@ export default class SessionEngine {
       // Se não existe nem no snapshot, buscar dados da história no banco e criar sessão
       log.info({ historiaId }, 'Criando nova sessao');
 
-      const { default: db } = await import('../../Model/index.js');
 
       const historia = await db.Historia.findById(historiaId);
 
@@ -227,8 +227,7 @@ export default class SessionEngine {
       let historia = null;
       if (sessao.historiaId) {
         try {
-          const { default: db } = await import('../../Model/index.js');
-          historia = await db.Historia.findById(parseInt(sessao.historiaId));
+              historia = await db.Historia.findById(parseInt(sessao.historiaId));
         } catch (error) {
           log.warn({ historiaId: sessao.historiaId, err: error }, 'Erro ao carregar historia para compactacao');
         }

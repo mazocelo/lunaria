@@ -2,7 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import classeController from '../controllers/classe/classeController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { requireSuperAdmin } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -74,7 +74,7 @@ const writeLimiter = rateLimit({
  *       400:
  *         description: Dados inválidos
  */
-router.post('/', writeLimiter, requireSuperAdmin, asyncHandler(classeController.criarClasse));
+router.post('/', writeLimiter, authenticateToken, requireSuperAdmin, asyncHandler(classeController.criarClasse));
 
 /**
  * @swagger
@@ -142,7 +142,7 @@ router.get('/buscar', asyncHandler(classeController.buscarClasses));
  *         description: Classe não encontrada
  */
 router.get('/:id', asyncHandler(classeController.obterClasse));
-router.put('/:id', writeLimiter, requireSuperAdmin, asyncHandler(classeController.atualizarClasse));
-router.delete('/:id', writeLimiter, requireSuperAdmin, asyncHandler(classeController.deletarClasse));
+router.put('/:id', writeLimiter, authenticateToken, requireSuperAdmin, asyncHandler(classeController.atualizarClasse));
+router.delete('/:id', writeLimiter, authenticateToken, requireSuperAdmin, asyncHandler(classeController.deletarClasse));
 
 export default router; 

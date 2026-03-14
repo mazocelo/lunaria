@@ -48,7 +48,7 @@ const AttributeDistributor = ({
     <div className="wa-panel wa-etched rounded-[22px] p-4 md:p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="wa-brass-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+          <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
             <Sparkles size={11} />
             Mesa de calibracao
           </div>
@@ -76,7 +76,7 @@ const AttributeDistributor = ({
           onClick={aplicarAtributosSugeridos}
           className="wa-panel-soft mb-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
         >
-          <Wand2 size={15} className="text-[var(--wa-brass)]" />
+          <Wand2 size={15} className="text-[var(--wa-forge-gold)]" />
           Aplicar sugestao do Mestre
         </button>
       )}
@@ -97,7 +97,7 @@ const AttributeDistributor = ({
                     <button
                       type="button"
                       onClick={() => setInfoAberta(showInfo ? null : key)}
-                      className={`rounded p-0.5 transition-colors cursor-pointer ${showInfo ? 'text-[var(--wa-brass)]' : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                      className={`rounded p-0.5 transition-colors cursor-pointer ${showInfo ? 'text-[var(--wa-accent)]' : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                       <Info size={12} />
                     </button>

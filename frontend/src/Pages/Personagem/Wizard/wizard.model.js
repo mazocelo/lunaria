@@ -7,7 +7,6 @@ import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { useLayout } from '../../../contexts/LayoutContext.jsx';
 import { Personagem } from '../../../models/Personagem';
 import { useDraftPersistence } from './hooks/useDraftPersistence';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
@@ -18,15 +17,8 @@ export const useWizardModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const { setIsFullscreen } = useLayout();
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
   const chatEndRef = useRef(null);
-
-  // Fullscreen
-  useEffect(() => {
-    setIsFullscreen(true);
-    return () => setIsFullscreen(false);
-  }, [setIsFullscreen]);
 
   // Zustand stores
   const racas = useRacaStore(s => s.racas);

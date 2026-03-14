@@ -104,7 +104,7 @@ const WizardStageHero = ({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="wa-brass-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                 <Sparkles size={12} />
                 Etapa atual
               </span>
@@ -112,7 +112,7 @@ const WizardStageHero = ({
                 Passo {etapaIndex + 1} de {etapas.length}
               </span>
               {etapa?.label && (
-                <span className="wa-brass-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+                <span className="wa-accent-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                   {etapa.label}
                 </span>
               )}
@@ -129,7 +129,7 @@ const WizardStageHero = ({
             <div className="mt-4 flex flex-wrap items-start gap-3">
               <div className="wa-panel-soft rounded-2xl px-3 py-2.5">
                 <div className="flex items-start gap-2">
-                  <Compass size={15} className="mt-0.5 shrink-0 text-[var(--wa-info)]" />
+                  <Compass size={15} className="mt-0.5 shrink-0 text-[var(--wa-accent)]" />
                   <div>
                     <p className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
                       Linha operacional

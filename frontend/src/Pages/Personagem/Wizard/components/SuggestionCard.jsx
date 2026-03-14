@@ -6,24 +6,24 @@ const TIPO_CONFIG = {
     label: 'Linhagem',
     helper: 'Fantasia base e afinidades naturais.',
     cta: 'Fixar linhagem',
-    accent: 'var(--wa-brass)',
-    costClass: 'wa-brass-chip',
+    accent: 'var(--wa-accent)',
+    costClass: 'wa-accent-chip',
   },
   classe: {
     icon: Sword,
     label: 'Vocacao',
     helper: 'Papel tatico e ritmo de jogo.',
     cta: 'Fixar vocacao',
-    accent: 'var(--wa-brass)',
-    costClass: 'wa-brass-chip',
+    accent: 'var(--wa-accent)',
+    costClass: 'wa-accent-chip',
   },
   vantagem: {
     icon: Zap,
     label: 'Dom',
     helper: 'Expande recursos e alcance da build.',
     cta: 'Adicionar dom',
-    accent: 'var(--wa-emerald)',
-    costClass: 'wa-emerald-chip',
+    accent: 'var(--wa-teal)',
+    costClass: 'wa-teal-chip',
   },
   desvantagem: {
     icon: Shield,
@@ -31,7 +31,7 @@ const TIPO_CONFIG = {
     helper: 'Custo narrativo que devolve pontos.',
     cta: 'Assumir marca',
     accent: 'var(--wa-ember)',
-    costClass: 'wa-ember-chip',
+    costClass: 'wa-warning-chip',
   },
 };
 
@@ -46,10 +46,10 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
         disabled={selected}
         className={`group w-full text-left rounded-xl border p-3.5 transition-all ${
           selected
-            ? 'border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/20 cursor-default'
+            ? 'border-purple-500/50 bg-purple-500/10 ring-1 ring-purple-500/20 cursor-default'
             : isLight
-              ? 'border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/50'
-              : 'border-slate-700/50 bg-slate-800/30 hover:border-amber-500/30 hover:bg-slate-800/50'
+              ? 'border-slate-200 bg-white hover:border-purple-400 hover:bg-purple-50/50'
+              : 'border-slate-700/50 bg-slate-800/30 hover:border-purple-500/30 hover:bg-slate-800/50'
         }`}
       >
         <div className="flex items-start gap-3">
@@ -69,7 +69,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
                 </div>
                 <p className={`mt-1 text-[11px] font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{config.helper}</p>
               </div>
-              <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-modern font-semibold ${selected ? 'bg-green-500/15 text-green-400' : isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-800 text-slate-300'}`}>
+              <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-modern font-semibold ${selected ? 'bg-teal-500/15 text-teal-400' : isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-800 text-slate-300'}`}>
                 {selected ? 'Escolhida' : config.cta}
               </span>
             </div>
@@ -103,7 +103,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
                 <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {sugestao.nome}
                 </span>
-                <span className="wa-brass-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+                <span className="wa-accent-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                   {config.label}
                 </span>
                 {sugestao.custo != null && (
@@ -117,7 +117,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
               </p>
             </div>
 
-            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${selected ? 'wa-emerald-chip' : 'wa-panel-soft'}`}>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${selected ? 'wa-teal-chip' : 'wa-panel-soft'}`}>
               {selected ? 'Selada' : config.cta}
             </span>
           </div>

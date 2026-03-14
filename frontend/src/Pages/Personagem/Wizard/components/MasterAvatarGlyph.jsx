@@ -13,7 +13,7 @@ const MasterAvatarGlyph = ({ size = 'md', isLight = false, glow = false, classNa
         'wa-master-glyph inline-flex items-center justify-center rounded-full',
         sizeClass,
         glow ? 'wa-glyph-glow' : '',
-        isLight ? 'text-[var(--wa-brass)]' : 'text-[var(--wa-brass)]',
+        isLight ? 'text-[var(--wa-accent)]' : 'text-[var(--wa-accent)]',
         className,
       ].filter(Boolean).join(' ')}
       aria-hidden="true"

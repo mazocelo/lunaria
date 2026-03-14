@@ -226,7 +226,7 @@ const WizardView = (props) => {
                 ? isLight
                   ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                   : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-brass),#c4922e_55%,var(--wa-ember))] text-white shadow-[0_18px_38px_rgba(180,83,9,0.28)] hover:-translate-y-0.5'
+                : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_55%,var(--wa-teal))] text-white shadow-[0_18px_38px_rgba(139,92,246,0.28)] hover:-translate-y-0.5'
             }`}
           >
             {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
@@ -246,7 +246,7 @@ const WizardView = (props) => {
               ? isLight
                 ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                 : 'cursor-not-allowed bg-slate-800 text-slate-500'
-              : 'bg-[linear-gradient(135deg,var(--wa-emerald),#17b67f_55%,#0ea5a8)] text-white shadow-[0_18px_38px_rgba(10,113,92,0.24)] hover:-translate-y-0.5'
+              : 'bg-[linear-gradient(135deg,var(--wa-teal),#14b8a6_55%,#0d9488)] text-white shadow-[0_18px_38px_rgba(45,212,191,0.24)] hover:-translate-y-0.5'
           }`}
         >
           <Check size={18} />
@@ -267,7 +267,7 @@ const WizardView = (props) => {
                 ? isLight
                   ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                   : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-brass),var(--wa-ember)_45%,var(--wa-emerald))] text-white shadow-[0_18px_42px_rgba(180,83,9,0.22)] hover:-translate-y-0.5'
+                : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_45%,var(--wa-teal))] text-white shadow-[0_18px_42px_rgba(139,92,246,0.22)] hover:-translate-y-0.5'
           }`}
         >
           {salvando || gerandoBackground ? (
@@ -368,7 +368,7 @@ const WizardView = (props) => {
                 )}
 
                 {bonusInvalidado && (
-                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>
+                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-purple-200' : 'text-purple-200'}`}>
                     <div className="flex items-start gap-3">
                       <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
                       <div className="min-w-0 flex-1">
@@ -380,7 +380,7 @@ const WizardView = (props) => {
                 )}
 
                 {draftRestaurado && (
-                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>
+                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-purple-200' : 'text-purple-200'}`}>
                     <div className="flex items-center gap-3">
                       <Hammer size={16} className="shrink-0 text-[var(--wa-info)]" />
                       <div className="min-w-0 flex-1">
@@ -446,11 +446,11 @@ const WizardView = (props) => {
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="wa-brass-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+                    <span className="wa-accent-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                       Dock ritual
                     </span>
                     {etapaAtualObj?.label && (
-                      <span className="wa-violet-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+                      <span className="wa-forge-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                         {etapaAtualObj.label}
                       </span>
                     )}
@@ -528,7 +528,7 @@ const WizardView = (props) => {
                 {(vantagensIds.length > 0 || desvantagensIds.length > 0) && (
                   <div className="wa-panel-soft rounded-2xl p-3.5">
                     <div className="mb-3 flex items-center gap-2">
-                      <Sparkles size={14} className="text-[var(--wa-brass)]" />
+                      <Sparkles size={14} className="text-[var(--wa-accent)]" />
                       <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
                         Selos fixados
                       </span>

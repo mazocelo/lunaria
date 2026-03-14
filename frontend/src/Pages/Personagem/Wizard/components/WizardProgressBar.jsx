@@ -37,7 +37,7 @@ const WizardProgressBar = ({
           )}
 
           <div className="min-w-0">
-            <p className="wa-brass-chip inline-flex items-center rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.2em]">
+            <p className="wa-forge-chip inline-flex items-center rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.2em]">
               Trilho da forja
             </p>
             <div className="mt-2 flex items-center gap-2">
@@ -58,7 +58,7 @@ const WizardProgressBar = ({
               onClick={onToggleFicha}
               className={`xl:hidden inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-modern font-semibold transition-all cursor-pointer ${
                 fichaAberta
-                  ? 'wa-brass-chip'
+                  ? 'wa-forge-chip'
                   : isLight
                     ? 'border-slate-300 bg-white/70 text-slate-600 hover:bg-white'
                     : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-900'
@@ -77,7 +77,7 @@ const WizardProgressBar = ({
       </div>
 
       <div className={`relative mb-4 h-2 rounded-full ${isLight ? 'bg-slate-200/90' : 'bg-slate-800/80'}`}>
-        <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--wa-brass)] via-[var(--wa-ember)] to-[var(--wa-emerald)] transition-all duration-500" style={{ width: `${progresso}%` }} />
+        <div className="wa-progress-shimmer absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--wa-accent)] via-[var(--wa-accent-bright)] to-[var(--wa-teal)] transition-all duration-500" style={{ width: `${progresso}%` }} />
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -107,9 +107,9 @@ const WizardProgressBar = ({
             >
               <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${
                 isActive
-                  ? 'border-[var(--wa-brass)] text-[var(--wa-brass)]'
+                  ? 'border-[var(--wa-accent)] text-[var(--wa-accent)]'
                   : isConcluida
-                    ? 'border-[var(--wa-brass)] text-[var(--wa-brass)]'
+                    ? 'border-[var(--wa-teal)] text-[var(--wa-teal)]'
                     : isLight
                       ? 'border-slate-300 text-slate-500'
                       : 'border-slate-700 text-slate-500'

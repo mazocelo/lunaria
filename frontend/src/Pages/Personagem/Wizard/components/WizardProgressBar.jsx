@@ -1,6 +1,18 @@
 import React from 'react';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
 
+const STAGE_COPY = {
+  boas_vindas: { title: 'Batize a centelha do heroi', description: 'Escolha um nome que abra caminho para o resto da identidade do personagem.' },
+  raca: { title: 'Sele a linhagem', description: 'A linhagem define imaginario, afinidades e o primeiro impacto da ficha.' },
+  classe: { title: 'Forje a vocacao', description: 'A vocacao define papel tatico, ritmo e como esse personagem atua em cena.' },
+  background: { title: 'Amarre a origem', description: 'Agora a ficha precisa de um passado que explique as marcas e ambicoes do heroi.' },
+  vantagens: { title: 'Escolha os dons', description: 'Os dons ampliam recursos, reputacao e versatilidade mecanica.' },
+  desvantagens: { title: 'Aceite as marcas', description: 'Marcas bem escolhidas devolvem pontos e criam conflitos memoraveis.' },
+  atributos: { title: 'Calibre a essencia', description: 'Aqui a ficha deixa de ser conceito e passa a ter proporcao mecanica real.' },
+  resumo: { title: 'Revise o destino', description: 'Confirme se identidade, custo e atributos contam a mesma historia.' },
+  refinamento: { title: 'Feche os ultimos ajustes', description: 'Ultima checagem ritual antes do personagem entrar no mundo.' },
+};
+
 const WizardProgressBar = ({
   etapas,
   etapaIndex,
@@ -16,11 +28,12 @@ const WizardProgressBar = ({
 }) => {
   const progresso = ((etapaIndex + 1) / etapas.length) * 100;
   const etapaAtual = etapas[etapaIndex];
+  const copy = STAGE_COPY[etapaAtual?.id] || STAGE_COPY.boas_vindas;
 
   return (
     <div className={embedded ? 'px-5 py-4 md:px-6' : 'wa-progress-rail mx-4 mt-4 rounded-2xl px-4 py-3 md:mx-5 md:mt-5 md:px-5'}>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {onBack && (
             <button
               type="button"
@@ -35,16 +48,23 @@ const WizardProgressBar = ({
               <ArrowLeft size={15} />
             </button>
           )}
-          <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-            {`${etapaIndex + 1} / ${etapas.length}`}
+          <span className={`shrink-0 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+            {`${etapaIndex + 1}/${etapas.length}`}
           </span>
+          <span className={`shrink-0 text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            {copy.title}
+          </span>
+          <span className={`hidden sm:inline text-xs font-modern ${isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'}`}>—</span>
+          <p className={`hidden sm:block min-w-0 truncate text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+            {copy.description}
+          </p>
         </div>
 
         {onToggleFicha && (
           <button
             type="button"
             onClick={onToggleFicha}
-            className={`xl:hidden inline-flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] font-modern font-semibold transition-all cursor-pointer ${
+            className={`xl:hidden inline-flex shrink-0 items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] font-modern font-semibold transition-all cursor-pointer ${
               fichaAberta
                 ? 'wa-forge-chip'
                 : isLight

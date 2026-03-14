@@ -14,7 +14,6 @@ import {
 import './wizard-theme.css';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
-import WizardStageHero from './components/WizardStageHero.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
 
 const FOOTER_COPY = {
@@ -194,45 +193,25 @@ const WizardView = (props) => {
 
   const renderFooterAction = () => {
     const etapasLineares = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
-    const podeSkip = etapaAtual === 'vantagens' || etapaAtual === 'desvantagens';
 
     if (etapasLineares.includes(etapaAtual)) {
       const etapaValida = etapasConcluidas.includes(etapaAtual);
 
       return (
-        <div className="flex flex-col gap-2 sm:flex-row">
-          {podeSkip && (
-            <button
-              onClick={() => pularEtapa(etapaAtual)}
-              disabled={enviando}
-              className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-modern font-medium transition-all ${
-                enviando
-                  ? 'cursor-not-allowed opacity-50'
-                  : isLight
-                    ? 'border-slate-300 bg-white/70 text-slate-600 hover:bg-slate-50'
-                    : 'border-slate-700 bg-slate-950/40 text-slate-300 hover:bg-slate-900/80'
-              }`}
-            >
-              <ArrowRight size={15} />
-              Pular etapa
-            </button>
-          )}
-
-          <button
-            onClick={() => avancarComMestre()}
-            disabled={!etapaValida || enviando}
-            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
-              !etapaValida || enviando
-                ? isLight
-                  ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                  : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_55%,var(--wa-teal))] text-white shadow-[0_18px_38px_rgba(139,92,246,0.28)] hover:-translate-y-0.5'
-            }`}
-          >
-            {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-            Continuar
-          </button>
-        </div>
+        <button
+          onClick={() => avancarComMestre()}
+          disabled={!etapaValida || enviando}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
+            !etapaValida || enviando
+              ? isLight
+                ? 'cursor-not-allowed bg-slate-200 text-slate-400'
+                : 'cursor-not-allowed bg-slate-800 text-slate-500'
+              : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_55%,var(--wa-teal))] text-white shadow-[0_18px_38px_rgba(139,92,246,0.28)] hover:-translate-y-0.5'
+          }`}
+        >
+          {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+          Continuar
+        </button>
       );
     }
 
@@ -351,16 +330,6 @@ const WizardView = (props) => {
               />
             </div>
 
-            <div className="shrink-0 border-t border-[var(--wa-border)]">
-              <WizardStageHero
-                etapas={etapas}
-                etapaAtual={etapaAtual}
-                etapaIndex={etapaIndex}
-                isLight={isLight}
-                embedded
-              />
-            </div>
-
             {(error || bonusInvalidado || draftRestaurado) && (
               <div className="shrink-0 space-y-3 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
                 {error && (
@@ -418,6 +387,8 @@ const WizardView = (props) => {
                 enviando={enviando}
                 onEnviar={enviarMensagem}
                 onSelecionarSugestao={selecionarSugestao}
+                onAvancarComMestre={avancarComMestre}
+                onPularEtapa={pularEtapa}
                 vantagensIds={vantagensIds}
                 desvantagensIds={desvantagensIds}
                 etapaAtual={etapaAtual}
@@ -450,28 +421,7 @@ const WizardView = (props) => {
               />
             </div>
 
-            <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-3 md:px-6">
-              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="wa-accent-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-                      Dock ritual
-                    </span>
-                    {etapaAtualObj?.label && (
-                      <span className="wa-forge-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-                        {etapaAtualObj.label}
-                      </span>
-                    )}
-                  </div>
-                  <p className={`text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-100'}`}>
-                    {footerHint}
-                  </p>
-                </div>
-                <div className={`text-right text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-                  {proximaEtapa ? `Proximo selo: ${proximaEtapa.label}` : 'Etapa final da forja'}
-                </div>
-              </div>
-
+            <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-2.5 md:px-6">
               {renderFooterAction()}
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText } from 'lucide-react';
+import { Send, Loader2, Sparkles, Search, X, Dices, BookOpen, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
@@ -30,6 +30,8 @@ const WizardChat = ({
   enviando,
   onEnviar,
   onSelecionarSugestao,
+  onAvancarComMestre,
+  onPularEtapa,
   vantagensIds,
   desvantagensIds,
   etapaAtual,
@@ -123,6 +125,16 @@ const WizardChat = ({
     );
   }, [catalogoAtual, filtro]);
 
+  /** Seleciona e auto-avança para raca/classe; só seleciona para vantagem/desvantagem */
+  const handleSelectAndAdvance = (sugestao) => {
+    onSelecionarSugestao(sugestao);
+    if (sugestao.tipo === 'raca') {
+      onAvancarComMestre?.({ raca_id: sugestao.id, raca_nome: sugestao.nome });
+    } else if (sugestao.tipo === 'classe') {
+      onAvancarComMestre?.({ classe_id: sugestao.id, classe_nome: sugestao.nome });
+    }
+  };
+
   const handleSelecionarCatalogo = (item) => {
     const payload = {
       tipo: tipoAtual,
@@ -131,7 +143,7 @@ const WizardChat = ({
       descricao: item.descricao,
     };
     if (item.custo != null) payload.custo = item.custo;
-    onSelecionarSugestao(payload);
+    handleSelectAndAdvance(payload);
     if (tipoAtual === 'vantagem' || tipoAtual === 'desvantagem') return;
     setBuscaAberta(false);
     setFiltro('');
@@ -282,7 +294,7 @@ const WizardChat = ({
                       <SuggestionCard
                         key={`${sug.id}-${i}`}
                         sugestao={sug}
-                        onSelect={onSelecionarSugestao}
+                        onSelect={handleSelectAndAdvance}
                         isLight={isLight}
                         selected={isSugestaoSelecionada(sug)}
                         variant="atelier"
@@ -310,6 +322,18 @@ const WizardChat = ({
                       >
                         <Search size={12} />
                         {buscaAberta ? 'Fechar catalogo' : `Abrir catalogo de ${labelAtual}`}
+                      </button>
+                    )}
+
+                    {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
+                      <button
+                        type="button"
+                        onClick={() => onPularEtapa?.(etapaAtual)}
+                        disabled={enviando}
+                        className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+                      >
+                        <ArrowRight size={12} />
+                        Pular etapa
                       </button>
                     )}
                   </div>

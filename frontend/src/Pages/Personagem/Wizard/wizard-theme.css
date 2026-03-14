@@ -1,40 +1,51 @@
-﻿.wizard-atelier {
-  --wa-bg: radial-gradient(circle at top, rgba(114, 68, 32, 0.22), transparent 32%), linear-gradient(180deg, #0f1118 0%, #111522 38%, #0b0f16 100%);
-  --wa-bg-accent: radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.12), transparent 0 24%), radial-gradient(circle at 85% 10%, rgba(245, 158, 11, 0.08), transparent 0 22%), radial-gradient(circle at 60% 80%, rgba(34, 197, 94, 0.06), transparent 0 18%);
-  --wa-panel: rgba(17, 24, 39, 0.78);
-  --wa-panel-strong: rgba(10, 14, 24, 0.9);
-  --wa-panel-soft: rgba(30, 41, 59, 0.46);
-  --wa-ink: #edf2f7;
-  --wa-muted: #97a3ba;
-  --wa-border: rgba(181, 142, 74, 0.24);
-  --wa-brass: #d6a85f;
-  --wa-violet: #9b7cff;
+/* ============================================================
+   Forja Arcana — Design System v1.0
+   Paleta quente gold-only. Zero cores frias como acento.
+   ============================================================ */
+
+.wizard-atelier {
+  --wa-bg: radial-gradient(circle at top, rgba(214,168,95,0.15), transparent 40%),
+           linear-gradient(180deg, #0a0806 0%, #100d08 38%, #080604 100%);
+  --wa-bg-accent: radial-gradient(circle at 15% 20%, rgba(214,168,95,0.10), transparent 24%),
+                  radial-gradient(circle at 85% 10%, rgba(245,158,11,0.08), transparent 22%),
+                  radial-gradient(circle at 60% 80%, rgba(61,216,160,0.04), transparent 18%);
+  --wa-panel: rgba(16, 13, 8, 0.78);
+  --wa-panel-strong: rgba(10, 8, 4, 0.9);
+  --wa-panel-soft: rgba(30, 25, 16, 0.46);
+  --wa-ink: #f5e6c8;
+  --wa-muted: #a89272;
+  --wa-border: rgba(214, 168, 95, 0.22);
+  --wa-brass: #d4a853;
+  --wa-violet: #d4a853;
   --wa-emerald: #3dd8a0;
-  --wa-ember: #f59e0b;
-  --wa-info: #7dd3fc;
-  --wa-shadow: 0 22px 80px rgba(0, 0, 0, 0.35);
-  --wa-glow: 0 0 0 1px rgba(214, 168, 95, 0.12), 0 18px 48px rgba(86, 39, 150, 0.18);
+  --wa-ember: #e8912d;
+  --wa-info: #d4a853;
+  --wa-shadow: 0 22px 80px rgba(10, 6, 0, 0.45);
+  --wa-glow: 0 0 0 1px rgba(214, 168, 95, 0.15), 0 18px 48px rgba(214, 168, 95, 0.12);
   position: relative;
   background: var(--wa-bg);
   color: var(--wa-ink);
 }
 
 .wizard-atelier.light {
-  --wa-bg: radial-gradient(circle at top, rgba(202, 138, 4, 0.1), transparent 32%), linear-gradient(180deg, #f8f4ea 0%, #f4efe5 52%, #ebe5d8 100%);
-  --wa-bg-accent: radial-gradient(circle at 18% 18%, rgba(124, 58, 237, 0.09), transparent 0 24%), radial-gradient(circle at 82% 12%, rgba(245, 158, 11, 0.08), transparent 0 20%), radial-gradient(circle at 50% 82%, rgba(14, 165, 233, 0.06), transparent 0 18%);
-  --wa-panel: rgba(255, 251, 245, 0.82);
-  --wa-panel-strong: rgba(255, 253, 249, 0.95);
-  --wa-panel-soft: rgba(240, 232, 220, 0.72);
-  --wa-ink: #1d2433;
-  --wa-muted: #5e6677;
-  --wa-border: rgba(146, 109, 45, 0.22);
+  --wa-bg: radial-gradient(circle at top, rgba(202, 138, 4, 0.08), transparent 32%),
+           linear-gradient(180deg, #faf6ee 0%, #f5efe2 52%, #ede5d4 100%);
+  --wa-bg-accent: radial-gradient(circle at 18% 18%, rgba(214,168,95,0.08), transparent 24%),
+                  radial-gradient(circle at 82% 12%, rgba(245, 158, 11, 0.06), transparent 20%),
+                  radial-gradient(circle at 50% 82%, rgba(61,216,160,0.04), transparent 18%);
+  --wa-panel: rgba(255, 251, 240, 0.85);
+  --wa-panel-strong: rgba(255, 253, 245, 0.95);
+  --wa-panel-soft: rgba(240, 228, 205, 0.72);
+  --wa-ink: #2a1f0e;
+  --wa-muted: #6b5a3e;
+  --wa-border: rgba(146, 109, 45, 0.25);
   --wa-brass: #8a5d20;
-  --wa-violet: #6f4cff;
+  --wa-violet: #8a5d20;
   --wa-emerald: #047857;
   --wa-ember: #b45309;
-  --wa-info: #0f766e;
-  --wa-shadow: 0 18px 48px rgba(99, 72, 28, 0.12);
-  --wa-glow: 0 0 0 1px rgba(146, 109, 45, 0.08), 0 16px 40px rgba(111, 76, 255, 0.08);
+  --wa-info: #8a5d20;
+  --wa-shadow: 0 18px 48px rgba(99, 72, 28, 0.15);
+  --wa-glow: 0 0 0 1px rgba(146, 109, 45, 0.10), 0 16px 40px rgba(214, 168, 95, 0.08);
 }
 
 .wizard-atelier::before {
@@ -46,18 +57,20 @@
   opacity: 1;
 }
 
+/* Scan lines sutis (substituem grid quadrado) */
 .wizard-atelier::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(214, 168, 95, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(214, 168, 95, 0.03) 1px, transparent 1px);
-  background-size: 36px 36px;
+    repeating-linear-gradient(0deg, rgba(214,168,95,0.02) 0px, transparent 1px, transparent 3px);
+  background-size: 100% 3px;
   mask-image: radial-gradient(circle at center, black 42%, transparent 100%);
-  opacity: 0.25;
+  opacity: 0.3;
 }
+
+/* ---- Containers com glassmorphism ---- */
 
 .wizard-atelier .wa-shell,
 .wizard-atelier .wa-main-shell,
@@ -106,6 +119,7 @@
   border: 1px solid color-mix(in srgb, var(--wa-border) 90%, transparent);
 }
 
+/* Etched overlay — brilho sutil de ouro */
 .wizard-atelier .wa-etched::before,
 .wizard-atelier .wa-main-shell::before,
 .wizard-atelier .wa-panel::before,
@@ -122,10 +136,11 @@
   background: linear-gradient(120deg, rgba(255,255,255,0.03), transparent 26%, transparent 74%, rgba(214,168,95,0.05));
 }
 
+/* Main shell — radial gold glow */
 .wizard-atelier .wa-main-shell {
   background:
-    radial-gradient(circle at top left, rgba(155, 124, 255, 0.08), transparent 0 28%),
-    radial-gradient(circle at bottom right, rgba(214, 168, 95, 0.08), transparent 0 24%),
+    radial-gradient(circle at top left, rgba(214, 168, 95, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(214, 168, 95, 0.06), transparent 24%),
     linear-gradient(180deg, color-mix(in srgb, var(--wa-panel-strong) 92%, transparent), color-mix(in srgb, var(--wa-panel) 92%, transparent));
 }
 
@@ -135,6 +150,18 @@
   box-shadow: none;
 }
 
+/* Chat shell scan lines */
+.wizard-atelier .wa-chat-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(214,168,95,0.015) 0px, transparent 1px, transparent 4px);
+  opacity: 0.5;
+}
+
+/* ---- Rune steps (progress) ---- */
+
 .wizard-atelier .wa-rune-step {
   border: 1px solid color-mix(in srgb, var(--wa-border) 120%, transparent);
   background: color-mix(in srgb, var(--wa-panel-soft) 80%, transparent);
@@ -143,8 +170,8 @@
 
 .wizard-atelier .wa-rune-step.is-active {
   color: var(--wa-ink);
-  border-color: color-mix(in srgb, var(--wa-violet) 55%, var(--wa-border));
-  box-shadow: 0 0 0 1px rgba(155, 124, 255, 0.22), 0 0 24px rgba(155, 124, 255, 0.18);
+  border-color: color-mix(in srgb, var(--wa-brass) 55%, var(--wa-border));
+  box-shadow: 0 0 0 1px rgba(214, 168, 95, 0.22), 0 0 24px rgba(214, 168, 95, 0.15);
 }
 
 .wizard-atelier .wa-rune-step.is-complete {
@@ -161,16 +188,19 @@
   opacity: 0.48;
 }
 
+/* ---- Chips (badges tematicos) ---- */
+
 .wizard-atelier .wa-brass-chip {
   background: linear-gradient(180deg, rgba(214, 168, 95, 0.18), rgba(214, 168, 95, 0.08));
   border: 1px solid rgba(214, 168, 95, 0.26);
   color: var(--wa-brass);
 }
 
+/* Violet chip remapeado para brass (backward compat) */
 .wizard-atelier .wa-violet-chip {
-  background: linear-gradient(180deg, rgba(155, 124, 255, 0.18), rgba(155, 124, 255, 0.08));
-  border: 1px solid rgba(155, 124, 255, 0.22);
-  color: var(--wa-violet);
+  background: linear-gradient(180deg, rgba(214, 168, 95, 0.14), rgba(214, 168, 95, 0.06));
+  border: 1px solid rgba(214, 168, 95, 0.20);
+  color: var(--wa-brass);
 }
 
 .wizard-atelier .wa-emerald-chip {
@@ -180,20 +210,24 @@
 }
 
 .wizard-atelier .wa-ember-chip {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.08));
-  border: 1px solid rgba(245, 158, 11, 0.22);
+  background: linear-gradient(180deg, rgba(232, 145, 45, 0.18), rgba(232, 145, 45, 0.08));
+  border: 1px solid rgba(232, 145, 45, 0.22);
   color: var(--wa-ember);
 }
 
+/* ---- Master avatar ---- */
+
 .wizard-atelier .wa-master-glyph {
-  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), transparent 0 35%), linear-gradient(180deg, rgba(155,124,255,0.2), rgba(214,168,95,0.1));
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), transparent 35%), linear-gradient(180deg, rgba(214,168,95,0.2), rgba(214,168,95,0.08));
   border: 1px solid rgba(214, 168, 95, 0.35);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 10px 24px rgba(0, 0, 0, 0.2);
 }
 
 .wizard-atelier .wa-glyph-glow {
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(214,168,95,0.16), 0 0 22px rgba(155, 124, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(214,168,95,0.16), 0 0 22px rgba(214, 168, 95, 0.18);
 }
+
+/* ---- Readiness states ---- */
 
 .wizard-atelier .wa-readiness-seal {
   border: 1px solid var(--wa-border);
@@ -206,13 +240,13 @@
 }
 
 .wizard-atelier .wa-readiness-open {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.08));
+  background: linear-gradient(180deg, rgba(232, 145, 45, 0.18), rgba(232, 145, 45, 0.08));
   color: var(--wa-ember);
 }
 
 .wizard-atelier .wa-readiness-shaping {
-  background: linear-gradient(180deg, rgba(155, 124, 255, 0.18), rgba(155, 124, 255, 0.08));
-  color: var(--wa-violet);
+  background: linear-gradient(180deg, rgba(214, 168, 95, 0.18), rgba(214, 168, 95, 0.08));
+  color: var(--wa-brass);
 }
 
 .wizard-atelier .wa-readiness-sealed {
@@ -221,20 +255,37 @@
   box-shadow: 0 0 22px rgba(61, 216, 160, 0.1);
 }
 
+/* ---- Choice cards ---- */
+
 .wizard-atelier .wa-choice-card {
   transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
 }
 
 .wizard-atelier .wa-choice-card:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--wa-violet) 60%, var(--wa-border));
-  box-shadow: 0 18px 38px rgba(0,0,0,0.22);
+  border-color: color-mix(in srgb, var(--wa-brass) 60%, var(--wa-border));
+  box-shadow: 0 18px 38px rgba(10,6,0,0.28);
 }
 
 .wizard-atelier .wa-choice-card--selected {
   border-color: color-mix(in srgb, var(--wa-brass) 55%, var(--wa-border));
-  box-shadow: 0 0 0 1px rgba(214,168,95,0.12), 0 18px 34px rgba(0,0,0,0.2);
+  box-shadow: 0 0 0 1px rgba(214,168,95,0.12), 0 18px 34px rgba(10,6,0,0.22);
 }
+
+/* ---- Heritage ornament (fleur-de-lis sutil) ---- */
+
+.wizard-atelier .wa-hero::after {
+  content: '\269C';
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 18px;
+  opacity: 0.08;
+  color: var(--wa-brass);
+  pointer-events: none;
+}
+
+/* ---- Animations ---- */
 
 .wizard-atelier .wa-stage-enter {
   animation: wa-stage-enter 280ms ease-out;
@@ -258,4 +309,3 @@
     transform: none;
   }
 }
-

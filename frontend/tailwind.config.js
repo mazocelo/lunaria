@@ -7,8 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'fantasy': ['Cinzel', 'serif'],
-        'modern': ['Inter', 'sans-serif'],
+        'fantasy': ['"EB Garamond"', 'serif'],
+        'modern': ['"DM Sans"', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',
@@ -105,10 +105,10 @@ export default {
           boxShadow: '0 0 30px rgba(139, 92, 246, 0.4)',
         },
         '.font-fantasy': {
-          fontFamily: "'Cinzel', serif",
+          fontFamily: "'EB Garamond', serif",
         },
         '.font-modern': {
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "'DM Sans', sans-serif",
         },
         '.border-glow': {
           border: '2px solid transparent',

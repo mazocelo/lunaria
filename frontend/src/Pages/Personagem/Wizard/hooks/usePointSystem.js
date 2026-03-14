@@ -30,7 +30,7 @@ export const usePointSystem = ({
   const pontosDesvantagem = useMemo(() => {
     const allItems = vantagensDisponiveis || [];
     return desvantagensIds.reduce((sum, id) => {
-      const item = allItems.find(v => v.id === id);
+      const item = allItems.find(v => String(v.id) === String(id));
       return sum + (item ? Number(item.custo) || 0 : 0);
     }, 0);
   }, [desvantagensIds, vantagensDisponiveis]);
@@ -39,7 +39,7 @@ export const usePointSystem = ({
   const pontosVantagem = useMemo(() => {
     const allItems = vantagensDisponiveis || [];
     return vantagensIds.reduce((sum, id) => {
-      const item = allItems.find(v => v.id === id);
+      const item = allItems.find(v => String(v.id) === String(id));
       return sum + (item ? Number(item.custo) || 0 : 0);
     }, 0);
   }, [vantagensIds, vantagensDisponiveis]);

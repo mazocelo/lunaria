@@ -77,7 +77,7 @@ const WizardProgressBar = ({
       </div>
 
       <div className={`relative mb-4 h-2 rounded-full ${isLight ? 'bg-slate-200/90' : 'bg-slate-800/80'}`}>
-        <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--wa-brass)] via-[var(--wa-violet)] to-[var(--wa-emerald)] transition-all duration-500" style={{ width: `${progresso}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--wa-brass)] via-[var(--wa-ember)] to-[var(--wa-emerald)] transition-all duration-500" style={{ width: `${progresso}%` }} />
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -107,7 +107,7 @@ const WizardProgressBar = ({
             >
               <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${
                 isActive
-                  ? 'border-[var(--wa-violet)] text-[var(--wa-violet)]'
+                  ? 'border-[var(--wa-brass)] text-[var(--wa-brass)]'
                   : isConcluida
                     ? 'border-[var(--wa-brass)] text-[var(--wa-brass)]'
                     : isLight

@@ -76,7 +76,7 @@ const AttributeDistributor = ({
           onClick={aplicarAtributosSugeridos}
           className="wa-panel-soft mb-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
         >
-          <Wand2 size={15} className="text-[var(--wa-violet)]" />
+          <Wand2 size={15} className="text-[var(--wa-brass)]" />
           Aplicar sugestao do Mestre
         </button>
       )}
@@ -97,7 +97,7 @@ const AttributeDistributor = ({
                     <button
                       type="button"
                       onClick={() => setInfoAberta(showInfo ? null : key)}
-                      className={`rounded p-0.5 transition-colors cursor-pointer ${showInfo ? 'text-[var(--wa-violet)]' : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                      className={`rounded p-0.5 transition-colors cursor-pointer ${showInfo ? 'text-[var(--wa-brass)]' : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                       <Info size={12} />
                     </button>

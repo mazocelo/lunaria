@@ -46,8 +46,8 @@ export const useBonusCalculation = ({
 
   // Bônus calculado como derivação pura
   const bonusDetalhes = useMemo(() => {
-    const racaObj = racasDisponiveis.find(r => r.id === racaId);
-    const classeObj = classesDisponiveis.find(c => c.id === classeId);
+    const racaObj = racasDisponiveis.find(r => String(r.id) === String(racaId));
+    const classeObj = classesDisponiveis.find(c => String(c.id) === String(classeId));
     const racaBonus = parseRacaClasseBonus(racaObj?.bonus);
     const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
 
@@ -67,7 +67,7 @@ export const useBonusCalculation = ({
     const allItems = vantagensDisponiveis || [];
     const selectedIds = [...vantagensIds, ...desvantagensIds];
     for (const id of selectedIds) {
-      const item = allItems.find(v => v.id === id);
+      const item = allItems.find(v => String(v.id) === String(id));
       if (!item?.bonus) continue;
       const bonusArr = Array.isArray(item.bonus) ? item.bonus : [item.bonus];
       for (const entry of bonusArr) {

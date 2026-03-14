@@ -269,7 +269,7 @@ const WizardView = (props) => {
                 ? isLight
                   ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                   : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-brass),var(--wa-violet)_55%,#6959ff)] text-white shadow-[0_18px_38px_rgba(61,16,132,0.28)] hover:-translate-y-0.5'
+                : 'bg-[linear-gradient(135deg,var(--wa-brass),#c4922e_55%,var(--wa-ember))] text-white shadow-[0_18px_38px_rgba(180,83,9,0.28)] hover:-translate-y-0.5'
             }`}
           >
             {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
@@ -310,7 +310,7 @@ const WizardView = (props) => {
                 ? isLight
                   ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                   : 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : 'bg-[linear-gradient(135deg,var(--wa-brass),var(--wa-violet)_45%,var(--wa-emerald))] text-white shadow-[0_18px_42px_rgba(55,88,156,0.28)] hover:-translate-y-0.5'
+                : 'bg-[linear-gradient(135deg,var(--wa-brass),var(--wa-ember)_45%,var(--wa-emerald))] text-white shadow-[0_18px_42px_rgba(180,83,9,0.22)] hover:-translate-y-0.5'
           }`}
         >
           {salvando || gerandoBackground ? (

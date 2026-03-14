@@ -146,7 +146,7 @@ const PersonagemPreviewCard = ({
 
   const renderDefault = () => (
     <div className={`${isLight ? 'glass-light' : 'glass'} overflow-hidden rounded-2xl border ${
-      isLight ? 'border-purple-300/20' : 'border-purple-500/20'
+      isLight ? 'border-amber-300/20' : 'border-amber-500/20'
     }`}>
       <button
         onClick={() => setCollapsed(prev => !prev)}
@@ -159,8 +159,8 @@ const PersonagemPreviewCard = ({
       </button>
 
       <div className={`${collapsed ? 'hidden md:block' : ''}`}>
-        <div className="relative flex aspect-[16/10] max-h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-600/30 to-slate-800/50">
-          {imagem ? <img src={imagem} alt={nome || 'Personagem'} className="h-full w-full object-cover" /> : <User size={44} className="text-purple-400/50" />}
+        <div className="relative flex aspect-[16/10] max-h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-700/30 to-slate-800/50">
+          {imagem ? <img src={imagem} alt={nome || 'Personagem'} className="h-full w-full object-cover" /> : <User size={44} className="text-amber-400/50" />}
           {statusLabel && (
             <div className="absolute left-3 top-3">
               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-modern font-semibold ${statusLabel.className}`}>
@@ -178,8 +178,8 @@ const PersonagemPreviewCard = ({
             </h3>
             {mostrarPendencias && !nome && <div className="mt-1 flex justify-center"><PendingBadge isLight={isLight}>Nome pendente</PendingBadge></div>}
             <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-              <span className={`rounded-full px-2 py-1 text-[11px] font-modern ${racaNome ? isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/15 text-purple-300' : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'}`}>{racaNome || 'Linhagem pendente'}</span>
-              <span className={`rounded-full px-2 py-1 text-[11px] font-modern ${classeNome ? isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/15 text-blue-300' : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'}`}>{classeNome || 'Vocacao pendente'}</span>
+              <span className={`rounded-full px-2 py-1 text-[11px] font-modern ${racaNome ? isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-500/15 text-amber-300' : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'}`}>{racaNome || 'Linhagem pendente'}</span>
+              <span className={`rounded-full px-2 py-1 text-[11px] font-modern ${classeNome ? isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-600/15 text-amber-200' : isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'}`}>{classeNome || 'Vocacao pendente'}</span>
             </div>
           </div>
 
@@ -307,14 +307,14 @@ const PersonagemPreviewCard = ({
           {temBonus && (
             <div className="wa-panel-soft rounded-2xl p-3">
               <div className="mb-2 flex items-center gap-2">
-                <Shield size={14} className="text-[var(--wa-info)]" />
+                <Shield size={14} className="text-[var(--wa-brass)]" />
                 <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
                   Bonus ativos
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {racaBonus && Object.entries(racaBonus).filter(([, value]) => typeof value === 'string' || typeof value === 'number').map(([key, value]) => (
-                  <span key={`r-${key}`} className="wa-violet-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold">
+                  <span key={`r-${key}`} className="wa-brass-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold">
                     {key.replace(/_/g, ' ')} {Number(value) >= 0 ? '+' : ''}{value}
                   </span>
                 ))}
@@ -347,7 +347,7 @@ const PersonagemPreviewCard = ({
 
           <div className="wa-panel-soft rounded-2xl p-3">
             <div className="mb-2 flex items-center gap-2">
-              <ScrollText size={14} className="text-[var(--wa-violet)]" />
+              <ScrollText size={14} className="text-[var(--wa-brass)]" />
               <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
                 Assinatura da forja
               </span>

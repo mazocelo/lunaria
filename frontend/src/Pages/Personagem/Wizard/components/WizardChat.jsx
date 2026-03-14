@@ -157,13 +157,13 @@ const WizardChat = ({
 
           <div className={`h-2 overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--wa-brass)] via-[var(--wa-violet)] to-[var(--wa-emerald)] transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--wa-brass)] via-[var(--wa-ember)] to-[var(--wa-emerald)] transition-all duration-300"
               style={{ width: `${Math.min(100, pontosCriacaoTotal > 0 ? ((pontosCriacaoTotal - pontosCriacaoRestantes) / pontosCriacaoTotal) * 100 : 0)}%` }}
             />
           </div>
 
           <div className="mt-2 flex flex-wrap gap-2">
-            {custoRaca > 0 && <span className="wa-violet-chip rounded-full px-2 py-1 text-[10px] font-mono">Linhagem -{custoRaca}</span>}
+            {custoRaca > 0 && <span className="wa-brass-chip rounded-full px-2 py-1 text-[10px] font-mono">Linhagem -{custoRaca}</span>}
             {custoClasse > 0 && <span className="wa-brass-chip rounded-full px-2 py-1 text-[10px] font-mono">Vocacao -{custoClasse}</span>}
             {pontosVantagem > 0 && <span className="wa-ember-chip rounded-full px-2 py-1 text-[10px] font-mono">Dons -{pontosVantagem}</span>}
             {pontosDesvantagem < 0 && <span className="wa-emerald-chip rounded-full px-2 py-1 text-[10px] font-mono">+{Math.abs(pontosDesvantagem)} devolvidos</span>}
@@ -185,17 +185,17 @@ const WizardChat = ({
         <div className="wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Dices size={16} className="text-[var(--wa-violet)]" />
+              <Dices size={16} className="text-[var(--wa-brass)]" />
               <span className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
                 Calibracao de atributos
               </span>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-mono font-semibold ${pontosRestantes === 0 ? 'wa-emerald-chip' : 'wa-violet-chip'}`}>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-mono font-semibold ${pontosRestantes === 0 ? 'wa-emerald-chip' : 'wa-brass-chip'}`}>
               {pontosDistribuidos}/{pontosTotais}
             </span>
           </div>
           <div className={`h-2 overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
-            <div className="h-full rounded-full bg-gradient-to-r from-[var(--wa-violet)] to-[var(--wa-emerald)] transition-all duration-300" style={{ width: `${Math.max(0, Math.min(100, pontosTotais > 0 ? (pontosDistribuidos / pontosTotais) * 100 : 0))}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-[var(--wa-brass)] to-[var(--wa-emerald)] transition-all duration-300" style={{ width: `${Math.max(0, Math.min(100, pontosTotais > 0 ? (pontosDistribuidos / pontosTotais) * 100 : 0))}%` }} />
           </div>
           <p className={`mt-2 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
             {pontosRestantes === 0 ? 'Todos os pontos base foram distribuidos.' : `${pontosRestantes} pontos ainda aguardam definicao.`}
@@ -232,7 +232,7 @@ const WizardChat = ({
                   {isUltimaMensagemMestre && (
                     <div className="mb-3 flex items-center gap-2">
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${
-                        ['resumo', 'refinamento'].includes(etapaAtual) ? 'wa-emerald-chip' : etapaAtual === 'atributos' ? 'wa-brass-chip' : 'wa-violet-chip'
+                        ['resumo', 'refinamento'].includes(etapaAtual) ? 'wa-emerald-chip' : etapaAtual === 'atributos' ? 'wa-brass-chip' : 'wa-brass-chip'
                       }`}>
                         {getStageLabel(etapaAtual)}
                       </span>
@@ -306,7 +306,7 @@ const WizardChat = ({
                       <button
                         type="button"
                         onClick={() => { setBuscaAberta(prev => !prev); setFiltro(''); }}
-                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all cursor-pointer ${buscaAberta ? 'wa-violet-chip' : 'wa-panel-soft hover:-translate-y-0.5'}`}
+                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all cursor-pointer ${buscaAberta ? 'wa-brass-chip' : 'wa-panel-soft hover:-translate-y-0.5'}`}
                       >
                         <Search size={12} />
                         {buscaAberta ? 'Fechar catalogo' : `Abrir catalogo de ${labelAtual}`}
@@ -399,7 +399,7 @@ const WizardChat = ({
                               key={item.id}
                               type="button"
                               onClick={() => handleSelecionarCatalogo(item)}
-                              className={`block w-full border-b border-[var(--wa-border)] px-3 py-3 text-left transition-colors last:border-b-0 cursor-pointer ${isSelected ? (isLight ? 'bg-purple-100/70' : 'bg-purple-500/14') : isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-900/60'}`}
+                              className={`block w-full border-b border-[var(--wa-border)] px-3 py-3 text-left transition-colors last:border-b-0 cursor-pointer ${isSelected ? (isLight ? 'bg-amber-100/70' : 'bg-amber-500/14') : isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-900/60'}`}
                             >
                               <div className="flex items-center gap-2">
                                 <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{item.nome}</span>
@@ -408,7 +408,7 @@ const WizardChat = ({
                                     {item.custo > 0 ? `-${item.custo}` : `+${Math.abs(item.custo)}`} pts
                                   </span>
                                 )}
-                                {isSelected && <Check size={12} className="text-[var(--wa-violet)]" />}
+                                {isSelected && <Check size={12} className="text-[var(--wa-brass)]" />}
                               </div>
                               {item.descricao && <span className={`mt-1 block text-[11px] font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{item.descricao}</span>}
                             </button>
@@ -433,7 +433,7 @@ const WizardChat = ({
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <div className="flex gap-1">
-                    <div className="h-2 w-2 rounded-full bg-[var(--wa-violet)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="h-2 w-2 rounded-full bg-[var(--wa-ember)] animate-bounce" style={{ animationDelay: '0ms' }} />
                     <div className="h-2 w-2 rounded-full bg-[var(--wa-brass)] animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="h-2 w-2 rounded-full bg-[var(--wa-emerald)] animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
@@ -472,8 +472,8 @@ const WizardChat = ({
             rows={1}
             className={`min-h-[54px] flex-1 resize-none rounded-2xl border px-4 py-3 text-[15px] font-modern transition-all focus:outline-none ${
               isLight
-                ? 'border-slate-200 bg-white/90 text-slate-800 placeholder-slate-400 focus:border-[var(--wa-violet)]'
-                : 'border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 focus:border-[var(--wa-violet)]'
+                ? 'border-slate-200 bg-white/90 text-slate-800 placeholder-slate-400 focus:border-[var(--wa-brass)]'
+                : 'border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 focus:border-[var(--wa-brass)]'
             }`}
             style={{ maxHeight: '132px' }}
             onInput={(e) => {
@@ -487,7 +487,7 @@ const WizardChat = ({
             disabled={!inputTexto.trim() || enviando}
             className={`inline-flex h-[54px] w-[54px] items-center justify-center rounded-2xl transition-all cursor-pointer ${
               inputTexto.trim() && !enviando
-                ? 'bg-gradient-to-br from-[var(--wa-brass)] via-[var(--wa-violet)] to-[var(--wa-violet)] text-white shadow-lg'
+                ? 'bg-gradient-to-br from-[var(--wa-brass)] via-[var(--wa-ember)] to-[var(--wa-ember)] text-white shadow-lg'
                 : isLight ? 'bg-slate-200 text-slate-400' : 'bg-slate-800 text-slate-500'
             }`}
           >

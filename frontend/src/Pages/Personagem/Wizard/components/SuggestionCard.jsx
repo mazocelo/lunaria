@@ -6,16 +6,16 @@ const TIPO_CONFIG = {
     label: 'Linhagem',
     helper: 'Fantasia base e afinidades naturais.',
     cta: 'Fixar linhagem',
-    accent: 'var(--wa-violet)',
-    costClass: 'wa-violet-chip',
+    accent: 'var(--wa-brass)',
+    costClass: 'wa-brass-chip',
   },
   classe: {
     icon: Sword,
     label: 'Vocacao',
     helper: 'Papel tatico e ritmo de jogo.',
     cta: 'Fixar vocacao',
-    accent: 'var(--wa-info)',
-    costClass: 'wa-violet-chip',
+    accent: 'var(--wa-brass)',
+    costClass: 'wa-brass-chip',
   },
   vantagem: {
     icon: Zap,
@@ -46,10 +46,10 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
         disabled={selected}
         className={`group w-full text-left rounded-xl border p-3.5 transition-all ${
           selected
-            ? 'border-purple-500/50 bg-purple-500/10 ring-1 ring-purple-500/20 cursor-default'
+            ? 'border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/20 cursor-default'
             : isLight
-              ? 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
-              : 'border-slate-700/50 bg-slate-800/30 hover:border-purple-500/30 hover:bg-slate-800/50'
+              ? 'border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/50'
+              : 'border-slate-700/50 bg-slate-800/30 hover:border-amber-500/30 hover:bg-slate-800/50'
         }`}
       >
         <div className="flex items-start gap-3">

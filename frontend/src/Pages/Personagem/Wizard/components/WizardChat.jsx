@@ -142,7 +142,7 @@ const WizardChat = ({
   return (
     <div className={embedded ? 'flex h-full flex-col' : 'wa-chat-shell mx-4 mb-4 mt-3 flex h-full flex-col rounded-[24px] md:mx-5 md:mb-5'}>
       {etapaAtual !== 'boas_vindas' && (
-        <div className="wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
+        <div className="shrink-0 wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Sparkles size={16} className="text-[var(--wa-accent)]" />
@@ -182,7 +182,7 @@ const WizardChat = ({
       )}
 
       {showAtributos && (
-        <div className="wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
+        <div className="shrink-0 wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Dices size={16} className="text-[var(--wa-accent)]" />
@@ -461,7 +461,7 @@ const WizardChat = ({
         <div ref={chatEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="wa-dock border-t border-[var(--wa-border)] p-4 md:px-5">
+      <form onSubmit={handleSubmit} className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
         <div className="flex items-end gap-3">
           <textarea
             value={inputTexto}

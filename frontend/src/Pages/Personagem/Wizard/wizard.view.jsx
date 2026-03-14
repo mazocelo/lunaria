@@ -317,21 +317,23 @@ const WizardView = (props) => {
 
         <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-4 md:px-5 md:pb-5 xl:gap-5">
           <div className="wa-main-shell flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border">
-            <WizardProgressBar
-              etapas={etapas}
-              etapaIndex={etapaIndex}
-              isLight={isLight}
-              onEtapaClick={navegarParaEtapa}
-              etapasConcluidas={etapasConcluidas}
-              etapasVisitadas={etapasVisitadas}
-              tooltipMap={tooltipMap}
-              onBack={() => navigate('/personagens')}
-              onToggleFicha={() => setFichaAberta(prev => !prev)}
-              fichaAberta={fichaAberta}
-              embedded
-            />
+            <div className="shrink-0">
+              <WizardProgressBar
+                etapas={etapas}
+                etapaIndex={etapaIndex}
+                isLight={isLight}
+                onEtapaClick={navegarParaEtapa}
+                etapasConcluidas={etapasConcluidas}
+                etapasVisitadas={etapasVisitadas}
+                tooltipMap={tooltipMap}
+                onBack={() => navigate('/personagens')}
+                onToggleFicha={() => setFichaAberta(prev => !prev)}
+                fichaAberta={fichaAberta}
+                embedded
+              />
+            </div>
 
-            <div className="border-t border-[var(--wa-border)]">
+            <div className="shrink-0 border-t border-[var(--wa-border)]">
               <WizardStageHero
                 etapas={etapas}
                 etapaAtual={etapaAtual}
@@ -342,7 +344,7 @@ const WizardView = (props) => {
             </div>
 
             {(error || bonusInvalidado || draftRestaurado) && (
-              <div className="space-y-3 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
+              <div className="shrink-0 space-y-3 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
                 {error && (
                   <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-red-700' : 'text-red-300'}`}>
                     <div className="flex items-center gap-3">
@@ -430,7 +432,7 @@ const WizardView = (props) => {
               />
             </div>
 
-            <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
+            <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-3 md:px-6">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">

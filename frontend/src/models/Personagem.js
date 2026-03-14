@@ -34,7 +34,7 @@ export class Personagem {
     this.hp = data.hp_atual ?? data.hp ?? this.hp_max;
     this.mp = data.mp_atual ?? data.mp ?? null;
     this.pontos_atributo_pendentes = data.pontos_atributo_pendentes || 0;
-    this.pontos_iniciais = data.pontos_iniciais || 25;
+    this.pontos_iniciais = data.pontos_iniciais || 0;
     this.pontos_totais = data.pontos_totais || 0;
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
@@ -64,11 +64,11 @@ export class Personagem {
       errors.push('Nível máximo é 20');
     }
 
-    // Validar atributos (1-30) — base max 16 + bônus de raça/classe/vantagens
+    // Validar atributos (1-20) — deve receber valores BASE (sem bônus)
     const atributos = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
     atributos.forEach(atributo => {
-      if (this[atributo] < 1 || this[atributo] > 30) {
-        errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 30`);
+      if (this[atributo] < 1 || this[atributo] > 20) {
+        errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 20`);
       }
     });
 

@@ -232,6 +232,7 @@ export const useWizardModel = () => {
     vantagensNomes: pointSystem.vantagensNomes,
     desvantagensIds: pointSystem.desvantagensIds,
     desvantagensNomes: pointSystem.desvantagensNomes,
+    atributosBase: bonusCalc.atributosBase,
     atributosFinal: bonusCalc.atributosFinal,
   };
 
@@ -449,19 +450,19 @@ export const useWizardModel = () => {
     setError(null);
 
     try {
-      const attrs = s.atributosFinal;
+      const base = s.atributosBase;
       const dados = {
         nome: s.nome,
         raca_id: s.racaId,
         classe_id: s.classeId,
         sugestao_background: 'guiado',
         background: s.background,
-        forca: attrs.forca,
-        destreza: attrs.destreza,
-        constituicao: attrs.constituicao,
-        inteligencia: attrs.inteligencia,
-        agilidade: attrs.agilidade,
-        carisma: attrs.carisma,
+        forca: base.forca,
+        destreza: base.destreza,
+        constituicao: base.constituicao,
+        inteligencia: base.inteligencia,
+        agilidade: base.agilidade,
+        carisma: base.carisma,
         vantagens: s.vantagensIds,
         desvantagens: s.desvantagensIds,
         nivel: 1,

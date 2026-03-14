@@ -237,6 +237,24 @@ const WizardView = (props) => {
     }
 
     if (etapaAtual === 'atributos') {
+      if (bonusAplicados) {
+        return (
+          <button
+            onClick={() => avancarComMestre()}
+            disabled={enviando}
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
+              enviando
+                ? isLight
+                  ? 'cursor-not-allowed bg-slate-200 text-slate-400'
+                  : 'cursor-not-allowed bg-slate-800 text-slate-500'
+                : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_55%,var(--wa-teal))] text-white shadow-[0_18px_38px_rgba(139,92,246,0.28)] hover:-translate-y-0.5'
+            }`}
+          >
+            {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+            Continuar
+          </button>
+        );
+      }
       return (
         <button
           onClick={confirmarAtributos}

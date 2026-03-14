@@ -59,16 +59,12 @@ const WizardStageHero = ({
 
   return (
     <section className={`wa-stage-enter shrink-0 ${embedded ? '' : 'px-4 pt-3 md:px-5'}`}>
-      <div className={embedded ? 'px-5 py-4 md:px-6' : 'wa-hero wa-etched rounded-[24px] px-4 py-4 md:px-5'}>
-        <p className={`mb-1 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-          Passo {etapaIndex + 1} de {etapas.length}
-        </p>
-
-        <h2 className={`text-xl font-fantasy font-bold md:text-[1.55rem] ${isLight ? 'text-slate-900' : 'text-white'}`}>
+      <div className={`flex items-center gap-3 ${embedded ? 'px-5 py-2.5 md:px-6' : 'wa-hero wa-etched rounded-[24px] px-4 py-3 md:px-5'}`}>
+        <h2 className={`shrink-0 text-base font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
           {copy.title}
         </h2>
-
-        <p className={`mt-1.5 max-w-3xl text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
+        <span className={`hidden sm:inline text-xs font-modern ${isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'}`}>—</span>
+        <p className={`hidden sm:block min-w-0 truncate text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
           {copy.description}
         </p>
       </div>

@@ -191,6 +191,18 @@ export default class TestEngine {
         // @event resultado_teste → room (broadcast) | fires after a pending skill test is mechanically resolved
         sm.sendToRoom(roomId, 'resultado_teste', resultadoTestePayload);
 
+        // Persistir último teste no estadoJogo para o turnStateBuilder
+        sessao.estadoJogo = sessao.estadoJogo || {};
+        const estadoJogo = sessao.estadoJogo;
+        if (!estadoJogo.ultimoTeste) estadoJogo.ultimoTeste = {};
+        estadoJogo.ultimoTeste[String(userId)] = {
+          teste: resultadoTestePayload.atributoNome || testeResolvido.teste,
+          dc: resultadoTestePayload.dc ?? null,
+          sucesso: resultadoTestePayload.sucesso ?? null,
+          total: resultadoTestePayload.total ?? null,
+          rodada: estadoJogo.rodadaAtual || 1
+        };
+
         try {
           const mestre = await sm.obterMestre(roomId, sessao.historiaTemas || [], sessao, userId);
           const invocationContext = buildDiceResolutionContext(sessao, {

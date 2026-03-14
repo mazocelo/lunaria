@@ -10,6 +10,7 @@ import { calcularHP, calcularMana } from './combateHelper.js';
  */
 export function buildTurnState(sessao, userId, personagem) {
   const estadoJogo = sessao.estadoJogo || {};
+  const mestreCtx = sessao.mestreContexto || {};
   const pcCompleto = (sessao.personagensCompletos || {})[String(personagem.id || personagem.personagemId)] || personagem;
   const pSessao = estadoJogo.personagemSessao?.[String(userId)] || {};
 
@@ -64,6 +65,24 @@ export function buildTurnState(sessao, userId, personagem) {
     .map(v => v.nome);
   state.vantagensPassivas = vantagensPassivas;
 
+  // Contexto de cena (populados por applyMetadadosToSessao)
+  state.cenaAtual = estadoJogo.cenaAtual || mestreCtx?.sessao?.cenaAtual || null;
+  state.ambiente = estadoJogo.ambiente || mestreCtx?.sessao?.ambiente || null;
+  state.horaFiccional = estadoJogo.horaFiccional || null;
+  state.rodadaAtual = estadoJogo.rodadaAtual || 1;
+
+  // Último teste resolvido (salvo pelo testEngine)
+  state.ultimoTeste = estadoJogo.ultimoTeste?.[String(userId)] || null;
+
+  // Inventário atual (equipamentos já em personagensCompletos, sem query)
+  state.inventario = (pcCompleto.equipamentos || [])
+    .slice(0, 10)
+    .map(e => ({ nome: e.nome, tipo: e.tipo || null }));
+
+  // Terreno e tensão — placeholders para B4-D01
+  state.terreno = estadoJogo.terreno || null;
+  state.tensao = estadoJogo.tensao || null;
+
   return state;
 }
 
@@ -73,7 +92,16 @@ export function buildTurnState(sessao, userId, personagem) {
 export function formatTurnStateText(state) {
   const lines = [];
   lines.push(`[Estado de ${state.nome} — ${state.classe || ''} Nv${state.nivel || 1}]`);
+
+  // Linha de cena/ambiente/hora (só se houver dado)
+  const cenaParts = [];
+  if (state.cenaAtual) cenaParts.push(`Cena: ${state.cenaAtual}`);
+  if (state.ambiente) cenaParts.push(`Ambiente: ${state.ambiente}`);
+  if (state.horaFiccional) cenaParts.push(`Hora: ${state.horaFiccional}`);
+  if (cenaParts.length > 0) lines.push(cenaParts.join(' | '));
+
   lines.push(`HP: ${state.hp.atual}/${state.hp.max} | Mana: ${state.mana?.atual ?? '?'}/${state.mana?.max ?? '?'}`);
+  if (state.rodadaAtual > 1) lines.push(`Rodada: ${state.rodadaAtual}`);
 
   if (state.xpGanho > 0) lines.push(`XP acumulado: ${state.xpGanho}`);
 
@@ -97,8 +125,27 @@ export function formatTurnStateText(state) {
     lines.push(`Desvantagens (alerta): ${state.desvantagensAlerta.join(', ')}`);
   }
 
+  // Inventário atual
+  if (state.inventario?.length > 0) {
+    lines.push(`Inventário: ${state.inventario.map(i => i.nome).join(', ')}`);
+  }
+
   if (state.itensGanhos.length > 0) lines.push(`Itens ganhos: ${state.itensGanhos.map(i => i.nome || i).join(', ')}`);
   if (state.itensPerdidos.length > 0) lines.push(`Itens perdidos: ${state.itensPerdidos.map(i => i.nome || i).join(', ')}`);
+
+  // Último teste (tolera dc/sucesso nulos do fallback mecânico)
+  if (state.ultimoTeste) {
+    const ut = state.ultimoTeste;
+    const partes = [ut.teste || 'Teste'];
+    if (ut.dc != null) partes.push(`DC ${ut.dc}`);
+    if (ut.sucesso != null) partes.push(ut.sucesso ? 'Sucesso' : 'Falha');
+    if (ut.total != null) partes.push(`(total ${ut.total})`);
+    lines.push(`Último teste: ${partes.join(' ')}`);
+  }
+
+  // Placeholders B4-D01
+  if (state.terreno) lines.push(`Terreno: ${state.terreno}`);
+  if (state.tensao) lines.push(`Tensão: ${state.tensao}`);
 
   return lines.join('\n');
 }

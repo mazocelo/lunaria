@@ -650,7 +650,8 @@ model tts_cache {
   provider      String    @db.VarChar(50)
   voice_id      String    @db.VarChar(100)
   caracteres    Int
-  audio_data    Bytes
+  audio_data    Bytes?
+  audio_url     String?   @db.Text
   tamanho_bytes Int
   criado_em     DateTime  @default(now()) @db.Timestamptz(6)
 

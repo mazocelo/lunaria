@@ -41,7 +41,7 @@ function shouldPersistAudio(provider, audioBuffer) {
 }
 
 /**
- * Busca áudio no cache do banco
+ * Busca áudio binário no cache do banco
  * @returns {Buffer|null}
  */
 async function getFromCache(cacheKey) {
@@ -58,7 +58,46 @@ async function getFromCache(cacheKey) {
 }
 
 /**
- * Salva áudio no cache do banco
+ * Busca URL de áudio no cache do banco (usado para opensource → R2)
+ * @returns {string|null}
+ */
+async function getUrlFromCache(cacheKey) {
+  try {
+    const cached = await prisma.tts_cache.findUnique({
+      where: { cache_key: cacheKey },
+      select: { audio_url: true },
+    });
+    return cached?.audio_url || null;
+  } catch (err) {
+    console.error('ttsCacheService.getUrlFromCache error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Salva URL de áudio no cache (opensource → R2). Sem binary.
+ */
+async function saveUrlToCache(cacheKey, provider, voiceId, caracteres, tamanhoBytes, audioUrl) {
+  try {
+    await prisma.tts_cache.upsert({
+      where: { cache_key: cacheKey },
+      create: {
+        cache_key: cacheKey,
+        provider,
+        voice_id: voiceId,
+        caracteres,
+        audio_url: audioUrl,
+        tamanho_bytes: tamanhoBytes,
+      },
+      update: { audio_url: audioUrl },
+    });
+  } catch (err) {
+    console.error('ttsCacheService.saveUrlToCache error:', err.message);
+  }
+}
+
+/**
+ * Salva áudio binário no cache do banco
  */
 async function saveToCache(cacheKey, provider, voiceId, caracteres, audioBuffer) {
   if (!shouldPersistAudio(provider, audioBuffer)) return;
@@ -204,4 +243,4 @@ async function getOrGenerate(text, voiceId, provider, generateFn) {
   }
 }
 
-export default { generateCacheKey, getOrGenerate, pruneExpiredEntries };
+export default { generateCacheKey, getOrGenerate, getUrlFromCache, saveUrlToCache, pruneExpiredEntries };

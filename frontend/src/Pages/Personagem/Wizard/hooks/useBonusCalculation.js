@@ -92,9 +92,10 @@ export const useBonusCalculation = ({
     return result;
   }, [atributosBase, bonusDetalhes]);
 
-  // Pontos baseados em atributosBase
-  const pontosDistribuidos = useMemo(() => somaAtributos(atributosBase), [atributosBase]);
-  const pontosRestantes = PONTOS_TOTAIS - pontosDistribuidos;
+  // Pontos = diferença entre soma atual e baseline (60)
+  const somaAtual = useMemo(() => somaAtributos(atributosBase), [atributosBase]);
+  const pontosDistribuidos = somaAtual - PONTOS_TOTAIS; // 0 no início, positivo ao subir atributos
+  const pontosRestantes = PONTOS_TOTAIS - somaAtual;    // 60 → 0 conforme distribui
 
   /** Confirma atributos */
   const confirmarAtributos = useCallback(() => {

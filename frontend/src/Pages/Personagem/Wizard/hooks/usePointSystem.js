@@ -47,13 +47,13 @@ export const usePointSystem = ({
   // Custo de raça e classe
   const custoRaca = useMemo(() => {
     if (!racaId) return 0;
-    const raca = (racasDisponiveis || []).find(r => r.id === racaId);
+    const raca = (racasDisponiveis || []).find(r => String(r.id) === String(racaId));
     return raca ? Number(raca.custo) || 0 : 0;
   }, [racaId, racasDisponiveis]);
 
   const custoClasse = useMemo(() => {
     if (!classeId) return 0;
-    const classe = (classesDisponiveis || []).find(c => c.id === classeId);
+    const classe = (classesDisponiveis || []).find(c => String(c.id) === String(classeId));
     return classe ? Number(classe.custo) || 0 : 0;
   }, [classeId, classesDisponiveis]);
 

@@ -333,7 +333,7 @@ const WizardChat = ({
                               <div key={key} className={`rounded-xl border px-2.5 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
                                 <div className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</div>
                                 <div className={`mt-1 text-base font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{finalVal}</div>
-                                <div className={`text-[10px] font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>{mod >= 0 ? '+' : ''}{mod}{bonus !== 0 ? ` · ${bonus > 0 ? '+' : ''}${bonus}` : ''}</div>
+                                <div className={`text-[10px] font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>{mod >= 0 ? '+' : ''}{mod}{bonus !== 0 ? ` (${bonus > 0 ? '+' : ''}${bonus})` : ''}</div>
                               </div>
                             );
                           })}

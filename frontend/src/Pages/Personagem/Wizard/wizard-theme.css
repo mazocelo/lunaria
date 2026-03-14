@@ -1,4 +1,4 @@
-.wizard-atelier {
+﻿.wizard-atelier {
   --wa-bg: radial-gradient(circle at top, rgba(114, 68, 32, 0.22), transparent 32%), linear-gradient(180deg, #0f1118 0%, #111522 38%, #0b0f16 100%);
   --wa-bg-accent: radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.12), transparent 0 24%), radial-gradient(circle at 85% 10%, rgba(245, 158, 11, 0.08), transparent 0 22%), radial-gradient(circle at 60% 80%, rgba(34, 197, 94, 0.06), transparent 0 18%);
   --wa-panel: rgba(17, 24, 39, 0.78);
@@ -117,11 +117,6 @@
   inset: 0;
   pointer-events: none;
   background: linear-gradient(120deg, rgba(255,255,255,0.03), transparent 26%, transparent 74%, rgba(214,168,95,0.05));
-}
-
-.wizard-atelier .wa-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--wa-border) 150%, transparent), transparent);
 }
 
 .wizard-atelier .wa-rune-step {
@@ -247,3 +242,4 @@
     transform: none;
   }
 }
+

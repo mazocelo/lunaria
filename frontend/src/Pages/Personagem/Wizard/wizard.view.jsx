@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   AlertCircle,
@@ -33,7 +33,7 @@ const FOOTER_COPY = {
   refinamento: 'Ultima checagem antes de selar o personagem.',
 };
 
-const getResumoTexto = ({ done, skipped, pending, doneText, skippedText, pendingText }) => {
+const getResumoTexto = ({ done, skipped, doneText, skippedText, pendingText }) => {
   if (done) return doneText;
   if (skipped) return skippedText;
   return pendingText;
@@ -669,3 +669,4 @@ const WizardView = (props) => {
 };
 
 export default WizardView;
+

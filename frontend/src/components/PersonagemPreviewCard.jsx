@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+ï»¿import React, { useMemo, useState } from 'react';
 import { useTheme } from '../contexts/theme.jsx';
 import { Heart, Shield, Eye, EyeOff, Sparkles, User, AlertTriangle, SkipForward, CheckCircle2, Clock3, ShieldCheck, ScrollText } from 'lucide-react';
 import WizardReadinessSeal from '../Pages/Personagem/Wizard/components/WizardReadinessSeal.jsx';
@@ -75,40 +75,28 @@ const PersonagemPreviewCard = ({
   const racaNome = racaObj?.nome;
   const classeNome = classeObj?.nome;
 
-  const parseBonus = (raw) => {
-    if (!raw) return null;
-    try {
-      const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      return Array.isArray(obj) ? obj[0] : obj;
-    } catch {
-      return null;
-    }
-  };
-
   const racaBonus = parseBonus(racaObj?.bonus);
   const classeBonus = parseBonus(classeObj?.bonus);
   const temBonus = racaBonus || classeBonus;
 
-  const getAttrBonus = (key) => {
-    let bonus = 0;
-    if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
-      bonus += Number(racaBonus[key]) || 0;
+  const mergedAttrBonus = useMemo(() => {
+    const merged = {};
+    for (const key of Object.keys(ATTR_LABELS)) {
+      const bonus = (Number(racaBonus?.[key]) || 0) + (Number(classeBonus?.[key]) || 0);
+      if (bonus !== 0) merged[key] = bonus;
     }
-    if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
-      bonus += Number(classeBonus[key]) || 0;
-    }
-    return bonus;
-  };
+    return merged;
+  }, [racaBonus, classeBonus]);
 
   const atributosEfetivos = useMemo(() => {
     const result = {};
     for (const key of Object.keys(ATTR_LABELS)) {
       result[key] = bonusJaAplicado
         ? Number(atributos[key]) || 0
-        : (Number(atributos[key]) || 0) + getAttrBonus(key);
+        : (Number(atributos[key]) || 0) + (mergedAttrBonus[key] || 0);
     }
     return result;
-  }, [atributos, bonusJaAplicado, racaObj, classeObj]);
+  }, [atributos, bonusJaAplicado, mergedAttrBonus]);
 
   const hpEstimado = calcHP(atributosEfetivos.constituicao, 1);
 
@@ -200,7 +188,7 @@ const PersonagemPreviewCard = ({
             </div>
             {Object.entries(ATTR_LABELS).map(([key, cfg]) => {
               const efetivo = atributosEfetivos[key];
-              const bonusDisplay = getAttrBonus(key);
+              const bonusDisplay = mergedAttrBonus[key] || 0;
               const pct = Math.min(100, (efetivo / 20) * 100);
               const mod = calcMod(efetivo);
               return (
@@ -245,7 +233,7 @@ const PersonagemPreviewCard = ({
               </div>
               <h3 className={`mt-3 truncate text-xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{nome || 'Heroi sem selo'}</h3>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                {racaNome || 'Linhagem pendente'} {classeNome ? `· ${classeNome}` : '· Vocacao pendente'}
+                {racaNome || 'Linhagem pendente'} {classeNome ? `Â· ${classeNome}` : 'Â· Vocacao pendente'}
               </p>
             </div>
             <WizardReadinessSeal readinessState={finalReadinessState} />
@@ -290,7 +278,7 @@ const PersonagemPreviewCard = ({
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(ATTR_LABELS).map(([key, cfg]) => {
                 const efetivo = atributosEfetivos[key];
-                const bonusDisplay = getAttrBonus(key);
+                const bonusDisplay = mergedAttrBonus[key] || 0;
                 const mod = calcMod(efetivo);
                 return (
                   <div key={key} className={`rounded-xl border px-3 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
@@ -371,3 +359,5 @@ const PersonagemPreviewCard = ({
 };
 
 export default PersonagemPreviewCard;
+
+

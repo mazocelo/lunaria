@@ -23,6 +23,8 @@ jobs:
           npm ci --include=dev
           ROLLUP_VERSION=$(node -p "require('./node_modules/rollup/package.json').version")
           node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" >/dev/null 2>&1 || npm install --no-save "@rollup/rollup-linux-x64-gnu@$ROLLUP_VERSION"
+          LIGHTNINGCSS_VERSION=$(node -p "require('./node_modules/lightningcss/package.json').version")
+          node -e "require.resolve('lightningcss-linux-x64-gnu')" >/dev/null 2>&1 || npm install --no-save "lightningcss-linux-x64-gnu@$LIGHTNINGCSS_VERSION"
 
       - name: ESLint
         run: npm run lint
@@ -53,4 +55,6 @@ jobs:
             npm ci --include=dev
             ROLLUP_VERSION=$(node -p "require('./node_modules/rollup/package.json').version")
             node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" >/dev/null 2>&1 || npm install --no-save "@rollup/rollup-linux-x64-gnu@$ROLLUP_VERSION"
+            LIGHTNINGCSS_VERSION=$(node -p "require('./node_modules/lightningcss/package.json').version")
+            node -e "require.resolve('lightningcss-linux-x64-gnu')" >/dev/null 2>&1 || npm install --no-save "lightningcss-linux-x64-gnu@$LIGHTNINGCSS_VERSION"
             npm run build

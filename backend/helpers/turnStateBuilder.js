@@ -4,6 +4,7 @@
  * Inclui HP, mana, cooldowns, concentração, alertas de vantagens/desvantagens.
  */
 import { calcularHP, calcularMana } from './combateHelper.js';
+import { normalizarTerrenoInput, getTerrenoLabel } from './estadoTatico.js';
 
 /**
  * Monta state object estruturado para um jogador no turno
@@ -79,8 +80,8 @@ export function buildTurnState(sessao, userId, personagem) {
     .slice(0, 10)
     .map(e => ({ nome: e.nome, tipo: e.tipo || null }));
 
-  // Terreno, tensão e ameaças — populados via metadados da IA
-  state.terreno = estadoJogo.terreno || null;
+  // Contexto tático — terreno normalizado para shape canônico (objeto ou legado string)
+  state.terreno = normalizarTerrenoInput(estadoJogo.terreno);
   state.tensao = estadoJogo.tensao || null;
   state.ameacas = Array.isArray(estadoJogo.ameacas) ? estadoJogo.ameacas : [];
 
@@ -145,7 +146,10 @@ export function formatTurnStateText(state) {
   }
 
   // Contexto tático (populado via metadados da IA)
-  if (state.terreno) lines.push(`Terreno: ${state.terreno}`);
+  if (state.terreno) {
+    const label = getTerrenoLabel(state.terreno);
+    if (label) lines.push(`Terreno: ${label}`);
+  }
   if (state.tensao) lines.push(`Tensão: ${state.tensao}`);
   if (state.ameacas?.length > 0) lines.push(`Ameaças: ${state.ameacas.join(', ')}`);
 

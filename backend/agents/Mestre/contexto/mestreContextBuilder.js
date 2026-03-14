@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { extrairNomesTemas } from '../../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../../helpers/personagensHelper.js';
 import { condensarRoteiro } from '../prompts/roteiroCondenser.js';
+import { normalizarTerrenoInput } from '../../../helpers/estadoTatico.js';
 import logger from '../../../helpers/logger.js';
 
 const log = logger.child({ module: 'mestreContextBuilder' });
@@ -637,8 +638,9 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
     estadoJogo.horaFiccional = metadados.hora;
   }
 
-  if (presenteOrTruthy(metadados.terreno) && typeof metadados.terreno === 'string') {
-    estadoJogo.terreno = metadados.terreno;
+  if (presenteOrTruthy(metadados.terreno)) {
+    const terrenoNorm = normalizarTerrenoInput(metadados.terreno);
+    if (terrenoNorm) estadoJogo.terreno = terrenoNorm;
   }
 
   if (presenteOrTruthy(metadados.tensao) && typeof metadados.tensao === 'string') {

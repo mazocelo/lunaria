@@ -12,6 +12,7 @@ import { setCooldown, checkCooldown } from './cooldownManager.js';
 import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
 import { aplicarEfeito, removerEfeito } from './effectManager.js';
 import { applyMetadadosToSessao } from '../agents/Mestre/contexto/mestreContextBuilder.js';
+import { normalizarTerrenoInput, getTerrenoLabel } from './estadoTatico.js';
 import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 import { appendMensagemSessao, buildAcaoMestreMensagem } from '../websocket/utils/sessionMessages.js';
 
@@ -770,25 +771,31 @@ async function processarConcentracaoQuebrada(acao, sessao, roomId, sm) {
  */
 async function processarAlterarTerreno(acao, sessao, roomId, sm) {
   const { terreno, efeito, duracao } = acao;
-  if (!terreno || typeof terreno !== 'string') return;
+  if (!terreno) return;
+
+  const terrenoNorm = normalizarTerrenoInput(terreno);
+  if (!terrenoNorm) return;
 
   if (!sessao.estadoJogo) sessao.estadoJogo = {};
-  const terrenoAnterior = sessao.estadoJogo.terreno || null;
-  sessao.estadoJogo.terreno = terreno;
+  const terrenoAnteriorRaw = sessao.estadoJogo.terreno || null;
+  const terrenoAnteriorNorm = normalizarTerrenoInput(terrenoAnteriorRaw);
+  sessao.estadoJogo.terreno = terrenoNorm;
 
-  // terrenoEfeito: write-only na v1 — preparação para B4-D01/F05
+  // terrenoEfeito: write-only na v1 — migração para efeitos_terreno[] em F05-B
   if (efeito && typeof efeito === 'string') {
     sessao.estadoJogo.terrenoEfeito = { descricao: efeito, duracao: duracao || null, aplicado_em: Date.now() };
   } else {
     sessao.estadoJogo.terrenoEfeito = null;
   }
 
-  log.info({ terreno, terrenoAnterior, efeito: efeito || null }, 'alterar_terreno: terreno alterado');
+  log.info({ terreno: terrenoNorm, terrenoAnterior: terrenoAnteriorNorm, efeito: efeito || null }, 'alterar_terreno: terreno alterado');
 
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'terreno_alterado',
-    terreno,
-    terreno_anterior: terrenoAnterior,
+    terreno: getTerrenoLabel(terrenoNorm),
+    terreno_obj: terrenoNorm,
+    terreno_anterior: getTerrenoLabel(terrenoAnteriorNorm),
+    terreno_anterior_obj: terrenoAnteriorNorm,
     efeito: efeito || null,
     duracao: duracao || null,
     timestamp: Date.now()
@@ -822,7 +829,8 @@ async function processarMudarCenario(acao, sessao, roomId, sm) {
     tipo: 'cenario_mudado',
     cenario,
     cenario_anterior: cenarioAnterior,
-    terreno: terreno || null,
+    terreno: getTerrenoLabel(sessao.estadoJogo.terreno) || null,
+    terreno_obj: sessao.estadoJogo.terreno || null,
     ambiente: ambiente || null,
     hora: hora || null,
     timestamp: Date.now()

@@ -11,7 +11,7 @@ const INPUT_PLACEHOLDERS = {
   background: 'Escreva a origem do personagem ou peca ajuda ao Mestre...',
   vantagens: 'Peca dons mais especificos ou refine o conceito do personagem...',
   desvantagens: 'Descreva falhas, custos ou conflitos interessantes...',
-  atributos: 'Pe�a uma sugestao de distribuicao ou refine a build...',
+  atributos: 'Peça uma sugestao de distribuicao ou refine a build...',
   resumo: 'Peca ajustes finais ou confirme a direcao do personagem...',
   refinamento: 'Traga os ultimos ajustes antes de concluir...',
 };

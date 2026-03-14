@@ -64,11 +64,11 @@ export class Personagem {
       errors.push('Nível máximo é 20');
     }
 
-    // Validar atributos (1-20)
+    // Validar atributos (1-30) — base max 16 + bônus de raça/classe/vantagens
     const atributos = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
     atributos.forEach(atributo => {
-      if (this[atributo] < 1 || this[atributo] > 20) {
-        errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 20`);
+      if (this[atributo] < 1 || this[atributo] > 30) {
+        errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 30`);
       }
     });
 

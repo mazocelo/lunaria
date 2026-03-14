@@ -83,7 +83,13 @@ export function normalizeResultadoAcao(data) {
     esquivou: data.esquivou ?? false,
     dano: data.dano ?? 0,
     hpRestante: data.hpRestante ?? data.hp_atual ?? 0,
+    hpMax: data.hpMax ?? data.hp_max ?? 0,
     elemento: data.elemento || null,
+    // status_dano / status_efeito fields
+    status: data.status || null,
+    mensagem: data.mensagem || null,
+    personagem: data.personagem || null,
+    userId: data.userId || null,
     alvo: data.alvo ? {
       id: data.alvo.id ?? null,
       userId: data.alvo.userId ?? null,

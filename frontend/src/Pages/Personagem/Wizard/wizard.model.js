@@ -272,7 +272,10 @@ export const useWizardModel = () => {
     if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome) {
       setNome(mensagemJogador);
     } else if (navigation.etapaAtual === 'background') {
-      setBackground(prev => prev ? `${prev}\n${mensagemJogador}` : mensagemJogador);
+      setBackground(prev => {
+        const novo = prev ? `${prev}\n${mensagemJogador}` : mensagemJogador;
+        return novo.slice(0, 2000); // cap em 2000 chars
+      });
     }
 
     setMensagens(prev => [...prev, {
@@ -430,12 +433,13 @@ export const useWizardModel = () => {
     avancarComMestre(override);
   }, [avancarComMestre, pointSystem]);
 
-  /** Salva o personagem */
+  /** Salva o personagem — lê do estadoRef para evitar stale closures */
   const salvarPersonagem = useCallback(async () => {
-    if (!nome.trim()) { setError('Nome do personagem é obrigatório'); return; }
-    if (!racaId) { setError('Selecione uma raça antes de salvar'); return; }
-    if (!classeId) { setError('Selecione uma classe antes de salvar'); return; }
-    if (!background.trim()) { setError('Preencha o background antes de salvar'); return; }
+    const s = estadoRef.current;
+    if (!s.nome?.trim()) { setError('Nome do personagem é obrigatório'); return; }
+    if (!s.racaId) { setError('Selecione uma raça antes de salvar'); return; }
+    if (!s.classeId) { setError('Selecione uma classe antes de salvar'); return; }
+    if (!s.background?.trim()) { setError('Preencha o background antes de salvar'); return; }
     if (!bonusCalc.bonusAplicados) {
       setError('Confirme seus atributos antes de salvar (aplique os bônus de raça/classe)');
       return;
@@ -445,31 +449,31 @@ export const useWizardModel = () => {
     setError(null);
 
     try {
+      const attrs = s.atributosFinal;
       const dados = {
-        nome,
-        raca_id: racaId || undefined,
-        classe_id: classeId || undefined,
+        nome: s.nome,
+        raca_id: s.racaId,
+        classe_id: s.classeId,
         sugestao_background: 'guiado',
-        background,
-        historias: [],
-        forca: bonusCalc.atributosFinal.forca,
-        destreza: bonusCalc.atributosFinal.destreza,
-        constituicao: bonusCalc.atributosFinal.constituicao,
-        inteligencia: bonusCalc.atributosFinal.inteligencia,
-        agilidade: bonusCalc.atributosFinal.agilidade,
-        carisma: bonusCalc.atributosFinal.carisma,
-        vantagens: pointSystem.vantagensIds,
-        desvantagens: pointSystem.desvantagensIds,
+        background: s.background,
+        forca: attrs.forca,
+        destreza: attrs.destreza,
+        constituicao: attrs.constituicao,
+        inteligencia: attrs.inteligencia,
+        agilidade: attrs.agilidade,
+        carisma: attrs.carisma,
+        vantagens: s.vantagensIds,
+        desvantagens: s.desvantagensIds,
         nivel: 1,
       };
 
       const personagem = new Personagem(dados);
       const criado = await personagemService.create(personagem);
 
-      if (criado?.id && background) {
+      if (criado?.id && s.background) {
         try {
           setGerandoBackground(true);
-          await personagemService.gerarBackground(criado.id, background);
+          await personagemService.gerarBackground(criado.id, s.background);
         } catch (bgError) {
           console.warn('Background IA não gerado:', bgError.message);
         } finally {
@@ -485,8 +489,7 @@ export const useWizardModel = () => {
     } finally {
       setSalvando(false);
     }
-  }, [nome, racaId, classeId, background, bonusCalc.atributosFinal, bonusCalc.bonusAplicados,
-      pointSystem.vantagensIds, pointSystem.desvantagensIds, navigate, recarregarPersonagens, limparDraft]);
+  }, [bonusCalc.bonusAplicados, navigate, recarregarPersonagens, limparDraft]);
 
   const clearError = useCallback(() => setError(null), []);
 

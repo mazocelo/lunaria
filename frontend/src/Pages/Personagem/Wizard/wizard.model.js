@@ -9,33 +9,10 @@ import { useClasseStore } from '../../../store/classe';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { useLayout } from '../../../contexts/LayoutContext.jsx';
 import { Personagem } from '../../../models/Personagem';
-
-const ETAPAS = [
-  { id: 'boas_vindas', label: 'O Chamado', icon: '✨' },
-  { id: 'raca', label: 'Linhagem', icon: '🧬' },
-  { id: 'classe', label: 'Vocação', icon: '⚔️' },
-  { id: 'background', label: 'Origens', icon: '📖' },
-  { id: 'vantagens', label: 'Dons', icon: '🌟' },
-  { id: 'desvantagens', label: 'Marcas', icon: '🔥' },
-  { id: 'atributos', label: 'Essência', icon: '💎' },
-  { id: 'resumo', label: 'Destino', icon: '🏰' },
-  { id: 'refinamento', label: 'Ajustes', icon: '⚙️' },
-];
-
-const PONTOS_TOTAIS = 60;
-const ATTR_MIN = 5;
-const ATTR_MAX = 16; // max na criação (antes de bônus)
-
-const ATRIBUTOS_INICIAIS = {
-  forca: 10, destreza: 10, constituicao: 10,
-  inteligencia: 10, agilidade: 10, carisma: 10,
-};
-
-function somaAtributos(atributos) {
-  return Object.values(atributos)
-    .map((v) => Number(v) || 0)
-    .reduce((a, b) => a + b, 0);
-}
+import { useDraftPersistence } from './hooks/useDraftPersistence';
+import { useWizardNavigation } from './hooks/useWizardNavigation';
+import { useBonusCalculation } from './hooks/useBonusCalculation';
+import { usePointSystem } from './hooks/usePointSystem';
 
 export const useWizardModel = () => {
   const navigate = useNavigate();
@@ -45,7 +22,7 @@ export const useWizardModel = () => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
   const chatEndRef = useRef(null);
 
-  // Ativa fullscreen no main (sem padding, overflow-hidden) e desativa ao sair
+  // Fullscreen
   useEffect(() => {
     setIsFullscreen(true);
     return () => setIsFullscreen(false);
@@ -68,193 +45,91 @@ export const useWizardModel = () => {
   const desvantagensCarregadas = useDesvantagemStore(s => s.desvantagensCarregadas);
   const carregarDesvantagens = useDesvantagemStore(s => s.carregarDesvantagens);
 
-  // T4: Draft v2 — shape novo com atributosBase, skip flags
-  const DRAFT_KEY = 'lunaria_wizard_draft_v2';
-
-  const loadDraft = () => {
-    try {
-      // Descartar v1 silenciosamente
-      localStorage.removeItem('lunaria_wizard_draft_v1');
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch { return null; }
-  };
-
-  const draft = useRef(loadDraft());
-
-  // T4: Flag de draft restaurado
-  const [draftRestaurado, setDraftRestaurado] = useState(false);
-
-  // Wizard state (restaura do draft se existir)
-  const [etapaAtual, setEtapaAtual] = useState(draft.current?.etapaAtual || 'boas_vindas');
-  const [mensagens, setMensagens] = useState([]);
-  const [inputTexto, setInputTexto] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Navegacao: etapas visitadas e skip flags
-  const [etapasVisitadas, setEtapasVisitadas] = useState(
-    draft.current?.etapasVisitadas || [draft.current?.etapaAtual || 'boas_vindas']
-  );
-  const [skipVantagens, setSkipVantagens] = useState(draft.current?.skipVantagens || false);
-  const [skipDesvantagens, setSkipDesvantagens] = useState(draft.current?.skipDesvantagens || false);
-
-  // Personagem state (restaura do draft se existir)
-  const [nome, setNome] = useState(draft.current?.nome || '');
-  const [racaId, setRacaId] = useState(draft.current?.racaId || null);
-  const [racaNome, setRacaNome] = useState(draft.current?.racaNome || '');
-  const [classeId, setClasseId] = useState(draft.current?.classeId || null);
-  const [classeNome, setClasseNome] = useState(draft.current?.classeNome || '');
-  const [background, setBackground] = useState(draft.current?.background || '');
-  const [vantagensIds, setVantagensIds] = useState(draft.current?.vantagensIds || []);
-  const [vantagensNomes, setVantagensNomes] = useState(draft.current?.vantagensNomes || []);
-  const [desvantagensIds, setDesvantagensIds] = useState(draft.current?.desvantagensIds || []);
-  const [desvantagensNomes, setDesvantagensNomes] = useState(draft.current?.desvantagensNomes || []);
-
-  // T3: atributosBase — distribuição do jogador (60 pontos), sem bônus
-  const [atributosBase, setAtributosBase] = useState(
-    draft.current?.atributosBase || { ...ATRIBUTOS_INICIAIS }
-  );
-
-  // Sugestões ativas (vindas da IA)
-  const [sugestoes, setSugestoes] = useState([]);
-  const [atributosSugeridos, setAtributosSugeridos] = useState(null);
-
-  // T3: bonusAplicados = confirmação do jogador
-  const [bonusAplicados, setBonusAplicados] = useState(draft.current?.bonusAplicados || false);
-
-  // T3: Flag para banner de invalidação em etapas avançadas
-  const [bonusInvalidado, setBonusInvalidado] = useState(false);
-
-  // Saving
-  const [salvando, setSalvando] = useState(false);
-  const [gerandoBackground, setGerandoBackground] = useState(false);
-
-  // Dados para preview card
+  // Catálogos combinados
   const racasDisponiveis = racas || [];
   const classesDisponiveis = classes || [];
   const vantagensDisponiveis = useMemo(() => {
     return [...(vantagens || []), ...(desvantagens || [])];
   }, [vantagens, desvantagens]);
 
-  // T3: Bônus calculado como derivação pura (useMemo, sem side-effect)
-  const bonusDetalhes = useMemo(() => {
-    const ATTR_BASE = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
+  // --- Draft ---
+  const { draftInicial, draftRestaurado, setDraftRestaurado, salvarDraft, limparDraft } = useDraftPersistence();
 
-    const parseRacaClasseBonus = (raw) => {
-      if (!raw) return null;
-      try {
-        const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return Array.isArray(obj) ? obj[0] : obj;
-      } catch { return null; }
-    };
+  // --- Personagem state ---
+  const [nome, setNome] = useState(draftInicial?.nome || '');
+  const [racaId, setRacaId] = useState(draftInicial?.racaId || null);
+  const [racaNome, setRacaNome] = useState(draftInicial?.racaNome || '');
+  const [classeId, setClasseId] = useState(draftInicial?.classeId || null);
+  const [classeNome, setClasseNome] = useState(draftInicial?.classeNome || '');
+  const [background, setBackground] = useState(draftInicial?.background || '');
 
-    const racaObj = racasDisponiveis.find(r => r.id === racaId);
-    const classeObj = classesDisponiveis.find(c => c.id === classeId);
-    const racaBonus = parseRacaClasseBonus(racaObj?.bonus);
-    const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
+  // --- Point System ---
+  const pointSystem = usePointSystem({
+    draftInicial,
+    vantagensDisponiveis,
+    vantagensStore: vantagens,
+    desvantagensStore: desvantagens,
+  });
 
-    const bonus = {};
-    for (const key of ATTR_BASE) {
-      let b = 0;
-      if (racaBonus && (typeof racaBonus[key] === 'string' || typeof racaBonus[key] === 'number')) {
-        b += Number(racaBonus[key]) || 0;
-      }
-      if (classeBonus && (typeof classeBonus[key] === 'string' || typeof classeBonus[key] === 'number')) {
-        b += Number(classeBonus[key]) || 0;
-      }
-      if (b !== 0) bonus[key] = b;
-    }
+  // --- Bonus Calculation ---
+  const bonusCalc = useBonusCalculation({
+    draftInicial,
+    racaId, classeId,
+    vantagensIds: pointSystem.vantagensIds,
+    desvantagensIds: pointSystem.desvantagensIds,
+    racasDisponiveis, classesDisponiveis, vantagensDisponiveis,
+  });
 
-    // Vantagens/desvantagens bonus
-    const allItems = vantagensDisponiveis || [];
-    const selectedIds = [...vantagensIds, ...desvantagensIds];
-    for (const id of selectedIds) {
-      const item = allItems.find(v => v.id === id);
-      if (!item?.bonus) continue;
-      const bonusArr = Array.isArray(item.bonus) ? item.bonus : [item.bonus];
-      for (const entry of bonusArr) {
-        if (entry?.atributo && ATTR_BASE.includes(entry.atributo)) {
-          bonus[entry.atributo] = (bonus[entry.atributo] || 0) + (Number(entry.valor) || 0);
-        }
-      }
-    }
+  // --- Navigation ---
+  const navigation = useWizardNavigation(draftInicial, {
+    nome, racaId, classeId, background,
+    vantagensIds: pointSystem.vantagensIds,
+    desvantagensIds: pointSystem.desvantagensIds,
+    skipVantagens: pointSystem.skipVantagens,
+    skipDesvantagens: pointSystem.skipDesvantagens,
+    bonusAplicados: bonusCalc.bonusAplicados,
+  });
 
-    // Remove zeros
-    for (const key of Object.keys(bonus)) {
-      if (bonus[key] === 0) delete bonus[key];
-    }
-
-    return bonus;
-  }, [racaId, classeId, racasDisponiveis, classesDisponiveis, vantagensIds, desvantagensIds, vantagensDisponiveis]);
-
-  // T3: atributosFinal = atributosBase + bônus (sempre derivado)
-  const atributosFinal = useMemo(() => {
-    const result = { ...atributosBase };
-    for (const [key, val] of Object.entries(bonusDetalhes)) {
-      result[key] = (result[key] || 10) + val;
-    }
-    return result;
-  }, [atributosBase, bonusDetalhes]);
-
-  // T3: Pontos baseados apenas em atributosBase (sem bônus)
-  const pontosDistribuidos = useMemo(() => somaAtributos(atributosBase), [atributosBase]);
-  const pontosRestantes = PONTOS_TOTAIS - pontosDistribuidos;
-
-  // T3: Invalidar bonusAplicados quando build muda
-  const buildDepsRef = useRef({ racaId, classeId, vantagensIds, desvantagensIds });
+  // Invalidar bonusAplicados quando build muda (precisa de etapaAtual de navigation)
+  const buildDepsRef = useRef({
+    racaId, classeId,
+    vantagensIds: pointSystem.vantagensIds,
+    desvantagensIds: pointSystem.desvantagensIds,
+  });
   useEffect(() => {
     const prev = buildDepsRef.current;
     const changed = prev.racaId !== racaId
       || prev.classeId !== classeId
-      || prev.vantagensIds !== vantagensIds
-      || prev.desvantagensIds !== desvantagensIds;
-    buildDepsRef.current = { racaId, classeId, vantagensIds, desvantagensIds };
+      || prev.vantagensIds !== pointSystem.vantagensIds
+      || prev.desvantagensIds !== pointSystem.desvantagensIds;
+    buildDepsRef.current = {
+      racaId, classeId,
+      vantagensIds: pointSystem.vantagensIds,
+      desvantagensIds: pointSystem.desvantagensIds,
+    };
 
     if (!changed) return;
-    if (etapaAtual === 'boas_vindas') return;
+    if (navigation.etapaAtual === 'boas_vindas') return;
 
-    if (bonusAplicados) {
-      setBonusAplicados(false);
-      if (etapaAtual === 'resumo' || etapaAtual === 'refinamento') {
-        setBonusInvalidado(true);
+    if (bonusCalc.bonusAplicados) {
+      bonusCalc.setBonusAplicados(false);
+      if (navigation.etapaAtual === 'resumo' || navigation.etapaAtual === 'refinamento') {
+        bonusCalc.setBonusInvalidado(true);
       }
     }
-  }, [racaId, classeId, vantagensIds, desvantagensIds, etapaAtual, bonusAplicados]);
+  }, [racaId, classeId, pointSystem.vantagensIds, pointSystem.desvantagensIds,
+      navigation.etapaAtual, bonusCalc.bonusAplicados]);
 
-  // Etapas concluídas (derivadas do estado atual)
-  const etapasConcluidas = useMemo(() => {
-    const concluidas = [];
-    if (nome.trim()) concluidas.push('boas_vindas');
-    if (racaId) concluidas.push('raca');
-    if (classeId) concluidas.push('classe');
-    if (background.trim()) concluidas.push('background');
-    if (vantagensIds.length > 0 || skipVantagens) concluidas.push('vantagens');
-    if (desvantagensIds.length > 0 || skipDesvantagens) concluidas.push('desvantagens');
-    if (bonusAplicados) concluidas.push('atributos');
-    return concluidas;
-  }, [nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados]);
+  // Chat state
+  const [mensagens, setMensagens] = useState([]);
+  const [inputTexto, setInputTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState(null);
+  const [sugestoes, setSugestoes] = useState([]);
+  const [salvando, setSalvando] = useState(false);
+  const [gerandoBackground, setGerandoBackground] = useState(false);
 
-  const etapaIndex = useMemo(() => {
-    return ETAPAS.findIndex(e => e.id === etapaAtual);
-  }, [etapaAtual]);
-
-  // T4: Draft v2 — salvar com shape novo
-  useEffect(() => {
-    if (etapaAtual === 'boas_vindas' && !nome) return;
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        etapaAtual, nome, racaId, racaNome, classeId, classeNome,
-        background, vantagensIds, vantagensNomes, desvantagensIds,
-        desvantagensNomes, atributosBase, bonusAplicados,
-        skipVantagens, skipDesvantagens, etapasVisitadas, etapasConcluidas,
-      }));
-    } catch { /* quota exceeded — ignore */ }
-  }, [etapaAtual, nome, racaId, classeId, background, vantagensIds, desvantagensIds,
-      atributosBase, bonusAplicados, skipVantagens, skipDesvantagens, etapasVisitadas, etapasConcluidas]);
-
-  // Aviso ao fechar aba com wizard em andamento
+  // Aviso ao fechar aba
   useEffect(() => {
     const handler = (e) => {
       if (nome || racaId) {
@@ -284,21 +159,29 @@ export const useWizardModel = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // T4: Inserir mensagem de draft restaurado OU iniciar wizard
+  // Draft save
   useEffect(() => {
-    if (draft.current) {
-      setDraftRestaurado(true);
-      setMensagens([{
-        id: Date.now(),
-        role: 'sistema',
-        content: '**Rascunho restaurado.** Seu progresso anterior foi recuperado. Você pode continuar de onde parou ou descartar o rascunho para recomeçar.',
-        timestamp: new Date(),
-      }]);
-    } else {
-      iniciarWizard();
-    }
-  }, []);
+    salvarDraft({
+      etapaAtual: navigation.etapaAtual,
+      nome, racaId, racaNome, classeId, classeNome, background,
+      vantagensIds: pointSystem.vantagensIds,
+      vantagensNomes: pointSystem.vantagensNomes,
+      desvantagensIds: pointSystem.desvantagensIds,
+      desvantagensNomes: pointSystem.desvantagensNomes,
+      atributosBase: bonusCalc.atributosBase,
+      bonusAplicados: bonusCalc.bonusAplicados,
+      skipVantagens: pointSystem.skipVantagens,
+      skipDesvantagens: pointSystem.skipDesvantagens,
+      etapasVisitadas: navigation.etapasVisitadas,
+      etapasConcluidas: navigation.etapasConcluidas,
+    });
+  }, [navigation.etapaAtual, nome, racaId, classeId, background,
+      pointSystem.vantagensIds, pointSystem.desvantagensIds,
+      bonusCalc.atributosBase, bonusCalc.bonusAplicados,
+      pointSystem.skipVantagens, pointSystem.skipDesvantagens,
+      navigation.etapasVisitadas, navigation.etapasConcluidas]);
 
+  // Init wizard or restore draft
   const iniciarWizard = useCallback(async () => {
     setEnviando(true);
     try {
@@ -308,7 +191,6 @@ export const useWizardModel = () => {
         mensagemJogador: 'Olá, estou pronto para criar meu personagem!',
         historico: [],
       });
-
       setMensagens([{
         id: Date.now(),
         role: 'mestre',
@@ -316,11 +198,9 @@ export const useWizardModel = () => {
         sugestoes: resultado.sugestoes,
         timestamp: new Date(),
       }]);
-
       if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
     } catch (err) {
       setError(err.message);
-      // Fallback welcome
       setMensagens([{
         id: Date.now(),
         role: 'mestre',
@@ -333,7 +213,21 @@ export const useWizardModel = () => {
     }
   }, []);
 
-  /** Monta o estado completo do personagem para enviar ao backend */
+  useEffect(() => {
+    if (draftInicial) {
+      setDraftRestaurado(true);
+      setMensagens([{
+        id: Date.now(),
+        role: 'sistema',
+        content: '**Rascunho restaurado.** Seu progresso anterior foi recuperado. Você pode continuar de onde parou ou descartar o rascunho para recomeçar.',
+        timestamp: new Date(),
+      }]);
+    } else {
+      iniciarWizard();
+    }
+  }, []);
+
+  /** Monta o estado completo para enviar ao backend */
   const getEstado = useCallback(() => ({
     nome,
     raca_id: racaId,
@@ -341,14 +235,17 @@ export const useWizardModel = () => {
     classe_id: classeId,
     classe_nome: classeNome,
     background,
-    vantagens_ids: vantagensIds,
-    vantagens_nomes: vantagensNomes,
-    desvantagens_ids: desvantagensIds,
-    desvantagens_nomes: desvantagensNomes,
-    atributos: atributosFinal,
-  }), [nome, racaId, racaNome, classeId, classeNome, background, vantagensIds, vantagensNomes, desvantagensIds, desvantagensNomes, atributosFinal]);
+    vantagens_ids: pointSystem.vantagensIds,
+    vantagens_nomes: pointSystem.vantagensNomes,
+    desvantagens_ids: pointSystem.desvantagensIds,
+    desvantagens_nomes: pointSystem.desvantagensNomes,
+    atributos: bonusCalc.atributosFinal,
+  }), [nome, racaId, racaNome, classeId, classeNome, background,
+       pointSystem.vantagensIds, pointSystem.vantagensNomes,
+       pointSystem.desvantagensIds, pointSystem.desvantagensNomes,
+       bonusCalc.atributosFinal]);
 
-  /** Monta histórico de chat para enviar ao backend */
+  /** Histórico de chat para backend */
   const getHistorico = useCallback(() => {
     return mensagens.filter(m => m.role !== 'sistema').map(m => ({
       role: m.role === 'mestre' ? 'assistant' : 'user',
@@ -356,40 +253,35 @@ export const useWizardModel = () => {
     }));
   }, [mensagens]);
 
-  /** Envia mensagem do jogador (input textual livre) */
+  /** Envia mensagem textual do jogador */
   const enviarMensagem = useCallback(async (texto) => {
     if (!texto?.trim() || enviando) return;
-
     const mensagemJogador = texto.trim();
 
-    // Atualizar estado baseado na etapa atual ANTES de enviar
-    if (etapaAtual === 'boas_vindas' && !nome) {
+    if (navigation.etapaAtual === 'boas_vindas' && !nome) {
       setNome(mensagemJogador);
-    } else if (etapaAtual === 'background') {
+    } else if (navigation.etapaAtual === 'background') {
       setBackground(prev => prev ? `${prev}\n${mensagemJogador}` : mensagemJogador);
     }
 
-    // Adicionar mensagem do jogador ao chat
-    const novaMensagem = {
+    setMensagens(prev => [...prev, {
       id: Date.now(),
       role: 'jogador',
       content: mensagemJogador,
       timestamp: new Date(),
-    };
-    setMensagens(prev => [...prev, novaMensagem]);
+    }]);
     setInputTexto('');
     setEnviando(true);
     setError(null);
 
     try {
       const resultado = await mestreCriadorService.interagir({
-        etapa: etapaAtual,
-        estado: { ...getEstado(), nome: etapaAtual === 'boas_vindas' ? mensagemJogador : nome },
+        etapa: navigation.etapaAtual,
+        estado: { ...getEstado(), nome: navigation.etapaAtual === 'boas_vindas' ? mensagemJogador : nome },
         mensagemJogador,
         historico: getHistorico(),
       });
 
-      // Adicionar resposta do mestre
       setMensagens(prev => [...prev, {
         id: Date.now() + 1,
         role: 'mestre',
@@ -398,61 +290,24 @@ export const useWizardModel = () => {
         timestamp: new Date(),
       }]);
 
-      // Atualizar sugestões
       if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
       else setSugestoes([]);
 
-      // Atualizar atributos sugeridos
-      if (resultado.atributos_sugeridos) setAtributosSugeridos(resultado.atributos_sugeridos);
+      if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
 
-      // Avançar etapa (mantido para mensagens textuais do jogador)
-      if (resultado.etapa_proxima && resultado.etapa_proxima !== etapaAtual) {
-        const proxima = resultado.etapa_proxima;
-        setEtapaAtual(proxima);
-        setEtapasVisitadas(prev => prev.includes(proxima) ? prev : [...prev, proxima]);
+      if (resultado.etapa_proxima && resultado.etapa_proxima !== navigation.etapaAtual) {
+        navigation.registrarVisita(resultado.etapa_proxima);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setEnviando(false);
     }
-  }, [etapaAtual, nome, enviando, getEstado, getHistorico]);
+  }, [navigation.etapaAtual, nome, enviando, getEstado, getHistorico]);
 
-  // Limites de seleção
-  const MAX_DESVANTAGENS = 3;
-  const MAX_PONTOS_DESVANTAGEM = -4; // soma mínima dos custos negativos
-
-  // Pontos de desvantagem usados (soma dos custos negativos)
-  const pontosDesvantagem = useMemo(() => {
-    const allItems = vantagensDisponiveis || [];
-    return desvantagensIds.reduce((sum, id) => {
-      const item = allItems.find(v => v.id === id);
-      return sum + (item ? Number(item.custo) || 0 : 0);
-    }, 0);
-  }, [desvantagensIds, vantagensDisponiveis]);
-
-  // Pontos de vantagem usados (soma dos custos positivos)
-  const pontosVantagem = useMemo(() => {
-    const allItems = vantagensDisponiveis || [];
-    return vantagensIds.reduce((sum, id) => {
-      const item = allItems.find(v => v.id === id);
-      return sum + (item ? Number(item.custo) || 0 : 0);
-    }, 0);
-  }, [vantagensIds, vantagensDisponiveis]);
-
-  // Pontos de criação disponíveis (base + devolvidos por desvantagens)
-  const PONTOS_CRIACAO_BASE = 5;
-  const pontosDevolvidos = Math.min(Math.abs(MAX_PONTOS_DESVANTAGEM), Math.abs(pontosDesvantagem));
-  const pontosCriacaoTotal = PONTOS_CRIACAO_BASE + pontosDevolvidos;
-  const pontosCriacaoRestantes = pontosCriacaoTotal - pontosVantagem;
-
-  /** T1: Seleciona sugestão silenciosamente (sem enviarMensagem) */
+  /** Seleciona sugestão silenciosamente (T1) */
   const selecionarSugestao = useCallback((sugestao) => {
-    const { tipo, id, nome: sugestaoNome, custo: sugCusto } = sugestao;
-
-    // Ignorar se já selecionada
-    if (tipo === 'vantagem' && vantagensIds.includes(id)) return;
-    if (tipo === 'desvantagem' && desvantagensIds.includes(id)) return;
+    const { tipo, id, nome: sugestaoNome, custo } = sugestao;
 
     switch (tipo) {
       case 'raca':
@@ -463,136 +318,40 @@ export const useWizardModel = () => {
         setClasseId(id);
         setClasseNome(sugestaoNome);
         break;
-      case 'vantagem': {
-        // Verificar pontos de criação
-        const custo = Number(sugCusto) || 0;
-        if (custo > pontosCriacaoRestantes) {
-          setError(`Pontos de criação insuficientes. Disponível: ${pontosCriacaoRestantes}, Custo: ${custo}`);
-          return;
-        }
-        setVantagensIds(prev => [...prev, id]);
-        setVantagensNomes(prev => [...prev, sugestaoNome]);
-        break;
-      }
+      case 'vantagem':
       case 'desvantagem': {
-        // Limite de quantidade
-        if (desvantagensIds.length >= MAX_DESVANTAGENS) {
-          setError(`Máximo de ${MAX_DESVANTAGENS} desvantagens por personagem`);
-          return;
-        }
-        // Limite de pontos devolvidos
-        const custoDesv = Number(sugCusto) || 0;
-        if (pontosDesvantagem + custoDesv < MAX_PONTOS_DESVANTAGEM) {
-          setError(`Limite de ${Math.abs(MAX_PONTOS_DESVANTAGEM)} pontos de desvantagem atingido (atual: ${Math.abs(pontosDesvantagem)})`);
-          return;
-        }
-        setDesvantagensIds(prev => [...prev, id]);
-        setDesvantagensNomes(prev => [...prev, sugestaoNome]);
+        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
+        if (erro) setError(erro);
         break;
       }
     }
-    // T1: Seleção NÃO envia mensagem de chat — estado atualiza silenciosamente
-  }, [vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem]);
+  }, [pointSystem.selecionarVantagemDesvantagem]);
 
-  /** Remove uma vantagem/desvantagem selecionada */
-  const removerSelecao = useCallback((tipo, id) => {
-    if (tipo === 'vantagem') {
-      setVantagensIds(prev => prev.filter(v => v !== id));
-      setVantagensNomes(prev => {
-        const item = (vantagens || []).find(v => v.id === id);
-        return prev.filter(n => n !== item?.nome);
-      });
-    } else {
-      setDesvantagensIds(prev => prev.filter(d => d !== id));
-      setDesvantagensNomes(prev => {
-        const item = (desvantagens || []).find(d => d.id === id);
-        return prev.filter(n => n !== item?.nome);
-      });
-    }
-  }, [vantagens, desvantagens]);
-
-  /** Aplica sugestão de atributos da IA (opera sobre atributosBase) */
-  const aplicarAtributosSugeridos = useCallback(() => {
-    if (atributosSugeridos) {
-      setAtributosBase({ ...atributosSugeridos });
-    }
-  }, [atributosSugeridos]);
-
-  /** T3: Confirma atributos — apenas marca como confirmado */
-  const confirmarAtributos = useCallback(() => {
-    if (bonusAplicados) return;
-    setBonusAplicados(true);
-    setBonusInvalidado(false);
-  }, [bonusAplicados]);
-
-  /** T3: Atualiza um atributo individual (opera sobre atributosBase) */
-  const setAtributo = useCallback((key, value) => {
-    const val = Math.min(ATTR_MAX, Math.max(ATTR_MIN, Number(value) || ATTR_MIN));
-    setAtributosBase(prev => ({ ...prev, [key]: val }));
-  }, []);
-
-  /** Avança para a próxima etapa (usado pelo CTA "Continuar") */
-  const avancarEtapa = useCallback(() => {
-    const idx = ETAPAS.findIndex(e => e.id === etapaAtual);
-    if (idx < 0 || idx >= ETAPAS.length - 1) return null;
-    const proxima = ETAPAS[idx + 1].id;
-    const primeiraVisita = !etapasVisitadas.includes(proxima);
-    setEtapaAtual(proxima);
-    setEtapasVisitadas(prev => primeiraVisita ? [...prev, proxima] : prev);
-    return { etapa: proxima, primeiraVisita };
-  }, [etapaAtual, etapasVisitadas]);
-
-  /** Navega para uma etapa específica (usado pelo progress bar — T2) */
-  const navegarParaEtapa = useCallback((etapaId) => {
-    if (!etapasConcluidas.includes(etapaId)) return;
-    setEtapaAtual(etapaId);
-    setEtapasVisitadas(prev => prev.includes(etapaId) ? prev : [...prev, etapaId]);
-  }, [etapasConcluidas]);
-
-  /** T4: Descarta draft e reseta todo estado */
+  /** Descarta draft e reseta todo estado */
   const descartarDraft = useCallback(() => {
-    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-    setEtapaAtual('boas_vindas');
+    limparDraft();
+    navigation.resetarNavegacao();
     setNome('');
     setRacaId(null);
     setRacaNome('');
     setClasseId(null);
     setClasseNome('');
     setBackground('');
-    setVantagensIds([]);
-    setVantagensNomes([]);
-    setDesvantagensIds([]);
-    setDesvantagensNomes([]);
-    setAtributosBase({ ...ATRIBUTOS_INICIAIS });
-    setBonusAplicados(false);
-    setBonusInvalidado(false);
-    setSkipVantagens(false);
-    setSkipDesvantagens(false);
-    setEtapasVisitadas(['boas_vindas']);
+    pointSystem.resetarSelecoes();
+    bonusCalc.resetarAtributos();
     setSugestoes([]);
-    setAtributosSugeridos(null);
     setDraftRestaurado(false);
     setMensagens([]);
     setError(null);
     iniciarWizard();
-  }, [iniciarWizard]);
+  }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
 
   /** Salva o personagem */
   const salvarPersonagem = useCallback(async () => {
-    if (!nome.trim()) {
-      setError('Nome do personagem é obrigatório');
-      return;
-    }
-    if (!racaId) {
-      setError('Selecione uma raça antes de salvar');
-      return;
-    }
-    if (!classeId) {
-      setError('Selecione uma classe antes de salvar');
-      return;
-    }
-
-    if (!bonusAplicados) {
+    if (!nome.trim()) { setError('Nome do personagem é obrigatório'); return; }
+    if (!racaId) { setError('Selecione uma raça antes de salvar'); return; }
+    if (!classeId) { setError('Selecione uma classe antes de salvar'); return; }
+    if (!bonusCalc.bonusAplicados) {
       setError('Confirme seus atributos antes de salvar (aplique os bônus de raça/classe)');
       return;
     }
@@ -601,7 +360,6 @@ export const useWizardModel = () => {
     setError(null);
 
     try {
-      // T3: Enviar atributosFinal (base + bônus derivados)
       const dados = {
         nome,
         raca_id: racaId || undefined,
@@ -609,21 +367,20 @@ export const useWizardModel = () => {
         sugestao_background: 'guiado',
         background,
         historias: [],
-        forca: atributosFinal.forca,
-        destreza: atributosFinal.destreza,
-        constituicao: atributosFinal.constituicao,
-        inteligencia: atributosFinal.inteligencia,
-        agilidade: atributosFinal.agilidade,
-        carisma: atributosFinal.carisma,
-        vantagens: vantagensIds,
-        desvantagens: desvantagensIds,
+        forca: bonusCalc.atributosFinal.forca,
+        destreza: bonusCalc.atributosFinal.destreza,
+        constituicao: bonusCalc.atributosFinal.constituicao,
+        inteligencia: bonusCalc.atributosFinal.inteligencia,
+        agilidade: bonusCalc.atributosFinal.agilidade,
+        carisma: bonusCalc.atributosFinal.carisma,
+        vantagens: pointSystem.vantagensIds,
+        desvantagens: pointSystem.desvantagensIds,
         nivel: 1,
       };
 
       const personagem = new Personagem(dados);
       const criado = await personagemService.create(personagem);
 
-      // Gerar background via IA
       if (criado?.id && background) {
         try {
           setGerandoBackground(true);
@@ -635,8 +392,7 @@ export const useWizardModel = () => {
         }
       }
 
-      // Limpar draft após salvar com sucesso
-      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      limparDraft();
       await recarregarPersonagens();
       navigate('/personagens');
     } catch (err) {
@@ -644,26 +400,44 @@ export const useWizardModel = () => {
     } finally {
       setSalvando(false);
     }
-  }, [nome, racaId, classeId, background, atributosFinal, vantagensIds, desvantagensIds, bonusAplicados, navigate, recarregarPersonagens]);
+  }, [nome, racaId, classeId, background, bonusCalc.atributosFinal, bonusCalc.bonusAplicados,
+      pointSystem.vantagensIds, pointSystem.desvantagensIds, navigate, recarregarPersonagens, limparDraft]);
 
   const clearError = useCallback(() => setError(null), []);
 
   return {
-    // Wizard
-    etapas: ETAPAS,
-    etapaAtual,
-    etapaIndex,
+    // Wizard / Navigation
+    etapas: navigation.etapas,
+    etapaAtual: navigation.etapaAtual,
+    etapaIndex: navigation.etapaIndex,
+    etapasVisitadas: navigation.etapasVisitadas,
+    etapasConcluidas: navigation.etapasConcluidas,
+    avancarEtapa: navigation.avancarEtapa,
+    navegarParaEtapa: navigation.navegarParaEtapa,
+
+    // Chat
     mensagens,
     inputTexto,
     setInputTexto,
     enviando,
     sugestoes,
-    atributosSugeridos,
     chatEndRef,
 
-    // T3: Atributos separados
-    atributosBase,
-    atributosFinal,
+    // Atributos
+    atributosBase: bonusCalc.atributosBase,
+    atributosFinal: bonusCalc.atributosFinal,
+    atributosSugeridos: bonusCalc.atributosSugeridos,
+    bonusAplicados: bonusCalc.bonusAplicados,
+    bonusDetalhes: bonusCalc.bonusDetalhes,
+    bonusInvalidado: bonusCalc.bonusInvalidado,
+    pontosDistribuidos: bonusCalc.pontosDistribuidos,
+    pontosRestantes: bonusCalc.pontosRestantes,
+    pontosTotais: bonusCalc.pontosTotais,
+    attrMin: bonusCalc.attrMin,
+    attrMax: bonusCalc.attrMax,
+    confirmarAtributos: bonusCalc.confirmarAtributos,
+    setAtributo: bonusCalc.setAtributo,
+    aplicarAtributosSugeridos: bonusCalc.aplicarAtributosSugeridos,
 
     // Personagem
     nome,
@@ -672,17 +446,23 @@ export const useWizardModel = () => {
     classeId,
     classeNome,
     background,
-    vantagensIds,
-    vantagensNomes,
-    desvantagensIds,
-    desvantagensNomes,
-    pontosDistribuidos,
-    pontosRestantes,
-    pontosTotais: PONTOS_TOTAIS,
-    attrMin: ATTR_MIN,
-    attrMax: ATTR_MAX,
+    vantagensIds: pointSystem.vantagensIds,
+    vantagensNomes: pointSystem.vantagensNomes,
+    desvantagensIds: pointSystem.desvantagensIds,
+    desvantagensNomes: pointSystem.desvantagensNomes,
+    skipVantagens: pointSystem.skipVantagens,
+    setSkipVantagens: pointSystem.setSkipVantagens,
+    skipDesvantagens: pointSystem.skipDesvantagens,
+    setSkipDesvantagens: pointSystem.setSkipDesvantagens,
 
-    // Catálogos (para preview)
+    // Pontos de criação
+    pontosCriacaoTotal: pointSystem.pontosCriacaoTotal,
+    pontosCriacaoRestantes: pointSystem.pontosCriacaoRestantes,
+    pontosVantagem: pointSystem.pontosVantagem,
+    pontosDesvantagem: pointSystem.pontosDesvantagem,
+    maxDesvantagens: pointSystem.maxDesvantagens,
+
+    // Catálogos
     racasDisponiveis,
     classesDisponiveis,
     vantagensDisponiveis,
@@ -690,38 +470,13 @@ export const useWizardModel = () => {
     // Actions
     enviarMensagem,
     selecionarSugestao,
-    removerSelecao,
-    aplicarAtributosSugeridos,
-    setAtributo,
-    confirmarAtributos,
+    removerSelecao: pointSystem.removerSelecao,
     salvarPersonagem,
-    avancarEtapa,
-    navegarParaEtapa,
     clearError,
-
-    // Bonus
-    bonusAplicados,
-    bonusDetalhes,
-    bonusInvalidado,
-
-    // Navegação
-    etapasVisitadas,
-    etapasConcluidas,
-    skipVantagens,
-    setSkipVantagens,
-    skipDesvantagens,
-    setSkipDesvantagens,
 
     // Draft
     draftRestaurado,
     descartarDraft,
-
-    // Limites de seleção
-    pontosCriacaoTotal,
-    pontosCriacaoRestantes,
-    pontosVantagem,
-    pontosDesvantagem,
-    maxDesvantagens: MAX_DESVANTAGENS,
 
     // Async
     salvando,

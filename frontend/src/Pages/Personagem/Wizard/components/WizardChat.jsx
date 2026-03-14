@@ -153,68 +153,6 @@ const WizardChat = ({
 
   return (
     <div className={embedded ? 'flex h-full flex-col' : 'wa-chat-shell mx-4 mb-4 mt-3 flex h-full flex-col rounded-[24px] md:mx-5 md:mb-5'}>
-      {['vantagens', 'desvantagens'].includes(etapaAtual) && (
-        <div className="shrink-0 wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-[var(--wa-accent)]" />
-              <span className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                Ledger de criacao
-              </span>
-            </div>
-            <span className={`text-sm font-mono font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              {pontosCriacaoRestantes}/{pontosCriacaoTotal}
-            </span>
-          </div>
-
-          <div className={`h-2 overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--wa-accent)] via-[var(--wa-accent-bright)] to-[var(--wa-teal)] transition-all duration-300"
-              style={{ width: `${Math.min(100, pontosCriacaoTotal > 0 ? ((pontosCriacaoTotal - pontosCriacaoRestantes) / pontosCriacaoTotal) * 100 : 0)}%` }}
-            />
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-2">
-            {custoRaca > 0 && <span className="wa-accent-chip rounded-full px-2 py-1 text-[10px] font-mono">Linhagem -{custoRaca}</span>}
-            {custoClasse > 0 && <span className="wa-accent-chip rounded-full px-2 py-1 text-[10px] font-mono">Vocacao -{custoClasse}</span>}
-            {pontosVantagem > 0 && <span className="wa-ember-chip rounded-full px-2 py-1 text-[10px] font-mono">Dons -{pontosVantagem}</span>}
-            {pontosDesvantagem < 0 && <span className="wa-emerald-chip rounded-full px-2 py-1 text-[10px] font-mono">+{Math.abs(pontosDesvantagem)} devolvidos</span>}
-            {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
-              <span className={`ml-auto rounded-full px-2 py-1 text-[10px] font-mono ${Math.abs(pontosDesvantagem) >= maxCustoDesvantagem ? 'wa-ember-chip' : 'wa-panel-soft'}`}>
-                Marcas {Math.abs(pontosDesvantagem)}/{maxCustoDesvantagem} pts
-              </span>
-            )}
-            {pontosGastos === 0 && pontosDesvantagem === 0 && (
-              <span className={`text-[11px] font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-                Nenhum custo fixado ainda.
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {etapaAtual === 'atributos' && (
-        <div className="shrink-0 wa-panel-soft border-b border-[var(--wa-border)] px-4 py-3 md:px-5">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Dices size={16} className="text-[var(--wa-accent)]" />
-              <span className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                Calibracao de atributos
-              </span>
-            </div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-mono font-semibold ${pontosRestantes === 0 ? 'wa-emerald-chip' : 'wa-accent-chip'}`}>
-              {pontosDistribuidos}/{pontosTotais}
-            </span>
-          </div>
-          <div className={`h-2 overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
-            <div className="h-full rounded-full bg-gradient-to-r from-[var(--wa-accent)] to-[var(--wa-teal)] transition-all duration-300" style={{ width: `${Math.max(0, Math.min(100, pontosTotais > 0 ? (pontosDistribuidos / pontosTotais) * 100 : 0))}%` }} />
-          </div>
-          <p className={`mt-2 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-            {pontosRestantes === 0 ? 'Todos os pontos base foram distribuidos.' : `${pontosRestantes} pontos ainda aguardam definicao.`}
-          </p>
-        </div>
-      )}
-
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5">
         {mensagens.map((msg, msgIndex) => {
           const isJogador = msg.role === 'jogador';

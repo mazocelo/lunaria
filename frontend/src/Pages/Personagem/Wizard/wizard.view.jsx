@@ -192,29 +192,6 @@ const WizardView = (props) => {
   ].filter(Boolean)), [nome, racaAtual, classeAtual, background, vantagensIds, skipVantagens, desvantagensIds, skipDesvantagens]);
 
   const renderFooterAction = () => {
-    const etapasLineares = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
-
-    if (etapasLineares.includes(etapaAtual)) {
-      const etapaValida = etapasConcluidas.includes(etapaAtual);
-
-      return (
-        <button
-          onClick={() => avancarComMestre()}
-          disabled={!etapaValida || enviando}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-base font-fantasy font-bold transition-all ${
-            !etapaValida || enviando
-              ? isLight
-                ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                : 'cursor-not-allowed bg-slate-800 text-slate-500'
-              : 'bg-[linear-gradient(135deg,var(--wa-accent),var(--wa-accent-bright)_55%,var(--wa-teal))] text-white shadow-[0_18px_38px_rgba(139,92,246,0.28)] hover:-translate-y-0.5'
-          }`}
-        >
-          {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-          Continuar
-        </button>
-      );
-    }
-
     if (etapaAtual === 'atributos') {
       if (bonusAplicados) {
         return (
@@ -326,6 +303,11 @@ const WizardView = (props) => {
                 onBack={() => navigate('/personagens')}
                 onToggleFicha={() => setFichaAberta(prev => !prev)}
                 fichaAberta={fichaAberta}
+                pontosCriacaoRestantes={pontosCriacaoRestantes}
+                pontosCriacaoTotal={pontosCriacaoTotal}
+                pontosDistribuidos={pontosDistribuidos}
+                pontosTotais={pontosTotais}
+                pontosRestantes={pontosRestantes}
                 embedded
               />
             </div>
@@ -421,9 +403,11 @@ const WizardView = (props) => {
               />
             </div>
 
-            <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-2.5 md:px-6">
-              {renderFooterAction()}
-            </div>
+            {renderFooterAction() && (
+              <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] px-5 py-2.5 md:px-6">
+                {renderFooterAction()}
+              </div>
+            )}
           </div>
 
           <aside className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:flex-col">

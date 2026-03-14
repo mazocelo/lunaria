@@ -25,6 +25,11 @@ const WizardProgressBar = ({
   onToggleFicha,
   fichaAberta = false,
   embedded = false,
+  pontosCriacaoRestantes,
+  pontosCriacaoTotal,
+  pontosDistribuidos,
+  pontosTotais,
+  pontosRestantes,
 }) => {
   const progresso = ((etapaIndex + 1) / etapas.length) * 100;
   const etapaAtual = etapas[etapaIndex];
@@ -58,6 +63,23 @@ const WizardProgressBar = ({
           <p className={`hidden sm:block min-w-0 truncate text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
             {copy.description}
           </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {['vantagens', 'desvantagens'].includes(etapaAtual?.id) && pontosCriacaoTotal != null && (
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-mono font-semibold ${
+              pontosCriacaoRestantes <= 0 ? 'wa-ember-chip' : 'wa-accent-chip'
+            }`}>
+              {pontosCriacaoRestantes}/{pontosCriacaoTotal} pts
+            </span>
+          )}
+          {etapaAtual?.id === 'atributos' && pontosTotais != null && (
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-mono font-semibold ${
+              pontosRestantes === 0 ? 'wa-emerald-chip' : 'wa-accent-chip'
+            }`}>
+              {pontosDistribuidos}/{pontosTotais} pts
+            </span>
+          )}
         </div>
 
         {onToggleFicha && (

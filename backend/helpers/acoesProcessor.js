@@ -11,6 +11,7 @@ import { calcularHP, calcularMana, calcularEsquiva, calcularArmadura, aplicarRes
 import { setCooldown, checkCooldown } from './cooldownManager.js';
 import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
 import { aplicarEfeito, removerEfeito } from './effectManager.js';
+import { applyMetadadosToSessao } from '../agents/Mestre/contexto/mestreContextBuilder.js';
 import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 import { appendMensagemSessao, buildAcaoMestreMensagem } from '../websocket/utils/sessionMessages.js';
 
@@ -73,6 +74,12 @@ const ACTION_HANDLERS = new Map([
   ['remover_efeito', processarRemoverEfeito],
   ['dar_xp', processarDarXP],
   ['concentracao_quebrada', processarConcentracaoQuebrada],
+  // B4-F04 — Ações de cenário
+  ['alterar_terreno', processarAlterarTerreno],
+  ['mudar_cenario', processarMudarCenario],
+  ['dano_ambiental', processarDanoAmbiental],
+  ['estabilizar_personagem', processarEstabilizarPersonagem],
+  ['danificar_equipamento', processarDanificarEquipamento],
 ]);
 
 function shouldProcessAction(acao, stage = 'all') {
@@ -750,6 +757,238 @@ async function processarConcentracaoQuebrada(acao, sessao, roomId, sm) {
   emitAcaoMestre(sessao, roomId, sm, {
     tipo: 'concentracao_quebrada', personagem: nomePersonagem, userId: alvo.userId,
     magia: quebrada.nome, motivo,
+    timestamp: Date.now()
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// B4-F04 — Ações mecânicas de cenário
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * alterar_terreno: Muda terreno ativo em estadoJogo
+ */
+async function processarAlterarTerreno(acao, sessao, roomId, sm) {
+  const { terreno, efeito, duracao } = acao;
+  if (!terreno || typeof terreno !== 'string') return;
+
+  if (!sessao.estadoJogo) sessao.estadoJogo = {};
+  const terrenoAnterior = sessao.estadoJogo.terreno || null;
+  sessao.estadoJogo.terreno = terreno;
+
+  // terrenoEfeito: write-only na v1 — preparação para B4-D01/F05
+  if (efeito && typeof efeito === 'string') {
+    sessao.estadoJogo.terrenoEfeito = { descricao: efeito, duracao: duracao || null, aplicado_em: Date.now() };
+  } else {
+    sessao.estadoJogo.terrenoEfeito = null;
+  }
+
+  log.info({ terreno, terrenoAnterior, efeito: efeito || null }, 'alterar_terreno: terreno alterado');
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'terreno_alterado',
+    terreno,
+    terreno_anterior: terrenoAnterior,
+    efeito: efeito || null,
+    duracao: duracao || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * mudar_cenario: Transição de cena completa via applyMetadadosToSessao
+ */
+async function processarMudarCenario(acao, sessao, roomId, sm) {
+  const { cenario, terreno, ambiente, hora, limpar_ameacas } = acao;
+  if (!cenario || typeof cenario !== 'string') return;
+
+  const cenarioAnterior = sessao.estadoJogo?.cenaAtual || null;
+
+  // Delegar para applyMetadadosToSessao — sincroniza estadoJogo + mestreContexto
+  const metadados = { local_atual: cenario };
+  if (terreno && typeof terreno === 'string') metadados.terreno = terreno;
+  if (ambiente && typeof ambiente === 'string') metadados.ambiente = ambiente;
+  if (hora && typeof hora === 'string') metadados.hora_ficcional = hora;
+  if (limpar_ameacas !== false) metadados.ameacas = [];
+
+  applyMetadadosToSessao(sessao, metadados);
+
+  // Limpar efeito de terreno do local anterior
+  if (sessao.estadoJogo) sessao.estadoJogo.terrenoEfeito = null;
+
+  log.info({ cenario, cenarioAnterior, terreno: terreno || null }, 'mudar_cenario: cenario mudado');
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'cenario_mudado',
+    cenario,
+    cenario_anterior: cenarioAnterior,
+    terreno: terreno || null,
+    ambiente: ambiente || null,
+    hora: hora || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * dano_ambiental: Dano de ambiente (armadilhas, terreno perigoso, clima)
+ * Difere de aplicar_dano: ignora_armadura é true por padrão
+ */
+async function processarDanoAmbiental(acao, sessao, roomId, sm) {
+  const { personagem: nomePersonagem, dano, elemento, fonte, ignora_armadura } = acao;
+  if (!nomePersonagem || dano == null || dano <= 0) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  let danoFinal = dano;
+  const combate = sessao.estadoJogo?.combate;
+  let hpAnterior, hpNovo, hpMax;
+
+  // Resistências/imunidades elementais
+  if (elemento && alvo.personagem) {
+    const resistencias = alvo.personagem.resistencias || {};
+    const imunidades = alvo.personagem.imunidades || [];
+    danoFinal = aplicarResistencias(danoFinal, elemento, resistencias, imunidades);
+  }
+
+  if (danoFinal <= 0) {
+    emitAcaoMestre(sessao, roomId, sm, {
+      tipo: 'dano_ambiental', personagem: nomePersonagem, userId: alvo.userId,
+      dano: 0, elemento: elemento || null, fonte: fonte || null, imune: true,
+      hp_atual: alvo.personagem.hp_atual, hp_max: null, derrotado: false,
+      timestamp: Date.now()
+    });
+    return;
+  }
+
+  if (combate?.ativo && alvo.userId && combate.jogadores[alvo.userId]) {
+    const jogadorCombate = combate.jogadores[alvo.userId];
+
+    // ignora_armadura: default true para dano ambiental
+    if (ignora_armadura === false) {
+      danoFinal = Math.max(1, danoFinal - (jogadorCombate.armadura || 0));
+    }
+
+    hpAnterior = jogadorCombate.hp_atual;
+    hpMax = jogadorCombate.hp_max;
+    jogadorCombate.hp_atual = Math.max(0, jogadorCombate.hp_atual - danoFinal);
+    hpNovo = jogadorCombate.hp_atual;
+    if (hpNovo <= 0 && jogadorCombate.status === 'vivo') jogadorCombate.status = 'inconsciente';
+  } else {
+    const attrs = alvo.personagem.atributos || {};
+    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });
+    hpAnterior = alvo.personagem.hp_atual ?? hpMax;
+    hpNovo = Math.max(0, hpAnterior - danoFinal);
+    alvo.personagem.hp_atual = hpNovo;
+  }
+
+  log.info({ personagem: nomePersonagem, dano: danoFinal, elemento: elemento || null, fonte: fonte || null, hpAnterior, hpNovo }, 'dano_ambiental: dano aplicado');
+
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, { hp_atual: hpNovo });
+  }
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'dano_ambiental', personagem: nomePersonagem, userId: alvo.userId,
+    dano: danoFinal, elemento: elemento || null, fonte: fonte || null,
+    ignora_armadura: ignora_armadura !== false,
+    hp_atual: hpNovo, hp_max: hpMax, derrotado: hpNovo <= 0,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * estabilizar_personagem: Traz personagem inconsciente de volta a vivo (HP min 1)
+ * Sem status novo — sempre transiciona para 'vivo'
+ */
+async function processarEstabilizarPersonagem(acao, sessao, roomId, sm) {
+  const { personagem: nomePersonagem, curador, hp_restaurado } = acao;
+  if (!nomePersonagem) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) return;
+
+  const hpGanho = Math.max(1, hp_restaurado || 1);
+  const combate = sessao.estadoJogo?.combate;
+  let hpNovo, hpMax;
+
+  if (combate?.ativo && alvo.userId && combate.jogadores[alvo.userId]) {
+    const jogadorCombate = combate.jogadores[alvo.userId];
+    if (jogadorCombate.status !== 'inconsciente' && jogadorCombate.status !== 'derrotado') return;
+
+    hpMax = jogadorCombate.hp_max;
+    jogadorCombate.hp_atual = Math.min(hpMax, jogadorCombate.hp_atual + hpGanho);
+    hpNovo = jogadorCombate.hp_atual;
+    jogadorCombate.status = 'vivo';
+  } else {
+    const attrs = alvo.personagem.atributos || {};
+    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });
+    const hpAnterior = alvo.personagem.hp_atual || 0;
+    hpNovo = Math.min(hpMax, Math.max(hpGanho, hpAnterior + hpGanho));
+    alvo.personagem.hp_atual = hpNovo;
+  }
+
+  log.info({ personagem: nomePersonagem, curador: curador || null, hpNovo }, 'estabilizar_personagem: personagem estabilizado');
+
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, { hp_atual: hpNovo });
+  }
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'personagem_estabilizado', personagem: nomePersonagem, userId: alvo.userId,
+    curador: curador || null, hp_atual: hpNovo, hp_max: hpMax,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * danificar_equipamento: Destrói ou marca equipamento como danificado
+ * v1: 'destruido' remove item; 'danificado' é apenas informativo/narrativo (sem efeito mecânico de bônus)
+ */
+async function processarDanificarEquipamento(acao, sessao, roomId, sm) {
+  const { personagem: nomePersonagem, item, severidade, motivo } = acao;
+  if (!nomePersonagem || !item) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo?.personagem?.equipamentos) return;
+
+  const idx = alvo.personagem.equipamentos.findIndex(
+    e => e.nome?.toLowerCase() === item.toLowerCase()
+  );
+  if (idx === -1) return;
+
+  const equipRef = alvo.personagem.equipamentos[idx];
+  const nomeItem = equipRef.nome;
+
+  if (severidade === 'destruido') {
+    alvo.personagem.equipamentos.splice(idx, 1);
+    log.info({ item: nomeItem, personagem: nomePersonagem, motivo }, 'danificar_equipamento: item destruido');
+
+    // Persistir perda no clone
+    try {
+      const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
+      if (sessaoJogoRow) {
+        const clone = await db.PersonagemSessao.findBySessaoEPersonagem(
+          sessaoJogoRow.id, parseInt(alvo.personagemId)
+        );
+        if (clone) {
+          await db.PersonagemSessao.registrarItemPerdido(clone.id, {
+            equipamento_id: equipRef.id, nome: nomeItem, motivo: motivo || 'danificado'
+          });
+        }
+      }
+    } catch (e) {
+      log.warn({ err: e }, 'danificar_equipamento: Erro ao persistir no clone');
+    }
+  } else {
+    // 'danificado' (default): flag informativo apenas — sem efeito mecânico na v1
+    equipRef.danificado = true;
+    log.info({ item: nomeItem, personagem: nomePersonagem, motivo }, 'danificar_equipamento: item danificado (informativo)');
+  }
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'equipamento_danificado', personagem: nomePersonagem, userId: alvo.userId,
+    item: nomeItem, severidade: severidade || 'danificado', motivo: motivo || null,
     timestamp: Date.now()
   });
 }

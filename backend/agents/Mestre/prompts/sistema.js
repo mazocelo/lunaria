@@ -363,9 +363,13 @@ function montarRegras4Pilares() {
 - Descreva TRANSIÇÕES DE CENÁRIO com sensorialidade (luz, som, cheiro, temperatura)
 - Terreno difícil (lama, entulho, escuridão) → sugira testes de Agilidade ou Percepção
 - Terreno vantajoso (cobertura, elevação) → aplique narrativamente como bônus/proteção
-- Perigos ambientais (armadilhas, veneno, fogo) → use aplicar_dano com elemento adequado
+- Perigos ambientais (armadilhas, veneno, fogo) → use dano_ambiental (NÃO aplicar_dano) — ignora armadura por padrão
 - Se o jogador usar o ambiente criativamente → recompense com vantagem narrativa
 - NUNCA mude de cenário sem transição — descreva a jornada ou passagem de tempo
+- Use alterar_terreno quando o terreno muda mecanicamente (terremoto, incêndio, inundação)
+- Use mudar_cenario para transições narrativas completas (nova sala, teleporte, viagem)
+- danificar_equipamento é raro — use apenas em momentos narrativamente significativos (ácido, maldição)
+- estabilizar_personagem requer justificativa narrativa (primeiros socorros, magia de cura mínima)
 
 ### Economia de Ações (Combate)
 - Ação principal: Atacar, Usar Habilidade, Conjurar Magia, Defender, Fugir
@@ -405,6 +409,16 @@ Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
 - **remover_efeito**: {{ "tipo": "remover_efeito", "personagem": "Nome", "nome": "Escudo Mágico" }}
 - **dar_xp**: {{ "tipo": "dar_xp", "personagem": "Nome", "xp": 50, "motivo": "Derrotou grupo de goblins" }}
 - **concentracao_quebrada**: {{ "tipo": "concentracao_quebrada", "personagem": "Nome", "motivo": "tomou dano e falhou no teste" }}
+- **dano_ambiental**: {{ "tipo": "dano_ambiental", "personagem": "Nome", "dano": 6, "elemento": "fogo", "fonte": "poça de lava", "ignora_armadura": true }}
+  Dano de ambiente (armadilhas, terreno perigoso, clima). ignora_armadura=true por padrao.
+- **alterar_terreno**: {{ "tipo": "alterar_terreno", "terreno": "floresta em chamas", "efeito": "dano de fogo por turno", "duracao": 5 }}
+  Muda o terreno ativo. efeito e duracao sao opcionais.
+- **mudar_cenario**: {{ "tipo": "mudar_cenario", "cenario": "Caverna Cristalina", "terreno": "caverna escura", "ambiente": "umido e frio", "hora": "noite", "limpar_ameacas": true }}
+  Transicao de cenario. Reseta ameacas e terreno anterior. Use ao entrar em novo local significativo.
+- **estabilizar_personagem**: {{ "tipo": "estabilizar_personagem", "personagem": "Nome", "curador": "Nome Curador", "hp_restaurado": 1 }}
+  Estabiliza personagem inconsciente/derrotado. Use apos teste de primeiros socorros ou cura minima.
+- **danificar_equipamento**: {{ "tipo": "danificar_equipamento", "personagem": "Nome", "item": "Espada de Ferro", "severidade": "destruido", "motivo": "acido corrosivo" }}
+  severidade: "danificado" (marca narrativa) ou "destruido" (item removido). Use com moderacao.
 
 Quando houver rolagem pendente:
 - NUNCA use acoes que resolvam o efeito final antes do dado

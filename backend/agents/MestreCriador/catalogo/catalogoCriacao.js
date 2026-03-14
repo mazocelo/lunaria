@@ -63,7 +63,7 @@ export async function buildCatalogoCriacao() {
       const vantagensNomes = r.vantagens?.map(v => v.nome || v).join(', ') || '';
       const desvantagensNomes = r.desvantagens?.map(d => d.nome || d).join(', ') || '';
       let line = `- [ID:${r.id}] **${r.nome}** (custo:${r.custo})`;
-      if (r.descricao) line += ` — ${r.descricao.slice(0, 80)}`;
+      if (r.descricao) line += ` — ${r.descricao}`;
       if (bonus) line += ` | Bônus: ${bonus}`;
       if (vantagensNomes) line += ` | Vantagens: ${vantagensNomes}`;
       if (desvantagensNomes) line += ` | Desvantagens: ${desvantagensNomes}`;
@@ -75,7 +75,7 @@ export async function buildCatalogoCriacao() {
     for (const c of classes) {
       const bonus = formatarBonus(c.bonus);
       let line = `- [ID:${c.id}] **${c.nome}** (custo:${c.custo})`;
-      if (c.descricao) line += ` — ${c.descricao.slice(0, 80)}`;
+      if (c.descricao) line += ` — ${c.descricao}`;
       if (bonus) line += ` | Bônus: ${bonus}`;
       sections.push(line);
     }
@@ -85,7 +85,7 @@ export async function buildCatalogoCriacao() {
     for (const v of vantagens) {
       if (v.custo === 0 && v.compravel === false) continue; // pular class-only
       let line = `- [ID:${v.id}] **${v.nome}** (custo:${v.custo})`;
-      if (v.descricao) line += ` — ${v.descricao.slice(0, 60)}`;
+      if (v.descricao) line += ` — ${v.descricao}`;
       if (v.tipo?.length) line += ` | Tipo: ${v.tipo.join(',')}`;
       if (v.requisitos) line += ` | Req: ${v.requisitos}`;
       sections.push(line);
@@ -95,7 +95,7 @@ export async function buildCatalogoCriacao() {
     sections.push('\n## DESVANTAGENS DISPONÍVEIS');
     for (const d of desvantagens) {
       let line = `- [ID:${d.id}] **${d.nome}** (custo:${d.custo})`;
-      if (d.descricao) line += ` — ${d.descricao.slice(0, 60)}`;
+      if (d.descricao) line += ` — ${d.descricao}`;
       sections.push(line);
     }
 

@@ -267,6 +267,12 @@ router.post('/start', async (req, res, next) => {
         iniciadaEm: dadosAtualizacao.iniciadaEm
       });
 
+      socketManager.sendToRoom(salaId, 'status_jogo_alterado', {
+        statusJogo: 'iniciado',
+        totalJogadores: Object.keys(sessao.jogadores || {}).length,
+        timestamp: Date.now()
+      });
+
       // Notificar mudança de fase para rolagem inicial
       socketManager.sendToRoom(salaId, 'fase_atualizada', {
         fase: 'rolagem_inicial',
@@ -454,6 +460,12 @@ router.post('/start', async (req, res, next) => {
       historiaNome: historia.nome,
       donoNome: req.user.nome,
       iniciadaEm: dadosSessao.iniciadaEm
+    });
+
+    socketManager.sendToRoom(salaId, 'status_jogo_alterado', {
+      statusJogo: 'iniciado',
+      totalJogadores: Object.keys(sessao.jogadores || {}).length,
+      timestamp: Date.now()
     });
 
     // Notificar mudança de fase para rolagem inicial

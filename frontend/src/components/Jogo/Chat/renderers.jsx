@@ -413,7 +413,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                   </>
                 )}
               </div>
-              {tts.lastError && isThisPlaying && (
+              {tts.lastError && tts.errorMessageId === mensagem.id && (
                 <p className="text-red-400 text-xs mt-1 text-right">{tts.lastError}</p>
               )}
             </div>

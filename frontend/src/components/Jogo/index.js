@@ -1,5 +1,5 @@
 // Etapas
-export { default as EtapaJogoRPG } from './Etapas/EtapaJogoRPG';
+export { default as EtapaJogoRPG } from './Etapas';
 export { default as EtapaSalaEspera } from './Etapas/EtapaSalaEspera';
 export { default as EtapaSelecaoPersonagem } from './Etapas/EtapaSelecaoPersonagem';
 

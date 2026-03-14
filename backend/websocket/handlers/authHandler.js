@@ -44,7 +44,7 @@ export default class AuthHandler {
 
       // Usar userId e username do token verificado (fonte confiável)
       const userId = String(decoded.userId);
-      const username = decoded.nome || decoded.username || String(data?.username || 'Jogador');
+      const username = decoded.nome || 'Jogador';
       const rawSessionId = data?.sessionId;
       const sessionId = rawSessionId ? String(rawSessionId) : null;
 

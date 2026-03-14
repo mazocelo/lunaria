@@ -116,11 +116,12 @@ export const optionalAuth = async (req, res, next) => {
 /**
  * Gerar token de acesso JWT (curta duração)
  */
-export const generateAccessToken = (userId, email, role = 'player') => {
+export const generateAccessToken = (userId, email, nome, role = 'player') => {
   return jwt.sign(
-    { 
-      userId, 
-      email, 
+    {
+      userId,
+      email,
+      nome,
       role,
       type: 'access',
       iat: Math.floor(Date.now() / 1000)
@@ -133,15 +134,17 @@ export const generateAccessToken = (userId, email, role = 'player') => {
 /**
  * Gerar refresh token JWT (longa duração)
  */
-export const generateRefreshToken = (userId, email, role = 'player', rememberMe = false) => {
+export const generateRefreshToken = (userId, email, nome, role = 'player', rememberMe = false) => {
   const expiresIn = rememberMe ? '30d' : '25m'; // 30 dias se "lembrar de mim", senão 25 minutos
 
   return jwt.sign(
     {
       userId,
       email,
+      nome,
       role,
       type: 'refresh',
+      rememberMe,
       jti: crypto.randomUUID(),
       iat: Math.floor(Date.now() / 1000)
     },
@@ -153,19 +156,20 @@ export const generateRefreshToken = (userId, email, role = 'player', rememberMe 
 /**
  * Gerar token JWT (compatibilidade com código existente)
  */
-export const generateToken = (userId, email, role = 'player') => {
-  return generateAccessToken(userId, email, role);
+export const generateToken = (userId, email, nome, role = 'player') => {
+  return generateAccessToken(userId, email, nome, role);
 };
 
 /**
  * Gerar socket token JWT (longa duração para WebSocket)
  * Este token é usado exclusivamente para autenticação do Socket.IO
  */
-export const generateSocketToken = (userId, email, role = 'player') => {
+export const generateSocketToken = (userId, email, nome, role = 'player') => {
   return jwt.sign(
-    { 
-      userId, 
-      email, 
+    {
+      userId,
+      email,
+      nome,
       role,
       type: 'socket',
       iat: Math.floor(Date.now() / 1000)
@@ -203,13 +207,15 @@ export const refreshToken = async (refreshTokenValue) => {
       }
     }
 
-    // Gerar novos tokens
-    const accessToken = generateAccessToken(decoded.userId, decoded.email, decoded.role);
-    const newRefreshToken = generateRefreshToken(decoded.userId, decoded.email, decoded.role, false);
+    // Gerar novos tokens (preservar rememberMe da sessao original)
+    const rm = decoded.rememberMe || false;
+    const accessToken = generateAccessToken(decoded.userId, decoded.email, decoded.nome, decoded.role);
+    const newRefreshToken = generateRefreshToken(decoded.userId, decoded.email, decoded.nome, decoded.role, rm);
 
     return {
       accessToken,
-      refreshToken: newRefreshToken
+      refreshToken: newRefreshToken,
+      rememberMe: rm
     };
   } catch (error) {
     throw new Error(error.message || 'Refresh token inválido ou expirado');

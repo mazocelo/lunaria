@@ -95,9 +95,9 @@ class AuthController {
 
       // Gerar tokens JWT (usar role do banco, padrão 'player')
       const userRole = novoUsuario.role || 'player';
-      const accessToken = generateAccessToken(novoUsuario.id, novoUsuario.email, userRole);
-      const refreshToken = generateRefreshToken(novoUsuario.id, novoUsuario.email, userRole);
-      const socketToken = generateSocketToken(novoUsuario.id, novoUsuario.email, userRole);
+      const accessToken = generateAccessToken(novoUsuario.id, novoUsuario.email, novoUsuario.nome, userRole);
+      const refreshToken = generateRefreshToken(novoUsuario.id, novoUsuario.email, novoUsuario.nome, userRole);
+      const socketToken = generateSocketToken(novoUsuario.id, novoUsuario.email, novoUsuario.nome, userRole);
 
       // Configurar cookies HttpOnly
       // Cookie do access token (15 minutos)
@@ -170,9 +170,9 @@ class AuthController {
 
       // Gerar tokens JWT (usar role do banco, padrão 'player')
       const userRole = usuario.role || 'player';
-      const accessToken = generateAccessToken(usuario.id, usuario.email, userRole);
-      const refreshToken = generateRefreshToken(usuario.id, usuario.email, userRole, lembrarDeMim);
-      const socketToken = generateSocketToken(usuario.id, usuario.email, userRole);
+      const accessToken = generateAccessToken(usuario.id, usuario.email, usuario.nome, userRole);
+      const refreshToken = generateRefreshToken(usuario.id, usuario.email, usuario.nome, userRole, lembrarDeMim);
+      const socketToken = generateSocketToken(usuario.id, usuario.email, usuario.nome, userRole);
 
       // Configurar cookies HttpOnly
       
@@ -267,15 +267,18 @@ class AuthController {
 
       // Gerar novos tokens (async — verifica blacklist no Redis)
       const novosTokens = await renewToken(refreshToken);
-      const socketToken = generateSocketToken(decoded.userId, decoded.email, decoded.role);
+      const socketToken = generateSocketToken(decoded.userId, decoded.email, decoded.nome || usuario.nome, decoded.role);
 
       // Configurar cookies HttpOnly
-      
+
       // Cookie do novo access token (15 minutos)
       res.cookie('accessToken', novosTokens.accessToken, getCookieConfig(15 * 60 * 1000));
-      
-      // Cookie do novo refresh token (25 minutos)
-      res.cookie('refreshToken', novosTokens.refreshToken, getCookieConfig(25 * 60 * 1000));
+
+      // Cookie do novo refresh token — preservar duracao de rememberMe
+      const refreshMaxAge = novosTokens.rememberMe
+        ? 30 * 24 * 60 * 60 * 1000  // 30 dias
+        : 25 * 60 * 1000;             // 25 minutos
+      res.cookie('refreshToken', novosTokens.refreshToken, getCookieConfig(refreshMaxAge));
 
       res.status(200).json({
         success: true,

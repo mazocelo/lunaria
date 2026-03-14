@@ -120,6 +120,7 @@ export const useWizardModel = () => {
   const [mensagens, setMensagens] = useState([]);
   const [inputTexto, setInputTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
   const [error, setError] = useState(null);
   const [sugestoes, setSugestoes] = useState([]);
   const [salvando, setSalvando] = useState(false);
@@ -223,38 +224,52 @@ export const useWizardModel = () => {
     }
   }, []);
 
-  /** Monta o estado completo para enviar ao backend */
-  const getEstado = useCallback(() => ({
-    nome,
-    raca_id: racaId,
-    raca_nome: racaNome,
-    classe_id: classeId,
-    classe_nome: classeNome,
-    background,
-    vantagens_ids: pointSystem.vantagensIds,
-    vantagens_nomes: pointSystem.vantagensNomes,
-    desvantagens_ids: pointSystem.desvantagensIds,
-    desvantagens_nomes: pointSystem.desvantagensNomes,
-    atributos: bonusCalc.atributosFinal,
-  }), [nome, racaId, racaNome, classeId, classeNome, background,
-       pointSystem.vantagensIds, pointSystem.vantagensNomes,
-       pointSystem.desvantagensIds, pointSystem.desvantagensNomes,
-       bonusCalc.atributosFinal]);
+  /** Refs para evitar stale closures em getEstado/getHistorico */
+  const estadoRef = useRef();
+  estadoRef.current = {
+    nome, racaId, racaNome, classeId, classeNome, background,
+    vantagensIds: pointSystem.vantagensIds,
+    vantagensNomes: pointSystem.vantagensNomes,
+    desvantagensIds: pointSystem.desvantagensIds,
+    desvantagensNomes: pointSystem.desvantagensNomes,
+    atributosFinal: bonusCalc.atributosFinal,
+  };
 
-  /** Histórico de chat para backend */
+  const mensagensRef = useRef();
+  mensagensRef.current = mensagens;
+
+  /** Monta o estado completo para enviar ao backend — lê sempre do ref (never stale) */
+  const getEstado = useCallback(() => {
+    const s = estadoRef.current;
+    return {
+      nome: s.nome,
+      raca_id: s.racaId,
+      raca_nome: s.racaNome,
+      classe_id: s.classeId,
+      classe_nome: s.classeNome,
+      background: s.background,
+      vantagens_ids: s.vantagensIds,
+      vantagens_nomes: s.vantagensNomes,
+      desvantagens_ids: s.desvantagensIds,
+      desvantagens_nomes: s.desvantagensNomes,
+      atributos: s.atributosFinal,
+    };
+  }, []);
+
+  /** Histórico de chat para backend — lê sempre do ref (never stale) */
   const getHistorico = useCallback(() => {
-    return mensagens.filter(m => m.role !== 'sistema').map(m => ({
+    return mensagensRef.current.filter(m => m.role !== 'sistema').map(m => ({
       role: m.role === 'mestre' ? 'assistant' : 'user',
       content: m.content,
     }));
-  }, [mensagens]);
+  }, []);
 
   /** Envia mensagem textual do jogador */
   const enviarMensagem = useCallback(async (texto) => {
-    if (!texto?.trim() || enviando) return;
+    if (!texto?.trim() || enviandoRef.current) return;
     const mensagemJogador = texto.trim();
 
-    if (navigation.etapaAtual === 'boas_vindas' && !nome) {
+    if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome) {
       setNome(mensagemJogador);
     } else if (navigation.etapaAtual === 'background') {
       setBackground(prev => prev ? `${prev}\n${mensagemJogador}` : mensagemJogador);
@@ -267,13 +282,14 @@ export const useWizardModel = () => {
       timestamp: new Date(),
     }]);
     setInputTexto('');
+    enviandoRef.current = true;
     setEnviando(true);
     setError(null);
 
     try {
       const resultado = await mestreCriadorService.interagir({
         etapa: navigation.etapaAtual,
-        estado: { ...getEstado(), nome: navigation.etapaAtual === 'boas_vindas' ? mensagemJogador : nome },
+        estado: { ...getEstado(), nome: navigation.etapaAtual === 'boas_vindas' ? mensagemJogador : estadoRef.current.nome },
         mensagemJogador,
         historico: getHistorico(),
       });
@@ -297,9 +313,10 @@ export const useWizardModel = () => {
     } catch (err) {
       setError(err.message);
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.etapaAtual, nome, enviando, getEstado, getHistorico]);
+  }, [navigation.etapaAtual, getEstado, getHistorico]);
 
   /** Seleciona sugestão silenciosamente (T1) */
   const selecionarSugestao = useCallback((sugestao) => {
@@ -353,13 +370,13 @@ export const useWizardModel = () => {
   /** P3: Avança etapa + dispara resposta do Mestre na primeira visita.
    *  @param {Object} [estadoOverride] - se fornecido, sobrescreve campos em getEstado() (ex: skip limpa seleções) */
   const avancarComMestre = useCallback(async (estadoOverride) => {
-    if (enviando) return;
+    if (enviandoRef.current) return;
     const result = navigation.avancarEtapa();
     if (!result) return;
 
-    const { etapa, primeiraVisita } = result;
+    const { etapa } = result;
 
-    // Sempre buscar resposta do Mestre ao avançar (não só na primeira visita)
+    enviandoRef.current = true;
     setEnviando(true);
     try {
       const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
@@ -391,9 +408,10 @@ export const useWizardModel = () => {
         timestamp: new Date(),
       }]);
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [enviando, navigation.avancarEtapa, getEstado, getHistorico]);
+  }, [navigation.avancarEtapa, getEstado, getHistorico]);
 
   /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
   const pularEtapa = useCallback((tipo) => {

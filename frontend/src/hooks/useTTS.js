@@ -100,6 +100,7 @@ export const useTTS = () => {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [queueIndex, setQueueIndex] = useState(-1);
   const [isSequence, setIsSequence] = useState(false);
+  const [lastError, setLastError] = useState(null);
 
   const audioRef = useRef(null);
   const cacheRef = useRef(new Map());
@@ -460,6 +461,7 @@ export const useTTS = () => {
     const requestToken = playTokenRef.current + 1;
     playTokenRef.current = requestToken;
     setIsLoading(true);
+    setLastError(null);
     try {
       const prepared = await prepareAudioEntry({
         text,
@@ -491,6 +493,7 @@ export const useTTS = () => {
     } catch (error) {
       if (requestToken !== playTokenRef.current) return false;
       console.error('TTS error:', error.message);
+      setLastError(error.message || 'Erro ao gerar áudio');
       clearPlayback(true);
       return false;
     } finally {
@@ -561,6 +564,7 @@ export const useTTS = () => {
     } catch (error) {
       if (requestToken !== playTokenRef.current) return false;
       console.error('TTS sequence error:', error.message);
+      setLastError(error.message || 'Erro ao gerar áudio');
       clearPlayback(true);
       return false;
     } finally {
@@ -587,7 +591,9 @@ export const useTTS = () => {
     duration,
     playbackRate,
     queueIndex,
-    isSequence
+    isSequence,
+    lastError,
+    clearError: () => setLastError(null)
   };
 };
 

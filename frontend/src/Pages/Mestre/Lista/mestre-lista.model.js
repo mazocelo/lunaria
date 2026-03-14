@@ -118,7 +118,8 @@ export const useMestreListaModel = () => {
       audio.onpause = () => setPlayingMestreId(null);
       await audio.play();
       setPlayingMestreId(mestre.id);
-    } catch {
+    } catch (err) {
+      console.error('TTS preview error:', err.message);
       stopPreview();
     } finally {
       setPreviewLoading(false);

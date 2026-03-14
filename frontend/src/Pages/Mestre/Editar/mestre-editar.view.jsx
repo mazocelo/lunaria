@@ -39,7 +39,9 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
       audio.onended = () => URL.revokeObjectURL(url);
       previewAudioRef.current = audio;
       await audio.play();
-    } catch {}
+    } catch (err) {
+      console.error('TTS preview error:', err.message);
+    }
     setLoadingPreview(false);
   };
 

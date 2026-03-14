@@ -125,7 +125,8 @@ const VoicePicker = ({
       };
 
       await audio.play();
-    } catch (_) {
+    } catch (err) {
+      console.error('TTS preview error:', err.message);
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = null;

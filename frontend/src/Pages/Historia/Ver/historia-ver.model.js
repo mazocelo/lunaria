@@ -441,8 +441,9 @@ export const useHistoriaVerModel = () => {
       audio.onpause = () => setPlayingMestreId(null);
       await audio.play();
       setPlayingMestreId(selectedMestre.id);
-    } catch (_) {
+    } catch (err) {
       stopPreview();
+      setError(err.message || 'Erro ao gerar preview de voz');
     } finally {
       setLoadingPreview(false);
     }

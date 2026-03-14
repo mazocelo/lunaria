@@ -301,7 +301,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
 
     if (hasSegmentedNarration) {
       await tts.playSequence(segmentItems, mensagem.id, {
-        allowGenerate: hasPersistedAudio,
+        allowGenerate: true,
         sequenceKey: `scene:${mensagem.id}`
       });
       return;
@@ -312,7 +312,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
       effectiveVoiceId,
       mensagem.id,
       effectiveVoiceProvider,
-      { allowGenerate: hasPersistedAudio }
+      { allowGenerate: true }
     );
   };
 
@@ -386,13 +386,11 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                   <>
                     <button
                       onClick={handlePlayAudio}
-                      disabled={!hasAnyAudio || (tts.isLoading && isThisPlaying)}
+                      disabled={tts.isLoading && isThisPlaying}
                       className={`p-1.5 rounded-lg transition-all text-lg ${
                         isThisPlaying && tts.isPlaying
                           ? 'bg-purple-500/30 text-purple-200'
-                          : hasAnyAudio
-                            ? 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
-                            : 'text-purple-400/40 cursor-not-allowed'
+                          : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
                       }`}
                       title={isThisPlaying && tts.isPlaying ? 'Pausar narracao' : hasSegmentedNarration ? 'Ouvir cena' : 'Ouvir narracao'}
                     >
@@ -415,6 +413,9 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                   </>
                 )}
               </div>
+              {tts.lastError && isThisPlaying && (
+                <p className="text-red-400 text-xs mt-1 text-right">{tts.lastError}</p>
+              )}
             </div>
             {hasSegmentedNarration ? (
               <NarrationSegments

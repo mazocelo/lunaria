@@ -358,9 +358,8 @@ export const useWizardModel = () => {
     if (!result) return;
 
     const { etapa, primeiraVisita } = result;
-    if (!primeiraVisita) return;
 
-    // Primeira visita — buscar resposta do Mestre
+    // Sempre buscar resposta do Mestre ao avançar (não só na primeira visita)
     setEnviando(true);
     try {
       const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
@@ -383,8 +382,8 @@ export const useWizardModel = () => {
       else setSugestoes([]);
 
       if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
-    } catch {
-      // Graceful degradation — não faz rollback, insere mensagem de sistema
+    } catch (err) {
+      console.error('[wizard] avancarComMestre falhou:', err);
       setMensagens(prev => [...prev, {
         id: Date.now(),
         role: 'sistema',

@@ -378,7 +378,7 @@ const EtapaSalaEspera = ({
               <h3 className="text-xl font-fantasy font-bold text-white mb-4 flex items-center justify-between">
                 <span>👥 Jogadores</span>
                 <span className="text-sm font-normal text-green-300">
-                  {participantesFormatados.length}
+                  {participantesFormatados.length}/{historia?.maximo_de_participantes || '?'}
                 </span>
               </h3>
 

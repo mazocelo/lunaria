@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Filter, Clock, Users, ScrollText, MessageCircle, Dice1, ArrowDown, Swords, Shield, TrendingUp, Package, Volume2, Square, Loader2 } from 'lucide-react';
+import { X, Filter, Clock, Users, ScrollText, MessageCircle, Dice1, ArrowDown, Swords, Shield, TrendingUp, Package, Volume2, Square, Loader2, Mic } from 'lucide-react';
 import { useTTS } from '../../../hooks/useTTS.js';
+import ConfirmationModal from '../../ConfirmationModal.jsx';
 import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 
 const tipoConfig = {
@@ -48,6 +49,7 @@ const MensagemItem = ({ msg, tts }) => {
   const tipo = msg.tipo || 'roleplay';
   const config = tipoConfig[tipo] || tipoConfig.roleplay;
   const conteudo = getConteudo(msg);
+  const [showConfirmAudio, setShowConfirmAudio] = useState(false);
 
   if (tipo === 'mestre') {
     const voiceId = msg.voice_id;
@@ -85,12 +87,13 @@ const MensagemItem = ({ msg, tts }) => {
       await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: hasPersistedAudio });
     };
 
-    const handleGenerateAudio = async () => {
+    const handleGenerateAudio = () => {
       if (!tts) return;
-      const confirmed = hasAnyAudio
-        ? window.confirm('Ja existe audio para esta mensagem. Deseja gerar novamente?')
-        : window.confirm('Deseja gerar audio para esta mensagem?');
-      if (!confirmed) return;
+      setShowConfirmAudio(true);
+    };
+
+    const confirmarGerarAudio = async () => {
+      setShowConfirmAudio(false);
 
       if (hasSegmentedNarration) {
         await tts.playSequence(segmentItems, msg.id, {
@@ -108,6 +111,16 @@ const MensagemItem = ({ msg, tts }) => {
 
     return (
       <div className="glass p-3 rounded-lg border border-purple-500/20 ml-0">
+        <ConfirmationModal
+          isOpen={showConfirmAudio}
+          onClose={() => setShowConfirmAudio(false)}
+          onConfirm={confirmarGerarAudio}
+          title="Gerar Audio"
+          message={hasAnyAudio ? 'Ja existe audio para esta mensagem. Deseja gerar novamente?' : 'Deseja gerar audio para esta mensagem?'}
+          confirmText="Gerar"
+          cancelText="Cancelar"
+          type="info"
+        />
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs">{config.icon}</span>
           <span className="text-xs font-semibold text-purple-300 font-modern">Mestre</span>
@@ -131,7 +144,7 @@ const MensagemItem = ({ msg, tts }) => {
                 className="p-0.5 rounded transition-all text-purple-400 hover:text-purple-200"
                 title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
               >
-                <span className="text-[10px]">{'??'}</span>
+                <Mic size={10} />
               </button>
             </>
           )}

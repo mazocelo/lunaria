@@ -37,11 +37,8 @@ const NotificationManager = () => {
 
   useEffect(() => {
     notifyCallback = addNotification;
-    window.showGameNotification = addNotification;
-
     return () => {
       notifyCallback = null;
-      window.showGameNotification = null;
     };
   }, [addNotification]);
 

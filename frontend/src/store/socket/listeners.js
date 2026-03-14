@@ -5,6 +5,7 @@ import { COMBAT } from '../../constants/game';
 import { transicaoFase } from './faseMachine.js';
 import { playSound } from '../../utils/audio.js';
 import { sendNotification } from '../../utils/notifications.js';
+import { showGameNotification } from '../../components/Jogo/NotificationManager.jsx';
 
 export const createListenerActions = (set, get) => ({
   setupInternalListeners: () => {
@@ -57,8 +58,8 @@ export const createListenerActions = (set, get) => ({
       });
       get().log('Disconnected', { reason, preservedRoomId: isIntentional ? null : prevRoomId });
 
-      if (!isIntentional && window.showGameNotification) {
-        window.showGameNotification('Conexao perdida. Tentando reconectar...', 'warning');
+      if (!isIntentional) {
+        showGameNotification('Conexao perdida. Tentando reconectar...', 'warning');
       }
     });
 
@@ -77,18 +78,14 @@ export const createListenerActions = (set, get) => ({
         error: message,
         erroMensagem: message
       });
-      if (window.showGameNotification) {
-        window.showGameNotification(message, 'error');
-      }
+      showGameNotification(message, 'error');
       get().log('Socket error', { error: message }, 'error');
     });
 
     // ===== LISTENERS DE RECONEXÃO =====
-    socket.io.on('reconnect', (attempt) => {
+    socket.io.on('reconnect', async (attempt) => {
       set({ isConnected: true, isReconnecting: false, error: null });
-      if (window.showGameNotification) {
-        window.showGameNotification('Reconectado com sucesso!', 'success');
-      }
+      showGameNotification('Reconectado com sucesso!', 'success');
 
       // Recuperar dados de auth para re-autenticar
       const { socketToken, currentUser, roomId } = get();
@@ -104,22 +101,42 @@ export const createListenerActions = (set, get) => ({
         } catch (e) { /* silent */ }
       }
 
-      if (userId && username) {
-        const authData = { userId, username };
-        if (socketToken) authData.token = socketToken;
-
-        socket.emit('authenticate', authData);
-
-        // Após re-auth, re-entrar na sala se estava em uma
-        const savedRoomId = roomId;
-        if (savedRoomId) {
-          socket.once('authenticated', () => {
-            get().log('Re-joining room after reconnect', { roomId: savedRoomId });
-            socket.emit('join_room', { roomId: savedRoomId, userId });
-          });
-        }
-      } else {
+      if (!userId || !username) {
         get().log('Cannot re-authenticate: missing userId/username', {}, 'warn');
+        return;
+      }
+
+      // Obter socketToken fresco via /auth/renovar (cookies HttpOnly autenticam)
+      let token = socketToken;
+      if (!token) {
+        try {
+          const apiBase = import.meta.env.VITE_API_URL || '';
+          const res = await fetch(`${apiBase}/auth/renovar`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          if (res.ok) {
+            const data = await res.json();
+            token = data?.data?.socketToken;
+            if (token) get().setSocketToken(token);
+          }
+        } catch (e) {
+          get().log('Failed to refresh socketToken on reconnect', { err: e.message }, 'warn');
+        }
+      }
+
+      const authData = { userId, username };
+      if (token) authData.token = token;
+
+      socket.emit('authenticate', authData);
+
+      // Após re-auth, re-entrar na sala se estava em uma
+      const savedRoomId = roomId;
+      if (savedRoomId) {
+        socket.once('authenticated', () => {
+          get().log('Re-joining room after reconnect', { roomId: savedRoomId });
+          socket.emit('join_room', { roomId: savedRoomId, userId });
+        });
       }
     });
 
@@ -130,9 +147,7 @@ export const createListenerActions = (set, get) => ({
     socket.io.on('reconnect_failed', () => {
       console.error('❌ Reconexão falhou após todas as tentativas');
       set({ isReconnecting: false, error: 'Nao foi possivel reconectar. Recarregue a pagina.' });
-      if (window.showGameNotification) {
-        window.showGameNotification('Falha na reconexao. Recarregue a pagina.', 'error');
-      }
+      showGameNotification('Falha na reconexao. Recarregue a pagina.', 'error');
     });
 
     // ===== LISTENERS DE AUTENTICAÇÃO =====
@@ -334,9 +349,7 @@ export const createListenerActions = (set, get) => ({
       if (ehMeuTurno) {
         playSound('my_turn');
         sendNotification('Lunaria - É sua vez!', { body: 'Seu turno começou. Volte ao jogo!' });
-        if (typeof window !== 'undefined' && window.showGameNotification) {
-          window.showGameNotification(`⚡ É SUA VEZ!`, 'success');
-        }
+        showGameNotification(`⚡ É SUA VEZ!`, 'success');
       }
 
       get().log('Turno alterado', {
@@ -386,9 +399,7 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.on('teste_rejeitado', (data) => {
-      if (window.showGameNotification) {
-        window.showGameNotification('Essa rolagem não corresponde ao teste pendente.', 'warning');
-      }
+      showGameNotification('Essa rolagem não corresponde ao teste pendente.', 'warning');
       get().log('Teste rejeitado', data, 'warn');
     });
 
@@ -430,31 +441,23 @@ export const createListenerActions = (set, get) => ({
 
     socket.on('erro_turno', (data) => {
       set({ erroMensagem: data.message });
-      if (window.showGameNotification) {
-        window.showGameNotification(data.message || 'Não é seu turno!', 'warning');
-      }
+      showGameNotification(data.message || 'Não é seu turno!', 'warning');
       get().log('Erro ao enviar mensagem fora do turno', { message: data.message });
     });
 
     socket.on('server_message', (data) => {
-      if (window.showGameNotification) {
-        window.showGameNotification(data.mensagem || data.message || 'Mensagem do servidor', 'warning');
-      }
+      showGameNotification(data.mensagem || data.message || 'Mensagem do servidor', 'warning');
       get().log('Server message', { mensagem: data.mensagem });
     });
 
     socket.on('force_disconnect', (data) => {
       set({ isConnected: false });
-      if (window.showGameNotification) {
-        window.showGameNotification(data.reason || 'Conexão encerrada: você abriu o jogo em outra aba.', 'error');
-      }
+      showGameNotification(data.reason || 'Conexão encerrada: você abriu o jogo em outra aba.', 'error');
       get().log('Force disconnect', { reason: data.reason });
     });
 
     socket.on('mestre_solicita_dados', (data) => {
-      if (window.showGameNotification) {
-        window.showGameNotification(`🎲 O Mestre solicita rolagem de dados!`, 'info');
-      }
+      showGameNotification(`🎲 O Mestre solicita rolagem de dados!`, 'info');
       get().log('Solicitação de dados do Mestre', { data });
     });
 
@@ -491,9 +494,7 @@ export const createListenerActions = (set, get) => ({
 
       get().log('Sessão resetada', { historiaId: data.historiaId, success: true });
 
-      if (window.showGameNotification) {
-        window.showGameNotification(`Sessão resetada pelo dono da história: ${data.historiaNome || ''}`, 'warning');
-      }
+      showGameNotification(`Sessão resetada pelo dono da história: ${data.historiaNome || ''}`, 'warning');
     });
 
     socket.on('sessao_encerrada', (data) => {
@@ -529,38 +530,28 @@ export const createListenerActions = (set, get) => ({
 
       get().log('Sessão encerrada', { salaId: data.salaId, success: true });
 
-      if (window.showGameNotification) {
-        window.showGameNotification(`Sessão encerrada: ${data.motivo || 'Encerrada pelo administrador'}`, 'info');
-      }
+      showGameNotification(`Sessão encerrada: ${data.motivo || 'Encerrada pelo administrador'}`, 'info');
     });
 
     // ===== LISTENERS DE ERROS =====
 
     socket.on('erro_sistema', (data) => {
       set({ erroMensagem: data.message || 'Erro do sistema' });
-      if (window.showGameNotification) {
-        window.showGameNotification(data.message || 'Erro do sistema', 'error');
-      }
+      showGameNotification(data.message || 'Erro do sistema', 'error');
     });
 
     socket.on('erro_mensagem', (data) => {
       set({ erroMensagem: data.message || 'Erro ao enviar mensagem' });
-      if (window.showGameNotification) {
-        window.showGameNotification(data.message || 'Erro ao enviar mensagem', 'error');
-      }
+      showGameNotification(data.message || 'Erro ao enviar mensagem', 'error');
     });
 
     socket.on('erro_dado_inicial', (data) => {
-      if (window.showGameNotification) {
-        window.showGameNotification(data.message || 'Erro ao rolar dado inicial', 'error');
-      }
+      showGameNotification(data.message || 'Erro ao rolar dado inicial', 'error');
     });
 
     socket.on('rate_limit_exceeded', (data) => {
       set({ rateLimitExceeded: true });
-      if (window.showGameNotification) {
-        window.showGameNotification(data.message || 'Muitas mensagens! Aguarde um momento.', 'warning');
-      }
+      showGameNotification(data.message || 'Muitas mensagens! Aguarde um momento.', 'warning');
       setTimeout(() => set({ rateLimitExceeded: false }), data.retryAfter || 5000);
     });
 

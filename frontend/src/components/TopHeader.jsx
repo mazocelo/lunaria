@@ -120,13 +120,17 @@ const TopHeader = ({ notificationCount, onOpenNotifications }) => {
               isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800'
             }`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              isLight
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-purple-900/60 text-purple-300'
-            }`}>
-              {userInitial}
-            </div>
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user.nome} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                isLight
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-purple-900/60 text-purple-300'
+              }`}>
+                {userInitial}
+              </div>
+            )}
             <ChevronDown size={14} className={`transition-transform duration-200 ${
               dropdownOpen ? 'rotate-180' : ''
             } ${isLight ? 'text-slate-500' : 'text-slate-400'}`} />

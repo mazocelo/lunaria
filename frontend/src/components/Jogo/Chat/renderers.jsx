@@ -1,5 +1,6 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
+import ConfirmationModal from '../../ConfirmationModal.jsx';
 import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
 import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
@@ -239,6 +240,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const [generatingScene, setGeneratingScene] = useState(false);
   const [sceneLightbox, setSceneLightbox] = useState(false);
   const [activeLightbox, setActiveLightbox] = useState(null);
+  const [showConfirmAudio, setShowConfirmAudio] = useState(false);
 
   useEffect(() => {
     const persistedSceneImage = mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null;
@@ -314,15 +316,10 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     );
   };
 
-  const handleGenerateAudio = async () => {
-    const mustConfirm = hasAnyAudio;
-    if (mustConfirm) {
-      const confirmed = window.confirm('Ja existe audio para esta mensagem. Deseja gerar novamente?');
-      if (!confirmed) return;
-    } else {
-      const confirmed = window.confirm('Deseja gerar audio para esta mensagem?');
-      if (!confirmed) return;
-    }
+  const handleGenerateAudio = () => setShowConfirmAudio(true);
+
+  const confirmarGerarAudio = async () => {
+    setShowConfirmAudio(false);
 
     if (hasSegmentedNarration) {
       await tts.playSequence(segmentItems, mensagem.id, {
@@ -344,6 +341,16 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
 
   return (
     <div className="w-full animate-fade-in">
+      <ConfirmationModal
+        isOpen={showConfirmAudio}
+        onClose={() => setShowConfirmAudio(false)}
+        onConfirm={confirmarGerarAudio}
+        title="Gerar Audio"
+        message={hasAnyAudio ? 'Ja existe audio para esta mensagem. Deseja gerar novamente?' : 'Deseja gerar audio para esta mensagem?'}
+        confirmText="Gerar"
+        cancelText="Cancelar"
+        type="info"
+      />
       <div className={`glass p-6 rounded-xl border-2 shadow-2xl ${
         temSolicitacaoDados || mensagem.destaque
           ? 'border-amber-400/90 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'

@@ -14,7 +14,6 @@ import NotificationManager from '../NotificationManager';
 import BarraStatusCompacta from '../Gameplay/BarraStatusCompacta';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
 import { PARTICLES } from '../../../constants/game';
-import { useSocketStore } from '../../../store/index.js';
 
 const EtapaJogoRPGView = (props) => {
   const {
@@ -475,11 +474,7 @@ const EtapaJogoRPGView = (props) => {
       <SessionRecap
         isVisible={!!sessionRecap}
         recapData={sessionRecap}
-        onClose={() => {
-          try {
-            useSocketStore.setState({ sessionRecap: null });
-          } catch (_) {}
-        }}
+        onClose={clearSessionRecap}
       />
     </div>
   );

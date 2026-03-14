@@ -80,7 +80,7 @@ const ExplorarHistoriasPage = () => {
       </div>
 
       <p className={`text-sm font-modern mb-4 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-        {total} {total === 1 ? 'aventura disponível' : 'aventuras disponíveis'}
+        {busca ? filtradas.length : total} {(busca ? filtradas.length : total) === 1 ? 'aventura disponível' : 'aventuras disponíveis'}
       </p>
 
       {/* Grid */}
@@ -132,7 +132,12 @@ const ExplorarHistoriasPage = () => {
               <div className="flex items-center gap-3 text-xs font-modern">
                 <span className={`flex items-center gap-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   <Users size={12} />
-                  {historia.maximo_de_participantes || 5} vagas
+                  {(() => {
+                    const max = historia.maximo_de_participantes || 5;
+                    const atual = historia._count?.historias_personagens || 0;
+                    const vagas = Math.max(0, max - atual);
+                    return <span className={vagas === 0 ? 'text-red-400 font-semibold' : ''}>{vagas}/{max} vagas</span>;
+                  })()}
                 </span>
                 {historia.usuarios?.nome && (
                   <span className={isLight ? 'text-purple-600' : 'text-purple-400'}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import Notification from '../../../components/Notification.jsx';
+import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { EtapaJogoRPG } from '../../../components/Jogo';
 import { AuthLoading } from '../../../components/Jogo/Shared/LoadingStates';
 
@@ -25,6 +26,9 @@ const JogoAtivoView = ({
 
   // Handlers
   handleSair,
+  showConfirmSair,
+  confirmarSair,
+  cancelarSair,
   handleAdicionarMensagem,
   handleAtualizarStatus,
   handleClearErrors,
@@ -73,6 +77,18 @@ const JogoAtivoView = ({
           Reconectando ao servidor...
         </div>
       )}
+
+      {/* P-03: Modal de confirmacao ao sair */}
+      <ConfirmationModal
+        isOpen={showConfirmSair}
+        onClose={cancelarSair}
+        onConfirm={confirmarSair}
+        title="Sair da Aventura"
+        message="Tem certeza que deseja sair? Seus parceiros continuarão jogando."
+        confirmText="Sair"
+        cancelText="Continuar Jogando"
+        type="danger"
+      />
 
       {/* Componente de Jogo Ativo */}
       <EtapaJogoRPG

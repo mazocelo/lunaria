@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLayout } from '../../../contexts/LayoutContext';
@@ -142,10 +142,22 @@ export const useJogoAtivoModel = () => {
     }
   }, [historiaAtual?.id, isConnected, carregarMensagensSalvas]);
 
+  // P-03: Modal de confirmacao antes de sair
+  const [showConfirmSair, setShowConfirmSair] = useState(false);
+
   const handleSair = useCallback(() => {
+    setShowConfirmSair(true);
+  }, []);
+
+  const confirmarSair = useCallback(() => {
+    setShowConfirmSair(false);
     sairDoJogo();
     navigate('/historias');
   }, [sairDoJogo, navigate]);
+
+  const cancelarSair = useCallback(() => {
+    setShowConfirmSair(false);
+  }, []);
 
   const handleAdicionarMensagem = useCallback((mensagem) => {
     adicionarMensagem(mensagem);
@@ -174,6 +186,9 @@ export const useJogoAtivoModel = () => {
     isConnected,
     isReconnecting,
     handleSair,
+    showConfirmSair,
+    confirmarSair,
+    cancelarSair,
     handleAdicionarMensagem,
     handleAtualizarStatus,
     handleClearErrors,

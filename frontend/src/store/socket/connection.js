@@ -165,12 +165,10 @@ export const createConnectionActions = (set, get) => ({
   // ===== GERENCIAMENTO DE SOCKET TOKEN =====
   setSocketToken: (token) => {
     set({ socketToken: token });
-    try { localStorage.setItem('socketToken', token); } catch (e) { /* silent */ }
   },
 
   clearSocketToken: () => {
     set({ socketToken: null });
-    try { localStorage.removeItem('socketToken'); } catch (e) { /* silent */ }
   },
 
   // ===== DISCONNECT E CLEANUP =====
@@ -196,7 +194,6 @@ export const createConnectionActions = (set, get) => ({
       roomUsers: [],
       error: null
     });
-    try { localStorage.removeItem('socketToken'); } catch (e) { /* silent */ }
   },
 
   resetSocketState: () => {

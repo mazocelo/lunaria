@@ -33,7 +33,7 @@ export const socketInitialStates = {
   // ===== INFORMAÇÕES DO USUÁRIO =====
   currentUser: null,
   userRole: null, // 'mestre' | 'jogador'
-  socketToken: (() => { try { return localStorage.getItem('socketToken'); } catch { return null; } })(),
+  socketToken: null, // Mantido apenas em memória (Zustand) — sem localStorage
   
   // ===== ESTADO DA SALA/ROOM (TÉCNICO) =====
   roomId: null, // ID técnico da room WebSocket

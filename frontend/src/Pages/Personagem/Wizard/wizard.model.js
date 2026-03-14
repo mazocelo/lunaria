@@ -63,25 +63,38 @@ export const useWizardModel = () => {
   const desvantagensCarregadas = useDesvantagemStore(s => s.desvantagensCarregadas);
   const carregarDesvantagens = useDesvantagemStore(s => s.carregarDesvantagens);
 
-  // Wizard state
-  const [etapaAtual, setEtapaAtual] = useState('boas_vindas');
+  // P-02: Auto-save — chave versionada para evitar quebra se shape mudar
+  const DRAFT_KEY = 'lunaria_wizard_draft_v1';
+
+  const loadDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  };
+
+  const draft = useRef(loadDraft());
+
+  // Wizard state (restaura do draft se existir)
+  const [etapaAtual, setEtapaAtual] = useState(draft.current?.etapaAtual || 'boas_vindas');
   const [mensagens, setMensagens] = useState([]);
   const [inputTexto, setInputTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
 
-  // Personagem state
-  const [nome, setNome] = useState('');
-  const [racaId, setRacaId] = useState(null);
-  const [racaNome, setRacaNome] = useState('');
-  const [classeId, setClasseId] = useState(null);
-  const [classeNome, setClasseNome] = useState('');
-  const [background, setBackground] = useState('');
-  const [vantagensIds, setVantagensIds] = useState([]);
-  const [vantagensNomes, setVantagensNomes] = useState([]);
-  const [desvantagensIds, setDesvantagensIds] = useState([]);
-  const [desvantagensNomes, setDesvantagensNomes] = useState([]);
-  const [atributos, setAtributos] = useState({
+  // Personagem state (restaura do draft se existir)
+  const [nome, setNome] = useState(draft.current?.nome || '');
+  const [racaId, setRacaId] = useState(draft.current?.racaId || null);
+  const [racaNome, setRacaNome] = useState(draft.current?.racaNome || '');
+  const [classeId, setClasseId] = useState(draft.current?.classeId || null);
+  const [classeNome, setClasseNome] = useState(draft.current?.classeNome || '');
+  const [background, setBackground] = useState(draft.current?.background || '');
+  const [vantagensIds, setVantagensIds] = useState(draft.current?.vantagensIds || []);
+  const [vantagensNomes, setVantagensNomes] = useState(draft.current?.vantagensNomes || []);
+  const [desvantagensIds, setDesvantagensIds] = useState(draft.current?.desvantagensIds || []);
+  const [desvantagensNomes, setDesvantagensNomes] = useState(draft.current?.desvantagensNomes || []);
+  const [atributos, setAtributos] = useState(draft.current?.atributos || {
     forca: 10, destreza: 10, constituicao: 10,
     inteligencia: 10, agilidade: 10, carisma: 10,
   });
@@ -91,12 +104,37 @@ export const useWizardModel = () => {
   const [atributosSugeridos, setAtributosSugeridos] = useState(null);
 
   // Bônus de raça/classe
-  const [bonusAplicados, setBonusAplicados] = useState(false);
-  const [bonusDetalhes, setBonusDetalhes] = useState(null); // { forca: +2, agilidade: +1, ... }
+  const [bonusAplicados, setBonusAplicados] = useState(draft.current?.bonusAplicados || false);
+  const [bonusDetalhes, setBonusDetalhes] = useState(draft.current?.bonusDetalhes || null);
 
   // Saving
   const [salvando, setSalvando] = useState(false);
   const [gerandoBackground, setGerandoBackground] = useState(false);
+
+  // P-02: Salvar draft a cada mudanca de etapa ou dados relevantes
+  useEffect(() => {
+    // Nao salvar na etapa inicial se nada foi preenchido
+    if (etapaAtual === 'boas_vindas' && !nome) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        etapaAtual, nome, racaId, racaNome, classeId, classeNome,
+        background, vantagensIds, vantagensNomes, desvantagensIds,
+        desvantagensNomes, atributos, bonusAplicados, bonusDetalhes
+      }));
+    } catch { /* quota exceeded — ignore */ }
+  }, [etapaAtual, nome, racaId, classeId, background, vantagensIds, desvantagensIds, atributos, bonusAplicados]);
+
+  // P-02: Aviso ao fechar aba com wizard em andamento
+  useEffect(() => {
+    const handler = (e) => {
+      if (nome || racaId) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [nome, racaId]);
 
   // Dados para preview card
   const racasDisponiveis = racas || [];
@@ -464,6 +502,12 @@ export const useWizardModel = () => {
       return;
     }
 
+    // N-02: Garantir que bonus de raca/classe foram aplicados
+    if (!bonusAplicados) {
+      setError('Confirme seus atributos antes de salvar (aplique os bônus de raça/classe)');
+      return;
+    }
+
     setSalvando(true);
     setError(null);
 
@@ -502,6 +546,8 @@ export const useWizardModel = () => {
         }
       }
 
+      // P-02: Limpar draft apos salvar com sucesso
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       await recarregarPersonagens();
       navigate('/personagens');
     } catch (err) {

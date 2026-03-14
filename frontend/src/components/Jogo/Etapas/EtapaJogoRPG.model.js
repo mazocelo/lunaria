@@ -45,6 +45,10 @@ export const useEtapaJogoRPGModel = ({
     gameStoreAtualizarMensagem,
   } = socketMirror;
 
+  const clearSessionRecap = useCallback(() => {
+    useSocketStore.setState({ sessionRecap: null });
+  }, []);
+
   // Domain G: Cooldown roleplay local timer
   const [cooldownLocal, setCooldownLocal] = useState(0);
   const cooldownIntervalRef = useRef(null);
@@ -223,7 +227,7 @@ export const useEtapaJogoRPGModel = ({
     ehMeuTurno, turnoIniciado, turnoStatus,
     combateAtivo, combateMonstros, combateJogadores,
     combateRodada, combateResultado, combateLog, combateXpGanho,
-    sessionRecap,
+    sessionRecap, clearSessionRecap,
     levelUpData, setLevelUpData,
 
     // Message input

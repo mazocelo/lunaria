@@ -99,9 +99,13 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
     }`}>
       {/* Header */}
       <div className="flex items-center gap-3 p-4 pb-2">
-        <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-          {initial}
-        </div>
+        {post.usuario?.avatar ? (
+          <img src={post.usuario.avatar} alt={post.usuario.nome} className="w-9 h-9 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            {initial}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>

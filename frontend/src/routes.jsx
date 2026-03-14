@@ -56,6 +56,7 @@ const NovaHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Nova'));
 const EditarHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Editar'));
 const VerHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Ver'));
 const BillingPage = React.lazy(() => import('./Pages/Billing'));
+const AdminMotorPage = React.lazy(() => import('./Pages/Admin/Motor'));
 
 /**
  * ============================================================================
@@ -156,7 +157,10 @@ export const ROUTES = {
   FEED: '/feed',
 
   // ===== BILLING =====
-  BILLING: '/billing'
+  BILLING: '/billing',
+
+  // ===== ADMIN =====
+  ADMIN_MOTOR: '/admin/motor'
 };
 
 /**
@@ -608,6 +612,15 @@ const ROUTE_CONFIG = [
     component: BillingPage,
     name: 'Billing',
     category: 'USUARIO'
+  },
+
+  // ===== ADMIN =====
+  {
+    path: ROUTES.ADMIN_MOTOR,
+    component: AdminMotorPage,
+    name: 'Admin Motor',
+    category: 'ADMIN',
+    requireSuperAdmin: true
   }
 ];
 

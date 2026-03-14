@@ -68,8 +68,8 @@ const WizardChat = ({
   const catalogoAtual = useMemo(() => {
     if (etapaAtual === 'raca') return racasDisponiveis || [];
     if (etapaAtual === 'classe') return classesDisponiveis || [];
-    if (etapaAtual === 'vantagens') return (vantagensDisponiveis || []).filter(v => v.custo > 0);
-    if (etapaAtual === 'desvantagens') return (vantagensDisponiveis || []).filter(v => v.custo < 0);
+    if (etapaAtual === 'vantagens') return (vantagensDisponiveis || []).filter(v => (v.custo ?? 0) > 0);
+    if (etapaAtual === 'desvantagens') return (vantagensDisponiveis || []).filter(v => (v.custo ?? 0) < 0);
     return [];
   }, [etapaAtual, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
 

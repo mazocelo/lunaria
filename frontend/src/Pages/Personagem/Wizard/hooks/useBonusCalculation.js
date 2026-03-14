@@ -106,6 +106,7 @@ export const useBonusCalculation = ({
 
   /** Atualiza um atributo individual (opera sobre atributosBase) */
   const setAtributo = useCallback((key, value) => {
+    if (!ATTR_KEYS.includes(key)) return;
     const val = Math.min(ATTR_MAX, Math.max(ATTR_MIN, Number(value) || ATTR_MIN));
     setAtributosBase(prev => ({ ...prev, [key]: val }));
   }, []);

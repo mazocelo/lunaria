@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - run: npm ci --include=dev
 
       - name: ESLint
         run: npm run lint
@@ -46,5 +46,5 @@ jobs:
           script: |
             cd /opt/role-chat-game/frontend
             git pull --ff-only origin main
-            npm ci
+            npm ci --include=dev
             npm run build

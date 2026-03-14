@@ -43,7 +43,7 @@ const WizardView = (props) => {
     setAtributo,
     confirmarAtributos,
     salvarPersonagem,
-    avancarEtapa,
+    avancarComMestre,
     navegarParaEtapa,
     clearError,
 
@@ -51,6 +51,15 @@ const WizardView = (props) => {
     bonusAplicados,
     bonusDetalhes,
     bonusInvalidado,
+
+    // Skip
+    skipVantagens,
+    setSkipVantagens,
+    skipDesvantagens,
+    setSkipDesvantagens,
+
+    // Background
+    background,
 
     // Draft
     draftRestaurado,
@@ -197,6 +206,10 @@ const WizardView = (props) => {
               vantagensDisponiveis={vantagensDisponiveis}
               racasDisponiveis={racasDisponiveis}
               classesDisponiveis={classesDisponiveis}
+              bonusJaAplicado={true}
+              mostrarPendencias={true}
+              skipVantagens={skipVantagens}
+              skipDesvantagens={skipDesvantagens}
             />
 
             {/* Seleções removíveis */}
@@ -291,23 +304,51 @@ const WizardView = (props) => {
       } backdrop-blur-sm`}>
         {(() => {
           const etapasLineares = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
+          const podeSkip = etapaAtual === 'vantagens' || etapaAtual === 'desvantagens';
           if (etapasLineares.includes(etapaAtual)) {
             const etapaValida = etapasConcluidas.includes(etapaAtual);
+            const handleSkip = () => {
+              if (etapaAtual === 'vantagens') {
+                vantagensIds.forEach(id => removerSelecao('vantagem', id));
+                setSkipVantagens(true);
+              } else {
+                desvantagensIds.forEach(id => removerSelecao('desvantagem', id));
+                setSkipDesvantagens(true);
+              }
+              avancarComMestre();
+            };
             return (
-              <button
-                onClick={avancarEtapa}
-                disabled={!etapaValida}
-                className={`w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
-                  etapaValida
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
-                    : isLight
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                <ArrowRight size={18} />
-                Continuar
-              </button>
+              <div className="flex gap-2">
+                {podeSkip && (
+                  <button
+                    onClick={handleSkip}
+                    disabled={enviando}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-modern font-medium text-sm transition-all cursor-pointer ${
+                      enviando
+                        ? 'opacity-50 cursor-not-allowed'
+                        : isLight
+                          ? 'border border-slate-300 text-slate-500 hover:bg-slate-100'
+                          : 'border border-slate-600 text-slate-400 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    Pular
+                  </button>
+                )}
+                <button
+                  onClick={avancarComMestre}
+                  disabled={!etapaValida || enviando}
+                  className={`flex-1 flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
+                    !etapaValida || enviando
+                      ? isLight
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/20'
+                  }`}
+                >
+                  {enviando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+                  Continuar
+                </button>
+              </div>
             );
           }
           if (etapaAtual === 'atributos') {
@@ -332,14 +373,15 @@ const WizardView = (props) => {
             );
           }
           if (etapaAtual === 'resumo' || etapaAtual === 'refinamento') {
+            const podecriar = !!(nome?.trim() && racaId && classeId && background?.trim() && bonusAplicados);
             return (
               <button
                 onClick={salvarPersonagem}
-                disabled={salvando || gerandoBackground || !bonusAplicados}
+                disabled={salvando || gerandoBackground || !podecriar}
                 className={`w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-fantasy font-bold text-base transition-all cursor-pointer ${
                   salvando || gerandoBackground
                     ? 'bg-slate-600 text-slate-400 cursor-wait'
-                    : !bonusAplicados
+                    : !podecriar
                       ? isLight
                         ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                         : 'bg-slate-700 text-slate-500 cursor-not-allowed'
@@ -354,7 +396,7 @@ const WizardView = (props) => {
                 ) : (
                   <>
                     <Save size={18} />
-                    {!bonusAplicados ? 'Confirme seus atributos primeiro' : 'Criar Personagem'}
+                    {!podecriar ? 'Preencha todos os campos primeiro' : 'Criar Personagem'}
                   </>
                 )}
               </button>
@@ -379,6 +421,10 @@ const WizardView = (props) => {
               vantagensDisponiveis={vantagensDisponiveis}
               racasDisponiveis={racasDisponiveis}
               classesDisponiveis={classesDisponiveis}
+              bonusJaAplicado={true}
+              mostrarPendencias={true}
+              skipVantagens={skipVantagens}
+              skipDesvantagens={skipDesvantagens}
             />
 
             {/* Pending fields indicators */}
@@ -391,31 +437,33 @@ const WizardView = (props) => {
                 Progresso
               </h4>
               {[
-                { label: 'Nome', done: !!nome },
-                { label: 'Raça', done: !!racaId },
-                { label: 'Classe', done: !!classeId },
-                { label: 'Vantagens', done: vantagensIds.length > 0 },
-                { label: 'Desvantagens', done: desvantagensIds.length > 0 },
-                { label: 'Atributos', done: bonusAplicados },
-              ].map(({ label, done }) => (
+                { label: 'Nome', done: !!nome, skipped: false },
+                { label: 'Raça', done: !!racaId, skipped: false },
+                { label: 'Classe', done: !!classeId, skipped: false },
+                { label: 'Vantagens', done: vantagensIds.length > 0 || skipVantagens, skipped: skipVantagens },
+                { label: 'Desvantagens', done: desvantagensIds.length > 0 || skipDesvantagens, skipped: skipDesvantagens },
+                { label: 'Atributos', done: bonusAplicados, skipped: false },
+              ].map(({ label, done, skipped }) => (
                 <div key={label} className="flex items-center gap-2">
                   <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
                     done
-                      ? 'bg-green-500/20'
+                      ? skipped ? (isLight ? 'bg-slate-200' : 'bg-slate-600/30') : 'bg-green-500/20'
                       : isLight ? 'bg-slate-200' : 'bg-slate-700'
                   }`}>
                     {done ? (
-                      <Check size={10} className="text-green-400" />
+                      <Check size={10} className={skipped ? 'text-slate-400' : 'text-green-400'} />
                     ) : (
                       <span className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-slate-400' : 'bg-slate-500'}`} />
                     )}
                   </span>
                   <span className={`text-xs font-modern ${
                     done
-                      ? isLight ? 'text-slate-700' : 'text-slate-300'
+                      ? skipped
+                        ? isLight ? 'text-slate-400' : 'text-slate-500'
+                        : isLight ? 'text-slate-700' : 'text-slate-300'
                       : isLight ? 'text-slate-400' : 'text-slate-500'
                   }`}>
-                    {label}
+                    {label}{skipped ? ' (pulado)' : ''}
                   </span>
                 </div>
               ))}

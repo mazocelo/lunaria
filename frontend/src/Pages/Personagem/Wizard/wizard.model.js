@@ -318,14 +318,22 @@ export const useWizardModel = () => {
         setClasseId(id);
         setClasseNome(sugestaoNome);
         break;
-      case 'vantagem':
+      case 'vantagem': {
+        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
+        if (erro) { setError(erro); return; }
+        // P2: reset skip ao selecionar manualmente
+        pointSystem.setSkipVantagens(false);
+        break;
+      }
       case 'desvantagem': {
         const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
-        if (erro) setError(erro);
+        if (erro) { setError(erro); return; }
+        // P2: reset skip ao selecionar manualmente
+        pointSystem.setSkipDesvantagens(false);
         break;
       }
     }
-  }, [pointSystem.selecionarVantagemDesvantagem]);
+  }, [pointSystem.selecionarVantagemDesvantagem, pointSystem.setSkipVantagens, pointSystem.setSkipDesvantagens]);
 
   /** Descarta draft e reseta todo estado */
   const descartarDraft = useCallback(() => {
@@ -346,11 +354,56 @@ export const useWizardModel = () => {
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
 
+  /** P3: Avança etapa + dispara resposta do Mestre na primeira visita */
+  const avancarComMestre = useCallback(async () => {
+    if (enviando) return;
+    const result = navigation.avancarEtapa();
+    if (!result) return;
+
+    const { etapa, primeiraVisita } = result;
+    if (!primeiraVisita) return;
+
+    // Primeira visita — buscar resposta do Mestre
+    setEnviando(true);
+    try {
+      const resultado = await mestreCriadorService.interagir({
+        etapa,
+        estado: getEstado(),
+        mensagemJogador: '',
+        historico: getHistorico(),
+      });
+
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        role: 'mestre',
+        content: resultado.mensagem,
+        sugestoes: resultado.sugestoes,
+        timestamp: new Date(),
+      }]);
+
+      if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
+      else setSugestoes([]);
+
+      if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
+    } catch {
+      // Graceful degradation — não faz rollback, insere mensagem de sistema
+      setMensagens(prev => [...prev, {
+        id: Date.now(),
+        role: 'sistema',
+        content: 'Não foi possível contatar o Mestre Criador. Continue normalmente ou envie uma mensagem.',
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setEnviando(false);
+    }
+  }, [enviando, navigation.avancarEtapa, getEstado, getHistorico]);
+
   /** Salva o personagem */
   const salvarPersonagem = useCallback(async () => {
     if (!nome.trim()) { setError('Nome do personagem é obrigatório'); return; }
     if (!racaId) { setError('Selecione uma raça antes de salvar'); return; }
     if (!classeId) { setError('Selecione uma classe antes de salvar'); return; }
+    if (!background.trim()) { setError('Preencha o background antes de salvar'); return; }
     if (!bonusCalc.bonusAplicados) {
       setError('Confirme seus atributos antes de salvar (aplique os bônus de raça/classe)');
       return;
@@ -412,7 +465,7 @@ export const useWizardModel = () => {
     etapaIndex: navigation.etapaIndex,
     etapasVisitadas: navigation.etapasVisitadas,
     etapasConcluidas: navigation.etapasConcluidas,
-    avancarEtapa: navigation.avancarEtapa,
+    avancarComMestre,
     navegarParaEtapa: navigation.navegarParaEtapa,
 
     // Chat

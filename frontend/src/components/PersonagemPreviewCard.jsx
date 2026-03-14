@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../contexts/theme.jsx';
-import { Heart, Shield, Eye, EyeOff, Sparkles, User } from 'lucide-react';
+import { Heart, Shield, Eye, EyeOff, Sparkles, User, AlertTriangle, SkipForward } from 'lucide-react';
 
 const ATTR_LABELS = {
   forca: { label: 'FOR', color: 'bg-red-500' },
@@ -10,6 +10,8 @@ const ATTR_LABELS = {
   destreza: { label: 'DES', color: 'bg-purple-500' },
   carisma: { label: 'CAR', color: 'bg-pink-500' },
 };
+
+const ATRIBUTOS_DEFAULT_SUM = 60; // 6 atributos * 10
 
 function calcMod(val) {
   const v = Number(val) || 10;
@@ -31,6 +33,10 @@ const PersonagemPreviewCard = ({
   racasDisponiveis,
   classesDisponiveis,
   imagem,
+  bonusJaAplicado = false,
+  mostrarPendencias = false,
+  skipVantagens = false,
+  skipDesvantagens = false,
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -41,7 +47,7 @@ const PersonagemPreviewCard = ({
   const racaNome = racaObj?.nome;
   const classeNome = classeObj?.nome;
 
-  // Parse bonuses from race/class
+  // Parse bonuses from race/class (sempre necessário para badge informativo)
   const parseBonus = (raw) => {
     if (!raw) return null;
     try {
@@ -65,21 +71,53 @@ const PersonagemPreviewCard = ({
     return bonus;
   };
 
-  // Atributos efetivos (base + bônus)
+  // P1: Se bonusJaAplicado, usar atributos direto (já inclui bônus).
+  // Senão, somar bônus internamente (retrocompatibilidade).
   const atributosEfetivos = {};
   for (const key of Object.keys(ATTR_LABELS)) {
-    atributosEfetivos[key] = (Number(atributos[key]) || 0) + getAttrBonus(key);
+    if (bonusJaAplicado) {
+      atributosEfetivos[key] = Number(atributos[key]) || 0;
+    } else {
+      atributosEfetivos[key] = (Number(atributos[key]) || 0) + getAttrBonus(key);
+    }
   }
 
   const hpEstimado = calcHP(atributosEfetivos.constituicao, 1);
 
+  // P4: Detectar se atributos estão no padrão (todos 10 = não distribuídos)
+  const atributosSomaPadrao = Object.values(atributos || {})
+    .map(v => Number(v) || 0)
+    .reduce((a, b) => a + b, 0) === ATRIBUTOS_DEFAULT_SUM;
+
   const vantagensNomes = (vantagensSelecionadas || []).map(id => {
     const v = vantagensDisponiveis?.find(vt => String(vt.id) === String(id));
     if (!v) return null;
-    // Detectar desvantagem: custo negativo ou vem da tabela desvantagens (custo < 0)
     const isDesv = (v.custo != null && v.custo < 0);
     return { nome: v.nome, isDesvantagem: isDesv, custo: v.custo };
   }).filter(Boolean);
+
+  // P4: Separar vantagens de desvantagens para pendência
+  const temVantagens = vantagensNomes.some(v => !v.isDesvantagem);
+  const temDesvantagens = vantagensNomes.some(v => v.isDesvantagem);
+
+  // Helper para badge de pendência
+  const PendingBadge = ({ children }) => (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-modern px-1.5 py-0.5 rounded ${
+      isLight ? 'bg-amber-100 text-amber-600' : 'bg-amber-500/15 text-amber-400'
+    }`}>
+      <AlertTriangle size={10} />
+      {children}
+    </span>
+  );
+
+  const SkippedBadge = ({ children }) => (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-modern px-1.5 py-0.5 rounded ${
+      isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-700/30 text-slate-500'
+    }`}>
+      <SkipForward size={10} />
+      {children}
+    </span>
+  );
 
   return (
     <div className={`${isLight ? 'glass-light' : 'glass'} rounded-xl border ${
@@ -113,12 +151,19 @@ const PersonagemPreviewCard = ({
           <div className="text-center">
             <h3 className={`text-lg font-fantasy font-bold truncate ${
               isLight ? 'text-slate-800' : 'text-white'
-            }`}>
+            } ${mostrarPendencias && !nome ? (isLight ? 'text-amber-600' : 'text-amber-400') : ''}`}>
               {nome || 'Sem nome'}
             </h3>
+            {mostrarPendencias && !nome && <PendingBadge>Nome pendente</PendingBadge>}
             <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               {racaNome || '???'} · {classeNome || '???'} · Nv 1
             </p>
+            {mostrarPendencias && (!raca || !classe) && (
+              <div className="flex justify-center gap-1 mt-1">
+                {!raca && <PendingBadge>Raça</PendingBadge>}
+                {!classe && <PendingBadge>Classe</PendingBadge>}
+              </div>
+            )}
           </div>
 
           {/* HP Estimate */}
@@ -132,10 +177,13 @@ const PersonagemPreviewCard = ({
 
           {/* Attributes bars */}
           <div className="space-y-1.5">
+            {mostrarPendencias && atributosSomaPadrao && (
+              <PendingBadge>Distribuição pendente</PendingBadge>
+            )}
             {Object.entries(ATTR_LABELS).map(([key, cfg]) => {
-              const base = Number(atributos[key]) || 0;
-              const bonus = getAttrBonus(key);
-              const efetivo = base + bonus;
+              const efetivo = atributosEfetivos[key];
+              // P1: badge de bônus é sempre informativo (do catálogo), nunca somado quando bonusJaAplicado
+              const bonusDisplay = getAttrBonus(key);
               const pct = Math.min(100, (efetivo / 20) * 100);
               const mod = calcMod(efetivo);
               return (
@@ -151,9 +199,9 @@ const PersonagemPreviewCard = ({
                   </div>
                   <span className={`text-[10px] font-mono text-right ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                     {efetivo || '-'}
-                    {bonus !== 0 && (
-                      <span className={bonus > 0 ? 'text-green-400' : 'text-red-400'}>
-                        {` (${bonus > 0 ? '+' : ''}${bonus})`}
+                    {bonusDisplay !== 0 && (
+                      <span className={bonusDisplay > 0 ? 'text-green-400' : 'text-red-400'}>
+                        {` (${bonusDisplay > 0 ? '+' : ''}${bonusDisplay})`}
                       </span>
                     )}
                     {' '}
@@ -168,7 +216,6 @@ const PersonagemPreviewCard = ({
 
           {/* Bônus de Raça/Classe */}
           {temBonus && (() => {
-            // Separate scalar bonuses (e.g. constituicao: "+1") from array bonuses (vantagens/desvantagens)
             const renderBonus = (bonus, prefix, colorPos, colorNeg, titleLabel) => {
               if (!bonus) return null;
               return Object.entries(bonus)
@@ -187,7 +234,6 @@ const PersonagemPreviewCard = ({
             };
             const racaTags = renderBonus(racaBonus, 'r', 'bg-purple-500/15 text-purple-400', 'bg-orange-500/15 text-orange-400', `Raça: ${racaNome}`);
             const classeTags = renderBonus(classeBonus, 'c', 'bg-blue-500/15 text-blue-400', 'bg-orange-500/15 text-orange-400', `Classe: ${classeNome}`);
-            // Racial innate vantagens/desvantagens
             const racaVants = racaBonus?.vantagens || [];
             const racaDesvs = racaBonus?.desvantagens || [];
             const classeVants = classeBonus?.vantagens || [];
@@ -232,7 +278,7 @@ const PersonagemPreviewCard = ({
           })()}
 
           {/* Vantagens/Desvantagens */}
-          {vantagensNomes.length > 0 && (
+          {vantagensNomes.length > 0 ? (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Sparkles size={12} className="text-yellow-400" />
@@ -255,6 +301,29 @@ const PersonagemPreviewCard = ({
                     {v.nome}
                   </span>
                 ))}
+              </div>
+            </div>
+          ) : mostrarPendencias && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles size={12} className="text-yellow-400" />
+                <span className={`text-[10px] font-modern font-semibold uppercase tracking-wider ${
+                  isLight ? 'text-slate-600' : 'text-slate-400'
+                }`}>
+                  Tracos
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {!temVantagens && (
+                  skipVantagens
+                    ? <SkippedBadge>Vantagens puladas</SkippedBadge>
+                    : <PendingBadge>Vantagens pendentes</PendingBadge>
+                )}
+                {!temDesvantagens && (
+                  skipDesvantagens
+                    ? <SkippedBadge>Desvantagens puladas</SkippedBadge>
+                    : <PendingBadge>Desvantagens pendentes</PendingBadge>
+                )}
               </div>
             </div>
           )}

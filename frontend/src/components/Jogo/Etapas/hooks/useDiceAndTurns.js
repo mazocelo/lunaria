@@ -7,6 +7,13 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
   const socketStoreRolarDadoInicial = useSocketStore(s => s.rolarDadoInicial);
   const socketStoreIniciarTurno = useSocketStore(s => s.iniciarTurno);
+  const buildPersonagemPayload = useCallback(() => ({
+    id: personagemSelecionado?.id ?? personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? null,
+    personagemId: personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? personagemSelecionado?.id ?? null,
+    nome: personagemSelecionado?.nome || 'Aventureiro',
+    classe: personagemSelecionado?.classe_nome || '',
+    nivel: personagemSelecionado?.nivel || 1
+  }), [personagemSelecionado]);
 
   const handleRolarDados = useCallback(async (tipoDado = 'd20', descricao = '', dadoSolicitadoInfo = null) => {
     try {
@@ -85,16 +92,13 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
         userId: String(user?.id),
         username: user?.nome || user?.name,
         mensagem: descricao,
-        personagem: {
-          nome: personagemSelecionado?.nome || 'Aventureiro',
-          classe: personagemSelecionado?.classe_nome || '',
-          nivel: personagemSelecionado?.nivel || 1
-        }
+        combatIntent: { tipo: 'usar_habilidade', habilidadeId: vantagem.id, habilidadeNome: vantagem.nome },
+        personagem: buildPersonagemPayload()
       });
     } catch (error) {
       // silenced
     }
-  }, [historia?.id, user, personagemSelecionado, socketStoreSafeEmit, onAdicionarMensagem]);
+  }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
 
   const handleUsarEquipamento = useCallback(async (equipamento) => {
     try {
@@ -115,16 +119,12 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
         userId: String(user?.id),
         username: user?.nome || user?.name,
         mensagem: descricao,
-        personagem: {
-          nome: personagemSelecionado?.nome || 'Aventureiro',
-          classe: personagemSelecionado?.classe_nome || '',
-          nivel: personagemSelecionado?.nivel || 1
-        }
+        personagem: buildPersonagemPayload()
       });
     } catch (error) {
       // silenced
     }
-  }, [historia?.id, user, personagemSelecionado, socketStoreSafeEmit, onAdicionarMensagem]);
+  }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
 
   return {
     handleRolarDados,

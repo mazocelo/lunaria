@@ -99,6 +99,24 @@ export function normalizeResultadoAcao(data) {
       id: data.atacante.id ?? null,
       nome: data.atacante.nome ?? null,
     } : null,
+    // defesa_jogador fields
+    esquivaBonus: data.esquivaBonus ?? null,
+    reducaoDano: data.reducaoDano ?? null,
+    // fuga_jogador fields
+    rolagem: data.rolagem ?? null,
+    modificador: data.modificador ?? null,
+    total: data.total ?? null,
+    dc: data.dc ?? null,
+    sucesso: data.sucesso ?? null,
+    // habilidade_jogador / habilidade_falhou fields
+    habilidadeNome: data.habilidadeNome || null,
+    valido: data.valido ?? null,
+    erro: data.erro || null,
+    custoMana: data.custoMana ?? null,
+    manaRestante: data.manaRestante ?? null,
+    manaMax: data.manaMax ?? null,
+    efeitoAplicado: data.efeitoAplicado || null,
+    ataque: data.ataque || null,
   };
 }
 

@@ -24,6 +24,7 @@ const ActionDock = ({
   dadoSolicitadoInfo = null,
   aguardandoMestre = false,
   combateAtivo = false,
+  combateMonstros = [],
   habilidadesPersonagem = [],
   manaAtual = 0,
   manaMax = 0,
@@ -89,11 +90,13 @@ const ActionDock = ({
     return 'Digite sua mensagem...';
   };
 
-  const fillInput = (text) => {
-    if (onMensagemChange) onMensagemChange({ target: { value: text } });
+  const fillInput = (text, intent = null) => {
+    if (onMensagemChange) onMensagemChange({ target: { value: text } }, intent);
   };
 
   const showQuickActions = ehMeuTurno && turnoIniciado && faseJogo === 'rodada_em_andamento';
+  const primeiroMonstroVivo = combateMonstros.find(m => m.status === 'vivo');
+  const alvoIdPadrao = primeiroMonstroVivo?.id || null;
 
   return (
     <div className="px-4 py-3 bg-black/30 backdrop-blur-sm border-t-2 border-purple-500/30 shadow-2xl">
@@ -212,13 +215,13 @@ const ActionDock = ({
               </div>
             )}
             {[
-              { label: 'Atacar', emoji: '\u{2694}\u{FE0F}', acao: 'Ataco o inimigo mais proximo com minha arma!' },
-              { label: 'Defender', emoji: '\u{1F6E1}\u{FE0F}', acao: 'Me coloco em posicao defensiva, protegendo-me dos ataques!' },
-              { label: 'Fugir', emoji: '\u{1F3C3}', acao: 'Tento fugir do combate!' }
+              { label: 'Atacar', emoji: '\u{2694}\u{FE0F}', acao: 'Ataco o inimigo mais proximo com minha arma!', intent: { tipo: 'atacar', alvoId: alvoIdPadrao } },
+              { label: 'Defender', emoji: '\u{1F6E1}\u{FE0F}', acao: 'Me coloco em posicao defensiva, protegendo-me dos ataques!', intent: { tipo: 'defender' } },
+              { label: 'Fugir', emoji: '\u{1F3C3}', acao: 'Tento fugir do combate!', intent: { tipo: 'fugir' } }
             ].map((btn) => (
               <button
                 key={btn.label}
-                onClick={() => fillInput(btn.acao)}
+                onClick={() => fillInput(btn.acao, btn.intent)}
                 className="px-3 py-1.5 text-xs bg-red-900/40 border border-red-500/40 text-red-200 rounded-lg hover:bg-red-800/50 hover:border-red-400/60 transition-all"
               >
                 {btn.emoji} {btn.label}
@@ -249,7 +252,7 @@ const ActionDock = ({
                         key={hab.id}
                         disabled={desabilitada}
                         onClick={() => {
-                          fillInput(`Uso a habilidade ${hab.nome} contra o inimigo!`);
+                          fillInput(`Uso a habilidade ${hab.nome} contra o inimigo!`, { tipo: 'usar_habilidade', habilidadeId: hab.id, habilidadeNome: hab.nome, alvoId: alvoIdPadrao });
                           setShowSkillMenu(false);
                         }}
                         className={`w-full text-left px-3 py-2 text-sm border-b border-slate-700/50 last:border-0 transition-colors ${

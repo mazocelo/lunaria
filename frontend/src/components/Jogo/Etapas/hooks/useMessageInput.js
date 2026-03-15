@@ -5,13 +5,23 @@ import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS } from '../../../../constants/game'
 
 export const useMessageInput = (historia, personagemSelecionado, user, onAdicionarMensagem, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal) => {
   const [mensagemAtual, setMensagemAtual] = useState('');
+  const combatIntentRef = useRef(null);
   const enviandoRef = useRef(false);
 
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
   const gameStoreSetMensagens = useGameStore(s => s.setMensagens);
 
-  const handleMensagemChange = useCallback((e) => {
+  const buildPersonagemPayload = useCallback(() => ({
+    id: personagemSelecionado?.id ?? personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? null,
+    personagemId: personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? personagemSelecionado?.id ?? null,
+    nome: personagemSelecionado?.nome || 'Aventureiro',
+    classe: personagemSelecionado?.classe_nome || '',
+    nivel: personagemSelecionado?.nivel || 1
+  }), [personagemSelecionado]);
+
+  const handleMensagemChange = useCallback((e, intent = null) => {
     setMensagemAtual(e.target.value);
+    combatIntentRef.current = intent || null;
   }, []);
 
   const handleEnviarMensagem = useCallback(async () => {
@@ -52,20 +62,21 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         };
         onAdicionarMensagem(loadingMsg);
 
-        const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
+        const payload = {
           roomId,
           userId: String(user?.id),
           username: user?.nome || user?.name,
           mensagem: mensagemAtual,
-          personagem: {
-            nome: personagemSelecionado?.nome || 'Aventureiro',
-            classe: personagemSelecionado?.classe_nome || '',
-            nivel: personagemSelecionado?.nivel || 1
-          }
-        });
+          personagem: buildPersonagemPayload()
+        };
+        if (combatIntentRef.current) {
+          payload.combatIntent = combatIntentRef.current;
+        }
+        const enviado = socketStoreSafeEmit('mensagem_para_mestre', payload);
 
         if (enviado) {
           setMensagemAtual('');
+          combatIntentRef.current = null;
         } else {
           showGameNotification('Falha ao enviar mensagem. Verifique sua conexao.', 'error');
           const msgs = useGameStore.getState().mensagens || [];
@@ -80,7 +91,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         enviandoRef.current = false;
       }, TIMEOUTS.FLAG_RESET_DELAY);
     }
-  }, [mensagemAtual, historia?.id, user, personagemSelecionado, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, onAdicionarMensagem, gameStoreSetMensagens]);
+  }, [mensagemAtual, historia?.id, user, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, onAdicionarMensagem, gameStoreSetMensagens, buildPersonagemPayload]);
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

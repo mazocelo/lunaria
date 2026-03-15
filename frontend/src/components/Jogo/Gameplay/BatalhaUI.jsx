@@ -116,8 +116,44 @@ const LogEntry = ({ entry }) => {
       </div>
     );
   }
+  if (entry.tipo === 'defesa_jogador') {
+    return (
+      <div className="text-xs text-blue-300">
+        🛡️ <span className="text-cyan-400">{entry.personagem}</span> defendeu! <span className="text-blue-200">Esquiva +{entry.esquivaBonus}%, Dano -{Math.round((entry.reducaoDano ?? 0.5) * 100)}%</span>
+      </div>
+    );
+  }
+  if (entry.tipo === 'fuga_jogador') {
+    return (
+      <div className={`text-xs ${entry.sucesso ? 'text-green-300' : 'text-red-300'}`}>
+        🏃 <span className="text-cyan-400">{entry.personagem}</span>
+        {entry.sucesso
+          ? <span className="text-green-200"> fugiu! (d20={entry.rolagem}+{entry.modificador}={entry.total} vs DC {entry.dc})</span>
+          : <span className="text-red-200"> falhou na fuga (d20={entry.rolagem}+{entry.modificador}={entry.total} vs DC {entry.dc})</span>
+        }
+      </div>
+    );
+  }
+  if (entry.tipo === 'habilidade_jogador') {
+    return (
+      <div className="text-xs text-purple-300">
+        ✨ <span className="text-cyan-400">{entry.personagem}</span> usou <strong>{entry.habilidadeNome}</strong>
+        {entry.custoMana > 0 && <span className="text-blue-300"> (-{entry.custoMana} MP)</span>}
+        {entry.ataque?.dano > 0 && <span className="text-orange-300"> -{entry.ataque.dano}</span>}
+        {entry.ataque?.alvo && <span> em {entry.ataque.alvo}</span>}
+        {entry.efeitoAplicado && <span className="text-yellow-300"> [{entry.efeitoAplicado.status} {entry.efeitoAplicado.duracao}t]</span>}
+      </div>
+    );
+  }
+  if (entry.tipo === 'habilidade_falhou') {
+    return (
+      <div className="text-xs text-gray-500">
+        ❌ <span className="text-cyan-400">{entry.personagem}</span> tentou <strong>{entry.habilidadeNome}</strong> — {entry.erro || 'falhou'}
+      </div>
+    );
+  }
 
-  // Ataques
+  // Ataques (ataque_jogador / ataque_monstro)
   const icon = entry.acertou ? '🗡️' : entry.esquivou ? '💨' : '❌';
   const atacante = entry.atacante?.nome || entry.atacante;
   const alvo = entry.alvo?.nome || entry.alvo;

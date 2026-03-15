@@ -171,6 +171,7 @@ const EtapaJogoRPGView = (props) => {
               dadoSolicitadoInfo={dadoSolicitadoInfo}
               aguardandoMestre={aguardandoMestre}
               combateAtivo={combateAtivo}
+              combateMonstros={combateMonstros}
               habilidadesPersonagem={habilidadesPersonagem}
               manaAtual={manaAtual}
               manaMax={manaMax}

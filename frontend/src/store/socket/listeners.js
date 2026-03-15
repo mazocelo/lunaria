@@ -625,6 +625,27 @@ export const createListenerActions = (set, get) => ({
         playSound('combat_hit');
       }
 
+      // Habilidade do jogador: atualizar HP do monstro e mana do jogador
+      if (dto.tipo === 'habilidade_jogador' && dto.ataque?.alvoId) {
+        const monstrosAtualizados = combateMonstros.map(m => {
+          if (m.id === dto.ataque.alvoId) {
+            return { ...m, hp_atual: dto.ataque.hpRestante ?? m.hp_atual, status: (dto.ataque.hpRestante ?? m.hp_atual) <= 0 ? 'derrotado' : m.status };
+          }
+          return m;
+        });
+        set({ combateMonstros: monstrosAtualizados });
+      }
+      if ((dto.tipo === 'habilidade_jogador' || dto.tipo === 'habilidade_falhou') && dto.userId && dto.manaRestante != null) {
+        const jogadoresAtualizados = { ...combateJogadores };
+        if (jogadoresAtualizados[dto.userId]) {
+          jogadoresAtualizados[dto.userId] = {
+            ...jogadoresAtualizados[dto.userId],
+            mana_atual: dto.manaRestante
+          };
+        }
+        set({ combateJogadores: jogadoresAtualizados });
+      }
+
       set({ combateLog: [...combateLog.slice(-(COMBAT.LOG_MAX_ENTRIES - 1)), dto] });
       get().log('Ação combate processada', { tipo: dto.tipo, acertou: dto.acertou });
     });

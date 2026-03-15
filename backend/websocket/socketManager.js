@@ -26,8 +26,6 @@ import CombatEngine from './engines/combatEngine.js';
 import MasterNarrationEngine from './engines/masterNarrationEngine.js';
 import AuthHandler from './handlers/authHandler.js';
 import ChatHandler from './handlers/chatHandler.js';
-import RpgActionHandler from './handlers/rpgActionHandler.js';
-import StatusUpdateHandler from './handlers/statusUpdateHandler.js';
 import MasterCacheManager from './utils/masterCacheManager.js';
 import SessionEngine from './engines/sessionEngine.js';
 import logger from '../helpers/logger.js';
@@ -81,8 +79,6 @@ class SocketManager {
     this.masterNarrationEngine = new MasterNarrationEngine(this);
     this.authHandler = new AuthHandler(this);
     this.chatHandler = new ChatHandler(this);
-    this.rpgActionHandler = new RpgActionHandler(this);
-    this.statusUpdateHandler = new StatusUpdateHandler(this);
     this.masterCacheManager = new MasterCacheManager(this.mestresCache);
     this.sessionEngine = new SessionEngine(this);
   }
@@ -345,23 +341,6 @@ class SocketManager {
         }
       });
 
-      // @listen rpg_action → rpgActionHandler | acao RPG declarada pelo jogador
-      socket.on('rpg_action', async (data) => {
-        this.log('INFO', 'RPG_ACTION_RECEIVED', socket.id, socket.userId, {
-          roomId: data?.roomId || socket.currentRoom,
-          action: data?.action,
-          target: data?.target
-        });
-        try {
-          await this.handleRpgAction(socket, data);
-        } catch (error) {
-          this.log('ERROR', 'RPG_ACTION_FAILED', socket.id, socket.userId, {
-            action: data?.action,
-            error: error.message
-          });
-        }
-      });
-
       // @listen dice_roll → testEngine | jogador rola dados em teste de habilidade
       socket.on('dice_roll', async (data) => {
         this.log('INFO', 'DICE_ROLL_RECEIVED', socket.id, socket.userId, {
@@ -429,22 +408,6 @@ class SocketManager {
         }
       });
 
-      // @listen status_update → statusUpdateHandler | jogador atualiza seu status
-      socket.on('status_update', async (data) => {
-        this.log('INFO', 'STATUS_UPDATE_RECEIVED', socket.id, socket.userId, {
-          roomId: data?.roomId || socket.currentRoom,
-          status: data?.status,
-          attribute: data?.attribute
-        });
-        try {
-          await this.handleStatusUpdate(socket, data);
-        } catch (error) {
-          this.log('ERROR', 'STATUS_UPDATE_FAILED', socket.id, socket.userId, {
-            error: error.message
-          });
-        }
-      });
-
       // @listen disconnect → roomGateway | cliente desconecta (grace period antes de remover)
       socket.on('disconnect', (reason) => {
         this.log('WARN', 'CLIENT_DISCONNECTING', socket.id, socket.userId, {
@@ -464,12 +427,10 @@ class SocketManager {
           'chat_message',
           'mensagem_para_mestre',
           'mensagem_roleplay',
-          'rpg_action',
           'dice_roll',
           'rolar_dado_inicial',
           'iniciar_turno',
           'solicitar_dados',
-          'status_update',
           'disconnect'
         ].includes(eventName)) {
           this.log('WARN', 'UNKNOWN_EVENT_RECEIVED', socket.id, socket.userId, {
@@ -512,13 +473,6 @@ class SocketManager {
   }
 
   /**
-   * Handler para ação RPG
-   */
-  async handleRpgAction(socket, data) {
-    return this.rpgActionHandler.handleRpgAction(socket, data);
-  }
-
-  /**
    * Handler para rolagem de dados
    */
   async handleDiceRoll(socket, data) {
@@ -544,13 +498,6 @@ class SocketManager {
   async handleIniciarTurno(socket, data) {
     return this.turnEngine.handleIniciarTurno(socket, data);
   }
-  /**
-   * Handler para atualização de status
-   */
-  async handleStatusUpdate(socket, data) {
-    return this.statusUpdateHandler.handleStatusUpdate(socket, data);
-  }
-
   /**
    * Enviar mensagem para sala específica
    */

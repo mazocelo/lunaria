@@ -1,10 +1,15 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useGameStore from '../../../store/game';
+import { getPhaseByRoute } from '../../../features/gameSession/config/phaseConfig.js';
+import { resolvePhaseRedirect } from '../../../features/gameSession/config/routeRules.js';
 
 /**
  * Hook para validacao de acesso as etapas do jogo.
  * Redireciona automaticamente quando os pre-requisitos da etapa nao sao atendidos.
+ *
+ * Internamente delega para resolvePhaseRedirect (single source of truth).
+ * Preserva: timeout 150ms (anti-flash), loading guard, cleanup.
  *
  * @param {string} requiredStep
  * 'selecao-personagem' | 'sala-espera' | 'jogo-ativo'
@@ -19,29 +24,17 @@ export const useJogoGuard = (requiredStep) => {
     if (loading) return;
 
     const validationTimer = setTimeout(() => {
-      if (!historiaAtual && requiredStep !== 'selecao-personagem') {
-        navigate(`/jogo/${id}/selecao-personagem`);
-        return;
-      }
+      const phase = getPhaseByRoute(requiredStep);
+      if (!phase) return;
 
-      switch (requiredStep) {
-        case 'sala-espera':
-          if (!personagemSelecionado) {
-            navigate(`/jogo/${id}/selecao-personagem`);
-          }
-          break;
+      const redirect = resolvePhaseRedirect(phase.id, {
+        hasHistoria: !!historiaAtual,
+        hasCharacter: !!personagemSelecionado,
+        isSalaAberta: !!salaAberta,
+      });
 
-        case 'jogo-ativo':
-          if (!personagemSelecionado) {
-            navigate(`/jogo/${id}/selecao-personagem`);
-          } else if (!salaAberta) {
-            navigate(`/jogo/${id}/sala-espera`);
-          }
-          break;
-
-        case 'selecao-personagem':
-        default:
-          break;
+      if (redirect) {
+        navigate(`/jogo/${id}/${redirect}`);
       }
     }, 150);
 

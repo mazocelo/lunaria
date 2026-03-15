@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSocketStore } from '../../../store/socket/index.js';
+import { apiClient } from '../../../services/ApiClient.js';
 
 /**
  * Hook de socket para sessao de jogo.
@@ -35,6 +36,47 @@ export function useGameSessionSocket() {
   const [localConnecting, setLocalConnecting] = useState(false);
   const subscriptionsRef = useRef([]);
 
+  const obterSocketTokenValido = useCallback(async () => {
+    try {
+      const socketState = useSocketStore.getState();
+
+      if (socketState.socketToken && socketState.validateToken(socketState.socketToken)) {
+        return socketState.socketToken;
+      }
+
+      const response = await apiClient.post('/auth/renovar');
+      const payload = response?.data || response;
+      const refreshedSocketToken = payload?.socketToken;
+
+      if (!refreshedSocketToken) {
+        throw new Error('Nao foi possivel renovar a autenticacao do socket');
+      }
+
+      socketState.setSocketToken(refreshedSocketToken);
+      return refreshedSocketToken;
+    } catch (error) {
+      if (error?.message === 'Não autorizado') {
+        throw new Error('Sessao expirada. Faca login novamente.');
+      }
+
+      throw error;
+    }
+  }, []);
+
+  const aguardarAutenticacaoSocket = useCallback(() => new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Auth timeout')), 5000);
+    const check = () => {
+      const state = useSocketStore.getState();
+      if (state.isAuthenticated) {
+        clearTimeout(timeout);
+        resolve();
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
+  }), []);
+
   // ------------------------------------------------------------------
   // connectAndAuth — conectar ao WebSocket e autenticar em sequencia
   // ------------------------------------------------------------------
@@ -43,11 +85,10 @@ export function useGameSessionSocket() {
       setLocalConnecting(true);
       setLocalError(null);
 
-      // 1. Conectar
-      await socketConnect();
+      const socketToken = await obterSocketTokenValido();
 
-      // 2. Obter token da store (gerado durante connect)
-      const socketToken = useSocketStore.getState().socketToken;
+      // 1. Conectar
+      await socketConnect({ token: socketToken });
 
       // 3. Autenticar
       await socketAuthenticate({
@@ -57,23 +98,7 @@ export function useGameSessionSocket() {
         email: userData.email,
       });
 
-      // 4. Aguardar confirmacao de autenticacao do backend
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(
-          () => reject(new Error('Auth timeout')),
-          5000
-        );
-        const check = () => {
-          const state = useSocketStore.getState();
-          if (state.isAuthenticated) {
-            clearTimeout(timeout);
-            resolve();
-            return;
-          }
-          setTimeout(check, 100);
-        };
-        check();
-      });
+      await aguardarAutenticacaoSocket();
 
       setLocalConnecting(false);
     } catch (err) {
@@ -82,7 +107,7 @@ export function useGameSessionSocket() {
       setLocalConnecting(false);
       throw err;
     }
-  }, [socketConnect, socketAuthenticate]);
+  }, [obterSocketTokenValido, socketConnect, socketAuthenticate, aguardarAutenticacaoSocket]);
 
   // ------------------------------------------------------------------
   // joinGameRoom — entrar na sala do jogo

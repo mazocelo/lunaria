@@ -6,6 +6,25 @@ import { useTemaStore } from '../../../store/tema/index.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+async function extrairMensagemErroResponse(response, fallback = 'Erro ao iniciar partida') {
+  try {
+    const errorData = await response.json();
+
+    if (typeof errorData?.error === 'string') return errorData.error;
+    if (typeof errorData?.message === 'string') return errorData.message;
+    if (typeof errorData?.error?.message === 'string') return errorData.error.message;
+
+    return fallback;
+  } catch {
+    try {
+      const text = await response.text();
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+}
+
 /**
  * Hook compartilhado para orquestrar o ciclo de vida do jogo.
  * Substitui JogoViewModel, EtapaSelecaoPersonagemViewModel e EtapaSalaEsperaViewModel.
@@ -208,8 +227,8 @@ export const useJogo = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao iniciar partida');
+        const message = await extrairMensagemErroResponse(response, 'Erro ao iniciar partida');
+        throw new Error(message);
       }
 
       return await response.json();

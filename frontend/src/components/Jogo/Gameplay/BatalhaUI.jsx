@@ -145,10 +145,11 @@ const LogEntry = ({ entry }) => {
       </div>
     );
   }
-  if (entry.tipo === 'habilidade_falhou') {
+  if (entry.tipo === 'habilidade_falhou' || entry.tipo === 'habilidade_teste_falhou') {
     return (
       <div className="text-xs text-gray-500">
-        ❌ <span className="text-cyan-400">{entry.personagem}</span> tentou <strong>{entry.habilidadeNome}</strong> — {entry.erro || 'falhou'}
+        ❌ <span className="text-cyan-400">{entry.personagem}</span> tentou <strong>{entry.habilidadeNome}</strong> — {entry.erro || (entry.tipo === 'habilidade_teste_falhou' ? 'falhou no teste' : 'falhou')}
+        {entry.custoMana > 0 && <span className="text-blue-300"> (-{entry.custoMana} MP)</span>}
       </div>
     );
   }

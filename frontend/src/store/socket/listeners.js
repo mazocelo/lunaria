@@ -646,7 +646,7 @@ export const createListenerActions = (set, get) => ({
         });
         set({ combateMonstros: monstrosAtualizados });
       }
-      if ((dto.tipo === 'habilidade_jogador' || dto.tipo === 'habilidade_falhou') && dto.userId && dto.manaRestante != null) {
+      if ((dto.tipo === 'habilidade_jogador' || dto.tipo === 'habilidade_falhou' || dto.tipo === 'habilidade_teste_falhou') && dto.userId && dto.manaRestante != null) {
         const jogadoresAtualizados = { ...combateJogadores };
         if (jogadoresAtualizados[dto.userId]) {
           jogadoresAtualizados[dto.userId] = {

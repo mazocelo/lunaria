@@ -190,7 +190,7 @@ export const useEtapaJogoRPGModel = ({
     ? {
         tipoDado: meuTestePendente.tipoDado || 'd20',
         teste: meuTestePendente.teste || '',
-        dificuldade: meuTestePendente.dificuldade || 'Media',
+        dificuldade: meuTestePendente.metadata?.dificuldadeLabel || meuTestePendente.dificuldade || 'Media',
         atributo: meuTestePendente.atributo || null,
         contexto: meuTestePendente.contexto || null,
         modificador: meuTestePendente.modificador ?? null

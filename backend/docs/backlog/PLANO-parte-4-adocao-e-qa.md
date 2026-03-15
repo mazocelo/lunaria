@@ -6,26 +6,32 @@ Transformar o plano consolidado em ordem pratica de execucao, com cortes seguros
 
 ## Ordem combinada recomendada
 
-### Etapa A - Estabilizar base do combate
+### Etapa A - Estabilizar base do combate [CONCLUIDA]
 
-Fazer primeiro:
+Entregue:
 
-- `combatPendingAction.js`
-- `combatEventEmitter.js`
-- unificacao do pos-teste
+- `combatPendingAction.js` — lifecycle centralizado
+- `combatEventEmitter.js` — emissao extraida de combatEngine
+- unificacao do pos-teste via `_processPostTestCombat`
+- `normalizeCombatLogEntry` + `_pushCombatLog` — log normalizado no write
+- `COMBAT_INTENT_HANDLERS` — handler map por intent
 
-Resultado esperado:
+Resultado:
 
-- caminho feliz e fallback passam a emitir o mesmo comportamento essencial
-- acao pendente e stale cleanup saem dos arquivos grandes
+- caminho feliz e fallback emitem o mesmo comportamento essencial
+- acao pendente e stale cleanup centralizados
+- branching de intents substituido por mapa
 
-### Etapa B - Organizar nucleo mecanico
+### Etapa B - Organizar nucleo mecanico [PARCIALMENTE CONCLUIDA]
 
-Fazer depois:
+Feito:
 
-- handler map por intent
-- separacao entre acao, rodada e finalizacao
-- DTO interno de resultado
+- handler map por intent (COMBAT_INTENT_HANDLERS)
+
+Pendente:
+
+- separacao entre acao, rodada e finalizacao em funcoes distintas
+- DTO interno de resultado (`statusEffects`, `playerAction`, `enemyActions`, etc.)
 
 Resultado esperado:
 
@@ -63,39 +69,9 @@ O plano esta funcionando quando:
 - revisores entram so quando agregam valor real
 - a narrativa final continua com voz unica
 
-## Criterio de pronto do detector
+## Criterio e QA do detector
 
-O detector esta pronto quando:
-
-- habilidade inexistente nunca vira efeito narrativo forte
-- item inexistente nao vira equipamento valido em cena
-- alegacao de recurso extra nao passa sem validacao
-- fato previo inventado nao e aceito automaticamente
-- acoes simples continuam fluindo sem friccao
-- falso positivo fica baixo o suficiente para nao irritar o jogador
-
-## QA do detector
-
-### Casos obrigatorios
-
-- habilidade inexistente
-- magia inexistente
-- item existente com alias
-- item inexistente
-- fato previo inventado
-- conhecimento nao sustentado
-- acao simples que nao deve disparar
-- item ganho no mesmo turno
-- cooldown e mana recem-alterados
-- reconexao com teste pendente
-
-### Resultado esperado
-
-- bloqueia o que precisa bloquear
-- nao trava acoes simples
-- nao acusa mentira por atraso de sincronizacao
-- usa tom nao acusatorio
-- nao contradiz a mecanica ja validada
+Ver `PLANO-parte-2-detector-de-alegacoes.md` para criterio de pronto e casos de QA.
 
 ## QA de combate e continuidade
 
@@ -136,9 +112,9 @@ O detector esta pronto quando:
 
 ## Resumo executivo
 
-Se for preciso cortar escopo, a ordem minima segura e:
+Se for preciso cortar escopo, a ordem minima segura a partir de agora e:
 
-1. Parte 1
-2. Parte 2 Fase 1
-3. Parte 3 com revisor mecanico apenas em combate e testes
+1. Parte 1 Etapa B (separacao acao/rodada/finalizacao + DTO)
+2. Parte 2 Fase 1 (detector de itens, habilidades e recursos)
+3. Parte 3 com revisor mecanico apenas em combate com ambiguidade
 4. QA completo de combate, detector e rejoin

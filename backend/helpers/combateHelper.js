@@ -16,6 +16,7 @@ import {
   RESULTADO_COMBATE,
 } from '../config/domainConstants.js';
 import { TESTES_CONFIG } from '../config/testesConfig.js';
+import { createCombatRoundResult } from './combat/combatRoundResult.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -583,36 +584,36 @@ export function formatarContextoCombate(combateState, userId) {
  * @param {Object} personagem - Dados do personagem
  * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade', habilidadeId?, habilidadeNome? }
  */
-export function resolverMecanicaCombate(combate, userId, sessao, personagem, combatIntent = null) {
-  const intentTipo = combatIntent?.tipo || 'atacar';
+/**
+ * Handler map por intent de combate.
+ * Cada handler recebe (ctx, resultados) e popula os campos relevantes.
+ * ctx = { combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent }
+ */
+const COMBAT_INTENT_HANDLERS = {
+  atacar: (ctx, r) => {
+    r.ataqueJogador = _resolverAtaque(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.statusEfeitos, ctx.combatIntent);
+    r.acaoConsumida = !!r.ataqueJogador;
+  },
+  defender: (ctx, r) => {
+    r.defesa = _resolverDefesa(ctx.combate, ctx.userId, ctx.personagem, ctx.jogadorStats);
+    r.acaoConsumida = !!r.defesa;
+  },
+  fugir: (ctx, r) => {
+    r.requerTeste = _prepararTesteFuga(ctx.combate, ctx.userId, ctx.personagem);
+    r.acaoConsumida = false;
+    log.info({ userId: ctx.userId, teste: r.requerTeste }, 'Fuga requer teste de habilidade');
+  },
+  usar_habilidade: (ctx, r) => {
+    r.habilidade = _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.combatIntent);
+    r.acaoConsumida = r.habilidade?.valido !== false;
+  },
+};
 
-  const resultados = {
-    intentTipo,
-    acaoConsumida: false,
-    statusEfeitos: [],
-    ataqueJogador: null,
-    defesa: null,
-    fuga: null,
-    habilidade: null,
-    contraAtaques: [],
-    rodadaAvancou: false,
-    combateFinalizado: false,
-    resultadoCombate: null,
-    statusRemovidos: [],
-    statusEfeitosMonstro: [],
-    jogadorDerrotado: false,
-  };
-
-  if (!combate?.ativo) return resultados;
-
-  const jogadorStats = combate.jogadores[userId];
-  if (!jogadorStats) return resultados;
-  if (jogadorStats.status === 'derrotado') {
-    resultados.jogadorDerrotado = true;
-    return resultados;
-  }
-
-  // --- 1. STATUS EFFECTS DO JOGADOR ---
+/**
+ * Fase 1: Processa status effects do jogador (DOT, impedimentos).
+ * Retorna se o jogador esta impedido de agir.
+ */
+function _resolveCombatStatusEffects(sessao, userId, personagem, jogadorStats, resultados) {
   const snapshotAtual = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
   const pcStatus = snapshotAtual.personagem || {};
   const statusEfeitos = pcStatus.status_efeitos || [];
@@ -636,47 +637,79 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     }
   }
 
-  // --- 2. ACAO DO JOGADOR (por intent via handler map) ---
-  const COMBAT_INTENT_HANDLERS = {
-    atacar: () => {
-      resultados.ataqueJogador = _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent);
-      resultados.acaoConsumida = !!resultados.ataqueJogador;
-    },
-    defender: () => {
-      resultados.defesa = _resolverDefesa(combate, userId, personagem, jogadorStats);
-      resultados.acaoConsumida = !!resultados.defesa;
-    },
-    fugir: () => {
-      resultados.requerTeste = _prepararTesteFuga(combate, userId, personagem);
-      resultados.acaoConsumida = false;
-      log.info({ userId, teste: resultados.requerTeste }, 'Fuga requer teste de habilidade');
-    },
-    usar_habilidade: () => {
-      resultados.habilidade = _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, combatIntent);
-      resultados.acaoConsumida = resultados.habilidade?.valido !== false;
-    },
-  };
+  return { impedidoDeAgir, statusEfeitos };
+}
 
+/**
+ * Fase 2: Resolve a acao do jogador via handler map por intent.
+ * Retorna true se a acao requer teste (fuga, habilidade com teste).
+ */
+function _resolveCombatAction(ctx, resultados) {
+  const handler = COMBAT_INTENT_HANDLERS[ctx.intentTipo];
+  if (handler) handler(ctx, resultados);
+  return !!resultados.requerTeste;
+}
+
+/**
+ * Fase 3: Contra-ataques + controle de rodada.
+ */
+function _applyRoundConsequences(combate, userId, sessao, resultados) {
+  _executarContraAtaques(combate, resultados);
+  _controlarRodada(combate, userId, sessao, resultados);
+}
+
+/**
+ * Fase 4: Verificar fim de combate e atribuir resultado.
+ */
+function _finalizeCombatState(combate, resultados) {
+  _verificarFimEAtribuir(combate, resultados);
+}
+
+/**
+ * Orquestrador principal de mecanica de combate.
+ * Retorna CombatRoundResult com todos os efeitos da rodada.
+ *
+ * @param {Object} combate - Estado do combate
+ * @param {string} userId - ID do jogador
+ * @param {Object} sessao - Sessao completa
+ * @param {Object} personagem - Dados do personagem
+ * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade', habilidadeId?, habilidadeNome? }
+ * @returns {CombatRoundResult}
+ */
+export function resolverMecanicaCombate(combate, userId, sessao, personagem, combatIntent = null) {
+  const intentTipo = combatIntent?.tipo || 'atacar';
+  const resultados = createCombatRoundResult({ intentTipo });
+
+  if (!combate?.ativo) return resultados;
+
+  const jogadorStats = combate.jogadores[userId];
+  if (!jogadorStats) return resultados;
+  if (jogadorStats.status === 'derrotado') {
+    resultados.jogadorDerrotado = true;
+    return resultados;
+  }
+
+  // --- 1. Status effects (DOT, impedimentos) ---
+  const { impedidoDeAgir, statusEfeitos } = _resolveCombatStatusEffects(
+    sessao, userId, personagem, jogadorStats, resultados
+  );
+
+  // --- 2. Acao do jogador (por intent via handler map) ---
   if (!impedidoDeAgir) {
-    const handler = COMBAT_INTENT_HANDLERS[intentTipo];
-    if (handler) handler();
+    const ctx = { combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent, intentTipo };
+    const requerTeste = _resolveCombatAction(ctx, resultados);
+    if (requerTeste) return resultados;
   } else {
     resultados.acaoConsumida = true;
   }
 
-  // Se ação requer teste, retornar antes de contra-ataques
-  if (resultados.requerTeste) {
-    return resultados;
-  }
+  if (!resultados.acaoConsumida) return resultados;
 
-  if (!resultados.acaoConsumida) {
-    return resultados;
-  }
+  // --- 3. Contra-ataques + controle de rodada ---
+  _applyRoundConsequences(combate, userId, sessao, resultados);
 
-  // --- 3-5: Contra-ataques, controle de rodada, fim de combate ---
-  _executarContraAtaques(combate, resultados);
-  _controlarRodada(combate, userId, sessao, resultados);
-  _verificarFimEAtribuir(combate, resultados);
+  // --- 4. Fim de combate ---
+  _finalizeCombatState(combate, resultados);
 
   return resultados;
 }

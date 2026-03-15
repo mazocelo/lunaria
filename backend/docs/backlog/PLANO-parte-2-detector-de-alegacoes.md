@@ -36,6 +36,21 @@ Regra pratica:
 - se a mecanica ja validou explicitamente a habilidade ou recurso, o detector nao bloqueia depois
 - se o detector encontra inconsistencia concreta antes da resolucao, a narrativa nao deve transformar isso em fato verdadeiro
 
+## Precedencia operacional
+
+Para evitar conflito com o pipeline da Parte 3:
+
+- a mecanica continua autoritativa quando ja existe validacao explicita no backend
+- o detector roda sempre antes da narrativa final
+- o detector roda antes da mecanica apenas quando a alegacao ainda nao e coberta por validacao mecanica nativa
+- o detector nao reabre nem invalida retroativamente uma acao que a mecanica ja aceitou explicitamente
+
+Exemplos:
+
+- `usar_habilidade` com validacao real de mana e cooldown: a mecanica valida primeiro, o detector apenas complementa contexto
+- "eu puxo uma arma rara que nunca apareceu": o detector valida antes de deixar isso virar fato narrativo ou efeito mecanico
+- "eu ja sabia a senha": o detector atua antes da narrativa, porque nao existe validacao mecanica nativa desse fato
+
 ## Fontes de verdade
 
 Consultar, em ordem:
@@ -207,12 +222,27 @@ O detector deve rodar:
 
 1. depois da sanitizacao da entrada
 2. antes da narrativa final
-3. antes da aplicacao mecanica quando a alegacao puder alterar regra
+3. antes da aplicacao mecanica apenas quando a alegacao puder alterar regra e ainda nao houver validacao mecanica autoritativa
 
 Separacao recomendada:
 
-- combate e testes: antes da resolucao da acao
+- combate e testes: antes da resolucao apenas para alegacoes nao cobertas pelo motor mecanico
 - roleplay e exploracao: antes da narracao final
+
+## Integracao com a Parte 3
+
+Regra de divisao de responsabilidade:
+
+- detector faz triagem factual curta
+- arbitro mecanico nao deve reimplementar todo o detector
+- arbitro mecanico consome o sinal do detector quando houver alegacao concreta relevante
+- continuista usa o resultado do detector apenas quando ele afetar coerencia, retcon ou fato previo
+
+Objetivo:
+
+- evitar validacao duplicada
+- evitar que detector e revisor mecanico deem respostas conflitantes
+- manter um unico ponto de bloqueio factual para cada tipo de alegacao
 
 ## Plano minimo em 3 fases
 

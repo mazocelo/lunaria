@@ -20,6 +20,7 @@ import {
   buildRoleplayMensagem
 } from '../utils/sessionMessages.js';
 import { sanitizePromptInput } from '../../helpers/sanitize.js';
+import { runClaimDetection } from '../../helpers/claimDetector.js';
 import {
   getTestePendente,
   criarTestePendente,
@@ -344,6 +345,33 @@ export default class MasterNarrationEngine {
 
       acaoComContexto += `Ação do jogador: "${sanitizePromptInput(mensagem)}"`;
 
+      // 4a. Detector de alegacoes concretas (modo observacao — Fase 1)
+      const personagemCompleto = (sessao.personagensCompletos || {})[pcId] || personagem;
+      const claimFlags = runClaimDetection(mensagem, {
+        turnState,
+        personagemCompleto,
+        cooldowns: sessao.estadoJogo?.cooldowns?.[String(userId)],
+      }, { roomId, userId });
+
+      // 4b. Hard block — alegacoes inexistentes impedem chamada IA
+      const hardBlocks = claimFlags.filter(f => f.blockLevel === 'hard');
+      if (hardBlocks.length > 0) {
+        const motivos = hardBlocks.map(f => f.motivo).join('; ');
+        log.info({ roomId, userId, hardBlocks: hardBlocks.length, motivos }, 'claim_hard_block');
+
+        socket.emit('server_message', {
+          userId,
+          mensagem: `Acao bloqueada: ${motivos}. Verifique seu inventario e habilidades.`,
+        });
+        return;
+      }
+
+      // 4c. Soft blocks — injetar contexto para o Mestre considerar
+      const softBlocks = claimFlags.filter(f => f.blockLevel === 'soft');
+      if (softBlocks.length > 0) {
+        const avisos = softBlocks.map(f => `[AVISO: "${f.claim}" — ${f.motivo}. Candidatos: ${f.candidatos.join(', ')}]`);
+        acaoComContexto += '\n' + avisos.join('\n');
+      }
 
       // 5. Narrar ação do jogador (COM FALLBACK SE IA FALHAR)
       sm.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {
@@ -395,6 +423,30 @@ export default class MasterNarrationEngine {
         sm.log('INFO', 'MENSAGEM_PARA_MESTRE_USANDO_FALLBACK', socket.id, userId, {
           mensagemFallback: resposta.narracao
         });
+      }
+
+      // 5a. Revisão pós-IA (Árbitro Mecânico + Continuista)
+      try {
+        const { executarRevisao } = await import('../../agents/Revisores/index.js');
+        const reviewResult = await executarRevisao({
+          combateAtivo,
+          resultadosCombatePreResolvido,
+          respostaIA: resposta,
+          acaoJogador: mensagem,
+          sessao,
+          userId,
+          claimFlags,
+        });
+        if (reviewResult.reviewed) {
+          if (!reviewResult.passed && reviewResult.corrections?.narrativa) {
+            resposta.narracao = reviewResult.corrections.narrativa;
+          }
+          if (reviewResult.verdicts) {
+            resposta._reviewVerdicts = reviewResult.verdicts;
+          }
+        }
+      } catch (reviewErr) {
+        log.warn({ err: reviewErr.message }, 'Revisao pos-IA falhou (fail-open)');
       }
 
       // 5. Salvar mensagem do jogador na sessão

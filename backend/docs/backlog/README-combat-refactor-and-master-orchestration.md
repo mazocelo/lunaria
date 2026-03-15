@@ -32,8 +32,38 @@ Este documento consolida dois planos complementares:
 - Extrair primeiro o que reduz acoplamento e duplicação real.
 - Priorizar fluxo seguro, baixo risco e legibilidade operacional.
 - Validar alegações concretas do jogador contra o estado real antes de aceitar efeitos fortes como fato narrativo.
+- Congelar contrato de evento e dono da persistência antes de extrair helpers.
 
 ## Parte 1: Refactor Cirúrgico do Combate
+
+### Invariantes de integração
+
+Antes de qualquer extração, esta parte deve tratar como contrato:
+
+- ordem de emissão de eventos de combate
+- shape websocket consumido por `dtos.js`, `listeners.js` e `BatalhaUI.jsx`
+- ponto único responsável por persistir sessão e clone
+- consistência entre fluxo ao vivo e rejoin
+
+#### Ordem mínima a preservar
+
+1. `combate_resultado_acao`
+2. `combate_jogador_ferido`, `combate_monstro_derrotado` e `status_dano` quando aplicável
+3. `combate_estado`
+4. `combate_finalizado` quando aplicável
+
+#### Dono da persistência
+
+- `combatEventEmitter.js` apenas transforma `CombatResult` em eventos
+- `combatEventEmitter.js` não persiste sessão nem clone
+- `combatEngine.js` continua dono da persistência do combate normal
+- `finalizeResolvedTestTurn(...)` continua dono da persistência no pós-teste
+
+#### Compatibilidade de payload
+
+- campos novos devem ser aditivos
+- campos existentes não devem mudar de nome ou semântica sem ajustar frontend no mesmo pacote
+- qualquer refactor precisa preservar rejoin, log de combate e smoke QA atual
 
 ### Onde o código está pedindo refactor
 
@@ -178,10 +208,12 @@ Objetivo:
   - `combate_estado.log`
   - renderização da UI
 
-Direção:
+Direção escolhida:
 
-- backend emitir shape mais consistente
-- ou normalizador único antes de persistir e antes de entregar ao frontend
+- backend passa a ser a fonte canônica do shape do log
+- `combate_estado.log` e eventos ao vivo devem sair com o mesmo contrato
+- frontend pode manter shim de compatibilidade apenas de forma temporária
+- evitar dois normalizadores "donos" do mesmo contrato
 
 ### O que não fazer agora
 
@@ -609,17 +641,32 @@ O detector deve rodar:
 
 1. depois da sanitização da entrada
 2. antes da narrativa final
-3. antes da aplicação mecânica quando a alegação puder alterar regra
+3. antes da aplicação mecânica apenas quando a alegação puder alterar regra e ainda não houver validação mecânica autoritativa
 
 Separação recomendada:
 
-- combate/testes: detector roda antes da resolução da ação
-- roleplay/exploração: detector roda antes da narração final
+- combate/testes: antes da resolução apenas para alegações não cobertas pelo motor mecânico
+- roleplay/exploração: antes da narração final
+
+Precedência operacional:
+
+- a mecânica continua autoritativa quando já existe validação real no backend
+- o detector roda sempre antes da narrativa final
+- o detector só roda antes da mecânica quando a alegação ainda não é coberta por validação mecânica nativa
+- o detector não reabre nem invalida retroativamente uma ação que a mecânica já aceitou explicitamente
+
+Integração com revisores:
+
+- detector faz triagem factual curta
+- árbitro mecânico não reimplementa todo o detector
+- árbitro mecânico consome o sinal do detector quando houver alegação concreta relevante
+- continuísta só usa o resultado do detector quando isso afetar coerência, retcon ou fato prévio
 
 Objetivo:
 
 - impedir que algo inexistente seja aceito cedo demais
 - preservar espaço para improviso controlado em cena não mecânica
+- evitar validação duplicada entre detector e revisores
 
 ### Plano mínimo de implementação
 
@@ -717,26 +764,70 @@ Preferir:
 
 ### Quando acionar os revisores
 
-- ação ambígua do jogador
-- dúvida de regra
-- combate
+- combate com ambiguidade de regra, alegação concreta relevante ou consequência crítica
+- dúvida de regra não coberta pelo motor mecânico
 - revelações importantes de história
-- qualquer decisão com consequência relevante
 - alegação concreta de item, habilidade, recurso, conhecimento ou preparo prévio
+- decisão com consequência irreversível
 
 ### Quando não acionar
 
+- todo combate indiscriminadamente
+- rodadas de combate com intent claro e sem alegação
 - toda mensagem comum
 - roleplay simples
 - respostas curtas de continuação
 
 ### Pipeline recomendado
 
+A revisão é feita via pipeline do Mestre. O Mestre orquestra tudo.
+
 1. resolver mecânica
 2. validar alegações concretas do jogador
 3. montar contexto
 4. revisar coerência/regra
 5. narrar
+
+### Feature flags
+
+- `REVIEWER_ENABLED=true|false` — gate global para ativar/desativar revisores
+- default: `true` (revisores ativos)
+- se `false`, o Mestre principal responde sozinho sem revisão
+- futuramente: `MECHANICAL_REVIEWER_ENABLED`, `CONTINUITY_REVIEWER_ENABLED` como flags granulares (não obrigatórias agora)
+- revisores devem ser no-op quando a flag correspondente estiver desligada
+- logs devem registrar quando um revisor foi pulado por flag
+- enabled por default NÃO significa revisar toda mensagem
+
+### Timeout e fallback
+
+Budget por revisor:
+
+- árbitro mecânico: 250-400ms
+- continuísta: 300-500ms
+- sem retry em cascata no caminho crítico
+
+Política de falha:
+
+Árbitro mecânico:
+
+- se a mecânica já resolveu de forma autoritativa: fail-open com log
+- se existe contradição factual forte: fail-soft pedindo clarificação ou bloqueando efeito impossível
+
+Continuísta:
+
+- fail-open com log, sem travar a resposta do Mestre
+
+Regra geral:
+
+- nunca travar indefinidamente a resposta do Mestre
+- se ambos os revisores falharem, o Mestre responde sozinho com log de warning
+
+### Divisão de responsabilidade
+
+- Narrador = voz final
+- Árbitro = validação curta de regra/contradição
+- Continuísta = repetição/alucinação/roteiro
+- sem debate entre clones
 
 ### Por que isso é melhor que debate entre clones
 
@@ -810,16 +901,25 @@ Saída:
 
 ## Plano combinado recomendado
 
-### Etapa A — Estabilizar base do combate
+### Etapa A — Estabilizar base do combate [CONCLUÍDA]
 
-- `combatPendingAction.js`
-- `combatEventEmitter.js`
-- unificação do pós-teste
+Entregue:
 
-### Etapa B — Organizar núcleo mecânico
+- `combatPendingAction.js` — lifecycle centralizado
+- `combatEventEmitter.js` — emissão extraída de combatEngine
+- unificação do pós-teste via `_processPostTestCombat`
+- `normalizeCombatLogEntry` + `_pushCombatLog` — log normalizado no write
+- `COMBAT_INTENT_HANDLERS` — handler map por intent
 
-- handler map por intent
-- separação entre ação, rodada e finalização
+### Etapa B — Organizar núcleo mecânico [PARCIALMENTE CONCLUÍDA]
+
+Feito:
+
+- handler map por intent (COMBAT_INTENT_HANDLERS)
+
+Pendente:
+
+- separação entre ação, rodada e finalização em funções distintas
 - DTO interno de resultado
 
 ### Etapa C — Adicionar revisão sob demanda do Mestre

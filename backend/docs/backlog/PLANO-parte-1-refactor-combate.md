@@ -31,6 +31,38 @@ Sintomas:
 - Sem refactor grande de `socketManager`.
 - Extrair primeiro o que tira duplicacao operacional real.
 - Preservar comportamento atual antes de mexer no nucleo mecanico.
+- Congelar contrato de evento e dono da persistencia antes de extrair helpers.
+
+## Invariantes de integracao
+
+Antes de qualquer extracao, esta parte deve tratar como contrato:
+
+- ordem de emissao de eventos de combate
+- shape websocket consumido por `dtos.js`, `listeners.js` e `BatalhaUI.jsx`
+- ponto unico responsavel por persistir sessao e clone
+- consistencia entre fluxo ao vivo e rejoin
+
+### Ordem minima a preservar
+
+1. `combate_resultado_acao`
+2. `combate_jogador_ferido`, `combate_monstro_derrotado` e `status_dano` quando aplicavel
+3. `combate_estado`
+4. `combate_finalizado` quando aplicavel
+
+### Dono da persistencia
+
+Regra:
+
+- `combatEventEmitter.js` apenas transforma `CombatResult` em eventos
+- `combatEventEmitter.js` nao persiste sessao nem clone
+- `combatEngine.js` continua dono da persistencia do combate normal
+- `finalizeResolvedTestTurn(...)` continua dono da persistencia no pos-teste
+
+### Compatibilidade de payload
+
+- campos novos devem ser aditivos
+- campos existentes nao devem mudar de nome ou semantica sem ajustar frontend no mesmo pacote
+- qualquer refactor precisa preservar rejoin, log de combate e smoke QA atual
 
 ## Ordem recomendada
 
@@ -151,10 +183,12 @@ Objetivo:
 - alinhar `combate_estado.log`
 - alinhar o shape que a UI consome
 
-Direcao:
+ Direcao escolhida:
 
-- backend emitir shape consistente
-- ou normalizador unico antes de persistir e antes de entregar ao frontend
+- backend passa a ser a fonte canonica do shape do log
+- `combate_estado.log` e eventos ao vivo devem sair com o mesmo contrato
+- frontend pode manter shim de compatibilidade apenas de forma temporaria
+- evitar dois normalizadores "donos" do mesmo contrato
 
 ## Fora de escopo
 
@@ -170,6 +204,7 @@ Esta parte esta pronta quando:
 - criacao e limpeza de acao pendente estiverem centralizadas
 - pos-teste nao duplicar logica operacional
 - emissao de eventos de combate sair de `combatEngine.js` inline
+- a ordem de eventos e o dono da persistencia estiverem explicitamente preservados
 - `combateHelper.js` deixar de concentrar acao, rodada e finalizacao no mesmo bloco
 - o log de combate tiver shape previsivel no ao vivo e no rejoin
 

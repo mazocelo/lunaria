@@ -73,8 +73,8 @@ const MarkdownRenderer = ({ children, className = '' }) => {
         // Estilos por nível
         const estilos = {
           1: "text-3xl font-bold mb-4 mt-6 bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent drop-shadow-lg",
-          2: "text-2xl font-bold mb-3 mt-5 text-purple-300 drop-shadow-md",
-          3: "text-xl font-semibold mb-2 mt-4 text-cyan-300"
+          2: "text-2xl font-bold mb-3 mt-5 text-purple-300 drop-shadow-md border-l-[3px] border-purple-400/50 pl-3",
+          3: "text-xl font-semibold mb-2 mt-4 text-cyan-300 border-l-2 border-cyan-400/40 pl-2"
         };
         
         elements.push(
@@ -114,14 +114,14 @@ const MarkdownRenderer = ({ children, className = '' }) => {
       // Processar formatação inline (negrito, itálico)
       const formatted = processInlineFormatting(line);
       elements.push(
-        <p key={getKey()} className="mb-2 leading-relaxed">
+        <p key={getKey()} className="mb-3 leading-relaxed">
           {formatted}
         </p>
       );
     }
     // Linha vazia (espaçamento) - só adiciona se houver elementos antes
     else if (!line.trim() && elements.length > 0) {
-      elements.push(<div key={getKey()} className="h-2" />);
+      elements.push(<div key={getKey()} className="h-3" />);
     }
   });
   

@@ -184,20 +184,20 @@ export const renderMestre = (mensagem, key) => {
 
   return (
     <div key={key} className="w-full animate-fade-in">
-      <div className={`glass p-6 rounded-xl border-2 shadow-2xl ${
+      <div className={`glass p-4 rounded-xl border-2 shadow-2xl border-l-4 ${
         temSolicitacaoDados || mensagem.destaque
-          ? 'border-amber-400/90 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
-          : 'border-purple-400/70 bg-gradient-to-br from-purple-900/40 to-pink-900/30'
+          ? 'border-amber-400/90 border-l-amber-400/80 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
+          : 'border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30'
       }`}>
-        <div className="flex items-start space-x-4">
-          <span className="text-4xl drop-shadow-lg">
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl drop-shadow-lg mt-0.5">
             {temSolicitacaoDados ? '\u{1F3B2}' : '\u{1F3AD}'}
           </span>
           <div className="flex-1">
-            <p className={`font-bold text-lg mb-2 ${
+            <p className={`font-semibold text-sm uppercase tracking-wide mb-2 ${
               temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
             }`}>
-              Mestre {temSolicitacaoDados && '- Solicita Rolagem!'}
+              Mestre {temSolicitacaoDados && '\u{2014} Solicita Rolagem!'}
             </p>
             <MarkdownRenderer className="text-white text-lg leading-relaxed">
               {conteudo}
@@ -334,21 +334,21 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
         cancelText="Cancelar"
         type="info"
       />
-      <div className={`glass p-6 rounded-xl border-2 shadow-2xl ${
+      <div className={`glass p-4 rounded-xl border-2 shadow-2xl border-l-4 ${
         temSolicitacaoDados || mensagem.destaque
-          ? 'border-amber-400/90 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
-          : 'border-purple-400/70 bg-gradient-to-br from-purple-900/40 to-pink-900/30'
+          ? 'border-amber-400/90 border-l-amber-400/80 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
+          : 'border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30'
       }`}>
-        <div className="flex items-start space-x-4">
-          <span className="text-4xl drop-shadow-lg">
-            {temSolicitacaoDados ? '🎲' : '🎭'}
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl drop-shadow-lg mt-0.5">
+            {temSolicitacaoDados ? '\u{1F3B2}' : '\u{1F3AD}'}
           </span>
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
-              <p className={`font-bold text-lg ${
+              <p className={`font-semibold text-sm uppercase tracking-wide ${
                 temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
               }`}>
-                Mestre {temSolicitacaoDados && '- Solicita Rolagem!'}
+                Mestre {temSolicitacaoDados && '— Solicita Rolagem!'}
               </p>
               <div className="flex items-center gap-1">
                 <button

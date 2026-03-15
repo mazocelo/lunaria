@@ -105,49 +105,45 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
       </div>
 
       {tts.currentMessageId != null && (
-        <div className="px-6 pb-3">
+        <div className="px-6 pb-2">
           <div className="w-full max-w-4xl mx-auto">
-            <div className="glass p-3 rounded-xl border border-purple-500/40 bg-black/20">
-              <div className="flex items-center gap-3 mb-2">
-                <button
-                  onClick={tts.togglePause}
-                  className="px-2 py-1 rounded-md text-sm bg-purple-600/40 text-purple-100 hover:bg-purple-600/60 transition-all"
-                >
-                  {tts.isPlaying ? 'Pause' : 'Play'}
-                </button>
-                <button
-                  onClick={tts.stop}
-                  className="px-2 py-1 rounded-md text-sm bg-red-600/30 text-red-100 hover:bg-red-600/50 transition-all"
-                >
-                  Stop
-                </button>
-                <button
-                  onClick={tts.cyclePlaybackRate}
-                  className="px-2 py-1 rounded-md text-sm bg-cyan-600/30 text-cyan-100 hover:bg-cyan-600/50 transition-all"
-                  title="Velocidade de reproducao"
-                >
-                  {`${tts.playbackRate}x`}
-                </button>
-                <span className="text-xs text-purple-200 truncate">
-                  {currentTtsSegment
-                    ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}`
-                    : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao do mestre'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-purple-300 w-10 text-right">{formatTime(tts.currentTime)}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={tts.duration || 0}
-                  step="0.1"
-                  value={Math.min(tts.currentTime || 0, tts.duration || 0)}
-                  onChange={(e) => tts.seekTo(e.target.value)}
-                  className="flex-1 accent-purple-400"
-                  disabled={!tts.duration}
-                />
-                <span className="text-xs text-purple-300 w-10">{formatTime(tts.duration)}</span>
-              </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/30 border border-purple-500/30">
+              <button
+                onClick={tts.togglePause}
+                className="px-1.5 py-0.5 rounded text-xs bg-purple-600/40 text-purple-100 hover:bg-purple-600/60 transition-all flex-shrink-0"
+              >
+                {tts.isPlaying ? '\u{23F8}' : '\u{25B6}'}
+              </button>
+              <button
+                onClick={tts.stop}
+                className="px-1.5 py-0.5 rounded text-xs bg-red-600/30 text-red-100 hover:bg-red-600/50 transition-all flex-shrink-0"
+              >
+                {'\u{23F9}'}
+              </button>
+              <button
+                onClick={tts.cyclePlaybackRate}
+                className="px-1.5 py-0.5 rounded text-xs bg-cyan-600/30 text-cyan-100 hover:bg-cyan-600/50 transition-all flex-shrink-0"
+                title="Velocidade"
+              >
+                {`${tts.playbackRate}x`}
+              </button>
+              <span className="text-xs text-purple-200 truncate max-w-[200px]">
+                {currentTtsSegment
+                  ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}`
+                  : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao'}
+              </span>
+              <span className="text-xs text-purple-300 flex-shrink-0">{formatTime(tts.currentTime)}</span>
+              <input
+                type="range"
+                min={0}
+                max={tts.duration || 0}
+                step="0.1"
+                value={Math.min(tts.currentTime || 0, tts.duration || 0)}
+                onChange={(e) => tts.seekTo(e.target.value)}
+                className="w-32 accent-purple-400 flex-shrink-0"
+                disabled={!tts.duration}
+              />
+              <span className="text-xs text-purple-300 flex-shrink-0">{formatTime(tts.duration)}</span>
             </div>
           </div>
         </div>

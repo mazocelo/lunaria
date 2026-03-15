@@ -5,13 +5,14 @@ import { useAuth } from '../../../contexts/AuthContext';
  * Painel lateral com outros jogadores
  * 🎲 SISTEMA DE TURNOS: Mostra ordem, valores de dados e turno atual
  */
-const PainelJogadores = ({ 
-  participantes, 
-  ordemJogadores = [], 
+const PainelJogadores = ({
+  participantes,
+  ordemJogadores = [],
   resultadosDados = {},
   turnoAtual = null,
   faseJogo = 'aguardando_inicio',
-  onVerFichaJogador
+  onVerFichaJogador,
+  compactMode = false
 }) => {
   const { user } = useAuth();
   
@@ -91,36 +92,40 @@ const PainelJogadores = ({
           </div>
         )}
 
-        {/* Informações extras rápidas */}
-        <div className="mt-2 text-xs text-purple-200 space-y-1">
-          {jogador.status && (
-            <p className="flex items-center gap-1">
-              <span className="text-sm">📌</span>
-              <span>{jogador.status === 'selecionando' ? 'Selecionando personagem' : jogador.status}</span>
-            </p>
-          )}
-          {jogador.classe && (
-            <p className="flex items-center gap-1 text-cyan-200">
-              <span>⚔️</span>
-              <span>{jogador.classe}</span>
-            </p>
-          )}
-          {jogador.raca && (
-            <p className="flex items-center gap-1 text-green-200">
-              <span>🧬</span>
-              <span>{jogador.raca}</span>
-            </p>
-          )}
-        </div>
+        {/* Informações extras rápidas (ocultas em compact mode) */}
+        {!compactMode && (
+          <div className="mt-2 text-xs text-purple-200 space-y-1">
+            {jogador.status && (
+              <p className="flex items-center gap-1">
+                <span className="text-sm">{'\u{1F4CC}'}</span>
+                <span>{jogador.status === 'selecionando' ? 'Selecionando personagem' : jogador.status}</span>
+              </p>
+            )}
+            {jogador.classe && (
+              <p className="flex items-center gap-1 text-cyan-200">
+                <span>{'\u{2694}\u{FE0F}'}</span>
+                <span>{jogador.classe}</span>
+              </p>
+            )}
+            {jogador.raca && (
+              <p className="flex items-center gap-1 text-green-200">
+                <span>{'\u{1F9EC}'}</span>
+                <span>{jogador.raca}</span>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Botão para ver ficha */}
         <button
           type="button"
           onClick={() => onVerFichaJogador && onVerFichaJogador(jogador)}
-          className="mt-3 w-full px-3 py-2 rounded-lg border border-purple-400/30 text-purple-100 text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2"
+          className={`mt-3 rounded-lg border border-purple-400/30 text-purple-100 text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2 ${
+            compactMode ? 'px-2 py-1.5 w-auto' : 'px-3 py-2 w-full'
+          }`}
         >
-          <span>📜</span>
-          <span>Ver ficha</span>
+          <span>{'\u{1F4DC}'}</span>
+          {!compactMode && <span>Ver ficha</span>}
         </button>
       </div>
     );
@@ -128,7 +133,7 @@ const PainelJogadores = ({
 
   return (
     <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-r border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
-      isExpanded ? 'w-80' : 'w-16'
+      isExpanded ? (compactMode ? 'w-64' : 'w-80') : 'w-16'
     }`}>
       {/* Header com botão de collapse */}
       <div className={`flex items-center mb-2 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
@@ -208,8 +213,8 @@ const PainelJogadores = ({
         </div>
       )}
 
-      {/* Legenda (só quando expandido e ordem definida) */}
-      {isExpanded && ordemJogadores.length > 0 && (
+      {/* Legenda (só quando expandido, ordem definida e nao compact) */}
+      {isExpanded && !compactMode && ordemJogadores.length > 0 && (
         <div className="mt-4 pt-4 border-t border-purple-500/20">
           <p className="text-purple-300 text-xs text-center mb-2">Legenda:</p>
           <div className="space-y-1 text-xs">

@@ -42,11 +42,10 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
   if (variant !== 'atelier') {
     return (
       <button
-        onClick={() => !selected && onSelect(sugestao)}
-        disabled={selected}
+        onClick={() => onSelect(sugestao)}
         className={`group w-full text-left rounded-xl border p-3.5 transition-all ${
           selected
-            ? 'border-purple-500/50 bg-purple-500/10 ring-1 ring-purple-500/20 cursor-default'
+            ? 'border-purple-500/50 bg-purple-500/10 ring-1 ring-purple-500/20'
             : isLight
               ? 'border-slate-200 bg-white hover:border-purple-400 hover:bg-purple-50/50'
               : 'border-slate-700/50 bg-slate-800/30 hover:border-purple-500/30 hover:bg-slate-800/50'
@@ -70,7 +69,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
                 <p className={`mt-1 text-[11px] font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{config.helper}</p>
               </div>
               <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-modern font-semibold ${selected ? 'bg-teal-500/15 text-teal-400' : isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-800 text-slate-300'}`}>
-                {selected ? 'Escolhida' : config.cta}
+                {selected ? 'Remover' : config.cta}
               </span>
             </div>
             {sugestao.descricao && (
@@ -84,11 +83,10 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
 
   return (
     <button
-      onClick={() => !selected && onSelect(sugestao)}
-      disabled={selected}
+      onClick={() => onSelect(sugestao)}
       className={[
         'wa-choice-card wa-etched group w-full rounded-2xl border p-4 text-left',
-        selected ? 'wa-choice-card--selected cursor-default' : 'cursor-pointer',
+        selected ? 'wa-choice-card--selected cursor-pointer' : 'cursor-pointer',
       ].join(' ')}
     >
       <div className="flex items-start gap-3">
@@ -118,7 +116,7 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
             </div>
 
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${selected ? 'wa-teal-chip' : 'wa-panel-soft'}`}>
-              {selected ? 'Selada' : config.cta}
+              {selected ? 'Remover' : config.cta}
             </span>
           </div>
 

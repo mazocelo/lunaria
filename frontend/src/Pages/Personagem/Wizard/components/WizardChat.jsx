@@ -4,32 +4,8 @@ import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
 import MasterAvatarGlyph from './MasterAvatarGlyph.jsx';
-
-const INPUT_PLACEHOLDERS = {
-  boas_vindas: 'Descreva o nome que voce procura ou aceite uma sugestao...',
-  raca: 'Peca outra linhagem ou descreva o heroi que imagina...',
-  classe: 'Peca outra vocacao ou descreva como quer jogar...',
-  background: 'Descreva a origem do personagem ou peca ajuda ao Mestre...',
-  vantagens: 'Peca dons mais especificos ou refine o conceito...',
-  desvantagens: 'Descreva falhas, custos ou conflitos interessantes...',
-  atributos: 'Peca uma sugestao de distribuicao ou refine a build...',
-  resumo: 'Peca ajustes finais ou confirme a direcao do personagem...',
-  refinamento: 'Traga os ultimos ajustes antes de concluir...',
-};
-
-const REFRESH_PROMPTS = {
-  raca: 'Mostre-me outras linhagens diferentes para esta etapa. Nao avance para a proxima etapa.',
-  classe: 'Mostre-me outras vocacoes diferentes para esta etapa. Nao avance para a proxima etapa.',
-  background: 'Mostre-me outras sugestoes de origem para esta etapa. Nao avance para a proxima etapa.',
-  desvantagens: 'Mostre-me outras desvantagens diferentes para esta etapa. Continue focado apenas nas desvantagens e nao avance.',
-  vantagens: 'Mostre-me outras vantagens diferentes para esta etapa. Continue focado apenas nas vantagens e nao avance.',
-};
-
-const getStageLabel = (etapaAtual) => {
-  if (['resumo', 'refinamento'].includes(etapaAtual)) return 'Preparacao final';
-  if (etapaAtual === 'atributos') return 'Leitura da build';
-  return 'Direcao da etapa';
-};
+import { getStageConfig } from '../stages/stageConfig.js';
+import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
 
 const WizardChat = ({
   mensagens,
@@ -51,6 +27,7 @@ const WizardChat = ({
   isLight,
   podeCriar,
   atributos,
+  atributosFinal,
   setAtributo,
   pontosDistribuidos,
   pontosRestantes,
@@ -100,36 +77,19 @@ const WizardChat = ({
     return false;
   };
 
-  const showAtributos = ['atributos', 'resumo', 'refinamento'].includes(etapaAtual);
-  const mostrarBusca = ['raca', 'classe', 'vantagens', 'desvantagens'].includes(etapaAtual);
+  const config = getStageConfig(etapaAtual);
+  const showAtributos = config.showAttributePanel;
+  const mostrarBusca = config.showCatalog;
+  const tipoAtual = config.catalogType || 'raca';
+  const labelAtual = config.catalogLabel || '';
 
   const catalogoAtual = useMemo(() => {
-    if (etapaAtual === 'raca') return racasDisponiveis || [];
-    if (etapaAtual === 'classe') return classesDisponiveis || [];
-    if (etapaAtual === 'vantagens') return (vantagensDisponiveis || []).filter(v => v.custo > 0);
-    if (etapaAtual === 'desvantagens') return (vantagensDisponiveis || []).filter(v => v.custo < 0);
+    if (tipoAtual === 'raca') return racasDisponiveis || [];
+    if (tipoAtual === 'classe') return classesDisponiveis || [];
+    if (tipoAtual === 'vantagem') return (vantagensDisponiveis || []).filter(v => v.custo > 0);
+    if (tipoAtual === 'desvantagem') return (vantagensDisponiveis || []).filter(v => v.custo < 0);
     return [];
-  }, [etapaAtual, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
-
-  const tipoAtual = etapaAtual === 'raca'
-    ? 'raca'
-    : etapaAtual === 'classe'
-      ? 'classe'
-      : etapaAtual === 'vantagens'
-        ? 'vantagem'
-        : etapaAtual === 'desvantagens'
-          ? 'desvantagem'
-          : 'raca';
-
-  const labelAtual = etapaAtual === 'raca'
-    ? 'linhagens'
-    : etapaAtual === 'classe'
-      ? 'vocacoes'
-      : etapaAtual === 'vantagens'
-        ? 'dons'
-        : etapaAtual === 'desvantagens'
-          ? 'marcas'
-          : '';
+  }, [tipoAtual, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
 
   const catalogoFiltrado = useMemo(() => {
     if (!filtro.trim()) return catalogoAtual;
@@ -143,13 +103,10 @@ const WizardChat = ({
   const ultimaMensagem = mensagens[mensagens.length - 1];
   const ultimaMensagemEhMestreDaEtapa = ultimaMensagem?.role === 'mestre' && ultimaMensagem?.etapa === etapaAtual;
   const saldoCriacaoInvalido = pontosCriacaoRestantes < 0;
-  const refreshPrompt = REFRESH_PROMPTS[etapaAtual] || 'Mostre-me outras opcoes diferentes para esta etapa sem avancar.';
-  const podeContinuarSelecoes = etapaAtual === 'desvantagens'
-    ? (desvantagensIds.length > 0 || skipDesvantagens)
-    : etapaAtual === 'vantagens'
-      ? (vantagensIds.length > 0 || skipVantagens)
-      : false;
-  const textoContinuarSelecoes = etapaAtual === 'desvantagens' ? 'Continuar para dons' : 'Continuar para essencia';
+  const refreshPrompt = config.refreshPrompt || 'Mostre-me outras opcoes diferentes para esta etapa sem avancar.';
+  const buildStateChat = { vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados };
+  const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat);
+  const textoContinuarSelecoes = getContinueLabel(etapaAtual);
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
   /** Seleciona e auto-avanÃƒÂ§a para raca/classe; sÃƒÂ³ seleciona para vantagem/desvantagem */
@@ -176,7 +133,7 @@ const WizardChat = ({
     setFiltro('');
   };
 
-  const inputPlaceholder = INPUT_PLACEHOLDERS[etapaAtual] || 'Peca ajuda ao Mestre ou refine a escolha atual...';
+  const inputPlaceholder = config.placeholder || 'Peca ajuda ao Mestre ou refine a escolha atual...';
 
   return (
     <div className={embedded ? 'flex h-full flex-col' : 'wa-chat-shell mx-4 mb-4 mt-3 flex h-full flex-col rounded-[24px] md:mx-5 md:mb-5'}>
@@ -211,7 +168,7 @@ const WizardChat = ({
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${
                         ['resumo', 'refinamento'].includes(etapaAtual) ? 'wa-emerald-chip' : etapaAtual === 'atributos' ? 'wa-accent-chip' : 'wa-accent-chip'
                       }`}>
-                        {getStageLabel(etapaAtual)}
+                        {config.showFinalAction ? 'Preparacao final' : config.showAttributePanel ? 'Leitura da build' : 'Direcao da etapa'}
                       </span>
                     </div>
                   )}
@@ -268,7 +225,7 @@ const WizardChat = ({
                   </div>
                 )}
 
-                {isUltimaMensagemMestre && !enviando && ['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
+                {isUltimaMensagemMestre && !enviando && config.allowRefresh && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
@@ -290,7 +247,7 @@ const WizardChat = ({
                       </button>
                     )}
 
-                    {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
+                    {config.allowSkip && (
                       <button
                         type="button"
                         onClick={() => onPularEtapa?.(etapaAtual)}
@@ -315,9 +272,8 @@ const WizardChat = ({
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
-                            const val = atributos[key] || 10;
+                            const finalVal = atributosFinal?.[key] ?? (atributos[key] || 10);
                             const bonus = bonusDetalhes?.[key] || 0;
-                            const finalVal = val + bonus;
                             const mod = Math.floor((finalVal - 10) / 2);
                             return (
                               <div key={key} className={`rounded-xl border px-2.5 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
@@ -414,7 +370,7 @@ const WizardChat = ({
 
         {!enviando && !ultimaMensagemEhMestreDaEtapa && (
           <div className="space-y-3">
-            {['raca', 'classe', 'vantagens', 'desvantagens', 'background'].includes(etapaAtual) && (
+            {config.allowRefresh && (
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -436,7 +392,7 @@ const WizardChat = ({
                   </button>
                 )}
 
-                {(etapaAtual === 'vantagens' || etapaAtual === 'desvantagens') && (
+                {config.allowSkip && (
                   <button
                     type="button"
                     onClick={() => onPularEtapa?.(etapaAtual)}
@@ -476,9 +432,8 @@ const WizardChat = ({
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
-                      const val = atributos[key] || 10;
+                      const finalVal = atributosFinal?.[key] ?? (atributos[key] || 10);
                       const bonus = bonusDetalhes?.[key] || 0;
-                      const finalVal = val + bonus;
                       const mod = Math.floor((finalVal - 10) / 2);
                       return (
                         <div key={key} className={`rounded-xl border px-2.5 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
@@ -570,7 +525,7 @@ const WizardChat = ({
           </div>
         )}
 
-        {['desvantagens', 'vantagens', 'resumo', 'refinamento'].includes(etapaAtual) && !enviando && (
+        {config.showBudgetPanel && !enviando && (
           <div className={`wa-panel-soft rounded-2xl border px-4 py-3 ${saldoCriacaoInvalido ? 'border-red-500/40' : ''}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -613,7 +568,7 @@ const WizardChat = ({
           </div>
         )}
 
-        {['resumo', 'refinamento'].includes(etapaAtual) && podeCriar && !enviando && (
+        {config.showFinalAction && podeCriar && !enviando && (
           <div className="wa-readiness-panel rounded-[24px] border p-4 text-center">
             <CheckCircle2 size={30} className="mx-auto mb-2 text-[var(--wa-teal)]" />
             <p className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
@@ -649,7 +604,7 @@ const WizardChat = ({
             }}
           />
 
-          {['resumo', 'refinamento'].includes(etapaAtual) && saldoCriacaoInvalido && (
+          {config.showFinalAction && saldoCriacaoInvalido && (
             <div className="mr-2 max-w-[16rem] text-right text-xs font-modern text-red-400">
               Ajuste o orcamento de criacao antes de selar a ficha.
             </div>
@@ -683,7 +638,7 @@ const WizardChat = ({
               </button>
             )}
 
-            {['desvantagens', 'vantagens'].includes(etapaAtual) && (
+            {config.requireExplicitContinue && !config.showAttributePanel && (
               <button
                 type="button"
                 onClick={() => onAvancarComMestre?.()}
@@ -701,7 +656,7 @@ const WizardChat = ({
               </button>
             )}
 
-            {['resumo', 'refinamento'].includes(etapaAtual) && onSalvarPersonagem && (
+            {config.showFinalAction && onSalvarPersonagem && (
               <button
                 type="button"
                 onClick={onSalvarPersonagem}

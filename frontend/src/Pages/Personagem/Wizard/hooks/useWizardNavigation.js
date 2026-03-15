@@ -1,18 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-
-const ETAPAS = [
-  { id: 'boas_vindas', label: 'O Chamado', icon: '?' },
-  { id: 'raca', label: 'Linhagem', icon: '??' },
-  { id: 'classe', label: 'Vocacao', icon: '??' },
-  { id: 'background', label: 'Origens', icon: '??' },
-  { id: 'desvantagens', label: 'Marcas', icon: '??' },
-  { id: 'vantagens', label: 'Dons', icon: '??' },
-  { id: 'atributos', label: 'Essencia', icon: '??' },
-  { id: 'resumo', label: 'Destino', icon: '??' },
-  { id: 'refinamento', label: 'Ajustes', icon: '??' },
-];
-
-const ETAPAS_IDS = new Set(ETAPAS.map((etapa) => etapa.id));
+import { ETAPAS_COMPAT as ETAPAS, STAGE_IDS as ETAPAS_IDS } from '../stages/stageConfig.js';
 
 export const useWizardNavigation = (draftInicial, buildState) => {
   const etapaInicial = ETAPAS_IDS.has(draftInicial?.etapaAtual) ? draftInicial.etapaAtual : 'boas_vindas';
@@ -71,10 +58,11 @@ export const useWizardNavigation = (draftInicial, buildState) => {
   }, [etapaAtual, etapasVisitadas]);
 
   const navegarParaEtapa = useCallback((etapaId) => {
-    if (!ETAPAS_IDS.has(etapaId) || !etapasConcluidas.includes(etapaId)) return;
+    if (!ETAPAS_IDS.has(etapaId)) return;
+    if (!etapasConcluidas.includes(etapaId) && !etapasVisitadas.includes(etapaId)) return;
     setEtapaAtual(etapaId);
     setEtapasVisitadas((prev) => (prev.includes(etapaId) ? prev : [...prev, etapaId]));
-  }, [etapasConcluidas]);
+  }, [etapasConcluidas, etapasVisitadas]);
 
   const registrarVisita = useCallback((etapaId) => {
     if (!ETAPAS_IDS.has(etapaId)) return false;

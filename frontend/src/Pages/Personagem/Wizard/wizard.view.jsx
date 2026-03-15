@@ -12,12 +12,12 @@ import './wizard-theme.css';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
-
-const getResumoTexto = ({ done, skipped, doneText, skippedText, pendingText }) => {
-  if (done) return doneText;
-  if (skipped) return skippedText;
-  return pendingText;
-};
+import {
+  getProgressItems,
+  getTooltipMap,
+  getReadinessState,
+  canCreate,
+} from './stages/stageSelectors.js';
 
 const WizardView = (props) => {
   const {
@@ -97,65 +97,27 @@ const WizardView = (props) => {
   );
 
 
-  const orcamentoCriacaoValido = pontosCriacaoRestantes >= 0;
-  const podeCriar = !!(nome?.trim() && racaId && classeId && background?.trim() && bonusAplicados && orcamentoCriacaoValido);
-  const pendenciasOpcionais = Number(vantagensIds.length === 0 && !skipVantagens) + Number(desvantagensIds.length === 0 && !skipDesvantagens);
-  const pendingCount = [!nome?.trim(), !racaId, !classeId, !background?.trim(), !bonusAplicados, !orcamentoCriacaoValido].filter(Boolean).length + pendenciasOpcionais;
-
-  const readinessState = useMemo(() => {
-    if (!nome?.trim() || !racaId || !classeId) return 'open';
-    if (pendingCount > 0 || bonusInvalidado) return 'shaping';
-    return 'sealed';
-  }, [nome, racaId, classeId, pendingCount, bonusInvalidado]);
-
-
-  const progressoItems = useMemo(() => ([
-    { label: 'Nome', done: !!nome?.trim(), skipped: false },
-    { label: 'Linhagem', done: !!racaId, skipped: false },
-    { label: 'Vocacao', done: !!classeId, skipped: false },
-    { label: 'Origem', done: !!background?.trim(), skipped: false },
-    { label: 'Dons', done: vantagensIds.length > 0 || skipVantagens, skipped: skipVantagens },
-    { label: 'Marcas', done: desvantagensIds.length > 0 || skipDesvantagens, skipped: skipDesvantagens },
-    { label: 'Atributos', done: bonusAplicados, skipped: false },
-  ]), [nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados]);
-
-  const tooltipMap = useMemo(() => ({
-    boas_vindas: nome?.trim() || 'Nome pendente',
-    raca: racaAtual?.nome || 'Linhagem pendente',
-    classe: classeAtual?.nome || 'Vocacao pendente',
-    background: background?.trim() ? 'Origem definida' : 'Origem pendente',
-    vantagens: getResumoTexto({
-      done: vantagensIds.length > 0,
-      skipped: skipVantagens,
-      pending: vantagensIds.length === 0 && !skipVantagens,
-      doneText: `${vantagensIds.length} dons fixados`,
-      skippedText: 'Etapa pulada',
-      pendingText: 'Dons pendentes',
-    }),
-    desvantagens: getResumoTexto({
-      done: desvantagensIds.length > 0,
-      skipped: skipDesvantagens,
-      pending: desvantagensIds.length === 0 && !skipDesvantagens,
-      doneText: `${desvantagensIds.length} marcas fixadas`,
-      skippedText: 'Etapa pulada',
-      pendingText: 'Marcas pendentes',
-    }),
-    atributos: bonusAplicados ? 'Calibrados e confirmados' : bonusInvalidado ? 'Revisao necessaria' : 'Leitura pendente',
-    resumo: podeCriar ? 'Pronto para selar' : 'Revisao em andamento',
-    refinamento: podeCriar ? 'Selo final disponivel' : 'Ajustes restantes',
+  const buildState = useMemo(() => ({
+    nome, racaId, classeId, background,
+    vantagensIds, desvantagensIds,
+    skipVantagens, skipDesvantagens,
+    bonusAplicados, bonusInvalidado,
+    racaAtual, classeAtual,
+    orcamentoCriacaoValido: pontosCriacaoRestantes >= 0,
+    pontosCriacaoRestantes,
   }), [
-    nome,
-    racaAtual,
-    classeAtual,
-    background,
-    vantagensIds,
-    skipVantagens,
-    desvantagensIds,
-    skipDesvantagens,
-    bonusAplicados,
-    bonusInvalidado,
-    podeCriar,
+    nome, racaId, classeId, background,
+    vantagensIds, desvantagensIds,
+    skipVantagens, skipDesvantagens,
+    bonusAplicados, bonusInvalidado,
+    racaAtual, classeAtual,
+    pontosCriacaoRestantes,
   ]);
+
+  const podeCriar = useMemo(() => canCreate(buildState), [buildState]);
+  const progressoItems = useMemo(() => getProgressItems(buildState), [buildState]);
+  const tooltipMap = useMemo(() => getTooltipMap({ ...buildState, podeCriar }), [buildState, podeCriar]);
+  const readinessState = useMemo(() => getReadinessState(buildState), [buildState]);
 
 
 
@@ -278,6 +240,7 @@ const WizardView = (props) => {
                 isLight={isLight}
                 podeCriar={podeCriar}
                 atributos={atributosBase}
+                atributosFinal={atributosFinal}
                 setAtributo={setAtributo}
                 pontosDistribuidos={pontosDistribuidos}
                 pontosRestantes={pontosRestantes}

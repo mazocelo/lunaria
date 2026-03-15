@@ -189,6 +189,7 @@ export const useWizardModel = () => {
         estado: {},
         mensagemJogador: 'Olá, estou pronto para criar meu personagem!',
         historico: [],
+        actionMode: 'enter_stage',
       });
       setMensagens([{
         id: Date.now(),
@@ -267,6 +268,7 @@ export const useWizardModel = () => {
         estado: getEstado(),
         mensagemJogador: '',
         historico: [],
+        actionMode: 'enter_stage',
       });
 
       setMensagens(prev => [...prev, {
@@ -357,6 +359,7 @@ export const useWizardModel = () => {
         estado: { ...getEstado(), ...estadoOverride },
         mensagemJogador,
         historico: getHistorico(),
+        actionMode: manterEtapa ? 'refresh_options' : 'reply',
       });
 
       const etapaMensagem = manterEtapa
@@ -472,6 +475,7 @@ export const useWizardModel = () => {
         estado,
         mensagemJogador: '',
         historico: getHistorico(),
+        actionMode: 'continue_stage',
       });
 
       setMensagens(prev => [...prev, {

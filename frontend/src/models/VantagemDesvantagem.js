@@ -13,7 +13,8 @@ export class VantagemDesvantagem {
     this.restricao = data.restricao || {};
     this.dano_base = data.dano_base || '';
     this.efeito = data.efeito || {};
-    this.usar = data.usar || 0;
+    this.usar = data.usar ?? data.usos ?? 0;
+    this.usos = data.usos ?? this.usar;
     this.elemento = data.elemento || [];
     this.nivel = data.nivel || 1;
     this.requisitos = data.requisitos || {};
@@ -37,6 +38,7 @@ export class VantagemDesvantagem {
       dano_base: this.dano_base,
       efeito: this.efeito,
       usar: this.usar,
+      usos: this.usos,
       elemento: this.elemento,
       nivel: this.nivel,
       requisitos: this.requisitos,
@@ -61,7 +63,8 @@ export class VantagemDesvantagem {
       restricao: apiData.restricao,
       dano_base: apiData.dano_base,
       efeito: apiData.efeito,
-      usar: apiData.usar,
+      usar: apiData.usar ?? apiData.usos,
+      usos: apiData.usos ?? apiData.usar,
       elemento: apiData.elemento,
       nivel: apiData.nivel,
       requisitos: apiData.requisitos,

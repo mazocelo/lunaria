@@ -4,6 +4,7 @@ import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
 import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
 import MasterAvatarGlyph from './MasterAvatarGlyph.jsx';
+import DestinoResolutivaBlock from './DestinoResolutivaBlock.jsx';
 import { getStageConfig } from '../stages/stageConfig.js';
 import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
 
@@ -52,6 +53,13 @@ const WizardChat = ({
   onConfirmarAtributos,
   onSalvarPersonagem,
   salvando = false,
+  comboPreviewData,
+  comboPreviewLoading,
+  comboPreviewErro,
+  comboPreviewTentativa = 0,
+  onRegenerarComboPreview,
+  onRecarregarComboPreview,
+  creationFlowStatus = 'idle',
   embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -107,6 +115,7 @@ const WizardChat = ({
   const buildStateChat = { vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados };
   const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat);
   const textoContinuarSelecoes = getContinueLabel(etapaAtual);
+  const isDestinoResolutivo = etapaAtual === 'resumo';
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
   /** Seleciona e auto-avanÃƒÂ§a para raca/classe; sÃƒÂ³ seleciona para vantagem/desvantagem */
@@ -166,7 +175,7 @@ const WizardChat = ({
                   {isUltimaMensagemMestre && (
                     <div className="mb-3 flex items-center gap-2">
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${
-                        ['resumo', 'refinamento'].includes(etapaAtual) ? 'wa-emerald-chip' : etapaAtual === 'atributos' ? 'wa-accent-chip' : 'wa-accent-chip'
+                        etapaAtual === 'resumo' ? 'wa-emerald-chip' : etapaAtual === 'atributos' ? 'wa-accent-chip' : 'wa-accent-chip'
                       }`}>
                         {config.showFinalAction ? 'Preparacao final' : config.showAttributePanel ? 'Leitura da build' : 'Direcao da etapa'}
                       </span>
@@ -592,7 +601,23 @@ const WizardChat = ({
           </div>
         )}
 
-        {config.showFinalAction && podeCriar && !enviando && (
+        {isDestinoResolutivo && (
+          <DestinoResolutivaBlock
+            data={comboPreviewData}
+            loading={comboPreviewLoading}
+            error={comboPreviewErro}
+            tentativasUsadas={comboPreviewTentativa}
+            onRegenerar={onRegenerarComboPreview}
+            onRetry={onRecarregarComboPreview}
+            onCriar={onSalvarPersonagem}
+            podeCriar={podeCriar}
+            salvando={salvando}
+            creationFlowStatus={creationFlowStatus}
+            isLight={isLight}
+          />
+        )}
+
+        {config.showFinalAction && podeCriar && !enviando && !isDestinoResolutivo && (
           <div className="wa-readiness-panel rounded-[24px] border p-4 text-center">
             <CheckCircle2 size={30} className="mx-auto mb-2 text-[var(--wa-teal)]" />
             <p className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
@@ -607,6 +632,18 @@ const WizardChat = ({
         <div ref={chatEndRef} />
       </div>
 
+      {isDestinoResolutivo ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Use a barra acima para voltar e ajustar a build. O combo desta resolutiva e o pacote usado na criacao.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Destino selado na propria conversa
+            </span>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
         <div className="flex items-end gap-3">
           <textarea
@@ -703,6 +740,7 @@ const WizardChat = ({
           </div>
         </div>
       </form>
+      )}
     </div>
   );
 };

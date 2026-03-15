@@ -8,7 +8,8 @@ export class Raca {
     this.nome = data.nome || '';
     this.descricao = data.descricao || '';
     this.custo = data.custo || 0;
-    this.atributos_bonus = data.atributos_bonus || {};
+    this.bonus = data.bonus || data.atributos_bonus || {};
+    this.atributos_bonus = data.atributos_bonus || this.bonus || {};
     this.vantagens_iniciais = data.vantagens_iniciais || [];
     this.desvantagens_iniciais = data.desvantagens_iniciais || [];
     this.created_at = data.created_at || null;
@@ -25,6 +26,7 @@ export class Raca {
       nome: this.nome,
       descricao: this.descricao,
       custo: this.custo,
+      bonus: this.bonus,
       atributos_bonus: this.atributos_bonus,
       vantagens_iniciais: this.vantagens_iniciais,
       desvantagens_iniciais: this.desvantagens_iniciais,
@@ -44,7 +46,8 @@ export class Raca {
       nome: apiData.nome,
       descricao: apiData.descricao,
       custo: apiData.custo,
-      atributos_bonus: apiData.atributos_bonus,
+      bonus: apiData.bonus,
+      atributos_bonus: apiData.atributos_bonus || apiData.bonus,
       vantagens_iniciais: apiData.vantagens_iniciais,
       desvantagens_iniciais: apiData.desvantagens_iniciais,
       created_at: apiData.created_at,

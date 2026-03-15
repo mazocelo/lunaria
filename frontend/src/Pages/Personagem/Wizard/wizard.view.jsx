@@ -7,12 +7,13 @@ import {
   Check,
   Sparkles,
   Hammer,
+  Loader2,
 } from 'lucide-react';
 import './wizard-theme.css';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
+import WizardCreationResultModal from './components/WizardCreationResultModal.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
-import FinalizacaoPanel from './components/FinalizacaoPanel.jsx';
 import {
   getProgressItems,
   getTooltipMap,
@@ -79,17 +80,19 @@ const WizardView = (props) => {
     attrMax,
     salvando,
     error,
-    finalizacaoData,
-    finalizacaoLoading,
-    fecharFinalizacao,
-    atualizarFinalizacaoData,
-    aplicarEquipamentos,
-    aplicandoEquipamentos,
-    equipamentosAplicados,
-    equipamentosFalhas,
-    regenerarEquipamentos,
-    regeneracoesUsadas,
-    regenerando,
+    comboPreviewData,
+    comboPreviewLoading,
+    comboPreviewErro,
+    comboPreviewTentativa,
+    comboPreviewBuildKey,
+    recarregarComboPreview,
+    regenerarComboPreview,
+    creationFlowStatus,
+    creationResultModalOpen,
+    creationResultData,
+    fecharResultadoCriacao,
+    irParaPersonagens,
+    verFichaCriada,
     isLight,
     navigate,
   } = props;
@@ -130,44 +133,18 @@ const WizardView = (props) => {
   const progressoItems = useMemo(() => getProgressItems(buildState), [buildState]);
   const tooltipMap = useMemo(() => getTooltipMap({ ...buildState, podeCriar }), [buildState, podeCriar]);
   const readinessState = useMemo(() => getReadinessState(buildState), [buildState]);
-
-
-
-  // Finalizacao: loading ou painel editavel
-  if (finalizacaoLoading) {
-    return (
-      <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent text-[var(--wa-accent)]" />
-            <p className="text-sm font-modern text-[var(--wa-muted)]">Preparando finalizacao...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (finalizacaoData) {
-    return (
-      <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
-        <div className="relative z-[1] flex h-full min-h-0 flex-col overflow-y-auto">
-          <FinalizacaoPanel
-            data={finalizacaoData}
-            onFechar={fecharFinalizacao}
-            onUpdate={atualizarFinalizacaoData}
-            isLight={isLight}
-            onAplicarEquipamentos={aplicarEquipamentos}
-            aplicandoEquipamentos={aplicandoEquipamentos}
-            equipamentosAplicados={equipamentosAplicados}
-            equipamentosFalhas={equipamentosFalhas}
-            onRegenerarEquipamentos={regenerarEquipamentos}
-            regeneracoesUsadas={regeneracoesUsadas}
-            regenerando={regenerando}
-          />
-        </div>
-      </div>
-    );
-  }
+  const creationStatusLabel = useMemo(() => {
+    switch (creationFlowStatus) {
+      case 'creating_character':
+        return 'Selando a ficha';
+      case 'generating_background':
+        return 'Tecendo o background final';
+      case 'opening_result':
+        return 'Registrando a resolutiva do Mestre';
+      default:
+        return '';
+    }
+  }, [creationFlowStatus]);
 
   return (
     <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
@@ -313,6 +290,14 @@ const WizardView = (props) => {
                 onConfirmarAtributos={confirmarAtributos}
                 onSalvarPersonagem={salvarPersonagem}
                 salvando={salvando}
+                comboPreviewData={comboPreviewData}
+                comboPreviewLoading={comboPreviewLoading}
+                comboPreviewErro={comboPreviewErro}
+                comboPreviewTentativa={comboPreviewTentativa}
+                comboPreviewBuildKey={comboPreviewBuildKey}
+                onRegenerarComboPreview={regenerarComboPreview}
+                onRecarregarComboPreview={recarregarComboPreview}
+                creationFlowStatus={creationFlowStatus}
                 sugestoes={sugestoes}
                 embedded
               />
@@ -424,6 +409,34 @@ const WizardView = (props) => {
           </aside>
         </div>
       </div>
+
+      {creationFlowStatus !== 'idle' && !creationResultModalOpen && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-950/72 px-4 backdrop-blur-md">
+          <div className="wa-combo-block max-w-xl rounded-[28px] p-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--wa-accent)]/12 text-[var(--wa-accent)]">
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+            <p className="mt-4 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Fechamento da criacao
+            </p>
+            <h2 className={`mt-2 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              {creationStatusLabel}
+            </h2>
+            <p className={`mt-3 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              O wizard continua na mesma tela enquanto a ficha, o background e a resolutiva final sao consolidados.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <WizardCreationResultModal
+        open={creationResultModalOpen}
+        data={creationResultData}
+        onClose={fecharResultadoCriacao}
+        onViewSheet={verFichaCriada}
+        onGoToCharacters={irParaPersonagens}
+        isLight={isLight}
+      />
     </div>
   );
 };

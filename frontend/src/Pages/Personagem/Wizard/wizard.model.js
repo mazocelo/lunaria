@@ -362,6 +362,7 @@ export const useWizardModel = () => {
 
     const requestId = previewRequestRef.current + 1;
     previewRequestRef.current = requestId;
+    comboPreviewLoadedKeyRef.current = comboPreviewBuildKey;
 
     setComboPreviewLoading(true);
     setComboPreviewErro(null);
@@ -377,7 +378,6 @@ export const useWizardModel = () => {
 
       setComboPreviewData(resultado);
       setComboPreviewTentativa(tentativa);
-      comboPreviewLoadedKeyRef.current = comboPreviewBuildKey;
       return resultado;
     } catch (err) {
       if (previewRequestRef.current !== requestId) return null;
@@ -470,7 +470,7 @@ export const useWizardModel = () => {
     if (navigation.etapaAtual !== 'resumo') return;
     if (!podeGerarPreview) return;
     if (comboPreviewLoading) return;
-    if (comboPreviewData && comboPreviewLoadedKeyRef.current === comboPreviewBuildKey) return;
+    if (comboPreviewLoadedKeyRef.current === comboPreviewBuildKey) return;
 
     carregarComboPreview(0, []);
   }, [
@@ -703,23 +703,55 @@ export const useWizardModel = () => {
     avancarComMestre(override);
   }, [avancarComMestre, pointSystem]);
 
-  /** Salva o personagem — lê do estadoRef para evitar stale closures */
+  const regenerarComboPreview = useCallback(async () => {
+    if (!comboPreviewData || comboPreviewLoading || comboPreviewTentativa >= 3) return;
+    await carregarComboPreview(
+      comboPreviewTentativa + 1,
+      flattenComboPreview(comboPreviewData.combo)
+    );
+  }, [
+    comboPreviewData,
+    comboPreviewLoading,
+    comboPreviewTentativa,
+    carregarComboPreview,
+    flattenComboPreview,
+  ]);
+
+  const recarregarComboPreview = useCallback(async () => {
+    const tentativa = comboPreviewData ? comboPreviewTentativa : 0;
+    const anterior = comboPreviewData ? flattenComboPreview(comboPreviewData.combo) : [];
+    await carregarComboPreview(tentativa, anterior);
+  }, [carregarComboPreview, comboPreviewData, comboPreviewTentativa, flattenComboPreview]);
+
+  /** Salva o personagem usando o combo atual do preview */
   const salvarPersonagem = useCallback(async () => {
     const s = estadoRef.current;
-    if (!s.nome?.trim()) { setError('Nome do personagem é obrigatório'); return; }
-    if (!s.racaId) { setError('Selecione uma raça antes de salvar'); return; }
+    if (!s.nome?.trim()) { setError('Nome do personagem e obrigatorio'); return; }
+    if (!s.racaId) { setError('Selecione uma raca antes de salvar'); return; }
     if (!s.classeId) { setError('Selecione uma classe antes de salvar'); return; }
     if (!s.background?.trim()) { setError('Descreva a origem do personagem antes de salvar'); return; }
     if (!bonusCalc.bonusAplicados) {
-      setError('Confirme seus atributos antes de salvar (aplique os bonus de raca/classe)');
+      setError('Confirme seus atributos antes de salvar.');
       return;
     }
     if (pointSystem.pontosCriacaoRestantes < 0) {
-      setError('A ficha excede o orcamento de criacao. Revise vantagens, desvantagens, linhagem ou vocacao antes de salvar.');
+      setError('A ficha excede o orcamento de criacao.');
       return;
     }
+    if (comboPreviewLoading) {
+      setError('A resolutiva ainda esta sendo preparada. Aguarde um instante.');
+      return;
+    }
+    if (!comboPreviewData?.combo) {
+      setError('A resolutiva final ainda nao esta disponivel. Gere o combo antes de criar.');
+      return;
+    }
+
     setSalvando(true);
     setError(null);
+    setCreationFlowStatus('creating_character');
+    setCreationResultModalOpen(false);
+    setCreationResultData(null);
 
     try {
       const base = s.atributosBase;
@@ -737,17 +769,21 @@ export const useWizardModel = () => {
         carisma: base.carisma,
         vantagens: s.vantagensIds,
         desvantagens: s.desvantagensIds,
+        equipamentos: (comboPreviewData.combo.equipamentos || []).map((item) => item.id),
         nivel: 1,
       };
 
       const personagem = new Personagem(dados);
       const criado = await personagemService.create(personagem, { context: 'criacao' });
 
-      // Background IA — aguardar antes da finalizacao (que depende do background final)
+      let backgroundResult = null;
+      let backgroundIndisponivel = false;
       if (criado?.id && s.background) {
+        setCreationFlowStatus('generating_background');
         try {
-          await personagemService.gerarBackground(criado.id, s.background);
+          backgroundResult = await personagemService.gerarBackground(criado.id, s.background);
         } catch (bgError) {
+          backgroundIndisponivel = true;
           console.warn('Background IA nao gerado:', bgError.message);
         }
       }
@@ -755,107 +791,53 @@ export const useWizardModel = () => {
       limparDraft();
       await recarregarPersonagens();
 
-      // Tentar finalizacao inicial — se falhar, navegar normalmente
-      if (criado?.id) {
-        try {
-          setFinalizacaoLoading(true);
-          const finData = await personagemService.gerarFinalizacaoInicial(criado.id);
-          setFinalizacaoData(finData);
-        } catch (finError) {
-          console.warn('Finalizacao inicial nao disponivel:', finError.message);
-          navigate('/personagens');
-        } finally {
-          setFinalizacaoLoading(false);
-        }
-      } else {
-        navigate('/personagens');
-      }
+      setCreationFlowStatus('opening_result');
+      setCreationResultData({
+        personagem: criado,
+        preview: comboPreviewData,
+        background_digitado: s.background,
+        background_gerado: backgroundResult?.background_gerado || null,
+        background_final: backgroundResult?.background_gerado || s.background,
+        background_indisponivel: backgroundIndisponivel || !backgroundResult?.background_gerado,
+      });
+      setCreationResultModalOpen(true);
+      setCreationFlowStatus('idle');
     } catch (err) {
+      setCreationFlowStatus('error');
       setError(err.message || 'Erro ao criar personagem');
+      setCreationFlowStatus('idle');
     } finally {
       setSalvando(false);
     }
-  }, [bonusCalc.bonusAplicados, pointSystem.pontosCriacaoRestantes, navigate, recarregarPersonagens, limparDraft]);
+  }, [
+    bonusCalc.bonusAplicados,
+    pointSystem.pontosCriacaoRestantes,
+    comboPreviewLoading,
+    comboPreviewData,
+    recarregarPersonagens,
+    limparDraft,
+  ]);
 
   const clearError = useCallback(() => setError(null), []);
 
-  // ── Equipamentos: persistencia explicita ──
-  const [equipamentosAplicados, setEquipamentosAplicados] = useState(false);
-  const [aplicandoEquipamentos, setAplicandoEquipamentos] = useState(false);
-  const [equipamentosFalhas, setEquipamentosFalhas] = useState(null);
+  const fecharResultadoCriacao = useCallback(() => {
+    setCreationResultModalOpen(false);
+  }, []);
 
-  const aplicarEquipamentos = useCallback(async () => {
-    const equipamentos = finalizacaoData?.combo?.equipamentos || [];
-    const personagemId = finalizacaoData?.personagem_id;
-    if (!personagemId || equipamentos.length === 0) return;
-
-    setAplicandoEquipamentos(true);
-    setEquipamentosFalhas(null);
-
-    try {
-      const results = await Promise.allSettled(
-        equipamentos.map(eq => personagemService.adicionarEquipamento(personagemId, eq.id))
-      );
-      const totalFalhas = results.filter(r => r.status === 'rejected').length;
-      const totalSucesso = results.length - totalFalhas;
-
-      if (totalFalhas === 0) {
-        setEquipamentosAplicados(true);
-      } else if (totalSucesso > 0) {
-        setEquipamentosFalhas({ falhas: totalFalhas, total: results.length });
-      } else {
-        setEquipamentosFalhas({ falhas: totalFalhas, total: results.length });
-      }
-    } catch (err) {
-      setEquipamentosFalhas({ falhas: equipamentos.length, total: equipamentos.length });
-    } finally {
-      setAplicandoEquipamentos(false);
-    }
-  }, [finalizacaoData]);
-
-  // ── Equipamentos: regeneracao ──
-  const [regeneracoesUsadas, setRegeneracoesUsadas] = useState(0);
-  const [regenerando, setRegenerando] = useState(false);
-
-  const regenerarEquipamentos = useCallback(async () => {
-    if (regeneracoesUsadas >= 3 || regenerando) return;
-    const personagemId = finalizacaoData?.personagem_id;
-    const anteriores = (finalizacaoData?.combo?.equipamentos || []).map(e => e.nome);
-    if (!personagemId) return;
-
-    setRegenerando(true);
-    try {
-      const result = await personagemService.regenerarEquipamentosFinalizacao(
-        personagemId, regeneracoesUsadas + 1, anteriores
-      );
-      setFinalizacaoData(prev => ({
-        ...prev,
-        combo: { ...prev.combo, equipamentos: result.equipamentos },
-      }));
-      setRegeneracoesUsadas(prev => prev + 1);
-      setEquipamentosAplicados(false);
-      setEquipamentosFalhas(null);
-    } catch (err) {
-      console.warn('Erro ao regenerar equipamentos:', err.message);
-    } finally {
-      setRegenerando(false);
-    }
-  }, [finalizacaoData, regeneracoesUsadas, regenerando]);
-
-  const fecharFinalizacao = useCallback(() => {
-    setFinalizacaoData(null);
-    setEquipamentosAplicados(false);
-    setAplicandoEquipamentos(false);
-    setEquipamentosFalhas(null);
-    setRegeneracoesUsadas(0);
-    setRegenerando(false);
+  const irParaPersonagens = useCallback(() => {
+    setCreationResultModalOpen(false);
     navigate('/personagens');
   }, [navigate]);
 
-  const atualizarFinalizacaoData = useCallback((updater) => {
-    setFinalizacaoData(prev => typeof updater === 'function' ? updater(prev) : updater);
-  }, []);
-
+  const verFichaCriada = useCallback(() => {
+    const personagemId = creationResultData?.personagem?.id;
+    setCreationResultModalOpen(false);
+    if (personagemId) {
+      navigate(`/personagens/${personagemId}`);
+      return;
+    }
+    navigate('/personagens');
+  }, [creationResultData, navigate]);
   return {
     // Wizard / Navigation
     etapas: navigation.etapas,
@@ -938,25 +920,24 @@ export const useWizardModel = () => {
     salvando,
     error,
 
-    // Finalizacao
-    finalizacaoData,
-    finalizacaoLoading,
-    fecharFinalizacao,
-    atualizarFinalizacaoData,
-    aplicarEquipamentos,
-    aplicandoEquipamentos,
-    equipamentosAplicados,
-    equipamentosFalhas,
-    regenerarEquipamentos,
-    regeneracoesUsadas,
-    regenerando,
+    // Resolutiva / Criacao
+    comboPreviewData,
+    comboPreviewLoading,
+    comboPreviewErro,
+    comboPreviewTentativa,
+    comboPreviewBuildKey,
+    podeGerarPreview,
+    regenerarComboPreview,
+    recarregarComboPreview,
+    creationFlowStatus,
+    creationResultModalOpen,
+    creationResultData,
+    fecharResultadoCriacao,
+    irParaPersonagens,
+    verFichaCriada,
 
     // Theme
     isLight,
     navigate,
   };
 };
-
-
-
-

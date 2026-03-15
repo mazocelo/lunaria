@@ -76,7 +76,7 @@ export const useHabilidadeEditarModel = () => {
       setSavingThrow(data.saving_throw || '');
       setEfeito(_jsonToStr(data.efeito));
       setEscalamento(_jsonToStr(data.escalamento));
-      setPreRequisito(_jsonToStr(data.pre_requisito));
+      setPreRequisito(_jsonToStr(data.pre_requisitos ?? data.pre_requisito));
       setAreaEfeito(_jsonToStr(data.area_efeito));
       setComponenteMaterial(_jsonToStr(data.componente_material));
       setLoading(false);
@@ -128,6 +128,7 @@ export const useHabilidadeEditarModel = () => {
     efeito: _parseJson(efeito),
     escalamento: _parseJson(escalamento),
     pre_requisito: _parseJson(pre_requisito),
+    pre_requisitos: _parseJson(pre_requisito),
     area_efeito: _parseJson(area_efeito),
     componente_material: _parseJson(componente_material),
   });

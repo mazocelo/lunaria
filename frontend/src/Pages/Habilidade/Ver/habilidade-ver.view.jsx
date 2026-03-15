@@ -92,7 +92,7 @@ const VerHabilidadeView = ({ habilidade, loading, error, isLight, handleBack, ha
   const catColor = categoriaColors[h.categoria] || categoriaColors.utilidade;
   const efeitoItems = formatObjectDisplay(h.efeito);
   const escalamentoItems = formatObjectDisplay(h.escalamento);
-  const preRequisitoItems = formatObjectDisplay(h.pre_requisito);
+  const preRequisitoItems = formatObjectDisplay(h.pre_requisitos ?? h.pre_requisito);
   const areaItems = formatObjectDisplay(h.area_efeito);
   const componenteItems = formatObjectDisplay(h.componente_material);
 

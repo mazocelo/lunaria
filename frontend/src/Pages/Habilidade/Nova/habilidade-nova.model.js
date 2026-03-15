@@ -83,6 +83,7 @@ export const useHabilidadeNovaModel = () => {
     efeito: _parseJson(efeito),
     escalamento: _parseJson(escalamento),
     pre_requisito: _parseJson(pre_requisito),
+    pre_requisitos: _parseJson(pre_requisito),
     area_efeito: _parseJson(area_efeito),
     componente_material: _parseJson(componente_material),
   });

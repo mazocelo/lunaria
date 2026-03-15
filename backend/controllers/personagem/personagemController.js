@@ -223,15 +223,36 @@ class PersonagemController {
       // Buscar raca e classe para validar orcamento de vantagens
       let racaCusto = 0;
       let classeCusto = 0;
+      let bonusVantagemIds = [];
+      let bonusDesvantagemIds = [];
+
       if (raca_id) {
         const raca = await db.Raca.findById(parseInt(raca_id));
         if (!raca) return res.status(400).json({ success: false, error: `Raca com ID ${raca_id} nao encontrada` });
         racaCusto = raca.custo || 0;
+        const racaBonus = JSON.parse(raca.bonus || 'null') || {};
+        bonusVantagemIds.push(...(racaBonus.vantagens || []).map(v => v?.id).filter(id => Number.isInteger(id) && id > 0));
+        bonusDesvantagemIds.push(...(racaBonus.desvantagens || []).map(d => d?.id).filter(id => Number.isInteger(id) && id > 0));
       }
       if (classe_id) {
         const classe = await db.Classe.findById(parseInt(classe_id));
         if (!classe) return res.status(400).json({ success: false, error: `Classe com ID ${classe_id} nao encontrada` });
         classeCusto = classe.custo || 0;
+        const classeBonus = JSON.parse(classe.bonus || 'null') || {};
+        bonusVantagemIds.push(...(classeBonus.vantagens || []).map(v => v?.id).filter(id => Number.isInteger(id) && id > 0));
+        bonusDesvantagemIds.push(...(classeBonus.desvantagens || []).map(d => d?.id).filter(id => Number.isInteger(id) && id > 0));
+      }
+
+      // Validar que IDs bonus existem no banco (filtrar silenciosamente os invalidos)
+      if (bonusVantagemIds.length > 0) {
+        const existentes = await db.prisma.vantagens.findMany({ where: { id: { in: bonusVantagemIds } }, select: { id: true } });
+        const idsValidos = new Set(existentes.map(v => v.id));
+        bonusVantagemIds = bonusVantagemIds.filter(id => idsValidos.has(id));
+      }
+      if (bonusDesvantagemIds.length > 0) {
+        const existentes = await db.prisma.desvantagens.findMany({ where: { id: { in: bonusDesvantagemIds } }, select: { id: true } });
+        const idsValidos = new Set(existentes.map(d => d.id));
+        bonusDesvantagemIds = bonusDesvantagemIds.filter(id => idsValidos.has(id));
       }
 
       // Validar desvantagens (tier + limite de custo)
@@ -331,17 +352,19 @@ class PersonagemController {
           });
         }
 
-        // Vantagens
-        if (vantagemIds.length > 0) {
+        // Vantagens (usuario + bonus raca/classe, deduplicado)
+        const allVantagemIds = [...new Set([...vantagemIds, ...bonusVantagemIds])];
+        if (allVantagemIds.length > 0) {
           await tx.personagem_vantagem.createMany({
-            data: vantagemIds.map(vantagemId => ({ personagem_id: personagem.id, vantagem_id: vantagemId }))
+            data: allVantagemIds.map(vantagemId => ({ personagem_id: personagem.id, vantagem_id: vantagemId }))
           });
         }
 
-        // Desvantagens
-        if (desvantagemIds.length > 0) {
+        // Desvantagens (usuario + bonus raca/classe, deduplicado)
+        const allDesvantagemIds = [...new Set([...desvantagemIds, ...bonusDesvantagemIds])];
+        if (allDesvantagemIds.length > 0) {
           await tx.personagem_desvantagem.createMany({
-            data: desvantagemIds.map(desvantagemId => ({ personagem_id: personagem.id, desvantagem_id: desvantagemId }))
+            data: allDesvantagemIds.map(desvantagemId => ({ personagem_id: personagem.id, desvantagem_id: desvantagemId }))
           });
         }
 

@@ -23,7 +23,7 @@ export function converterHistoricoParaLangChain(mensagens) {
       };
     } else if (msg.tipo === 'resultado_teste') {
       const p = msg.payload || {};
-      const desc = p.descricaoResultado || (p.sucesso ? 'Sucesso' : 'Falha');
+      const desc = p.descricaoResultado || (p.sucesso === true ? 'Sucesso' : p.sucesso === false ? 'Falha' : 'Resultado inconclusivo');
       return {
         role: 'user',
         content: `[Resultado de teste] ${msg.username || 'Jogador'} rolou ${p.dice || 'd20'}: ${p.rolagemBruta || '?'} + ${p.totalModificador || 0} (${p.atributoNome || '?'}) = ${p.total || '?'} vs DC ${p.dc || '?'} → ${desc}`

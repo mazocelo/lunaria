@@ -111,14 +111,9 @@ export class PersonagemService {
    */
   async delete(id) {
     try {
-      const data = await this.apiClient.delete(`${this.baseUrl}/${id}`);
-
-      // Backend retorna 204 No Content (sem body) — tratar como sucesso
-      if (!data || data.success !== false) {
-        return data?.data ?? null;
-      } else {
-        throw new Error(data?.message || 'Erro desconhecido');
-      }
+      // Backend retorna 204 No Content — se não lançar exceção, sucesso
+      await this.apiClient.delete(`${this.baseUrl}/${id}`);
+      return null;
     } catch (error) {
       throw new Error(`Erro ao remover personagem: ${error.message}`);
     }

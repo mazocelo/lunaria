@@ -17,6 +17,11 @@ import {
 } from '../config/domainConstants.js';
 import { TESTES_CONFIG } from '../config/testesConfig.js';
 import { createCombatRoundResult } from './combat/combatRoundResult.js';
+import {
+  normalizarEfeitoCatalogo,
+  normalizarEfeitoRuntime,
+  normalizarElementoPrimario,
+} from './catalogJsonHelper.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -227,7 +232,7 @@ export function processarHabilidade(habilidade, jogadorState) {
     cooldownKey,
     custoMana: habilidade.custo_mana,
     cooldown: habilidade.cooldown_turnos,
-    efeito: habilidade.efeito || null
+    efeito: normalizarEfeitoCatalogo(habilidade.efeito || null)
   };
 }
 
@@ -1033,7 +1038,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
 
   if (validacao.dano > 0 && monstroAlvo) {
     let danoFinal = validacao.dano;
-    const elementoHab = hab.elemento?.[0] || null;
+    const elementoHab = normalizarElementoPrimario(hab.elemento);
     if (elementoHab) {
       danoFinal = aplicarResistencias(danoFinal, elementoHab, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
     }
@@ -1051,20 +1056,19 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
   // Auto-apply efeito da habilidade no alvo (ex: queimando, envenenado)
   if (validacao.efeito && monstroAlvo && monstroAlvo.status === 'vivo') {
     if (!monstroAlvo.status_efeitos) monstroAlvo.status_efeitos = [];
-    const efNome = validacao.efeito.status || validacao.efeito.nome;
-    if (efNome) {
-      const existente = monstroAlvo.status_efeitos.find(e => e.nome === efNome);
+    const efeitoRuntime = normalizarEfeitoRuntime(validacao.efeito);
+    if (efeitoRuntime?.nome) {
+      const existente = monstroAlvo.status_efeitos.find(e => e.nome === efeitoRuntime.nome);
       if (existente) {
-        existente.duracao = validacao.efeito.duracao || 3;
+        existente.duracao = efeitoRuntime.duracao;
+        if (efeitoRuntime.valor != null) existente.valor = efeitoRuntime.valor;
+        if (efeitoRuntime.dano_por_turno != null) existente.dano_por_turno = efeitoRuntime.dano_por_turno;
+        if (efeitoRuntime.cura_por_turno != null) existente.cura_por_turno = efeitoRuntime.cura_por_turno;
       } else {
-        monstroAlvo.status_efeitos.push({
-          nome: efNome,
-          duracao: validacao.efeito.duracao || 3,
-          valor: validacao.efeito.valor || 0,
-        });
+        monstroAlvo.status_efeitos.push(efeitoRuntime);
       }
-      efeitoAplicado = { status: efNome, duracao: validacao.efeito.duracao || 3, valor: validacao.efeito.valor || 0 };
-      log.info({ alvo: monstroAlvo.nome, efeito: efNome, duracao: validacao.efeito.duracao }, 'Efeito de habilidade aplicado no monstro');
+      efeitoAplicado = { status: efeitoRuntime.nome, duracao: efeitoRuntime.duracao, valor: efeitoRuntime.valor || 0 };
+      log.info({ alvo: monstroAlvo.nome, efeito: efeitoRuntime.nome, duracao: efeitoRuntime.duracao }, 'Efeito de habilidade aplicado no monstro');
     }
   }
 
@@ -1161,7 +1165,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
 
       if (preValidada.dano > 0 && monstroAlvo) {
         let danoFinal = preValidada.dano;
-        const elementoHab = hab.elemento?.[0] || null;
+        const elementoHab = normalizarElementoPrimario(hab.elemento);
         if (elementoHab) {
           danoFinal = aplicarResistencias(danoFinal, elementoHab, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
         }
@@ -1178,15 +1182,18 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
 
       if (preValidada.efeito && monstroAlvo && monstroAlvo.status === 'vivo') {
         if (!monstroAlvo.status_efeitos) monstroAlvo.status_efeitos = [];
-        const efNome = preValidada.efeito.status || preValidada.efeito.nome;
-        if (efNome) {
-          const existente = monstroAlvo.status_efeitos.find(e => e.nome === efNome);
+        const efeitoRuntime = normalizarEfeitoRuntime(preValidada.efeito);
+        if (efeitoRuntime?.nome) {
+          const existente = monstroAlvo.status_efeitos.find(e => e.nome === efeitoRuntime.nome);
           if (existente) {
-            existente.duracao = preValidada.efeito.duracao || 3;
+            existente.duracao = efeitoRuntime.duracao;
+            if (efeitoRuntime.valor != null) existente.valor = efeitoRuntime.valor;
+            if (efeitoRuntime.dano_por_turno != null) existente.dano_por_turno = efeitoRuntime.dano_por_turno;
+            if (efeitoRuntime.cura_por_turno != null) existente.cura_por_turno = efeitoRuntime.cura_por_turno;
           } else {
-            monstroAlvo.status_efeitos.push({ nome: efNome, duracao: preValidada.efeito.duracao || 3, valor: preValidada.efeito.valor || 0 });
+            monstroAlvo.status_efeitos.push(efeitoRuntime);
           }
-          efeitoAplicado = { status: efNome, duracao: preValidada.efeito.duracao || 3, valor: preValidada.efeito.valor || 0 };
+          efeitoAplicado = { status: efeitoRuntime.nome, duracao: efeitoRuntime.duracao, valor: efeitoRuntime.valor || 0 };
         }
       }
 

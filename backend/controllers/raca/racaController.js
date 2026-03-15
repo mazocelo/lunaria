@@ -1,87 +1,68 @@
 import db from '../../Model/index.js';
-import { asyncHandler } from '../../middleware/errorHandler.js';
 import logger from '../../helpers/logger.js';
+import { serializarBonusEntidade, serializarClasseOuRaca } from '../../helpers/catalogJsonHelper.js';
+
 const log = logger.child({ module: 'racaController' });
 
-/**
- * Controller para gerenciar operações de raça
- */
+function validateBonusPayload(body = {}) {
+  const raw = body.bonus !== undefined ? body.bonus : body.atributos_bonus;
+  if (raw === undefined || raw === null || raw === '') return { value: null };
+  const serialized = serializarBonusEntidade(raw);
+  if (!serialized) return { error: 'bonus/atributos_bonus deve ser um objeto JSON valido' };
+  return { value: serialized };
+}
+
 class RacaController {
-
-  /**
-   * Criar uma nova raça
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   * @param {Function} next - Next middleware
-   */
-  async criarRaca(req, res, next) {
+  async criarRaca(req, res) {
     try {
-      log.info({ req_body: req.body }, 'Criando nova raça');
+      log.info({ req_body: req.body }, 'Criando nova raca');
 
-      const { nome, custo = 0, descricao = null, bonus = null } = req.body;
+      const { nome, custo = 0, descricao = null } = req.body;
 
-      // Validações básicas
       if (!nome) {
-        return res.status(400).json({
-          error: 'Nome é obrigatório'
-        });
+        return res.status(400).json({ error: 'Nome e obrigatorio' });
       }
-
       if (custo < 0) {
-        return res.status(400).json({
-          error: 'Custo deve ser maior ou igual a 0'
-        });
+        return res.status(400).json({ error: 'Custo deve ser maior ou igual a 0' });
       }
 
-      // Verificar se já existe uma raça com este nome
       const racaExistente = await db.Raca.findByNome(nome);
       if (racaExistente) {
-        return res.status(400).json({
-          error: 'Já existe uma raça com este nome'
-        });
+        return res.status(400).json({ error: 'Ja existe uma raca com este nome' });
       }
 
-      // Criar raça no banco
+      const bonus = validateBonusPayload(req.body);
+      if (bonus.error) return res.status(400).json({ error: bonus.error });
+
       const novaRaca = await db.Raca.create({
         nome,
         custo,
         descricao,
-        bonus: bonus ? JSON.stringify(bonus) : null
+        bonus: bonus.value
       });
-
-      log.info({ novaRaca_id: novaRaca.id }, 'Raça criada');
 
       res.status(201).json({
         success: true,
-        message: 'Raça criada com sucesso',
-        data: novaRaca
+        message: 'Raca criada com sucesso',
+        data: serializarClasseOuRaca(novaRaca)
       });
-
     } catch (error) {
-      log.error({ err: error }, 'Erro ao criar raça');
-      res.status(500).json({
-        error: 'Erro interno do servidor'
-      });
+      log.error({ err: error }, 'Erro ao criar raca');
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
 
-  /**
-   * Listar todas as raças
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   * @param {Function} next - Next middleware
-   */
-  async listarRacas(req, res, next) {
+  async listarRacas(req, res) {
     try {
       const { limit, offset } = req.query;
 
       if (limit !== undefined) {
-        const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
-        const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+        const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+        const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
         const result = await db.Raca.findPaginated({ limit: parsedLimit, offset: parsedOffset });
         return res.status(200).json({
           success: true,
-          data: result.data,
+          data: result.data.map(serializarClasseOuRaca),
           pagination: {
             total: result.total,
             limit: parsedLimit,
@@ -94,109 +75,79 @@ class RacaController {
       const data = await db.Raca.findAll();
       res.status(200).json({
         success: true,
-        data,
+        data: data.map(serializarClasseOuRaca),
         pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
-
     } catch (error) {
-      log.error({ err: error }, 'Erro ao listar raças');
-      res.status(500).json({
-        error: 'Erro interno do servidor'
-      });
+      log.error({ err: error }, 'Erro ao listar racas');
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
 
-  /**
-   * Obter uma raça específica
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   * @param {Function} next - Next middleware
-   */
-  async obterRaca(req, res, next) {
+  async obterRaca(req, res) {
     try {
-      const { id } = req.params;
-
-      log.info({ id: id }, 'Buscando raça ID');
-
-      const raca = await db.Raca.findById(parseInt(id));
-
+      const raca = await db.Raca.findById(parseInt(req.params.id, 10));
       if (!raca) {
-        return res.status(404).json({
-          error: 'Raça não encontrada'
-        });
+        return res.status(404).json({ error: 'Raca nao encontrada' });
       }
-
-      log.info({ raca_nome: raca.nome }, 'Raça encontrada');
 
       res.status(200).json({
         success: true,
-        data: raca
+        data: serializarClasseOuRaca(raca)
       });
-
     } catch (error) {
-      log.error({ err: error }, 'Erro ao obter raça');
-      res.status(500).json({
-        error: 'Erro interno do servidor'
-      });
+      log.error({ err: error }, 'Erro ao obter raca');
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
 
-
-
-  /**
-   * Buscar raças por nome
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   * @param {Function} next - Next middleware
-   */
-  async buscarRacas(req, res, next) {
+  async buscarRacas(req, res) {
     try {
       const { termo } = req.query;
 
       if (!termo) {
-        return res.status(400).json({
-          error: 'Termo de busca é obrigatório'
-        });
+        return res.status(400).json({ error: 'Termo de busca e obrigatorio' });
       }
 
-      log.info({ termo: termo }, 'Buscando raças por');
-
       const racas = await db.Raca.search(termo);
-
-      log.info({ racas_length: racas.length }, 'raças encontradas');
-
       res.status(200).json({
         success: true,
-        data: racas,
+        data: racas.map(serializarClasseOuRaca),
         total: racas.length
       });
-
     } catch (error) {
-      log.error({ err: error }, 'Erro ao buscar raças');
-      res.status(500).json({
-        error: 'Erro interno do servidor'
-      });
+      log.error({ err: error }, 'Erro ao buscar racas');
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
+
   async atualizarRaca(req, res) {
     try {
       const { id } = req.params;
-      const raca = await db.Raca.findById(parseInt(id));
+      const raca = await db.Raca.findById(parseInt(id, 10));
       if (!raca) {
-        return res.status(404).json({ success: false, error: 'Raça não encontrada' });
+        return res.status(404).json({ success: false, error: 'Raca nao encontrada' });
       }
 
-      const { nome, custo, descricao, bonus } = req.body;
+      const { nome, custo, descricao } = req.body;
       const dados = {};
       if (nome !== undefined) dados.nome = nome;
       if (custo !== undefined) dados.custo = custo;
       if (descricao !== undefined) dados.descricao = descricao;
-      if (bonus !== undefined) dados.bonus = bonus ? JSON.stringify(bonus) : null;
+      if (req.body.bonus !== undefined || req.body.atributos_bonus !== undefined) {
+        const bonus = validateBonusPayload(req.body);
+        if (bonus.error) return res.status(400).json({ success: false, error: bonus.error });
+        dados.bonus = bonus.value;
+      }
 
-      const atualizada = await db.Raca.update(parseInt(id), dados);
-      res.json({ success: true, message: 'Raça atualizada com sucesso', data: atualizada });
+      const atualizada = await db.Raca.update(parseInt(id, 10), dados);
+      res.json({
+        success: true,
+        message: 'Raca atualizada com sucesso',
+        data: serializarClasseOuRaca(atualizada)
+      });
     } catch (error) {
-      log.error({ err: error }, 'Erro ao atualizar raça');
+      log.error({ err: error }, 'Erro ao atualizar raca');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
@@ -204,17 +155,17 @@ class RacaController {
   async deletarRaca(req, res) {
     try {
       const { id } = req.params;
-      const raca = await db.Raca.findById(parseInt(id));
+      const raca = await db.Raca.findById(parseInt(id, 10));
       if (!raca) {
-        return res.status(404).json({ success: false, error: 'Raça não encontrada' });
+        return res.status(404).json({ success: false, error: 'Raca nao encontrada' });
       }
-      await db.Raca.delete(parseInt(id));
+      await db.Raca.delete(parseInt(id, 10));
       res.status(204).send();
     } catch (error) {
-      log.error({ err: error }, 'Erro ao deletar raça');
+      log.error({ err: error }, 'Erro ao deletar raca');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
 }
 
-export default new RacaController(); 
+export default new RacaController();

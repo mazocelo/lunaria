@@ -2,11 +2,17 @@ import db from '../Model/index.js';
 import logger from './logger.js';
 const log = logger.child({ module: 'personagensHelper' });
 import {
-  parsearBonusEntidade,
   agregarBonusEquipamentos,
   calcularAtributosEfetivos,
   encontrarMelhorArma
 } from './bonusHelper.js';
+import {
+  normalizarElementoPrimario,
+  normalizarListaElementos,
+  normalizarEfeitoCatalogo,
+  normalizarRequisitos,
+  normalizarUsos,
+} from './catalogJsonHelper.js';
 
 /**
  * Busca informações completas dos personagens a partir de IDs
@@ -72,9 +78,9 @@ export async function buscarPersonagensCompletos(personagensIds) {
             descricao: e.equipamento?.descricao || e.descricao,
             dano_base: e.equipamento?.dano_base || e.dano_base || null,
             bonus: e.equipamento?.bonus || e.bonus || null,
-            requisitos: e.equipamento?.requisitos || e.requisitos || null,
-            efeito: e.equipamento?.efeito || e.efeito || null,
-            elemento: e.equipamento?.elemento || e.elemento
+            requisitos: normalizarRequisitos(e.equipamento?.requisitos || e.requisitos || null),
+            efeito: normalizarEfeitoCatalogo(e.equipamento?.efeito || e.efeito || null),
+            elemento: normalizarListaElementos(e.equipamento?.elemento || e.elemento) || []
           }));
 
           // Agregar bonus de equipamentos
@@ -85,9 +91,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
           let elementoArma = null;
           if (melhorArma) {
             const armaEquip = equipamentosMapeados.find(e => e.dano_base === melhorArma);
-            if (armaEquip?.elemento?.length > 0) {
-              elementoArma = armaEquip.elemento[0];
-            }
+            elementoArma = normalizarElementoPrimario(armaEquip?.elemento);
           }
 
           return {
@@ -105,40 +109,47 @@ export async function buscarPersonagensCompletos(personagensIds) {
               nome: v.vantagem?.nome || v.nome,
               descricao: v.vantagem?.descricao || v.descricao,
               tipo: v.vantagem?.tipo || v.tipo,
-              elemento: v.vantagem?.elemento || v.elemento,
-              usar: v.vantagem?.usar ?? v.usar ?? 0,
+              elemento: normalizarListaElementos(v.vantagem?.elemento || v.elemento) || [],
+              usar: normalizarUsos(v.vantagem?.usar ?? v.usar) ?? 0,
+              usos: normalizarUsos(v.vantagem?.usar ?? v.usar) ?? 0,
               dano_base: v.vantagem?.dano_base || v.dano_base || null,
-              efeito: v.vantagem?.efeito || v.efeito || null,
+              efeito: normalizarEfeitoCatalogo(v.vantagem?.efeito || v.efeito || null),
               bonus: v.vantagem?.bonus || v.bonus || null
             })),
             desvantagens: desvantagens.map(d => ({
               nome: d.desvantagem?.nome || d.nome,
               descricao: d.desvantagem?.descricao || d.descricao,
               tipo: d.desvantagem?.tipo || d.tipo,
-              elemento: d.desvantagem?.elemento || d.elemento,
-              efeito: d.desvantagem?.efeito || d.efeito || null,
+              elemento: normalizarListaElementos(d.desvantagem?.elemento || d.elemento) || [],
+              efeito: normalizarEfeitoCatalogo(d.desvantagem?.efeito || d.efeito || null),
               bonus: d.desvantagem?.bonus || d.bonus || null
             })),
             equipamentos: equipamentosMapeados,
             habilidadesClasse: habilidadesClasse.map(h => ({
               id: h.id, nome: h.nome, descricao: h.descricao,
               custo_mana: h.custo_mana || 0, cooldown_turnos: h.cooldown_turnos || 0,
-              dano_base: h.dano_base || null, tipo: h.tipo, elemento: h.elemento || null,
+              dano_base: h.dano_base || null, tipo: h.tipo, elemento: normalizarElementoPrimario(h.elemento),
+              elementos: normalizarListaElementos(h.elemento) || [],
               escola_magia: h.escola_magia || null, alcance: h.alcance, alvo: h.alvo,
               tempo_conjuracao: h.tempo_conjuracao || 'acao',
               usa_concentracao: h.usa_concentracao || false,
-              efeito: h.efeito || null, saving_throw: h.saving_throw || null,
-              nivel_requerido: h.nivel_requerido || 1
+              efeito: normalizarEfeitoCatalogo(h.efeito || null), saving_throw: h.saving_throw || null,
+              nivel_requerido: h.nivel_requerido || 1,
+              pre_requisito: normalizarRequisitos(h.pre_requisito),
+              pre_requisitos: normalizarRequisitos(h.pre_requisito),
             })),
             magias: magiasUniversais.map(m => ({
               id: m.id, nome: m.nome, descricao: m.descricao,
               custo_mana: m.custo_mana || 0, cooldown_turnos: m.cooldown_turnos || 0,
-              dano_base: m.dano_base || null, tipo: m.tipo, elemento: m.elemento || null,
+              dano_base: m.dano_base || null, tipo: m.tipo, elemento: normalizarElementoPrimario(m.elemento),
+              elementos: normalizarListaElementos(m.elemento) || [],
               escola_magia: m.escola_magia || null, alcance: m.alcance, alvo: m.alvo,
               tempo_conjuracao: m.tempo_conjuracao || 'acao',
               usa_concentracao: m.usa_concentracao || false,
-              efeito: m.efeito || null, saving_throw: m.saving_throw || null,
-              nivel_requerido: m.nivel_requerido || 1
+              efeito: normalizarEfeitoCatalogo(m.efeito || null), saving_throw: m.saving_throw || null,
+              nivel_requerido: m.nivel_requerido || 1,
+              pre_requisito: normalizarRequisitos(m.pre_requisito),
+              pre_requisitos: normalizarRequisitos(m.pre_requisito),
             })),
             descricaoCompleta: `${personagem.nome} - ${personagem.racas?.nome || 'Humano'} ${personagem.classes?.nome || 'Aventureiro'} Nível ${personagem.nivel || 1}`
           };

@@ -2,6 +2,17 @@ import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
 import logger from '../../helpers/logger.js';
+import {
+  BonusFlexivelSchema,
+  RestricaoSchema,
+  EfeitoFlexivelSchema,
+  RequisitosFlexivelSchema,
+  validateJson,
+} from '../../helpers/jsonSchemas.js';
+import {
+  normalizarPayloadVantagemOuDesvantagem,
+  serializarVantagemOuDesvantagem,
+} from '../../helpers/catalogJsonHelper.js';
 const log = logger.child({ module: 'desvantagensController' });
 
 function parseElementoLista(raw) {
@@ -45,15 +56,10 @@ class DesvantagemController {
         descricao,
         custo,
         tipo,
-        bonus,
-        restricao,
         dano_base,
-        efeito,
-        usar,
-        elemento,
         nivel,
-        requisitos
       } = req.body;
+      const payload = normalizarPayloadVantagemOuDesvantagem(req.body);
       
       // Validações básicas
       if (!nome || !descricao) {
@@ -73,9 +79,30 @@ class DesvantagemController {
         });
       }
       
-      const elementos = parseElementoLista(elemento);
+      const elementos = parseElementoLista(payload.elemento);
       if (elementos.error) {
         return res.status(400).json({ error: elementos.error });
+      }
+
+      if (payload.bonus !== undefined) {
+        const validacaoBonus = validateJson(BonusFlexivelSchema, payload.bonus);
+        if (!validacaoBonus.success) return res.status(400).json({ error: `bonus invalido: ${validacaoBonus.error}` });
+        payload.bonus = validacaoBonus.data;
+      }
+      if (payload.restricao !== undefined) {
+        const validacaoRestricao = validateJson(RestricaoSchema, payload.restricao);
+        if (!validacaoRestricao.success) return res.status(400).json({ error: `restricao invalida: ${validacaoRestricao.error}` });
+        payload.restricao = validacaoRestricao.data;
+      }
+      if (payload.efeito !== undefined) {
+        const validacaoEfeito = validateJson(EfeitoFlexivelSchema, payload.efeito);
+        if (!validacaoEfeito.success) return res.status(400).json({ error: `efeito invalido: ${validacaoEfeito.error}` });
+        payload.efeito = validacaoEfeito.data;
+      }
+      if (payload.requisitos !== undefined) {
+        const validacaoRequisitos = validateJson(RequisitosFlexivelSchema, payload.requisitos);
+        if (!validacaoRequisitos.success) return res.status(400).json({ error: `requisitos invalido: ${validacaoRequisitos.error}` });
+        payload.requisitos = validacaoRequisitos.data;
       }
 
       // Criar desvantagem no banco
@@ -84,14 +111,14 @@ class DesvantagemController {
         descricao,
         custo: custo || 0,
         tipo: Array.isArray(tipo) ? tipo : [tipo || 'ativa'],
-        bonus: bonus || {},
-        restricao: restricao || {},
+        bonus: payload.bonus || {},
+        restricao: payload.restricao || {},
         dano_base,
-        efeito: efeito || {},
-        usar: usar || null,
+        efeito: payload.efeito || {},
+        usar: payload.usar ?? null,
         elemento: elementos.value ?? [],
         nivel: nivel || 1,
-        requisitos: requisitos || {}
+        requisitos: payload.requisitos || {}
       });
       
       log.info({ id: novaDesvantagem.id }, 'Desvantagem criada com sucesso');
@@ -99,7 +126,7 @@ class DesvantagemController {
       res.status(201).json({
         success: true,
         message: 'Desvantagem criada com sucesso',
-        data: novaDesvantagem
+        data: serializarVantagemOuDesvantagem(novaDesvantagem)
       });
       
     } catch (error) {
@@ -118,7 +145,7 @@ class DesvantagemController {
    */
   async listarDesvantagens(req, res, next) {
     try {
-      const { tipo, elemento, nivel, usar, search, limit, offset } = req.query;
+      const { tipo, elemento, nivel, usar, usos, search, limit, offset } = req.query;
       const elementoFiltro = parseElementoFiltro(elemento);
       if (elementoFiltro.error) {
         return res.status(400).json({ error: elementoFiltro.error });
@@ -132,12 +159,12 @@ class DesvantagemController {
           offset: parsedOffset,
           tipo, elemento: elementoFiltro.value,
           nivel: nivel ? parseInt(nivel) : undefined,
-          usar: usar ? parseInt(usar) : undefined,
+          usar: (usar ?? usos) ? parseInt(usar ?? usos) : undefined,
           search
         });
         return res.status(200).json({
           success: true,
-          data: result.data,
+          data: result.data.map(serializarVantagemOuDesvantagem),
           pagination: {
             total: result.total,
             limit: parsedLimit,
@@ -153,7 +180,7 @@ class DesvantagemController {
         : await db.Desvantagem.findAll();
       res.status(200).json({
         success: true,
-        data,
+        data: data.map(serializarVantagemOuDesvantagem),
         pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
       
@@ -189,7 +216,7 @@ class DesvantagemController {
       
       res.status(200).json({
         success: true,
-        data: desvantagem
+        data: serializarVantagemOuDesvantagem(desvantagem)
       });
       
     } catch (error) {
@@ -223,7 +250,7 @@ class DesvantagemController {
       
       res.status(200).json({
         success: true,
-        data: desvantagens
+        data: desvantagens.map(serializarVantagemOuDesvantagem)
       });
       
     } catch (error) {
@@ -250,7 +277,7 @@ class DesvantagemController {
       
       res.status(200).json({
         success: true,
-        data: desvantagens
+        data: desvantagens.map(serializarVantagemOuDesvantagem)
       });
       
     } catch (error) {
@@ -375,29 +402,46 @@ class DesvantagemController {
         return res.status(404).json({ success: false, error: 'Desvantagem não encontrada' });
       }
 
-      const { nome, descricao, custo, tipo, bonus, restricao, dano_base, efeito, usar, elemento, nivel, requisitos } = req.body;
+      const { nome, descricao, custo, tipo, dano_base, nivel } = req.body;
+      const payload = normalizarPayloadVantagemOuDesvantagem(req.body);
       const dados = {};
       if (nome !== undefined) dados.nome = nome;
       if (descricao !== undefined) dados.descricao = descricao;
       if (custo !== undefined) dados.custo = parseInt(custo);
       if (tipo !== undefined) dados.tipo = tipo;
-      if (bonus !== undefined) dados.bonus = bonus;
-      if (restricao !== undefined) dados.restricao = restricao;
       if (dano_base !== undefined) dados.dano_base = dano_base;
-      if (efeito !== undefined) dados.efeito = efeito;
-      if (usar !== undefined) dados.usar = parseInt(usar);
-      if (elemento !== undefined) {
-        const elementos = parseElementoLista(elemento);
+      if (req.body.bonus !== undefined) {
+        const validacaoBonus = validateJson(BonusFlexivelSchema, payload.bonus);
+        if (!validacaoBonus.success) return res.status(400).json({ success: false, error: `bonus invalido: ${validacaoBonus.error}` });
+        dados.bonus = validacaoBonus.data;
+      }
+      if (req.body.restricao !== undefined) {
+        const validacaoRestricao = validateJson(RestricaoSchema, payload.restricao);
+        if (!validacaoRestricao.success) return res.status(400).json({ success: false, error: `restricao invalida: ${validacaoRestricao.error}` });
+        dados.restricao = validacaoRestricao.data;
+      }
+      if (req.body.efeito !== undefined) {
+        const validacaoEfeito = validateJson(EfeitoFlexivelSchema, payload.efeito);
+        if (!validacaoEfeito.success) return res.status(400).json({ success: false, error: `efeito invalido: ${validacaoEfeito.error}` });
+        dados.efeito = validacaoEfeito.data;
+      }
+      if (req.body.usar !== undefined || req.body.usos !== undefined) dados.usar = payload.usar;
+      if (req.body.elemento !== undefined) {
+        const elementos = parseElementoLista(payload.elemento);
         if (elementos.error) {
           return res.status(400).json({ success: false, error: elementos.error });
         }
         dados.elemento = elementos.value;
       }
       if (nivel !== undefined) dados.nivel = parseInt(nivel);
-      if (requisitos !== undefined) dados.requisitos = requisitos;
+      if (req.body.requisitos !== undefined) {
+        const validacaoRequisitos = validateJson(RequisitosFlexivelSchema, payload.requisitos);
+        if (!validacaoRequisitos.success) return res.status(400).json({ success: false, error: `requisitos invalido: ${validacaoRequisitos.error}` });
+        dados.requisitos = validacaoRequisitos.data;
+      }
 
       const atualizada = await db.Desvantagem.update(parseInt(id), dados);
-      res.json({ success: true, message: 'Desvantagem atualizada com sucesso', data: atualizada });
+      res.json({ success: true, message: 'Desvantagem atualizada com sucesso', data: serializarVantagemOuDesvantagem(atualizada) });
     } catch (error) {
       log.error({ err: error }, 'Erro ao atualizar desvantagem');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });

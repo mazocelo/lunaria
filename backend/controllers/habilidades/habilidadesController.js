@@ -1,6 +1,13 @@
 import db from '../../Model/index.js';
 import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
 import logger from '../../helpers/logger.js';
+import {
+  normalizarEfeitoCatalogo,
+  normalizarElementoPrimario,
+  normalizarRequisitos,
+  serializarHabilidade,
+} from '../../helpers/catalogJsonHelper.js';
+
 const log = logger.child({ module: 'habilidadesController' });
 
 function parseElementoScalar(raw) {
@@ -13,6 +20,11 @@ function parseElementoScalar(raw) {
   return { value: normalizado };
 }
 
+function resolvePreRequisitos(body) {
+  const raw = body.pre_requisitos !== undefined ? body.pre_requisitos : body.pre_requisito;
+  return raw !== undefined ? normalizarRequisitos(raw) : undefined;
+}
+
 function buildData(body) {
   return {
     nome: body.nome,
@@ -20,11 +32,11 @@ function buildData(body) {
     custo_mana: body.custo_mana ?? 0,
     dano_base: body.dano_base || null,
     tipo: body.tipo || 'dano',
-    elemento: body.elemento || null,
+    elemento: normalizarElementoPrimario(body.elemento) || null,
     nivel_requerido: body.nivel_requerido ?? 1,
     cooldown_turnos: body.cooldown_turnos ?? 0,
-    classe_id: body.classe_id ? parseInt(body.classe_id) : null,
-    efeito: body.efeito || null,
+    classe_id: body.classe_id ? parseInt(body.classe_id, 10) : null,
+    efeito: normalizarEfeitoCatalogo(body.efeito) || null,
     alvo: body.alvo || 'inimigo',
     alcance: body.alcance || 'medio',
     area_efeito: body.area_efeito || null,
@@ -33,8 +45,8 @@ function buildData(body) {
     categoria: body.categoria || 'combate_fisico',
     escola_magia: body.escola_magia || null,
     escalamento: body.escalamento || null,
-    pre_requisito: body.pre_requisito || null,
-    raca_id: body.raca_id ? parseInt(body.raca_id) : null,
+    pre_requisito: resolvePreRequisitos(body) || null,
+    raca_id: body.raca_id ? parseInt(body.raca_id, 10) : null,
     usos_por_descanso: body.usos_por_descanso ?? null,
     componente_material: body.componente_material || null,
     saving_throw: body.saving_throw || null,
@@ -44,36 +56,61 @@ function buildData(body) {
 function buildUpdateData(body) {
   const data = {};
   const strFields = ['nome', 'descricao', 'tipo', 'alvo', 'alcance', 'tempo_conjuracao', 'categoria'];
-  const nullStrFields = ['dano_base', 'elemento', 'escola_magia', 'saving_throw'];
+  const nullStrFields = ['dano_base', 'escola_magia', 'saving_throw'];
   const intFields = ['custo_mana', 'nivel_requerido', 'cooldown_turnos'];
-  const jsonFields = ['efeito', 'area_efeito', 'escalamento', 'pre_requisito', 'componente_material'];
+  const jsonFields = ['area_efeito', 'escalamento', 'componente_material'];
   const fkFields = ['classe_id', 'raca_id'];
 
-  for (const f of strFields) if (body[f] !== undefined) data[f] = body[f];
-  for (const f of nullStrFields) if (body[f] !== undefined) data[f] = body[f] || null;
-  for (const f of intFields) if (body[f] !== undefined) data[f] = parseInt(body[f]);
-  for (const f of jsonFields) if (body[f] !== undefined) data[f] = body[f] || null;
-  for (const f of fkFields) if (body[f] !== undefined) data[f] = body[f] ? parseInt(body[f]) : null;
-  if (body.usa_concentracao !== undefined) data.usa_concentracao = Boolean(body.usa_concentracao);
-  if (body.usos_por_descanso !== undefined) data.usos_por_descanso = body.usos_por_descanso != null ? parseInt(body.usos_por_descanso) : null;
+  for (const field of strFields) {
+    if (body[field] !== undefined) data[field] = body[field];
+  }
+  for (const field of nullStrFields) {
+    if (body[field] !== undefined) data[field] = body[field] || null;
+  }
+  for (const field of intFields) {
+    if (body[field] !== undefined) data[field] = parseInt(body[field], 10);
+  }
+  for (const field of jsonFields) {
+    if (body[field] !== undefined) data[field] = body[field] || null;
+  }
+  for (const field of fkFields) {
+    if (body[field] !== undefined) data[field] = body[field] ? parseInt(body[field], 10) : null;
+  }
+
+  if (body.elemento !== undefined) {
+    data.elemento = normalizarElementoPrimario(body.elemento) || null;
+  }
+  if (body.efeito !== undefined) {
+    data.efeito = normalizarEfeitoCatalogo(body.efeito) || null;
+  }
+  if (body.pre_requisito !== undefined || body.pre_requisitos !== undefined) {
+    data.pre_requisito = resolvePreRequisitos(body) || null;
+  }
+  if (body.usa_concentracao !== undefined) {
+    data.usa_concentracao = Boolean(body.usa_concentracao);
+  }
+  if (body.usos_por_descanso !== undefined) {
+    data.usos_por_descanso = body.usos_por_descanso != null ? parseInt(body.usos_por_descanso, 10) : null;
+  }
 
   return data;
 }
 
 class HabilidadesController {
-
   async criarHabilidade(req, res) {
     try {
       if (!req.body.nome || !req.body.descricao) {
         return res.status(400).json({ error: 'Nome e descricao sao obrigatorios' });
       }
-      const elemento = parseElementoScalar(req.body.elemento);
+
+      const elementoInput = req.body.elemento !== undefined ? req.body.elemento : req.body.elementos;
+      const elemento = parseElementoScalar(Array.isArray(elementoInput) ? elementoInput[0] : elementoInput);
       if (elemento.error) return res.status(400).json({ error: elemento.error });
 
       const habilidade = await db.Habilidade.create({
-        data: buildData({ ...req.body, elemento: elemento.value })
+        data: buildData({ ...req.body, elemento: elementoInput ?? elemento.value })
       });
-      return res.status(201).json(habilidade);
+      return res.status(201).json(serializarHabilidade(habilidade));
     } catch (error) {
       log.error({ err: error }, 'Erro ao criar habilidade');
       if (error.code === 'P2002') return res.status(409).json({ error: 'Ja existe uma habilidade com esse nome' });
@@ -88,16 +125,25 @@ class HabilidadesController {
       if (elementoFiltro.error) return res.status(400).json({ error: elementoFiltro.error });
 
       const result = await db.Habilidade.findPaginated({
-        limit: parseInt(limit), offset: parseInt(offset),
-        tipo, elemento: elementoFiltro.value, classe_id, nivel, busca, categoria, escola_magia, raca_id, alcance
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
+        tipo,
+        elemento: elementoFiltro.value,
+        classe_id,
+        nivel,
+        busca,
+        categoria,
+        escola_magia,
+        raca_id,
+        alcance
       });
 
       return res.json({
-        data: result.data,
+        data: result.data.map(serializarHabilidade),
         total: result.total,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: parseInt(offset) + result.data.length < result.total
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
+        hasMore: parseInt(offset, 10) + result.data.length < result.total
       });
     } catch (error) {
       log.error({ err: error }, 'Erro ao listar habilidades');
@@ -107,9 +153,9 @@ class HabilidadesController {
 
   async obterHabilidade(req, res) {
     try {
-      const habilidade = await db.Habilidade.findById(parseInt(req.params.id));
+      const habilidade = await db.Habilidade.findById(parseInt(req.params.id, 10));
       if (!habilidade) return res.status(404).json({ error: 'Habilidade nao encontrada' });
-      return res.json(habilidade);
+      return res.json(serializarHabilidade(habilidade));
     } catch (error) {
       log.error({ err: error }, 'Erro ao obter habilidade');
       return res.status(500).json({ error: 'Erro ao obter habilidade' });
@@ -118,14 +164,15 @@ class HabilidadesController {
 
   async atualizarHabilidade(req, res) {
     try {
-      const elemento = parseElementoScalar(req.body.elemento);
+      const elementoInput = req.body.elemento !== undefined ? req.body.elemento : req.body.elementos;
+      const elemento = parseElementoScalar(Array.isArray(elementoInput) ? elementoInput[0] : elementoInput);
       if (elemento.error) return res.status(400).json({ error: elemento.error });
 
       const habilidade = await db.Habilidade.update(
-        parseInt(req.params.id),
-        buildUpdateData({ ...req.body, elemento: elemento.value })
+        parseInt(req.params.id, 10),
+        buildUpdateData({ ...req.body, elemento: elementoInput ?? elemento.value })
       );
-      return res.json(habilidade);
+      return res.json(serializarHabilidade(habilidade));
     } catch (error) {
       log.error({ err: error }, 'Erro ao atualizar habilidade');
       if (error.code === 'P2025') return res.status(404).json({ error: 'Habilidade nao encontrada' });
@@ -136,7 +183,7 @@ class HabilidadesController {
 
   async deletarHabilidade(req, res) {
     try {
-      await db.Habilidade.delete(parseInt(req.params.id));
+      await db.Habilidade.delete(parseInt(req.params.id, 10));
       return res.json({ message: 'Habilidade deletada com sucesso' });
     } catch (error) {
       log.error({ err: error }, 'Erro ao deletar habilidade');

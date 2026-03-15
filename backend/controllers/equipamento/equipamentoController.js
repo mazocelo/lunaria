@@ -1,7 +1,16 @@
 import db from '../../Model/index.js';
 import { BonusEquipSchema, RequisitosEquipSchema, VinculoSchema, validateJson } from '../../helpers/jsonSchemas.js';
+import { normalizarBonusCombate, normalizarRequisitos } from '../../helpers/catalogJsonHelper.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'equipamentoController' });
+
+function serializeEquipamento(item) {
+  return {
+    ...item,
+    bonus: normalizarBonusCombate(item?.bonus) || item?.bonus || {},
+    requisitos: normalizarRequisitos(item?.requisitos),
+  };
+}
 
 class EquipamentoController {
   async listarEquipamentos(req, res) {
@@ -15,7 +24,7 @@ class EquipamentoController {
         const result = await db.Equipamento.findPaginated({ limit: parsedLimit, offset: parsedOffset });
         return res.json({
           success: true,
-          data: result.data,
+          data: result.data.map(serializeEquipamento),
           pagination: {
             total: result.total,
             limit: parsedLimit,
@@ -28,7 +37,7 @@ class EquipamentoController {
       const data = await db.Equipamento.findAll();
       res.json({
         success: true,
-        data,
+        data: data.map(serializeEquipamento),
         pagination: { total: data.length, limit: data.length, offset: 0, hasMore: false }
       });
     } catch (error) {
@@ -42,7 +51,7 @@ class EquipamentoController {
       const { id } = req.params;
       const equipamento = await db.Equipamento.findById(parseInt(id));
       if (!equipamento) return res.status(404).json({ success: false, error: 'Equipamento nao encontrado' });
-      res.json({ success: true, data: equipamento });
+      res.json({ success: true, data: serializeEquipamento(equipamento) });
     } catch (error) {
       log.error({ err: error }, 'Erro ao obter equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
@@ -62,12 +71,12 @@ class EquipamentoController {
       if (dados.bonus !== undefined) {
         const v = validateJson(BonusEquipSchema, dados.bonus);
         if (!v.success) return res.status(400).json({ success: false, error: `bonus invalido: ${v.error}` });
-        dados.bonus = v.data;
+        dados.bonus = normalizarBonusCombate(v.data) || v.data;
       }
       if (dados.requisitos !== undefined) {
         const v = validateJson(RequisitosEquipSchema, dados.requisitos);
         if (!v.success) return res.status(400).json({ success: false, error: `requisitos invalido: ${v.error}` });
-        dados.requisitos = v.data;
+        dados.requisitos = normalizarRequisitos(v.data);
       }
       if (dados.vinculo !== undefined) {
         const v = validateJson(VinculoSchema, dados.vinculo);
@@ -76,7 +85,7 @@ class EquipamentoController {
       }
 
       const equipamento = await db.Equipamento.create(dados);
-      res.status(201).json({ success: true, message: 'Equipamento criado com sucesso', data: equipamento });
+      res.status(201).json({ success: true, message: 'Equipamento criado com sucesso', data: serializeEquipamento(equipamento) });
     } catch (error) {
       log.error({ err: error }, 'Erro ao criar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
@@ -94,12 +103,12 @@ class EquipamentoController {
       if (dados.bonus !== undefined) {
         const v = validateJson(BonusEquipSchema, dados.bonus);
         if (!v.success) return res.status(400).json({ success: false, error: `bonus invalido: ${v.error}` });
-        dados.bonus = v.data;
+        dados.bonus = normalizarBonusCombate(v.data) || v.data;
       }
       if (dados.requisitos !== undefined) {
         const v = validateJson(RequisitosEquipSchema, dados.requisitos);
         if (!v.success) return res.status(400).json({ success: false, error: `requisitos invalido: ${v.error}` });
-        dados.requisitos = v.data;
+        dados.requisitos = normalizarRequisitos(v.data);
       }
       if (dados.vinculo !== undefined) {
         const v = validateJson(VinculoSchema, dados.vinculo);
@@ -108,7 +117,7 @@ class EquipamentoController {
       }
 
       const atualizado = await db.Equipamento.update(parseInt(id), dados);
-      res.json({ success: true, message: 'Equipamento atualizado com sucesso', data: atualizado });
+      res.json({ success: true, message: 'Equipamento atualizado com sucesso', data: serializeEquipamento(atualizado) });
     } catch (error) {
       log.error({ err: error }, 'Erro ao atualizar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });

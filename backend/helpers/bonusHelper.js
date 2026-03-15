@@ -1,44 +1,32 @@
 /**
- * Helper de Bonus — parsing e agregação de bonus de raça, classe e equipamentos
- * Funções puras, sem estado.
+ * Helper de Bonus - parsing e agregacao de bonus de raca, classe e equipamentos.
+ * Funcoes puras, sem estado.
  */
 import logger from './logger.js';
-const log = logger.child({ module: 'bonusHelper' });
+import { extrairAtributosBonus, normalizarBonusCombate } from './catalogJsonHelper.js';
 
+const log = logger.child({ module: 'bonusHelper' });
 const ATRIBUTOS = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
 
 /**
- * Parseia bonus de raça ou classe (campo String JSON no banco)
- * Formato esperado: '{ "forca": "+2", "constituicao": "+1", "vantagens": [...], "desvantagens": [...] }'
- * @param {string|null} bonusStr - Campo bonus (String JSON)
+ * Parseia bonus de raca ou classe, aceitando string JSON legado ou objeto.
+ * @param {string|Object|null} bonusStr
  * @returns {{ forca: number, inteligencia: number, carisma: number, destreza: number, constituicao: number, agilidade: number }}
  */
 export function parsearBonusEntidade(bonusStr) {
-  const resultado = { forca: 0, inteligencia: 0, carisma: 0, destreza: 0, constituicao: 0, agilidade: 0 };
-
-  if (!bonusStr) return resultado;
-
   try {
-    const bonus = typeof bonusStr === 'string' ? JSON.parse(bonusStr) : bonusStr;
-
-    for (const attr of ATRIBUTOS) {
-      if (bonus[attr]) {
-        const valor = String(bonus[attr]).replace('+', '');
-        resultado[attr] = parseInt(valor) || 0;
-      }
-    }
+    return extrairAtributosBonus(bonusStr);
   } catch (e) {
     log.warn({ err: e }, 'Erro ao parsear bonus');
+    return { forca: 0, inteligencia: 0, carisma: 0, destreza: 0, constituicao: 0, agilidade: 0 };
   }
-
-  return resultado;
 }
 
 /**
- * Agrega bonus de todos os equipamentos do personagem
- * Formato bonus novo: { dano: 2, ataque: 2, armadura: 5, esquiva_bonus: 3, esquiva_penalidade: 5 }
- * Fallback para formato antigo: { ca, ca_base } → convertido para armadura
- * @param {Array} equipamentos - Array de equipamentos com campo bonus
+ * Agrega bonus de todos os equipamentos do personagem.
+ * O shape canonico e { ataque, dano, armadura, esquiva_bonus, esquiva_penalidade }.
+ * Campos legados ca/ca_base sao convertidos na normalizacao.
+ * @param {Array} equipamentos
  * @returns {{ ataque: number, dano: number, armadura: number, esquiva_bonus: number, esquiva_penalidade: number }}
  */
 export function agregarBonusEquipamentos(equipamentos) {
@@ -47,26 +35,12 @@ export function agregarBonusEquipamentos(equipamentos) {
   if (!Array.isArray(equipamentos)) return resultado;
 
   for (const equip of equipamentos) {
-    const bonus = equip.bonus || equip.equipamentos?.bonus;
+    const bonus = normalizarBonusCombate(equip?.bonus || equip?.equipamentos?.bonus);
     if (!bonus || typeof bonus !== 'object') continue;
 
     resultado.ataque += bonus.ataque || 0;
     resultado.dano += bonus.dano || 0;
-
-    // Novo formato: armadura direto
-    if (bonus.armadura != null) {
-      resultado.armadura += bonus.armadura;
-    }
-    // Fallback formato antigo: ca_base → armadura (30% do valor)
-    else if (bonus.ca_base != null) {
-      resultado.armadura += Math.floor(bonus.ca_base * 0.3);
-    }
-
-    // Fallback: ca aditivo antigo → armadura
-    if (bonus.ca && !bonus.armadura && !bonus.ca_base) {
-      resultado.armadura += bonus.ca;
-    }
-
+    resultado.armadura += bonus.armadura || 0;
     resultado.esquiva_bonus += bonus.esquiva_bonus || 0;
     resultado.esquiva_penalidade += bonus.esquiva_penalidade || 0;
   }
@@ -75,11 +49,11 @@ export function agregarBonusEquipamentos(equipamentos) {
 }
 
 /**
- * Calcula atributos efetivos (base + bonus raça + bonus classe)
- * @param {Object} personagem - Personagem com atributos base
- * @param {string|null} bonusRaca - Bonus JSON string da raça
- * @param {string|null} bonusClasse - Bonus JSON string da classe
- * @returns {Object} Atributos com bonus aplicados
+ * Calcula atributos efetivos (base + bonus raca + bonus classe)
+ * @param {Object} personagem
+ * @param {string|Object|null} bonusRaca
+ * @param {string|Object|null} bonusClasse
+ * @returns {Object}
  */
 export function calcularAtributosEfetivos(personagem, bonusRaca, bonusClasse) {
   const bonusR = parsearBonusEntidade(bonusRaca);
@@ -96,8 +70,8 @@ export function calcularAtributosEfetivos(personagem, bonusRaca, bonusClasse) {
 
 /**
  * Encontra o melhor dano_base entre os equipamentos do personagem
- * @param {Array} equipamentos - Equipamentos do personagem
- * @returns {string|null} Notação de dado (ex: "2d6+3") ou null
+ * @param {Array} equipamentos
+ * @returns {string|null}
  */
 export function encontrarMelhorArma(equipamentos) {
   if (!Array.isArray(equipamentos) || equipamentos.length === 0) return null;
@@ -119,29 +93,24 @@ export function encontrarMelhorArma(equipamentos) {
   return melhorDano;
 }
 
-/**
- * Calcula dano esperado de uma notação de dado
- * @param {string} notacao - Ex: "2d6+3"
- * @returns {number} Dano médio esperado
- */
 function _calcularDanoEsperado(notacao) {
   if (!notacao || typeof notacao !== 'string') return 0;
 
   const match = notacao.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
   if (!match) return 0;
 
-  const quantidade = parseInt(match[1]);
-  const faces = parseInt(match[2]);
-  const modificador = match[3] ? parseInt(match[3]) : 0;
+  const quantidade = parseInt(match[1], 10);
+  const faces = parseInt(match[2], 10);
+  const modificador = match[3] ? parseInt(match[3], 10) : 0;
 
   return (quantidade * (faces + 1) / 2) + modificador;
 }
 
 /**
- * Valida se personagem atende requisitos de um equipamento
- * @param {Object|null} requisitos - JSON de requisitos do equipamento
- * @param {string} classeNome - Nome da classe do personagem
- * @param {string} racaNome - Nome da raça do personagem
+ * Valida se personagem atende requisitos de um equipamento.
+ * @param {Object|null} requisitos
+ * @param {string} classeNome
+ * @param {string} racaNome
  * @returns {{ valido: boolean, motivo: string|null }}
  */
 export function validarRequisitosEquipamento(requisitos, classeNome, racaNome) {
@@ -150,7 +119,7 @@ export function validarRequisitosEquipamento(requisitos, classeNome, racaNome) {
   }
 
   if (requisitos.classe && Array.isArray(requisitos.classe)) {
-    const classeMatch = requisitos.classe.some(c =>
+    const classeMatch = requisitos.classe.some((c) =>
       classeNome.toLowerCase().includes(c.toLowerCase())
     );
     if (!classeMatch) {
@@ -159,7 +128,7 @@ export function validarRequisitosEquipamento(requisitos, classeNome, racaNome) {
   }
 
   if (requisitos.raca && Array.isArray(requisitos.raca)) {
-    const racaMatch = requisitos.raca.some(r =>
+    const racaMatch = requisitos.raca.some((r) =>
       racaNome.toLowerCase().includes(r.toLowerCase())
     );
     if (!racaMatch) {
@@ -171,12 +140,10 @@ export function validarRequisitosEquipamento(requisitos, classeNome, racaNome) {
 }
 
 /**
- * Calcula bonus de vantagens/desvantagens aplicáveis a um teste específico
- * Match por nome do teste (ex: "percepcao") ou atributo base (ex: "forca")
- * Suporta chaves com prefixo "penalidade_" para retrocompatibilidade
- * @param {Object} personagem - Personagem com arrays vantagens/desvantagens (incluindo campo bonus)
- * @param {string} nomeTeste - Nome do teste (ex: "Percepção")
- * @param {string|null} atributoDoTeste - Atributo base do teste (ex: "forca")
+ * Calcula bonus de vantagens/desvantagens aplicaveis a um teste especifico.
+ * @param {Object} personagem
+ * @param {string} nomeTeste
+ * @param {string|null} atributoDoTeste
  * @returns {{ bonusTotal: number, detalhes: Array<{ fonte: string, valor: number }> }}
  */
 export function calcularBonusTeste(personagem, nomeTeste, atributoDoTeste) {

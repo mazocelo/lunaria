@@ -98,6 +98,9 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
   // 14 socket listeners
   useEffect(() => {
     const handleMensagemMestre = (data) => {
+      // Limpar flag de aguardando resposta
+      useSocketStore.setState({ aguardandoRespostaMestre: false });
+
       const mensagensAtuais = useGameStore.getState().mensagens || [];
       // Limpar loading e streaming placeholders
       const mensagensLimpas = mensagensAtuais.filter(m => m.tipo !== 'loading' && m.tipo !== 'mestre_streaming');
@@ -342,6 +345,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleErroMensagem = (data) => {
+      useSocketStore.setState({ aguardandoRespostaMestre: false });
       if (data?.message) showGameNotification(data.message, 'warning');
       const msgs = useGameStore.getState().mensagens || [];
       const semLoading = msgs.filter(m => m.tipo !== 'loading');

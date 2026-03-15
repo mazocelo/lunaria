@@ -66,6 +66,7 @@ export const socketInitialStates = {
   ehMeuTurno: false,
   turnoIniciado: false, // Se o jogador já clicou em "Iniciar Turno"
   turnoStatus: 'idle',
+  aguardandoRespostaMestre: false, // true entre envio de mensagem e resposta do Mestre
   testePendente: null,
   testesPendentes: [],
   cooldownRoleplay: 0,

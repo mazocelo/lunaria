@@ -77,6 +77,14 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         if (enviado) {
           setMensagemAtual('');
           combatIntentRef.current = null;
+          // Sinalizar que estamos aguardando resposta do Mestre
+          useSocketStore.setState({ aguardandoRespostaMestre: true });
+          // Safety timeout: limpar flag após 60s caso resposta nunca chegue
+          setTimeout(() => {
+            if (useSocketStore.getState().aguardandoRespostaMestre) {
+              useSocketStore.setState({ aguardandoRespostaMestre: false });
+            }
+          }, 60000);
         } else {
           showGameNotification('Falha ao enviar mensagem. Verifique sua conexao.', 'error');
           const msgs = useGameStore.getState().mensagens || [];

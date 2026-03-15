@@ -196,7 +196,8 @@ export const useEtapaJogoRPGModel = ({
         modificador: meuTestePendente.modificador ?? null
       }
     : null;
-  const aguardandoMestre = turnoStatus === 'resolving_roll';
+  const aguardandoRespostaMestre = useSocketStore(s => s.aguardandoRespostaMestre);
+  const aguardandoMestre = turnoStatus === 'resolving_roll' || aguardandoRespostaMestre;
   const jaRolouDadoInicial = !!resultadosDados[user?.id];
 
   const jogadoresExibir = participantesFormatados.length > 0

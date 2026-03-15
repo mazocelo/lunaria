@@ -4,7 +4,7 @@ import { TabelaList, PageHeader, Badge, SearchBar } from '../../../components/sh
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 import { Crown, Plus, Eye, Pencil, Trash2, Volume2 } from 'lucide-react';
 
 const MestreListaView = ({

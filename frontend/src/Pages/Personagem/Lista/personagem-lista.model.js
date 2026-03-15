@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePersonagemStore } from '../../../store/personagem/index.js';
 import { personagemService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES, generateRoute } from '../../../routes.jsx';
+import { ROUTES, generateRoute } from '../../../constants/routes.js';
 
 export const usePersonagemListaModel = () => {
   const navigate = useNavigate();

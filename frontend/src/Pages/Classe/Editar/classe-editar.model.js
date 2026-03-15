@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { classeService } from '../../../services/index.js';
 import { useClasseStore } from '../../../store/classe';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 
 export const useClasseEditarModel = () => {
   const { id } = useParams();

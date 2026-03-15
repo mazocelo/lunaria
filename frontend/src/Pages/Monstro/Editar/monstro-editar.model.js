@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { monstroService, catalogoService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 
 export const useMonstroEditarModel = () => {
   const { id } = useParams();

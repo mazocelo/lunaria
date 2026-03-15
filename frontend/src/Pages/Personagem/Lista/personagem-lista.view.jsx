@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';

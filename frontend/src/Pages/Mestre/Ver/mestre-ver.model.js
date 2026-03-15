@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { mestreService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../routes.jsx';
+import { generateRoute } from '../../../constants/routes.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 

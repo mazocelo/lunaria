@@ -5,7 +5,7 @@ import { useMestreStore } from '../../../store/mestre';
 import { useTheme } from '../../../contexts/theme.jsx';
 
 import { apiClient } from '../../../services/ApiClient.js';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 

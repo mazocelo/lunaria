@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { habilidadeService } from '../../../services/index.js';
 import { useHabilidadeStore } from '../../../store/habilidade';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 
 export const useHabilidadeNovaModel = () => {
   const navigate = useNavigate();

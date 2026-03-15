@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEquipamentoStore } from '../../../store/equipamento/index.js';
 import { equipamentoService, catalogoService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../routes.jsx';
+import { generateRoute } from '../../../constants/routes.js';
 
 export const useEquipamentoListaModel = () => {
   const navigate = useNavigate();

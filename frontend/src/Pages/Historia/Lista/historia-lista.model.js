@@ -5,7 +5,7 @@ import { useHistoriaStore } from '../../../store/historia/index.js';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
-import { ROUTES, generateRoute } from '../../../routes.jsx';
+import { ROUTES, generateRoute } from '../../../constants/routes.js';
 
 export const useHistoriaListaModel = () => {
   const navigate = useNavigate();

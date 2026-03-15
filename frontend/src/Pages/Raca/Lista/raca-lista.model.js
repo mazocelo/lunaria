@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRacaStore } from '../../../store/raca';
 import { racaService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../routes.jsx';
+import { generateRoute } from '../../../constants/routes.js';
 
 export const useRacaListaModel = () => {
   const navigate = useNavigate();

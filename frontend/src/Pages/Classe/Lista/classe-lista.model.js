@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useClasseStore } from '../../../store/classe';
 import { classeService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../routes.jsx';
+import { generateRoute } from '../../../constants/routes.js';
 
 export const useClasseListaModel = () => {
   const navigate = useNavigate();

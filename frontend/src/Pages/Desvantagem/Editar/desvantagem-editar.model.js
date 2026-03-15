@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { desvantagemService } from '../../../services/index.js';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 
 export const useDesvantagemEditarModel = () => {
   const { id } = useParams();

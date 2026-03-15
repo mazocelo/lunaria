@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { monstroService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES, generateRoute } from '../../../routes.jsx';
+import { ROUTES, generateRoute } from '../../../constants/routes.js';
 
 export const useMonstroVerModel = () => {
   const { id } = useParams();

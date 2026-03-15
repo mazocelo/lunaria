@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { desvantagemService } from '../../../services/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../routes.jsx';
+import { generateRoute } from '../../../constants/routes.js';
 
 export const useDesvantagemListaModel = () => {
   const navigate = useNavigate();

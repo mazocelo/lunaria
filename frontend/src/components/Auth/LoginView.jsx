@@ -6,7 +6,7 @@ import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
-import { ROUTES } from '../../routes';
+import { ROUTES } from '../../constants/routes.js';
 import { Eye, EyeOff } from 'lucide-react';
 
 const LoginView = ({ onSwitchToRegister }) => {

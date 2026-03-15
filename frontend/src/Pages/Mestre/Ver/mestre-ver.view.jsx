@@ -4,7 +4,7 @@ import Notification from '../../../components/Notification.jsx';
 import RPGCard from '../../../components/RPGCard.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import { Badge } from '../../../components/shared';
-import { ROUTES } from '../../../routes.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 import {
   Crown, ArrowLeft, Pencil, X, BookOpen, Theater, ScrollText,
   Settings, Target, Terminal, ChevronDown, ChevronUp, Copy, Check

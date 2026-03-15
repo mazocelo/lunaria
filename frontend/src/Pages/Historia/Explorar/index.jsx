@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
-import { generateRoute } from '../../../routes.jsx';
+import { generateRoute } from '../../../constants/routes.js';
 import { Search, Globe, Users, BookOpen, Loader2, RefreshCw } from 'lucide-react';
 
 const ExplorarHistoriasPage = () => {

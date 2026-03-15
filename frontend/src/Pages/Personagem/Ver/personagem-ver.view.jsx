@@ -8,7 +8,7 @@ import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
   Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus, Crown, Shield,
-  Wand2, Volume2, Download
+  Wand2, Volume2, Download, Check
 } from 'lucide-react';
 
 const atributosConfig = [
@@ -63,6 +63,34 @@ const calcularBonusAtributos = (p) => {
   (p.desvantagens || []).forEach(d => addBonus(d.nome, d.bonus));
 
   return result;
+};
+
+const parseBonusVantagens = (bonus) => {
+  const obj = typeof bonus === 'string' ? (() => { try { return JSON.parse(bonus); } catch { return null; } })() : bonus;
+  if (!obj) return { vantagens: [], desvantagens: [] };
+  return {
+    vantagens: Array.isArray(obj.vantagens) ? obj.vantagens : [],
+    desvantagens: Array.isArray(obj.desvantagens) ? obj.desvantagens : [],
+  };
+};
+
+const BonusTraitTags = ({ bonus, isLight }) => {
+  const { vantagens, desvantagens } = parseBonusVantagens(bonus);
+  if (vantagens.length === 0 && desvantagens.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5">
+      {vantagens.map((v, i) => (
+        <span key={`v-${v.id || i}`} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-modern ${isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'}`}>
+          <Check size={9} /> {v.nome}
+        </span>
+      ))}
+      {desvantagens.map((d, i) => (
+        <span key={`d-${d.id || i}`} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-modern ${isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/15 text-red-400'}`}>
+          <X size={9} /> {d.nome}
+        </span>
+      ))}
+    </div>
+  );
 };
 
 const VerPersonagemView = ({
@@ -198,6 +226,7 @@ const VerPersonagemView = ({
                   const txt = formatBonus(bonus);
                   return txt ? <p className="text-xs font-modern text-purple-400">{txt}</p> : null;
                 })()}
+                <BonusTraitTags bonus={p.racas.bonus} isLight={isLight} />
               </div>
             )}
             {p.classes && (
@@ -217,6 +246,7 @@ const VerPersonagemView = ({
                   const txt = formatBonus(bonus);
                   return txt ? <p className="text-xs font-modern text-blue-400">{txt}</p> : null;
                 })()}
+                <BonusTraitTags bonus={p.classes.bonus} isLight={isLight} />
               </div>
             )}
           </div>
@@ -404,7 +434,19 @@ const VerPersonagemView = ({
       })()}
 
       {/* Vantagens & Desvantagens */}
-      {((p.vantagens && p.vantagens.length > 0) || (p.desvantagens && p.desvantagens.length > 0)) && (
+      {((p.vantagens && p.vantagens.length > 0) || (p.desvantagens && p.desvantagens.length > 0)) && (() => {
+        const rb = parseBonusVantagens(p.racas?.bonus);
+        const cb = parseBonusVantagens(p.classes?.bonus);
+        const racaVantIds = new Set(rb.vantagens.map(v => v.id));
+        const racaDesvIds = new Set(rb.desvantagens.map(d => d.id));
+        const classeVantIds = new Set(cb.vantagens.map(v => v.id));
+        const classeDesvIds = new Set(cb.desvantagens.map(d => d.id));
+        const origemBadge = (id, isVant) => {
+          if ((isVant ? racaVantIds : racaDesvIds).has(id)) return <span className="text-[9px] px-1 py-0.5 rounded font-mono bg-purple-500/15 text-purple-400">Raca</span>;
+          if ((isVant ? classeVantIds : classeDesvIds).has(id)) return <span className="text-[9px] px-1 py-0.5 rounded font-mono bg-blue-500/15 text-blue-400">Classe</span>;
+          return null;
+        };
+        return (
         <div className="card-rpg">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
@@ -426,6 +468,7 @@ const VerPersonagemView = ({
                       <div key={item.id || i} className={`p-2.5 rounded-lg border ${isLight ? 'bg-cyan-50/50 border-cyan-200/50' : 'bg-cyan-500/5 border-cyan-500/20'}`}>
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{item.nome}</span>
+                          {origemBadge(item.id, true)}
                           {item.custo != null && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-cyan-500/15 text-cyan-400">
                               {item.custo > 0 ? `+${item.custo}` : item.custo} pts
@@ -456,6 +499,7 @@ const VerPersonagemView = ({
                       <div key={item.id || i} className={`p-2.5 rounded-lg border ${isLight ? 'bg-red-50/50 border-red-200/50' : 'bg-red-500/5 border-red-500/20'}`}>
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{item.nome}</span>
+                          {origemBadge(item.id, false)}
                           {item.custo != null && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-red-500/15 text-red-400">
                               {item.custo > 0 ? `+${item.custo}` : item.custo} pts
@@ -477,7 +521,8 @@ const VerPersonagemView = ({
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Magias & Habilidades */}
       <MagiasHabilidadesSection isLight={isLight} vantagens={p.vantagens || []} desvantagens={p.desvantagens || []} />

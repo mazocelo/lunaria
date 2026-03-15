@@ -109,13 +109,6 @@ const ActionDock = ({
               <p className="text-purple-200 text-xs font-semibold">Nao e seu turno — mensagens roleplay liberadas</p>
             </div>
           )}
-          {faseJogo === 'rodada_em_andamento' && ehMeuTurno && turnoIniciado && (
-            <div className="px-3 py-1.5 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border border-cyan-400/70 rounded-lg animate-pulse">
-              <p className="text-cyan-200 text-sm font-bold">
-                {turnoStatus === 'awaiting_roll' ? 'Sua vez: resolva a rolagem pendente' : 'E SUA VEZ! Responda ao Mestre'}
-              </p>
-            </div>
-          )}
           {connectionStatus.status !== 'success' && (
             <span className={`text-xs ${connectionStatus.color}`}>
               {connectionStatus.status === 'error' ? '\u{26A0}\u{FE0F}' : '\u{23F3}'} {connectionStatus.text}
@@ -123,37 +116,45 @@ const ActionDock = ({
           )}
         </div>
 
-        {/* Iniciar Turno button */}
-        {faseJogo === 'rodada_em_andamento' && ehMeuTurno && !turnoIniciado && (
+        {/* Iniciar Turno / E SUA VEZ (mutuamente exclusivos, mesmo local) */}
+        {faseJogo === 'rodada_em_andamento' && ehMeuTurno && (
           <div className="flex justify-center">
-            <button
-              onClick={async () => {
-                setIniciandoTurno(true);
-                if (onIniciarTurno) await onIniciarTurno();
-                setTimeout(() => setIniciandoTurno(false), TIMEOUTS.INICIAR_TURNO_RESET);
-              }}
-              disabled={iniciandoTurno}
-              className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
-                iniciandoTurno ? '' : 'hover:scale-105 animate-pulse'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                {iniciandoTurno ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Aguarde o Mestre...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-xl">{'\u{26A1}'}</span>
-                    <span>Iniciar Turno</span>
-                  </>
-                )}
-              </span>
-            </button>
+            {!turnoIniciado ? (
+              <button
+                onClick={async () => {
+                  setIniciandoTurno(true);
+                  if (onIniciarTurno) await onIniciarTurno();
+                  setTimeout(() => setIniciandoTurno(false), TIMEOUTS.INICIAR_TURNO_RESET);
+                }}
+                disabled={iniciandoTurno}
+                className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
+                  iniciandoTurno ? '' : 'hover:scale-105 animate-pulse'
+                }`}
+              >
+                <span className="flex items-center space-x-2">
+                  {iniciandoTurno ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Aguarde o Mestre...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl">{'\u{26A1}'}</span>
+                      <span>Iniciar Turno</span>
+                    </>
+                  )}
+                </span>
+              </button>
+            ) : (
+              <div className="px-4 py-2 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border border-cyan-400/70 rounded-lg animate-pulse">
+                <p className="text-cyan-200 text-sm font-bold">
+                  {turnoStatus === 'awaiting_roll' ? 'Sua vez: resolva a rolagem pendente' : 'E SUA VEZ! Responda ao Mestre'}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -198,111 +199,112 @@ const ActionDock = ({
           </div>
         )}
 
-        {/* Quick Actions row */}
-        {showQuickActions && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {combateAtivo ? (
-              <>
-                {manaMax > 0 && (
-                  <div className="flex items-center gap-1.5 mr-1">
-                    <span className="text-xs text-blue-300">MP</span>
-                    <div className="w-20 h-1.5 bg-blue-900/40 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all" style={{ width: `${Math.max(0, (manaAtual / manaMax) * 100)}%` }} />
+        {/* Quick Actions + Input + Send — tudo na mesma linha */}
+        <div className="flex items-center gap-2">
+          {/* Quick actions (inline) */}
+          {showQuickActions && (
+            <>
+              {combateAtivo ? (
+                <>
+                  {manaMax > 0 && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <span className="text-xs text-blue-300">MP</span>
+                      <div className="w-16 h-1.5 bg-blue-900/40 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all" style={{ width: `${Math.max(0, (manaAtual / manaMax) * 100)}%` }} />
+                      </div>
+                      <span className="text-xs text-blue-200 font-mono">{manaAtual}/{manaMax}</span>
                     </div>
-                    <span className="text-xs text-blue-200 font-mono">{manaAtual}/{manaMax}</span>
-                  </div>
-                )}
-                {[
-                  { label: 'Atacar', emoji: '\u{2694}\u{FE0F}', acao: 'Ataco o inimigo mais proximo com minha arma!' },
-                  { label: 'Defender', emoji: '\u{1F6E1}\u{FE0F}', acao: 'Me coloco em posicao defensiva, protegendo-me dos ataques!' },
-                  { label: 'Fugir', emoji: '\u{1F3C3}', acao: 'Tento fugir do combate!' }
-                ].map((btn) => (
-                  <button
-                    key={btn.label}
-                    onClick={() => fillInput(btn.acao)}
-                    className="px-2.5 py-1 text-xs bg-red-900/40 border border-red-500/40 text-red-200 rounded-lg hover:bg-red-800/50 hover:border-red-400/60 transition-all"
-                  >
-                    {btn.emoji} {btn.label}
-                  </button>
-                ))}
+                  )}
+                  {[
+                    { label: 'Atacar', emoji: '\u{2694}\u{FE0F}', acao: 'Ataco o inimigo mais proximo com minha arma!' },
+                    { label: 'Defender', emoji: '\u{1F6E1}\u{FE0F}', acao: 'Me coloco em posicao defensiva, protegendo-me dos ataques!' },
+                    { label: 'Fugir', emoji: '\u{1F3C3}', acao: 'Tento fugir do combate!' }
+                  ].map((btn) => (
+                    <button
+                      key={btn.label}
+                      onClick={() => fillInput(btn.acao)}
+                      className="flex-shrink-0 px-2 py-1.5 text-xs bg-red-900/40 border border-red-500/40 text-red-200 rounded-lg hover:bg-red-800/50 hover:border-red-400/60 transition-all"
+                    >
+                      {btn.emoji} {btn.label}
+                    </button>
+                  ))}
 
-                {/* Skills dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSkillMenu(!showSkillMenu)}
-                    className={`px-2.5 py-1 text-xs border rounded-lg transition-all ${
-                      habilidadesPersonagem.length > 0
-                        ? 'bg-purple-900/40 border-purple-500/40 text-purple-200 hover:bg-purple-800/50'
-                        : 'bg-red-900/40 border-red-500/40 text-red-200 hover:bg-red-800/50'
-                    }`}
-                  >
-                    {'\u{2728}'} Habilidades {habilidadesPersonagem.length > 0 ? `(${habilidadesPersonagem.length})` : ''}
-                  </button>
+                  {/* Skills dropdown */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={() => setShowSkillMenu(!showSkillMenu)}
+                      className={`px-2 py-1.5 text-xs border rounded-lg transition-all ${
+                        habilidadesPersonagem.length > 0
+                          ? 'bg-purple-900/40 border-purple-500/40 text-purple-200 hover:bg-purple-800/50'
+                          : 'bg-red-900/40 border-red-500/40 text-red-200 hover:bg-red-800/50'
+                      }`}
+                    >
+                      {'\u{2728}'} Hab {habilidadesPersonagem.length > 0 ? `(${habilidadesPersonagem.length})` : ''}
+                    </button>
 
-                  {showSkillMenu && habilidadesPersonagem.length > 0 && (
-                    <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-slate-900/95 border border-purple-500/40 rounded-lg shadow-xl z-50">
-                      {habilidadesPersonagem.map((hab) => {
-                        const cdRestante = cooldownsHabilidades[hab.id] || 0;
-                        const semMana = hab.custo_mana > manaAtual;
-                        const desabilitada = cdRestante > 0 || semMana;
-                        return (
-                          <button
-                            key={hab.id}
-                            disabled={desabilitada}
-                            onClick={() => {
-                              fillInput(`Uso a habilidade ${hab.nome} contra o inimigo!`);
-                              setShowSkillMenu(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm border-b border-slate-700/50 last:border-0 transition-colors ${
-                              desabilitada ? 'text-slate-500 cursor-not-allowed' : 'text-purple-200 hover:bg-purple-800/30'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{hab.nome}</span>
-                              <div className="flex items-center gap-1.5 text-xs">
-                                {hab.custo_mana > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{hab.custo_mana} MP</span>}
-                                {cdRestante > 0 && <span className="text-yellow-400">{cdRestante}t</span>}
+                    {showSkillMenu && habilidadesPersonagem.length > 0 && (
+                      <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-slate-900/95 border border-purple-500/40 rounded-lg shadow-xl z-50">
+                        {habilidadesPersonagem.map((hab) => {
+                          const cdRestante = cooldownsHabilidades[hab.id] || 0;
+                          const semMana = hab.custo_mana > manaAtual;
+                          const desabilitada = cdRestante > 0 || semMana;
+                          return (
+                            <button
+                              key={hab.id}
+                              disabled={desabilitada}
+                              onClick={() => {
+                                fillInput(`Uso a habilidade ${hab.nome} contra o inimigo!`);
+                                setShowSkillMenu(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm border-b border-slate-700/50 last:border-0 transition-colors ${
+                                desabilitada ? 'text-slate-500 cursor-not-allowed' : 'text-purple-200 hover:bg-purple-800/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{hab.nome}</span>
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  {hab.custo_mana > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{hab.custo_mana} MP</span>}
+                                  {cdRestante > 0 && <span className="text-yellow-400">{cdRestante}t</span>}
+                                </div>
                               </div>
-                            </div>
-                            {hab.descricao && <p className="text-xs text-slate-400 mt-0.5 truncate">{hab.descricao}</p>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                              {hab.descricao && <p className="text-xs text-slate-400 mt-0.5 truncate">{hab.descricao}</p>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                  {showSkillMenu && habilidadesPersonagem.length === 0 && (
-                    <div className="absolute bottom-full left-0 mb-1 w-48 bg-slate-900/95 border border-slate-600/40 rounded-lg shadow-xl z-50 p-3">
-                      <p className="text-xs text-slate-400">Nenhuma habilidade disponivel para sua classe/nivel.</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              /* Quick actions fora de combate */
-              <>
-                {[
-                  { label: 'Falar', emoji: '\u{1F4AC}', acao: 'Quero conversar com ' },
-                  { label: 'Investigar', emoji: '\u{1F50D}', acao: 'Investigo os arredores em busca de ' },
-                  { label: 'Interagir', emoji: '\u{1F91D}', acao: 'Interajo com ' },
-                  { label: 'Magia', emoji: '\u{2728}', acao: 'Uso magia para ' },
-                  { label: 'Item', emoji: '\u{1F392}', acao: 'Uso um item: ' }
-                ].map((btn) => (
-                  <button
-                    key={btn.label}
-                    onClick={() => fillInput(btn.acao)}
-                    className="px-2.5 py-1 text-xs bg-purple-900/30 border border-purple-500/30 text-purple-200 rounded-lg hover:bg-purple-800/40 hover:border-purple-400/50 transition-all"
-                  >
-                    {btn.emoji} {btn.label}
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        )}
+                    {showSkillMenu && habilidadesPersonagem.length === 0 && (
+                      <div className="absolute bottom-full left-0 mb-1 w-48 bg-slate-900/95 border border-slate-600/40 rounded-lg shadow-xl z-50 p-3">
+                        <p className="text-xs text-slate-400">Nenhuma habilidade disponivel para sua classe/nivel.</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Quick actions fora de combate */
+                <>
+                  {[
+                    { label: 'Falar', emoji: '\u{1F4AC}', acao: 'Quero conversar com ' },
+                    { label: 'Investigar', emoji: '\u{1F50D}', acao: 'Investigo os arredores em busca de ' },
+                    { label: 'Interagir', emoji: '\u{1F91D}', acao: 'Interajo com ' },
+                    { label: 'Magia', emoji: '\u{2728}', acao: 'Uso magia para ' },
+                    { label: 'Item', emoji: '\u{1F392}', acao: 'Uso um item: ' }
+                  ].map((btn) => (
+                    <button
+                      key={btn.label}
+                      onClick={() => fillInput(btn.acao)}
+                      className="flex-shrink-0 px-2 py-1.5 text-xs bg-purple-900/30 border border-purple-500/30 text-purple-200 rounded-lg hover:bg-purple-800/40 hover:border-purple-400/50 transition-all"
+                    >
+                      {btn.emoji} {btn.label}
+                    </button>
+                  ))}
+                </>
+              )}
+            </>
+          )}
 
-        {/* Input + Send */}
-        <div className="flex gap-3">
+          {/* Input */}
           <input
             type="text"
             placeholder={getPlaceholderDinamico()}
@@ -310,18 +312,20 @@ const ActionDock = ({
             onChange={onMensagemChange}
             onKeyDown={handleKeyPress}
             disabled={isSending || inputDesabilitado}
-            className={`flex-1 min-w-0 px-5 py-3 text-base rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg ${
+            className={`flex-1 min-w-0 px-4 py-2.5 text-sm rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg caret-purple-400 ${
               ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado
                 ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-cyan-500/30'
                 : 'border-purple-500/40'
-            } text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-all`}
+            } text-white placeholder-purple-300/60 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-all`}
           />
+
+          {/* Send */}
           <button
             onClick={enviarMensagemComTipo}
             disabled={connectionStatus.status === 'error' || !mensagemAtual?.trim() || isSending || inputDesabilitado}
-            className="flex-shrink-0 w-28 py-3 text-sm bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+            className="flex-shrink-0 px-5 py-2.5 text-sm bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
           >
-            {isSending ? 'Enviando...' : 'Enviar'}
+            {isSending ? '...' : 'Enviar'}
           </button>
         </div>
       </div>

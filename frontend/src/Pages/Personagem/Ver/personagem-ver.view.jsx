@@ -7,7 +7,8 @@ import { BONUS_ATTR_KEYS, parseBonusMap } from '../../../utils/personagemBonus.j
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
-  Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus, Crown, Shield
+  Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus, Crown, Shield,
+  Wand2, Volume2, Download
 } from 'lucide-react';
 
 const atributosConfig = [
@@ -86,6 +87,9 @@ const VerPersonagemView = ({
   vincularHistoria,
   desvincularHistoria,
   handleImagemGenerated,
+  audioUrl,
+  gerandoAudio,
+  gerarAudioBackground,
   clearError,
 }) => {
   const [lightboxSrc, setLightboxSrc] = useState(null);
@@ -475,6 +479,9 @@ const VerPersonagemView = ({
         </div>
       )}
 
+      {/* Magias & Habilidades */}
+      <MagiasHabilidadesSection isLight={isLight} vantagens={p.vantagens || []} desvantagens={p.desvantagens || []} />
+
       {/* Background */}
       <div className="card-rpg">
         <div className="flex items-center justify-between mb-4">
@@ -486,6 +493,22 @@ const VerPersonagemView = ({
               Background
             </h2>
           </div>
+          <button
+            onClick={gerarAudioBackground}
+            disabled={!p.background || gerandoAudio}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-modern transition-all cursor-pointer ${
+              !p.background
+                ? isLight ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                : gerandoAudio
+                  ? isLight ? 'bg-purple-100 text-purple-500' : 'bg-purple-500/20 text-purple-400'
+                  : isLight
+                    ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+            }`}
+          >
+            {gerandoAudio ? <Loader2 size={14} className="animate-spin" /> : <Volume2 size={14} />}
+            {gerandoAudio ? 'Gerando...' : 'Ouvir'}
+          </button>
         </div>
         {p.background ? (
           <p className={`font-modern text-sm leading-relaxed whitespace-pre-wrap ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -495,6 +518,21 @@ const VerPersonagemView = ({
           <p className={`font-modern text-sm italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
             Nenhum background definido.
           </p>
+        )}
+        {audioUrl && (
+          <div className={`mt-4 flex items-center gap-3 p-3 rounded-lg ${isLight ? 'bg-purple-50 border border-purple-200' : 'bg-purple-500/10 border border-purple-500/20'}`}>
+            <audio controls src={audioUrl} className="flex-1 h-8" />
+            <a
+              href={audioUrl}
+              download={`${p.nome || 'background'}-audio.mp3`}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-modern transition-colors ${
+                isLight ? 'text-purple-700 hover:bg-purple-100' : 'text-purple-400 hover:bg-purple-500/20'
+              }`}
+            >
+              <Download size={12} />
+              Baixar
+            </a>
+          </div>
         )}
       </div>
 
@@ -518,6 +556,90 @@ const VerPersonagemView = ({
         bonusAgregados={bonusAgregados}
       />
       <ImageLightbox src={lightboxSrc} alt={p.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
+    </div>
+  );
+};
+
+const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }) => {
+  const todos = [...vantagens, ...desvantagens];
+  const magias = todos.filter(item => item.tipo?.includes('magia'));
+  const habilidades = todos.filter(item =>
+    item.tipo?.some(t => ['ativa', 'passiva'].includes(t)) && !item.tipo?.includes('magia')
+  );
+
+  if (magias.length === 0 && habilidades.length === 0) return null;
+
+  return (
+    <div className="card-rpg">
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+          <Wand2 size={16} className="text-white" />
+        </div>
+        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+          Magias & Habilidades
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {magias.length > 0 && (
+          <div>
+            <h3 className="text-purple-400 font-modern text-sm font-semibold mb-3 flex items-center gap-1.5">
+              <Wand2 size={14} /> Magias ({magias.length})
+            </h3>
+            <div className="space-y-2">
+              {magias.map((item, i) => (
+                <div key={item.id || i} className={`p-2.5 rounded-lg border ${isLight ? 'bg-purple-50/50 border-purple-200/50' : 'bg-purple-500/5 border-purple-500/20'}`}>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{item.nome}</span>
+                    {item.custo != null && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-purple-500/15 text-purple-400">
+                        {item.custo > 0 ? `+${item.custo}` : item.custo} pts
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {item.elemento?.length > 0 && item.elemento.map(el => (
+                      <Badge key={el} variant="purple">{el}</Badge>
+                    ))}
+                    {item.dano_base && <span className="text-xs font-modern text-red-400">Dano: {item.dano_base}</span>}
+                  </div>
+                  {item.descricao && (
+                    <p className={`text-xs font-modern mt-1 line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{item.descricao}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {habilidades.length > 0 && (
+          <div>
+            <h3 className="text-cyan-400 font-modern text-sm font-semibold mb-3 flex items-center gap-1.5">
+              <Swords size={14} /> Habilidades ({habilidades.length})
+            </h3>
+            <div className="space-y-2">
+              {habilidades.map((item, i) => (
+                <div key={item.id || i} className={`p-2.5 rounded-lg border ${isLight ? 'bg-cyan-50/50 border-cyan-200/50' : 'bg-cyan-500/5 border-cyan-500/20'}`}>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{item.nome}</span>
+                    {item.custo != null && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-cyan-500/15 text-cyan-400">
+                        {item.custo > 0 ? `+${item.custo}` : item.custo} pts
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {item.tipo?.map(t => (
+                      <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-700/50 text-slate-400'}`}>{t}</span>
+                    ))}
+                  </div>
+                  {item.descricao && (
+                    <p className={`text-xs font-modern mt-1 line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{item.descricao}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

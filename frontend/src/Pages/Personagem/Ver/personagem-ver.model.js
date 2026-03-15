@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { personagemService, equipamentoService, historiaService } from '../../../services/index.js';
+import { apiClient } from '../../../services/ApiClient.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 
 export const usePersonagemVerModel = () => {
@@ -33,6 +34,11 @@ export const usePersonagemVerModel = () => {
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
   const [buscaCatalogo, setBuscaCatalogo] = useState('');
   const [confirmRemove, setConfirmRemove] = useState(null);
+
+  // Audio background
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [gerandoAudio, setGerandoAudio] = useState(false);
+  const audioUrlRef = useRef(null);
 
   // Historias
   const [historiasDisponiveis, setHistoriasDisponiveis] = useState([]);
@@ -146,8 +152,9 @@ export const usePersonagemVerModel = () => {
 
     setLoadingEquipamentos(true);
     try {
-      const data = await personagemService.listarEquipamentos(pid);
-      setEquipamentos(data || []);
+      const raw = await personagemService.listarEquipamentos(pid);
+      const data = (raw || []).map(item => item.equipamento || item);
+      setEquipamentos(data);
     } catch (err) {
       console.warn('Erro ao carregar equipamentos:', err.message);
       setEquipamentos([]);
@@ -305,6 +312,29 @@ export const usePersonagemVerModel = () => {
     }
   }, [personagem?.id]);
 
+  const gerarAudioBackground = useCallback(async () => {
+    const text = personagem?.background;
+    if (!text || gerandoAudio) return;
+
+    setGerandoAudio(true);
+    try {
+      const response = await apiClient.client.post('/tts/generate', {
+        text,
+        provider: 'opensource',
+        voiceId: 'pt-br-kokoro-santa',
+      }, { responseType: 'blob' });
+
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      const url = URL.createObjectURL(response.data);
+      audioUrlRef.current = url;
+      setAudioUrl(url);
+    } catch (err) {
+      setError(`Erro ao gerar audio: ${err.message}`);
+    } finally {
+      setGerandoAudio(false);
+    }
+  }, [personagem?.background, gerandoAudio]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -349,6 +379,10 @@ export const usePersonagemVerModel = () => {
     loadingHistorias,
     vincularHistoria,
     desvincularHistoria,
+    // Audio
+    audioUrl,
+    gerandoAudio,
+    gerarAudioBackground,
     // Actions
     clearError,
   };

@@ -377,6 +377,29 @@ export class PersonagemService {
   }
 
   /**
+   * Gera preview da resolutiva final do wizard antes da criacao do personagem.
+   * @param {Object} draft - Estado atual da build
+   * @param {number} tentativa - 0 para primeira geracao, 1-3 para regeneracao
+   * @param {Array|Object} comboAnterior - Combo anterior para variar a resposta
+   * @returns {Promise<Object>} { snapshot, fala_personagem, leitura_ficha, combo, catalogo_editavel, meta }
+   */
+  async gerarFinalizacaoPreview(draft, tentativa = 0, comboAnterior = []) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/finalizacao-preview`, {
+        draft,
+        tentativa,
+        combo_anterior: comboAnterior,
+      });
+      if (response.success) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Erro ao gerar preview da finalizacao');
+    } catch (error) {
+      throw new Error(`Erro ao gerar preview da finalizacao: ${error.message}`);
+    }
+  }
+
+  /**
    * Regenera combo de equipamentos da finalizacao (max 3 tentativas)
    * @param {number} id - ID do personagem
    * @param {number} tentativa - Numero da tentativa (1-3)

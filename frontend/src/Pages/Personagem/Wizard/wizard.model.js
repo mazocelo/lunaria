@@ -146,7 +146,7 @@ export const useWizardModel = () => {
 
     if (bonusCalc.bonusAplicados) {
       bonusCalc.setBonusAplicados(false);
-      if (navigation.etapaAtual === 'resumo' || navigation.etapaAtual === 'refinamento') {
+      if (navigation.etapaAtual === 'resumo') {
         bonusCalc.setBonusInvalidado(true);
       }
     }
@@ -161,8 +161,15 @@ export const useWizardModel = () => {
   const [error, setError] = useState(null);
   const [sugestoes, setSugestoes] = useState([]);
   const [salvando, setSalvando] = useState(false);
-  const [finalizacaoData, setFinalizacaoData] = useState(null);
-  const [finalizacaoLoading, setFinalizacaoLoading] = useState(false);
+  const [comboPreviewData, setComboPreviewData] = useState(null);
+  const [comboPreviewLoading, setComboPreviewLoading] = useState(false);
+  const [comboPreviewErro, setComboPreviewErro] = useState(null);
+  const [comboPreviewTentativa, setComboPreviewTentativa] = useState(0);
+  const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
+  const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
+  const [creationResultData, setCreationResultData] = useState(null);
+  const previewRequestRef = useRef(0);
+  const comboPreviewLoadedKeyRef = useRef(null);
 
   // Aviso ao fechar aba
   useEffect(() => {
@@ -292,6 +299,100 @@ export const useWizardModel = () => {
     }));
   }, []);
 
+  const podeGerarPreview = useMemo(() => (
+    !!nome?.trim()
+    && !!racaId
+    && !!classeId
+    && !!background?.trim()
+    && !!bonusCalc.bonusAplicados
+    && pointSystem.pontosCriacaoRestantes >= 0
+  ), [
+    nome,
+    racaId,
+    classeId,
+    background,
+    bonusCalc.bonusAplicados,
+    pointSystem.pontosCriacaoRestantes,
+  ]);
+
+  const comboPreviewBuildKey = useMemo(() => JSON.stringify({
+    nome: nome?.trim() || '',
+    racaId: racaId || null,
+    classeId: classeId || null,
+    background: background?.trim() || '',
+    atributosBase: bonusCalc.atributosBase,
+    vantagensIds: pointSystem.vantagensIds,
+    desvantagensIds: pointSystem.desvantagensIds,
+    bonusAplicados: bonusCalc.bonusAplicados,
+    pontosCriacaoRestantes: pointSystem.pontosCriacaoRestantes,
+  }), [
+    nome,
+    racaId,
+    classeId,
+    background,
+    bonusCalc.atributosBase,
+    pointSystem.vantagensIds,
+    pointSystem.desvantagensIds,
+    bonusCalc.bonusAplicados,
+    pointSystem.pontosCriacaoRestantes,
+  ]);
+
+  const montarDraftPreview = useCallback(() => {
+    const s = estadoRef.current;
+    return {
+      nome: s.nome,
+      raca_id: s.racaId,
+      classe_id: s.classeId,
+      background: s.background,
+      nivel: 1,
+      atributos: s.atributosBase,
+      vantagens_ids: s.vantagensIds,
+      desvantagens_ids: s.desvantagensIds,
+    };
+  }, []);
+
+  const flattenComboPreview = useCallback((combo) => ([
+    ...((combo?.equipamentos || []).map(item => ({ grupo: 'equipamento', id: item.id, nome: item.nome }))),
+    ...((combo?.habilidades || []).map(item => ({ grupo: 'habilidade', id: item.id, nome: item.nome }))),
+    ...((combo?.magias || []).map(item => ({ grupo: 'magia', id: item.id, nome: item.nome }))),
+  ]), []);
+
+  const carregarComboPreview = useCallback(async (tentativa = 0, comboAnterior = []) => {
+    if (!podeGerarPreview) return null;
+
+    const requestId = previewRequestRef.current + 1;
+    previewRequestRef.current = requestId;
+
+    setComboPreviewLoading(true);
+    setComboPreviewErro(null);
+
+    try {
+      const resultado = await personagemService.gerarFinalizacaoPreview(
+        montarDraftPreview(),
+        tentativa,
+        comboAnterior
+      );
+
+      if (previewRequestRef.current !== requestId) return null;
+
+      setComboPreviewData(resultado);
+      setComboPreviewTentativa(tentativa);
+      comboPreviewLoadedKeyRef.current = comboPreviewBuildKey;
+      return resultado;
+    } catch (err) {
+      if (previewRequestRef.current !== requestId) return null;
+      setComboPreviewErro(err.message || 'Nao foi possivel gerar a resolutiva final.');
+      if (tentativa === 0) {
+        setComboPreviewData(null);
+      }
+      return null;
+    } finally {
+      if (previewRequestRef.current === requestId) {
+        setComboPreviewLoading(false);
+      }
+    }
+  }, [podeGerarPreview, montarDraftPreview, comboPreviewBuildKey]);
+
   const rehidratarEtapaAtual = useCallback(async () => {
     const etapa = navigation.etapaAtual;
     if (!etapa || etapa === 'boas_vindas' || enviandoRef.current) return;
@@ -356,6 +457,30 @@ export const useWizardModel = () => {
 
     iniciarWizard();
   }, [draftInicial, iniciarWizard, rehidratarEtapaAtual]);
+
+  useEffect(() => {
+    if (comboPreviewLoadedKeyRef.current && comboPreviewLoadedKeyRef.current !== comboPreviewBuildKey) {
+      setComboPreviewData(null);
+      setComboPreviewErro(null);
+      setComboPreviewTentativa(0);
+    }
+  }, [comboPreviewBuildKey]);
+
+  useEffect(() => {
+    if (navigation.etapaAtual !== 'resumo') return;
+    if (!podeGerarPreview) return;
+    if (comboPreviewLoading) return;
+    if (comboPreviewData && comboPreviewLoadedKeyRef.current === comboPreviewBuildKey) return;
+
+    carregarComboPreview(0, []);
+  }, [
+    navigation.etapaAtual,
+    podeGerarPreview,
+    comboPreviewLoading,
+    comboPreviewData,
+    comboPreviewBuildKey,
+    carregarComboPreview,
+  ]);
 
   /** Envia mensagem textual do jogador */
   const enviarMensagem = useCallback(async (texto, options = {}) => {
@@ -481,6 +606,13 @@ export const useWizardModel = () => {
     setDraftRestaurado(false);
     setMensagens([]);
     setError(null);
+    setComboPreviewData(null);
+    setComboPreviewErro(null);
+    setComboPreviewTentativa(0);
+    setCreationFlowStatus('idle');
+    setCreationResultModalOpen(false);
+    setCreationResultData(null);
+    comboPreviewLoadedKeyRef.current = null;
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
 

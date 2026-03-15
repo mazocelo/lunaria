@@ -21,7 +21,6 @@ export function isStageDone(stageId, buildState) {
     case 'vantagens': return buildState.vantagensIds?.length > 0 || !!buildState.skipVantagens;
     case 'atributos': return !!buildState.bonusAplicados;
     case 'resumo': return false;
-    case 'refinamento': return false;
     default: return false;
   }
 }
@@ -59,8 +58,7 @@ export function getStageTooltip(stageId, buildState) {
       if (bonusAplicados) return 'Calibrados e confirmados';
       if (bonusInvalidado) return 'Revisao necessaria';
       return 'Leitura pendente';
-    case 'resumo': return podeCriar ? 'Pronto para selar' : 'Revisao em andamento';
-    case 'refinamento': return podeCriar ? 'Selo final disponivel' : 'Ajustes restantes';
+    case 'resumo': return podeCriar ? 'Resolutiva pronta para selar' : 'Resolutiva em preparo';
     default: return '';
   }
 }

@@ -264,30 +264,28 @@ const WizardChat = ({
                 {isUltimaMensagemMestre && showAtributos && !enviando && (
                   <div className="mt-3 space-y-3">
                     {bonusAplicados ? (
-                      <div className="wa-panel-soft rounded-[22px] p-4">
-                        <div className="mb-3 flex items-center gap-2">
-                          <Shield size={16} className="text-[var(--wa-teal)]" />
-                          <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Atributos confirmados</span>
-                          <CheckCircle2 size={14} className="ml-auto text-[var(--wa-teal)]" />
+                      <div className="wa-panel-soft rounded-[22px] p-5">
+                        <div className="mb-4 flex items-center gap-2">
+                          <Shield size={18} className="text-[var(--wa-teal)]" />
+                          <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Atributos confirmados</span>
+                          <CheckCircle2 size={16} className="ml-auto text-[var(--wa-teal)]" />
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-6 gap-2">
                           {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
                             const finalVal = atributosFinal?.[key] ?? (atributos[key] || 10);
                             const mod = Math.floor((finalVal - 10) / 2);
                             const fontes = bonusFontes?.[key] || [];
                             return (
-                              <div key={key} className={`rounded-xl border px-2.5 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
-                                <div className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</div>
-                                <div className="mt-1 flex items-baseline gap-1.5">
-                                  <span className={`text-base font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{finalVal}</span>
-                                  <span className={`text-[10px] font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {mod >= 0 ? '+' : ''}{mod}
-                                  </span>
+                              <div key={key} className={`rounded-xl border px-2 py-2.5 text-center ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
+                                <div className={`text-[11px] font-mono font-semibold tracking-wide ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</div>
+                                <div className={`mt-1 text-xl font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{finalVal}</div>
+                                <div className={`text-xs font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {mod >= 0 ? '+' : ''}{mod}
                                 </div>
                                 {fontes.length > 0 && (
-                                  <div className="mt-1 space-y-px">
+                                  <div className="mt-1.5 space-y-px">
                                     {fontes.map((f, i) => (
-                                      <div key={i} className={`text-[9px] font-mono leading-tight ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                                      <div key={i} className={`text-[10px] font-mono leading-snug ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
                                         <span className={f.valor > 0 ? 'text-green-400/70' : 'text-red-400/70'}>{f.valor > 0 ? '+' : ''}{f.valor}</span>
                                         {' '}{f.label}
                                       </div>
@@ -438,30 +436,28 @@ const WizardChat = ({
 
             {showAtributos && (
               bonusAplicados ? (
-                <div className="wa-panel-soft rounded-[22px] p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Shield size={16} className="text-[var(--wa-teal)]" />
-                    <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Atributos confirmados</span>
-                    <CheckCircle2 size={14} className="ml-auto text-[var(--wa-teal)]" />
+                <div className="wa-panel-soft rounded-[22px] p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Shield size={18} className="text-[var(--wa-teal)]" />
+                    <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Atributos confirmados</span>
+                    <CheckCircle2 size={16} className="ml-auto text-[var(--wa-teal)]" />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-6 gap-2">
                     {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
                       const finalVal = atributosFinal?.[key] ?? (atributos[key] || 10);
                       const mod = Math.floor((finalVal - 10) / 2);
                       const fontes = bonusFontes?.[key] || [];
                       return (
-                        <div key={key} className={`rounded-xl border px-2.5 py-2 ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
-                          <div className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</div>
-                          <div className="mt-1 flex items-baseline gap-1.5">
-                            <span className={`text-base font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{finalVal}</span>
-                            <span className={`text-[10px] font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {mod >= 0 ? '+' : ''}{mod}
-                            </span>
+                        <div key={key} className={`rounded-xl border px-2 py-2.5 text-center ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
+                          <div className={`text-[11px] font-mono font-semibold tracking-wide ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{abbr}</div>
+                          <div className={`mt-1 text-xl font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{finalVal}</div>
+                          <div className={`text-xs font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {mod >= 0 ? '+' : ''}{mod}
                           </div>
                           {fontes.length > 0 && (
-                            <div className="mt-1 space-y-px">
+                            <div className="mt-1.5 space-y-px">
                               {fontes.map((f, i) => (
-                                <div key={i} className={`text-[9px] font-mono leading-tight ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                                <div key={i} className={`text-[10px] font-mono leading-snug ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
                                   <span className={f.valor > 0 ? 'text-green-400/70' : 'text-red-400/70'}>{f.valor > 0 ? '+' : ''}{f.valor}</span>
                                   {' '}{f.label}
                                 </div>

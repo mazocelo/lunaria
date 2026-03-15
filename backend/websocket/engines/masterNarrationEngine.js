@@ -351,6 +351,9 @@ export default class MasterNarrationEngine {
         turnState,
         personagemCompleto,
         cooldowns: sessao.estadoJogo?.cooldowns?.[String(userId)],
+        // Fase 2: fontes para fatos previos
+        mensagensRecentes: (sessao.mensagens || []).filter(m => m.tipo === 'mestre').slice(-50),
+        memoriaSemantica: sessao.mestreContexto?.sessao?.memoriaSemantica || [],
       }, { roomId, userId });
 
       // 4b. Hard block — alegacoes inexistentes impedem chamada IA
@@ -369,7 +372,12 @@ export default class MasterNarrationEngine {
       // 4c. Soft blocks — injetar contexto para o Mestre considerar
       const softBlocks = claimFlags.filter(f => f.blockLevel === 'soft');
       if (softBlocks.length > 0) {
-        const avisos = softBlocks.map(f => `[AVISO: "${f.claim}" — ${f.motivo}. Candidatos: ${f.candidatos.join(', ')}]`);
+        const avisos = softBlocks.map(f => {
+          if (f.tipo === 'fato_previo') {
+            return `[AVISO: o jogador alega "${f.claim}" — nao ha registro no historico. Narre com incerteza ou peca confirmacao.]`;
+          }
+          return `[AVISO: "${f.claim}" — ${f.motivo}. Candidatos: ${f.candidatos.join(', ')}]`;
+        });
         acaoComContexto += '\n' + avisos.join('\n');
       }
 

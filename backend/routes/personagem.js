@@ -1047,10 +1047,10 @@ router.get('/:id/historias', asyncHandlerWithContext(personagemController.listar
 // ===== ROTAS DE EVOLUÇÃO =====
 
 // POST /:id/ganhar-xp - Adicionar XP ao personagem (pode triggerar level up)
-router.post('/:id/ganhar-xp', writeLimiter, asyncHandlerWithContext(personagemController.ganharXP, personagemController));
+router.post('/:id/ganhar-xp', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.ganharXP, personagemController));
 
 // POST /:id/distribuir-pontos - Distribuir pontos de atributo pendentes
-router.post('/:id/distribuir-pontos', writeLimiter, asyncHandlerWithContext(personagemController.distribuirPontos, personagemController));
+router.post('/:id/distribuir-pontos', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.distribuirPontos, personagemController));
 
 // GET /:id/evolucao - Obter status de evolução completo
 router.get('/:id/evolucao', asyncHandlerWithContext(personagemController.obterEvolucao, personagemController));

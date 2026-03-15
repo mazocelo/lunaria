@@ -6,7 +6,7 @@ const log = logger.child({ module: 'reviewer-config' });
 const modelName = process.env.REVIEWER_MODEL || 'gemini-2.5-flash-lite';
 
 export const REVIEWER_CONFIG = {
-  enabled: process.env.REVIEWER_ENABLED === 'true',
+  enabled: process.env.REVIEWER_ENABLED !== 'false',
   model: {
     name: modelName,
     provider: detectProvider(modelName),

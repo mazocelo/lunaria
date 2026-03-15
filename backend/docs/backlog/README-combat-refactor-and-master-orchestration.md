@@ -911,23 +911,25 @@ Entregue:
 - `normalizeCombatLogEntry` + `_pushCombatLog` — log normalizado no write
 - `COMBAT_INTENT_HANDLERS` — handler map por intent
 
-### Etapa B — Organizar núcleo mecânico [PARCIALMENTE CONCLUÍDA]
+### Etapa B — Organizar núcleo mecânico [CONCLUÍDA]
 
-Feito:
+Entregue:
 
 - handler map por intent (COMBAT_INTENT_HANDLERS)
+- separação entre ação, rodada e finalização via `createCombatRoundResult` DTO
+- DTO interno de resultado (`combatRoundResult.js`) com 15 campos canônicos
+- `combateHelper.js` funções puras extraídas e testadas (48 testes)
 
-Pendente:
+### Etapa C — Adicionar revisão sob demanda do Mestre [CONCLUÍDA]
 
-- separação entre ação, rodada e finalização em funções distintas
-- DTO interno de resultado
+Entregue:
 
-### Etapa C — Adicionar revisão sob demanda do Mestre
-
-- detector de mentira para alegações concretas do jogador
-- revisor mecânico para combate/teste
-- revisor de continuidade para respostas críticas
-- manter um único narrador final
+- detector de alegações concretas (Fase 1: itens/habilidades, Fase 2: fatos prévios)
+- hard block para itens/habilidades inexistentes, soft block para fatos sem evidência
+- revisor mecânico (ArbitroMecanico) integrado com claimFlags
+- revisor de continuidade (Continuista) integrado via reviewOrchestrator
+- pipeline: detectar → validar → bloquear/avisar → narrar
+- 92+ testes unitários cobrindo combate, detector, DTO e pipeline
 
 ## Critério de pronto do detector
 

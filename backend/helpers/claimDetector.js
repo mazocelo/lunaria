@@ -1,14 +1,16 @@
 /**
- * Detector de Alegacoes Concretas — Fase 1 (modo observacao)
+ * Detector de Alegacoes Concretas — Fases 1-2
  *
- * Valida se itens, habilidades e recursos citados pelo jogador existem
- * na ficha real. Nesta fase, apenas loga — nao bloqueia.
+ * Fase 1: Valida itens, habilidades e recursos contra ficha real.
+ * Fase 2: Valida fatos previos e preparo contra historico da sessao.
  *
  * Fontes de verdade:
  *   - turnState.inventario (equipamentos via turnStateBuilder)
  *   - personagemCompleto.habilidadesClasse / magias / equipamentos
  *   - estadoJogo.cooldowns[userId] (cooldownManager)
  *   - pSessao.mana_atual / mana_max
+ *   - sessao.mensagens (historico para fatos previos)
+ *   - mestreContexto.sessao.memoriaSemantica (contexto persistente)
  *
  * Shape de retorno alinhado com PLANO-parte-2-detector-de-alegacoes.md
  */
@@ -74,8 +76,13 @@ const CLAIM_PATTERNS = [
   // Habilidades e magias
   { regex: /\b(?:eu\s+)?(?:ativo|lanc?o|conjuro|executo)\s+(?:o\s+|a\s+|meu\s+|minha\s+)?(.+?)(?:\s+(?:no|na|em|contra)\b|[.!,]|$)/i, tipo: 'habilidade' },
 
-  // Alegacoes de posse previa (Fase 2 — por ora detecta mas nao valida deep)
+  // Alegacoes de posse previa
   { regex: /\b(?:eu\s+)?(?:ja\s+tinha|trouxe\s+comigo)\s+(?:o\s+|a\s+|um\s+|uma\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'item' },
+
+  // Fase 2: Fatos previos e conhecimento
+  { regex: /\b(?:eu\s+)?(?:ja\s+sabia|ja\s+sei)\s+(?:que\s+|da\s+|do\s+|de\s+|sobre\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
+  { regex: /\b(?:eu\s+)?(?:ja\s+combinei|ja\s+combinamos)\s+(?:com\s+|que\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
+  { regex: /\b(?:eu\s+)?(?:ja\s+descobri|ja\s+investiguei)\s+(?:que\s+|sobre\s+|o\s+|a\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
 ];
 
 // --- Deteccao ---
@@ -109,7 +116,7 @@ export function detectClaims(mensagem) {
 /**
  * Valida uma alegacao individual contra as fontes de verdade.
  * @param {{ claim: string, tipo: string }} claimInfo
- * @param {Object} sources - { turnState, personagemCompleto, cooldowns }
+ * @param {Object} sources - { turnState, personagemCompleto, cooldowns, mensagensRecentes?, memoriaSemantica? }
  * @returns {ClaimFlag}
  */
 export function validateClaim(claimInfo, sources) {
@@ -129,6 +136,10 @@ export function validateClaim(claimInfo, sources) {
 
   if (tipo === 'habilidade') {
     return _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, base);
+  }
+
+  if (tipo === 'fato_previo') {
+    return _validateFatoPrevio(claim, sources.mensagensRecentes, sources.memoriaSemantica, base);
   }
 
   // Tipo nao reconhecido — seguir
@@ -253,36 +264,36 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
 
   const hab = result.candidates[0];
 
-  // Checar cooldown
+  // Checar cooldown — soft block (mecanica autoritativa tem precedencia)
   if (cooldowns && hab.id) {
     const cdKey = hab.custo_mana > 0 ? `mag_${hab.id}` : `hab_${hab.id}`;
     const cdTurnos = cooldowns[cdKey];
     if (cdTurnos && cdTurnos > 0) {
       return {
         ...base,
-        status: 'inexistente',
+        status: 'suspeito',
         motivo: `habilidade em cooldown (${cdTurnos} turnos restantes)`,
         fonte: 'estadoJogo.cooldowns',
-        acaoRecomendada: 'bloquear',
-        blockLevel: 'hard',
-        confidence: 0.95,
+        acaoRecomendada: 'pedir_clarificacao',
+        blockLevel: 'soft',
+        confidence: 0.9,
         candidatos: [hab.nome],
       };
     }
   }
 
-  // Checar mana
+  // Checar mana — soft block (mecanica autoritativa tem precedencia)
   if (hab.custo_mana && hab.custo_mana > 0) {
     const manaAtual = turnState?.mana?.atual ?? 0;
     if (manaAtual < hab.custo_mana) {
       return {
         ...base,
-        status: 'inexistente',
+        status: 'suspeito',
         motivo: `mana insuficiente (precisa ${hab.custo_mana}, tem ${manaAtual})`,
         fonte: 'turnState.mana',
-        acaoRecomendada: 'bloquear',
-        blockLevel: 'hard',
-        confidence: 0.95,
+        acaoRecomendada: 'pedir_clarificacao',
+        blockLevel: 'soft',
+        confidence: 0.9,
         candidatos: [hab.nome],
       };
     }
@@ -300,6 +311,60 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
   };
 }
 
+function _validateFatoPrevio(claim, mensagensRecentes, memoriaSemantica, base) {
+  const normalized = normalizeText(claim);
+
+  // Buscar no historico recente do mestre
+  if (Array.isArray(mensagensRecentes)) {
+    for (const msg of mensagensRecentes) {
+      const texto = normalizeText(msg.message || msg.mensagem || '');
+      if (texto && texto.includes(normalized)) {
+        return {
+          ...base,
+          status: 'ok',
+          motivo: null,
+          fonte: 'sessao.mensagens',
+          acaoRecomendada: 'seguir',
+          blockLevel: null,
+          confidence: 0.8,
+          candidatos: [],
+        };
+      }
+    }
+  }
+
+  // Buscar na memoria semantica
+  if (Array.isArray(memoriaSemantica)) {
+    for (const entrada of memoriaSemantica) {
+      const texto = normalizeText(typeof entrada === 'string' ? entrada : entrada?.conteudo || entrada?.texto || '');
+      if (texto && texto.includes(normalized)) {
+        return {
+          ...base,
+          status: 'ok',
+          motivo: null,
+          fonte: 'mestreContexto.memoriaSemantica',
+          acaoRecomendada: 'seguir',
+          blockLevel: null,
+          confidence: 0.75,
+          candidatos: [],
+        };
+      }
+    }
+  }
+
+  // Nao encontrado — soft block, nunca hard
+  return {
+    ...base,
+    status: 'incerto',
+    motivo: 'fato nao encontrado no historico da sessao',
+    fonte: 'sessao.mensagens + mestreContexto.memoriaSemantica',
+    acaoRecomendada: 'pedir_clarificacao',
+    blockLevel: 'soft',
+    confidence: 0.5,
+    candidatos: [],
+  };
+}
+
 // --- Entrada principal ---
 
 /**
@@ -307,7 +372,7 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
  * Fase 1: modo observacao — loga mas nao bloqueia.
  *
  * @param {string} mensagem - Mensagem bruta do jogador
- * @param {Object} sources - { turnState, personagemCompleto, cooldowns }
+ * @param {Object} sources - { turnState, personagemCompleto, cooldowns, mensagensRecentes?, memoriaSemantica? }
  * @param {{ roomId: string, userId: string }} meta - Metadados para log
  * @returns {Array<ClaimFlag>} Flags de alegacao (vazio se nenhuma detectada)
  */

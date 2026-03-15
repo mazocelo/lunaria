@@ -17,7 +17,9 @@
     "build": "prisma generate",
     "postinstall": "prisma generate",
     "deploy": "prisma migrate deploy && prisma generate",
-    "smoke-narration-segments": "node scripts/smoke-narration-segments.js"
+    "smoke-narration-segments": "node scripts/smoke-narration-segments.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "engines": {
     "node": "22.x"
@@ -61,6 +63,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "prisma": "^6.12.0"
+    "prisma": "^6.12.0",
+    "vitest": "^4.1.0"
   }
 }

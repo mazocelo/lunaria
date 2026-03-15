@@ -22,30 +22,25 @@ Resultado:
 - acao pendente e stale cleanup centralizados
 - branching de intents substituido por mapa
 
-### Etapa B - Organizar nucleo mecanico [PARCIALMENTE CONCLUIDA]
+### Etapa B - Organizar nucleo mecanico [CONCLUIDA]
 
-Feito:
+Entregue:
 
 - handler map por intent (COMBAT_INTENT_HANDLERS)
+- separacao entre acao, rodada e finalizacao via `createCombatRoundResult` DTO
+- DTO interno de resultado (`combatRoundResult.js`) com 15 campos canonicos
+- `combateHelper.js` funcoes puras extraidas e testadas (48 testes)
 
-Pendente:
+### Etapa C - Adicionar revisao sob demanda do Mestre [CONCLUIDA]
 
-- separacao entre acao, rodada e finalizacao em funcoes distintas
-- DTO interno de resultado (`statusEffects`, `playerAction`, `enemyActions`, etc.)
+Entregue:
 
-Resultado esperado:
-
-- `combateHelper.js` deixa de ser o ponto de concentracao total
-- crescimento do combate fica previsivel
-
-### Etapa C - Adicionar revisao sob demanda do Mestre
-
-Fazer depois da base mecanica:
-
-- detector de alegacoes concretas do jogador
-- revisor mecanico para combate e teste
-- revisor de continuidade para respostas criticas
-- manter um unico narrador final
+- detector de alegacoes concretas (Fase 1: itens/habilidades, Fase 2: fatos previos)
+- hard block para itens/habilidades inexistentes, soft block para fatos sem evidencia
+- revisor mecanico (ArbitroMecanico) integrado com claimFlags
+- revisor de continuidade (Continuista) integrado via reviewOrchestrator
+- pipeline: detectar → validar → bloquear/avisar → narrar
+- 92+ testes unitarios cobrindo combate, detector, DTO e pipeline
 
 Resultado esperado:
 

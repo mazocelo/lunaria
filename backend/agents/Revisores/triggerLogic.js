@@ -28,10 +28,9 @@ export function shouldTriggerReview(ctx) {
   const reviewers = new Set();
   const reasons = [];
 
-  // Combate ativo → ambos
+  // Combate ativo → apenas arbitro (continuista so se tiver roteiro, tratado abaixo)
   if (combateAtivo) {
     reviewers.add('arbitro');
-    reviewers.add('continuista');
     reasons.push('combate_ativo');
   }
 
@@ -54,10 +53,13 @@ export function shouldTriggerReview(ctx) {
     reasons.push('acoes_mecanicas');
   }
 
-  // Claim flags do Part 2 (futuro) → ambos
-  if (claimFlags?.length > 0) {
+  // Claim flags nao-ok → arbitro (continuista so se fato_previo)
+  const claimsProblematicas = (claimFlags || []).filter(f => f.status !== 'ok');
+  if (claimsProblematicas.length > 0) {
     reviewers.add('arbitro');
-    reviewers.add('continuista');
+    if (claimsProblematicas.some(f => f.tipo === 'fato_previo')) {
+      reviewers.add('continuista');
+    }
     reasons.push('claims_detectadas');
   }
 

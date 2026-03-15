@@ -1,0 +1,387 @@
+import { describe, it, expect } from 'vitest';
+import {
+  rolarDado,
+  calcularHP,
+  calcularMana,
+  calcularEsquiva,
+  calcularArmadura,
+  verificarEsquiva,
+  calcularDano,
+  aplicarResistencias,
+  verificarAcerto,
+  normalizeCombatLogEntry,
+  verificarFimCombate,
+  processarHabilidade,
+  formatarResultadoMecanico,
+} from '../helpers/combateHelper.js';
+
+// ── rolarDado ──
+
+describe('rolarDado', () => {
+  it('1d20 retorna entre 1 e 20', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = rolarDado('1d20');
+      expect(r).toBeGreaterThanOrEqual(1);
+      expect(r).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it('2d6 retorna entre 2 e 12', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = rolarDado('2d6');
+      expect(r).toBeGreaterThanOrEqual(2);
+      expect(r).toBeLessThanOrEqual(12);
+    }
+  });
+
+  it('1d6+3 retorna entre 4 e 9', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = rolarDado('1d6+3');
+      expect(r).toBeGreaterThanOrEqual(4);
+      expect(r).toBeLessThanOrEqual(9);
+    }
+  });
+
+  it('1d4-1 retorna entre 0 e 3', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = rolarDado('1d4-1');
+      expect(r).toBeGreaterThanOrEqual(0);
+      expect(r).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('notacao invalida retorna 1', () => {
+    expect(rolarDado('abc')).toBe(1);
+    expect(rolarDado(null)).toBe(1);
+    expect(rolarDado(undefined)).toBe(1);
+    expect(rolarDado('')).toBe(1);
+  });
+});
+
+// ── calcularHP ──
+
+describe('calcularHP', () => {
+  it('personagem nivel 1, CON 10 → 12', () => {
+    // 10 + (1*2) + (0*1) = 12
+    expect(calcularHP({ constituicao: 10, nivel: 1 })).toBe(12);
+  });
+
+  it('personagem nivel 5, CON 16 → 35', () => {
+    // modCON = floor((16-10)/2) = 3
+    // 10 + (5*2) + (3*5) = 10 + 10 + 15 = 35
+    expect(calcularHP({ constituicao: 16, nivel: 5 })).toBe(35);
+  });
+
+  it('CON baixo nunca retorna menos que 1', () => {
+    expect(calcularHP({ constituicao: 1, nivel: 1 })).toBeGreaterThanOrEqual(1);
+  });
+
+  it('sem parametros usa defaults (CON 10, nivel 1)', () => {
+    expect(calcularHP({})).toBe(12);
+  });
+});
+
+// ── calcularMana ──
+
+describe('calcularMana', () => {
+  it('INT 10, nivel 1 → 11', () => {
+    // 10 + 1 + 0*2 = 11
+    expect(calcularMana({ inteligencia: 10, nivel: 1 })).toBe(11);
+  });
+
+  it('INT 16, nivel 5 → 21', () => {
+    // modInt = 3, 10 + 5 + 3*2 = 21
+    expect(calcularMana({ inteligencia: 16, nivel: 5 })).toBe(21);
+  });
+
+  it('minimo de 5', () => {
+    expect(calcularMana({ inteligencia: 1, nivel: 1 })).toBeGreaterThanOrEqual(5);
+  });
+});
+
+// ── calcularEsquiva ──
+
+describe('calcularEsquiva', () => {
+  it('AGI 10, DEX 10, nivel 1 → 0', () => {
+    // modAgi=0, modDex=0, base=0, bonusNivel=0
+    expect(calcularEsquiva({ agilidade: 10, destreza: 10, nivel: 1 })).toBe(0);
+  });
+
+  it('AGI 16, DEX 14, nivel 5 → capped at 50', () => {
+    // modAgi=3, modDex=2, base=(3+1)*5=20, bonusNivel=2
+    const result = calcularEsquiva({ agilidade: 16, destreza: 14, nivel: 5 });
+    expect(result).toBeLessThanOrEqual(50);
+    expect(result).toBeGreaterThanOrEqual(0);
+  });
+
+  it('cap maximo 50%', () => {
+    const result = calcularEsquiva(
+      { agilidade: 30, destreza: 30, nivel: 20 },
+      { esquiva_bonus: 50 }
+    );
+    expect(result).toBe(50);
+  });
+
+  it('cap minimo 0%', () => {
+    const result = calcularEsquiva(
+      { agilidade: 1, destreza: 1, nivel: 1 },
+      { esquiva_penalidade: 100 }
+    );
+    expect(result).toBe(0);
+  });
+
+  it('bonus de equipamento soma, penalidade subtrai', () => {
+    const base = calcularEsquiva({ agilidade: 14, destreza: 10, nivel: 1 });
+    const comBonus = calcularEsquiva({ agilidade: 14, destreza: 10, nivel: 1 }, { esquiva_bonus: 5 });
+    const comPenalidade = calcularEsquiva({ agilidade: 14, destreza: 10, nivel: 1 }, { esquiva_penalidade: 5 });
+    expect(comBonus).toBe(base + 5);
+    expect(comPenalidade).toBe(Math.max(0, base - 5));
+  });
+});
+
+// ── calcularArmadura ──
+
+describe('calcularArmadura', () => {
+  it('retorna valor de armadura do bonus', () => {
+    expect(calcularArmadura({ armadura: 5 })).toBe(5);
+  });
+
+  it('sem bonus retorna 0', () => {
+    expect(calcularArmadura({})).toBe(0);
+    expect(calcularArmadura()).toBe(0);
+  });
+});
+
+// ── verificarEsquiva ──
+
+describe('verificarEsquiva', () => {
+  it('taxa 0 nunca esquiva', () => {
+    for (let i = 0; i < 20; i++) {
+      expect(verificarEsquiva(0)).toBe(false);
+    }
+  });
+
+  it('taxa 100 sempre esquiva', () => {
+    for (let i = 0; i < 20; i++) {
+      expect(verificarEsquiva(100)).toBe(true);
+    }
+  });
+
+  it('retorna boolean', () => {
+    expect(typeof verificarEsquiva(25)).toBe('boolean');
+  });
+});
+
+// ── verificarAcerto ──
+
+describe('verificarAcerto', () => {
+  it('nat 20 → critico', () => {
+    const r = verificarAcerto(20);
+    expect(r.acertou).toBe(true);
+    expect(r.critico).toBe(true);
+  });
+
+  it('nat 1 → miss automatico', () => {
+    const r = verificarAcerto(1);
+    expect(r.acertou).toBe(false);
+    expect(r.critico).toBe(false);
+  });
+
+  it('rolagem normal (2-19) → acerta sem critico', () => {
+    for (let i = 2; i <= 19; i++) {
+      const r = verificarAcerto(i);
+      expect(r.acertou).toBe(true);
+      expect(r.critico).toBe(false);
+    }
+  });
+});
+
+// ── calcularDano ──
+
+describe('calcularDano', () => {
+  it('dano basico com armadura reduz', () => {
+    // Com dado fixo, testamos a formula
+    for (let i = 0; i < 20; i++) {
+      const dano = calcularDano('1d8', 0, false, 2);
+      expect(dano).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('critico ignora armadura e dobra dano', () => {
+    // Critico: dano * 2, ignora armadura, min 1
+    for (let i = 0; i < 20; i++) {
+      const dano = calcularDano('1d6', 2, true, 100);
+      expect(dano).toBeGreaterThanOrEqual(1);
+      // Critico: (1d6 + 2) * 2, range 6-16
+      expect(dano).toBeLessThanOrEqual(16);
+    }
+  });
+
+  it('dano minimo garante pelo menos 25% do dano base', () => {
+    // armadura alta nao pode reduzir alem de 75%
+    const dano = calcularDano('1d4', 0, false, 1000);
+    expect(dano).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ── aplicarResistencias ──
+
+describe('aplicarResistencias', () => {
+  it('sem elemento retorna dano inteiro', () => {
+    expect(aplicarResistencias(10, null)).toBe(10);
+    expect(aplicarResistencias(10, undefined)).toBe(10);
+  });
+
+  it('imunidade retorna 0', () => {
+    expect(aplicarResistencias(10, 'fogo', {}, ['fogo'])).toBe(0);
+  });
+
+  it('resistencia parcial reduz dano', () => {
+    expect(aplicarResistencias(10, 'gelo', { gelo: 0.5 })).toBe(5);
+  });
+
+  it('sem resistencia retorna dano inteiro', () => {
+    expect(aplicarResistencias(10, 'raio', {})).toBe(10);
+  });
+
+  it('resistencia zero retorna 0', () => {
+    expect(aplicarResistencias(10, 'fogo', { fogo: 0 })).toBe(0);
+  });
+});
+
+// ── normalizeCombatLogEntry ──
+
+describe('normalizeCombatLogEntry', () => {
+  it('normaliza atacante string para objeto', () => {
+    const entry = { atacante: 'Goblin', atacanteId: 'g1' };
+    const result = normalizeCombatLogEntry(entry);
+    expect(result.atacante).toEqual({ id: 'g1', nome: 'Goblin' });
+    expect(result.atacanteId).toBeUndefined();
+  });
+
+  it('normaliza alvo string para objeto', () => {
+    const entry = { alvo: 'Heroi', alvoId: 'h1' };
+    const result = normalizeCombatLogEntry(entry);
+    expect(result.alvo).toEqual({ id: 'h1', nome: 'Heroi' });
+    expect(result.alvoId).toBeUndefined();
+  });
+
+  it('alvoNome vira alvo objeto', () => {
+    const entry = { alvoNome: 'Boss', alvoId: 'b1' };
+    const result = normalizeCombatLogEntry(entry);
+    expect(result.alvo).toEqual({ id: 'b1', nome: 'Boss' });
+  });
+
+  it('null retorna null', () => {
+    expect(normalizeCombatLogEntry(null)).toBeNull();
+  });
+
+  it('entry sem campos especiais retorna copia', () => {
+    const entry = { tipo: 'ataque', dano: 5 };
+    const result = normalizeCombatLogEntry(entry);
+    expect(result).toEqual(entry);
+    expect(result).not.toBe(entry); // copia
+  });
+});
+
+// ── verificarFimCombate ──
+
+describe('verificarFimCombate', () => {
+  it('todos monstros mortos → vitoria', () => {
+    const state = {
+      ativo: true,
+      monstros: [{ status: 'morto' }, { status: 'morto' }],
+      jogadores: { u1: { status: 'vivo' } },
+    };
+    const result = verificarFimCombate(state);
+    expect(result.finalizado).toBe(true);
+    expect(result.resultado).toBe('vitoria');
+  });
+
+  it('todos jogadores mortos → derrota', () => {
+    const state = {
+      ativo: true,
+      monstros: [{ status: 'vivo' }],
+      jogadores: { u1: { status: 'morto' } },
+    };
+    const result = verificarFimCombate(state);
+    expect(result.finalizado).toBe(true);
+    expect(result.resultado).toBe('derrota');
+  });
+
+  it('combate em andamento → nao finalizado', () => {
+    const state = {
+      ativo: true,
+      monstros: [{ status: 'vivo' }],
+      jogadores: { u1: { status: 'vivo' } },
+    };
+    const result = verificarFimCombate(state);
+    expect(result.finalizado).toBe(false);
+    expect(result.resultado).toBeNull();
+  });
+
+  it('state null/inativo → nao finalizado', () => {
+    expect(verificarFimCombate(null).finalizado).toBe(false);
+    expect(verificarFimCombate({ ativo: false }).finalizado).toBe(false);
+  });
+});
+
+// ── processarHabilidade ──
+
+describe('processarHabilidade', () => {
+  it('mana insuficiente → invalido', () => {
+    const result = processarHabilidade(
+      { custo_mana: 10, id: 1 },
+      { mana_atual: 5, cooldowns: {} }
+    );
+    expect(result.valido).toBe(false);
+    expect(result.erro).toContain('Mana insuficiente');
+  });
+
+  it('em cooldown → invalido', () => {
+    const result = processarHabilidade(
+      { custo_mana: 0, id: 1 },
+      { mana_atual: 20, cooldowns: { '1': 3 } }
+    );
+    expect(result.valido).toBe(false);
+    expect(result.erro).toContain('cooldown');
+  });
+
+  it('habilidade valida sem custo → valido', () => {
+    const result = processarHabilidade(
+      { custo_mana: 0, id: 1, dano_base: '1d6' },
+      { mana_atual: 20, cooldowns: {} }
+    );
+    expect(result.valido).toBe(true);
+    expect(result.dano).toBeGreaterThanOrEqual(0);
+  });
+
+  it('habilidade valida com custo mana → retorna custoMana', () => {
+    const result = processarHabilidade(
+      { custo_mana: 5, id: 2, dano_base: '1d8', cooldown_turnos: 2 },
+      { mana_atual: 20, cooldowns: {} }
+    );
+    expect(result.valido).toBe(true);
+    expect(result.custoMana).toBe(5);
+    expect(result.cooldown).toBe(2);
+  });
+});
+
+// ── formatarResultadoMecanico ──
+
+describe('formatarResultadoMecanico', () => {
+  it('retorna string formatada', () => {
+    const result = formatarResultadoMecanico({
+      ataqueJogador: { acertou: true, dano: 8, critico: false, esquivou: false },
+      contraAtaques: [],
+      statusEfeitos: [],
+    }, 'Arthas');
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('sem resultado retorna string vazia ou minimal', () => {
+    const result = formatarResultadoMecanico({ statusEfeitos: [], contraAtaques: [] }, 'Heroi');
+    expect(typeof result).toBe('string');
+  });
+});

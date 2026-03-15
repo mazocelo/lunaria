@@ -630,18 +630,30 @@ class PersonagemController {
           }
         }
 
-        // Historias
+        // Historias — validar existencia antes de deletar vinculos
         if (historias !== undefined) {
-          await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
           if (Array.isArray(historias) && historias.length > 0) {
-            for (const historia_id of historias) {
-              const historia = await tx.historias.findUnique({ where: { id: parseInt(historia_id) } });
-              if (historia) {
-                await tx.historias_personagens.create({
-                  data: { personagem_id: parseInt(id), historia_id: parseInt(historia_id), papel: 'jogador' }
-                });
-              }
+            const historiasExistentes = await tx.historias.findMany({
+              where: { id: { in: historias.map(h => parseInt(h)) } },
+              select: { id: true },
+            });
+            const idsExistentes = new Set(historiasExistentes.map(h => h.id));
+            const idsInvalidos = historias.filter(h => !idsExistentes.has(parseInt(h)));
+            if (idsInvalidos.length > 0) {
+              throw new Error(`Historias nao encontradas: ${idsInvalidos.join(', ')}`);
             }
+
+            await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
+            await tx.historias_personagens.createMany({
+              data: historias.map(historia_id => ({
+                personagem_id: parseInt(id),
+                historia_id: parseInt(historia_id),
+                papel: 'jogador',
+              })),
+            });
+          } else {
+            // Array vazio ou null → desvincular todas (intencional)
+            await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
           }
         }
       });
@@ -659,6 +671,9 @@ class PersonagemController {
       });
 
     } catch (error) {
+      if (error.message?.startsWith('Historias nao encontradas')) {
+        return res.status(400).json({ success: false, error: error.message });
+      }
       log.error({ err: error }, 'Erro ao atualizar personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'

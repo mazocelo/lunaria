@@ -272,7 +272,7 @@ export default class CombatEngine {
       if (r.habilidade) {
         const h = r.habilidade;
         sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
-          tipo: h.valido === false ? 'habilidade_falhou' : 'habilidade_jogador',
+          tipo: h.valido === false ? 'habilidade_falhou' : h.testeFalhou ? 'habilidade_teste_falhou' : 'habilidade_jogador',
           personagem: h.personagem || personagem.nome, userId: h.userId || userId,
           habilidadeNome: h.habilidadeNome, habilidadeId: h.habilidadeId,
           valido: h.valido, erro: h.erro || null,

@@ -11,6 +11,7 @@ import {
   resolverTestePendente
 } from '../utils/testePipeline.js';
 import { buildDiceResolutionContext, buildNarracaoContext } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
+import { finalizarAcaoCombatePosTeste, formatarResultadoMecanico } from '../../helpers/combateHelper.js';
 import { getTurnState, TURN_STATUS } from '../utils/turnStateMachine.js';
 import {
   appendMensagemSessao,
@@ -204,6 +205,22 @@ export default class TestEngine {
           rodada: estadoJogo.rodadaAtual || 1
         };
 
+        // Verificar se este teste resolve uma ação pendente de combate
+        const acaoPendenteCombate = estadoJogo.acaoPendenteCombate;
+        let resultadosCombatePosTeste = null;
+        let contextoCombateExtra = '';
+
+        if (acaoPendenteCombate && acaoPendenteCombate.testeId === testeResolvido.id) {
+          resultadosCombatePosTeste = finalizarAcaoCombatePosTeste(sessao, acaoPendenteCombate, resultadoTestePayload);
+          if (resultadosCombatePosTeste) {
+            sessao._combatePreResolvido = resultadosCombatePosTeste;
+            const personagemNomePosTeste = acaoPendenteCombate.personagem?.nome || personagemNome;
+            contextoCombateExtra = formatarResultadoMecanico(resultadosCombatePosTeste, personagemNomePosTeste);
+            log.info({ userId, testeId: testeResolvido.id, tipo: acaoPendenteCombate.tipo, sucesso: resultadoTestePayload.sucesso }, 'Ação pendente de combate resolvida pós-teste');
+          }
+          delete estadoJogo.acaoPendenteCombate;
+        }
+
         try {
           const mestre = await sm.obterMestre(roomId, sessao.historiaTemas || [], sessao, userId);
           const invocationContext = buildDiceResolutionContext(sessao, {
@@ -211,9 +228,16 @@ export default class TestEngine {
             resultadoBruto: result,
             resultadoTeste: resultadoTestePayload
           });
+
+          // Injetar contexto de combate pós-teste na descrição para a IA
+          let descricaoFinal = descricaoParaIA;
+          if (contextoCombateExtra) {
+            descricaoFinal += '\n' + contextoCombateExtra;
+          }
+
           const descricaoComContexto = invocationContext.contextoLateralRoleplay
-            ? `${invocationContext.contextoLateralRoleplay}\n\n${descricaoParaIA}`
-            : descricaoParaIA;
+            ? `${invocationContext.contextoLateralRoleplay}\n\n${descricaoFinal}`
+            : descricaoFinal;
 
           const testStreamMsgId = `mestre_stream_${Date.now()}_${roomId}`;
 
@@ -242,6 +266,27 @@ export default class TestEngine {
             const { processarAcoes } = await import('../../helpers/acoesProcessor.js');
             await processarAcoes(acoesPendentesTeste, sessao, roomId, sm, { stage: 'posTeste' });
             sessao.estadoJogo.acoesPendentesTeste = [];
+          }
+
+          // Processar eventos de combate pós-teste (contra-ataques, fim de combate, etc.)
+          if (resultadosCombatePosTeste && sessao._combatePreResolvido) {
+            try {
+              const combatEngine = sm.combatEngine || sm.engines?.combat;
+              if (combatEngine?.processarAcaoCombate) {
+                const pendente = acaoPendenteCombate;
+                await combatEngine.processarAcaoCombate(
+                  roomId,
+                  pendente.userId,
+                  username,
+                  pendente.personagem,
+                  '',
+                  interpretacao,
+                  sessao
+                );
+              }
+            } catch (errCombat) {
+              log.error({ err: errCombat }, 'Erro ao processar combate pós-teste');
+            }
           }
 
           const outrosTestesNoLote = getTestesPendentes(sessao).some(
@@ -277,6 +322,26 @@ export default class TestEngine {
 
           if (sessao.estadoJogo?.acoesPendentesTeste) {
             sessao.estadoJogo.acoesPendentesTeste = [];
+          }
+
+          // Processar eventos de combate pós-teste mesmo no fallback
+          if (resultadosCombatePosTeste && sessao._combatePreResolvido) {
+            try {
+              const combatEngine = sm.combatEngine || sm.engines?.combat;
+              if (combatEngine?.processarAcaoCombate) {
+                await combatEngine.processarAcaoCombate(
+                  roomId,
+                  acaoPendenteCombate.userId,
+                  username,
+                  acaoPendenteCombate.personagem,
+                  '',
+                  { narracao: textoFallback },
+                  sessao
+                );
+              }
+            } catch (errCombat) {
+              log.error({ err: errCombat }, 'Erro ao processar combate pós-teste no fallback');
+            }
           }
 
           const outrosTestesNoLote = getTestesPendentes(sessao).some(

@@ -15,6 +15,7 @@ import {
   STATUS_COMBATENTE,
   RESULTADO_COMBATE,
 } from '../config/domainConstants.js';
+import { TESTES_CONFIG } from '../config/testesConfig.js';
 const log = logger.child({ module: 'combateHelper' });
 
 function _findJogadorSessao(sessao, userId, personagem = null, jogadorStats = null) {
@@ -612,8 +613,9 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
       resultados.defesa = _resolverDefesa(combate, userId, personagem, jogadorStats);
       resultados.acaoConsumida = !!resultados.defesa;
     } else if (intentTipo === 'fugir') {
-      resultados.fuga = _resolverFuga(combate, userId, sessao, personagem);
-      resultados.acaoConsumida = !!resultados.fuga;
+      resultados.requerTeste = _prepararTesteFuga(combate, userId, personagem);
+      resultados.acaoConsumida = false;
+      log.info({ userId, teste: resultados.requerTeste }, 'Fuga requer teste de habilidade');
     } else if (intentTipo === 'usar_habilidade') {
       resultados.habilidade = _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, combatIntent);
       resultados.acaoConsumida = resultados.habilidade?.valido !== false;
@@ -622,10 +624,8 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     resultados.acaoConsumida = true;
   }
 
-  // Fuga bem-sucedida finaliza combate imediatamente
-  if (resultados.fuga?.sucesso) {
-    resultados.combateFinalizado = true;
-    resultados.resultadoCombate = 'fuga';
+  // Se ação requer teste, retornar antes de contra-ataques
+  if (resultados.requerTeste) {
     return resultados;
   }
 
@@ -633,122 +633,10 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     return resultados;
   }
 
-  // --- 3. CONTRA-ATAQUE DOS MONSTROS ---
-  const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
-  for (const monstro of monstrosVivos) {
-    const jogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo');
-    if (jogadoresVivos.length === 0) break;
-
-    const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
-    const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
-    const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
-    const { acertou: mAcertou, critico: mCritico } = verificarAcerto(rolagemMonstro);
-
-    let danoMonstro = 0;
-    let mEsquivou = false;
-    if (mAcertou) {
-      const defesaTemporaria = _getDefesaTemporaria(combate, alvoStats);
-      const esquivaExtra = defesaTemporaria?.esquivaBonus || 0;
-      const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
-      if (!mCritico && verificarEsquiva(esquivaEfetiva)) {
-        mEsquivou = true;
-      } else {
-        const danoNotacao = habilidade?.dano || monstro.dano_base;
-        const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
-        danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico, alvoStats.armadura || 0);
-        if (defesaTemporaria?.reducaoDano) {
-          danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
-        }
-        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
-        if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
-      }
-    }
-
-    if (habilidade) monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
-
-    resultados.contraAtaques.push({
-      atacante: monstro.nome, atacanteId: monstro.id,
-      habilidade: habilidade?.nome || 'Ataque básico',
-      alvoId, alvoNome: alvoStats.personagemNome,
-      rolagem: rolagemMonstro,
-      acertou: mAcertou && !mEsquivou, esquivou: mEsquivou, critico: mCritico,
-      dano: danoMonstro, armaduraAlvo: alvoStats.armadura || 0,
-      hpRestante: alvoStats.hp_atual, hpMax: alvoStats.hp_max,
-      inconsciente: alvoStats.status === 'inconsciente',
-      personagemId: alvoStats.personagemId,
-    });
-    combate.log.push({ tipo: 'ataque_monstro', ...resultados.contraAtaques.at(-1), timestamp: Date.now() });
-  }
-
-  // --- 4. CONTROLE DE RODADA ---
-  if (!combate.jogadoresQueAgiram) combate.jogadoresQueAgiram = [];
-  if (!combate.jogadoresQueAgiram.includes(userId)) combate.jogadoresQueAgiram.push(userId);
-
-  const totalJogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo').length;
-  if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
-    combate.rodadaCombate++;
-    combate.jogadoresQueAgiram = [];
-    resultados.rodadaAvancou = true;
-
-    for (const [jId, jStats] of Object.entries(combate.jogadores)) {
-      const defesaTemporaria = _getDefesaTemporaria(combate, jStats);
-      if (!defesaTemporaria) {
-        delete jStats.defesaTemporaria;
-      }
-
-      const snapshot = _resolvePersonagemSnapshot(sessao, jId, { nome: jStats.personagemNome, personagemId: jStats.personagemId }, jStats);
-      const pCompleto = snapshot.personagem;
-      if (!pCompleto?.status_efeitos) continue;
-      pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
-        e.duracao = (e.duracao || 1) - 1;
-        if (e.duracao <= 0) {
-          resultados.statusRemovidos.push({ personagem: jStats.personagemNome, userId: jId, status: e.nome, personagemId: jStats.personagemId });
-          return false;
-        }
-        return true;
-      });
-    }
-
-    // Tick de efeitos nos monstros (DOT + decremento)
-    for (const monstro of combate.monstros) {
-      if (monstro.status !== 'vivo' || !monstro.status_efeitos?.length) continue;
-
-      monstro.status_efeitos = monstro.status_efeitos.filter(e => {
-        // DOT: aplicar dano se o efeito causa dano por turno
-        const dadoDano = STATUS_DANO_POR_TURNO[e.nome];
-        if (dadoDano) {
-          const dano = rolarDado(dadoDano);
-          monstro.hp_atual = Math.max(0, monstro.hp_atual - dano);
-          if (monstro.hp_atual <= 0) monstro.status = 'derrotado';
-          resultados.statusEfeitosMonstro.push({
-            tipo: 'dano', efeito: e.nome, dano,
-            monstroId: monstro.id, monstroNome: monstro.nome,
-            hpRestante: monstro.hp_atual, hpMax: monstro.hp_max,
-            derrotado: monstro.status === 'derrotado',
-          });
-          combate.log.push({
-            tipo: 'status_dano', alvo: { id: monstro.id, nome: monstro.nome },
-            status: e.nome, dano, timestamp: Date.now()
-          });
-        }
-
-        e.duracao = (e.duracao || 1) - 1;
-        if (e.duracao <= 0) {
-          resultados.statusEfeitosMonstro.push({
-            tipo: 'removido', efeito: e.nome,
-            monstroId: monstro.id, monstroNome: monstro.nome,
-          });
-          return false;
-        }
-        return true;
-      });
-    }
-  }
-
-  // --- 5. FIM DE COMBATE ---
-  const { finalizado, resultado } = verificarFimCombate(combate);
-  resultados.combateFinalizado = finalizado;
-  resultados.resultadoCombate = resultado;
+  // --- 3-5: Contra-ataques, controle de rodada, fim de combate ---
+  _executarContraAtaques(combate, resultados);
+  _controlarRodada(combate, userId, sessao, resultados);
+  _verificarFimEAtribuir(combate, resultados);
 
   return resultados;
 }
@@ -829,8 +717,172 @@ function _resolverDefesa(combate, userId, personagem, jogadorStats) {
   return result;
 }
 
+// ────────── Funções extraídas de resolverMecanicaCombate (seções 3-5) ──────────
+
+/**
+ * Seção 3 — Contra-ataques dos monstros vivos contra jogadores aleatórios
+ */
+function _executarContraAtaques(combate, resultados) {
+  const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
+  for (const monstro of monstrosVivos) {
+    const jogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo');
+    if (jogadoresVivos.length === 0) break;
+
+    const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
+    const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
+    const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
+    const { acertou: mAcertou, critico: mCritico } = verificarAcerto(rolagemMonstro);
+
+    let danoMonstro = 0;
+    let mEsquivou = false;
+    if (mAcertou) {
+      const defesaTemporaria = _getDefesaTemporaria(combate, alvoStats);
+      const esquivaExtra = defesaTemporaria?.esquivaBonus || 0;
+      const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
+      if (!mCritico && verificarEsquiva(esquivaEfetiva)) {
+        mEsquivou = true;
+      } else {
+        const danoNotacao = habilidade?.dano || monstro.dano_base;
+        const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
+        danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico, alvoStats.armadura || 0);
+        if (defesaTemporaria?.reducaoDano) {
+          danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
+        }
+        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
+        if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
+      }
+    }
+
+    if (habilidade) monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
+
+    resultados.contraAtaques.push({
+      atacante: monstro.nome, atacanteId: monstro.id,
+      habilidade: habilidade?.nome || 'Ataque básico',
+      alvoId, alvoNome: alvoStats.personagemNome,
+      rolagem: rolagemMonstro,
+      acertou: mAcertou && !mEsquivou, esquivou: mEsquivou, critico: mCritico,
+      dano: danoMonstro, armaduraAlvo: alvoStats.armadura || 0,
+      hpRestante: alvoStats.hp_atual, hpMax: alvoStats.hp_max,
+      inconsciente: alvoStats.status === 'inconsciente',
+      personagemId: alvoStats.personagemId,
+    });
+    combate.log.push({ tipo: 'ataque_monstro', ...resultados.contraAtaques.at(-1), timestamp: Date.now() });
+  }
+}
+
+/**
+ * Seção 4 — Controle de rodada: avança quando todos agiram, tick efeitos
+ */
+function _controlarRodada(combate, userId, sessao, resultados) {
+  if (!combate.jogadoresQueAgiram) combate.jogadoresQueAgiram = [];
+  if (!combate.jogadoresQueAgiram.includes(userId)) combate.jogadoresQueAgiram.push(userId);
+
+  const totalJogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo').length;
+  if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
+    combate.rodadaCombate++;
+    combate.jogadoresQueAgiram = [];
+    resultados.rodadaAvancou = true;
+
+    for (const [jId, jStats] of Object.entries(combate.jogadores)) {
+      const defesaTemporaria = _getDefesaTemporaria(combate, jStats);
+      if (!defesaTemporaria) {
+        delete jStats.defesaTemporaria;
+      }
+
+      const snapshot = _resolvePersonagemSnapshot(sessao, jId, { nome: jStats.personagemNome, personagemId: jStats.personagemId }, jStats);
+      const pCompleto = snapshot.personagem;
+      if (!pCompleto?.status_efeitos) continue;
+      pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
+        e.duracao = (e.duracao || 1) - 1;
+        if (e.duracao <= 0) {
+          resultados.statusRemovidos.push({ personagem: jStats.personagemNome, userId: jId, status: e.nome, personagemId: jStats.personagemId });
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Tick de efeitos nos monstros (DOT + decremento)
+    for (const monstro of combate.monstros) {
+      if (monstro.status !== 'vivo' || !monstro.status_efeitos?.length) continue;
+
+      monstro.status_efeitos = monstro.status_efeitos.filter(e => {
+        // DOT: aplicar dano se o efeito causa dano por turno
+        const dadoDano = STATUS_DANO_POR_TURNO[e.nome];
+        if (dadoDano) {
+          const dano = rolarDado(dadoDano);
+          monstro.hp_atual = Math.max(0, monstro.hp_atual - dano);
+          if (monstro.hp_atual <= 0) monstro.status = 'derrotado';
+          resultados.statusEfeitosMonstro.push({
+            tipo: 'dano', efeito: e.nome, dano,
+            monstroId: monstro.id, monstroNome: monstro.nome,
+            hpRestante: monstro.hp_atual, hpMax: monstro.hp_max,
+            derrotado: monstro.status === 'derrotado',
+          });
+          combate.log.push({
+            tipo: 'status_dano', alvo: { id: monstro.id, nome: monstro.nome },
+            status: e.nome, dano, timestamp: Date.now()
+          });
+        }
+
+        e.duracao = (e.duracao || 1) - 1;
+        if (e.duracao <= 0) {
+          resultados.statusEfeitosMonstro.push({
+            tipo: 'removido', efeito: e.nome,
+            monstroId: monstro.id, monstroNome: monstro.nome,
+          });
+          return false;
+        }
+        return true;
+      });
+    }
+  }
+}
+
+/**
+ * Seção 5 — Verifica fim de combate e atribui resultado
+ */
+function _verificarFimEAtribuir(combate, resultados) {
+  const { finalizado, resultado } = verificarFimCombate(combate);
+  resultados.combateFinalizado = finalizado;
+  resultados.resultadoCombate = resultado;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Prepara teste de fuga sem resolver — jogador rola o dado via pipeline de testes.
+ * DC = 10 + (monstrosVivos * 2). Retorna config para criarTestesPendentes().
+ */
+function _prepararTesteFuga(combate, userId, personagem) {
+  const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo').length;
+  const dcNumerico = 10 + (monstrosVivos * 2);
+
+  // Mapear DC numérico → nome de dificuldade mais próximo
+  let dificuldadeNome = 'Média';
+  let menorDiff = Number.POSITIVE_INFINITY;
+  for (const [nome, valor] of Object.entries(TESTES_CONFIG.dificuldade)) {
+    const diff = Math.abs(valor - dcNumerico);
+    if (diff < menorDiff) {
+      menorDiff = diff;
+      dificuldadeNome = nome;
+    }
+  }
+
+  return {
+    teste: 'Agilidade',
+    dificuldade: dificuldadeNome,
+    dcNumerico,
+    contexto: `${personagem.nome} tenta fugir do combate (${monstrosVivos} monstro${monstrosVivos > 1 ? 's' : ''} vivo${monstrosVivos > 1 ? 's' : ''})`,
+    tipoDado: 'd20',
+    origem: 'combate',
+    intentTipo: 'fugir',
+  };
+}
+
 /**
  * Resolve tentativa de fuga: teste de AGI vs DC baseada nos monstros vivos
+ * @deprecated Mantido para referência — fuga agora usa _prepararTesteFuga + finalizarAcaoCombatePosTeste
  */
 function _resolverFuga(combate, userId, sessao, personagem) {
   const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem);
@@ -961,6 +1013,154 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
 }
 
 /**
+ * Completa resolução de ação de combate após teste mecânico.
+ * Chamado pelo testEngine quando o jogador rola o dado para ação pendente.
+ *
+ * @param {Object} sessao - Sessão ativa
+ * @param {Object} acaoPendente - sessao.estadoJogo.acaoPendenteCombate
+ * @param {Object} resultadoTeste - Resultado de resolverTeste() (testeHelper)
+ * @returns {Object} Mesma shape de resolverMecanicaCombate() para reuso do pipeline
+ */
+export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTeste) {
+  const combate = sessao.estadoJogo?.combate;
+  if (!combate) {
+    log.error('finalizarAcaoCombatePosTeste: sem combate ativo na sessão');
+    return null;
+  }
+
+  const userId = acaoPendente.userId;
+  const personagem = acaoPendente.personagem;
+
+  // Shape base consistente com resolverMecanicaCombate
+  const resultados = {
+    statusEfeitos: acaoPendente.statusEfeitos || [],
+    contraAtaques: [],
+    statusRemovidos: [],
+    statusEfeitosMonstro: [],
+    acaoConsumida: true,
+    combateFinalizado: false,
+    resultadoCombate: null,
+    rodadaAvancou: false,
+    requerTeste: null,
+  };
+
+  if (acaoPendente.tipo === 'fugir') {
+    const sucesso = resultadoTeste.sucesso;
+    resultados.fuga = {
+      personagem: personagem.nome,
+      userId,
+      rolagem: resultadoTeste.rolagemBruta,
+      modificador: resultadoTeste.totalModificador,
+      total: resultadoTeste.total,
+      dc: resultadoTeste.dc,
+      sucesso,
+    };
+
+    if (sucesso) {
+      // Fuga bem-sucedida: finalizar combate, sem contra-ataques
+      resultados.combateFinalizado = true;
+      resultados.resultadoCombate = 'fuga';
+      combate.log.push({ tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
+      log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: SUCESSO');
+    } else {
+      // Fuga falhou: contra-ataques + controle de rodada
+      combate.log.push({ tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
+      _executarContraAtaques(combate, resultados);
+      _controlarRodada(combate, userId, sessao, resultados);
+      _verificarFimEAtribuir(combate, resultados);
+      log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: FALHA, contra-ataques aplicados');
+    }
+  } else if (acaoPendente.tipo === 'usar_habilidade') {
+    // Futuro: habilidade com requer_teste
+    const sucesso = resultadoTeste.sucesso;
+    const preValidada = acaoPendente.habilidadePreValidada;
+    const hab = acaoPendente.habilidadeBase;
+    const jogadorStats = combate.jogadores[userId];
+
+    if (sucesso && preValidada && hab && jogadorStats) {
+      // Teste passou: calcular dano e aplicar efeito
+      const alvoId = acaoPendente.combatIntent?.alvoId;
+      const monstroAlvo = (alvoId && combate.monstros.find(m => m.id === alvoId && m.status === 'vivo'))
+        || combate.monstros.find(m => m.status === 'vivo');
+
+      let ataqueHabilidade = null;
+      let efeitoAplicado = null;
+
+      if (preValidada.dano > 0 && monstroAlvo) {
+        let danoFinal = preValidada.dano;
+        const elementoHab = hab.elemento?.[0] || null;
+        if (elementoHab) {
+          danoFinal = aplicarResistencias(danoFinal, elementoHab, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
+        }
+        monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoFinal);
+        if (monstroAlvo.hp_atual <= 0) monstroAlvo.status = 'derrotado';
+
+        ataqueHabilidade = {
+          alvo: monstroAlvo.nome, alvoId: monstroAlvo.id,
+          dano: danoFinal, elemento: elementoHab,
+          hpRestante: monstroAlvo.hp_atual, hpMax: monstroAlvo.hp_max,
+          derrotado: monstroAlvo.status === 'derrotado', xp: monstroAlvo.xp || 0,
+        };
+      }
+
+      if (preValidada.efeito && monstroAlvo && monstroAlvo.status === 'vivo') {
+        if (!monstroAlvo.status_efeitos) monstroAlvo.status_efeitos = [];
+        const efNome = preValidada.efeito.status || preValidada.efeito.nome;
+        if (efNome) {
+          const existente = monstroAlvo.status_efeitos.find(e => e.nome === efNome);
+          if (existente) {
+            existente.duracao = preValidada.efeito.duracao || 3;
+          } else {
+            monstroAlvo.status_efeitos.push({ nome: efNome, duracao: preValidada.efeito.duracao || 3, valor: preValidada.efeito.valor || 0 });
+          }
+          efeitoAplicado = { status: efNome, duracao: preValidada.efeito.duracao || 3, valor: preValidada.efeito.valor || 0 };
+        }
+      }
+
+      resultados.habilidade = {
+        valido: true,
+        personagem: personagem.nome, userId,
+        habilidadeNome: hab.nome, habilidadeId: hab.id,
+        custoMana: preValidada.custoMana || 0,
+        cooldown: preValidada.cooldown || 0,
+        dano: preValidada.dano,
+        efeito: preValidada.efeito,
+        efeitoAplicado,
+        ataque: ataqueHabilidade,
+        manaRestante: jogadorStats.mana_atual,
+        manaMax: jogadorStats.mana_max,
+      };
+      combate.log.push({ tipo: 'habilidade_jogador', ...resultados.habilidade, timestamp: Date.now() });
+    } else {
+      // Teste falhou: habilidade fizzles (mana já gasta)
+      resultados.habilidade = {
+        valido: true,
+        testeFalhou: true,
+        personagem: personagem.nome, userId,
+        habilidadeNome: hab?.nome || acaoPendente.combatIntent?.habilidadeNome,
+        habilidadeId: hab?.id || acaoPendente.combatIntent?.habilidadeId,
+        custoMana: preValidada?.custoMana || 0,
+        cooldown: preValidada?.cooldown || 0,
+        dano: 0,
+        efeito: null,
+        efeitoAplicado: null,
+        ataque: null,
+        manaRestante: jogadorStats?.mana_atual,
+        manaMax: jogadorStats?.mana_max,
+      };
+      combate.log.push({ tipo: 'habilidade_falhou', ...resultados.habilidade, motivo: 'teste_falhou', timestamp: Date.now() });
+    }
+
+    // Sempre: contra-ataques + controle rodada
+    _executarContraAtaques(combate, resultados);
+    _controlarRodada(combate, userId, sessao, resultados);
+    _verificarFimEAtribuir(combate, resultados);
+  }
+
+  return resultados;
+}
+
+/**
  * Formata os resultados mecanicos em texto para injetar no prompt da IA.
  */
 export function formatarResultadoMecanico(resultados, personagemNome) {
@@ -991,6 +1191,12 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
     linhas.push(`${personagemNome} adotou postura defensiva! Esquiva +${resultados.defesa.esquivaBonus}%, dano recebido reduzido em 50%.`);
   }
 
+  // Teste necessário (ação pendente)
+  if (resultados.requerTeste) {
+    const rt = resultados.requerTeste;
+    linhas.push(`${personagemNome} tenta ${rt.intentTipo === 'fugir' ? 'fugir do combate' : 'usar habilidade'} — requer teste de ${rt.teste} (DC ${rt.dcNumerico}, ${rt.dificuldade}). Aguardando rolagem do jogador.`);
+  }
+
   // Fuga
   if (resultados.fuga) {
     const f = resultados.fuga;
@@ -1006,6 +1212,10 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
     const h = resultados.habilidade;
     if (h.valido === false) {
       linhas.push(`${personagemNome} tentou usar habilidade mas falhou: ${h.erro}`);
+    } else if (h.testeFalhou) {
+      let failLine = `${personagemNome} tentou usar ${h.habilidadeNome} mas FALHOU no teste!`;
+      if (h.custoMana > 0) failLine += ` (-${h.custoMana} MP gastos, restam ${h.manaRestante}/${h.manaMax})`;
+      linhas.push(failLine);
     } else {
       let habLine = `${personagemNome} usou ${h.habilidadeNome}!`;
       if (h.custoMana > 0) habLine += ` (-${h.custoMana} MP, restam ${h.manaRestante}/${h.manaMax})`;
@@ -1059,5 +1269,6 @@ export default {
   verificarFimCombate,
   formatarContextoCombate,
   resolverMecanicaCombate,
-  formatarResultadoMecanico
+  formatarResultadoMecanico,
+  finalizarAcaoCombatePosTeste,
 };

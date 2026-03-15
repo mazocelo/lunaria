@@ -21,7 +21,11 @@ import {
 } from '../utils/sessionMessages.js';
 import { sanitizePromptInput } from '../../helpers/sanitize.js';
 import {
-  getTestePendente
+  getTestePendente,
+  criarTestePendente,
+  emitirSolicitacaoTeste,
+  limparTestePendente,
+  compactarTestesPendentes
 } from '../utils/testePipeline.js';
 import {
   transitionTurnState,
@@ -139,6 +143,26 @@ export default class MasterNarrationEngine {
         historiaNome: sessao.historiaNome,
         totalMensagens: sessao.mensagens?.length || 0
       });
+
+      // Cleanup de ação pendente de combate stale (>5 min)
+      const estadoJogoCheck = sessao.estadoJogo || {};
+      if (estadoJogoCheck.acaoPendenteCombate) {
+        const criadoEm = new Date(estadoJogoCheck.acaoPendenteCombate.criadoEm).getTime();
+        if (Date.now() - criadoEm > 5 * 60 * 1000) {
+          const staleTesteId = estadoJogoCheck.acaoPendenteCombate.testeId;
+          log.warn({ userId: estadoJogoCheck.acaoPendenteCombate.userId, tipo: estadoJogoCheck.acaoPendenteCombate.tipo, testeId: staleTesteId }, 'Ação pendente de combate stale (>5min), limpando');
+          // Cancelar teste pendente associado e destravar turno
+          if (staleTesteId) {
+            limparTestePendente(sessao, {
+              testId: staleTesteId,
+              nextTurnState: TURN_STATUS.ACTIVE,
+              mode: 'cancel'
+            });
+            compactarTestesPendentes(sessao);
+          }
+          delete estadoJogoCheck.acaoPendenteCombate;
+        }
+      }
 
       // 2. VERIFICAR SISTEMA DE TURNOS
       const estadoJogo = sessao.estadoJogo || {};
@@ -265,17 +289,60 @@ export default class MasterNarrationEngine {
 
         // ✅ Resolver mecânica ANTES da IA para que ela narre baseada em fatos
         resultadosCombatePreResolvido = resolverMecanicaCombate(combateAtivo ? estadoJogo.combate : null, userId, sessao, personagem, combatIntent);
-        const resumoMecanico = formatarResultadoMecanico(resultadosCombatePreResolvido, personagem.nome);
-        acaoComContexto += resumoMecanico + '\n';
 
-        // Guardar para o processarAcaoCombate usar (sem re-rolar)
-        sessao._combatePreResolvido = resultadosCombatePreResolvido;
+        // Se ação requer teste, criar teste pendente e desviar para pipeline de testes
+        if (resultadosCombatePreResolvido.requerTeste) {
+          const rt = resultadosCombatePreResolvido.requerTeste;
+          const resumoMecanico = formatarResultadoMecanico(resultadosCombatePreResolvido, personagem.nome);
+          acaoComContexto += resumoMecanico + '\n';
+          acaoComContexto += `[TESTE NECESSÁRIO: ${rt.teste} DC ${rt.dcNumerico} (${rt.dificuldade}). Narre a TENTATIVA do personagem, sem revelar sucesso ou falha — o jogador ainda precisa rolar o dado.]\n`;
+
+          // Criar teste pendente via pipeline (DC numérico para resolução exata, label para display)
+          const testeCriado = criarTestePendente(sessao, {
+            origem: 'combate',
+            jogadorAlvo: userId,
+            personagemAlvo: personagem.nome,
+            teste: rt.teste,
+            dificuldade: rt.dcNumerico,
+            tipoDado: rt.tipoDado || 'd20',
+            contexto: rt.contexto,
+            metadata: { dificuldadeLabel: rt.dificuldade },
+          }, userId);
+
+          // Armazenar ação pendente de combate
+          estadoJogo.acaoPendenteCombate = {
+            tipo: rt.intentTipo,
+            userId,
+            personagem: { nome: personagem.nome, id: personagem.id, personagemId: personagem.personagemId },
+            combatIntent,
+            testeId: testeCriado?.id || null,
+            statusEfeitos: resultadosCombatePreResolvido.statusEfeitos || [],
+            criadoEm: new Date().toISOString(),
+          };
+
+          // NÃO setar _combatePreResolvido — será setado pós-teste
+          log.info({ userId, roomId, tipo: rt.intentTipo, teste: rt.teste, dc: rt.dcNumerico, testeId: testeCriado?.id }, 'Ação de combate pendente de teste');
+
+          sm.log('INFO', 'MENSAGEM_PARA_MESTRE_COMBATE_REQUER_TESTE', socket.id, userId, {
+            roomId, intentTipo, teste: rt.teste, dc: rt.dcNumerico
+          });
+
+          // Emitir solicitação de teste após a IA narrar a tentativa (abaixo)
+          // Flag para emitir após narração
+          resultadosCombatePreResolvido._emitirTesteAposNarracao = { testeCriado, rt };
+        } else {
+          const resumoMecanico = formatarResultadoMecanico(resultadosCombatePreResolvido, personagem.nome);
+          acaoComContexto += resumoMecanico + '\n';
+
+          // Guardar para o processarAcaoCombate usar (sem re-rolar)
+          sessao._combatePreResolvido = resultadosCombatePreResolvido;
+        }
 
         sm.log('INFO', 'MENSAGEM_PARA_MESTRE_COMBATE_CONTEXTO', socket.id, userId, {
           roomId,
           intentTipo,
           monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length,
-          preResolvido: true
+          preResolvido: !resultadosCombatePreResolvido.requerTeste
         });
       }
 
@@ -380,6 +447,21 @@ export default class MasterNarrationEngine {
         ...mensagemMestre,
         message: resposta.narracao
       });
+
+      // Se há teste pendente de combate, emitir solicitação de teste (antes do dispatcher)
+      if (resultadosCombatePreResolvido?._emitirTesteAposNarracao) {
+        const { testeCriado, rt } = resultadosCombatePreResolvido._emitirTesteAposNarracao;
+        emitirSolicitacaoTeste(sm, roomId, sessao, {
+          narrativa: resposta.narracao || '',
+          tipoDado: rt.tipoDado || 'd20',
+          teste: rt.teste,
+          dificuldade: rt.dificuldade, // label para display
+          contexto: rt.contexto,
+          origem: 'combate',
+          testePendente: testeCriado,
+        });
+        log.info({ userId, roomId, testeId: testeCriado?.id }, 'Solicitação de teste de combate emitida após narração');
+      }
 
       // ✅ DESPACHAR RESPOSTA DA IA (combate, ações, dados, turnos)
       const { despacharResposta } = await import('../utils/respostaDispatcher.js');

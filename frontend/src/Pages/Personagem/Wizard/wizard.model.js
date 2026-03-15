@@ -113,6 +113,14 @@ export const useWizardModel = () => {
     racasDisponiveis, classesDisponiveis, vantagensDisponiveis,
   });
 
+  // --- Combo Preview state (declarado antes de navigation para evitar TDZ) ---
+  const [comboPreviewData, setComboPreviewData] = useState(null);
+  const [comboPreviewLoading, setComboPreviewLoading] = useState(false);
+  const [comboPreviewErro, setComboPreviewErro] = useState(null);
+  const [comboPreviewTentativa, setComboPreviewTentativa] = useState(0);
+  const previewRequestRef = useRef(0);
+  const comboPreviewLoadedKeyRef = useRef(null);
+
   // --- Navigation ---
   const navigation = useWizardNavigation(draftInicial, {
     nome, racaId, classeId, background,
@@ -162,15 +170,9 @@ export const useWizardModel = () => {
   const [error, setError] = useState(null);
   const [sugestoes, setSugestoes] = useState([]);
   const [salvando, setSalvando] = useState(false);
-  const [comboPreviewData, setComboPreviewData] = useState(null);
-  const [comboPreviewLoading, setComboPreviewLoading] = useState(false);
-  const [comboPreviewErro, setComboPreviewErro] = useState(null);
-  const [comboPreviewTentativa, setComboPreviewTentativa] = useState(0);
   const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
   const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
   const [creationResultData, setCreationResultData] = useState(null);
-  const previewRequestRef = useRef(0);
-  const comboPreviewLoadedKeyRef = useRef(null);
 
   // Aviso ao fechar aba
   useEffect(() => {

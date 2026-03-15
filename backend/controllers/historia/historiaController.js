@@ -416,7 +416,7 @@ class HistoriaController {
 
       // Ownership já verificado pelo middleware requireResourceOwnerOrAdmin
 
-      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas, estilo_imagem } = req.body;
+      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas, estilo_imagem, config } = req.body;
       const dadosSeguros = {};
       if (nome !== undefined) dadosSeguros.nome = nome;
       if (temas !== undefined) dadosSeguros.temas = temas;
@@ -428,6 +428,14 @@ class HistoriaController {
       if (imagem !== undefined) dadosSeguros.imagem = imagem;
       if (mapas !== undefined) dadosSeguros.mapas = Array.isArray(mapas) ? mapas : [];
       if (estilo_imagem !== undefined) dadosSeguros.estilo_imagem = estilo_imagem;
+      if (config !== undefined) {
+        try {
+          const { validateHistoriaConfig } = await import('../../helpers/historiaConfigHelper.js');
+          dadosSeguros.config = validateHistoriaConfig(config);
+        } catch (validationError) {
+          return res.status(400).json({ success: false, error: validationError.message });
+        }
+      }
       dadosSeguros.atualizada_em = new Date();
 
       await db.Historia.updateHistoria(parseInt(id), dadosSeguros);

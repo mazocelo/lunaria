@@ -113,6 +113,7 @@ export default class SessionEngine {
         historiaRoteiro: historia.roteiro || null,
         donoId: historia.id_usuario ? String(historia.id_usuario) : null,
         donoNome: donoNome,
+        historiaConfig: historia.config || null,
         maxJogadores: historia.maximo_de_participantes || 5,
         mestreConfig,
         status: 'aberta',

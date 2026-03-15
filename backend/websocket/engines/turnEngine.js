@@ -16,6 +16,46 @@ import {
 } from '../utils/turnStateMachine.js';
 import { limparTestePendente } from '../utils/testePipeline.js';
 
+// ── Abertura com transição personalizada ──────────────────────────
+
+function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContext) {
+  const personagemNome = jogadorDaVez.personagemNome || username;
+  const personagemId = jogadorDaVez.personagemId;
+  const dados = personagemId
+    ? (sessao.personagensCompletos || {})[String(personagemId)]
+    : null;
+
+  const classe = dados?.classe || 'aventureiro';
+  const raca = dados?.raca || 'desconhecida';
+  const background = dados?.background || null;
+  const nivel = dados?.nivel || 1;
+
+  const bgSnippet = background
+    ? `Historia pessoal: "${background.slice(0, 400)}"`
+    : 'O jogador nao definiu background. Improvise uma chegada breve baseada na classe e raca.';
+
+  const parts = [
+    '[INSTRUCAO DE ABERTURA - TRANSICAO PERSONALIZADA]',
+    `Este e o primeiro turno de ${personagemNome} na sessao. Antes da cena principal, narre brevemente como ${personagemNome} (${raca}, ${classe}, nivel ${nivel}) chegou ao local da aventura.`,
+    '',
+    bgSnippet,
+    '',
+    'Diretrizes:',
+    '- Narre em 2-3 paragrafos curtos como o personagem viajou/chegou ate o cenario.',
+    '- Use background, classe e raca para dar personalidade a chegada.',
+    '- Termine fazendo transicao natural para a cena principal.',
+    '- Apos a transicao, apresente a cena e ofereca opcoes iniciais.',
+    '[FIM DA INSTRUCAO DE ABERTURA]',
+    ''
+  ];
+
+  if (invocationContext.contextoLateralRoleplay) {
+    parts.push(invocationContext.contextoLateralRoleplay, '');
+  }
+  parts.push(`Iniciar turno de ${personagemNome}`);
+  return parts.join('\n');
+}
+
 function expirarStatusForaDeCombate(manager, roomId, sessao, contexto) {
   const estadoJogo = sessao.estadoJogo || {};
   if (estadoJogo.combate?.ativo) return;
@@ -122,9 +162,29 @@ export default class TurnEngine {
         let mensagemInicial;
         try {
           const invocationContext = buildTurnStartContext(sessao, userId);
-          const mensagemTurno = invocationContext.contextoLateralRoleplay
-            ? `${invocationContext.contextoLateralRoleplay}\n\nIniciar turno de ${jogadorDaVez.personagemNome || username}`
-            : `Iniciar turno de ${jogadorDaVez.personagemNome || username}`;
+
+          // ── Detecção de primeiro turno per-player ──
+          const aberturasPorJogador = estadoJogo.aberturasPorJogador || {};
+          const jaFezAbertura = !!aberturasPorJogador[String(userId)];
+          const openingMode = sessao.historiaConfig?.session_opening_mode || 'direto';
+
+          let mensagemTurno;
+          if (!jaFezAbertura && openingMode === 'transicao_personalizada') {
+            mensagemTurno = buildTransitionMessage(sessao, jogadorDaVez, username, invocationContext);
+            log.info({ roomId, openingMode, personagem: jogadorDaVez.personagemNome },
+              'Abertura com transicao personalizada');
+          } else {
+            mensagemTurno = invocationContext.contextoLateralRoleplay
+              ? `${invocationContext.contextoLateralRoleplay}\n\nIniciar turno de ${jogadorDaVez.personagemNome || username}`
+              : `Iniciar turno de ${jogadorDaVez.personagemNome || username}`;
+          }
+
+          // Marcar abertura como executada para este jogador
+          if (!jaFezAbertura) {
+            estadoJogo.aberturasPorJogador = { ...aberturasPorJogador, [String(userId)]: true };
+            sessao.estadoJogo = estadoJogo;
+            log.info({ roomId, userId, openingMode }, 'Abertura marcada como executada');
+          }
 
           mensagemInicial = await mestre.narrarTurnoJogador({
             jogador: username,

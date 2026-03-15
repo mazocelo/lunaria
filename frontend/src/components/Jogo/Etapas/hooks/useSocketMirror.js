@@ -54,16 +54,16 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     }
   }, [levelUpData, levelUpQueue]);
 
-  // Loading messages flag
-  const loadingMensagensAtivas = gameStoreMensagens.some((m) => m.tipo === 'loading');
+  // Loading messages flag (inclui streaming)
+  const loadingMensagensAtivas = gameStoreMensagens.some((m) => m.tipo === 'loading' || m.tipo === 'mestre_streaming');
 
-  // Timeout de seguranca para loading do Mestre (30s)
+  // Timeout de seguranca para loading/streaming do Mestre (30s)
   useEffect(() => {
     if (!loadingMensagensAtivas) return;
     const timeout = setTimeout(() => {
       showGameNotification('O Mestre demorou para responder. Tente novamente.', 'warning');
       const msgs = useGameStore.getState().mensagens || [];
-      const semLoading = msgs.filter(m => m.tipo !== 'loading');
+      const semLoading = msgs.filter(m => m.tipo !== 'loading' && m.tipo !== 'mestre_streaming');
       if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
     }, 30000);
     return () => clearTimeout(timeout);
@@ -99,9 +99,10 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
   useEffect(() => {
     const handleMensagemMestre = (data) => {
       const mensagensAtuais = useGameStore.getState().mensagens || [];
-      const mensagensSemLoading = mensagensAtuais.filter(m => m.tipo !== 'loading');
-      if (mensagensAtuais.length !== mensagensSemLoading.length) {
-        gameStoreSetMensagens(mensagensSemLoading);
+      // Limpar loading e streaming placeholders
+      const mensagensLimpas = mensagensAtuais.filter(m => m.tipo !== 'loading' && m.tipo !== 'mestre_streaming');
+      if (mensagensAtuais.length !== mensagensLimpas.length) {
+        gameStoreSetMensagens(mensagensLimpas);
       }
 
       const mensagem = {
@@ -347,7 +348,36 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
     };
 
-    // Register all 14 listeners
+    // --- Streaming handlers ---
+    const handleMestreStreamStart = (data) => {
+      const msgs = useGameStore.getState().mensagens || [];
+      const semLoading = msgs.filter(m => m.tipo !== 'loading');
+      if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
+
+      if (onAdicionarMensagemRef.current) {
+        onAdicionarMensagemRef.current({
+          id: data.streamId,
+          userId: 'mestre',
+          username: 'Mestre',
+          message: '',
+          tipo: 'mestre_streaming',
+          timestamp: data.timestamp || Date.now()
+        });
+      }
+    };
+
+    const handleMestreStreamChunk = (data) => {
+      gameStoreAtualizarMensagem(data.streamId, { message: data.accumulated });
+    };
+
+    const handleMestreStreamEnd = (data) => {
+      // Remover placeholder — mensagem_mestre chega logo depois
+      const msgs = useGameStore.getState().mensagens || [];
+      const sem = msgs.filter(m => m.id !== data.streamId);
+      if (msgs.length !== sem.length) gameStoreSetMensagens(sem);
+    };
+
+    // Register all 17 listeners
     socketStoreOn('mensagem_mestre', handleMensagemMestre);
     socketStoreOn('chat_message', handleChatMessage);
     socketStoreOn('resultado_dado_inicial', handleResultadoDado);
@@ -362,6 +392,9 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     socketStoreOn('combate_finalizado', handleCombateFinalizado);
     socketStoreOn('combate_loot', handleCombateLoot);
     socketStoreOn('erro_mensagem', handleErroMensagem);
+    socketStoreOn('mestre_stream_start', handleMestreStreamStart);
+    socketStoreOn('mestre_stream_chunk', handleMestreStreamChunk);
+    socketStoreOn('mestre_stream_end', handleMestreStreamEnd);
 
     return () => {
       socketStoreOff('mensagem_mestre', handleMensagemMestre);
@@ -378,6 +411,9 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       socketStoreOff('combate_finalizado', handleCombateFinalizado);
       socketStoreOff('combate_loot', handleCombateLoot);
       socketStoreOff('erro_mensagem', handleErroMensagem);
+      socketStoreOff('mestre_stream_start', handleMestreStreamStart);
+      socketStoreOff('mestre_stream_chunk', handleMestreStreamChunk);
+      socketStoreOff('mestre_stream_end', handleMestreStreamEnd);
     };
   }, [socketStoreOn, socketStoreOff, gameStoreSetMensagens, user?.id]);
 

@@ -460,8 +460,41 @@ export const renderJogador = (mensagem, key) => (
   </div>
 );
 
+export const renderMestreStreaming = (mensagem, key) => {
+  const conteudo = getConteudo(mensagem);
+
+  return (
+    <div key={key} className="w-full animate-fade-in">
+      <div className="glass p-4 rounded-xl border-2 shadow-2xl border-l-4 border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30">
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl drop-shadow-lg mt-0.5">{'\u{1F3AD}'}</span>
+          <div className="flex-1">
+            <p className="font-semibold text-sm uppercase tracking-wide mb-2 text-purple-300">
+              Mestre
+            </p>
+            {conteudo ? (
+              <span>
+                <MarkdownRenderer className="text-white text-lg leading-relaxed inline">
+                  {conteudo}
+                </MarkdownRenderer>
+                <span className="inline-block w-0.5 h-5 bg-purple-300 animate-pulse ml-0.5 align-text-bottom" />
+              </span>
+            ) : (
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /**
- * Registry: tipo â†’ renderer (com aliases)
+ * Registry: tipo â†' renderer (com aliases)
  */
 export const MESSAGE_RENDERERS = {
   dado: renderDado,
@@ -481,6 +514,7 @@ export const MESSAGE_RENDERERS = {
   entre_rodadas: renderEntreRodadas,
   rodada_finalizada: renderEntreRodadas,
   mestre: renderMestre,
+  mestre_streaming: renderMestreStreaming,
   jogador: renderJogador,
   player: renderJogador,
 };

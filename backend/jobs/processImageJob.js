@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import db from '../Model/index.js';
-import { generateImage, buildPrompt } from '../services/imageGenerationService.js';
+import { generateImage } from '../services/imageGenerationService.js';
+import { generateImagePrompt } from '../services/imagePromptService.js';
 import r2StorageService from '../services/r2StorageService.js';
 import { AI_JOB_STATUS } from './aiJobs.js';
 import { createBullmqConnection, getBullmqPrefix } from './connection.js';
@@ -33,7 +34,7 @@ export async function processImageJob(job) {
       }
     });
 
-    const prompt = rawPrompt || buildPrompt(entityType, entityData || {});
+    const prompt = rawPrompt || await generateImagePrompt(entityType, entityData || {});
     log.info({ aiJobId, entityType, entityId }, 'Gerando imagem');
 
     const imageUrl = await generateImage(prompt, {

@@ -1,4 +1,5 @@
-import { generateImage, buildPrompt } from '../services/imageGenerationService.js';
+import { generateImage } from '../services/imageGenerationService.js';
+import { generateImagePrompt } from '../services/imagePromptService.js';
 import usageService from '../services/usageService.js';
 import { redisClient } from '../redis/redis-config.js';
 import logger from '../helpers/logger.js';
@@ -59,7 +60,7 @@ async function gerarImagem(req, res) {
     try {
       log.info({ entityType, estilo: entityData.estilo_imagem || 'DEFAULT' }, 'Gerando imagem');
       log.debug({ entityData }, 'entityData');
-      const prompt = buildPrompt(entityType, entityData);
+      const prompt = await generateImagePrompt(entityType, entityData, req.user?.id);
       log.debug({ prompt }, 'Prompt final');
       const tImg = Date.now();
       const imageUrl = await generateImage(prompt, {

@@ -482,6 +482,20 @@ class HistoriaController {
         }
       }
 
+      // Se config mudou, sincronizar com sessao Redis ativa
+      if (config !== undefined) {
+        const salaId = `historia_${id}`;
+        try {
+          const sessao = await gerenciadorSessoes.obterSessao(salaId);
+          if (sessao) {
+            await gerenciadorSessoes.atualizarSessao(salaId, { historiaConfig: dadosSeguros.config });
+            log.info({ salaId }, 'historiaConfig sincronizado no Redis para sala');
+          }
+        } catch (cacheError) {
+          log.warn({ err: cacheError }, 'Erro ao sincronizar historiaConfig no Redis (nao critico)');
+        }
+      }
+
       // Buscar a história atualizada
       const historiaAtualizada = await db.Historia.findById(parseInt(id));
 

@@ -15,23 +15,24 @@ import {
   TURN_STATUS
 } from '../utils/turnStateMachine.js';
 import { limparTestePendente } from '../utils/testePipeline.js';
+import { sanitizePromptInput } from '../../helpers/sanitize.js';
 
 // ── Abertura com transição personalizada ──────────────────────────
 
 function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContext) {
-  const personagemNome = jogadorDaVez.personagemNome || username;
+  const personagemNome = sanitizePromptInput(jogadorDaVez.personagemNome || username, 100);
   const personagemId = jogadorDaVez.personagemId;
   const dados = personagemId
     ? (sessao.personagensCompletos || {})[String(personagemId)]
     : null;
 
-  const classe = dados?.classe || 'aventureiro';
-  const raca = dados?.raca || 'desconhecida';
-  const background = dados?.background || null;
+  const classe = sanitizePromptInput(dados?.classe || 'aventureiro', 100);
+  const raca = sanitizePromptInput(dados?.raca || 'desconhecida', 100);
+  const background = dados?.background ? sanitizePromptInput(dados.background, 400) : null;
   const nivel = dados?.nivel || 1;
 
   const bgSnippet = background
-    ? `Historia pessoal: "${background.slice(0, 400)}"`
+    ? `Historia pessoal: "${background}"`
     : 'O jogador nao definiu background. Improvise uma chegada breve baseada na classe e raca.';
 
   const parts = [
@@ -179,12 +180,7 @@ export default class TurnEngine {
               : `Iniciar turno de ${jogadorDaVez.personagemNome || username}`;
           }
 
-          // Marcar abertura como executada para este jogador
-          if (!jaFezAbertura) {
-            estadoJogo.aberturasPorJogador = { ...aberturasPorJogador, [String(userId)]: true };
-            sessao.estadoJogo = estadoJogo;
-            log.info({ roomId, userId, openingMode }, 'Abertura marcada como executada');
-          }
+          const usouTransicao = !jaFezAbertura && openingMode === 'transicao_personalizada';
 
           mensagemInicial = await mestre.narrarTurnoJogador({
             jogador: username,
@@ -197,12 +193,20 @@ export default class TurnEngine {
             resumo: invocationContext.resumo,
             contextoLateralRoleplay: invocationContext.contextoLateralRoleplay
           });
+
+          // Marcar abertura como executada somente após resposta válida da IA
+          if (!jaFezAbertura) {
+            estadoJogo.aberturasPorJogador = { ...aberturasPorJogador, [String(userId)]: true };
+            sessao.estadoJogo = estadoJogo;
+            log.info({ roomId, userId, openingMode, usouTransicao }, 'Abertura marcada como executada');
+          }
         } catch (errorIA) {
           log.error({ err: errorIA }, 'Erro na IA ao iniciar turno');
           sm.log('ERROR', 'INICIAR_TURNO_IA_FAILED', socket.id, userId, {
             error: errorIA.message,
             stack: errorIA.stack
           });
+          // Não marca aberturasPorJogador — o jogador pode tentar novamente
           mensagemInicial = {
             resposta: `E agora, **${jogadorDaVez.personagemNome || username}**, o que voce faz?`
           };

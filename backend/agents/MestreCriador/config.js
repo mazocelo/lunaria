@@ -1,46 +1,11 @@
 /**
- * Configurações do Mestre Criador — Wizard de criação de personagem
+ * Configuracoes do Mestre Criador - Wizard de criacao de personagem
  */
 import { MESTRE_CONFIG, detectProvider } from '../Mestre/config.js';
 
-// Etapas do wizard na ordem
-export const ETAPAS = [
-  'boas_vindas',
-  'raca',
-  'classe',
-  'background',
-  'desvantagens',
-  'vantagens',
-  'atributos',
-  'resumo',
-  'refinamento',
-];
-
-// Transições válidas: de qual etapa pode ir para quais
-export const TRANSICOES = {
-  boas_vindas: ['raca'],
-  raca: ['classe'],
-  classe: ['background'],
-  background: ['desvantagens'],
-  desvantagens: ['vantagens'],
-  vantagens: ['atributos'],
-  atributos: ['resumo'],
-  resumo: ['refinamento'],
-  refinamento: ['refinamento', 'confirmado'],
-};
-
-// Campos obrigatórios por etapa (para validar antes de avançar)
-export const CAMPOS_OBRIGATORIOS = {
-  boas_vindas: ['nome'],
-  raca: ['raca_id'],
-  classe: ['classe_id'],
-  background: ['background'],
-  vantagens: [],
-  desvantagens: [],
-  atributos: ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'],
-  resumo: [],
-  refinamento: [],
-};
+// Re-export from stagePolicy (fonte unica de etapas e transicoes)
+import { ETAPAS, TRANSICOES } from './stages/stagePolicy.js';
+export { ETAPAS, TRANSICOES };
 
 // Config do modelo para o Mestre Criador (reutiliza defaults do Mestre)
 export const CRIADOR_CONFIG = {

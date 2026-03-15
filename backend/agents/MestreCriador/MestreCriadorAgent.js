@@ -14,6 +14,8 @@ import dotenv from 'dotenv';
 
 import logger from '../../helpers/logger.js';
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
+import { sanitizeEtapaProxima, shouldLockStage, getPolicy } from './stages/stagePolicy.js';
+import { getFallbackMessage, gerarAtributosFallback as gerarAtributosFallbackPolicy } from './stages/stageFallbacks.js';
 
 const log = logger.child({ module: 'MestreCriadorAgent' });
 import { DEPRECATED_MODELS } from '../Mestre/config.js';
@@ -60,6 +62,7 @@ function parseIAJson(content) {
 // Etapas que DEVEM ter sugestões
 const ETAPAS_COM_SUGESTOES = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
 
+
 /** Gera sugestões fallback do catálogo quando IA retorna vazio */
 async function gerarFallbackSugestoes(etapa, estado) {
   try {
@@ -69,7 +72,7 @@ async function gerarFallbackSugestoes(etapa, estado) {
       const shuffled = [...racas].sort(() => Math.random() - 0.5).slice(0, 5);
       return shuffled.map(r => ({
         tipo: 'raca', id: r.id, nome: r.nome,
-        descricao: r.descricao?.slice(0, 80) || '', custo: r.custo ?? 0,
+        descricao: r.descricao || '', custo: r.custo ?? 0,
       }));
     }
 
@@ -77,24 +80,27 @@ async function gerarFallbackSugestoes(etapa, estado) {
       const shuffled = [...classes].sort(() => Math.random() - 0.5).slice(0, 4);
       return shuffled.map(c => ({
         tipo: 'classe', id: c.id, nome: c.nome,
-        descricao: c.descricao?.slice(0, 80) || '', custo: c.custo ?? 0,
+        descricao: c.descricao || '', custo: c.custo ?? 0,
       }));
     }
 
     if (etapa === 'vantagens') {
-      const compraveis = vantagens.filter(v => v.custo > 0 || v.compravel !== false);
+      const jaSelecionados = new Set((estado.vantagens_ids || []).map(String));
+      const compraveis = vantagens.filter(v => (v.custo > 0 || v.compravel !== false) && !jaSelecionados.has(String(v.id)));
       const shuffled = [...compraveis].sort(() => Math.random() - 0.5).slice(0, 4);
       return shuffled.map(v => ({
         tipo: 'vantagem', id: v.id, nome: v.nome,
-        descricao: v.descricao?.slice(0, 60) || '', custo: v.custo ?? 0,
+        descricao: v.descricao || '', custo: v.custo ?? 0,
       }));
     }
 
     if (etapa === 'desvantagens') {
-      const shuffled = [...desvantagens].sort(() => Math.random() - 0.5).slice(0, 4);
+      const jaSelecionados = new Set((estado.desvantagens_ids || []).map(String));
+      const disponiveis = desvantagens.filter(d => !jaSelecionados.has(String(d.id)));
+      const shuffled = [...disponiveis].sort(() => Math.random() - 0.5).slice(0, 4);
       return shuffled.map(d => ({
         tipo: 'desvantagem', id: d.id, nome: d.nome,
-        descricao: d.descricao?.slice(0, 60) || '', custo: d.custo ?? 0,
+        descricao: d.descricao || '', custo: d.custo ?? 0,
       }));
     }
 
@@ -119,46 +125,23 @@ async function gerarFallbackSugestoes(etapa, estado) {
   }
 }
 
-/** Gera distribuição de atributos fallback baseada na classe */
-function gerarAtributosFallback(estado) {
-  // Distribuições temáticas por classe (soma = 60, min 5, max 16)
-  const DISTRIBUICOES = {
-    guerreiro:   { forca: 14, destreza: 10, constituicao: 13, inteligencia: 7, agilidade: 9, carisma: 7 },
-    mago:        { forca: 6, destreza: 8, constituicao: 8, inteligencia: 16, agilidade: 10, carisma: 12 },
-    ladino:      { forca: 8, destreza: 14, constituicao: 8, inteligencia: 10, agilidade: 14, carisma: 6 },
-    clerigo:     { forca: 10, destreza: 8, constituicao: 12, inteligencia: 12, agilidade: 8, carisma: 10 },
-    ranger:      { forca: 10, destreza: 13, constituicao: 10, inteligencia: 8, agilidade: 13, carisma: 6 },
-    bardo:       { forca: 6, destreza: 10, constituicao: 8, inteligencia: 12, agilidade: 10, carisma: 14 },
-    paladino:    { forca: 13, destreza: 8, constituicao: 12, inteligencia: 8, agilidade: 8, carisma: 11 },
-    druida:      { forca: 8, destreza: 10, constituicao: 10, inteligencia: 14, agilidade: 10, carisma: 8 },
-    barbaro:     { forca: 16, destreza: 8, constituicao: 14, inteligencia: 5, agilidade: 10, carisma: 7 },
-    monge:       { forca: 10, destreza: 12, constituicao: 10, inteligencia: 8, agilidade: 14, carisma: 6 },
-    feiticeiro:  { forca: 6, destreza: 10, constituicao: 8, inteligencia: 14, agilidade: 8, carisma: 14 },
-    bruxo:       { forca: 7, destreza: 8, constituicao: 10, inteligencia: 13, agilidade: 8, carisma: 14 },
-  };
+// gerarAtributosFallback agora vem de stageFallbacks.js
+const gerarAtributosFallback = gerarAtributosFallbackPolicy;
 
-  const classeNome = (estado.classe_nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const dist = Object.entries(DISTRIBUICOES).find(([k]) => classeNome.includes(k));
-  return dist ? dist[1] : { forca: 10, destreza: 10, constituicao: 10, inteligencia: 10, agilidade: 10, carisma: 10 };
+// Tipo esperado de sugestao — derivado da policy
+function getTipoEsperado(etapa) {
+  return getPolicy(etapa).suggestionType || null;
 }
-
-// Tipo esperado de sugestão por etapa
-const TIPO_ESPERADO = {
-  boas_vindas: 'nome',
-  raca: 'raca',
-  classe: 'classe',
-  background: 'background',
-  vantagens: 'vantagem',
-  desvantagens: 'desvantagem',
-};
 
 /** Valida e sanitiza sugestões da IA */
 function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino) {
   if (!Array.isArray(sugestoes)) return [];
   // Aceitar tipo da etapa atual OU da etapa destino
   const tiposAceitos = new Set();
-  if (TIPO_ESPERADO[etapaAtual]) tiposAceitos.add(TIPO_ESPERADO[etapaAtual]);
-  if (TIPO_ESPERADO[etapaDestino]) tiposAceitos.add(TIPO_ESPERADO[etapaDestino]);
+  const tipoAtual = getTipoEsperado(etapaAtual);
+  const tipoDestino = getTipoEsperado(etapaDestino);
+  if (tipoAtual) tiposAceitos.add(tipoAtual);
+  if (tipoDestino) tiposAceitos.add(tipoDestino);
 
   return sugestoes.filter(s => {
     // Toda sugestão precisa ter tipo e nome
@@ -224,7 +207,7 @@ function construirInput(etapa, estado, mensagemJogador) {
 
   // Seed aleatório para variar sugestões de nomes
   if (etapa === 'boas_vindas') {
-    const shuffled = MITOLOGIAS.sort(() => Math.random() - 0.5).slice(0, 5);
+    const shuffled = [...MITOLOGIAS].sort(() => Math.random() - 0.5).slice(0, 5);
     parts.push(`[SEED DE VARIAÇÃO: use inspiração primária em mitologia ${shuffled.join(', ')}. Semente aleatória: ${Math.random().toString(36).substring(2, 8)}]`);
   }
 
@@ -333,11 +316,11 @@ export function invalidarChain() {
  * @param {number} params.userId - ID do usuário (para tracking)
  * @returns {Object} { mensagem, sugestoes, etapa_proxima, atributos_sugeridos }
  */
-export async function interagir({ etapa, estado, mensagemJogador, historico = [], userId }) {
+export async function interagir({ etapa, estado, mensagemJogador, historico = [], userId, actionMode = 'reply' }) {
   const startTime = Date.now();
 
   // Validar etapa
-  if (!ETAPAS.includes(etapa) && etapa !== 'confirmado') {
+  if (!ETAPAS.includes(etapa)) {
     throw new Error(`Etapa inválida: ${etapa}`);
   }
 
@@ -357,20 +340,21 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     // Parse da resposta
     let resultado = parseIAJson(response.content);
     if (!resultado) {
-      log.warn({ etapa }, 'Fallback - IA nao retornou JSON valido');
-      // Fallback: usar texto bruto como mensagem
+      log.warn({ etapa, rawContent: String(response.content).slice(0, 400) }, 'Fallback - IA nao retornou JSON valido');
       resultado = {
-        mensagem: response.content,
+        mensagem: getFallbackMessage(etapa) || 'Ocorreu um erro. Tente novamente.',
         sugestoes: [],
         etapa_proxima: TRANSICOES[etapa]?.[0] || etapa,
         atributos_sugeridos: null,
       };
     }
 
-    // Validar etapa_proxima PRIMEIRO (sugestões dependem dela)
-    const transicoesValidas = TRANSICOES[etapa] || [];
-    if (!transicoesValidas.includes(resultado.etapa_proxima) && resultado.etapa_proxima !== 'confirmado') {
-      resultado.etapa_proxima = transicoesValidas[0] || etapa;
+    // Validar etapa_proxima via policy
+    resultado.etapa_proxima = sanitizeEtapaProxima(etapa, resultado.etapa_proxima);
+
+    // Travar etapa se actionMode exigir (refresh, progressao manual sem continue)
+    if (shouldLockStage(etapa, actionMode)) {
+      resultado.etapa_proxima = etapa;
     }
 
     const etapaDestino = resultado.etapa_proxima || etapa;
@@ -413,21 +397,11 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
   } catch (error) {
     log.error({ err: error }, 'Erro na interacao');
 
-    // Fallback graceful
-    const fallbacks = {
-      boas_vindas: 'Bem-vindo, aventureiro! Como deseja ser chamado neste mundo?',
-      raca: 'Agora, qual será sua raça? Escolha entre as opções disponíveis.',
-      classe: 'E qual será sua vocação? Escolha uma classe que combine com seu espírito.',
-      background: 'Conte-me sobre sua história. De onde você vem? O que o trouxe até aqui?',
-      desvantagens: 'Todo herói tem suas fraquezas. Quais são as suas? Desvantagens devolvem pontos de criação.',
-      vantagens: 'Quais talentos especiais marcam sua jornada? Escolha suas vantagens.',
-      atributos: 'Distribua seus 60 pontos entre os atributos (mín 5, máx 16 cada).',
-      resumo: 'Seu personagem está quase pronto! Revise os detalhes.',
-      refinamento: 'Deseja ajustar algo antes de finalizar?',
-    };
-
-    // No catch, a próxima etapa é a transição padrão
-    const catchEtapaDestino = TRANSICOES[etapa]?.[0] || etapa;
+    // Fallback graceful — respeitar policy e actionMode mesmo em erro
+    let catchEtapaDestino = sanitizeEtapaProxima(etapa, TRANSICOES[etapa]?.[0] || etapa);
+    if (shouldLockStage(etapa, actionMode)) {
+      catchEtapaDestino = etapa;
+    }
 
     // Mesmo em erro, tentar gerar sugestões do catálogo para a etapa destino
     const fallbackSugestoes = ETAPAS_COM_SUGESTOES.includes(catchEtapaDestino)
@@ -435,10 +409,11 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
       : [];
 
     return {
-      mensagem: fallbacks[catchEtapaDestino] || fallbacks[etapa] || 'Ocorreu um erro. Tente novamente.',
+      mensagem: getFallbackMessage(catchEtapaDestino) || getFallbackMessage(etapa) || 'Ocorreu um erro. Tente novamente.',
       sugestoes: fallbackSugestoes,
       etapa_proxima: catchEtapaDestino,
       atributos_sugeridos: catchEtapaDestino === 'atributos' ? gerarAtributosFallback(estado) : null,
     };
   }
 }
+

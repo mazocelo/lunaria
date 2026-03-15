@@ -3,7 +3,6 @@ import db from '../../Model/index.js';
 import { criarGeradorBackground } from '../../agents/historia/personagem/background/index.js';
 import { criarValidadorPersonagem } from '../../agents/historia/personagem/validacao/index.js';
 import {
-  validarAtributos,
   validarVantagens,
   validarDesvantagens,
   calcularPontosVantagem,
@@ -14,6 +13,7 @@ import {
   maxCustoDesvantagem,
   EVOLUCAO
 } from '../../helpers/evolucaoHelper.js';
+import { validarAtributosCriacao } from '../../helpers/criacaoPersonagemHelper.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -175,12 +175,12 @@ class PersonagemController {
         return res.status(400).json({ success: false, error: `Nivel deve estar entre 1 e ${EVOLUCAO.NIVEL_MAX}` });
       }
 
-      // Validar atributos (range individual + total de pontos)
+      // Validar atributos de criacao com a regra oficial do wizard/simple create
       const atributos = {
         forca: forca || 10, inteligencia: inteligencia || 10, carisma: carisma || 10,
         destreza: destreza || 10, constituicao: constituicao || 10, agilidade: agilidade || 10
       };
-      const validacaoAtributos = validarAtributos(atributos, nivelEfetivo);
+      const validacaoAtributos = validarAtributosCriacao(atributos);
       if (!validacaoAtributos.valido) {
         return res.status(400).json({ success: false, error: validacaoAtributos.erros.join('; ') });
       }

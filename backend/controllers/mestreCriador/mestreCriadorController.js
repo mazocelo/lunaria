@@ -10,7 +10,7 @@ class MestreCriadorController {
    * Body: { etapa, estado, mensagemJogador, historico }
    */
   async interagir(req, res) {
-    const { etapa, estado, mensagemJogador, historico } = req.body;
+    const { etapa, estado, mensagemJogador, historico, actionMode } = req.body;
     const userId = req.user?.id;
 
     // Validação básica
@@ -34,6 +34,7 @@ class MestreCriadorController {
       mensagemJogador: mensagemJogador.trim(),
       historico: Array.isArray(historico) ? historico : [],
       userId,
+      actionMode: actionMode || 'reply',
     });
 
     return res.json({

@@ -14,6 +14,8 @@ import {
   EVOLUCAO
 } from '../../helpers/evolucaoHelper.js';
 import { validarAtributosCriacao } from '../../helpers/criacaoPersonagemHelper.js';
+import { buildFinalizacaoBase } from '../../helpers/finalizacaoInicialHelper.js';
+import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/FinalizacaoInicialAgent.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -1680,6 +1682,36 @@ class PersonagemController {
 
     } catch (error) {
       log.error({ err: error }, 'Erro ao validar coerência');
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  finalizacaoInicial = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const base = await buildFinalizacaoBase(parseInt(id));
+      const agent = await criarFinalizacaoInicialAgent();
+      const resultado = await agent.gerarFinalizacao(base, req.user?.id);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          personagem_id: base.snapshot.personagem_id,
+          fala_personagem: resultado.fala_personagem,
+          leitura_ficha: resultado.leitura_ficha,
+          combo: resultado.combo,
+          catalogo_editavel: base.catalogo_editavel,
+          meta: base.meta,
+        },
+      });
+    } catch (error) {
+      log.error({ err: error }, 'Erro na finalizacao inicial');
+      if (error.message === 'personagemId invalido') {
+        return res.status(400).json({ success: false, error: 'ID de personagem invalido' });
+      }
+      if (error.message?.includes('nao encontrado')) {
+        return res.status(404).json({ success: false, error: error.message });
+      }
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }

@@ -483,6 +483,9 @@ router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Personagem'), asy
  */
 router.post('/:id/background', writeLimiter, asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
 
+// POST /:id/finalizacao-inicial - Gerar finalizacao inicial via IA (equipamentos, habilidades, magias)
+router.post('/:id/finalizacao-inicial', writeLimiter, asyncHandlerWithContext(personagemController.finalizacaoInicial, personagemController));
+
 /**
  * @swagger
  * /api/personagens/historia/{historia_id}:

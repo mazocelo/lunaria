@@ -1,0 +1,175 @@
+import { RunnableSequence } from '@langchain/core/runnables';
+import { createFinalizacaoModel } from './model.js';
+import { createFinalizacaoPrompt } from './prompts.js';
+import { DEFAULT_MODEL_SETTINGS } from './config.js';
+import { trackLLMUsage } from '../../../services/llmTracker.js';
+import logger from '../../../helpers/logger.js';
+
+const log = logger.child({ module: 'FinalizacaoInicialAgent' });
+
+const TIMEOUT_MS = 15_000;
+
+// ── parseIAJson (padrao do codebase — 3 estrategias) ──
+
+function parseIAJson(content) {
+  try { return JSON.parse(content); } catch (_) { /* noop */ }
+
+  const cleaned = content
+    .replace(/^```(?:json)?\s*\n?/i, '')
+    .replace(/\n?```\s*$/i, '')
+    .trim();
+  try { return JSON.parse(cleaned); } catch (_) { /* noop */ }
+
+  const match = content.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch (_) { /* noop */ }
+  }
+
+  log.warn({ rawContent: content.substring(0, 300) }, 'JSON parse falhou');
+  return null;
+}
+
+// ── Timeout helper ──
+
+function withTimeout(promise, ms = TIMEOUT_MS) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('AI_TIMEOUT')), ms)
+    ),
+  ]);
+}
+
+// ── Sanitizacao: validar IDs contra catalogo ──
+
+function sanitizarCombo(combo, catalogoEditavel) {
+  const idsEquip = new Set(catalogoEditavel.equipamentos.map(e => e.id));
+  const idsHab = new Set(catalogoEditavel.habilidades.map(h => h.id));
+  const idsMag = new Set(catalogoEditavel.magias.map(m => m.id));
+
+  const filtrar = (items, idsValidos) =>
+    (Array.isArray(items) ? items : [])
+      .filter(item => item && typeof item.id === 'number' && idsValidos.has(item.id))
+      .map(item => ({
+        id: item.id,
+        nome: String(item.nome || ''),
+        motivo: String(item.motivo || ''),
+      }));
+
+  return {
+    equipamentos: filtrar(combo?.equipamentos, idsEquip),
+    habilidades: filtrar(combo?.habilidades, idsHab),
+    magias: filtrar(combo?.magias, idsMag),
+  };
+}
+
+// ── Fallback local ──
+
+function buildFallback(snapshot, catalogoEditavel, meta) {
+  const { nome, classe, raca } = snapshot;
+
+  return {
+    fala_personagem: `Sou ${nome}, ${classe} ${raca}. Pronto para a aventura.`,
+    leitura_ficha: `${classe} ${raca} Nv${meta.nivel}`,
+    combo: {
+      equipamentos: catalogoEditavel.equipamentos.slice(0, 3).map(e => ({
+        id: e.id, nome: e.nome, motivo: 'Sugestao padrao',
+      })),
+      habilidades: catalogoEditavel.habilidades.slice(0, 2).map(h => ({
+        id: h.id, nome: h.nome, motivo: 'Sugestao padrao',
+      })),
+      magias: catalogoEditavel.magias.slice(0, 2).map(m => ({
+        id: m.id, nome: m.nome, motivo: 'Sugestao padrao',
+      })),
+    },
+  };
+}
+
+// ── Formatar catalogo para prompt (compacto) ──
+
+function formatCatalogo(items) {
+  if (!items || items.length === 0) return '(vazio)';
+  return JSON.stringify(
+    items.map(i => ({ id: i.id, nome: i.nome, tipo: i.tipo || i.categoria || null, descricao: i.descricao || '' })),
+    null, 0
+  );
+}
+
+// ── Factory ──
+
+export default async function criarFinalizacaoInicialAgent() {
+  const modelName = DEFAULT_MODEL_SETTINGS.model;
+  const prompt = createFinalizacaoPrompt();
+  const model = createFinalizacaoModel();
+
+  const chain = RunnableSequence.from([prompt, model]);
+
+  return {
+    /**
+     * Gera finalizacao inicial para um personagem.
+     * @param {{ snapshot, catalogo_editavel, meta }} base - output de buildFinalizacaoBase
+     * @param {string|number} userId - para tracking de uso
+     * @returns {Promise<{ fala_personagem, leitura_ficha, combo }>}
+     */
+    gerarFinalizacao: async (base, userId) => {
+      const { snapshot, catalogo_editavel, meta } = base;
+
+      try {
+        const startTime = Date.now();
+
+        const response = await withTimeout(chain.invoke({
+          snapshot: JSON.stringify(snapshot, null, 2),
+          catalogo_equipamentos: formatCatalogo(catalogo_editavel.equipamentos),
+          catalogo_habilidades: formatCatalogo(catalogo_editavel.habilidades),
+          catalogo_magias: formatCatalogo(catalogo_editavel.magias),
+          meta: JSON.stringify(meta),
+        }));
+
+        trackLLMUsage(response, {
+          modelName,
+          userId,
+          startTime,
+          agent: 'FinalizacaoInicial',
+        });
+
+        const parsed = parseIAJson(response.content);
+
+        if (!parsed || !parsed.combo) {
+          log.warn('IA retornou JSON invalido, usando fallback');
+          return buildFallback(snapshot, catalogo_editavel, meta);
+        }
+
+        const comboSanitizado = sanitizarCombo(parsed.combo, catalogo_editavel);
+
+        // Se sanitizacao esvaziou o combo inteiro, cair no fallback
+        const totalItens = comboSanitizado.equipamentos.length
+          + comboSanitizado.habilidades.length
+          + comboSanitizado.magias.length;
+
+        if (totalItens === 0) {
+          log.warn({ personagem: snapshot.nome }, 'Combo esvaziado apos sanitizacao, usando fallback');
+          const fb = buildFallback(snapshot, catalogo_editavel, meta);
+          return {
+            fala_personagem: String(parsed.fala_personagem || fb.fala_personagem),
+            leitura_ficha: String(parsed.leitura_ficha || fb.leitura_ficha),
+            combo: fb.combo,
+          };
+        }
+
+        log.info(
+          { personagem: snapshot.nome, equip: comboSanitizado.equipamentos.length, hab: comboSanitizado.habilidades.length, mag: comboSanitizado.magias.length },
+          'Finalizacao inicial gerada'
+        );
+
+        return {
+          fala_personagem: String(parsed.fala_personagem || ''),
+          leitura_ficha: String(parsed.leitura_ficha || ''),
+          combo: comboSanitizado,
+        };
+      } catch (error) {
+        log.error({ err: error.message, personagem: snapshot.nome }, 'Erro na finalizacao inicial, usando fallback');
+        return buildFallback(snapshot, catalogo_editavel, meta);
+      }
+    },
+  };
+}

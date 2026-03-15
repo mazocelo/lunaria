@@ -1,8 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
+import { tierDesbloqueado } from '../../../../utils/evolucaoHelper.js';
 
 // Alinhado com Backend/helpers/evolucaoHelper.js
 const MAX_CUSTO_DESVANTAGEM = -3; // maxCustoDesvantagem(nivel=1) = 3
 const PONTOS_CRIACAO_BASE = 10;   // pontosVantagemBase(nivel=1) = 10
+const TIER_CRIACAO = tierDesbloqueado(1);
 
 /**
  * Gerencia pontos de criação, seleção de vantagens/desvantagens e limites.
@@ -83,6 +85,12 @@ export const usePointSystem = ({
 
   /** Seleciona ou desseleciona uma vantagem/desvantagem, validando limites. Retorna erro string ou null. */
   const selecionarVantagemDesvantagem = useCallback((tipo, id, nome, custo) => {
+    // Gate de tier: bloquear itens acima do tier permitido na criacao
+    const itemCatalogo = (vantagensDisponiveis || []).find(v => String(v.id) === String(id));
+    if (itemCatalogo && (itemCatalogo.nivel || 1) > TIER_CRIACAO) {
+      return `"${nome}" requer tier ${itemCatalogo.nivel}, mas a criacao so permite tier ${TIER_CRIACAO}`;
+    }
+
     const matchId = (stored) => String(stored) === String(id);
     if (tipo === 'vantagem') {
       const existente = vantagensIds.find(matchId);
@@ -110,7 +118,7 @@ export const usePointSystem = ({
       setDesvantagensNomes(prev => [...prev, nome]);
     }
     return null;
-  }, [vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem, removerSelecao]);
+  }, [vantagensIds, desvantagensIds, pontosCriacaoRestantes, pontosDesvantagem, removerSelecao, vantagensDisponiveis]);
 
   /** Reseta todas as seleções */
   const resetarSelecoes = useCallback(() => {

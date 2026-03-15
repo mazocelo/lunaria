@@ -8,6 +8,7 @@ import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { Personagem } from '../../../models/Personagem';
+import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
 const PONTOS_ATRIBUTO_CRIACAO = 60;
 const ATTR_MIN_CRIACAO = 5;
@@ -139,9 +140,11 @@ export const usePersonagemNovoModel = () => {
     }
   };
 
-  // Combine vantagens + desvantagens for the MultiSelect
+  // Combine vantagens + desvantagens for the MultiSelect, filtered by creation tier
+  const tierCriacao = tierDesbloqueado(1);
   const vantagensDisponiveis = useMemo(() => {
-    return [...(vantagens || []), ...(desvantagens || [])];
+    const todas = [...(vantagens || []), ...(desvantagens || [])];
+    return todas.filter(item => (item.nivel || 1) <= tierCriacao);
   }, [vantagens, desvantagens]);
 
   const racasDisponiveis = racas || [];
@@ -248,6 +251,18 @@ export const usePersonagemNovoModel = () => {
             vantagensIds.push(Number(id));
           }
         });
+      }
+
+      // Validacao defensiva de tier (protege contra estado contaminado)
+      const todosTracos = [...(vantagens || []), ...(desvantagens || [])];
+      const idsSelecionados = [...vantagensIds, ...desvantagensIds];
+      for (const selId of idsSelecionados) {
+        const traco = todosTracos.find(t => t.id === selId);
+        if (traco && (traco.nivel || 1) > tierCriacao) {
+          setError(`"${traco.nome}" requer tier ${traco.nivel}, mas a criacao so permite tier ${tierCriacao}`);
+          setLoading(false);
+          return;
+        }
       }
 
       const historiasIds = Array.isArray(historias)

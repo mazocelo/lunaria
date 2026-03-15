@@ -13,6 +13,7 @@ import { useDraftPersistence } from './hooks/useDraftPersistence';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useBonusCalculation } from './hooks/useBonusCalculation';
 import { usePointSystem } from './hooks/usePointSystem';
+import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
 export const useWizardModel = () => {
   const navigate = useNavigate();
@@ -42,8 +43,10 @@ export const useWizardModel = () => {
   // Catálogos combinados
   const racasDisponiveis = racas || [];
   const classesDisponiveis = classes || [];
+  const tierCriacao = tierDesbloqueado(1);
   const vantagensDisponiveis = useMemo(() => {
-    return [...(vantagens || []), ...(desvantagens || [])];
+    const todas = [...(vantagens || []), ...(desvantagens || [])];
+    return todas.filter(item => (item.nivel || 1) <= tierCriacao);
   }, [vantagens, desvantagens]);
 
   // --- Draft ---

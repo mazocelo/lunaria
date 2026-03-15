@@ -102,6 +102,7 @@ function montarPersonagens4Pilares(personagens) {
         if (d.efeito) {
           if (d.efeito.dc && d.efeito.atributo_teste) resultado += `\n  Teste: DC ${d.efeito.dc} de ${d.efeito.atributo_teste}`;
           if (d.efeito.descricao) resultado += `\n  Penalidade: ${d.efeito.descricao}`;
+          if (d.efeito.alvo_tipo) resultado += `\n  Alvo: ${d.efeito.alvo_tipo}`;
         }
         if (d.bonus) resultado += `\n  Penalidade mecânica: ${formatarBonus(d.bonus)}`;
         resultado += '\n';
@@ -360,6 +361,8 @@ function montarRegras4Pilares() {
 - Narre como parte da história: BOM: "A visão do tesouro faz seus olhos brilharem..." RUIM: "Sua desvantagem Ganancioso é ativada"
 - NÃO ative mais de 2 desvantagens na mesma cena
 - PRIORIZE desvantagens narrativas sobre mecânicas
+- **DIRECIONALIDADE**: Se efeito.alvo_tipo = "outros" → o efeito afeta NPCs/inimigos/animais próximos, NÃO o dono.
+  Exemplo: Aura Perturbadora (alvo: outros) → ativar_desvantagem ou aplicar_efeito com personagem="NPC afetado", NÃO o jogador dono.
 
 ### Habilidades (Jogador Declara)
 - O jogador diz "uso [habilidade]" → verifique acesso e sinalize ao backend via acoes

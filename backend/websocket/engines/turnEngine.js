@@ -329,12 +329,21 @@ export default class TurnEngine {
       if (ordemJogadores.length === 1) {
         resetTurnInteractions(sessao);
         transitionTurnState(sessao, TURN_STATUS.IDLE, {
-          jogadorAtual: null,
+          jogadorAtual: ordemJogadores[0]?.userId || null,
           lockReason: null
         });
         expirarStatusForaDeCombate(sm, roomId, sessao, '(solo)');
         await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
         sm.emitirEstadoTurno(roomId, sessao);
+
+        // Solo: re-emit turno_alterado so frontend recognizes it's the player's turn again
+        sm.sendToRoom(roomId, 'turno_alterado', {
+          rodadaAtual: estadoJogo.rodadaAtual || 1,
+          turnoAtual: 0,
+          jogadorAtual: ordemJogadores[0],
+          ordemCompleta: ordemJogadores,
+          timestamp: Date.now()
+        });
         return;
       }
 

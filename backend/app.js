@@ -46,7 +46,9 @@ app.set('views', path.join(path.resolve(), 'views'));
 app.set('view engine', 'jade');
 
 app.use(helmet());
-app.use(logger(isProduction ? 'combined' : 'dev'));
+app.use(logger(isProduction ? 'combined' : 'dev', {
+  skip: isProduction ? (req, res) => res.statusCode < 400 : undefined,
+}));
 app.use(cors(corsOptions));
 
 const globalLimiter = rateLimit({

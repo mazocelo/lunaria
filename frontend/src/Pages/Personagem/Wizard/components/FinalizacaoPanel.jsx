@@ -140,7 +140,7 @@ const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight }) => {
             <>
               <ComboSection
                 titulo="Equipamentos Sugeridos"
-                subtitulo="Serao adicionados ao inventario ao concluir"
+                subtitulo="Sugestoes — equipe na ficha do personagem"
                 icon={<Shield size={14} />}
                 items={combo?.equipamentos || []}
                 catalogo={catalogo_editavel?.equipamentos || []}

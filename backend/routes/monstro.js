@@ -112,13 +112,13 @@ router.get('/', asyncHandler(monstroController.listar));
  *         name: temas
  *         schema:
  *           type: string
- *         description: Temas separados por virgula (ex: medieval,fantasia)
+ *         description: "Temas separados por virgula (ex: medieval,fantasia)"
  *       - in: query
  *         name: dificuldade
  *         schema:
  *           type: string
  *           default: media
- *         description: Dificuldade do combate (facil, media, dificil)
+ *         description: "Dificuldade do combate (facil, media, dificil)"
  *     responses:
  *       200:
  *         description: Monstros selecionados para combate

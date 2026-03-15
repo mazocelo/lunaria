@@ -128,12 +128,12 @@ export function sanitizeEtapaProxima(etapaAtual, etapaProximaIA) {
  * Decide se deve travar a etapa com base no actionMode e na policy.
  *
  * @param {string} etapa
- * @param {string} actionMode - 'reply' | 'refresh_options' | 'continue_stage' | 'skip_stage' | 'enter_stage'
+ * @param {string} actionMode - 'reply' | 'refresh_options' | 'continue_stage' | 'enter_stage'
  * @returns {boolean} true se deve forcar etapa_proxima = etapa (nao avancar)
  */
 export function shouldLockStage(etapa, actionMode) {
-  // Refresh nunca avanca
-  if (actionMode === 'refresh_options') return true;
+  // Refresh e enter nunca avancam
+  if (actionMode === 'refresh_options' || actionMode === 'enter_stage') return true;
 
   const policy = getPolicy(etapa);
 

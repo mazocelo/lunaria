@@ -293,30 +293,13 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     setGeneratingScene(false);
   };
 
-  const handlePlayAudio = async () => {
+  const handleGenerateAudio = () => {
     if (isThisPlaying) {
       tts.togglePause();
       return;
     }
-
-    if (hasSegmentedNarration) {
-      await tts.playSequence(segmentItems, mensagem.id, {
-        allowGenerate: true,
-        sequenceKey: `scene:${mensagem.id}`
-      });
-      return;
-    }
-
-    await tts.play(
-      conteudo,
-      effectiveVoiceId,
-      mensagem.id,
-      effectiveVoiceProvider,
-      { allowGenerate: true }
-    );
+    setShowConfirmAudio(true);
   };
-
-  const handleGenerateAudio = () => setShowConfirmAudio(true);
 
   const confirmarGerarAudio = async () => {
     setShowConfirmAudio(false);
@@ -383,34 +366,20 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                   ) : '🖼️'}
                 </button>
                 {hasVoiceControls && (
-                  <>
-                    <button
-                      onClick={handlePlayAudio}
-                      disabled={tts.isLoading && isThisPlaying}
-                      className={`p-1.5 rounded-lg transition-all text-lg ${
-                        isThisPlaying && tts.isPlaying
-                          ? 'bg-purple-500/30 text-purple-200'
-                          : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
-                      }`}
-                      title={isThisPlaying && tts.isPlaying ? 'Pausar narracao' : hasSegmentedNarration ? 'Ouvir cena' : 'Ouvir narracao'}
-                    >
-                      {tts.isLoading && isThisPlaying ? (
-                        <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                      ) : isThisPlaying && tts.isPlaying ? '⏹' : hasSegmentedNarration ? '🎙️' : '🔊'}
-                    </button>
-                    <button
-                      onClick={handleGenerateAudio}
-                      disabled={tts.isLoading && isThisPlaying}
-                      className={`p-1.5 rounded-lg transition-all text-lg ${
-                        tts.isLoading && isThisPlaying
-                          ? 'bg-purple-500/30 text-purple-200'
-                          : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
-                      }`}
-                      title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
-                    >
-                      {'🎤'}
-                    </button>
-                  </>
+                  <button
+                    onClick={handleGenerateAudio}
+                    disabled={tts.isLoading && isThisPlaying}
+                    className={`p-1.5 rounded-lg transition-all text-lg ${
+                      isThisPlaying && tts.isPlaying
+                        ? 'bg-purple-500/30 text-purple-200'
+                        : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+                    }`}
+                    title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
+                  >
+                    {tts.isLoading && isThisPlaying ? (
+                      <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                    ) : isThisPlaying && tts.isPlaying ? '⏹' : '🔊'}
+                  </button>
                 )}
               </div>
               {tts.lastError && tts.errorMessageId === mensagem.id && (

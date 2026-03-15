@@ -15,6 +15,38 @@ import { useBonusCalculation } from './hooks/useBonusCalculation';
 import { usePointSystem } from './hooks/usePointSystem';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
+function deveDefinirNomeInicial(texto, options = {}) {
+  if (options.aceitarNome) return true;
+  if (options.manterEtapa) return false;
+
+  const valor = String(texto || '').trim();
+  if (!valor) return false;
+  if (valor.length > 40) return false;
+  if (/[.!?]$/.test(valor)) return false;
+
+  const normalizado = valor.toLowerCase();
+  const marcadoresDePedido = [
+    'sugira',
+    'sugest',
+    'nomes',
+    'nome para',
+    'personagem',
+    'mostre',
+    'outras op',
+    'novas leituras',
+    'me de',
+    'me dê',
+    'quero ajuda',
+  ];
+
+  if (marcadoresDePedido.some((termo) => normalizado.includes(termo))) {
+    return false;
+  }
+
+  const palavras = valor.split(/\s+/).filter(Boolean);
+  return palavras.length >= 1 && palavras.length <= 4;
+}
+
 export const useWizardModel = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -332,7 +364,7 @@ export const useWizardModel = () => {
     const manterEtapa = options?.manterEtapa === true;
     const estadoOverride = {};
 
-    if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome) {
+    if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome && deveDefinirNomeInicial(mensagemJogador, options)) {
       setNome(mensagemJogador);
       estadoOverride.nome = mensagemJogador;
     } else if (navigation.etapaAtual === 'background') {

@@ -85,6 +85,7 @@ const WizardView = (props) => {
     aplicarEquipamentos,
     aplicandoEquipamentos,
     equipamentosAplicados,
+    equipamentosFalhas,
     regenerarEquipamentos,
     regeneracoesUsadas,
     regenerando,

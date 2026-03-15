@@ -183,7 +183,7 @@ const WizardChat = ({
                       <button
                         key={`nome-${i}`}
                         type="button"
-                        onClick={() => onEnviar(sug.nome)}
+                        onClick={() => onEnviar(sug.nome, { aceitarNome: true })}
                         className="wa-panel-soft rounded-full px-3.5 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
                         title={sug.descricao || ''}
                       >

@@ -76,16 +76,6 @@ export default class TestEngine {
           await sm.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
         }
 
-        appendMensagemSessao(sessao, buildDadoMensagem({
-          userId,
-          username,
-          personagemNome: username,
-          dice,
-          result,
-          description,
-          origem: 'turno'
-        }));
-
         const tentativaResolucao = resolverTestePendente(sessao, userId);
         const testeResolvido = tentativaResolucao.ok ? tentativaResolucao.teste : null;
         const dadosSolicitados = !!testeResolvido;
@@ -106,6 +96,17 @@ export default class TestEngine {
         sm.sendToRoom(roomId, 'dice_roll', { ...rollData, dadosSolicitados });
 
         if (!testeResolvido) {
+          // Only persist the raw roll when no test resolution follows
+          // (resultado_teste already includes all roll info, avoiding duplicate on reload)
+          appendMensagemSessao(sessao, buildDadoMensagem({
+            userId,
+            username,
+            personagemNome: username,
+            dice,
+            result,
+            description,
+            origem: 'turno'
+          }));
           await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           await sm.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
           sm.emitirEstadoTurno(roomId, sessao);

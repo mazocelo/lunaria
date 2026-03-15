@@ -230,19 +230,45 @@ const PersonagemPreviewCard = ({
       </button>
 
       <div className={`${collapsed ? 'hidden md:block' : ''}`}>
-        <div className="relative overflow-hidden border-b border-[var(--wa-border)] p-4">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.12),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(45,212,191,0.06),transparent_24%)]" />
-          <div className="relative flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="wa-forge-chip inline-flex rounded-full px-2 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-                Dossie em forja
+        <div className="border-b border-[var(--wa-border)] p-4">
+          <div className={`rounded-[20px] border px-4 py-4 ${
+            isLight
+              ? 'border-slate-200/80 bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]'
+              : 'border-[rgba(139,92,246,0.14)] bg-[linear-gradient(180deg,rgba(25,20,45,0.94),rgba(20,17,36,0.86))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+          }`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] font-modern font-semibold uppercase tracking-[0.22em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                  Dossie do heroi
+                </p>
+                <h3 className={`mt-2 break-words text-[1.95rem] font-fantasy font-bold leading-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  {nome || 'Heroi sem nome'}
+                </h3>
+
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                      Linhagem
+                    </span>
+                    <span className={`min-w-0 text-right text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      {racaNome || 'Pendente'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                      Vocacao
+                    </span>
+                    <span className={`min-w-0 text-right text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      {classeNome || 'Pendente'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <h3 className={`mt-3 truncate text-xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{nome || 'Heroi sem selo'}</h3>
-              <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                {racaNome || 'Linhagem pendente'} {classeNome ? `· ${classeNome}` : '· Vocacao pendente'}
-              </p>
+
+              <div className="shrink-0 pt-0.5">
+                <WizardReadinessSeal readinessState={finalReadinessState} compact />
+              </div>
             </div>
-            <WizardReadinessSeal readinessState={finalReadinessState} />
           </div>
         </div>
 

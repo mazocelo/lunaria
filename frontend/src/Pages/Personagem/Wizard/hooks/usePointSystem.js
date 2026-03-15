@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { tierDesbloqueado } from '../../../../utils/evolucaoHelper.js';
 
 // Alinhado com Backend/helpers/evolucaoHelper.js
@@ -27,6 +27,33 @@ export const usePointSystem = ({
 
   const [skipVantagens, setSkipVantagens] = useState(draftInicial?.skipVantagens || false);
   const [skipDesvantagens, setSkipDesvantagens] = useState(draftInicial?.skipDesvantagens || false);
+
+  // Sanear IDs de draft restaurado: remover itens fora do catálogo filtrado
+  const draftSaneado = useRef(false);
+  useEffect(() => {
+    if (draftSaneado.current || !vantagensDisponiveis?.length) return;
+    draftSaneado.current = true;
+    const idsValidos = new Set(vantagensDisponiveis.map(v => String(v.id)));
+
+    setVantagensIds(prev => {
+      const filtrados = prev.filter(id => idsValidos.has(String(id)));
+      return filtrados.length === prev.length ? prev : filtrados;
+    });
+    setVantagensNomes(prev => {
+      const nomesValidos = new Set(vantagensDisponiveis.filter(v => v.custo > 0 || v.compravel !== false).map(v => v.nome));
+      const filtrados = prev.filter(n => nomesValidos.has(n));
+      return filtrados.length === prev.length ? prev : filtrados;
+    });
+    setDesvantagensIds(prev => {
+      const filtrados = prev.filter(id => idsValidos.has(String(id)));
+      return filtrados.length === prev.length ? prev : filtrados;
+    });
+    setDesvantagensNomes(prev => {
+      const nomesValidos = new Set(vantagensDisponiveis.filter(v => v.custo < 0).map(v => v.nome));
+      const filtrados = prev.filter(n => nomesValidos.has(n));
+      return filtrados.length === prev.length ? prev : filtrados;
+    });
+  }, [vantagensDisponiveis]);
 
   // Pontos de desvantagem usados (soma dos custos negativos)
   const pontosDesvantagem = useMemo(() => {
@@ -85,19 +112,33 @@ export const usePointSystem = ({
 
   /** Seleciona ou desseleciona uma vantagem/desvantagem, validando limites. Retorna erro string ou null. */
   const selecionarVantagemDesvantagem = useCallback((tipo, id, nome, custo) => {
-    // Gate de tier: bloquear itens acima do tier permitido na criacao
-    const itemCatalogo = (vantagensDisponiveis || []).find(v => String(v.id) === String(id));
-    if (itemCatalogo && (itemCatalogo.nivel || 1) > TIER_CRIACAO) {
-      return `"${nome}" requer tier ${itemCatalogo.nivel}, mas a criacao so permite tier ${TIER_CRIACAO}`;
-    }
-
     const matchId = (stored) => String(stored) === String(id);
+
+    // Permitir toggle (desseleção) mesmo para itens fora do catálogo
     if (tipo === 'vantagem') {
       const existente = vantagensIds.find(matchId);
       if (existente !== undefined) {
         removerSelecao('vantagem', existente);
         return null;
       }
+    } else if (tipo === 'desvantagem') {
+      const existente = desvantagensIds.find(matchId);
+      if (existente !== undefined) {
+        removerSelecao('desvantagem', existente);
+        return null;
+      }
+    }
+
+    // Gate de tier: bloquear adição de itens ausentes do catálogo filtrado
+    const itemCatalogo = (vantagensDisponiveis || []).find(v => String(v.id) === String(id));
+    if (!itemCatalogo) {
+      return `"${nome}" nao esta disponivel para selecao neste nivel`;
+    }
+    if ((itemCatalogo.nivel || 1) > TIER_CRIACAO) {
+      return `"${nome}" requer tier ${itemCatalogo.nivel}, mas a criacao so permite tier ${TIER_CRIACAO}`;
+    }
+
+    if (tipo === 'vantagem') {
       const custoNum = Number(custo) || 0;
       if (custoNum > pontosCriacaoRestantes) {
         return `Pontos de criação insuficientes. Disponível: ${pontosCriacaoRestantes}, Custo: ${custoNum}`;
@@ -105,11 +146,6 @@ export const usePointSystem = ({
       setVantagensIds(prev => [...prev, id]);
       setVantagensNomes(prev => [...prev, nome]);
     } else if (tipo === 'desvantagem') {
-      const existente = desvantagensIds.find(matchId);
-      if (existente !== undefined) {
-        removerSelecao('desvantagem', existente);
-        return null;
-      }
       const custoNum = Number(custo) || 0;
       if (pontosDesvantagem + custoNum < MAX_CUSTO_DESVANTAGEM) {
         return `Limite de ${Math.abs(MAX_CUSTO_DESVANTAGEM)} pontos de desvantagem atingido (atual: ${Math.abs(pontosDesvantagem)})`;

@@ -1,7 +1,37 @@
 ﻿import React, { useRef, useEffect, useMemo } from 'react';
 import { RPGMessage } from '../../RPGMessage';
-import { MESSAGE_RENDERERS, MestreMessage } from './renderers';
+import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
+
+function groupConsecutiveMessages(mensagens) {
+  const groups = [];
+  let currentMestreGroup = [];
+
+  for (const msg of mensagens) {
+    const tipo = msg.tipo || msg.type;
+    if (tipo === 'mestre') {
+      currentMestreGroup.push(msg);
+    } else {
+      if (currentMestreGroup.length > 0) {
+        groups.push(
+          currentMestreGroup.length === 1
+            ? { type: 'single', mensagem: currentMestreGroup[0] }
+            : { type: 'mestre_group', mensagens: [...currentMestreGroup] }
+        );
+        currentMestreGroup = [];
+      }
+      groups.push({ type: 'single', mensagem: msg });
+    }
+  }
+  if (currentMestreGroup.length > 0) {
+    groups.push(
+      currentMestreGroup.length === 1
+        ? { type: 'single', mensagem: currentMestreGroup[0] }
+        : { type: 'mestre_group', mensagens: [...currentMestreGroup] }
+    );
+  }
+  return groups;
+}
 
 /**
  * Area central do chat do jogo RPG
@@ -19,6 +49,8 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     () => currentTtsMessage?.segmentos?.find((segmento) => String(segmento.id) === String(tts.currentSegmentId)) || null,
     [currentTtsMessage, tts.currentSegmentId]
   );
+
+  const groupedMessages = useMemo(() => groupConsecutiveMessages(mensagens), [mensagens]);
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -69,7 +101,24 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
         <div className="w-full max-w-4xl mx-auto">
           <div className="space-y-5 mb-6">
             {mensagens.length > 0 ? (
-              mensagens.map((mensagem, index) => renderMensagem(mensagem, index))
+              groupedMessages.map((group, idx) => {
+                if (group.type === 'mestre_group') {
+                  return (
+                    <MestreMessageGroup
+                      key={group.mensagens[0].id || idx}
+                      mensagens={group.mensagens}
+                      voiceId={voiceId}
+                      voiceProvider={voiceProvider}
+                      tts={tts}
+                      entidadesComImagem={entidadesComImagem}
+                      contextoImagemCena={contextoImagemCena}
+                      onSceneImageGenerated={onSceneImageGenerated}
+                      estiloImagem={estiloImagem}
+                    />
+                  );
+                }
+                return renderMensagem(group.mensagem, group.mensagem.id || idx);
+              })
             ) : (
               <div className="text-center py-12">
                 <div className="glass p-10 rounded-2xl border-2 border-purple-500/40 shadow-2xl">

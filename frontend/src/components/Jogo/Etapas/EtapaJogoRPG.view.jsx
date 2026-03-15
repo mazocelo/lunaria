@@ -4,6 +4,7 @@ import BackgroundEffects from '../Shared/BackgroundEffects';
 import PainelJogadores from '../Chat/PainelJogadores';
 import ChatArea from '../Chat/ChatArea';
 import ActionDock from '../Chat/ActionDock';
+import MestrePensandoBanner from '../Chat/MestrePensandoBanner';
 import SessionHeader from '../Chat/SessionHeader';
 import StatusPersonagem from '../Gameplay/StatusPersonagem';
 import RolagemDadosInicial from '../Gameplay/RolagemDadosInicial';
@@ -60,7 +61,7 @@ const EtapaJogoRPGView = (props) => {
 
     // Derived
     infoPersonagem, jogadoresExibir,
-    dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre,
+    dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre, mestrePensando,
     jaRolouDadoInicial, cooldownLocal,
     entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
     turnoIniciado, turnoStatus, ordemDefinida,
@@ -153,6 +154,8 @@ const EtapaJogoRPGView = (props) => {
               onSceneImageGenerated={handleSceneImageGenerated}
               estiloImagem={historia?.estilo_imagem}
             />
+
+            <MestrePensandoBanner ativo={mestrePensando} />
 
             <ActionDock
               mensagemAtual={mensagemAtual}

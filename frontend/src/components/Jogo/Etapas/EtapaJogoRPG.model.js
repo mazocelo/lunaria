@@ -197,6 +197,7 @@ export const useEtapaJogoRPGModel = ({
       }
     : null;
   const aguardandoRespostaMestre = useSocketStore(s => s.aguardandoRespostaMestre);
+  const mestrePensando = useSocketStore(s => s.mestrePensando);
   const aguardandoMestre = turnoStatus === 'resolving_roll' || aguardandoRespostaMestre;
   const jaRolouDadoInicial = !!resultadosDados[user?.id];
 
@@ -253,7 +254,7 @@ export const useEtapaJogoRPGModel = ({
 
     // Derived
     infoPersonagem, participantesFormatados, jogadoresExibir,
-    dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre,
+    dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre, mestrePensando,
     jaRolouDadoInicial, cooldownLocal,
     entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
 

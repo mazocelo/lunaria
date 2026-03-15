@@ -213,7 +213,7 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instancia compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
+export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, grouped = false, isFirst = false }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = RE_SOLICITACAO_DADOS.test(conteudo);
   const isThisPlaying = String(tts.currentMessageId) === String(mensagem.id);
@@ -345,8 +345,8 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     );
   };
 
-  return (
-    <div className="w-full animate-fade-in">
+  const innerContent = (
+    <>
       <ConfirmationModal
         isOpen={showConfirmAudio}
         onClose={() => setShowConfirmAudio(false)}
@@ -357,6 +357,119 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
         cancelText="Cancelar"
         type="info"
       />
+      <div className="flex items-center justify-between mb-2">
+        {(!grouped || isFirst) && (
+          <p className={`font-semibold text-sm uppercase tracking-wide ${
+            temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
+          }`}>
+            Mestre {temSolicitacaoDados && '— Solicita Rolagem!'}
+          </p>
+        )}
+        {grouped && !isFirst && <div />}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleGenerateScene}
+            disabled={generatingScene}
+            className={`p-1.5 rounded-lg transition-all text-lg ${
+              generatingScene
+                ? 'bg-purple-500/30 text-purple-200'
+                : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+            }`}
+            title={generatingScene ? 'Gerando ilustracao...' : 'Ilustrar cena'}
+          >
+            {generatingScene ? (
+              <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+            ) : '🖼️'}
+          </button>
+          {hasVoiceControls && (
+            <button
+              onClick={handleGenerateAudio}
+              disabled={isGeneratingThis}
+              className={`p-1.5 rounded-lg transition-all text-lg ${
+                isGeneratingThis
+                  ? 'opacity-50 cursor-not-allowed'
+                  : hasAnyAudio
+                    ? 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
+                    : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-200'
+              }`}
+              title={hasAnyAudio ? 'Regenerar audio' : 'Gerar audio'}
+            >
+              {isGeneratingThis ? (
+                <span className="inline-block w-5 h-5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+              ) : '🔊'}
+            </button>
+          )}
+          {hasVoiceControls && hasAnyAudio && (
+            <button
+              onClick={handlePlayAudio}
+              className={`p-1.5 rounded-lg transition-all text-lg ${
+                isThisPlaying && tts.isPlaying
+                  ? 'bg-purple-500/30 text-purple-200'
+                  : 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
+              }`}
+              title={isThisPlaying && tts.isPlaying ? 'Pausar' : 'Reproduzir audio'}
+            >
+              {isThisPlaying && tts.isPlaying ? '⏸' : '▶'}
+            </button>
+          )}
+        </div>
+        {tts.lastError && tts.errorMessageId === mensagem.id && (
+          <p className="text-red-400 text-xs mt-1 text-right">{tts.lastError}</p>
+        )}
+      </div>
+      {hasSegmentedNarration ? (
+        <NarrationSegments
+          segments={mensagem.segmentos || []}
+          messageId={mensagem.id}
+          tts={tts}
+          defaultVoiceId={effectiveVoiceId}
+          defaultVoiceProvider={effectiveVoiceProvider}
+        />
+      ) : (
+        <MarkdownRenderer className="text-white text-lg leading-relaxed">
+          {conteudo}
+        </MarkdownRenderer>
+      )}
+      {entidadesMencionadas.length > 0 && (
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {entidadesMencionadas.map((e, i) => (
+            <div key={i} className="relative group/entity">
+              <img
+                src={e.imagem}
+                alt={e.nome}
+                className="h-24 w-24 object-cover rounded-lg border border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all select-none caret-transparent"
+                draggable={false}
+                onClick={() => setActiveLightbox(e.imagem)}
+              />
+              <span className="absolute bottom-0 left-0 right-0 text-xs text-center bg-black/60 text-white rounded-b-lg px-1 py-0.5 truncate">
+                {e.nome}
+              </span>
+            </div>
+          ))}
+          <ImageLightbox src={activeLightbox} alt="" isOpen={!!activeLightbox} onClose={() => setActiveLightbox(null)} />
+        </div>
+      )}
+      {sceneImage && (
+        <div className="mt-3 relative group">
+          <img src={sceneImage} alt="Ilustracao da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer select-none caret-transparent" draggable={false} onClick={() => setSceneLightbox(true)} />
+          <button
+            onClick={() => setSceneImage(null)}
+            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent"
+          >
+            <span className="text-xs">{'✕'}</span>
+          </button>
+          <ImageLightbox src={sceneImage} alt="Ilustracao da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
+        </div>
+      )}
+    </>
+  );
+
+  if (grouped) {
+    return <div>{innerContent}</div>;
+  }
+
+  return (
+    <div className="w-full animate-fade-in">
       <div className={`glass p-4 rounded-xl border-2 shadow-2xl border-l-4 ${
         temSolicitacaoDados || mensagem.destaque
           ? 'border-amber-400/90 border-l-amber-400/80 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
@@ -367,113 +480,45 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
             {temSolicitacaoDados ? '\u{1F3B2}' : '\u{1F3AD}'}
           </span>
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <p className={`font-semibold text-sm uppercase tracking-wide ${
-                temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
-              }`}>
-                Mestre {temSolicitacaoDados && '— Solicita Rolagem!'}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleGenerateScene}
-                  disabled={generatingScene}
-                  className={`p-1.5 rounded-lg transition-all text-lg ${
-                    generatingScene
-                      ? 'bg-purple-500/30 text-purple-200'
-                      : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
-                  }`}
-                  title={generatingScene ? 'Gerando ilustracao...' : 'Ilustrar cena'}
-                >
-                  {generatingScene ? (
-                    <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                  ) : '🖼️'}
-                </button>
-                {hasVoiceControls && (
-                  <button
-                    onClick={handleGenerateAudio}
-                    disabled={isGeneratingThis}
-                    className={`p-1.5 rounded-lg transition-all text-lg ${
-                      isGeneratingThis
-                        ? 'opacity-50 cursor-not-allowed'
-                        : hasAnyAudio
-                          ? 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
-                          : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-200'
-                    }`}
-                    title={hasAnyAudio ? 'Regenerar audio' : 'Gerar audio'}
-                  >
-                    {isGeneratingThis ? (
-                      <span className="inline-block w-5 h-5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
-                    ) : '🔊'}
-                  </button>
-                )}
-                {hasVoiceControls && hasAnyAudio && (
-                  <button
-                    onClick={handlePlayAudio}
-                    className={`p-1.5 rounded-lg transition-all text-lg ${
-                      isThisPlaying && tts.isPlaying
-                        ? 'bg-purple-500/30 text-purple-200'
-                        : 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
-                    }`}
-                    title={isThisPlaying && tts.isPlaying ? 'Pausar' : 'Reproduzir audio'}
-                  >
-                    {isThisPlaying && tts.isPlaying ? '⏸' : '▶'}
-                  </button>
-                )}
-              </div>
-              {tts.lastError && tts.errorMessageId === mensagem.id && (
-                <p className="text-red-400 text-xs mt-1 text-right">{tts.lastError}</p>
-              )}
-            </div>
-            {hasSegmentedNarration ? (
-              <NarrationSegments
-                segments={mensagem.segmentos || []}
-                messageId={mensagem.id}
-                tts={tts}
-                defaultVoiceId={effectiveVoiceId}
-                defaultVoiceProvider={effectiveVoiceProvider}
-              />
-            ) : (
-              <MarkdownRenderer className="text-white text-lg leading-relaxed">
-                {conteudo}
-              </MarkdownRenderer>
-            )}
-            {entidadesMencionadas.length > 0 && (
-              <div className="flex gap-2 mt-3 flex-wrap">
-                {entidadesMencionadas.map((e, i) => (
-                  <div key={i} className="relative group/entity">
-                    <img
-                      src={e.imagem}
-                      alt={e.nome}
-                      className="h-24 w-24 object-cover rounded-lg border border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all select-none caret-transparent"
-                      draggable={false}
-                      onClick={() => setActiveLightbox(e.imagem)}
-                    />
-                    <span className="absolute bottom-0 left-0 right-0 text-xs text-center bg-black/60 text-white rounded-b-lg px-1 py-0.5 truncate">
-                      {e.nome}
-                    </span>
-                  </div>
-                ))}
-                <ImageLightbox src={activeLightbox} alt="" isOpen={!!activeLightbox} onClose={() => setActiveLightbox(null)} />
-              </div>
-            )}
-            {sceneImage && (
-              <div className="mt-3 relative group">
-                <img src={sceneImage} alt="Ilustracao da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer select-none caret-transparent" draggable={false} onClick={() => setSceneLightbox(true)} />
-                <button
-                  onClick={() => setSceneImage(null)}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent"
-                >
-                  <span className="text-xs">{'✕'}</span>
-                </button>
-                <ImageLightbox src={sceneImage} alt="Ilustracao da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
-              </div>
-            )}
+            {innerContent}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+/**
+ * MestreMessageGroup - Agrupa 2+ mensagens consecutivas do mestre em um unico card
+ */
+export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => (
+  <div className="w-full animate-fade-in">
+    <div className="glass p-4 rounded-xl border-2 shadow-2xl border-l-4 border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30">
+      <div className="flex items-start space-x-3">
+        <span className="text-2xl drop-shadow-lg mt-0.5">{'\u{1F3AD}'}</span>
+        <div className="flex-1">
+          {mensagens.map((msg, i) => (
+            <React.Fragment key={msg.id || i}>
+              {i > 0 && <hr className="border-purple-500/20 my-3" />}
+              <MestreMessage
+                mensagem={msg}
+                grouped
+                isFirst={i === 0}
+                voiceId={voiceId}
+                voiceProvider={voiceProvider}
+                tts={tts}
+                entidadesComImagem={entidadesComImagem}
+                contextoImagemCena={contextoImagemCena}
+                onSceneImageGenerated={onSceneImageGenerated}
+                estiloImagem={estiloImagem}
+              />
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export const renderJogador = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in">

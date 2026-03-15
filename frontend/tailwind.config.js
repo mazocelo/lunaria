@@ -18,6 +18,7 @@ export default {
         'float': 'float 6s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite',
         'shimmer': 'shimmer 1.5s infinite',
+        'slide-up': 'slideUp 0.3s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
@@ -47,6 +48,10 @@ export default {
         glow: {
           '0%, 100%': { boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' },
           '50%': { boxShadow: '0 0 30px rgba(139, 92, 246, 0.6)' },
+        },
+        slideUp: {
+          'from': { opacity: '0', transform: 'translateY(8px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

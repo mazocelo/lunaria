@@ -97,9 +97,13 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
   // 14 socket listeners
   useEffect(() => {
+    const handleMestrePensando = (data) => {
+      useSocketStore.setState({ mestrePensando: !!data?.ativo });
+    };
+
     const handleMensagemMestre = (data) => {
-      // Limpar flag de aguardando resposta
-      useSocketStore.setState({ aguardandoRespostaMestre: false });
+      // Limpar flags de aguardando resposta
+      useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false });
 
       const mensagensAtuais = useGameStore.getState().mensagens || [];
       // Limpar loading e streaming placeholders
@@ -345,7 +349,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleErroMensagem = (data) => {
-      useSocketStore.setState({ aguardandoRespostaMestre: false });
+      useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false });
       if (data?.message) showGameNotification(data.message, 'warning');
       const msgs = useGameStore.getState().mensagens || [];
       const semLoading = msgs.filter(m => m.tipo !== 'loading');
@@ -396,6 +400,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     socketStoreOn('combate_finalizado', handleCombateFinalizado);
     socketStoreOn('combate_loot', handleCombateLoot);
     socketStoreOn('erro_mensagem', handleErroMensagem);
+    socketStoreOn('mestre_pensando', handleMestrePensando);
     socketStoreOn('mestre_stream_start', handleMestreStreamStart);
     socketStoreOn('mestre_stream_chunk', handleMestreStreamChunk);
     socketStoreOn('mestre_stream_end', handleMestreStreamEnd);
@@ -415,6 +420,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       socketStoreOff('combate_finalizado', handleCombateFinalizado);
       socketStoreOff('combate_loot', handleCombateLoot);
       socketStoreOff('erro_mensagem', handleErroMensagem);
+      socketStoreOff('mestre_pensando', handleMestrePensando);
       socketStoreOff('mestre_stream_start', handleMestreStreamStart);
       socketStoreOff('mestre_stream_chunk', handleMestreStreamChunk);
       socketStoreOff('mestre_stream_end', handleMestreStreamEnd);

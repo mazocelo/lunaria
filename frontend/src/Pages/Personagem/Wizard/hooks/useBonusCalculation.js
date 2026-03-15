@@ -64,7 +64,7 @@ export const useBonusCalculation = ({
   const [bonusInvalidado, setBonusInvalidado] = useState(false);
   const [atributosSugeridos, setAtributosSugeridos] = useState(null);
 
-  const bonusDetalhes = useMemo(() => {
+  const { bonusDetalhes, bonusFontes } = useMemo(() => {
     const racaObj = (racasDisponiveis || []).find((r) => String(r.id) === String(racaId));
     const classeObj = (classesDisponiveis || []).find((c) => String(c.id) === String(classeId));
     const racaBonus = parseRacaClasseBonus(racaObj?.bonus) || {};
@@ -75,11 +75,31 @@ export const useBonusCalculation = ({
     const tracosSelecionados = allItems.filter((item) => selectedIds.has(String(item.id)));
     const tracosBonus = somarBonusAtributos(tracosSelecionados);
 
-    return BONUS_ATTR_KEYS.reduce((acc, key) => {
-      const bonus = (Number(racaBonus[key]) || 0) + (Number(classeBonus[key]) || 0) + (Number(tracosBonus[key]) || 0);
-      if (bonus !== 0) acc[key] = bonus;
-      return acc;
-    }, {});
+    const detalhes = {};
+    const fontes = {};
+
+    for (const key of BONUS_ATTR_KEYS) {
+      const rVal = Number(racaBonus[key]) || 0;
+      const cVal = Number(classeBonus[key]) || 0;
+      const tVal = Number(tracosBonus[key]) || 0;
+      const total = rVal + cVal + tVal;
+      if (total !== 0) detalhes[key] = total;
+
+      const keyFontes = [];
+      if (rVal !== 0) keyFontes.push({ label: racaObj?.nome || 'Raça', valor: rVal });
+      if (cVal !== 0) keyFontes.push({ label: classeObj?.nome || 'Classe', valor: cVal });
+
+      // Per-trait breakdown
+      for (const traco of tracosSelecionados) {
+        const tracoB = parseRacaClasseBonus(traco?.bonus) || {};
+        const v = Number(tracoB[key]) || 0;
+        if (v !== 0) keyFontes.push({ label: traco.nome || 'Traço', valor: v });
+      }
+
+      if (keyFontes.length > 0) fontes[key] = keyFontes;
+    }
+
+    return { bonusDetalhes: detalhes, bonusFontes: fontes };
   }, [racaId, classeId, vantagensIds, desvantagensIds, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
 
   const atributosFinal = useMemo(() => {
@@ -124,6 +144,7 @@ export const useBonusCalculation = ({
     atributosBase,
     atributosFinal,
     bonusDetalhes,
+    bonusFontes,
     bonusAplicados,
     bonusInvalidado,
     atributosSugeridos,

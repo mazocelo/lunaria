@@ -749,6 +749,7 @@ export const useWizardModel = () => {
     atributosSugeridos: bonusCalc.atributosSugeridos,
     bonusAplicados: bonusCalc.bonusAplicados,
     bonusDetalhes: bonusCalc.bonusDetalhes,
+    bonusFontes: bonusCalc.bonusFontes,
     bonusInvalidado: bonusCalc.bonusInvalidado,
     pontosDistribuidos: bonusCalc.pontosDistribuidos,
     pontosRestantes: bonusCalc.pontosRestantes,

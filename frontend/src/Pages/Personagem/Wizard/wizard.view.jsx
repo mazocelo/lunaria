@@ -58,6 +58,7 @@ const WizardView = (props) => {
     clearError,
     bonusAplicados,
     bonusDetalhes,
+    bonusFontes,
     bonusInvalidado,
     skipVantagens,
     skipDesvantagens,
@@ -296,6 +297,7 @@ const WizardView = (props) => {
                 aplicarAtributosSugeridos={aplicarAtributosSugeridos}
                 bonusAplicados={bonusAplicados}
                 bonusDetalhes={bonusDetalhes}
+                bonusFontes={bonusFontes}
                 pontosCriacaoTotal={pontosCriacaoTotal}
                 pontosCriacaoRestantes={pontosCriacaoRestantes}
                 pontosGastos={pontosGastos}

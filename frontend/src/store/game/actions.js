@@ -119,15 +119,14 @@ export const createGameActions = (set, get) => ({
   adicionarMensagem: (mensagem) => {
     const { mensagens } = get();
     const mensagemNormalizada = normalizeGameMessage(mensagem);
-    let messageId = mensagemNormalizada.id;
+    const messageId = mensagemNormalizada.id;
 
-    // Garantir id unico para evitar colisao de render/update entre mensagens
-    if (mensagens.some(m => String(m.id) === String(messageId))) {
-      messageId = `${messageId}_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
+    // Deduplicar por id — se já existe, não adicionar
+    if (messageId && mensagens.some(m => String(m.id) === String(messageId))) {
+      return;
     }
 
-    const msg = { ...mensagemNormalizada, id: messageId };
-    set({ mensagens: [...mensagens, msg] });
+    set({ mensagens: [...mensagens, mensagemNormalizada] });
   },
 
   atualizarMensagem: (id, campos) => {

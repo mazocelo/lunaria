@@ -37,7 +37,6 @@ export function useActiveModel() {
     error,
     adicionarMensagem,
     atualizarStatusPersonagem,
-    carregarMensagensSalvas,
     retomarJogo,
     clearErrors,
   } = useJogo();
@@ -161,15 +160,6 @@ export function useActiveModel() {
       joinAttemptKeyRef.current = null;
     }
   }, [isConnected]);
-
-  // ------------------------------------------------------------------
-  // EFFECT 6: Carregar mensagens salvas (historia + socket conectado)
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    if (historiaAtual?.id && isConnected) {
-      carregarMensagensSalvas(historiaAtual.id);
-    }
-  }, [historiaAtual?.id, isConnected, carregarMensagensSalvas]);
 
   // ------------------------------------------------------------------
   // HANDLERS

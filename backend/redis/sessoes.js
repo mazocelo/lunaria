@@ -103,11 +103,18 @@ class SessaoRPG {
     try {
       await this.initialize();
       const sessionId = `${this.prefix}${salaId}`;
-      // GETEX: GET + renew TTL in a single command
-      const sessao = await this.client.getEx(sessionId, { EX: this.ttl });
+      const sessao = await this.client.get(sessionId);
 
       if (!sessao) {
         return null;
+      }
+
+      // Renovacao de TTL em comando separado para compatibilidade com
+      // provedores Redis que nao suportam GETEX.
+      try {
+        await this.client.expire(sessionId, this.ttl);
+      } catch (ttlError) {
+        log.warn({ err: ttlError, sessionId }, 'Falha ao renovar TTL da sessao');
       }
 
       return JSON.parse(sessao);

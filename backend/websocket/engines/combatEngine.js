@@ -224,10 +224,9 @@ export default class CombatEngine {
         }
       }
 
-      // --- EMITIR RESULTADO DO ATAQUE DO JOGADOR ---
+      // --- EMITIR RESULTADO DA ACAO DO JOGADOR ---
       const atk = r.ataqueJogador;
       if (atk) {
-        // @event combate_resultado_acao → room (broadcast) | fires with the result of a player attack against a monster (tipo: ataque_jogador)
         sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
           tipo: 'ataque_jogador',
           atacante: { userId: atk.userId, nome: atk.atacante },
@@ -240,10 +239,53 @@ export default class CombatEngine {
         });
 
         if (atk.derrotado) {
-          // @event combate_monstro_derrotado → room (broadcast) | fires when a monster's HP reaches 0, carrying XP reward
           sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
             monstro: { id: atk.alvoId, nome: atk.alvo },
             xp: atk.xp, timestamp: Date.now()
+          });
+        }
+      }
+
+      // Defesa
+      if (r.defesa) {
+        sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'defesa_jogador',
+          personagem: r.defesa.personagem, userId: r.defesa.userId,
+          esquivaBonus: r.defesa.esquivaBonus, reducaoDano: r.defesa.reducaoDano,
+          hpAtual: r.defesa.hpAtual, hpMax: r.defesa.hpMax,
+          timestamp: Date.now()
+        });
+      }
+
+      // Fuga
+      if (r.fuga) {
+        sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: 'fuga_jogador',
+          personagem: r.fuga.personagem, userId: r.fuga.userId,
+          rolagem: r.fuga.rolagem, modificador: r.fuga.modificador,
+          total: r.fuga.total, dc: r.fuga.dc, sucesso: r.fuga.sucesso,
+          timestamp: Date.now()
+        });
+      }
+
+      // Habilidade
+      if (r.habilidade) {
+        const h = r.habilidade;
+        sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+          tipo: h.valido === false ? 'habilidade_falhou' : 'habilidade_jogador',
+          personagem: h.personagem || personagem.nome, userId: h.userId || userId,
+          habilidadeNome: h.habilidadeNome, habilidadeId: h.habilidadeId,
+          valido: h.valido, erro: h.erro || null,
+          custoMana: h.custoMana, manaRestante: h.manaRestante, manaMax: h.manaMax,
+          dano: h.dano, efeito: h.efeito, efeitoAplicado: h.efeitoAplicado || null,
+          ataque: h.ataque || null,
+          timestamp: Date.now()
+        });
+
+        if (h.ataque?.derrotado) {
+          sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_MONSTRO_DERROTADO, {
+            monstro: { id: h.ataque.alvoId, nome: h.ataque.alvo },
+            xp: h.ataque.xp, timestamp: Date.now()
           });
         }
       }

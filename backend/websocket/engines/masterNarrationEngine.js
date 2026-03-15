@@ -55,7 +55,8 @@ export default class MasterNarrationEngine {
         userId: rawUserId,
         username: rawUsername,
         mensagem: rawMensagem,
-        personagem: rawPersonagem
+        personagem: rawPersonagem,
+        combatIntent: rawCombatIntent
       } = data || {};
 
       if (!rawRoomId || !rawUserId || !rawMensagem || !rawPersonagem) {
@@ -86,6 +87,9 @@ export default class MasterNarrationEngine {
       const username = rawUsername ? String(rawUsername) : 'Jogador';
       const mensagem = String(rawMensagem);
       const personagem = rawPersonagem;
+      const combatIntent = rawCombatIntent && typeof rawCombatIntent === 'object'
+        ? rawCombatIntent
+        : null;
 
       // S-02: Rejeitar se userId do payload diverge do socket autenticado
       if (String(rawUserId) !== String(socket.userId)) {
@@ -243,12 +247,24 @@ export default class MasterNarrationEngine {
       const combateAtivo = estadoJogo.combate?.ativo;
       let resultadosCombatePreResolvido = null;
       if (combateAtivo) {
+        // Rejeitar mensagens vagas durante combate (sem intent estruturado)
+        const VALID_INTENTS = ['atacar', 'defender', 'fugir', 'usar_habilidade'];
+        const intentTipo = combatIntent?.tipo;
+        if (!intentTipo || !VALID_INTENTS.includes(intentTipo)) {
+          log.info({ roomId, userId, intentTipo, mensagem: mensagem.substring(0, 60) }, 'Mensagem de combate sem intent valido, rejeitada');
+          socket.emit('server_message', {
+            userId,
+            mensagem: 'Use os botoes de acao (Atacar, Defender, Fugir, Habilidades) durante o combate.'
+          });
+          return;
+        }
+
         // Contexto ANTES da resolução (estado atual dos monstros/jogadores)
         const contextoCombate = formatarContextoCombate(estadoJogo.combate, userId);
         acaoComContexto += `${contextoCombate}\n`;
 
         // ✅ Resolver mecânica ANTES da IA para que ela narre baseada em fatos
-        resultadosCombatePreResolvido = resolverMecanicaCombate(estadoJogo.combate, userId, sessao, personagem);
+        resultadosCombatePreResolvido = resolverMecanicaCombate(combateAtivo ? estadoJogo.combate : null, userId, sessao, personagem, combatIntent);
         const resumoMecanico = formatarResultadoMecanico(resultadosCombatePreResolvido, personagem.nome);
         acaoComContexto += resumoMecanico + '\n';
 
@@ -257,6 +273,7 @@ export default class MasterNarrationEngine {
 
         sm.log('INFO', 'MENSAGEM_PARA_MESTRE_COMBATE_CONTEXTO', socket.id, userId, {
           roomId,
+          intentTipo,
           monstrosVivos: estadoJogo.combate.monstros.filter(m => m.status === 'vivo').length,
           preResolvido: true
         });

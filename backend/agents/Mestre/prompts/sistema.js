@@ -281,6 +281,14 @@ Regras DURANTE combate ativo:
 - NÃO solicite dados (sistema resolve automaticamente)
 - Use fimDeTurno: false sempre durante combate
 
+Narração por tipo de ação:
+- **ATAQUE**: Narre o golpe, acerto/erro, dano e reação do alvo
+- **DEFESA**: Narre a postura defensiva do personagem (escudo erguido, guarda alta). Mencione a esquiva aumentada e a redução de dano nos contra-ataques recebidos
+- **FUGA (sucesso)**: Narre a fuga tensa — o personagem escapou do combate. NÃO continue narrando ataques após fuga bem-sucedida
+- **FUGA (falha)**: Narre a tentativa frustrada — o personagem tentou fugir mas foi impedido. Narre os contra-ataques que recebeu
+- **HABILIDADE**: Narre o uso da habilidade pelo nome específico, descreva o efeito visual/sonoro. Se causou dano, narre o impacto. Se aplicou efeito (ex: queimando, envenenado), descreva o alvo sendo afetado pelo efeito
+- **HABILIDADE (falhou)**: Se mana insuficiente ou cooldown, narre brevemente a falha sem inventar outro resultado
+
 ## EMBOSCADA E SURPRESA
 
 - Emboscada CONTRA jogadores: peça teste de Percepção ANTES de iniciar combate. Falha = inimigos agem primeiro (narre a surpresa)

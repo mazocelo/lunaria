@@ -56,8 +56,6 @@ const DestinoResolutivaBlock = ({
   data,
   loading = false,
   error = null,
-  tentativasUsadas = 0,
-  onRegenerar,
   onRetry,
   onCriar,
   podeCriar = false,
@@ -68,7 +66,6 @@ const DestinoResolutivaBlock = ({
   const itensCombo = useMemo(() => buildItensCombo(data?.combo), [data]);
   const snapshot = data?.snapshot || {};
   const meta = data?.meta || {};
-  const tentativasRestantes = Math.max(0, 3 - tentativasUsadas);
   const criando = salvando || creationFlowStatus !== 'idle';
 
   if (loading && !data) {
@@ -117,17 +114,6 @@ const DestinoResolutivaBlock = ({
             </p>
           </div>
 
-          <div className="wa-panel-soft flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
-            <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Regeneracoes
-            </span>
-            <span className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              {tentativasUsadas}/3
-            </span>
-            <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-              {tentativasRestantes} restantes
-            </span>
-          </div>
         </div>
 
         {error && (
@@ -291,39 +277,23 @@ const DestinoResolutivaBlock = ({
                 Selo da etapa
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Regenerar troca a leitura inteira. Criar usa este combo exatamente como ele esta agora.
+                Criar usa este combo exatamente como ele esta agora. Volte ao Arsenal para regenerar.
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={onRegenerar}
-                disabled={loading || criando || tentativasUsadas >= 3 || !data}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-semibold transition-all ${
-                  loading || criando || tentativasUsadas >= 3 || !data
-                    ? 'cursor-not-allowed opacity-60'
-                    : 'wa-panel-soft hover:-translate-y-0.5'
-                }`}
-              >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                {loading ? 'Regenerando...' : `Regenerar leitura (${tentativasRestantes})`}
-              </button>
-
-              <button
-                type="button"
-                onClick={onCriar}
-                disabled={!podeCriar || criando || loading || !data}
-                className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
-                  !podeCriar || criando || loading || !data
-                    ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                    : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
-                }`}
-              >
-                {criando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                {criando ? 'Selando...' : 'Criar personagem'}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onCriar}
+              disabled={!podeCriar || criando || loading || !data}
+              className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
+                !podeCriar || criando || loading || !data
+                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
+                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+              }`}
+            >
+              {criando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {criando ? 'Selando...' : 'Criar personagem'}
+            </button>
           </div>
         </div>
       </div>

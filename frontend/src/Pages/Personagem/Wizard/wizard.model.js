@@ -121,6 +121,7 @@ export const useWizardModel = () => {
     skipVantagens: pointSystem.skipVantagens,
     skipDesvantagens: pointSystem.skipDesvantagens,
     bonusAplicados: bonusCalc.bonusAplicados,
+    comboPreviewData,
   });
 
   // Invalidar bonusAplicados quando build muda (precisa de etapaAtual de navigation)
@@ -467,7 +468,7 @@ export const useWizardModel = () => {
   }, [comboPreviewBuildKey]);
 
   useEffect(() => {
-    if (navigation.etapaAtual !== 'resumo') return;
+    if (navigation.etapaAtual !== 'equipamentos') return;
     if (!podeGerarPreview) return;
     if (comboPreviewLoading) return;
     if (comboPreviewLoadedKeyRef.current === comboPreviewBuildKey) return;
@@ -493,10 +494,7 @@ export const useWizardModel = () => {
       setNome(mensagemJogador);
       estadoOverride.nome = mensagemJogador;
     } else if (navigation.etapaAtual === 'background' && !manterEtapa) {
-      const backgroundAtualizado = [estadoRef.current.background, mensagemJogador]
-        .filter(Boolean)
-        .join('\n')
-        .slice(0, 2000);
+      const backgroundAtualizado = mensagemJogador.slice(0, 2000);
       setBackground(backgroundAtualizado);
       estadoOverride.background = backgroundAtualizado;
     }

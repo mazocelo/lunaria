@@ -5,6 +5,7 @@ import SuggestionCard from './SuggestionCard.jsx';
 import AttributeDistributor from './AttributeDistributor.jsx';
 import MasterAvatarGlyph from './MasterAvatarGlyph.jsx';
 import DestinoResolutivaBlock from './DestinoResolutivaBlock.jsx';
+import EquipamentosBlock from './EquipamentosBlock.jsx';
 import { getStageConfig } from '../stages/stageConfig.js';
 import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
 
@@ -115,6 +116,7 @@ const WizardChat = ({
   const buildStateChat = { vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados };
   const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat);
   const textoContinuarSelecoes = getContinueLabel(etapaAtual);
+  const isEquipamentosStage = etapaAtual === 'equipamentos';
   const isDestinoResolutivo = etapaAtual === 'resumo';
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
@@ -601,13 +603,24 @@ const WizardChat = ({
           </div>
         )}
 
-        {isDestinoResolutivo && (
-          <DestinoResolutivaBlock
+        {isEquipamentosStage && (
+          <EquipamentosBlock
             data={comboPreviewData}
             loading={comboPreviewLoading}
             error={comboPreviewErro}
             tentativasUsadas={comboPreviewTentativa}
             onRegenerar={onRegenerarComboPreview}
+            onRetry={onRecarregarComboPreview}
+            onContinuar={() => onAvancarComMestre?.()}
+            isLight={isLight}
+          />
+        )}
+
+        {isDestinoResolutivo && (
+          <DestinoResolutivaBlock
+            data={comboPreviewData}
+            loading={comboPreviewLoading}
+            error={comboPreviewErro}
             onRetry={onRecarregarComboPreview}
             onCriar={onSalvarPersonagem}
             podeCriar={podeCriar}
@@ -632,7 +645,18 @@ const WizardChat = ({
         <div ref={chatEndRef} />
       </div>
 
-      {isDestinoResolutivo ? (
+      {isEquipamentosStage ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Revise o arsenal acima. Confirme para avancar ao resumo final.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Arsenal definido pelo Mestre
+            </span>
+          </div>
+        </div>
+      ) : isDestinoResolutivo ? (
         <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>

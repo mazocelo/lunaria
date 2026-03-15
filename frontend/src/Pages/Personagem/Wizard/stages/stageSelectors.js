@@ -20,6 +20,7 @@ export function isStageDone(stageId, buildState) {
     case 'desvantagens': return buildState.desvantagensIds?.length > 0 || !!buildState.skipDesvantagens;
     case 'vantagens': return buildState.vantagensIds?.length > 0 || !!buildState.skipVantagens;
     case 'atributos': return !!buildState.bonusAplicados;
+    case 'equipamentos': return !!buildState.comboPreviewData;
     case 'resumo': return false;
     default: return false;
   }
@@ -58,6 +59,7 @@ export function getStageTooltip(stageId, buildState) {
       if (bonusAplicados) return 'Calibrados e confirmados';
       if (bonusInvalidado) return 'Revisao necessaria';
       return 'Leitura pendente';
+    case 'equipamentos': return buildState.comboPreviewData ? 'Arsenal definido' : 'Arsenal pendente';
     case 'resumo': return podeCriar ? 'Resolutiva pronta para selar' : 'Resolutiva em preparo';
     default: return '';
   }

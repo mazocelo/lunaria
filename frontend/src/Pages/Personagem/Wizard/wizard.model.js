@@ -616,6 +616,7 @@ export const useWizardModel = () => {
   // ── Equipamentos: persistencia explicita ──
   const [equipamentosAplicados, setEquipamentosAplicados] = useState(false);
   const [aplicandoEquipamentos, setAplicandoEquipamentos] = useState(false);
+  const [equipamentosFalhas, setEquipamentosFalhas] = useState(null);
 
   const aplicarEquipamentos = useCallback(async () => {
     const equipamentos = finalizacaoData?.combo?.equipamentos || [];
@@ -623,15 +624,27 @@ export const useWizardModel = () => {
     if (!personagemId || equipamentos.length === 0) return;
 
     setAplicandoEquipamentos(true);
-    const results = await Promise.allSettled(
-      equipamentos.map(eq => personagemService.adicionarEquipamento(personagemId, eq.id))
-    );
-    const falhas = results.filter(r => r.status === 'rejected');
-    if (falhas.length > 0) {
-      console.warn(`Equipamentos: ${falhas.length}/${results.length} falharam`, falhas.map(f => f.reason?.message));
+    setEquipamentosFalhas(null);
+
+    try {
+      const results = await Promise.allSettled(
+        equipamentos.map(eq => personagemService.adicionarEquipamento(personagemId, eq.id))
+      );
+      const totalFalhas = results.filter(r => r.status === 'rejected').length;
+      const totalSucesso = results.length - totalFalhas;
+
+      if (totalFalhas === 0) {
+        setEquipamentosAplicados(true);
+      } else if (totalSucesso > 0) {
+        setEquipamentosFalhas({ falhas: totalFalhas, total: results.length });
+      } else {
+        setEquipamentosFalhas({ falhas: totalFalhas, total: results.length });
+      }
+    } catch (err) {
+      setEquipamentosFalhas({ falhas: equipamentos.length, total: equipamentos.length });
+    } finally {
+      setAplicandoEquipamentos(false);
     }
-    setEquipamentosAplicados(true);
-    setAplicandoEquipamentos(false);
   }, [finalizacaoData]);
 
   // ── Equipamentos: regeneracao ──
@@ -655,6 +668,7 @@ export const useWizardModel = () => {
       }));
       setRegeneracoesUsadas(prev => prev + 1);
       setEquipamentosAplicados(false);
+      setEquipamentosFalhas(null);
     } catch (err) {
       console.warn('Erro ao regenerar equipamentos:', err.message);
     } finally {
@@ -666,6 +680,7 @@ export const useWizardModel = () => {
     setFinalizacaoData(null);
     setEquipamentosAplicados(false);
     setAplicandoEquipamentos(false);
+    setEquipamentosFalhas(null);
     setRegeneracoesUsadas(0);
     setRegenerando(false);
     navigate('/personagens');
@@ -764,6 +779,7 @@ export const useWizardModel = () => {
     aplicarEquipamentos,
     aplicandoEquipamentos,
     equipamentosAplicados,
+    equipamentosFalhas,
     regenerarEquipamentos,
     regeneracoesUsadas,
     regenerando,

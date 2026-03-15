@@ -157,6 +157,7 @@ const WizardView = (props) => {
             onAplicarEquipamentos={aplicarEquipamentos}
             aplicandoEquipamentos={aplicandoEquipamentos}
             equipamentosAplicados={equipamentosAplicados}
+            equipamentosFalhas={equipamentosFalhas}
             onRegenerarEquipamentos={regenerarEquipamentos}
             regeneracoesUsadas={regeneracoesUsadas}
             regenerando={regenerando}

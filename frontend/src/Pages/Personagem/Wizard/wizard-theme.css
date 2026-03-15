@@ -383,6 +383,27 @@
   animation: wa-barShimmer 2s linear infinite;
 }
 
+/* ── Combo block (finalizacao — equipamentos destaque) ── */
+
+.wizard-atelier .wa-combo-block {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--wa-panel-strong) 95%, transparent),
+    color-mix(in srgb, var(--wa-panel) 92%, transparent));
+  border: 1px solid color-mix(in srgb, var(--wa-accent) 30%, var(--wa-border));
+  box-shadow: var(--wa-glow), var(--wa-shadow);
+}
+
+.wizard-atelier .wa-combo-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,0.03), transparent 26%, transparent 74%, rgba(139,92,246,0.04));
+}
+
 /* ── Reduced motion ── */
 
 @media (prefers-reduced-motion: reduce) {

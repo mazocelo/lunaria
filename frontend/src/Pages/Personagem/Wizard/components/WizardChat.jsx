@@ -51,7 +51,6 @@ const WizardChat = ({
   onConfirmarAtributos,
   onSalvarPersonagem,
   salvando = false,
-  gerandoBackground = false,
   embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -648,20 +647,20 @@ const WizardChat = ({
               <button
                 type="button"
                 onClick={onSalvarPersonagem}
-                disabled={salvando || gerandoBackground || !podeCriar}
+                disabled={salvando || !podeCriar}
                 className={`inline-flex h-[54px] items-center gap-2 rounded-2xl px-4 text-sm font-modern font-semibold transition-all cursor-pointer ${
-                  salvando || gerandoBackground
+                  salvando
                     ? 'cursor-wait bg-slate-600 text-slate-300'
                     : !podeCriar
                       ? isLight ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
                 }`}
               >
-                {salvando || gerandoBackground
+                {salvando
                   ? <Loader2 size={16} className="animate-spin" />
                   : <Save size={16} />
                 }
-                {salvando ? 'Selando...' : gerandoBackground ? 'Gerando...' : saldoCriacaoInvalido ? 'Orcamento excedido' : !podeCriar ? 'Incompleto' : 'Criar'}
+                {salvando ? 'Selando...' : saldoCriacaoInvalido ? 'Orcamento excedido' : !podeCriar ? 'Incompleto' : 'Criar'}
               </button>
             )}
 

@@ -129,7 +129,6 @@ export const useWizardModel = () => {
   const [error, setError] = useState(null);
   const [sugestoes, setSugestoes] = useState([]);
   const [salvando, setSalvando] = useState(false);
-  const [gerandoBackground, setGerandoBackground] = useState(false);
   const [finalizacaoData, setFinalizacaoData] = useState(null);
   const [finalizacaoLoading, setFinalizacaoLoading] = useState(false);
 
@@ -614,10 +613,22 @@ export const useWizardModel = () => {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const fecharFinalizacao = useCallback(() => {
+  const fecharFinalizacao = useCallback(async () => {
+    // Persistir equipamentos do combo ao concluir
+    const equipamentos = finalizacaoData?.combo?.equipamentos || [];
+    const personagemId = finalizacaoData?.personagem_id;
+    if (personagemId && equipamentos.length > 0) {
+      try {
+        await Promise.all(
+          equipamentos.map(eq => personagemService.adicionarEquipamento(personagemId, eq.id))
+        );
+      } catch (err) {
+        console.warn('Erro ao persistir equipamentos da finalizacao:', err.message);
+      }
+    }
     setFinalizacaoData(null);
     navigate('/personagens');
-  }, [navigate]);
+  }, [finalizacaoData, navigate]);
 
   const atualizarFinalizacaoData = useCallback((updater) => {
     setFinalizacaoData(prev => typeof updater === 'function' ? updater(prev) : updater);
@@ -702,7 +713,6 @@ export const useWizardModel = () => {
 
     // Async
     salvando,
-    gerandoBackground,
     error,
 
     // Finalizacao

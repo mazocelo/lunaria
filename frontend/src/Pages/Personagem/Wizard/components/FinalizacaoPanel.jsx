@@ -27,6 +27,8 @@ const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight }) => {
 
   const { fala_personagem, leitura_ficha, combo, catalogo_editavel, meta, snapshot } = data;
 
+  const comboVazio = !(combo?.equipamentos?.length || combo?.habilidades?.length || combo?.magias?.length);
+
   const handleFalaChange = useCallback((e) => {
     onUpdate(prev => ({ ...prev, fala_personagem: e.target.value }));
   }, [onUpdate]);
@@ -128,39 +130,52 @@ const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight }) => {
 
         {/* Coluna direita — combo sugerido */}
         <div className="flex flex-col gap-5">
-          <ComboSection
-            titulo="Equipamentos Sugeridos"
-            icon={<Shield size={14} />}
-            items={combo?.equipamentos || []}
-            catalogo={catalogo_editavel?.equipamentos || []}
-            secao="equipamentos"
-            accentClass="border-l-purple-500"
-            onRemove={handleRemoveItem}
-            onSwap={handleSwapItem}
-            isLight={isLight}
-          />
-          <ComboSection
-            titulo="Habilidades Sugeridas"
-            icon={<Swords size={14} />}
-            items={combo?.habilidades || []}
-            catalogo={catalogo_editavel?.habilidades || []}
-            secao="habilidades"
-            accentClass="border-l-cyan-500"
-            onRemove={handleRemoveItem}
-            onSwap={handleSwapItem}
-            isLight={isLight}
-          />
-          <ComboSection
-            titulo="Magias Sugeridas"
-            icon={<Wand2 size={14} />}
-            items={combo?.magias || []}
-            catalogo={catalogo_editavel?.magias || []}
-            secao="magias"
-            accentClass="border-l-amber-500"
-            onRemove={handleRemoveItem}
-            onSwap={handleSwapItem}
-            isLight={isLight}
-          />
+          {comboVazio ? (
+            <div className="wa-panel-soft rounded-2xl p-6 text-center">
+              <p className={`text-sm font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+                Nenhum combo foi gerado para esta build. Voce pode equipar itens depois na ficha do personagem.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ComboSection
+                titulo="Equipamentos Sugeridos"
+                subtitulo="Serao adicionados ao inventario ao concluir"
+                icon={<Shield size={14} />}
+                items={combo?.equipamentos || []}
+                catalogo={catalogo_editavel?.equipamentos || []}
+                secao="equipamentos"
+                accentClass="border-l-purple-500"
+                onRemove={handleRemoveItem}
+                onSwap={handleSwapItem}
+                isLight={isLight}
+              />
+              <ComboSection
+                titulo="Habilidades Sugeridas"
+                subtitulo="Recomendacoes — nao serao aplicadas automaticamente"
+                icon={<Swords size={14} />}
+                items={combo?.habilidades || []}
+                catalogo={catalogo_editavel?.habilidades || []}
+                secao="habilidades"
+                accentClass="border-l-cyan-500"
+                onRemove={handleRemoveItem}
+                onSwap={handleSwapItem}
+                isLight={isLight}
+              />
+              <ComboSection
+                titulo="Magias Sugeridas"
+                subtitulo="Recomendacoes — nao serao aplicadas automaticamente"
+                icon={<Wand2 size={14} />}
+                items={combo?.magias || []}
+                catalogo={catalogo_editavel?.magias || []}
+                secao="magias"
+                accentClass="border-l-amber-500"
+                onRemove={handleRemoveItem}
+                onSwap={handleSwapItem}
+                isLight={isLight}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -178,21 +193,28 @@ const MetaBadge = ({ label, value, isLight }) => (
   </div>
 );
 
-const ComboSection = ({ titulo, icon, items, catalogo, secao, accentClass, onRemove, onSwap, isLight }) => {
+const ComboSection = ({ titulo, subtitulo, icon, items, catalogo, secao, accentClass, onRemove, onSwap, isLight }) => {
   if (!items.length && !catalogo.length) return null;
 
   return (
     <section className="wa-panel-soft rounded-2xl p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <span className="text-[var(--wa-accent)]">{icon}</span>
-        <h2 className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-          {titulo}
-        </h2>
-        <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-modern font-bold ${
-          isLight ? 'bg-slate-100 text-slate-600' : 'bg-[var(--wa-bg-deep)] text-slate-400'
-        }`}>
-          {items.length}
-        </span>
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[var(--wa-accent)]">{icon}</span>
+          <h2 className={`text-xs font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
+            {titulo}
+          </h2>
+          <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-modern font-bold ${
+            isLight ? 'bg-slate-100 text-slate-600' : 'bg-[var(--wa-bg-deep)] text-slate-400'
+          }`}>
+            {items.length}
+          </span>
+        </div>
+        {subtitulo && (
+          <p className={`mt-1.5 ml-5 text-[11px] font-modern italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+            {subtitulo}
+          </p>
+        )}
       </div>
 
       {items.length === 0 ? (

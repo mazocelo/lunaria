@@ -77,7 +77,6 @@ const WizardView = (props) => {
     attrMin,
     attrMax,
     salvando,
-    gerandoBackground,
     error,
     finalizacaoData,
     finalizacaoLoading,
@@ -298,7 +297,6 @@ const WizardView = (props) => {
                 onConfirmarAtributos={confirmarAtributos}
                 onSalvarPersonagem={salvarPersonagem}
                 salvando={salvando}
-                gerandoBackground={gerandoBackground}
                 sugestoes={sugestoes}
                 embedded
               />

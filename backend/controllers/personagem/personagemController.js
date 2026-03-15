@@ -1697,6 +1697,7 @@ class PersonagemController {
         success: true,
         data: {
           personagem_id: base.snapshot.personagem_id,
+          snapshot: base.snapshot,
           fala_personagem: resultado.fala_personagem,
           leitura_ficha: resultado.leitura_ficha,
           combo: resultado.combo,

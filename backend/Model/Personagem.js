@@ -162,11 +162,18 @@ const Personagem = (prisma) => {
 
     // Métodos para gerenciar vínculos com equipamentos
     async adicionarEquipamento(personagem_id, equipamento_id) {
-      return await prisma.personagem_equipamento.create({
-        data: {
+      return await prisma.personagem_equipamento.upsert({
+        where: {
+          personagem_id_equipamento_id: {
+            personagem_id: parseInt(personagem_id),
+            equipamento_id: parseInt(equipamento_id),
+          },
+        },
+        update: {},
+        create: {
           personagem_id: parseInt(personagem_id),
-          equipamento_id: parseInt(equipamento_id)
-        }
+          equipamento_id: parseInt(equipamento_id),
+        },
       });
     },
 

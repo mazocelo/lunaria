@@ -137,8 +137,14 @@ function getTipoEsperado(etapa) {
   return getPolicy(etapa).suggestionType || null;
 }
 
-/** Valida e sanitiza sugestões da IA */
-function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino) {
+/**
+ * Valida e sanitiza sugestões da IA.
+ * @param {Array} sugestoes
+ * @param {string} etapaAtual
+ * @param {string} etapaDestino
+ * @param {Object} [idsPermitidos] - Sets de IDs permitidos por tipo: { raca, classe, vantagem, desvantagem }
+ */
+function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino, idsPermitidos) {
   if (!Array.isArray(sugestoes)) return [];
   // Aceitar tipo da etapa atual OU da etapa destino
   const tiposAceitos = new Set();
@@ -163,8 +169,27 @@ function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino) {
       log.warn({ tipo: s.tipo, nome: s.nome }, 'Sugestao de catalogo sem ID descartada');
       return false;
     }
+    // Validar ID contra catálogo permitido para o nível atual
+    if (idsPermitidos && s.id && idsPermitidos[s.tipo]) {
+      if (!idsPermitidos[s.tipo].has(String(s.id))) {
+        log.warn({ tipo: s.tipo, id: s.id, nome: s.nome }, 'Sugestao com ID fora do catalogo permitido descartada');
+        return false;
+      }
+    }
     return true;
   });
+}
+
+/** Constrói sets de IDs permitidos por tipo para o nível atual */
+async function buildIdsPermitidos(nivel) {
+  const { racas, classes, vantagens, desvantagens } = await fetchCatalogo();
+  const tier = tierDesbloqueado(nivel);
+  return {
+    raca: new Set(racas.map(r => String(r.id))),
+    classe: new Set(classes.map(c => String(c.id))),
+    vantagem: new Set(vantagens.filter(v => (v.nivel || 1) <= tier).map(v => String(v.id))),
+    desvantagem: new Set(desvantagens.filter(d => (d.nivel || 1) <= tier).map(d => String(d.id))),
+  };
 }
 
 /** Track token usage */
@@ -236,14 +261,14 @@ function construirInput(etapa, estado, mensagemJogador) {
   return parts.join('\n');
 }
 
-// Singleton: modelo + chain (reutilizado entre requests)
-let _chain = null;
+// Singleton: modelo (reutilizado entre requests)
+// Prompt é construído por request com catálogo filtrado por tier
+let _model = null;
 let _modelName = null;
 
-async function getChain() {
-  if (_chain) return { chain: _chain, modelName: _modelName };
+function getModel() {
+  if (_model) return { model: _model, modelName: _modelName };
 
-  const catalogo = await buildCatalogoCriacao();
   let modelName = CRIADOR_CONFIG.model.name;
   const temperature = Math.min(2, Math.max(0, CRIADOR_CONFIG.model.temperature));
   const maxTokens = Math.min(32000, Math.max(100, CRIADOR_CONFIG.model.maxTokens));
@@ -283,14 +308,25 @@ async function getChain() {
     });
   }
 
+  _model = model;
+  log.info({ provider, modelName }, 'Modelo inicializado');
+  return { model: _model, modelName: _modelName };
+}
+
+/** Constrói chain por request com catálogo filtrado pelo nível do estado */
+async function buildChainForRequest(estado) {
+  const { model, modelName } = getModel();
+  const nivelEfetivo = estado.nivel || 1;
+  const catalogo = await buildCatalogoCriacao(nivelEfetivo);
   const promptSistema = criarPromptSistemaCriador(catalogo);
+
   const prompt = ChatPromptTemplate.fromMessages([
     ['system', promptSistema],
     new MessagesPlaceholder('chat_history'),
     ['human', '{input}'],
   ]);
 
-  _chain = RunnableSequence.from([
+  const chain = RunnableSequence.from([
     {
       input: (input) => input.input,
       chat_history: (input) => input.chat_history || [],
@@ -299,13 +335,12 @@ async function getChain() {
     model,
   ]);
 
-  log.info({ provider, modelName }, 'Chain inicializada');
-  return { chain: _chain, modelName: _modelName };
+  return { chain, modelName };
 }
 
-/** Invalida chain cached (ex: se catálogo mudou) */
+/** Invalida modelo cached (ex: se config mudou) */
 export function invalidarChain() {
-  _chain = null;
+  _model = null;
   _modelName = null;
 }
 
@@ -329,7 +364,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
   }
 
   try {
-    const { chain, modelName } = await getChain();
+    const { chain, modelName } = await buildChainForRequest(estado);
 
     const input = construirInput(etapa, estado, mensagemJogador);
     const chatHistory = converterHistorico(historico).slice(-20); // limitar histórico
@@ -363,11 +398,13 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
 
     const etapaDestino = resultado.etapa_proxima || etapa;
 
-    // Sanitizar sugestões (aceita tipo da etapa atual OU destino)
+    // Sanitizar sugestões (aceita tipo da etapa atual OU destino) + filtro de tier
+    const idsPermitidos = await buildIdsPermitidos(estado.nivel || 1);
     const sugestoes = sanitizarSugestoes(
       Array.isArray(resultado.sugestoes) ? resultado.sugestoes : [],
       etapa,
-      etapaDestino
+      etapaDestino,
+      idsPermitidos
     );
 
     // Etapas que NÃO usam cards de sugestão (usam UI própria: distribuidor, botão salvar)

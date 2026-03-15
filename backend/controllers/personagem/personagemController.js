@@ -509,6 +509,36 @@ class PersonagemController {
       // Os campos classe_id e raca_id são atualizados diretamente
       await db.Personagem.updatePersonagem(parseInt(id), dadosConvertidos);
 
+      // Validar tier de vantagens/desvantagens antes de persistir
+      const nivelPersonagem = personagem.nivel || 1;
+      const tierPermitido = tierDesbloqueado(nivelPersonagem);
+
+      if (Array.isArray(vantagens) && vantagens.length > 0) {
+        const vantagensDB = await Promise.all(
+          vantagens.map(vid => db.Vantagem.findById(parseInt(vid)))
+        );
+        for (const v of vantagensDB) {
+          if (v && (v.nivel || 1) > tierPermitido) {
+            return res.status(400).json({
+              error: `Vantagem "${v.nome}" requer tier ${v.nivel}, mas personagem so tem tier ${tierPermitido} (nivel ${nivelPersonagem})`
+            });
+          }
+        }
+      }
+
+      if (Array.isArray(desvantagens) && desvantagens.length > 0) {
+        const desvantagensDB = await Promise.all(
+          desvantagens.map(did => db.Desvantagem.findById(parseInt(did)))
+        );
+        for (const d of desvantagensDB) {
+          if (d && (d.nivel || 1) > tierPermitido) {
+            return res.status(400).json({
+              error: `Desvantagem "${d.nome}" requer tier ${d.nivel}, mas personagem so tem tier ${tierPermitido} (nivel ${nivelPersonagem})`
+            });
+          }
+        }
+      }
+
       // Gerenciar vinculos em transacao (atomico)
       await db.prisma.$transaction(async (tx) => {
         // Vantagens

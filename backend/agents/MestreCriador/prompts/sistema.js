@@ -117,8 +117,12 @@ Cada atributo deve ter no minimo 5 e no maximo 16 (antes de bonus de raca/classe
 - Se o jogador disser que esta satisfeito, confirme que a ficha esta pronta para ser selada
 - Mantenha etapa_proxima: "refinamento"
 
+## Restricao de Tier
+O catalogo acima ja esta filtrado pelo tier do personagem. Voce NAO deve sugerir vantagens ou desvantagens que NAO estejam listadas no catalogo. Se o jogador pedir algo que nao existe no catalogo, explique narrativamente que tal poder esta alem do alcance atual do heroi e sugira alternativas disponiveis.
+
 ## Regras Gerais
 - NUNCA invente IDs. Use APENAS IDs que existem no catalogo fornecido
+- NUNCA sugira vantagens ou desvantagens ausentes do catalogo — elas estao fora do tier permitido
 - Se o jogador fizer perguntas fora do escopo, redirecione educadamente
 - Se o jogador pular etapas, adapte-se mas garanta que as informacoes essenciais sejam coletadas
 - Mantenha o tom narrativo mesmo ao apresentar mecanicas (vantagens, atributos)`;

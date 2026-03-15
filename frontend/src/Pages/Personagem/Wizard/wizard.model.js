@@ -579,11 +579,13 @@ export const useWizardModel = () => {
       const personagem = new Personagem(dados);
       const criado = await personagemService.create(personagem, { context: 'criacao' });
 
-      // Background IA (fire-and-forget)
+      // Background IA — aguardar antes da finalizacao (que depende do background final)
       if (criado?.id && s.background) {
-        personagemService.gerarBackground(criado.id, s.background).catch(bgError => {
-          console.warn('Background IA não gerado:', bgError.message);
-        });
+        try {
+          await personagemService.gerarBackground(criado.id, s.background);
+        } catch (bgError) {
+          console.warn('Background IA nao gerado:', bgError.message);
+        }
       }
 
       limparDraft();
@@ -596,7 +598,7 @@ export const useWizardModel = () => {
           const finData = await personagemService.gerarFinalizacaoInicial(criado.id);
           setFinalizacaoData(finData);
         } catch (finError) {
-          console.warn('Finalizacao inicial não disponivel:', finError.message);
+          console.warn('Finalizacao inicial nao disponivel:', finError.message);
           navigate('/personagens');
         } finally {
           setFinalizacaoLoading(false);

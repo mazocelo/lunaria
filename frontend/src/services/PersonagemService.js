@@ -113,8 +113,9 @@ export class PersonagemService {
     try {
       const data = await this.apiClient.delete(`${this.baseUrl}/${id}`);
 
-      if (data.success) {
-        return data.data;
+      // Backend retorna 204 No Content (sem body) — tratar como sucesso
+      if (!data || data.success !== false) {
+        return data?.data ?? null;
       } else {
         throw new Error(data?.message || 'Erro desconhecido');
       }
@@ -259,7 +260,7 @@ export class PersonagemService {
    */
   async ganharXP(id, quantidade) {
     try {
-      const response = await this.apiClient.post(`${this.baseUrl}/${id}/ganhar-xp`, { quantidade });
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/ganhar-xp`, { xp: quantidade });
       if (response.success) {
         return response.data;
       } else {
@@ -278,7 +279,7 @@ export class PersonagemService {
    */
   async distribuirPontos(id, atributos) {
     try {
-      const response = await this.apiClient.post(`${this.baseUrl}/${id}/distribuir-pontos`, { atributos });
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/distribuir-pontos`, atributos);
       if (response.success) {
         return response.data;
       } else {

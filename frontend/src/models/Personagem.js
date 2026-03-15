@@ -73,6 +73,13 @@ export class Personagem {
     }));
 
     if (context === 'criacao') {
+      if (!this.raca_id) {
+        errors.push('Selecione uma raça para o personagem');
+      }
+      if (!this.classe_id) {
+        errors.push('Selecione uma classe para o personagem');
+      }
+
       atributosNumericos.forEach(({ atributo, valor }) => {
         if (!Number.isFinite(valor) || valor < 5 || valor > 16) {
           errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 5 e 16 na criacao`);

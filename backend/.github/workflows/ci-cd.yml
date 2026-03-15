@@ -90,6 +90,10 @@ jobs:
             echo "backend:$(date -Iseconds)" > /tmp/lunaria-deploy.lock
             trap 'rm -f /tmp/lunaria-deploy.lock' EXIT
 
+            # Garantir PM2 disponivel
+            export PATH="$PATH:/usr/local/bin:$HOME/.npm-global/bin"
+            command -v pm2 >/dev/null 2>&1 || { echo "ERROR: pm2 nao encontrado — rode 'npm install -g pm2' na VPS"; exit 1; }
+
             # Preflight checks
             pg_isready -d "$DATABASE_URL" -t 5 || { echo "ERROR: DB inacessivel"; exit 1; }
             redis-cli -u "$UPSTASH_REDIS_URL" ping 2>/dev/null || echo "WARN: Redis check indisponivel (continuando)"

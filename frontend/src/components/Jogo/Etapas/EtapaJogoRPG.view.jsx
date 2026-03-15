@@ -32,7 +32,7 @@ const EtapaJogoRPGView = (props) => {
     ehMeuTurno,
     combateAtivo, combateMonstros, combateJogadores,
     combateRodada, combateResultado, combateLog, combateXpGanho,
-    sessionRecap,
+    sessionRecap, clearSessionRecap,
     levelUpData, setLevelUpData,
 
     // Message input

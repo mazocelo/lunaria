@@ -83,14 +83,30 @@ function montarPersonagens4Pilares(personagens) {
 
     // ── VANTAGENS
     if (p.vantagens?.length) {
-      resultado += `\n### VANTAGENS DE ${nome}\nVantagens são traços PASSIVOS. Você (Mestre) APLICA automaticamente — o jogador NÃO precisa declarar.\n`;
-      for (const v of p.vantagens) {
-        const uso = (v.usar === 0 || v.usar == null) ? 'sempre' : 'situacional';
-        resultado += `- **${v.nome}** (usar: ${uso}): ${v.descricao || ''}`;
-        if (v.bonus) resultado += `\n  Bônus: ${formatarBonus(v.bonus)}`;
-        if (v.efeito?.descricao) resultado += `\n  Condição: ${v.efeito.descricao}`;
-        if (v.efeito?.alvo_tipo) resultado += `\n  Alvo: ${v.efeito.alvo_tipo}`;
-        resultado += '\n';
+      const passivas = p.vantagens.filter(v => v.usar === 0 || v.usar == null);
+      const ativas = p.vantagens.filter(v => v.usar === 1);
+
+      if (passivas.length) {
+        resultado += `\n### VANTAGENS PASSIVAS DE ${nome}\nVocê (Mestre) APLICA automaticamente — o jogador NÃO precisa declarar.\n`;
+        for (const v of passivas) {
+          resultado += `- **${v.nome}** (passiva): ${v.descricao || ''}`;
+          if (v.bonus) resultado += `\n  Bônus: ${formatarBonus(v.bonus)}`;
+          if (v.efeito?.descricao) resultado += `\n  Condição: ${v.efeito.descricao}`;
+          if (v.efeito?.alvo_tipo) resultado += `\n  Alvo: ${v.efeito.alvo_tipo}`;
+          resultado += '\n';
+        }
+      }
+
+      if (ativas.length) {
+        resultado += `\n### VANTAGENS ATIVAS DE ${nome}\nO jogador DECLARA uso. Funcionam como habilidades extras — custam ação e podem ter limitações.\n`;
+        for (const v of ativas) {
+          resultado += `- **${v.nome}** (ativa): ${v.descricao || ''}`;
+          if (v.bonus) resultado += `\n  Bônus: ${formatarBonus(v.bonus)}`;
+          if (v.dano_base) resultado += `\n  Dano: ${v.dano_base}`;
+          if (v.efeito?.descricao) resultado += `\n  Efeito: ${v.efeito.descricao}`;
+          if (v.efeito?.alvo_tipo) resultado += `\n  Alvo: ${v.efeito.alvo_tipo}`;
+          resultado += '\n';
+        }
       }
     }
 
@@ -341,17 +357,23 @@ function montarRegras4Pilares() {
   return `
 ## REGRAS DOS 4 PILARES MECÂNICOS
 
-### Vantagens (Auto-aplicar)
-- SEMPRE verifique vantagens relevantes ANTES de pedir testes
-- Aplique bônus de vantagens AUTOMATICAMENTE — o jogador NÃO precisa declarar
-- Se usar=sempre: aplique o bônus SEMPRE
-- Se usar=situacional: aplique quando a condição narrativa bater
+### Vantagens Passivas (Mestre Auto-aplica)
+- SEMPRE verifique vantagens passivas relevantes ANTES de pedir testes
+- Aplique bônus AUTOMATICAMENTE — o jogador NÃO precisa declarar
 - Narre o efeito NATURALMENTE (ex: "Seus reflexos apurados te dão a vantagem..." e não "Sua vantagem Alerta é ativada")
-- NUNCA peça ao jogador para "ativar" uma vantagem
-- **DIRECIONALIDADE**: Vantagens que afetam o PRÓPRIO dono (bônus pessoais) → aplique no dono.
-  Vantagens que afetam OUTROS (auras, presenças intimidadoras, campos) → o "personagem" na ação deve ser o ALVO (NPC/inimigo afetado), NÃO o dono da vantagem.
-  Se efeito.alvo_tipo = "inimigos": aplique nos inimigos próximos. Se = "aliados": aplique nos aliados. Se = "self" ou ausente: aplique no dono.
-  Exemplo: Aura Perturbadora de Syludris → aplicar_efeito com personagem="NPC afetado", NÃO personagem="Syludris"
+- NUNCA peça ao jogador para "ativar" uma vantagem passiva
+
+### Vantagens Ativas (Jogador Declara)
+- O jogador diz "uso [vantagem]" → verifique se tem acesso e aplique
+- Custam ação do turno (como habilidades)
+- Se o jogador descreve algo que CORRESPONDE a uma vantagem ativa sem nomeá-la → pergunte se quer usar
+- Use aplicar_vantagem nas ações para sinalizar ao backend
+
+### Direcionalidade de Vantagens (Passivas e Ativas)
+- Vantagens que afetam o PRÓPRIO dono (bônus pessoais) → aplique no dono
+- Vantagens que afetam OUTROS (auras, presenças, campos) → "personagem" na ação = ALVO, NÃO o dono
+- Se efeito.alvo_tipo = "inimigos": aplique nos inimigos próximos. Se = "aliados": aplique nos aliados. Se = "self" ou ausente: aplique no dono
+- Exemplo: Aura Perturbadora de Syludris → aplicar_efeito com personagem="NPC afetado", NÃO personagem="Syludris"
 
 ### Desvantagens (Gatilho Narrativo)
 - A cada MUDANÇA DE CENA, verifique as desvantagens dos personagens presentes

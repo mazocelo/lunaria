@@ -130,6 +130,8 @@ export const useWizardModel = () => {
   const [sugestoes, setSugestoes] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [gerandoBackground, setGerandoBackground] = useState(false);
+  const [finalizacaoData, setFinalizacaoData] = useState(null);
+  const [finalizacaoLoading, setFinalizacaoLoading] = useState(false);
 
   // Aviso ao fechar aba
   useEffect(() => {
@@ -578,20 +580,31 @@ export const useWizardModel = () => {
       const personagem = new Personagem(dados);
       const criado = await personagemService.create(personagem, { context: 'criacao' });
 
+      // Background IA (fire-and-forget)
       if (criado?.id && s.background) {
-        try {
-          setGerandoBackground(true);
-          await personagemService.gerarBackground(criado.id, s.background);
-        } catch (bgError) {
+        personagemService.gerarBackground(criado.id, s.background).catch(bgError => {
           console.warn('Background IA não gerado:', bgError.message);
-        } finally {
-          setGerandoBackground(false);
-        }
+        });
       }
 
       limparDraft();
       await recarregarPersonagens();
-      navigate('/personagens');
+
+      // Tentar finalizacao inicial — se falhar, navegar normalmente
+      if (criado?.id) {
+        try {
+          setFinalizacaoLoading(true);
+          const finData = await personagemService.gerarFinalizacaoInicial(criado.id);
+          setFinalizacaoData(finData);
+        } catch (finError) {
+          console.warn('Finalizacao inicial não disponivel:', finError.message);
+          navigate('/personagens');
+        } finally {
+          setFinalizacaoLoading(false);
+        }
+      } else {
+        navigate('/personagens');
+      }
     } catch (err) {
       setError(err.message || 'Erro ao criar personagem');
     } finally {
@@ -600,6 +613,15 @@ export const useWizardModel = () => {
   }, [bonusCalc.bonusAplicados, pointSystem.pontosCriacaoRestantes, navigate, recarregarPersonagens, limparDraft]);
 
   const clearError = useCallback(() => setError(null), []);
+
+  const fecharFinalizacao = useCallback(() => {
+    setFinalizacaoData(null);
+    navigate('/personagens');
+  }, [navigate]);
+
+  const atualizarFinalizacaoData = useCallback((updater) => {
+    setFinalizacaoData(prev => typeof updater === 'function' ? updater(prev) : updater);
+  }, []);
 
   return {
     // Wizard / Navigation
@@ -682,6 +704,12 @@ export const useWizardModel = () => {
     salvando,
     gerandoBackground,
     error,
+
+    // Finalizacao
+    finalizacaoData,
+    finalizacaoLoading,
+    fecharFinalizacao,
+    atualizarFinalizacaoData,
 
     // Theme
     isLight,

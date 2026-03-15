@@ -12,6 +12,7 @@ import './wizard-theme.css';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
+import FinalizacaoPanel from './components/FinalizacaoPanel.jsx';
 import {
   getProgressItems,
   getTooltipMap,
@@ -78,6 +79,10 @@ const WizardView = (props) => {
     salvando,
     gerandoBackground,
     error,
+    finalizacaoData,
+    finalizacaoLoading,
+    fecharFinalizacao,
+    atualizarFinalizacaoData,
     isLight,
     navigate,
   } = props;
@@ -120,6 +125,35 @@ const WizardView = (props) => {
   const readinessState = useMemo(() => getReadinessState(buildState), [buildState]);
 
 
+
+  // Finalizacao: loading ou painel editavel
+  if (finalizacaoLoading) {
+    return (
+      <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent text-[var(--wa-accent)]" />
+            <p className="text-sm font-modern text-[var(--wa-muted)]">Preparando finalizacao...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (finalizacaoData) {
+    return (
+      <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
+        <div className="relative z-[1] flex h-full min-h-0 flex-col overflow-y-auto">
+          <FinalizacaoPanel
+            data={finalizacaoData}
+            onFechar={fecharFinalizacao}
+            onUpdate={atualizarFinalizacaoData}
+            isLight={isLight}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>

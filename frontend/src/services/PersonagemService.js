@@ -362,6 +362,24 @@ export class PersonagemService {
     }
   }
 
+  /**
+   * Gera finalizacao inicial do personagem (combo sugerido + catalogo editavel)
+   * @param {number} id - ID do personagem
+   * @returns {Promise<Object>} { fala_personagem, leitura_ficha, combo, catalogo_editavel, meta }
+   */
+  async gerarFinalizacaoInicial(id) {
+    try {
+      const response = await this.apiClient.post(`${this.baseUrl}/${id}/finalizacao-inicial`);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao gerar finalizacao inicial');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao gerar finalizacao inicial: ${error.message}`);
+    }
+  }
+
   async desvincularHistoria(personagemId, historiaId) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${personagemId}/historias/${historiaId}`);

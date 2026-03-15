@@ -15,7 +15,7 @@ import RoteiroComparisonModal from '../../../components/RoteiroComparisonModal.j
 import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import NarrationAudioButton from '../../../components/shared/NarrationAudioButton.jsx';
-import { ESTILOS_IMAGEM, MODOS_ROTEIRO } from './historia-ver.model';
+import { ESTILOS_IMAGEM, MODOS_ROTEIRO, MODOS_ABERTURA } from './historia-ver.model';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -119,6 +119,10 @@ const VerHistoriaView = ({
   handleMapaGenerated,
   handleRemoveMapa,
   handleEstiloImagemChange,
+
+  // Abertura de sessao
+  modoAberturaAtual,
+  handleModoAberturaChange,
 
   // Utils
   clearError,
@@ -342,6 +346,37 @@ const VerHistoriaView = ({
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Modo de Abertura de Sessão */}
+              {canMutateHistoria && (
+                <div>
+                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                    <Settings size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+                    Abertura de Sessão
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {MODOS_ABERTURA.map(m => (
+                      <button
+                        key={m.value}
+                        onClick={() => handleModoAberturaChange(m.value)}
+                        title={m.desc}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer border ${
+                          modoAberturaAtual === m.value
+                            ? 'bg-purple-500/30 border-purple-400 text-purple-200'
+                            : isLight
+                              ? 'border-slate-300 hover:bg-slate-100 text-slate-600'
+                              : 'border-slate-600 hover:bg-slate-700 text-slate-400'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {MODOS_ABERTURA.find(m => m.value === modoAberturaAtual)?.desc}
+                  </p>
                 </div>
               )}
 

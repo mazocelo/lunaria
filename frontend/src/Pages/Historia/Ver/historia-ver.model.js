@@ -27,6 +27,11 @@ export const ESTILOS_IMAGEM = [
   { value: 'comic_book', label: 'Comic Book' },
 ];
 
+export const MODOS_ABERTURA = [
+  { value: 'direto', label: 'Direto', desc: 'Entra na cena principal imediatamente' },
+  { value: 'transicao_personalizada', label: 'Transição personalizada', desc: 'Faz uma costura breve explicando como o personagem chegou até a cena' },
+];
+
 export const MODOS_ROTEIRO = [
   { value: 'darker', label: 'Sombrio', desc: 'Moral ambígua, tragédia' },
   { value: 'exploration', label: 'Exploração', desc: 'Segredos, dungeons, puzzles' },
@@ -403,6 +408,21 @@ export const useHistoriaVerModel = () => {
   // Estilo imagem atual
   const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
 
+  // Modo de abertura de sessao
+  const modoAberturaAtual = historiaAtual?.config?.session_opening_mode ?? 'direto';
+
+  const handleModoAberturaChange = useCallback(async (modo) => {
+    if (!historiaAtual) return;
+    const configAnterior = historiaAtual.config;
+    setHistoriaAtual(prev => ({ ...prev, config: { ...prev?.config, session_opening_mode: modo } }));
+    try {
+      await historiaService.update(historiaAtual.id, { config: { ...historiaAtual.config, session_opening_mode: modo } });
+    } catch (err) {
+      setHistoriaAtual(prev => ({ ...prev, config: configAnterior }));
+      setError(err.message || 'Erro ao salvar modo de abertura');
+    }
+  }, [historiaAtual]);
+
   // Voice preview
   const stopPreview = useCallback(() => {
     if (previewAudioRef.current) {
@@ -530,6 +550,10 @@ export const useHistoriaVerModel = () => {
     handleMapaGenerated,
     handleRemoveMapa,
     handleEstiloImagemChange,
+
+    // Abertura de sessao
+    modoAberturaAtual,
+    handleModoAberturaChange,
 
     // Utils
     clearError,

@@ -198,7 +198,8 @@ const Personagem = (prisma) => {
       // Batch query: 1 query instead of N
       const ids = vinculos.map(v => v.equipamento_id);
       const equipamentos = await prisma.equipamentos.findMany({
-        where: { id: { in: ids } }
+        where: { id: { in: ids } },
+        include: { raridade_rel: true, categoria_rel: true }
       });
 
       return equipamentos.map(equipamento => ({ equipamento }));

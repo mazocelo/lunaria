@@ -211,6 +211,7 @@ const writeLimiter = rateLimit({
  *         description: História não encontrada
  */
 router.post('/', writeLimiter, asyncHandlerWithContext(personagemController.criarPersonagem, personagemController));
+router.post('/finalizacao-preview', writeLimiter, asyncHandlerWithContext(personagemController.finalizacaoPreview, personagemController));
 
 /**
  * @swagger

@@ -52,10 +52,48 @@ export const VelocidadeSchema = z.object({
 
 // ===== VANTAGEM / DESVANTAGEM (flexível) =====
 
-export const BonusFlexivelSchema = z.record(z.unknown()).default({});
-export const RestricaoSchema = z.record(z.unknown()).default({});
-export const EfeitoFlexivelSchema = z.record(z.unknown()).default({});
-export const RequisitosFlexivelSchema = z.record(z.unknown()).default({});
+export const BonusFlexivelSchema = z.object({
+  ataque: z.number().int().optional(),
+  dano: z.number().int().optional(),
+  armadura: z.number().int().optional(),
+  esquiva_bonus: z.number().int().optional(),
+  esquiva_penalidade: z.number().int().optional(),
+  forca: z.number().int().optional(),
+  inteligencia: z.number().int().optional(),
+  carisma: z.number().int().optional(),
+  destreza: z.number().int().optional(),
+  constituicao: z.number().int().optional(),
+  agilidade: z.number().int().optional(),
+  testes: z.record(z.number()).optional(),
+  atributos: z.record(z.number()).optional(),
+}).catchall(z.unknown()).default({});
+
+export const RestricaoSchema = z.object({
+  terreno: z.array(z.string()).optional(),
+  status: z.array(z.string()).optional(),
+  recurso: z.array(z.string()).optional(),
+  equipamento: z.array(z.string()).optional(),
+  contexto: z.array(z.string()).optional(),
+}).catchall(z.unknown()).default({});
+
+export const EfeitoFlexivelSchema = z.object({
+  nome: z.string().optional(),
+  status: z.string().optional(),
+  tipo: z.string().optional(),
+  duracao: z.number().int().min(0).optional(),
+  valor: z.number().optional(),
+  dano_por_turno: z.union([z.string(), z.number()]).optional(),
+  cura_por_turno: z.union([z.string(), z.number()]).optional(),
+}).catchall(z.unknown()).default({});
+
+export const RequisitosFlexivelSchema = z.object({
+  classe: z.array(z.string()).optional(),
+  raca: z.array(z.string()).optional(),
+  nivel: z.number().int().min(1).optional(),
+  nivel_minimo: z.number().int().min(1).optional(),
+  habilidades: z.array(z.string()).optional(),
+  atributos_minimos: z.record(z.number().int()).optional(),
+}).catchall(z.unknown()).default({});
 
 // ===== PREFERÊNCIAS DO USUÁRIO =====
 

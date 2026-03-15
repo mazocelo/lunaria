@@ -15,6 +15,7 @@ import {
 } from '../../helpers/evolucaoHelper.js';
 import { validarAtributosCriacao } from '../../helpers/criacaoPersonagemHelper.js';
 import { buildFinalizacaoBase } from '../../helpers/finalizacaoInicialHelper.js';
+import { buildFinalizacaoPreviewBase } from '../../helpers/finalizacaoPreviewHelper.js';
 import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/FinalizacaoInicialAgent.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
@@ -140,7 +141,10 @@ class PersonagemController {
         descricao: e.equipamento.descricao,
         tipo: e.equipamento.tipo,
         bonus: e.equipamento.bonus,
-        elemento: e.equipamento.elemento
+        elemento: e.equipamento.elemento,
+        dano_base: e.equipamento.dano_base,
+        raridade_rel: e.equipamento.raridade_rel || null,
+        categoria_rel: e.equipamento.categoria_rel || null,
       }));
     }
 
@@ -1322,8 +1326,9 @@ class PersonagemController {
         });
       }
 
-      // Listar equipamentos do personagem
-      const equipamentos = await db.Personagem.listarEquipamentos(id);
+      // Listar equipamentos do personagem (retorna [{ equipamento }])
+      const raw = await db.Personagem.listarEquipamentos(id);
+      const equipamentos = raw.map(e => e.equipamento);
 
       log.info({ equipamentos_length: equipamentos.length }, 'equipamentos encontrados');
 
@@ -1784,6 +1789,41 @@ class PersonagemController {
       }
       if (error.message?.includes('nao encontrado')) {
         return res.status(404).json({ success: false, error: error.message });
+      }
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
+
+  finalizacaoPreview = async (req, res, next) => {
+    try {
+      const tentativa = req.body?.tentativa == null ? 0 : parseInt(req.body.tentativa, 10);
+      if (Number.isNaN(tentativa) || tentativa < 0 || tentativa > 3) {
+        return res.status(400).json({ success: false, error: 'Tentativa deve ser entre 0 e 3' });
+      }
+
+      const base = await buildFinalizacaoPreviewBase(req.body?.draft);
+      const agent = await criarFinalizacaoInicialAgent();
+      const comboAnterior = req.body?.combo_anterior || req.body?.comboAnterior || [];
+
+      const resultado = tentativa > 0
+        ? await agent.regenerarFinalizacao(base, tentativa, comboAnterior, req.user?.id)
+        : await agent.gerarFinalizacao(base, req.user?.id);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          snapshot: base.snapshot,
+          fala_personagem: resultado.fala_personagem,
+          leitura_ficha: resultado.leitura_ficha,
+          combo: resultado.combo,
+          catalogo_editavel: base.catalogo_editavel,
+          meta: base.meta,
+        },
+      });
+    } catch (error) {
+      log.error({ err: error }, 'Erro na finalizacao preview');
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, error: error.message });
       }
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }

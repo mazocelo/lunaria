@@ -1,9 +1,14 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { createFinalizacaoModel } from './model.js';
-import { createFinalizacaoPrompt, createRegeneracaoEquipamentosPrompt } from './prompts.js';
+import {
+  createFinalizacaoPrompt,
+  createRegeneracaoComboPrompt,
+  createRegeneracaoEquipamentosPrompt,
+} from './prompts.js';
 import { DEFAULT_MODEL_SETTINGS } from './config.js';
 import { trackLLMUsage } from '../../../services/llmTracker.js';
 import logger from '../../../helpers/logger.js';
+import { getCapsPerfilCombo } from '../../../helpers/finalizacaoInicialHelper.js';
 
 const log = logger.child({ module: 'FinalizacaoInicialAgent' });
 
@@ -17,61 +22,30 @@ const ATTR_LABELS = {
   carisma: 'presenca',
 };
 
-// ── parseIAJson (padrao do codebase — 3 estrategias) ──
-
 function parseIAJson(content) {
   try { return JSON.parse(content); } catch (_) { /* noop */ }
 
-  const cleaned = content
+  const cleaned = String(content || '')
     .replace(/^```(?:json)?\s*\n?/i, '')
     .replace(/\n?```\s*$/i, '')
     .trim();
   try { return JSON.parse(cleaned); } catch (_) { /* noop */ }
 
-  const match = content.match(/\{[\s\S]*\}/);
+  const match = String(content || '').match(/\{[\s\S]*\}/);
   if (match) {
     try { return JSON.parse(match[0]); } catch (_) { /* noop */ }
   }
 
-  log.warn({ rawContent: content.substring(0, 300) }, 'JSON parse falhou');
+  log.warn({ rawContent: String(content || '').substring(0, 300) }, 'JSON parse falhou');
   return null;
 }
-
-// ── Timeout helper ──
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('AI_TIMEOUT')), ms)
-    ),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), ms)),
   ]);
 }
-
-// ── Sanitizacao: validar IDs contra catalogo ──
-
-function sanitizarCombo(combo, catalogoEditavel) {
-  const idsEquip = new Set(catalogoEditavel.equipamentos.map(e => e.id));
-  const idsHab = new Set(catalogoEditavel.habilidades.map(h => h.id));
-  const idsMag = new Set(catalogoEditavel.magias.map(m => m.id));
-
-  const filtrar = (items, idsValidos) =>
-    (Array.isArray(items) ? items : [])
-      .filter(item => item && typeof item.id === 'number' && idsValidos.has(item.id))
-      .map(item => ({
-        id: item.id,
-        nome: String(item.nome || ''),
-        motivo: String(item.motivo || ''),
-      }));
-
-  return {
-    equipamentos: filtrar(combo?.equipamentos, idsEquip),
-    habilidades: filtrar(combo?.habilidades, idsHab),
-    magias: filtrar(combo?.magias, idsMag),
-  };
-}
-
-// ── Fallback local ──
 
 function contarPalavras(texto) {
   return String(texto || '').trim().split(/\s+/).filter(Boolean).length;
@@ -113,76 +87,210 @@ function buildFalaFallback(snapshot) {
 function normalizarFalaPersonagem(texto, snapshot) {
   const fala = String(texto || '').trim();
   if (!fala) return buildFalaFallback(snapshot);
-
-  if (contarPalavras(fala) < 16 || fala.length < 90) {
-    return buildFalaFallback(snapshot);
-  }
-
+  if (contarPalavras(fala) < 16 || fala.length < 90) return buildFalaFallback(snapshot);
   return fala;
 }
-
-function buildFallback(snapshot, catalogoEditavel, meta) {
-  const { classe, raca } = snapshot;
-
-  return {
-    fala_personagem: buildFalaFallback(snapshot),
-    leitura_ficha: `${classe} ${raca} Nv${meta.nivel}`,
-    combo: {
-      equipamentos: catalogoEditavel.equipamentos.slice(0, 3).map(e => ({
-        id: e.id, nome: e.nome, motivo: 'Sugestao padrao',
-      })),
-      habilidades: catalogoEditavel.habilidades.slice(0, 2).map(h => ({
-        id: h.id, nome: h.nome, motivo: 'Sugestao padrao',
-      })),
-      magias: catalogoEditavel.magias.slice(0, 2).map(m => ({
-        id: m.id, nome: m.nome, motivo: 'Sugestao padrao',
-      })),
-    },
-  };
-}
-
-// ── Formatar catalogo para prompt (compacto) ──
 
 function formatCatalogo(items) {
   if (!items || items.length === 0) return '(vazio)';
   return JSON.stringify(
-    items.map(i => ({ id: i.id, nome: i.nome, tipo: i.tipo || i.categoria || null, descricao: i.descricao || '' })),
-    null, 0
+    items.map((item) => ({
+      id: item.id,
+      nome: item.nome,
+      tipo: item.tipo || item.categoria || null,
+      descricao: item.descricao || '',
+      nivel_requerido: item.nivel_requerido || null,
+      custo_mana: item.custo_mana || 0,
+      raridade: item.raridade || null,
+      peso: item.peso || null,
+    })),
+    null,
+    0
   );
 }
 
-// ── Factory ──
+function buildLookups(catalogoEditavel) {
+  return {
+    equipamentos: new Map((catalogoEditavel.equipamentos || []).map((item) => [item.id, item])),
+    habilidades: new Map((catalogoEditavel.habilidades || []).map((item) => [item.id, item])),
+    magias: new Map((catalogoEditavel.magias || []).map((item) => [item.id, item])),
+  };
+}
+
+function sanitizarCombo(combo, catalogoEditavel) {
+  const lookups = buildLookups(catalogoEditavel);
+  const filtrar = (items, lookup) =>
+    (Array.isArray(items) ? items : [])
+      .filter((item) => item && typeof item.id === 'number' && lookup.has(item.id))
+      .map((item) => ({
+        id: item.id,
+        nome: String(item.nome || ''),
+        motivo: String(item.motivo || ''),
+      }));
+
+  return {
+    equipamentos: filtrar(combo?.equipamentos, lookups.equipamentos),
+    habilidades: filtrar(combo?.habilidades, lookups.habilidades),
+    magias: filtrar(combo?.magias, lookups.magias),
+  };
+}
+
+function sortTaticos(lista, catalogoEditavel) {
+  const habilidadeLookup = new Map((catalogoEditavel.habilidades || []).map((item) => [item.id, item]));
+  const magiaLookup = new Map((catalogoEditavel.magias || []).map((item) => [item.id, item]));
+
+  return [...lista].sort((a, b) => {
+    const aSource = a.grupo === 'habilidade' ? habilidadeLookup.get(a.id) : magiaLookup.get(a.id);
+    const bSource = b.grupo === 'habilidade' ? habilidadeLookup.get(b.id) : magiaLookup.get(b.id);
+
+    const aGrupo = a.grupo === 'habilidade' ? 0 : 1;
+    const bGrupo = b.grupo === 'habilidade' ? 0 : 1;
+    if (aGrupo !== bGrupo) return aGrupo - bGrupo;
+
+    const aNivel = aSource?.nivel_requerido || 1;
+    const bNivel = bSource?.nivel_requerido || 1;
+    if (aNivel !== bNivel) return aNivel - bNivel;
+
+    const aMana = aSource?.custo_mana || 0;
+    const bMana = bSource?.custo_mana || 0;
+    if (aMana !== bMana) return aMana - bMana;
+
+    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+  });
+}
+
+function enforceComboPolicy(combo, catalogoEditavel, meta) {
+  const sanitizado = sanitizarCombo(combo, catalogoEditavel);
+  const caps = getCapsPerfilCombo(meta?.perfil_combo);
+
+  const equipamentos = sanitizado.equipamentos.slice(0, caps.maxEquipamentos);
+  const slotsLivres = Math.max(0, caps.maxTotal - equipamentos.length);
+  const limiteTatico = Math.min(caps.maxTaticos, slotsLivres);
+
+  const taticosOrdenados = sortTaticos([
+    ...sanitizado.habilidades.map((item) => ({ ...item, grupo: 'habilidade' })),
+    ...sanitizado.magias.map((item) => ({ ...item, grupo: 'magia' })),
+  ], catalogoEditavel).slice(0, limiteTatico);
+
+  return {
+    equipamentos,
+    habilidades: taticosOrdenados.filter((item) => item.grupo === 'habilidade').map(({ grupo, ...item }) => item),
+    magias: taticosOrdenados.filter((item) => item.grupo === 'magia').map(({ grupo, ...item }) => item),
+  };
+}
+
+function selectWindow(items, offset, count) {
+  if (!Array.isArray(items) || items.length === 0 || count <= 0) return [];
+
+  const resultado = [];
+  const start = ((offset % items.length) + items.length) % items.length;
+
+  for (let step = 0; step < items.length && resultado.length < count; step += 1) {
+    const item = items[(start + step) % items.length];
+    if (!resultado.some((current) => current.id === item.id)) {
+      resultado.push(item);
+    }
+  }
+
+  return resultado;
+}
+
+function formatComboAnterior(comboAnterior) {
+  if (Array.isArray(comboAnterior)) {
+    if (comboAnterior.length === 0) return '(nenhum)';
+    return comboAnterior
+      .map((item) => `${item.grupo || 'item'}:${item.nome || item.id}`)
+      .join(' | ');
+  }
+
+  if (!comboAnterior || typeof comboAnterior !== 'object') {
+    return '(nenhum)';
+  }
+
+  const itens = [
+    ...(comboAnterior.equipamentos || []).map((item) => `equipamento:${item.nome || item.id}`),
+    ...(comboAnterior.habilidades || []).map((item) => `habilidade:${item.nome || item.id}`),
+    ...(comboAnterior.magias || []).map((item) => `magia:${item.nome || item.id}`),
+  ];
+
+  return itens.length > 0 ? itens.join(' | ') : '(nenhum)';
+}
+
+function buildFallback(snapshot, catalogoEditavel, meta, tentativa = 0) {
+  const caps = getCapsPerfilCombo(meta?.perfil_combo);
+  const equipamentosCatalogo = catalogoEditavel.equipamentos || [];
+  const habilidadesCatalogo = catalogoEditavel.habilidades || [];
+  const magiasCatalogo = catalogoEditavel.magias || [];
+
+  const equipamentos = selectWindow(
+    equipamentosCatalogo,
+    tentativa * caps.maxEquipamentos,
+    caps.maxEquipamentos
+  ).map((item) => ({
+    id: item.id,
+    nome: item.nome,
+    motivo: tentativa > 0 ? 'Leitura alternativa do Mestre' : 'Leitura inicial do Mestre',
+  }));
+
+  const slotsLivres = Math.max(0, caps.maxTotal - equipamentos.length);
+  const limiteTatico = Math.min(caps.maxTaticos, slotsLivres);
+
+  const taticosCatalogo = sortTaticos([
+    ...habilidadesCatalogo.map((item) => ({ id: item.id, nome: item.nome, grupo: 'habilidade' })),
+    ...magiasCatalogo.map((item) => ({ id: item.id, nome: item.nome, grupo: 'magia' })),
+  ], catalogoEditavel);
+
+  const taticos = selectWindow(
+    taticosCatalogo,
+    tentativa * Math.max(1, limiteTatico),
+    limiteTatico
+  );
+
+  return {
+    fala_personagem: buildFalaFallback(snapshot),
+    leitura_ficha: `${snapshot.classe} ${snapshot.raca} Nv${meta.nivel}`,
+    combo: {
+      equipamentos,
+      habilidades: taticos
+        .filter((item) => item.grupo === 'habilidade')
+        .map((item) => ({ id: item.id, nome: item.nome, motivo: 'Sugestao padrao' })),
+      magias: taticos
+        .filter((item) => item.grupo === 'magia')
+        .map((item) => ({ id: item.id, nome: item.nome, motivo: 'Sugestao padrao' })),
+    },
+  };
+}
 
 export default async function criarFinalizacaoInicialAgent() {
   const modelName = DEFAULT_MODEL_SETTINGS.model;
+
   const prompt = createFinalizacaoPrompt();
   const model = createFinalizacaoModel();
-
   const chain = RunnableSequence.from([prompt, model]);
 
-  const regenPrompt = createRegeneracaoEquipamentosPrompt();
+  const regenPrompt = createRegeneracaoComboPrompt();
   const regenModel = createFinalizacaoModel();
   const regenChain = RunnableSequence.from([regenPrompt, regenModel]);
 
+  const regenEquipPrompt = createRegeneracaoEquipamentosPrompt();
+  const regenEquipModel = createFinalizacaoModel();
+  const regenEquipChain = RunnableSequence.from([regenEquipPrompt, regenEquipModel]);
+
   return {
-    /**
-     * Gera finalizacao inicial para um personagem.
-     * @param {{ snapshot, catalogo_editavel, meta }} base - output de buildFinalizacaoBase
-     * @param {string|number} userId - para tracking de uso
-     * @returns {Promise<{ fala_personagem, leitura_ficha, combo }>}
-     */
     gerarFinalizacao: async (base, userId) => {
       const { snapshot, catalogo_editavel, meta } = base;
 
       try {
         const startTime = Date.now();
-
         const response = await withTimeout(chain.invoke({
           snapshot: JSON.stringify(snapshot, null, 2),
           catalogo_equipamentos: formatCatalogo(catalogo_editavel.equipamentos),
           catalogo_habilidades: formatCatalogo(catalogo_editavel.habilidades),
           catalogo_magias: formatCatalogo(catalogo_editavel.magias),
-          meta: JSON.stringify(meta),
+          meta: JSON.stringify({
+            ...meta,
+            caps_combo: getCapsPerfilCombo(meta?.perfil_combo),
+          }),
         }));
 
         trackLLMUsage(response, {
@@ -193,38 +301,28 @@ export default async function criarFinalizacaoInicialAgent() {
         });
 
         const parsed = parseIAJson(response.content);
-
         if (!parsed || !parsed.combo) {
           log.warn('IA retornou JSON invalido, usando fallback');
           return buildFallback(snapshot, catalogo_editavel, meta);
         }
 
-        const comboSanitizado = sanitizarCombo(parsed.combo, catalogo_editavel);
-
-        // Se sanitizacao esvaziou o combo inteiro, cair no fallback
-        const totalItens = comboSanitizado.equipamentos.length
-          + comboSanitizado.habilidades.length
-          + comboSanitizado.magias.length;
+        const comboFinal = enforceComboPolicy(parsed.combo, catalogo_editavel, meta);
+        const totalItens = comboFinal.equipamentos.length + comboFinal.habilidades.length + comboFinal.magias.length;
 
         if (totalItens === 0) {
           log.warn({ personagem: snapshot.nome }, 'Combo esvaziado apos sanitizacao, usando fallback');
-          const fb = buildFallback(snapshot, catalogo_editavel, meta);
+          const fallback = buildFallback(snapshot, catalogo_editavel, meta);
           return {
-            fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || fb.fala_personagem, snapshot),
-            leitura_ficha: String(parsed.leitura_ficha || fb.leitura_ficha),
-            combo: fb.combo,
+            fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || fallback.fala_personagem, snapshot),
+            leitura_ficha: String(parsed.leitura_ficha || fallback.leitura_ficha),
+            combo: fallback.combo,
           };
         }
-
-        log.info(
-          { personagem: snapshot.nome, equip: comboSanitizado.equipamentos.length, hab: comboSanitizado.habilidades.length, mag: comboSanitizado.magias.length },
-          'Finalizacao inicial gerada'
-        );
 
         return {
           fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || '', snapshot),
           leitura_ficha: String(parsed.leitura_ficha || ''),
-          combo: comboSanitizado,
+          combo: comboFinal,
         };
       } catch (error) {
         log.error({ err: error.message, personagem: snapshot.nome }, 'Erro na finalizacao inicial, usando fallback');
@@ -232,22 +330,69 @@ export default async function criarFinalizacaoInicialAgent() {
       }
     },
 
-    /**
-     * Regenera apenas o combo de equipamentos com variacao.
-     * @param {{ snapshot, catalogo_editavel, meta }} base
-     * @param {number} tentativa - 1, 2 ou 3
-     * @param {string[]} anteriores - nomes dos equipamentos anteriores
-     * @param {string|number} userId
-     * @returns {Promise<Array<{ id, nome, motivo }>>}
-     */
-    regenerarEquipamentos: async (base, tentativa, anteriores, userId) => {
+    regenerarFinalizacao: async (base, tentativa, comboAnterior, userId) => {
       const { snapshot, catalogo_editavel, meta } = base;
-      const idsEquip = new Set(catalogo_editavel.equipamentos.map(e => e.id));
 
       try {
         const startTime = Date.now();
-
         const response = await withTimeout(regenChain.invoke({
+          snapshot: JSON.stringify(snapshot, null, 2),
+          catalogo_equipamentos: formatCatalogo(catalogo_editavel.equipamentos),
+          catalogo_habilidades: formatCatalogo(catalogo_editavel.habilidades),
+          catalogo_magias: formatCatalogo(catalogo_editavel.magias),
+          meta: JSON.stringify({
+            ...meta,
+            caps_combo: getCapsPerfilCombo(meta?.perfil_combo),
+          }),
+          tentativa: String(tentativa),
+          combo_anterior: formatComboAnterior(comboAnterior),
+        }));
+
+        trackLLMUsage(response, {
+          modelName,
+          userId,
+          startTime,
+          agent: 'FinalizacaoInicial:RegenCombo',
+        });
+
+        const parsed = parseIAJson(response.content);
+        if (!parsed || !parsed.combo) {
+          log.warn({ tentativa }, 'Regeneracao de combo retornou JSON invalido, usando fallback');
+          return buildFallback(snapshot, catalogo_editavel, meta, tentativa);
+        }
+
+        const comboFinal = enforceComboPolicy(parsed.combo, catalogo_editavel, meta);
+        const totalItens = comboFinal.equipamentos.length + comboFinal.habilidades.length + comboFinal.magias.length;
+
+        if (totalItens === 0) {
+          log.warn({ tentativa, personagem: snapshot.nome }, 'Regeneracao de combo esvaziou apos sanitizacao, usando fallback');
+          const fallback = buildFallback(snapshot, catalogo_editavel, meta, tentativa);
+          return {
+            fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || fallback.fala_personagem, snapshot),
+            leitura_ficha: String(parsed.leitura_ficha || fallback.leitura_ficha),
+            combo: fallback.combo,
+          };
+        }
+
+        return {
+          fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || '', snapshot),
+          leitura_ficha: String(parsed.leitura_ficha || ''),
+          combo: comboFinal,
+        };
+      } catch (error) {
+        log.error({ err: error.message, tentativa }, 'Erro na regeneracao completa, usando fallback');
+        return buildFallback(snapshot, catalogo_editavel, meta, tentativa);
+      }
+    },
+
+    regenerarEquipamentos: async (base, tentativa, anteriores, userId) => {
+      const { snapshot, catalogo_editavel, meta } = base;
+      const idsEquip = new Set((catalogo_editavel.equipamentos || []).map((item) => item.id));
+      const caps = getCapsPerfilCombo(meta?.perfil_combo);
+
+      try {
+        const startTime = Date.now();
+        const response = await withTimeout(regenEquipChain.invoke({
           snapshot: JSON.stringify(snapshot, null, 2),
           catalogo_equipamentos: formatCatalogo(catalogo_editavel.equipamentos),
           meta: JSON.stringify(meta),
@@ -263,35 +408,29 @@ export default async function criarFinalizacaoInicialAgent() {
         });
 
         const parsed = parseIAJson(response.content);
-
         if (!parsed || !Array.isArray(parsed.equipamentos)) {
           log.warn('Regeneracao retornou JSON invalido, usando fallback');
-          const offset = (tentativa - 1) * 3;
-          return catalogo_editavel.equipamentos.slice(offset, offset + 3).map(e => ({
-            id: e.id, nome: e.nome, motivo: 'Sugestao alternativa',
-          }));
+          return buildFallback(snapshot, catalogo_editavel, meta, tentativa).combo.equipamentos;
         }
 
         const sanitizados = (parsed.equipamentos || [])
-          .filter(item => item && typeof item.id === 'number' && idsEquip.has(item.id))
-          .map(item => ({ id: item.id, nome: String(item.nome || ''), motivo: String(item.motivo || '') }));
+          .filter((item) => item && typeof item.id === 'number' && idsEquip.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            nome: String(item.nome || ''),
+            motivo: String(item.motivo || ''),
+          }))
+          .slice(0, caps.maxEquipamentos);
 
         if (sanitizados.length === 0) {
           log.warn({ tentativa }, 'Regeneracao esvaziou apos sanitizacao, usando fallback');
-          const offset = (tentativa - 1) * 3;
-          return catalogo_editavel.equipamentos.slice(offset, offset + 3).map(e => ({
-            id: e.id, nome: e.nome, motivo: 'Sugestao alternativa',
-          }));
+          return buildFallback(snapshot, catalogo_editavel, meta, tentativa).combo.equipamentos;
         }
 
-        log.info({ personagem: snapshot.nome, tentativa, count: sanitizados.length }, 'Equipamentos regenerados');
         return sanitizados;
       } catch (error) {
-        log.error({ err: error.message, tentativa }, 'Erro na regeneracao, usando fallback');
-        const offset = (tentativa - 1) * 3;
-        return catalogo_editavel.equipamentos.slice(offset, offset + 3).map(e => ({
-          id: e.id, nome: e.nome, motivo: 'Sugestao alternativa',
-        }));
+        log.error({ err: error.message, tentativa }, 'Erro na regeneracao de equipamentos, usando fallback');
+        return buildFallback(snapshot, catalogo_editavel, meta, tentativa).combo.equipamentos;
       }
     },
   };

@@ -1,37 +1,65 @@
 /**
- * Helper deterministico para finalizacao inicial de personagem.
+ * Helper deterministico para finalizacao de personagem.
  *
- * Monta a base estruturada (snapshot + catalogos elegiveis + metadados)
- * para que outro agente (IA) consuma e gere recomendacoes editaveis.
+ * Responsavel por montar a base estruturada consumida pelo agente:
+ * - snapshot
+ * - catalogos elegiveis
+ * - metadados de build
  *
- * - Somente leitura, zero persistencia
- * - Zero logica de IA / prompt
- * - Reutiliza helpers e models existentes
+ * Mantem zero persistencia e nenhuma logica de prompt/IA.
  */
 
 import db from '../Model/index.js';
-import logger from './logger.js';
 import { buscarPersonagensCompletos } from './personagensHelper.js';
 import { tierDesbloqueado, calcularPontosVantagem } from './evolucaoHelper.js';
 import { validarRequisitosEquipamento } from './bonusHelper.js';
 
-const log = logger.child({ module: 'finalizacaoInicialHelper' });
+export function resolverPerfilCombo(pontosRestantes) {
+  const saldo = Number(pontosRestantes) || 0;
+  if (saldo <= 2) return 'contido';
+  if (saldo <= 6) return 'equilibrado';
+  return 'amplo';
+}
 
-/**
- * Constroi a base deterministica para finalizacao inicial do personagem.
- *
- * @param {number} personagemId
- * @returns {Promise<{ snapshot, catalogo_editavel, meta }>}
- */
+export function getCapsPerfilCombo(perfil) {
+  switch (perfil) {
+    case 'contido':
+      return { maxEquipamentos: 2, maxTaticos: 1, maxTotal: 3 };
+    case 'amplo':
+      return { maxEquipamentos: 3, maxTaticos: 3, maxTotal: 6 };
+    case 'equilibrado':
+    default:
+      return { maxEquipamentos: 2, maxTaticos: 2, maxTotal: 4 };
+  }
+}
+
+export function buildMetaFinalizacao({
+  nivel,
+  racaCusto = 0,
+  classeCusto = 0,
+  custoDesvantagens = 0,
+  custoVantagensUsado = 0,
+}) {
+  const tier = tierDesbloqueado(nivel);
+  const orcamentoTotal = calcularPontosVantagem(nivel, racaCusto, classeCusto, custoDesvantagens);
+  const saldoVantagens = orcamentoTotal - custoVantagensUsado;
+  const perfilCombo = resolverPerfilCombo(saldoVantagens);
+
+  return {
+    nivel,
+    tier,
+    pontos_restantes: saldoVantagens,
+    perfil_combo: perfilCombo,
+  };
+}
+
 export async function buildFinalizacaoBase(personagemId) {
-  const id = parseInt(personagemId);
-  if (!id || isNaN(id)) throw new Error('personagemId invalido');
+  const id = parseInt(personagemId, 10);
+  if (!id || Number.isNaN(id)) throw new Error('personagemId invalido');
 
-  // ── 1. Buscar personagem completo (snapshot) ──
   const [personagemCompleto] = await buscarPersonagensCompletos([id]);
   if (!personagemCompleto) throw new Error('Personagem nao encontrado');
 
-  // Buscar registro cru para IDs e custos de raca/classe
   const personagemRaw = await db.Personagem.findByIdWithRelations(id);
   if (!personagemRaw) throw new Error('Personagem nao encontrado (raw)');
 
@@ -41,9 +69,6 @@ export async function buildFinalizacaoBase(personagemId) {
   const racaNome = personagemCompleto.raca;
   const nivel = personagemCompleto.nivel;
 
-  // ── 2. Montar snapshot ──
-  // Nota: atributos sao EFETIVOS (base + bonus raca + bonus classe),
-  // calculados por calcularAtributosEfetivos em personagensHelper.
   const snapshot = {
     personagem_id: personagemCompleto.id,
     nome: personagemCompleto.nome,
@@ -57,42 +82,34 @@ export async function buildFinalizacaoBase(personagemId) {
     equipamentos_atuais: personagemCompleto.equipamentos,
   };
 
-  // ── 3. Calcular meta ──
-  const tier = tierDesbloqueado(nivel);
   const racaCusto = personagemRaw.racas?.custo ?? 0;
   const classeCusto = personagemRaw.classes?.custo ?? 0;
 
-  // Custo total das desvantagens atuais (somando |custo|)
   const desvantagensRaw = await db.Personagem.listarDesvantagens(id);
-  const custoDesv = desvantagensRaw.reduce((acc, d) => {
-    const custo = d.desvantagem?.custo ?? d.custo ?? 0;
+  const custoDesv = desvantagensRaw.reduce((acc, item) => {
+    const custo = item.desvantagem?.custo ?? item.custo ?? 0;
     return acc + Math.abs(custo);
   }, 0);
 
-  // Custo total das vantagens ja atribuidas
   const vantagensRaw = await db.Personagem.listarVantagens(id);
-  const custoVantagensUsado = vantagensRaw.reduce((acc, v) => {
-    return acc + (v.vantagem?.custo ?? v.custo ?? 0);
+  const custoVantagensUsado = vantagensRaw.reduce((acc, item) => {
+    return acc + (item.vantagem?.custo ?? item.custo ?? 0);
   }, 0);
 
-  // Saldo de orcamento de vantagens (formula oficial de evolucaoHelper).
-  // Este valor representa SOMENTE pontos de vantagem disponiveis apos descontar
-  // raca, classe e vantagens ja atribuidas. NAO e moeda de loadout geral.
-  const orcamentoTotal = calcularPontosVantagem(nivel, racaCusto, classeCusto, custoDesv);
-  const saldoVantagens = orcamentoTotal - custoVantagensUsado;
+  const meta = buildMetaFinalizacao({
+    nivel,
+    racaCusto,
+    classeCusto,
+    custoDesvantagens: custoDesv,
+    custoVantagensUsado,
+  });
 
-  const meta = { nivel, tier, pontos_restantes: saldoVantagens };
-
-  // ── 4. Catalogo de habilidades e magias ──
   const catalogoHabilidades = await buildCatalogoHabilidades(classeId, racaId, nivel);
-
-  // ── 5. Catalogo de equipamentos ──
   const idsEquipados = new Set(
-    (personagemRaw.personagem_equipamento || []).map(pe => pe.equipamento_id)
+    (personagemRaw.personagem_equipamento || []).map((item) => item.equipamento_id)
   );
   const catalogoEquipamentos = await buildCatalogoEquipamentos(classeNome, racaNome, idsEquipados);
 
-  // ── 6. Retorno ──
   return {
     snapshot,
     catalogo_editavel: {
@@ -104,20 +121,7 @@ export async function buildFinalizacaoBase(personagemId) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Funcoes internas
-// ═══════════════════════════════════════════════════════════════════
-
-/**
- * Busca habilidades elegiveis por classe e raca, separa em habilidades e magias.
- * Reutiliza a mesma logica de personagensHelper.buscarPersonagensCompletos:
- *   - findByClasse(classeId) retorna habilidades da classe + universais (classe_id = null)
- *   - findByRaca(racaId) retorna habilidades raciais (match estrito)
- *   - Deduplicacao por id
- *   - Filtro por nivel_requerido <= nivel
- *   - Separacao: escola_magia presente e != 'nenhuma' → magia, senao → habilidade
- */
-async function buildCatalogoHabilidades(classeId, racaId, nivel) {
+export async function buildCatalogoHabilidades(classeId, racaId, nivel) {
   const promises = [];
   if (classeId) promises.push(db.Habilidade.findByClasse(classeId));
   if (racaId) promises.push(db.Habilidade.findByRaca(racaId));
@@ -125,77 +129,59 @@ async function buildCatalogoHabilidades(classeId, racaId, nivel) {
   const results = await Promise.all(promises);
   const merged = results.flat();
 
-  // Deduplicar e filtrar por nivel
   const seen = new Set();
-  const elegiveis = merged.filter(h => {
-    if (seen.has(h.id)) return false;
-    seen.add(h.id);
-    return (h.nivel_requerido || 1) <= nivel;
+  const elegiveis = merged.filter((habilidade) => {
+    if (seen.has(habilidade.id)) return false;
+    seen.add(habilidade.id);
+    return (habilidade.nivel_requerido || 1) <= nivel;
   });
 
-  const shapeItem = (h) => ({
-    id: h.id,
-    nome: h.nome,
-    descricao: h.descricao,
-    tipo: h.tipo,
-    custo_mana: h.custo_mana || 0,
-    cooldown_turnos: h.cooldown_turnos || 0,
-    dano_base: h.dano_base || null,
-    elemento: h.elemento || null,
-    escola_magia: h.escola_magia || null,
-    nivel_requerido: h.nivel_requerido || 1,
-    categoria: h.categoria || null,
-    alcance: h.alcance || null,
-    alvo: h.alvo || null,
+  const shapeItem = (habilidade) => ({
+    id: habilidade.id,
+    nome: habilidade.nome,
+    descricao: habilidade.descricao,
+    tipo: habilidade.tipo,
+    custo_mana: habilidade.custo_mana || 0,
+    cooldown_turnos: habilidade.cooldown_turnos || 0,
+    dano_base: habilidade.dano_base || null,
+    elemento: habilidade.elemento || null,
+    escola_magia: habilidade.escola_magia || null,
+    nivel_requerido: habilidade.nivel_requerido || 1,
+    categoria: habilidade.categoria || null,
+    alcance: habilidade.alcance || null,
+    alvo: habilidade.alvo || null,
   });
 
-  const ehMagia = (h) => h.escola_magia && h.escola_magia !== 'nenhuma';
+  const ehMagia = (habilidade) => habilidade.escola_magia && habilidade.escola_magia !== 'nenhuma';
 
   return {
-    habilidades: elegiveis.filter(h => !ehMagia(h)).map(shapeItem),
-    magias: elegiveis.filter(h => ehMagia(h)).map(shapeItem),
+    habilidades: elegiveis.filter((habilidade) => !ehMagia(habilidade)).map(shapeItem),
+    magias: elegiveis.filter((habilidade) => ehMagia(habilidade)).map(shapeItem),
   };
 }
 
-/**
- * Busca equipamentos elegiveis para o personagem.
- *
- * Heuristica de elegibilidade (documentada):
- *   1. Se equipamento.requisitos e null/vazio/nao-objeto → elegivel para todos
- *   2. Se equipamento.requisitos.classe existe → nomeClasse deve estar na lista (case-insensitive)
- *   3. Se equipamento.requisitos.raca existe → nomeRaca deve estar na lista (case-insensitive)
- *   4. Equipamentos ja vinculados ao personagem sao excluidos do catalogo
- *
- * Usa validarRequisitosEquipamento de bonusHelper.js — mesma logica do dominio.
- * Nao filtra por nivel/tier pois equipamentos nao possuem campo nivel_requerido no schema.
- *
- * @param {string} classeNome
- * @param {string} racaNome
- * @param {Set<number>} idsEquipados - IDs ja vinculados ao personagem
- */
-async function buildCatalogoEquipamentos(classeNome, racaNome, idsEquipados) {
+export async function buildCatalogoEquipamentos(classeNome, racaNome, idsEquipados = new Set()) {
   const todos = await db.Equipamento.findAll();
 
   return todos
-    .filter(e => {
-      // Excluir ja equipados
-      if (idsEquipados.has(e.id)) return false;
-      // Validar requisitos classe/raca
-      const { valido } = validarRequisitosEquipamento(e.requisitos, classeNome, racaNome);
+    .filter((equipamento) => {
+      if (idsEquipados.has(equipamento.id)) return false;
+      const { valido } = validarRequisitosEquipamento(equipamento.requisitos, classeNome, racaNome);
       return valido;
     })
-    .map(e => ({
-      id: e.id,
-      nome: e.nome,
-      descricao: e.descricao,
-      tipo: e.tipo,
-      dano_base: e.dano_base || null,
-      bonus: e.bonus || [],
-      elemento: e.elemento || [],
-      propriedades: e.propriedades || [],
-      raridade: e.raridade_rel?.nome || null,
-      categoria: e.categoria_rel?.nome || null,
-      peso: e.peso || null,
-      requisitos: e.requisitos || null,
+    .map((equipamento) => ({
+      id: equipamento.id,
+      nome: equipamento.nome,
+      descricao: equipamento.descricao,
+      tipo: equipamento.tipo,
+      dano_base: equipamento.dano_base || null,
+      bonus: equipamento.bonus || [],
+      elemento: equipamento.elemento || [],
+      propriedades: equipamento.propriedades || [],
+      raridade: equipamento.raridade_rel?.nome || null,
+      categoria: equipamento.categoria_rel?.nome || null,
+      peso: equipamento.peso || null,
+      preco_sugerido: equipamento.preco_sugerido || null,
+      requisitos: equipamento.requisitos || null,
     }));
 }

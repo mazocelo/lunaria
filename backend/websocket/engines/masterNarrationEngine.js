@@ -23,14 +23,16 @@ import { sanitizePromptInput } from '../../helpers/sanitize.js';
 import {
   getTestePendente,
   criarTestePendente,
-  emitirSolicitacaoTeste,
-  limparTestePendente,
-  compactarTestesPendentes
+  emitirSolicitacaoTeste
 } from '../utils/testePipeline.js';
 import {
   transitionTurnState,
   TURN_STATUS
 } from '../utils/turnStateMachine.js';
+import {
+  createPendingCombatAction,
+  cleanupStalePendingCombatAction
+} from '../utils/combatPendingAction.js';
 
 export default class MasterNarrationEngine {
   constructor(manager) {
@@ -125,6 +127,16 @@ export default class MasterNarrationEngine {
         return socket.emit('error', { message: 'Sessão não encontrada' });
       }
 
+      // Cleanup de ação pendente de combate stale (>5 min)
+      // ANTES do guard de teste pendente — se o teste associado à ação stale
+      // for limpo aqui, o guard abaixo não bloqueará mais o jogador.
+      const staleCleanedUp = cleanupStalePendingCombatAction(sessao);
+      if (staleCleanedUp) {
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+        log.info({ roomId, userId }, 'Stale combat action cleaned up and persisted');
+      }
+
       // ✅ GUARD: Rejeitar mensagem se dados já foram solicitados (evita solicitação duplicada)
       if (getTestePendente(sessao)) {
         sm.log('WARN', 'MENSAGEM_PARA_MESTRE_DADOS_PENDENTES', socket.id, userId, {
@@ -143,26 +155,6 @@ export default class MasterNarrationEngine {
         historiaNome: sessao.historiaNome,
         totalMensagens: sessao.mensagens?.length || 0
       });
-
-      // Cleanup de ação pendente de combate stale (>5 min)
-      const estadoJogoCheck = sessao.estadoJogo || {};
-      if (estadoJogoCheck.acaoPendenteCombate) {
-        const criadoEm = new Date(estadoJogoCheck.acaoPendenteCombate.criadoEm).getTime();
-        if (Date.now() - criadoEm > 5 * 60 * 1000) {
-          const staleTesteId = estadoJogoCheck.acaoPendenteCombate.testeId;
-          log.warn({ userId: estadoJogoCheck.acaoPendenteCombate.userId, tipo: estadoJogoCheck.acaoPendenteCombate.tipo, testeId: staleTesteId }, 'Ação pendente de combate stale (>5min), limpando');
-          // Cancelar teste pendente associado e destravar turno
-          if (staleTesteId) {
-            limparTestePendente(sessao, {
-              testId: staleTesteId,
-              nextTurnState: TURN_STATUS.ACTIVE,
-              mode: 'cancel'
-            });
-            compactarTestesPendentes(sessao);
-          }
-          delete estadoJogoCheck.acaoPendenteCombate;
-        }
-      }
 
       // 2. VERIFICAR SISTEMA DE TURNOS
       const estadoJogo = sessao.estadoJogo || {};
@@ -310,15 +302,14 @@ export default class MasterNarrationEngine {
           }, userId);
 
           // Armazenar ação pendente de combate
-          estadoJogo.acaoPendenteCombate = {
+          createPendingCombatAction(sessao, {
             tipo: rt.intentTipo,
             userId,
             personagem: { nome: personagem.nome, id: personagem.id, personagemId: personagem.personagemId },
             combatIntent,
             testeId: testeCriado?.id || null,
             statusEfeitos: resultadosCombatePreResolvido.statusEfeitos || [],
-            criadoEm: new Date().toISOString(),
-          };
+          });
 
           // NÃO setar _combatePreResolvido — será setado pós-teste
           log.info({ userId, roomId, tipo: rt.intentTipo, teste: rt.teste, dc: rt.dcNumerico, testeId: testeCriado?.id }, 'Ação de combate pendente de teste');

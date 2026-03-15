@@ -18,6 +18,38 @@ import {
 import { TESTES_CONFIG } from '../config/testesConfig.js';
 const log = logger.child({ module: 'combateHelper' });
 
+/**
+ * Normaliza uma entrada de log de combate no momento da escrita.
+ * Garante shape consistente: atacante/alvo sempre { id, nome }.
+ */
+export function normalizeCombatLogEntry(entry) {
+  if (!entry) return entry;
+  const n = { ...entry };
+
+  // atacante: string → { id, nome }
+  if (typeof n.atacante === 'string') {
+    n.atacante = { id: n.atacanteId ?? n.userId ?? null, nome: n.atacante };
+    delete n.atacanteId;
+  }
+
+  // alvo: garantir { id, nome }
+  if (typeof n.alvo === 'string') {
+    n.alvo = { id: n.alvoId ?? null, nome: n.alvo };
+  } else if (!n.alvo && n.alvoNome) {
+    n.alvo = { id: n.alvoId ?? null, nome: n.alvoNome };
+  }
+  if (n.alvo) {
+    delete n.alvoId;
+    delete n.alvoNome;
+  }
+
+  return n;
+}
+
+function _pushCombatLog(combate, entry) {
+  combate.log.push(normalizeCombatLogEntry(entry));
+}
+
 function _findJogadorSessao(sessao, userId, personagem = null, jogadorStats = null) {
   const jogadoresMap = sessao?.jogadores || {};
   if (jogadoresMap[String(userId)]) return jogadoresMap[String(userId)];
@@ -604,22 +636,30 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     }
   }
 
-  // --- 2. ACAO DO JOGADOR (por intent) ---
-  if (!impedidoDeAgir) {
-    if (intentTipo === 'atacar') {
+  // --- 2. ACAO DO JOGADOR (por intent via handler map) ---
+  const COMBAT_INTENT_HANDLERS = {
+    atacar: () => {
       resultados.ataqueJogador = _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent);
       resultados.acaoConsumida = !!resultados.ataqueJogador;
-    } else if (intentTipo === 'defender') {
+    },
+    defender: () => {
       resultados.defesa = _resolverDefesa(combate, userId, personagem, jogadorStats);
       resultados.acaoConsumida = !!resultados.defesa;
-    } else if (intentTipo === 'fugir') {
+    },
+    fugir: () => {
       resultados.requerTeste = _prepararTesteFuga(combate, userId, personagem);
       resultados.acaoConsumida = false;
       log.info({ userId, teste: resultados.requerTeste }, 'Fuga requer teste de habilidade');
-    } else if (intentTipo === 'usar_habilidade') {
+    },
+    usar_habilidade: () => {
       resultados.habilidade = _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, combatIntent);
       resultados.acaoConsumida = resultados.habilidade?.valido !== false;
-    }
+    },
+  };
+
+  if (!impedidoDeAgir) {
+    const handler = COMBAT_INTENT_HANDLERS[intentTipo];
+    if (handler) handler();
   } else {
     resultados.acaoConsumida = true;
   }
@@ -692,7 +732,7 @@ function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, stat
     hpRestante: monstroAlvo.hp_atual, hpMax: monstroAlvo.hp_max,
     derrotado: monstroAlvo.status === 'derrotado', xp: monstroAlvo.xp || 0,
   };
-  combate.log.push({ tipo: 'ataque_jogador', ...result, timestamp: Date.now() });
+  _pushCombatLog(combate, { tipo: 'ataque_jogador', ...result, timestamp: Date.now() });
   return result;
 }
 
@@ -713,7 +753,7 @@ function _resolverDefesa(combate, userId, personagem, jogadorStats) {
     hpAtual: jogadorStats.hp_atual,
     hpMax: jogadorStats.hp_max,
   };
-  combate.log.push({ tipo: 'defesa_jogador', ...result, timestamp: Date.now() });
+  _pushCombatLog(combate, { tipo: 'defesa_jogador', ...result, timestamp: Date.now() });
   return result;
 }
 
@@ -766,7 +806,7 @@ function _executarContraAtaques(combate, resultados) {
       inconsciente: alvoStats.status === 'inconsciente',
       personagemId: alvoStats.personagemId,
     });
-    combate.log.push({ tipo: 'ataque_monstro', ...resultados.contraAtaques.at(-1), timestamp: Date.now() });
+    _pushCombatLog(combate, { tipo: 'ataque_monstro', ...resultados.contraAtaques.at(-1), timestamp: Date.now() });
   }
 }
 
@@ -819,7 +859,7 @@ function _controlarRodada(combate, userId, sessao, resultados) {
             hpRestante: monstro.hp_atual, hpMax: monstro.hp_max,
             derrotado: monstro.status === 'derrotado',
           });
-          combate.log.push({
+          _pushCombatLog(combate, {
             tipo: 'status_dano', alvo: { id: monstro.id, nome: monstro.nome },
             status: e.nome, dano, timestamp: Date.now()
           });
@@ -905,7 +945,7 @@ function _resolverFuga(combate, userId, sessao, personagem) {
     dc,
     sucesso,
   };
-  combate.log.push({ tipo: 'fuga_jogador', ...result, timestamp: Date.now() });
+  _pushCombatLog(combate, { tipo: 'fuga_jogador', ...result, timestamp: Date.now() });
   return result;
 }
 
@@ -928,7 +968,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
       erro: 'Habilidade nao encontrada',
       jogadorStats
     });
-    combate.log.push({ tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
+    _pushCombatLog(combate, { tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
     return result;
   }
 
@@ -940,7 +980,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
       jogadorStats,
       habilidadeBase: hab
     });
-    combate.log.push({ tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
+    _pushCombatLog(combate, { tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
     return result;
   }
 
@@ -1008,7 +1048,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
     manaRestante: jogadorStats.mana_atual,
     manaMax: jogadorStats.mana_max,
   };
-  combate.log.push({ tipo: 'habilidade_jogador', ...result, timestamp: Date.now() });
+  _pushCombatLog(combate, { tipo: 'habilidade_jogador', ...result, timestamp: Date.now() });
   return result;
 }
 
@@ -1060,11 +1100,11 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
       // Fuga bem-sucedida: finalizar combate, sem contra-ataques
       resultados.combateFinalizado = true;
       resultados.resultadoCombate = 'fuga';
-      combate.log.push({ tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
+      _pushCombatLog(combate, { tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
       log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: SUCESSO');
     } else {
       // Fuga falhou: contra-ataques + controle de rodada
-      combate.log.push({ tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
+      _pushCombatLog(combate, { tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
       _executarContraAtaques(combate, resultados);
       _controlarRodada(combate, userId, sessao, resultados);
       _verificarFimEAtribuir(combate, resultados);
@@ -1130,7 +1170,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
         manaRestante: jogadorStats.mana_atual,
         manaMax: jogadorStats.mana_max,
       };
-      combate.log.push({ tipo: 'habilidade_jogador', ...resultados.habilidade, timestamp: Date.now() });
+      _pushCombatLog(combate, { tipo: 'habilidade_jogador', ...resultados.habilidade, timestamp: Date.now() });
     } else {
       // Teste falhou: habilidade fizzles (mana já gasta)
       resultados.habilidade = {
@@ -1148,7 +1188,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
         manaRestante: jogadorStats?.mana_atual,
         manaMax: jogadorStats?.mana_max,
       };
-      combate.log.push({ tipo: 'habilidade_falhou', ...resultados.habilidade, motivo: 'teste_falhou', timestamp: Date.now() });
+      _pushCombatLog(combate, { tipo: 'habilidade_falhou', ...resultados.habilidade, motivo: 'teste_falhou', timestamp: Date.now() });
     }
 
     // Sempre: contra-ataques + controle rodada

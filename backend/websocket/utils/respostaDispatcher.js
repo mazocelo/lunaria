@@ -20,6 +20,7 @@ import {
   limparTestePendente
 } from './testePipeline.js';
 import { appendMensagemSessao, buildSolicitacaoDadosMensagem } from './sessionMessages.js';
+import { hasPendingCombatAction } from './combatPendingAction.js';
 
 async function processarInicioCombate(resposta, ctx) {
   ctx.sm.log('INFO', 'COMBATE_DETECTADO_PELA_IA', ctx.socket.id, ctx.userId, {
@@ -208,10 +209,10 @@ async function processarControleTurno(resposta, ctx) {
 const RESPONSE_HANDLERS = [
   { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !ctx.combateAtivo, process: processarInicioCombate },
   { nome: 'fuga_combate', check: (r, ctx) => ctx.combateAtivo && ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarFugaCombate },
-  { nome: 'acao_combate', check: (r, ctx) => ctx.combateAtivo && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso && !ctx.sessao?.estadoJogo?.acaoPendenteCombate, process: processarAcaoCombateHandler },
-  { nome: 'solicita_dados', check: (r, ctx) => (r.solicitaDados?.solicita || !!r.teste) && !ctx.sessao?.estadoJogo?.acaoPendenteCombate, process: criarSolicitacaoTeste },
+  { nome: 'acao_combate', check: (r, ctx) => ctx.combateAtivo && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso && !hasPendingCombatAction(ctx.sessao), process: processarAcaoCombateHandler },
+  { nome: 'solicita_dados', check: (r, ctx) => (r.solicitaDados?.solicita || !!r.teste) && !hasPendingCombatAction(ctx.sessao), process: criarSolicitacaoTeste },
   { nome: 'acoes_mecanicas', check: (r) => r.acoes?.length > 0, process: processarAcoesMecanicas },
-  { nome: 'limpar_dados', check: (r, ctx) => !r.solicitaDados?.solicita && !r.teste && !ctx.sessao?.estadoJogo?.acaoPendenteCombate, process: limparFlagDados },
+  { nome: 'limpar_dados', check: (r, ctx) => !r.solicitaDados?.solicita && !r.teste && !hasPendingCombatAction(ctx.sessao), process: limparFlagDados },
   { nome: 'controle_turno', check: (r, ctx) => ctx.fase === 'rodada_em_andamento' && !ctx.combateAtivo, process: processarControleTurno }
 ];
 

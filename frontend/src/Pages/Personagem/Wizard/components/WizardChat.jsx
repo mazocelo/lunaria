@@ -626,19 +626,7 @@ const WizardChat = ({
               </button>
             )}
 
-            {etapaAtual === 'atributos' && bonusAplicados && (
-              <button
-                type="button"
-                onClick={() => onAvancarComMestre?.()}
-                disabled={enviando}
-                className="inline-flex h-[54px] items-center gap-2 rounded-2xl bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] px-4 text-sm font-modern font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 cursor-pointer"
-              >
-                <ArrowRight size={16} />
-                Continuar
-              </button>
-            )}
-
-            {config.requireExplicitContinue && !config.showAttributePanel && (
+            {config.requireExplicitContinue && !(config.showAttributePanel && !bonusAplicados) && (
               <button
                 type="button"
                 onClick={() => onAvancarComMestre?.()}
@@ -652,7 +640,7 @@ const WizardChat = ({
                 }`}
               >
                 <ArrowRight size={16} />
-                {podeContinuarSelecoes ? textoContinuarSelecoes : 'Selecione ou pule'}
+                {podeContinuarSelecoes ? textoContinuarSelecoes : config.allowSkip ? 'Selecione ou pule' : 'Confirme antes'}
               </button>
             )}
 

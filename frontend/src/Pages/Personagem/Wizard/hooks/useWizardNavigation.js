@@ -44,18 +44,22 @@ export const useWizardNavigation = (draftInicial, buildState) => {
     buildState.bonusAplicados,
   ]);
 
-  const avancarEtapa = useCallback(() => {
+  /** Retorna info da proxima etapa sem navegar (read-only) */
+  const getProximaEtapa = useCallback(() => {
     const idx = ETAPAS.findIndex((e) => e.id === etapaAtual);
     if (idx < 0 || idx >= ETAPAS.length - 1) return null;
-
     const proxima = ETAPAS[idx + 1].id;
-    const primeiraVisita = !etapasVisitadas.includes(proxima);
-
-    setEtapaAtual(proxima);
-    setEtapasVisitadas((prev) => (primeiraVisita ? [...prev, proxima] : prev));
-
-    return { etapa: proxima, primeiraVisita };
+    return { etapa: proxima, primeiraVisita: !etapasVisitadas.includes(proxima) };
   }, [etapaAtual, etapasVisitadas]);
+
+  /** Avanca para a proxima etapa localmente (idx + 1). Usado como fallback. */
+  const avancarEtapa = useCallback(() => {
+    const info = getProximaEtapa();
+    if (!info) return null;
+    setEtapaAtual(info.etapa);
+    setEtapasVisitadas((prev) => (info.primeiraVisita ? [...prev, info.etapa] : prev));
+    return info;
+  }, [getProximaEtapa]);
 
   const navegarParaEtapa = useCallback((etapaId) => {
     if (!ETAPAS_IDS.has(etapaId)) return;
@@ -82,6 +86,7 @@ export const useWizardNavigation = (draftInicial, buildState) => {
     etapaIndex,
     etapasVisitadas,
     etapasConcluidas,
+    getProximaEtapa,
     avancarEtapa,
     navegarParaEtapa,
     registrarVisita,

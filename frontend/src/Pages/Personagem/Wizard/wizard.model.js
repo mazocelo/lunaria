@@ -285,7 +285,6 @@ export const useWizardModel = () => {
         bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
       }
     } catch (err) {
-      console.error('[wizard] reidratarEtapaAtual falhou:', err);
       setMensagens(prev => [...prev, {
         id: Date.now(),
         role: 'sistema',
@@ -449,40 +448,54 @@ export const useWizardModel = () => {
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
 
-  /** P3: Avanca etapa + dispara resposta do Mestre apenas na primeira visita.
-   *  @param {Object} [estadoOverride] - se fornecido, sobrescreve campos em getEstado() (ex: skip limpa selecoes) */
+  /** P3: Chama backend com continue_stage e avanca somente apos resposta.
+   *  Se backend rejeitar avanco (etapa_proxima === etapa_atual), permanece.
+   *  Se backend falhar, avanca localmente como fallback.
+   *  @param {Object} [estadoOverride] - sobrescreve campos em getEstado() (ex: skip limpa selecoes) */
   const avancarComMestre = useCallback(async (estadoOverride) => {
     if (enviandoRef.current) return;
-    const result = navigation.avancarEtapa();
-    if (!result) return;
 
-    const { etapa, primeiraVisita } = result;
+    // Calcular destino esperado (read-only) para fallback e deteccao de revisit
+    const info = navigation.getProximaEtapa();
+    if (!info) return;
+
+    const etapaAtual = navigation.etapaAtual;
     const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
 
-    if (!primeiraVisita) {
+    // Revisit: se a proxima etapa ja foi visitada, navegar sem chamar backend
+    if (!info.primeiraVisita) {
+      navigation.registrarVisita(info.etapa);
       setSugestoes([]);
-      if (etapa !== 'atributos') {
+      if (info.etapa !== 'atributos') {
         bonusCalc.setAtributosSugeridos(null);
       }
       return;
     }
 
+    // Primeira visita: chamar backend ANTES de avancar
     enviandoRef.current = true;
     setEnviando(true);
     try {
       const resultado = await mestreCriadorService.interagir({
-        etapa,
+        etapa: etapaAtual,
         estado,
         mensagemJogador: '',
         historico: getHistorico(),
         actionMode: 'continue_stage',
       });
 
+      // Consumir etapa_proxima do backend como fonte de verdade
+      const destino = resultado.etapa_proxima || info.etapa;
+
+      if (destino !== etapaAtual) {
+        navigation.registrarVisita(destino);
+      }
+
       setMensagens(prev => [...prev, {
         id: Date.now(),
         role: 'mestre',
         content: resultado.mensagem,
-        etapa,
+        etapa: destino,
         sugestoes: resultado.sugestoes,
         timestamp: new Date(),
       }]);
@@ -490,21 +503,23 @@ export const useWizardModel = () => {
       setSugestoes(resultado.sugestoes || []);
       if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
     } catch (err) {
-      console.error('[wizard] avancarComMestre falhou:', err);
+      // Fallback: avancar localmente se backend falhar
+      navigation.avancarEtapa();
       setMensagens(prev => [...prev, {
         id: Date.now(),
         role: 'sistema',
         content: 'Nao foi possivel contatar o Mestre Criador. Continue normalmente ou envie uma mensagem.',
-        etapa,
+        etapa: info.etapa,
         timestamp: new Date(),
       }]);
     } finally {
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos]);
+  }, [navigation.getProximaEtapa, navigation.etapaAtual, navigation.registrarVisita, navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos]);
   /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
   const pularEtapa = useCallback((tipo) => {
+    if (tipo !== 'vantagens' && tipo !== 'desvantagens') return;
     const override = {};
     if (tipo === 'vantagens') {
       pointSystem.vantagensIds.forEach(id => pointSystem.removerSelecao('vantagem', id));

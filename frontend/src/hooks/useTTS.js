@@ -102,6 +102,7 @@ export const useTTS = () => {
   const [isSequence, setIsSequence] = useState(false);
   const [lastError, setLastError] = useState(null);
   const [errorMessageId, setErrorMessageId] = useState(null);
+  const [generatingMessageId, setGeneratingMessageId] = useState(null);
 
   const audioRef = useRef(null);
   const cacheRef = useRef(new Map());
@@ -583,9 +584,75 @@ export const useTTS = () => {
     }
   }, [buildQueueEntries, clearPlayback, currentMessageId, playQueueEntry, prepareAudioEntry, togglePause]);
 
+  const generate = useCallback(async (
+    text,
+    voiceId,
+    messageId,
+    provider = DEFAULT_TTS_PROVIDER,
+    options = {}
+  ) => {
+    const { forceRegenerate = false, segmentId = null, emotion = null } = options;
+    setGeneratingMessageId(messageId);
+    setLastError(null);
+    setErrorMessageId(null);
+    try {
+      const prepared = await prepareAudioEntry({
+        text,
+        voiceId,
+        provider,
+        messageId,
+        segmentId,
+        allowGenerate: true,
+        forceRegenerate,
+        emotion,
+        requestToken: null
+      });
+      return !!prepared;
+    } catch (error) {
+      setLastError(error.message || 'Erro ao gerar áudio');
+      setErrorMessageId(messageId);
+      return false;
+    } finally {
+      setGeneratingMessageId(null);
+    }
+  }, [prepareAudioEntry]);
+
+  const generateSequence = useCallback(async (items = [], messageId, options = {}) => {
+    const { forceRegenerate = false } = options;
+    const validItems = (Array.isArray(items) ? items : []).filter((i) => i?.text && i?.voiceId);
+    if (validItems.length === 0) return false;
+    setGeneratingMessageId(messageId);
+    setLastError(null);
+    setErrorMessageId(null);
+    try {
+      for (const item of validItems) {
+        await prepareAudioEntry({
+          text: item.text,
+          voiceId: item.voiceId,
+          provider: item.provider || DEFAULT_TTS_PROVIDER,
+          messageId,
+          segmentId: item.segmentId || null,
+          allowGenerate: true,
+          forceRegenerate,
+          emotion: item.emotion || null,
+          requestToken: null
+        });
+      }
+      return true;
+    } catch (error) {
+      setLastError(error.message || 'Erro ao gerar áudio');
+      setErrorMessageId(messageId);
+      return false;
+    } finally {
+      setGeneratingMessageId(null);
+    }
+  }, [prepareAudioEntry]);
+
   return {
     play,
     playSequence,
+    generate,
+    generateSequence,
     stop: stopAudio,
     togglePause,
     seekTo,
@@ -601,6 +668,7 @@ export const useTTS = () => {
     playbackRate,
     queueIndex,
     isSequence,
+    generatingMessageId,
     lastError,
     errorMessageId,
     clearError: clearErrorCb

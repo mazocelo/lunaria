@@ -203,6 +203,9 @@ function montarRegrasBase() {
 10. Use "tipo": "narracao" para trechos do narrador e "tipo": "fala_npc" para falas de NPC.
 11. Segmentos de NPC devem usar "speaker": "npc" e incluir "npc_id" quando o NPC existir no roteiro.
 12. Nao crie segmentos para fala de jogador. O jogador continua vindo fora desse campo.
+13. **NUNCA repita conteúdo narrativo que já aparece no histórico de chat.** Se um NPC já se apresentou, ASSUMA que o jogador já o conhece. Não repita falas, descrições de cenário ou introduções. Avance a cena.
+14. **Se o jogador diz algo vago ou passivo** (ex: "estou ouvindo", "continuo observando", "ok"), NÃO re-narre a cena. Avance: o NPC continua falando, revela informações novas, ou a cena evolui. Cada resposta DEVE trazer algo NOVO.
+15. **NUNCA antecipe arcos futuros do roteiro.** Siga a progressão natural. Se o roteiro tem plot twists para atos posteriores, NÃO os revele no ato atual. Deixe o roteiro guiar o timing.
 
 ## SISTEMA DE ATRIBUTOS
 

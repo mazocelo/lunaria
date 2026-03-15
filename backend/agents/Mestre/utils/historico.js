@@ -21,6 +21,13 @@ export function converterHistoricoParaLangChain(mensagens) {
         role: 'assistant',
         content: msg.narracao || msg.mensagem
       };
+    } else if (msg.tipo === 'resultado_teste') {
+      const p = msg.payload || {};
+      const desc = p.descricaoResultado || (p.sucesso ? 'Sucesso' : 'Falha');
+      return {
+        role: 'user',
+        content: `[Resultado de teste] ${msg.username || 'Jogador'} rolou ${p.dice || 'd20'}: ${p.rolagemBruta || '?'} + ${p.totalModificador || 0} (${p.atributoNome || '?'}) = ${p.total || '?'} vs DC ${p.dc || '?'} → ${desc}`
+      };
     }
     return null;
   }).filter(Boolean);

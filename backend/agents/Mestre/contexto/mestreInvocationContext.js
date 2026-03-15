@@ -12,9 +12,9 @@ const ROLEPLAY_SPAM_WINDOW_MS = 30000;
 function getFormalChatHistory(sessao = {}) {
   const mensagens = Array.isArray(sessao.mensagens) ? sessao.mensagens : [];
   return mensagens.filter((mensagem) => {
-    const canal = mensagem?.canal || 'formal';
     const tipo = mensagem?.tipo || mensagem?.type;
-    return canal !== 'roleplay' && tipo !== 'roleplay';
+    // Manter apenas tipos que a IA consegue usar como contexto narrativo
+    return tipo === 'jogador' || tipo === 'mestre' || tipo === 'resultado_teste';
   });
 }
 

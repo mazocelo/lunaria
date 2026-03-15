@@ -86,18 +86,23 @@ export function useGameSessionCore() {
 
   // ------------------------------------------------------------------
   // INICIALIZAR JOGO (historia + temas)
-  // Usado por: selecao-personagem, sala-espera (resume)
+  // Usado por: selecao-personagem (fresh), sala-espera (resume)
+  //
+  // options.clearCharacter (default: true) — limpa personagem selecionado.
+  //   false no resume para preservar o personagem ja escolhido.
   // ------------------------------------------------------------------
   const initializeGame = useCallback(
-    async (historiaId) => {
+    async (historiaId, { clearCharacter = true } = {}) => {
       if (isInitializingRef.current) return;
       try {
         isInitializingRef.current = true;
         setError(null);
 
-        // Limpar personagem selecionado de sessao anterior
-        storeSelecionarPersonagem(null);
-        localStorage.removeItem('personagemSelecionado');
+        // Limpar personagem apenas em inicializacao fresh (nao resume)
+        if (clearCharacter) {
+          storeSelecionarPersonagem(null);
+          localStorage.removeItem('personagemSelecionado');
+        }
 
         await carregarHistoria(historiaId);
 

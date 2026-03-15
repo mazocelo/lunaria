@@ -176,7 +176,7 @@ model personagens {
   destreza                  Int?                     @default(10)
   constituicao              Int?                     @default(10)
   agilidade                 Int?                     @default(10)
-  criado_em                 DateTime?                @db.Timestamptz(6)
+  criado_em                 DateTime?                @default(now()) @db.Timestamptz(6)
   atualizado_em             DateTime?                @db.Timestamptz(6)
   id_usuario                Int?
   deleted_at                DateTime?                @db.Timestamptz(6)

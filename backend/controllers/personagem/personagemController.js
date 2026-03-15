@@ -19,6 +19,31 @@ import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/Fi
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
+function createHttpError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function normalizeRelationIds(rawIds, fieldName) {
+  if (rawIds === undefined || rawIds === null) {
+    return [];
+  }
+
+  if (!Array.isArray(rawIds)) {
+    throw createHttpError(400, `${fieldName} deve ser um array de IDs`);
+  }
+
+  const parsedIds = rawIds.map(value => Number(value));
+  const invalidIds = rawIds.filter((_, index) => !Number.isInteger(parsedIds[index]) || parsedIds[index] <= 0);
+
+  if (invalidIds.length > 0) {
+    throw createHttpError(400, `${fieldName} contem IDs invalidos: ${invalidIds.join(', ')}`);
+  }
+
+  return [...new Set(parsedIds)];
+}
+
 /**
  * Controller para gerenciar operações de personagem
  */
@@ -167,6 +192,10 @@ class PersonagemController {
         historias, // Array de IDs de histórias para vincular
         imagem
       } = req.body;
+      const vantagemIds = normalizeRelationIds(vantagens, 'vantagens');
+      const desvantagemIds = normalizeRelationIds(desvantagens, 'desvantagens');
+      const equipamentoIds = normalizeRelationIds(equipamentos, 'equipamentos');
+      const historiaIds = normalizeRelationIds(historias, 'historias');
       // Validacoes basicas
       if (!nome) {
         return res.status(400).json({ success: false, error: 'Nome e obrigatorio' });
@@ -203,12 +232,12 @@ class PersonagemController {
 
       // Validar desvantagens (tier + limite de custo)
       let custoDesvantagensAceitas = 0;
-      if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
+      if (desvantagemIds.length > 0) {
         const desvantagensObjetos = await Promise.all(
-          desvantagens.map(id => db.Desvantagem.findById(parseInt(id)))
+          desvantagemIds.map(id => db.Desvantagem.findById(id))
         );
         const desvantagensValidas = desvantagensObjetos.filter(d => d !== null);
-        const idsNaoEncontrados = desvantagens.filter((id, i) => !desvantagensObjetos[i]);
+        const idsNaoEncontrados = desvantagemIds.filter((id, i) => !desvantagensObjetos[i]);
         if (idsNaoEncontrados.length > 0) {
           return res.status(400).json({ success: false, error: `Desvantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
         }
@@ -220,11 +249,11 @@ class PersonagemController {
       }
 
       // Validar vantagens (tier + orcamento)
-      if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
+      if (vantagemIds.length > 0) {
         const vantagensObjetos = await Promise.all(
-          vantagens.map(id => db.Vantagem.findById(parseInt(id)))
+          vantagemIds.map(id => db.Vantagem.findById(id))
         );
-        const idsNaoEncontrados = vantagens.filter((id, i) => !vantagensObjetos[i]);
+        const idsNaoEncontrados = vantagemIds.filter((id, i) => !vantagensObjetos[i]);
         if (idsNaoEncontrados.length > 0) {
           return res.status(400).json({ success: false, error: `Vantagens nao encontradas: ${idsNaoEncontrados.join(', ')}` });
         }
@@ -259,49 +288,70 @@ class PersonagemController {
         xp_proximo_nivel: xpParaNivel(nivelEfetivo),
         pontos_atributo_pendentes: 0,
         id_usuario: req.user?.id || null,
+        criado_em: new Date(),
         ...(imagem ? { imagem } : {})
       });
 
-      // Criar personagem no banco
-      const novoPersonagem = await db.Personagem.createPersonagem(dadosPersonagem);
-
-      log.info({ novoPersonagem_id: novoPersonagem.id }, 'Personagem criado');
-
-      // Criar vínculos em transação (atômico)
-      await db.prisma.$transaction(async (tx) => {
-        // Histórias
-        if (historias && Array.isArray(historias) && historias.length > 0) {
-          for (const historia_id of historias) {
-            const historia = await tx.historias.findUnique({ where: { id: parseInt(historia_id) } });
-            if (historia) {
-              await tx.historias_personagens.create({
-                data: { personagem_id: novoPersonagem.id, historia_id: parseInt(historia_id), papel: 'jogador' }
-              });
-            }
+      // Criar personagem + vinculos em transacao unica (atomico)
+      const novoPersonagem = await db.prisma.$transaction(async (tx) => {
+        if (equipamentoIds.length > 0) {
+          const equipamentosExistentes = await tx.equipamentos.findMany({
+            where: { id: { in: equipamentoIds } },
+            select: { id: true }
+          });
+          const idsEncontrados = new Set(equipamentosExistentes.map(equipamento => equipamento.id));
+          const idsInvalidos = equipamentoIds.filter(id => !idsEncontrados.has(id));
+          if (idsInvalidos.length > 0) {
+            throw createHttpError(400, `Equipamentos nao encontrados: ${idsInvalidos.join(', ')}`);
           }
         }
 
+        if (historiaIds.length > 0) {
+          const historiasExistentes = await tx.historias.findMany({
+            where: { id: { in: historiaIds }, deleted_at: null },
+            select: { id: true }
+          });
+          const idsEncontrados = new Set(historiasExistentes.map(historia => historia.id));
+          const idsInvalidos = historiaIds.filter(id => !idsEncontrados.has(id));
+          if (idsInvalidos.length > 0) {
+            throw createHttpError(400, `Historias nao encontradas: ${idsInvalidos.join(', ')}`);
+          }
+        }
+
+        const personagem = await tx.personagens.create({ data: dadosPersonagem });
+
+        // Historias
+        if (historiaIds.length > 0) {
+          await tx.historias_personagens.createMany({
+            data: historiaIds.map(hid => ({ personagem_id: personagem.id, historia_id: hid, papel: 'jogador' }))
+          });
+        }
+
         // Vantagens
-        if (vantagens && Array.isArray(vantagens) && vantagens.length > 0) {
+        if (vantagemIds.length > 0) {
           await tx.personagem_vantagem.createMany({
-            data: vantagens.map(vid => ({ personagem_id: novoPersonagem.id, vantagem_id: parseInt(vid) }))
+            data: vantagemIds.map(vantagemId => ({ personagem_id: personagem.id, vantagem_id: vantagemId }))
           });
         }
 
         // Desvantagens
-        if (desvantagens && Array.isArray(desvantagens) && desvantagens.length > 0) {
+        if (desvantagemIds.length > 0) {
           await tx.personagem_desvantagem.createMany({
-            data: desvantagens.map(did => ({ personagem_id: novoPersonagem.id, desvantagem_id: parseInt(did) }))
+            data: desvantagemIds.map(desvantagemId => ({ personagem_id: personagem.id, desvantagem_id: desvantagemId }))
           });
         }
 
         // Equipamentos
-        if (equipamentos && Array.isArray(equipamentos) && equipamentos.length > 0) {
+        if (equipamentoIds.length > 0) {
           await tx.personagem_equipamento.createMany({
-            data: equipamentos.map(eid => ({ personagem_id: novoPersonagem.id, equipamento_id: parseInt(eid) }))
+            data: equipamentoIds.map(eid => ({ personagem_id: personagem.id, equipamento_id: eid }))
           });
         }
+
+        return personagem;
       });
+
+      log.info({ novoPersonagem_id: novoPersonagem.id }, 'Personagem criado');
 
       // Buscar o personagem recém-criado com os relacionamentos
       const personagemCompleto = await this.buscarPersonagemComRelacionamentos(novoPersonagem.id);
@@ -320,6 +370,13 @@ class PersonagemController {
       });
 
     } catch (error) {
+      if (error?.statusCode) {
+        return res.status(error.statusCode).json({
+          success: false,
+          error: error.message
+        });
+      }
+
       log.error({ err: error }, 'Erro ao criar personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'
@@ -507,11 +564,7 @@ class PersonagemController {
       // Converter campos numéricos para inteiros (incluindo classe_id e raca_id)
       const dadosConvertidos = this.converterCamposNumericos(dadosAtualizacao);
 
-      // Atualizar dados usando o método update do Prisma
-      // Os campos classe_id e raca_id são atualizados diretamente
-      await db.Personagem.updatePersonagem(parseInt(id), dadosConvertidos);
-
-      // Validar tier de vantagens/desvantagens antes de persistir
+      // Validar tier de vantagens/desvantagens ANTES de persistir qualquer coisa
       const nivelPersonagem = personagem.nivel || 1;
       const tierPermitido = tierDesbloqueado(nivelPersonagem);
 
@@ -541,8 +594,12 @@ class PersonagemController {
         }
       }
 
-      // Gerenciar vinculos em transacao (atomico)
+      // Atualizar dados + vinculos em transacao unica (atomico)
       await db.prisma.$transaction(async (tx) => {
+        // Atualizar campos escalares do personagem
+        if (Object.keys(dadosConvertidos).length > 0) {
+          await tx.personagens.update({ where: { id: parseInt(id) }, data: dadosConvertidos });
+        }
         // Vantagens
         if (vantagens !== undefined) {
           await tx.personagem_vantagem.deleteMany({ where: { personagem_id: parseInt(id) } });

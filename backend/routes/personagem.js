@@ -481,7 +481,7 @@ router.patch('/:id/restore', requireResourceOwnerOrSuperAdmin('Personagem'), asy
  *       404:
  *         description: Personagem não encontrado
  */
-router.post('/:id/background', writeLimiter, asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
+router.post('/:id/background', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.gerarBackground, personagemController));
 
 // POST /:id/finalizacao-inicial - Gerar finalizacao inicial via IA (equipamentos, habilidades, magias)
 router.post('/:id/finalizacao-inicial', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.finalizacaoInicial, personagemController));
@@ -969,7 +969,7 @@ router.get('/:id/equipamentos', asyncHandlerWithContext(personagemController.lis
  *       404:
  *         description: Personagem ou história não encontrado
  */
-router.post('/:id/historias', writeLimiter, asyncHandlerWithContext(personagemController.vincularHistoria, personagemController));
+router.post('/:id/historias', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.vincularHistoria, personagemController));
 
 /**
  * @swagger
@@ -1005,7 +1005,7 @@ router.post('/:id/historias', writeLimiter, asyncHandlerWithContext(personagemCo
  *       404:
  *         description: Personagem não encontrado
  */
-router.delete('/:id/historias/:historia_id', writeLimiter, asyncHandlerWithContext(personagemController.desvincularHistoria, personagemController));
+router.delete('/:id/historias/:historia_id', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.desvincularHistoria, personagemController));
 
 /**
  * @swagger

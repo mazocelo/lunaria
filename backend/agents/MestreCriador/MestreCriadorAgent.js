@@ -63,6 +63,51 @@ function parseIAJson(content) {
 // Etapas que DEVEM ter sugestões
 const ETAPAS_COM_SUGESTOES = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
 
+const NOME_INICIOS = ['Aer', 'Bel', 'Cael', 'Dar', 'Ela', 'Fen', 'Gal', 'Ily', 'Kae', 'Lun', 'Mor', 'Nyr', 'Or', 'Rae', 'Syl', 'Tha', 'Val', 'Ysa', 'Zer'];
+const NOME_MEIOS = ['a', 'ae', 'ai', 'e', 'ei', 'ia', 'io', 'o', 'oa', 'u', 'ya'];
+const NOME_FINAIS = ['dan', 'dris', 'eth', 'ian', 'ira', 'is', 'or', 'orin', 'ra', 'ran', 'ria', 'rys', 'th', 'ther', 'vor', 'wyn', 'xis', 'ya'];
+
+function shuffle(list) {
+  return [...list].sort(() => Math.random() - 0.5);
+}
+
+function capitalizar(valor) {
+  return valor.charAt(0).toUpperCase() + valor.slice(1).toLowerCase();
+}
+
+function gerarNomesFallback(quantidade = 8) {
+  const usados = new Set();
+  const nomes = [];
+  let tentativas = 0;
+
+  while (nomes.length < quantidade && tentativas < quantidade * 20) {
+    tentativas += 1;
+    const inicio = NOME_INICIOS[Math.floor(Math.random() * NOME_INICIOS.length)];
+    const meio = NOME_MEIOS[Math.floor(Math.random() * NOME_MEIOS.length)];
+    const final = NOME_FINAIS[Math.floor(Math.random() * NOME_FINAIS.length)];
+    const nome = capitalizar(`${inicio}${meio}${final}`);
+
+    if (usados.has(nome)) continue;
+    usados.add(nome);
+    nomes.push({ tipo: 'nome', id: null, nome, descricao: '' });
+  }
+
+  if (nomes.length < quantidade) {
+    return shuffle([
+      { tipo: 'nome', id: null, nome: 'Caelor', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Zephira', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Mireth', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Ashara', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Thalor', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Selka', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Darian', descricao: '' },
+      { tipo: 'nome', id: null, nome: 'Ysora', descricao: '' },
+    ]).slice(0, quantidade);
+  }
+
+  return nomes;
+}
+
 
 /** Gera sugestões fallback do catálogo quando IA retorna vazio */
 async function gerarFallbackSugestoes(etapa, estado) {
@@ -118,8 +163,7 @@ async function gerarFallbackSugestoes(etapa, estado) {
     }
 
     if (etapa === 'boas_vindas') {
-      const nomes = ['Kaelen', 'Zephyra', 'Thorne', 'Mirael', 'Ashwin', 'Selene', 'Darius', 'Yuki'];
-      return nomes.map(n => ({ tipo: 'nome', id: null, nome: n, descricao: '' }));
+      return gerarNomesFallback(8);
     }
 
     return [];

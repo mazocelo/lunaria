@@ -3,7 +3,6 @@ import logger from './logger.js';
 const log = logger.child({ module: 'personagensHelper' });
 import {
   agregarBonusEquipamentos,
-  calcularAtributosEfetivos,
   encontrarMelhorArma
 } from './bonusHelper.js';
 import {
@@ -64,12 +63,15 @@ export async function buscarPersonagensCompletos(personagensIds) {
             log.warn({ err: e, personagemId: personagem.id }, 'Erro ao buscar habilidades do personagem');
           }
 
-          // Calcular atributos efetivos com bonus de raça e classe
-          const atributosEfetivos = calcularAtributosEfetivos(
-            personagem,
-            personagem.racas?.bonus,
-            personagem.classes?.bonus
-          );
+          // Atributos efetivos: DB ja armazena base + bonus de raca/classe
+          const atributosEfetivos = {
+            forca: personagem.forca || 10,
+            inteligencia: personagem.inteligencia || 10,
+            carisma: personagem.carisma || 10,
+            destreza: personagem.destreza || 10,
+            constituicao: personagem.constituicao || 10,
+            agilidade: personagem.agilidade || 10
+          };
 
           // Mapear equipamentos com dados completos
           const equipamentosMapeados = equipamentos.map(e => ({

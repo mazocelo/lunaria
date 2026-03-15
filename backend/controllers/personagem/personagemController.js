@@ -17,6 +17,7 @@ import { validarAtributosCriacao } from '../../helpers/criacaoPersonagemHelper.j
 import { buildFinalizacaoBase } from '../../helpers/finalizacaoInicialHelper.js';
 import { buildFinalizacaoPreviewBase } from '../../helpers/finalizacaoPreviewHelper.js';
 import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/FinalizacaoInicialAgent.js';
+import { parsearBonusEntidade } from '../../helpers/bonusHelper.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -220,9 +221,11 @@ class PersonagemController {
         return res.status(400).json({ success: false, error: validacaoAtributos.erros.join('; ') });
       }
 
-      // Buscar raca e classe para validar orcamento de vantagens
+      // Buscar raca e classe para validar orcamento de vantagens e aplicar bonus
       let racaCusto = 0;
       let classeCusto = 0;
+      let racaBonusRaw = null;
+      let classeBonusRaw = null;
       let bonusVantagemIds = [];
       let bonusDesvantagemIds = [];
 
@@ -230,7 +233,8 @@ class PersonagemController {
         const raca = await db.Raca.findById(parseInt(raca_id));
         if (!raca) return res.status(400).json({ success: false, error: `Raca com ID ${raca_id} nao encontrada` });
         racaCusto = raca.custo || 0;
-        const racaBonus = JSON.parse(raca.bonus || 'null') || {};
+        racaBonusRaw = raca.bonus || null;
+        const racaBonus = JSON.parse(racaBonusRaw || 'null') || {};
         bonusVantagemIds.push(...(racaBonus.vantagens || []).map(v => v?.id).filter(id => Number.isInteger(id) && id > 0));
         bonusDesvantagemIds.push(...(racaBonus.desvantagens || []).map(d => d?.id).filter(id => Number.isInteger(id) && id > 0));
       }
@@ -238,7 +242,8 @@ class PersonagemController {
         const classe = await db.Classe.findById(parseInt(classe_id));
         if (!classe) return res.status(400).json({ success: false, error: `Classe com ID ${classe_id} nao encontrada` });
         classeCusto = classe.custo || 0;
-        const classeBonus = JSON.parse(classe.bonus || 'null') || {};
+        classeBonusRaw = classe.bonus || null;
+        const classeBonus = JSON.parse(classeBonusRaw || 'null') || {};
         bonusVantagemIds.push(...(classeBonus.vantagens || []).map(v => v?.id).filter(id => Number.isInteger(id) && id > 0));
         bonusDesvantagemIds.push(...(classeBonus.desvantagens || []).map(d => d?.id).filter(id => Number.isInteger(id) && id > 0));
       }
@@ -293,6 +298,10 @@ class PersonagemController {
       // Background é enviado pelo frontend (pode ser vazio, será gerado sob demanda via POST /:id/background)
       const backgroundFinal = background || '';
 
+      // Aplicar bonus de atributos da raca/classe sobre os valores base
+      const bonusAttrRaca = parsearBonusEntidade(racaBonusRaw);
+      const bonusAttrClasse = parsearBonusEntidade(classeBonusRaw);
+
       // Preparar dados do personagem
       const pontosIniciais = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, 0);
       const dadosPersonagem = this.converterCamposNumericos({
@@ -303,12 +312,12 @@ class PersonagemController {
         background: backgroundFinal || '',
         raca_id: raca_id || null,
         classe_id: classe_id || null,
-        forca: forca || 10,
-        inteligencia: inteligencia || 10,
-        carisma: carisma || 10,
-        destreza: destreza || 10,
-        constituicao: constituicao || 10,
-        agilidade: agilidade || 10,
+        forca: (forca || 10) + bonusAttrRaca.forca + bonusAttrClasse.forca,
+        inteligencia: (inteligencia || 10) + bonusAttrRaca.inteligencia + bonusAttrClasse.inteligencia,
+        carisma: (carisma || 10) + bonusAttrRaca.carisma + bonusAttrClasse.carisma,
+        destreza: (destreza || 10) + bonusAttrRaca.destreza + bonusAttrClasse.destreza,
+        constituicao: (constituicao || 10) + bonusAttrRaca.constituicao + bonusAttrClasse.constituicao,
+        agilidade: (agilidade || 10) + bonusAttrRaca.agilidade + bonusAttrClasse.agilidade,
         xp_atual: 0,
         xp_proximo_nivel: xpParaNivel(nivelEfetivo),
         pontos_atributo_pendentes: 0,

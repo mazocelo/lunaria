@@ -157,6 +157,65 @@ const HISTORY_LIMIT = MESTRE_CONFIG.behavior.maxHistoryLength;
 const RESUMO_MAX_CHARS = MESTRE_CONFIG.behavior.resumoMaxChars;
 
 /**
+ * Extrai o texto do campo "narrativa" de um JSON em streaming, token a token.
+ * State machine: SEARCHING → FOUND_KEY → IN_VALUE → DONE
+ */
+class NarrativaExtractor {
+  constructor() {
+    this.state = 'SEARCHING';
+    this.extracted = '';
+    this.buffer = '';
+    this.escaping = false;
+    this._target = '"narrativa"';
+    this._idx = 0;
+    this._colonSeen = false;
+  }
+
+  /** Alimenta novos tokens. Retorna o delta (texto novo da narrativa). */
+  feed(chunk) {
+    this.buffer += chunk;
+    let delta = '';
+    for (const ch of chunk) {
+      switch (this.state) {
+        case 'SEARCHING':
+          if (ch === this._target[this._idx]) {
+            this._idx++;
+            if (this._idx === this._target.length) this.state = 'FOUND_KEY';
+          } else {
+            this._idx = 0;
+          }
+          break;
+        case 'FOUND_KEY':
+          if (ch === ':') this._colonSeen = true;
+          else if (this._colonSeen && ch === '"') this.state = 'IN_VALUE';
+          break;
+        case 'IN_VALUE':
+          if (this.escaping) {
+            const u = ch === 'n' ? '\n' : ch === 't' ? '\t' : ch;
+            this.extracted += u;
+            delta += u;
+            this.escaping = false;
+          } else if (ch === '\\') {
+            this.escaping = true;
+          } else if (ch === '"') {
+            this.state = 'DONE';
+          } else {
+            this.extracted += ch;
+            delta += ch;
+          }
+          break;
+        case 'DONE':
+          break;
+      }
+    }
+    return delta;
+  }
+
+  get isDone() { return this.state === 'DONE'; }
+  get fullBuffer() { return this.buffer; }
+}
+
+/**
  * Classe principal do Mestre de RPG
  * Gerencia toda a interação com o modelo de IA e o contexto da aventura
  */
@@ -379,6 +438,106 @@ export class MestreAgent {
         acao,
         timestamp: new Date().toISOString()
       };
+    }
+  }
+
+  /**
+   * Narra uma ação do jogador com streaming de tokens.
+   * Emite chunks da narrativa progressivamente via callbacks.
+   * Fallback: chama narrarAcao() (non-streaming) em caso de erro.
+   */
+  async narrarAcaoStream({ jogador, personagem, acao, chatHistory = [], resumo = null, contextoLateralRoleplay = '' }, callbacks = {}) {
+    const { onStreamStart, onChunk, onStreamEnd, onError } = callbacks;
+    const startTime = Date.now();
+
+    try {
+      log.info({ personagem }, 'Narrando acao (stream)');
+
+      const input = criarPromptNarracao(jogador, personagem, acao);
+      const inputCompleto = contextoLateralRoleplay
+        ? `${contextoLateralRoleplay}\n\n${input}`
+        : input;
+      let historico = converterHistoricoParaLangChain(chatHistory);
+
+      if (resumo) {
+        const resumoTruncado = resumo.length > RESUMO_MAX_CHARS ? resumo.slice(-RESUMO_MAX_CHARS) : resumo;
+        historico = [
+          { role: 'system', content: `RESUMO DA AVENTURA ATÉ AGORA:\n${resumoTruncado}\n\nContinue a aventura considerando este contexto.` },
+          ...historico.slice(-HISTORY_LIMIT)
+        ];
+      }
+
+      if (!this.chain) throw new Error('Modelo de IA nao inicializado');
+
+      onStreamStart?.();
+
+      const extractor = new NarrativaExtractor();
+      let lastChunkTime = Date.now();
+      const streamTimeout = (MESTRE_CONFIG.model.timeout || 12000) * 2;
+
+      const stream = await this.chain.stream({
+        input: inputCompleto,
+        chat_history: historico
+      });
+
+      for await (const chunk of stream) {
+        if (Date.now() - lastChunkTime > streamTimeout) {
+          throw new Error('AI_STREAM_TIMEOUT');
+        }
+        lastChunkTime = Date.now();
+
+        const text = typeof chunk.content === 'string' ? chunk.content : '';
+        if (!text) continue;
+
+        const delta = extractor.feed(text);
+        if (delta) {
+          onChunk?.(delta, extractor.extracted);
+        }
+      }
+
+      let respostaJSON = parseIAJson(extractor.fullBuffer);
+      if (!respostaJSON) {
+        respostaJSON = {
+          narrativa: extractor.extracted || extractor.fullBuffer,
+          fimDeTurno: false,
+          solicitaDados: { solicita: false },
+          acaoCompleta: false
+        };
+      }
+
+      fallbackSolicitaDados(respostaJSON);
+      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+
+      const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
+      this.historico = adicionarMensagem(this.historico, mensagemJogador);
+      const respostaMestre = formatarRespostaMestre(narrativa);
+      if (respostaJSON.metadados) {
+        respostaMestre.contexto = { ...(respostaMestre.contexto || {}), metadados: respostaJSON.metadados };
+      }
+      this.historico = adicionarMensagem(this.historico, respostaMestre);
+
+      const result = {
+        narracao: narrativa,
+        segmentos,
+        fimDeTurno: respostaJSON.fimDeTurno || false,
+        solicitaDados: respostaJSON.solicitaDados || { solicita: false },
+        teste: extrairTeste(respostaJSON),
+        acaoCompleta: respostaJSON.acaoCompleta || false,
+        combate: respostaJSON.combate || null,
+        acoes: respostaJSON.acoes || [],
+        metadados: respostaJSON.metadados || {},
+        jogador, personagem, acao,
+        timestamp: new Date().toISOString()
+      };
+
+      onStreamEnd?.(result);
+
+      log.info({ duracao: Date.now() - startTime, narracaoLength: narrativa?.length || 0 }, 'Narracao stream concluida');
+      return result;
+    } catch (error) {
+      log.error({ err: error.message }, 'Erro ao narrar acao (stream), fallback para invoke');
+      onError?.(error);
+      return this.narrarAcao({ jogador, personagem, acao, chatHistory, resumo, contextoLateralRoleplay });
     }
   }
 

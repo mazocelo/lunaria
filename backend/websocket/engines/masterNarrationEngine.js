@@ -281,12 +281,19 @@ export default class MasterNarrationEngine {
 
       let resposta;
       try {
-        resposta = await mestre.narrarAcao({
+        const streamMsgId = `mestre_stream_${Date.now()}_${roomId}`;
+
+        resposta = await mestre.narrarAcaoStream({
           jogador: username,
           personagem: personagem.nome,
           acao: acaoComContexto,
           chatHistory: historico,
           resumo: resumoMaisRecente?.resumo || null
+        }, {
+          onStreamStart: () => sm.sendToRoom(roomId, 'mestre_stream_start', { streamId: streamMsgId, timestamp: Date.now() }),
+          onChunk: (delta, accumulated) => sm.sendToRoom(roomId, 'mestre_stream_chunk', { streamId: streamMsgId, delta, accumulated, timestamp: Date.now() }),
+          onStreamEnd: () => sm.sendToRoom(roomId, 'mestre_stream_end', { streamId: streamMsgId, timestamp: Date.now() }),
+          onError: () => sm.sendToRoom(roomId, 'mestre_stream_error', { streamId: streamMsgId, timestamp: Date.now() })
         });
 
         sm.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_IA_RESPONDED', socket.id, userId, {

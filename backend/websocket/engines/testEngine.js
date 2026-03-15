@@ -215,12 +215,19 @@ export default class TestEngine {
             ? `${invocationContext.contextoLateralRoleplay}\n\n${descricaoParaIA}`
             : descricaoParaIA;
 
-          const interpretacao = await mestre.narrarAcao({
+          const testStreamMsgId = `mestre_stream_${Date.now()}_${roomId}`;
+
+          const interpretacao = await mestre.narrarAcaoStream({
             jogador: username,
             personagem: personagemNome,
             acao: descricaoComContexto,
             chatHistory: invocationContext.chatHistory,
             resumo: invocationContext.resumo
+          }, {
+            onStreamStart: () => sm.sendToRoom(roomId, 'mestre_stream_start', { streamId: testStreamMsgId, timestamp: Date.now() }),
+            onChunk: (delta, accumulated) => sm.sendToRoom(roomId, 'mestre_stream_chunk', { streamId: testStreamMsgId, delta, accumulated, timestamp: Date.now() }),
+            onStreamEnd: () => sm.sendToRoom(roomId, 'mestre_stream_end', { streamId: testStreamMsgId, timestamp: Date.now() }),
+            onError: () => sm.sendToRoom(roomId, 'mestre_stream_error', { streamId: testStreamMsgId, timestamp: Date.now() })
           });
 
           const msgInterpretacao = sm.criarMensagemMestre(interpretacao.narracao, sessao.mestreConfig, {

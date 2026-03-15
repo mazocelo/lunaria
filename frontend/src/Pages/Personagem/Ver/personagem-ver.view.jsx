@@ -409,26 +409,6 @@ const VerPersonagemView = ({
                 );
               })}
             </div>
-            {/* Total summary */}
-            {(() => {
-              const hasBonuses = Object.values(bonusPorAtributo).some(arr => arr.length > 0);
-              if (!hasBonuses) return null;
-              const totalBonusGeral = Object.values(bonusPorAtributo).reduce((sum, arr) => sum + arr.reduce((s, b) => s + b.value, 0), 0);
-              const totalAtributos = atributosConfig.reduce((sum, attr) => sum + (p[attr.key] || p.atributos?.[attr.key] || 10), 0);
-              const totalBase = totalAtributos - totalBonusGeral;
-              return (
-                <div className={`mt-4 p-3 rounded-lg border ${isLight ? 'bg-purple-50/30 border-purple-200/50' : 'bg-purple-500/5 border-purple-500/20'}`}>
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className={`text-sm font-modern font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                      Total: {totalAtributos} pontos
-                    </span>
-                    <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Base: {totalBase} {totalBonusGeral !== 0 && <span className={totalBonusGeral > 0 ? 'text-cyan-400' : 'text-red-400'}>({totalBonusGeral > 0 ? '+' : ''}{totalBonusGeral} bonus)</span>}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         );
       })()}

@@ -111,12 +111,11 @@ jobs:
             pg_dump --dbname="$DATABASE_URL" --no-owner --no-acl -Fc > "$BACKUP_FILE" || { echo "ERROR: backup falhou"; exit 1; }
 
             # Parar worker antes da migracao (evitar codigo stale)
-            systemctl stop lunaria-worker || true
+            pm2 stop lunaria-worker || true
 
-            # Migrate + Restart
+            # Migrate + Restart (zero-downtime reload)
             npx prisma migrate deploy
-            systemctl restart lunaria-backend
-            systemctl restart lunaria-worker || true
+            pm2 reload ecosystem.config.cjs
             sleep 5
 
             # Healthcheck com rollback para SHA pre-deploy
@@ -128,8 +127,7 @@ jobs:
               git reset --hard "$PRE_DEPLOY_SHA"
               npm ci --include=dev
               npx prisma generate
-              systemctl restart lunaria-backend
-              systemctl restart lunaria-worker || true
+              pm2 reload ecosystem.config.cjs
               echo "Rollback concluido"
               exit 1
             fi

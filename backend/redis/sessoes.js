@@ -38,15 +38,32 @@ class SessaoRPG {
     this.prefix = 'rpg_session:';
     this.ttl = 7200; // 2 horas em segundos
     this.initialized = false;
+    this.initializePromise = null;
   }
 
   /**
    * Inicializar conexão com Redis
    */
   async initialize() {
-    if (!this.initialized) {
+    if (this.client?.isOpen) {
+      this.initialized = true;
+      return;
+    }
+
+    if (this.initializePromise) {
+      await this.initializePromise;
+      return;
+    }
+
+    this.initializePromise = (async () => {
       await inicializarRedis();
       this.initialized = true;
+    })();
+
+    try {
+      await this.initializePromise;
+    } finally {
+      this.initializePromise = null;
     }
   }
 
@@ -84,6 +101,7 @@ class SessaoRPG {
    */
   async obterSessao(salaId) {
     try {
+      await this.initialize();
       const sessionId = `${this.prefix}${salaId}`;
       // GETEX: GET + renew TTL in a single command
       const sessao = await this.client.getEx(sessionId, { EX: this.ttl });
@@ -106,6 +124,7 @@ class SessaoRPG {
    * @returns {Promise<Object>} - Dados atualizados da sessão
    */
   async atualizarSessao(salaId, novosDados, maxRetries = 3) {
+    await this.initialize();
     const sessionId = `${this.prefix}${salaId}`;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -164,6 +183,7 @@ class SessaoRPG {
   }
 
   async mutateSessao(salaId, mutator, maxRetries = 3) {
+    await this.initialize();
     const sessionId = `${this.prefix}${salaId}`;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -388,6 +408,7 @@ class SessaoRPG {
    */
   async finalizarSessao(salaId) {
     try {
+      await this.initialize();
       const sessionId = `${this.prefix}${salaId}`;
       const sessao = await this.obterSessao(salaId);
       
@@ -418,6 +439,7 @@ class SessaoRPG {
    */
   async excluirSessao(salaId) {
     try {
+      await this.initialize();
       const sessionId = `${this.prefix}${salaId}`;
       const resultado = await this.client.del(sessionId);
       log.info({ salaId }, 'Sessao excluida');
@@ -434,6 +456,7 @@ class SessaoRPG {
    */
   async listarSessoesAtivas() {
     try {
+      await this.initialize();
       const sessoes = [];
       const pattern = `${this.prefix}*`;
 
@@ -462,6 +485,7 @@ class SessaoRPG {
    */
   async sessaoExiste(salaId) {
     try {
+      await this.initialize();
       const sessionId = `${this.prefix}${salaId}`;
       const existe = await this.client.exists(sessionId);
       return existe === 1;
@@ -478,6 +502,7 @@ class SessaoRPG {
    */
   async renovarSessao(salaId) {
     try {
+      await this.initialize();
       const sessionId = `${this.prefix}${salaId}`;
       const resultado = await this.client.expire(sessionId, this.ttl);
       return resultado === 1;
@@ -609,6 +634,7 @@ class SessaoRPG {
    */
   async avancarTurno(salaId) {
     try {
+      await this.initialize();
       // Distributed lock to prevent concurrent turn advances
       const lockKey = `${this.prefix}lock:turno:${salaId}`;
       const lockAcquired = await this.client.set(lockKey, '1', { NX: true, EX: 5 });

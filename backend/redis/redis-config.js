@@ -41,6 +41,10 @@ redisClient.on('end', () => {
 // Funcao para inicializar a conexao
 async function inicializarRedis() {
   try {
+    if (redisClient.isOpen) {
+      return redisClient;
+    }
+
     await redisClient.connect();
     return redisClient;
   } catch (error) {

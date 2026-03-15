@@ -71,19 +71,15 @@ export function normalizeGameMessage(mensagem = {}, index = 0) {
 export function normalizeGameMessages(mensagens = []) {
   const usedIds = new Set();
 
-  return (mensagens || []).map((mensagem, index) => {
+  return (mensagens || []).reduce((acc, mensagem, index) => {
     const normalized = normalizeGameMessage(mensagem, index);
-    let nextId = normalized.id;
+    const idStr = String(normalized.id);
 
-    while (usedIds.has(String(nextId))) {
-      nextId = `${normalized.id}_${index}_${Math.random().toString(36).slice(2, 5)}`;
-    }
+    // Deduplicar — descartar mensagem com id já visto
+    if (usedIds.has(idStr)) return acc;
 
-    usedIds.add(String(nextId));
-    return {
-      ...normalized,
-      id: nextId,
-      segmentos: normalizeSegmentos(normalized.segmentos, nextId)
-    };
-  });
+    usedIds.add(idStr);
+    acc.push(normalized);
+    return acc;
+  }, []);
 }

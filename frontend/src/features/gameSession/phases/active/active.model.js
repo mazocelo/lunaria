@@ -43,6 +43,7 @@ export function useActiveModel() {
 
   const {
     isConnected,
+    isAuthenticated,
     socketError,
     isReconnecting,
     conectarSocket,
@@ -119,10 +120,10 @@ export function useActiveModel() {
   }, [user?.id, user?.nome, user?.name, user?.email, isConnected, conectarSocket]);
 
   // ------------------------------------------------------------------
-  // EFFECT 4: Garantir entrada na sala (connected + historia + personagem)
+  // EFFECT 4: Garantir entrada na sala (connected + authenticated + historia + personagem)
   // ------------------------------------------------------------------
   useEffect(() => {
-    if (!isConnected || !user?.id || !historiaAtual?.id || !personagemSelecionado?.id) return;
+    if (!isConnected || !isAuthenticated || !user?.id || !historiaAtual?.id || !personagemSelecionado?.id) return;
 
     const key = `${historiaAtual.id}:${personagemSelecionado.id}:${user.id}`;
     if (joinAttemptKeyRef.current === key) return;
@@ -136,6 +137,8 @@ export function useActiveModel() {
           email: user.email,
         });
       } catch (err) {
+        // Reset guard para permitir retry quando condicoes mudarem
+        joinAttemptKeyRef.current = null;
         console.error('Erro ao entrar na sala do jogo ativo:', err);
       }
     };
@@ -143,6 +146,7 @@ export function useActiveModel() {
     ensureJoin();
   }, [
     isConnected,
+    isAuthenticated,
     user?.id,
     user?.nome,
     user?.name,

@@ -1716,6 +1716,38 @@ class PersonagemController {
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
+
+  regenerarEquipamentosFinalizacao = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { tentativa, equipamentos_anteriores } = req.body;
+
+      const tentativaNum = parseInt(tentativa);
+      if (!tentativaNum || tentativaNum < 1 || tentativaNum > 3) {
+        return res.status(400).json({ success: false, error: 'Tentativa deve ser entre 1 e 3' });
+      }
+
+      const anteriores = Array.isArray(equipamentos_anteriores) ? equipamentos_anteriores : [];
+
+      const base = await buildFinalizacaoBase(parseInt(id));
+      const agent = await criarFinalizacaoInicialAgent();
+      const equipamentos = await agent.regenerarEquipamentos(base, tentativaNum, anteriores, req.user?.id);
+
+      res.status(200).json({
+        success: true,
+        data: { equipamentos },
+      });
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao regenerar equipamentos');
+      if (error.message === 'personagemId invalido') {
+        return res.status(400).json({ success: false, error: 'ID de personagem invalido' });
+      }
+      if (error.message?.includes('nao encontrado')) {
+        return res.status(404).json({ success: false, error: error.message });
+      }
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+  }
 }
 
 export default new PersonagemController(); 

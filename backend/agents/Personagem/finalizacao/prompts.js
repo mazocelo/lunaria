@@ -47,3 +47,33 @@ META:
 {meta}`],
   ]);
 }
+
+// ── Prompt de regeneracao de equipamentos ──
+
+const REGEN_EQUIP_SYSTEM = `Voce e um especialista em RPG. Sua tarefa e gerar um combo DIFERENTE de equipamentos para o personagem.
+
+REGRAS OBRIGATORIAS:
+- Use APENAS IDs que existam no catalogo fornecido. NAO invente IDs.
+- Escolha 2-4 equipamentos que complementem a classe e atributos do personagem
+- Justifique cada escolha com uma frase curta ligada a build ou narrativa
+- Esta e a tentativa {tentativa} de 3. VARIE significativamente as escolhas em relacao as anteriores.
+- Equipamentos da sugestao anterior (evite repetir todos): {equipamentos_anteriores}
+- Tente explorar combinacoes diferentes: outros tipos de arma, armadura ou acessorio
+
+RESPONDA EXCLUSIVAMENTE em JSON valido, sem markdown, sem texto extra:
+
+{{{{ "equipamentos": [{{{{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }}}}] }}}}`;
+
+export function createRegeneracaoEquipamentosPrompt() {
+  return ChatPromptTemplate.fromMessages([
+    ['system', REGEN_EQUIP_SYSTEM],
+    ['human', `FICHA DO PERSONAGEM:
+{snapshot}
+
+CATALOGO DE EQUIPAMENTOS ELEGIVEIS:
+{catalogo_equipamentos}
+
+META:
+{meta}`],
+  ]);
+}

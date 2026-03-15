@@ -486,6 +486,9 @@ router.post('/:id/background', writeLimiter, asyncHandlerWithContext(personagemC
 // POST /:id/finalizacao-inicial - Gerar finalizacao inicial via IA (equipamentos, habilidades, magias)
 router.post('/:id/finalizacao-inicial', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.finalizacaoInicial, personagemController));
 
+// POST /:id/regenerar-equipamentos-finalizacao - Regenerar combo de equipamentos (max 3 tentativas)
+router.post('/:id/regenerar-equipamentos-finalizacao', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.regenerarEquipamentosFinalizacao, personagemController));
+
 /**
  * @swagger
  * /api/personagens/historia/{historia_id}:

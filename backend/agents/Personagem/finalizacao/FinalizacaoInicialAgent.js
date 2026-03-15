@@ -1,6 +1,6 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { createFinalizacaoModel } from './model.js';
-import { createFinalizacaoPrompt } from './prompts.js';
+import { createFinalizacaoPrompt, createRegeneracaoEquipamentosPrompt } from './prompts.js';
 import { DEFAULT_MODEL_SETTINGS } from './config.js';
 import { trackLLMUsage } from '../../../services/llmTracker.js';
 import logger from '../../../helpers/logger.js';
@@ -104,6 +104,10 @@ export default async function criarFinalizacaoInicialAgent() {
 
   const chain = RunnableSequence.from([prompt, model]);
 
+  const regenPrompt = createRegeneracaoEquipamentosPrompt();
+  const regenModel = createFinalizacaoModel();
+  const regenChain = RunnableSequence.from([regenPrompt, regenModel]);
+
   return {
     /**
      * Gera finalizacao inicial para um personagem.
@@ -169,6 +173,69 @@ export default async function criarFinalizacaoInicialAgent() {
       } catch (error) {
         log.error({ err: error.message, personagem: snapshot.nome }, 'Erro na finalizacao inicial, usando fallback');
         return buildFallback(snapshot, catalogo_editavel, meta);
+      }
+    },
+
+    /**
+     * Regenera apenas o combo de equipamentos com variacao.
+     * @param {{ snapshot, catalogo_editavel, meta }} base
+     * @param {number} tentativa - 1, 2 ou 3
+     * @param {string[]} anteriores - nomes dos equipamentos anteriores
+     * @param {string|number} userId
+     * @returns {Promise<Array<{ id, nome, motivo }>>}
+     */
+    regenerarEquipamentos: async (base, tentativa, anteriores, userId) => {
+      const { snapshot, catalogo_editavel, meta } = base;
+      const idsEquip = new Set(catalogo_editavel.equipamentos.map(e => e.id));
+
+      try {
+        const startTime = Date.now();
+
+        const response = await withTimeout(regenChain.invoke({
+          snapshot: JSON.stringify(snapshot, null, 2),
+          catalogo_equipamentos: formatCatalogo(catalogo_editavel.equipamentos),
+          meta: JSON.stringify(meta),
+          tentativa: String(tentativa),
+          equipamentos_anteriores: anteriores.length > 0 ? anteriores.join(', ') : '(nenhum)',
+        }));
+
+        trackLLMUsage(response, {
+          modelName,
+          userId,
+          startTime,
+          agent: 'FinalizacaoInicial:RegenEquip',
+        });
+
+        const parsed = parseIAJson(response.content);
+
+        if (!parsed || !Array.isArray(parsed.equipamentos)) {
+          log.warn('Regeneracao retornou JSON invalido, usando fallback');
+          const offset = (tentativa - 1) * 3;
+          return catalogo_editavel.equipamentos.slice(offset, offset + 3).map(e => ({
+            id: e.id, nome: e.nome, motivo: 'Sugestao alternativa',
+          }));
+        }
+
+        const sanitizados = (parsed.equipamentos || [])
+          .filter(item => item && typeof item.id === 'number' && idsEquip.has(item.id))
+          .map(item => ({ id: item.id, nome: String(item.nome || ''), motivo: String(item.motivo || '') }));
+
+        if (sanitizados.length === 0) {
+          log.warn({ tentativa }, 'Regeneracao esvaziou apos sanitizacao, usando fallback');
+          const offset = (tentativa - 1) * 3;
+          return catalogo_editavel.equipamentos.slice(offset, offset + 3).map(e => ({
+            id: e.id, nome: e.nome, motivo: 'Sugestao alternativa',
+          }));
+        }
+
+        log.info({ personagem: snapshot.nome, tentativa, count: sanitizados.length }, 'Equipamentos regenerados');
+        return sanitizados;
+      } catch (error) {
+        log.error({ err: error.message, tentativa }, 'Erro na regeneracao, usando fallback');
+        const offset = (tentativa - 1) * 3;
+        return catalogo_editavel.equipamentos.slice(offset, offset + 3).map(e => ({
+          id: e.id, nome: e.nome, motivo: 'Sugestao alternativa',
+        }));
       }
     },
   };

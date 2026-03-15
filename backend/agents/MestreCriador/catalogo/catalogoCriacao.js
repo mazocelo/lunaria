@@ -4,6 +4,7 @@
  */
 import db from '../../../Model/index.js';
 import logger from '../../../helpers/logger.js';
+import { tierDesbloqueado } from '../../../helpers/evolucaoHelper.js';
 
 const log = logger.child({ module: 'catalogoCriacao' });
 
@@ -48,11 +49,15 @@ export async function fetchData() {
 
 /**
  * Constrói catálogo completo para o prompt do Mestre Criador
+ * @param {number} [nivel=1] - Nível do personagem para filtrar por tier
  * @returns {string} Texto formatado
  */
-export async function buildCatalogoCriacao() {
+export async function buildCatalogoCriacao(nivel = 1) {
   try {
-    const { racas, classes, vantagens, desvantagens } = await fetchData();
+    const { racas, classes, vantagens: vantagensRaw, desvantagens: desvantagensRaw } = await fetchData();
+    const tier = tierDesbloqueado(nivel);
+    const vantagens = vantagensRaw.filter(v => (v.nivel || 1) <= tier);
+    const desvantagens = desvantagensRaw.filter(d => (d.nivel || 1) <= tier);
 
     const sections = [];
 

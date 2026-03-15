@@ -864,6 +864,14 @@ class PersonagemController {
         });
       }
 
+      // Validar tier
+      const tier = tierDesbloqueado(personagem.nivel || 1);
+      if ((vantagem.nivel || 1) > tier) {
+        return res.status(400).json({
+          error: `Vantagem "${vantagem.nome}" requer tier ${vantagem.nivel}, mas personagem so tem tier ${tier} (nivel ${personagem.nivel || 1})`
+        });
+      }
+
       // Adicionar vantagem ao personagem
       await db.Personagem.adicionarVantagem(id, vantagem_id);
 
@@ -992,6 +1000,14 @@ class PersonagemController {
       if (!desvantagem) {
         return res.status(404).json({
           error: 'Desvantagem não encontrada'
+        });
+      }
+
+      // Validar tier
+      const tier = tierDesbloqueado(personagem.nivel || 1);
+      if ((desvantagem.nivel || 1) > tier) {
+        return res.status(400).json({
+          error: `Desvantagem "${desvantagem.nome}" requer tier ${desvantagem.nivel}, mas personagem so tem tier ${tier} (nivel ${personagem.nivel || 1})`
         });
       }
 

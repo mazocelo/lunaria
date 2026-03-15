@@ -15,6 +15,7 @@ import dotenv from 'dotenv';
 import logger from '../../helpers/logger.js';
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
 import { sanitizeEtapaProxima, shouldLockStage, getPolicy } from './stages/stagePolicy.js';
+import { tierDesbloqueado } from '../../helpers/evolucaoHelper.js';
 import { getFallbackMessage, gerarAtributosFallback as gerarAtributosFallbackPolicy } from './stages/stageFallbacks.js';
 
 const log = logger.child({ module: 'MestreCriadorAgent' });
@@ -66,7 +67,10 @@ const ETAPAS_COM_SUGESTOES = ['boas_vindas', 'raca', 'classe', 'background', 'va
 /** Gera sugestões fallback do catálogo quando IA retorna vazio */
 async function gerarFallbackSugestoes(etapa, estado) {
   try {
-    const { racas, classes, vantagens, desvantagens } = await fetchCatalogo();
+    const { racas, classes, vantagens: vantagensRaw, desvantagens: desvantagensRaw } = await fetchCatalogo();
+    const tier = tierDesbloqueado(estado.nivel || 1);
+    const vantagens = vantagensRaw.filter(v => (v.nivel || 1) <= tier);
+    const desvantagens = desvantagensRaw.filter(d => (d.nivel || 1) <= tier);
 
     if (etapa === 'raca') {
       const shuffled = [...racas].sort(() => Math.random() - 0.5).slice(0, 5);

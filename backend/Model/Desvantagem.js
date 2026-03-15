@@ -107,7 +107,7 @@ const Desvantagem = (prisma) => {
       const where = {};
       if (tipo) where.tipo = { has: tipo };
       if (elemento) where.elemento = { has: elemento };
-      if (nivel !== undefined) where.nivel = parseInt(nivel);
+      if (nivel !== undefined) where.nivel = { lte: parseInt(nivel) };
       if (usar !== undefined) where.usar = parseInt(usar);
       if (search) {
         where.OR = [

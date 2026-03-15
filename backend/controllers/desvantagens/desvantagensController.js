@@ -147,7 +147,10 @@ class DesvantagemController {
         });
       }
 
-      const data = await db.Desvantagem.findAll();
+      const nivelFiltro = nivel ? parseInt(nivel) : undefined;
+      const data = nivelFiltro
+        ? await db.Desvantagem.findByNivelMax(nivelFiltro)
+        : await db.Desvantagem.findAll();
       res.status(200).json({
         success: true,
         data,

@@ -147,7 +147,10 @@ class VantagemController {
         });
       }
 
-      const data = await db.Vantagem.findAll();
+      const nivelFiltro = nivel ? parseInt(nivel) : undefined;
+      const data = nivelFiltro
+        ? await db.Vantagem.findByNivelMax(nivelFiltro)
+        : await db.Vantagem.findAll();
       res.status(200).json({
         success: true,
         data,

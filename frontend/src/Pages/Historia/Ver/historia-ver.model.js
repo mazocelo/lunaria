@@ -410,9 +410,11 @@ export const useHistoriaVerModel = () => {
 
   // Modo de abertura de sessao
   const modoAberturaAtual = historiaAtual?.config?.session_opening_mode ?? 'direto';
+  const [salvandoAbertura, setSalvandoAbertura] = useState(false);
 
   const handleModoAberturaChange = useCallback(async (modo) => {
-    if (!historiaAtual) return;
+    if (!historiaAtual || salvandoAbertura) return;
+    setSalvandoAbertura(true);
     const configAnterior = historiaAtual.config;
     setHistoriaAtual(prev => ({ ...prev, config: { ...prev?.config, session_opening_mode: modo } }));
     try {
@@ -420,8 +422,10 @@ export const useHistoriaVerModel = () => {
     } catch (err) {
       setHistoriaAtual(prev => ({ ...prev, config: configAnterior }));
       setError(err.message || 'Erro ao salvar modo de abertura');
+    } finally {
+      setSalvandoAbertura(false);
     }
-  }, [historiaAtual]);
+  }, [historiaAtual, salvandoAbertura]);
 
   // Voice preview
   const stopPreview = useCallback(() => {
@@ -553,6 +557,7 @@ export const useHistoriaVerModel = () => {
 
     // Abertura de sessao
     modoAberturaAtual,
+    salvandoAbertura,
     handleModoAberturaChange,
 
     // Utils

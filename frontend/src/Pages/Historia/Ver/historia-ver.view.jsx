@@ -122,6 +122,7 @@ const VerHistoriaView = ({
 
   // Abertura de sessao
   modoAberturaAtual,
+  salvandoAbertura,
   handleModoAberturaChange,
 
   // Utils
@@ -361,8 +362,9 @@ const VerHistoriaView = ({
                       <button
                         key={m.value}
                         onClick={() => handleModoAberturaChange(m.value)}
+                        disabled={salvandoAbertura}
                         title={m.desc}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer border ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-modern font-semibold transition-all cursor-pointer border ${salvandoAbertura ? 'opacity-50 cursor-not-allowed' : ''} ${
                           modoAberturaAtual === m.value
                             ? 'bg-purple-500/30 border-purple-400 text-purple-200'
                             : isLight

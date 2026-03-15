@@ -613,6 +613,7 @@ export const useWizardModel = () => {
 
   const clearError = useCallback(() => setError(null), []);
 
+  // ── Equipamentos: persistencia explicita ──
   const [equipamentosAplicados, setEquipamentosAplicados] = useState(false);
   const [aplicandoEquipamentos, setAplicandoEquipamentos] = useState(false);
 
@@ -633,22 +634,45 @@ export const useWizardModel = () => {
     setAplicandoEquipamentos(false);
   }, [finalizacaoData]);
 
+  // ── Equipamentos: regeneracao ──
+  const [regeneracoesUsadas, setRegeneracoesUsadas] = useState(0);
+  const [regenerando, setRegenerando] = useState(false);
+
+  const regenerarEquipamentos = useCallback(async () => {
+    if (regeneracoesUsadas >= 3 || regenerando) return;
+    const personagemId = finalizacaoData?.personagem_id;
+    const anteriores = (finalizacaoData?.combo?.equipamentos || []).map(e => e.nome);
+    if (!personagemId) return;
+
+    setRegenerando(true);
+    try {
+      const result = await personagemService.regenerarEquipamentosFinalizacao(
+        personagemId, regeneracoesUsadas + 1, anteriores
+      );
+      setFinalizacaoData(prev => ({
+        ...prev,
+        combo: { ...prev.combo, equipamentos: result.equipamentos },
+      }));
+      setRegeneracoesUsadas(prev => prev + 1);
+      setEquipamentosAplicados(false);
+    } catch (err) {
+      console.warn('Erro ao regenerar equipamentos:', err.message);
+    } finally {
+      setRegenerando(false);
+    }
+  }, [finalizacaoData, regeneracoesUsadas, regenerando]);
+
   const fecharFinalizacao = useCallback(() => {
     setFinalizacaoData(null);
     setEquipamentosAplicados(false);
     setAplicandoEquipamentos(false);
+    setRegeneracoesUsadas(0);
+    setRegenerando(false);
     navigate('/personagens');
   }, [navigate]);
 
   const atualizarFinalizacaoData = useCallback((updater) => {
-    setFinalizacaoData(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      // Resetar flag se equipamentos do combo mudaram apos aplicacao
-      if (prev?.combo?.equipamentos !== next?.combo?.equipamentos) {
-        setEquipamentosAplicados(false);
-      }
-      return next;
-    });
+    setFinalizacaoData(prev => typeof updater === 'function' ? updater(prev) : updater);
   }, []);
 
   return {
@@ -740,6 +764,9 @@ export const useWizardModel = () => {
     aplicarEquipamentos,
     aplicandoEquipamentos,
     equipamentosAplicados,
+    regenerarEquipamentos,
+    regeneracoesUsadas,
+    regenerando,
 
     // Theme
     isLight,

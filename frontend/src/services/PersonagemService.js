@@ -380,6 +380,29 @@ export class PersonagemService {
     }
   }
 
+  /**
+   * Regenera combo de equipamentos da finalizacao (max 3 tentativas)
+   * @param {number} id - ID do personagem
+   * @param {number} tentativa - Numero da tentativa (1-3)
+   * @param {string[]} equipamentosAnteriores - Nomes dos equipamentos anteriores
+   * @returns {Promise<Object>} { equipamentos: [...] }
+   */
+  async regenerarEquipamentosFinalizacao(id, tentativa, equipamentosAnteriores) {
+    try {
+      const response = await this.apiClient.post(
+        `${this.baseUrl}/${id}/regenerar-equipamentos-finalizacao`,
+        { tentativa, equipamentos_anteriores: equipamentosAnteriores }
+      );
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao regenerar equipamentos');
+      }
+    } catch (error) {
+      throw new Error(`Erro ao regenerar equipamentos: ${error.message}`);
+    }
+  }
+
   async desvincularHistoria(personagemId, historiaId) {
     try {
       const response = await this.apiClient.delete(`${this.baseUrl}/${personagemId}/historias/${historiaId}`);

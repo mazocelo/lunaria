@@ -85,6 +85,9 @@ const WizardView = (props) => {
     aplicarEquipamentos,
     aplicandoEquipamentos,
     equipamentosAplicados,
+    regenerarEquipamentos,
+    regeneracoesUsadas,
+    regenerando,
     isLight,
     navigate,
   } = props;
@@ -154,6 +157,9 @@ const WizardView = (props) => {
             onAplicarEquipamentos={aplicarEquipamentos}
             aplicandoEquipamentos={aplicandoEquipamentos}
             equipamentosAplicados={equipamentosAplicados}
+            onRegenerarEquipamentos={regenerarEquipamentos}
+            regeneracoesUsadas={regeneracoesUsadas}
+            regenerando={regenerando}
           />
         </div>
       </div>

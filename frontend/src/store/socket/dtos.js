@@ -165,6 +165,32 @@ export function normalizeCombateEstado(data) {
     monstros: data.monstros ? data.monstros.map(normalizeMonstro) : null,
     jogadores: data.jogadores ? normalizeJogadoresMap(data.jogadores) : null,
     rodada: data.rodada ?? null,
-    log: data.log ?? null,
+    log: data.log ? data.log.map(normalizeLogEntry) : null,
   };
+}
+
+/**
+ * Normaliza uma entrada de log do combate para o formato esperado pela UI.
+ * O backend grava campos como `alvoNome` e `atacante` (string), mas a UI
+ * lê `alvo.nome` e `atacante.nome`. Esta função garante compatibilidade
+ * tanto no fluxo ao vivo (já normalizado) quanto em rejoin/sync.
+ */
+function normalizeLogEntry(entry) {
+  if (!entry) return entry;
+
+  const normalized = { ...entry };
+
+  // atacante: string → { nome }
+  if (typeof normalized.atacante === 'string') {
+    normalized.atacante = { id: normalized.atacanteId ?? null, nome: normalized.atacante };
+  }
+
+  // alvo: garantir { nome } — backend pode enviar alvoNome sem alvo objeto
+  if (!normalized.alvo && normalized.alvoNome) {
+    normalized.alvo = { id: normalized.alvoId ?? null, nome: normalized.alvoNome };
+  } else if (normalized.alvo && !normalized.alvo.nome && normalized.alvoNome) {
+    normalized.alvo = { ...normalized.alvo, nome: normalized.alvoNome };
+  }
+
+  return normalized;
 }

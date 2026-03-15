@@ -208,7 +208,7 @@ async function processarControleTurno(resposta, ctx) {
 const RESPONSE_HANDLERS = [
   { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !ctx.combateAtivo, process: processarInicioCombate },
   { nome: 'fuga_combate', check: (r, ctx) => ctx.combateAtivo && ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarFugaCombate },
-  { nome: 'acao_combate', check: (r, ctx) => ctx.combateAtivo, process: processarAcaoCombateHandler },
+  { nome: 'acao_combate', check: (r, ctx) => ctx.combateAtivo && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarAcaoCombateHandler },
   { nome: 'solicita_dados', check: (r) => r.solicitaDados?.solicita || !!r.teste, process: criarSolicitacaoTeste },
   { nome: 'acoes_mecanicas', check: (r) => r.acoes?.length > 0, process: processarAcoesMecanicas },
   { nome: 'limpar_dados', check: (r) => !r.solicitaDados?.solicita && !r.teste, process: limparFlagDados },

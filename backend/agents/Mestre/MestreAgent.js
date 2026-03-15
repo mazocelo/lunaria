@@ -35,6 +35,33 @@ async function withRetry(fn, retries) {
 }
 
 /**
+ * Tags de protocolo que NUNCA devem aparecer no texto narrativo.
+ * Usadas para detectar respostas XML-like e para sanitizar narrativa.
+ */
+const PROTOCOL_TAGS = [
+  'segmentos', 'segment', 'segments',
+  'metadados', 'metadata',
+  'fimDeTurno', 'fim_de_turno',
+  'solicitaDados', 'solicita_dados',
+  'acaoCompleta', 'acao_completa',
+  'combate', 'acoes',
+  'narracao', 'text',
+  'memoria_semantica', 'terreno', 'tensao', 'ameacas',
+  'npcs_presentes', 'npc_id',
+  'local_atual', 'hora_ficcional',
+  'entry'
+];
+
+// Global — só para .replace() em sanitizeNarrativa
+const PROTOCOL_TAG_REGEX = new RegExp(
+  `</?(?:${PROTOCOL_TAGS.join('|')})[^>]*>`, 'gi'
+);
+// Non-global — para detecção stateless via .test()
+const PROTOCOL_TAG_DETECT = new RegExp(
+  `</?(?:${PROTOCOL_TAGS.join('|')})[^>]*>`, 'i'
+);
+
+/**
  * Parse robusto de JSON da IA - remove markdown wrappers (```json ... ```)
  */
 function parseIAJson(content) {
@@ -57,7 +84,110 @@ function parseIAJson(content) {
     } catch (_) { /* falhou */ }
   }
 
+  // Tentar converter resposta XML-like para JSON
+  const xmlParsed = parseXMLLikeResponse(content);
+  if (xmlParsed) return xmlParsed;
+
   return null; // Parse impossível
+}
+
+/**
+ * Tenta extrair dados estruturados de uma resposta XML-like do modelo.
+ * Modelos às vezes devolvem pseudo-XML em vez de JSON.
+ * Extrai narrativa dos <text> tags e controle dos tags de protocolo.
+ */
+function parseXMLLikeResponse(content) {
+  if (!content || typeof content !== 'string') return null;
+  // Só tenta se detectar tags de protocolo (non-global para evitar lastIndex stateful)
+  if (!PROTOCOL_TAG_DETECT.test(content)) return null;
+
+  log.warn('Resposta da IA em formato XML-like detectada, convertendo para JSON');
+
+  // Extrair texto de tags <text>...</text> para montar segmentos
+  const textBlocks = [];
+  const textRx = /<text>([\s\S]*?)<\/text>/gi;
+  let textMatch;
+  while ((textMatch = textRx.exec(content)) !== null) {
+    const text = textMatch[1].trim();
+    if (text) textBlocks.push(text);
+  }
+
+  // Extrair narrativa: texto antes dos tags de protocolo ou dos <text> blocks
+  let narrativa = '';
+  if (textBlocks.length > 0) {
+    narrativa = textBlocks.join('\n\n');
+  } else {
+    // Fallback: pegar texto livre removendo todas as tags de protocolo
+    narrativa = sanitizeNarrativa(content);
+  }
+
+  if (!narrativa.trim()) return null;
+
+  // Extrair fimDeTurno
+  const fimMatch = content.match(/<fimDeTurno>(.*?)<\/fimDeTurno>/i);
+  const fimDeTurno = fimMatch ? fimMatch[1].trim().toLowerCase() === 'true' : false;
+
+  // Extrair solicitaDados
+  const solicitaMatch = content.match(/<solicitaDados\s+solicita="(.*?)"[^/]*\/>/i)
+    || content.match(/<solicitaDados>(.*?)<\/solicitaDados>/i);
+  const solicita = solicitaMatch
+    ? !['false', 'no', '0'].includes(solicitaMatch[1].trim().toLowerCase())
+    : false;
+
+  // Extrair acaoCompleta
+  const acaoMatch = content.match(/<acaoCompleta>(.*?)<\/acaoCompleta>/i);
+  const acaoCompleta = acaoMatch ? acaoMatch[1].trim().toLowerCase() === 'true' : false;
+
+  // Extrair segmentos com metadados de narração
+  const segmentos = [];
+  const segRx = /<segment[^>]*?tipo="([^"]*)"[^>]*?speaker_label="([^"]*)"[^>]*?>[\s\S]*?<text>([\s\S]*?)<\/text>[\s\S]*?<\/segment>/gi;
+  let segMatch;
+  while ((segMatch = segRx.exec(content)) !== null) {
+    segmentos.push({
+      tipo: segMatch[1] || 'narracao',
+      speaker_label: segMatch[2] || null,
+      text: segMatch[3].trim()
+    });
+  }
+  // Se não extraiu segmentos com regex detalhado, montar dos textBlocks
+  if (segmentos.length === 0 && textBlocks.length > 0) {
+    for (const text of textBlocks) {
+      segmentos.push({ tipo: 'narracao', text });
+    }
+  }
+
+  return {
+    narrativa,
+    segmentos: segmentos.length > 0 ? segmentos : undefined,
+    fimDeTurno,
+    solicitaDados: { solicita },
+    acaoCompleta,
+    combate: null,
+    acoes: []
+  };
+}
+
+/**
+ * Remove tags de protocolo do texto narrativo.
+ * Garante que metadados, flags de engine e tags XML nunca cheguem ao chat.
+ */
+function sanitizeNarrativa(text) {
+  if (!text || typeof text !== 'string') return '';
+
+  let clean = text;
+  // Remover pares completos de TODAS as tags de protocolo (tag + conteúdo interno)
+  for (const tag of PROTOCOL_TAGS) {
+    const blockRx = new RegExp(`<${tag}[^>]*>[\\s\\S]*?</${tag}>`, 'gi');
+    clean = clean.replace(blockRx, '');
+  }
+  // Remover self-closing protocol tags (<solicitaDados ... />, <combate ... />)
+  clean = clean.replace(/<(?:solicitaDados|combate|acaoCompleta|fimDeTurno|acoes)[^>]*\/>/gi, '');
+  // Remover remaining opening/closing protocol tags (orphaned)
+  clean = clean.replace(PROTOCOL_TAG_REGEX, '');
+  // Limpar linhas vazias excessivas
+  clean = clean.replace(/\n{3,}/g, '\n\n').trim();
+
+  return clean;
 }
 
 /**
@@ -382,7 +512,7 @@ export class MestreAgent {
       let respostaJSON = parseIAJson(response.content);
       if (!respostaJSON) {
         respostaJSON = {
-          narrativa: response.content,
+          narrativa: sanitizeNarrativa(response.content),
           fimDeTurno: false,
           solicitaDados: { solicita: false },
           acaoCompleta: false
@@ -391,7 +521,8 @@ export class MestreAgent {
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
-      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const narrativa = sanitizeNarrativa(rawNarrativa);
 
       // Adicionar ao historico local
       const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
@@ -498,7 +629,7 @@ export class MestreAgent {
       let respostaJSON = parseIAJson(extractor.fullBuffer);
       if (!respostaJSON) {
         respostaJSON = {
-          narrativa: extractor.extracted || extractor.fullBuffer,
+          narrativa: sanitizeNarrativa(extractor.extracted || extractor.fullBuffer),
           fimDeTurno: false,
           solicitaDados: { solicita: false },
           acaoCompleta: false
@@ -506,7 +637,8 @@ export class MestreAgent {
       }
 
       fallbackSolicitaDados(respostaJSON);
-      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const narrativa = sanitizeNarrativa(rawNarrativa);
 
       const mensagemJogador = formatarMensagemJogador(jogador, personagem, acao);
       this.historico = adicionarMensagem(this.historico, mensagemJogador);
@@ -584,14 +716,15 @@ export class MestreAgent {
       if (!respostaJSON) {
         log.warn('Resposta iniciarSessao nao e JSON, usando fallback');
         respostaJSON = {
-          narrativa: response.content,
+          narrativa: sanitizeNarrativa(response.content),
           fimDeTurno: false,
           solicitaDados: { solicita: false },
           acaoCompleta: false
         };
       }
 
-      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const narrativa = sanitizeNarrativa(rawNarrativa);
 
       // Adicionar ao hist??rico
       const respostaMestre = formatarRespostaMestre(narrativa, {
@@ -650,7 +783,7 @@ export class MestreAgent {
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       return {
-        resposta: response.content,
+        resposta: sanitizeNarrativa(response.content),
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -732,7 +865,7 @@ Mensagem do Jogador:
       let respostaJSON = parseIAJson(response.content);
       if (!respostaJSON) {
         respostaJSON = {
-          narrativa: response.content,
+          narrativa: sanitizeNarrativa(response.content),
           fimDeTurno: false,
           solicitaDados: { solicita: false },
           acaoCompleta: false
@@ -741,7 +874,8 @@ Mensagem do Jogador:
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
-      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const narrativa = sanitizeNarrativa(rawNarrativa);
 
       return {
         resposta: narrativa,
@@ -841,14 +975,15 @@ Narre a transição e apresente o novo desafio:`;
       let respostaJSON = parseIAJson(response.content);
       if (!respostaJSON) {
         respostaJSON = {
-          narrativa: response.content,
+          narrativa: sanitizeNarrativa(response.content),
           fimDeTurno: false,
           solicitaDados: { solicita: false },
           acaoCompleta: false
         };
       }
 
-      const { narrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
+      const narrativa = sanitizeNarrativa(rawNarrativa);
 
       return {
         narrativa,
@@ -949,7 +1084,7 @@ Seja conciso (máximo 100 palavras).`;
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       return {
-        narrativa: response.content,
+        narrativa: sanitizeNarrativa(response.content),
         tipoTeste,
         dificuldade,
         jogadores,

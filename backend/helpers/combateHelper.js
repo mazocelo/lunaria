@@ -17,6 +17,99 @@ import {
 } from '../config/domainConstants.js';
 const log = logger.child({ module: 'combateHelper' });
 
+function _findJogadorSessao(sessao, userId, personagem = null, jogadorStats = null) {
+  const jogadoresMap = sessao?.jogadores || {};
+  if (jogadoresMap[String(userId)]) return jogadoresMap[String(userId)];
+
+  const conectados = Array.isArray(sessao?.jogadoresConectados) ? sessao.jogadoresConectados : [];
+  return conectados.find((jogador) => {
+    const jogadorUserId = jogador?.userId || jogador?.id;
+    const jogadorPersonagemId = jogador?.personagemId || jogador?.personagem_id;
+    return String(jogadorUserId) === String(userId)
+      || (personagem?.id != null && String(jogadorPersonagemId) === String(personagem.id))
+      || (personagem?.personagemId != null && String(jogadorPersonagemId) === String(personagem.personagemId))
+      || (jogadorStats?.personagemId != null && String(jogadorPersonagemId) === String(jogadorStats.personagemId));
+  }) || null;
+}
+
+function _resolvePersonagemSnapshot(sessao, userId, personagem = null, jogadorStats = null) {
+  const completos = sessao?.personagensCompletos || {};
+  const jogadorSessao = _findJogadorSessao(sessao, userId, personagem, jogadorStats);
+  const candidateIds = new Set();
+  const addId = (value) => {
+    if (value != null && value !== '') candidateIds.add(String(value));
+  };
+
+  addId(personagem?.id);
+  addId(personagem?.personagemId);
+  addId(personagem?.personagem_id);
+  addId(jogadorStats?.personagemId);
+  addId(jogadorSessao?.personagemId || jogadorSessao?.personagem_id);
+
+  for (const id of candidateIds) {
+    if (completos[id]) {
+      return { personagemId: id, personagem: completos[id], jogadorSessao };
+    }
+  }
+
+  const nomeAlvo = personagem?.nome || jogadorStats?.personagemNome || jogadorSessao?.personagemNome || null;
+  if (nomeAlvo) {
+    for (const [id, completo] of Object.entries(completos)) {
+      if (completo?.nome?.toLowerCase?.() === String(nomeAlvo).toLowerCase()) {
+        return { personagemId: id, personagem: completo, jogadorSessao };
+      }
+    }
+  }
+
+  return {
+    personagemId: Array.from(candidateIds)[0] || null,
+    personagem: null,
+    jogadorSessao
+  };
+}
+
+function _getPersonagemHabilidades(personagemCompleto = {}) {
+  const merged = [
+    ...(Array.isArray(personagemCompleto.habilidadesClasse) ? personagemCompleto.habilidadesClasse : []),
+    ...(Array.isArray(personagemCompleto.magias) ? personagemCompleto.magias : []),
+    ...(Array.isArray(personagemCompleto.habilidades) ? personagemCompleto.habilidades : []),
+    ...(Array.isArray(personagemCompleto.vantagens) ? personagemCompleto.vantagens : [])
+  ];
+
+  const seen = new Set();
+  return merged.filter((habilidade) => {
+    const key = String(habilidade?.id ?? habilidade?.nome ?? Math.random());
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function _buildResultadoHabilidadeInvalida({ personagem, userId, habilidadeId, habilidadeNome, erro, jogadorStats, habilidadeBase = null }) {
+  return {
+    valido: false,
+    personagem: personagem?.nome || 'Aventureiro',
+    userId,
+    habilidadeNome: habilidadeBase?.nome || habilidadeNome || 'Habilidade',
+    habilidadeId: habilidadeBase?.id ?? habilidadeId ?? null,
+    erro,
+    custoMana: habilidadeBase?.custo_mana ?? 0,
+    cooldown: habilidadeBase?.cooldown_turnos ?? 0,
+    manaRestante: jogadorStats?.mana_atual ?? 0,
+    manaMax: jogadorStats?.mana_max ?? 0
+  };
+}
+
+function _getDefesaTemporaria(combate, jogadorStats) {
+  const defesa = jogadorStats?.defesaTemporaria;
+  if (!defesa) return null;
+  if ((defesa.ativaAteRodada || 0) < (combate?.rodadaCombate || 0)) {
+    delete jogadorStats.defesaTemporaria;
+    return null;
+  }
+  return defesa;
+}
+
 /**
  * Parseia notacao de dado (ex: "2d6+3") e retorna resultado
  * @param {string} notacao - Ex: "1d6", "2d8+3", "1d20-1"
@@ -75,6 +168,7 @@ export function calcularMana(personagem) {
  */
 export function processarHabilidade(habilidade, jogadorState) {
   const { mana_atual = 0, cooldowns = {} } = jogadorState;
+  const cooldownKey = String(habilidade.id ?? habilidade.nome ?? 'habilidade');
 
   // Verificar mana
   if (habilidade.custo_mana > 0 && mana_atual < habilidade.custo_mana) {
@@ -82,7 +176,7 @@ export function processarHabilidade(habilidade, jogadorState) {
   }
 
   // Verificar cooldown
-  const cdRestante = cooldowns[habilidade.id] || 0;
+  const cdRestante = cooldowns[cooldownKey] || 0;
   if (cdRestante > 0) {
     return { valido: false, erro: `Habilidade em cooldown (${cdRestante} turnos)` };
   }
@@ -96,6 +190,7 @@ export function processarHabilidade(habilidade, jogadorState) {
   return {
     valido: true,
     dano,
+    cooldownKey,
     custoMana: habilidade.custo_mana,
     cooldown: habilidade.cooldown_turnos,
     efeito: habilidade.efeito || null
@@ -460,6 +555,7 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
 
   const resultados = {
     intentTipo,
+    acaoConsumida: false,
     statusEfeitos: [],
     ataqueJogador: null,
     defesa: null,
@@ -470,6 +566,7 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     combateFinalizado: false,
     resultadoCombate: null,
     statusRemovidos: [],
+    statusEfeitosMonstro: [],
     jogadorDerrotado: false,
   };
 
@@ -483,7 +580,8 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
   }
 
   // --- 1. STATUS EFFECTS DO JOGADOR ---
-  const pcStatus = sessao.personagensCompletos?.[String(personagem.id)] || {};
+  const snapshotAtual = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
+  const pcStatus = snapshotAtual.personagem || {};
   const statusEfeitos = pcStatus.status_efeitos || [];
   jogadorStats.status_efeitos = statusEfeitos;
   let impedidoDeAgir = false;
@@ -509,13 +607,19 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
   if (!impedidoDeAgir) {
     if (intentTipo === 'atacar') {
       resultados.ataqueJogador = _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent);
+      resultados.acaoConsumida = !!resultados.ataqueJogador;
     } else if (intentTipo === 'defender') {
       resultados.defesa = _resolverDefesa(combate, userId, personagem, jogadorStats);
+      resultados.acaoConsumida = !!resultados.defesa;
     } else if (intentTipo === 'fugir') {
       resultados.fuga = _resolverFuga(combate, userId, sessao, personagem);
+      resultados.acaoConsumida = !!resultados.fuga;
     } else if (intentTipo === 'usar_habilidade') {
       resultados.habilidade = _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, combatIntent);
+      resultados.acaoConsumida = resultados.habilidade?.valido !== false;
     }
+  } else {
+    resultados.acaoConsumida = true;
   }
 
   // Fuga bem-sucedida finaliza combate imediatamente
@@ -525,8 +629,11 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     return resultados;
   }
 
+  if (!resultados.acaoConsumida) {
+    return resultados;
+  }
+
   // --- 3. CONTRA-ATAQUE DOS MONSTROS ---
-  const bonusEsquivaDefesa = (intentTipo === 'defender') ? 25 : 0;
   const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
   for (const monstro of monstrosVivos) {
     const jogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo');
@@ -540,7 +647,8 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     let danoMonstro = 0;
     let mEsquivou = false;
     if (mAcertou) {
-      const esquivaExtra = (String(alvoId) === String(userId) && bonusEsquivaDefesa > 0) ? bonusEsquivaDefesa : 0;
+      const defesaTemporaria = _getDefesaTemporaria(combate, alvoStats);
+      const esquivaExtra = defesaTemporaria?.esquivaBonus || 0;
       const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
       if (!mCritico && verificarEsquiva(esquivaEfetiva)) {
         mEsquivou = true;
@@ -548,8 +656,8 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
         const danoNotacao = habilidade?.dano || monstro.dano_base;
         const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
         danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico, alvoStats.armadura || 0);
-        if (String(alvoId) === String(userId) && intentTipo === 'defender') {
-          danoMonstro = Math.max(1, Math.floor(danoMonstro * 0.5));
+        if (defesaTemporaria?.reducaoDano) {
+          danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
         }
         alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
         if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
@@ -583,12 +691,53 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
     resultados.rodadaAvancou = true;
 
     for (const [jId, jStats] of Object.entries(combate.jogadores)) {
-      const pCompleto = Object.values(sessao.personagensCompletos || {}).find(p => p.nome === jStats.personagemNome);
+      const defesaTemporaria = _getDefesaTemporaria(combate, jStats);
+      if (!defesaTemporaria) {
+        delete jStats.defesaTemporaria;
+      }
+
+      const snapshot = _resolvePersonagemSnapshot(sessao, jId, { nome: jStats.personagemNome, personagemId: jStats.personagemId }, jStats);
+      const pCompleto = snapshot.personagem;
       if (!pCompleto?.status_efeitos) continue;
       pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
         e.duracao = (e.duracao || 1) - 1;
         if (e.duracao <= 0) {
           resultados.statusRemovidos.push({ personagem: jStats.personagemNome, userId: jId, status: e.nome, personagemId: jStats.personagemId });
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Tick de efeitos nos monstros (DOT + decremento)
+    for (const monstro of combate.monstros) {
+      if (monstro.status !== 'vivo' || !monstro.status_efeitos?.length) continue;
+
+      monstro.status_efeitos = monstro.status_efeitos.filter(e => {
+        // DOT: aplicar dano se o efeito causa dano por turno
+        const dadoDano = STATUS_DANO_POR_TURNO[e.nome];
+        if (dadoDano) {
+          const dano = rolarDado(dadoDano);
+          monstro.hp_atual = Math.max(0, monstro.hp_atual - dano);
+          if (monstro.hp_atual <= 0) monstro.status = 'derrotado';
+          resultados.statusEfeitosMonstro.push({
+            tipo: 'dano', efeito: e.nome, dano,
+            monstroId: monstro.id, monstroNome: monstro.nome,
+            hpRestante: monstro.hp_atual, hpMax: monstro.hp_max,
+            derrotado: monstro.status === 'derrotado',
+          });
+          combate.log.push({
+            tipo: 'status_dano', alvo: { id: monstro.id, nome: monstro.nome },
+            status: e.nome, dano, timestamp: Date.now()
+          });
+        }
+
+        e.duracao = (e.duracao || 1) - 1;
+        if (e.duracao <= 0) {
+          resultados.statusEfeitosMonstro.push({
+            tipo: 'removido', efeito: e.nome,
+            monstroId: monstro.id, monstroNome: monstro.nome,
+          });
           return false;
         }
         return true;
@@ -613,7 +762,8 @@ function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, stat
     || combate.monstros.find(m => m.status === 'vivo');
   if (!monstroAlvo) return null;
 
-  const pc = sessao.personagensCompletos?.[String(personagem.id)] || {};
+  const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
+  const pc = snapshot.personagem || {};
   const attrs = pc.atributos || {};
   const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
   const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
@@ -662,11 +812,16 @@ function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, stat
  * Resolve defesa: bonus de esquiva +25%, reducao de dano 50% nos contra-ataques
  */
 function _resolverDefesa(combate, userId, personagem, jogadorStats) {
+  jogadorStats.defesaTemporaria = {
+    esquivaBonus: 25,
+    reducaoDano: 0.5,
+    ativaAteRodada: combate.rodadaCombate
+  };
   const result = {
     personagem: personagem.nome,
     userId,
-    esquivaBonus: 25,
-    reducaoDano: 0.5,
+    esquivaBonus: jogadorStats.defesaTemporaria.esquivaBonus,
+    reducaoDano: jogadorStats.defesaTemporaria.reducaoDano,
     hpAtual: jogadorStats.hp_atual,
     hpMax: jogadorStats.hp_max,
   };
@@ -678,7 +833,8 @@ function _resolverDefesa(combate, userId, personagem, jogadorStats) {
  * Resolve tentativa de fuga: teste de AGI vs DC baseada nos monstros vivos
  */
 function _resolverFuga(combate, userId, sessao, personagem) {
-  const pc = sessao.personagensCompletos?.[String(personagem.id)] || {};
+  const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem);
+  const pc = snapshot.personagem || {};
   const attrs = pc.atributos || {};
   const modAgi = Math.floor(((attrs.agilidade || 10) - 10) / 2);
 
@@ -708,18 +864,32 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
   const habilidadeId = combatIntent?.habilidadeId;
   const habilidadeNome = combatIntent?.habilidadeNome;
 
-  const pc = sessao.personagensCompletos?.[String(personagem.id)] || {};
-  const habilidades = pc.habilidades || pc.vantagens || [];
-  const hab = habilidades.find(h => h.id === habilidadeId) || habilidades.find(h => h.nome === habilidadeNome);
+  const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
+  const pc = snapshot.personagem || {};
+  const habilidades = _getPersonagemHabilidades(pc);
+  const hab = habilidades.find(h => String(h.id) === String(habilidadeId)) || habilidades.find(h => h.nome === habilidadeNome);
 
   if (!hab) {
     log.warn({ userId, habilidadeId, habilidadeNome }, 'Habilidade nao encontrada no personagem');
-    return { valido: false, erro: 'Habilidade nao encontrada' };
+    const result = _buildResultadoHabilidadeInvalida({
+      personagem, userId, habilidadeId, habilidadeNome,
+      erro: 'Habilidade nao encontrada',
+      jogadorStats
+    });
+    combate.log.push({ tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
+    return result;
   }
 
   const validacao = processarHabilidade(hab, jogadorStats);
   if (!validacao.valido) {
-    return validacao;
+    const result = _buildResultadoHabilidadeInvalida({
+      personagem, userId, habilidadeId, habilidadeNome,
+      erro: validacao.erro,
+      jogadorStats,
+      habilidadeBase: hab
+    });
+    combate.log.push({ tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
+    return result;
   }
 
   if (validacao.custoMana > 0) {
@@ -727,7 +897,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
   }
   if (validacao.cooldown > 0) {
     if (!jogadorStats.cooldowns) jogadorStats.cooldowns = {};
-    jogadorStats.cooldowns[hab.id] = validacao.cooldown;
+    jogadorStats.cooldowns[validacao.cooldownKey || String(hab.id ?? hab.nome)] = validacao.cooldown;
   }
 
   const alvoId = combatIntent?.alvoId;

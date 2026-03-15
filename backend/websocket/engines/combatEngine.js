@@ -335,6 +335,19 @@ export default class CombatEngine {
         }
       }
 
+      // --- EMITIR EFEITOS EM MONSTROS (DOT + remoção) ---
+      for (const se of (r.statusEfeitosMonstro || [])) {
+        if (se.tipo === 'dano') {
+          sm.sendToRoom(roomId, COMBAT_EVENTS.COMBATE_RESULTADO_ACAO, {
+            tipo: 'status_dano',
+            alvo: { id: se.monstroId, nome: se.monstroNome },
+            status: se.efeito, dano: se.dano,
+            hpRestante: se.hpRestante, hpMax: se.hpMax,
+            timestamp: Date.now()
+          });
+        }
+      }
+
       if (r.rodadaAvancou) {
         log.info({ roomId, rodadaCombate: combate.rodadaCombate }, 'Combate avancou rodada');
       }

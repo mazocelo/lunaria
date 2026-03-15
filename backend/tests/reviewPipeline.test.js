@@ -117,12 +117,13 @@ describe('shouldTriggerReview', () => {
 
     const result = shouldTriggerReview({
       combateAtivo: true,
+      resultadosCombatePreResolvido: { ataqueJogador: { acertou: true, dano: 5 } },
       respostaIA: { narracao: 'Uma narrativa longa o suficiente para passar o filtro de 100 chars. Mais texto aqui para garantir que o teste funcione corretamente com margem.' },
       sessao: {},
       claimFlags: [],
     });
 
-    // Quando enabled (default), combateAtivo aciona arbitro
+    // Quando enabled (default), combate com mecanica aciona arbitro
     if (process.env.REVIEWER_ENABLED !== 'false') {
       expect(result.needsReview).toBe(true);
       expect(result.reviewers).toContain('arbitro');

@@ -28,10 +28,10 @@ export function shouldTriggerReview(ctx) {
   const reviewers = new Set();
   const reasons = [];
 
-  // Combate ativo → apenas arbitro (continuista so se tiver roteiro, tratado abaixo)
-  if (combateAtivo) {
+  // Combate ativo com resultado mecanico → arbitro (nao revisar rodadas puramente narrativas)
+  if (combateAtivo && ctx.resultadosCombatePreResolvido) {
     reviewers.add('arbitro');
-    reasons.push('combate_ativo');
+    reasons.push('combate_com_mecanica');
   }
 
   // Início de combate → ambos

@@ -594,6 +594,22 @@ class PersonagemController {
         }
       }
 
+      // Validar historias antes da transacao (erro 400 limpo)
+      if (historias !== undefined && Array.isArray(historias) && historias.length > 0) {
+        const historiasExistentes = await db.prisma.historias.findMany({
+          where: { id: { in: historias.map(h => parseInt(h)) } },
+          select: { id: true },
+        });
+        const idsExistentes = new Set(historiasExistentes.map(h => h.id));
+        const idsInvalidos = historias.filter(h => !idsExistentes.has(parseInt(h)));
+        if (idsInvalidos.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: `Historias nao encontradas: ${idsInvalidos.join(', ')}`,
+          });
+        }
+      }
+
       // Atualizar dados + vinculos em transacao unica (atomico)
       await db.prisma.$transaction(async (tx) => {
         // Atualizar campos escalares do personagem
@@ -630,20 +646,10 @@ class PersonagemController {
           }
         }
 
-        // Historias — validar existencia antes de deletar vinculos
+        // Historias (ja validadas antes da transacao)
         if (historias !== undefined) {
+          await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
           if (Array.isArray(historias) && historias.length > 0) {
-            const historiasExistentes = await tx.historias.findMany({
-              where: { id: { in: historias.map(h => parseInt(h)) } },
-              select: { id: true },
-            });
-            const idsExistentes = new Set(historiasExistentes.map(h => h.id));
-            const idsInvalidos = historias.filter(h => !idsExistentes.has(parseInt(h)));
-            if (idsInvalidos.length > 0) {
-              throw new Error(`Historias nao encontradas: ${idsInvalidos.join(', ')}`);
-            }
-
-            await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
             await tx.historias_personagens.createMany({
               data: historias.map(historia_id => ({
                 personagem_id: parseInt(id),
@@ -651,9 +657,6 @@ class PersonagemController {
                 papel: 'jogador',
               })),
             });
-          } else {
-            // Array vazio ou null → desvincular todas (intencional)
-            await tx.historias_personagens.deleteMany({ where: { personagem_id: parseInt(id) } });
           }
         }
       });
@@ -671,9 +674,6 @@ class PersonagemController {
       });
 
     } catch (error) {
-      if (error.message?.startsWith('Historias nao encontradas')) {
-        return res.status(400).json({ success: false, error: error.message });
-      }
       log.error({ err: error }, 'Erro ao atualizar personagem');
       res.status(500).json({
         error: 'Erro interno do servidor'

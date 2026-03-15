@@ -8,6 +8,14 @@ import logger from '../../../helpers/logger.js';
 const log = logger.child({ module: 'FinalizacaoInicialAgent' });
 
 const TIMEOUT_MS = 15_000;
+const ATTR_LABELS = {
+  forca: 'forca',
+  destreza: 'destreza',
+  constituicao: 'resistencia',
+  inteligencia: 'astucia',
+  agilidade: 'agilidade',
+  carisma: 'presenca',
+};
 
 // ── parseIAJson (padrao do codebase — 3 estrategias) ──
 
@@ -65,11 +73,59 @@ function sanitizarCombo(combo, catalogoEditavel) {
 
 // ── Fallback local ──
 
+function contarPalavras(texto) {
+  return String(texto || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+function resumirBackground(background) {
+  const limpo = String(background || '').replace(/\s+/g, ' ').trim();
+  if (!limpo) return '';
+
+  const primeiraFrase = limpo.split(/[.!?]/)[0]?.trim() || limpo;
+  return primeiraFrase.length > 120 ? `${primeiraFrase.slice(0, 117).trim()}...` : primeiraFrase;
+}
+
+function getAtributosFortes(atributos) {
+  return Object.entries(atributos || {})
+    .map(([key, value]) => [key, Number(value) || 0])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([key]) => ATTR_LABELS[key] || key);
+}
+
+function buildFalaFallback(snapshot) {
+  const nome = snapshot.nome || 'um aventureiro';
+  const identidade = [snapshot.classe, snapshot.raca].filter(Boolean).join(' ');
+  const backgroundResumo = resumirBackground(snapshot.background);
+  const atributosFortes = getAtributosFortes(snapshot.atributos);
+
+  const intro = `Sou ${nome}, ${identidade || 'forjado para a estrada'}.`;
+  const passado = backgroundResumo
+    ? `Trago comigo a marca de ${backgroundResumo}.`
+    : 'Meu caminho foi moldado por luta, perda e escolhas que me obrigaram a endurecer cedo demais.';
+  const postura = atributosFortes.length > 0
+    ? `Agora sigo em frente confiando em ${atributosFortes.join(' e ')}, pronto para cobrar meu lugar neste mundo.`
+    : 'Agora sigo em frente com a certeza de que cada passo precisa valer mais do que o ultimo.';
+
+  return `${intro} ${passado} ${postura}`;
+}
+
+function normalizarFalaPersonagem(texto, snapshot) {
+  const fala = String(texto || '').trim();
+  if (!fala) return buildFalaFallback(snapshot);
+
+  if (contarPalavras(fala) < 16 || fala.length < 90) {
+    return buildFalaFallback(snapshot);
+  }
+
+  return fala;
+}
+
 function buildFallback(snapshot, catalogoEditavel, meta) {
-  const { nome, classe, raca } = snapshot;
+  const { classe, raca } = snapshot;
 
   return {
-    fala_personagem: `Sou ${nome}, ${classe} ${raca}. Pronto para a aventura.`,
+    fala_personagem: buildFalaFallback(snapshot),
     leitura_ficha: `${classe} ${raca} Nv${meta.nivel}`,
     combo: {
       equipamentos: catalogoEditavel.equipamentos.slice(0, 3).map(e => ({
@@ -154,7 +210,7 @@ export default async function criarFinalizacaoInicialAgent() {
           log.warn({ personagem: snapshot.nome }, 'Combo esvaziado apos sanitizacao, usando fallback');
           const fb = buildFallback(snapshot, catalogo_editavel, meta);
           return {
-            fala_personagem: String(parsed.fala_personagem || fb.fala_personagem),
+            fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || fb.fala_personagem, snapshot),
             leitura_ficha: String(parsed.leitura_ficha || fb.leitura_ficha),
             combo: fb.combo,
           };
@@ -166,7 +222,7 @@ export default async function criarFinalizacaoInicialAgent() {
         );
 
         return {
-          fala_personagem: String(parsed.fala_personagem || ''),
+          fala_personagem: normalizarFalaPersonagem(parsed.fala_personagem || '', snapshot),
           leitura_ficha: String(parsed.leitura_ficha || ''),
           combo: comboSanitizado,
         };

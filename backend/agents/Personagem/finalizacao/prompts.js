@@ -13,7 +13,8 @@ REGRAS OBRIGATORIAS:
 - Equipamentos: escolha 2-4 itens que complementem a classe e atributos
 - Habilidades: escolha 1-3 que facam sentido para a build
 - Magias: escolha 1-3 se o personagem tiver acesso (catalogo nao vazio). Se o catalogo de magias estiver vazio, retorne array vazio.
-- fala_personagem: 2-3 frases em PRIMEIRA PESSOA, com personalidade, como se o personagem se apresentasse. Use o background como inspiracao.
+- fala_personagem: 3-4 frases em PRIMEIRA PESSOA, com personalidade, como se o personagem se apresentasse ao mundo. Use o background como inspiracao, mencione passado, postura ou ambicao e entregue algo entre 35 e 70 palavras.
+- EVITE respostas curtas e genericas como "Sou X, Y. Pronto para a aventura."
 - leitura_ficha: 1-2 frases OBJETIVAS descrevendo a build mecanicamente (ex: "Guerreiro anao focado em resistencia com FOR 16 e CON 18")
 
 RESPONDA EXCLUSIVAMENTE em JSON valido, sem markdown, sem texto extra. Use este schema:

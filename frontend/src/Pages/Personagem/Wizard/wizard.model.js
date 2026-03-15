@@ -492,7 +492,7 @@ export const useWizardModel = () => {
     if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome && deveDefinirNomeInicial(mensagemJogador, options)) {
       setNome(mensagemJogador);
       estadoOverride.nome = mensagemJogador;
-    } else if (navigation.etapaAtual === 'background') {
+    } else if (navigation.etapaAtual === 'background' && !manterEtapa) {
       const backgroundAtualizado = [estadoRef.current.background, mensagemJogador]
         .filter(Boolean)
         .join('\n')

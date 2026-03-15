@@ -104,7 +104,12 @@ Cada atributo deve ter no minimo 5 e no maximo 16 (antes de bonus de raca/classe
 - Sugira distribuicao de 60 pontos baseada na classe/raca/background (min 5, max 16 por atributo)
 - Preencha atributos_sugeridos com valores que somem 60
 - Explique brevemente por que cada valor faz sentido
-- etapa_proxima: "resumo"
+- etapa_proxima: "equipamentos"
+
+### equipamentos
+- Etapa gerenciada pelo frontend. Nao gere sugestoes nem cards.
+- Se o jogador enviar mensagem nesta etapa, responda brevemente e mantenha etapa_proxima: "equipamentos"
+- etapa_proxima: "equipamentos"
 
 ### resumo
 - Narre um resumo cinematografico do personagem completo

@@ -452,7 +452,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     );
 
     // Etapas que NÃO usam cards de sugestão (usam UI própria: distribuidor, botão salvar)
-    const ETAPAS_SEM_CARDS = ['atributos', 'resumo', 'refinamento'];
+    const ETAPAS_SEM_CARDS = ['atributos', 'equipamentos', 'resumo', 'refinamento'];
 
     // Se destino não usa cards, limpar sugestões
     let sugestoesFinal = ETAPAS_SEM_CARDS.includes(etapaDestino) ? [] : sugestoes;

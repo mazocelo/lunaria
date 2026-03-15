@@ -13,6 +13,7 @@ export const STAGE_ORDER = [
   'desvantagens',
   'vantagens',
   'atributos',
+  'equipamentos',
   'resumo',
   'refinamento',
 ];
@@ -75,13 +76,22 @@ export const STAGE_POLICY = {
     manualProgression: true,
   },
   atributos: {
+    allowedNext: ['equipamentos'],
+    defaultNext: 'equipamentos',
+    suggestionType: null,
+    supportsRefresh: false,
+    supportsSkip: false,
+    supportsAttributes: true,
+    manualProgression: true,
+  },
+  equipamentos: {
     allowedNext: ['resumo'],
     defaultNext: 'resumo',
     suggestionType: null,
     supportsRefresh: false,
     supportsSkip: false,
     supportsAttributes: true,
-    manualProgression: true,
+    manualProgression: false,
   },
   resumo: {
     allowedNext: ['refinamento'],

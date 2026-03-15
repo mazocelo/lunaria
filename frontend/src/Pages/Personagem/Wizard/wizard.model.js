@@ -613,13 +613,42 @@ export const useWizardModel = () => {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const [equipamentosAplicados, setEquipamentosAplicados] = useState(false);
+  const [aplicandoEquipamentos, setAplicandoEquipamentos] = useState(false);
+
+  const aplicarEquipamentos = useCallback(async () => {
+    const equipamentos = finalizacaoData?.combo?.equipamentos || [];
+    const personagemId = finalizacaoData?.personagem_id;
+    if (!personagemId || equipamentos.length === 0) return;
+
+    setAplicandoEquipamentos(true);
+    const results = await Promise.allSettled(
+      equipamentos.map(eq => personagemService.adicionarEquipamento(personagemId, eq.id))
+    );
+    const falhas = results.filter(r => r.status === 'rejected');
+    if (falhas.length > 0) {
+      console.warn(`Equipamentos: ${falhas.length}/${results.length} falharam`, falhas.map(f => f.reason?.message));
+    }
+    setEquipamentosAplicados(true);
+    setAplicandoEquipamentos(false);
+  }, [finalizacaoData]);
+
   const fecharFinalizacao = useCallback(() => {
     setFinalizacaoData(null);
+    setEquipamentosAplicados(false);
+    setAplicandoEquipamentos(false);
     navigate('/personagens');
   }, [navigate]);
 
   const atualizarFinalizacaoData = useCallback((updater) => {
-    setFinalizacaoData(prev => typeof updater === 'function' ? updater(prev) : updater);
+    setFinalizacaoData(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      // Resetar flag se equipamentos do combo mudaram apos aplicacao
+      if (prev?.combo?.equipamentos !== next?.combo?.equipamentos) {
+        setEquipamentosAplicados(false);
+      }
+      return next;
+    });
   }, []);
 
   return {
@@ -708,6 +737,9 @@ export const useWizardModel = () => {
     finalizacaoLoading,
     fecharFinalizacao,
     atualizarFinalizacaoData,
+    aplicarEquipamentos,
+    aplicandoEquipamentos,
+    equipamentosAplicados,
 
     // Theme
     isLight,

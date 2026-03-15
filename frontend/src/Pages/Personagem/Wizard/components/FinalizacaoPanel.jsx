@@ -10,7 +10,7 @@ import { X, ChevronDown, Shield, Swords, Wand2, Scroll, Feather, BookOpen, Gem }
  *   onUpdate: (updatedData | updaterFn) => void
  *   isLight: boolean
  */
-const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight }) => {
+const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight, onAplicarEquipamentos, aplicandoEquipamentos, equipamentosAplicados }) => {
   if (!data) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
@@ -140,7 +140,7 @@ const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight }) => {
             <>
               <ComboSection
                 titulo="Equipamentos Sugeridos"
-                subtitulo="Sugestoes — equipe na ficha do personagem"
+                subtitulo={equipamentosAplicados ? 'Equipamentos adicionados ao inventario' : 'Clique em "Equipar sugeridos" para adicionar ao inventario'}
                 icon={<Shield size={14} />}
                 items={combo?.equipamentos || []}
                 catalogo={catalogo_editavel?.equipamentos || []}
@@ -149,6 +149,9 @@ const FinalizacaoPanel = ({ data, onFechar, onUpdate, isLight }) => {
                 onRemove={handleRemoveItem}
                 onSwap={handleSwapItem}
                 isLight={isLight}
+                onAplicar={onAplicarEquipamentos}
+                aplicando={aplicandoEquipamentos}
+                aplicado={equipamentosAplicados}
               />
               <ComboSection
                 titulo="Habilidades Sugeridas"
@@ -193,7 +196,7 @@ const MetaBadge = ({ label, value, isLight }) => (
   </div>
 );
 
-const ComboSection = ({ titulo, subtitulo, icon, items, catalogo, secao, accentClass, onRemove, onSwap, isLight }) => {
+const ComboSection = ({ titulo, subtitulo, icon, items, catalogo, secao, accentClass, onRemove, onSwap, isLight, onAplicar, aplicando, aplicado }) => {
   if (!items.length && !catalogo.length) return null;
 
   return (
@@ -234,6 +237,22 @@ const ComboSection = ({ titulo, subtitulo, icon, items, catalogo, secao, accentC
             />
           ))}
         </div>
+      )}
+
+      {onAplicar && (
+        <button
+          onClick={onAplicar}
+          disabled={aplicando || aplicado || items.length === 0}
+          className={`mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-modern font-semibold transition-all cursor-pointer ${
+            aplicado
+              ? 'bg-emerald-500/15 text-emerald-400 cursor-default'
+              : aplicando
+                ? 'wa-accent opacity-60 cursor-wait'
+                : 'wa-accent hover:-translate-y-0.5'
+          }`}
+        >
+          {aplicado ? 'Equipados' : aplicando ? 'Equipando...' : 'Equipar sugeridos'}
+        </button>
       )}
     </section>
   );

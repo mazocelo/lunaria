@@ -82,6 +82,9 @@ const WizardView = (props) => {
     finalizacaoLoading,
     fecharFinalizacao,
     atualizarFinalizacaoData,
+    aplicarEquipamentos,
+    aplicandoEquipamentos,
+    equipamentosAplicados,
     isLight,
     navigate,
   } = props;
@@ -148,6 +151,9 @@ const WizardView = (props) => {
             onFechar={fecharFinalizacao}
             onUpdate={atualizarFinalizacaoData}
             isLight={isLight}
+            onAplicarEquipamentos={aplicarEquipamentos}
+            aplicandoEquipamentos={aplicandoEquipamentos}
+            equipamentosAplicados={equipamentosAplicados}
           />
         </div>
       </div>

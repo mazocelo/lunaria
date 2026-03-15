@@ -1,7 +1,29 @@
 import db from '../../Model/index.js';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'vantagensController' });
+
+function parseElementoLista(raw) {
+  if (raw === undefined) return { value: undefined };
+  if (raw === null || raw === '') return { value: [] };
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const invalidos = arr.filter(e => e && !normalizarElemento(e));
+  if (invalidos.length > 0) {
+    return { error: `Elementos invalidos: ${invalidos.join(', ')}. Validos: ${ELEMENTOS.join(', ')}` };
+  }
+  return { value: arr.map(e => normalizarElemento(e)).filter(Boolean) };
+}
+
+function parseElementoFiltro(raw) {
+  if (raw === undefined) return { value: undefined };
+  if (raw === null || raw === '') return { value: null };
+  const normalizado = normalizarElemento(raw);
+  if (!normalizado) {
+    return { error: `Elemento invalido: ${raw}. Validos: ${ELEMENTOS.join(', ')}` };
+  }
+  return { value: normalizado };
+}
 
 /**
  * Controller para gerenciar operações de vantagens
@@ -51,6 +73,11 @@ class VantagemController {
         });
       }
       
+      const elementos = parseElementoLista(elemento);
+      if (elementos.error) {
+        return res.status(400).json({ error: elementos.error });
+      }
+
       // Criar vantagem no banco
       const novaVantagem = await db.Vantagem.create({
         nome,
@@ -62,7 +89,7 @@ class VantagemController {
         dano_base,
         efeito: efeito || {},
         usar: usar || null,
-        elemento: Array.isArray(elemento) ? elemento : [elemento],
+        elemento: elementos.value ?? [],
         nivel: nivel || 1,
         requisitos: requisitos || {}
       });
@@ -92,6 +119,10 @@ class VantagemController {
   async listarVantagens(req, res, next) {
     try {
       const { tipo, elemento, nivel, usar, search, limit, offset } = req.query;
+      const elementoFiltro = parseElementoFiltro(elemento);
+      if (elementoFiltro.error) {
+        return res.status(400).json({ error: elementoFiltro.error });
+      }
 
       if (limit !== undefined) {
         const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
@@ -99,7 +130,7 @@ class VantagemController {
         const result = await db.Vantagem.findPaginated({
           limit: parsedLimit,
           offset: parsedOffset,
-          tipo, elemento,
+          tipo, elemento: elementoFiltro.value,
           nivel: nivel ? parseInt(nivel) : undefined,
           usar: usar ? parseInt(usar) : undefined,
           search
@@ -176,13 +207,16 @@ class VantagemController {
    */
   async listarPorElemento(req, res, next) {
     try {
-      const { elemento } = req.params;
+      const elementoFiltro = parseElementoFiltro(req.params.elemento);
+      if (elementoFiltro.error) {
+        return res.status(400).json({ error: elementoFiltro.error });
+      }
       
-      log.info({ elemento: elemento }, 'Listando vantagens do elemento');
+      log.info({ elemento: elementoFiltro.value }, 'Listando vantagens do elemento');
       
-      const vantagens = await db.Vantagem.findByElemento(elemento);
+      const vantagens = await db.Vantagem.findByElemento(elementoFiltro.value);
       
-      log.info({ vantagens_length: vantagens.length, elemento: elemento }, 'vantagens encontradas do elemento');
+      log.info({ vantagens_length: vantagens.length, elemento: elementoFiltro.value }, 'vantagens encontradas do elemento');
       
       res.status(200).json({
         success: true,
@@ -349,7 +383,13 @@ class VantagemController {
       if (dano_base !== undefined) dados.dano_base = dano_base;
       if (efeito !== undefined) dados.efeito = efeito;
       if (usar !== undefined) dados.usar = parseInt(usar);
-      if (elemento !== undefined) dados.elemento = elemento;
+      if (elemento !== undefined) {
+        const elementos = parseElementoLista(elemento);
+        if (elementos.error) {
+          return res.status(400).json({ success: false, error: elementos.error });
+        }
+        dados.elemento = elementos.value;
+      }
       if (nivel !== undefined) dados.nivel = parseInt(nivel);
       if (requisitos !== undefined) dados.requisitos = requisitos;
 

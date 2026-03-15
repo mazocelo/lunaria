@@ -1,6 +1,17 @@
 import db from '../../Model/index.js';
+import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'habilidadesController' });
+
+function parseElementoScalar(raw) {
+  if (raw === undefined) return { value: undefined };
+  if (raw === null || raw === '') return { value: null };
+  const normalizado = normalizarElemento(raw);
+  if (!normalizado) {
+    return { error: `Elemento invalido: ${raw}. Validos: ${ELEMENTOS.join(', ')}` };
+  }
+  return { value: normalizado };
+}
 
 function buildData(body) {
   return {
@@ -56,7 +67,12 @@ class HabilidadesController {
       if (!req.body.nome || !req.body.descricao) {
         return res.status(400).json({ error: 'Nome e descricao sao obrigatorios' });
       }
-      const habilidade = await db.Habilidade.create({ data: buildData(req.body) });
+      const elemento = parseElementoScalar(req.body.elemento);
+      if (elemento.error) return res.status(400).json({ error: elemento.error });
+
+      const habilidade = await db.Habilidade.create({
+        data: buildData({ ...req.body, elemento: elemento.value })
+      });
       return res.status(201).json(habilidade);
     } catch (error) {
       log.error({ err: error }, 'Erro ao criar habilidade');
@@ -68,10 +84,12 @@ class HabilidadesController {
   async listarHabilidades(req, res) {
     try {
       const { limit = 50, offset = 0, tipo, elemento, classe_id, nivel, busca, categoria, escola_magia, raca_id, alcance } = req.query;
+      const elementoFiltro = parseElementoScalar(elemento);
+      if (elementoFiltro.error) return res.status(400).json({ error: elementoFiltro.error });
 
       const result = await db.Habilidade.findPaginated({
         limit: parseInt(limit), offset: parseInt(offset),
-        tipo, elemento, classe_id, nivel, busca, categoria, escola_magia, raca_id, alcance
+        tipo, elemento: elementoFiltro.value, classe_id, nivel, busca, categoria, escola_magia, raca_id, alcance
       });
 
       return res.json({
@@ -100,7 +118,13 @@ class HabilidadesController {
 
   async atualizarHabilidade(req, res) {
     try {
-      const habilidade = await db.Habilidade.update(parseInt(req.params.id), buildUpdateData(req.body));
+      const elemento = parseElementoScalar(req.body.elemento);
+      if (elemento.error) return res.status(400).json({ error: elemento.error });
+
+      const habilidade = await db.Habilidade.update(
+        parseInt(req.params.id),
+        buildUpdateData({ ...req.body, elemento: elemento.value })
+      );
       return res.json(habilidade);
     } catch (error) {
       log.error({ err: error }, 'Erro ao atualizar habilidade');

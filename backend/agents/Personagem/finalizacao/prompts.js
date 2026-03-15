@@ -20,15 +20,15 @@ REGRAS OBRIGATORIAS:
 
 RESPONDA EXCLUSIVAMENTE em JSON valido, sem markdown, sem texto extra. Use este schema:
 
-{
+{{
   "fala_personagem": "string",
   "leitura_ficha": "string",
-  "combo": {
-    "equipamentos": [{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }],
-    "habilidades": [{ "id": 2, "nome": "nome_da_habilidade", "motivo": "justificativa curta" }],
-    "magias": [{ "id": 3, "nome": "nome_da_magia", "motivo": "justificativa curta" }]
-  }
-}`;
+  "combo": {{
+    "equipamentos": [{{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }}],
+    "habilidades": [{{ "id": 2, "nome": "nome_da_habilidade", "motivo": "justificativa curta" }}],
+    "magias": [{{ "id": 3, "nome": "nome_da_magia", "motivo": "justificativa curta" }}]
+  }}
+}}`;
 
 const REGEN_SYSTEM_PROMPT = `Voce e um especialista em RPG responsavel por regenerar uma leitura final de build.
 
@@ -48,15 +48,15 @@ REGRAS OBRIGATORIAS:
 
 RESPONDA EXCLUSIVAMENTE em JSON valido, sem markdown, sem texto extra. Use este schema:
 
-{
+{{
   "fala_personagem": "string",
   "leitura_ficha": "string",
-  "combo": {
-    "equipamentos": [{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }],
-    "habilidades": [{ "id": 2, "nome": "nome_da_habilidade", "motivo": "justificativa curta" }],
-    "magias": [{ "id": 3, "nome": "nome_da_magia", "motivo": "justificativa curta" }]
-  }
-}`;
+  "combo": {{
+    "equipamentos": [{{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }}],
+    "habilidades": [{{ "id": 2, "nome": "nome_da_habilidade", "motivo": "justificativa curta" }}],
+    "magias": [{{ "id": 3, "nome": "nome_da_magia", "motivo": "justificativa curta" }}]
+  }}
+}}`;
 
 const REGEN_EQUIP_SYSTEM = `Voce e um especialista em RPG. Sua tarefa e gerar um combo DIFERENTE de equipamentos para o personagem.
 
@@ -69,7 +69,7 @@ REGRAS OBRIGATORIAS:
 - Tente explorar combinacoes diferentes: outros tipos de arma, armadura ou acessorio.
 
 RESPONDA EXCLUSIVAMENTE em JSON valido, sem markdown, sem texto extra:
-{ "equipamentos": [{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }] }`;
+{{ "equipamentos": [{{ "id": 1, "nome": "nome_do_item", "motivo": "justificativa curta" }}] }}`;
 
 export function createFinalizacaoPrompt() {
   return ChatPromptTemplate.fromMessages([

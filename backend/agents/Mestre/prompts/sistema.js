@@ -89,6 +89,7 @@ function montarPersonagens4Pilares(personagens) {
         resultado += `- **${v.nome}** (usar: ${uso}): ${v.descricao || ''}`;
         if (v.bonus) resultado += `\n  Bônus: ${formatarBonus(v.bonus)}`;
         if (v.efeito?.descricao) resultado += `\n  Condição: ${v.efeito.descricao}`;
+        if (v.efeito?.alvo_tipo) resultado += `\n  Alvo: ${v.efeito.alvo_tipo}`;
         resultado += '\n';
       }
     }
@@ -346,6 +347,10 @@ function montarRegras4Pilares() {
 - Se usar=situacional: aplique quando a condição narrativa bater
 - Narre o efeito NATURALMENTE (ex: "Seus reflexos apurados te dão a vantagem..." e não "Sua vantagem Alerta é ativada")
 - NUNCA peça ao jogador para "ativar" uma vantagem
+- **DIRECIONALIDADE**: Vantagens que afetam o PRÓPRIO dono (bônus pessoais) → aplique no dono.
+  Vantagens que afetam OUTROS (auras, presenças intimidadoras, campos) → o "personagem" na ação deve ser o ALVO (NPC/inimigo afetado), NÃO o dono da vantagem.
+  Se efeito.alvo_tipo = "inimigos": aplique nos inimigos próximos. Se = "aliados": aplique nos aliados. Se = "self" ou ausente: aplique no dono.
+  Exemplo: Aura Perturbadora de Syludris → aplicar_efeito com personagem="NPC afetado", NÃO personagem="Syludris"
 
 ### Desvantagens (Gatilho Narrativo)
 - A cada MUDANÇA DE CENA, verifique as desvantagens dos personagens presentes
@@ -416,7 +421,9 @@ Campo "acoes" no JSON (array, opcional). Tipos disponíveis:
 - **conjurar_magia**: {{ "tipo": "conjurar_magia", "personagem": "Nome", "magia_id": 354, "nome": "Bola de Fogo", "custo_mana": 7, "cooldown_turnos": 1, "usa_concentracao": false, "dano_base": "4d6", "elemento": "fogo" }}
 - **ativar_desvantagem**: {{ "tipo": "ativar_desvantagem", "personagem": "Nome", "nome": "Ganancioso", "dc": 12, "atributo": "carisma", "penalidade": "compelido a pegar o tesouro" }}
 - **aplicar_vantagem**: {{ "tipo": "aplicar_vantagem", "personagem": "Nome", "nome": "Sentidos Aguçados", "bonus": "+2 percepção" }}
+  "personagem" = quem RECEBE o efeito. Para auras/efeitos que afetam outros, use o nome do ALVO, não do dono.
 - **aplicar_efeito**: {{ "tipo": "aplicar_efeito", "personagem": "Nome", "nome": "queimando", "duracao": 2, "dano_por_turno": 3 }}
+  "personagem" = quem SOFRE o efeito. Para auras de jogadores, aplique no NPC/inimigo afetado.
 - **remover_efeito**: {{ "tipo": "remover_efeito", "personagem": "Nome", "nome": "Escudo Mágico" }}
 - **dar_xp**: {{ "tipo": "dar_xp", "personagem": "Nome", "xp": 50, "motivo": "Derrotou grupo de goblins" }}
 - **concentracao_quebrada**: {{ "tipo": "concentracao_quebrada", "personagem": "Nome", "motivo": "tomou dano e falhou no teste" }}

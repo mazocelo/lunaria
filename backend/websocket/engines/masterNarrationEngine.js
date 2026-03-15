@@ -381,6 +381,9 @@ export default class MasterNarrationEngine {
         acaoComContexto += '\n' + avisos.join('\n');
       }
 
+      // @event mestre_pensando → room (broadcast) | indica que o Mestre começou a processar
+      sm.sendToRoom(roomId, 'mestre_pensando', { ativo: true, timestamp: Date.now() });
+
       // 5. Narrar ação do jogador (COM FALLBACK SE IA FALHAR)
       sm.log('INFO', 'MENSAGEM_PARA_MESTRE_INVOKING_IA', socket.id, userId, {
         jogador: username,
@@ -499,6 +502,9 @@ export default class MasterNarrationEngine {
         message: resposta.narracao
       });
 
+      // @event mestre_pensando → room (broadcast) | indica que o Mestre terminou de processar
+      sm.sendToRoom(roomId, 'mestre_pensando', { ativo: false, timestamp: Date.now() });
+
       // Se há teste pendente de combate, emitir solicitação de teste (antes do dispatcher)
       if (resultadosCombatePreResolvido?._emitirTesteAposNarracao) {
         const { testeCriado, rt } = resultadosCombatePreResolvido._emitirTesteAposNarracao;
@@ -540,6 +546,8 @@ export default class MasterNarrationEngine {
         stack: error.stack,
         processingTimeMs: processingTime
       });
+      // @event mestre_pensando → room (broadcast) | garantir OFF em caso de erro
+      if (data?.roomId) sm.sendToRoom(String(data.roomId), 'mestre_pensando', { ativo: false, timestamp: Date.now() });
       // @event error → socket (sender) | erro inesperado no processamento de mensagem
       socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
     }

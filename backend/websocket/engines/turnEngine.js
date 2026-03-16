@@ -57,17 +57,21 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
 
   const parts = [
     '[INSTRUCAO DE ABERTURA - TRANSICAO PERSONALIZADA]',
-    `Este e o primeiro turno de ${personagemNome} na sessao. Antes da cena principal, faca apenas uma costura breve explicando como ${personagemNome} (${raca}, ${classe}, nivel ${nivel}) chegou ao ponto atual da historia.`,
+    `Este e o primeiro turno de ${personagemNome} na sessao. Antes da cena principal, faca uma abertura que encaixe ${personagemNome} (${raca}, ${classe}, nivel ${nivel}) na situacao atual da historia.`,
     '',
     bgSnippet,
     '',
     'Diretrizes:',
-    '- Use no maximo 1 paragrafo curto; excepcionalmente 2 frases curtas se precisar.',
-    '- Use apenas 1 detalhe marcante de background, classe ou raca para personalizar a chegada.',
-    '- Nao repita o prologo nem reexplique a atmosfera geral ja estabelecida.',
+    '- Esta primeira mensagem pode ser mais desenvolvida do que as demais, mas continue objetiva e jogavel.',
+    '- Faca 3 coisas: encaixe o personagem, fixe a situacao concreta e proponha o proximo movimento.',
+    '- Explique brevemente como o personagem chegou ao ponto atual e por que esta ali agora.',
+    '- Use 1 ou 2 detalhes marcantes de background, classe ou raca apenas se ajudarem a cena.',
+    '- Nao repita o prologo nem reexplique a atmosfera geral ja estabelecida; use no maximo 1 eco do prologo se for util.',
+    '- Mostre quem ou o que recebe o personagem na cena: NPC, pista, ordem, interrupcao, perigo ou descoberta.',
     '- Nao crie uma historia paralela nem reapresente do zero NPC ja presente.',
     '- Depois da costura, caia imediatamente na cena atual descrita abaixo.',
-    '- A ultima frase precisa abrir um beat jogavel concreto: uma fala, pergunta, ordem, interrupcao, revelacao ou evento imediato.',
+    '- Se esta abertura NAO encerrar o turno, termine com uma proposta jogavel imediata: pergunta, ordem, convocacao, pista, escolha ou evento concreto.',
+    '- Se esta abertura encerrar o turno, conclua a batida sem forcar uma nova proposta.',
     '[FIM DA INSTRUCAO DE ABERTURA]',
     ''
   ];
@@ -83,7 +87,7 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
   }
   parts.push('Depois da costura de chegada, caia exatamente na cena atual descrita acima. Nao reinicie a historia, nao recapitule o prologo e nao reapresente do zero um NPC que ja esteja em cena.');
   parts.push('');
-  parts.push(`Agora e a vez de ${personagemNome} agir na cena atual. Entregue a narracao ja aterrissada em uma situacao concreta e acionavel.`);
+  parts.push(`Agora e a vez de ${personagemNome} agir na cena atual. Entregue a narracao ja aterrissada em uma situacao concreta, com proposta clara para a proxima acao do jogador.`);
   return parts.join('\n');
 }
 

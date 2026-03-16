@@ -495,6 +495,12 @@ export class MestreAgent {
       promptBlocks.push(input);
       const inputCompleto = promptBlocks.join('\n\n');
 
+      if (contadorMensagens === 0) {
+        input += `\nGUIA DA PRIMEIRA MENSAGEM DO TURNO:\n- Esta primeira mensagem pode ser mais desenvolvida do que as demais.\n- Ela deve encaixar o personagem na situacao concreta, e nao apenas descreve-lo caminhando ou sentindo o ambiente.\n- Explique brevemente por que ele esta ali agora e o que o recebe na cena.\n- Fixe a situacao atual com clareza: onde ele esta, quem ou o que esta diante dele, e qual tensao imediata esta em jogo.\n- Termine com uma proposta jogavel clara: pergunta, ordem, convite, pista, escolha, interrupcao ou evento concreto.\n- Nao termine apenas em atmosfera, reflexao interna ou expectativa vaga.\n`;
+      } else {
+        input += `\nGUIA DAS MENSAGENS SEGUINTES:\n- Responda primeiro a acao do jogador.\n- Avance a situacao atual sem reabrir a cena.\n- Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.\n- Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.\n- Evite repetir descricao de ambiente ou identidade do personagem.\n- Cada resposta deve empurrar a historia para o proximo beat.\n`;
+      }
+
       let historico = converterHistoricoParaLangChain(chatHistory);
 
       // ✅ Se houver resumo, adicionar como contexto do sistema
@@ -879,7 +885,13 @@ Mensagem do Jogador:
       }
 
       // Converter histórico
-      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- A ultima frase deve abrir um beat jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n`;
+      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- Se a resposta NAO encerrar o turno, a ultima frase deve propor um proximo movimento jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n- Se a resposta encerrar o turno, conclua a batida de forma limpa e nao force um novo gancho.\n`;
+
+      if (contadorMensagens === 0) {
+        input += `\nGUIA DA PRIMEIRA MENSAGEM DO TURNO:\n- Esta primeira mensagem pode ser mais desenvolvida do que as demais.\n- Ela deve encaixar o personagem na situacao concreta, e nao apenas descreve-lo caminhando ou sentindo o ambiente.\n- Explique brevemente por que ele esta ali agora e o que o recebe na cena.\n- Fixe a situacao atual com clareza: onde ele esta, quem ou o que esta diante dele, e qual tensao imediata esta em jogo.\n- Se esta primeira mensagem NAO encerrar o turno, termine com uma proposta jogavel clara: pergunta, ordem, convite, pista, escolha, interrupcao ou evento concreto.\n- Se esta primeira mensagem encerrar o turno, feche a batida sem criar uma nova proposta.\n- Nao termine apenas em atmosfera, reflexao interna ou expectativa vaga.\n`;
+      } else {
+        input += `\nGUIA DAS MENSAGENS SEGUINTES:\n- Responda primeiro a acao do jogador.\n- Avance a situacao atual sem reabrir a cena.\n- Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.\n- Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.\n- Evite repetir descricao de ambiente ou identidade do personagem.\n- Se a resposta NAO encerrar o turno, ela deve empurrar a historia para o proximo beat e propor o proximo movimento.\n- Se a resposta encerrar o turno, conclua a acao e nao force um novo gancho.\n`;
+      }
 
       let historico = converterHistoricoParaLangChain(chatHistory);
 

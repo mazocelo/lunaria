@@ -62,7 +62,7 @@ const EtapaJogoRPGView = (props) => {
     // Derived
     infoPersonagem, jogadoresExibir,
     dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre, mestrePensando,
-    mestreTimedOut, handleRetryMestre,
+    mestreTimedOut, mestreStale, activeMestreRequestStatus, handleMestreBannerAction,
     jaRolouDadoInicial, cooldownLocal,
     entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
     turnoIniciado, turnoStatus, ordemDefinida,
@@ -156,7 +156,13 @@ const EtapaJogoRPGView = (props) => {
               estiloImagem={historia?.estilo_imagem}
             />
 
-            <MestrePensandoBanner ativo={mestrePensando || aguardandoMestre} timedOut={mestreTimedOut} onRetry={handleRetryMestre} />
+            <MestrePensandoBanner
+              ativo={mestrePensando || aguardandoMestre}
+              timedOut={mestreTimedOut}
+              stale={mestreStale}
+              status={activeMestreRequestStatus}
+              onAction={handleMestreBannerAction}
+            />
 
             <ActionDock
               mensagemAtual={mensagemAtual}

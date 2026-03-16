@@ -199,36 +199,40 @@ export const useEtapaJogoRPGModel = ({
   const aguardandoRespostaMestre = useSocketStore(s => s.aguardandoRespostaMestre);
   const mestrePensando = useSocketStore(s => s.mestrePensando);
   const mestreTimedOut = useSocketStore(s => s.mestreTimedOut);
+  const mestreStale = useSocketStore(s => s.mestreStale);
+  const activeMestreRequestId = useSocketStore(s => s.activeMestreRequestId);
+  const activeMestreRequestStatus = useSocketStore(s => s.activeMestreRequestStatus);
   const aguardandoMestre = turnoStatus === 'resolving_roll' || aguardandoRespostaMestre;
   const jaRolouDadoInicial = !!resultadosDados[user?.id];
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
 
-  const handleRetryMestre = useCallback(() => {
-    useSocketStore.setState({ mestreTimedOut: false, aguardandoRespostaMestre: true, mestrePensando: true });
-    const loadingMsg = {
-      id: `loading_${Date.now()}`,
-      userId: 'sistema',
-      username: 'Sistema',
-      message: 'O Mestre esta pensando...',
-      tipo: 'loading',
-      timestamp: Date.now()
-    };
-    onAdicionarMensagemRef.current?.(loadingMsg);
+  const handleMestreBannerAction = useCallback(() => {
+    if (!activeMestreRequestId) return;
     const roomId = `historia_${historia?.id}`;
-    socketStoreSafeEmit('mensagem_para_mestre', {
-      roomId,
-      userId: String(user?.id),
-      username: user?.nome || user?.name,
-      mensagem: 'Continue a narracao de onde parou.',
-      personagem: {
-        id: personagemSelecionado?.id ?? personagemSelecionado?.personagemId ?? null,
-        personagemId: personagemSelecionado?.personagemId ?? personagemSelecionado?.id ?? null,
-        nome: personagemSelecionado?.nome || 'Aventureiro',
-        classe: personagemSelecionado?.classe_nome || '',
-        nivel: personagemSelecionado?.nivel || 1
-      }
-    });
-  }, [historia?.id, user, personagemSelecionado, socketStoreSafeEmit]);
+
+    if (mestreStale) {
+      socketStoreSafeEmit('consultar_mestre_request', {
+        roomId,
+        userId: String(user?.id),
+        requestId: activeMestreRequestId
+      });
+      return;
+    }
+
+    if (['failed', 'timed_out'].includes(activeMestreRequestStatus)) {
+      useSocketStore.setState({
+        mestreTimedOut: false,
+        mestreStale: false,
+        aguardandoRespostaMestre: true,
+        mestrePensando: true
+      });
+      socketStoreSafeEmit('regenerar_resposta_mestre', {
+        roomId,
+        userId: String(user?.id),
+        requestId: activeMestreRequestId
+      });
+    }
+  }, [activeMestreRequestId, activeMestreRequestStatus, historia?.id, mestreStale, socketStoreSafeEmit, user?.id]);
 
   const jogadoresExibir = participantesFormatados.length > 0
     ? participantesFormatados
@@ -284,7 +288,7 @@ export const useEtapaJogoRPGModel = ({
     // Derived
     infoPersonagem, participantesFormatados, jogadoresExibir,
     dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre, mestrePensando,
-    mestreTimedOut, handleRetryMestre,
+    mestreTimedOut, mestreStale, activeMestreRequestStatus, handleMestreBannerAction,
     jaRolouDadoInicial, cooldownLocal,
     entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
 

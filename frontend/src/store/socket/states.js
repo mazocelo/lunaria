@@ -69,6 +69,12 @@ export const socketInitialStates = {
   aguardandoRespostaMestre: false, // true entre envio de mensagem e resposta do Mestre
   mestrePensando: false, // true quando backend emite mestre_pensando { ativo: true }
   mestreTimedOut: false, // true quando mestre nao respondeu dentro do timeout
+  mestreStale: false,
+  activeMestreRequestId: null,
+  activeMestreRequestStatus: null,
+  activeMestreRequestAttempt: 0,
+  activeMestrePlayerMessageId: null,
+  activeMestreUpdatedAt: null,
   testePendente: null,
   testesPendentes: [],
   cooldownRoleplay: 0,

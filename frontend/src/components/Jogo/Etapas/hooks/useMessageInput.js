@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { showGameNotification } from '../../NotificationManager';
-import { useSocketStore, useGameStore } from '../../../../store/index.js';
+import { useSocketStore } from '../../../../store/index.js';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS } from '../../../../constants/game';
 
 export const useMessageInput = (historia, personagemSelecionado, user, onAdicionarMensagem, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal) => {
@@ -8,8 +8,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
   const combatIntentRef = useRef(null);
   const enviandoRef = useRef(false);
 
-  const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
-  const gameStoreSetMensagens = useGameStore(s => s.setMensagens);
+  const socketStoreSafeEmit = useSocketStore((s) => s.safeEmit);
 
   const buildPersonagemPayload = useCallback(() => ({
     id: personagemSelecionado?.id ?? personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? null,
@@ -51,47 +50,42 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
           setCooldownLocal(ROLEPLAY_COOLDOWN_SECONDS);
           setMensagemAtual('');
         }
-      } else {
-        const loadingMsg = {
-          id: `loading_${Date.now()}`,
-          userId: 'sistema',
-          username: 'Sistema',
-          message: '⏳ O Mestre esta pensando...',
-          tipo: 'loading',
-          timestamp: Date.now()
-        };
-        onAdicionarMensagem(loadingMsg);
-
-        const payload = {
-          roomId,
-          userId: String(user?.id),
-          username: user?.nome || user?.name,
-          mensagem: mensagemAtual,
-          personagem: buildPersonagemPayload()
-        };
-        if (combatIntentRef.current) {
-          payload.combatIntent = combatIntentRef.current;
-        }
-        const enviado = socketStoreSafeEmit('mensagem_para_mestre', payload);
-
-        if (enviado) {
-          setMensagemAtual('');
-          combatIntentRef.current = null;
-          // Sinalizar que estamos aguardando resposta do Mestre
-          useSocketStore.setState({ aguardandoRespostaMestre: true });
-          // Safety timeout: limpar flag após 60s caso resposta nunca chegue
-          setTimeout(() => {
-            if (useSocketStore.getState().aguardandoRespostaMestre) {
-              useSocketStore.setState({ aguardandoRespostaMestre: false });
-            }
-          }, 60000);
-        } else {
-          showGameNotification('Falha ao enviar mensagem. Verifique sua conexao.', 'error');
-          const msgs = useGameStore.getState().mensagens || [];
-          const semLoading = msgs.filter(m => m.tipo !== 'loading');
-          if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
-        }
+        return;
       }
+
+      const requestId = crypto.randomUUID();
+      const payload = {
+        roomId,
+        userId: String(user?.id),
+        username: user?.nome || user?.name,
+        mensagem: mensagemAtual,
+        personagem: buildPersonagemPayload(),
+        requestId
+      };
+
+      if (combatIntentRef.current) {
+        payload.combatIntent = combatIntentRef.current;
+      }
+
+      const enviado = socketStoreSafeEmit('mensagem_para_mestre', payload);
+      if (!enviado) {
+        showGameNotification('Falha ao enviar mensagem. Verifique sua conexao.', 'error');
+        return;
+      }
+
+      setMensagemAtual('');
+      combatIntentRef.current = null;
+      useSocketStore.setState({
+        aguardandoRespostaMestre: true,
+        mestrePensando: true,
+        mestreTimedOut: false,
+        mestreStale: false,
+        activeMestreRequestId: requestId,
+        activeMestreRequestStatus: 'accepted',
+        activeMestreRequestAttempt: 1,
+        activeMestrePlayerMessageId: null,
+        activeMestreUpdatedAt: new Date().toISOString()
+      });
     } catch (error) {
       // silenced
     } finally {
@@ -99,7 +93,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         enviandoRef.current = false;
       }, TIMEOUTS.FLAG_RESET_DELAY);
     }
-  }, [mensagemAtual, historia?.id, user, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, onAdicionarMensagem, gameStoreSetMensagens, buildPersonagemPayload]);
+  }, [mensagemAtual, historia?.id, user, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, buildPersonagemPayload]);
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -112,6 +106,6 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
     mensagemAtual,
     handleMensagemChange,
     handleKeyPress,
-    handleEnviarMensagem,
+    handleEnviarMensagem
   };
 };

@@ -31,6 +31,7 @@ export const createListenerActions = (set, get) => ({
       'turno_estado_atualizado', 'teste_rejeitado',
       'erro_cooldown_roleplay', 'erro_turno', 'server_message', 'force_disconnect',
       'mestre_solicita_dados', 'mensagem_roleplay',
+      'mestre_request_status', 'mestre_stream_start', 'mestre_stream_chunk', 'mestre_stream_end', 'mestre_stream_error',
       'sessao_resetada', 'sessao_encerrada',
       'erro_sistema', 'erro_mensagem', 'erro_dado_inicial', 'rate_limit_exceeded',
       'combate_iniciado', 'combate_resultado_acao', 'combate_monstro_derrotado',
@@ -241,6 +242,16 @@ export const createListenerActions = (set, get) => ({
           updateData.combateRodada = estadoJogo.combate.rodadaCombate || 1;
           updateData.combateLog = (estadoJogo.combate.log || []).slice(-COMBAT.LOG_MAX_ENTRIES);
         }
+        const mestreRequestAtiva = estadoJogo.mestreRequestAtiva || null;
+        updateData.activeMestreRequestId = mestreRequestAtiva?.requestId || null;
+        updateData.activeMestreRequestStatus = mestreRequestAtiva?.status || null;
+        updateData.activeMestreRequestAttempt = mestreRequestAtiva?.attempt || 0;
+        updateData.activeMestrePlayerMessageId = mestreRequestAtiva?.playerMessageId || null;
+        updateData.activeMestreUpdatedAt = mestreRequestAtiva?.updatedAt || null;
+        updateData.mestrePensando = !!mestreRequestAtiva && !['completed', 'failed', 'timed_out', 'superseded'].includes(mestreRequestAtiva.status);
+        updateData.aguardandoRespostaMestre = updateData.mestrePensando;
+        updateData.mestreTimedOut = mestreRequestAtiva?.status === 'timed_out';
+        updateData.mestreStale = false;
 
         set(updateData);
       }

@@ -51,10 +51,25 @@ export const createSendActions = (set, get) => ({
     const turnoData = {
       roomId,
       userId: currentUser.id,
-      username: currentUser.username || currentUser.nome
+      username: currentUser.username || currentUser.nome,
+      requestId: crypto.randomUUID()
     };
 
     log('Iniciando turno', { userId: currentUser.id });
-    return safeEmit('iniciar_turno', turnoData);
+    const enviado = safeEmit('iniciar_turno', turnoData);
+    if (enviado) {
+      set({
+        aguardandoRespostaMestre: true,
+        mestrePensando: true,
+        mestreTimedOut: false,
+        mestreStale: false,
+        activeMestreRequestId: turnoData.requestId,
+        activeMestreRequestStatus: 'accepted',
+        activeMestreRequestAttempt: 1,
+        activeMestrePlayerMessageId: null,
+        activeMestreUpdatedAt: new Date().toISOString()
+      });
+    }
+    return enviado;
   },
 });

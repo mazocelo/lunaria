@@ -481,6 +481,7 @@ export class MestreAgent {
       const inputCompleto = contextoLateralRoleplay
         ? `${contextoLateralRoleplay}\n\n${input}`
         : input;
+
       let historico = converterHistoricoParaLangChain(chatHistory);
 
       // ✅ Se houver resumo, adicionar como contexto do sistema
@@ -835,6 +836,8 @@ Mensagem do Jogador:
       }
 
       // Converter histórico
+      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n`;
+
       let historico = converterHistoricoParaLangChain(chatHistory);
 
       // ✅ Se houver resumo, adicionar como contexto do sistema

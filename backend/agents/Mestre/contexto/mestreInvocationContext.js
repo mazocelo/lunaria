@@ -8,6 +8,8 @@ export function getResumoMaisRecente(sessao = {}) {
 const ROLEPLAY_MAX_ITEMS = 2;
 const ROLEPLAY_MAX_CHARS = 140;
 const ROLEPLAY_SPAM_WINDOW_MS = 30000;
+const CONTINUIDADE_MAX_ITEMS = 3;
+const CONTINUIDADE_MAX_CHARS = 180;
 
 function getFormalChatHistory(sessao = {}) {
   const mensagens = Array.isArray(sessao.mensagens) ? sessao.mensagens : [];
@@ -16,6 +18,31 @@ function getFormalChatHistory(sessao = {}) {
     // Manter apenas tipos que a IA consegue usar como contexto narrativo
     return tipo === 'jogador' || tipo === 'mestre' || tipo === 'resultado_teste';
   });
+}
+
+function getMessageText(mensagem = {}) {
+  return String(
+    mensagem?.message
+    || mensagem?.mensagem
+    || mensagem?.content
+    || mensagem?.payload?.message
+    || ''
+  )
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function getMessageSpeaker(mensagem = {}) {
+  return String(
+    mensagem?.personagem
+    || mensagem?.username
+    || mensagem?.autor
+    || mensagem?.author
+    || mensagem?.origem
+    || 'Alguem'
+  )
+    .trim()
+    .slice(0, 60);
 }
 
 function getCurrentSceneRound(sessao = {}) {
@@ -102,11 +129,34 @@ export function buildRoleplayLateralContext(sessao = {}, options = {}) {
   return `[CONTEXTO LATERAL DE ROLEPLAY - use apenas para colorir a cena, sem transformar em fato canonico]\n${linhas.join('\n')}`;
 }
 
+export function buildImmediateSceneLock(sessao = {}) {
+  const historico = getFormalChatHistory(sessao).slice(-CONTINUIDADE_MAX_ITEMS);
+  const linhas = historico
+    .map((mensagem) => {
+      const texto = getMessageText(mensagem).slice(0, CONTINUIDADE_MAX_CHARS);
+      if (!texto) return null;
+      return `- ${getMessageSpeaker(mensagem)}: ${texto}`;
+    })
+    .filter(Boolean);
+
+  if (!linhas.length) return '';
+
+  return [
+    '[LOCK DE CONTINUIDADE - siga a cena atual]',
+    '- Continue exatamente da mesma cena e da ultima fala relevante.',
+    '- Nao reabra a ambientacao nem reapresente NPCs ja presentes, salvo mudanca explicita.',
+    '- Se a ultima batida foi dialogo direto, responda a ela antes de introduzir novo evento.',
+    'Ultimas batidas canonicas:',
+    ...linhas
+  ].join('\n');
+}
+
 function buildBaseContext(sessao = {}) {
   return {
     chatHistory: getFormalChatHistory(sessao),
     resumo: getResumoMaisRecente(sessao),
-    contextoLateralRoleplay: buildRoleplayLateralContext(sessao)
+    contextoLateralRoleplay: buildRoleplayLateralContext(sessao),
+    lockContinuidade: buildImmediateSceneLock(sessao)
   };
 }
 

@@ -53,7 +53,7 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
   if (invocationContext.contextoLateralRoleplay) {
     parts.push(invocationContext.contextoLateralRoleplay, '');
   }
-  parts.push(`Iniciar turno de ${personagemNome}`);
+  parts.push(`Agora e a vez de ${personagemNome} agir na cena atual.`);
   return parts.join('\n');
 }
 
@@ -175,9 +175,15 @@ export default class TurnEngine {
             log.info({ roomId, openingMode, personagem: jogadorDaVez.personagemNome },
               'Abertura com transicao personalizada');
           } else {
-            mensagemTurno = invocationContext.contextoLateralRoleplay
-              ? `${invocationContext.contextoLateralRoleplay}\n\nIniciar turno de ${jogadorDaVez.personagemNome || username}`
-              : `Iniciar turno de ${jogadorDaVez.personagemNome || username}`;
+            const blocosTurno = [];
+            if (invocationContext.lockContinuidade) {
+              blocosTurno.push(invocationContext.lockContinuidade);
+            }
+            if (invocationContext.contextoLateralRoleplay) {
+              blocosTurno.push(invocationContext.contextoLateralRoleplay);
+            }
+            blocosTurno.push(`Continue a cena atual. Agora e a vez de ${jogadorDaVez.personagemNome || username} agir.`);
+            mensagemTurno = blocosTurno.join('\n\n');
           }
 
           const usouTransicao = !jaFezAbertura && openingMode === 'transicao_personalizada';

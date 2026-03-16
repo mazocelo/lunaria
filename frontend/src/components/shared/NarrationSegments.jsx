@@ -124,18 +124,18 @@ const NarrationSegments = ({
         return (
           <div
             key={segmentItem.itemKey}
-            className={`${compact ? 'p-2' : 'p-3'} rounded-lg border ${
+            className={`${compact ? 'p-2' : 'p-3'} rounded-lg ${
               useGameVariant
                 ? isNpc
-                  ? 'border-l-[3px] border-l-amber-400 border-amber-500/30 bg-gradient-to-r from-amber-900/40 to-amber-950/20'
-                  : 'game-glass-subtle border-white/[0.08]'
+                  ? 'border-l-[3px] border-l-emerald-400 border border-emerald-500/40 bg-emerald-900/50 shadow-[inset_0_0_12px_rgba(16,185,129,0.08)]'
+                  : 'game-glass-subtle border border-white/[0.08]'
                 : isNpc
                   ? isLight
-                    ? 'border-l-[3px] border-l-amber-400 border-amber-300 bg-amber-50/80'
-                    : 'border-l-[3px] border-l-amber-400 border-amber-500/30 bg-gradient-to-r from-amber-900/40 to-amber-950/20'
+                    ? 'border-l-[3px] border-l-emerald-500 border border-emerald-300 bg-emerald-50'
+                    : 'border-l-[3px] border-l-emerald-400 border border-emerald-500/40 bg-emerald-900/50'
                   : isLight
-                    ? 'border-slate-200 bg-white/80'
-                    : 'border-white/10 bg-black/10'
+                    ? 'border border-slate-200 bg-white/80'
+                    : 'border border-white/10 bg-black/10'
             }`}
           >
             <div className="flex items-start gap-2">
@@ -143,7 +143,7 @@ const NarrationSegments = ({
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`font-semibold ${compact ? 'text-[11px]' : 'text-xs uppercase tracking-wide'} ${
                     isNpc
-                      ? isLight ? 'text-amber-700' : 'text-amber-300'
+                      ? isLight ? 'text-emerald-700' : 'text-emerald-300'
                       : isLight ? 'text-slate-500' : 'text-purple-300'
                   }`}>
                     {segmentItem.speakerLabel}
@@ -151,7 +151,7 @@ const NarrationSegments = ({
                 </div>
                 <MarkdownRenderer className={`${compact ? 'text-sm' : 'text-base'} ${
                   isNpc
-                    ? isLight ? 'text-amber-900' : 'text-amber-100'
+                    ? isLight ? 'text-emerald-900' : 'text-emerald-50'
                     : isLight ? 'text-slate-700' : 'text-white'
                 } leading-relaxed`}>
                   {segmentItem.text}

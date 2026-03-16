@@ -111,6 +111,18 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     globalNarrationOwnerId
     && String(tts.generatingMessageId || '') === String(globalNarrationOwnerId)
   );
+  const isGlobalNarrationLoading = Boolean(
+    globalNarrationOwnerId
+    && String(tts.loadingTargetId || '') === String(globalNarrationOwnerId)
+    && tts.loadingSequenceKey === globalNarrationSequenceKey
+    && !tts.canTogglePlayback
+    && !isGlobalNarrationActive
+  );
+  const isGlobalNarrationWaiting = Boolean(
+    isGlobalNarrationActive
+    && !tts.isPlaying
+    && !tts.canTogglePlayback
+  );
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -175,12 +187,12 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
             <button
               type="button"
               onClick={handlePlayAllNarration}
-              disabled={tts.isLoading || isGlobalNarrationGenerating}
+              disabled={isGlobalNarrationLoading || isGlobalNarrationGenerating || isGlobalNarrationWaiting}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full game-glass-subtle border border-purple-400/30 text-purple-100 text-sm hover:border-purple-400/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               title="Gerar e reproduzir toda a narracao do Mestre"
               aria-label="Gerar e reproduzir toda a narracao do Mestre"
             >
-              {isGlobalNarrationGenerating || tts.isLoading ? (
+              {isGlobalNarrationGenerating || isGlobalNarrationLoading || isGlobalNarrationWaiting ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : isGlobalNarrationActive && tts.isPlaying ? (
                 <Pause size={16} />
@@ -188,8 +200,10 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                 <Volume2 size={16} />
               )}
               <span>
-                {isGlobalNarrationGenerating || tts.isLoading
+                {isGlobalNarrationGenerating || isGlobalNarrationLoading
                   ? 'Gerando narracao'
+                  : isGlobalNarrationWaiting
+                    ? 'Preparando proximo trecho'
                   : isGlobalNarrationActive && tts.isPlaying
                     ? 'Pausar narracao'
                     : isGlobalNarrationActive
@@ -268,11 +282,12 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
               <button
                 type="button"
                 onClick={tts.togglePause}
-                className="p-1.5 rounded-lg hover:bg-white/10 text-purple-200 hover:text-white transition-all flex-shrink-0"
+                disabled={!tts.canTogglePlayback}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-purple-200 hover:text-white transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label={tts.isPlaying ? 'Pausar narracao atual' : 'Continuar narracao atual'}
                 title={tts.isPlaying ? 'Pausar narracao atual' : 'Continuar narracao atual'}
               >
-                {tts.isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                {!tts.canTogglePlayback ? <Loader2 size={16} className="animate-spin" /> : tts.isPlaying ? <Pause size={16} /> : <Play size={16} />}
               </button>
               <button
                 type="button"
@@ -307,7 +322,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                 value={Math.min(tts.currentTime || 0, tts.duration || 0)}
                 onChange={(e) => tts.seekTo(e.target.value)}
                 className="tts-slider w-32 flex-shrink-0"
-                disabled={!tts.duration}
+                disabled={!tts.duration || !tts.canTogglePlayback}
                 aria-label="Avancar ou voltar narracao"
               />
               <span className="text-[11px] font-mono text-purple-300/60 flex-shrink-0">{formatTime(tts.duration)}</span>

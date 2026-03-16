@@ -54,9 +54,23 @@ const MensagemItem = ({ msg, tts }) => {
   if (tipo === 'mestre') {
     const voiceId = msg.voice_id;
     const voiceProvider = msg.voice_provider;
+    const sequenceKey = `historico:${msg.id}`;
     const segmentItems = buildNarrationSequenceItems(msg.segmentos || [], msg.id, voiceId, voiceProvider);
     const hasSegmentedNarration = segmentItems.length > 0;
-    const isThisPlaying = String(tts?.currentMessageId) === String(msg.id);
+    const isThisSequenceActive = tts?.currentSequenceKey === sequenceKey;
+    const isThisPlaying = Boolean(isThisSequenceActive ? tts?.isPlaying : String(tts?.currentMessageId) === String(msg.id) && tts?.isPlaying);
+    const isThisLoading = Boolean(
+      String(tts?.loadingTargetId || '') === String(msg.id)
+      && (!hasSegmentedNarration || tts?.loadingSequenceKey === sequenceKey)
+      && !tts?.canTogglePlayback
+      && !isThisSequenceActive
+    );
+    const isWaitingNextAudio = Boolean(
+      hasSegmentedNarration
+      && isThisSequenceActive
+      && !tts?.isPlaying
+      && !tts?.canTogglePlayback
+    );
     const hasCachedAudio = !!tts?.hasAudioForMessage?.(msg.id);
     const hasPersistedAudio = Boolean(
       msg.audio_cache_key
@@ -77,7 +91,7 @@ const MensagemItem = ({ msg, tts }) => {
       if (hasSegmentedNarration) {
         await tts.playSequence(segmentItems, msg.id, {
           allowGenerate: hasPersistedAudio,
-          sequenceKey: `historico:${msg.id}`
+          sequenceKey
         });
         return;
       }
@@ -99,7 +113,7 @@ const MensagemItem = ({ msg, tts }) => {
         await tts.playSequence(segmentItems, msg.id, {
           allowGenerate: true,
           forceRegenerate: hasAnyAudio,
-          sequenceKey: `historico:${msg.id}`
+          sequenceKey
         });
         return;
       }
@@ -128,19 +142,19 @@ const MensagemItem = ({ msg, tts }) => {
             <>
               <button
                 onClick={handlePlayAudio}
-                disabled={!hasAnyAudio || (tts.isLoading && isThisPlaying)}
+                disabled={!hasAnyAudio || isThisLoading || isWaitingNextAudio}
                 className={`p-0.5 rounded transition-all ${
                   !hasAnyAudio
                     ? 'text-purple-400/40 cursor-not-allowed'
                     : 'text-purple-400 hover:text-purple-200'
                 }`}
-                title={isThisPlaying && tts.isPlaying ? 'Pausar' : hasSegmentedNarration ? 'Ouvir cena' : 'Ouvir'}
+                title={isThisLoading || isWaitingNextAudio ? 'Preparando audio' : isThisPlaying ? 'Pausar' : hasSegmentedNarration ? 'Ouvir cena' : 'Ouvir'}
               >
-                {tts.isLoading && isThisPlaying ? <Loader2 size={12} className="animate-spin" /> : isThisPlaying && tts.isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
+                {isThisLoading || isWaitingNextAudio ? <Loader2 size={12} className="animate-spin" /> : isThisPlaying ? <Square size={12} /> : <Volume2 size={12} />}
               </button>
               <button
                 onClick={handleGenerateAudio}
-                disabled={tts.isLoading && isThisPlaying}
+                disabled={isThisLoading}
                 className="p-0.5 rounded transition-all text-purple-400 hover:text-purple-200"
                 title={hasAnyAudio ? 'Gerar novamente (com confirmacao)' : 'Gerar audio'}
               >

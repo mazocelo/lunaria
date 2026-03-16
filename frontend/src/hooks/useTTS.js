@@ -116,6 +116,10 @@ export const useTTS = () => {
   const [lastError, setLastError] = useState(null);
   const [errorMessageId, setErrorMessageId] = useState(null);
   const [generatingMessageId, setGeneratingMessageId] = useState(null);
+  const [loadingTargetId, setLoadingTargetId] = useState(null);
+  const [loadingSegmentId, setLoadingSegmentId] = useState(null);
+  const [loadingSequenceKey, setLoadingSequenceKey] = useState(null);
+  const [canTogglePlayback, setCanTogglePlayback] = useState(false);
 
   const audioRef = useRef(null);
   const cacheRef = useRef(new Map());
@@ -164,10 +168,18 @@ export const useTTS = () => {
     setErrorMessageId(null);
   }, []);
 
+  const clearLoadingState = useCallback(() => {
+    setLoadingTargetId(null);
+    setLoadingSegmentId(null);
+    setLoadingSequenceKey(null);
+  }, []);
+
   const clearPlayback = useCallback((clearMessage = true) => {
     playTokenRef.current += 1;
 
     resetActiveAudio(true);
+    clearLoadingState();
+    setCanTogglePlayback(false);
 
     queueRef.current = [];
     queueMetaRef.current = { messageId: null, sequenceKey: null };
@@ -182,7 +194,7 @@ export const useTTS = () => {
     } else {
       setCurrentSegmentId(null);
     }
-  }, [resetActiveAudio]);
+  }, [clearLoadingState, resetActiveAudio]);
 
   const applyPlaybackRate = useCallback((audio) => {
     if (!audio) return;
@@ -204,6 +216,7 @@ export const useTTS = () => {
     const audio = new Audio(entry.url);
     audioRef.current = audio;
     applyPlaybackRate(audio);
+    setCanTogglePlayback(true);
 
     setCurrentMessageId(entry.messageId);
     setCurrentSegmentId(entry.segmentId || null);
@@ -238,6 +251,7 @@ export const useTTS = () => {
         setCurrentTime(0);
         setDuration(0);
         setCurrentSegmentId(null);
+        setCanTogglePlayback(false);
         return;
       }
 
@@ -249,6 +263,7 @@ export const useTTS = () => {
       setQueueIndex(-1);
       setCurrentSequenceKey(null);
       setIsSequence(false);
+      setCanTogglePlayback(false);
       sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
     };
 
@@ -482,13 +497,14 @@ export const useTTS = () => {
 
     if (forceRegenerate || !isSameItem) {
       clearPlayback(true);
-      setCurrentMessageId(messageId);
-      setCurrentSegmentId(segmentId || null);
     }
 
     const requestToken = playTokenRef.current + 1;
     playTokenRef.current = requestToken;
     setIsLoading(true);
+    setLoadingTargetId(messageId);
+    setLoadingSegmentId(segmentId || null);
+    setLoadingSequenceKey(null);
     setLastError(null);
     setErrorMessageId(null);
     try {
@@ -532,9 +548,10 @@ export const useTTS = () => {
     } finally {
       if (requestToken === playTokenRef.current) {
         setIsLoading(false);
+        clearLoadingState();
       }
     }
-  }, [buildQueueEntries, clearPlayback, currentMessageId, currentSegmentId, playQueueEntry, prepareAudioEntry, togglePause]);
+  }, [buildQueueEntries, clearLoadingState, clearPlayback, currentMessageId, currentSegmentId, playQueueEntry, prepareAudioEntry, togglePause]);
 
   const playSequence = useCallback(async (items = [], messageId, options = {}) => {
     const {
@@ -560,11 +577,12 @@ export const useTTS = () => {
     }
 
     clearPlayback(true);
-    setCurrentMessageId(messageId);
-    setCurrentSegmentId(null);
 
     const requestToken = playTokenRef.current + 1;
     playTokenRef.current = requestToken;
+    setLoadingTargetId(messageId);
+    setLoadingSegmentId(null);
+    setLoadingSequenceKey(sequenceKey || null);
     sequenceStateRef.current = {
       token: requestToken,
       preparing: true,
@@ -676,6 +694,7 @@ export const useTTS = () => {
           if (nextEntry) {
             state.waitingForNext = false;
             state.preparing = false;
+            clearLoadingState();
             playQueueEntry(nextEntry, requestToken);
             return;
           }
@@ -685,6 +704,7 @@ export const useTTS = () => {
         }
 
         state.preparing = false;
+        clearLoadingState();
       };
 
       void prepareRemainingItems();
@@ -701,9 +721,10 @@ export const useTTS = () => {
     } finally {
       if (requestToken === playTokenRef.current && firstPreparedIndex === -1) {
         setIsLoading(false);
+        clearLoadingState();
       }
     }
-  }, [appendQueueEntries, buildQueueEntries, clearPlayback, playQueueEntry, prepareAudioEntry, togglePause]);
+  }, [appendQueueEntries, buildQueueEntries, clearLoadingState, clearPlayback, playQueueEntry, prepareAudioEntry, togglePause]);
 
   const generate = useCallback(async (
     text,
@@ -791,6 +812,10 @@ export const useTTS = () => {
     isSequence,
     currentSequenceKey,
     generatingMessageId,
+    loadingTargetId,
+    loadingSegmentId,
+    loadingSequenceKey,
+    canTogglePlayback,
     lastError,
     errorMessageId,
     clearError: clearErrorCb

@@ -17,7 +17,7 @@ const NarrationAudioButton = ({
   if (!tts || !voiceId || !normalizedText || !itemId) return null;
 
   const isCurrent = String(tts.currentMessageId) === String(itemId);
-  const isLoading = Boolean(tts.isLoading && isCurrent);
+  const isLoading = Boolean(String(tts.loadingTargetId || '') === String(itemId));
   const isPlaying = Boolean(tts.isPlaying && isCurrent);
   const hasCachedAudio = Boolean(tts.hasAudioForMessage?.(itemId));
 

@@ -337,7 +337,18 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     && tts.currentSequenceKey === messageSequenceKey
   );
   const isThisPlaying = isThisSequenceActive && tts.isPlaying;
-  const isPreparingThisAudio = Boolean(tts.isLoading && String(tts.currentMessageId || '') === String(mensagem.id));
+  const isPreparingThisAudio = Boolean(
+    messageSequenceKey
+    && tts.loadingSequenceKey === messageSequenceKey
+    && String(tts.loadingTargetId || '') === String(mensagem.id)
+    && !tts.canTogglePlayback
+    && !isThisSequenceActive
+  );
+  const isWaitingNextAudio = Boolean(
+    isThisSequenceActive
+    && !tts.isPlaying
+    && !tts.canTogglePlayback
+  );
   const hasVoiceControls = messageSequenceItems.some((item) => item.voiceId);
   const hasCachedAudio = messageSequenceItems.some((item) => tts.hasAudioForItem?.(item.itemKey));
   const hasPersistedAudio = messageSequenceItems.some((item) => item.hasPersistedAudio);
@@ -447,10 +458,10 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
               ) : <ImageIcon size={16} />}
             </button>
             {hasVoiceControls && (
-              <button
-                type="button"
-                onClick={handleBalloonAudio}
-                disabled={isPreparingThisAudio}
+                <button
+                  type="button"
+                  onClick={handleBalloonAudio}
+                  disabled={isPreparingThisAudio || isWaitingNextAudio}
                 className={`p-1.5 rounded-lg transition-all ${
                   isPreparingThisAudio
                     ? 'opacity-50 cursor-not-allowed text-purple-200'
@@ -459,21 +470,25 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                       : 'hover:bg-amber-500/15 text-amber-300 hover:text-amber-100'
                 }`}
                 title={
-                  isThisPlaying
+                  isPreparingThisAudio || isWaitingNextAudio
+                    ? 'Preparando audio do balao'
+                    : isThisPlaying
                     ? 'Pausar audio do balao'
                     : hasAnyAudio
                       ? 'Ouvir audio do balao'
                       : 'Gerar e ouvir audio do balao'
                 }
                 aria-label={
-                  isThisPlaying
+                  isPreparingThisAudio || isWaitingNextAudio
+                    ? 'Preparando audio do balao'
+                    : isThisPlaying
                     ? 'Pausar audio do balao'
                     : hasAnyAudio
                       ? 'Ouvir audio do balao'
                       : 'Gerar e ouvir audio do balao'
                 }
               >
-                {isPreparingThisAudio ? (
+                {isPreparingThisAudio || isWaitingNextAudio ? (
                   <span className="inline-block w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
                 ) : isThisPlaying ? <Pause size={16} /> : <Play size={16} />}
               </button>
@@ -578,11 +593,23 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
   const hasCachedAudio = groupSequenceItems.some((item) => tts.hasAudioForItem?.(item.itemKey));
   const hasPersistedAudio = groupSequenceItems.some((item) => item.hasPersistedAudio);
   const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
-  const isPreparingThisAudio = Boolean(tts.isLoading && String(tts.currentMessageId || '') === String(groupOwnerId || ''));
+  const isPreparingThisAudio = Boolean(
+    groupSequenceKey
+    && tts.loadingSequenceKey === groupSequenceKey
+    && String(tts.loadingTargetId || '') === String(groupOwnerId || '')
+    && !tts.canTogglePlayback
+    && !(groupSequenceKey && tts.currentSequenceKey === groupSequenceKey)
+  );
   const isThisPlaying = Boolean(
     groupSequenceKey
     && tts.currentSequenceKey === groupSequenceKey
     && tts.isPlaying
+  );
+  const isWaitingNextAudio = Boolean(
+    groupSequenceKey
+    && tts.currentSequenceKey === groupSequenceKey
+    && !tts.isPlaying
+    && !tts.canTogglePlayback
   );
   const groupPromptText = useMemo(
     () => buildGroupPromptText(mensagens),
@@ -690,7 +717,7 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
                   <button
                     type="button"
                     onClick={handleGroupAudio}
-                    disabled={isPreparingThisAudio}
+                    disabled={isPreparingThisAudio || isWaitingNextAudio}
                     className={`p-1.5 rounded-lg transition-all ${
                       isPreparingThisAudio
                         ? 'opacity-50 cursor-not-allowed text-purple-200'
@@ -699,21 +726,25 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
                           : 'hover:bg-amber-500/15 text-amber-300 hover:text-amber-100'
                     }`}
                     title={
-                      isThisPlaying
+                      isPreparingThisAudio || isWaitingNextAudio
+                        ? 'Preparando audio do balao'
+                        : isThisPlaying
                         ? 'Pausar audio do balao'
                         : hasAnyAudio
                           ? 'Ouvir audio do balao'
                           : 'Gerar e ouvir audio do balao'
                     }
                     aria-label={
-                      isThisPlaying
+                      isPreparingThisAudio || isWaitingNextAudio
+                        ? 'Preparando audio do balao'
+                        : isThisPlaying
                         ? 'Pausar audio do balao'
                         : hasAnyAudio
                           ? 'Ouvir audio do balao'
                           : 'Gerar e ouvir audio do balao'
                     }
                   >
-                    {isPreparingThisAudio ? (
+                    {isPreparingThisAudio || isWaitingNextAudio ? (
                       <span className="inline-block w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
                     ) : isThisPlaying ? <Pause size={16} /> : <Play size={16} />}
                   </button>

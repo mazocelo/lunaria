@@ -67,10 +67,24 @@ const NarrationSegments = ({
 
     const isCurrent = String(tts.currentMessageId) === String(messageId)
       && String(tts.currentSegmentId || '') === String(segmentItem.segmentId || '');
-    const isLoading = Boolean(tts.isLoading && isCurrent);
+    const isLoading = Boolean(
+      String(tts.loadingTargetId || '') === String(messageId)
+      && String(tts.loadingSegmentId || '') === String(segmentItem.segmentId || '')
+    );
     const isPlaying = Boolean(tts.isPlaying && isCurrent);
     const hasCachedAudio = Boolean(tts.hasAudioForItem?.(segmentItem.itemKey));
     const hasAnyAudio = hasCachedAudio || segmentItem.hasPersistedAudio;
+    const buttonClassName = useGameVariant
+      ? !hasAnyAudio
+        ? 'game-glass-subtle border-amber-400/25 text-amber-200 hover:border-amber-300/40 hover:bg-amber-500/10'
+        : 'game-glass-subtle border-cyan-400/25 text-cyan-200 hover:border-cyan-300/40 hover:bg-cyan-500/10'
+      : !hasAnyAudio
+        ? isLight
+          ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+          : 'border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+        : isLight
+          ? 'border-cyan-300 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+          : 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20';
 
     const handlePlay = async () => {
       await tts.play(segmentItem.text, segmentItem.voiceId, messageId, segmentItem.provider, {
@@ -87,15 +101,7 @@ const NarrationSegments = ({
         disabled={isLoading}
         className={`shrink-0 rounded-full border transition-all ${
           compact ? 'p-1' : 'p-1.5'
-        } ${
-          !hasAnyAudio
-            ? isLight
-              ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
-              : 'border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-            : isLight
-              ? 'border-cyan-300 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
-              : 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
-        }`}
+        } ${buttonClassName}`}
         title={isPlaying ? 'Pausar trecho' : hasAnyAudio ? 'Ouvir trecho' : 'Gerar e ouvir trecho'}
         aria-label={isPlaying ? 'Pausar trecho' : hasAnyAudio ? 'Ouvir trecho' : 'Gerar e ouvir trecho'}
       >

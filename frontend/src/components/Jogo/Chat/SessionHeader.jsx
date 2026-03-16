@@ -53,7 +53,7 @@ const SessionHeader = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl game-glass-subtle border border-white/[0.08]">
           <div className="relative" ref={rodadaDropdownRef}>
             <button
               type="button"
@@ -97,8 +97,8 @@ const SessionHeader = ({
                             key={jogador.userId}
                             className={`flex items-center justify-between p-2 rounded-lg ${
                               index === turnoAtual && faseJogo === 'rodada_em_andamento'
-                                ? 'bg-cyan-500/20 border border-cyan-400/50'
-                                : 'bg-white/5'
+                                ? 'game-glass-subtle border border-cyan-400/50 shadow-[0_0_16px_rgba(34,211,238,0.12)]'
+                                : 'game-glass-subtle border border-white/[0.08]'
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ const SessionHeader = ({
         <button
           type="button"
           onClick={() => setMobileDrawer(mobileDrawer === 'jogadores' ? null : 'jogadores')}
-          className="md:hidden p-2 rounded-lg bg-purple-600/30 text-purple-200 border border-purple-500/50 hover:bg-purple-600/50 transition-all"
+          className="md:hidden p-2 rounded-lg game-glass-subtle text-purple-200 border border-purple-500/35 hover:border-purple-400/50 transition-all"
           title="Abrir painel de jogadores"
           aria-label="Abrir painel de jogadores"
         >
@@ -173,7 +173,7 @@ const SessionHeader = ({
         <button
           type="button"
           onClick={() => setMobileDrawer(mobileDrawer === 'acoes' ? null : 'acoes')}
-          className="md:hidden p-2 rounded-lg bg-cyan-600/30 text-cyan-200 border border-cyan-500/50 hover:bg-cyan-600/50 transition-all"
+          className="md:hidden p-2 rounded-lg game-glass-subtle text-cyan-200 border border-cyan-500/35 hover:border-cyan-400/50 transition-all"
           title="Abrir painel de acoes"
           aria-label="Abrir painel de acoes"
         >

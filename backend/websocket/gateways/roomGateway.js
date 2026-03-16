@@ -26,7 +26,7 @@ export default class RoomGateway {
 
     try {
       if (!socket.userId) {
-        sm.log('ERROR', 'JOIN_ROOM_NOT_AUTHENTICATED', socket.id, null, {
+        sm.log('WARN', 'JOIN_ROOM_NOT_AUTHENTICATED', socket.id, null, {
           message: 'Socket nao autenticado',
           socketId: socket.id,
           receivedData: data
@@ -321,7 +321,7 @@ export default class RoomGateway {
       if (roomId.startsWith('historia_')) {
         sm.log('INFO', 'JOIN_ROOM_SENDING_HISTORIA_RESPONSE', socket.id, userId, { roomId });
 
-        const sessaoAtual = await sm.obterSessaoHistoria(roomId);
+        let sessaoAtual = await sm.obterSessaoHistoria(roomId);
         if (!sessaoAtual) {
           sm.log('ERROR', 'JOIN_ROOM_SESSAO_DISAPPEARED', socket.id, userId, {
             roomId,
@@ -343,7 +343,15 @@ export default class RoomGateway {
             };
           }
           sessaoAtual.atualizadaEm = new Date().toISOString();
-          await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtual);
+          try {
+            await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtual);
+          } catch (error) {
+            log.warn({ err: error, roomId, userId }, 'Falha ao persistir cleanup de request expirada durante join_room; seguindo com sessao recarregada');
+            const sessaoRecarregada = await sm.obterSessaoHistoria(roomId);
+            if (sessaoRecarregada) {
+              sessaoAtual = sessaoRecarregada;
+            }
+          }
         }
 
         const responseData = {
@@ -661,7 +669,8 @@ export default class RoomGateway {
       socket.to(roomId).emit('user_left', userLeftEvent);
     }
 
-    if (sm.redis) {
+    const redisDisponivel = !!sm.redis && (sm.redis.isReady || sm.redis.isOpen);
+    if (redisDisponivel) {
       sm.log('INFO', 'DISCONNECT_REDIS_CLEANUP_START', socket.id, socket.userId, {
         redisKey: `user:${socket.userId}`
       });

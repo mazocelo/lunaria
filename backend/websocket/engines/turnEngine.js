@@ -431,6 +431,12 @@ export default class TurnEngine {
         processingTimeMs: processingTime
       });
     } catch (error) {
+      if (this._isRoomLockBusyError(error)) {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessao || {});
+        this._emitBusy(socket, roomId, requestId, userId, activeRequest || null);
+        return;
+      }
       const processingTime = Date.now() - startTime;
 
       try {
@@ -458,7 +464,7 @@ export default class TurnEngine {
         stack: error.stack,
         processingTimeMs: processingTime
       });
-      if (!error.message?.includes('Operacao em andamento')) {
+      if (!this._isRoomLockBusyError(error)) {
         // @event error → socket (direct) | unhandled exception during turn start flow
         socket.emit('error', { message: 'Erro ao iniciar turno' });
       }
@@ -591,14 +597,10 @@ export default class TurnEngine {
         };
       }, { maxWaitMs: 0 });
     } catch (error) {
-      if (error.message?.includes('Operação em andamento')) {
+      if (this._isRoomLockBusyError(error)) {
         const sessao = await sm.obterSessaoHistoria(roomId);
         const activeRequest = getActiveMestreRequest(sessao || {});
-        if (activeRequest) {
-          this._emitBusy(socket, roomId, requestId, userId, activeRequest);
-          return;
-        }
-        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+        this._emitBusy(socket, roomId, requestId, userId, activeRequest || null);
         return;
       }
       throw error;
@@ -904,8 +906,10 @@ export default class TurnEngine {
       }
       }, { maxWaitMs: 0 });
     } catch (error) {
-      if (error.message?.includes('Operação em andamento')) {
-        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+      if (this._isRoomLockBusyError(error)) {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessao || {});
+        this._emitBusy(socket, roomId, requestId, userId, activeRequest || null);
         return false;
       }
       throw error;

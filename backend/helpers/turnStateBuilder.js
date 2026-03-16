@@ -13,13 +13,17 @@ import {
 /**
  * Monta state object estruturado para um jogador no turno
  */
-export function buildTurnState(sessao, userId, personagem) {
+export function buildTurnState(sessao, userId, personagem = {}) {
   // Migração oportunista de legado (idempotente)
   migrarEstadoTaticoLegado(sessao);
 
   const estadoJogo = sessao.estadoJogo || {};
   const mestreCtx = sessao.mestreContexto || {};
-  const pcCompleto = (sessao.personagensCompletos || {})[String(personagem.id || personagem.personagemId)] || personagem;
+  const personagemRef = personagem || {};
+  const personagemId = personagemRef.id ?? personagemRef.personagemId ?? personagemRef.personagem_id ?? null;
+  const pcCompleto = personagemId != null
+    ? (sessao.personagensCompletos || {})[String(personagemId)] || personagemRef
+    : personagemRef;
   const pSessao = estadoJogo.personagemSessao?.[String(userId)] || {};
 
   const attrs = pcCompleto.atributos || {};
@@ -36,7 +40,7 @@ export function buildTurnState(sessao, userId, personagem) {
   const efeitos = pSessao.status_efeitos || pcCompleto.status_efeitos || [];
 
   const state = {
-    nome: pcCompleto.nome || personagem.nome,
+    nome: pcCompleto.nome || personagemRef.nome || 'Aventureiro',
     hp: { atual: hpAtual, max: hpMax },
     xpGanho,
     itensGanhos,
@@ -50,7 +54,7 @@ export function buildTurnState(sessao, userId, personagem) {
   state.mana = { atual: manaAtual, max: manaMax };
 
   // Atributos resumidos
-  state.classe = pcCompleto.classe || 'Aventureiro';
+  state.classe = pcCompleto.classe || personagemRef.classe || 'Aventureiro';
   state.nivel = nivel;
 
   // Cooldowns ativos

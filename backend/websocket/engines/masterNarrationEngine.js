@@ -824,14 +824,10 @@ export default class MasterNarrationEngine {
         };
       }, { maxWaitMs: 0 });
     } catch (error) {
-      if (error.message?.includes('Operação em andamento')) {
+      if (this._isRoomLockBusyError(error)) {
         const sessao = await sm.obterSessaoHistoria(roomId);
         const activeRequest = getActiveMestreRequest(sessao || {});
-        if (activeRequest) {
-          this._emitBusy(socket, roomId, requestId, userId, activeRequest);
-          return;
-        }
-        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+        this._emitBusy(socket, roomId, requestId, userId, activeRequest || null);
         return;
       }
       throw error;
@@ -927,7 +923,7 @@ export default class MasterNarrationEngine {
         return;
       }
 
-      const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId));
+      const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId, personagem));
       let resultadosCombatePreResolvido = null;
       if (combateAtivo && combatIntent) {
         resultadosCombatePreResolvido = await resolverMecanicaCombate(workingSessao, {
@@ -1276,8 +1272,10 @@ export default class MasterNarrationEngine {
       }
       }, { maxWaitMs: 0 });
     } catch (error) {
-      if (error.message?.includes('Operação em andamento')) {
-        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+      if (this._isRoomLockBusyError(error)) {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessao || {});
+        this._emitBusy(socket, roomId, requestId, userId, activeRequest || null);
         return false;
       }
       throw error;

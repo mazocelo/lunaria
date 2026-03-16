@@ -29,6 +29,13 @@ function filtrarMensagensCanonicas(mensagens = []) {
   });
 }
 
+function isWatchConflictError(error) {
+  const message = String(error?.message || '');
+  return error?.name === 'WatchError'
+    || message.includes('watched keys has been changed')
+    || message.includes('Conflito de concorrencia');
+}
+
 /**
  * Classe para gerenciar sessões de RPG usando Redis
  */
@@ -180,8 +187,12 @@ class SessaoRPG {
 
         return sessaoAtualizada;
       } catch (error) {
-        if (error.message === 'Sessão não encontrada' || error.message.includes('Conflito')) {
+        if (error.message === 'Sessão não encontrada') {
           throw error;
+        }
+        if (isWatchConflictError(error)) {
+          if (attempt < maxRetries - 1) continue;
+          throw new Error('Conflito de concorrencia ao atualizar sessao');
         }
         log.error({ err: error }, 'Erro ao atualizar sessao');
         throw error;
@@ -240,8 +251,12 @@ class SessaoRPG {
 
         return sessaoAtualizada;
       } catch (error) {
-        if (error.message === 'Sessão não encontrada' || error.message.includes('Conflito')) {
+        if (error.message === 'Sessão não encontrada') {
           throw error;
+        }
+        if (isWatchConflictError(error)) {
+          if (attempt < maxRetries - 1) continue;
+          throw new Error('Conflito de concorrencia ao atualizar sessao');
         }
         log.error({ err: error }, 'Erro ao mutar sessao');
         throw error;

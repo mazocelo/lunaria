@@ -53,6 +53,11 @@ export default class TestEngine {
     this.manager = manager;
   }
 
+  _isRoomLockBusyError(error) {
+    const message = String(error?.message || '');
+    return message.includes('Opera') && message.includes('andamento');
+  }
+
   async handleDiceRoll(socket, data) {
     const sm = this.manager;
 
@@ -540,7 +545,7 @@ export default class TestEngine {
         stack: error.stack,
         processingTimeMs: processingTime
       });
-      if (!error.message?.includes('Operacao em andamento')) {
+      if (!this._isRoomLockBusyError(error)) {
         // @event error → socket (direct) | unhandled exception in handleRolarDadoInicial
         socket.emit('error', { message: 'Erro ao rolar dado inicial' });
       }

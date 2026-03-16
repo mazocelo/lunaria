@@ -9,7 +9,7 @@ const MAX_REQUEST_HISTORY = 20;
 const REQUEST_TIMEOUT_GRACE_MS = 3000;
 const DEFAULT_TIMEOUT_MS_BY_KIND = {
   player_action: 10000,
-  turn_start: 18000
+  turn_start: 25000
 };
 
 function nowIso() {
@@ -138,6 +138,12 @@ export function buildMestreRequestStatusPayload(request, overrides = {}) {
   };
   const updatedAt = merged.updatedAt || nowIso();
   const status = merged.status || 'accepted';
+  const canCheckStatus = Object.prototype.hasOwnProperty.call(overrides, 'canCheckStatus')
+    ? overrides.canCheckStatus
+    : !isTerminalMestreRequest(status);
+  const canRegenerate = Object.prototype.hasOwnProperty.call(overrides, 'canRegenerate')
+    ? overrides.canRegenerate
+    : status === 'failed' || status === 'timed_out';
 
   return {
     requestId: merged.requestId,
@@ -149,8 +155,8 @@ export function buildMestreRequestStatusPayload(request, overrides = {}) {
     playerMessageId: merged.playerMessageId || null,
     errorCode: merged.errorCode || null,
     errorMessage: merged.errorMessage || null,
-    canCheckStatus: !isTerminalMestreRequest(status),
-    canRegenerate: status === 'failed' || status === 'timed_out',
+    canCheckStatus,
+    canRegenerate,
     updatedAt,
     elapsedMs: computeElapsedMs(merged, updatedAt)
   };
@@ -285,7 +291,7 @@ export function archiveMestreRequest(sessao, request) {
 
 export function clearActiveMestreRequest(sessao) {
   ensureRequestState(sessao);
-  delete sessao.estadoJogo.mestreRequestAtiva;
+  sessao.estadoJogo.mestreRequestAtiva = null;
 }
 
 export function completeMestreRequest(sessao, requestId, attempt, patch = {}) {

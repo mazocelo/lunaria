@@ -879,7 +879,7 @@ Mensagem do Jogador:
       }
 
       // Converter histórico
-      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n`;
+      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- A ultima frase deve abrir um beat jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n`;
 
       let historico = converterHistoricoParaLangChain(chatHistory);
 

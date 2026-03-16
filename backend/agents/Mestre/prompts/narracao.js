@@ -1,23 +1,25 @@
 /**
- * Prompts específicos para narração de ações
+ * Prompts especificos para narracao de acoes
  */
 
 export function criarPromptNarracao(jogador, personagem, acao) {
   return `Jogador: ${jogador}
 Personagem: ${personagem}
-Ação: ${acao}
+Acao: ${acao}
 
-INSTRUÇÕES:
-- IMPORTANTE: Revise o histórico de chat antes de narrar. Não repita diálogos, descrições ou introduções que já ocorreram. Cada resposta deve avançar a história.
+INSTRUCOES:
+- IMPORTANTE: Revise o historico de chat antes de narrar. Nao repita dialogos, descricoes ou introducoes que ja ocorreram. Cada resposta deve avancar a historia.
 - Continue exatamente da cena e da fala mais recentes.
 - Nao reapresente NPCs ou ambiente ja estabelecidos.
+- Se o prologo ou a cena ja estabeleceram a atmosfera, nao a descreva de novo; entregue apenas o delta da cena.
 - Se a acao do jogador for uma resposta curta em dialogo, faca o NPC ou o mundo responder a ela, em vez de recomecar a cena.
-- Narre o resultado dessa ação
-- Se SIMPLES/SEGURA: narre diretamente (observar sala, conversar)
-- Se ARRISCADA/DIFÍCIL: solicite rolagem via solicitaDados no JSON e inclua 🎲 na narrativa
-- NÃO inclua faixas numéricas — o sistema resolve automaticamente
-- Mantenha emoção e suspense
-- Termine com gancho narrativo para o jogador agir`;
+- Prefira 1 ou 2 paragrafos curtos e concretos, em vez de blocos longos contemplativos.
+- Narre o resultado dessa acao.
+- Se SIMPLES/SEGURA: narre diretamente (observar sala, conversar).
+- Se ARRISCADA/DIFICIL: solicite rolagem via solicitaDados no JSON e inclua 🎲 na narrativa.
+- NAO inclua faixas numericas; o sistema resolve automaticamente.
+- Mantenha emocao e suspense sem recapitular o que ja foi dito.
+- Termine com gancho narrativo concreto para o jogador agir: fala, pergunta, ordem, interrupcao, descoberta ou evento imediato.`;
 }
 
 export function criarPromptReacao(contexto, evento) {
@@ -26,7 +28,7 @@ export function criarPromptReacao(contexto, evento) {
 CONTEXTO ATUAL:
 ${contexto}
 
-Como Mestre, narre a reação do mundo a este evento. Descreva consequências imediatas e possíveis desdobramentos. Mantenha consistência com o contexto.`;
+Como Mestre, narre a reacao do mundo a este evento. Descreva consequencias imediatas e possiveis desdobramentos. Mantenha consistencia com o contexto.`;
 }
 
 export default {

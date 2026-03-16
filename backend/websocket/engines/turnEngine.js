@@ -57,16 +57,17 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
 
   const parts = [
     '[INSTRUCAO DE ABERTURA - TRANSICAO PERSONALIZADA]',
-    `Este e o primeiro turno de ${personagemNome} na sessao. Antes da cena principal, narre brevemente como ${personagemNome} (${raca}, ${classe}, nivel ${nivel}) chegou ao local da aventura.`,
+    `Este e o primeiro turno de ${personagemNome} na sessao. Antes da cena principal, faca apenas uma costura breve explicando como ${personagemNome} (${raca}, ${classe}, nivel ${nivel}) chegou ao ponto atual da historia.`,
     '',
     bgSnippet,
     '',
     'Diretrizes:',
-    '- Narre em 2-3 paragrafos curtos como o personagem viajou/chegou ate o cenario.',
-    '- Use background, classe e raca para dar personalidade a chegada.',
-    '- Termine fazendo transicao natural para a cena principal ja em andamento.',
+    '- Use no maximo 1 paragrafo curto; excepcionalmente 2 frases curtas se precisar.',
+    '- Use apenas 1 detalhe marcante de background, classe ou raca para personalizar a chegada.',
+    '- Nao repita o prologo nem reexplique a atmosfera geral ja estabelecida.',
     '- Nao crie uma historia paralela nem reapresente do zero NPC ja presente.',
-    '- Depois da costura de chegada, caia exatamente na cena atual descrita abaixo.',
+    '- Depois da costura, caia imediatamente na cena atual descrita abaixo.',
+    '- A ultima frase precisa abrir um beat jogavel concreto: uma fala, pergunta, ordem, interrupcao, revelacao ou evento imediato.',
     '[FIM DA INSTRUCAO DE ABERTURA]',
     ''
   ];
@@ -80,9 +81,9 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
   if (invocationContext.contextoLateralRoleplay) {
     parts.push(invocationContext.contextoLateralRoleplay, '');
   }
-  parts.push('Depois da costura de chegada, caia exatamente na cena atual descrita acima. Nao reinicie a historia nem reapresente do zero um NPC que ja esteja em cena.');
+  parts.push('Depois da costura de chegada, caia exatamente na cena atual descrita acima. Nao reinicie a historia, nao recapitule o prologo e nao reapresente do zero um NPC que ja esteja em cena.');
   parts.push('');
-  parts.push(`Agora e a vez de ${personagemNome} agir na cena atual.`);
+  parts.push(`Agora e a vez de ${personagemNome} agir na cena atual. Entregue a narracao ja aterrissada em uma situacao concreta e acionavel.`);
   return parts.join('\n');
 }
 
@@ -317,7 +318,7 @@ export default class TurnEngine {
             if (invocationContext.contextoLateralRoleplay) {
               blocosTurno.push(invocationContext.contextoLateralRoleplay);
             }
-            blocosTurno.push(`Continue a cena atual. Agora e a vez de ${jogadorDaVez.personagemNome || username} agir.`);
+            blocosTurno.push(`Continue a cena atual. Agora e a vez de ${jogadorDaVez.personagemNome || username} agir. Avance com um beat concreto e jogavel, sem recapitular a ambientacao.`);
             mensagemTurno = blocosTurno.join('\n\n');
           }
 
@@ -637,7 +638,7 @@ export default class TurnEngine {
           if (invocationContext.contextoLateralRoleplay) {
             blocosTurno.push(invocationContext.contextoLateralRoleplay);
           }
-          blocosTurno.push(`Continue a cena atual. Agora e a vez de ${accepted.jogadorDaVez.personagemNome || username} agir.`);
+          blocosTurno.push(`Continue a cena atual. Agora e a vez de ${accepted.jogadorDaVez.personagemNome || username} agir. Avance com um beat concreto e jogavel, sem recapitular a ambientacao.`);
           mensagemTurno = blocosTurno.join('\n\n');
         }
 

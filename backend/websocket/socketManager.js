@@ -28,6 +28,7 @@ import AuthHandler from './handlers/authHandler.js';
 import ChatHandler from './handlers/chatHandler.js';
 import MasterCacheManager from './utils/masterCacheManager.js';
 import SessionEngine from './engines/sessionEngine.js';
+import { createRoomLockBusyError } from './utils/roomLockError.js';
 import logger from '../helpers/logger.js';
 
 const DEFAULT_TTS_PROVIDER = getDefaultProviderName();
@@ -112,11 +113,11 @@ class SocketManager {
     while (this._roomLocks.has(roomId)) {
       if (maxWaitMs <= 0) {
         this.log('ERROR', 'ROOM_LOCK_TIMEOUT', null, null, { roomId, immediate: true });
-        throw new Error('Operação em andamento na sala. Tente novamente em alguns segundos.');
+        throw createRoomLockBusyError();
       }
       if (Date.now() > maxWait) {
         this.log('ERROR', 'ROOM_LOCK_TIMEOUT', null, null, { roomId });
-        throw new Error('Operação em andamento na sala. Tente novamente em alguns segundos.');
+        throw createRoomLockBusyError();
       }
       await this._roomLocks.get(roomId).catch(() => {});
     }

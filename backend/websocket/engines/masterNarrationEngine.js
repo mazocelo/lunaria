@@ -49,6 +49,7 @@ import {
   markMestreRequestStatus,
   normalizeExpiredActiveMestreRequest
 } from '../utils/mestreRequestLifecycle.js';
+import { isRoomLockBusyError as isBusyRoomLockError } from '../utils/roomLockError.js';
 
 export default class MasterNarrationEngine {
   constructor(manager) {
@@ -144,8 +145,7 @@ export default class MasterNarrationEngine {
   }
 
   _isRoomLockBusyError(error) {
-    const message = String(error?.message || '');
-    return message.includes('Opera') && message.includes('andamento');
+    return isBusyRoomLockError(error);
   }
 
   /**
@@ -153,6 +153,9 @@ export default class MasterNarrationEngine {
    */
   async handleMensagemParaMestre(socket, data) {
     return this._handleMensagemParaMestreCorrelated(socket, data);
+  }
+
+  /* Legacy non-correlated handler intentionally disabled.
     const sm = this.manager;
     const startTime = Date.now();
     sm.log('INFO', 'MENSAGEM_PARA_MESTRE_PROCESSING_START', socket.id, socket.userId, {
@@ -658,8 +661,8 @@ export default class MasterNarrationEngine {
       // @event error → socket (sender) | erro inesperado no processamento de mensagem
       socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
     }
-  }
 
+    */
   async _handleMensagemParaMestreCorrelated(socket, data) {
     const sm = this.manager;
     const startTime = Date.now();

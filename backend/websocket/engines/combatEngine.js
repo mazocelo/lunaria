@@ -90,8 +90,9 @@ export default class CombatEngine {
           };
           const hpMax = calcularHP(personagemStats);
           // Preservar HP da narrativa (dano de armadilhas, aplicar_dano, etc.)
-          // Se p.hp_atual existe e é menor que hpMax, manter o dano sofrido
-          const hpAtual = (p.hp_atual != null && p.hp_atual < hpMax) ? Math.max(1, p.hp_atual) : hpMax;
+          // sem reviver automaticamente personagens que ja estejam com 0 HP.
+          const hpNarrativo = Number.isFinite(Number(p.hp_atual)) ? Number(p.hp_atual) : null;
+          const hpAtual = (hpNarrativo != null && hpNarrativo < hpMax) ? Math.max(0, hpNarrativo) : hpMax;
           const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, nivel: p.nivel || 1 });
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId),

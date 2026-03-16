@@ -29,6 +29,7 @@ import {
   markMestreRequestStatus,
   normalizeExpiredActiveMestreRequest
 } from '../utils/mestreRequestLifecycle.js';
+import { isRoomLockBusyError as isBusyRoomLockError } from '../utils/roomLockError.js';
 
 // ── Abertura com transição personalizada ──────────────────────────
 
@@ -71,6 +72,8 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
     '- Nao crie uma historia paralela nem reapresente do zero NPC ja presente.',
     '- Depois da costura, caia imediatamente na cena atual descrita abaixo.',
     '- Se esta abertura NAO encerrar o turno, termine com uma proposta jogavel imediata: pergunta, ordem, convocacao, pista, escolha ou evento concreto.',
+    '- A deixa final precisa ser clara e facil de agarrar; o jogador deve entender imediatamente qual conexao pode fazer com a cena.',
+    '- Se a situacao ainda ficar difusa, voce pode incluir uma pequena sugestao opcional de encaminhamento, desde que ela preserve a liberdade do jogador e pareca natural na ficcao.',
     '- Se esta abertura encerrar o turno, conclua a batida sem forcar uma nova proposta.',
     '[FIM DA INSTRUCAO DE ABERTURA]',
     ''
@@ -210,8 +213,7 @@ export default class TurnEngine {
   }
 
   _isRoomLockBusyError(error) {
-    const message = String(error?.message || '');
-    return message.includes('Opera') && message.includes('andamento');
+    return isBusyRoomLockError(error);
   }
 
   _resetStartingTurnIfNeeded(sessao) {
@@ -228,6 +230,9 @@ export default class TurnEngine {
 
   async handleIniciarTurno(socket, data) {
     return this._handleIniciarTurnoCorrelated(socket, data);
+  }
+
+  /* Legacy non-correlated handler intentionally disabled.
     const sm = this.manager;
     const startTime = Date.now();
 
@@ -469,8 +474,8 @@ export default class TurnEngine {
         socket.emit('error', { message: 'Erro ao iniciar turno' });
       }
     }
-  }
 
+    */
   async _handleIniciarTurnoCorrelated(socket, data) {
     const sm = this.manager;
     const startTime = Date.now();

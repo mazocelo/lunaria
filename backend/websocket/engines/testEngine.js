@@ -24,6 +24,7 @@ import {
   createMessageId,
   removeMensagensSessao
 } from '../utils/sessionMessages.js';
+import { isRoomLockBusyError as isBusyRoomLockError } from '../utils/roomLockError.js';
 
 /**
  * Processa combate pós-teste: delega ao combatEngine.processarAcaoCombate.
@@ -108,8 +109,7 @@ export default class TestEngine {
   }
 
   _isRoomLockBusyError(error) {
-    const message = String(error?.message || '');
-    return message.includes('Opera') && message.includes('andamento');
+    return isBusyRoomLockError(error);
   }
 
   async handleDiceRoll(socket, data) {

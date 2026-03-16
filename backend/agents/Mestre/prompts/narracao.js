@@ -22,6 +22,9 @@ INSTRUCOES:
 - NAO inclua faixas numericas; o sistema resolve automaticamente.
 - Mantenha emocao e suspense sem recapitular o que ja foi dito.
 - Se a resposta NAO encerrar o turno, termine com um proximo movimento concreto para o jogador agir: fala, pergunta, ordem, interrupcao, descoberta ou evento imediato.
+- A deixa final deve ser clara o suficiente para o jogador entender o que pode responder, perguntar, investigar, atacar, seguir ou recusar.
+- Se a cena estiver confusa, aberta demais ou com poucas ancoras praticas, voce pode incluir uma pequena sugestao opcional de encaminhamento, sem retirar a liberdade do jogador.
+- Essa sugestao deve soar natural na ficcao, nunca como menu artificial. Exemplo de formato: "Voce pode me mostrar a nota agora, ou podemos seguir direto para o salao."
 - Se a resposta encerrar o turno, conclua a batida de forma limpa e nao force um novo gancho.`;
 }
 

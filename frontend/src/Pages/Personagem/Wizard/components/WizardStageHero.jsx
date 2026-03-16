@@ -14,7 +14,7 @@ const STAGE_COPY = {
   classe: {
     title: 'Forje a vocacao',
     description: 'A vocacao define papel tatico, ritmo e como esse personagem atua em cena.',
-    action: 'Escolha a funcao principal antes dos refinamentos.'
+    action: 'Escolha a funcao principal antes do arsenal e do destino.'
   },
   background: {
     title: 'Amarre a origem',
@@ -40,11 +40,6 @@ const STAGE_COPY = {
     title: 'Revise o destino',
     description: 'Confirme se identidade, custo e atributos contam a mesma historia.',
     action: 'Ajuste o necessario antes de selar a ficha.'
-  },
-  refinamento: {
-    title: 'Feche os ultimos ajustes',
-    description: 'Ultima checagem ritual antes do personagem entrar no mundo.',
-    action: 'Se tudo estiver consistente, conclua a criacao.'
   }
 };
 

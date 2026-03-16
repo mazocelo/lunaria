@@ -542,10 +542,6 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
           username: 'Sistema',
           message: `${resultado}${xpPorJogador > 0 ? ` (+${xpPorJogador} XP)` : ''}`,
           payload: data,
-          payload: {
-            personagem: data.personagemNome || data.username || 'Jogador',
-            ...data
-          },
           timestamp: Date.now()
         });
       }

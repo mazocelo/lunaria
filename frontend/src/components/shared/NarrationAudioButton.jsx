@@ -6,6 +6,7 @@ const DEFAULT_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlab
 const NarrationAudioButton = ({
   tts,
   text,
+  speechText = null,
   itemId,
   voiceId,
   voiceProvider = DEFAULT_PROVIDER,
@@ -30,7 +31,10 @@ const NarrationAudioButton = ({
         : 'Gerar audio';
 
   const handleClick = async () => {
-    await tts.play(normalizedText, voiceId, itemId, voiceProvider, { allowGenerate: true });
+    await tts.play(normalizedText, voiceId, itemId, voiceProvider, {
+      allowGenerate: true,
+      speechText: speechText || normalizedText,
+    });
   };
 
   return (

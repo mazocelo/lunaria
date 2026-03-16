@@ -38,6 +38,7 @@ function normalizeSegmentos(segmentos = [], messageId = 'msg') {
       speaker: segmento?.speaker || (segmento?.npc_id ? 'npc' : 'mestre'),
       speaker_label: segmento?.speaker_label || (segmento?.npc_id ? 'NPC' : 'Mestre'),
       text: segmento?.text || segmento?.message || segmento?.mensagem || '',
+      speech_text: segmento?.speech_text || null,
       npc_id: segmento?.npc_id || null,
       voice_id: segmento?.voice_id || null,
       voice_provider: segmento?.voice_provider || null,
@@ -63,6 +64,7 @@ export function normalizeGameMessage(mensagem = {}, index = 0) {
     canal,
     message,
     mensagem: message,
+    speech_text: mensagem.speech_text || null,
     payload,
     segmentos: normalizeSegmentos(mensagem.segmentos, messageId)
   };

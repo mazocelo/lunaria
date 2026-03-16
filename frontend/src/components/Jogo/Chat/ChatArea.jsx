@@ -79,10 +79,18 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
       if (!text || !effectiveVoiceId) return [];
 
       return [{
-        itemKey: buildTtsItemKey(mensagem.id, null, effectiveVoiceId, effectiveVoiceProvider, null),
+        itemKey: buildTtsItemKey(
+          mensagem.id,
+          null,
+          effectiveVoiceId,
+          effectiveVoiceProvider,
+          null,
+          mensagem?.speech_text || text
+        ),
         messageId: mensagem.id,
         segmentId: null,
         text,
+        speech_text: mensagem?.speech_text || null,
         voiceId: effectiveVoiceId,
         provider: effectiveVoiceProvider,
         emotion: null,

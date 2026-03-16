@@ -1,8 +1,10 @@
 import { buildTtsItemKey, resolveTtsEmotion } from '../../utils/ttsKeys.js';
+import { sanitizeTextForSpeech } from '../../utils/speechText.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
 export function createAudioTrackRef(input = {}) {
+  const speechText = sanitizeTextForSpeech(input.speechText ?? input.speech_text ?? input.text ?? '');
   const track = {
     trackId: String(input.trackId || input.itemKey || input.id || ''),
     sourceType: input.sourceType || 'tts',
@@ -12,6 +14,7 @@ export function createAudioTrackRef(input = {}) {
     segmentId: input.segmentId == null || input.segmentId === '' ? null : String(input.segmentId),
     playlistId: input.playlistId == null ? null : String(input.playlistId),
     text: String(input.text || '').trim(),
+    speechText,
     speakerLabel: input.speakerLabel || input.speaker || null,
     voiceId: input.voiceId || null,
     provider: input.provider || DEFAULT_TTS_PROVIDER,
@@ -30,7 +33,7 @@ export function createAudioTrackRef(input = {}) {
   };
 
   if (!track.trackId && track.messageId) {
-    track.trackId = buildTtsItemKey(track.messageId, track.segmentId, track.voiceId, track.provider, track.emotion);
+    track.trackId = buildTtsItemKey(track.messageId, track.segmentId, track.voiceId, track.provider, track.emotion, track.speechText);
   }
 
   track.itemKey = track.trackId;
@@ -50,7 +53,8 @@ export function createNarrationTrackRef(input = {}) {
       input.segmentId || null,
       input.voiceId || null,
       provider,
-      emotion
+      emotion,
+      input.speechText ?? input.speech_text ?? input.text ?? ''
     ),
     provider,
     emotion,
@@ -65,6 +69,7 @@ export function normalizeLegacyNarrationItem(item = {}, fallback = {}) {
     messageId: item.messageId ?? fallback.messageId ?? fallback.ownerId,
     segmentId: item.segmentId || null,
     text: item.text || '',
+    speechText: item.speechText ?? item.speech_text ?? item.text ?? '',
     speakerLabel: item.speakerLabel || item.speaker_label || null,
     voiceId: item.voiceId || fallback.voiceId || null,
     provider: item.provider || item.voiceProvider || fallback.provider || fallback.voiceProvider || DEFAULT_TTS_PROVIDER,

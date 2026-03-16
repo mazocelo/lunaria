@@ -30,6 +30,7 @@ export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoi
         messageId,
         segmentId,
         text,
+        speech_text: segment?.speech_text || null,
         voiceId,
         provider,
         emotion: segment?.narracao?.emocao || null,
@@ -89,6 +90,7 @@ const NarrationSegments = ({
       await tts.play(segmentItem.text, segmentItem.voiceId, messageId, segmentItem.provider, {
         allowGenerate: true,
         segmentId: segmentItem.segmentId,
+        speechText: segmentItem.speechText,
         emotion: segmentItem.emotion,
         speakerLabel: segmentItem.speakerLabel,
         kind: segmentItem.tipo || 'narration',

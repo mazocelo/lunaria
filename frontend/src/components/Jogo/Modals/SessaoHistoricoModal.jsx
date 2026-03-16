@@ -98,7 +98,10 @@ const MensagemItem = ({ msg, tts }) => {
 
       if (!voiceId) return;
 
-      await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: hasPersistedAudio });
+      await tts.play(conteudo, voiceId, msg.id, voiceProvider, {
+        allowGenerate: hasPersistedAudio,
+        speechText: msg.speech_text || conteudo,
+      });
     };
 
     const handleGenerateAudio = () => {
@@ -120,7 +123,11 @@ const MensagemItem = ({ msg, tts }) => {
 
       if (!voiceId) return;
 
-      await tts.play(conteudo, voiceId, msg.id, voiceProvider, { allowGenerate: true, forceRegenerate: hasAnyAudio });
+      await tts.play(conteudo, voiceId, msg.id, voiceProvider, {
+        allowGenerate: true,
+        forceRegenerate: hasAnyAudio,
+        speechText: msg.speech_text || conteudo,
+      });
     };
 
     return (

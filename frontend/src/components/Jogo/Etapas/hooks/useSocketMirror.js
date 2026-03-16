@@ -187,6 +187,25 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       });
     };
 
+    const clearAnonymousMestreState = () => {
+      const state = useSocketStore.getState();
+      if (state.activeMestreRequestId) {
+        return;
+      }
+
+      useSocketStore.setState({
+        activeMestreRequestStatus: null,
+        activeMestreRequestAttempt: 0,
+        activeMestreRequestUserId: null,
+        activeMestrePlayerMessageId: null,
+        activeMestreUpdatedAt: null,
+        aguardandoRespostaMestre: false,
+        mestrePensando: false,
+        mestreTimedOut: false,
+        mestreStale: false
+      });
+    };
+
     const handleMestrePensando = (data) => {
       const state = useSocketStore.getState();
       if (state.pendingMestreRequestId || state.activeMestreRequestId) {
@@ -226,7 +245,19 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       if (data?.requestId) {
         updateRequestState(data, { status: 'completed' });
       } else {
-        useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false, mestreTimedOut: false, mestreStale: false });
+        useSocketStore.setState({
+          aguardandoRespostaMestre: false,
+          mestrePensando: false,
+          mestreTimedOut: false,
+          mestreStale: false,
+          ...(state.activeMestreRequestId ? {} : {
+            activeMestreRequestStatus: null,
+            activeMestreRequestAttempt: 0,
+            activeMestreRequestUserId: null,
+            activeMestrePlayerMessageId: null,
+            activeMestreUpdatedAt: null
+          })
+        });
       }
 
       const mensagensAtuais = useGameStore.getState().mensagens || [];
@@ -327,6 +358,19 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleResultadoTeste = (data) => {
+      const resolvedGroupId = data?.groupId || null;
+      if (resolvedGroupId) {
+        const mensagensAtuais = useGameStore.getState().mensagens || [];
+        const mensagensFiltradas = mensagensAtuais.filter((mensagem) => {
+          if (mensagem?.tipo !== 'solicitacao_dados') return true;
+          const payloadGroupId = mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || null;
+          return String(payloadGroupId || '') !== String(resolvedGroupId);
+        });
+        if (mensagensFiltradas.length !== mensagensAtuais.length) {
+          gameStoreSetMensagens(mensagensFiltradas);
+        }
+      }
+
       if (onAdicionarMensagemRef.current) {
         onAdicionarMensagemRef.current({
           id: data.testeId || `teste_${data.groupId || Date.now()}_${data.userId || data.username}`,
@@ -497,7 +541,15 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
     // --- Streaming handlers ---
     const handleMestreStreamStart = (data) => {
-      updateRequestState(data, { status: 'streaming', updatedAt: new Date().toISOString() });
+      if (data?.requestId) {
+        updateRequestState(data, { status: 'streaming', updatedAt: new Date().toISOString() });
+      } else {
+        useSocketStore.setState({
+          aguardandoRespostaMestre: true,
+          mestrePensando: true,
+          mestreStale: false
+        });
+      }
 
       if (onAdicionarMensagemRef.current) {
         onAdicionarMensagemRef.current({
@@ -514,7 +566,9 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleMestreStreamChunk = (data) => {
-      updateRequestState(data, { status: 'streaming', updatedAt: new Date().toISOString() });
+      if (data?.requestId) {
+        updateRequestState(data, { status: 'streaming', updatedAt: new Date().toISOString() });
+      }
       gameStoreAtualizarMensagem(data.streamId || `stream_${data.requestId}_${data.attempt}`, {
         message: data.accumulated,
         requestId: data.requestId,
@@ -534,7 +588,11 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleMestreStreamError = (data) => {
-      updateRequestState(data, { status: 'processing', updatedAt: new Date().toISOString() });
+      if (data?.requestId) {
+        updateRequestState(data, { status: 'processing', updatedAt: new Date().toISOString() });
+      } else {
+        clearAnonymousMestreState();
+      }
       const msgs = useGameStore.getState().mensagens || [];
       const sem = msgs.filter((m) => {
         if (m.id === (data.streamId || `stream_${data.requestId}_${data.attempt}`)) return false;

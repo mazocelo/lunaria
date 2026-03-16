@@ -18,10 +18,18 @@ const buildFallbackNarrationItem = (mensagem, defaultVoiceId = null, defaultVoic
   if (!text || !voiceId) return null;
 
   return {
-    itemKey: buildTtsItemKey(mensagem.id, null, voiceId, provider, null),
+    itemKey: buildTtsItemKey(
+      mensagem.id,
+      null,
+      voiceId,
+      provider,
+      null,
+      mensagem?.speech_text || text
+    ),
     messageId: mensagem.id,
     segmentId: null,
     text,
+    speech_text: mensagem?.speech_text || null,
     voiceId,
     provider,
     emotion: null,
@@ -78,6 +86,24 @@ const buildBalloonPromptText = (mensagem) => {
   }
 
   return String(getConteudo(mensagem) || '').trim();
+};
+
+const buildPendingTestSummary = (mensagem) => {
+  const payload = mensagem?.payload || {};
+  const testePendente = payload?.testePendente || {};
+  const tipoDado = payload?.tipoDado || testePendente?.tipoDado || 'd20';
+  const teste = payload?.teste || testePendente?.teste || 'Teste';
+  const dificuldade = payload?.dificuldade || testePendente?.dificuldade || null;
+
+  const parts = [`Teste pendente: role ${tipoDado}`];
+  if (teste) {
+    parts.push(`para ${teste}`);
+  }
+  if (dificuldade) {
+    parts.push(`(${dificuldade})`);
+  }
+
+  return parts.join(' ');
 };
 
 const buildGroupPromptText = (mensagens = []) => (
@@ -219,18 +245,28 @@ export const renderTransicaoTurno = (mensagem, key) => (
   </div>
 );
 
-export const renderAguardandoDados = (mensagem, key) => (
-  <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-3">
-    <div className="game-glass-subtle px-4 py-2.5 rounded-full border border-amber-500/20">
-      <div className="flex items-center justify-center gap-2">
-        <span className="text-base animate-pulse">{'\u{23F3}'}</span>
-        <p className="text-amber-300/80 text-sm font-medium">
-          {getConteudo(mensagem)}
-        </p>
+export const renderAguardandoDados = (mensagem, key) => {
+  const resumo = buildPendingTestSummary(mensagem);
+  const contexto = mensagem?.payload?.contexto || mensagem?.payload?.testePendente?.contexto || null;
+
+  return (
+    <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-3">
+      <div className="game-glass-subtle px-4 py-2.5 rounded-2xl border border-amber-500/20">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-base animate-pulse">{'\u{23F3}'}</span>
+          <p className="text-amber-300/90 text-sm font-semibold">
+            {resumo}
+          </p>
+        </div>
+        {contexto && (
+          <p className="mt-1 text-center text-xs text-amber-200/60">
+            A rolagem resolve a acao em andamento.
+          </p>
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const renderAcaoMestre = (mensagem, key) => {
   const conteudo = getConteudo(mensagem);

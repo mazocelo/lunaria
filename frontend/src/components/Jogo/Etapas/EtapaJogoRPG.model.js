@@ -208,7 +208,7 @@ export const useEtapaJogoRPGModel = ({
   const mestreRequestIsMine = !!activeMestreRequestUserId && String(activeMestreRequestUserId) === String(user?.id);
   const aguardandoMestre = turnoStatus === 'resolving_roll'
     || !!pendingMestreRequestId
-    || ['accepted', 'processing', 'streaming', 'reviewing'].includes(activeMestreRequestStatus)
+    || (!!activeMestreRequestId && ['accepted', 'processing', 'streaming', 'reviewing'].includes(activeMestreRequestStatus))
     || aguardandoRespostaMestre;
   const jaRolouDadoInicial = !!resultadosDados[user?.id];
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);

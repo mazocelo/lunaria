@@ -90,6 +90,7 @@ function flattenPreparedEntries(entries = []) {
     segmentId: entry.segmentId || null,
     speakerLabel: entry.speakerLabel || null,
     text: entry.text,
+    speechText: entry.speechText || entry.text,
     urls: Array.isArray(entry.urls) ? entry.urls : [],
   }));
 }
@@ -386,7 +387,7 @@ class AudioController {
       requestToken = null,
     } = options;
 
-    if (!track?.text || !track?.voiceId) return null;
+    if (!(track?.speechText || track?.text) || !track?.voiceId) return null;
     if (requestToken != null && requestToken !== this.playToken) return null;
 
     if (forceRegenerate) {
@@ -406,7 +407,8 @@ class AudioController {
     this.preparingTrackIds.add(String(track.trackId));
     this.setState({ isLoading: true });
 
-    const chunks = splitTextForTts(track.text);
+    const spokenText = String(track.speechText || track.text || '').trim();
+    const chunks = splitTextForTts(spokenText);
     const urls = [];
 
     try {
@@ -439,6 +441,7 @@ class AudioController {
         segmentId: track.segmentId,
         speakerLabel: track.speakerLabel,
         text: track.text,
+        speechText: spokenText,
         urls,
       };
       this.registry.setPrepared(track.trackId, entry);

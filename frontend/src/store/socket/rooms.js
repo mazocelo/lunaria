@@ -21,7 +21,7 @@ export const createRoomActions = (set, get) => ({
 
       log('Joining room', { roomId: joinData.roomId, username: joinData.username });
 
-      set({ joiningRoomId: joinData.roomId });
+      set({ joiningRoomId: joinData.roomId, sessionRecap: null });
 
       const timeout = setTimeout(() => {
         set({ joiningRoomId: null });

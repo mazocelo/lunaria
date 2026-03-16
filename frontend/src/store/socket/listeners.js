@@ -275,6 +275,7 @@ export const createListenerActions = (set, get) => ({
         updateData.aguardandoRespostaMestre = !!restoreRequest && !restoreTerminal;
         updateData.mestreTimedOut = restoreStatus === 'timed_out';
         updateData.mestreStale = false;
+        updateData.sessionRecap = null;
         updateData.joiningRoomId = null;
         set(updateData);
       }
@@ -285,6 +286,7 @@ export const createListenerActions = (set, get) => ({
         roomId: data.roomId,
         session: data.sessao || data.session,
         roomUsers: data.users || [],
+        sessionRecap: null,
         error: null
       });
       get().log('Room joined', {
@@ -315,7 +317,8 @@ export const createListenerActions = (set, get) => ({
         mestrePensando: false,
         aguardandoRespostaMestre: false,
         mestreTimedOut: false,
-        mestreStale: false
+        mestreStale: false,
+        sessionRecap: null
       });
       get().log('Room left', { success: true });
     });
@@ -562,7 +565,8 @@ export const createListenerActions = (set, get) => ({
         combateRodada: 0,
         combateResultado: null,
         combateLog: [],
-        combateXpGanho: 0
+        combateXpGanho: 0,
+        sessionRecap: null
       });
 
       get().log('Sessão resetada', { historiaId: data.historiaId, success: true });

@@ -44,6 +44,8 @@ export const useEtapaJogoRPGModel = ({
     levelUpData, setLevelUpData,
     gameStoreAtualizarMensagem,
   } = socketMirror;
+  const inRoom = useSocketStore(s => s.inRoom);
+  const sessionRecapVisivel = inRoom ? sessionRecap : null;
 
   const clearSessionRecap = useCallback(() => {
     useSocketStore.setState({ sessionRecap: null });
@@ -271,7 +273,7 @@ export const useEtapaJogoRPGModel = ({
     ehMeuTurno, turnoIniciado, turnoStatus,
     combateAtivo, combateMonstros, combateJogadores,
     combateRodada, combateResultado, combateLog, combateXpGanho,
-    sessionRecap, clearSessionRecap,
+    sessionRecap: sessionRecapVisivel, clearSessionRecap,
     levelUpData, setLevelUpData,
 
     // Message input

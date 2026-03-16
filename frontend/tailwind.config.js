@@ -59,17 +59,8 @@ export default {
   plugins: [
     function({ addUtilities }) {
       const newUtilities = {
-        '.glass': {
-          background: 'rgba(30, 41, 59, 0.7)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(148, 163, 184, 0.2)',
-        },
-        '.glass-strong': {
-          background: 'rgba(30, 41, 59, 0.9)',
-          backdropFilter: 'blur(30px)',
-          border: '1px solid rgba(148, 163, 184, 0.3)',
-        },
-        /* Modo Light - Classes específicas */
+        /* .glass, .glass-subtle, .glass-solid definidos em index.css */
+        /* Modo Light - Classes específicas (usadas fora do jogo) */
         '.glass-light': {
           background: 'rgba(255, 255, 255, 0.7)',
           backdropFilter: 'blur(20px)',

@@ -1,25 +1,36 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 /**
  * Componente para efeitos de background animados
+ * Posicoes memoizadas com seed deterministico para evitar reposicionamento em re-renders
  */
 const BackgroundEffects = ({ particleCount = 30 }) => {
+  const particles = useMemo(() => {
+    // Seed deterministico baseado em particleCount
+    const seed = (n) => {
+      let x = Math.sin(n * 9301 + 49297) * 233280;
+      return x - Math.floor(x);
+    };
+
+    return Array.from({ length: particleCount }, (_, i) => ({
+      left: `${seed(i * 3) * 100}%`,
+      top: `${seed(i * 3 + 1) * 100}%`,
+      animationDelay: `${seed(i * 3 + 2) * 3}s`,
+      animationDuration: `${2 + seed(i * 7) * 2}s`
+    }));
+  }, [particleCount]);
+
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {[...Array(particleCount)].map((_, i) => (
+      {particles.map((style, i) => (
         <div
           key={i}
           className="absolute w-1 h-1 bg-white/20 rounded-full animate-pulse"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 3}s`,
-            animationDuration: `${2 + Math.random() * 2}s`
-          }}
+          style={style}
         />
       ))}
     </div>
   );
 };
 
-export default BackgroundEffects; 
+export default BackgroundEffects;

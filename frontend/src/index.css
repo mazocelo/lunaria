@@ -286,9 +286,54 @@
   animation: glow 2s ease-in-out infinite;
 }
 
-/* Glass effect para RPG */
+/* Glass effect para RPG — hierarquia de opacidade */
 .glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10;
+  background: rgba(10, 5, 25, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.glass-subtle {
+  background: rgba(10, 5, 25, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.glass-solid {
+  background: rgba(10, 5, 25, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* TTS Player Slider */
+input[type="range"].tts-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(34, 211, 238));
+  border-radius: 2px;
+  cursor: pointer;
+}
+input[type="range"].tts-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+}
+input[type="range"].tts-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+}
+input[type="range"].tts-slider:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* ============================================
@@ -604,8 +649,9 @@
 
 /* Responsividade */
 @media (max-width: 768px) {
-  .glass {
+  .glass, .glass-subtle, .glass-solid {
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .card-rpg {

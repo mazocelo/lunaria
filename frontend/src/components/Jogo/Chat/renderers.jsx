@@ -4,9 +4,56 @@ import ConfirmationModal from '../../ConfirmationModal.jsx';
 import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
 import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
+import { ImageIcon, Volume2, Play, Pause } from 'lucide-react';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 const RE_SOLICITACAO_DADOS = /(\u{1F3B2}\s*)?[Rr]ole/iu;
+const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
+const buildFallbackNarrationItem = (mensagem, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_TTS_PROVIDER) => {
+  const text = String(getConteudo(mensagem) || '').trim();
+  const voiceId = mensagem?.voice_id || defaultVoiceId || null;
+  const provider = mensagem?.voice_provider || defaultVoiceProvider || DEFAULT_TTS_PROVIDER;
+
+  if (!text || !voiceId) return null;
+
+  return {
+    itemKey: String(mensagem.id),
+    messageId: mensagem.id,
+    segmentId: null,
+    text,
+    voiceId,
+    provider,
+    emotion: null,
+    speakerLabel: mensagem?.npc_nome || mensagem?.speaker_label || 'Mestre',
+    tipo: mensagem?.npc_nome ? 'fala_npc' : 'narracao',
+    hasPersistedAudio: Boolean(mensagem?.audio_cache_key || mensagem?.audio_url || mensagem?.audioUrl)
+  };
+};
+
+const buildMessageSequenceItems = (mensagem, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_TTS_PROVIDER) => {
+  const segmentItems = buildNarrationSequenceItems(
+    mensagem?.segmentos || [],
+    mensagem?.id,
+    mensagem?.voice_id || defaultVoiceId || null,
+    mensagem?.voice_provider || defaultVoiceProvider || DEFAULT_TTS_PROVIDER
+  );
+
+  if (segmentItems.length > 0) return segmentItems;
+
+  const fallbackItem = buildFallbackNarrationItem(
+    mensagem,
+    defaultVoiceId,
+    defaultVoiceProvider
+  );
+
+  return fallbackItem ? [fallbackItem] : [];
+};
+
+const buildSequenceKey = (prefix, items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  return `${prefix}:${items.map((item) => item.itemKey).join('|')}`;
+};
 
 export const renderDado = (mensagem, key) => {
   const modBase = (mensagem.modificador || 0) + (mensagem.bonusNivel || 0);
@@ -124,7 +171,7 @@ export const renderTransicaoTurno = (mensagem, key) => (
 
 export const renderAguardandoDados = (mensagem, key) => (
   <div key={key} className="w-full animate-fade-in my-3">
-    <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-4">
+    <div className="glass border-2 border-amber-500/30 rounded-xl p-4">
       <div className="flex items-center justify-center space-x-2">
         <span className="text-2xl">{'\u{23F3}'}</span>
         <p className="text-amber-300 font-semibold">
@@ -213,26 +260,33 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instancia compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, grouped = false, isFirst = false }) => {
+export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, grouped = false, isFirst = false, hideHeaderControls = false }) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = RE_SOLICITACAO_DADOS.test(conteudo);
-  const isThisPlaying = String(tts.currentMessageId) === String(mensagem.id);
   const effectiveVoiceId = mensagem.voice_id || voiceId;
   const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
   const segmentItems = useMemo(
     () => buildNarrationSequenceItems(mensagem.segmentos || [], mensagem.id, effectiveVoiceId, effectiveVoiceProvider),
     [mensagem.segmentos, mensagem.id, effectiveVoiceId, effectiveVoiceProvider]
   );
-  const hasSegmentedNarration = segmentItems.length > 0;
-  const hasCachedAudio = tts.hasAudioForMessage(mensagem.id);
-  const hasPersistedAudio = Boolean(
-    mensagem.audio_cache_key
-    || mensagem.audio_url
-    || mensagem.audioUrl
-    || segmentItems.some((segment) => segment.hasPersistedAudio)
+  const messageSequenceItems = useMemo(
+    () => buildMessageSequenceItems(mensagem, effectiveVoiceId, effectiveVoiceProvider),
+    [mensagem, effectiveVoiceId, effectiveVoiceProvider]
   );
+  const messageSequenceKey = useMemo(
+    () => buildSequenceKey(`message:${mensagem.id}`, messageSequenceItems),
+    [mensagem.id, messageSequenceItems]
+  );
+  const hasSegmentedNarration = segmentItems.length > 0;
+  const isThisSequenceActive = Boolean(
+    messageSequenceKey
+    && tts.currentSequenceKey === messageSequenceKey
+  );
+  const isThisPlaying = isThisSequenceActive && tts.isPlaying;
+  const hasCachedAudio = messageSequenceItems.some((item) => tts.hasAudioForItem?.(item.itemKey));
+  const hasPersistedAudio = messageSequenceItems.some((item) => item.hasPersistedAudio);
   const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
-  const hasVoiceControls = Boolean(effectiveVoiceId || segmentItems.some((segment) => segment.voiceId));
+  const hasVoiceControls = messageSequenceItems.some((item) => item.voiceId);
 
   const [sceneImage, setSceneImage] = useState(
     mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null
@@ -306,42 +360,26 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const confirmarGerarAudio = async () => {
     setShowConfirmAudio(false);
 
-    if (hasSegmentedNarration) {
-      await tts.generateSequence(segmentItems, mensagem.id, {
-        forceRegenerate: hasAnyAudio,
-      });
-      return;
-    }
-
-    await tts.generate(
-      conteudo,
-      effectiveVoiceId,
+    await tts.generateSequence(
+      messageSequenceItems,
       mensagem.id,
-      effectiveVoiceProvider,
       { forceRegenerate: hasAnyAudio }
     );
   };
 
   const handlePlayAudio = () => {
-    if (isThisPlaying) {
+    if (isThisSequenceActive) {
       tts.togglePause();
       return;
     }
 
-    if (hasSegmentedNarration) {
-      tts.playSequence(segmentItems, mensagem.id, {
-        allowGenerate: false,
-        sequenceKey: `scene:${mensagem.id}`
-      });
-      return;
-    }
-
-    tts.play(
-      conteudo,
-      effectiveVoiceId,
+    tts.playSequence(
+      messageSequenceItems,
       mensagem.id,
-      effectiveVoiceProvider,
-      { allowGenerate: false }
+      {
+        allowGenerate: false,
+        sequenceKey: messageSequenceKey || `message:${mensagem.id}`
+      }
     );
   };
 
@@ -357,52 +395,54 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
         cancelText="Cancelar"
         type="info"
       />
-      <div className="flex items-center justify-between mb-2">
-        {(!grouped || isFirst) && (
-          <p className={`font-semibold text-sm uppercase tracking-wide ${
-            temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
-          }`}>
-            Mestre {temSolicitacaoDados && '— Solicita Rolagem!'}
-          </p>
-        )}
-        {grouped && !isFirst && <div />}
-        <div className="flex items-center gap-1">
-          {hasVoiceControls && (
-            <button
-              onClick={handleGenerateAudio}
-              disabled={isGeneratingThis}
-              className={`p-1.5 rounded-lg transition-all text-lg ${
-                isGeneratingThis
-                  ? 'opacity-50 cursor-not-allowed'
-                  : hasAnyAudio
-                    ? 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
-                    : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-200'
-              }`}
-              title={hasAnyAudio ? 'Regenerar audio' : 'Gerar audio'}
-            >
-              {isGeneratingThis ? (
-                <span className="inline-block w-5 h-5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
-              ) : '🔊'}
-            </button>
+      {!hideHeaderControls && (
+        <div className="flex items-center justify-between mb-2">
+          {(!grouped || isFirst) && (
+            <p className={`font-semibold text-sm uppercase tracking-wide ${
+              temSolicitacaoDados ? 'text-amber-300' : 'text-purple-300'
+            }`}>
+              Mestre {temSolicitacaoDados && '— Solicita Rolagem!'}
+            </p>
           )}
-          {hasVoiceControls && hasAnyAudio && (
-            <button
-              onClick={handlePlayAudio}
-              className={`p-1.5 rounded-lg transition-all text-lg ${
-                isThisPlaying && tts.isPlaying
-                  ? 'bg-purple-500/30 text-purple-200'
-                  : 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
-              }`}
-              title={isThisPlaying && tts.isPlaying ? 'Pausar' : 'Reproduzir audio'}
-            >
-              {isThisPlaying && tts.isPlaying ? '⏸' : '▶'}
-            </button>
-          )}
+          {grouped && !isFirst && <div />}
+          <div className="flex items-center gap-1">
+            {hasVoiceControls && (
+              <button
+                onClick={handleGenerateAudio}
+                disabled={isGeneratingThis}
+                className={`p-1.5 rounded-lg transition-all text-lg ${
+                  isGeneratingThis
+                    ? 'opacity-50 cursor-not-allowed'
+                    : hasAnyAudio
+                      ? 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
+                      : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-200'
+                }`}
+                title={hasAnyAudio ? 'Regenerar audio' : 'Gerar audio'}
+              >
+                {isGeneratingThis ? (
+                  <span className="inline-block w-5 h-5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                ) : <Volume2 size={18} />}
+              </button>
+            )}
+            {hasVoiceControls && hasAnyAudio && (
+              <button
+                onClick={handlePlayAudio}
+                className={`p-1.5 rounded-lg transition-all text-lg ${
+                  isThisPlaying
+                    ? 'bg-purple-500/30 text-purple-200'
+                    : 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
+                }`}
+                title={isThisPlaying ? 'Pausar' : 'Reproduzir audio'}
+              >
+                {isThisPlaying ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+            )}
+          </div>
         </div>
-        {tts.lastError && tts.errorMessageId === mensagem.id && (
-          <p className="text-red-400 text-xs mt-1 text-right">{tts.lastError}</p>
-        )}
-      </div>
+      )}
+      {!hideHeaderControls && tts.lastError && tts.errorMessageId === mensagem.id && (
+        <p className="text-red-400 text-xs mb-2 text-right">{tts.lastError}</p>
+      )}
       {hasSegmentedNarration ? (
         <NarrationSegments
           segments={mensagem.segmentos || []}
@@ -447,7 +487,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
             >
               {generatingScene ? (
                 <span className="inline-block w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-              ) : '🖼️'}
+              ) : <ImageIcon size={18} />}
             </button>
             <button
               onClick={() => setSceneImage(null)}
@@ -473,7 +513,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
           >
             {generatingScene ? (
               <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-            ) : '🖼️'}
+            ) : <ImageIcon size={18} />}
           </button>
         </div>
       )}
@@ -485,8 +525,8 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   }
 
   return (
-    <div className="w-full animate-fade-in">
-      <div className={`glass p-4 rounded-xl border-2 shadow-2xl border-l-4 ${
+    <div className="max-w-[88%] animate-fade-in">
+      <div className={`glass p-4 rounded-xl border-2 shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 ${
         temSolicitacaoDados || mensagem.destaque
           ? 'border-amber-400/90 border-l-amber-400/80 bg-gradient-to-br from-amber-900/80 to-orange-900/70 animate-pulse-slow'
           : 'border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30'
@@ -507,37 +547,153 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
 /**
  * MestreMessageGroup - Agrupa 2+ mensagens consecutivas do mestre em um unico card
  */
-export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => (
-  <div className="w-full animate-fade-in">
-    <div className="glass p-4 rounded-xl border-2 shadow-2xl border-l-4 border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30">
-      <div className="flex items-start space-x-3">
-        <span className="text-2xl drop-shadow-lg mt-0.5">{'\u{1F3AD}'}</span>
-        <div className="flex-1">
-          {mensagens.map((msg, i) => (
-            <React.Fragment key={msg.id || i}>
-              {i > 0 && <hr className="border-purple-500/20 my-3" />}
-              <MestreMessage
-                mensagem={msg}
-                grouped
-                isFirst={i === 0}
-                voiceId={voiceId}
-                voiceProvider={voiceProvider}
-                tts={tts}
-                entidadesComImagem={entidadesComImagem}
-                contextoImagemCena={contextoImagemCena}
-                onSceneImageGenerated={onSceneImageGenerated}
-                estiloImagem={estiloImagem}
-              />
-            </React.Fragment>
-          ))}
+export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
+  const [showConfirmAudio, setShowConfirmAudio] = useState(false);
+
+  const groupSequenceItems = useMemo(
+    () => (Array.isArray(mensagens) ? mensagens : []).flatMap((mensagem) => (
+      buildMessageSequenceItems(mensagem, voiceId, voiceProvider)
+    )),
+    [mensagens, voiceId, voiceProvider]
+  );
+  const groupSequenceKey = useMemo(
+    () => buildSequenceKey('group', groupSequenceItems),
+    [groupSequenceItems]
+  );
+  const groupOwnerId = useMemo(
+    () => (groupSequenceKey ? `group:${groupSequenceKey}` : null),
+    [groupSequenceKey]
+  );
+  const hasVoiceControls = groupSequenceItems.some((item) => item.voiceId);
+  const hasCachedAudio = groupSequenceItems.some((item) => tts.hasAudioForItem?.(item.itemKey));
+  const hasPersistedAudio = groupSequenceItems.some((item) => item.hasPersistedAudio);
+  const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
+  const isGeneratingThis = Boolean(
+    groupOwnerId
+    && String(tts.generatingMessageId || '') === String(groupOwnerId)
+  );
+  const isThisPlaying = Boolean(
+    groupSequenceKey
+    && tts.currentSequenceKey === groupSequenceKey
+    && tts.isPlaying
+  );
+
+  const confirmarGerarAudio = async () => {
+    setShowConfirmAudio(false);
+    if (!groupOwnerId) return;
+
+    await tts.generateSequence(groupSequenceItems, groupOwnerId, {
+      forceRegenerate: hasAnyAudio
+    });
+  };
+
+  const handleGenerateAudio = () => {
+    if (isGeneratingThis || !groupOwnerId) return;
+    if (hasAnyAudio) {
+      setShowConfirmAudio(true);
+      return;
+    }
+    confirmarGerarAudio();
+  };
+
+  const handlePlayAudio = () => {
+    if (!groupOwnerId) return;
+
+    if (groupSequenceKey && tts.currentSequenceKey === groupSequenceKey) {
+      tts.togglePause();
+      return;
+    }
+
+    tts.playSequence(groupSequenceItems, groupOwnerId, {
+      allowGenerate: false,
+      sequenceKey: groupSequenceKey || groupOwnerId
+    });
+  };
+
+  return (
+    <div className="max-w-[88%] animate-fade-in">
+      <ConfirmationModal
+        isOpen={showConfirmAudio}
+        onClose={() => setShowConfirmAudio(false)}
+        onConfirm={confirmarGerarAudio}
+        title="Gerar Audio"
+        message="Ja existe audio para esta mensagem. Deseja gerar novamente?"
+        confirmText="Gerar"
+        cancelText="Cancelar"
+        type="info"
+      />
+      <div className="glass p-4 rounded-xl border-2 shadow-2xl border-l-4 border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30">
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl drop-shadow-lg mt-0.5">{'\u{1F3AD}'}</span>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-semibold text-sm uppercase tracking-wide text-purple-300">
+                Mestre
+              </p>
+              <div className="flex items-center gap-1">
+                {hasVoiceControls && (
+                  <button
+                    onClick={handleGenerateAudio}
+                    disabled={isGeneratingThis}
+                    className={`p-1.5 rounded-lg transition-all text-lg ${
+                      isGeneratingThis
+                        ? 'opacity-50 cursor-not-allowed'
+                        : hasAnyAudio
+                          ? 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
+                          : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-200'
+                    }`}
+                    title={hasAnyAudio ? 'Regenerar audio da mensagem' : 'Gerar audio da mensagem'}
+                  >
+                    {isGeneratingThis ? (
+                      <span className="inline-block w-5 h-5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                    ) : <Volume2 size={18} />}
+                  </button>
+                )}
+                {hasVoiceControls && hasAnyAudio && (
+                  <button
+                    onClick={handlePlayAudio}
+                    className={`p-1.5 rounded-lg transition-all text-lg ${
+                      isThisPlaying
+                        ? 'bg-purple-500/30 text-purple-200'
+                        : 'hover:bg-purple-500/20 text-purple-400 hover:text-purple-200'
+                    }`}
+                    title={isThisPlaying ? 'Pausar audio da mensagem' : 'Reproduzir audio da mensagem'}
+                  >
+                    {isThisPlaying ? <Pause size={18} /> : <Play size={18} />}
+                  </button>
+                )}
+              </div>
+            </div>
+            {tts.lastError && tts.errorMessageId === groupOwnerId && (
+              <p className="text-red-400 text-xs mb-2 text-right">{tts.lastError}</p>
+            )}
+            {mensagens.map((msg, i) => (
+              <React.Fragment key={msg.id || i}>
+                {i > 0 && <hr className="border-purple-500/20 my-3" />}
+                <MestreMessage
+                  mensagem={msg}
+                  grouped
+                  isFirst={i === 0}
+                  hideHeaderControls
+                  voiceId={voiceId}
+                  voiceProvider={voiceProvider}
+                  tts={tts}
+                  entidadesComImagem={entidadesComImagem}
+                  contextoImagemCena={contextoImagemCena}
+                  onSceneImageGenerated={onSceneImageGenerated}
+                  estiloImagem={estiloImagem}
+                />
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const renderJogador = (mensagem, key) => (
-  <div key={key} className="w-full animate-fade-in">
+  <div key={key} className="max-w-[80%] ml-auto animate-fade-in">
     <div className="glass p-6 rounded-xl border-2 border-cyan-500/60 bg-gradient-to-br from-cyan-900/30 to-blue-900/30 shadow-xl">
       <div className="flex items-start space-x-4">
         <span className="text-3xl drop-shadow-lg">{'\u{2694}\u{FE0F}'}</span>
@@ -563,7 +719,7 @@ export const renderMestreStreaming = (mensagem, key) => {
   const conteudo = getConteudo(mensagem);
 
   return (
-    <div key={key} className="w-full animate-fade-in">
+    <div key={key} className="max-w-[88%] animate-fade-in">
       <div className="glass p-4 rounded-xl border-2 shadow-2xl border-l-4 border-purple-400/70 border-l-purple-400/60 bg-gradient-to-br from-purple-900/40 to-pink-900/30">
         <div className="flex items-start space-x-3">
           <span className="text-2xl drop-shadow-lg mt-0.5">{'\u{1F3AD}'}</span>
@@ -617,6 +773,3 @@ export const MESSAGE_RENDERERS = {
   jogador: renderJogador,
   player: renderJogador,
 };
-
-
-

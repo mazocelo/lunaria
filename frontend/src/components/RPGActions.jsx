@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useTheme } from '../contexts/theme';
 
 /**
- * Componente para acoes RPG na sidebar
+ * Componente para acoes RPG na sidebar (sempre dark/game context)
  * Dados de rolagem + habilidades ativas do personagem + equipamentos
  */
 export const RPGActions = ({
@@ -12,11 +11,7 @@ export const RPGActions = ({
   personagem,
   className = ''
 }) => {
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const [customDice, setCustomDice] = useState('1d20');
-  const [showCustom, setShowCustom] = useState(false);
 
   // Dados comuns
   const commonDice = [
@@ -50,54 +45,51 @@ export const RPGActions = ({
   const equipamentos = personagem?.equipamentos || [];
 
   const getElementColor = (elemento) => {
-    if (!elemento || elemento.length === 0) return isLight
-      ? 'bg-slate-100 text-slate-600'
-      : 'bg-slate-700/50 text-slate-400';
-
+    if (!elemento || elemento.length === 0) return 'bg-slate-500/15 text-slate-400';
     const el = Array.isArray(elemento) ? elemento[0]?.toLowerCase() : elemento.toLowerCase();
     const colors = {
-      fogo: isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/20 text-red-300',
-      gelo: isLight ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300',
-      eletrico: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
-      acido: isLight ? 'bg-lime-100 text-lime-700' : 'bg-lime-500/20 text-lime-300',
-      veneno: isLight ? 'bg-green-100 text-green-700' : 'bg-green-500/20 text-green-300',
-      sonico: isLight ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500/20 text-indigo-300',
-      radiante: isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-500/20 text-amber-300',
-      necrotico: isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-300',
-      sombrio: isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-600/30 text-slate-300',
-      psiquico: isLight ? 'bg-pink-100 text-pink-700' : 'bg-pink-500/20 text-pink-300',
-      arcano: isLight ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300',
-      divino: isLight ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-300',
-      natureza: isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300',
-      agua: isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-300',
-      terra: isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-500/20 text-amber-300',
-      vento: isLight ? 'bg-cyan-100 text-cyan-700' : 'bg-cyan-500/20 text-cyan-300',
-      contundente: isLight ? 'bg-stone-100 text-stone-700' : 'bg-stone-500/20 text-stone-300',
-      cortante: isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/20 text-red-300',
-      perfurante: isLight ? 'bg-gray-100 text-gray-700' : 'bg-gray-500/20 text-gray-300',
+      fogo: 'bg-red-500/20 text-red-300',
+      gelo: 'bg-sky-500/20 text-sky-300',
+      eletrico: 'bg-yellow-500/20 text-yellow-300',
+      acido: 'bg-lime-500/20 text-lime-300',
+      veneno: 'bg-green-500/20 text-green-300',
+      sonico: 'bg-indigo-500/20 text-indigo-300',
+      radiante: 'bg-amber-500/20 text-amber-300',
+      necrotico: 'bg-purple-500/20 text-purple-300',
+      sombrio: 'bg-slate-600/30 text-slate-300',
+      psiquico: 'bg-pink-500/20 text-pink-300',
+      arcano: 'bg-violet-500/20 text-violet-300',
+      divino: 'bg-yellow-500/20 text-yellow-300',
+      natureza: 'bg-emerald-500/20 text-emerald-300',
+      agua: 'bg-blue-500/20 text-blue-300',
+      terra: 'bg-amber-500/20 text-amber-300',
+      vento: 'bg-cyan-500/20 text-cyan-300',
+      contundente: 'bg-stone-500/20 text-stone-300',
+      cortante: 'bg-red-500/20 text-red-300',
+      perfurante: 'bg-gray-500/20 text-gray-300',
     };
-    return colors[el] || (isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/50 text-slate-400');
+    return colors[el] || 'bg-slate-500/15 text-slate-400';
   };
+
+  /** Separador de seção */
+  const SectionHeader = ({ title }) => (
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-purple-300/60 font-fantasy text-xs uppercase tracking-widest">{title}</span>
+      <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent" />
+    </div>
+  );
 
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Rolagem de Dados */}
       <div>
-        <h3 className={`text-sm font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-          Rolagem de Dados
-        </h3>
+        <SectionHeader title="Dados" />
         <div className="grid grid-cols-3 gap-2 mb-2">
           {commonDice.map((dice) => (
             <button
               key={dice.value}
               onClick={() => handleDiceRoll(dice.value)}
-              className={`
-                px-3 py-2 text-sm font-medium rounded-lg border transition-all cursor-pointer
-                ${isLight
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                  : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border-slate-600/50'
-                }
-              `}
+              className="glass-subtle aspect-square rounded-xl border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(139,92,246,0.1)] text-purple-200 font-fantasy font-bold text-base transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
             >
               {dice.label}
             </button>
@@ -111,23 +103,11 @@ export const RPGActions = ({
             value={customDice}
             onChange={(e) => setCustomDice(e.target.value)}
             placeholder="1d20+5"
-            className={`
-              flex-1 px-2 py-1 text-sm rounded border
-              ${isLight
-                ? 'bg-white border-slate-300 text-slate-700'
-                : 'bg-slate-800 border-slate-600 text-slate-200'
-              }
-            `}
+            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg glass-subtle border border-purple-500/20 text-purple-100 placeholder-purple-400/40 focus:outline-none focus:border-purple-400/50 focus:shadow-[0_0_8px_rgba(139,92,246,0.1)] transition-all"
           />
           <button
             onClick={handleCustomDiceRoll}
-            className={`
-              px-3 py-1 text-sm font-medium rounded border transition-all cursor-pointer
-              ${isLight
-                ? 'bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-300'
-                : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border-purple-500/30'
-              }
-            `}
+            className="px-3 py-1.5 text-sm font-medium rounded-lg glass-subtle border border-purple-500/25 text-purple-200 hover:border-purple-400/40 hover:bg-purple-500/15 transition-all cursor-pointer"
           >
             Rolar
           </button>
@@ -137,36 +117,26 @@ export const RPGActions = ({
       {/* Habilidades Ativas */}
       {vantagensAtivas.length > 0 && (
         <div>
-          <h3 className={`text-sm font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-            Habilidades Ativas
-          </h3>
+          <SectionHeader title="Habilidades" />
           <div className="space-y-2">
             {vantagensAtivas.map((vantagem, i) => (
               <button
                 key={i}
                 onClick={() => onUsarHabilidade && onUsarHabilidade(vantagem)}
-                className={`
-                  w-full text-left px-3 py-2 rounded-lg border transition-all cursor-pointer
-                  ${isLight
-                    ? 'bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-900'
-                    : 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/30 text-purple-200'
-                  }
-                `}
+                className="w-full text-left glass-subtle rounded-lg p-2.5 border border-purple-500/15 hover:border-purple-400/30 transition-all cursor-pointer"
                 title={vantagem.descricao || vantagem.nome}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{vantagem.nome}</span>
+                  <span className="font-medium text-sm text-purple-100">{vantagem.nome}</span>
                   {vantagem.usar > 1 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${isLight ? 'bg-purple-200 text-purple-700' : 'bg-purple-500/30 text-purple-300'}`}>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
                       x{vantagem.usar}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   {vantagem.dano_base && (
-                    <span className={`text-xs ${isLight ? 'text-red-600' : 'text-red-400'}`}>
-                      {vantagem.dano_base}
-                    </span>
+                    <span className="text-xs text-red-400">{vantagem.dano_base}</span>
                   )}
                   {vantagem.elemento && vantagem.elemento.length > 0 && (
                     vantagem.elemento.map((el, j) => (
@@ -185,35 +155,25 @@ export const RPGActions = ({
       {/* Equipamentos */}
       {equipamentos.length > 0 && (
         <div>
-          <h3 className={`text-sm font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-            Equipamentos
-          </h3>
+          <SectionHeader title="Equipamentos" />
           <div className="space-y-1.5">
             {equipamentos.map((equip, i) => (
               <button
                 key={i}
                 onClick={() => onUsarEquipamento && onUsarEquipamento(equip)}
-                className={`
-                  w-full text-left px-3 py-2 rounded-lg border transition-all cursor-pointer
-                  ${isLight
-                    ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-900'
-                    : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-200'
-                  }
-                `}
+                className="w-full text-left glass-subtle rounded-lg p-2.5 border border-amber-500/15 hover:border-amber-400/30 transition-all cursor-pointer"
                 title={equip.descricao || equip.nome}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{equip.nome}</span>
+                  <span className="font-medium text-sm text-amber-100">{equip.nome}</span>
                   {equip.tipo && (
-                    <span className={`text-xs ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 font-mono">
                       {Array.isArray(equip.tipo) ? equip.tipo[0] : equip.tipo}
                     </span>
                   )}
                 </div>
                 {equip.dano_base && (
-                  <span className={`text-xs ${isLight ? 'text-red-600' : 'text-red-400'}`}>
-                    {equip.dano_base}
-                  </span>
+                  <span className="text-xs text-red-400">{equip.dano_base}</span>
                 )}
               </button>
             ))}
@@ -221,17 +181,15 @@ export const RPGActions = ({
         </div>
       )}
 
-      {/* Tracos Passivos (vantagens passivas + desvantagens) - info only */}
+      {/* Tracos Passivos (vantagens passivas + desvantagens) */}
       {(vantagensPassivas.length > 0 || desvantagens.length > 0) && (
         <div>
-          <h3 className={`text-sm font-semibold mb-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-            Tracos
-          </h3>
+          <SectionHeader title="Tracos" />
           <div className="space-y-1">
             {vantagensPassivas.map((v, i) => (
               <div
                 key={`v-${i}`}
-                className={`px-2 py-1.5 rounded text-xs ${isLight ? 'bg-green-50 text-green-700' : 'bg-green-500/10 text-green-400'}`}
+                className="glass-subtle rounded-lg px-2.5 py-1.5 border border-emerald-500/15 text-emerald-300 text-sm"
                 title={v.descricao || ''}
               >
                 + {v.nome}
@@ -240,7 +198,7 @@ export const RPGActions = ({
             {desvantagens.map((d, i) => (
               <div
                 key={`d-${i}`}
-                className={`px-2 py-1.5 rounded text-xs ${isLight ? 'bg-red-50 text-red-700' : 'bg-red-500/10 text-red-400'}`}
+                className="glass-subtle rounded-lg px-2.5 py-1.5 border border-red-500/15 text-red-300 text-sm"
                 title={d.descricao || ''}
               >
                 - {d.nome}
@@ -252,7 +210,7 @@ export const RPGActions = ({
 
       {/* Mensagem quando nao tem personagem */}
       {!personagem && (
-        <div className={`text-center py-4 text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+        <div className="text-center py-4 text-sm text-purple-400/60">
           Selecione um personagem para ver habilidades
         </div>
       )}

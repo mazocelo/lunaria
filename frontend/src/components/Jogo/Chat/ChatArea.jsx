@@ -239,32 +239,32 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
       {tts.currentMessageId != null && (
         <div className="px-6 pb-2">
           <div className="w-full max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/30 border border-purple-500/30">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full glass-subtle border border-white/[0.08]">
               <button
                 onClick={tts.togglePause}
-                className="px-1.5 py-0.5 rounded text-xs bg-purple-600/40 text-purple-100 hover:bg-purple-600/60 transition-all flex-shrink-0"
+                className="p-1.5 rounded-lg hover:bg-white/10 text-purple-200 hover:text-white transition-all flex-shrink-0"
               >
                 {tts.isPlaying ? '\u{23F8}' : '\u{25B6}'}
               </button>
               <button
                 onClick={tts.stop}
-                className="px-1.5 py-0.5 rounded text-xs bg-red-600/30 text-red-100 hover:bg-red-600/50 transition-all flex-shrink-0"
+                className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-300/60 hover:text-red-200 transition-all flex-shrink-0"
               >
                 {'\u{23F9}'}
               </button>
               <button
                 onClick={tts.cyclePlaybackRate}
-                className="px-1.5 py-0.5 rounded text-xs bg-cyan-600/30 text-cyan-100 hover:bg-cyan-600/50 transition-all flex-shrink-0"
+                className="px-2 py-1 rounded-lg hover:bg-cyan-500/20 text-[11px] font-mono text-cyan-300/60 hover:text-cyan-200 transition-all flex-shrink-0"
                 title="Velocidade"
               >
                 {`${tts.playbackRate}x`}
               </button>
-              <span className="text-xs text-purple-200 truncate max-w-[200px]">
+              <span className="text-xs text-purple-200/70 truncate max-w-[200px]">
                 {currentTtsSegment
                   ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}`
                   : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao'}
               </span>
-              <span className="text-xs text-purple-300 flex-shrink-0">{formatTime(tts.currentTime)}</span>
+              <span className="text-[11px] font-mono text-purple-300/60 flex-shrink-0">{formatTime(tts.currentTime)}</span>
               <input
                 type="range"
                 min={0}
@@ -272,10 +272,10 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                 step="0.1"
                 value={Math.min(tts.currentTime || 0, tts.duration || 0)}
                 onChange={(e) => tts.seekTo(e.target.value)}
-                className="w-32 accent-purple-400 flex-shrink-0"
+                className="tts-slider w-32 flex-shrink-0"
                 disabled={!tts.duration}
               />
-              <span className="text-xs text-purple-300 flex-shrink-0">{formatTime(tts.duration)}</span>
+              <span className="text-[11px] font-mono text-purple-300/60 flex-shrink-0">{formatTime(tts.duration)}</span>
             </div>
           </div>
         </div>

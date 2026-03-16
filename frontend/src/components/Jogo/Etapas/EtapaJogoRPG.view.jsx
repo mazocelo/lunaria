@@ -190,16 +190,16 @@ const EtapaJogoRPGView = (props) => {
           </div>
 
           {showActions && (
-            <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-l border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
+            <div className={`transition-all duration-300 glass border-l border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
               rightPanelExpanded ? 'w-80' : 'w-16'
             }`}>
               <div className={`flex items-center mb-3 ${rightPanelExpanded ? 'justify-between' : 'justify-center'}`}>
                 {rightPanelExpanded && (
-                  <h3 className="text-white font-bold text-lg">Acoes RPG</h3>
+                  <h3 className="text-base font-fantasy font-bold text-purple-200/80 uppercase tracking-wider">Acoes RPG</h3>
                 )}
                 <button
                   onClick={() => setRightPanelExpanded(!rightPanelExpanded)}
-                  className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-all flex-shrink-0"
+                  className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-all transform hover:scale-105 flex-shrink-0"
                   title={rightPanelExpanded ? 'Retrair painel' : 'Expandir painel'}
                 >
                   <span className="text-lg">{rightPanelExpanded ? '▶' : '◀'}</span>
@@ -215,7 +215,10 @@ const EtapaJogoRPGView = (props) => {
                     personagem={personagemSelecionado}
                   />
                   <div className="border-t border-purple-500/20 pt-4">
-                    <h4 className="text-white font-semibold mb-2">Status</h4>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-purple-300/60 font-fantasy text-xs uppercase tracking-widest">Status</span>
+                      <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent" />
+                    </div>
                     <StatusPersonagem
                       personagemSelecionado={infoPersonagem}
                       onRolarDados={handleRolarDados}
@@ -233,14 +236,14 @@ const EtapaJogoRPGView = (props) => {
                 <div className="flex flex-col items-center space-y-3 mt-4">
                   <button
                     onClick={() => setRightPanelExpanded(true)}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 flex items-center justify-center border border-purple-500/30 hover:bg-purple-500/40 transition-all"
+                    className="w-10 h-10 rounded-full glass-subtle flex items-center justify-center border border-purple-500/20 hover:border-purple-400/40 transition-all"
                     title="Acoes RPG"
                   >
                     <span className="text-lg">⚔️</span>
                   </button>
                   <button
                     onClick={() => setRightPanelExpanded(true)}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500/30 to-purple-500/30 flex items-center justify-center border border-cyan-500/30 hover:bg-cyan-500/40 transition-all"
+                    className="w-10 h-10 rounded-full glass-subtle flex items-center justify-center border border-cyan-500/20 hover:border-cyan-400/40 transition-all"
                     title="Status"
                   >
                     <span className="text-lg">📊</span>

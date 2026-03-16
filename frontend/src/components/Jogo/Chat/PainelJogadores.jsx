@@ -39,12 +39,12 @@ const PainelJogadores = ({
     return (
       <div 
         key={userId || index} 
-        className={`glass p-3 rounded-lg border transition-all ${
-          ehTurnoAtual 
-            ? 'border-cyan-400 ring-2 ring-cyan-500/50 animate-pulse' 
+        className={`glass-subtle p-3 rounded-xl border transition-all ${
+          ehTurnoAtual
+            ? 'border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.15)] animate-pulse'
             : ehUsuarioAtual
-            ? 'border-purple-400/50'
-            : 'border-white/10'
+            ? 'border-purple-400/30 hover:border-purple-400/50'
+            : 'border-white/[0.06] hover:border-purple-400/20'
         }`}
       >
         <div className="flex items-center space-x-3 mb-2">
@@ -132,13 +132,13 @@ const PainelJogadores = ({
   };
 
   return (
-    <div className={`transition-all duration-300 bg-black/20 backdrop-blur-sm border-r border-purple-500/20 p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
+    <div className={`transition-all duration-300 glass border-r border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
       isExpanded ? (compactMode ? 'w-64' : 'w-80') : 'w-16'
     }`}>
       {/* Header com botão de collapse */}
       <div className={`flex items-center mb-2 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
         {isExpanded && (
-          <h3 className="text-lg font-fantasy font-bold text-white flex items-center">
+          <h3 className="text-base font-fantasy font-bold text-purple-200/80 uppercase tracking-wider flex items-center">
             👥 Aventureiros
           </h3>
         )}

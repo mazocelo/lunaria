@@ -33,7 +33,7 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
   const xpProximoNivel = personagem.xp_proximo_nivel;
 
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 bg-black/30 backdrop-blur-sm border-b border-purple-500/10 shrink-0">
+    <div className="flex items-center gap-3 px-3 py-1.5 glass-subtle border-b border-white/[0.04] shrink-0">
       {/* Avatar + Nível */}
       <div className="flex items-center gap-1.5 shrink-0">
         {personagem.imagem ? (
@@ -47,25 +47,25 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
       {/* HP Bar */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0 max-w-[200px]">
         <Heart size={12} className="text-red-400 shrink-0" />
-        <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+        <div className="flex-1 h-2.5 bg-slate-700/50 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full bg-gradient-to-r ${hpColor} transition-all duration-500`}
             style={{ width: `${hpPercent}%` }}
           />
         </div>
-        <span className="text-[10px] font-mono text-slate-300 shrink-0">{hpAtual}/{hpMax}</span>
+        <span className="text-xs font-mono text-slate-300 shrink-0">{hpAtual}/{hpMax}</span>
       </div>
 
       {/* Mana Bar */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0 max-w-[160px]">
         <Droplets size={12} className="text-blue-400 shrink-0" />
-        <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+        <div className="flex-1 h-2.5 bg-slate-700/50 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-500"
             style={{ width: `${manaPercent}%` }}
           />
         </div>
-        <span className="text-[10px] font-mono text-slate-300 shrink-0">{manaAtual}/{manaMax}</span>
+        <span className="text-xs font-mono text-slate-300 shrink-0">{manaAtual}/{manaMax}</span>
       </div>
 
       {/* XP Bar */}

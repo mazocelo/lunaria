@@ -99,7 +99,7 @@ const ActionDock = ({
   const alvoIdPadrao = primeiroMonstroVivo?.id || null;
 
   return (
-    <div className="px-4 py-3 bg-black/30 backdrop-blur-sm border-t-2 border-purple-500/30 shadow-2xl">
+    <div className="px-4 py-3 glass-solid border-t border-white/[0.08]">
       <div className="w-full space-y-2">
 
         {/* Status pills row */}
@@ -212,7 +212,7 @@ const ActionDock = ({
               <button
                 key={btn.label}
                 onClick={() => fillInput(btn.acao, btn.intent)}
-                className="px-3 py-1.5 text-xs bg-red-900/40 border border-red-500/40 text-red-200 rounded-lg hover:bg-red-800/50 hover:border-red-400/60 transition-all"
+                className="px-3 py-1.5 text-xs glass-subtle border border-red-500/25 text-red-200 rounded-lg hover:border-red-400/40 hover:bg-red-500/10 transition-all"
               >
                 {btn.emoji} {btn.label}
               </button>
@@ -232,7 +232,7 @@ const ActionDock = ({
               </button>
 
               {showSkillMenu && habilidadesPersonagem.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-slate-900/95 border border-purple-500/40 rounded-lg shadow-xl z-50">
+                <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto glass-solid border border-purple-500/30 rounded-xl shadow-2xl z-50">
                   {habilidadesPersonagem.map((hab) => {
                     const cdRestante = cooldownsHabilidades[hab.id] || 0;
                     const semMana = hab.custo_mana > manaAtual;
@@ -287,7 +287,7 @@ const ActionDock = ({
                 <button
                   key={btn.label}
                   onClick={() => fillInput(btn.acao)}
-                  className="flex-shrink-0 px-2 py-1.5 text-xs bg-purple-900/30 border border-purple-500/30 text-purple-200 rounded-lg hover:bg-purple-800/40 hover:border-purple-400/50 transition-all"
+                  className="flex-shrink-0 px-3 py-1.5 text-xs glass-subtle border border-purple-500/20 text-purple-200 rounded-lg hover:border-purple-400/40 hover:bg-purple-500/10 transition-all"
                 >
                   {btn.emoji} {btn.label}
                 </button>
@@ -303,10 +303,10 @@ const ActionDock = ({
             onChange={onMensagemChange}
             onKeyDown={handleKeyPress}
             disabled={isSending || inputDesabilitado}
-            className={`flex-1 min-w-0 px-4 py-2.5 text-sm rounded-xl border-2 bg-black/30 backdrop-blur-sm shadow-lg caret-purple-400 ${
+            className={`flex-1 min-w-0 px-4 py-2.5 text-sm rounded-xl glass-subtle border border-purple-500/25 shadow-lg caret-purple-400 ${
               ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado
-                ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-cyan-500/30'
-                : 'border-purple-500/40'
+                ? 'border-cyan-400/50 shadow-[0_0_12px_rgba(34,211,238,0.12)]'
+                : 'border-purple-500/25'
             } text-white placeholder-purple-300/60 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-all`}
           />
 
@@ -314,7 +314,7 @@ const ActionDock = ({
           <button
             onClick={enviarMensagemComTipo}
             disabled={connectionStatus.status === 'error' || !mensagemAtual?.trim() || isSending || inputDesabilitado}
-            className="flex-shrink-0 px-5 py-2.5 text-sm bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+            className="flex-shrink-0 px-5 py-2.5 text-sm bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]"
           >
             {isSending || aguardandoMestre ? (
               <span className="flex items-center gap-1">

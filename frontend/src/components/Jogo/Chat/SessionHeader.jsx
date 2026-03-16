@@ -14,7 +14,7 @@ const SessionHeader = ({
   mobileDrawer, setMobileDrawer,
 }) => {
   return (
-    <div className="flex-shrink-0 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm border-b border-purple-500/20 z-40">
+    <div className="flex-shrink-0 h-14 px-4 flex items-center justify-between glass-solid border-b border-white/[0.06] z-40">
       {/* Left: status + fase + turno */}
       <div className="flex items-center space-x-3">
         <div className="flex items-center space-x-2">
@@ -37,6 +37,7 @@ const SessionHeader = ({
 
       {/* Right: buttons */}
       <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         {/* RODADA button with dropdown */}
         <div className="relative" ref={rodadaDropdownRef}>
           <button
@@ -47,7 +48,7 @@ const SessionHeader = ({
           </button>
 
           {showRodadaInfo && (
-            <div className="absolute right-0 top-full mt-1 w-72 glass p-4 rounded-xl border-2 border-purple-500/50 shadow-2xl animate-scale-in max-h-96 overflow-y-auto z-50">
+            <div className="absolute right-0 top-full mt-1 w-72 glass-solid p-5 rounded-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-scale-in max-h-96 overflow-y-auto z-50">
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -140,6 +141,7 @@ const SessionHeader = ({
           <span className="hidden sm:inline">SAIR</span>
           <span className="sm:hidden">{'\u{1F6AA}'}</span>
         </button>
+        </div>
 
         <button
           onClick={() => setMobileDrawer(mobileDrawer === 'jogadores' ? null : 'jogadores')}

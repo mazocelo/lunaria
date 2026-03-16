@@ -17,8 +17,10 @@ import NotificationManager from '../NotificationManager';
 import BarraStatusCompacta from '../Gameplay/BarraStatusCompacta';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
 import { PARTICLES } from '../../../constants/game';
+import { useTTS } from '../../../hooks/useTTS';
 
 const EtapaJogoRPGView = (props) => {
+  const tts = useTTS();
   const {
     historia,
     personagemSelecionado,
@@ -122,6 +124,10 @@ const EtapaJogoRPGView = (props) => {
           onSair={onSair}
           mobileDrawer={mobileDrawer}
           setMobileDrawer={setMobileDrawer}
+          prologo={historia?.prologo}
+          tts={tts}
+          voiceId={effectiveVoiceId}
+          voiceProvider={effectiveVoiceProvider}
         />
 
         <div className="flex-1 flex overflow-hidden">

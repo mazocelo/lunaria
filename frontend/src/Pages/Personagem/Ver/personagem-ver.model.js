@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { personagemService, equipamentoService, historiaService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
 import { useTheme } from '../../../contexts/theme.jsx';
+import { sanitizeTextForSpeech } from '../../../utils/speechText.js';
 
 export const usePersonagemVerModel = () => {
   const { id } = useParams();
@@ -314,12 +315,13 @@ export const usePersonagemVerModel = () => {
 
   const gerarAudioBackground = useCallback(async () => {
     const text = personagem?.background;
-    if (!text || gerandoAudio) return;
+    const speechText = sanitizeTextForSpeech(text || '');
+    if (!speechText || gerandoAudio) return;
 
     setGerandoAudio(true);
     try {
       const response = await apiClient.client.post('/tts/generate', {
-        text,
+        text: speechText,
         provider: 'opensource',
         voiceId: 'pt-br-kokoro-santa',
       }, { responseType: 'blob' });

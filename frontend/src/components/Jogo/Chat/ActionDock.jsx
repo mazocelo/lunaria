@@ -177,7 +177,7 @@ const ActionDock = ({
             </div>
             <button
               type="button"
-              onClick={() => onRolarDados && onRolarDados(dadoSolicitadoInfo.tipoDado, dadoSolicitadoInfo.teste)}
+              onClick={() => onRolarDados && onRolarDados(dadoSolicitadoInfo.tipoDado, dadoSolicitadoInfo.teste, dadoSolicitadoInfo)}
               disabled={connectionStatus.status === 'error'}
               className="flex-shrink-0 px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-lg font-bold shadow-lg transition-all hover:scale-105 animate-pulse disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >

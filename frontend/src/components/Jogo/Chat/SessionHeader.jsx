@@ -1,5 +1,5 @@
-import React from 'react';
-import { BookOpen, DoorOpen, ScrollText, Swords, Users } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { BookOpen, DoorOpen, ScrollText, Swords, Users, BookMarked, Volume2 } from 'lucide-react';
 
 /**
  * Header compacto da sessao de jogo RPG
@@ -20,7 +20,23 @@ const SessionHeader = ({
   onSair,
   mobileDrawer,
   setMobileDrawer,
+  prologo,
+  tts,
+  voiceId,
+  voiceProvider,
 }) => {
+  const [showPrologo, setShowPrologo] = useState(false);
+  const prologoRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (prologoRef.current && !prologoRef.current.contains(e.target)) {
+        setShowPrologo(false);
+      }
+    };
+    if (showPrologo) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPrologo]);
   const faseLabel = faseJogo === 'rolagem_inicial'
     ? 'Rolagem Inicial'
     : faseJogo === 'rodada_em_andamento'
@@ -54,10 +70,49 @@ const SessionHeader = ({
 
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 p-1 rounded-xl game-glass-subtle border border-white/[0.08]">
+          {prologo && (
+            <div className="relative" ref={prologoRef}>
+              <button
+                type="button"
+                onClick={() => { setShowPrologo(!showPrologo); setShowRodadaInfo(false); }}
+                className={`px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm ${
+                  showPrologo
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border border-amber-300'
+                    : 'bg-gradient-to-r from-amber-600/40 to-orange-600/40 text-amber-200 hover:from-amber-600/60 hover:to-orange-600/60 border border-amber-500/30'
+                }`}
+                title="Ler prologo da historia"
+                aria-label="Ler prologo da historia"
+              >
+                <BookMarked size={14} />
+                <span className="hidden sm:inline">PROLOGO</span>
+              </button>
+
+              {showPrologo && (
+                <div className="absolute right-0 top-full mt-1 w-80 sm:w-96 game-glass-solid p-5 rounded-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-scale-in max-h-[60vh] overflow-y-auto z-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-fantasy font-bold text-amber-300 uppercase tracking-widest">Prologo</h3>
+                    {tts && voiceId && (
+                      <button
+                        type="button"
+                        onClick={() => tts.play(prologo, voiceId, 'prologo', voiceProvider, { allowGenerate: true })}
+                        className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+                        title="Ouvir prologo"
+                        aria-label="Ouvir prologo"
+                      >
+                        <Volume2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-sm text-purple-100/90 leading-relaxed whitespace-pre-line">{prologo}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="relative" ref={rodadaDropdownRef}>
             <button
               type="button"
-              onClick={() => setShowRodadaInfo(!showRodadaInfo)}
+              onClick={() => { setShowRodadaInfo(!showRodadaInfo); setShowPrologo(false); }}
               className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm"
               aria-label="Abrir resumo da rodada"
               title="Abrir resumo da rodada"

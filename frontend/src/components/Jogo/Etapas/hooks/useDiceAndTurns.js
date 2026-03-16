@@ -21,7 +21,6 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
       const descricaoFinal = descricao || dadoSolicitadoInfo?.teste || '';
 
       const roomId = `historia_${historia?.id}`;
-      const requestId = crypto.randomUUID();
       const resultado = rolarDados(dadoFinal, descricaoFinal);
 
       const enviado = socketStoreSafeEmit('dice_roll', {
@@ -30,7 +29,9 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
         username: user?.nome || user?.name,
         dice: String(dadoFinal),
         result: String(resultado.resultado),
-        description: descricaoFinal
+        description: descricaoFinal,
+        testeId: dadoSolicitadoInfo?.testeId || null,
+        groupId: dadoSolicitadoInfo?.groupId || null
       });
 
       if (!enviado) {

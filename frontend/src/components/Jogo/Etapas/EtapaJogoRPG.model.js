@@ -187,6 +187,8 @@ export const useEtapaJogoRPGModel = ({
   const dadosSolicitados = !!meuTestePendente;
   const dadoSolicitadoInfo = meuTestePendente
     ? {
+        testeId: meuTestePendente.id || null,
+        groupId: meuTestePendente.groupId || null,
         tipoDado: meuTestePendente.tipoDado || 'd20',
         teste: meuTestePendente.teste || '',
         dificuldade: meuTestePendente.metadata?.dificuldadeLabel || meuTestePendente.dificuldade || 'Media',

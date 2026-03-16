@@ -360,14 +360,50 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     const handleResultadoTeste = (data) => {
       const resolvedGroupId = data?.groupId || null;
       if (resolvedGroupId) {
+        const promptId = `solicitacao_${resolvedGroupId}`;
+        const remainingGroupTests = Array.isArray(data?.remainingGroupTests) ? data.remainingGroupTests : [];
+        const nextTestePendente = data?.nextTestePendente || remainingGroupTests[0] || null;
         const mensagensAtuais = useGameStore.getState().mensagens || [];
-        const mensagensFiltradas = mensagensAtuais.filter((mensagem) => {
-          if (mensagem?.tipo !== 'solicitacao_dados') return true;
-          const payloadGroupId = mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || null;
-          return String(payloadGroupId || '') !== String(resolvedGroupId);
-        });
-        if (mensagensFiltradas.length !== mensagensAtuais.length) {
-          gameStoreSetMensagens(mensagensFiltradas);
+        const promptExistente = mensagensAtuais.find(
+          (mensagem) => String(mensagem.id) === String(promptId)
+            || (
+              mensagem?.tipo === 'solicitacao_dados'
+              && String(mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || '') === String(resolvedGroupId)
+            )
+        );
+
+        if (data?.groupResolved) {
+          const mensagensFiltradas = mensagensAtuais.filter((mensagem) => {
+            if (mensagem?.tipo !== 'solicitacao_dados') return true;
+            const payloadGroupId = mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || null;
+            return String(payloadGroupId || '') !== String(resolvedGroupId);
+          });
+          if (mensagensFiltradas.length !== mensagensAtuais.length) {
+            gameStoreSetMensagens(mensagensFiltradas);
+          }
+        } else if (promptExistente) {
+          gameStoreAtualizarMensagem(promptExistente.id, {
+            payload: {
+              ...(promptExistente.payload || {}),
+              groupId: resolvedGroupId,
+              testePendente: nextTestePendente,
+              testesPendentes: remainingGroupTests
+            }
+          });
+        } else if (remainingGroupTests.length > 0 && onAdicionarMensagemRef.current) {
+          onAdicionarMensagemRef.current({
+            id: promptId,
+            tipo: 'solicitacao_dados',
+            userId: 'mestre',
+            username: 'Mestre',
+            message: 'O Mestre solicita uma rolagem de dados.',
+            payload: {
+              groupId: resolvedGroupId,
+              testePendente: nextTestePendente,
+              testesPendentes: remainingGroupTests
+            },
+            timestamp: data.timestamp || Date.now()
+          });
         }
       }
 
@@ -400,11 +436,21 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       const groupId = data?.testePendente?.groupId || data?.testesPendentes?.[0]?.groupId || null;
       if (groupId) {
         const mensagensAtuais = useGameStore.getState().mensagens || [];
-        const jaExiste = mensagensAtuais.some(
+        const mensagemExistente = mensagensAtuais.find(
           (m) => m.tipo === 'solicitacao_dados'
             && String(m.payload?.groupId || m.payload?.testePendente?.groupId) === String(groupId)
         );
-        if (!jaExiste && onAdicionarMensagemRef.current) {
+        if (mensagemExistente) {
+          gameStoreAtualizarMensagem(mensagemExistente.id, {
+            message: data.narrativa || mensagemExistente.message || 'O Mestre solicita uma rolagem de dados.',
+            payload: {
+              ...(mensagemExistente.payload || {}),
+              groupId,
+              testePendente: data.testePendente || null,
+              testesPendentes: data.testesPendentes || []
+            }
+          });
+        } else if (onAdicionarMensagemRef.current) {
           onAdicionarMensagemRef.current({
             id: `solicitacao_${groupId}`,
             tipo: 'solicitacao_dados',
@@ -432,7 +478,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       if (onAdicionarMensagemRef.current) {
         onAdicionarMensagemRef.current({
           id: `levelup_${Date.now()}_${data.novoNivel}`,
-          tipo: 'mestre',
+          tipo: 'acao_mestre',
           userId: 'sistema',
           username: 'Sistema',
           message: `🎉 **${data.personagemNome || data.username || 'Jogador'}** subiu para o **Nivel ${data.novoNivel || data.nivel}**!`,
@@ -491,10 +537,15 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         const resultado = data.resultado === 'vitoria' ? 'Vitoria!' : data.resultado === 'derrota' ? 'Derrota...' : 'Combate encerrado';
         onAdicionarMensagemRef.current({
           id: `combate_fim_${Date.now()}`,
-          tipo: 'mestre',
+          tipo: 'acao_mestre',
           userId: 'sistema',
           username: 'Sistema',
           message: `${resultado}${xpPorJogador > 0 ? ` (+${xpPorJogador} XP)` : ''}`,
+          payload: data,
+          payload: {
+            personagem: data.personagemNome || data.username || 'Jogador',
+            ...data
+          },
           timestamp: Date.now()
         });
       }
@@ -510,10 +561,11 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         const listaItens = data.todosItens.map(i => i.nome).join(', ');
         onAdicionarMensagemRef.current({
           id: `loot_${Date.now()}`,
-          tipo: 'mestre',
+          tipo: 'acao_mestre',
           userId: 'sistema',
           username: 'Sistema',
           message: `Loot obtido: ${listaItens}`,
+          payload: data,
           timestamp: Date.now()
         });
       }
@@ -577,6 +629,9 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleMestreStreamEnd = (data) => {
+      if (!data?.requestId) {
+        clearAnonymousMestreState();
+      }
       // Remover placeholder — mensagem_mestre chega logo depois
       const msgs = useGameStore.getState().mensagens || [];
       const sem = msgs.filter((m) => {

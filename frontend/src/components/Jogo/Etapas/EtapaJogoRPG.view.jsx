@@ -186,6 +186,7 @@ const EtapaJogoRPGView = (props) => {
               contextoImagemCena={contextoImagemCena}
               onSceneImageGenerated={handleSceneImageGenerated}
               estiloImagem={historia?.estilo_imagem}
+              prologo={historia?.prologo}
             />
 
             <MestrePensandoBanner

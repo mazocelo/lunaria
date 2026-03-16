@@ -1,11 +1,10 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { ListMusic, Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
+import { Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
 import { RPGMessage } from '../../RPGMessage';
 import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
 import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
-import AudioQueuePopover from '../../../audio/ui/AudioQueuePopover.jsx';
 
 const GAME_AUDIO_SOURCES = new Set(['chat_global', 'message_balloon', 'message_group', 'game_segment']);
 
@@ -43,7 +42,7 @@ function groupConsecutiveMessages(mensagens) {
   return groups;
 }
 
-const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
+const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, prologo }) => {
   const chatEndRef = useRef(null);
   const tts = useTTS();
 
@@ -60,9 +59,27 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   const groupedMessages = useMemo(() => groupConsecutiveMessages(mensagens), [mensagens]);
 
   const mestreNarrationItems = useMemo(() => {
-    return (Array.isArray(mensagens) ? mensagens : []).flatMap((mensagem) => {
+    const items = [];
+
+    if (prologo && voiceId) {
+      items.push({
+        itemKey: buildTtsItemKey('prologo', null, voiceId, voiceProvider, null, prologo),
+        messageId: 'prologo',
+        segmentId: null,
+        text: prologo,
+        speech_text: prologo,
+        voiceId,
+        provider: voiceProvider,
+        emotion: null,
+        speakerLabel: 'Prologo',
+        tipo: 'narracao',
+        hasPersistedAudio: false
+      });
+    }
+
+    (Array.isArray(mensagens) ? mensagens : []).forEach((mensagem) => {
       const tipo = mensagem?.tipo || mensagem?.type;
-      if (tipo !== 'mestre') return [];
+      if (tipo !== 'mestre') return;
 
       const effectiveVoiceId = mensagem?.voice_id || voiceId || null;
       const effectiveVoiceProvider = mensagem?.voice_provider || voiceProvider || null;
@@ -73,12 +90,12 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
         effectiveVoiceProvider
       );
 
-      if (segmentItems.length > 0) return segmentItems;
+      if (segmentItems.length > 0) { items.push(...segmentItems); return; }
 
       const text = String(mensagem?.message || mensagem?.mensagem || '').trim();
-      if (!text || !effectiveVoiceId) return [];
+      if (!text || !effectiveVoiceId) return;
 
-      return [{
+      items.push({
         itemKey: buildTtsItemKey(
           mensagem.id,
           null,
@@ -97,9 +114,11 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
         speakerLabel: mensagem?.npc_nome || 'Mestre',
         tipo: 'narracao',
         hasPersistedAudio: Boolean(mensagem?.audio_cache_key || mensagem?.audio_url || mensagem?.audioUrl)
-      }];
+      });
     });
-  }, [mensagens, voiceId, voiceProvider]);
+
+    return items;
+  }, [mensagens, voiceId, voiceProvider, prologo]);
 
   const globalNarrationSequenceKey = useMemo(() => (
     mestreNarrationItems.length > 0
@@ -134,7 +153,6 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     && tts.waitingForNext
   );
   const isGameAudioContext = GAME_AUDIO_SOURCES.has(tts.currentPlaylist?.source || tts.currentTrack?.meta?.source || '');
-  const canShowQueue = isGameAudioContext && Boolean(tts.queueItems?.length);
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -202,21 +220,6 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
         <div className="px-6 pt-4">
           <div className="w-full max-w-4xl mx-auto flex justify-end">
             <div className="flex items-center gap-2">
-              {canShowQueue && (
-                <button
-                  type="button"
-                  onClick={tts.toggleQueue}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full game-glass-subtle border border-cyan-400/25 text-cyan-100 text-sm hover:border-cyan-400/45 transition-all"
-                  title="Ver fila de narracao"
-                  aria-label="Ver fila de narracao"
-                >
-                  <ListMusic size={16} />
-                  <span>Fila</span>
-                  <span className="inline-flex min-w-5 justify-center rounded-full bg-cyan-400/15 px-1.5 py-0.5 text-[11px] text-cyan-100">
-                    {tts.queueItems.length}
-                  </span>
-                </button>
-              )}
               <button
                 type="button"
                 onClick={handlePlayAllNarration}
@@ -395,12 +398,6 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
           </div>
         </div>
       )}
-      <AudioQueuePopover
-        isOpen={canShowQueue && tts.queueOpen}
-        onClose={() => tts.setQueueOpen(false)}
-        queueItems={tts.queueItems}
-        title={tts.currentPlaylist?.title || (isGlobalNarrationActive ? 'Cena em reproducao' : 'Fila de narracao')}
-      />
     </div>
   );
 };

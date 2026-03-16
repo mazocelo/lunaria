@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { BookOpen, DoorOpen, ScrollText, Swords, Users, BookMarked, Volume2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { BookOpen, DoorOpen, ScrollText, Swords, Users, ListMusic, ChevronDown } from 'lucide-react';
 
 /**
  * Header compacto da sessao de jogo RPG
@@ -20,23 +20,23 @@ const SessionHeader = ({
   onSair,
   mobileDrawer,
   setMobileDrawer,
-  prologo,
   tts,
   voiceId,
   voiceProvider,
 }) => {
-  const [showPrologo, setShowPrologo] = useState(false);
-  const prologoRef = useRef(null);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [openSceneId, setOpenSceneId] = useState('scene-0');
+  const playlistRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (prologoRef.current && !prologoRef.current.contains(e.target)) {
-        setShowPrologo(false);
+      if (playlistRef.current && !playlistRef.current.contains(e.target)) {
+        setShowPlaylist(false);
       }
     };
-    if (showPrologo) document.addEventListener('mousedown', handleClickOutside);
+    if (showPlaylist) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showPrologo]);
+  }, [showPlaylist]);
   const faseLabel = faseJogo === 'rolagem_inicial'
     ? 'Rolagem Inicial'
     : faseJogo === 'rodada_em_andamento'
@@ -70,49 +70,87 @@ const SessionHeader = ({
 
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 p-1 rounded-xl game-glass-subtle border border-white/[0.08]">
-          {prologo && (
-            <div className="relative" ref={prologoRef}>
-              <button
-                type="button"
-                onClick={() => { setShowPrologo(!showPrologo); setShowRodadaInfo(false); }}
-                className={`px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm ${
-                  showPrologo
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border border-amber-300'
-                    : 'bg-gradient-to-r from-amber-600/40 to-orange-600/40 text-amber-200 hover:from-amber-600/60 hover:to-orange-600/60 border border-amber-500/30'
-                }`}
-                title="Ler prologo da historia"
-                aria-label="Ler prologo da historia"
-              >
-                <BookMarked size={14} />
-                <span className="hidden sm:inline">PROLOGO</span>
-              </button>
+          <div className="relative" ref={playlistRef}>
+            <button
+              type="button"
+              onClick={() => { setShowPlaylist(!showPlaylist); setShowRodadaInfo(false); }}
+              className={`px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm ${
+                showPlaylist
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border border-cyan-300'
+                  : 'bg-gradient-to-r from-cyan-600/40 to-blue-600/40 text-cyan-200 hover:from-cyan-600/60 hover:to-blue-600/60 border border-cyan-500/30'
+              }`}
+              title="Abrir playlist de narracao"
+              aria-label="Abrir playlist de narracao"
+            >
+              <ListMusic size={14} />
+              <span className="hidden sm:inline">AUDIO</span>
+              {queueItems.length > 0 && (
+                <span className="inline-flex min-w-5 justify-center rounded-full bg-cyan-400/15 px-1.5 py-0.5 text-[11px] text-cyan-100">
+                  {queueItems.length}
+                </span>
+              )}
+            </button>
 
-              {showPrologo && (
-                <div className="absolute right-0 top-full mt-1 w-80 sm:w-96 game-glass-solid p-5 rounded-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-scale-in max-h-[60vh] overflow-y-auto z-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-fantasy font-bold text-amber-300 uppercase tracking-widest">Prologo</h3>
-                    {tts && voiceId && (
+            {showPlaylist && (
+              <div className="absolute right-0 top-full mt-1 w-80 sm:w-96 game-glass-solid p-5 rounded-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-scale-in max-h-[60vh] overflow-y-auto z-50">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-fantasy font-bold text-cyan-200 uppercase tracking-widest">Playlist</h3>
+                  <span className="text-[11px] text-purple-200/70">{queueItems.length} falas</span>
+                </div>
+
+                {scenes.map((scene) => {
+                  const isOpen = openSceneId === scene.id;
+                  return (
+                    <div key={scene.id} className="mb-3 last:mb-0">
                       <button
                         type="button"
-                        onClick={() => tts.play(prologo, voiceId, 'prologo', voiceProvider, { allowGenerate: true })}
-                        className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
-                        title="Ouvir prologo"
-                        aria-label="Ouvir prologo"
+                        onClick={() => setOpenSceneId(isOpen ? null : scene.id)}
+                        className="w-full flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2 text-left text-sm font-semibold text-purple-100"
                       >
-                        <Volume2 size={14} />
+                        <span className="truncate">{scene.title || 'Cena atual'}</span>
+                        <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                       </button>
-                    )}
-                  </div>
-                  <p className="text-sm text-purple-100/90 leading-relaxed whitespace-pre-line">{prologo}</p>
-                </div>
-              )}
-            </div>
-          )}
+
+                      {isOpen && (
+                        <div className="mt-2 space-y-2">
+                          {scene.items.length === 0 ? (
+                            <div className="game-glass-subtle rounded-xl border border-white/[0.08] px-3 py-4 text-center">
+                              <p className="text-sm text-purple-200/70">Nenhuma fala na fila.</p>
+                            </div>
+                          ) : (
+                            scene.items.map((item, index) => (
+                              <div
+                                key={item.trackId || index}
+                                className={`rounded-xl border px-3 py-2.5 transition-all ${
+                                  item.status === 'active'
+                                    ? 'game-glass border-cyan-400/35 shadow-[0_0_16px_rgba(34,211,238,0.12)]'
+                                    : 'game-glass-subtle border-white/[0.08]'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-[11px] uppercase tracking-wide text-purple-200/60">
+                                    {item.speakerLabel || item.kindLabel || 'Narracao'}
+                                  </p>
+                                  <p className="text-sm text-white leading-relaxed line-clamp-2">
+                                    {item.label}
+                                  </p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <div className="relative" ref={rodadaDropdownRef}>
             <button
               type="button"
-              onClick={() => { setShowRodadaInfo(!showRodadaInfo); setShowPrologo(false); }}
+              onClick={() => { setShowRodadaInfo(!showRodadaInfo); setShowPlaylist(false); }}
               className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm"
               aria-label="Abrir resumo da rodada"
               title="Abrir resumo da rodada"
@@ -240,3 +278,12 @@ const SessionHeader = ({
 };
 
 export default SessionHeader;
+  const queueItems = tts?.queueItems || [];
+  const playlistTitle = tts?.currentPlaylist?.title || (tts?.isSequence ? 'Cena em reproducao' : 'Fila de narracao');
+  const scenes = useMemo(() => ([
+    {
+      id: 'scene-0',
+      title: playlistTitle,
+      items: queueItems,
+    }
+  ]), [playlistTitle, queueItems]);

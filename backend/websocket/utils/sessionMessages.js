@@ -51,9 +51,20 @@ export function appendMensagemSessao(sessao = {}, mensagem) {
   return mensagem;
 }
 
+export function removeMensagensSessao(sessao = {}, predicate = null) {
+  if (!Array.isArray(sessao.mensagens) || typeof predicate !== 'function') {
+    return 0;
+  }
+
+  const initialLength = sessao.mensagens.length;
+  sessao.mensagens = sessao.mensagens.filter((mensagem, index) => !predicate(mensagem, index));
+  return initialLength - sessao.mensagens.length;
+}
+
 export function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
   const voiceId = mestreConfig?.voice_id || null;
   const voiceProvider = mestreConfig?.voice_provider || null;
+  const speechText = options.speechText ?? options.speech_text ?? null;
   return createSessionMessage({
     tipo: options.tipo || 'mestre',
     canal: options.canal || 'formal',
@@ -64,6 +75,7 @@ export function buildMestreMensagem(conteudo, mestreConfig = null, options = {})
     payload: options.payload || null,
     voice_id: voiceId,
     voice_provider: voiceProvider,
+    speech_text: speechText,
     audio_cache_key: options.audioCacheKey || null,
     segmentos: Array.isArray(options.segmentos) ? options.segmentos : [],
     ...options.extraFields

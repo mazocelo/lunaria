@@ -5,7 +5,7 @@ import db from '../Model/index.js';
 import sessaoSnapshotService from '../services/sessaoSnapshot.js';
 import ttsCacheService from '../services/ttsCacheService.js';
 import { getDefaultProviderName } from '../services/ttsService.js';
-import { aggregateNarrationFromSegments, resolveNarrationSegments } from '../services/narrationSegmentsService.js';
+import { aggregateNarrationFromSegments, aggregateSpeechFromSegments, resolveNarrationSegments } from '../services/narrationSegmentsService.js';
 import {
   applyMetadadosToSessao
 } from '../agents/Mestre/contexto/mestreContextBuilder.js';
@@ -45,13 +45,18 @@ function buildMestreMensagem(conteudo, mestreConfig = null, options = {}) {
     historiaId: options.historiaId || options.sessao?.historiaId || null
   });
   const narrativaFinal = narrativaBase || aggregateNarrationFromSegments(segmentos);
+  const speechText = options.speechText
+    || options.speech_text
+    || aggregateSpeechFromSegments(segmentos)
+    || narrativaFinal;
   const voiceId = mestreConfig?.voice_id || null;
   const voiceProvider = mestreConfig?.voice_provider || null;
 
   return buildMestreMensagemHistorico(narrativaFinal, mestreConfig, {
     ...options,
     segmentos,
-    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(narrativaFinal, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER) : null
+    speechText,
+    audioCacheKey: voiceId ? ttsCacheService.generateCacheKey(speechText, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER) : null
   });
 }
 

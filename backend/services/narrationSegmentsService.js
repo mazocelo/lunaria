@@ -1,6 +1,7 @@
 import ttsCacheService from './ttsCacheService.js';
 import { getDefaultProviderName } from './ttsService.js';
 import logger from '../helpers/logger.js';
+import { sanitizeTextForSpeech } from './speechTextService.js';
 
 const log = logger.child({ module: 'narrationSegmentsService' });
 
@@ -82,6 +83,7 @@ function buildFallbackSegments(fallbackText = '') {
     speaker: 'mestre',
     speaker_label: 'Mestre',
     text,
+    speech_text: sanitizeTextForSpeech(text),
     npc_id: null,
     narracao: { ...DEFAULT_NARRACAO }
   }];
@@ -156,6 +158,10 @@ export function normalizeNarrationSegments(segments = [], { fallbackText = '' } 
         speaker,
         speaker_label: speakerLabel,
         text,
+        speech_text: asTrimmedString(
+          segment?.speech_text,
+          sanitizeTextForSpeech(text)
+        ),
         npc_id: tipo === 'fala_npc' ? (asTrimmedString(segment?.npc_id, '') || null) : null,
         narracao: normalizeNarracao(segment?.narracao || {})
       };
@@ -168,6 +174,14 @@ export function normalizeNarrationSegments(segments = [], { fallbackText = '' } 
 export function aggregateNarrationFromSegments(segments = []) {
   return (normalizeNarrationSegments(segments) || [])
     .map((segment) => asTrimmedString(segment?.text, ''))
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+export function aggregateSpeechFromSegments(segments = []) {
+  return (normalizeNarrationSegments(segments) || [])
+    .map((segment) => asTrimmedString(segment?.speech_text || segment?.text, ''))
     .filter(Boolean)
     .join('\n\n')
     .trim();
@@ -240,12 +254,20 @@ export function resolveNarrationSegments({
       speaker_label: segment.tipo === 'fala_npc'
         ? asTrimmedString(segment?.speaker_label, matchedNpc?.nome || 'NPC')
         : 'Mestre',
+      speech_text: asTrimmedString(
+        segment?.speech_text,
+        sanitizeTextForSpeech(segment?.text || '')
+      ),
       narracao: normalizeNarracao(segment?.narracao || {}),
       voice_id: voiceId,
       voice_provider: voiceProvider,
       voice_origin: voiceOrigin,
       audio_cache_key: voiceId
-        ? ttsCacheService.generateCacheKey(segment.text, voiceId, voiceProvider || DEFAULT_TTS_PROVIDER)
+        ? ttsCacheService.generateCacheKey(
+          asTrimmedString(segment?.speech_text, sanitizeTextForSpeech(segment?.text || '')),
+          voiceId,
+          voiceProvider || DEFAULT_TTS_PROVIDER
+        )
         : null
     };
   });
@@ -255,5 +277,6 @@ export default {
   ensureNpcIds,
   normalizeNarrationSegments,
   resolveNarrationSegments,
-  aggregateNarrationFromSegments
+  aggregateNarrationFromSegments,
+  aggregateSpeechFromSegments
 };

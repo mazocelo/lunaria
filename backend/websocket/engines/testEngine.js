@@ -21,7 +21,8 @@ import {
   buildResultadoDadoInicialMensagem,
   buildResultadoTesteMensagem,
   buildSolicitacaoDadosMensagem,
-  createMessageId
+  createMessageId,
+  removeMensagensSessao
 } from '../utils/sessionMessages.js';
 
 /**
@@ -46,6 +47,16 @@ async function _processPostTestCombat(sm, roomId, acaoPendente, username, narrac
   } catch (errCombat) {
     log.error({ err: errCombat }, 'Erro ao processar combate pós-teste');
   }
+}
+
+function removeResolvedTestPrompt(sessao, groupId) {
+  if (!groupId) return 0;
+
+  return removeMensagensSessao(sessao, (mensagem) => {
+    if (mensagem?.tipo !== 'solicitacao_dados') return false;
+    const payloadGroupId = mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || null;
+    return payloadGroupId != null && String(payloadGroupId) === String(groupId);
+  });
 }
 
 export default class TestEngine {
@@ -219,6 +230,7 @@ export default class TestEngine {
           descricaoResultado: resultadoTestePayload.descricaoResultado,
           payload: resultadoTestePayload
         }));
+        removeResolvedTestPrompt(sessao, testeResolvido.groupId);
 
         // @event resultado_teste → room (broadcast) | fires after a pending skill test is mechanically resolved
         sm.sendToRoom(roomId, 'resultado_teste', resultadoTestePayload);

@@ -1,5 +1,6 @@
 ﻿import {
   aggregateNarrationFromSegments,
+  aggregateSpeechFromSegments,
   ensureNpcIds,
   normalizeNarrationSegments,
   resolveNarrationSegments
@@ -26,13 +27,15 @@ async function main() {
   const segmentosFallback = normalizeNarrationSegments([], { fallbackText: 'A noite cai sobre a cidade.' });
   assert(segmentosFallback.length === 1, 'Fallback de segmentos nao gerou item unico');
   assert(segmentosFallback[0].tipo === 'narracao', 'Fallback deveria gerar narracao');
+  assert(segmentosFallback[0].speech_text === 'A noite cai sobre a cidade.', 'Fallback deveria gerar speech_text');
 
   const segmentosDuplicados = normalizeNarrationSegments([
-    { id: 'seg_1', tipo: 'narracao', text: 'Primeiro trecho.' },
+    { id: 'seg_1', tipo: 'narracao', text: '## **Primeiro trecho.**' },
     { id: 'seg_1', tipo: 'fala_npc', speaker_label: 'Seraphina', text: 'Segundo trecho.' }
   ]);
   assert(segmentosDuplicados[0].id === 'seg_1', 'Primeiro segmento deveria manter o id original');
   assert(segmentosDuplicados[1].id !== 'seg_1', 'Segmentos duplicados deveriam receber ids unicos');
+  assert(segmentosDuplicados[0].speech_text === 'Primeiro trecho.', 'speech_text deveria remover markdown visual');
 
   const segmentosResolvidos = resolveNarrationSegments({
     narrativa: 'As sombras dancam. Seraphina sorri. Brom observa em silencio.',
@@ -71,17 +74,21 @@ async function main() {
   assert(segmentosResolvidos[1].voice_id === 'voice_npc_1', 'Voz do NPC nao foi aplicada');
   assert(segmentosResolvidos[2].voice_origin === 'fallback_mestre', 'NPC desconhecido deveria usar fallback do mestre');
   assert(segmentosResolvidos.every((segmento) => segmento.audio_cache_key), 'Todo segmento com voz deveria ter audio_cache_key');
+  assert(segmentosResolvidos[0].speech_text === 'As sombras dancam no salao antigo.', 'speech_text da narracao deveria ser preservado');
 
   const narrativaAgregada = aggregateNarrationFromSegments(segmentosResolvidos);
+  const falaAgregada = aggregateSpeechFromSegments(segmentosResolvidos);
   assert(narrativaAgregada.includes('As sombras dancam'), 'Narrativa agregada nao contem narracao');
   assert(narrativaAgregada.includes('Voce chegou tarde.'), 'Narrativa agregada nao contem fala do NPC');
+  assert(falaAgregada.includes('Voce chegou tarde.'), 'Fala agregada nao contem speech_text do NPC');
 
   console.log(JSON.stringify({
     success: true,
     npcs_normalizados: npcsComId,
     segmentos_duplicados_normalizados: segmentosDuplicados,
     segmentos_resolvidos: segmentosResolvidos,
-    narrativa_agregada: narrativaAgregada
+    narrativa_agregada: narrativaAgregada,
+    fala_agregada: falaAgregada
   }, null, 2));
 }
 

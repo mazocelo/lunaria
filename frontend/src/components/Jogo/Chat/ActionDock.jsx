@@ -152,7 +152,7 @@ const ActionDock = ({
                 </span>
               </button>
             ) : (
-              <div className="px-4 py-2 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border border-cyan-400/70 rounded-lg animate-pulse">
+              <div className="px-4 py-2 glass border border-cyan-400/40 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.1)] animate-pulse">
                 <p className="text-cyan-200 text-sm font-bold">
                   {turnoStatus === 'awaiting_roll' ? 'Sua vez: resolva a rolagem pendente' : 'E SUA VEZ! Responda ao Mestre'}
                 </p>

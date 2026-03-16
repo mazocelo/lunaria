@@ -24,9 +24,9 @@ const StatusPersonagem = ({
   // Validacao: garantir que personagemSelecionado existe
   if (!personagemSelecionado) {
     return (
-      <div className={compact ? "p-3" : "p-4 bg-black/20 backdrop-blur-sm border-t border-purple-500/20"}>
+      <div className={compact ? "p-3" : "p-4 glass-subtle border-t border-white/[0.04]"}>
         <div className={compact ? "" : "max-w-6xl mx-auto"}>
-          <div className="glass p-4 rounded-lg border border-cyan-500/20">
+          <div className="glass-subtle p-4 rounded-xl border border-cyan-500/20">
             <div className="text-center text-white">
               <p>Carregando informações do personagem...</p>
             </div>
@@ -50,7 +50,7 @@ const StatusPersonagem = ({
   // Layout compacto para painel lateral
   if (compact) {
     return (
-      <div className={`glass p-3 rounded-lg border ${combateAtivo ? 'border-red-500/40' : 'border-cyan-500/20'}`}>
+      <div className={`glass-subtle p-3 rounded-xl border ${combateAtivo ? 'border-red-500/30' : 'border-cyan-500/15'}`}>
         <div className="flex items-start space-x-3">
           {personagemSelecionado.imagem ? (
             <img src={personagemSelecionado.imagem} alt={personagemSelecionado.nome} className={`w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 ${
@@ -135,9 +135,9 @@ const StatusPersonagem = ({
 
   // Layout horizontal para barra inferior
   return (
-    <div className="p-4 bg-black/20 backdrop-blur-sm border-t border-purple-500/20">
+    <div className="p-4 glass-subtle border-t border-white/[0.04]">
       <div className="max-w-6xl mx-auto">
-        <div className={`glass p-4 rounded-lg border ${combateAtivo ? 'border-red-500/40' : 'border-cyan-500/20'}`}>
+        <div className={`glass-subtle p-4 rounded-xl border ${combateAtivo ? 'border-red-500/30' : 'border-cyan-500/15'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               {personagemSelecionado.imagem ? (

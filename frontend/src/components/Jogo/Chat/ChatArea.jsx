@@ -163,7 +163,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
               type="button"
               onClick={handlePlayAllNarration}
               disabled={tts.isLoading || isGlobalNarrationGenerating}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-purple-400/40 bg-purple-900/30 text-purple-100 text-sm hover:bg-purple-800/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-subtle border border-purple-400/30 text-purple-100 text-sm hover:border-purple-400/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               title="Gerar e reproduzir toda a narracao do Mestre"
             >
               <span>{isGlobalNarrationGenerating || tts.isLoading ? '🔄' : isGlobalNarrationActive && tts.isPlaying ? '⏸' : '🔊'}</span>

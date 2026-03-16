@@ -86,9 +86,9 @@ const PainelJogadores = ({
 
         {/* Valor do dado (se rolado) */}
         {valorDado && (
-          <div className="mt-2 flex items-center justify-center p-2 bg-amber-900/30 rounded border border-amber-500/30">
-            <span className="text-amber-400 text-xs mr-1">🎲</span>
-            <span className="text-amber-300 font-bold text-lg">{valorDado}</span>
+          <div className="mt-2 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-amber-900/20 rounded-lg border border-amber-500/20">
+            <span className="text-amber-400 text-xs">🎲</span>
+            <span className="text-amber-300 font-bold text-sm">{valorDado}</span>
           </div>
         )}
 
@@ -120,11 +120,11 @@ const PainelJogadores = ({
         <button
           type="button"
           onClick={() => onVerFichaJogador && onVerFichaJogador(jogador)}
-          className={`mt-3 rounded-lg border border-purple-400/30 text-purple-100 text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2 ${
-            compactMode ? 'px-2 py-1.5 w-auto' : 'px-3 py-2 w-full'
+          className={`mt-2 rounded-lg border border-purple-400/20 text-purple-200/70 text-xs hover:text-purple-100 hover:border-purple-400/40 hover:bg-purple-500/10 transition-all flex items-center justify-center gap-1.5 ${
+            compactMode ? 'px-2 py-1.5 w-auto' : 'px-3 py-1.5 w-full'
           }`}
         >
-          <span>{'\u{1F4DC}'}</span>
+          <span className="text-xs">{'\u{1F4DC}'}</span>
           {!compactMode && <span>Ver ficha</span>}
         </button>
       </div>

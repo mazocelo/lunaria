@@ -504,16 +504,17 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
           <button
             onClick={handleGenerateScene}
             disabled={generatingScene}
-            className={`p-1.5 rounded-lg transition-all text-lg ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-all ${
               generatingScene
-                ? 'bg-purple-500/30 text-purple-200'
-                : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+                ? 'glass-subtle text-purple-200'
+                : 'hover:bg-white/10 text-purple-400/60 hover:text-purple-200'
             }`}
             title={generatingScene ? 'Gerando ilustracao...' : 'Ilustrar cena'}
           >
             {generatingScene ? (
-              <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-            ) : <ImageIcon size={18} />}
+              <span className="inline-block w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+            ) : <ImageIcon size={14} />}
+            <span>{generatingScene ? 'Gerando...' : 'Ilustrar'}</span>
           </button>
         </div>
       )}
@@ -694,15 +695,17 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
 
 export const renderJogador = (mensagem, key) => (
   <div key={key} className="max-w-[80%] ml-auto animate-fade-in">
-    <div className="glass p-6 rounded-xl border-2 border-cyan-500/60 bg-gradient-to-br from-cyan-900/30 to-blue-900/30 shadow-xl">
-      <div className="flex items-start space-x-4">
-        <span className="text-3xl drop-shadow-lg">{'\u{2694}\u{FE0F}'}</span>
-        <div className="flex-1">
-          <p className="text-cyan-300 font-bold text-lg mb-2">
+    <div className="glass p-4 rounded-xl border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
+      <div className="flex items-start space-x-3">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 text-sm font-bold">
+          {mensagem.username?.charAt(0)?.toUpperCase() || '?'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-cyan-300 font-semibold text-sm mb-1">
             {mensagem.username}
             {mensagem.personagem && (
-              <span className="text-cyan-400 text-base ml-2">
-                ({mensagem.personagem})
+              <span className="text-cyan-400/70 text-xs ml-1.5">
+                {mensagem.personagem}
               </span>
             )}
           </p>

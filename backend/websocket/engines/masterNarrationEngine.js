@@ -35,16 +35,112 @@ import {
   createPendingCombatAction,
   cleanupStalePendingCombatAction
 } from '../utils/combatPendingAction.js';
+import {
+  acceptMestreRequest,
+  beginRegenerateMestreRequest,
+  buildMestreRequestStatusPayload,
+  buildRejectedBusyStatusPayload,
+  completeMestreRequest,
+  emitMestreRequestStatus,
+  failMestreRequest,
+  getActiveMestreRequest,
+  getLatestMestreRequest,
+  markMestreRequestStatus
+} from '../utils/mestreRequestLifecycle.js';
 
 export default class MasterNarrationEngine {
   constructor(manager) {
     this.manager = manager;
   }
 
+  _startRequestHeartbeat(request) {
+    const sm = this.manager;
+    const heartbeatState = { ...request };
+    const timer = setInterval(() => {
+      emitMestreRequestStatus(sm, heartbeatState.roomId, heartbeatState, {
+        status: heartbeatState.status,
+        updatedAt: new Date().toISOString()
+      });
+      sm.log('DEBUG', 'MESTRE_REQUEST_HEARTBEAT', null, heartbeatState.userId, {
+        roomId: heartbeatState.roomId,
+        requestId: heartbeatState.requestId,
+        attempt: heartbeatState.attempt,
+        status: heartbeatState.status
+      });
+    }, 3000);
+
+    return {
+      update(patch = {}) {
+        Object.assign(heartbeatState, patch);
+      },
+      stop() {
+        clearInterval(timer);
+      }
+    };
+  }
+
+  _categorizeRequestError(error) {
+    const message = error?.message || '';
+    if (message === 'AI_TIMEOUT' || message === 'AI_STREAM_TIMEOUT') {
+      return {
+        status: 'timed_out',
+        errorCode: 'AI_TIMEOUT',
+        errorMessage: 'A resposta do Mestre expirou antes de concluir.'
+      };
+    }
+
+    return {
+      status: 'failed',
+      errorCode: 'MESTRE_REQUEST_FAILED',
+      errorMessage: 'A resposta do Mestre falhou antes de concluir.'
+    };
+  }
+
+  async _persistRequestStatus(roomId, requestId, status, patch = {}) {
+    const sm = this.manager;
+    let request = null;
+
+    await sm.withRoomLock(roomId, async () => {
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) return;
+      request = markMestreRequestStatus(sessao, requestId, {
+        ...patch,
+        status
+      });
+      if (!request) return;
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+    }, { maxWaitMs: 0 });
+
+    return request;
+  }
+
+  _emitBusy(socket, roomId, requestId, userId, activeRequest) {
+    const sm = this.manager;
+    const payload = buildRejectedBusyStatusPayload({
+      requestId,
+      roomId,
+      userId,
+      kind: 'player_action',
+      activeRequest
+    });
+
+    socket.emit('mestre_request_status', payload);
+    socket.emit('erro_mensagem', {
+      message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.'
+    });
+    sm.log('WARN', 'MESTRE_REQUEST_REJECTED_BUSY', socket.id, userId, {
+      roomId,
+      requestId,
+      activeRequestId: activeRequest?.requestId,
+      activeAttempt: activeRequest?.attempt
+    });
+  }
+
   /**
    * Handler para mensagem destinada ao Mestre (IA)
    */
   async handleMensagemParaMestre(socket, data) {
+    return this._handleMensagemParaMestreCorrelated(socket, data);
     const sm = this.manager;
     const startTime = Date.now();
     sm.log('INFO', 'MENSAGEM_PARA_MESTRE_PROCESSING_START', socket.id, socket.userId, {
@@ -550,6 +646,585 @@ export default class MasterNarrationEngine {
       // @event error → socket (sender) | erro inesperado no processamento de mensagem
       socket.emit('error', { message: 'Erro ao processar mensagem para o mestre' });
     }
+  }
+
+  async _handleMensagemParaMestreCorrelated(socket, data) {
+    const sm = this.manager;
+    const startTime = Date.now();
+    const {
+      roomId: rawRoomId,
+      userId: rawUserId,
+      username: rawUsername,
+      mensagem: rawMensagem,
+      personagem: rawPersonagem,
+      combatIntent: rawCombatIntent,
+      requestId: rawRequestId
+    } = data || {};
+
+    if (!rawRoomId || !rawUserId || !rawMensagem || !rawPersonagem || !rawRequestId) {
+      socket.emit('error', { message: 'roomId, userId, mensagem, personagem e requestId sao obrigatorios' });
+      return;
+    }
+
+    if (String(rawUserId) !== String(socket.userId)) {
+      socket.emit('error', { message: 'userId nao corresponde ao usuario autenticado' });
+      return;
+    }
+
+    const MAX_MESSAGE_LENGTH = 5000;
+    if (String(rawMensagem).length > MAX_MESSAGE_LENGTH) {
+      socket.emit('erro_mensagem', { message: `Mensagem excede o limite de ${MAX_MESSAGE_LENGTH} caracteres` });
+      return;
+    }
+
+    const roomId = String(rawRoomId);
+    const userId = String(rawUserId);
+    const username = rawUsername ? String(rawUsername) : 'Jogador';
+    const mensagem = String(rawMensagem);
+    const personagem = rawPersonagem;
+    const combatIntent = rawCombatIntent && typeof rawCombatIntent === 'object' ? rawCombatIntent : null;
+    const requestId = String(rawRequestId);
+
+    let accepted = null;
+    try {
+      accepted = await sm.withRoomLock(roomId, async () => {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          socket.emit('error', { message: 'Sessao nao encontrada' });
+          return null;
+        }
+
+      const staleCleanedUp = cleanupStalePendingCombatAction(sessao);
+      if (staleCleanedUp) {
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+      }
+
+      const fase = sessao.estadoJogo?.fase;
+      const combateAtivo = !!sessao.estadoJogo?.combate?.ativo;
+      const turnoState = getTurnState(sessao);
+      const pendingTest = getTestePendente(sessao, {
+        userId,
+        groupId: turnoState.loteTesteAtivo
+      });
+
+      if (pendingTest) {
+        socket.emit('erro_mensagem', { message: 'Resolva o teste pendente antes de enviar uma nova acao.' });
+        return null;
+      }
+
+      if (fase === 'rodada_em_andamento' && !combateAtivo) {
+        if (turnoState.jogadorAtual && String(turnoState.jogadorAtual) !== String(userId)) {
+          socket.emit('erro_turno', { message: 'Nao e seu turno!' });
+          return null;
+        }
+        if (!['active', 'awaiting_roll', 'resolving_roll'].includes(turnoState.status)) {
+          socket.emit('erro_turno', { message: 'Inicie seu turno antes de agir.' });
+          return null;
+        }
+      }
+
+      let acceptedRequest;
+      try {
+        const acceptedResult = acceptMestreRequest(sessao, {
+          requestId,
+          kind: 'player_action',
+          roomId,
+          userId,
+          username,
+          personagem,
+          originalMessage: mensagem,
+          combatIntent,
+          playerMessageId: null
+        });
+        acceptedRequest = acceptedResult.request;
+        if (acceptedResult.duplicate) {
+          emitMestreRequestStatus(sm, roomId, acceptedRequest);
+          return { duplicate: true, request: acceptedRequest, sessao };
+        }
+      } catch (error) {
+        if (error.code === 'MESTRE_REQUEST_BUSY') {
+          this._emitBusy(socket, roomId, requestId, userId, error.activeRequest);
+          return null;
+        }
+        throw error;
+      }
+
+      const mensagemJogador = buildJogadorMensagem({
+        userId,
+        username,
+        personagem: personagem.nome,
+        message: mensagem,
+        origem: combateAtivo ? 'combate' : 'turno',
+        extraFields: {
+          requestId,
+          attempt: acceptedRequest.attempt
+        }
+      });
+      acceptedRequest.playerMessageId = mensagemJogador.id;
+      appendMensagemSessao(sessao, mensagemJogador);
+      markMestreRequestStatus(sessao, requestId, {
+        playerMessageId: mensagemJogador.id
+      });
+
+      sessao.atualizadaEm = new Date().toISOString();
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      sm._tentarSnapshot(roomId, sessao);
+
+      sm.sendToRoom(roomId, 'chat_message', {
+        ...mensagemJogador,
+        message: mensagemJogador.message,
+        requestId,
+        attempt: acceptedRequest.attempt
+      });
+      sm.sendToRoom(roomId, 'mestre_pensando', {
+        ativo: true,
+        timestamp: Date.now(),
+        requestId,
+        attempt: acceptedRequest.attempt
+      });
+      emitMestreRequestStatus(sm, roomId, acceptedRequest);
+
+        return {
+          sessao,
+          fase,
+          combateAtivo,
+          request: acceptedRequest,
+          duplicate: false
+        };
+      }, { maxWaitMs: 0 });
+    } catch (error) {
+      if (error.message?.includes('Operação em andamento')) {
+        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+        return;
+      }
+      throw error;
+    }
+
+    if (!accepted || accepted.duplicate) {
+      return;
+    }
+
+    this._processAcceptedPlayerActionRequest(socket, {
+      roomId,
+      userId,
+      username,
+      mensagem,
+      personagem,
+      combatIntent,
+      fase: accepted.fase,
+      combateAtivo: accepted.combateAtivo,
+      sessao: accepted.sessao,
+      request: accepted.request,
+      startTime
+    });
+  }
+
+  async _processAcceptedPlayerActionRequest(socket, ctx) {
+    const sm = this.manager;
+    const {
+      roomId,
+      userId,
+      username,
+      mensagem,
+      personagem,
+      combatIntent,
+      fase,
+      combateAtivo,
+      startTime
+    } = ctx;
+    const requestId = ctx.request.requestId;
+    const attempt = ctx.request.attempt;
+    const heartbeat = this._startRequestHeartbeat(ctx.request);
+    const workingSessao = ctx.sessao;
+
+    try {
+      const processingRequest = await this._persistRequestStatus(roomId, requestId, 'processing');
+      if (processingRequest) {
+        heartbeat.update(processingRequest);
+        emitMestreRequestStatus(sm, roomId, processingRequest);
+      }
+
+      const invocationContext = buildNarracaoContext(workingSessao, userId);
+      const mestre = await sm.obterMestre(roomId, workingSessao.historiaTemas || [], workingSessao, userId);
+
+      decrementCooldowns(workingSessao, userId);
+      decrementConcentracao(workingSessao, userId);
+      decrementEfeitos(workingSessao, userId);
+      aplicarEfeitosPorTurno(workingSessao, userId);
+      expireEfeitosTerreno(workingSessao);
+      migrarEstadoTaticoLegado(workingSessao);
+
+      const sources = {
+        inventario: invocationContext.personagem?.inventario || invocationContext.personagem?.equipamentos || [],
+        habilidadesClasse: invocationContext.personagem?.habilidadesClasse || [],
+        magias: invocationContext.personagem?.magias || [],
+        manaAtual: invocationContext.runtime?.mana_atual ?? invocationContext.personagem?.mana_atual ?? null,
+        cooldowns: invocationContext.runtime?.cooldowns || {},
+        mensagensRecentes: invocationContext.mensagensRecentes || [],
+        memoriaSemantica: invocationContext.memoriaSemantica || []
+      };
+
+      const claimResult = runClaimDetection(mensagem, sources, {
+        userId,
+        roomId,
+        personagem: personagem?.nome || username
+      });
+      const claimFlags = claimResult?.claimFlags || [];
+      const blockingClaim = claimFlags.find((flag) => flag?.blockLevel === 'hard');
+      if (blockingClaim) {
+        await sm.withRoomLock(roomId, async () => {
+          const sessaoAtual = await sm.obterSessaoHistoria(roomId);
+          const activeRequest = getActiveMestreRequest(sessaoAtual || {});
+          if (!sessaoAtual || !activeRequest || activeRequest.requestId !== requestId || Number(activeRequest.attempt || 0) !== Number(attempt)) {
+            return;
+          }
+
+          const completed = completeMestreRequest(sessaoAtual, requestId, attempt);
+          await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtual);
+          sm.sendToRoom(roomId, 'mestre_pensando', { ativo: false, timestamp: Date.now(), requestId, attempt });
+          emitMestreRequestStatus(sm, roomId, completed, { status: 'completed' });
+        }, { maxWaitMs: 0 });
+
+        socket.emit('erro_mensagem', { message: blockingClaim.reason || 'A acao nao pode prosseguir como descrita.' });
+        heartbeat.stop();
+        return;
+      }
+
+      const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId));
+      let resultadosCombatePreResolvido = null;
+      if (combateAtivo && combatIntent) {
+        resultadosCombatePreResolvido = await resolverMecanicaCombate(workingSessao, {
+          roomId,
+          userId,
+          username,
+          personagem,
+          mensagem,
+          combatIntent,
+          turnStateText
+        });
+      }
+
+      const contextoCombate = combateAtivo
+        ? formatarContextoCombate(workingSessao, userId, resultadosCombatePreResolvido, turnStateText)
+        : '';
+
+      const promptAcao = sanitizePromptInput(mensagem, 2000);
+      let resposta = await mestre.narrarAcaoStream({
+        jogador: username,
+        personagem: personagem.nome,
+        acao: contextoCombate
+          ? `${promptAcao}\n\n[CONTEXTO COMBATE]\n${contextoCombate}`
+          : promptAcao,
+        chatHistory: invocationContext.chatHistory,
+        resumo: invocationContext.resumo,
+        contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
+        lockContinuidade: invocationContext.lockContinuidade,
+        runtimeOptions: {
+          retryOnTimeout: false,
+          throwOnFailure: true
+        }
+      }, {
+        onStreamStart: async () => {
+          heartbeat.update({ status: 'streaming' });
+          const streamingRequest = await this._persistRequestStatus(roomId, requestId, 'streaming');
+          if (streamingRequest) heartbeat.update(streamingRequest);
+          sm.sendToRoom(roomId, 'mestre_stream_start', {
+            requestId,
+            streamId: `stream_${requestId}_${attempt}`,
+            attempt,
+            timestamp: Date.now()
+          });
+          emitMestreRequestStatus(sm, roomId, streamingRequest || ctx.request, { status: 'streaming' });
+        },
+        onChunk: (delta, accumulated) => {
+          sm.sendToRoom(roomId, 'mestre_stream_chunk', {
+            requestId,
+            streamId: `stream_${requestId}_${attempt}`,
+            attempt,
+            delta,
+            accumulated,
+            timestamp: Date.now()
+          });
+        },
+        onStreamEnd: () => {
+          sm.sendToRoom(roomId, 'mestre_stream_end', {
+            requestId,
+            streamId: `stream_${requestId}_${attempt}`,
+            attempt,
+            timestamp: Date.now()
+          });
+        },
+        onError: (error) => {
+          sm.sendToRoom(roomId, 'mestre_stream_error', {
+            requestId,
+            streamId: `stream_${requestId}_${attempt}`,
+            attempt,
+            errorCode: error?.message || 'STREAM_ERROR',
+            timestamp: Date.now()
+          });
+        }
+      });
+
+      try {
+        const reviewingRequest = await this._persistRequestStatus(roomId, requestId, 'reviewing');
+        if (reviewingRequest) {
+          heartbeat.update(reviewingRequest);
+          emitMestreRequestStatus(sm, roomId, reviewingRequest);
+        }
+
+        const { executarRevisao } = await import('../../agents/Revisores/index.js');
+        const reviewResult = await executarRevisao({
+          combateAtivo,
+          resultadosCombatePreResolvido,
+          respostaIA: resposta,
+          acaoJogador: mensagem,
+          sessao: workingSessao,
+          userId,
+          claimFlags
+        });
+        if (reviewResult.reviewed && !reviewResult.passed && reviewResult.corrections?.narrativa) {
+          resposta.narracao = reviewResult.corrections.narrativa;
+        }
+        if (reviewResult.reviewed && reviewResult.verdicts) {
+          resposta._reviewVerdicts = reviewResult.verdicts;
+        }
+      } catch (reviewErr) {
+        log.warn({ err: reviewErr.message }, 'Revisao pos-IA falhou (fail-open)');
+      }
+
+      await sm.withRoomLock(roomId, async () => {
+        const sessaoAtual = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessaoAtual || {});
+        if (!sessaoAtual || !activeRequest || activeRequest.requestId !== requestId || Number(activeRequest.attempt || 0) !== Number(attempt)) {
+          sm.log('WARN', 'MESTRE_REQUEST_LATE_RESULT_DROPPED', socket.id, userId, {
+            roomId,
+            requestId,
+            attempt
+          });
+          return;
+        }
+
+        const narrativa = resposta.narracao || '';
+        const mensagemMestre = sm.buildMestreMensagem(narrativa, workingSessao.mestreConfig, {
+          sessao: workingSessao,
+          segmentos: resposta.segmentos || [],
+          extraFields: {
+            requestId,
+            attempt
+          }
+        });
+        appendMensagemSessao(workingSessao, mensagemMestre);
+        await sm.aplicarMetadadosNarrativos(roomId, workingSessao, resposta.metadados || {});
+
+        if (resultadosCombatePreResolvido?._emitirTesteAposNarracao) {
+          const { testeCriado, rt } = resultadosCombatePreResolvido._emitirTesteAposNarracao;
+          emitirSolicitacaoTeste(sm, roomId, workingSessao, {
+            narrativa: narrativa || '',
+            tipoDado: rt.tipoDado || 'd20',
+            teste: rt.teste,
+            dificuldade: rt.dificuldade,
+            contexto: rt.contexto,
+            origem: 'combate',
+            testePendente: testeCriado
+          });
+        }
+
+        const { despacharResposta } = await import('../utils/respostaDispatcher.js');
+        await despacharResposta(resposta, {
+          roomId,
+          userId,
+          username,
+          personagem,
+          mensagem,
+          sessao: workingSessao,
+          socket,
+          sm,
+          fase,
+          combateAtivo
+        });
+
+        const completedRequest = completeMestreRequest(workingSessao, requestId, attempt);
+        workingSessao.atualizadaEm = new Date().toISOString();
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, workingSessao);
+        sm._tentarSnapshot(roomId, workingSessao);
+        sm.emitirEstadoTurno(roomId, workingSessao);
+
+        sm.sendToRoom(roomId, 'mensagem_mestre', {
+          ...mensagemMestre,
+          message: narrativa,
+          requestId,
+          attempt
+        });
+        sm.sendToRoom(roomId, 'mestre_pensando', {
+          ativo: false,
+          timestamp: Date.now(),
+          requestId,
+          attempt
+        });
+        emitMestreRequestStatus(sm, roomId, completedRequest, { status: 'completed' });
+      }, { maxWaitMs: 0 });
+
+      sm.log('SUCCESS', 'MENSAGEM_PARA_MESTRE_COMPLETED', socket.id, userId, {
+        roomId,
+        requestId,
+        attempt,
+        processingTimeMs: Date.now() - startTime
+      });
+    } catch (error) {
+      const failure = this._categorizeRequestError(error);
+      heartbeat.update({
+        status: failure.status,
+        errorCode: failure.errorCode,
+        errorMessage: failure.errorMessage
+      });
+
+      await sm.withRoomLock(roomId, async () => {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessao || {});
+        if (!sessao || !activeRequest || activeRequest.requestId !== requestId || Number(activeRequest.attempt || 0) !== Number(attempt)) {
+          return;
+        }
+
+        const failedRequest = failMestreRequest(sessao, requestId, attempt, failure.status, {
+          errorCode: failure.errorCode,
+          errorMessage: failure.errorMessage
+        });
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+        sm.sendToRoom(roomId, 'mestre_pensando', {
+          ativo: false,
+          timestamp: Date.now(),
+          requestId,
+          attempt
+        });
+        emitMestreRequestStatus(sm, roomId, failedRequest, {
+          status: failure.status,
+          errorCode: failure.errorCode,
+          errorMessage: failure.errorMessage
+        });
+      }, { maxWaitMs: 0 });
+
+      socket.emit('erro_mensagem', { message: failure.errorMessage });
+      sm.log('ERROR', 'MENSAGEM_PARA_MESTRE_ERROR', socket.id, userId, {
+        roomId,
+        requestId,
+        attempt,
+        error: error.message,
+        stack: error.stack,
+        processingTimeMs: Date.now() - startTime
+      });
+    } finally {
+      heartbeat.stop();
+    }
+  }
+
+  async handleConsultarMestreRequest(socket, data) {
+    const sm = this.manager;
+    const { roomId: rawRoomId, requestId: rawRequestId } = data || {};
+    if (!rawRoomId || !rawRequestId) {
+      socket.emit('erro_mensagem', { message: 'roomId e requestId sao obrigatorios para consultar status.' });
+      return;
+    }
+
+    const roomId = String(rawRoomId);
+    const requestId = String(rawRequestId);
+    const sessao = await sm.obterSessaoHistoria(roomId);
+    if (!sessao) return;
+
+    const request = getLatestMestreRequest(sessao, requestId);
+    if (!request) return;
+
+    socket.emit('mestre_request_status', buildMestreRequestStatusPayload(request));
+  }
+
+  async handleRegenerarRespostaMestre(socket, data) {
+    const sm = this.manager;
+    const { roomId: rawRoomId, userId: rawUserId, requestId: rawRequestId } = data || {};
+    if (!rawRoomId || !rawUserId || !rawRequestId) {
+      socket.emit('erro_mensagem', { message: 'roomId, userId e requestId sao obrigatorios para regenerar.' });
+      return false;
+    }
+
+    const roomId = String(rawRoomId);
+    const userId = String(rawUserId);
+    const requestId = String(rawRequestId);
+
+    let accepted = null;
+    try {
+      await sm.withRoomLock(roomId, async () => {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          socket.emit('erro_mensagem', { message: 'Sessao nao encontrada.' });
+          return;
+        }
+
+      const existing = getLatestMestreRequest(sessao, requestId);
+      if (!existing) {
+        socket.emit('erro_mensagem', { message: 'Requisicao do Mestre nao encontrada.' });
+        return;
+      }
+
+      if (existing.kind === 'turn_start') {
+        accepted = { delegated: true };
+        return;
+      }
+
+      try {
+        const regenerated = beginRegenerateMestreRequest(sessao, requestId, userId);
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.sendToRoom(roomId, 'mestre_pensando', {
+          ativo: true,
+          timestamp: Date.now(),
+          requestId,
+          attempt: regenerated.attempt
+        });
+        emitMestreRequestStatus(sm, roomId, regenerated);
+
+        accepted = {
+          roomId,
+          userId,
+          username: regenerated.username || socket.username || 'Jogador',
+          mensagem: regenerated.originalMessage,
+          personagem: regenerated.personagem,
+          combatIntent: regenerated.combatIntent,
+          requestId,
+          fase: sessao.estadoJogo?.fase,
+          combateAtivo: !!sessao.estadoJogo?.combate?.ativo,
+          sessao,
+          request: regenerated,
+          startTime: Date.now()
+        };
+      } catch (error) {
+        if (error.code === 'MESTRE_REQUEST_BUSY') {
+          this._emitBusy(socket, roomId, requestId, userId, error.activeRequest);
+          return;
+        }
+
+        const message = error.code === 'MESTRE_REQUEST_NOT_REGENERATABLE'
+          ? 'A resposta do Mestre ainda nao pode ser regenerada.'
+          : 'Nao foi possivel regenerar a resposta do Mestre.';
+        socket.emit('erro_mensagem', { message });
+      }
+      }, { maxWaitMs: 0 });
+    } catch (error) {
+      if (error.message?.includes('Operação em andamento')) {
+        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+        return false;
+      }
+      throw error;
+    }
+
+    if (accepted?.delegated) {
+      return sm.turnEngine.handleRegenerarMestreRequest(socket, data);
+    }
+
+    if (accepted) {
+      this._processAcceptedPlayerActionRequest(socket, accepted);
+      return true;
+    }
+
+    return false;
   }
 
   /**

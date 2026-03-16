@@ -42,7 +42,7 @@ export const MESTRE_CONFIG = {
     temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.9,
     maxTokens: parseInt(process.env.AI_MAX_TOKENS) || 8000,
     topP: parseFloat(process.env.AI_TOP_P) || 0.99,
-    timeout: parseInt(process.env.AI_TIMEOUT_MS) || 12000,
+    timeout: parseInt(process.env.AI_TIMEOUT_MS) || 10000,
   },
 
   // Configurações de comportamento

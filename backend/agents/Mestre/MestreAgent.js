@@ -476,10 +476,12 @@ export class MestreAgent {
     chatHistory = [],
     resumo = null,
     contextoLateralRoleplay = '',
-    lockContinuidade = ''
+    lockContinuidade = '',
+    runtimeOptions = {}
   }) {
     const startTime = Date.now();
     try {
+      const retryAttempts = runtimeOptions.retryOnTimeout === false ? 0 : MESTRE_CONFIG.model.retryAttempts;
       log.info({ personagem }, 'Narrando acao');
 
       // Formatar input
@@ -515,7 +517,7 @@ export class MestreAgent {
       const response = await withRetry(() => withTimeout(this.chain.invoke({
         input: inputCompleto,
         chat_history: historico
-      })));
+      })), retryAttempts);
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -565,6 +567,9 @@ export class MestreAgent {
       };
     } catch (error) {
       log.error({ err: error.message }, 'Erro ao narrar acao');
+      if (runtimeOptions.throwOnFailure) {
+        throw error;
+      }
       // Fallback narrative instead of crashing the game
       const narrativaFallback = '*O Mestre faz uma pausa dramatica...* A magia que conecta os mundos vacila por um instante. (Erro temporario no servico de IA - tente novamente)';
       return {
@@ -595,7 +600,8 @@ export class MestreAgent {
     chatHistory = [],
     resumo = null,
     contextoLateralRoleplay = '',
-    lockContinuidade = ''
+    lockContinuidade = '',
+    runtimeOptions = {}
   }, callbacks = {}) {
     const { onStreamStart, onChunk, onStreamEnd, onError } = callbacks;
     const startTime = Date.now();
@@ -690,6 +696,9 @@ export class MestreAgent {
     } catch (error) {
       log.error({ err: error.message }, 'Erro ao narrar acao (stream), fallback para invoke');
       onError?.(error);
+      if (runtimeOptions.throwOnFailure) {
+        throw error;
+      }
       return this.narrarAcao({
         jogador,
         personagem,
@@ -697,7 +706,8 @@ export class MestreAgent {
         chatHistory,
         resumo,
         contextoLateralRoleplay,
-        lockContinuidade
+        lockContinuidade,
+        runtimeOptions
       });
     }
   }
@@ -841,10 +851,12 @@ export class MestreAgent {
     contadorMensagens = 0,
     chatHistory = [],
     resumo = null,
-    contextoLateralRoleplay = ''
+    contextoLateralRoleplay = '',
+    runtimeOptions = {}
   }) {
     const startTime = Date.now();
     try {
+      const retryAttempts = runtimeOptions.retryOnTimeout === false ? 0 : MESTRE_CONFIG.model.retryAttempts;
       log.info({ turno, personagem, rodada }, 'Narrando turno');
 
       // Criar prompt específico para turno
@@ -889,7 +901,7 @@ Mensagem do Jogador:
       const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      })));
+      })), retryAttempts);
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -926,6 +938,9 @@ Mensagem do Jogador:
       };
     } catch (error) {
       log.error({ err: error.message }, 'Erro ao narrar turno');
+      if (runtimeOptions.throwOnFailure) {
+        throw error;
+      }
       const respostaFallback = '*O Mestre faz uma pausa...* (Erro temporario no servico de IA - tente novamente)';
       return {
         resposta: respostaFallback,

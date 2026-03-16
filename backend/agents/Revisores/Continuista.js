@@ -66,7 +66,7 @@ export class Continuista {
           new HumanMessage(userInput),
         ]),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('REVIEWER_TIMEOUT')), REVIEWER_CONFIG.model.timeout)
+          setTimeout(() => reject(new Error('REVIEWER_TIMEOUT')), 500)
         ),
       ]);
 

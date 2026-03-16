@@ -76,7 +76,8 @@ export function buildJogadorMensagem({
   personagem = null,
   message,
   origem = 'turno',
-  payload = null
+  payload = null,
+  extraFields = null
 } = {}) {
   return createSessionMessage({
     tipo: 'jogador',
@@ -86,7 +87,8 @@ export function buildJogadorMensagem({
     username: username || 'Jogador',
     message,
     payload,
-    personagem
+    personagem,
+    ...(extraFields || {})
   });
 }
 

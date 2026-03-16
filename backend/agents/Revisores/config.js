@@ -12,7 +12,7 @@ export const REVIEWER_CONFIG = {
     provider: detectProvider(modelName),
     temperature: 0.1,
     maxTokens: 1000,
-    timeout: parseInt(process.env.REVIEWER_TIMEOUT_MS) || 8000,
+    timeout: parseInt(process.env.REVIEWER_TIMEOUT_MS) || 500,
   },
   failOpen: true,
 };

@@ -101,10 +101,14 @@ class SocketManager {
    * Mutex por sala - garante que apenas uma operação por vez modifique a sessão
    * Previne race conditions quando múltiplos jogadores agem simultaneamente
    */
-  async withRoomLock(roomId, fn) {
-    // Esperar lock anterior terminar (max 15s para evitar deadlock)
-    const maxWait = Date.now() + 15000;
+  async withRoomLock(roomId, fn, options = {}) {
+    const maxWaitMs = Number.isFinite(options.maxWaitMs) ? options.maxWaitMs : 15000;
+    const maxWait = Date.now() + maxWaitMs;
     while (this._roomLocks.has(roomId)) {
+      if (maxWaitMs <= 0) {
+        this.log('ERROR', 'ROOM_LOCK_TIMEOUT', null, null, { roomId, immediate: true });
+        throw new Error('Operação em andamento na sala. Tente novamente em alguns segundos.');
+      }
       if (Date.now() > maxWait) {
         this.log('ERROR', 'ROOM_LOCK_TIMEOUT', null, null, { roomId });
         throw new Error('Operação em andamento na sala. Tente novamente em alguns segundos.');
@@ -324,6 +328,36 @@ class SocketManager {
         }
       });
 
+      socket.on('consultar_mestre_request', async (data) => {
+        this.log('INFO', 'CONSULTAR_MESTRE_REQUEST_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          requestId: data?.requestId
+        });
+        try {
+          await this.handleConsultarMestreRequest(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'CONSULTAR_MESTRE_REQUEST_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
+          });
+        }
+      });
+
+      socket.on('regenerar_resposta_mestre', async (data) => {
+        this.log('INFO', 'REGENERAR_RESPOSTA_MESTRE_RECEIVED', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom,
+          requestId: data?.requestId
+        });
+        try {
+          await this.handleRegenerarRespostaMestre(socket, data);
+        } catch (error) {
+          this.log('ERROR', 'REGENERAR_RESPOSTA_MESTRE_FAILED', socket.id, socket.userId, {
+            error: error.message,
+            stack: error.stack
+          });
+        }
+      });
+
       // @listen mensagem_roleplay → masterNarrationEngine | roleplay livre fora do turno
       socket.on('mensagem_roleplay', async (data) => {
         this.log('INFO', 'MENSAGEM_ROLEPLAY_RECEIVED', socket.id, socket.userId, {
@@ -430,6 +464,8 @@ class SocketManager {
           'dice_roll',
           'rolar_dado_inicial',
           'iniciar_turno',
+          'consultar_mestre_request',
+          'regenerar_resposta_mestre',
           'solicitar_dados',
           'disconnect'
         ].includes(eventName)) {
@@ -486,6 +522,12 @@ class SocketManager {
   }
   async handleMensagemParaMestre(socket, data) {
     return this.masterNarrationEngine.handleMensagemParaMestre(socket, data);
+  }
+  async handleConsultarMestreRequest(socket, data) {
+    return this.masterNarrationEngine.handleConsultarMestreRequest(socket, data);
+  }
+  async handleRegenerarRespostaMestre(socket, data) {
+    return this.masterNarrationEngine.handleRegenerarRespostaMestre(socket, data);
   }
   async handleMensagemRoleplay(socket, data) {
     return this.masterNarrationEngine.handleMensagemRoleplay(socket, data);

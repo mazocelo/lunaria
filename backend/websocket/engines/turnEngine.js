@@ -16,6 +16,17 @@ import {
 } from '../utils/turnStateMachine.js';
 import { limparTestePendente } from '../utils/testePipeline.js';
 import { sanitizePromptInput } from '../../helpers/sanitize.js';
+import {
+  acceptMestreRequest,
+  beginRegenerateMestreRequest,
+  buildRejectedBusyStatusPayload,
+  completeMestreRequest,
+  emitMestreRequestStatus,
+  failMestreRequest,
+  getActiveMestreRequest,
+  getLatestMestreRequest,
+  markMestreRequestStatus
+} from '../utils/mestreRequestLifecycle.js';
 
 // ── Abertura com transição personalizada ──────────────────────────
 
@@ -103,7 +114,91 @@ export default class TurnEngine {
     this.manager = manager;
   }
 
+  _startRequestHeartbeat(request) {
+    const sm = this.manager;
+    const heartbeatState = { ...request };
+    const timer = setInterval(() => {
+      emitMestreRequestStatus(sm, heartbeatState.roomId, heartbeatState, {
+        status: heartbeatState.status,
+        updatedAt: new Date().toISOString()
+      });
+      sm.log('DEBUG', 'MESTRE_REQUEST_HEARTBEAT', null, heartbeatState.userId, {
+        roomId: heartbeatState.roomId,
+        requestId: heartbeatState.requestId,
+        attempt: heartbeatState.attempt,
+        status: heartbeatState.status
+      });
+    }, 3000);
+
+    return {
+      update(patch = {}) {
+        Object.assign(heartbeatState, patch);
+      },
+      stop() {
+        clearInterval(timer);
+      }
+    };
+  }
+
+  _categorizeRequestError(error) {
+    const message = error?.message || '';
+    if (message === 'AI_TIMEOUT' || message === 'AI_STREAM_TIMEOUT') {
+      return {
+        status: 'timed_out',
+        errorCode: 'AI_TIMEOUT',
+        errorMessage: 'A resposta do Mestre expirou antes de concluir.'
+      };
+    }
+
+    return {
+      status: 'failed',
+      errorCode: 'MESTRE_REQUEST_FAILED',
+      errorMessage: 'A resposta do Mestre falhou antes de concluir.'
+    };
+  }
+
+  async _persistRequestStatus(roomId, requestId, status, patch = {}) {
+    const sm = this.manager;
+    let request = null;
+
+    await sm.withRoomLock(roomId, async () => {
+      const sessao = await sm.obterSessaoHistoria(roomId);
+      if (!sessao) return;
+      request = markMestreRequestStatus(sessao, requestId, {
+        ...patch,
+        status
+      });
+      if (!request) return;
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+    }, { maxWaitMs: 0 });
+
+    return request;
+  }
+
+  _emitBusy(socket, roomId, requestId, userId, activeRequest) {
+    const sm = this.manager;
+    const payload = buildRejectedBusyStatusPayload({
+      requestId,
+      roomId,
+      userId,
+      kind: 'turn_start',
+      activeRequest
+    });
+
+    socket.emit('mestre_request_status', payload);
+    socket.emit('erro_mensagem', {
+      message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.'
+    });
+    sm.log('WARN', 'MESTRE_REQUEST_REJECTED_BUSY', socket.id, userId, {
+      roomId,
+      requestId,
+      activeRequestId: activeRequest?.requestId,
+      activeAttempt: activeRequest?.attempt
+    });
+  }
+
   async handleIniciarTurno(socket, data) {
+    return this._handleIniciarTurnoCorrelated(socket, data);
     const sm = this.manager;
     const startTime = Date.now();
 
@@ -339,6 +434,423 @@ export default class TurnEngine {
         socket.emit('error', { message: 'Erro ao iniciar turno' });
       }
     }
+  }
+
+  async _handleIniciarTurnoCorrelated(socket, data) {
+    const sm = this.manager;
+    const startTime = Date.now();
+
+    const { roomId: rawRoomId, userId: rawUserId, username: rawUsername, requestId: rawRequestId } = data || {};
+    if (!rawRoomId || !rawUserId || !rawRequestId) {
+      socket.emit('error', { message: 'roomId, userId e requestId sao obrigatorios' });
+      return;
+    }
+
+    const roomId = String(rawRoomId);
+    const userId = String(rawUserId);
+    const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
+    const requestId = String(rawRequestId);
+
+    let accepted = null;
+    try {
+      accepted = await sm.withRoomLock(roomId, async () => {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          socket.emit('error', { message: 'Sessao nao encontrada' });
+          return null;
+        }
+
+      const estadoJogo = sessao.estadoJogo || {};
+      const turnoAtual = estadoJogo.turnoAtual || 0;
+      const ordemJogadores = estadoJogo.ordemJogadores || [];
+      const jogadorDaVez = ordemJogadores[turnoAtual];
+
+      if (!jogadorDaVez || String(jogadorDaVez.userId) !== String(userId)) {
+        socket.emit('erro_turno', { message: 'Nao e seu turno!' });
+        return null;
+      }
+
+      const turnoState = getTurnState(sessao);
+      if (turnoState.status !== TURN_STATUS.IDLE) {
+        const activeRequest = getActiveMestreRequest(sessao);
+        if (activeRequest && activeRequest.requestId === requestId && activeRequest.kind === 'turn_start') {
+          emitMestreRequestStatus(sm, roomId, activeRequest);
+          return {
+            sessao,
+            estadoJogo,
+            turnoAtual,
+            jogadorDaVez,
+            request: activeRequest
+          };
+        }
+        if (activeRequest && activeRequest.requestId !== requestId) {
+          this._emitBusy(socket, roomId, requestId, userId, activeRequest);
+        }
+        return null;
+      }
+
+      let acceptedRequest;
+      try {
+        ({ request: acceptedRequest } = acceptMestreRequest(sessao, {
+          requestId,
+          kind: 'turn_start',
+          roomId,
+          userId,
+          username,
+          personagem: {
+            id: jogadorDaVez.personagemId || null,
+            personagemId: jogadorDaVez.personagemId || null,
+            nome: jogadorDaVez.personagemNome || username,
+            classe: '',
+            nivel: 1
+          },
+          originalMessage: `Inicio do turno de ${jogadorDaVez.personagemNome || username}`,
+          combatIntent: null,
+          playerMessageId: null
+        }));
+      } catch (error) {
+        if (error.code === 'MESTRE_REQUEST_BUSY') {
+          this._emitBusy(socket, roomId, requestId, userId, error.activeRequest);
+          return null;
+        }
+        throw error;
+      }
+
+      transitionTurnState(sessao, TURN_STATUS.STARTING, {
+        jogadorAtual: String(userId),
+        rodadaAtual: estadoJogo.rodadaAtual || 1,
+        contadorInteracoes: 0,
+        iniciadoEm: new Date().toISOString(),
+        lockReason: 'gerando_abertura'
+      });
+
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      sm.emitirEstadoTurno(roomId, sessao);
+      sm.sendToRoom(roomId, 'mestre_pensando', {
+        ativo: true,
+        timestamp: Date.now(),
+        requestId,
+        attempt: acceptedRequest.attempt
+      });
+      emitMestreRequestStatus(sm, roomId, acceptedRequest);
+
+        return {
+          sessao,
+          estadoJogo,
+          turnoAtual,
+          jogadorDaVez,
+          request: acceptedRequest
+        };
+      }, { maxWaitMs: 0 });
+    } catch (error) {
+      if (error.message?.includes('Operação em andamento')) {
+        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+        return;
+      }
+      throw error;
+    }
+
+    if (!accepted) {
+      return;
+    }
+
+    const heartbeat = this._startRequestHeartbeat(accepted.request);
+    const lifecycle = {
+      requestId,
+      roomId,
+      userId,
+      username,
+      attempt: accepted.request.attempt
+    };
+
+    void (async () => {
+      try {
+        const processingRequest = await this._persistRequestStatus(roomId, requestId, 'processing');
+        if (processingRequest) {
+          heartbeat.update(processingRequest);
+          emitMestreRequestStatus(sm, roomId, processingRequest);
+        }
+
+        const mestre = await sm.obterMestre(roomId, accepted.sessao.historiaTemas || [], accepted.sessao, userId);
+        const invocationContext = buildTurnStartContext(accepted.sessao, userId);
+        const aberturasPorJogador = accepted.estadoJogo.aberturasPorJogador || {};
+        const jaFezAbertura = !!aberturasPorJogador[String(userId)];
+        const openingMode = accepted.sessao.historiaConfig?.session_opening_mode || 'direto';
+
+        let mensagemTurno;
+        if (!jaFezAbertura && openingMode === 'transicao_personalizada') {
+          mensagemTurno = buildTransitionMessage(accepted.sessao, accepted.jogadorDaVez, username, invocationContext);
+        } else {
+          const blocosTurno = [];
+          if (invocationContext.lockContinuidade) {
+            blocosTurno.push(invocationContext.lockContinuidade);
+          }
+          if (invocationContext.contextoLateralRoleplay) {
+            blocosTurno.push(invocationContext.contextoLateralRoleplay);
+          }
+          blocosTurno.push(`Continue a cena atual. Agora e a vez de ${accepted.jogadorDaVez.personagemNome || username} agir.`);
+          mensagemTurno = blocosTurno.join('\n\n');
+        }
+
+        const mensagemInicial = await mestre.narrarTurnoJogador({
+          jogador: username,
+          personagem: accepted.jogadorDaVez.personagemNome || username,
+          mensagem: mensagemTurno,
+          rodada: accepted.estadoJogo.rodadaAtual || 1,
+          turno: accepted.turnoAtual,
+          contadorMensagens: 0,
+          chatHistory: invocationContext.chatHistory,
+          resumo: invocationContext.resumo,
+          contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
+          runtimeOptions: {
+            retryOnTimeout: false,
+            throwOnFailure: true
+          }
+        });
+
+        await sm.withRoomLock(roomId, async () => {
+          const sessaoAtualizada = await sm.obterSessaoHistoria(roomId);
+          if (!sessaoAtualizada) return;
+
+          const activeRequest = getActiveMestreRequest(sessaoAtualizada);
+          if (!activeRequest || activeRequest.requestId !== requestId || Number(activeRequest.attempt || 0) !== Number(lifecycle.attempt)) {
+            sm.log('WARN', 'MESTRE_REQUEST_LATE_RESULT_DROPPED', socket.id, userId, {
+              roomId,
+              requestId,
+              attempt: lifecycle.attempt
+            });
+            return;
+          }
+
+          const estadoJogo = sessaoAtualizada.estadoJogo || {};
+          if (!jaFezAbertura) {
+            estadoJogo.aberturasPorJogador = {
+              ...(estadoJogo.aberturasPorJogador || {}),
+              [String(userId)]: true
+            };
+          }
+
+          const narrativaInicial = mensagemInicial.resposta || mensagemInicial.narracao || '';
+          const msgInicial = sm.criarMensagemMestre(narrativaInicial, sessaoAtualizada.mestreConfig, {
+            sessao: sessaoAtualizada,
+            segmentos: mensagemInicial.segmentos || [],
+            extraFields: {
+              requestId,
+              attempt: lifecycle.attempt
+            }
+          });
+          appendMensagemSessao(sessaoAtualizada, msgInicial);
+          await sm.aplicarMetadadosNarrativos(roomId, sessaoAtualizada, mensagemInicial.metadados || {});
+
+          const { despacharResposta } = await import('../utils/respostaDispatcher.js');
+          await despacharResposta({
+            narracao: narrativaInicial,
+            fimDeTurno: !!mensagemInicial.fimDeTurno,
+            acaoCompleta: !!mensagemInicial.acaoCompleta,
+            solicitaDados: mensagemInicial.solicitaDados || { solicita: false },
+            teste: mensagemInicial.teste || null,
+            acoes: Array.isArray(mensagemInicial.acoes) ? mensagemInicial.acoes : [],
+            combate: mensagemInicial.combate || null,
+            metadados: mensagemInicial.metadados || {}
+          }, {
+            roomId,
+            userId,
+            username,
+            personagem: {
+              nome: accepted.jogadorDaVez.personagemNome || username,
+              id: accepted.jogadorDaVez.personagemId || null
+            },
+            mensagem: `Inicio do turno de ${accepted.jogadorDaVez.personagemNome || username}`,
+            sessao: sessaoAtualizada,
+            socket,
+            sm,
+            fase: estadoJogo.fase,
+            combateAtivo: !!estadoJogo.combate?.ativo,
+            skipTurnControl: true
+          });
+
+          const turnoFinal = getTurnState(sessaoAtualizada);
+          if (turnoFinal.status === TURN_STATUS.STARTING) {
+            transitionTurnState(sessaoAtualizada, TURN_STATUS.ACTIVE, {
+              jogadorAtual: String(userId),
+              rodadaAtual: estadoJogo.rodadaAtual || 1,
+              lockReason: null
+            });
+          }
+
+          const completedRequest = completeMestreRequest(sessaoAtualizada, requestId, lifecycle.attempt);
+          sessaoAtualizada.atualizadaEm = new Date().toISOString();
+          await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtualizada);
+          await sm.executarCompactacaoSeNecessaria(roomId, sessaoAtualizada, { userId });
+          sm.emitirEstadoTurno(roomId, sessaoAtualizada);
+
+          sm.sendToRoom(roomId, 'mensagem_mestre', {
+            ...msgInicial,
+            message: narrativaInicial,
+            requestId,
+            attempt: lifecycle.attempt
+          });
+          sm.sendToRoom(roomId, 'mestre_pensando', {
+            ativo: false,
+            timestamp: Date.now(),
+            requestId,
+            attempt: lifecycle.attempt
+          });
+          emitMestreRequestStatus(sm, roomId, completedRequest, { status: 'completed' });
+          sm.sendToRoom(roomId, 'turno_iniciado', {
+            userId,
+            username,
+            rodada: estadoJogo.rodadaAtual || 1,
+            turno: accepted.turnoAtual,
+            timestamp: Date.now(),
+            requestId,
+            attempt: lifecycle.attempt
+          });
+        }, { maxWaitMs: 0 });
+
+        sm.log('SUCCESS', 'INICIAR_TURNO_COMPLETED', socket.id, userId, {
+          roomId,
+          username,
+          requestId,
+          attempt: lifecycle.attempt,
+          processingTimeMs: Date.now() - startTime
+        });
+      } catch (error) {
+        const failure = this._categorizeRequestError(error);
+        heartbeat.update({
+          status: failure.status,
+          errorCode: failure.errorCode,
+          errorMessage: failure.errorMessage
+        });
+
+        await sm.withRoomLock(roomId, async () => {
+          const sessao = await sm.obterSessaoHistoria(roomId);
+          if (!sessao) return;
+
+          const activeRequest = getActiveMestreRequest(sessao);
+          if (!activeRequest || activeRequest.requestId !== requestId || Number(activeRequest.attempt || 0) !== Number(lifecycle.attempt)) {
+            return;
+          }
+
+          const turno = getTurnState(sessao);
+          if (turno.status === TURN_STATUS.STARTING) {
+            transitionTurnState(sessao, TURN_STATUS.IDLE, {
+              lockReason: null,
+              contadorInteracoes: 0
+            });
+          }
+
+          const failedRequest = failMestreRequest(sessao, requestId, lifecycle.attempt, failure.status, {
+            errorCode: failure.errorCode,
+            errorMessage: failure.errorMessage
+          });
+          await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+          sm.emitirEstadoTurno(roomId, sessao);
+          sm.sendToRoom(roomId, 'mestre_pensando', {
+            ativo: false,
+            timestamp: Date.now(),
+            requestId,
+            attempt: lifecycle.attempt
+          });
+          emitMestreRequestStatus(sm, roomId, failedRequest, {
+            status: failure.status,
+            errorCode: failure.errorCode,
+            errorMessage: failure.errorMessage
+          });
+        }, { maxWaitMs: 0 });
+
+        socket.emit('erro_mensagem', { message: failure.errorMessage });
+        sm.log('ERROR', 'INICIAR_TURNO_ERROR', socket.id, userId, {
+          roomId,
+          requestId,
+          attempt: lifecycle.attempt,
+          error: error.message,
+          stack: error.stack,
+          processingTimeMs: Date.now() - startTime
+        });
+      } finally {
+        heartbeat.stop();
+      }
+    })();
+  }
+
+  async handleRegenerarMestreRequest(socket, data) {
+    const sm = this.manager;
+    const { roomId: rawRoomId, userId: rawUserId, requestId: rawRequestId } = data || {};
+    if (!rawRoomId || !rawUserId || !rawRequestId) {
+      socket.emit('erro_mensagem', { message: 'roomId, userId e requestId sao obrigatorios para regenerar.' });
+      return false;
+    }
+
+    const roomId = String(rawRoomId);
+    const userId = String(rawUserId);
+    const requestId = String(rawRequestId);
+
+    let accepted = null;
+    try {
+      await sm.withRoomLock(roomId, async () => {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        if (!sessao) {
+          socket.emit('erro_mensagem', { message: 'Sessao nao encontrada.' });
+          return;
+        }
+
+      const existing = getLatestMestreRequest(sessao, requestId);
+      if (!existing || existing.kind !== 'turn_start') {
+        return;
+      }
+
+      try {
+        const regenerated = beginRegenerateMestreRequest(sessao, requestId, userId);
+        const estadoJogo = sessao.estadoJogo || {};
+        transitionTurnState(sessao, TURN_STATUS.STARTING, {
+          jogadorAtual: String(userId),
+          rodadaAtual: estadoJogo.rodadaAtual || 1,
+          contadorInteracoes: 0,
+          iniciadoEm: new Date().toISOString(),
+          lockReason: 'gerando_abertura'
+        });
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+        sm.sendToRoom(roomId, 'mestre_pensando', {
+          ativo: true,
+          timestamp: Date.now(),
+          requestId,
+          attempt: regenerated.attempt
+        });
+        emitMestreRequestStatus(sm, roomId, regenerated);
+
+        accepted = {
+          roomId,
+          userId,
+          username: regenerated.username || socket.username || 'Jogador',
+          requestId
+        };
+      } catch (error) {
+        if (error.code === 'MESTRE_REQUEST_BUSY') {
+          this._emitBusy(socket, roomId, requestId, userId, error.activeRequest);
+          return;
+        }
+
+        const message = error.code === 'MESTRE_REQUEST_NOT_REGENERATABLE'
+          ? 'A resposta do Mestre ainda nao pode ser regenerada.'
+          : 'Nao foi possivel regenerar a resposta do Mestre.';
+        socket.emit('erro_mensagem', { message });
+      }
+      }, { maxWaitMs: 0 });
+    } catch (error) {
+      if (error.message?.includes('Operação em andamento')) {
+        socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
+        return false;
+      }
+      throw error;
+    }
+
+    if (accepted) {
+      return this._handleIniciarTurnoCorrelated(socket, accepted);
+    }
+
+    return false;
   }
 
   async iniciarPrimeiroTurno(roomId) {

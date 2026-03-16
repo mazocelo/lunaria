@@ -127,12 +127,12 @@ const NarrationSegments = ({
             className={`${compact ? 'p-2' : 'p-3'} rounded-lg border ${
               useGameVariant
                 ? isNpc
-                  ? 'border-l-2 border-l-amber-400/60 border-amber-400/20 bg-amber-950/30'
+                  ? 'border-l-[3px] border-l-amber-400 border-amber-500/30 bg-gradient-to-r from-amber-900/40 to-amber-950/20'
                   : 'game-glass-subtle border-white/[0.08]'
                 : isNpc
                   ? isLight
-                    ? 'border-l-2 border-l-amber-400 border-amber-200 bg-amber-50/80'
-                    : 'border-l-2 border-l-amber-400/60 border-amber-400/20 bg-amber-950/30'
+                    ? 'border-l-[3px] border-l-amber-400 border-amber-300 bg-amber-50/80'
+                    : 'border-l-[3px] border-l-amber-400 border-amber-500/30 bg-gradient-to-r from-amber-900/40 to-amber-950/20'
                   : isLight
                     ? 'border-slate-200 bg-white/80'
                     : 'border-white/10 bg-black/10'
@@ -149,7 +149,11 @@ const NarrationSegments = ({
                     {segmentItem.speakerLabel}
                   </span>
                 </div>
-                <MarkdownRenderer className={`${compact ? 'text-sm' : 'text-base'} ${isLight ? 'text-slate-700' : 'text-white'} leading-relaxed`}>
+                <MarkdownRenderer className={`${compact ? 'text-sm' : 'text-base'} ${
+                  isNpc
+                    ? isLight ? 'text-amber-900' : 'text-amber-100'
+                    : isLight ? 'text-slate-700' : 'text-white'
+                } leading-relaxed`}>
                   {segmentItem.text}
                 </MarkdownRenderer>
               </div>

@@ -664,6 +664,7 @@ export default class TurnEngine {
           resumo: invocationContext.resumo,
           contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
           runtimeOptions: {
+            historiaConfig: accepted.sessao.historiaConfig || null,
             timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start'),
             retryOnTimeout: false,
             throwOnFailure: true

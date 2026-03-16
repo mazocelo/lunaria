@@ -956,6 +956,7 @@ export default class MasterNarrationEngine {
         contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
         lockContinuidade: invocationContext.lockContinuidade,
         runtimeOptions: {
+          historiaConfig: workingSessao.historiaConfig || null,
           retryOnTimeout: false,
           throwOnFailure: true
         }

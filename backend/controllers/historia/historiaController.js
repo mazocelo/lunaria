@@ -10,6 +10,7 @@ import { processarGeracaoRoteiro as processarGeracaoRoteiroService } from '../..
 import { isValidMode } from '../../config/blueprintModes.js';
 import { consumirCotaBlueprint } from '../../services/blueprintQuotaService.js';
 import { usuarioPodeAcessarHistoria, sincronizarRoteiroNaSessao } from '../../helpers/historiaAuthPolicy.js';
+import { mergeHistoriaConfig, validateHistoriaConfig } from '../../helpers/historiaConfigHelper.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'historiaController' });
 
@@ -110,7 +111,19 @@ class HistoriaController {
     try {
       log.info('Criando nova historia');
       
-      const { nome, temas, maximo_de_participantes, descricao, participantes, temas_disponiveis, mestre_id, publica, imagem, mapas } = req.body;
+      const {
+        nome,
+        temas,
+        maximo_de_participantes,
+        descricao,
+        participantes,
+        temas_disponiveis,
+        mestre_id,
+        publica,
+        imagem,
+        mapas,
+        config
+      } = req.body;
       
       // Validações básicas
       if (!Array.isArray(temas) || temas.length === 0) {
@@ -137,6 +150,14 @@ class HistoriaController {
       
       // Verificar autenticação antecipado (para tracking)
       const userId = req.user?.id;
+      let historiaConfig = null;
+      if (config !== undefined) {
+        try {
+          historiaConfig = validateHistoriaConfig(config);
+        } catch (validationError) {
+          return res.status(400).json({ success: false, error: validationError.message });
+        }
+      }
 
       // Gerar título se não fornecido
       let nomeHistoria = nome;
@@ -166,6 +187,7 @@ class HistoriaController {
         id_usuario: userId,
         mestre_id: mestre_id ? parseInt(mestre_id) : null,
         publica: publica === true || publica === 'true' ? true : false,
+        config: historiaConfig,
         ...(imagem ? { imagem } : {}),
         ...(mapas && Array.isArray(mapas) ? { mapas } : {})
       });
@@ -430,8 +452,7 @@ class HistoriaController {
       if (estilo_imagem !== undefined) dadosSeguros.estilo_imagem = estilo_imagem;
       if (config !== undefined) {
         try {
-          const { validateHistoriaConfig } = await import('../../helpers/historiaConfigHelper.js');
-          dadosSeguros.config = validateHistoriaConfig(config);
+          dadosSeguros.config = mergeHistoriaConfig(historia.config, config);
         } catch (validationError) {
           return res.status(400).json({ success: false, error: validationError.message });
         }
@@ -488,8 +509,27 @@ class HistoriaController {
         try {
           const sessao = await gerenciadorSessoes.obterSessao(salaId);
           if (sessao) {
-            await gerenciadorSessoes.atualizarSessao(salaId, { historiaConfig: dadosSeguros.config });
+            const sessaoPatch = {
+              historiaConfig: dadosSeguros.config
+            };
+            if (sessao.mestreContexto?.historia) {
+              sessaoPatch.mestreContexto = {
+                ...sessao.mestreContexto,
+                historia: {
+                  ...sessao.mestreContexto.historia,
+                  config: dadosSeguros.config
+                }
+              };
+            }
+
+            await gerenciadorSessoes.atualizarSessao(salaId, sessaoPatch);
             log.info({ salaId }, 'historiaConfig sincronizado no Redis para sala');
+          }
+
+          const socketManager = (await import('../../websocket/socketManager.js')).default;
+          if (socketManager?.mestresCache) {
+            socketManager.mestresCache.delete(salaId);
+            log.info({ salaId }, 'mestresCache invalidado para sala apos atualizar historiaConfig');
           }
         } catch (cacheError) {
           log.warn({ err: cacheError }, 'Erro ao sincronizar historiaConfig no Redis (nao critico)');

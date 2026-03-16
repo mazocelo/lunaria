@@ -9,6 +9,7 @@ import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider } from './config.js';
 import analyticsService from '../../services/analyticsService.js';
 import usageService from '../../services/usageService.js';
 import { normalizeNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
+import { buildHistoriaConfigPrompt, getTurnActionLimit } from '../../helpers/historiaConfigHelper.js';
 import logger from '../../helpers/logger.js';
 
 const log = logger.child({ module: 'MestreAgent' });
@@ -286,6 +287,10 @@ dotenv.config();
 const HISTORY_LIMIT = MESTRE_CONFIG.behavior.maxHistoryLength;
 const RESUMO_MAX_CHARS = MESTRE_CONFIG.behavior.resumoMaxChars;
 
+function resolveHistoriaConfig(agent, runtimeOptions = {}) {
+  return runtimeOptions?.historiaConfig || agent?.mestreContexto?.historia?.config || null;
+}
+
 /**
  * Extrai o texto do campo "narrativa" de um JSON em streaming, token a token.
  * State machine: SEARCHING → FOUND_KEY → IN_VALUE → DONE
@@ -483,6 +488,7 @@ export class MestreAgent {
     try {
       const retryAttempts = runtimeOptions.retryOnTimeout === false ? 0 : MESTRE_CONFIG.model.retryAttempts;
       const timeoutMs = runtimeOptions.timeoutMs ?? MESTRE_CONFIG.model.timeout;
+      const historiaConfig = resolveHistoriaConfig(this, runtimeOptions);
       log.info({ personagem }, 'Narrando acao');
 
       // Formatar input
@@ -490,16 +496,12 @@ export class MestreAgent {
 
       // Converter histórico
       const promptBlocks = [];
+      const historiaConfigPrompt = buildHistoriaConfigPrompt(historiaConfig);
+      if (historiaConfigPrompt) promptBlocks.push(historiaConfigPrompt);
       if (lockContinuidade) promptBlocks.push(lockContinuidade);
       if (contextoLateralRoleplay) promptBlocks.push(contextoLateralRoleplay);
       promptBlocks.push(input);
       const inputCompleto = promptBlocks.join('\n\n');
-
-      if (contadorMensagens === 0) {
-        input += `\nGUIA DA PRIMEIRA MENSAGEM DO TURNO:\n- Esta primeira mensagem pode ser mais desenvolvida do que as demais.\n- Ela deve encaixar o personagem na situacao concreta, e nao apenas descreve-lo caminhando ou sentindo o ambiente.\n- Explique brevemente por que ele esta ali agora e o que o recebe na cena.\n- Fixe a situacao atual com clareza: onde ele esta, quem ou o que esta diante dele, e qual tensao imediata esta em jogo.\n- Termine com uma proposta jogavel clara: pergunta, ordem, convite, pista, escolha, interrupcao ou evento concreto.\n- Nao termine apenas em atmosfera, reflexao interna ou expectativa vaga.\n`;
-      } else {
-        input += `\nGUIA DAS MENSAGENS SEGUINTES:\n- Responda primeiro a acao do jogador.\n- Avance a situacao atual sem reabrir a cena.\n- Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.\n- Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.\n- Evite repetir descricao de ambiente ou identidade do personagem.\n- Cada resposta deve empurrar a historia para o proximo beat.\n`;
-      }
 
       let historico = converterHistoricoParaLangChain(chatHistory);
 
@@ -616,9 +618,12 @@ export class MestreAgent {
     try {
       log.info({ personagem }, 'Narrando acao (stream)');
       const timeoutMs = runtimeOptions.timeoutMs ?? MESTRE_CONFIG.model.timeout;
+      const historiaConfig = resolveHistoriaConfig(this, runtimeOptions);
 
       const input = criarPromptNarracao(jogador, personagem, acao);
       const promptBlocks = [];
+      const historiaConfigPrompt = buildHistoriaConfigPrompt(historiaConfig);
+      if (historiaConfigPrompt) promptBlocks.push(historiaConfigPrompt);
       if (lockContinuidade) promptBlocks.push(lockContinuidade);
       if (contextoLateralRoleplay) promptBlocks.push(contextoLateralRoleplay);
       promptBlocks.push(input);
@@ -866,25 +871,30 @@ export class MestreAgent {
     try {
       const retryAttempts = runtimeOptions.retryOnTimeout === false ? 0 : MESTRE_CONFIG.model.retryAttempts;
       const timeoutMs = runtimeOptions.timeoutMs ?? MESTRE_CONFIG.model.timeout;
+      const historiaConfig = resolveHistoriaConfig(this, runtimeOptions);
+      const maxAcoesPorTurno = getTurnActionLimit(historiaConfig);
       log.info({ turno, personagem, rodada }, 'Narrando turno');
 
       // Criar prompt específico para turno
       let input = `TURNO DO JOGADOR ${personagem} (Jogador: ${jogador})
-Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/4
+Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/${maxAcoesPorTurno}
 
 Mensagem do Jogador:
 "${mensagem}"
 
 `;
 
-      // Se já houve 3 mensagens, avisar que é hora de finalizar
-      if (contadorMensagens >= 3) {
+      const respostasRestantes = Math.max(0, maxAcoesPorTurno - contadorMensagens - 1);
+
+      // Se já alcançou a ultima resposta disponível, avise para finalizar.
+      if (contadorMensagens >= maxAcoesPorTurno - 1) {
         input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e use fimDeTurno: true no JSON.\n`;
       } else {
-        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você ainda tem ${4 - contadorMensagens - 1} resposta(s) disponíveis.\n\nSe a ação estiver completamente resolvida, use fimDeTurno: true no JSON.\n`;
+        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você ainda tem ${respostasRestantes} resposta(s) disponíveis neste turno.\n\nSe a ação estiver completamente resolvida, use fimDeTurno: true no JSON.\n`;
       }
 
       // Converter histórico
+      input += `\n${buildHistoriaConfigPrompt(historiaConfig)}\n`;
       input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- Se a resposta NAO encerrar o turno, a ultima frase deve propor um proximo movimento jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n- A deixa final deve ser clara o bastante para o jogador perceber imediatamente como se conectar a cena.\n- Se a cena ficar confusa, aberta demais ou pouco acionavel, voce pode incluir uma pequena sugestao opcional de encaminhamento, desde que ela preserve a liberdade do jogador e soe natural na ficcao.\n- Se a resposta encerrar o turno, conclua a batida de forma limpa e nao force um novo gancho.\n`;
 
       if (contadorMensagens === 0) {

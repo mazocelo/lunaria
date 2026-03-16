@@ -5,6 +5,7 @@ import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'respostaDispatcher' });
 
 import { processarAcoes } from '../../helpers/acoesProcessor.js';
+import { getTurnActionLimit } from '../../helpers/historiaConfigHelper.js';
 import { calcularModificadorTeste } from '../../helpers/testeHelper.js';
 import {
   incrementTurnInteractions,
@@ -172,12 +173,13 @@ async function processarControleTurno(resposta, ctx) {
   }
 
   const turno = incrementTurnInteractions(ctx.sessao);
+  const limiteInteracoesTurno = getTurnActionLimit(ctx.sessao?.historiaConfig);
   await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
 
   const existeTestePendente = hasPendingTests(ctx.sessao, { groupId: turno.loteTesteAtivo });
   const mestreSinalizouFim = resposta.fimDeTurno || false;
   const acaoCompleta = resposta.acaoCompleta || false;
-  const atingiuLimiteInteracoes = turno.contadorInteracoes >= 4;
+  const atingiuLimiteInteracoes = turno.contadorInteracoes >= limiteInteracoesTurno;
   const podeFinalizar = !existeTestePendente
     && (mestreSinalizouFim || atingiuLimiteInteracoes || acaoCompleta);
 
@@ -185,7 +187,8 @@ async function processarControleTurno(resposta, ctx) {
     if (existeTestePendente) {
       ctx.sm.log('INFO', 'TURN_FINALIZATION_BLOCKED_PENDING_TEST', ctx.socket.id, ctx.userId, {
         roomId: ctx.roomId,
-        contadorAtual: turno.contadorInteracoes
+        contadorAtual: turno.contadorInteracoes,
+        limiteInteracoesTurno
       });
     }
     ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);

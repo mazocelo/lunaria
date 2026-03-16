@@ -1,6 +1,12 @@
 import crypto from 'crypto';
 import { extrairNomesTemas } from '../../../helpers/temasHelper.js';
 import { formatarPersonagensParaMestre } from '../../../helpers/personagensHelper.js';
+import {
+  describeNarrativeSpeed,
+  getBeatBudget,
+  getNarrativeSpeed,
+  getTurnActionLimit
+} from '../../../helpers/historiaConfigHelper.js';
 import { condensarRoteiro } from '../prompts/roteiroCondenser.js';
 import {
   normalizarTerrenoInput, getTerrenoLabel,
@@ -355,11 +361,13 @@ function buildPartyResumo(personagens = []) {
 export function buildHistoriaContext(sessao = {}, historia = null, roteiroCondensado = '') {
   const temas = inferTemas(sessao, historia);
   const mestreConfig = inferMestreConfig(sessao, historia);
+  const historiaConfig = sessao.historiaConfig || historia?.config || null;
   return {
     historiaId: historia?.id || sessao.historiaId || null,
     nome: historia?.nome || sessao.historiaNome || '',
     temas,
     prologo: historia?.prologo || sessao.historiaPrologo || '',
+    config: historiaConfig,
     resumoRoteiro: truncateText(roteiroCondensado || '', MAX_BLOCK_CHARS),
     nomesConflitantes: buildNameCollisionMap(sessao, historia),
     mestreConfig: mestreConfig ? {
@@ -483,6 +491,9 @@ export function formatMestreContextBlocks(mestreContexto = {}) {
   const historia = mestreContexto.historia || {};
   const personagens = mestreContexto.personagens || {};
   const sessao = mestreContexto.sessao || {};
+  const velocidadeNarrativa = getNarrativeSpeed(historia.config);
+  const orcamentoDeBeats = getBeatBudget(historia.config);
+  const maxAcoesPorTurno = getTurnActionLimit(historia.config);
 
   const personagensTexto = Array.isArray(personagens.personagens) && personagens.personagens.length > 0
     ? personagens.personagens.slice(0, MAX_LIST_ITEMS).map(personagem => {
@@ -508,6 +519,9 @@ export function formatMestreContextBlocks(mestreContexto = {}) {
 Nome: ${historia.nome || 'Sem nome'}
 Temas: ${(historia.temas || []).join(', ') || 'nenhum'}
 Prologo: ${truncateText(historia.prologo || '', 500) || 'nenhum'}
+Ritmo narrativo: ${velocidadeNarrativa} (${describeNarrativeSpeed(velocidadeNarrativa)})
+Orcamento de beats: ${orcamentoDeBeats}
+Maximo de acoes por turno: ${maxAcoesPorTurno}
 Resumo do roteiro:
 ${truncateText(historia.resumoRoteiro || '', MAX_BLOCK_CHARS) || 'nenhum'}
 

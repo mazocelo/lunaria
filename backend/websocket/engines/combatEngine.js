@@ -484,7 +484,10 @@ export default class CombatEngine {
           personagem: 'Narrador',
           acao: desfecho,
           chatHistory: sessao.mensagens || [],
-          resumo: null
+          resumo: null,
+          runtimeOptions: {
+            historiaConfig: sessao.historiaConfig || null
+          }
         });
 
         // Emitir e salvar narração do desfecho

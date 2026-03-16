@@ -8,6 +8,7 @@ import { historiaService } from '../../../services/index.js';
 import { sessaoService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
 import { useTTS } from '../../../hooks/useTTS.js';
+import { mergeHistoriaConfig, resolveHistoriaConfig } from '../../../utils/historiaConfig.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -409,16 +410,39 @@ export const useHistoriaVerModel = () => {
   const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
 
   // Modo de abertura de sessao
-  const modoAberturaAtual = historiaAtual?.config?.session_opening_mode ?? 'direto';
+  const configHistoriaAtual = resolveHistoriaConfig(historiaAtual?.config);
+  const modoAberturaAtual = configHistoriaAtual.session_opening_mode ?? 'direto';
+  const velocidadeNarrativaAtual = configHistoriaAtual.ritmo.velocidade;
+  const orcamentoDeBeatsAtual = configHistoriaAtual.ritmo.orcamento_de_beats;
+  const maxAcoesPorTurnoAtual = configHistoriaAtual.regras_de_turno.max_acoes_por_turno;
   const [salvandoAbertura, setSalvandoAbertura] = useState(false);
+  const [salvandoConfiguracaoNarrativa, setSalvandoConfiguracaoNarrativa] = useState(false);
+
+  const salvarConfigHistoria = useCallback(async (configPatch, errorMessage) => {
+    if (!historiaAtual || salvandoConfiguracaoNarrativa) return;
+
+    const configAnterior = historiaAtual.config;
+    const proximoConfig = mergeHistoriaConfig(historiaAtual.config, configPatch);
+
+    setSalvandoConfiguracaoNarrativa(true);
+    setHistoriaAtual(prev => ({ ...prev, config: proximoConfig }));
+    try {
+      await historiaService.update(historiaAtual.id, { config: configPatch });
+    } catch (err) {
+      setHistoriaAtual(prev => ({ ...prev, config: configAnterior }));
+      setError(err.message || errorMessage);
+    } finally {
+      setSalvandoConfiguracaoNarrativa(false);
+    }
+  }, [historiaAtual, salvandoConfiguracaoNarrativa]);
 
   const handleModoAberturaChange = useCallback(async (modo) => {
     if (!historiaAtual || salvandoAbertura) return;
     setSalvandoAbertura(true);
     const configAnterior = historiaAtual.config;
-    setHistoriaAtual(prev => ({ ...prev, config: { ...prev?.config, session_opening_mode: modo } }));
+    setHistoriaAtual(prev => ({ ...prev, config: mergeHistoriaConfig(prev?.config, { session_opening_mode: modo }) }));
     try {
-      await historiaService.update(historiaAtual.id, { config: { ...historiaAtual.config, session_opening_mode: modo } });
+      await historiaService.update(historiaAtual.id, { config: { session_opening_mode: modo } });
     } catch (err) {
       setHistoriaAtual(prev => ({ ...prev, config: configAnterior }));
       setError(err.message || 'Erro ao salvar modo de abertura');
@@ -426,6 +450,30 @@ export const useHistoriaVerModel = () => {
       setSalvandoAbertura(false);
     }
   }, [historiaAtual, salvandoAbertura]);
+
+  const handleVelocidadeNarrativaChange = useCallback(async (velocidade) => {
+    await salvarConfigHistoria({
+      ritmo: {
+        velocidade
+      }
+    }, 'Erro ao salvar velocidade narrativa');
+  }, [salvarConfigHistoria]);
+
+  const handleOrcamentoDeBeatsChange = useCallback(async (value) => {
+    await salvarConfigHistoria({
+      ritmo: {
+        orcamento_de_beats: Number(value)
+      }
+    }, 'Erro ao salvar orcamento de beats');
+  }, [salvarConfigHistoria]);
+
+  const handleMaxAcoesPorTurnoChange = useCallback(async (value) => {
+    await salvarConfigHistoria({
+      regras_de_turno: {
+        max_acoes_por_turno: Number(value)
+      }
+    }, 'Erro ao salvar regra de turno');
+  }, [salvarConfigHistoria]);
 
   // Voice preview
   const stopPreview = useCallback(() => {
@@ -557,8 +605,15 @@ export const useHistoriaVerModel = () => {
 
     // Abertura de sessao
     modoAberturaAtual,
+    velocidadeNarrativaAtual,
+    orcamentoDeBeatsAtual,
+    maxAcoesPorTurnoAtual,
     salvandoAbertura,
+    salvandoConfiguracaoNarrativa,
     handleModoAberturaChange,
+    handleVelocidadeNarrativaChange,
+    handleOrcamentoDeBeatsChange,
+    handleMaxAcoesPorTurnoChange,
 
     // Utils
     clearError,

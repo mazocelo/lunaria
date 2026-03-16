@@ -6,6 +6,7 @@ import { useHistoriaStore } from '../../../store/historia/index.js';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
 import { Historia } from '../../../models/Historia.js';
+import { DEFAULT_HISTORIA_CONFIG } from '../../../utils/historiaConfig.js';
 
 export const useHistoriaNovaModel = () => {
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ export const useHistoriaNovaModel = () => {
   const [mestreSelecionado, setMestreSelecionado] = useState(null);
   const [nomeError, setNomeError] = useState('');
   const [publica, setPublica] = useState(false);
+  const [velocidadeNarrativa, setVelocidadeNarrativa] = useState(DEFAULT_HISTORIA_CONFIG.ritmo.velocidade);
+  const [orcamentoDeBeats, setOrcamentoDeBeats] = useState(DEFAULT_HISTORIA_CONFIG.ritmo.orcamento_de_beats);
+  const [maxAcoesPorTurno, setMaxAcoesPorTurno] = useState(DEFAULT_HISTORIA_CONFIG.regras_de_turno.max_acoes_por_turno);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -73,6 +77,18 @@ export const useHistoriaNovaModel = () => {
     setMestreSelecionado(id);
   }, []);
 
+  const handleVelocidadeNarrativaChange = useCallback((e) => {
+    setVelocidadeNarrativa(e.target.value);
+  }, []);
+
+  const handleOrcamentoDeBeatsChange = useCallback((e) => {
+    setOrcamentoDeBeats(Number(e.target.value));
+  }, []);
+
+  const handleMaxAcoesPorTurnoChange = useCallback((e) => {
+    setMaxAcoesPorTurno(Number(e.target.value));
+  }, []);
+
   const criarHistoria = useCallback(async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -86,6 +102,15 @@ export const useHistoriaNovaModel = () => {
         descricao,
         mestre_id: mestreSelecionado,
         publica,
+        config: {
+          ritmo: {
+            velocidade: velocidadeNarrativa,
+            orcamento_de_beats: orcamentoDeBeats,
+          },
+          regras_de_turno: {
+            max_acoes_por_turno: maxAcoesPorTurno,
+          },
+        },
       };
 
       const historia = new Historia(historiaData);
@@ -98,7 +123,19 @@ export const useHistoriaNovaModel = () => {
     } finally {
       setLoading(false);
     }
-  }, [nome, temasSelecionados, maximo_de_participantes, descricao, mestreSelecionado, publica, recarregarHistorias, navigate]);
+  }, [
+    nome,
+    temasSelecionados,
+    maximo_de_participantes,
+    descricao,
+    mestreSelecionado,
+    publica,
+    velocidadeNarrativa,
+    orcamentoDeBeats,
+    maxAcoesPorTurno,
+    recarregarHistorias,
+    navigate
+  ]);
 
   const handleCancelar = useCallback(() => {
     navigate('/historias');
@@ -117,6 +154,9 @@ export const useHistoriaNovaModel = () => {
     loading,
     error,
     isLight,
+    velocidadeNarrativa,
+    orcamentoDeBeats,
+    maxAcoesPorTurno,
 
     // Options
     temas: temasParaSelecao,
@@ -130,6 +170,9 @@ export const useHistoriaNovaModel = () => {
     handleMaxParticipantesChange,
     handleDescricaoChange,
     handleMestreChange,
+    handleVelocidadeNarrativaChange,
+    handleOrcamentoDeBeatsChange,
+    handleMaxAcoesPorTurnoChange,
     criarHistoria,
     handleCancelar,
     clearError,

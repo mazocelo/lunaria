@@ -2,7 +2,12 @@ import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
-import { BookOpen, Sparkles, Lightbulb, Loader2, ScrollText } from 'lucide-react';
+import { BookOpen, Sparkles, Lightbulb, Loader2, ScrollText, Gauge, Hourglass, Swords } from 'lucide-react';
+import {
+  OPCOES_MAX_ACOES_TURNO,
+  OPCOES_ORCAMENTO_BEATS,
+  VELOCIDADES_NARRATIVA
+} from '../../../utils/historiaConfig.js';
 
 const PROMPT_SUGGESTIONS = [
   'Uma maldição antiga desperta em uma floresta proibida. Os aventureiros devem encontrar a fonte antes que ela consuma o reino.',
@@ -19,6 +24,9 @@ const NovaHistoriaView = ({
   maximo_de_participantes,
   descricao,
   mestreSelecionado,
+  velocidadeNarrativa,
+  orcamentoDeBeats,
+  maxAcoesPorTurno,
   nomeError,
   loading,
   error,
@@ -35,6 +43,9 @@ const NovaHistoriaView = ({
   handleMaxParticipantesChange,
   handleDescricaoChange,
   handleMestreChange,
+  handleVelocidadeNarrativaChange,
+  handleOrcamentoDeBeatsChange,
+  handleMaxAcoesPorTurnoChange,
   criarHistoria,
   handleCancelar,
   publica,
@@ -112,9 +123,9 @@ const NovaHistoriaView = ({
                 : 'bg-slate-800 border-slate-600 text-slate-200 placeholder-slate-500 focus:border-purple-400'}
               focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
           />
-          <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-            Quanto mais detalhado, melhor sera o prologo e o roteiro gerados pela IA
-          </p>
+        <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          Quanto mais detalhado, melhor sera o prologo e o roteiro gerados pela IA
+        </p>
 
           {/* Sugestoes de prompt */}
           {!descricao && (
@@ -139,6 +150,77 @@ const NovaHistoriaView = ({
               </div>
             </div>
           )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-2">
+            <label className={`text-sm font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              <Gauge size={16} className="text-cyan-400" />
+              Velocidade narrativa
+            </label>
+            <select
+              value={velocidadeNarrativa}
+              onChange={handleVelocidadeNarrativaChange}
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm font-modern transition-colors ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                  : 'bg-slate-800 border-slate-600 text-slate-200 focus:border-purple-400'
+              } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+            >
+              {VELOCIDADES_NARRATIVA.map((opcao) => (
+                <option key={opcao.value} value={opcao.value}>{opcao.label}</option>
+              ))}
+            </select>
+            <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              {VELOCIDADES_NARRATIVA.find((opcao) => opcao.value === velocidadeNarrativa)?.desc}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className={`text-sm font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              <Hourglass size={16} className="text-amber-400" />
+              Orcamento de beats
+            </label>
+            <select
+              value={orcamentoDeBeats}
+              onChange={handleOrcamentoDeBeatsChange}
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm font-modern transition-colors ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                  : 'bg-slate-800 border-slate-600 text-slate-200 focus:border-purple-400'
+              } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+            >
+              {OPCOES_ORCAMENTO_BEATS.map((valor) => (
+                <option key={valor} value={valor}>{valor} beats</option>
+              ))}
+            </select>
+            <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              Define o tamanho esperado da aventura e ajuda o Mestre a nao enrolar nem correr demais.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className={`text-sm font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              <Swords size={16} className="text-rose-400" />
+              Max acoes por turno
+            </label>
+            <select
+              value={maxAcoesPorTurno}
+              onChange={handleMaxAcoesPorTurnoChange}
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm font-modern transition-colors ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                  : 'bg-slate-800 border-slate-600 text-slate-200 focus:border-purple-400'
+              } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+            >
+              {OPCOES_MAX_ACOES_TURNO.map((valor) => (
+                <option key={valor} value={valor}>{valor} respostas</option>
+              ))}
+            </select>
+            <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              Limite duro de respostas do Mestre dentro de cada turno do jogador.
+            </p>
+          </div>
         </div>
 
         <InputSimples

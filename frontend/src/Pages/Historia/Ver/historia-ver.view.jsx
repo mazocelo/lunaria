@@ -16,6 +16,11 @@ import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import NarrationAudioButton from '../../../components/shared/NarrationAudioButton.jsx';
 import { ESTILOS_IMAGEM, MODOS_ROTEIRO, MODOS_ABERTURA } from './historia-ver.model';
+import {
+  OPCOES_MAX_ACOES_TURNO,
+  OPCOES_ORCAMENTO_BEATS,
+  VELOCIDADES_NARRATIVA
+} from '../../../utils/historiaConfig.js';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -122,8 +127,15 @@ const VerHistoriaView = ({
 
   // Abertura de sessao
   modoAberturaAtual,
+  velocidadeNarrativaAtual,
+  orcamentoDeBeatsAtual,
+  maxAcoesPorTurnoAtual,
   salvandoAbertura,
+  salvandoConfiguracaoNarrativa,
   handleModoAberturaChange,
+  handleVelocidadeNarrativaChange,
+  handleOrcamentoDeBeatsChange,
+  handleMaxAcoesPorTurnoChange,
 
   // Utils
   clearError,
@@ -381,6 +393,97 @@ const VerHistoriaView = ({
                   </p>
                 </div>
               )}
+
+              <div>
+                <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
+                  <Clock size={18} className={isLight ? 'text-cyan-500' : 'text-cyan-400'} />
+                  Ritmo da Aventura
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className={`block text-xs font-semibold mb-2 font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Velocidade narrativa
+                    </label>
+                    {canMutateHistoria ? (
+                      <select
+                        value={velocidadeNarrativaAtual}
+                        onChange={(e) => handleVelocidadeNarrativaChange(e.target.value)}
+                        disabled={salvandoConfiguracaoNarrativa}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-modern border transition-all ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                            : 'bg-slate-800/50 border-slate-600 text-slate-200 focus:border-purple-400'
+                        } ${salvandoConfiguracaoNarrativa ? 'opacity-60 cursor-not-allowed' : ''} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      >
+                        {VELOCIDADES_NARRATIVA.map((opcao) => (
+                          <option key={opcao.value} value={opcao.value}>{opcao.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Badge variant="cyan">
+                        {VELOCIDADES_NARRATIVA.find((opcao) => opcao.value === velocidadeNarrativaAtual)?.label || velocidadeNarrativaAtual}
+                      </Badge>
+                    )}
+                    <p className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {VELOCIDADES_NARRATIVA.find((opcao) => opcao.value === velocidadeNarrativaAtual)?.desc}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-semibold mb-2 font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Orcamento de beats
+                    </label>
+                    {canMutateHistoria ? (
+                      <select
+                        value={orcamentoDeBeatsAtual}
+                        onChange={(e) => handleOrcamentoDeBeatsChange(e.target.value)}
+                        disabled={salvandoConfiguracaoNarrativa}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-modern border transition-all ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                            : 'bg-slate-800/50 border-slate-600 text-slate-200 focus:border-purple-400'
+                        } ${salvandoConfiguracaoNarrativa ? 'opacity-60 cursor-not-allowed' : ''} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      >
+                        {OPCOES_ORCAMENTO_BEATS.map((valor) => (
+                          <option key={valor} value={valor}>{valor} beats</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Badge variant="amber">{orcamentoDeBeatsAtual} beats</Badge>
+                    )}
+                    <p className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Tamanho esperado da aventura. O Mestre usa isso para dosar inicio, meio e desfecho.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-semibold mb-2 font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Max acoes por turno
+                    </label>
+                    {canMutateHistoria ? (
+                      <select
+                        value={maxAcoesPorTurnoAtual}
+                        onChange={(e) => handleMaxAcoesPorTurnoChange(e.target.value)}
+                        disabled={salvandoConfiguracaoNarrativa}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-modern border transition-all ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-800 focus:border-purple-500'
+                            : 'bg-slate-800/50 border-slate-600 text-slate-200 focus:border-purple-400'
+                        } ${salvandoConfiguracaoNarrativa ? 'opacity-60 cursor-not-allowed' : ''} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      >
+                        {OPCOES_MAX_ACOES_TURNO.map((valor) => (
+                          <option key={valor} value={valor}>{valor} respostas</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Badge variant="pink">{maxAcoesPorTurnoAtual} respostas</Badge>
+                    )}
+                    <p className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Limite mecanico de respostas do Mestre dentro de cada turno do jogador.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {/* Capa da Historia */}
               <div>

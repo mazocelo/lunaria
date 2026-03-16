@@ -155,7 +155,7 @@ const EtapaJogoRPGView = (props) => {
               estiloImagem={historia?.estilo_imagem}
             />
 
-            <MestrePensandoBanner ativo={mestrePensando} />
+            <MestrePensandoBanner ativo={mestrePensando || aguardandoMestre} />
 
             <ActionDock
               mensagemAtual={mensagemAtual}

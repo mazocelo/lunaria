@@ -190,17 +190,7 @@ const ActionDock = ({
           </div>
         )}
 
-        {/* Banner: aguardando mestre */}
-        {aguardandoMestre && (
-          <div className="flex items-center justify-center gap-3 px-5 py-3 bg-gradient-to-r from-purple-900/60 to-indigo-900/50 border-2 border-purple-400/60 rounded-xl shadow-lg animate-pulse">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 bg-purple-300 rounded-full animate-bounce" />
-              <div className="w-2.5 h-2.5 bg-purple-300 rounded-full animate-bounce" style={{animationDelay: '0.15s'}} />
-              <div className="w-2.5 h-2.5 bg-purple-300 rounded-full animate-bounce" style={{animationDelay: '0.3s'}} />
-            </div>
-            <p className="text-purple-100 font-bold text-sm">O Mestre esta pensando...</p>
-          </div>
-        )}
+        {/* Banner "mestre pensando" removido daqui — unificado no MestrePensandoBanner */}
 
         {/* Combat quick actions — linha separada acima do input */}
         {showQuickActions && combateAtivo && (

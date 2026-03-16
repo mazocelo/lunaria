@@ -1,10 +1,13 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Loader2, Pause, Play, ScrollText, Square, Volume2 } from 'lucide-react';
+import { ListMusic, Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
 import { RPGMessage } from '../../RPGMessage';
 import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
 import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
+import AudioQueuePopover from '../../../audio/ui/AudioQueuePopover.jsx';
+
+const GAME_AUDIO_SOURCES = new Set(['chat_global', 'message_balloon', 'message_group', 'game_segment']);
 
 function groupConsecutiveMessages(mensagens) {
   const groups = [];
@@ -92,7 +95,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
 
   const globalNarrationSequenceKey = useMemo(() => (
     mestreNarrationItems.length > 0
-      ? `chat-all:${mestreNarrationItems.map((item) => `${item.messageId}:${item.segmentId || ''}`).join('|')}`
+      ? `chat-all:${mestreNarrationItems.map((item) => item.trackId || `${item.messageId}:${item.segmentId || ''}`).join('|')}`
       : null
   ), [mestreNarrationItems]);
 
@@ -120,9 +123,10 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   );
   const isGlobalNarrationWaiting = Boolean(
     isGlobalNarrationActive
-    && !tts.isPlaying
-    && !tts.canTogglePlayback
+    && tts.waitingForNext
   );
+  const isGameAudioContext = GAME_AUDIO_SOURCES.has(tts.currentPlaylist?.source || tts.currentTrack?.meta?.source || '');
+  const canShowQueue = isGameAudioContext && Boolean(tts.queueItems?.length);
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -139,7 +143,10 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     if (!mestreNarrationItems.length || !globalNarrationSequenceKey || !globalNarrationOwnerId) return;
     await tts.playSequence(mestreNarrationItems, globalNarrationOwnerId, {
       allowGenerate: true,
-      sequenceKey: globalNarrationSequenceKey
+      sequenceKey: globalNarrationSequenceKey,
+      title: 'Cena completa',
+      source: 'chat_global',
+      contextLabel: 'Narracao da cena'
     });
   };
 
@@ -177,40 +184,59 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
 
   const currentLabel = currentTtsSegment
     ? `${currentTtsSegment.speaker_label || currentTtsSegment.speakerLabel || 'Trecho'}: ${currentTtsSegment.text || ''}`
-    : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao';
+    : tts.currentTrack?.speakerLabel && tts.currentTrack?.text
+      ? `${tts.currentTrack.speakerLabel}: ${tts.currentTrack.text}`
+      : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao';
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {mestreNarrationItems.length > 0 && (
         <div className="px-6 pt-4">
           <div className="w-full max-w-4xl mx-auto flex justify-end">
-            <button
-              type="button"
-              onClick={handlePlayAllNarration}
-              disabled={isGlobalNarrationLoading || isGlobalNarrationGenerating || isGlobalNarrationWaiting}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full game-glass-subtle border border-purple-400/30 text-purple-100 text-sm hover:border-purple-400/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              title="Gerar e reproduzir toda a narracao do Mestre"
-              aria-label="Gerar e reproduzir toda a narracao do Mestre"
-            >
-              {isGlobalNarrationGenerating || isGlobalNarrationLoading || isGlobalNarrationWaiting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : isGlobalNarrationActive && tts.isPlaying ? (
-                <Pause size={16} />
-              ) : (
-                <Volume2 size={16} />
+            <div className="flex items-center gap-2">
+              {canShowQueue && (
+                <button
+                  type="button"
+                  onClick={tts.toggleQueue}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full game-glass-subtle border border-cyan-400/25 text-cyan-100 text-sm hover:border-cyan-400/45 transition-all"
+                  title="Ver fila de narracao"
+                  aria-label="Ver fila de narracao"
+                >
+                  <ListMusic size={16} />
+                  <span>Fila</span>
+                  <span className="inline-flex min-w-5 justify-center rounded-full bg-cyan-400/15 px-1.5 py-0.5 text-[11px] text-cyan-100">
+                    {tts.queueItems.length}
+                  </span>
+                </button>
               )}
-              <span>
-                {isGlobalNarrationGenerating || isGlobalNarrationLoading
-                  ? 'Gerando narracao'
-                  : isGlobalNarrationWaiting
-                    ? 'Preparando proximo trecho'
-                  : isGlobalNarrationActive && tts.isPlaying
-                    ? 'Pausar narracao'
-                    : isGlobalNarrationActive
-                      ? 'Continuar narracao'
-                      : 'Gerar e ouvir tudo'}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={handlePlayAllNarration}
+                disabled={isGlobalNarrationLoading || isGlobalNarrationGenerating || isGlobalNarrationWaiting}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full game-glass-subtle border border-purple-400/30 text-purple-100 text-sm hover:border-purple-400/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                title="Gerar e reproduzir toda a narracao do Mestre"
+                aria-label="Gerar e reproduzir toda a narracao do Mestre"
+              >
+                {isGlobalNarrationGenerating || isGlobalNarrationLoading || isGlobalNarrationWaiting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : isGlobalNarrationActive && tts.isPlaying ? (
+                  <Pause size={16} />
+                ) : (
+                  <Volume2 size={16} />
+                )}
+                <span>
+                  {isGlobalNarrationGenerating || isGlobalNarrationLoading
+                    ? 'Gerando cena'
+                    : isGlobalNarrationWaiting
+                      ? 'Preparando proximo trecho'
+                    : isGlobalNarrationActive && tts.isPlaying
+                      ? 'Pausar cena'
+                      : isGlobalNarrationActive
+                        ? 'Continuar cena'
+                        : `Ouvir cena (${mestreNarrationItems.length})`}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -275,10 +301,20 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
         </div>
       </div>
 
-      {tts.currentMessageId != null && (
+      {tts.currentTrackId != null && isGameAudioContext && (
         <div className="px-6 pb-2">
           <div className="w-full max-w-4xl mx-auto">
             <div className="flex items-center gap-2.5 px-4 py-2 rounded-full game-glass-subtle border border-white/[0.08]">
+              <button
+                type="button"
+                onClick={tts.previous}
+                disabled={tts.queueIndex <= 0}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-purple-200 hover:text-white transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Voltar para o trecho anterior"
+                title="Voltar para o trecho anterior"
+              >
+                <SkipBack size={16} />
+              </button>
               <button
                 type="button"
                 onClick={tts.togglePause}
@@ -313,6 +349,17 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
               >
                 {currentLabel}
               </span>
+              {canShowQueue && (
+                <button
+                  type="button"
+                  onClick={tts.toggleQueue}
+                  className="p-1.5 rounded-lg hover:bg-cyan-500/15 text-cyan-200 hover:text-cyan-100 transition-all flex-shrink-0"
+                  aria-label="Abrir fila de narracao"
+                  title="Abrir fila de narracao"
+                >
+                  <ListMusic size={16} />
+                </button>
+              )}
               <span className="text-[11px] font-mono text-purple-300/60 flex-shrink-0">{formatTime(tts.currentTime)}</span>
               <input
                 type="range"
@@ -326,10 +373,26 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                 aria-label="Avancar ou voltar narracao"
               />
               <span className="text-[11px] font-mono text-purple-300/60 flex-shrink-0">{formatTime(tts.duration)}</span>
+              <button
+                type="button"
+                onClick={tts.next}
+                disabled={!tts.queueItems?.length || tts.queueIndex >= (tts.queueItems.length - 1)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-purple-200 hover:text-white transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Avancar para o proximo trecho"
+                title="Avancar para o proximo trecho"
+              >
+                <SkipForward size={16} />
+              </button>
             </div>
           </div>
         </div>
       )}
+      <AudioQueuePopover
+        isOpen={canShowQueue && tts.queueOpen}
+        onClose={() => tts.setQueueOpen(false)}
+        queueItems={tts.queueItems}
+        title={tts.currentPlaylist?.title || (isGlobalNarrationActive ? 'Cena em reproducao' : 'Fila de narracao')}
+      />
     </div>
   );
 };

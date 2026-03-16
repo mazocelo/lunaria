@@ -420,7 +420,10 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
       mensagem.id,
       {
         allowGenerate: true,
-        sequenceKey: messageSequenceKey || `message:${mensagem.id}`
+        sequenceKey: messageSequenceKey || `message:${mensagem.id}`,
+        title: mensagem?.npc_nome ? `Balao ${mensagem.npc_nome}` : 'Balao do Mestre',
+        source: 'message_balloon',
+        contextLabel: 'Balao completo'
       }
     );
   };
@@ -680,7 +683,10 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
 
     tts.playSequence(groupSequenceItems, groupOwnerId, {
       allowGenerate: true,
-      sequenceKey: groupSequenceKey || groupOwnerId
+      sequenceKey: groupSequenceKey || groupOwnerId,
+      title: 'Sequencia do Mestre',
+      source: 'message_group',
+      contextLabel: 'Grupo de balaos'
     });
   };
 

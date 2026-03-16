@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Loader2, Square, Volume2 } from 'lucide-react';
 import MarkdownRenderer from '../MarkdownRenderer.jsx';
-import { buildTtsItemKey, resolveTtsEmotion } from '../../utils/ttsKeys.js';
+import { createNarrationTrackRef } from '../../audio/domain/trackRef.js';
 
 const DEFAULT_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -25,20 +25,20 @@ export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoi
 
       const voiceId = segment?.voice_id || defaultVoiceId || null;
       const provider = segment?.voice_provider || defaultVoiceProvider || DEFAULT_PROVIDER;
-      const emotion = resolveTtsEmotion(provider, segment?.narracao?.emocao || null);
 
-      return {
-        itemKey: buildTtsItemKey(messageId, segmentId, voiceId, provider, emotion),
+      return createNarrationTrackRef({
         messageId,
         segmentId,
         text,
         voiceId,
         provider,
-        emotion,
+        emotion: segment?.narracao?.emocao || null,
         speakerLabel: segment?.speaker_label || (segment?.tipo === 'fala_npc' ? 'NPC' : 'Mestre'),
+        ownerId: messageId,
+        ownerType: 'segment',
         tipo: segment?.tipo || 'narracao',
         hasPersistedAudio: Boolean(segment?.audio_cache_key || segment?.audio_url || segment?.audioUrl)
-      };
+      });
     })
     .filter(Boolean);
 };
@@ -65,8 +65,7 @@ const NarrationSegments = ({
   const renderSegmentButton = (segmentItem) => {
     if (!tts || !segmentItem.voiceId) return null;
 
-    const isCurrent = String(tts.currentMessageId) === String(messageId)
-      && String(tts.currentSegmentId || '') === String(segmentItem.segmentId || '');
+    const isCurrent = String(tts.currentTrackId || '') === String(segmentItem.trackId || segmentItem.itemKey || '');
     const isLoading = Boolean(
       String(tts.loadingTargetId || '') === String(messageId)
       && String(tts.loadingSegmentId || '') === String(segmentItem.segmentId || '')
@@ -90,7 +89,11 @@ const NarrationSegments = ({
       await tts.play(segmentItem.text, segmentItem.voiceId, messageId, segmentItem.provider, {
         allowGenerate: true,
         segmentId: segmentItem.segmentId,
-        emotion: segmentItem.emotion
+        emotion: segmentItem.emotion,
+        speakerLabel: segmentItem.speakerLabel,
+        kind: segmentItem.tipo || 'narration',
+        source: useGameVariant ? 'game_segment' : 'single_track',
+        contextLabel: useGameVariant ? 'Trecho da cena' : 'Trecho',
       });
     };
 

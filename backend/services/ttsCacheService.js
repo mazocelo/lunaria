@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { redisClient } from '../redis/redis-config.js';
+import r2StorageService from './r2StorageService.js';
 import logger from '../helpers/logger.js';
 
 const log = logger.child({ module: 'ttsCacheService' });
@@ -14,7 +15,7 @@ const CACHE_MAX_AUDIO_BYTES = Number.parseInt(process.env.TTS_CACHE_MAX_AUDIO_BY
 const CACHE_TTL_DAYS = Number.parseInt(process.env.TTS_CACHE_TTL_DAYS || '7', 10);
 const CACHE_CLEANUP_INTERVAL_MS = Number.parseInt(process.env.TTS_CACHE_CLEANUP_INTERVAL_MS || `${60 * 60 * 1000}`, 10);
 const CACHE_SKIPPED_PROVIDERS = new Set(
-  String(process.env.TTS_CACHE_SKIPPED_PROVIDERS || 'opensource')
+  String(process.env.TTS_CACHE_SKIPPED_PROVIDERS || '')
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
@@ -220,7 +221,18 @@ async function getOrGenerate(text, voiceId, provider, generateFn) {
 
   const cacheKey = generateCacheKey(text, voiceId, provider);
 
-  // 1. Check cache
+  // 1. Check R2 URL cache first (entradas com audio_url)
+  const urlCached = await getUrlFromCache(cacheKey);
+  if (urlCached) {
+    try {
+      const r2Buffer = await r2StorageService.fetchAudio(urlCached);
+      return { audioBuffer: r2Buffer, fromCache: true };
+    } catch (err) {
+      log.warn({ err, cacheKey }, 'R2 fetch failed, falling back to audio_data');
+    }
+  }
+
+  // 2. Check binary cache (entradas legacy com audio_data)
   const cached = await getFromCache(cacheKey);
   if (cached) return { audioBuffer: Buffer.from(cached), fromCache: true };
 

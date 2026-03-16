@@ -63,13 +63,13 @@ router.get('/voices', async (req, res) => {
  * POST /tts/generate
  * Gera áudio a partir de texto.
  *
- * Fluxo para provider "opensource":
+ * Fluxo com R2 configurado (todos os providers):
  *   1. Checa cache → se tiver audio_url (R2), faz proxy do binário
  *   2. Gera áudio → envia ao frontend imediatamente
  *   3. Background: salva local → upload R2 → salva URL no cache → limpa local
  *
- * Fluxo para outros providers (elevenlabs, cartesia):
- *   Cache binário em PostgreSQL (comportamento original)
+ * Fluxo sem R2 (fallback):
+ *   Cache binário em PostgreSQL
  */
 router.post('/generate', async (req, res) => {
   try {
@@ -92,8 +92,8 @@ router.post('/generate', async (req, res) => {
     const options = {};
     if (emotion) options.emotion = emotion;
 
-    // ── Fluxo opensource: R2 como cache persistente ──────────────────────────
-    if (providerName === 'opensource' && r2StorageService.isConfigured()) {
+    // ── Fluxo R2: cache persistente para todos os providers ─────────────────
+    if (r2StorageService.isConfigured()) {
       const cacheKey = ttsCacheService.generateCacheKey(text, resolvedVoiceId, providerName);
       const contentType = getProviderContentType(provider);
 

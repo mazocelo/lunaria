@@ -127,12 +127,12 @@ const NarrationSegments = ({
             className={`${compact ? 'p-2' : 'p-3'} rounded-lg border ${
               useGameVariant
                 ? isNpc
-                  ? 'game-glass-subtle border-cyan-400/20'
+                  ? 'border-l-2 border-l-amber-400/60 border-amber-400/20 bg-amber-950/30'
                   : 'game-glass-subtle border-white/[0.08]'
                 : isNpc
                   ? isLight
-                    ? 'border-cyan-200 bg-cyan-50/80'
-                    : 'border-cyan-400/20 bg-cyan-500/10'
+                    ? 'border-l-2 border-l-amber-400 border-amber-200 bg-amber-50/80'
+                    : 'border-l-2 border-l-amber-400/60 border-amber-400/20 bg-amber-950/30'
                   : isLight
                     ? 'border-slate-200 bg-white/80'
                     : 'border-white/10 bg-black/10'
@@ -143,7 +143,7 @@ const NarrationSegments = ({
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`font-semibold ${compact ? 'text-[11px]' : 'text-xs uppercase tracking-wide'} ${
                     isNpc
-                      ? isLight ? 'text-cyan-700' : 'text-cyan-300'
+                      ? isLight ? 'text-amber-700' : 'text-amber-300'
                       : isLight ? 'text-slate-500' : 'text-purple-300'
                   }`}>
                     {segmentItem.speakerLabel}

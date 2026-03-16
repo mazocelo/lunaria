@@ -134,9 +134,8 @@ export class Personagem {
    * @returns {number} HP máximo
    */
   calcularHPMaximo() {
-    const hpBase = 10;
     const modificadorConstituicao = this.getModificador('constituicao');
-    return hpBase + (modificadorConstituicao * this.nivel);
+    return Math.max(1, 10 + (this.nivel * 2) + (modificadorConstituicao * this.nivel));
   }
 
   /**

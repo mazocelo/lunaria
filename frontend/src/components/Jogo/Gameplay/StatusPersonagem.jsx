@@ -1,7 +1,7 @@
 import React from 'react';
 import { Package, Shield } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
-import { calcularMana } from '../../../utils/rpgHelpers';
+import { calcularMana, calcularHPMaximo } from '../../../utils/rpgHelpers';
 
 const StatusPersonagem = ({
   personagemSelecionado,
@@ -29,7 +29,7 @@ const StatusPersonagem = ({
   const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
   const hpDisplay = combateStats
     ? `${combateStats.hp_atual}/${combateStats.hp_max}`
-    : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || '?'}` : '???');
+    : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || calcularHPMaximo(personagemSelecionado)}` : '???');
   const hpBaixo = combateStats && combateStats.hp_max > 0 ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
   const derrotado = combateStats?.status === 'derrotado';
 

@@ -1,4 +1,4 @@
-import { calcularMana } from '../../../utils/rpgHelpers';
+import { calcularMana, calcularHPMaximo } from '../../../utils/rpgHelpers';
 
 export const extrairFacesDoDado = (tipoDado) => {
   if (!tipoDado || typeof tipoDado !== 'string') return 20;
@@ -36,8 +36,8 @@ export const formatarInformacoesPersonagem = (personagem) => {
     classe: personagem.classe_nome || personagem.classe || 'Desconhecida',
     raca: personagem.raca_nome || personagem.raca || 'Desconhecida',
     nivel: personagem.nivel || '1',
-    hp: personagem.hp_atual || personagem.hp || '???',
-    hp_max: personagem.hp_max || personagem.hp || null,
+    hp: personagem.hp_atual ?? personagem.hp ?? '???',
+    hp_max: personagem.hp_max || personagem.hp_maximo || calcularHPMaximo(personagem),
     mp: manaMax,
     xp: personagem.xp || '0',
     xp_atual: personagem.xp_atual || personagem.xp || 0,

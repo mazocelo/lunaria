@@ -1,4 +1,5 @@
 import React from 'react';
+import { BarChart3, ChevronLeft, ChevronRight, Swords, Users, X } from 'lucide-react';
 import { RPGActions } from '../../RPGActions';
 import BackgroundEffects from '../Shared/BackgroundEffects';
 import PainelJogadores from '../Chat/PainelJogadores';
@@ -19,57 +20,85 @@ import { PARTICLES } from '../../../constants/game';
 
 const EtapaJogoRPGView = (props) => {
   const {
-    // Theme
-    theme, toggleTheme,
-
-    // Props passthrough
-    historia, personagemSelecionado, participantes, mensagens, user, onSair,
-
-    // Voice
-    effectiveVoiceId, effectiveVoiceProvider,
-
-    // Socket/game state
-    faseJogo, rodadaAtual, turnoAtual,
-    ordemJogadores, resultadosDados,
+    historia,
+    personagemSelecionado,
+    participantes,
+    mensagens,
+    user,
+    onSair,
+    effectiveVoiceId,
+    effectiveVoiceProvider,
+    faseJogo,
+    rodadaAtual,
+    turnoAtual,
+    ordemJogadores,
+    resultadosDados,
     ehMeuTurno,
-    combateAtivo, combateMonstros, combateJogadores,
-    combateRodada, combateResultado, combateLog, combateXpGanho,
-    sessionRecap, clearSessionRecap,
-    levelUpData, setLevelUpData,
-
-    // Message input
-    mensagemAtual, handleMensagemChange, handleKeyPress, handleEnviarMensagem,
-
-    // Dice & turns
-    handleRolarDados, handleRolarDadoInicial, handleIniciarTurno,
-    handleExecutarAcao, handleUsarHabilidade, handleUsarEquipamento,
-
-    // Ficha modal
-    fichaModalAberta, fichaSelecionada, fichaCarregando, fichaErro, tituloFicha,
-    fecharFichaModal, handleVerMinhaFicha, handleVerFichaJogador,
-
-    // UI layout
-    mobileDrawer, setMobileDrawer,
-    showActions, toggleActions,
-    rightPanelExpanded, setRightPanelExpanded,
-    showRodadaInfo, setShowRodadaInfo,
+    combateAtivo,
+    combateMonstros,
+    combateJogadores,
+    combateRodada,
+    combateResultado,
+    combateLog,
+    combateXpGanho,
+    sessionRecap,
+    clearSessionRecap,
+    levelUpData,
+    setLevelUpData,
+    mensagemAtual,
+    handleMensagemChange,
+    handleKeyPress,
+    handleEnviarMensagem,
+    handleRolarDados,
+    handleRolarDadoInicial,
+    handleIniciarTurno,
+    handleExecutarAcao,
+    handleUsarHabilidade,
+    handleUsarEquipamento,
+    fichaModalAberta,
+    fichaSelecionada,
+    fichaCarregando,
+    fichaErro,
+    tituloFicha,
+    fecharFichaModal,
+    handleVerMinhaFicha,
+    handleVerFichaJogador,
+    mobileDrawer,
+    setMobileDrawer,
+    showActions,
+    toggleActions,
+    rightPanelExpanded,
+    setRightPanelExpanded,
+    showRodadaInfo,
+    setShowRodadaInfo,
     rodadaDropdownRef,
-    inventarioAberto, setInventarioAberto,
-
-    // Habilidades
+    inventarioAberto,
+    setInventarioAberto,
     habilidadesPersonagem,
-
-    // Derived
-    infoPersonagem, jogadoresExibir,
-    dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre, mestrePensando,
-    mestreTimedOut, mestreStale, activeMestreRequestStatus, mestreRequestIsMine, handleMestreBannerAction,
-    jaRolouDadoInicial, cooldownLocal,
-    entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
-    turnoIniciado, turnoStatus, ordemDefinida,
-
-    // Mana
-    manaAtual, manaMax,
+    infoPersonagem,
+    jogadoresExibir,
+    dadosSolicitados,
+    dadoSolicitadoInfo,
+    aguardandoMestre,
+    mestrePensando,
+    mestreTimedOut,
+    mestreStale,
+    activeMestreRequestStatus,
+    mestreRequestIsMine,
+    handleMestreBannerAction,
+    jaRolouDadoInicial,
+    cooldownLocal,
+    entidadesComImagem,
+    contextoImagemCena,
+    handleSceneImageGenerated,
+    turnoIniciado,
+    turnoStatus,
+    ordemDefinida,
+    manaAtual,
+    manaMax,
   } = props;
+
+  const panelTitle = showActions ? 'Acoes RPG' : 'Painel recolhido';
 
   return (
     <div className="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
@@ -91,13 +120,10 @@ const EtapaJogoRPGView = (props) => {
           rodadaDropdownRef={rodadaDropdownRef}
           handleVerMinhaFicha={handleVerMinhaFicha}
           onSair={onSair}
-          theme={theme}
-          toggleTheme={toggleTheme}
           mobileDrawer={mobileDrawer}
           setMobileDrawer={setMobileDrawer}
         />
 
-        {/* Main Game Layout */}
         <div className="flex-1 flex overflow-hidden">
           <PainelJogadores
             participantes={jogadoresExibir}
@@ -109,7 +135,7 @@ const EtapaJogoRPGView = (props) => {
             compactMode={jogadoresExibir.length <= 2}
           />
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             <BarraStatusCompacta
               personagem={personagemSelecionado}
               combateAtivo={combateAtivo}
@@ -190,23 +216,30 @@ const EtapaJogoRPGView = (props) => {
           </div>
 
           {showActions && (
-            <div className={`transition-all duration-300 glass-subtle border-l border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
-              rightPanelExpanded ? 'w-80' : 'w-16'
-            }`}>
+            <div
+              className={`transition-all duration-300 game-glass-subtle border-l border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
+                rightPanelExpanded ? 'w-80' : 'w-16'
+              }`}
+              aria-label={panelTitle}
+            >
               <div className={`flex items-center mb-3 ${rightPanelExpanded ? 'justify-between' : 'justify-center'}`}>
                 {rightPanelExpanded && (
-                  <h3 className="text-base font-fantasy font-bold text-purple-200/80 uppercase tracking-wider">Acoes RPG</h3>
+                  <h3 className="text-base font-fantasy font-bold text-purple-200/80 uppercase tracking-wider">
+                    Acoes RPG
+                  </h3>
                 )}
                 <button
+                  type="button"
                   onClick={() => setRightPanelExpanded(!rightPanelExpanded)}
                   className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-all transform hover:scale-105 flex-shrink-0"
                   title={rightPanelExpanded ? 'Retrair painel' : 'Expandir painel'}
+                  aria-label={rightPanelExpanded ? 'Retrair painel' : 'Expandir painel'}
                 >
-                  <span className="text-lg">{rightPanelExpanded ? '▶' : '◀'}</span>
+                  {rightPanelExpanded ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 </button>
               </div>
 
-              {rightPanelExpanded && (
+              {rightPanelExpanded ? (
                 <div className="space-y-4">
                   <RPGActions
                     onRollDice={handleRolarDados}
@@ -223,30 +256,32 @@ const EtapaJogoRPGView = (props) => {
                       personagemSelecionado={infoPersonagem}
                       onRolarDados={handleRolarDados}
                       onToggleInventario={() => setInventarioAberto(!inventarioAberto)}
-                      compact={true}
+                      compact
                       combateAtivo={combateAtivo}
                       combateJogadores={combateJogadores}
                       userId={String(user.id)}
                     />
                   </div>
                 </div>
-              )}
-
-              {!rightPanelExpanded && (
+              ) : (
                 <div className="flex flex-col items-center space-y-3 mt-4">
                   <button
+                    type="button"
                     onClick={() => setRightPanelExpanded(true)}
-                    className="w-10 h-10 rounded-full glass-subtle flex items-center justify-center border border-purple-500/20 hover:border-purple-400/40 transition-all"
-                    title="Acoes RPG"
+                    className="w-10 h-10 rounded-full game-glass-subtle flex items-center justify-center border border-purple-500/20 hover:border-purple-400/40 transition-all"
+                    title="Expandir painel de acoes"
+                    aria-label="Expandir painel de acoes"
                   >
-                    <span className="text-lg">⚔️</span>
+                    <Swords size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => setRightPanelExpanded(true)}
-                    className="w-10 h-10 rounded-full glass-subtle flex items-center justify-center border border-cyan-500/20 hover:border-cyan-400/40 transition-all"
-                    title="Status"
+                    className="w-10 h-10 rounded-full game-glass-subtle flex items-center justify-center border border-cyan-500/20 hover:border-cyan-400/40 transition-all"
+                    title="Expandir painel de status"
+                    aria-label="Expandir painel de status"
                   >
-                    <span className="text-lg">📊</span>
+                    <BarChart3 size={18} />
                   </button>
                 </div>
               )}
@@ -255,20 +290,25 @@ const EtapaJogoRPGView = (props) => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
       {mobileDrawer && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileDrawer(null)} />
-          <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-slate-900/95 backdrop-blur-md border-l border-purple-500/20 overflow-y-auto animate-fade-in">
-            <div className="flex items-center justify-between p-4 border-b border-purple-500/20">
-              <h3 className="text-white font-fantasy font-bold">
-                {mobileDrawer === 'jogadores' ? '👥 Aventureiros' : '⚔️ Ações RPG'}
-              </h3>
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => setMobileDrawer(null)} />
+          <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] game-glass-solid border-l border-white/[0.08] overflow-y-auto animate-fade-in shadow-[0_10px_40px_rgba(0,0,0,0.45)]">
+            <div className="flex items-center justify-between p-4 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                {mobileDrawer === 'jogadores' ? <Users size={18} className="text-purple-200" /> : <Swords size={18} className="text-cyan-200" />}
+                <h3 className="text-white font-fantasy font-bold">
+                  {mobileDrawer === 'jogadores' ? 'Aventureiros' : 'Acoes RPG'}
+                </h3>
+              </div>
               <button
+                type="button"
                 onClick={() => setMobileDrawer(null)}
-                className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-white"
+                className="p-2 rounded-lg game-glass-subtle border border-white/[0.08] hover:border-white/[0.16] text-white transition-all"
+                aria-label="Fechar painel lateral"
+                title="Fechar painel lateral"
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
             <div className="p-4">
@@ -280,13 +320,18 @@ const EtapaJogoRPGView = (props) => {
                     const pNome = jogador.personagemNome || jogador.personagem;
                     const ehTurno = turnoAtual === i;
                     return (
-                      <div key={uid || i} className={`p-3 rounded-lg border ${
-                        ehTurno ? 'border-cyan-400/50 bg-cyan-500/10' : 'border-purple-500/20 bg-black/20'
-                      }`}>
+                      <div
+                        key={uid || i}
+                        className={`p-3 rounded-xl border game-glass-subtle ${
+                          ehTurno
+                            ? 'border-cyan-400/50 shadow-[0_0_18px_rgba(34,211,238,0.16)]'
+                            : 'border-white/[0.08]'
+                        }`}
+                      >
                         <div className="text-white font-medium text-sm">{nome}</div>
                         <div className="text-purple-300 text-xs">{pNome}</div>
                         {jogador.valorDado && (
-                          <div className="text-yellow-300 text-xs mt-1">🎲 {jogador.valorDado}</div>
+                          <div className="text-yellow-300 text-xs mt-1">Dado {jogador.valorDado}</div>
                         )}
                       </div>
                     );
@@ -305,8 +350,11 @@ const EtapaJogoRPGView = (props) => {
                     <StatusPersonagem
                       personagemSelecionado={infoPersonagem}
                       onRolarDados={handleRolarDados}
-                      onToggleInventario={() => { setInventarioAberto(!inventarioAberto); setMobileDrawer(null); }}
-                      compact={true}
+                      onToggleInventario={() => {
+                        setInventarioAberto(!inventarioAberto);
+                        setMobileDrawer(null);
+                      }}
+                      compact
                       combateAtivo={combateAtivo}
                       combateJogadores={combateJogadores}
                       userId={String(user.id)}

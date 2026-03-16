@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { apiClient } from '../../../services';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
 import { TIMEOUTS, PARTICLES } from '../../../constants/game';
 import { calcularMana } from '../../../utils/rpgHelpers';
@@ -21,8 +20,6 @@ export const useEtapaJogoRPGModel = ({
   onAdicionarMensagem,
   onSair
 }) => {
-  const { theme, toggleTheme } = useTheme();
-
   // Ref para evitar stale closure no onAdicionarMensagem
   const onAdicionarMensagemRef = useRef(onAdicionarMensagem);
   useEffect(() => {
@@ -258,9 +255,6 @@ export const useEtapaJogoRPGModel = ({
       }));
 
   return {
-    // Theme
-    theme, toggleTheme,
-
     // Props passthrough
     historia, personagemSelecionado, participantes, mensagens, user, onSair,
 

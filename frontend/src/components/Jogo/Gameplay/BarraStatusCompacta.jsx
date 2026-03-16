@@ -1,7 +1,7 @@
 import React from 'react';
 import { Heart, Shield, Zap, Droplets } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
-import { calcularMana } from '../../../utils/rpgHelpers';
+import { calcularMana, calcularHPMaximo } from '../../../utils/rpgHelpers';
 
 /**
  * Barra de HP/XP/Mana compacta sempre visível acima do chat.
@@ -12,8 +12,9 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
 
   // HP: combate usa dados live, fora de combate usa personagem
   const jogadorCombate = combateAtivo ? combateJogadores?.[String(userId)] : null;
-  const hpAtual = jogadorCombate?.hp_atual ?? personagem.hp ?? personagem.hp_max ?? 0;
-  const hpMax = jogadorCombate?.hp_max ?? personagem.hp_max ?? personagem.hp ?? 1;
+  const hpMaxCalculado = personagem.hp_max || calcularHPMaximo(personagem);
+  const hpAtual = jogadorCombate?.hp_atual ?? personagem.hp_atual ?? personagem.hp ?? 0;
+  const hpMax = jogadorCombate?.hp_max ?? hpMaxCalculado;
   const hpPercent = Math.max(0, Math.min(100, (hpAtual / hpMax) * 100));
 
   // Mana: combate usa dados live, fora de combate calcula pela fórmula
@@ -33,7 +34,7 @@ const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userI
   const xpProximoNivel = personagem.xp_proximo_nivel;
 
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 glass-subtle border-b border-white/[0.04] shrink-0">
+    <div className="flex items-center gap-3 px-3 py-1.5 game-glass-subtle border-b border-white/[0.04] shrink-0">
       {/* Avatar + Nível */}
       <div className="flex items-center gap-1.5 shrink-0">
         {personagem.imagem ? (

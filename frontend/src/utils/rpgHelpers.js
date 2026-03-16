@@ -7,6 +7,22 @@
  * Calcula mana máxima de um personagem.
  * Fórmula: max(5, 10 + nivel + modInteligencia * 2)
  */
+/**
+ * Calcula HP máximo de um personagem.
+ * Fórmula: 10 + (modConstituicao * nivel)
+ * Sincronia com Personagem.calcularHPMaximo() em models/Personagem.js
+ */
+export function calcularHPMaximo(personagem) {
+  const constituicao = personagem?.constituicao || 10;
+  const nivel = personagem?.nivel || 1;
+  const modCon = Math.floor((constituicao - 10) / 2);
+  return 10 + (modCon * nivel);
+}
+
+/**
+ * Calcula mana máxima de um personagem.
+ * Fórmula: max(5, 10 + nivel + modInteligencia * 2)
+ */
 export function calcularMana(personagem) {
   const inteligencia = personagem?.inteligencia || 10;
   const nivel = personagem?.nivel || 1;

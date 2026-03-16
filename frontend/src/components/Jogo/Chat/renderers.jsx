@@ -111,7 +111,7 @@ export const renderDado = (mensagem, key) => {
   const temDetalhes = detalhes.length > 0;
   return (
     <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-2">
-      <div className="glass-subtle px-5 py-3 rounded-full border border-amber-500/30">
+      <div className="game-glass-subtle px-5 py-3 rounded-full border border-amber-500/30">
         <div className="flex items-center justify-center gap-3">
           <span className="text-xl">{'\u{1F3B2}'}</span>
           <div className="text-center">
@@ -149,7 +149,7 @@ export const renderDado = (mensagem, key) => {
 
 export const renderRoleplay = (mensagem, key) => (
   <div key={key} className="max-w-[80%] ml-auto animate-fade-in">
-    <div className="glass-subtle p-4 rounded-xl border border-purple-500/20">
+    <div className="game-glass-subtle p-4 rounded-xl border border-purple-500/20">
       <div className="flex items-start space-x-3">
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 text-sm">
           {'\u{1F4AC}'}
@@ -169,7 +169,7 @@ export const renderRoleplay = (mensagem, key) => (
 
 export const renderLoading = (mensagem, key) => (
   <div key={key} className="max-w-[60%] mx-auto animate-fade-in my-2">
-    <div className="glass-subtle px-4 py-2.5 rounded-full border border-purple-500/20">
+    <div className="game-glass-subtle px-4 py-2.5 rounded-full border border-purple-500/20">
       <div className="flex items-center justify-center gap-2.5">
         <div className="flex gap-1">
           <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
@@ -186,7 +186,7 @@ export const renderLoading = (mensagem, key) => (
 
 export const renderCombate = (mensagem, key) => (
   <div key={key} className="max-w-[75%] mx-auto animate-fade-in my-2">
-    <div className="glass-subtle p-4 rounded-xl border border-red-500/30">
+    <div className="game-glass-subtle p-4 rounded-xl border border-red-500/30">
       <div className="flex items-start gap-2.5">
         <span className="text-xl mt-0.5">{'\u{2694}\u{FE0F}'}</span>
         <div className="flex-1">
@@ -210,7 +210,7 @@ export const renderCombate = (mensagem, key) => (
 
 export const renderTransicaoTurno = (mensagem, key) => (
   <div key={key} className="max-w-[60%] mx-auto animate-fade-in my-3">
-    <div className="glass-subtle px-4 py-2 rounded-full border border-cyan-500/20">
+    <div className="game-glass-subtle px-4 py-2 rounded-full border border-cyan-500/20">
       <p className="text-cyan-300/80 text-xs text-center font-medium">
         {getConteudo(mensagem)}
       </p>
@@ -220,7 +220,7 @@ export const renderTransicaoTurno = (mensagem, key) => (
 
 export const renderAguardandoDados = (mensagem, key) => (
   <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-3">
-    <div className="glass-subtle px-4 py-2.5 rounded-full border border-amber-500/20">
+    <div className="game-glass-subtle px-4 py-2.5 rounded-full border border-amber-500/20">
       <div className="flex items-center justify-center gap-2">
         <span className="text-base animate-pulse">{'\u{23F3}'}</span>
         <p className="text-amber-300/80 text-sm font-medium">
@@ -236,7 +236,7 @@ export const renderAcaoMestre = (mensagem, key) => {
   const payload = mensagem.payload || {};
   return (
     <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-2">
-      <div className="glass-subtle px-4 py-2.5 rounded-xl border border-emerald-500/20">
+      <div className="game-glass-subtle px-4 py-2.5 rounded-xl border border-emerald-500/20">
         <div className="flex items-start gap-2.5">
           <span className="text-base mt-0.5">{'\u2699\uFE0F'}</span>
           <div className="flex-1">
@@ -260,7 +260,7 @@ export const renderAcaoMestre = (mensagem, key) => {
 
 export const renderEntreRodadas = (mensagem, key) => (
   <div key={key} className="max-w-[80%] mx-auto animate-fade-in my-6">
-    <div className="glass-subtle p-6 rounded-2xl border border-cyan-400/30">
+    <div className="game-glass-subtle p-6 rounded-2xl border border-cyan-400/30">
       <div className="text-center mb-3">
         <span className="text-4xl">{'\u{1F31F}'}</span>
         <h3 className="text-xl font-fantasy font-bold text-cyan-300 mt-2">
@@ -280,7 +280,7 @@ export const renderMestre = (mensagem, key) => {
 
   return (
     <div key={key} className="max-w-[88%] animate-fade-in">
-      <div className={`glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 ${
+      <div className={`game-glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 ${
         temSolicitacaoDados || mensagem.destaque
           ? 'border-amber-400/60 border-l-amber-400/60 bg-gradient-to-br from-amber-900/40 to-orange-900/30'
           : 'border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15'
@@ -536,7 +536,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
 
   return (
     <div className="max-w-[88%] animate-fade-in">
-      <div className={`glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 ${
+      <div className={`game-glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 ${
         temSolicitacaoDados || mensagem.destaque
           ? 'border-amber-400/60 border-l-amber-400/60 bg-gradient-to-br from-amber-900/40 to-orange-900/30'
           : 'border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15'
@@ -657,7 +657,7 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
 
   return (
     <div className="max-w-[88%] animate-fade-in">
-      <div className="glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15">
+      <div className="game-glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15">
         <div className="flex items-start space-x-3">
           <span className="text-xl mt-0.5">{'\u{1F3AD}'}</span>
           <div className="flex-1">
@@ -760,7 +760,7 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
 
 export const renderJogador = (mensagem, key) => (
   <div key={key} className="max-w-[80%] ml-auto animate-fade-in">
-    <div className="glass p-4 rounded-xl border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
+    <div className="game-glass p-4 rounded-xl border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
       <div className="flex items-start space-x-3">
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 text-sm font-bold">
           {mensagem.username?.charAt(0)?.toUpperCase() || '?'}
@@ -788,7 +788,7 @@ export const renderMestreStreaming = (mensagem, key) => {
 
   return (
     <div key={key} className="max-w-[88%] animate-fade-in">
-      <div className="glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15">
+      <div className="game-glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15">
         <div className="flex items-start space-x-3">
           <span className="text-xl mt-0.5">{'\u{1F3AD}'}</span>
           <div className="flex-1">

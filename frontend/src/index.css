@@ -288,18 +288,56 @@
 
 /* Glass effect para RPG — hierarquia de opacidade */
 .glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-subtle {
+  background: rgba(15, 23, 42, 0.52);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+.glass-solid {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.dark .glass-solid {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.game-glass {
   background: rgba(10, 5, 25, 0.55);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.glass-subtle {
+
+.game-glass-subtle {
   background: rgba(10, 5, 25, 0.35);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
-.glass-solid {
+
+.game-glass-solid {
   background: rgba(10, 5, 25, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -649,7 +687,7 @@ input[type="range"].tts-slider:disabled {
 
 /* Responsividade */
 @media (max-width: 768px) {
-  .glass, .glass-subtle, .glass-solid {
+  .glass, .glass-subtle, .glass-solid, .game-glass, .game-glass-subtle, .game-glass-solid {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }

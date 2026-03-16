@@ -5,6 +5,12 @@ const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'eleve
 const SPEED_STEPS = [1, 1.25, 1.5, 1.75, 2];
 const TTS_LAST_MESSAGE_KEY = 'tts_last_message_id';
 const MAX_TTS_TEXT_LENGTH = 4500;
+const EMPTY_SEQUENCE_STATE = {
+  token: null,
+  preparing: false,
+  waitingForNext: false,
+  lastFinishedIndex: -1
+};
 
 function buildItemKey(messageId, segmentId = null) {
   if (segmentId == null || segmentId === '') return String(messageId);
@@ -84,6 +90,27 @@ function shouldSendEmotion(provider, emotion) {
   return provider === 'cartesia' && emotion ? emotion : null;
 }
 
+function flattenPreparedEntries(entries = [], fallbackMessageId) {
+  const flattened = [];
+
+  entries.forEach((entry) => {
+    const urls = Array.isArray(entry?.urls) ? entry.urls : [];
+    urls.forEach((url, urlIndex) => {
+      flattened.push({
+        messageId: entry.messageId ?? fallbackMessageId,
+        segmentId: entry.segmentId || null,
+        itemKey: entry.itemKey,
+        url,
+        urlIndex,
+        chunkCount: urls.length,
+        text: entry.text
+      });
+    });
+  });
+
+  return flattened;
+}
+
 export const useTTS = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -110,6 +137,7 @@ export const useTTS = () => {
   const queueRef = useRef([]);
   const queueMetaRef = useRef({ messageId: null, sequenceKey: null });
   const playTokenRef = useRef(0);
+  const sequenceStateRef = useRef({ ...EMPTY_SEQUENCE_STATE });
 
   const detachAudioHandlers = useCallback((audio) => {
     if (!audio) return;
@@ -158,6 +186,7 @@ export const useTTS = () => {
 
     queueRef.current = [];
     queueMetaRef.current = { messageId: null, sequenceKey: null };
+    sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
     setIsSequence(false);
     setCurrentSequenceKey(null);
     setQueueIndex(-1);
@@ -201,16 +230,6 @@ export const useTTS = () => {
       if (token !== playTokenRef.current) return;
 
       const nextEntry = queueRef.current[entry.queueIndex + 1] || null;
-      if (nextEntry) {
-        playQueueEntry(nextEntry, token);
-        return;
-      }
-
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      setCurrentSegmentId(null);
-      setQueueIndex(-1);
       detachAudioHandlers(audio);
       if (audioRef.current === audio) {
         audioRef.current = null;
@@ -220,6 +239,29 @@ export const useTTS = () => {
       } catch (_) {
         // no-op
       }
+
+      if (nextEntry) {
+        playQueueEntry(nextEntry, token);
+        return;
+      }
+
+      const sequenceState = sequenceStateRef.current;
+      if (sequenceState.token === token && sequenceState.preparing) {
+        sequenceState.waitingForNext = true;
+        sequenceState.lastFinishedIndex = entry.queueIndex;
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+        setCurrentSegmentId(null);
+        return;
+      }
+
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setCurrentSegmentId(null);
+      setQueueIndex(-1);
+      sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
     };
 
     audio.onerror = () => {
@@ -323,24 +365,7 @@ export const useTTS = () => {
   }, [revokeCacheEntry]);
 
   const buildQueueEntries = useCallback((entries = [], messageId, sequenceKey = null) => {
-    const flattened = [];
-
-    entries.forEach((entry) => {
-      const urls = Array.isArray(entry?.urls) ? entry.urls : [];
-      urls.forEach((url, urlIndex) => {
-        flattened.push({
-          messageId: entry.messageId ?? messageId,
-          segmentId: entry.segmentId || null,
-          itemKey: entry.itemKey,
-          url,
-          urlIndex,
-          chunkCount: urls.length,
-          text: entry.text
-        });
-      });
-    });
-
-    const queue = flattened.map((entry, index) => ({
+    const queue = flattenPreparedEntries(entries, messageId).map((entry, index) => ({
       ...entry,
       queueIndex: index
     }));
@@ -350,6 +375,25 @@ export const useTTS = () => {
     setIsSequence(queue.length > 1 || entries.length > 1);
     setCurrentSequenceKey(sequenceKey || null);
     setQueueIndex(queue.length > 0 ? 0 : -1);
+
+    return queue;
+  }, []);
+
+  const appendQueueEntries = useCallback((entries = [], messageId, sequenceKey = null) => {
+    const flattened = flattenPreparedEntries(entries, messageId);
+    if (flattened.length === 0) return queueRef.current;
+
+    const startIndex = queueRef.current.length;
+    const appended = flattened.map((entry, index) => ({
+      ...entry,
+      queueIndex: startIndex + index
+    }));
+
+    const queue = [...queueRef.current, ...appended];
+    queueRef.current = queue;
+    queueMetaRef.current = { messageId, sequenceKey };
+    setIsSequence(queue.length > 1 || entries.length > 1);
+    setCurrentSequenceKey(sequenceKey || null);
 
     return queue;
   }, []);
@@ -400,10 +444,11 @@ export const useTTS = () => {
         // no-op
       }
     }
-    resetActiveAudio(true);
+    clearPlayback(false);
     setCurrentSegmentId(null);
-    setQueueIndex(-1);
-  }, [resetActiveAudio]);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [clearPlayback]);
 
   const seekTo = useCallback((value) => {
     const audio = audioRef.current;
@@ -504,7 +549,7 @@ export const useTTS = () => {
     } catch (error) {
       if (requestToken !== playTokenRef.current) return false;
       console.error('TTS error:', error.message);
-      setLastError(error.message || 'Erro ao gerar áudio');
+      setLastError(error.message || 'Erro ao gerar audio');
       setErrorMessageId(messageId);
       clearPlayback(true);
       return false;
@@ -527,64 +572,147 @@ export const useTTS = () => {
 
     const isSameSequence = queueMetaRef.current.sequenceKey === sequenceKey
       && queueRef.current.length > 0;
+    const sequenceInFlight = sequenceStateRef.current.preparing || sequenceStateRef.current.waitingForNext;
 
     if (!forceRegenerate && isSameSequence && audioRef.current) {
       togglePause();
       return true;
     }
 
-    if (forceRegenerate || !isSameSequence) {
-      clearPlayback(true);
-      setCurrentMessageId(messageId);
-      setCurrentSegmentId(null);
+    if (!forceRegenerate && isSameSequence && sequenceInFlight) {
+      return true;
     }
+
+    clearPlayback(true);
+    setCurrentMessageId(messageId);
+    setCurrentSegmentId(null);
 
     const requestToken = playTokenRef.current + 1;
     playTokenRef.current = requestToken;
+    sequenceStateRef.current = {
+      token: requestToken,
+      preparing: true,
+      waitingForNext: false,
+      lastFinishedIndex: -1
+    };
     setIsLoading(true);
+    let firstPreparedIndex = -1;
+
     try {
-      const preparedItems = [];
+      let firstPrepared = null;
 
-      for (const item of validItems) {
-        const prepared = await prepareAudioEntry({
-          text: item.text,
-          voiceId: item.voiceId,
-          provider: item.provider || DEFAULT_TTS_PROVIDER,
-          messageId: item.messageId ?? messageId,
-          segmentId: item.segmentId || null,
-          allowGenerate: item.allowGenerate ?? allowGenerate,
-          forceRegenerate,
-          emotion: item.emotion || null,
-          requestToken
-        });
+      for (let index = 0; index < validItems.length; index += 1) {
+        const item = validItems[index];
+        let prepared = null;
+
+        try {
+          prepared = await prepareAudioEntry({
+            text: item.text,
+            voiceId: item.voiceId,
+            provider: item.provider || DEFAULT_TTS_PROVIDER,
+            messageId: item.messageId ?? messageId,
+            segmentId: item.segmentId || null,
+            allowGenerate: item.allowGenerate ?? allowGenerate,
+            forceRegenerate,
+            emotion: item.emotion || null,
+            requestToken
+          });
+        } catch (error) {
+          if (requestToken !== playTokenRef.current) return false;
+          console.error('TTS sequence prepare error:', error.message);
+          continue;
+        }
+
         if (requestToken !== playTokenRef.current) return false;
+        if (!prepared) continue;
 
-        if (prepared) preparedItems.push(prepared);
+        firstPrepared = prepared;
+        firstPreparedIndex = index;
+        break;
       }
 
-      const queue = buildQueueEntries(preparedItems, messageId, sequenceKey);
+      if (!firstPrepared) {
+        sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
+        setCurrentMessageId(messageId);
+        setCurrentSegmentId(null);
+        return false;
+      }
+
+      const queue = buildQueueEntries([firstPrepared], messageId, sequenceKey);
       if (queue.length === 0) {
+        sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
         setCurrentMessageId(messageId);
         setCurrentSegmentId(null);
         return false;
       }
 
       if (requestToken !== playTokenRef.current) return false;
+      setIsLoading(false);
       playQueueEntry(queue[0], requestToken);
+
+      const prepareRemainingItems = async () => {
+        for (let index = firstPreparedIndex + 1; index < validItems.length; index += 1) {
+          const item = validItems[index];
+          let prepared = null;
+
+          try {
+            prepared = await prepareAudioEntry({
+              text: item.text,
+              voiceId: item.voiceId,
+              provider: item.provider || DEFAULT_TTS_PROVIDER,
+              messageId: item.messageId ?? messageId,
+              segmentId: item.segmentId || null,
+              allowGenerate: item.allowGenerate ?? allowGenerate,
+              forceRegenerate,
+              emotion: item.emotion || null,
+              requestToken
+            });
+          } catch (error) {
+            if (requestToken !== playTokenRef.current) return;
+            console.error('TTS sequence prepare error:', error.message);
+            continue;
+          }
+
+          if (requestToken !== playTokenRef.current) return;
+          if (!prepared) continue;
+
+          appendQueueEntries([prepared], messageId, sequenceKey);
+
+          const state = sequenceStateRef.current;
+          if (state.token === requestToken && state.waitingForNext) {
+            const nextEntry = queueRef.current[state.lastFinishedIndex + 1] || null;
+            if (nextEntry) {
+              state.waitingForNext = false;
+              playQueueEntry(nextEntry, requestToken);
+            }
+          }
+        }
+
+        if (requestToken !== playTokenRef.current) return;
+        sequenceStateRef.current = {
+          token: requestToken,
+          preparing: false,
+          waitingForNext: false,
+          lastFinishedIndex: sequenceStateRef.current.lastFinishedIndex
+        };
+      };
+
+      void prepareRemainingItems();
       return true;
     } catch (error) {
       if (requestToken !== playTokenRef.current) return false;
       console.error('TTS sequence error:', error.message);
-      setLastError(error.message || 'Erro ao gerar áudio');
+      setLastError(error.message || 'Erro ao gerar audio');
       setErrorMessageId(messageId);
+      sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
       clearPlayback(true);
       return false;
     } finally {
-      if (requestToken === playTokenRef.current) {
+      if (requestToken === playTokenRef.current && firstPreparedIndex === -1) {
         setIsLoading(false);
       }
     }
-  }, [buildQueueEntries, clearPlayback, currentMessageId, playQueueEntry, prepareAudioEntry, togglePause]);
+  }, [appendQueueEntries, buildQueueEntries, clearPlayback, playQueueEntry, prepareAudioEntry, togglePause]);
 
   const generate = useCallback(async (
     text,
@@ -611,7 +739,7 @@ export const useTTS = () => {
       });
       return !!prepared;
     } catch (error) {
-      setLastError(error.message || 'Erro ao gerar áudio');
+      setLastError(error.message || 'Erro ao gerar audio');
       setErrorMessageId(messageId);
       return false;
     } finally {
@@ -642,7 +770,7 @@ export const useTTS = () => {
       }
       return true;
     } catch (error) {
-      setLastError(error.message || 'Erro ao gerar áudio');
+      setLastError(error.message || 'Erro ao gerar audio');
       setErrorMessageId(messageId);
       return false;
     } finally {

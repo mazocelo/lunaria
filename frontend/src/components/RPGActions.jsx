@@ -89,7 +89,7 @@ export const RPGActions = ({
             <button
               key={dice.value}
               onClick={() => handleDiceRoll(dice.value)}
-              className="glass-subtle aspect-square rounded-xl border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(139,92,246,0.1)] text-purple-200 font-fantasy font-bold text-base transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
+            className="game-glass-subtle aspect-square rounded-xl border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(139,92,246,0.1)] text-purple-200 font-fantasy font-bold text-base transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
             >
               {dice.label}
             </button>
@@ -103,11 +103,11 @@ export const RPGActions = ({
             value={customDice}
             onChange={(e) => setCustomDice(e.target.value)}
             placeholder="1d20+5"
-            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg glass-subtle border border-purple-500/20 text-purple-100 placeholder-purple-400/40 focus:outline-none focus:border-purple-400/50 focus:shadow-[0_0_8px_rgba(139,92,246,0.1)] transition-all"
+            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg game-glass-subtle border border-purple-500/20 text-purple-100 placeholder-purple-400/40 focus:outline-none focus:border-purple-400/50 focus:shadow-[0_0_8px_rgba(139,92,246,0.1)] transition-all"
           />
           <button
             onClick={handleCustomDiceRoll}
-            className="px-3 py-1.5 text-sm font-medium rounded-lg glass-subtle border border-purple-500/25 text-purple-200 hover:border-purple-400/40 hover:bg-purple-500/15 transition-all cursor-pointer"
+            className="px-3 py-1.5 text-sm font-medium rounded-lg game-glass-subtle border border-purple-500/25 text-purple-200 hover:border-purple-400/40 hover:bg-purple-500/15 transition-all cursor-pointer"
           >
             Rolar
           </button>
@@ -123,7 +123,7 @@ export const RPGActions = ({
               <button
                 key={i}
                 onClick={() => onUsarHabilidade && onUsarHabilidade(vantagem)}
-                className="w-full text-left glass-subtle rounded-lg p-2.5 border border-purple-500/15 hover:border-purple-400/30 transition-all cursor-pointer"
+                className="w-full text-left game-glass-subtle rounded-lg p-2.5 border border-purple-500/15 hover:border-purple-400/30 transition-all cursor-pointer"
                 title={vantagem.descricao || vantagem.nome}
               >
                 <div className="flex items-center justify-between">
@@ -161,7 +161,7 @@ export const RPGActions = ({
               <button
                 key={i}
                 onClick={() => onUsarEquipamento && onUsarEquipamento(equip)}
-                className="w-full text-left glass-subtle rounded-lg p-2.5 border border-amber-500/15 hover:border-amber-400/30 transition-all cursor-pointer"
+                className="w-full text-left game-glass-subtle rounded-lg p-2.5 border border-amber-500/15 hover:border-amber-400/30 transition-all cursor-pointer"
                 title={equip.descricao || equip.nome}
               >
                 <div className="flex items-center justify-between">
@@ -189,7 +189,7 @@ export const RPGActions = ({
             {vantagensPassivas.map((v, i) => (
               <div
                 key={`v-${i}`}
-                className="glass-subtle rounded-lg px-2.5 py-1.5 border border-emerald-500/15 text-emerald-300 text-sm"
+                className="game-glass-subtle rounded-lg px-2.5 py-1.5 border border-emerald-500/15 text-emerald-300 text-sm"
                 title={v.descricao || ''}
               >
                 + {v.nome}
@@ -203,7 +203,7 @@ export const RPGActions = ({
             {desvantagens.map((d, i) => (
               <div
                 key={`d-${i}`}
-                className="glass-subtle rounded-lg px-2.5 py-1.5 border border-red-500/15 text-red-300 text-sm"
+                className="game-glass-subtle rounded-lg px-2.5 py-1.5 border border-red-500/15 text-red-300 text-sm"
                 title={d.descricao || ''}
               >
                 - {d.nome}

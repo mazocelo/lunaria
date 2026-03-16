@@ -9,6 +9,9 @@ Ação: ${acao}
 
 INSTRUÇÕES:
 - IMPORTANTE: Revise o histórico de chat antes de narrar. Não repita diálogos, descrições ou introduções que já ocorreram. Cada resposta deve avançar a história.
+- Continue exatamente da cena e da fala mais recentes.
+- Nao reapresente NPCs ou ambiente ja estabelecidos.
+- Se a acao do jogador for uma resposta curta em dialogo, faca o NPC ou o mundo responder a ela, em vez de recomecar a cena.
 - Narre o resultado dessa ação
 - Se SIMPLES/SEGURA: narre diretamente (observar sala, conversar)
 - Se ARRISCADA/DIFÍCIL: solicite rolagem via solicitaDados no JSON e inclua 🎲 na narrativa

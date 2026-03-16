@@ -27,6 +27,7 @@ import {
   emitirSolicitacaoTeste
 } from '../utils/testePipeline.js';
 import {
+  getTurnState,
   transitionTurnState,
   TURN_STATUS
 } from '../utils/turnStateMachine.js';
@@ -338,11 +339,6 @@ export default class MasterNarrationEngine {
         });
       }
 
-      const contextoRoleplayLateral = invocationContext.contextoLateralRoleplay;
-      if (contextoRoleplayLateral) {
-        acaoComContexto += `${contextoRoleplayLateral}\n`;
-      }
-
       acaoComContexto += `Ação do jogador: "${sanitizePromptInput(mensagem)}"`;
 
       // 4a. Detector de alegacoes concretas (modo observacao — Fase 1)
@@ -402,7 +398,9 @@ export default class MasterNarrationEngine {
           personagem: personagem.nome,
           acao: acaoComContexto,
           chatHistory: historico,
-          resumo: resumoMaisRecente?.resumo || null
+          resumo: resumoMaisRecente?.resumo || null,
+          contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
+          lockContinuidade: invocationContext.lockContinuidade
         }, {
           onStreamStart: () => sm.sendToRoom(roomId, 'mestre_stream_start', { streamId: streamMsgId, timestamp: Date.now() }),
           onChunk: (delta, accumulated) => sm.sendToRoom(roomId, 'mestre_stream_chunk', { streamId: streamMsgId, delta, accumulated, timestamp: Date.now() }),
@@ -422,13 +420,14 @@ export default class MasterNarrationEngine {
         });
 
         // ✅ FALLBACK: Resposta simples — auto-avançar turno se já houve 2+ mensagens
-        const estadoJogoFallback = sessao.estadoJogo || {};
-        const contadorFallback = estadoJogoFallback.contadorMensagensTurno || 0;
+        const turnoAtualFallback = getTurnState(sessao);
+        const contadorFallback = turnoAtualFallback.contadorInteracoes || 0;
+        const primeiroIntercambioCalmo = !combateAtivo && !combatIntent && contadorFallback === 0;
         resposta = {
           narracao: `**${personagem.nome}** ${mensagem}.\n\n*O Mestre faz uma pausa...* O que acontece a seguir?`,
-          fimDeTurno: contadorFallback >= 2,
+          fimDeTurno: primeiroIntercambioCalmo ? false : contadorFallback >= 2,
           solicitaDados: { solicita: false },
-          acaoCompleta: contadorFallback >= 2
+          acaoCompleta: primeiroIntercambioCalmo ? false : contadorFallback >= 2
         };
 
         sm.log('INFO', 'MENSAGEM_PARA_MESTRE_USANDO_FALLBACK', socket.id, userId, {

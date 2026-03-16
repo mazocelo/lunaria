@@ -45,6 +45,36 @@ function getMessageSpeaker(mensagem = {}) {
     .slice(0, 60);
 }
 
+function normalizeContextValue(value, maxChars = CONTINUIDADE_MAX_CHARS) {
+  const text = String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  return text ? text.slice(0, maxChars) : null;
+}
+
+function normalizeNpcNames(rawNpcs = []) {
+  const origem = Array.isArray(rawNpcs) ? rawNpcs : [];
+  const unicos = new Set();
+  const nomes = [];
+
+  for (const npc of origem) {
+    const nome = normalizeContextValue(
+      typeof npc === 'string'
+        ? npc
+        : (npc?.nome || npc?.name || npc?.titulo || npc?.label || null),
+      60
+    );
+    if (!nome) continue;
+
+    const key = nome.toLowerCase();
+    if (unicos.has(key)) continue;
+    unicos.add(key);
+    nomes.push(nome);
+  }
+
+  return nomes;
+}
+
 function getCurrentSceneRound(sessao = {}) {
   return sessao.estadoJogo?.turno?.rodadaAtual
     || sessao.estadoJogo?.rodadaAtual
@@ -129,7 +159,43 @@ export function buildRoleplayLateralContext(sessao = {}, options = {}) {
   return `[CONTEXTO LATERAL DE ROLEPLAY - use apenas para colorir a cena, sem transformar em fato canonico]\n${linhas.join('\n')}`;
 }
 
+export function buildSceneAnchor(sessao = {}) {
+  const estadoJogo = sessao.estadoJogo || {};
+  const mestreSessao = sessao.mestreContexto?.sessao || estadoJogo.mestreContexto?.sessao || {};
+  const ultimasBatidas = getFormalChatHistory(sessao)
+    .slice(-CONTINUIDADE_MAX_ITEMS)
+    .map((mensagem) => {
+      const text = getMessageText(mensagem).slice(0, CONTINUIDADE_MAX_CHARS);
+      if (!text) return null;
+      return {
+        speaker: getMessageSpeaker(mensagem),
+        text,
+        tipo: mensagem?.tipo || mensagem?.type || null
+      };
+    })
+    .filter(Boolean);
+
+  const ultimaFala = ultimasBatidas.length > 0
+    ? { ...ultimasBatidas[ultimasBatidas.length - 1] }
+    : null;
+
+  const npcsEstadoJogo = Array.isArray(estadoJogo.npcs) ? estadoJogo.npcs : [];
+  const npcsMestre = Array.isArray(mestreSessao.npcsPresentes) ? mestreSessao.npcsPresentes : [];
+
+  return {
+    cenaAtual: normalizeContextValue(estadoJogo.cenaAtual || mestreSessao.cenaAtual || null, 120),
+    ambiente: normalizeContextValue(estadoJogo.ambiente || mestreSessao.ambiente || null, 120),
+    npcsPresentes: normalizeNpcNames(npcsEstadoJogo.length > 0 ? npcsEstadoJogo : npcsMestre),
+    ultimaFala,
+    ultimasBatidas
+  };
+}
+
 export function buildImmediateSceneLock(sessao = {}) {
+  const sceneAnchor = buildSceneAnchor(sessao);
+  const { cenaAtual, ambiente, npcsPresentes, ultimaFala, ultimasBatidas } = sceneAnchor;
+  if (!ultimasBatidas.length) return '';
+
   const historico = getFormalChatHistory(sessao).slice(-CONTINUIDADE_MAX_ITEMS);
   const linhas = historico
     .map((mensagem) => {
@@ -139,24 +205,39 @@ export function buildImmediateSceneLock(sessao = {}) {
     })
     .filter(Boolean);
 
-  if (!linhas.length) return '';
-
-  return [
+  const partes = [
     '[LOCK DE CONTINUIDADE - siga a cena atual]',
-    '- Continue exatamente da mesma cena e da ultima fala relevante.',
-    '- Nao reabra a ambientacao nem reapresente NPCs ja presentes, salvo mudanca explicita.',
-    '- Se a ultima batida foi dialogo direto, responda a ela antes de introduzir novo evento.',
+  ];
+
+  if (cenaAtual) partes.push(`Cena atual: ${cenaAtual}`);
+  if (ambiente) partes.push(`Ambiente: ${ambiente}`);
+  if (npcsPresentes.length > 0) {
+    partes.push(`NPCs presentes: ${npcsPresentes.join(', ')}`);
+  }
+  if (ultimaFala?.text) {
+    partes.push(`Ultima fala: ${ultimaFala.speaker || 'Alguem'}: ${ultimaFala.text}`);
+  }
+
+  partes.push(
     'Ultimas batidas canonicas:',
-    ...linhas
-  ].join('\n');
+    ...linhas,
+    'Regras:',
+    '- Continue exatamente da mesma cena e da ultima fala relevante.',
+    '- Nao reabra a ambientacao nem reapresente NPCs ja presentes sem mudanca explicita.',
+    '- Se a ultima batida foi dialogo direto, responda a ela antes de introduzir novo evento.'
+  );
+
+  return partes.join('\n');
 }
 
 function buildBaseContext(sessao = {}) {
+  const sceneAnchor = buildSceneAnchor(sessao);
   return {
     chatHistory: getFormalChatHistory(sessao),
     resumo: getResumoMaisRecente(sessao),
     contextoLateralRoleplay: buildRoleplayLateralContext(sessao),
-    lockContinuidade: buildImmediateSceneLock(sessao)
+    lockContinuidade: buildImmediateSceneLock(sessao),
+    sceneAnchor
   };
 }
 

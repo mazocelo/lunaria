@@ -469,7 +469,15 @@ export class MestreAgent {
   /**
    * Narra uma ação do jogador
    */
-  async narrarAcao({ jogador, personagem, acao, chatHistory = [], resumo = null, contextoLateralRoleplay = '' }) {
+  async narrarAcao({
+    jogador,
+    personagem,
+    acao,
+    chatHistory = [],
+    resumo = null,
+    contextoLateralRoleplay = '',
+    lockContinuidade = ''
+  }) {
     const startTime = Date.now();
     try {
       log.info({ personagem }, 'Narrando acao');
@@ -478,9 +486,11 @@ export class MestreAgent {
       const input = criarPromptNarracao(jogador, personagem, acao);
 
       // Converter histórico
-      const inputCompleto = contextoLateralRoleplay
-        ? `${contextoLateralRoleplay}\n\n${input}`
-        : input;
+      const promptBlocks = [];
+      if (lockContinuidade) promptBlocks.push(lockContinuidade);
+      if (contextoLateralRoleplay) promptBlocks.push(contextoLateralRoleplay);
+      promptBlocks.push(input);
+      const inputCompleto = promptBlocks.join('\n\n');
 
       let historico = converterHistoricoParaLangChain(chatHistory);
 
@@ -578,7 +588,15 @@ export class MestreAgent {
    * Emite chunks da narrativa progressivamente via callbacks.
    * Fallback: chama narrarAcao() (non-streaming) em caso de erro.
    */
-  async narrarAcaoStream({ jogador, personagem, acao, chatHistory = [], resumo = null, contextoLateralRoleplay = '' }, callbacks = {}) {
+  async narrarAcaoStream({
+    jogador,
+    personagem,
+    acao,
+    chatHistory = [],
+    resumo = null,
+    contextoLateralRoleplay = '',
+    lockContinuidade = ''
+  }, callbacks = {}) {
     const { onStreamStart, onChunk, onStreamEnd, onError } = callbacks;
     const startTime = Date.now();
 
@@ -586,9 +604,11 @@ export class MestreAgent {
       log.info({ personagem }, 'Narrando acao (stream)');
 
       const input = criarPromptNarracao(jogador, personagem, acao);
-      const inputCompleto = contextoLateralRoleplay
-        ? `${contextoLateralRoleplay}\n\n${input}`
-        : input;
+      const promptBlocks = [];
+      if (lockContinuidade) promptBlocks.push(lockContinuidade);
+      if (contextoLateralRoleplay) promptBlocks.push(contextoLateralRoleplay);
+      promptBlocks.push(input);
+      const inputCompleto = promptBlocks.join('\n\n');
       let historico = converterHistoricoParaLangChain(chatHistory);
 
       if (resumo) {
@@ -670,7 +690,15 @@ export class MestreAgent {
     } catch (error) {
       log.error({ err: error.message }, 'Erro ao narrar acao (stream), fallback para invoke');
       onError?.(error);
-      return this.narrarAcao({ jogador, personagem, acao, chatHistory, resumo, contextoLateralRoleplay });
+      return this.narrarAcao({
+        jogador,
+        personagem,
+        acao,
+        chatHistory,
+        resumo,
+        contextoLateralRoleplay,
+        lockContinuidade
+      });
     }
   }
 
@@ -836,7 +864,7 @@ Mensagem do Jogador:
       }
 
       // Converter histórico
-      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n`;
+      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n`;
 
       let historico = converterHistoricoParaLangChain(chatHistory);
 

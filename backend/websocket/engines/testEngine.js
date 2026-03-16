@@ -259,18 +259,16 @@ export default class TestEngine {
             descricaoFinal += '\n' + contextoCombateExtra;
           }
 
-          const descricaoComContexto = invocationContext.contextoLateralRoleplay
-            ? `${invocationContext.contextoLateralRoleplay}\n\n${descricaoFinal}`
-            : descricaoFinal;
-
           const testStreamMsgId = `mestre_stream_${Date.now()}_${roomId}`;
 
           const interpretacao = await mestre.narrarAcaoStream({
             jogador: username,
             personagem: personagemNome,
-            acao: descricaoComContexto,
+            acao: descricaoFinal,
             chatHistory: invocationContext.chatHistory,
-            resumo: invocationContext.resumo
+            resumo: invocationContext.resumo,
+            contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
+            lockContinuidade: invocationContext.lockContinuidade
           }, {
             onStreamStart: () => sm.sendToRoom(roomId, 'mestre_stream_start', { streamId: testStreamMsgId, timestamp: Date.now() }),
             onChunk: (delta, accumulated) => sm.sendToRoom(roomId, 'mestre_stream_chunk', { streamId: testStreamMsgId, delta, accumulated, timestamp: Date.now() }),

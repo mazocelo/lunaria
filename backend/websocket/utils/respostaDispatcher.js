@@ -22,6 +22,19 @@ import {
 import { appendMensagemSessao, buildSolicitacaoDadosMensagem } from './sessionMessages.js';
 import { hasPendingCombatAction } from './combatPendingAction.js';
 
+function shouldHoldTurnForContinuity(resposta = {}, ctx = {}, turno = {}) {
+  if ((turno?.contadorInteracoes || 0) !== 1) return false;
+  if (ctx.combateAtivo) return false;
+  if (hasPendingCombatAction(ctx.sessao)) return false;
+  if (hasPendingTests(ctx.sessao)) return false;
+  if (resposta.solicitaDados?.solicita === true) return false;
+  if (resposta.teste) return false;
+  if (resposta.combate?.iniciado) return false;
+  if (Array.isArray(resposta.acoes) && resposta.acoes.length > 0) return false;
+
+  return resposta.fimDeTurno === true || resposta.acaoCompleta === true;
+}
+
 async function processarInicioCombate(resposta, ctx) {
   ctx.sm.log('INFO', 'COMBATE_DETECTADO_PELA_IA', ctx.socket.id, ctx.userId, {
     roomId: ctx.roomId,
@@ -175,6 +188,15 @@ async function processarControleTurno(resposta, ctx) {
         contadorAtual: turno.contadorInteracoes
       });
     }
+    ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
+    return;
+  }
+
+  if (shouldHoldTurnForContinuity(resposta, ctx, turno)) {
+    ctx.sm.log('INFO', 'TURN_HOLD_CONTINUIDADE', ctx.socket.id, ctx.userId, {
+      roomId: ctx.roomId,
+      contadorAtual: turno.contadorInteracoes
+    });
     ctx.sm.emitirEstadoTurno(ctx.roomId, ctx.sessao);
     return;
   }

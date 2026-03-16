@@ -34,6 +34,13 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
   const bgSnippet = background
     ? `Historia pessoal: "${background}"`
     : 'O jogador nao definiu background. Improvise uma chegada breve baseada na classe e raca.';
+  const sceneAnchor = invocationContext.sceneAnchor || {};
+  const alvoTransicao = [];
+  if (sceneAnchor.cenaAtual) alvoTransicao.push(`Cena atual: ${sceneAnchor.cenaAtual}`);
+  if (sceneAnchor.ambiente) alvoTransicao.push(`Ambiente: ${sceneAnchor.ambiente}`);
+  if (Array.isArray(sceneAnchor.npcsPresentes) && sceneAnchor.npcsPresentes.length > 0) {
+    alvoTransicao.push(`NPCs presentes: ${sceneAnchor.npcsPresentes.join(', ')}`);
+  }
 
   const parts = [
     '[INSTRUCAO DE ABERTURA - TRANSICAO PERSONALIZADA]',
@@ -44,15 +51,24 @@ function buildTransitionMessage(sessao, jogadorDaVez, username, invocationContex
     'Diretrizes:',
     '- Narre em 2-3 paragrafos curtos como o personagem viajou/chegou ate o cenario.',
     '- Use background, classe e raca para dar personalidade a chegada.',
-    '- Termine fazendo transicao natural para a cena principal.',
-    '- Apos a transicao, apresente a cena e ofereca opcoes iniciais.',
+    '- Termine fazendo transicao natural para a cena principal ja em andamento.',
+    '- Nao crie uma historia paralela nem reapresente do zero NPC ja presente.',
+    '- Depois da costura de chegada, caia exatamente na cena atual descrita abaixo.',
     '[FIM DA INSTRUCAO DE ABERTURA]',
     ''
   ];
 
+  if (alvoTransicao.length > 0) {
+    parts.push('Alvo da transicao:', ...alvoTransicao, '');
+  }
+  if (invocationContext.lockContinuidade) {
+    parts.push(invocationContext.lockContinuidade, '');
+  }
   if (invocationContext.contextoLateralRoleplay) {
     parts.push(invocationContext.contextoLateralRoleplay, '');
   }
+  parts.push('Depois da costura de chegada, caia exatamente na cena atual descrita acima. Nao reinicie a historia nem reapresente do zero um NPC que ja esteja em cena.');
+  parts.push('');
   parts.push(`Agora e a vez de ${personagemNome} agir na cena atual.`);
   return parts.join('\n');
 }

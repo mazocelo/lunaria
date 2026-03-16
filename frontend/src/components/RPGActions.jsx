@@ -195,6 +195,11 @@ export const RPGActions = ({
                 + {v.nome}
               </div>
             ))}
+            {vantagensPassivas.length > 0 && desvantagens.length > 0 && (
+              <div className="flex items-center gap-2 my-1.5">
+                <div className="flex-1 h-px bg-gradient-to-r from-red-500/20 to-transparent" />
+              </div>
+            )}
             {desvantagens.map((d, i) => (
               <div
                 key={`d-${i}`}

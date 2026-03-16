@@ -74,7 +74,7 @@ const NarrationSegments = ({
 
     const handlePlay = async () => {
       await tts.play(segmentItem.text, segmentItem.voiceId, messageId, segmentItem.provider, {
-        allowGenerate: hasAnyAudio,
+        allowGenerate: true,
         segmentId: segmentItem.segmentId,
         emotion: segmentItem.emotion
       });
@@ -84,17 +84,20 @@ const NarrationSegments = ({
       <button
         type="button"
         onClick={handlePlay}
-        disabled={!hasAnyAudio || isLoading}
+        disabled={isLoading}
         className={`shrink-0 rounded-full border transition-all ${
           compact ? 'p-1' : 'p-1.5'
         } ${
           !hasAnyAudio
-            ? 'border-purple-500/20 text-purple-300/30 cursor-not-allowed'
+            ? isLight
+              ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+              : 'border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
             : isLight
               ? 'border-cyan-300 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
               : 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
         }`}
-        title={isPlaying ? 'Pausar trecho' : 'Ouvir trecho'}
+        title={isPlaying ? 'Pausar trecho' : hasAnyAudio ? 'Ouvir trecho' : 'Gerar e ouvir trecho'}
+        aria-label={isPlaying ? 'Pausar trecho' : hasAnyAudio ? 'Ouvir trecho' : 'Gerar e ouvir trecho'}
       >
         {isLoading ? <Loader2 size={compact ? 12 : 14} className="animate-spin" /> : isPlaying ? <Square size={compact ? 12 : 14} /> : <Volume2 size={compact ? 12 : 14} />}
       </button>

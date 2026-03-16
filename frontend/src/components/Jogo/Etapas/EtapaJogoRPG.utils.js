@@ -37,8 +37,15 @@ export const formatarInformacoesPersonagem = (personagem) => {
     raca: personagem.raca_nome || personagem.raca || 'Desconhecida',
     nivel: personagem.nivel || '1',
     hp: personagem.hp_atual || personagem.hp || '???',
+    hp_max: personagem.hp_max || personagem.hp || null,
     mp: manaMax,
     xp: personagem.xp || '0',
+    xp_atual: personagem.xp_atual || personagem.xp || 0,
+    xp_proximo_nivel: personagem.xp_proximo_nivel || null,
+    imagem: personagem.imagem || null,
+    equipamentos: personagem.equipamentos || [],
+    vantagens: personagem.vantagens || [],
+    desvantagens: personagem.desvantagens || [],
   };
 };
 

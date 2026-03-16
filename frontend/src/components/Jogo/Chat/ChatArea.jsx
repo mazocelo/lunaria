@@ -259,7 +259,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
               >
                 {`${tts.playbackRate}x`}
               </button>
-              <span className="text-xs text-purple-200/70 truncate max-w-[200px]">
+              <span className="text-xs text-purple-200/70 truncate flex-1 min-w-0" title={currentTtsSegment ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}` : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao'}>
                 {currentTtsSegment
                   ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}`
                   : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao'}

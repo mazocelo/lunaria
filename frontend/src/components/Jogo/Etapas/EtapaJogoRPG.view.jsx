@@ -190,7 +190,7 @@ const EtapaJogoRPGView = (props) => {
           </div>
 
           {showActions && (
-            <div className={`transition-all duration-300 glass border-l border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
+            <div className={`transition-all duration-300 glass-subtle border-l border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
               rightPanelExpanded ? 'w-80' : 'w-16'
             }`}>
               <div className={`flex items-center mb-3 ${rightPanelExpanded ? 'justify-between' : 'justify-center'}`}>

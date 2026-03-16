@@ -31,10 +31,14 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     combateLog: s.combateLog ?? [],
     combateXpGanho: s.combateXpGanho ?? 0,
     sessionRecap: s.sessionRecap ?? null,
+    pendingMestreRequestId: s.pendingMestreRequestId ?? null,
+    pendingMestreRequestKind: s.pendingMestreRequestKind ?? null,
+    pendingMestreSentAt: s.pendingMestreSentAt ?? null,
     activeMestreRequestId: s.activeMestreRequestId ?? null,
     activeMestreRequestStatus: s.activeMestreRequestStatus ?? null,
     activeMestreRequestAttempt: s.activeMestreRequestAttempt ?? 0,
     activeMestreUpdatedAt: s.activeMestreUpdatedAt ?? null,
+    lastRegenerableMestreRequest: s.lastRegenerableMestreRequest ?? null,
     mestreStale: s.mestreStale ?? false,
   })));
 
@@ -61,12 +65,38 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
   const loadingMensagensAtivas = gameStoreMensagens.some((m) => m.tipo === 'mestre_streaming');
 
+  useEffect(() => {
+    const pendingRequestId = gameState.pendingMestreRequestId;
+    const pendingSentAt = gameState.pendingMestreSentAt;
+    if (!pendingRequestId || !pendingSentAt) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      const state = useSocketStore.getState();
+      if (state.pendingMestreRequestId !== pendingRequestId) {
+        return;
+      }
+
+      useSocketStore.setState({
+        pendingMestreRequestId: null,
+        pendingMestreRequestKind: null,
+        pendingMestreSentAt: null,
+        mestrePensando: false,
+        aguardandoRespostaMestre: false
+      });
+      showGameNotification('Nao foi possivel confirmar o inicio da resposta do Mestre. Tente novamente.', 'error');
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [gameState.pendingMestreRequestId, gameState.pendingMestreSentAt]);
+
   // Watchdog por heartbeat/status do Mestre
   useEffect(() => {
     const activeRequestId = gameState.activeMestreRequestId;
     const activeStatus = gameState.activeMestreRequestStatus;
     const updatedAt = gameState.activeMestreUpdatedAt;
-    if (!activeRequestId || !activeStatus || ['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus)) {
+    if (!activeRequestId || !activeStatus || ['completed', 'failed', 'timed_out', 'superseded', 'rejected_busy'].includes(activeStatus)) {
       return;
     }
 
@@ -109,36 +139,83 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
   // 14 socket listeners
   useEffect(() => {
     const updateRequestState = (data = {}, overrides = {}) => {
+      const state = useSocketStore.getState();
       const status = overrides.status || data.status || null;
       const terminal = ['completed', 'failed', 'timed_out', 'superseded'].includes(status);
-      useSocketStore.setState({
-        activeMestreRequestId: data.requestId || useSocketStore.getState().activeMestreRequestId,
+      const requestId = data.requestId || state.activeMestreRequestId || state.pendingMestreRequestId || null;
+      const attempt = data.attempt || state.activeMestreRequestAttempt || 0;
+      const playerMessageId = data.playerMessageId || state.activeMestrePlayerMessageId || null;
+      const updatedAt = overrides.updatedAt || data.updatedAt || new Date().toISOString();
+      const nextState = {
+        pendingMestreRequestId: requestId === state.pendingMestreRequestId ? null : state.pendingMestreRequestId,
+        pendingMestreRequestKind: requestId === state.pendingMestreRequestId ? null : state.pendingMestreRequestKind,
+        pendingMestreSentAt: requestId === state.pendingMestreRequestId ? null : state.pendingMestreSentAt,
+        activeMestreRequestId: requestId,
         activeMestreRequestStatus: status,
-        activeMestreRequestAttempt: data.attempt || useSocketStore.getState().activeMestreRequestAttempt || 0,
-        activeMestrePlayerMessageId: data.playerMessageId || useSocketStore.getState().activeMestrePlayerMessageId || null,
-        activeMestreUpdatedAt: overrides.updatedAt || data.updatedAt || new Date().toISOString(),
+        activeMestreRequestAttempt: attempt,
+        activeMestrePlayerMessageId: playerMessageId,
+        activeMestreUpdatedAt: updatedAt,
         mestrePensando: !!status && !terminal,
         aguardandoRespostaMestre: !!status && !terminal,
         mestreTimedOut: status === 'timed_out',
         mestreStale: false
+      };
+
+      if (status === 'failed' || status === 'timed_out') {
+        nextState.lastRegenerableMestreRequest = {
+          requestId,
+          kind: data.kind || state.pendingMestreRequestKind || state.lastRegenerableMestreRequest?.kind || 'player_action',
+          status,
+          attempt,
+          updatedAt,
+          playerMessageId,
+          errorCode: data.errorCode || null,
+          errorMessage: data.errorMessage || null
+        };
+      } else if (!terminal && requestId === state.lastRegenerableMestreRequest?.requestId) {
+        nextState.lastRegenerableMestreRequest = null;
+      } else if (status === 'completed' && requestId === state.lastRegenerableMestreRequest?.requestId) {
+        nextState.lastRegenerableMestreRequest = null;
+      }
+
+      useSocketStore.setState({
+        ...nextState
       });
     };
 
     const handleMestrePensando = (data) => {
+      const state = useSocketStore.getState();
+      if (state.pendingMestreRequestId || state.activeMestreRequestId) {
+        return;
+      }
       useSocketStore.setState({ mestrePensando: !!data?.ativo });
     };
 
     const handleMestreRequestStatus = (data) => {
       if (!data?.requestId) return;
-      updateRequestState(data);
       if (data.status === 'rejected_busy' && data.errorMessage) {
+        const state = useSocketStore.getState();
+        if (state.pendingMestreRequestId === data.requestId) {
+          useSocketStore.setState({
+            pendingMestreRequestId: null,
+            pendingMestreRequestKind: null,
+            pendingMestreSentAt: null,
+            mestrePensando: false,
+            aguardandoRespostaMestre: false,
+            mestreStale: false
+          });
+        }
         showGameNotification(data.errorMessage, 'warning');
+        return;
       }
+      updateRequestState(data);
     };
 
     const handleMensagemMestre = (data) => {
-      const activeRequestId = useSocketStore.getState().activeMestreRequestId;
-      if (data?.requestId && activeRequestId && String(data.requestId) !== String(activeRequestId)) {
+      const state = useSocketStore.getState();
+      const activeRequestId = state.activeMestreRequestId;
+      const pendingRequestId = state.pendingMestreRequestId;
+      if (data?.requestId && activeRequestId && String(data.requestId) !== String(activeRequestId) && String(data.requestId) !== String(pendingRequestId || '')) {
         return;
       }
 
@@ -395,9 +472,18 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleErroMensagem = (data) => {
-      const currentStatus = useSocketStore.getState().activeMestreRequestStatus;
+      const state = useSocketStore.getState();
+      const currentStatus = state.activeMestreRequestStatus;
       if (!currentStatus || !['failed', 'timed_out'].includes(currentStatus)) {
-        useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false, mestreTimedOut: false, mestreStale: false });
+        useSocketStore.setState({
+          pendingMestreRequestId: null,
+          pendingMestreRequestKind: null,
+          pendingMestreSentAt: null,
+          aguardandoRespostaMestre: false,
+          mestrePensando: false,
+          mestreTimedOut: false,
+          mestreStale: false
+        });
       }
       if (data?.message) showGameNotification(data.message, 'warning');
       const msgs = useGameStore.getState().mensagens || [];

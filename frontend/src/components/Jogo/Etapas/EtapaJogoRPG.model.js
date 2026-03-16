@@ -200,9 +200,15 @@ export const useEtapaJogoRPGModel = ({
   const mestrePensando = useSocketStore(s => s.mestrePensando);
   const mestreTimedOut = useSocketStore(s => s.mestreTimedOut);
   const mestreStale = useSocketStore(s => s.mestreStale);
+  const pendingMestreRequestId = useSocketStore(s => s.pendingMestreRequestId);
+  const pendingMestreRequestKind = useSocketStore(s => s.pendingMestreRequestKind);
   const activeMestreRequestId = useSocketStore(s => s.activeMestreRequestId);
   const activeMestreRequestStatus = useSocketStore(s => s.activeMestreRequestStatus);
-  const aguardandoMestre = turnoStatus === 'resolving_roll' || aguardandoRespostaMestre;
+  const lastRegenerableMestreRequest = useSocketStore(s => s.lastRegenerableMestreRequest);
+  const aguardandoMestre = turnoStatus === 'resolving_roll'
+    || !!pendingMestreRequestId
+    || ['accepted', 'processing', 'streaming', 'reviewing'].includes(activeMestreRequestStatus)
+    || aguardandoRespostaMestre;
   const jaRolouDadoInicial = !!resultadosDados[user?.id];
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
 
@@ -223,8 +229,9 @@ export const useEtapaJogoRPGModel = ({
       useSocketStore.setState({
         mestreTimedOut: false,
         mestreStale: false,
-        aguardandoRespostaMestre: true,
-        mestrePensando: true
+        pendingMestreRequestId: activeMestreRequestId,
+        pendingMestreRequestKind: lastRegenerableMestreRequest?.kind || pendingMestreRequestKind || 'player_action',
+        pendingMestreSentAt: new Date().toISOString()
       });
       socketStoreSafeEmit('regenerar_resposta_mestre', {
         roomId,
@@ -232,7 +239,7 @@ export const useEtapaJogoRPGModel = ({
         requestId: activeMestreRequestId
       });
     }
-  }, [activeMestreRequestId, activeMestreRequestStatus, historia?.id, mestreStale, socketStoreSafeEmit, user?.id]);
+  }, [activeMestreRequestId, activeMestreRequestStatus, historia?.id, lastRegenerableMestreRequest?.kind, mestreStale, pendingMestreRequestKind, socketStoreSafeEmit, user?.id]);
 
   const jogadoresExibir = participantesFormatados.length > 0
     ? participantesFormatados

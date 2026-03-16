@@ -36,7 +36,10 @@ export const createSendActions = (set, get) => ({
   },
 
   iniciarTurno: () => {
-    const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
+    const {
+      socket, isConnected, roomId, currentUser, safeEmit, log,
+      pendingMestreRequestId, activeMestreRequestStatus
+    } = get();
 
     if (!socket || !isConnected) {
       log('Nao conectado para iniciar turno', {}, 'error');
@@ -45,6 +48,14 @@ export const createSendActions = (set, get) => ({
 
     if (!roomId || !currentUser) {
       log('Faltam dados para iniciar turno', { roomId: !!roomId, user: !!currentUser }, 'error');
+      return false;
+    }
+
+    if (pendingMestreRequestId || (activeMestreRequestStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeMestreRequestStatus))) {
+      log('Ja existe request do Mestre em andamento para iniciar turno', {
+        pendingMestreRequestId,
+        activeMestreRequestStatus
+      }, 'warn');
       return false;
     }
 
@@ -59,15 +70,11 @@ export const createSendActions = (set, get) => ({
     const enviado = safeEmit('iniciar_turno', turnoData);
     if (enviado) {
       set({
-        aguardandoRespostaMestre: true,
-        mestrePensando: true,
         mestreTimedOut: false,
         mestreStale: false,
-        activeMestreRequestId: turnoData.requestId,
-        activeMestreRequestStatus: 'accepted',
-        activeMestreRequestAttempt: 1,
-        activeMestrePlayerMessageId: null,
-        activeMestreUpdatedAt: new Date().toISOString()
+        pendingMestreRequestId: turnoData.requestId,
+        pendingMestreRequestKind: 'turn_start',
+        pendingMestreSentAt: new Date().toISOString()
       });
     }
     return enviado;

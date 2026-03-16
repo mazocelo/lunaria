@@ -54,6 +54,13 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
       }
 
       const requestId = crypto.randomUUID();
+      const storeBeforeSend = useSocketStore.getState();
+      const activeStatus = storeBeforeSend.activeMestreRequestStatus;
+      if (storeBeforeSend.pendingMestreRequestId || (activeStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus))) {
+        showGameNotification('Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.', 'warning');
+        return;
+      }
+
       const payload = {
         roomId,
         userId: String(user?.id),
@@ -76,15 +83,11 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
       setMensagemAtual('');
       combatIntentRef.current = null;
       useSocketStore.setState({
-        aguardandoRespostaMestre: true,
-        mestrePensando: true,
         mestreTimedOut: false,
         mestreStale: false,
-        activeMestreRequestId: requestId,
-        activeMestreRequestStatus: 'accepted',
-        activeMestreRequestAttempt: 1,
-        activeMestrePlayerMessageId: null,
-        activeMestreUpdatedAt: new Date().toISOString()
+        pendingMestreRequestId: requestId,
+        pendingMestreRequestKind: 'player_action',
+        pendingMestreSentAt: new Date().toISOString()
       });
     } catch (error) {
       // silenced

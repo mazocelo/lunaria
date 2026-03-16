@@ -21,6 +21,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
       const descricaoFinal = descricao || dadoSolicitadoInfo?.teste || '';
 
       const roomId = `historia_${historia?.id}`;
+      const requestId = crypto.randomUUID();
       const resultado = rolarDados(dadoFinal, descricaoFinal);
 
       const enviado = socketStoreSafeEmit('dice_roll', {
@@ -76,6 +77,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
   const handleUsarHabilidade = useCallback(async (vantagem) => {
     try {
       const roomId = `historia_${historia?.id}`;
+      const requestId = crypto.randomUUID();
       const descricao = `[USA HABILIDADE: ${vantagem.nome}]${vantagem.dano_base ? ` Dano base: ${vantagem.dano_base}` : ''}${vantagem.elemento?.length ? ` Elemento: ${vantagem.elemento.join(', ')}` : ''} - ${vantagem.descricao || ''}`;
 
       onAdicionarMensagem({
@@ -87,14 +89,31 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
         timestamp: Date.now()
       });
 
-      socketStoreSafeEmit('mensagem_para_mestre', {
+      const store = useSocketStore.getState();
+      const activeStatus = store.activeMestreRequestStatus;
+      if (store.pendingMestreRequestId || (activeStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus))) {
+        showGameNotification('Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.', 'warning');
+        return;
+      }
+
+      const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
         roomId,
         userId: String(user?.id),
         username: user?.nome || user?.name,
         mensagem: descricao,
         combatIntent: { tipo: 'usar_habilidade', habilidadeId: vantagem.id, habilidadeNome: vantagem.nome },
-        personagem: buildPersonagemPayload()
+        personagem: buildPersonagemPayload(),
+        requestId
       });
+      if (enviado) {
+        useSocketStore.setState({
+          mestreTimedOut: false,
+          mestreStale: false,
+          pendingMestreRequestId: requestId,
+          pendingMestreRequestKind: 'player_action',
+          pendingMestreSentAt: new Date().toISOString()
+        });
+      }
     } catch (error) {
       // silenced
     }
@@ -114,13 +133,30 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
         timestamp: Date.now()
       });
 
-      socketStoreSafeEmit('mensagem_para_mestre', {
+      const store = useSocketStore.getState();
+      const activeStatus = store.activeMestreRequestStatus;
+      if (store.pendingMestreRequestId || (activeStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus))) {
+        showGameNotification('Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.', 'warning');
+        return;
+      }
+
+      const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
         roomId,
         userId: String(user?.id),
         username: user?.nome || user?.name,
         mensagem: descricao,
-        personagem: buildPersonagemPayload()
+        personagem: buildPersonagemPayload(),
+        requestId
       });
+      if (enviado) {
+        useSocketStore.setState({
+          mestreTimedOut: false,
+          mestreStale: false,
+          pendingMestreRequestId: requestId,
+          pendingMestreRequestKind: 'player_action',
+          pendingMestreSentAt: new Date().toISOString()
+        });
+      }
     } catch (error) {
       // silenced
     }

@@ -129,13 +129,13 @@ const ActionDock = ({
                   if (onIniciarTurno) await onIniciarTurno();
                   setTimeout(() => setIniciandoTurno(false), TIMEOUTS.INICIAR_TURNO_RESET);
                 }}
-                disabled={iniciandoTurno}
+                disabled={iniciandoTurno || aguardandoMestre}
                 className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
-                  iniciandoTurno ? '' : 'hover:scale-105 animate-pulse'
+                  iniciandoTurno || aguardandoMestre ? '' : 'hover:scale-105 animate-pulse'
                 }`}
               >
                 <span className="flex items-center space-x-2">
-                  {iniciandoTurno ? (
+                  {iniciandoTurno || aguardandoMestre ? (
                     <>
                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

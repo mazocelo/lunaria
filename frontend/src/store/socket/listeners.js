@@ -243,14 +243,26 @@ export const createListenerActions = (set, get) => ({
           updateData.combateLog = (estadoJogo.combate.log || []).slice(-COMBAT.LOG_MAX_ENTRIES);
         }
         const mestreRequestAtiva = estadoJogo.mestreRequestAtiva || null;
-        updateData.activeMestreRequestId = mestreRequestAtiva?.requestId || null;
-        updateData.activeMestreRequestStatus = mestreRequestAtiva?.status || null;
-        updateData.activeMestreRequestAttempt = mestreRequestAtiva?.attempt || 0;
-        updateData.activeMestrePlayerMessageId = mestreRequestAtiva?.playerMessageId || null;
-        updateData.activeMestreUpdatedAt = mestreRequestAtiva?.updatedAt || null;
-        updateData.mestrePensando = !!mestreRequestAtiva && !['completed', 'failed', 'timed_out', 'superseded'].includes(mestreRequestAtiva.status);
-        updateData.aguardandoRespostaMestre = updateData.mestrePensando;
-        updateData.mestreTimedOut = mestreRequestAtiva?.status === 'timed_out';
+        const lastRegenerable = estadoJogo.lastRegenerableMestreRequest || null;
+        const restoreRequest = mestreRequestAtiva
+          || (lastRegenerable && String(lastRegenerable.userId) === String(currentUser?.id) ? lastRegenerable : null);
+        const restoreStatus = restoreRequest?.status || null;
+        const restoreTerminal = ['completed', 'failed', 'timed_out', 'superseded'].includes(restoreStatus);
+
+        updateData.pendingMestreRequestId = null;
+        updateData.pendingMestreRequestKind = null;
+        updateData.pendingMestreSentAt = null;
+        updateData.lastRegenerableMestreRequest = lastRegenerable && String(lastRegenerable.userId) === String(currentUser?.id)
+          ? lastRegenerable
+          : null;
+        updateData.activeMestreRequestId = restoreRequest?.requestId || null;
+        updateData.activeMestreRequestStatus = restoreStatus;
+        updateData.activeMestreRequestAttempt = restoreRequest?.attempt || 0;
+        updateData.activeMestrePlayerMessageId = restoreRequest?.playerMessageId || null;
+        updateData.activeMestreUpdatedAt = restoreRequest?.updatedAt || null;
+        updateData.mestrePensando = !!restoreRequest && !restoreTerminal;
+        updateData.aguardandoRespostaMestre = !!restoreRequest && !restoreTerminal;
+        updateData.mestreTimedOut = restoreStatus === 'timed_out';
         updateData.mestreStale = false;
 
         set(updateData);
@@ -276,7 +288,20 @@ export const createListenerActions = (set, get) => ({
         inRoom: false,
         roomId: null,
         session: null,
-        roomUsers: []
+        roomUsers: [],
+        pendingMestreRequestId: null,
+        pendingMestreRequestKind: null,
+        pendingMestreSentAt: null,
+        activeMestreRequestId: null,
+        activeMestreRequestStatus: null,
+        activeMestreRequestAttempt: 0,
+        activeMestrePlayerMessageId: null,
+        activeMestreUpdatedAt: null,
+        lastRegenerableMestreRequest: null,
+        mestrePensando: false,
+        aguardandoRespostaMestre: false,
+        mestreTimedOut: false,
+        mestreStale: false
       });
       get().log('Room left', { success: true });
     });
@@ -496,10 +521,22 @@ export const createListenerActions = (set, get) => ({
         ordemJogadores: [],
         ordemDefinida: false,
         resultadosDados: {},
+        pendingMestreRequestId: null,
+        pendingMestreRequestKind: null,
+        pendingMestreSentAt: null,
+        activeMestreRequestId: null,
+        activeMestreRequestStatus: null,
+        activeMestreRequestAttempt: 0,
+        activeMestrePlayerMessageId: null,
+        activeMestreUpdatedAt: null,
+        lastRegenerableMestreRequest: null,
         ehMeuTurno: false,
         turnoIniciado: false,
         turnoStatus: 'idle',
         aguardandoRespostaMestre: false,
+        mestrePensando: false,
+        mestreTimedOut: false,
+        mestreStale: false,
         testePendente: null,
         testesPendentes: [],
         cooldownRoleplay: 0,
@@ -527,10 +564,22 @@ export const createListenerActions = (set, get) => ({
         ordemJogadores: [],
         ordemDefinida: false,
         resultadosDados: {},
+        pendingMestreRequestId: null,
+        pendingMestreRequestKind: null,
+        pendingMestreSentAt: null,
+        activeMestreRequestId: null,
+        activeMestreRequestStatus: null,
+        activeMestreRequestAttempt: 0,
+        activeMestrePlayerMessageId: null,
+        activeMestreUpdatedAt: null,
+        lastRegenerableMestreRequest: null,
         ehMeuTurno: false,
         turnoIniciado: false,
         turnoStatus: 'idle',
         aguardandoRespostaMestre: false,
+        mestrePensando: false,
+        mestreTimedOut: false,
+        mestreStale: false,
         testePendente: null,
         testesPendentes: [],
         cooldownRoleplay: 0,

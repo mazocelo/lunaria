@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { apiClient } from '../services/ApiClient.js';
+import { buildTtsItemKey, resolveTtsEmotion } from '../utils/ttsKeys.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 const SPEED_STEPS = [1, 1.25, 1.5, 1.75, 2];
-const TTS_LAST_MESSAGE_KEY = 'tts_last_message_id';
 const MAX_TTS_TEXT_LENGTH = 4500;
 const EMPTY_SEQUENCE_STATE = {
   token: null,
@@ -11,11 +11,6 @@ const EMPTY_SEQUENCE_STATE = {
   waitingForNext: false,
   lastFinishedIndex: -1
 };
-
-function buildItemKey(messageId, segmentId = null) {
-  if (segmentId == null || segmentId === '') return String(messageId);
-  return `${messageId}::${segmentId}`;
-}
 
 function splitTextForTts(text, maxLength = MAX_TTS_TEXT_LENGTH) {
   const normalized = String(text || '').trim();
@@ -86,10 +81,6 @@ function createAudioUrlsFromBlob(blob) {
   return URL.createObjectURL(blob);
 }
 
-function shouldSendEmotion(provider, emotion) {
-  return provider === 'cartesia' && emotion ? emotion : null;
-}
-
 function flattenPreparedEntries(entries = [], fallbackMessageId) {
   const flattened = [];
 
@@ -114,13 +105,7 @@ function flattenPreparedEntries(entries = [], fallbackMessageId) {
 export const useTTS = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentMessageId, setCurrentMessageId] = useState(() => {
-    try {
-      return localStorage.getItem(TTS_LAST_MESSAGE_KEY);
-    } catch (_) {
-      return null;
-    }
-  });
+  const [currentMessageId, setCurrentMessageId] = useState(null);
   const [currentSegmentId, setCurrentSegmentId] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -259,8 +244,11 @@ export const useTTS = () => {
       setIsPlaying(false);
       setCurrentTime(0);
       setDuration(0);
+      setCurrentMessageId(null);
       setCurrentSegmentId(null);
       setQueueIndex(-1);
+      setCurrentSequenceKey(null);
+      setIsSequence(false);
       sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
     };
 
@@ -296,7 +284,8 @@ export const useTTS = () => {
     if (!normalizedText || !voiceId) return null;
     if (requestToken != null && requestToken !== playTokenRef.current) return null;
 
-    const itemKey = buildItemKey(messageId, segmentId);
+    const selectedEmotion = resolveTtsEmotion(provider, emotion);
+    const itemKey = buildTtsItemKey(messageId, segmentId, voiceId, provider, selectedEmotion);
 
     if (forceRegenerate) {
       const previous = cacheRef.current.get(itemKey);
@@ -321,7 +310,6 @@ export const useTTS = () => {
 
     const chunks = splitTextForTts(normalizedText);
     const urls = [];
-    const selectedEmotion = shouldSendEmotion(provider, emotion);
 
     for (const chunk of chunks) {
       if (requestToken != null && requestToken !== playTokenRef.current) {
@@ -409,18 +397,6 @@ export const useTTS = () => {
   }, [clearPlayback, revokeCacheEntry]);
 
   useEffect(() => {
-    try {
-      if (currentMessageId == null) {
-        localStorage.removeItem(TTS_LAST_MESSAGE_KEY);
-      } else {
-        localStorage.setItem(TTS_LAST_MESSAGE_KEY, String(currentMessageId));
-      }
-    } catch (_) {
-      // no-op
-    }
-  }, [currentMessageId]);
-
-  useEffect(() => {
     applyPlaybackRate(audioRef.current);
   }, [applyPlaybackRate]);
 
@@ -444,10 +420,7 @@ export const useTTS = () => {
         // no-op
       }
     }
-    clearPlayback(false);
-    setCurrentSegmentId(null);
-    setCurrentTime(0);
-    setDuration(0);
+    clearPlayback(true);
   }, [clearPlayback]);
 
   const seekTo = useCallback((value) => {
@@ -498,7 +471,7 @@ export const useTTS = () => {
       emotion = null
     } = options;
 
-    const itemKey = buildItemKey(messageId, segmentId);
+    const itemKey = buildTtsItemKey(messageId, segmentId, voiceId, provider, resolveTtsEmotion(provider, emotion));
     const isSameItem = String(currentMessageId) === String(messageId)
       && String(currentSegmentId || '') === String(segmentId || '');
 
@@ -533,15 +506,17 @@ export const useTTS = () => {
       if (requestToken !== playTokenRef.current) return false;
 
       if (!prepared) {
-        if (!forceRegenerate) {
-          setCurrentMessageId(messageId);
-          setCurrentSegmentId(segmentId || null);
-        }
+        setIsLoading(false);
+        clearPlayback(true);
         return false;
       }
 
       const queue = buildQueueEntries([prepared], messageId, itemKey);
-      if (queue.length === 0) return false;
+      if (queue.length === 0) {
+        setIsLoading(false);
+        clearPlayback(true);
+        return false;
+      }
 
       if (requestToken !== playTokenRef.current) return false;
       playQueueEntry(queue[0], requestToken);
@@ -551,6 +526,7 @@ export const useTTS = () => {
       console.error('TTS error:', error.message);
       setLastError(error.message || 'Erro ao gerar audio');
       setErrorMessageId(messageId);
+      setIsLoading(false);
       clearPlayback(true);
       return false;
     } finally {
@@ -633,16 +609,16 @@ export const useTTS = () => {
 
       if (!firstPrepared) {
         sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
-        setCurrentMessageId(messageId);
-        setCurrentSegmentId(null);
+        setIsLoading(false);
+        clearPlayback(true);
         return false;
       }
 
       const queue = buildQueueEntries([firstPrepared], messageId, sequenceKey);
       if (queue.length === 0) {
         sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
-        setCurrentMessageId(messageId);
-        setCurrentSegmentId(null);
+        setIsLoading(false);
+        clearPlayback(true);
         return false;
       }
 
@@ -704,12 +680,7 @@ export const useTTS = () => {
             return;
           }
 
-          setIsPlaying(false);
-          setCurrentTime(0);
-          setDuration(0);
-          setCurrentSegmentId(null);
-          setQueueIndex(-1);
-          sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
+          clearPlayback(true);
           return;
         }
 
@@ -724,6 +695,7 @@ export const useTTS = () => {
       setLastError(error.message || 'Erro ao gerar audio');
       setErrorMessageId(messageId);
       sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
+      setIsLoading(false);
       clearPlayback(true);
       return false;
     } finally {

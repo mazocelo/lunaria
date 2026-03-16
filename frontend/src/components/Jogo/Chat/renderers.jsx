@@ -4,6 +4,7 @@ import { imageGenerationService } from '../../../services';
 import ImageLightbox from '../../ImageLightbox.jsx';
 import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 import { ImageIcon, Play, Pause } from 'lucide-react';
+import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
 
 const getConteudo = (msg) => msg.message || msg.mensagem;
 const RE_SOLICITACAO_DADOS = /(\u{1F3B2}\s*)?[Rr]ole/iu;
@@ -17,7 +18,7 @@ const buildFallbackNarrationItem = (mensagem, defaultVoiceId = null, defaultVoic
   if (!text || !voiceId) return null;
 
   return {
-    itemKey: String(mensagem.id),
+    itemKey: buildTtsItemKey(mensagem.id, null, voiceId, provider, null),
     messageId: mensagem.id,
     segmentId: null,
     text,
@@ -490,6 +491,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
           tts={tts}
           defaultVoiceId={effectiveVoiceId}
           defaultVoiceProvider={effectiveVoiceProvider}
+          variant="game"
         />
       ) : (
         <MarkdownRenderer className="text-white/90 text-base leading-relaxed">

@@ -128,6 +128,7 @@ const SessionHeader = ({
             onClick={handleVerMinhaFicha}
             className="px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm bg-gradient-to-r from-cyan-600/70 to-purple-600/70 text-white border border-cyan-300/40 hover:from-cyan-500/80 hover:to-purple-500/80"
             title="Ver minha ficha"
+            aria-label="Ver minha ficha"
           >
             <BookOpen size={14} />
             <span className="hidden sm:inline">FICHA</span>
@@ -142,6 +143,7 @@ const SessionHeader = ({
                 : 'bg-gradient-to-r from-purple-600/40 to-pink-600/40 text-purple-200 hover:from-purple-600/60 hover:to-pink-600/60 border border-purple-500/30'
             }`}
             title={showActions ? 'Ocultar painel de acoes' : 'Mostrar painel de acoes'}
+            aria-label={showActions ? 'Ocultar painel de acoes' : 'Mostrar painel de acoes'}
           >
             <Swords size={14} />
             <span className="hidden sm:inline">ACOES</span>
@@ -152,6 +154,7 @@ const SessionHeader = ({
             onClick={onSair}
             className="px-3 py-1.5 bg-red-500/30 text-red-200 border border-red-500/50 rounded-lg hover:bg-red-500/40 transition-all font-bold shadow-md flex items-center gap-1.5 text-sm"
             title="Sair da sessao"
+            aria-label="Sair da sessao"
           >
             <DoorOpen size={14} />
             <span className="hidden sm:inline">SAIR</span>

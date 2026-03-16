@@ -1,12 +1,9 @@
 import React, { useMemo } from 'react';
 import { Loader2, Square, Volume2 } from 'lucide-react';
 import MarkdownRenderer from '../MarkdownRenderer.jsx';
+import { buildTtsItemKey, resolveTtsEmotion } from '../../utils/ttsKeys.js';
 
 const DEFAULT_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
-
-export const buildSegmentItemKey = (messageId, segmentId = null) => (
-  segmentId == null || segmentId === '' ? String(messageId) : `${messageId}::${segmentId}`
-);
 
 export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_PROVIDER) => {
   const usedIds = new Set();
@@ -28,15 +25,16 @@ export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoi
 
       const voiceId = segment?.voice_id || defaultVoiceId || null;
       const provider = segment?.voice_provider || defaultVoiceProvider || DEFAULT_PROVIDER;
+      const emotion = resolveTtsEmotion(provider, segment?.narracao?.emocao || null);
 
       return {
-        itemKey: buildSegmentItemKey(messageId, segmentId),
+        itemKey: buildTtsItemKey(messageId, segmentId, voiceId, provider, emotion),
         messageId,
         segmentId,
         text,
         voiceId,
         provider,
-        emotion: segment?.narracao?.emocao || null,
+        emotion,
         speakerLabel: segment?.speaker_label || (segment?.tipo === 'fala_npc' ? 'NPC' : 'Mestre'),
         tipo: segment?.tipo || 'narracao',
         hasPersistedAudio: Boolean(segment?.audio_cache_key || segment?.audio_url || segment?.audioUrl)
@@ -53,12 +51,14 @@ const NarrationSegments = ({
   defaultVoiceProvider = DEFAULT_PROVIDER,
   compact = false,
   isLight = false,
+  variant = 'default',
   className = ''
 }) => {
   const sequenceItems = useMemo(
     () => buildNarrationSequenceItems(segments, messageId, defaultVoiceId, defaultVoiceProvider),
     [segments, messageId, defaultVoiceId, defaultVoiceProvider]
   );
+  const useGameVariant = variant === 'game';
 
   if (sequenceItems.length === 0) return null;
 
@@ -114,13 +114,17 @@ const NarrationSegments = ({
           <div
             key={segmentItem.itemKey}
             className={`${compact ? 'p-2' : 'p-3'} rounded-lg border ${
-              isNpc
-                ? isLight
-                  ? 'border-cyan-200 bg-cyan-50/80'
-                  : 'border-cyan-400/20 bg-cyan-500/10'
-                : isLight
-                  ? 'border-slate-200 bg-white/80'
-                  : 'border-white/10 bg-black/10'
+              useGameVariant
+                ? isNpc
+                  ? 'game-glass-subtle border-cyan-400/20'
+                  : 'game-glass-subtle border-white/[0.08]'
+                : isNpc
+                  ? isLight
+                    ? 'border-cyan-200 bg-cyan-50/80'
+                    : 'border-cyan-400/20 bg-cyan-500/10'
+                  : isLight
+                    ? 'border-slate-200 bg-white/80'
+                    : 'border-white/10 bg-black/10'
             }`}
           >
             <div className="flex items-start gap-2">

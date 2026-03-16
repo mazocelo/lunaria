@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Loader2, Pause, Play, Square, Volume2 } from 'lucide-react';
+import { Loader2, Pause, Play, ScrollText, Square, Volume2 } from 'lucide-react';
 import { RPGMessage } from '../../RPGMessage';
 import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
 import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
+import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
 
 function groupConsecutiveMessages(mensagens) {
   const groups = [];
@@ -75,7 +76,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
       if (!text || !effectiveVoiceId) return [];
 
       return [{
-        itemKey: String(mensagem.id),
+        itemKey: buildTtsItemKey(mensagem.id, null, effectiveVoiceId, effectiveVoiceProvider, null),
         messageId: mensagem.id,
         segmentId: null,
         text,
@@ -163,7 +164,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   };
 
   const currentLabel = currentTtsSegment
-    ? `${currentTtsSegment.speaker_label || 'Trecho'}: ${currentTtsSegment.text || ''}`
+    ? `${currentTtsSegment.speaker_label || currentTtsSegment.speakerLabel || 'Trecho'}: ${currentTtsSegment.text || ''}`
     : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao';
 
   return (
@@ -225,7 +226,11 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
             ) : (
               <div className="text-center py-12">
                 <div className="game-glass p-10 rounded-2xl border border-purple-500/30 shadow-lg">
-                  <div className="text-7xl mb-4 animate-pulse">📜</div>
+                  <div className="mb-4 flex justify-center">
+                    <div className="w-20 h-20 rounded-3xl game-glass-subtle border border-purple-400/25 flex items-center justify-center shadow-lg">
+                      <ScrollText size={38} className="text-purple-200 animate-pulse" />
+                    </div>
+                  </div>
                   <h3 className="text-2xl font-fantasy text-white mb-3 font-bold">
                     A aventura comecou!
                   </h3>

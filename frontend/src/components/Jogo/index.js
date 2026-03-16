@@ -5,7 +5,6 @@ export { default as EtapaSelecaoPersonagem } from './Etapas/EtapaSelecaoPersonag
 
 // Chat  
 export { default as ChatArea } from './Chat/ChatArea';
-export { default as InputArea } from './Chat/InputArea';
 export { default as PainelJogadores } from './Chat/PainelJogadores';
 
 // Gameplay

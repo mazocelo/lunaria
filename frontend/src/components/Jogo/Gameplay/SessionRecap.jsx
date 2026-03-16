@@ -41,7 +41,7 @@ const SessionRecap = ({ isVisible, recapData, onClose }) => {
       <div className={`relative z-10 max-w-2xl w-full mx-4 transition-all duration-500 ${
         fase >= 2 ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
       }`}>
-        <div className="glass rounded-2xl border border-purple-500/30 overflow-hidden">
+        <div className="game-glass rounded-2xl border border-purple-500/30 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-900/60 to-indigo-900/60 px-6 py-4 border-b border-purple-500/20">
             <h2 className="text-2xl font-fantasy font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-indigo-300">
@@ -68,7 +68,7 @@ const SessionRecap = ({ isVisible, recapData, onClose }) => {
 
             {/* XP Ganho */}
             {xpGanho > 0 && (
-              <div className="glass px-4 py-3 rounded-lg border border-yellow-500/30">
+              <div className="game-glass px-4 py-3 rounded-lg border border-yellow-500/30">
                 <span className="text-yellow-400 font-modern font-semibold">
                   +{xpGanho} XP ganho nesta sessao
                 </span>
@@ -83,7 +83,7 @@ const SessionRecap = ({ isVisible, recapData, onClose }) => {
                 </h3>
                 <div className="space-y-1">
                   {loot.map((item, i) => (
-                    <div key={i} className="glass px-3 py-2 rounded border border-green-500/20 flex items-center gap-2">
+                    <div key={i} className="game-glass px-3 py-2 rounded border border-green-500/20 flex items-center gap-2">
                       <span className="text-green-400 text-sm">
                         {item.nome || item.itemNome || 'Item'}
                       </span>

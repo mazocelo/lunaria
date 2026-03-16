@@ -69,7 +69,7 @@ export const GameTransitionLoading = ({ historiaNome, message }) => {
         ))}
       </div>
 
-      <div className="relative z-10 glass p-8 rounded-2xl border border-purple-500/20 text-center max-w-md w-full">
+      <div className="relative z-10 game-glass p-8 rounded-2xl border border-purple-500/20 text-center max-w-md w-full">
         {/* Spinner */}
         <div className="mb-6">
           <div className="relative w-20 h-20 mx-auto">
@@ -89,7 +89,7 @@ export const GameTransitionLoading = ({ historiaNome, message }) => {
 
         {/* Nome da historia */}
         {historiaNome && (
-          <div className="glass p-4 rounded-lg border border-cyan-500/20 mb-5">
+          <div className="game-glass p-4 rounded-lg border border-cyan-500/20 mb-5">
             <h3 className="text-lg font-bold text-white">{historiaNome}</h3>
           </div>
         )}

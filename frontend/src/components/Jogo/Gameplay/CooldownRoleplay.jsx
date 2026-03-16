@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hourglass } from 'lucide-react';
+import { Clock3 } from 'lucide-react';
 import { ROLEPLAY_COOLDOWN_SECONDS, TIMEOUTS } from '../../../constants/game';
 
 const CooldownRoleplay = ({
@@ -34,10 +34,10 @@ const CooldownRoleplay = ({
 
   return (
     <div className="game-glass-subtle border border-amber-600/40 rounded-xl px-4 py-2.5 shadow-lg inline-flex items-center space-x-3">
-      <Hourglass size={18} className="text-amber-400" />
+      <Clock3 size={18} className="text-amber-400" />
       <div className="flex flex-col">
         <span className="text-amber-300 text-sm font-semibold">Cooldown: {segundos}s</span>
-        <div className="w-32 h-1.5 bg-black/20 rounded-full overflow-hidden mt-1">
+        <div className="w-32 h-1.5 rounded-full overflow-hidden mt-1 bg-white/[0.08] border border-white/[0.06]">
           <div
             className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-1000 ease-linear"
             style={{ width: `${porcentagem}%` }}

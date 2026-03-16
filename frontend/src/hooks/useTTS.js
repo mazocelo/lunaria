@@ -647,6 +647,8 @@ export const useTTS = () => {
       }
 
       if (requestToken !== playTokenRef.current) return false;
+      setIsSequence(validItems.length > 1);
+      setCurrentSequenceKey(sequenceKey || null);
       setIsLoading(false);
       playQueueEntry(queue[0], requestToken);
 
@@ -689,12 +691,29 @@ export const useTTS = () => {
         }
 
         if (requestToken !== playTokenRef.current) return;
-        sequenceStateRef.current = {
-          token: requestToken,
-          preparing: false,
-          waitingForNext: false,
-          lastFinishedIndex: sequenceStateRef.current.lastFinishedIndex
-        };
+
+        const state = sequenceStateRef.current;
+        if (state.token !== requestToken) return;
+
+        if (state.waitingForNext) {
+          const nextEntry = queueRef.current[state.lastFinishedIndex + 1] || null;
+          if (nextEntry) {
+            state.waitingForNext = false;
+            state.preparing = false;
+            playQueueEntry(nextEntry, requestToken);
+            return;
+          }
+
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setDuration(0);
+          setCurrentSegmentId(null);
+          setQueueIndex(-1);
+          sequenceStateRef.current = { ...EMPTY_SEQUENCE_STATE };
+          return;
+        }
+
+        state.preparing = false;
       };
 
       void prepareRemainingItems();

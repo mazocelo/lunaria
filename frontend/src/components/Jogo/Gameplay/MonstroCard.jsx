@@ -1,10 +1,21 @@
 import React from 'react';
+import { Ghost, Skull, Sword, Trees, User, Waves, Bot, FlameKindling } from 'lucide-react';
 
 const TIPO_ICONS = {
-  'besta': '🐺', 'morto-vivo': '💀', 'demonio': '👿', 'dragao': '🐉',
-  'elemental': '🌪️', 'constructo': '🤖', 'fada': '🧚', 'aberracao': '👁️',
-  'humanoide': '👤', 'celestial': '👼', 'gigante': '🗿', 'monstrosity': '👹',
-  'fiend': '😈', 'plant': '🌿'
+  besta: Ghost,
+  'morto-vivo': Skull,
+  demonio: FlameKindling,
+  dragao: Waves,
+  elemental: Waves,
+  constructo: Bot,
+  fada: Trees,
+  aberracao: Ghost,
+  humanoide: User,
+  celestial: Ghost,
+  gigante: Sword,
+  monstrosity: Ghost,
+  fiend: FlameKindling,
+  plant: Trees
 };
 
 const MonstroCard = ({ monstro, compact = false }) => {
@@ -12,7 +23,7 @@ const MonstroCard = ({ monstro, compact = false }) => {
 
   const hpPercentage = Math.max(0, (monstro.hp_atual / monstro.hp_max) * 100);
   const isDerrotado = monstro.status === 'derrotado' || monstro.hp_atual <= 0;
-  const tipoIcon = TIPO_ICONS[monstro.tipo] || '👹';
+  const Icon = TIPO_ICONS[monstro.tipo] || Ghost;
 
   const hpColor = hpPercentage > 60
     ? 'from-green-500 to-green-400'
@@ -30,7 +41,7 @@ const MonstroCard = ({ monstro, compact = false }) => {
         {monstro.imagem ? (
           <img src={monstro.imagem} alt={monstro.nome} className="w-6 h-6 rounded-full object-cover flex-shrink-0 border border-red-500/30" />
         ) : (
-          <span className="text-sm flex-shrink-0">{tipoIcon}</span>
+          <Icon size={14} className="text-red-300 flex-shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -48,14 +59,13 @@ const MonstroCard = ({ monstro, compact = false }) => {
             />
           </div>
         </div>
-        {isDerrotado && <span className="text-xs flex-shrink-0">💀</span>}
+        {isDerrotado && <Skull size={12} className="text-gray-400 flex-shrink-0" />}
       </div>
     );
   }
 
-  // Full card (fallback, not used by new BatalhaUI)
   return (
-    <div className={`glass rounded-lg border p-3 transition-all duration-300 ${
+    <div className={`game-glass rounded-lg border p-3 transition-all duration-300 ${
       isDerrotado
         ? 'border-gray-600/30 opacity-50 grayscale'
         : 'border-red-500/40 hover:border-red-400/60'
@@ -64,7 +74,7 @@ const MonstroCard = ({ monstro, compact = false }) => {
         {monstro.imagem ? (
           <img src={monstro.imagem} alt={monstro.nome} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-red-500/30" />
         ) : (
-          <span className="text-xl">{tipoIcon}</span>
+          <Icon size={18} className="text-red-300" />
         )}
         <div className="flex-1 min-w-0">
           <h4 className={`font-fantasy font-bold text-sm truncate ${
@@ -73,10 +83,10 @@ const MonstroCard = ({ monstro, compact = false }) => {
             {monstro.nome}
           </h4>
           <p className="text-xs text-gray-400">
-            Nv.{monstro.nivel} • {monstro.tipo}
+            Nv.{monstro.nivel} · {monstro.tipo}
           </p>
         </div>
-        {isDerrotado && <span className="text-lg">💀</span>}
+        {isDerrotado && <Skull size={16} className="text-gray-400" />}
       </div>
 
       <div className="mb-1">

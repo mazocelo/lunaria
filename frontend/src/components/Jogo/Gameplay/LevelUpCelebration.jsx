@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { nomeTier } from '../../../utils/evolucaoHelper';
 
-/**
- * Overlay de celebracao de level up
- * Auto-dismiss apos 4 segundos ou click
- */
 const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
-  const [fase, setFase] = useState(0); // 0=hidden, 1=flash, 2=nivel, 3=ganhos, 4=fade-out
+  const [fase, setFase] = useState(0);
 
   useEffect(() => {
     if (!isVisible) {
@@ -27,7 +23,7 @@ const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [isVisible]);
+  }, [isVisible, onClose]);
 
   if (!isVisible && fase === 0) return null;
 
@@ -36,25 +32,24 @@ const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
       className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-500 ${
         fase === 4 ? 'opacity-0' : 'opacity-100'
       }`}
-      onClick={() => { setFase(4); setTimeout(() => onClose?.(), 300); }}
+      onClick={() => {
+        setFase(4);
+        setTimeout(() => onClose?.(), 300);
+      }}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70" />
 
-      {/* Flash dourado */}
       {fase >= 1 && (
         <div className={`absolute inset-0 bg-gradient-radial from-yellow-500/30 to-transparent transition-opacity duration-500 ${
           fase >= 2 ? 'opacity-0' : 'opacity-100'
         }`} />
       )}
 
-      {/* Conteudo */}
       <div className="relative text-center z-10">
-        {/* Nivel */}
         {fase >= 2 && (
           <div className="animate-bounce-in">
             <div className="text-6xl font-fantasy font-bold text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-amber-500 mb-2 drop-shadow-lg">
-              NÍVEL {novoNivel}!
+              NIVEL {novoNivel}!
             </div>
             <div className="text-lg text-yellow-200/80 font-modern mb-6">
               Seu personagem evoluiu!
@@ -62,25 +57,24 @@ const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
           </div>
         )}
 
-        {/* Ganhos */}
         {fase >= 3 && ganhos && (
           <div className="space-y-2 animate-fade-in">
             {ganhos.pontosAtributo > 0 && (
-              <div className="glass px-6 py-2 rounded-lg border border-green-500/30 inline-block mx-1">
+              <div className="game-glass px-6 py-2 rounded-lg border border-green-500/30 inline-block mx-1">
                 <span className="text-green-400 font-modern font-semibold">
                   +{ganhos.pontosAtributo} Pontos de Atributo
                 </span>
               </div>
             )}
             {ganhos.pontosVantagem > 0 && (
-              <div className="glass px-6 py-2 rounded-lg border border-blue-500/30 inline-block mx-1">
+              <div className="game-glass px-6 py-2 rounded-lg border border-blue-500/30 inline-block mx-1">
                 <span className="text-blue-400 font-modern font-semibold">
                   +{ganhos.pontosVantagem} Ponto de Vantagem
                 </span>
               </div>
             )}
             {ganhos.tierMudou && (
-              <div className="glass px-6 py-2 rounded-lg border border-purple-500/30 inline-block mx-1">
+              <div className="game-glass px-6 py-2 rounded-lg border border-purple-500/30 inline-block mx-1">
                 <span className="text-purple-400 font-modern font-semibold">
                   Novo Tier: {nomeTier(ganhos.novoTier)}!
                 </span>
@@ -89,7 +83,6 @@ const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
           </div>
         )}
 
-        {/* Dica de fechar */}
         {fase >= 3 && (
           <div className="mt-6 text-slate-400 text-xs font-modern animate-fade-in">
             Clique para fechar

@@ -817,7 +817,7 @@ export const renderMestreStreaming = (mensagem, key) => {
 };
 
 /**
- * Registry: tipo â†' renderer (com aliases)
+ * Registry: tipo -> renderer (com aliases)
  */
 export const MESSAGE_RENDERERS = {
   dado: renderDado,

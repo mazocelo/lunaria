@@ -53,7 +53,7 @@ const SessionHeader = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="hidden md:flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
           <div className="relative" ref={rodadaDropdownRef}>
             <button
               type="button"
@@ -63,7 +63,7 @@ const SessionHeader = ({
               title="Abrir resumo da rodada"
             >
               <ScrollText size={14} />
-              <span>RODADA</span>
+              <span className="hidden sm:inline">RODADA</span>
             </button>
 
             {showRodadaInfo && (
@@ -130,7 +130,7 @@ const SessionHeader = ({
             title="Ver minha ficha"
           >
             <BookOpen size={14} />
-            <span>FICHA</span>
+            <span className="hidden sm:inline">FICHA</span>
           </button>
 
           <button
@@ -144,7 +144,7 @@ const SessionHeader = ({
             title={showActions ? 'Ocultar painel de acoes' : 'Mostrar painel de acoes'}
           >
             <Swords size={14} />
-            <span>ACOES</span>
+            <span className="hidden sm:inline">ACOES</span>
           </button>
 
           <button
@@ -154,7 +154,7 @@ const SessionHeader = ({
             title="Sair da sessao"
           >
             <DoorOpen size={14} />
-            <span>SAIR</span>
+            <span className="hidden sm:inline">SAIR</span>
           </button>
         </div>
 

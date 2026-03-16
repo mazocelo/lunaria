@@ -52,7 +52,7 @@ export class Continuista {
    * Valida coerência narrativa contra contexto da sessão.
    * @returns {Promise<Object>} veredicto
    */
-  async validar({ narrativa, memoriaSemantica, roteiroCondensado, npcsPresentes, historicoRecente }) {
+  async validar({ narrativa, memoriaSemantica, roteiroCondensado, npcsPresentes, historicoRecente, userId }) {
     if (!this.model) return DEFAULT_VERDICT;
 
     const startTime = Date.now();
@@ -74,11 +74,12 @@ export class Continuista {
       const text = response?.content || response?.text || '';
 
       usageService.track({
+        userId,
         provider: REVIEWER_CONFIG.model.provider,
         tipo: 'reviewer_continuista',
         modelo: REVIEWER_CONFIG.model.name,
         duracao_ms: duracao,
-      }).catch(() => {});
+      });
 
       const verdict = this._parseVerdict(text);
       log.info({ veredicto: verdict.veredicto, severidade: verdict.severidade, duracao }, 'Continuista concluiu');

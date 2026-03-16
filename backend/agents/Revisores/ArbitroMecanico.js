@@ -52,7 +52,7 @@ export class ArbitroMecanico {
    * Valida a narrativa contra o resultado mecânico.
    * @returns {Promise<Object>} veredicto
    */
-  async validar({ narrativa, resultadoMecanico, personagem, acaoJogador, claimFlags }) {
+  async validar({ narrativa, resultadoMecanico, personagem, acaoJogador, claimFlags, userId }) {
     if (!this.model) return DEFAULT_VERDICT;
 
     const startTime = Date.now();
@@ -75,11 +75,12 @@ export class ArbitroMecanico {
 
       // Track usage
       usageService.track({
+        userId,
         provider: REVIEWER_CONFIG.model.provider,
         tipo: 'reviewer_arbitro',
         modelo: REVIEWER_CONFIG.model.name,
         duracao_ms: duracao,
-      }).catch(() => {});
+      });
 
       const verdict = this._parseVerdict(text);
       log.info({ veredicto: verdict.veredicto, severidade: verdict.severidade, duracao }, 'Arbitro concluiu');

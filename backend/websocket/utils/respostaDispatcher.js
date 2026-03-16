@@ -105,7 +105,7 @@ function emitSolicitacao(ctx, resposta, testePendente, testesCriados, modificado
     }
   }));
 
-  emitSolicitacaoTeste(ctx.sm, ctx.roomId, ctx.sessao, {
+  emitirSolicitacaoTeste(ctx.sm, ctx.roomId, ctx.sessao, {
     narrativa: resposta.narracao,
     tipoDado: testePendente.tipoDado,
     teste: testePendente.teste,

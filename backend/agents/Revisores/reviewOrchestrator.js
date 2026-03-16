@@ -149,6 +149,7 @@ export async function executarRevisao(ctx) {
         personagem,
         acaoJogador: ctx.acaoJogador,
         claimFlags: ctx.claimFlags || [],
+        userId: ctx.userId,
       })
     );
     labels.push('arbitro');
@@ -161,6 +162,7 @@ export async function executarRevisao(ctx) {
       getContinuista().validar({
         narrativa,
         ...contCtx,
+        userId: ctx.userId,
       })
     );
     labels.push('continuista');

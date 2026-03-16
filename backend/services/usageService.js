@@ -102,10 +102,16 @@ const usageService = {
    */
   track({ userId, provider, tipo, modelo, input_tokens, output_tokens, caracteres, custo_usd, duracao_ms, metadata }) {
     const cost = custo_usd ?? estimateCost({ provider, tipo, input_tokens, output_tokens, caracteres });
+    const parsedUserId = parseInt(userId, 10);
+
+    if (!Number.isInteger(parsedUserId) || parsedUserId <= 0) {
+      log.warn({ provider, tipo, modelo, userId }, 'Usage tracking skipped: invalid userId');
+      return;
+    }
 
     prisma.api_usage.create({
       data: {
-        user_id: parseInt(userId),
+        user_id: parsedUserId,
         provider,
         tipo,
         modelo: modelo || null,

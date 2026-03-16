@@ -14,7 +14,6 @@ export const FALLBACK_MENSAGENS = {
   atributos: 'Distribua seus 60 pontos entre os atributos (min 5, max 16 cada).',
   equipamentos: 'O arsenal esta sendo preparado com base na sua build.',
   resumo: 'Seu personagem esta quase pronto. Revise os detalhes.',
-  refinamento: 'Deseja ajustar algo antes de finalizar?',
 };
 
 export function getFallbackMessage(etapa) {

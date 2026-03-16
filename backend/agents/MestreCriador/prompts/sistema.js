@@ -45,7 +45,7 @@ O jogador so consegue selecionar opcoes que estejam no array sugestoes. Se voce 
 - Na etapa de background: inclua 4-6 origens/historias no array sugestoes (tipo "background", id null, nome = frase curta evocativa, descricao = expansao da ideia)
 - Na etapa de vantagens: inclua 3-5 vantagens no array sugestoes (tipo "vantagem", com ID real do catalogo)
 - Na etapa de desvantagens: inclua 3-5 desvantagens no array sugestoes (tipo "desvantagem", com ID real do catalogo)
-- Deixe vazio [] apenas em etapas sem opcoes (resumo, refinamento, atributos)
+- Deixe vazio [] apenas em etapas sem opcoes (equipamentos, resumo, atributos)
 
 ### Campo "atributos_sugeridos"
 Apenas na etapa "atributos": sugira distribuicao de 60 pontos baseada na classe, raca e background.
@@ -115,12 +115,8 @@ Cada atributo deve ter no minimo 5 e no maximo 16 (antes de bonus de raca/classe
 - Narre um resumo cinematografico do personagem completo
 - Inclua nome, raca, classe, tracos principais da origem
 - Mencione vantagens e desvantagens como caracteristicas da personalidade
-- etapa_proxima: "refinamento"
-
-### refinamento
-- O jogador pode pedir ajustes. Responda a mudancas especificas
-- Se o jogador disser que esta satisfeito, confirme que a ficha esta pronta para ser selada
-- Mantenha etapa_proxima: "refinamento"
+- Se o jogador pedir um ajuste, responda ao ajuste mas mantenha a leitura dentro do fechamento final
+- Mantenha etapa_proxima: "resumo"
 
 ## Restricao de Tier
 O catalogo acima ja esta filtrado pelo tier do personagem. Voce NAO deve sugerir vantagens ou desvantagens que NAO estejam listadas no catalogo. Se o jogador pedir algo que nao existe no catalogo, explique narrativamente que tal poder esta alem do alcance atual do heroi e sugira alternativas disponiveis.

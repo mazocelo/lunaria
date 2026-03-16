@@ -15,7 +15,6 @@ export const STAGE_ORDER = [
   'atributos',
   'equipamentos',
   'resumo',
-  'refinamento',
 ];
 
 export const STAGE_IDS = new Set(STAGE_ORDER);
@@ -94,17 +93,8 @@ export const STAGE_POLICY = {
     manualProgression: false,
   },
   resumo: {
-    allowedNext: ['refinamento'],
-    defaultNext: 'refinamento',
-    suggestionType: null,
-    supportsRefresh: false,
-    supportsSkip: false,
-    supportsAttributes: true,
-    manualProgression: false,
-  },
-  refinamento: {
-    allowedNext: ['refinamento'],
-    defaultNext: 'refinamento',
+    allowedNext: [],
+    defaultNext: 'resumo',
     suggestionType: null,
     supportsRefresh: false,
     supportsSkip: false,

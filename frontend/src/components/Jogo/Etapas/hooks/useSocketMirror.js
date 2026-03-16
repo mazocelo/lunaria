@@ -62,6 +62,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     if (!loadingMensagensAtivas) return;
     const timeout = setTimeout(() => {
       showGameNotification('O Mestre demorou para responder. Tente novamente.', 'warning');
+      useSocketStore.setState({ mestrePensando: false, aguardandoRespostaMestre: false, mestreTimedOut: true });
       const msgs = useGameStore.getState().mensagens || [];
       const semLoading = msgs.filter(m => m.tipo !== 'loading' && m.tipo !== 'mestre_streaming');
       if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
@@ -103,7 +104,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
     const handleMensagemMestre = (data) => {
       // Limpar flags de aguardando resposta
-      useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false });
+      useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false, mestreTimedOut: false });
 
       const mensagensAtuais = useGameStore.getState().mensagens || [];
       // Limpar loading e streaming placeholders
@@ -349,7 +350,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleErroMensagem = (data) => {
-      useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false });
+      useSocketStore.setState({ aguardandoRespostaMestre: false, mestrePensando: false, mestreTimedOut: false });
       if (data?.message) showGameNotification(data.message, 'warning');
       const msgs = useGameStore.getState().mensagens || [];
       const semLoading = msgs.filter(m => m.tipo !== 'loading');

@@ -367,20 +367,6 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
         )}
         {grouped && !isFirst && <div />}
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleGenerateScene}
-            disabled={generatingScene}
-            className={`p-1.5 rounded-lg transition-all text-lg ${
-              generatingScene
-                ? 'bg-purple-500/30 text-purple-200'
-                : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
-            }`}
-            title={generatingScene ? 'Gerando ilustracao...' : 'Ilustrar cena'}
-          >
-            {generatingScene ? (
-              <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-            ) : '🖼️'}
-          </button>
           {hasVoiceControls && (
             <button
               onClick={handleGenerateAudio}
@@ -449,16 +435,46 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
           <ImageLightbox src={activeLightbox} alt="" isOpen={!!activeLightbox} onClose={() => setActiveLightbox(null)} />
         </div>
       )}
-      {sceneImage && (
+      {sceneImage ? (
         <div className="mt-3 relative group">
           <img src={sceneImage} alt="Ilustracao da cena" className="w-full max-h-64 object-cover rounded-lg border border-purple-500/30 cursor-pointer select-none caret-transparent" draggable={false} onClick={() => setSceneLightbox(true)} />
-          <button
-            onClick={() => setSceneImage(null)}
-            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent"
-          >
-            <span className="text-xs">{'✕'}</span>
-          </button>
+          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleGenerateScene}
+              disabled={generatingScene}
+              className="p-1.5 bg-black/60 text-purple-300 hover:text-white rounded-full transition-all select-none caret-transparent"
+              title={generatingScene ? 'Gerando ilustracao...' : 'Regerar ilustracao'}
+            >
+              {generatingScene ? (
+                <span className="inline-block w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+              ) : '🖼️'}
+            </button>
+            <button
+              onClick={() => setSceneImage(null)}
+              className="p-1.5 bg-black/60 text-red-400 hover:text-white rounded-full transition-all select-none caret-transparent"
+              title="Remover ilustracao"
+            >
+              <span className="text-xs">{'✕'}</span>
+            </button>
+          </div>
           <ImageLightbox src={sceneImage} alt="Ilustracao da cena" isOpen={sceneLightbox} onClose={() => setSceneLightbox(false)} />
+        </div>
+      ) : (
+        <div className="mt-2 flex justify-end">
+          <button
+            onClick={handleGenerateScene}
+            disabled={generatingScene}
+            className={`p-1.5 rounded-lg transition-all text-lg ${
+              generatingScene
+                ? 'bg-purple-500/30 text-purple-200'
+                : 'hover:bg-white/10 text-purple-400 hover:text-purple-200'
+            }`}
+            title={generatingScene ? 'Gerando ilustracao...' : 'Ilustrar cena'}
+          >
+            {generatingScene ? (
+              <span className="inline-block w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+            ) : '🖼️'}
+          </button>
         </div>
       )}
     </>

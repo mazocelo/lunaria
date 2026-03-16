@@ -27,6 +27,15 @@ const SessionHeader = ({
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [openSceneId, setOpenSceneId] = useState('scene-0');
   const playlistRef = useRef(null);
+  const queueItems = tts?.queueItems || [];
+  const playlistTitle = tts?.currentPlaylist?.title || (tts?.isSequence ? 'Cena em reproducao' : 'Fila de narracao');
+  const scenes = useMemo(() => ([
+    {
+      id: 'scene-0',
+      title: playlistTitle,
+      items: queueItems,
+    }
+  ]), [playlistTitle, queueItems]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -278,12 +287,3 @@ const SessionHeader = ({
 };
 
 export default SessionHeader;
-  const queueItems = tts?.queueItems || [];
-  const playlistTitle = tts?.currentPlaylist?.title || (tts?.isSequence ? 'Cena em reproducao' : 'Fila de narracao');
-  const scenes = useMemo(() => ([
-    {
-      id: 'scene-0',
-      title: playlistTitle,
-      items: queueItems,
-    }
-  ]), [playlistTitle, queueItems]);

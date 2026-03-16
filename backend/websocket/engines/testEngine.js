@@ -59,6 +59,49 @@ function removeResolvedTestPrompt(sessao, groupId) {
   });
 }
 
+function syncPendingTestPrompt(sessao, groupId, remainingTests = []) {
+  if (!groupId) return 0;
+
+  if (!Array.isArray(remainingTests) || remainingTests.length === 0) {
+    return removeResolvedTestPrompt(sessao, groupId);
+  }
+
+  let updatedCount = 0;
+  const nextTeste = remainingTests[0] || null;
+
+  sessao.mensagens = Array.isArray(sessao.mensagens) ? sessao.mensagens : [];
+  sessao.mensagens = sessao.mensagens.map((mensagem) => {
+    if (mensagem?.tipo !== 'solicitacao_dados') return mensagem;
+
+    const payloadGroupId = mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || null;
+    if (payloadGroupId == null || String(payloadGroupId) !== String(groupId)) {
+      return mensagem;
+    }
+
+    updatedCount += 1;
+    const nextPayload = {
+      ...(mensagem.payload || {}),
+      groupId,
+      testePendente: nextTeste,
+      testesPendentes: remainingTests,
+      tipoDado: nextTeste?.tipoDado || mensagem?.payload?.tipoDado || 'd20',
+      teste: nextTeste?.teste || mensagem?.payload?.teste || '',
+      dificuldade: nextTeste?.dificuldade || mensagem?.payload?.dificuldade || null,
+      contexto: nextTeste?.contexto || mensagem?.payload?.contexto || null
+    };
+    const nextMessage = mensagem.message || mensagem.mensagem || 'O Mestre solicita uma rolagem de dados.';
+
+    return {
+      ...mensagem,
+      message: nextMessage,
+      mensagem: nextMessage,
+      payload: nextPayload
+    };
+  });
+
+  return updatedCount;
+}
+
 export default class TestEngine {
   constructor(manager) {
     this.manager = manager;
@@ -79,7 +122,9 @@ export default class TestEngine {
         username: rawUsername,
         dice: rawDice,
         result: rawResult,
-        description: rawDescription
+        description: rawDescription,
+        testeId: rawTesteId,
+        groupId: rawGroupId
       } = data || {};
 
       if (!rawRoomId || !rawUserId || !rawDice || !rawResult) {
@@ -94,6 +139,8 @@ export default class TestEngine {
       const dice = String(rawDice);
       const result = String(rawResult);
       const description = rawDescription ? String(rawDescription) : null;
+      const testeId = rawTesteId ? String(rawTesteId) : null;
+      const groupId = rawGroupId ? String(rawGroupId) : null;
 
       await sm.withRoomLock(roomId, async () => {
         const sessao = await sm.obterSessaoHistoria(roomId);
@@ -118,7 +165,7 @@ export default class TestEngine {
           await sm.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
         }
 
-        const tentativaResolucao = resolverTestePendente(sessao, userId);
+        const tentativaResolucao = resolverTestePendente(sessao, userId, { testeId, groupId });
         const testeResolvido = tentativaResolucao.ok ? tentativaResolucao.teste : null;
         const dadosSolicitados = !!testeResolvido;
 
@@ -215,6 +262,17 @@ export default class TestEngine {
           };
         }
 
+        const remainingGroupTests = getTestesPendentes(sessao).filter(
+          (teste) => String(teste.groupId || '') === String(testeResolvido.groupId || '')
+        );
+        resultadoTestePayload = {
+          ...resultadoTestePayload,
+          remainingGroupTests,
+          remainingGroupTestCount: remainingGroupTests.length,
+          nextTestePendente: remainingGroupTests[0] || null,
+          groupResolved: remainingGroupTests.length === 0
+        };
+
         appendMensagemSessao(sessao, buildResultadoTesteMensagem({
           userId,
           username,
@@ -230,7 +288,7 @@ export default class TestEngine {
           descricaoResultado: resultadoTestePayload.descricaoResultado,
           payload: resultadoTestePayload
         }));
-        removeResolvedTestPrompt(sessao, testeResolvido.groupId);
+        syncPendingTestPrompt(sessao, testeResolvido.groupId, remainingGroupTests);
 
         // @event resultado_teste → room (broadcast) | fires after a pending skill test is mechanically resolved
         sm.sendToRoom(roomId, 'resultado_teste', resultadoTestePayload);

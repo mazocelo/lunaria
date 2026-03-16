@@ -6,6 +6,7 @@ import usageService from '../services/usageService.js';
 import ttsCacheService from '../services/ttsCacheService.js';
 import r2StorageService from '../services/r2StorageService.js';
 import ttsLocalService from '../services/ttsLocalService.js';
+import { sanitizeTextForSpeech } from '../services/speechTextService.js';
 
 // Agenda limpeza de arquivos locais de staging (roda 1x/dia)
 ttsLocalService.scheduleCleanup();
@@ -27,7 +28,7 @@ const router = express.Router();
 const DEFAULT_PROVIDER = getDefaultProviderName();
 
 const MAX_TEXT_LENGTH = 5000;
-const PREVIEW_TEXT_PTBR = 'Olá aventureiros! Eu serei o mestre desta jornada épica. Preparem-se para uma aventura inesquecível!';
+const PREVIEW_TEXT_PTBR = 'Ola aventureiros! Eu serei o mestre desta jornada epica. Preparem-se para uma aventura inesquecivel!';
 
 /**
  * GET /tts/providers
@@ -76,16 +77,17 @@ router.post('/generate', async (req, res) => {
     const { text, voiceId, provider: providerName = DEFAULT_PROVIDER, emotion } = req.body;
     const provider = getProvider(providerName);
     const resolvedVoiceId = resolveVoiceId(provider, voiceId);
+    const speechText = sanitizeTextForSpeech(text);
 
     if (!provider.isConfigured()) {
       return res.status(503).json({ success: false, error: `Provider ${providerName} não configurado` });
     }
 
-    if (!text || !resolvedVoiceId) {
+    if (!speechText || !resolvedVoiceId) {
       return res.status(400).json({ success: false, error: 'text e voiceId são obrigatórios' });
     }
 
-    if (text.length > MAX_TEXT_LENGTH) {
+    if (speechText.length > MAX_TEXT_LENGTH) {
       return res.status(400).json({ success: false, error: `Texto excede limite de ${MAX_TEXT_LENGTH} caracteres` });
     }
 
@@ -94,7 +96,7 @@ router.post('/generate', async (req, res) => {
 
     // ── Fluxo R2: cache persistente para todos os providers ─────────────────
     if (r2StorageService.isConfigured()) {
-      const cacheKey = ttsCacheService.generateCacheKey(text, resolvedVoiceId, providerName);
+      const cacheKey = ttsCacheService.generateCacheKey(speechText, resolvedVoiceId, providerName);
       const contentType = getProviderContentType(provider);
 
       // 1. Checa cache → proxy do R2
@@ -118,10 +120,10 @@ router.post('/generate', async (req, res) => {
 
       // 2. Gera áudio
       const tTTS = Date.now();
-      const audioBuffer = await provider.generateSpeech(text, resolvedVoiceId, options);
+      const audioBuffer = await provider.generateSpeech(speechText, resolvedVoiceId, options);
 
       if (req.user?.id) {
-        usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: text.length, duracao_ms: Date.now() - tTTS });
+        usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: speechText.length, duracao_ms: Date.now() - tTTS });
       }
 
       // 3. Envia ao frontend imediatamente
@@ -142,7 +144,7 @@ router.post('/generate', async (req, res) => {
         try {
           localPath = await ttsLocalService.save(cacheKey, audioBuffer, ext);
           const url = await r2StorageService.upload(r2Key, audioBuffer, contentType);
-          await ttsCacheService.saveUrlToCache(cacheKey, providerName, resolvedVoiceId, text.length, audioBuffer.length, url);
+          await ttsCacheService.saveUrlToCache(cacheKey, providerName, resolvedVoiceId, speechText.length, audioBuffer.length, url);
           await ttsLocalService.remove(localPath);
           log.info({ r2Key }, '[tts-r2] cached');
         } catch (err) {
@@ -155,15 +157,15 @@ router.post('/generate', async (req, res) => {
     }
 
     // ── Fluxo padrão: cache binário em PostgreSQL ────────────────────────────
-    const cacheKey = ttsCacheService.generateCacheKey(text, resolvedVoiceId, providerName);
+    const cacheKey = ttsCacheService.generateCacheKey(speechText, resolvedVoiceId, providerName);
     const tTTS = Date.now();
     const { audioBuffer, fromCache } = await ttsCacheService.getOrGenerate(
-      text, resolvedVoiceId, providerName,
-      () => provider.generateSpeech(text, resolvedVoiceId, options)
+      speechText, resolvedVoiceId, providerName,
+      () => provider.generateSpeech(speechText, resolvedVoiceId, options)
     );
 
     if (!fromCache && req.user?.id) {
-      usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: text.length, duracao_ms: Date.now() - tTTS });
+      usageService.track({ userId: req.user.id, provider: providerName, tipo: 'tts', caracteres: speechText.length, duracao_ms: Date.now() - tTTS });
     }
 
     res.set({

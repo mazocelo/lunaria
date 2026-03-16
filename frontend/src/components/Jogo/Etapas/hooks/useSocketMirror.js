@@ -469,19 +469,23 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     };
 
     const handleLevelUp = (data) => {
+      const personagemNome = data.personagemNome || data.username || 'Jogador';
+      const novoNivel = data.novoNivel || data.nivel;
+
       if (String(data.userId) === String(user?.id)) {
         setLevelUpQueue(prev => [...prev, {
-          novoNivel: data.novoNivel || data.nivel,
+          novoNivel,
           ganhos: data.ganhos || {}
         }]);
       }
       if (onAdicionarMensagemRef.current) {
         onAdicionarMensagemRef.current({
-          id: `levelup_${Date.now()}_${data.novoNivel}`,
+          id: `levelup_${Date.now()}_${novoNivel}`,
           tipo: 'acao_mestre',
           userId: 'sistema',
           username: 'Sistema',
-          message: `🎉 **${data.personagemNome || data.username || 'Jogador'}** subiu para o **Nivel ${data.novoNivel || data.nivel}**!`,
+          message: `${personagemNome} subiu para o Nivel ${novoNivel}!`,
+          payload: data,
           timestamp: Date.now()
         });
       }

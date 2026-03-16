@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
+import { ListMusic, Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
 import { RPGMessage } from '../../RPGMessage';
 import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
 import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
+import AudioQueuePopover from '../../../audio/ui/AudioQueuePopover.jsx';
 
 const GAME_AUDIO_SOURCES = new Set(['chat_global', 'message_balloon', 'message_group', 'game_segment']);
 
@@ -153,6 +154,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     && tts.waitingForNext
   );
   const isGameAudioContext = GAME_AUDIO_SOURCES.has(tts.currentPlaylist?.source || tts.currentTrack?.meta?.source || '');
+  const canShowQueue = isGameAudioContext && (tts.queueItems?.length || 0) > 0;
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -164,6 +166,12 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
+
+  useEffect(() => {
+    if (!canShowQueue && tts.queueOpen) {
+      tts.setQueueOpen(false);
+    }
+  }, [canShowQueue, tts]);
 
   const handlePlayAllNarration = async () => {
     if (!mestreNarrationItems.length || !globalNarrationSequenceKey || !globalNarrationOwnerId) return;
@@ -398,6 +406,13 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
           </div>
         </div>
       )}
+
+      <AudioQueuePopover
+        isOpen={canShowQueue && tts.queueOpen}
+        onClose={() => tts.setQueueOpen(false)}
+        queueItems={tts.queueItems}
+        title={tts.currentPlaylist?.title || 'Fila de narracao'}
+      />
     </div>
   );
 };

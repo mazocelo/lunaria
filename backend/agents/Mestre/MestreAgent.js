@@ -482,6 +482,7 @@ export class MestreAgent {
     const startTime = Date.now();
     try {
       const retryAttempts = runtimeOptions.retryOnTimeout === false ? 0 : MESTRE_CONFIG.model.retryAttempts;
+      const timeoutMs = runtimeOptions.timeoutMs ?? MESTRE_CONFIG.model.timeout;
       log.info({ personagem }, 'Narrando acao');
 
       // Formatar input
@@ -517,7 +518,7 @@ export class MestreAgent {
       const response = await withRetry(() => withTimeout(this.chain.invoke({
         input: inputCompleto,
         chat_history: historico
-      })), retryAttempts);
+      }), timeoutMs), retryAttempts);
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -608,6 +609,7 @@ export class MestreAgent {
 
     try {
       log.info({ personagem }, 'Narrando acao (stream)');
+      const timeoutMs = runtimeOptions.timeoutMs ?? MESTRE_CONFIG.model.timeout;
 
       const input = criarPromptNarracao(jogador, personagem, acao);
       const promptBlocks = [];
@@ -631,7 +633,7 @@ export class MestreAgent {
 
       const extractor = new NarrativaExtractor();
       let lastChunkTime = Date.now();
-      const streamTimeout = (MESTRE_CONFIG.model.timeout || 12000) * 2;
+      const streamTimeout = timeoutMs * 2;
 
       const stream = await this.chain.stream({
         input: inputCompleto,
@@ -857,6 +859,7 @@ export class MestreAgent {
     const startTime = Date.now();
     try {
       const retryAttempts = runtimeOptions.retryOnTimeout === false ? 0 : MESTRE_CONFIG.model.retryAttempts;
+      const timeoutMs = runtimeOptions.timeoutMs ?? MESTRE_CONFIG.model.timeout;
       log.info({ turno, personagem, rodada }, 'Narrando turno');
 
       // Criar prompt específico para turno
@@ -901,7 +904,7 @@ Mensagem do Jogador:
       const response = await withRetry(() => withTimeout(this.chain.invoke({
         input,
         chat_history: historico
-      })), retryAttempts);
+      }), timeoutMs), retryAttempts);
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 

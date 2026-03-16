@@ -23,9 +23,11 @@ import {
   completeMestreRequest,
   emitMestreRequestStatus,
   failMestreRequest,
+  getDefaultMestreRequestTimeoutMs,
   getActiveMestreRequest,
   getLatestMestreRequest,
-  markMestreRequestStatus
+  markMestreRequestStatus,
+  normalizeExpiredActiveMestreRequest
 } from '../utils/mestreRequestLifecycle.js';
 
 // ── Abertura com transição personalizada ──────────────────────────
@@ -186,15 +188,37 @@ export default class TurnEngine {
     });
 
     socket.emit('mestre_request_status', payload);
-    socket.emit('erro_mensagem', {
-      message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.'
-    });
     sm.log('WARN', 'MESTRE_REQUEST_REJECTED_BUSY', socket.id, userId, {
       roomId,
       requestId,
       activeRequestId: activeRequest?.requestId,
       activeAttempt: activeRequest?.attempt
     });
+  }
+
+  _isAuthorizedSocketUser(socket, rawUserId) {
+    if (String(rawUserId) !== String(socket.userId)) {
+      socket.emit('error', { message: 'userId nao corresponde ao usuario autenticado' });
+      return false;
+    }
+    return true;
+  }
+
+  _isRoomLockBusyError(error) {
+    const message = String(error?.message || '');
+    return message.includes('Opera') && message.includes('andamento');
+  }
+
+  _resetStartingTurnIfNeeded(sessao) {
+    const turno = getTurnState(sessao);
+    if (turno.status === TURN_STATUS.STARTING) {
+      transitionTurnState(sessao, TURN_STATUS.IDLE, {
+        lockReason: null,
+        contadorInteracoes: 0
+      });
+      return true;
+    }
+    return false;
   }
 
   async handleIniciarTurno(socket, data) {
@@ -446,6 +470,10 @@ export default class TurnEngine {
       return;
     }
 
+    if (!this._isAuthorizedSocketUser(socket, rawUserId)) {
+      return;
+    }
+
     const roomId = String(rawRoomId);
     const userId = String(rawUserId);
     const username = rawUsername ? String(rawUsername) : socket.username || 'Jogador';
@@ -459,6 +487,18 @@ export default class TurnEngine {
           socket.emit('error', { message: 'Sessao nao encontrada' });
           return null;
         }
+
+      const expiredRequest = normalizeExpiredActiveMestreRequest(sessao);
+      if (expiredRequest) {
+        this._resetStartingTurnIfNeeded(sessao);
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+        emitMestreRequestStatus(sm, roomId, expiredRequest, {
+          status: expiredRequest.status,
+          errorCode: expiredRequest.errorCode,
+          errorMessage: expiredRequest.errorMessage
+        });
+      }
 
       const estadoJogo = sessao.estadoJogo || {};
       const turnoAtual = estadoJogo.turnoAtual || 0;
@@ -474,14 +514,16 @@ export default class TurnEngine {
       if (turnoState.status !== TURN_STATUS.IDLE) {
         const activeRequest = getActiveMestreRequest(sessao);
         if (activeRequest && activeRequest.requestId === requestId && activeRequest.kind === 'turn_start') {
+          if (!['completed', 'failed', 'timed_out', 'superseded'].includes(activeRequest.status)) {
+            sm.sendToRoom(roomId, 'mestre_pensando', {
+              ativo: true,
+              timestamp: Date.now(),
+              requestId,
+              attempt: activeRequest.attempt
+            });
+          }
           emitMestreRequestStatus(sm, roomId, activeRequest);
-          return {
-            sessao,
-            estadoJogo,
-            turnoAtual,
-            jogadorDaVez,
-            request: activeRequest
-          };
+          return { alreadyInFlight: true };
         }
         if (activeRequest && activeRequest.requestId !== requestId) {
           this._emitBusy(socket, roomId, requestId, userId, activeRequest);
@@ -506,7 +548,8 @@ export default class TurnEngine {
           },
           originalMessage: `Inicio do turno de ${jogadorDaVez.personagemNome || username}`,
           combatIntent: null,
-          playerMessageId: null
+          playerMessageId: null,
+          timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start')
         }));
       } catch (error) {
         if (error.code === 'MESTRE_REQUEST_BUSY') {
@@ -544,13 +587,19 @@ export default class TurnEngine {
       }, { maxWaitMs: 0 });
     } catch (error) {
       if (error.message?.includes('Operação em andamento')) {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessao || {});
+        if (activeRequest) {
+          this._emitBusy(socket, roomId, requestId, userId, activeRequest);
+          return;
+        }
         socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
         return;
       }
       throw error;
     }
 
-    if (!accepted) {
+    if (!accepted || accepted.alreadyInFlight) {
       return;
     }
 
@@ -603,6 +652,7 @@ export default class TurnEngine {
           resumo: invocationContext.resumo,
           contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
           runtimeOptions: {
+            timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start'),
             retryOnTimeout: false,
             throwOnFailure: true
           }
@@ -732,13 +782,7 @@ export default class TurnEngine {
             return;
           }
 
-          const turno = getTurnState(sessao);
-          if (turno.status === TURN_STATUS.STARTING) {
-            transitionTurnState(sessao, TURN_STATUS.IDLE, {
-              lockReason: null,
-              contadorInteracoes: 0
-            });
-          }
+          this._resetStartingTurnIfNeeded(sessao);
 
           const failedRequest = failMestreRequest(sessao, requestId, lifecycle.attempt, failure.status, {
             errorCode: failure.errorCode,
@@ -782,6 +826,10 @@ export default class TurnEngine {
       return false;
     }
 
+    if (!this._isAuthorizedSocketUser(socket, rawUserId)) {
+      return false;
+    }
+
     const roomId = String(rawRoomId);
     const userId = String(rawUserId);
     const requestId = String(rawRequestId);
@@ -794,6 +842,18 @@ export default class TurnEngine {
           socket.emit('erro_mensagem', { message: 'Sessao nao encontrada.' });
           return;
         }
+
+      const expiredRequest = normalizeExpiredActiveMestreRequest(sessao);
+      if (expiredRequest) {
+        this._resetStartingTurnIfNeeded(sessao);
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        sm.emitirEstadoTurno(roomId, sessao);
+        emitMestreRequestStatus(sm, roomId, expiredRequest, {
+          status: expiredRequest.status,
+          errorCode: expiredRequest.errorCode,
+          errorMessage: expiredRequest.errorMessage
+        });
+      }
 
       const existing = getLatestMestreRequest(sessao, requestId);
       if (!existing || existing.kind !== 'turn_start') {

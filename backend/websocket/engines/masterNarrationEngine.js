@@ -43,9 +43,11 @@ import {
   completeMestreRequest,
   emitMestreRequestStatus,
   failMestreRequest,
+  getDefaultMestreRequestTimeoutMs,
   getActiveMestreRequest,
   getLatestMestreRequest,
-  markMestreRequestStatus
+  markMestreRequestStatus,
+  normalizeExpiredActiveMestreRequest
 } from '../utils/mestreRequestLifecycle.js';
 
 export default class MasterNarrationEngine {
@@ -125,15 +127,25 @@ export default class MasterNarrationEngine {
     });
 
     socket.emit('mestre_request_status', payload);
-    socket.emit('erro_mensagem', {
-      message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.'
-    });
     sm.log('WARN', 'MESTRE_REQUEST_REJECTED_BUSY', socket.id, userId, {
       roomId,
       requestId,
       activeRequestId: activeRequest?.requestId,
       activeAttempt: activeRequest?.attempt
     });
+  }
+
+  _isAuthorizedSocketUser(socket, rawUserId) {
+    if (String(rawUserId) !== String(socket.userId)) {
+      socket.emit('error', { message: 'userId nao corresponde ao usuario autenticado' });
+      return false;
+    }
+    return true;
+  }
+
+  _isRoomLockBusyError(error) {
+    const message = String(error?.message || '');
+    return message.includes('Opera') && message.includes('andamento');
   }
 
   /**
@@ -666,8 +678,7 @@ export default class MasterNarrationEngine {
       return;
     }
 
-    if (String(rawUserId) !== String(socket.userId)) {
-      socket.emit('error', { message: 'userId nao corresponde ao usuario autenticado' });
+    if (!this._isAuthorizedSocketUser(socket, rawUserId)) {
       return;
     }
 
@@ -693,6 +704,16 @@ export default class MasterNarrationEngine {
           socket.emit('error', { message: 'Sessao nao encontrada' });
           return null;
         }
+
+      const expiredRequest = normalizeExpiredActiveMestreRequest(sessao);
+      if (expiredRequest) {
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        emitMestreRequestStatus(sm, roomId, expiredRequest, {
+          status: expiredRequest.status,
+          errorCode: expiredRequest.errorCode,
+          errorMessage: expiredRequest.errorMessage
+        });
+      }
 
       const staleCleanedUp = cleanupStalePendingCombatAction(sessao);
       if (staleCleanedUp) {
@@ -735,12 +756,21 @@ export default class MasterNarrationEngine {
           personagem,
           originalMessage: mensagem,
           combatIntent,
-          playerMessageId: null
+          playerMessageId: null,
+          timeoutMs: getDefaultMestreRequestTimeoutMs('player_action')
         });
         acceptedRequest = acceptedResult.request;
         if (acceptedResult.duplicate) {
+          if (!['completed', 'failed', 'timed_out', 'superseded'].includes(acceptedRequest.status)) {
+            sm.sendToRoom(roomId, 'mestre_pensando', {
+              ativo: true,
+              timestamp: Date.now(),
+              requestId,
+              attempt: acceptedRequest.attempt
+            });
+          }
           emitMestreRequestStatus(sm, roomId, acceptedRequest);
-          return { duplicate: true, request: acceptedRequest, sessao };
+          return { duplicate: true, alreadyInFlight: true, request: acceptedRequest, sessao };
         }
       } catch (error) {
         if (error.code === 'MESTRE_REQUEST_BUSY') {
@@ -795,13 +825,19 @@ export default class MasterNarrationEngine {
       }, { maxWaitMs: 0 });
     } catch (error) {
       if (error.message?.includes('Operação em andamento')) {
+        const sessao = await sm.obterSessaoHistoria(roomId);
+        const activeRequest = getActiveMestreRequest(sessao || {});
+        if (activeRequest) {
+          this._emitBusy(socket, roomId, requestId, userId, activeRequest);
+          return;
+        }
         socket.emit('erro_mensagem', { message: 'Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.' });
         return;
       }
       throw error;
     }
 
-    if (!accepted || accepted.duplicate) {
+    if (!accepted || accepted.duplicate || accepted.alreadyInFlight) {
       return;
     }
 
@@ -1121,19 +1157,37 @@ export default class MasterNarrationEngine {
 
   async handleConsultarMestreRequest(socket, data) {
     const sm = this.manager;
-    const { roomId: rawRoomId, requestId: rawRequestId } = data || {};
-    if (!rawRoomId || !rawRequestId) {
-      socket.emit('erro_mensagem', { message: 'roomId e requestId sao obrigatorios para consultar status.' });
+    const { roomId: rawRoomId, userId: rawUserId, requestId: rawRequestId } = data || {};
+    if (!rawRoomId || !rawUserId || !rawRequestId) {
+      socket.emit('erro_mensagem', { message: 'roomId, userId e requestId sao obrigatorios para consultar status.' });
+      return;
+    }
+
+    if (!this._isAuthorizedSocketUser(socket, rawUserId)) {
       return;
     }
 
     const roomId = String(rawRoomId);
+    const userId = String(rawUserId);
     const requestId = String(rawRequestId);
     const sessao = await sm.obterSessaoHistoria(roomId);
     if (!sessao) return;
 
+    const expiredRequest = normalizeExpiredActiveMestreRequest(sessao);
+    if (expiredRequest) {
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      emitMestreRequestStatus(sm, roomId, expiredRequest, {
+        status: expiredRequest.status,
+        errorCode: expiredRequest.errorCode,
+        errorMessage: expiredRequest.errorMessage
+      });
+    }
+
     const request = getLatestMestreRequest(sessao, requestId);
-    if (!request) return;
+    if (!request || String(request.userId) !== String(userId)) {
+      socket.emit('erro_mensagem', { message: 'Nao foi encontrada uma resposta ativa ou regeneravel para esta requisicao.' });
+      return;
+    }
 
     socket.emit('mestre_request_status', buildMestreRequestStatusPayload(request));
   }
@@ -1143,6 +1197,10 @@ export default class MasterNarrationEngine {
     const { roomId: rawRoomId, userId: rawUserId, requestId: rawRequestId } = data || {};
     if (!rawRoomId || !rawUserId || !rawRequestId) {
       socket.emit('erro_mensagem', { message: 'roomId, userId e requestId sao obrigatorios para regenerar.' });
+      return false;
+    }
+
+    if (!this._isAuthorizedSocketUser(socket, rawUserId)) {
       return false;
     }
 
@@ -1158,6 +1216,16 @@ export default class MasterNarrationEngine {
           socket.emit('erro_mensagem', { message: 'Sessao nao encontrada.' });
           return;
         }
+
+      const expiredRequest = normalizeExpiredActiveMestreRequest(sessao);
+      if (expiredRequest) {
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        emitMestreRequestStatus(sm, roomId, expiredRequest, {
+          status: expiredRequest.status,
+          errorCode: expiredRequest.errorCode,
+          errorMessage: expiredRequest.errorMessage
+        });
+      }
 
       const existing = getLatestMestreRequest(sessao, requestId);
       if (!existing) {

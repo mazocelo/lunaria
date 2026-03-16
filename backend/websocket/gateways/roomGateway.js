@@ -1,5 +1,6 @@
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'roomGateway' });
+import { normalizeExpiredActiveMestreRequest } from '../utils/mestreRequestLifecycle.js';
 
 export default class RoomGateway {
   constructor(manager) {
@@ -329,6 +330,20 @@ export default class RoomGateway {
           // @event error → socket (direct) | sessao disappeared between join processing and response building
           socket.emit('error', { message: 'Erro ao conectar a historia' });
           return;
+        }
+
+        const expiredRequest = normalizeExpiredActiveMestreRequest(sessaoAtual);
+        if (expiredRequest) {
+          if (expiredRequest.kind === 'turn_start' && sessaoAtual.estadoJogo?.turno?.status === 'starting') {
+            sessaoAtual.estadoJogo.turno = {
+              ...sessaoAtual.estadoJogo.turno,
+              status: 'idle',
+              lockReason: null,
+              contadorInteracoes: 0
+            };
+          }
+          sessaoAtual.atualizadaEm = new Date().toISOString();
+          await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtual);
         }
 
         const responseData = {

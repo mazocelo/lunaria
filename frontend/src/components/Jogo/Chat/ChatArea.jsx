@@ -2,6 +2,7 @@
 import { RPGMessage } from '../../RPGMessage';
 import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
+import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 
 function groupConsecutiveMessages(mensagens) {
   const groups = [];
@@ -51,6 +52,56 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   );
 
   const groupedMessages = useMemo(() => groupConsecutiveMessages(mensagens), [mensagens]);
+  const mestreNarrationItems = useMemo(() => {
+    return (Array.isArray(mensagens) ? mensagens : []).flatMap((mensagem) => {
+      const tipo = mensagem?.tipo || mensagem?.type;
+      if (tipo !== 'mestre') return [];
+
+      const effectiveVoiceId = mensagem?.voice_id || voiceId || null;
+      const effectiveVoiceProvider = mensagem?.voice_provider || voiceProvider || null;
+      const segmentItems = buildNarrationSequenceItems(
+        mensagem?.segmentos || [],
+        mensagem?.id,
+        effectiveVoiceId,
+        effectiveVoiceProvider
+      );
+
+      if (segmentItems.length > 0) return segmentItems;
+
+      const text = String(mensagem?.message || mensagem?.mensagem || '').trim();
+      if (!text || !effectiveVoiceId) return [];
+
+      return [{
+        itemKey: String(mensagem.id),
+        messageId: mensagem.id,
+        segmentId: null,
+        text,
+        voiceId: effectiveVoiceId,
+        provider: effectiveVoiceProvider,
+        emotion: null,
+        speakerLabel: mensagem?.npc_nome || 'Mestre',
+        tipo: 'narracao',
+        hasPersistedAudio: Boolean(mensagem?.audio_cache_key || mensagem?.audio_url || mensagem?.audioUrl)
+      }];
+    });
+  }, [mensagens, voiceId, voiceProvider]);
+  const globalNarrationSequenceKey = useMemo(() => (
+    mestreNarrationItems.length > 0
+      ? `chat-all:${mestreNarrationItems.map((item) => `${item.messageId}:${item.segmentId || ''}`).join('|')}`
+      : null
+  ), [mestreNarrationItems]);
+  const globalNarrationOwnerId = useMemo(() => (
+    globalNarrationSequenceKey ? `owner:${globalNarrationSequenceKey}` : null
+  ), [globalNarrationSequenceKey]);
+  const isGlobalNarrationActive = Boolean(
+    globalNarrationSequenceKey
+    && tts.isSequence
+    && tts.currentSequenceKey === globalNarrationSequenceKey
+  );
+  const isGlobalNarrationGenerating = Boolean(
+    globalNarrationOwnerId
+    && String(tts.generatingMessageId || '') === String(globalNarrationOwnerId)
+  );
 
   const formatTime = (seconds) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
@@ -62,6 +113,14 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
+
+  const handlePlayAllNarration = async () => {
+    if (!mestreNarrationItems.length || !globalNarrationSequenceKey || !globalNarrationOwnerId) return;
+    await tts.playSequence(mestreNarrationItems, globalNarrationOwnerId, {
+      allowGenerate: true,
+      sequenceKey: globalNarrationSequenceKey
+    });
+  };
 
   const renderMensagem = (mensagem, index) => {
     const tipo = mensagem.tipo || mensagem.type;
@@ -97,6 +156,30 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
+      {mestreNarrationItems.length > 0 && (
+        <div className="px-6 pt-4">
+          <div className="w-full max-w-4xl mx-auto flex justify-end">
+            <button
+              type="button"
+              onClick={handlePlayAllNarration}
+              disabled={tts.isLoading || isGlobalNarrationGenerating}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-purple-400/40 bg-purple-900/30 text-purple-100 text-sm hover:bg-purple-800/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Gerar e reproduzir toda a narracao do Mestre"
+            >
+              <span>{isGlobalNarrationGenerating || tts.isLoading ? '🔄' : isGlobalNarrationActive && tts.isPlaying ? '⏸' : '🔊'}</span>
+              <span>
+                {isGlobalNarrationGenerating || tts.isLoading
+                  ? 'Gerando narracao'
+                  : isGlobalNarrationActive && tts.isPlaying
+                    ? 'Pausar narracao'
+                    : isGlobalNarrationActive
+                      ? 'Continuar narracao'
+                      : 'Gerar e ouvir tudo'}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-6 pb-6">
         <div className="w-full max-w-4xl mx-auto">
           <div className="space-y-5 mb-6">

@@ -100,6 +100,7 @@ export const useTTS = () => {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [queueIndex, setQueueIndex] = useState(-1);
   const [isSequence, setIsSequence] = useState(false);
+  const [currentSequenceKey, setCurrentSequenceKey] = useState(null);
   const [lastError, setLastError] = useState(null);
   const [errorMessageId, setErrorMessageId] = useState(null);
   const [generatingMessageId, setGeneratingMessageId] = useState(null);
@@ -158,6 +159,7 @@ export const useTTS = () => {
     queueRef.current = [];
     queueMetaRef.current = { messageId: null, sequenceKey: null };
     setIsSequence(false);
+    setCurrentSequenceKey(null);
     setQueueIndex(-1);
 
     if (clearMessage) {
@@ -327,7 +329,7 @@ export const useTTS = () => {
       const urls = Array.isArray(entry?.urls) ? entry.urls : [];
       urls.forEach((url, urlIndex) => {
         flattened.push({
-          messageId,
+          messageId: entry.messageId ?? messageId,
           segmentId: entry.segmentId || null,
           itemKey: entry.itemKey,
           url,
@@ -346,6 +348,7 @@ export const useTTS = () => {
     queueRef.current = queue;
     queueMetaRef.current = { messageId, sequenceKey };
     setIsSequence(queue.length > 1 || entries.length > 1);
+    setCurrentSequenceKey(sequenceKey || null);
     setQueueIndex(queue.length > 0 ? 0 : -1);
 
     return queue;
@@ -522,8 +525,7 @@ export const useTTS = () => {
     const validItems = (Array.isArray(items) ? items : []).filter((item) => item?.text && item?.voiceId);
     if (validItems.length === 0) return false;
 
-    const isSameSequence = String(currentMessageId) === String(messageId)
-      && queueMetaRef.current.sequenceKey === sequenceKey
+    const isSameSequence = queueMetaRef.current.sequenceKey === sequenceKey
       && queueRef.current.length > 0;
 
     if (!forceRegenerate && isSameSequence && audioRef.current) {
@@ -548,7 +550,7 @@ export const useTTS = () => {
           text: item.text,
           voiceId: item.voiceId,
           provider: item.provider || DEFAULT_TTS_PROVIDER,
-          messageId,
+          messageId: item.messageId ?? messageId,
           segmentId: item.segmentId || null,
           allowGenerate: item.allowGenerate ?? allowGenerate,
           forceRegenerate,
@@ -630,7 +632,7 @@ export const useTTS = () => {
           text: item.text,
           voiceId: item.voiceId,
           provider: item.provider || DEFAULT_TTS_PROVIDER,
-          messageId,
+          messageId: item.messageId ?? messageId,
           segmentId: item.segmentId || null,
           allowGenerate: true,
           forceRegenerate,
@@ -668,6 +670,7 @@ export const useTTS = () => {
     playbackRate,
     queueIndex,
     isSequence,
+    currentSequenceKey,
     generatingMessageId,
     lastError,
     errorMessageId,

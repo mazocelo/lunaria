@@ -79,22 +79,22 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
       const roomId = `historia_${historia?.id}`;
       const requestId = crypto.randomUUID();
       const descricao = `[USA HABILIDADE: ${vantagem.nome}]${vantagem.dano_base ? ` Dano base: ${vantagem.dano_base}` : ''}${vantagem.elemento?.length ? ` Elemento: ${vantagem.elemento.join(', ')}` : ''} - ${vantagem.descricao || ''}`;
-
-      onAdicionarMensagem({
-        id: `loading_${Date.now()}`,
-        userId: 'sistema',
-        username: 'Sistema',
-        message: '⏳ O Mestre esta pensando...',
-        tipo: 'loading',
-        timestamp: Date.now()
-      });
-
       const store = useSocketStore.getState();
       const activeStatus = store.activeMestreRequestStatus;
       if (store.pendingMestreRequestId || (activeStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus))) {
         showGameNotification('Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.', 'warning');
         return;
       }
+
+      onAdicionarMensagem({
+        id: `loading_${Date.now()}`,
+        userId: 'sistema',
+        username: 'Sistema',
+        requestId,
+        message: '⏳ O Mestre esta pensando...',
+        tipo: 'loading',
+        timestamp: Date.now()
+      });
 
       const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
         roomId,
@@ -122,23 +122,24 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
   const handleUsarEquipamento = useCallback(async (equipamento) => {
     try {
       const roomId = `historia_${historia?.id}`;
+      const requestId = crypto.randomUUID();
       const descricao = `[USA EQUIPAMENTO: ${equipamento.nome}]${equipamento.dano_base ? ` Dano: ${equipamento.dano_base}` : ''}${equipamento.elemento?.length ? ` Elemento: ${equipamento.elemento.join(', ')}` : ''} - ${equipamento.descricao || ''}`;
-
-      onAdicionarMensagem({
-        id: `loading_${Date.now()}`,
-        userId: 'sistema',
-        username: 'Sistema',
-        message: '⏳ O Mestre esta pensando...',
-        tipo: 'loading',
-        timestamp: Date.now()
-      });
-
       const store = useSocketStore.getState();
       const activeStatus = store.activeMestreRequestStatus;
       if (store.pendingMestreRequestId || (activeStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus))) {
         showGameNotification('Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.', 'warning');
         return;
       }
+
+      onAdicionarMensagem({
+        id: `loading_${Date.now()}`,
+        userId: 'sistema',
+        username: 'Sistema',
+        requestId,
+        message: '⏳ O Mestre esta pensando...',
+        tipo: 'loading',
+        timestamp: Date.now()
+      });
 
       const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
         roomId,

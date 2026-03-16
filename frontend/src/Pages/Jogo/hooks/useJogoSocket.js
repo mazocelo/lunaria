@@ -27,6 +27,7 @@ export const useJogoSocket = () => {
   const isReconnecting = useSocketStore(s => s.isReconnecting);
   const roomUsers = useSocketStore(s => s.roomUsers);
   const inRoom = useSocketStore(s => s.inRoom);
+  const joiningRoomId = useSocketStore(s => s.joiningRoomId);
 
   // Socket store actions
   const socketConnect = useSocketStore(s => s.connect);
@@ -333,6 +334,7 @@ export const useJogoSocket = () => {
     isReconnecting,
     roomUsers,
     inRoom,
+    joiningRoomId,
 
     // Actions
     conectarSocket,

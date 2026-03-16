@@ -21,12 +21,16 @@ export const createRoomActions = (set, get) => ({
 
       log('Joining room', { roomId: joinData.roomId, username: joinData.username });
 
+      set({ joiningRoomId: joinData.roomId });
+
       const timeout = setTimeout(() => {
+        set({ joiningRoomId: null });
         reject(new Error(`Timeout ao entrar na sala apos ${configs.ROOM_TIMEOUT}ms`));
       }, configs.ROOM_TIMEOUT);
 
       const cleanup = () => {
         clearTimeout(timeout);
+        set({ joiningRoomId: null });
         socket.off('room_joined', onJoined);
         socket.off('error', onGenericError);
       };
@@ -97,6 +101,7 @@ export const createRoomActions = (set, get) => ({
         cleanup();
         set({
           inRoom: false,
+          joiningRoomId: null,
           roomId: null,
           session: null,
           roomUsers: []

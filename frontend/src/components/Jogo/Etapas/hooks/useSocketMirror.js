@@ -37,6 +37,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     activeMestreRequestId: s.activeMestreRequestId ?? null,
     activeMestreRequestStatus: s.activeMestreRequestStatus ?? null,
     activeMestreRequestAttempt: s.activeMestreRequestAttempt ?? 0,
+    activeMestreRequestUserId: s.activeMestreRequestUserId ?? null,
     activeMestreUpdatedAt: s.activeMestreUpdatedAt ?? null,
     lastRegenerableMestreRequest: s.lastRegenerableMestreRequest ?? null,
     mestreStale: s.mestreStale ?? false,
@@ -144,6 +145,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       const terminal = ['completed', 'failed', 'timed_out', 'superseded'].includes(status);
       const requestId = data.requestId || state.activeMestreRequestId || state.pendingMestreRequestId || null;
       const attempt = data.attempt || state.activeMestreRequestAttempt || 0;
+      const requestUserId = data.userId || state.activeMestreRequestUserId || null;
       const playerMessageId = data.playerMessageId || state.activeMestrePlayerMessageId || null;
       const updatedAt = overrides.updatedAt || data.updatedAt || new Date().toISOString();
       const nextState = {
@@ -153,6 +155,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         activeMestreRequestId: requestId,
         activeMestreRequestStatus: status,
         activeMestreRequestAttempt: attempt,
+        activeMestreRequestUserId: requestUserId,
         activeMestrePlayerMessageId: playerMessageId,
         activeMestreUpdatedAt: updatedAt,
         mestrePensando: !!status && !terminal,
@@ -167,6 +170,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
           kind: data.kind || state.pendingMestreRequestKind || state.lastRegenerableMestreRequest?.kind || 'player_action',
           status,
           attempt,
+          userId: requestUserId,
           updatedAt,
           playerMessageId,
           errorCode: data.errorCode || null,
@@ -227,7 +231,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
       const mensagensAtuais = useGameStore.getState().mensagens || [];
       const mensagensLimpas = mensagensAtuais.filter((m) => {
-        if (m.tipo !== 'mestre_streaming') return true;
+        if (!['mestre_streaming', 'loading'].includes(m.tipo)) return true;
         if (!data?.requestId) return false;
         return String(m.requestId) !== String(data.requestId);
       });
@@ -487,7 +491,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
       if (data?.message) showGameNotification(data.message, 'warning');
       const msgs = useGameStore.getState().mensagens || [];
-      const semLoading = msgs.filter(m => m.tipo !== 'mestre_streaming');
+      const semLoading = msgs.filter(m => !['mestre_streaming', 'loading'].includes(m.tipo));
       if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
     };
 
@@ -521,14 +525,22 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     const handleMestreStreamEnd = (data) => {
       // Remover placeholder — mensagem_mestre chega logo depois
       const msgs = useGameStore.getState().mensagens || [];
-      const sem = msgs.filter(m => m.id !== (data.streamId || `stream_${data.requestId}_${data.attempt}`));
+      const sem = msgs.filter((m) => {
+        if (m.id === (data.streamId || `stream_${data.requestId}_${data.attempt}`)) return false;
+        if (m.tipo === 'loading' && data?.requestId && String(m.requestId || '') === String(data.requestId)) return false;
+        return true;
+      });
       if (msgs.length !== sem.length) gameStoreSetMensagens(sem);
     };
 
     const handleMestreStreamError = (data) => {
       updateRequestState(data, { status: 'processing', updatedAt: new Date().toISOString() });
       const msgs = useGameStore.getState().mensagens || [];
-      const sem = msgs.filter(m => m.id !== (data.streamId || `stream_${data.requestId}_${data.attempt}`));
+      const sem = msgs.filter((m) => {
+        if (m.id === (data.streamId || `stream_${data.requestId}_${data.attempt}`)) return false;
+        if (m.tipo === 'loading' && data?.requestId && String(m.requestId || '') === String(data.requestId)) return false;
+        return true;
+      });
       if (msgs.length !== sem.length) gameStoreSetMensagens(sem);
     };
 

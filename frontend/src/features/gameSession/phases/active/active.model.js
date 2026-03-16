@@ -46,6 +46,8 @@ export function useActiveModel() {
     isAuthenticated,
     socketError,
     isReconnecting,
+    inRoom,
+    joiningRoomId,
     conectarSocket,
     garantirEntradaSala,
     clearSocketError,
@@ -125,6 +127,9 @@ export function useActiveModel() {
   useEffect(() => {
     if (!isConnected || !isAuthenticated || !user?.id || !historiaAtual?.id || !personagemSelecionado?.id) return;
 
+    const targetRoomId = `historia_${historiaAtual.id}`;
+    if (inRoom || joiningRoomId === targetRoomId) return;
+
     const key = `${historiaAtual.id}:${personagemSelecionado.id}:${user.id}`;
     if (joinAttemptKeyRef.current === key) return;
     joinAttemptKeyRef.current = key;
@@ -154,6 +159,8 @@ export function useActiveModel() {
     historiaAtual?.id,
     personagemSelecionado?.id,
     garantirEntradaSala,
+    inRoom,
+    joiningRoomId,
   ]);
 
   // ------------------------------------------------------------------

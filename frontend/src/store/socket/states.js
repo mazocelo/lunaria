@@ -36,8 +36,9 @@ export const socketInitialStates = {
   socketToken: null, // Mantido apenas em memória (Zustand) — sem localStorage
   
   // ===== ESTADO DA SALA/ROOM (TÉCNICO) =====
-  roomId: null, // ID técnico da room WebSocket
-  inRoom: false, // Se está conectado tecnicamente à room
+  roomId: null, // ID tecnico da room WebSocket
+  inRoom: false, // Se esta conectado tecnicamente a room
+  joiningRoomId: null,
   roomUsers: [], // Todos os usuários conectados à room (técnico, não necessariamente jogando)
   session: null, // Dados da sessão atual
   participantes: [], // ✅ NOVO: Lista de participantes da sala (atualizada em tempo real)
@@ -76,6 +77,7 @@ export const socketInitialStates = {
   activeMestreRequestId: null,
   activeMestreRequestStatus: null,
   activeMestreRequestAttempt: 0,
+  activeMestreRequestUserId: null,
   activeMestrePlayerMessageId: null,
   activeMestreUpdatedAt: null,
   lastRegenerableMestreRequest: null,

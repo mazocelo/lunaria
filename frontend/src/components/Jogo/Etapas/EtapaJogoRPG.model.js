@@ -204,7 +204,9 @@ export const useEtapaJogoRPGModel = ({
   const pendingMestreRequestKind = useSocketStore(s => s.pendingMestreRequestKind);
   const activeMestreRequestId = useSocketStore(s => s.activeMestreRequestId);
   const activeMestreRequestStatus = useSocketStore(s => s.activeMestreRequestStatus);
+  const activeMestreRequestUserId = useSocketStore(s => s.activeMestreRequestUserId);
   const lastRegenerableMestreRequest = useSocketStore(s => s.lastRegenerableMestreRequest);
+  const mestreRequestIsMine = !!activeMestreRequestUserId && String(activeMestreRequestUserId) === String(user?.id);
   const aguardandoMestre = turnoStatus === 'resolving_roll'
     || !!pendingMestreRequestId
     || ['accepted', 'processing', 'streaming', 'reviewing'].includes(activeMestreRequestStatus)
@@ -213,7 +215,7 @@ export const useEtapaJogoRPGModel = ({
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
 
   const handleMestreBannerAction = useCallback(() => {
-    if (!activeMestreRequestId) return;
+    if (!activeMestreRequestId || !mestreRequestIsMine) return;
     const roomId = `historia_${historia?.id}`;
 
     if (mestreStale) {
@@ -239,7 +241,7 @@ export const useEtapaJogoRPGModel = ({
         requestId: activeMestreRequestId
       });
     }
-  }, [activeMestreRequestId, activeMestreRequestStatus, historia?.id, lastRegenerableMestreRequest?.kind, mestreStale, pendingMestreRequestKind, socketStoreSafeEmit, user?.id]);
+  }, [activeMestreRequestId, activeMestreRequestStatus, historia?.id, lastRegenerableMestreRequest?.kind, mestreRequestIsMine, mestreStale, pendingMestreRequestKind, socketStoreSafeEmit, user?.id]);
 
   const jogadoresExibir = participantesFormatados.length > 0
     ? participantesFormatados
@@ -295,7 +297,7 @@ export const useEtapaJogoRPGModel = ({
     // Derived
     infoPersonagem, participantesFormatados, jogadoresExibir,
     dadosSolicitados, dadoSolicitadoInfo, aguardandoMestre, mestrePensando,
-    mestreTimedOut, mestreStale, activeMestreRequestStatus, handleMestreBannerAction,
+    mestreTimedOut, mestreStale, activeMestreRequestStatus, mestreRequestIsMine, handleMestreBannerAction,
     jaRolouDadoInicial, cooldownLocal,
     entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
 

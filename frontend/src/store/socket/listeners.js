@@ -51,7 +51,13 @@ export const createListenerActions = (set, get) => ({
 
     // ===== LISTENERS DE CONEXÃO =====
     socket.on('connect', () => {
-      set({ isConnected: true, isConnecting: false });
+      set({
+        isConnected: true,
+        isConnecting: false,
+        isAuthenticated: false,
+        inRoom: false,
+        joiningRoomId: null
+      });
       get().log('Connected successfully', { socketId: socket.id, success: true });
     });
 
@@ -63,6 +69,7 @@ export const createListenerActions = (set, get) => ({
         isConnected: false,
         isAuthenticated: false,
         inRoom: false,
+        joiningRoomId: null,
         // Preservar roomId para auto-rejoin em reconexões não-intencionais
         roomId: isIntentional ? null : prevRoomId
       });
@@ -77,6 +84,7 @@ export const createListenerActions = (set, get) => ({
       set({
         isConnected: false,
         isConnecting: false,
+        joiningRoomId: null,
         error: error.message
       });
       get().log('Connection error', { error: error.message }, 'error');
@@ -85,6 +93,7 @@ export const createListenerActions = (set, get) => ({
     socket.on('error', (data) => {
       const message = data?.message || 'Erro no websocket';
       set({
+        joiningRoomId: null,
         error: message,
         erroMensagem: message
       });
@@ -94,7 +103,7 @@ export const createListenerActions = (set, get) => ({
 
     // ===== LISTENERS DE RECONEXÃO =====
     socket.io.on('reconnect', async (attempt) => {
-      set({ isConnected: true, isReconnecting: false, error: null });
+      set({ isConnected: true, isAuthenticated: false, inRoom: false, joiningRoomId: null, isReconnecting: false, error: null });
       showGameNotification('Reconectado com sucesso!', 'success');
 
       // Recuperar dados de auth para re-autenticar
@@ -144,6 +153,7 @@ export const createListenerActions = (set, get) => ({
       const savedRoomId = roomId;
       if (savedRoomId) {
         socket.once('authenticated', () => {
+          set({ joiningRoomId: savedRoomId });
           get().log('Re-joining room after reconnect', { roomId: savedRoomId });
           socket.emit('join_room', { roomId: savedRoomId, userId });
         });
@@ -258,18 +268,20 @@ export const createListenerActions = (set, get) => ({
         updateData.activeMestreRequestId = restoreRequest?.requestId || null;
         updateData.activeMestreRequestStatus = restoreStatus;
         updateData.activeMestreRequestAttempt = restoreRequest?.attempt || 0;
+        updateData.activeMestreRequestUserId = restoreRequest?.userId || null;
         updateData.activeMestrePlayerMessageId = restoreRequest?.playerMessageId || null;
         updateData.activeMestreUpdatedAt = restoreRequest?.updatedAt || null;
         updateData.mestrePensando = !!restoreRequest && !restoreTerminal;
         updateData.aguardandoRespostaMestre = !!restoreRequest && !restoreTerminal;
         updateData.mestreTimedOut = restoreStatus === 'timed_out';
         updateData.mestreStale = false;
-
+        updateData.joiningRoomId = null;
         set(updateData);
       }
 
       set({
         inRoom: true,
+        joiningRoomId: null,
         roomId: data.roomId,
         session: data.sessao || data.session,
         roomUsers: data.users || [],
@@ -286,6 +298,7 @@ export const createListenerActions = (set, get) => ({
     socket.on('room_left', () => {
       set({
         inRoom: false,
+        joiningRoomId: null,
         roomId: null,
         session: null,
         roomUsers: [],
@@ -295,6 +308,7 @@ export const createListenerActions = (set, get) => ({
         activeMestreRequestId: null,
         activeMestreRequestStatus: null,
         activeMestreRequestAttempt: 0,
+        activeMestreRequestUserId: null,
         activeMestrePlayerMessageId: null,
         activeMestreUpdatedAt: null,
         lastRegenerableMestreRequest: null,
@@ -527,6 +541,7 @@ export const createListenerActions = (set, get) => ({
         activeMestreRequestId: null,
         activeMestreRequestStatus: null,
         activeMestreRequestAttempt: 0,
+        activeMestreRequestUserId: null,
         activeMestrePlayerMessageId: null,
         activeMestreUpdatedAt: null,
         lastRegenerableMestreRequest: null,
@@ -570,6 +585,7 @@ export const createListenerActions = (set, get) => ({
         activeMestreRequestId: null,
         activeMestreRequestStatus: null,
         activeMestreRequestAttempt: 0,
+        activeMestreRequestUserId: null,
         activeMestrePlayerMessageId: null,
         activeMestreUpdatedAt: null,
         lastRegenerableMestreRequest: null,

@@ -1,5 +1,6 @@
 import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
+import { buscarTemasCompletos } from '../helpers/temasHelper.js';
 import logger from '../helpers/logger.js';
 
 const log = logger.child({ module: 'sessaoSnapshot' });
@@ -72,7 +73,9 @@ class SessaoSnapshotService {
         sessaoReconstruida.historiaNome = historia.nome;
         sessaoReconstruida.historiaPrologo = historia.prologo || '';
         sessaoReconstruida.historiaRoteiro = historia.roteiro || null;
-        sessaoReconstruida.historiaTemas = historia.temas || [];
+        sessaoReconstruida.historiaTemas = Array.isArray(historia.temas) && historia.temas.length > 0
+          ? await buscarTemasCompletos(historia.temas)
+          : [];
         sessaoReconstruida.donoId = historia.id_usuario ? String(historia.id_usuario) : null;
         sessaoReconstruida.maxJogadores = historia.maximo_de_participantes || 5;
 

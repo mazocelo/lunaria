@@ -85,6 +85,10 @@ const ACTION_HANDLERS = new Map([
   // B4-F05D — Ações de runtime tático
   ['iniciar_fase_boss', processarIniciarFaseBoss],
   ['missao_batalha', processarMissaoBatalha],
+  // Aliases — intents de combate que a IA pode gerar como ação mecânica
+  ['atacar', processarAplicarDano],
+  ['defender', () => {}], // no-op, processado pelo combatEngine
+  ['fugir', () => {}],    // no-op, processado pelo combatEngine
 ]);
 
 function shouldProcessAction(acao, stage = 'all') {

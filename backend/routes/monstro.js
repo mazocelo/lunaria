@@ -118,7 +118,7 @@ router.get('/', asyncHandler(monstroController.listar));
  *         schema:
  *           type: string
  *           default: media
- *         description: "Dificuldade do combate (facil, media, dificil)"
+ *         description: Dificuldade do combate - facil, media ou dificil
  *     responses:
  *       200:
  *         description: Monstros selecionados para combate

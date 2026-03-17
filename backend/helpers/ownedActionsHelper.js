@@ -25,6 +25,7 @@ function dedupeActions(items = []) {
 
 function getExplicitOwnedSkills(personagemCompleto = {}) {
   return dedupeActions([
+    ...asArray(personagemCompleto.habilidadesClasse),
     ...asArray(personagemCompleto.habilidadesProprias),
     ...asArray(personagemCompleto.habilidadesConhecidas),
     ...asArray(personagemCompleto.habilidadesAtivas),
@@ -34,6 +35,7 @@ function getExplicitOwnedSkills(personagemCompleto = {}) {
 
 function getExplicitOwnedSpells(personagemCompleto = {}) {
   return dedupeActions([
+    ...asArray(personagemCompleto.magias),
     ...asArray(personagemCompleto.magiasProprias),
     ...asArray(personagemCompleto.magiasConhecidas),
     ...asArray(personagemCompleto.magiasPreparadas),

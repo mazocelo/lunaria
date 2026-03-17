@@ -4,10 +4,10 @@
  * Atribui uma voz free aleatória (Kokoro/Piper) se o personagem não
  * tiver voz configurada, e persiste a escolha no DB (lazy assignment).
  */
-import { PrismaClient } from '@prisma/client';
-import pino from 'pino';
+import db from '../Model/index.js';
+import logger from './logger.js';
 
-const log = pino({ name: 'playerVoiceHelper' });
+const log = logger.child({ module: 'playerVoiceHelper' });
 
 const FREE_VOICES = [
   { voice_id: 'pt-br-kokoro-santa', voice_provider: 'opensource' },
@@ -16,12 +16,6 @@ const FREE_VOICES = [
   { voice_id: 'pt-br-faber-medium', voice_provider: 'opensource' },
 ];
 
-let _prisma = null;
-function getPrisma() {
-  if (!_prisma) _prisma = new PrismaClient();
-  return _prisma;
-}
-
 export function pickRandomFreeVoice() {
   return FREE_VOICES[Math.floor(Math.random() * FREE_VOICES.length)];
 }
@@ -29,18 +23,18 @@ export function pickRandomFreeVoice() {
 /**
  * Resolve a voz de um personagem. Se não tiver, sorteia e persiste.
  * @param {number} personagemId
- * @param {PrismaClient} [db] - instância Prisma opcional
+ * @param {object} [prisma] - instância Prisma opcional (usa db.prisma por padrão)
  * @returns {Promise<{voice_id: string, voice_provider: string}>}
  */
-export async function resolvePlayerVoice(personagemId, db = null) {
+export async function resolvePlayerVoice(personagemId, prisma = null) {
   if (!personagemId || isNaN(personagemId)) {
     return pickRandomFreeVoice();
   }
 
-  const prisma = db || getPrisma();
+  const client = prisma || db.prisma;
 
   try {
-    const pc = await prisma.personagens.findUnique({
+    const pc = await client.personagens.findUnique({
       where: { id: personagemId },
       select: { voice_id: true, voice_provider: true }
     });
@@ -50,7 +44,7 @@ export async function resolvePlayerVoice(personagemId, db = null) {
     }
 
     const voice = pickRandomFreeVoice();
-    await prisma.personagens.update({
+    await client.personagens.update({
       where: { id: personagemId },
       data: { voice_id: voice.voice_id, voice_provider: voice.voice_provider }
     });

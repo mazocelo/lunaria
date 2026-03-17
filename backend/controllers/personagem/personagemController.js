@@ -190,10 +190,8 @@ class PersonagemController {
           seen.add(h.id);
           return (h.nivel_requerido || 1) <= nivelAtual;
         });
-        habilidadesClasse = todas.filter(h => h.classe_id != null || h.raca_id != null);
-        magias = todas.filter(h =>
-          h.classe_id == null && h.raca_id == null && h.escola_magia && h.escola_magia !== 'nenhuma'
-        );
+        magias = todas.filter(h => h.escola_magia && h.escola_magia !== 'nenhuma');
+        habilidadesClasse = todas.filter(h => !h.escola_magia || h.escola_magia === 'nenhuma');
       }
     } catch (err) {
       log.warn({ err, personagemId: personagemData.id }, 'Erro ao buscar habilidades do personagem');

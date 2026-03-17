@@ -902,9 +902,10 @@ export default class MasterNarrationEngine {
 
       decrementCooldowns(workingSessao, userId);
       decrementConcentracao(workingSessao, userId);
-      decrementEfeitos(workingSessao, userId);
-      aplicarEfeitosPorTurno(workingSessao, userId);
-      expireEfeitosTerreno(workingSessao);
+      const pcId = String(personagem.id || personagem.personagemId || userId);
+      decrementEfeitos(workingSessao, pcId);
+      aplicarEfeitosPorTurno(workingSessao, pcId);
+      expireEfeitosTerreno(workingSessao, workingSessao.estadoJogo?.rodadaAtual || 1);
       migrarEstadoTaticoLegado(workingSessao);
 
       const sources = {

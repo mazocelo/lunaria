@@ -25,6 +25,7 @@ export const DEPRECATED_MODELS = {
   'gemini-1.5-flash': 'gemini-2.5-flash',
   'gemini-2.0-flash-lite': 'gemini-2.5-flash-lite',
   'llama-3.1-8b-instant': 'gemini-2.5-flash',
+  'meta-llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
 };
 
 // Detecta provider pelo nome do modelo

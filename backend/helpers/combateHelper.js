@@ -262,7 +262,7 @@ function buildAttackTestRequest({
     dificuldadeLabel: `TA ${defesaAlvo}`,
     metadata: {
       rollKind: 'combat_attack',
-      attackBonus,
+      attackBonus: bonusAtaque,
       targetId: monstroAlvo?.id || null,
       targetName: monstroAlvo?.nome || 'Alvo',
       targetDefense: defesaAlvo,
@@ -280,7 +280,7 @@ function buildAttackTestRequest({
       targetEvasion: monstroAlvo?.esquiva || 0,
       targetArmor: monstroAlvo?.armadura || 0,
       damageNotation,
-      attackBonus,
+      attackBonus: bonusAtaque,
       sourceActionName: actionName || 'Ataque',
       elemento: elemento || null,
       ...extraPendingAction
@@ -1305,6 +1305,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
     resultadoCombate: null,
     rodadaAvancou: false,
     requerTeste: null,
+    openRolls: [],
   };
 
   if (acaoPendente.stage === 'attack_roll' || acaoPendente.stage === 'damage_roll') {

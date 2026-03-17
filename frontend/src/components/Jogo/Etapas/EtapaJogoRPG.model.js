@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
 import { apiClient, personagemService } from '../../../services';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
 import { TIMEOUTS, PARTICLES } from '../../../constants/game';
 import { calcularMana } from '../../../utils/rpgHelpers';
 import { getOwnedCombatActions } from '../../../utils/characterOwnedActions.js';
 import { formatarInformacoesPersonagem, formatarParticipantes } from './EtapaJogoRPG.utils.js';
+import { findMentionedEntities } from '../Chat/renderers.jsx';
 
 import { useVoice } from './hooks/useVoice.js';
 import { useSocketMirror } from './hooks/useSocketMirror.js';
@@ -177,9 +178,56 @@ export const useEtapaJogoRPGModel = ({
     };
   }, [historia?.temas, historia?.nome, historia?.descricao, historia?.prologo]);
 
+  // Domain M2: Scene transition + session gallery
+  const [sceneTransitionImage, setSceneTransitionImage] = useState(null);
+  const [sessionImages, setSessionImages] = useState([]);
+  const seenMessageIdsRef = useRef(new Set());
+
+  // Detecta novos locais/NPCs mencionados nas mensagens do Mestre e dispara transição
+  useLayoutEffect(() => {
+    if (!mensagens?.length || !entidadesComImagem.length) return;
+
+    // Inicializa o set de IDs já vistos (sem disparar transição no carregamento inicial)
+    const isFirstLoad = seenMessageIdsRef.current.size === 0 && mensagens.length > 0;
+    if (isFirstLoad) {
+      mensagens.forEach(m => seenMessageIdsRef.current.add(m.id));
+      return;
+    }
+
+    const newMestreMsgs = mensagens.filter(
+      m => (m.tipo || m.type) === 'mestre' && !seenMessageIdsRef.current.has(m.id)
+    );
+    if (!newMestreMsgs.length) return;
+
+    newMestreMsgs.forEach(m => seenMessageIdsRef.current.add(m.id));
+
+    // Procura só locais (tipo: 'local') para trigger de transição
+    for (const msg of newMestreMsgs) {
+      const text = String(msg.message || msg.mensagem || '');
+      const mencionados = findMentionedEntities(text, entidadesComImagem);
+      const localMencionado = mencionados.find(e => e.tipo === 'local');
+      if (localMencionado) {
+        setSceneTransitionImage({ url: localMencionado.imagem, nome: localMencionado.nome, tipo: 'local' });
+        // Acumula na galeria
+        setSessionImages(prev => {
+          const jaExiste = prev.some(i => i.url === localMencionado.imagem);
+          return jaExiste ? prev : [{ url: localMencionado.imagem, nome: localMencionado.nome, tipo: 'local' }, ...prev];
+        });
+        break; // uma transição por vez
+      }
+    }
+  }, [mensagens, entidadesComImagem]);
+
+  const handleSceneTransitionDone = useCallback(() => setSceneTransitionImage(null), []);
+
+  // Acumula imagens de cena geradas durante a sessão na galeria
   const handleSceneImageGenerated = useCallback(async (mensagemId, url) => {
     const salaId = `historia_${historia?.id}`;
     gameStoreAtualizarMensagem(mensagemId, { scene_image: url });
+    setSessionImages(prev => {
+      const jaExiste = prev.some(i => i.url === url);
+      return jaExiste ? prev : [{ url, nome: 'Cena', tipo: 'cena' }, ...prev];
+    });
     try {
       const { apiClient: api } = await import('../../../services');
       await api.patch(`/sessoes/${salaId}/mensagem/${mensagemId}`, { campos: { scene_image: url } });
@@ -318,6 +366,8 @@ export const useEtapaJogoRPGModel = ({
     mestreTimedOut, mestreStale, activeMestreRequestStatus, mestreRequestIsMine, handleMestreBannerAction,
     jaRolouDadoInicial, cooldownLocal,
     entidadesComImagem, contextoImagemCena, handleSceneImageGenerated,
+    sceneTransitionImage, handleSceneTransitionDone,
+    sessionImages,
 
     // Mana (computed)
     manaAtual: combateJogadores?.[user?.id]?.mana_atual ?? calcularMana(personagemSelecionado),

@@ -16,6 +16,8 @@ import SessionRecap from '../Gameplay/SessionRecap';
 import NotificationManager from '../NotificationManager';
 import BarraStatusCompacta from '../Gameplay/BarraStatusCompacta';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
+import SceneTransition from '../Shared/SceneTransition';
+import SessionGallery from '../Shared/SessionGallery';
 import { PARTICLES } from '../../../constants/game';
 import { useTTS } from '../../../hooks/useTTS';
 
@@ -99,6 +101,9 @@ const EtapaJogoRPGView = (props) => {
     entidadesComImagem,
     contextoImagemCena,
     handleSceneImageGenerated,
+    sceneTransitionImage,
+    handleSceneTransitionDone,
+    sessionImages,
     turnoIniciado,
     turnoStatus,
     ordemDefinida,
@@ -111,6 +116,8 @@ const EtapaJogoRPGView = (props) => {
   return (
     <div className="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
       <NotificationManager />
+      <SceneTransition image={sceneTransitionImage} onDone={handleSceneTransitionDone} />
+      <SessionGallery images={sessionImages} />
       <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
 
       <div className="relative z-10 h-screen flex flex-col">

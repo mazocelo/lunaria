@@ -125,7 +125,7 @@ const buildEntityPayload = (entidades = []) => entidades.map((e) => ({
   segredo: e.segredo || ''
 }));
 
-const findMentionedEntities = (text, entidadesComImagem = []) => {
+export const findMentionedEntities = (text, entidadesComImagem = []) => {
   if (!entidadesComImagem?.length || !text) return [];
   const normalized = text.toLowerCase();
   return entidadesComImagem.filter((entidade) => normalized.includes(entidade.nome.toLowerCase()));

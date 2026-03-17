@@ -2,13 +2,15 @@ import { ChatGroq } from '@langchain/groq';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { DEFAULT_MODEL_SETTINGS, API_CONFIG } from './config.js';
+import { DEPRECATED_MODELS } from '../../Mestre/config.js';
 
 /**
  * Gera o modelo de IA com detecção automática de provider (Groq, Gemini ou Anthropic)
  */
 export function generateModel(detalhes = {}) {
     const merged = { ...DEFAULT_MODEL_SETTINGS, ...detalhes };
-    const modelName = merged.model;
+    let modelName = merged.model;
+    if (DEPRECATED_MODELS[modelName]) modelName = DEPRECATED_MODELS[modelName];
 
     if (modelName.startsWith('gemini')) {
         return new ChatGoogleGenerativeAI({

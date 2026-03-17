@@ -112,7 +112,7 @@ router.get('/', asyncHandler(monstroController.listar));
  *         name: temas
  *         schema:
  *           type: string
- *         description: "Temas separados por virgula (ex: medieval,fantasia)"
+ *         description: Temas separados por virgula
  *       - in: query
  *         name: dificuldade
  *         schema:

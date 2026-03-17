@@ -36,7 +36,7 @@ export function extrairNomesTemas(temasCompletos) {
   if (!Array.isArray(temasCompletos)) {
     return [];
   }
-  
+
   return temasCompletos
     .map(t => {
       // Se for objeto com propriedade nome
@@ -47,11 +47,9 @@ export function extrairNomesTemas(temasCompletos) {
       if (typeof t === 'string') {
         return t;
       }
-      // Se for número (ID), retorna null (será filtrado)
-      // IDs não podem ser convertidos sem consulta ao banco
+      // Se for número (ID), retorna o ID como string temporária
       if (typeof t === 'number') {
-        log.warn({ temaId: t }, 'extrairNomesTemas: Recebido ID numerico, nao e possivel converter sem consulta ao banco');
-        return null;
+        return `tema_${t}`;
       }
       // Qualquer outro tipo, tenta converter para string
       return String(t);

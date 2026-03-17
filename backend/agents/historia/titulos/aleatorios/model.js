@@ -1,16 +1,40 @@
 import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatAnthropic } from '@langchain/anthropic';
 import { DEFAULT_MODEL_SETTINGS, API_CONFIG } from './config.js';
+import { DEPRECATED_MODELS, detectProvider } from '../../../Mestre/config.js';
 
 /**
- * Gera o modelo da Groq com configurações personalizadas
+ * Gera o modelo de IA com detecção automática de provider
  * @param {Object} detalhes - Configurações adicionais para o modelo
- * @returns {ChatGroq} Instância do modelo configurado
+ * @returns {Object} Instância do modelo configurado
  */
 export function generateModel(detalhes = {}) {
+    const merged = { ...DEFAULT_MODEL_SETTINGS, ...detalhes };
+    let modelName = merged.model;
+    if (DEPRECATED_MODELS[modelName]) modelName = DEPRECATED_MODELS[modelName];
+
+    const provider = detectProvider(modelName);
+    if (provider === 'gemini') {
+        return new ChatGoogleGenerativeAI({
+            apiKey: API_CONFIG.googleApiKey,
+            model: modelName,
+            temperature: merged.temperature,
+            maxOutputTokens: merged.maxTokens,
+        });
+    }
+    if (provider === 'anthropic') {
+        return new ChatAnthropic({
+            apiKey: API_CONFIG.anthropicApiKey,
+            model: modelName,
+            temperature: merged.temperature,
+            maxTokens: merged.maxTokens,
+        });
+    }
     return new ChatGroq({
         apiKey: API_CONFIG.groqApiKey,
-        ...DEFAULT_MODEL_SETTINGS,
-        ...detalhes,
+        ...merged,
+        model: modelName,
     });
 }
 

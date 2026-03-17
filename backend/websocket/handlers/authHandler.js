@@ -67,17 +67,24 @@ export default class AuthHandler {
       // Verificar se usuário já está conectado
       const existingSocket = sm.connectedUsers.get(userId);
       if (existingSocket && existingSocket.id !== socket.id) {
-        sm.log('WARN', 'AUTH_USER_ALREADY_CONNECTED', socket.id, userId, {
-          existingSocketId: existingSocket.id,
-          existingSocketConnected: existingSocket.connected
-        });
+        // Se o socket anterior foi desconectado há menos de 2s, aceitar a nova conexão silenciosamente
+        const now = Date.now();
+        const lastDisconnect = sm._lastUserDisconnect?.get(userId) || 0;
+        if (now - lastDisconnect < 2000) {
+          sm.log('INFO', 'AUTH_REPLACING_STALE_CONNECTION', socket.id, userId);
+        } else {
+          sm.log('WARN', 'AUTH_USER_ALREADY_CONNECTED', socket.id, userId, {
+            existingSocketId: existingSocket.id,
+            existingSocketConnected: existingSocket.connected
+          });
+        }
 
-        // @event force_disconnect → socket (anterior) | nova conexão do mesmo usuário
-        existingSocket.emit('force_disconnect', {
-          reason: 'Nova conexão detectada',
-          timestamp: Date.now()
-        });
-        existingSocket.disconnect(true);
+        // Desconectar socket anterior sem emitir force_disconnect (evita loop de reconexão)
+        if (existingSocket.connected) {
+          existingSocket.disconnect(true);
+        }
+        if (!sm._lastUserDisconnect) sm._lastUserDisconnect = new Map();
+        sm._lastUserDisconnect.set(userId, now);
         sm.log('INFO', 'AUTH_PREVIOUS_CONNECTION_TERMINATED', existingSocket.id, userId);
       }
 

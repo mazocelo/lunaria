@@ -62,11 +62,24 @@ async function startServer() {
 
 startServer();
 
+let isShuttingDown = false;
 const gracefulShutdown = async (signal) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
   logger.info({ signal }, 'Shutting down gracefully');
-  if (socketManager.close) await socketManager.close();
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(1), 10000);
+  try {
+    if (socketManager.close) await socketManager.close();
+  } catch (err) {
+    logger.error({ err }, 'Error closing socketManager');
+  }
+  server.close(() => {
+    logger.info('Server closed, exiting');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    logger.warn('Forced exit after timeout');
+    process.exit(1);
+  }, 8000);
 };
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));

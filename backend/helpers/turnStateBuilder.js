@@ -65,6 +65,28 @@ export function buildTurnState(sessao, userId, personagem = {}) {
   // Concentração ativa
   state.concentracao = estadoJogo.concentracao?.[String(userId)] || null;
 
+  // Habilidades e magias disponíveis (do personagem completo)
+  const habilidadesClasse = (pcCompleto.habilidadesClasse || [])
+    .filter(h => !h.escola_magia || h.escola_magia === 'nenhuma')
+    .map(h => {
+      const cdKey = `hab_${h.id}`;
+      const cdRestante = cooldowns[cdKey] || 0;
+      return { nome: h.nome, cd: cdRestante, custo_mana: h.custo_mana || 0 };
+    });
+  const magias = (pcCompleto.habilidadesClasse || []).concat(pcCompleto.magias || [])
+    .filter(h => h.escola_magia && h.escola_magia !== 'nenhuma')
+    .map(h => {
+      const cdKey = `mag_${h.id}`;
+      const cdRestante = cooldowns[cdKey] || 0;
+      return { nome: h.nome, cd: cdRestante, custo_mana: h.custo_mana || 0, concentracao: h.usa_concentracao || false };
+    });
+  // Dedup magias por nome
+  const magiasUnicas = [];
+  const magNomes = new Set();
+  for (const m of magias) { if (!magNomes.has(m.nome)) { magNomes.add(m.nome); magiasUnicas.push(m); } }
+  state.habilidadesDisponiveis = habilidadesClasse;
+  state.magiasDisponiveis = magiasUnicas;
+
   // Alertas de desvantagens (situacionais que podem ser ativadas)
   const desvantagensAlerta = (pcCompleto.desvantagens || [])
     .filter(d => d.efeito || d.bonus)
@@ -135,6 +157,25 @@ export function formatTurnStateText(state) {
 
   if (state.concentracao) {
     lines.push(`Concentração: ${state.concentracao.nome} (${state.concentracao.turnos_restantes || '?'}t restantes)`);
+  }
+
+  if (state.habilidadesDisponiveis?.length > 0) {
+    lines.push(`Habilidades: ${state.habilidadesDisponiveis.map(h => {
+      const parts = [h.nome];
+      if (h.cd > 0) parts.push(`cd:${h.cd}t`);
+      if (h.custo_mana > 0) parts.push(`${h.custo_mana}MP`);
+      return parts.length > 1 ? `${parts[0]} (${parts.slice(1).join(', ')})` : parts[0];
+    }).join(', ')}`);
+  }
+
+  if (state.magiasDisponiveis?.length > 0) {
+    lines.push(`Magias: ${state.magiasDisponiveis.map(m => {
+      const parts = [m.nome];
+      if (m.custo_mana > 0) parts.push(`${m.custo_mana}MP`);
+      if (m.cd > 0) parts.push(`cd:${m.cd}t`);
+      if (m.concentracao) parts.push('conc');
+      return parts.length > 1 ? `${parts[0]} (${parts.slice(1).join(', ')})` : parts[0];
+    }).join(', ')}`);
   }
 
   if (state.vantagensPassivas?.length > 0) {

@@ -22,6 +22,7 @@ import {
   normalizarEfeitoRuntime,
   normalizarElementoPrimario,
 } from './catalogJsonHelper.js';
+import { setCooldown } from './cooldownManager.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -207,7 +208,9 @@ export function calcularMana(personagem) {
  */
 export function processarHabilidade(habilidade, jogadorState) {
   const { mana_atual = 0, cooldowns = {} } = jogadorState;
-  const cooldownKey = String(habilidade.id ?? habilidade.nome ?? 'habilidade');
+  const isSpell = Boolean(habilidade.escola_magia && habilidade.escola_magia !== 'nenhuma');
+  const cdTipo = isSpell ? 'mag' : 'hab';
+  const cooldownKey = `${cdTipo}_${habilidade.id ?? habilidade.nome ?? 'habilidade'}`;
 
   // Verificar mana
   if (habilidade.custo_mana > 0 && mana_atual < habilidade.custo_mana) {
@@ -1026,8 +1029,12 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
     jogadorStats.mana_atual = Math.max(0, (jogadorStats.mana_atual || 0) - validacao.custoMana);
   }
   if (validacao.cooldown > 0) {
+    // Gravar no cooldownManager (store canônico em sessao.estadoJogo.cooldowns)
+    const isSpell = Boolean(hab.escola_magia && hab.escola_magia !== 'nenhuma');
+    setCooldown(sessao, userId, isSpell ? 'mag' : 'hab', hab.id, validacao.cooldown);
+    // Sincronizar em jogadorStats para o turno corrente
     if (!jogadorStats.cooldowns) jogadorStats.cooldowns = {};
-    jogadorStats.cooldowns[validacao.cooldownKey || String(hab.id ?? hab.nome)] = validacao.cooldown;
+    jogadorStats.cooldowns[validacao.cooldownKey] = validacao.cooldown;
   }
 
   const alvoId = combatIntent?.alvoId;

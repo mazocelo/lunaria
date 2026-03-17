@@ -266,7 +266,8 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
 
   // Checar cooldown — soft block (mecanica autoritativa tem precedencia)
   if (cooldowns && hab.id) {
-    const cdKey = hab.custo_mana > 0 ? `mag_${hab.id}` : `hab_${hab.id}`;
+    const isSpell = Boolean(hab.escola_magia && hab.escola_magia !== 'nenhuma');
+    const cdKey = isSpell ? `mag_${hab.id}` : `hab_${hab.id}`;
     const cdTurnos = cooldowns[cdKey];
     if (cdTurnos && cdTurnos > 0) {
       return {

@@ -840,8 +840,8 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
 export const JogadorMessage = ({ mensagem, tts }) => {
   const voiceId = mensagem.voice_id;
   const voiceProvider = mensagem.voice_provider || 'opensource';
-  const hasVoice = Boolean(voiceId && tts);
   const messageText = mensagem.speech_text || getConteudo(mensagem);
+  const hasVoice = Boolean(voiceId && tts && messageText);
 
   const messageSequenceKey = `jogador:${mensagem.id}`;
   const isThisActive = tts?.currentSequenceKey === messageSequenceKey;
@@ -867,6 +867,7 @@ export const JogadorMessage = ({ mensagem, tts }) => {
     }];
 
     await tts.playSequence(items, mensagem.id, {
+      allowGenerate: true,
       sequenceKey: messageSequenceKey,
       title: mensagem.username || 'Jogador',
       source: 'message_balloon',

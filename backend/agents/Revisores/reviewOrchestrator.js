@@ -124,7 +124,7 @@ function extrairPersonagemSnapshot(sessao, userId) {
  * Árbitro/Continuista: apenas logam warnings (correção mecânica é do claim detector).
  * Gancho: substitui narrativa se gancho_fraco.
  */
-function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnalysis = null } = {}) {
+function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnalysis = null, sceneContext = null } = {}) {
   let corrected = narrativa;
   let applied = false;
 
@@ -168,7 +168,8 @@ function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnaly
     } else {
       corrected = applyFallbackHook(corrected, {
         combateAtivo,
-        shouldSuggest: hookAnalysis?.shouldSuggest || false
+        shouldSuggest: hookAnalysis?.shouldSuggest || false,
+        sceneContext
       });
       applied = true;
     }
@@ -266,10 +267,17 @@ export async function executarRevisao(ctx) {
 
   const hasIssues = verdicts.some(v => v.veredicto !== 'ok');
 
+  const sceneContext = {
+    npcsPresentes: sessao?.mestreContexto?.sessao?.npcsPresentes || sessao?.estadoJogo?.npcs || [],
+    cenaAtual: sessao?.estadoJogo?.cenaAtual || null,
+    ameacas: sessao?.estadoJogo?.ameacas || [],
+  };
+
   const corrections = hasIssues
     ? aplicarCorrecoes(narrativa, verdicts, {
         combateAtivo: ctx.combateAtivo,
-        hookAnalysis: trigger.hookAnalysis
+        hookAnalysis: trigger.hookAnalysis,
+        sceneContext
       })
     : null;
 

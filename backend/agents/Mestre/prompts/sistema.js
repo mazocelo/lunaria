@@ -535,14 +535,17 @@ function montarSchemaExpandido() {
 
 Campos OBRIGATÓRIOS (sem eles a resposta é inválida):
   - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados
+Campos OBRIGATÓRIOS quando fimDeTurno é false:
+  - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados, gancho
 Campos OPCIONAIS (incluir quando relevante):
   - acoes, metadados, combate
-Prioridade: narrativa > segmentos > fimDeTurno > solicitaDados > acoes > metadados > combate
+Prioridade: narrativa > segmentos > fimDeTurno > solicitaDados > gancho > acoes > metadados > combate
 
 Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
 
 {
   "narrativa": "Texto narrativo imersivo em markdown. Para cenas: minimo 3 frases, 2+ sentidos. Para dialogos curtos: 1-2 frases aceitaveis se seguidas de beat de reacao.",
+  "gancho": "O anao estende um pergaminho selado em sua direcao.",
   "segmentos": [
     {
       "id": "seg_1",
@@ -580,6 +583,7 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
 }
 
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
+- **gancho**: frase curta (1-2 sentencas) com a deixa jogavel do final da narrativa. Deve conter um objeto, NPC, escolha ou evento concreto que o jogador pode interagir. Campo OBRIGATORIO quando fimDeTurno e false. NAO repita a ultima frase da narrativa — extraia o gancho como elemento separado
 - **segmentos**: array obrigatorio com ao menos 1 trecho da resposta
 - **segmentos[].tipo**: "narracao" ou "fala_npc"
 - **segmentos[].speaker**: "mestre" ou "npc"
@@ -661,10 +665,12 @@ export function montarSchemaCompacto() {
 Responda EXCLUSIVAMENTE com JSON. Nenhum texto antes ou depois.
 
 Campos OBRIGATORIOS: narrativa, segmentos (minimo 1 item), fimDeTurno, solicitaDados.
+Campos OBRIGATORIOS quando fimDeTurno e false: narrativa, segmentos (min 1), fimDeTurno, solicitaDados, gancho.
 Campos OPCIONAIS: acoes, metadados, combate.
 
 {
   "narrativa": "Texto narrativo imersivo em markdown.",
+  "gancho": "O anao estende um pergaminho selado em sua direcao.",
   "segmentos": [
     {
       "id": "seg_1",
@@ -692,6 +698,7 @@ Campos OPCIONAIS: acoes, metadados, combate.
 }
 
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
+- **gancho**: frase curta (1-2 sentencas) com a deixa jogavel do final da narrativa. Deve conter um objeto, NPC, escolha ou evento concreto que o jogador pode interagir. Campo OBRIGATORIO quando fimDeTurno e false. NAO repita a ultima frase da narrativa — extraia o gancho como elemento separado
 - **segmentos**: array obrigatorio com ao menos 1 trecho da resposta
 - **segmentos[].tipo**: "narracao" ou "fala_npc"
 - **segmentos[].speaker**: "mestre" ou "npc"

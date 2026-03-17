@@ -39,15 +39,45 @@ function isBroadGenericHook(normalizedLastUnit) {
   return /\b(o que faremos agora|por onde comecaremos|precisamos da sua forca|precisamos que voce|voce deve ir|deve investigar|descubra o que aconteceu|contenha essa escuridao|nao temos tempo a perder)\b/.test(normalizedLastUnit);
 }
 
-function isRepeatedMissionBriefing(normalizedNarrativa) {
-  return /\b(elara desapareceu|manifestacoes demoniacas|grande biblioteca|precisamos da sua ajuda|academia esta doente)\b/.test(normalizedNarrativa);
+function isRepetitiveBriefing(normalizedNarrativa) {
+  const lastSentences = normalizedNarrativa.slice(-200);
+
+  const endsWithAbstractMission = /\b(voce precisa|voce deve|e necessario que|sua missao e|cabe a voce|depende de voce|voce e o unico)\s*[^?]*$/.test(lastSentences);
+  const endsWithMetaNarration = /\b(a aventura continua|o destino aguarda|o que esta por vir|a jornada apenas comecou|o futuro e incerto|a historia se desenrola)\s*[.!]*\s*$/.test(lastSentences);
+  const endsWithPureAtmosphere = /\b(silencio paira|o ar esta pesado|sombras dancam|a escuridao se adensa|o vento sopra|uma brisa fria|o silencio e absoluto|a tensao e palpavel)\s*[.!]*\s*$/.test(lastSentences);
+
+  return endsWithAbstractMission || endsWithMetaNarration || endsWithPureAtmosphere;
+}
+
+function extractNarrativeObjects(normalizedText) {
+  const objectPatterns = [
+    { pattern: /\b(porta|portao|portinhola)\b/, label: 'porta' },
+    { pattern: /\b(bau|arca|caixa)\b/, label: 'bau' },
+    { pattern: /\b(pergaminho|carta|bilhete|documento|livro|tomo)\b/, label: 'pergaminho' },
+    { pattern: /\b(escada|degrau|degraus)\b/, label: 'escada' },
+    { pattern: /\b(altar|santuario|estatua)\b/, label: 'altar' },
+    { pattern: /\b(mapa|selo|marca|inscricao|runa)\b/, label: 'inscricao' },
+    { pattern: /\b(corredor|passagem|tunel|caminho)\b/, label: 'passagem' },
+    { pattern: /\b(fonte|poco|cisterna)\b/, label: 'fonte' },
+    { pattern: /\b(espelho|cristal|orbe|esfera)\b/, label: 'objeto mistico' },
+    { pattern: /\b(alavanca|mecanismo|botao|engrenagem)\b/, label: 'mecanismo' },
+  ];
+
+  const found = [];
+  for (const { pattern, label } of objectPatterns) {
+    if (pattern.test(normalizedText) && !found.includes(label)) {
+      found.push(label);
+    }
+  }
+  return found;
 }
 
 export function analyzeNarrativeHook({
   narrativa,
   respostaIA,
   combateAtivo = false,
-  fimDeTurno = false
+  fimDeTurno = false,
+  sceneContext = null
 } = {}) {
   const rawNarrativa = String(narrativa || '').trim();
   if (!rawNarrativa) {
@@ -89,7 +119,7 @@ export function analyzeNarrativeHook({
     };
   }
 
-  if (isRepeatedMissionBriefing(normalizedNarrativa) && !hasImmediateAffordance(normalizedNarrativa)) {
+  if (isRepetitiveBriefing(normalizedNarrativa) && !hasImmediateAffordance(normalizedNarrativa)) {
     return {
       hasActionableHook: false,
       reason: 'briefing_repetido_sem_encaixe',
@@ -107,42 +137,76 @@ export function analyzeNarrativeHook({
     };
   }
 
+  const hasSceneObjects = sceneContext?.objetosVisiveis?.length > 0
+    || extractNarrativeObjects(normalizedNarrativa).length > 0;
+
   return {
     hasActionableHook: false,
     reason: 'deixa_final_vaga',
-    shouldSuggest: !combateAtivo || /\b(corredor|porta|mapa|selo|marca|parede|altar|escada)\b/.test(normalizedNarrativa),
+    shouldSuggest: !combateAtivo || hasSceneObjects,
     lastUnit
   };
 }
 
-export function buildFallbackHookLine(narrativa, { combateAtivo = false, shouldSuggest = false } = {}) {
-  const normalized = normalizeText(narrativa);
+function buildNpcHookLine(npcName, shouldSuggest) {
+  if (shouldSuggest) {
+    return `${npcName} aguarda sua resposta.`;
+  }
+  return `${npcName} se volta para voce, expectante.`;
+}
 
+function buildLocationHookLine(location, shouldSuggest) {
+  if (shouldSuggest) {
+    return `Voce pode examinar mais de perto ${location} ou seguir adiante.`;
+  }
+  return `Voce examina mais de perto ${location} ou segue adiante?`;
+}
+
+function buildThreatHookLine(threat, shouldSuggest) {
+  if (shouldSuggest) {
+    return `${threat} ainda ronda. Voce pode investigar ou se preparar.`;
+  }
+  return `${threat} ainda ronda. Voce investiga ou se prepara?`;
+}
+
+function buildObjectHookLine(objectLabel, shouldSuggest) {
+  const article = /^[aeiou]/.test(objectLabel) ? 'a' : 'o';
+  if (shouldSuggest) {
+    return `Voce pode examinar ${article} ${objectLabel} mais de perto antes de seguir.`;
+  }
+  return `Voce examina ${article} ${objectLabel} mais de perto ou segue em frente?`;
+}
+
+export function buildFallbackHookLine(narrativa, { combateAtivo = false, shouldSuggest = false, sceneContext = null } = {}) {
   if (combateAtivo) {
     return 'O inimigo ainda pressiona a cena. Voce avanca de novo, muda de posicao ou se fecha em defesa?';
   }
 
-  if (/\bmapa\b/.test(normalized) && /\bselo\b/.test(normalized)) {
-    return shouldSuggest
-      ? 'Voce pode examinar primeiro as marcas do mapa e do selo rompido, ou seguir pelo corredor antes que algo mais se aproxime.'
-      : 'Voce examina primeiro as marcas do mapa e do selo rompido, ou segue pelo corredor antes que algo mais se aproxime?';
+  if (sceneContext?.npcsPresentes?.length > 0) {
+    const npc = sceneContext.npcsPresentes[0];
+    const npcName = typeof npc === 'string' ? npc : npc?.nome || npc;
+    if (npcName) return buildNpcHookLine(npcName, shouldSuggest);
   }
 
-  if (/\bporta\b/.test(normalized) && /\bcorredor\b/.test(normalized)) {
-    return shouldSuggest
-      ? 'Se quiser um caminho mais seguro, pode comecar pela porta antes de seguir pelo corredor escuro.'
-      : 'Voce encara primeiro a porta ou avanca pelo corredor escuro?';
+  if (sceneContext?.cenaAtual) {
+    return buildLocationHookLine(sceneContext.cenaAtual, shouldSuggest);
   }
 
-  if (/\bparede\b/.test(normalized) || /\bmarca\b/.test(normalized)) {
-    return shouldSuggest
-      ? 'Se quiser se orientar antes de seguir, pode inspecionar as marcas na parede agora.'
-      : 'Voce para para inspecionar as marcas na parede ou segue em frente?';
+  if (sceneContext?.ameacas?.length > 0) {
+    const threat = sceneContext.ameacas[0];
+    const threatName = typeof threat === 'string' ? threat : threat?.nome || String(threat);
+    if (threatName) return buildThreatHookLine(threatName, shouldSuggest);
+  }
+
+  const normalized = normalizeText(narrativa);
+  const narrativeObjects = extractNarrativeObjects(normalized);
+  if (narrativeObjects.length > 0) {
+    return buildObjectHookLine(narrativeObjects[0], shouldSuggest);
   }
 
   return shouldSuggest
     ? 'Se quiser um proximo passo seguro, comece examinando o que a cena colocou diante de voce antes de avancar mais fundo.'
-    : 'O que voce faz a seguir?';
+    : 'O que voce faz?';
 }
 
 export function applyFallbackHook(narrativa, options = {}) {

@@ -394,6 +394,28 @@ function fallbackSolicitaDados(respostaJSON) {
   }
 }
 
+/**
+ * Fallback: extrai gancho da última frase da narrativa quando o LLM não forneceu.
+ * Só aplica quando fimDeTurno é false e não há solicitação de dados (o teste já é o gancho).
+ */
+function fallbackGancho(respostaJSON) {
+  if (respostaJSON?.gancho) return;
+  if (respostaJSON?.fimDeTurno) return;
+  if (respostaJSON?.solicitaDados?.solicita) return;
+
+  const narrativa = respostaJSON?.narrativa || '';
+  if (!narrativa) return;
+
+  const sentences = narrativa.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+  if (sentences.length > 0) {
+    const lastSentence = sentences[sentences.length - 1].trim();
+    if (lastSentence.length > 10 && lastSentence.length < 300) {
+      respostaJSON.gancho = lastSentence;
+      log.info({ ganchoLength: lastSentence.length }, 'Fallback gancho extraido da narrativa');
+    }
+  }
+}
+
 function extrairTeste(respostaJSON = {}) {
   if (!respostaJSON?.solicitaDados?.solicita) return null;
 
@@ -763,6 +785,7 @@ export class MestreAgent {
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
+      fallbackGancho(respostaJSON);
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
       const narrativa = sanitizeNarrativa(rawNarrativa);
 
@@ -789,6 +812,7 @@ export class MestreAgent {
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
+        gancho: respostaJSON.gancho || null,
         jogador,
         personagem,
         acao,
@@ -898,6 +922,7 @@ export class MestreAgent {
       validateParseResult(respostaJSON, this.modelName, 'narrarAcaoStream');
 
       fallbackSolicitaDados(respostaJSON);
+      fallbackGancho(respostaJSON);
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
       const narrativa = sanitizeNarrativa(rawNarrativa);
 
@@ -919,6 +944,7 @@ export class MestreAgent {
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
+        gancho: respostaJSON.gancho || null,
         jogador, personagem, acao,
         timestamp: new Date().toISOString()
       };
@@ -1160,6 +1186,7 @@ export class MestreAgent {
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
+      fallbackGancho(respostaJSON);
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
       const narrativa = sanitizeNarrativa(rawNarrativa);
 
@@ -1173,6 +1200,7 @@ export class MestreAgent {
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
+        gancho: respostaJSON.gancho || null,
         rodada,
         turno,
         jogador,
@@ -1272,6 +1300,7 @@ Narre a transição e apresente o novo desafio:`;
       }
       validateParseResult(respostaJSON, this.modelName, 'narrarEntreRodadas');
 
+      fallbackGancho(respostaJSON);
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
       const narrativa = sanitizeNarrativa(rawNarrativa);
 
@@ -1281,6 +1310,7 @@ Narre a transição e apresente o novo desafio:`;
         combate: respostaJSON.combate || null,
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
+        gancho: respostaJSON.gancho || null,
         rodadaAnterior,
         proximaRodada,
         novoDesafio: narrativa,

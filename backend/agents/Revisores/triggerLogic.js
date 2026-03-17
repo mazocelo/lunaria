@@ -23,11 +23,17 @@ export function shouldTriggerReview(ctx) {
 
   const reviewers = new Set();
   const reasons = [];
+  const sceneContext = {
+    npcsPresentes: sessao?.mestreContexto?.sessao?.npcsPresentes || sessao?.estadoJogo?.npcs || [],
+    cenaAtual: sessao?.estadoJogo?.cenaAtual || sessao?.mestreContexto?.sessao?.cenaAtual || null,
+    ameacas: sessao?.estadoJogo?.ameacas || [],
+  };
   const hookAnalysis = analyzeNarrativeHook({
     narrativa,
     respostaIA,
     combateAtivo,
-    fimDeTurno: respostaIA?.fimDeTurno || respostaIA?.acaoCompleta
+    fimDeTurno: respostaIA?.fimDeTurno || respostaIA?.acaoCompleta,
+    sceneContext
   });
 
   // Combate ativo com resultado mecanico → arbitro (nao revisar rodadas puramente narrativas)

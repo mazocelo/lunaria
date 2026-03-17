@@ -646,7 +646,8 @@ export default class MasterNarrationEngine {
       // @event mensagem_mestre → room (broadcast) | resposta narrativa do Mestre IA
       sm.sendToRoom(roomId, 'mensagem_mestre', {
         ...mensagemMestre,
-        message: resposta.narracao
+        message: resposta.narracao,
+        gancho: resposta.gancho || null
       });
 
       // @event mestre_pensando → room (broadcast) | indica que o Mestre terminou de processar
@@ -1281,6 +1282,7 @@ export default class MasterNarrationEngine {
         sm.sendToRoom(roomId, 'mensagem_mestre', {
           ...mensagemMestre,
           message: narrativa,
+          gancho: resposta.gancho || null,
           requestId,
           attempt
         });

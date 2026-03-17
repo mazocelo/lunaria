@@ -98,6 +98,7 @@ const EtapaJogoRPGView = (props) => {
     ordemDefinida,
     manaAtual,
     manaMax,
+    handleUsarMagia,
   } = props;
 
   const panelTitle = showActions ? 'Acoes RPG' : 'Painel recolhido';

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { apiClient, personagemService } from '../../../services';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
 import { TIMEOUTS, PARTICLES } from '../../../constants/game';
@@ -184,7 +184,7 @@ export const useEtapaJogoRPGModel = ({
   const seenMessageIdsRef = useRef(new Set());
 
   // Detecta novos locais/NPCs mencionados nas mensagens do Mestre e dispara transição
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!mensagens?.length || !entidadesComImagem.length) return;
 
     // Inicializa o set de IDs já vistos (sem disparar transição no carregamento inicial)

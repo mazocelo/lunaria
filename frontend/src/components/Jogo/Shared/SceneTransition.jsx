@@ -12,36 +12,35 @@ const FADE_MS = 800;
 const HOLD_MS = 2200;
 
 const SceneTransition = ({ image, onDone }) => {
-  const [phase, setPhase] = useState('hidden'); // hidden | fadein | hold | fadeout
+  const [phase, setPhase] = useState('hidden'); // hidden | enter | visible | exit
 
   useEffect(() => {
     if (!image) return;
 
-    setPhase('fadein');
-
-    const holdTimer = setTimeout(() => setPhase('hold'), FADE_MS);
-    const fadeOutTimer = setTimeout(() => setPhase('fadeout'), FADE_MS + HOLD_MS);
+    // Monta invisível → próximo frame anima para visível
+    setPhase('enter');
+    const visibleTimer = setTimeout(() => setPhase('visible'), 30);
+    const exitTimer = setTimeout(() => setPhase('exit'), 30 + HOLD_MS);
     const doneTimer = setTimeout(() => {
       setPhase('hidden');
       onDone?.();
-    }, FADE_MS + HOLD_MS + FADE_MS);
+    }, 30 + HOLD_MS + FADE_MS);
 
     return () => {
-      clearTimeout(holdTimer);
-      clearTimeout(fadeOutTimer);
+      clearTimeout(visibleTimer);
+      clearTimeout(exitTimer);
       clearTimeout(doneTimer);
     };
   }, [image]);
 
   if (phase === 'hidden' || !image) return null;
 
-  const opacity = phase === 'fadein' ? 'opacity-100' : phase === 'hold' ? 'opacity-100' : 'opacity-0';
-  const transition = `transition-opacity duration-[${FADE_MS}ms]`;
+  const isVisible = phase === 'visible';
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black ${opacity} ${transition}`}
-      style={{ transition: `opacity ${FADE_MS}ms ease-in-out` }}
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black"
+      style={{ opacity: isVisible ? 1 : 0, transition: `opacity ${FADE_MS}ms ease-in-out` }}
     >
       <img
         src={image.url}

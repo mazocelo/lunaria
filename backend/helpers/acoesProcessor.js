@@ -161,6 +161,10 @@ function corrigirDirecionalidade(acao, sessao, currentUserId) {
   const nomeAcao = acao.personagem?.toLowerCase();
 
   // 3. TARGET_ACTIONS: personagem should be the target (enemy/NPC), not the player
+  // Auto-cura é legítima — não corrigir quando jogador cura a si mesmo
+  if (acao.tipo === 'curar' && nomeAcao === nomeJogador.toLowerCase()) {
+    return acao;
+  }
   if (TARGET_ACTIONS.has(acao.tipo) && nomeAcao === nomeJogador.toLowerCase()) {
     const substituto = acao.alvo || (nomesMonstros.length > 0 ? monstros.find(m => m.status === 'vivo')?.nome : null);
     if (substituto && substituto.toLowerCase() !== nomeAcao) {

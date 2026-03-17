@@ -381,7 +381,8 @@ export default class TurnEngine {
         // @event mensagem_mestre → room (broadcast) | AI narration for the start of a player's turn
         sm.sendToRoom(roomId, 'mensagem_mestre', {
           ...msgInicial,
-          message: narrativaInicial
+          message: narrativaInicial,
+          gancho: mensagemInicial?.gancho || null
         });
 
         const { despacharResposta } = await import('../utils/respostaDispatcher.js');
@@ -755,6 +756,7 @@ export default class TurnEngine {
           sm.sendToRoom(roomId, 'mensagem_mestre', {
             ...msgInicial,
             message: narrativaInicial,
+            gancho: mensagemInicial?.gancho || null,
             requestId,
             attempt: lifecycle.attempt
           });
@@ -966,7 +968,8 @@ export default class TurnEngine {
         sm.sendToRoom(roomId, 'mensagem_mestre', {
           id: prologoTimestamp.toString(),
           ...msgPrologo,
-          message: prologoPendente
+          message: prologoPendente,
+          gancho: null
         });
       }
 

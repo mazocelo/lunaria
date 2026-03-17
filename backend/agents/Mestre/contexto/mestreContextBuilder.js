@@ -441,6 +441,20 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
   const estadoJogo = sessao.estadoJogo || {};
   const contextoExistente = sessao.mestreContexto?.sessao || {};
   const terrenoAtual = getTerrenoLabel(normalizarTerrenoInput(estadoJogo.terreno));
+  const renameMap = sessao._npcRenameMap || new Map();
+
+  const npcsPresentes = _applyRename(
+    uniqueList(estadoJogo.npcs || contextoExistente.npcsPresentes || []).slice(0, MAX_LIST_ITEMS),
+    renameMap
+  );
+  const npcsEncontrados = _applyRename(
+    uniqueList([
+      ...(contextoExistente.npcsEncontrados || []),
+      ...(progressao?.npcs_encontrados || []),
+      ...(estadoJogo.npcs || [])
+    ]).slice(0, MAX_LIST_ITEMS),
+    renameMap
+  );
 
   return {
     cenaAtual: estadoJogo.cenaAtual || contextoExistente.cenaAtual || '',
@@ -459,12 +473,8 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
     fatosImportantes: uniqueList(contextoExistente.fatosImportantes || []).slice(0, MAX_LIST_ITEMS),
     pistasDescobertas: uniqueList(contextoExistente.pistasDescobertas || []).slice(0, MAX_LIST_ITEMS),
     itensRelevantes: uniqueList(contextoExistente.itensRelevantes || []).slice(0, MAX_LIST_ITEMS),
-    npcsPresentes: uniqueList(estadoJogo.npcs || contextoExistente.npcsPresentes || []).slice(0, MAX_LIST_ITEMS),
-    npcsEncontrados: uniqueList([
-      ...(contextoExistente.npcsEncontrados || []),
-      ...(progressao?.npcs_encontrados || []),
-      ...(estadoJogo.npcs || [])
-    ]).slice(0, MAX_LIST_ITEMS),
+    npcsPresentes,
+    npcsEncontrados,
     npcsEmergentes: uniqueList(contextoExistente.npcsEmergentes || []).slice(0, MAX_LIST_ITEMS),
     locaisVisitados: uniqueList(contextoExistente.locaisVisitados || []).slice(0, MAX_LIST_ITEMS),
     objetivosAbertos: uniqueList(contextoExistente.objetivosAbertos || []).slice(0, MAX_LIST_ITEMS),
@@ -495,10 +505,11 @@ function formatList(title, values = []) {
   return `${title}:\n- ${lista.join('\n- ')}`;
 }
 
-export function formatMestreContextBlocks(mestreContexto = {}) {
+export function formatMestreContextBlocks(mestreContexto = {}, sessaoRef = null) {
   const historia = mestreContexto.historia || {};
   const personagens = mestreContexto.personagens || {};
   const sessao = mestreContexto.sessao || {};
+  const renameMap = sessaoRef?._npcRenameMap || new Map();
   const velocidadeNarrativa = getNarrativeSpeed(historia.config);
   const orcamentoDeBeats = getBeatBudget(historia.config);
   const maxAcoesPorTurno = getTurnActionLimit(historia.config);
@@ -549,9 +560,9 @@ Fase: ${sessao.fase || 'não definida'}
 Resumo recente:
 ${truncateText(sessao.resumoRecente || '', 700) || 'nenhum'}
 
-${formatList('NPCs presentes', sessao.npcsPresentes)}
-${formatList('NPCs encontrados', sessao.npcsEncontrados)}
-${formatList('NPCs emergentes', sessao.npcsEmergentes)}
+${formatList('NPCs presentes', _applyRename(sessao.npcsPresentes || [], renameMap))}
+${formatList('NPCs encontrados', _applyRename(sessao.npcsEncontrados || [], renameMap))}
+${formatList('NPCs emergentes', _applyRename(sessao.npcsEmergentes || [], renameMap))}
 ${formatList('Locais visitados', sessao.locaisVisitados)}
 ${formatList('Objetivos em aberto', sessao.objetivosAbertos)}
 ${formatList('Pistas descobertas', sessao.pistasDescobertas)}
@@ -582,6 +593,25 @@ ${formatList('Roleplay recente', sessao.roleplayRecente)}`
   return blocos.join('\n\n');
 }
 
+// ── NPC rename helpers (PJ/NPC name collision) ───────────────────
+function _buildRenameMap(sessao = {}, historia = null) {
+  const collisions = buildNameCollisionMap(sessao, historia);
+  const map = new Map();
+  for (const c of collisions) {
+    map.set(c.nome.toLowerCase(), `${c.nome} (NPC)`);
+  }
+  return map;
+}
+
+function _applyRename(names, renameMap) {
+  if (!renameMap || renameMap.size === 0) return names;
+  return names.map(name => {
+    if (typeof name === 'string') return renameMap.get(name.toLowerCase()) || name;
+    if (name?.nome) return { ...name, nome: renameMap.get(name.nome.toLowerCase()) || name.nome };
+    return name;
+  });
+}
+
 function normalizeNpcName(rawName, canonicos = []) {
   const name = String(rawName || '').trim();
   if (!name) return null;
@@ -594,6 +624,7 @@ function normalizeNpcName(rawName, canonicos = []) {
 
 export function normalizeNpcList(rawNames = [], sessao = {}, historia = null) {
   const canonicos = inferNpcCanonicos(sessao, historia);
+  const renameMap = sessao._npcRenameMap || new Map();
   const normalizados = [];
   const emergentes = [];
 
@@ -607,8 +638,8 @@ export function normalizeNpcList(rawNames = [], sessao = {}, historia = null) {
   });
 
   return {
-    presentes: uniqueList(normalizados),
-    emergentes: uniqueList(emergentes)
+    presentes: _applyRename(uniqueList(normalizados), renameMap),
+    emergentes: _applyRename(uniqueList(emergentes), renameMap)
   };
 }
 
@@ -633,17 +664,11 @@ export function buildBlueprintContext(sessao, historia = null) {
   const ctx = sessao?.mestreContexto?.sessao || {};
   const progressao = ej.progressao || null;
 
-  // Build NPC rename map from PJ/NPC name collisions
-  const renameMap = new Map();
-  if (historia) {
-    const collisions = buildNameCollisionMap(sessao, historia);
-    for (const collision of collisions) {
-      const key = collision.nome.toLowerCase();
-      renameMap.set(key, `${collision.nome} (NPC)`);
-    }
-    if (renameMap.size > 0) {
-      log.info({ renames: Object.fromEntries(renameMap) }, 'NPC name conflict renames applied in buildBlueprintContext');
-    }
+  // Build NPC rename map from PJ/NPC name collisions and store for other functions
+  const renameMap = historia ? _buildRenameMap(sessao, historia) : new Map();
+  if (renameMap.size > 0) {
+    sessao._npcRenameMap = renameMap;
+    log.info({ renames: Object.fromEntries(renameMap) }, 'NPC name conflict renames applied in buildBlueprintContext');
   }
 
   const applyRename = (name) => {

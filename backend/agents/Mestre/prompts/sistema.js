@@ -245,7 +245,7 @@ Cada personagem tem 6 atributos (60 pontos base na criação, mín 5, máx 16 ba
 ## PROGRESSÃO DE NÍVEL
 
 XP necessário por nível: Nv2=100, Nv3=300, Nv4=600, Nv5=1000, Nv6=1500, Nv7=2100, Nv8=2800, Nv9=3600, Nv10=4500
-Ao subir de nível o personagem ganha: +2 HP máximo, +1 ponto de atributo à escolha do jogador, mana recalculada.
+Ao subir de nível o personagem ganha: +2 HP máximo, +2 pontos de atributo nos níveis 3, 5, 7 e 9, mana recalculada.
 Level up é processado pelo backend quando XP acumulado atinge o threshold — o Mestre apenas narra a conquista quando notificado.
 Narre level up apenas quando o sistema sinalizar a conquista.
 

@@ -344,8 +344,17 @@ export default class MasterNarrationEngine {
       migrarEstadoTaticoLegado(sessao);
       decrementCooldowns(sessao, userId);
       const pcId = String(personagem.id || personagem.personagemId);
-      const efeitosExpirados = decrementEfeitos(sessao, pcId);
-      const efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
+
+      // Em combate, o combateHelper._controlarRodada gerencia efeitos dos jogadores.
+      // Decrementar aqui causaria decremento duplo (efeitos durando metade).
+      const combateAtivoGuard = sessao.estadoJogo?.combate?.ativo === true;
+      let efeitosExpirados = [];
+      let efeitosTurno = [];
+      if (!combateAtivoGuard) {
+        efeitosExpirados = decrementEfeitos(sessao, pcId);
+        efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
+      }
+
       const concExpirada = decrementConcentracao(sessao, userId);
       const efTerrenoExpirados = expireEfeitosTerreno(sessao, estadoJogo.rodadaAtual || 1);
 
@@ -951,8 +960,14 @@ export default class MasterNarrationEngine {
       decrementCooldowns(workingSessao, userId);
       decrementConcentracao(workingSessao, userId);
       const pcId = String(personagem.id || personagem.personagemId || userId);
-      decrementEfeitos(workingSessao, pcId);
-      aplicarEfeitosPorTurno(workingSessao, pcId);
+
+      // Em combate, o combateHelper._controlarRodada gerencia efeitos dos jogadores.
+      // Decrementar aqui causaria decremento duplo (efeitos durando metade).
+      const combateAtivoGuard = workingSessao.estadoJogo?.combate?.ativo === true;
+      if (!combateAtivoGuard) {
+        decrementEfeitos(workingSessao, pcId);
+        aplicarEfeitosPorTurno(workingSessao, pcId);
+      }
       expireEfeitosTerreno(workingSessao, workingSessao.estadoJogo?.rodadaAtual || 1);
       migrarEstadoTaticoLegado(workingSessao);
 

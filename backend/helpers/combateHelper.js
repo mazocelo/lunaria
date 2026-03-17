@@ -24,6 +24,7 @@ import {
 } from './catalogJsonHelper.js';
 import { setCooldown } from './cooldownManager.js';
 import { getOwnedCombatActionList } from './ownedActionsHelper.js';
+import { checkDanoConcentracao, quebrarConcentracao } from './concentrationManager.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -419,6 +420,21 @@ export function aplicarResistencias(dano, elemento, resistencias = {}, imunidade
   const mult = resistencias[elemento];
   if (mult != null) return Math.max(0, Math.round(dano * mult));
   return dano;
+}
+
+/**
+ * Classifica a interação elemental de um alvo contra um elemento de ataque.
+ * @returns {'imune'|'resistente'|'vulneravel'|null} null = sem interação especial
+ */
+export function classificarResistenciaElemental(elemento, resistencias = {}, imunidades = []) {
+  if (!elemento) return null;
+  if (Array.isArray(imunidades) && imunidades.includes(elemento)) return 'imune';
+  const mult = resistencias[elemento];
+  if (mult == null) return null;
+  if (mult <= 0) return 'imune';
+  if (mult < 1) return 'resistente';
+  if (mult > 1) return 'vulneravel';
+  return null;
 }
 
 /**
@@ -919,6 +935,30 @@ function _executarContraAtaques(combate, resultados) {
           danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
         }
         alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
+
+        // Teste de concentração ao receber dano (DC = max(10, dano/2))
+        if (danoMonstro > 0 && alvoStats.hp_atual > 0) {
+          const concCheck = checkDanoConcentracao(sessao, alvoId, danoMonstro);
+          if (concCheck.precisaTestar) {
+            const rolagemConc = Math.floor(Math.random() * 20) + 1;
+            const modCon = Math.floor(((alvoStats.constituicao || 10) - 10) / 2);
+            const totalConc = rolagemConc + modCon;
+            if (totalConc < concCheck.dc) {
+              const magiaQuebrada = quebrarConcentracao(sessao, alvoId, 'dano_recebido');
+              if (magiaQuebrada) {
+                resultados.concentracaoQuebrada = {
+                  personagem: alvoStats.personagemNome,
+                  magia: magiaQuebrada.nome,
+                  dano: danoMonstro,
+                  dc: concCheck.dc,
+                  rolagem: rolagemConc,
+                  total: totalConc,
+                };
+              }
+            }
+          }
+        }
+
         if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
       }
     }
@@ -953,23 +993,14 @@ function _controlarRodada(combate, userId, sessao, resultados) {
     combate.jogadoresQueAgiram = [];
     resultados.rodadaAvancou = true;
 
+    // Limpar defesa temporária expirada dos jogadores.
+    // Status effects de jogadores são decrementados pelo effectManager (masterNarrationEngine),
+    // então NÃO decrementamos aqui para evitar decremento duplo.
     for (const [jId, jStats] of Object.entries(combate.jogadores)) {
       const defesaTemporaria = _getDefesaTemporaria(combate, jStats);
       if (!defesaTemporaria) {
         delete jStats.defesaTemporaria;
       }
-
-      const snapshot = _resolvePersonagemSnapshot(sessao, jId, { nome: jStats.personagemNome, personagemId: jStats.personagemId }, jStats);
-      const pCompleto = snapshot.personagem;
-      if (!pCompleto?.status_efeitos) continue;
-      pCompleto.status_efeitos = pCompleto.status_efeitos.filter(e => {
-        e.duracao = (e.duracao || 1) - 1;
-        if (e.duracao <= 0) {
-          resultados.statusRemovidos.push({ personagem: jStats.personagemNome, userId: jId, status: e.nome, personagemId: jStats.personagemId });
-          return false;
-        }
-        return true;
-      });
     }
 
     // Tick de efeitos nos monstros (DOT + decremento)
@@ -1680,6 +1711,11 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
     } else {
       linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem}${ca.critico ? ' CRÍTICO!' : ''} — ${ca.dano} de dano. ${ca.alvoNome} HP: ${ca.hpRestante}/${ca.hpMax}${ca.inconsciente ? ' — INCONSCIENTE!' : ''}`);
     }
+  }
+
+  if (resultados.concentracaoQuebrada) {
+    const cq = resultados.concentracaoQuebrada;
+    linhas.push(`${cq.personagem} recebeu ${cq.dano} de dano e PERDEU CONCENTRAÇÃO em ${cq.magia}! (d20=${cq.rolagem}+CON=${cq.total} vs DC ${cq.dc} — FALHOU)`);
   }
 
   if (resultados.combateFinalizado) {

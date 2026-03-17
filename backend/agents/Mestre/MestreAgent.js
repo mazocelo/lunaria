@@ -291,6 +291,25 @@ function resolveHistoriaConfig(agent, runtimeOptions = {}) {
   return runtimeOptions?.historiaConfig || agent?.mestreContexto?.historia?.config || null;
 }
 
+function normalizePromptSignal(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function analyzePlayerMessageForPromptHints(mensagem) {
+  const normalized = normalizePromptSignal(mensagem);
+
+  return {
+    acceptedMission: /\b(pode contar comigo|conte comigo|conta comigo|eu vou|farei isso|eu cuido disso|deixe comigo|pode deixar comigo|vou resolver|aceito)\b/.test(normalized),
+    askedAboutObject: /\b(o que e|o que pe|que e isso|que pergaminho|este pergaminho|essa nota|esse mapa|essa chave|essa porta|esse selo)\b/.test(normalized),
+    objectMentioned: /\b(pergaminho|nota|mapa|porta|selo|chave|livro|altar|corredor|escada)\b/.test(normalized)
+  };
+}
+
 /**
  * Extrai o texto do campo "narrativa" de um JSON em streaming, token a token.
  * State machine: SEARCHING → FOUND_KEY → IN_VALUE → DONE
@@ -894,13 +913,23 @@ Mensagem do Jogador:
       }
 
       // Converter histórico
+      const promptHints = analyzePlayerMessageForPromptHints(mensagem);
+
       input += `\n${buildHistoriaConfigPrompt(historiaConfig)}\n`;
-      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- Em combate, trate o resumo mecanico como verdade: nao confirme dano letal, abate ou sucesso final se o contexto disser que a acao ainda depende de teste.\n- Se a resposta NAO encerrar o turno, a ultima frase deve propor um proximo movimento jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n- A deixa final deve ser clara o bastante para o jogador perceber imediatamente como se conectar a cena.\n- Se a cena ficar confusa, aberta demais ou pouco acionavel, voce pode incluir uma pequena sugestao opcional de encaminhamento, desde que ela preserve a liberdade do jogador e soe natural na ficcao.\n- Se a resposta encerrar o turno, conclua a batida de forma limpa e nao force um novo gancho.\n`;
+      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- Em combate, trate o resumo mecanico como verdade: nao confirme dano letal, abate ou sucesso final se o contexto disser que a acao ainda depende de teste.\n- Se a resposta NAO encerrar o turno, a ultima frase deve propor um proximo movimento jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n- A deixa final deve ser clara o bastante para o jogador perceber imediatamente como se conectar a cena.\n- Evite fechar com pergunta ampla ou missao abstrata, como "o que faremos agora?" ou "voce precisa investigar isso". Prefira objeto, porta, pista, pessoa, perigo ou escolha localizada na cena.\n- Se a cena ficar confusa, aberta demais ou pouco acionavel, voce pode incluir uma pequena sugestao opcional de encaminhamento, desde que ela preserve a liberdade do jogador e soe natural na ficcao.\n- Se a resposta encerrar o turno, conclua a batida de forma limpa e nao force um novo gancho.\n`;
 
       if (contadorMensagens === 0) {
-        input += `\nGUIA DA PRIMEIRA MENSAGEM DO TURNO:\n- Esta primeira mensagem pode ser mais desenvolvida do que as demais.\n- Ela deve encaixar o personagem na situacao concreta, e nao apenas descreve-lo caminhando ou sentindo o ambiente.\n- Explique brevemente por que ele esta ali agora e o que o recebe na cena.\n- Fixe a situacao atual com clareza: onde ele esta, quem ou o que esta diante dele, e qual tensao imediata esta em jogo.\n- Se esta primeira mensagem NAO encerrar o turno, termine com uma proposta jogavel clara: pergunta, ordem, convite, pista, escolha, interrupcao ou evento concreto.\n- Essa proposta precisa deixar nitido como o jogador pode se conectar a cena imediatamente.\n- Se ainda houver ambiguidade, inclua uma pequena sugestao opcional de proximo passo, sem engessar a resposta.\n- Se esta primeira mensagem encerrar o turno, feche a batida sem criar uma nova proposta.\n- Nao termine apenas em atmosfera, reflexao interna ou expectativa vaga.\n`;
+        input += `\nGUIA DA PRIMEIRA MENSAGEM DO TURNO:\n- Esta primeira mensagem pode ser mais desenvolvida do que as demais.\n- Ela deve encaixar o personagem na situacao concreta, e nao apenas descreve-lo caminhando ou sentindo o ambiente.\n- Explique brevemente por que ele esta ali agora e o que o recebe na cena.\n- Fixe a situacao atual com clareza: onde ele esta, quem ou o que esta diante dele, e qual tensao imediata esta em jogo.\n- Se um NPC estiver presente, use a fala dele para mover a cena, nao para comentar genericamente o heroi. Evite vocativos excessivos, elogios vagos, intimidacao social gratuita e fala expositiva teatral.\n- Se um NPC responder a uma pergunta do jogador, ele deve devolver um encaixe imediato ligado a essa pergunta: mostrar o pergaminho, estender a nota, apontar a porta, indicar a escada, chamar para examinar algo ou oferecer uma escolha curta e localizada.\n- Se esta primeira mensagem NAO encerrar o turno, termine com uma proposta jogavel clara: pergunta, ordem, convite, pista, escolha, interrupcao ou evento concreto.\n- Essa proposta precisa deixar nitido como o jogador pode se conectar a cena imediatamente.\n- Nao use pergunta ampla ou abstrata como gancho final. O gancho deve apontar para algo localizado na cena atual.\n- Se ainda houver ambiguidade, inclua uma pequena sugestao opcional de proximo passo, sem engessar a resposta.\n- Se esta primeira mensagem encerrar o turno, feche a batida sem criar uma nova proposta.\n- Nao termine apenas em atmosfera, reflexao interna ou expectativa vaga.\n`;
       } else {
-        input += `\nGUIA DAS MENSAGENS SEGUINTES:\n- Responda primeiro a acao do jogador.\n- Avance a situacao atual sem reabrir a cena.\n- Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.\n- Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.\n- Evite repetir descricao de ambiente ou identidade do personagem.\n- Se a resposta NAO encerrar o turno, ela deve empurrar a historia para o proximo beat e propor o proximo movimento.\n- Deixe a deixa final clara e acionavel, para que o jogador nao precise adivinhar qual conexao fazer.\n- Se a cena estiver difusa demais, inclua uma pequena sugestao opcional, curta e diegetica, para ajudar o jogador a se conectar.\n- Se a resposta encerrar o turno, conclua a acao e nao force um novo gancho.\n`;
+        input += `\nGUIA DAS MENSAGENS SEGUINTES:\n- Responda primeiro a acao do jogador.\n- Avance a situacao atual sem reabrir a cena.\n- Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.\n- Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.\n- Evite repetir descricao de ambiente ou identidade do personagem.\n- Se a resposta vier de um NPC, faca essa fala destravar a cena com algo concreto, e nao apenas reafirmar a missao geral.\n- Se a resposta NAO encerrar o turno, ela deve empurrar a historia para o proximo beat e propor o proximo movimento.\n- Deixe a deixa final clara e acionavel, para que o jogador nao precise adivinhar qual conexao fazer.\n- Evite fechar em missao abstrata; prefira porta, objeto, pista, escolha, alvo, lugar ou ordem imediata.\n- Se a cena estiver difusa demais, inclua uma pequena sugestao opcional, curta e diegetica, para ajudar o jogador a se conectar.\n- Se a resposta encerrar o turno, conclua a acao e nao force um novo gancho.\n`;
+      }
+
+      if (promptHints.acceptedMission) {
+        input += `\nGUIA ESPECIFICO PARA ESTA MENSAGEM:\n- O jogador JA aceitou ajudar. Nao repita o briefing, nao tente convence-lo de novo e nao reembale a mesma missao.\n- Faca o NPC avancar para o proximo passo imediato: entregar um item, abrir caminho, apontar uma porta, revelar um detalhe pratico, chamar para segui-lo ou oferecer uma escolha localizada.\n- Se houver um objeto importante em cena, coloque esse objeto fisicamente na mao, mesa ou campo de visao do jogador.\n`;
+      }
+
+      if (promptHints.askedAboutObject || promptHints.objectMentioned) {
+        input += `\nGUIA ESPECIFICO PARA OBJETO/PISTA:\n- O jogador esta focando um objeto, pista ou detalhe concreto da cena.\n- Responda ao objeto de forma tangivel: mostre, entregue, leia um trecho curto, descreva a marca, aponte a origem ou faca o NPC estender isso ao jogador.\n- Depois da resposta, feche com um encaixe imediato ligado a esse mesmo foco, sem voltar ao briefing geral da missao.\n`;
       }
 
       let historico = converterHistoricoParaLangChain(chatHistory);

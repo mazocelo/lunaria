@@ -31,6 +31,18 @@ function hasActionableChoice(normalizedNarrativa) {
   return /\b(voce pode|pode escolher|ou pode|ou entao|prefere .* ou )\b/.test(normalizedNarrativa);
 }
 
+function hasImmediateAffordance(normalizedText) {
+  return /\b(examina|inspeciona|le|pega|recebe|estende|entrega|mostra|aponta|segue|entra|abre|desce|toca|observa|aproxima|acompanha|vai ate|olha)\b/.test(normalizedText);
+}
+
+function isBroadGenericHook(normalizedLastUnit) {
+  return /\b(o que faremos agora|por onde comecaremos|precisamos da sua forca|precisamos que voce|voce deve ir|deve investigar|descubra o que aconteceu|contenha essa escuridao|nao temos tempo a perder)\b/.test(normalizedLastUnit);
+}
+
+function isRepeatedMissionBriefing(normalizedNarrativa) {
+  return /\b(elara desapareceu|manifestacoes demoniacas|grande biblioteca|precisamos da sua ajuda|academia esta doente)\b/.test(normalizedNarrativa);
+}
+
 export function analyzeNarrativeHook({
   narrativa,
   respostaIA,
@@ -68,7 +80,25 @@ export function analyzeNarrativeHook({
   const normalizedLastUnit = normalizeText(lastUnit);
   const normalizedNarrativa = normalizeText(rawNarrativa);
 
-  if (hasActionableQuestion(normalizedLastUnit, lastUnit) || hasActionableChoice(normalizedNarrativa)) {
+  if (isBroadGenericHook(normalizedLastUnit) && !hasImmediateAffordance(normalizedNarrativa)) {
+    return {
+      hasActionableHook: false,
+      reason: 'gancho_generico',
+      shouldSuggest: true,
+      lastUnit
+    };
+  }
+
+  if (isRepeatedMissionBriefing(normalizedNarrativa) && !hasImmediateAffordance(normalizedNarrativa)) {
+    return {
+      hasActionableHook: false,
+      reason: 'briefing_repetido_sem_encaixe',
+      shouldSuggest: true,
+      lastUnit
+    };
+  }
+
+  if (hasActionableQuestion(normalizedLastUnit, lastUnit) || hasActionableChoice(normalizedNarrativa) || hasImmediateAffordance(normalizedLastUnit)) {
     return {
       hasActionableHook: true,
       reason: null,

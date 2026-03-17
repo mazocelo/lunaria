@@ -1603,7 +1603,10 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
  * Formata os resultados mecanicos em texto para injetar no prompt da IA.
  */
 export function formatarResultadoMecanico(resultados, personagemNome) {
-  const linhas = ['[RESULTADO MECÂNICO DA RODADA — narre baseado nestes fatos, NÃO invente resultados diferentes]'];
+  const linhas = [
+    '[RESULTADO MECÂNICO DA RODADA]',
+    '⚠️ Narre SOMENTE os fatos listados abaixo. Dano 5 = ferimento leve, NÃO grave. ERROU = falhou completamente. Respeite HP/dano/efeitos EXATOS.'
+  ];
 
   for (const se of resultados.statusEfeitos) {
     if (se.tipo === 'impedido') {

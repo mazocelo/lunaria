@@ -117,14 +117,107 @@ function emitAcaoMestre(sessao, roomId, sm, payload) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Post-parse directionality validation
+// ═══════════════════════════════════════════════════════════════
+
+const TARGET_ACTIONS = new Set([
+  'aplicar_dano', 'curar', 'aplicar_status', 'aplicar_efeito',
+  'dano_ambiental', 'remover_status', 'remover_efeito', 'estabilizar_personagem'
+]);
+
+const EXECUTOR_ACTIONS = new Set(['usar_habilidade', 'conjurar_magia']);
+
+const HOLD_UNTIL_TEST_RESOLVED = new Set([
+  'aplicar_dano', 'curar', 'aplicar_status', 'aplicar_efeito',
+  'dar_xp', 'estabilizar_personagem'
+]);
+
+/**
+ * Corrige direcionalidade executor/alvo quando a IA confunde quem recebe a ação.
+ * TARGET_ACTIONS: personagem = alvo (quem recebe). Se vier com nome do jogador atual, provavelmente está errado.
+ * EXECUTOR_ACTIONS: personagem = executor (quem faz). Se vier com nome de monstro, provavelmente está errado.
+ */
+function corrigirDirecionalidade(acao, sessao, currentUserId) {
+  if (!acao?.tipo || !currentUserId) return acao;
+
+  // 1. Resolve current player character name
+  const jogadores = sessao.jogadoresConectados || [];
+  const jogadorAtual = jogadores.find(j => String(j.userId || j.id) === String(currentUserId));
+  if (!jogadorAtual) return acao;
+
+  const personagemId = String(jogadorAtual.personagemId || jogadorAtual.personagem_id);
+  const completos = sessao.personagensCompletos || {};
+  const personagemObj = completos[personagemId];
+  if (!personagemObj?.nome) return acao;
+
+  const nomeJogador = personagemObj.nome;
+
+  // 2. Resolve combat enemy names
+  const combate = sessao.estadoJogo?.combate;
+  const monstros = (combate?.ativo && combate.monstros) ? combate.monstros : [];
+  const nomesMonstros = monstros.filter(m => m.status === 'vivo').map(m => m.nome?.toLowerCase());
+
+  const nomeAcao = acao.personagem?.toLowerCase();
+
+  // 3. TARGET_ACTIONS: personagem should be the target (enemy/NPC), not the player
+  if (TARGET_ACTIONS.has(acao.tipo) && nomeAcao === nomeJogador.toLowerCase()) {
+    const substituto = acao.alvo || (nomesMonstros.length > 0 ? monstros.find(m => m.status === 'vivo')?.nome : null);
+    if (substituto && substituto.toLowerCase() !== nomeAcao) {
+      log.warn(
+        { tipo: acao.tipo, original: acao.personagem, corrigido: substituto },
+        'corrigirDirecionalidade: personagem era o jogador em TARGET_ACTION, corrigido para alvo'
+      );
+      acao._alvo_original = acao.personagem;
+      acao.personagem = substituto;
+    }
+  }
+
+  // 4. EXECUTOR_ACTIONS: personagem should be the player, not a monster
+  if (EXECUTOR_ACTIONS.has(acao.tipo) && nomeAcao && nomesMonstros.includes(nomeAcao)) {
+    log.warn(
+      { tipo: acao.tipo, original: acao.personagem, corrigido: nomeJogador },
+      'corrigirDirecionalidade: personagem era monstro em EXECUTOR_ACTION, corrigido para jogador'
+    );
+    acao._executor_original = acao.personagem;
+    acao.personagem = nomeJogador;
+  }
+
+  return acao;
+}
+
+/**
+ * Verifica se a ação deve ser retida até que um teste pendente seja resolvido.
+ * Ações que dependem de resultado de teste não devem ser aplicadas antes da resolução.
+ */
+function shouldHoldForPendingTest(acao, sessao) {
+  if (!sessao.estadoJogo?.testePendente) return false;
+  if (!acao?.tipo) return false;
+
+  if (HOLD_UNTIL_TEST_RESOLVED.has(acao.tipo)) {
+    log.warn(
+      { tipo: acao.tipo, personagem: acao.personagem },
+      'shouldHoldForPendingTest: acao retida — teste pendente nao resolvido'
+    );
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Processa array de ações mecânicas do Mestre
  */
 export async function processarAcoes(acoes, sessao, roomId, sm, options = {}) {
   if (!acoes?.length) return;
 
-  for (const acao of acoes) {
-    if (!shouldProcessAction(acao, options.stage || 'all')) continue;
+  for (const acaoRaw of acoes) {
+    if (!shouldProcessAction(acaoRaw, options.stage || 'all')) continue;
+
+    const acao = corrigirDirecionalidade(acaoRaw, sessao, options.userId);
+
+    if (shouldHoldForPendingTest(acao, sessao)) continue;
+
     try {
       const handler = ACTION_HANDLERS.get(acao.tipo);
       if (handler) {

@@ -15,11 +15,22 @@ const DEFAULT_VERDICT = { veredicto: 'ok', severidade: 'info', notas: 'revisao n
 export class ArbitroMecanico {
   constructor() {
     this.model = null;
+    this._initFailed = false;
+    this._initWarnLogged = false;
     this._inicializarModelo();
   }
 
   _inicializarModelo() {
     const { name, provider, temperature, maxTokens } = REVIEWER_CONFIG.model;
+
+    const keyMap = { gemini: 'GOOGLE_API_KEY', anthropic: 'ANTHROPIC_API_KEY', groq: 'GROQ_API_KEY' };
+    const envKey = keyMap[provider] || 'GROQ_API_KEY';
+    if (!process.env[envKey]) {
+      log.error({ provider, envVar: envKey }, 'REVIEWER_API_KEY_MISSING — reviewer will be non-functional');
+      this._initFailed = true;
+      return;
+    }
+
     try {
       if (provider === 'gemini') {
         this.model = new ChatGoogleGenerativeAI({
@@ -45,6 +56,7 @@ export class ArbitroMecanico {
       }
     } catch (err) {
       log.error({ err: err.message }, 'Erro ao inicializar modelo do Arbitro');
+      this._initFailed = true;
     }
   }
 
@@ -53,7 +65,13 @@ export class ArbitroMecanico {
    * @returns {Promise<Object>} veredicto
    */
   async validar({ narrativa, resultadoMecanico, personagem, acaoJogador, claimFlags, userId }) {
-    if (!this.model) return DEFAULT_VERDICT;
+    if (!this.model || this._initFailed) {
+      if (!this._initWarnLogged) {
+        log.error({ reviewer: 'ArbitroMecanico' }, 'REVIEWER_INIT_FAILED — returning default verdict');
+        this._initWarnLogged = true;
+      }
+      return DEFAULT_VERDICT;
+    }
 
     const startTime = Date.now();
     try {

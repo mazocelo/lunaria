@@ -20,11 +20,22 @@ const DEFAULT_VERDICT = {
 export class GanchoNarrativo {
   constructor() {
     this.model = null;
+    this._initFailed = false;
+    this._initWarnLogged = false;
     this._inicializarModelo();
   }
 
   _inicializarModelo() {
     const { name, provider, temperature, maxTokens } = REVIEWER_CONFIG.model;
+
+    const keyMap = { gemini: 'GOOGLE_API_KEY', anthropic: 'ANTHROPIC_API_KEY', groq: 'GROQ_API_KEY' };
+    const envKey = keyMap[provider] || 'GROQ_API_KEY';
+    if (!process.env[envKey]) {
+      log.error({ provider, envVar: envKey }, 'REVIEWER_API_KEY_MISSING — reviewer will be non-functional');
+      this._initFailed = true;
+      return;
+    }
+
     try {
       if (provider === 'gemini') {
         this.model = new ChatGoogleGenerativeAI({
@@ -50,11 +61,18 @@ export class GanchoNarrativo {
       }
     } catch (err) {
       log.error({ err: err.message }, 'Erro ao inicializar modelo do revisor de gancho');
+      this._initFailed = true;
     }
   }
 
   async validar({ narrativa, shouldSuggest = false, combateAtivo = false, userId }) {
-    if (!this.model) return DEFAULT_VERDICT;
+    if (!this.model || this._initFailed) {
+      if (!this._initWarnLogged) {
+        log.error({ reviewer: 'GanchoNarrativo' }, 'REVIEWER_INIT_FAILED — returning default verdict');
+        this._initWarnLogged = true;
+      }
+      return DEFAULT_VERDICT;
+    }
 
     const startTime = Date.now();
     try {

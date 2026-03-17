@@ -17,9 +17,22 @@ export function converterHistoricoParaLangChain(mensagens) {
         content: `Jogador: ${msg.jogador || msg.username}\nPersonagem: ${msg.personagem}\nAção: ${msg.mensagem || msg.acao}`
       };
     } else if (msg.tipo === 'mestre') {
+      let content = msg.narracao || msg.mensagem || '';
+      if (typeof content === 'string' && content.trimStart().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(content);
+          const segTexts = Array.isArray(parsed.segmentos)
+            ? parsed.segmentos.map(s => s?.text).filter(Boolean).join('\n')
+            : '';
+          content = parsed.narrativa || segTexts || content;
+        } catch { /* keep original */ }
+      }
+      if (content.length > 1500) {
+        content = content.slice(0, 1500) + '...';
+      }
       return {
         role: 'assistant',
-        content: msg.narracao || msg.mensagem
+        content
       };
     } else if (msg.tipo === 'resultado_teste') {
       const p = msg.payload || {};

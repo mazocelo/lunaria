@@ -324,6 +324,7 @@ async function processarAcoesMecanicas(resposta, ctx) {
 
   await processarAcoes(acoesFiltradas, ctx.sessao, ctx.roomId, ctx.sm, {
     stage: existeTestePendente ? 'preTeste' : 'all',
+    userId: ctx.userId,
     onTesteSolicitado: async (testePayload) => {
       await criarSolicitacaoTeste({
         ...resposta,

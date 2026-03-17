@@ -3,8 +3,8 @@ export function criarPromptGancho() {
 
 REGRAS:
 - Responda APENAS com JSON valido, sem markdown.
-- Preserve quase toda a narrativa original.
-- Se o texto ja terminar com uma deixa clara, nao altere nada.
+- Copie a narrativa original INTEGRALMENTE. Altere APENAS as ultimas 1-2 frases para melhorar o gancho. A correcao_sugerida deve ser a narrativa completa com apenas o final modificado.
+- Se o gancho atual ja e aceitavel (objeto, pista, escolha concreta), responda 'ok'.
 - Se faltar gancho, reescreva apenas a parte final para deixar o proximo passo claro.
 - A sugestao opcional, quando usada, deve soar diegetica e natural, nunca como menu artificial.
 - Considere gancho fraco quando a resposta terminar em briefing repetido, missao abstrata ou pedido amplo demais, mesmo que a intencao geral esteja clara.

@@ -224,10 +224,21 @@ export function buildImmediateSceneLock(sessao = {}) {
 function buildMemoriaEvictadaAviso(sessao = {}) {
   const evictada = sessao.estadoJogo?._memoriaEvictada;
   if (!Array.isArray(evictada) || evictada.length === 0) return '';
-  const lista = evictada.map(d => `"${d}"`).join(', ');
-  // Limpa para não repetir o aviso em invocações subsequentes
-  sessao.estadoJogo._memoriaEvictada = [];
-  return `[AVISO: Memorias esquecidas recentemente: ${lista}. Se relevantes para a cena atual, re-registre via memoria_semantica.]`;
+
+  // Reter aviso por 3 turnos antes de limpar
+  if (!sessao.estadoJogo._memoriaEvictadaTurnosRestantes) {
+    sessao.estadoJogo._memoriaEvictadaTurnosRestantes = 3;
+  }
+
+  if (sessao.estadoJogo._memoriaEvictadaTurnosRestantes > 0) {
+    const lista = evictada.map(d => `"${d}"`).join(', ');
+    sessao.estadoJogo._memoriaEvictadaTurnosRestantes--;
+    return `[AVISO: Memorias esquecidas recentemente: ${lista}. Se relevantes para a cena atual, re-registre via memoria_semantica.]`;
+  } else {
+    delete sessao.estadoJogo._memoriaEvictada;
+    delete sessao.estadoJogo._memoriaEvictadaTurnosRestantes;
+    return '';
+  }
 }
 
 function buildBaseContext(sessao = {}) {

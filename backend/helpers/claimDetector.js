@@ -84,6 +84,23 @@ const CLAIM_PATTERNS = [
   { regex: /\b(?:eu\s+)?(?:ja\s+sabia|ja\s+sei)\s+(?:que\s+|da\s+|do\s+|de\s+|sobre\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
   { regex: /\b(?:eu\s+)?(?:ja\s+combinei|ja\s+combinamos)\s+(?:com\s+|que\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
   { regex: /\b(?:eu\s+)?(?:ja\s+descobri|ja\s+investiguei)\s+(?:que\s+|sobre\s+|o\s+|a\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
+
+  // Attack with item
+  { regex: /\b(?:eu\s+)?(?:ataco|golpeio)\s+(?:com\s+)?(?:o\s+|a\s+|meu\s+|minha\s+)?(.+?)(?:\s+(?:no|na|em|contra)\b|[.!,]|$)/i, tipo: 'item' },
+  // Grab/take item
+  { regex: /\b(?:eu\s+)?(?:pego|agarro|apanho|recolho)\s+(?:o\s+|a\s+|um\s+|uma\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'item' },
+  // Defend with item
+  { regex: /\b(?:eu\s+)?(?:defendo|bloqueio)\s+(?:com\s+)?(?:o\s+|a\s+|meu\s+|minha\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'item' },
+  // Throw item
+  { regex: /\b(?:eu\s+)?(?:jogo|arremesso)\s+(?:o\s+|a\s+|meu\s+|minha\s+)?(.+?)(?:\s+(?:no|na|em|contra)\b|[.!,]|$)/i, tipo: 'item' },
+  // Try to use ability
+  { regex: /\b(?:eu\s+)?(?:tento\s+usar|tento\s+ativar)\s+(?:o\s+|a\s+|meu\s+|minha\s+)?(.+?)(?:\s+(?:no|na|em|contra)\b|[.!,]|$)/i, tipo: 'habilidade' },
+  // Using [ability] as auxiliary verb
+  { regex: /\b(?:eu\s+)?usando\s+(?:o\s+|a\s+|meu\s+|minha\s+)?(.+?)(?:\s+(?:no|na|em|contra|para)\b|[.!,]|$)/i, tipo: 'habilidade' },
+  // Remember that (prior fact)
+  { regex: /\b(?:eu\s+)?(?:lembro\s+que|me\s+lembro\s+que)\s+(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'fato_previo' },
+  // My character knows
+  { regex: /\b(?:meu\s+personagem\s+(?:sabe|conhece))\s+(?:que\s+|sobre\s+|de\s+)?(.+?)(?:\s+e\b|[.!,]|$)/i, tipo: 'habilidade' },
 ];
 
 // --- Deteccao ---
@@ -359,6 +376,101 @@ function _validateFatoPrevio(claim, mensagensRecentes, memoriaSemantica, base) {
     confidence: 0.5,
     candidatos: [],
   };
+}
+
+// --- Validacao pos-narrativa ---
+
+/**
+ * Palavras/expressoes que indicam negacao de posse ou capacidade.
+ */
+const NEGATION_PATTERNS = [
+  /nao\s+(?:tem|possui|carrega|porta)/,
+  /sem\s+(?:nenhum|nenhuma|arma|equipamento|item)/,
+  /nao\s+(?:sabe|conhece|pode|consegue)/,
+  /nunca\s+(?:teve|possuiu|viu)/,
+  /perdeu\s+(?:o\s+|a\s+|seu\s+|sua\s+)?/,
+  /voce\s+(?:nao\s+)?(?:esta\s+)?desarmad/,
+];
+
+/**
+ * Divide texto em sentencas usando pontuacao final como delimitador.
+ */
+function splitIntoSentences(text) {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+}
+
+/**
+ * Extrai keywords relevantes de um claim para busca na narrativa.
+ * Ex: "tem espada" → ["espada"], "sabe magia fireball" → ["magia", "fireball"]
+ */
+function extrairKeywordsDoClaim(claim) {
+  const stopWords = new Set([
+    'tem', 'possui', 'sabe', 'conhece', 'ja', 'eu', 'um', 'uma', 'o', 'a',
+    'de', 'do', 'da', 'que', 'com', 'para', 'por', 'no', 'na', 'se', 'e',
+  ]);
+  return normalizeText(claim)
+    .split(/\s+/)
+    .filter(word => word.length >= 3 && !stopWords.has(word));
+}
+
+/**
+ * Valida se a narrativa gerada contradiz claims previamente aceitos.
+ * Detecta quando o Mestre nega algo que foi validado como pertencente ao jogador.
+ *
+ * @param {Array<ClaimFlag>} claimsAceitos - Claims com status 'ok' do claimDetector
+ * @param {string} narrativa - Texto de resposta do Mestre
+ * @returns {Array<{ claim: string, tipo: string, trechoContraditorio: string }>} Contradicoes encontradas
+ */
+export function validarClaimsContraNarrativa(claimsAceitos, narrativa) {
+  if (!Array.isArray(claimsAceitos) || claimsAceitos.length === 0) return [];
+  if (!narrativa || typeof narrativa !== 'string') return [];
+
+  const narrativaNorm = normalizeText(narrativa);
+  const contradicoes = [];
+
+  for (const flag of claimsAceitos) {
+    if (flag.status !== 'ok') continue;
+
+    const keywords = extrairKeywordsDoClaim(flag.claim);
+    if (keywords.length === 0) continue;
+
+    const keywordMencionada = keywords.some(kw => narrativaNorm.includes(kw));
+    if (!keywordMencionada) continue;
+
+    // Buscar se a narrativa nega a posse/capacidade relacionada a esse claim
+    // Usa analise por sentenca para evitar falsos positivos de proximidade
+    const sentences = splitIntoSentences(narrativaNorm);
+    const temNegacao = sentences.some(sentence => {
+      const sentenceHasKeyword = keywords.some(kw => sentence.includes(kw));
+      if (!sentenceHasKeyword) return false;
+      return NEGATION_PATTERNS.some(pattern => pattern.test(sentence));
+    });
+
+    if (temNegacao) {
+      // Extrair trecho ao redor da contradicao para contexto
+      const firstKeyword = keywords.find(kw => narrativaNorm.includes(kw));
+      const pos = narrativaNorm.indexOf(firstKeyword);
+      const inicio = Math.max(0, pos - 40);
+      const fim = Math.min(narrativaNorm.length, pos + 60);
+      const trechoContraditorio = narrativaNorm.substring(inicio, fim).trim();
+
+      contradicoes.push({
+        claim: flag.claim,
+        tipo: flag.tipo,
+        trechoContraditorio,
+      });
+
+      log.warn(
+        { claim: flag.claim, tipo: flag.tipo, trecho: trechoContraditorio },
+        'Narrativa contradiz claim aceito pelo claimDetector'
+      );
+    }
+  }
+
+  return contradicoes;
 }
 
 // --- Entrada principal ---

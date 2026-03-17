@@ -1181,6 +1181,20 @@ export default class MasterNarrationEngine {
         log.warn({ err: reviewErr.message }, 'Revisao pos-IA falhou (fail-open)');
       }
 
+      // Validar claims aceitos contra narrativa final (fail-open, log-only)
+      try {
+        const { validarClaimsContraNarrativa } = await import('../../helpers/claimDetector.js');
+        const claimsAceitos = Array.isArray(claimFlags) ? claimFlags.filter(f => f.status === 'ok') : [];
+        if (claimsAceitos.length > 0) {
+          const contradicoes = validarClaimsContraNarrativa(claimsAceitos, resposta.narracao || resposta.narrativa || '');
+          if (contradicoes.length > 0) {
+            log.warn({ contradicoes, requestId }, 'Narrativa contradiz claims aceitos');
+          }
+        }
+      } catch (claimErr) {
+        log.warn({ err: claimErr.message }, 'validarClaimsContraNarrativa falhou (fail-open)');
+      }
+
       await sm.withRoomLock(roomId, async () => {
         const sessaoAtual = await sm.obterSessaoHistoria(roomId);
         const activeRequest = getActiveMestreRequest(sessaoAtual || {});
@@ -1248,7 +1262,7 @@ export default class MasterNarrationEngine {
           socket,
           sm,
           fase,
-          combateAtivo: combateAtivoEfetivo,
+          combateAtivo: combateAtivo || Boolean(resposta?.combate?.iniciado),
           combatIntent: combatIntentResolvido,
           playerCombatActionResolved
         });

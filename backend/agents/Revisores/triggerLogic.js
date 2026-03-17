@@ -65,19 +65,27 @@ export function shouldTriggerReview(ctx) {
     reasons.push('claims_detectadas');
   }
 
-  // Continuista: verificar coerência quando há material narrativo relevante
+  // Continuista: trigger apenas em combate iniciado ou roteiro+NPC mencionado na narrativa
+  const combateIniciado = Boolean(respostaIA?.combate?.iniciado);
   const temRoteiro = Boolean(
     sessao?.historiaRoteiro ||
     sessao?.mestreContexto?.historia?.roteiroCondensado
   );
   const npcsPresentes = sessao?.mestreContexto?.sessao?.npcsPresentes || [];
-  const temNpcs = Array.isArray(npcsPresentes) && npcsPresentes.length > 0;
-  const segmentos = narrativa.split(/\n\n+/).filter(Boolean);
-  const narrativaMultiSegmento = segmentos.length > 3;
+  const npcNomes = (Array.isArray(npcsPresentes) ? npcsPresentes : [])
+    .map(npc => typeof npc === 'string' ? npc : npc?.nome)
+    .filter(Boolean);
+  const narrativaMencionaNpc = npcNomes.length > 0 && npcNomes.some(nome => {
+    const escaped = nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(escaped, 'i').test(narrativa);
+  });
 
-  if (temRoteiro || temNpcs || narrativaMultiSegmento) {
+  if (combateIniciado) {
     reviewers.add('continuista');
-    reasons.push('material_narrativo_relevante');
+    reasons.push('combate_iniciado_continuista');
+  } else if (temRoteiro && narrativaMencionaNpc) {
+    reviewers.add('continuista');
+    reasons.push('roteiro_com_npc_mencionado');
   }
 
   const respostaFinalizaBatida = Boolean(
@@ -91,8 +99,8 @@ export function shouldTriggerReview(ctx) {
     reasons.push(hookAnalysis.reason || 'gancho_fraco');
   }
 
-  // Remover continuista se não há material narrativo relevante nem combate
-  if (reviewers.has('continuista') && !temRoteiro && !temNpcs && !narrativaMultiSegmento && !combateAtivo) {
+  // Remover continuista se não há roteiro+NPC nem combate
+  if (reviewers.has('continuista') && !combateIniciado && !(temRoteiro && narrativaMencionaNpc) && !combateAtivo) {
     reviewers.delete('continuista');
   }
 

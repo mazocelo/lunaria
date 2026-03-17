@@ -21,6 +21,31 @@ const VALID_EMOCOES = new Set([
 const VALID_RITMOS = new Set(['lento', 'medio', 'rapido']);
 const VALID_INTENSIDADES = new Set(['baixa', 'media', 'alta']);
 
+const EMOCAO_ALIASES = {
+  medo: 'tenso', curiosidade: 'neutro', esperanca: 'acolhedor',
+  raiva: 'ameacador', determinacao: 'epico', alegria: 'acolhedor',
+  ansiedade: 'tenso', melancolia: 'triste', desespero: 'urgente',
+  misterio: 'sombrio', hostilidade: 'ameacador', serenidade: 'calmo',
+};
+const RITMO_ALIASES = {
+  moderado: 'medio', acelerado: 'rapido', devagar: 'lento',
+  normal: 'medio', veloz: 'rapido',
+};
+const INTENSIDADE_ALIASES = {
+  moderada: 'media', forte: 'alta', fraca: 'baixa',
+  normal: 'media', maxima: 'alta', minima: 'baixa',
+};
+const TIPO_ALIASES = { dialogo: 'fala_npc', descricao: 'narracao', acao: 'narracao', ambiente: 'narracao' };
+
+function resolveAlias(value, aliases, validSet, fallback) {
+  if (!value) return fallback;
+  const key = String(value).toLowerCase().trim();
+  if (validSet.has(key)) return key;
+  const aliased = aliases[key];
+  if (aliased && validSet.has(aliased)) return aliased;
+  return fallback;
+}
+
 const DEFAULT_NARRACAO = Object.freeze({
   emocao: 'neutro',
   ritmo: 'medio',
@@ -49,8 +74,11 @@ function slugify(value, fallback = 'item') {
   return normalized || fallback;
 }
 
+const VALID_TIPOS = new Set(['fala_npc', 'narracao']);
+
 function inferSegmentType(segment = {}) {
-  const explicitType = asTrimmedString(segment.tipo || segment.type, '').toLowerCase();
+  const rawType = asTrimmedString(segment.tipo || segment.type, '').toLowerCase();
+  const explicitType = VALID_TIPOS.has(rawType) ? rawType : (TIPO_ALIASES[rawType] || '');
   if (explicitType === 'fala_npc') return 'fala_npc';
   if (explicitType === 'narracao') return 'narracao';
 
@@ -61,14 +89,10 @@ function inferSegmentType(segment = {}) {
 }
 
 function normalizeNarracao(raw = {}) {
-  const emocao = asTrimmedString(raw?.emocao, DEFAULT_NARRACAO.emocao).toLowerCase();
-  const ritmo = asTrimmedString(raw?.ritmo, DEFAULT_NARRACAO.ritmo).toLowerCase();
-  const intensidade = asTrimmedString(raw?.intensidade, DEFAULT_NARRACAO.intensidade).toLowerCase();
-
   return {
-    emocao: VALID_EMOCOES.has(emocao) ? emocao : DEFAULT_NARRACAO.emocao,
-    ritmo: VALID_RITMOS.has(ritmo) ? ritmo : DEFAULT_NARRACAO.ritmo,
-    intensidade: VALID_INTENSIDADES.has(intensidade) ? intensidade : DEFAULT_NARRACAO.intensidade
+    emocao: resolveAlias(raw?.emocao, EMOCAO_ALIASES, VALID_EMOCOES, DEFAULT_NARRACAO.emocao),
+    ritmo: resolveAlias(raw?.ritmo, RITMO_ALIASES, VALID_RITMOS, DEFAULT_NARRACAO.ritmo),
+    intensidade: resolveAlias(raw?.intensidade, INTENSIDADE_ALIASES, VALID_INTENSIDADES, DEFAULT_NARRACAO.intensidade)
   };
 }
 

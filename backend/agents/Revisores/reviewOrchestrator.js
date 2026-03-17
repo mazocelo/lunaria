@@ -13,6 +13,33 @@ let _arbitro = null;
 let _continuista = null;
 let _gancho = null;
 
+// Circuit breaker state (in-memory, resets on restart)
+const _circuitState = {
+  arbitro: { failures: 0, openUntil: 0 },
+  continuista: { failures: 0, openUntil: 0 },
+  gancho: { failures: 0, openUntil: 0 },
+};
+const CIRCUIT_FAILURE_THRESHOLD = 5;
+const CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000;
+
+function isCircuitOpen(name) {
+  return Date.now() < _circuitState[name].openUntil;
+}
+
+function recordSuccess(name) {
+  _circuitState[name].failures = 0;
+  _circuitState[name].openUntil = 0;
+}
+
+function recordFailure(name) {
+  const state = _circuitState[name];
+  state.failures += 1;
+  if (state.failures >= CIRCUIT_FAILURE_THRESHOLD) {
+    state.openUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+    log.error({ reviewer: name, failures: state.failures, cooldownMs: CIRCUIT_COOLDOWN_MS }, 'CIRCUIT_OPEN — reviewer disabled temporarily');
+  }
+}
+
 function getArbitro() {
   if (!_arbitro) _arbitro = new ArbitroMecanico();
   return _arbitro;
@@ -104,12 +131,21 @@ function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnaly
   for (const v of verdicts) {
     if (v.severidade !== 'error') continue;
 
-    // Árbitro — logar, não alterar narrativa (correção mecânica é responsabilidade do claim detector)
+    // Árbitro — substituir trecho problemático se correcao_sugerida disponível
     if (v.reviewer === 'arbitro') {
-      log.warn(
-        { veredicto: v.veredicto, correcao: v.correcao_sugerida, notas: v.notas },
-        'Arbitro detectou erro mecanico na narrativa'
-      );
+      if (v.correcao_sugerida) {
+        corrected = v.correcao_sugerida;
+        applied = true;
+        log.warn(
+          { veredicto: v.veredicto, correcao: v.correcao_sugerida, notas: v.notas },
+          'Arbitro corrigiu erro mecanico na narrativa'
+        );
+      } else {
+        log.warn(
+          { veredicto: v.veredicto, notas: v.notas },
+          'Arbitro detectou erro mecanico sem correcao sugerida'
+        );
+      }
       continue;
     }
 
@@ -175,7 +211,7 @@ export async function executarRevisao(ctx) {
   const labels = [];
 
   // Preparar Árbitro
-  if (trigger.reviewers.includes('arbitro')) {
+  if (trigger.reviewers.includes('arbitro') && !isCircuitOpen('arbitro')) {
     const personagem = extrairPersonagemSnapshot(sessao, ctx.userId);
     promises.push(
       getArbitro().validar({
@@ -191,7 +227,7 @@ export async function executarRevisao(ctx) {
   }
 
   // Preparar Continuista
-  if (trigger.reviewers.includes('continuista')) {
+  if (trigger.reviewers.includes('continuista') && !isCircuitOpen('continuista')) {
     const contCtx = extrairContextoContinuidade(sessao);
     promises.push(
       getContinuista().validar({
@@ -203,7 +239,7 @@ export async function executarRevisao(ctx) {
     labels.push('continuista');
   }
 
-  if (trigger.reviewers.includes('gancho')) {
+  if (trigger.reviewers.includes('gancho') && !isCircuitOpen('gancho')) {
     promises.push(
       getGancho().validar({
         narrativa,
@@ -220,8 +256,10 @@ export async function executarRevisao(ctx) {
 
   const verdicts = results.map((r, i) => {
     if (r.status === 'fulfilled') {
+      recordSuccess(labels[i]);
       return { reviewer: labels[i], ...r.value };
     }
+    recordFailure(labels[i]);
     log.warn({ reviewer: labels[i], err: r.reason?.message }, 'Revisor falhou (fail-open)');
     return { reviewer: labels[i], veredicto: 'ok', severidade: 'info', notas: 'falha no revisor' };
   });

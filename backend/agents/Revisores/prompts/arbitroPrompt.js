@@ -20,6 +20,11 @@ VERIFICACOES:
 6. Critico narrado bate com critico mecanico?
 7. Efeitos de status aplicados batem com o resultado?
 
+CLAIMS JA VALIDADOS:
+- Se uma alegacao aparece como "JA VALIDADO" na entrada, o claimDetector ja verificou contra a ficha real.
+- NAO revalide esses claims. Confie no resultado e foque nas outras verificacoes.
+- Apenas verifique claims listados como "PENDENTES".
+
 FORMATO DE RESPOSTA (JSON):
 {
   "veredicto": "ok" | "contradicao" | "regra_invalida" | "faltou_resultado" | "alegacao_inexistente",
@@ -76,10 +81,22 @@ export function montarInputArbitro({ narrativa, resultadoMecanico, personagem, a
   }
 
   if (claimFlags?.length > 0) {
-    const flagTexts = claimFlags.map(f =>
-      `- "${f.claim}" (${f.tipo}): ${f.status} — ${f.motivo || 'ok'}`
-    );
-    parts.push(`ALEGACOES DETECTADAS:\n${flagTexts.join('\n')}`);
+    const validados = claimFlags.filter(f => f.status === 'ok');
+    const naoValidados = claimFlags.filter(f => f.status !== 'ok');
+
+    if (validados.length > 0) {
+      const textos = validados.map(f =>
+        `- "${f.claim}" (${f.tipo}): VALIDADO via ${f.fonte || 'claimDetector'} (confianca ${f.confidence ?? '?'})`
+      );
+      parts.push(`CLAIMS JA VALIDADOS (nao revalidar):\n${textos.join('\n')}`);
+    }
+
+    if (naoValidados.length > 0) {
+      const flagTexts = naoValidados.map(f =>
+        `- "${f.claim}" (${f.tipo}): ${f.status} — ${f.motivo || 'pendente'}`
+      );
+      parts.push(`ALEGACOES PENDENTES (verificar):\n${flagTexts.join('\n')}`);
+    }
   }
 
   return parts.join('\n\n');

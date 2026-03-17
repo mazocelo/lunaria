@@ -11,6 +11,104 @@ import {
   migrarEstadoTaticoLegado
 } from './estadoTatico.js';
 
+// Mapa de palavras-chave por vantagem passiva (nome normalizado sem acentos)
+const KEYWORD_MAP = {
+  'visao noturna':        ['escur', 'noite', 'caverna', 'subterran', 'sombr', 'penumbra'],
+  'visao no escuro':      ['escur', 'noite', 'caverna', 'subterran', 'sombr', 'penumbra'],
+  'reflexos':             ['combate', 'luta', 'emboscada', 'surpres'],
+  'sentido sismico':      ['caverna', 'subterran', 'terra', 'solo', 'tremor'],
+  'respiracao aquatica':  ['agua', 'subaqua', 'oceano', 'rio', 'lago', 'inundad', 'submer'],
+  'resistencia ao frio':  ['frio', 'neve', 'gelo', 'gelad', 'congelant'],
+  'resistencia ao calor': ['fogo', 'calor', 'lava', 'desert', 'quente', 'vulcan'],
+  'furtividade':          ['escur', 'noite', 'sombr', 'floresta', 'urbano'],
+  'rastreador':           ['floresta', 'selva', 'trilha', 'rastro'],
+  'afinidade arcana':     ['magia', 'arcan', 'mistic', 'encantad', 'ritual'],
+  'empatia animal':       ['animal', 'fera', 'besta', 'criatura', 'floresta', 'selva'],
+  'sexto sentido':        ['emboscada', 'armadilha', 'surpres', 'perigo'],
+  'diplomatico':          ['cidade', 'vila', 'corte', 'nobre', 'mercado', 'taverna', 'urban'],
+};
+
+function removerAcentos(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Filtra vantagens passivas aplicáveis ao contexto atual da cena.
+ * Retorna array de {nome, descricao, bonus, motivo} para cada passiva relevante.
+ */
+function filtrarPassivasAplicaveis(vantagens, sceneContext) {
+  const { cenaAtual, ambiente, terreno, combateAtivo, horaFiccional, efeitos } = sceneContext;
+
+  const passivas = vantagens.filter(v => v.usar === 0 || v.usar == null);
+  if (passivas.length === 0) return [];
+
+  const terrenoTexto = terreno?.tipo || terreno?.label || (typeof terreno === 'string' ? terreno : '');
+  const terrenoTags = Array.isArray(terreno?.tags) ? terreno.tags.join(' ') : '';
+  const efeitosTexto = Array.isArray(efeitos)
+    ? efeitos.map(e => `${e.nome || ''} ${e.descricao || ''}`).join(' ')
+    : '';
+
+  const contextoTexto = [
+    cenaAtual, ambiente, terrenoTexto, terrenoTags,
+    horaFiccional, efeitosTexto,
+    combateAtivo ? 'combate' : ''
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  const resultado = [];
+
+  for (const v of passivas) {
+    const nomeNorm = removerAcentos((v.nome || '').toLowerCase().trim());
+
+    // 1) Tentar match via KEYWORD_MAP
+    const keywords = KEYWORD_MAP[nomeNorm];
+    if (keywords) {
+      const matched = keywords.find(kw => contextoTexto.includes(kw));
+      if (matched) {
+        resultado.push({
+          nome: v.nome,
+          descricao: v.efeito?.descricao || v.descricao || null,
+          bonus: v.efeito?.bonus || v.bonus || null,
+          motivo: matched,
+        });
+        continue;
+      }
+    }
+
+    // 2) Fallback: palavras da descricao do efeito como keywords
+    const descEfeito = removerAcentos((v.efeito?.descricao || '').toLowerCase());
+    if (descEfeito.length > 5) {
+      const palavras = descEfeito.split(/\s+/).filter(p => p.length > 4);
+      const matchDesc = palavras.find(p => contextoTexto.includes(p));
+      if (matchDesc) {
+        resultado.push({
+          nome: v.nome,
+          descricao: v.efeito?.descricao || v.descricao || null,
+          bonus: v.efeito?.bonus || v.bonus || null,
+          motivo: matchDesc,
+        });
+        continue;
+      }
+    }
+
+    // 3) Fallback: combate-specific — se combateAtivo e nome sugere combate
+    if (combateAtivo) {
+      const combateKeywords = ['combate', 'luta', 'ataque', 'defesa', 'dano', 'armadura'];
+      const nomeEDescricao = `${nomeNorm} ${descEfeito}`;
+      const matchCombate = combateKeywords.find(kw => nomeEDescricao.includes(kw));
+      if (matchCombate) {
+        resultado.push({
+          nome: v.nome,
+          descricao: v.efeito?.descricao || v.descricao || null,
+          bonus: v.efeito?.bonus || v.bonus || null,
+          motivo: matchCombate,
+        });
+      }
+    }
+  }
+
+  return resultado;
+}
+
 /**
  * Monta state object estruturado para um jogador no turno
  */
@@ -129,6 +227,18 @@ export function buildTurnState(sessao, userId, personagem = {}) {
   state.tensao = estadoJogo.tensao || null;
   state.ameacas = Array.isArray(estadoJogo.ameacas) ? estadoJogo.ameacas : [];
 
+  // Passivas aplicáveis ao contexto atual da cena
+  const combateAtivo = Boolean(sessao.estadoJogo?.combate?.ativo);
+  state.passivasAplicaveis = filtrarPassivasAplicaveis(
+    pcCompleto.vantagens || [],
+    { cenaAtual: state.cenaAtual, ambiente: state.ambiente, terreno: state.terreno,
+      combateAtivo, horaFiccional: state.horaFiccional, efeitos: state.efeitos }
+  );
+
+  // Contador de desvantagens ativadas na cena
+  state.desvantagensAtivadas = estadoJogo.desvantagensAtivadas?.[String(userId)] || 0;
+  state.desvantagensLimiteCena = 2;
+
   // Runtime tático avançado
   state.boss = getBossResumo(sessao);
   state.batalha_grande = getBatalhaGrandeResumo(sessao);
@@ -188,13 +298,26 @@ export function formatTurnStateText(state) {
     }).join(', ')}`);
   }
 
+  if (state.passivasAplicaveis?.length > 0) {
+    lines.push(`⚡ Vantagens ATIVAS nesta cena (aplique na narração):`);
+    for (const p of state.passivasAplicaveis) {
+      const bonusStr = p.bonus ? ` [${p.bonus}]` : '';
+      lines.push(`  → ${p.nome}${bonusStr} — Cena contém: ${p.motivo}`);
+    }
+  }
+
   if (state.vantagensPassivas?.length > 0) {
-    lines.push(`Vantagens ativas: ${state.vantagensPassivas.join(', ')}`);
+    const nomesAtivas = new Set((state.passivasAplicaveis || []).map(p => p.nome));
+    const foraContexto = state.vantagensPassivas.filter(n => !nomesAtivas.has(n));
+    if (foraContexto.length > 0) {
+      lines.push(`Vantagens passivas (fora do contexto): ${foraContexto.join(', ')}`);
+    }
   }
 
   if (state.desvantagensAlerta?.length > 0) {
     lines.push(`Desvantagens (alerta): ${state.desvantagensAlerta.join(', ')}`);
   }
+  lines.push(`Desvantagens ativadas nesta cena: ${state.desvantagensAtivadas ?? 0}/${state.desvantagensLimiteCena ?? 2}`);
 
   // Inventário atual
   if (state.inventario?.length > 0) {

@@ -1,18 +1,46 @@
 import { ChatGroq } from '@langchain/groq';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatAnthropic } from '@langchain/anthropic';
-import { RunnableSequence } from '@langchain/core/runnables';
+import { RunnableSequence, RunnableLambda } from '@langchain/core/runnables';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
+import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import dotenv from 'dotenv';
 
-import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider } from './config.js';
+import { MESTRE_CONFIG, DEPRECATED_MODELS, detectProvider, getModelParams } from './config.js';
 import analyticsService from '../../services/analyticsService.js';
 import usageService from '../../services/usageService.js';
 import { normalizeNarrationSegments, aggregateNarrationFromSegments } from '../../services/narrationSegmentsService.js';
 import { buildHistoriaConfigPrompt, getTurnActionLimit } from '../../helpers/historiaConfigHelper.js';
+import { criarPromptTurnoPrimeira, criarPromptTurnoSeguinte, criarPromptTurnoFinal } from './prompts/turno.js';
 import logger from '../../helpers/logger.js';
 
 const log = logger.child({ module: 'MestreAgent' });
+
+/**
+ * Invoca a chain, usando .stream() para Anthropic (que rejeita .invoke() em requests longos)
+ * e .invoke() para os demais providers. Retorna o mesmo formato de response.
+ */
+async function invokeOrStream(chain, input, provider) {
+  if (provider === 'anthropic') {
+    // Anthropic SDK v4+ requer streaming para requests com timeout > 10min calculado pelo SDK.
+    // Coletamos o stream completo e retornamos como se fosse .invoke().
+    const stream = await chain.stream(input);
+    let fullContent = '';
+    let lastResponse = null;
+    for await (const chunk of stream) {
+      const text = typeof chunk.content === 'string' ? chunk.content : '';
+      fullContent += text;
+      lastResponse = chunk;
+    }
+    // Montar response compatível com formato de .invoke()
+    return {
+      content: fullContent,
+      response_metadata: lastResponse?.response_metadata || {},
+      usage_metadata: lastResponse?.usage_metadata || {},
+    };
+  }
+  return chain.invoke(input);
+}
 
 // Timeout wrapper for AI calls
 function withTimeout(promise, ms = MESTRE_CONFIG.model.timeout) {
@@ -73,8 +101,9 @@ function parseIAJson(content) {
 
   // Remover markdown code blocks (```json ... ``` ou ``` ... ```)
   const cleaned = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  const sanitized = cleaned.replace(/,\s*([}\]])/g, '$1');
   try {
-    return JSON.parse(cleaned);
+    return JSON.parse(sanitized);
   } catch (_) { /* continuar */ }
 
   // Tentar extrair primeiro bloco JSON { ... } do texto
@@ -345,6 +374,24 @@ function fallbackSolicitaDados(respostaJSON) {
       dificuldade
     };
   }
+
+  if (!respostaJSON.solicitaDados?.solicita) {
+    const match2 = narrativa.match(/(?:[Ff]a[çc]a|[Rr]ealiz[ea])\s+um\s+teste\s+de\s+([A-Za-zÀ-ÿ\s]+?)(?:\s*[!.]|\s*\()/);
+    if (match2) {
+      const teste = match2[1].trim();
+      log.info({ teste, dificuldade: 'Média' }, 'Fallback2 solicitaDados detectado');
+      respostaJSON.solicitaDados = { solicita: true, tipo: 'd20', teste, dificuldade: 'Média' };
+    }
+  }
+
+  if (!respostaJSON.solicitaDados?.solicita) {
+    const match3 = narrativa.match(/[Tt]este\s+de\s+([A-Z][a-zà-ÿ]+)(?:\s*[!.,])/);
+    if (match3) {
+      const teste = match3[1].trim();
+      log.info({ teste, dificuldade: 'Média' }, 'Fallback3 solicitaDados detectado');
+      respostaJSON.solicitaDados = { solicita: true, tipo: 'd20', teste, dificuldade: 'Média' };
+    }
+  }
 }
 
 function extrairTeste(respostaJSON = {}) {
@@ -545,9 +592,7 @@ export class MestreAgent {
     try {
       // Merge config customizada com defaults + clamp values
       let modelName = this.configOverride?.modelo || MESTRE_CONFIG.model.name;
-      const rawTemp = this.configOverride?.temperatura ?? MESTRE_CONFIG.model.temperature;
       const rawTokens = this.configOverride?.max_tokens ?? MESTRE_CONFIG.model.maxTokens;
-      const temperature = Math.min(2, Math.max(0, rawTemp));
       const maxTokens = Math.min(32000, Math.max(100, rawTokens));
 
       // Fallback de modelos deprecados
@@ -559,6 +604,14 @@ export class MestreAgent {
 
       this.modelName = modelName;
 
+      // Per-model temperature/topP (configOverride still wins)
+      const modelParams = getModelParams(modelName);
+      const rawTemp = this.configOverride?.temperatura ?? modelParams.temperature;
+      const temperature = Math.min(2, Math.max(0, rawTemp));
+      const topP = modelParams.topP;
+
+      log.debug({ modelName, temperature, topP }, 'Resolved model params');
+
       // Detectar provider pelo prefixo do modelo
       const provider = detectProvider(modelName);
       if (provider === 'gemini') {
@@ -566,9 +619,10 @@ export class MestreAgent {
           apiKey: process.env.GOOGLE_API_KEY,
           model: modelName,
           temperature,
-          maxOutputTokens: maxTokens
+          maxOutputTokens: maxTokens,
+          responseMimeType: 'application/json',
         });
-        log.info({ provider: 'gemini', modelName }, 'Modelo inicializado');
+        log.info({ provider: 'gemini', modelName, temperature }, 'Modelo inicializado');
       } else if (provider === 'anthropic') {
         this.model = new ChatAnthropic({
           apiKey: process.env.ANTHROPIC_API_KEY,
@@ -579,44 +633,56 @@ export class MestreAgent {
         // LangChain sets topP=-1 by default which Anthropic rejects;
         // also Claude 4.x doesn't allow temperature+top_p together
         this.model.topP = undefined;
-        log.info({ provider: 'anthropic', modelName }, 'Modelo inicializado');
+        log.info({ provider: 'anthropic', modelName, temperature }, 'Modelo inicializado');
       } else {
         this.model = new ChatGroq({
           apiKey: process.env.GROQ_API_KEY,
           model: modelName,
           temperature,
           maxTokens,
-          topP: MESTRE_CONFIG.model.topP
+          topP
         });
-        log.info({ provider: 'groq', modelName }, 'Modelo inicializado');
+        log.info({ provider: 'groq', modelName, temperature, topP }, 'Modelo inicializado');
       }
 
-      // Criar prompt template (com personalidade custom se houver)
+      // Choose schema variant based on provider (compact for Groq to save context)
+      const schemaVariant = provider === 'groq' ? 'compact' : 'full';
+
+      // Build system prompt with plain braces (not escaped for LangChain templates).
+      // We inject the system message directly to avoid ChatPromptTemplate
+      // interpreting JSON braces as template variables.
       const promptSistema = criarPromptSistema(
         this.temas,
         this.personagens,
         this.configOverride,
         this.catalogo,
         this.roteiroCondensado,
-        this.contextoPersistenteFormatado
+        this.contextoPersistenteFormatado,
+        { schemaVariant }
       );
-      const prompt = ChatPromptTemplate.fromMessages([
-        ['system', promptSistema],
-        new MessagesPlaceholder('chat_history'),
-        ['human', '{input}']
-      ]);
+      const systemMessage = new SystemMessage(promptSistema);
 
-      // Criar chain
+      // Store provider info for downstream use
+      this.provider = provider;
+
+      // Build the chain using direct message construction to avoid
+      // LangChain template parser misinterpreting JSON braces in schema
+      const model = this.model;
       this.chain = RunnableSequence.from([
-        {
-          input: (input) => input.input,
-          chat_history: (input) => input.chat_history || []
-        },
-        prompt,
-        this.model
+        new RunnableLambda({
+          func: (input) => {
+            const messages = [
+              systemMessage,
+              ...(input.chat_history || []),
+              new HumanMessage(input.input)
+            ];
+            return messages;
+          }
+        }),
+        model
       ]);
 
-      log.info('Chain criada com sucesso');
+      log.info({ provider, schemaVariant }, 'Chain criada com sucesso');
     } catch (error) {
       log.error({ err: error.message }, 'Erro ao inicializar modelo');
       this.model = null;
@@ -676,10 +742,10 @@ export class MestreAgent {
       }
 
       // Invocar chain with timeout + retry
-      const response = await withRetry(() => withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(invokeOrStream(this.chain, {
         input: inputCompleto,
         chat_history: historico
-      }), timeoutMs), retryAttempts);
+      }, this.provider), timeoutMs), retryAttempts);
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -911,10 +977,10 @@ export class MestreAgent {
       }
 
       // Invocar chain with timeout + retry
-      const response = await withRetry(() => withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(invokeOrStream(this.chain, {
         input,
         chat_history: []
-      })));
+      }, this.provider)));
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -978,10 +1044,10 @@ export class MestreAgent {
 
       const historico = converterHistoricoParaLangChain(chatHistory);
 
-      const response = await withTimeout(this.chain.invoke({
+      const response = await withTimeout(invokeOrStream(this.chain, {
         input,
         chat_history: historico
-      }));
+      }, this.provider));
 
       analyticsService.track('ai_response', {
         duration_ms: Date.now() - startTime,
@@ -1031,35 +1097,20 @@ export class MestreAgent {
       const maxAcoesPorTurno = getTurnActionLimit(historiaConfig);
       log.info({ turno, personagem, rodada }, 'Narrando turno');
 
-      // Criar prompt específico para turno
-      let input = `TURNO DO JOGADOR ${personagem} (Jogador: ${jogador})
-Rodada: ${rodada} | Turno: ${turno} | Mensagem ${contadorMensagens + 1}/${maxAcoesPorTurno}
-
-Mensagem do Jogador:
-"${mensagem}"
-
-`;
-
-      const respostasRestantes = Math.max(0, maxAcoesPorTurno - contadorMensagens - 1);
-
-      // Se já alcançou a ultima resposta disponível, avise para finalizar.
+      // Criar prompt específico para turno usando funções extraídas
+      let input;
       if (contadorMensagens >= maxAcoesPorTurno - 1) {
-        input += `\n⚠️ IMPORTANTE: Este é o limite de interações deste turno. Finalize a ação do jogador de forma conclusiva e use fimDeTurno: true no JSON.\n`;
+        input = criarPromptTurnoFinal(jogador, personagem, mensagem, rodada, turno);
+      } else if (contadorMensagens === 0) {
+        input = criarPromptTurnoPrimeira(jogador, personagem, mensagem, rodada, turno, maxAcoesPorTurno, contadorMensagens);
       } else {
-        input += `\nResponda à ação do jogador de forma dinâmica e envolvente. Você ainda tem ${respostasRestantes} resposta(s) disponíveis neste turno.\n\nSe a ação estiver completamente resolvida, use fimDeTurno: true no JSON.\n`;
+        input = criarPromptTurnoSeguinte(jogador, personagem, mensagem, rodada, turno, maxAcoesPorTurno, contadorMensagens);
       }
 
       // Converter histórico
       const promptHints = analyzePlayerMessageForPromptHints(mensagem);
 
       input += `\n${buildHistoriaConfigPrompt(historiaConfig)}\n`;
-      input += `\nPRIORIDADE DE CONTINUIDADE:\n- Continue exatamente da ultima batida canonica do chat_history.\n- Nao reabra a cena, nao repita introducoes recentes e nao reapresente NPCs ja presentes sem mudanca explicita.\n- Se a ultima interacao foi uma fala direta entre personagem e NPC, responda a essa fala antes de criar novo evento.\n- Se a cena ja estiver em andamento, avance a situacao; nao volte para a descricao inicial da sala.\n- Se o prologo ou a cena ja estabeleceram a atmosfera, entregue apenas o delta da situacao atual.\n- Prefira respostas curtas e concretas; evite blocos longos de contemplacao.\n- Em combate, trate o resumo mecanico como verdade: nao confirme dano letal, abate ou sucesso final se o contexto disser que a acao ainda depende de teste.\n- Se a resposta NAO encerrar o turno, a ultima frase deve propor um proximo movimento jogavel concreto: pergunta, ordem, resposta, revelacao, interrupcao ou evento imediato.\n- A deixa final deve ser clara o bastante para o jogador perceber imediatamente como se conectar a cena.\n- Evite fechar com pergunta ampla ou missao abstrata, como "o que faremos agora?" ou "voce precisa investigar isso". Prefira objeto, porta, pista, pessoa, perigo ou escolha localizada na cena.\n- Se a cena ficar confusa, aberta demais ou pouco acionavel, voce pode incluir uma pequena sugestao opcional de encaminhamento, desde que ela preserve a liberdade do jogador e soe natural na ficcao.\n- Se a resposta encerrar o turno, conclua a batida de forma limpa e nao force um novo gancho.\n`;
-
-      if (contadorMensagens === 0) {
-        input += `\nGUIA DA PRIMEIRA MENSAGEM DO TURNO:\n- Esta primeira mensagem pode ser mais desenvolvida do que as demais.\n- Ela deve encaixar o personagem na situacao concreta, e nao apenas descreve-lo caminhando ou sentindo o ambiente.\n- Explique brevemente por que ele esta ali agora e o que o recebe na cena.\n- Fixe a situacao atual com clareza: onde ele esta, quem ou o que esta diante dele, e qual tensao imediata esta em jogo.\n- Se um NPC estiver presente, use a fala dele para mover a cena, nao para comentar genericamente o heroi. Evite vocativos excessivos, elogios vagos, intimidacao social gratuita e fala expositiva teatral.\n- Se um NPC responder a uma pergunta do jogador, ele deve devolver um encaixe imediato ligado a essa pergunta: mostrar o pergaminho, estender a nota, apontar a porta, indicar a escada, chamar para examinar algo ou oferecer uma escolha curta e localizada.\n- Se esta primeira mensagem NAO encerrar o turno, termine com uma proposta jogavel clara: pergunta, ordem, convite, pista, escolha, interrupcao ou evento concreto.\n- Essa proposta precisa deixar nitido como o jogador pode se conectar a cena imediatamente.\n- Nao use pergunta ampla ou abstrata como gancho final. O gancho deve apontar para algo localizado na cena atual.\n- Se ainda houver ambiguidade, inclua uma pequena sugestao opcional de proximo passo, sem engessar a resposta.\n- Se esta primeira mensagem encerrar o turno, feche a batida sem criar uma nova proposta.\n- Nao termine apenas em atmosfera, reflexao interna ou expectativa vaga.\n`;
-      } else {
-        input += `\nGUIA DAS MENSAGENS SEGUINTES:\n- Responda primeiro a acao do jogador.\n- Avance a situacao atual sem reabrir a cena.\n- Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.\n- Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.\n- Evite repetir descricao de ambiente ou identidade do personagem.\n- Se a resposta vier de um NPC, faca essa fala destravar a cena com algo concreto, e nao apenas reafirmar a missao geral.\n- Se a resposta NAO encerrar o turno, ela deve empurrar a historia para o proximo beat e propor o proximo movimento.\n- Deixe a deixa final clara e acionavel, para que o jogador nao precise adivinhar qual conexao fazer.\n- Evite fechar em missao abstrata; prefira porta, objeto, pista, escolha, alvo, lugar ou ordem imediata.\n- Se a cena estiver difusa demais, inclua uma pequena sugestao opcional, curta e diegetica, para ajudar o jogador a se conectar.\n- Se a resposta encerrar o turno, conclua a acao e nao force um novo gancho.\n`;
-      }
 
       if (promptHints.acceptedMission) {
         input += `\nGUIA ESPECIFICO PARA ESTA MENSAGEM:\n- O jogador JA aceitou ajudar. Nao repita o briefing, nao tente convence-lo de novo e nao reembale a mesma missao.\n- Faca o NPC avancar para o proximo passo imediato: entregar um item, abrir caminho, apontar uma porta, revelar um detalhe pratico, chamar para segui-lo ou oferecer uma escolha localizada.\n- Se houver um objeto importante em cena, coloque esse objeto fisicamente na mao, mesa ou campo de visao do jogador.\n`;
@@ -1089,10 +1140,10 @@ Mensagem do Jogador:
       }
 
       // Invocar chain with timeout + retry
-      const response = await withRetry(() => withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(invokeOrStream(this.chain, {
         input,
         chat_history: historico
-      }), timeoutMs), retryAttempts);
+      }, this.provider), timeoutMs), retryAttempts);
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -1203,10 +1254,10 @@ Narre a transição e apresente o novo desafio:`;
         throw new Error('Modelo de IA nao inicializado');
       }
 
-      const response = await withRetry(() => withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(invokeOrStream(this.chain, {
         input,
         chat_history: historico
-      })));
+      }, this.provider)));
 
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
@@ -1316,10 +1367,10 @@ Seja conciso (máximo 100 palavras).`;
       }
 
       const startTime = Date.now();
-      const response = await withRetry(() => withTimeout(this.chain.invoke({
+      const response = await withRetry(() => withTimeout(invokeOrStream(this.chain, {
         input: inputCompleto,
         chat_history: historico.slice(-HISTORY_LIMIT)
-      })));
+      }, this.provider)));
       trackLLMUsage(response, this.modelName, this.userId, startTime);
 
       return {

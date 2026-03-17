@@ -440,7 +440,6 @@ export function getCompactacaoState(estadoJogo = {}, mensagens = []) {
 export function buildSessionContext(sessao = {}, resumoRecente = null, progressao = null) {
   const estadoJogo = sessao.estadoJogo || {};
   const contextoExistente = sessao.mestreContexto?.sessao || {};
-  const compactacao = getCompactacaoState(estadoJogo, sessao.mensagens || []);
   const terrenoAtual = getTerrenoLabel(normalizarTerrenoInput(estadoJogo.terreno));
 
   return {
@@ -473,13 +472,12 @@ export function buildSessionContext(sessao = {}, resumoRecente = null, progressa
     relacoesNPC: Array.isArray(contextoExistente.relacoesNPC) ? contextoExistente.relacoesNPC.slice(0, MAX_LIST_ITEMS) : [],
     roleplayRecente: uniqueList(
       (sessao.roleplayRecente || []).map(item => `${item.username}: ${item.mensagem || item.message || ''}`)
-    ).slice(-10),
-    compactacao
+    ).slice(-10)
   };
 }
 
 export function buildMestreContext(sessao = {}, historia = null, extras = {}) {
-  const roteiro = extras.roteiroCondensado || condensarRoteiro(inferRoteiro(sessao, historia), buildBlueprintContext(sessao));
+  const roteiro = extras.roteiroCondensado || condensarRoteiro(inferRoteiro(sessao, historia), buildBlueprintContext(sessao, historia));
   const contextoBase = sessao.mestreContexto || {};
   const progressao = extras.progressao || sessao.estadoJogo?.progressao || null;
   const resumoRecente = extras.resumoRecente || null;
@@ -630,18 +628,39 @@ function parseStructuredSection(summary = '', title = '') {
  * Agrega estadoJogo + mestreContexto.sessao em objeto flat.
  * Leitura pura — não muta sessão.
  */
-export function buildBlueprintContext(sessao) {
+export function buildBlueprintContext(sessao, historia = null) {
   const ej = sessao?.estadoJogo || {};
   const ctx = sessao?.mestreContexto?.sessao || {};
   const progressao = ej.progressao || null;
+
+  // Build NPC rename map from PJ/NPC name collisions
+  const renameMap = new Map();
+  if (historia) {
+    const collisions = buildNameCollisionMap(sessao, historia);
+    for (const collision of collisions) {
+      const key = collision.nome.toLowerCase();
+      renameMap.set(key, `${collision.nome} (NPC)`);
+    }
+    if (renameMap.size > 0) {
+      log.info({ renames: Object.fromEntries(renameMap) }, 'NPC name conflict renames applied in buildBlueprintContext');
+    }
+  }
+
+  const applyRename = (name) => {
+    const key = String(name || '').toLowerCase();
+    return renameMap.get(key) || name;
+  };
+
+  const rawNpcs = Array.isArray(ej.npcs) ? ej.npcs : (ctx.npcsPresentes || []);
+  const rawNpcsEncontrados = ctx.npcsEncontrados || [];
 
   return {
     arcoAtual: progressao?.arco_atual || null,
     cenaAtual: ej.cenaAtual || ctx.cenaAtual || null,
     ambiente: ej.ambiente || ctx.ambiente || null,
     terreno: ej.terreno || null,
-    npcs: Array.isArray(ej.npcs) ? ej.npcs : (ctx.npcsPresentes || []),
-    npcsEncontrados: ctx.npcsEncontrados || [],
+    npcs: rawNpcs.map(applyRename),
+    npcsEncontrados: rawNpcsEncontrados.map(applyRename),
     locaisVisitados: ctx.locaisVisitados || [],
     objetivosAbertos: ctx.objetivosAbertos || [],
     pistasDescobertas: ctx.pistasDescobertas || [],
@@ -892,7 +911,7 @@ export async function prepareMestrePayload(sessao = {}, historia = null) {
     log.warn({ err: error }, 'Erro ao construir catalogo para Mestre');
   }
 
-  const roteiroCondensado = condensarRoteiro(inferRoteiro(sessao, historia), buildBlueprintContext(sessao));
+  const roteiroCondensado = condensarRoteiro(inferRoteiro(sessao, historia), buildBlueprintContext(sessao, historia));
   const mestreContexto = buildMestreContext(sessao, historia, {
     roteiroCondensado
   });

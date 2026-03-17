@@ -55,7 +55,7 @@ export function montarInputContinuista({ narrativa, memoriaSemantica, roteiroCon
   }
 
   if (roteiroCondensado) {
-    parts.push(`ROTEIRO (resumo condensado — jogador NAO deve saber disso):\n${String(roteiroCondensado).substring(0, 300)}`);
+    parts.push(`ROTEIRO (resumo condensado — jogador NAO deve saber disso):\n${String(roteiroCondensado).substring(0, 800)}`);
   }
 
   if (npcsPresentes?.length > 0) {

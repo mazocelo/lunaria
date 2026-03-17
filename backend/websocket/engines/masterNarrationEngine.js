@@ -590,18 +590,18 @@ export default class MasterNarrationEngine {
       });
       appendMensagemSessao(sessao, mensagemJogador);
 
-      // 5b. Persistir ação estruturada + tracking de combate
-      try {
-        await sm.gerenciadorSessoes.adicionarAcao(roomId, {
-          userId, username,
-          personagem: personagem?.nome,
-          mensagem,
-          origem: combateAtivo ? 'combate' : 'turno',
-          combatIntent: combatIntent || null,
-        });
-      } catch (errAcao) {
-        log.warn({ err: errAcao.message }, 'Falha ao persistir acao (fail-open)');
-      }
+      // 5b. Persistir ação estruturada inline (evita race condition com atualizarSessao)
+      if (!Array.isArray(sessao.acoes)) sessao.acoes = [];
+      sessao.acoes.push({
+        userId, username,
+        personagem: personagem?.nome,
+        mensagem,
+        origem: combateAtivo ? 'combate' : 'turno',
+        combatIntent: combatIntent || null,
+        timestamp: new Date().toISOString()
+      });
+      if (sessao.acoes.length > 100) sessao.acoes.shift();
+
       if (combateAtivo && estadoJogo.combate) {
         if (!estadoJogo.combate.jogadoresQueAgiram) estadoJogo.combate.jogadoresQueAgiram = [];
         if (!estadoJogo.combate.jogadoresQueAgiram.includes(userId)) {
@@ -838,18 +838,18 @@ export default class MasterNarrationEngine {
       acceptedRequest.playerMessageId = mensagemJogador.id;
       appendMensagemSessao(sessao, mensagemJogador);
 
-      // Persistir ação estruturada + tracking de combate
-      try {
-        await sm.gerenciadorSessoes.adicionarAcao(roomId, {
-          userId, username,
-          personagem: personagem?.nome,
-          mensagem,
-          origem: combateAtivo ? 'combate' : 'turno',
-          combatIntent: combatIntent || null,
-        });
-      } catch (errAcao) {
-        log.warn({ err: errAcao.message }, 'Falha ao persistir acao (fail-open)');
-      }
+      // Persistir ação estruturada inline (evita race condition com atualizarSessao)
+      if (!Array.isArray(sessao.acoes)) sessao.acoes = [];
+      sessao.acoes.push({
+        userId, username,
+        personagem: personagem?.nome,
+        mensagem,
+        origem: combateAtivo ? 'combate' : 'turno',
+        combatIntent: combatIntent || null,
+        timestamp: new Date().toISOString()
+      });
+      if (sessao.acoes.length > 100) sessao.acoes.shift();
+
       if (combateAtivo && estadoJogo.combate) {
         if (!estadoJogo.combate.jogadoresQueAgiram) estadoJogo.combate.jogadoresQueAgiram = [];
         if (!estadoJogo.combate.jogadoresQueAgiram.includes(userId)) {

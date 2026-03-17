@@ -162,7 +162,9 @@ export default class TestEngine {
         };
 
         if (roomId.startsWith('historia_')) {
-          await sm.gerenciadorSessoes.adicionarRolagem(roomId, rollData);
+          if (!Array.isArray(sessao.rolagens)) sessao.rolagens = [];
+          sessao.rolagens.push({ ...rollData, timestamp: new Date().toISOString() });
+          if (sessao.rolagens.length > 100) sessao.rolagens.shift();
         }
 
         const tentativaResolucao = resolverTestePendente(sessao, userId, { testeId, groupId });
@@ -290,24 +292,23 @@ export default class TestEngine {
         }));
         syncPendingTestPrompt(sessao, testeResolvido.groupId, remainingGroupTests);
 
-        // Persistir resultado do teste no array de rolagens
+        // Persistir resultado do teste inline no array de rolagens (evita race condition)
         if (roomId.startsWith('historia_')) {
-          try {
-            await sm.gerenciadorSessoes.adicionarRolagem(roomId, {
-              tipo: 'resultado_teste',
-              userId,
-              teste: testeResolvido.teste,
-              atributo: resultadoTestePayload.atributoNome,
-              rolagemBruta: resultadoTestePayload.rolagemBruta,
-              total: resultadoTestePayload.total,
-              dc: resultadoTestePayload.dc,
-              sucesso: resultadoTestePayload.sucesso,
-              critico: resultadoTestePayload.critico,
-              descricaoResultado: resultadoTestePayload.descricaoResultado,
-            });
-          } catch (errRol) {
-            log.warn({ err: errRol.message }, 'Falha ao persistir rolagem de teste (fail-open)');
-          }
+          if (!Array.isArray(sessao.rolagens)) sessao.rolagens = [];
+          sessao.rolagens.push({
+            tipo: 'resultado_teste',
+            userId,
+            teste: testeResolvido.teste,
+            atributo: resultadoTestePayload.atributoNome,
+            rolagemBruta: resultadoTestePayload.rolagemBruta,
+            total: resultadoTestePayload.total,
+            dc: resultadoTestePayload.dc,
+            sucesso: resultadoTestePayload.sucesso,
+            critico: resultadoTestePayload.critico,
+            descricaoResultado: resultadoTestePayload.descricaoResultado,
+            timestamp: new Date().toISOString()
+          });
+          if (sessao.rolagens.length > 100) sessao.rolagens.shift();
         }
 
         // @event resultado_teste → room (broadcast) | fires after a pending skill test is mechanically resolved

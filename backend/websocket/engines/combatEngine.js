@@ -198,6 +198,18 @@ export default class CombatEngine {
         return;
       }
 
+      // Registrar ação no log de combate
+      if (!Array.isArray(combate.log)) combate.log = [];
+      combate.log.push({
+        userId,
+        personagem: personagem?.nome,
+        tipo: r.tipo || 'acao',
+        danoTotal: r.danoTotal || 0,
+        alvos: r.alvosAtingidos?.map(a => a.nome) || [],
+        sucesso: r.sucesso ?? null,
+        timestamp: new Date().toISOString()
+      });
+
       // Emitir todos os eventos de resultado de ação via emitter centralizado
       await emitCombatActionResults(sm, roomId, r, sessao, { userId, personagem });
 

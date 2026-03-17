@@ -1,3 +1,5 @@
+import { resolvePlayerVoice, pickRandomFreeVoice } from '../../helpers/playerVoiceHelper.js';
+
 export default class ChatHandler {
   constructor(manager) {
     this.manager = manager;
@@ -73,6 +75,12 @@ export default class ChatHandler {
         messageTruncated: message.length > 100 ? `${message.substring(0, 100)}...` : message
       });
 
+      // Resolver voz do personagem server-side (ignora voice_id do cliente)
+      const pcId = data.personagemId ? Number(data.personagemId) : null;
+      const playerVoice = pcId
+        ? await resolvePlayerVoice(pcId).catch(() => pickRandomFreeVoice())
+        : pickRandomFreeVoice();
+
       const messageData = {
         id: Date.now().toString(),
         userId,
@@ -81,8 +89,8 @@ export default class ChatHandler {
         type,
         roomId,
         timestamp: Date.now().toString(),
-        voice_id: data.voice_id || null,
-        voice_provider: data.voice_provider || null,
+        voice_id: playerVoice.voice_id,
+        voice_provider: playerVoice.voice_provider,
         speech_text: message
       };
 

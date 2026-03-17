@@ -573,7 +573,7 @@ export default class MasterNarrationEngine {
 
       // 5. Salvar mensagem do jogador na sessão (com voz TTS)
       const playerVoice = await resolvePlayerVoice(
-        Number(personagem.id || personagem.personagemId) || null
+        Number(personagem?.id || personagem?.personagemId) || null
       ).catch(() => pickRandomFreeVoice());
 
       const mensagemJogador = buildJogadorMensagem({
@@ -794,7 +794,7 @@ export default class MasterNarrationEngine {
       }
 
       const playerVoice2 = await resolvePlayerVoice(
-        Number(personagem.id || personagem.personagemId) || null
+        Number(personagem?.id || personagem?.personagemId) || null
       ).catch(() => pickRandomFreeVoice());
 
       const mensagemJogador = buildJogadorMensagem({

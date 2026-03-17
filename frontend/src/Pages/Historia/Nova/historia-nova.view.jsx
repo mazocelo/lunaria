@@ -195,7 +195,7 @@ const NovaHistoriaView = ({
               ))}
             </select>
             <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              Define o tamanho esperado da aventura e ajuda o Mestre a nao enrolar nem correr demais.
+              Numero de marcos narrativos esperados. Ex: 8 curto, 12 medio, 20 longo.
             </p>
           </div>
 
@@ -218,7 +218,7 @@ const NovaHistoriaView = ({
               ))}
             </select>
             <p className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              Limite duro de respostas do Mestre dentro de cada turno do jogador.
+              Quantas respostas do Mestre cabem no turno antes de encerrar a batida.
             </p>
           </div>
         </div>

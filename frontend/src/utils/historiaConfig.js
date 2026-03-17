@@ -2,17 +2,17 @@ export const VELOCIDADES_NARRATIVA = [
   {
     value: 'lento',
     label: 'Lento',
-    desc: 'Mais exploracao, investigacao e interacoes antes de acelerar as consequencias.'
+    desc: 'Mais exploracao e dialogo antes de escalar conflitos. Ideal para campanhas contemplativas.'
   },
   {
     value: 'medio',
     label: 'Medio',
-    desc: 'Equilibrio entre ambientacao, descoberta e progressao dramatica.'
+    desc: 'Equilibrio entre ambientacao, descoberta e conflito. Melhor para a maioria das historias.'
   },
   {
     value: 'rapido',
     label: 'Rapido',
-    desc: 'Vai cedo para risco, decisao e consequencia, com menos rodeios.'
+    desc: 'Avanca rapido para decisao e consequencia. Menos desvio, mais urgencia.'
   }
 ];
 

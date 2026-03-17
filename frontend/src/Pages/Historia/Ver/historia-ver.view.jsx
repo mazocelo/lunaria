@@ -362,12 +362,12 @@ const VerHistoriaView = ({
                 </div>
               )}
 
-              {/* Modo de Abertura de Sessão */}
+              {/* Modo de Abertura de Sessao */}
               {canMutateHistoria && (
                 <div>
                   <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
                     <Settings size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-                    Abertura de Sessão
+                    Abertura de Sessao
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {MODOS_ABERTURA.map(m => (
@@ -452,7 +452,7 @@ const VerHistoriaView = ({
                       <Badge variant="amber">{orcamentoDeBeatsAtual} beats</Badge>
                     )}
                     <p className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Tamanho esperado da aventura. O Mestre usa isso para dosar inicio, meio e desfecho.
+                      Numero de marcos narrativos esperados. Ex: 8 curto, 12 medio, 20 longo.
                     </p>
                   </div>
 
@@ -479,7 +479,7 @@ const VerHistoriaView = ({
                       <Badge variant="pink">{maxAcoesPorTurnoAtual} respostas</Badge>
                     )}
                     <p className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Limite mecanico de respostas do Mestre dentro de cada turno do jogador.
+                      Quantas respostas do Mestre cabem no turno antes de encerrar a batida.
                     </p>
                   </div>
                 </div>
@@ -1027,3 +1027,4 @@ const VerHistoriaView = ({
 };
 
 export default VerHistoriaView;
+

@@ -16,6 +16,7 @@ export const AI_MODELS = {
   'openai/gpt-oss-20b':                        { provider: 'groq', label: 'GPT OSS 20B', badge: 'Rapido', inputPrice: 0, outputPrice: 0, context: 131072 },
   'meta-llama/llama-4-scout-17b-16e-instruct': { provider: 'groq', label: 'Llama 4 Scout', badge: 'Avancado', inputPrice: 0, outputPrice: 0, context: 131072 },
   // Anthropic
+  'claude-sonnet-4-6': { provider: 'anthropic', label: 'Claude Sonnet 4.6', badge: 'Premium+', inputPrice: 3.00, outputPrice: 15.00, context: 200000 },
   'claude-haiku-4-5-20251001': { provider: 'anthropic', label: 'Claude Haiku 4.5', badge: 'Premium', inputPrice: 0.80, outputPrice: 4.00, context: 200000 },
 };
 

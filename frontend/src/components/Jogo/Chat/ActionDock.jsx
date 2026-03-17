@@ -31,6 +31,8 @@ const ActionDock = ({
   cooldownsHabilidades = {},
   concentracaoAtiva = null,
   onUsarMagia,
+  combatIntentAtual = null,
+  onClearCombatIntent = null,
 }) => {
   const isConnected = useSocketStore((s) => s.isConnected);
   const inRoom = useSocketStore((s) => s.inRoom);
@@ -101,6 +103,15 @@ const ActionDock = ({
   const showQuickActions = ehMeuTurno && turnoIniciado && faseJogo === 'rodada_em_andamento';
   const primeiroMonstroVivo = combateMonstros.find((m) => m.status === 'vivo');
   const alvoIdPadrao = primeiroMonstroVivo?.id || null;
+  const combatIntentLabel = combatIntentAtual?.habilidadeNome
+    || combatIntentAtual?.magiaNome
+    || ({
+      atacar: 'Atacar',
+      defender: 'Defender',
+      fugir: 'Fugir',
+      usar_habilidade: 'Habilidade',
+      conjurar_magia: 'Magia'
+    }[combatIntentAtual?.tipo] || 'Acao selecionada');
 
   return (
     <div className="px-4 py-3 game-glass-solid border-t border-white/[0.08]">
@@ -315,9 +326,9 @@ const ActionDock = ({
                               onUsarMagia(mag);
                             } else {
                               fillInput(`Conjuro a magia ${mag.nome}!`, {
-                                tipo: 'usar_habilidade',
-                                habilidadeId: mag.id,
-                                habilidadeNome: mag.nome,
+                                tipo: 'conjurar_magia',
+                                magiaId: mag.id,
+                                magiaNome: mag.nome,
                                 alvoId: alvoIdPadrao
                               });
                             }
@@ -351,6 +362,33 @@ const ActionDock = ({
                     })}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {combateAtivo && showQuickActions && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {combatIntentAtual ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 game-glass-subtle border border-cyan-400/30 rounded-lg">
+                <span className="text-xs text-cyan-200 font-semibold">
+                  Acao selecionada: {combatIntentLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onClearCombatIntent && onClearCombatIntent()}
+                  className="text-[11px] text-cyan-100/70 hover:text-cyan-100 transition-colors"
+                  title="Limpar acao selecionada"
+                  aria-label="Limpar acao selecionada"
+                >
+                  Limpar
+                </button>
+              </div>
+            ) : (
+              <div className="px-3 py-1.5 game-glass-subtle border border-white/[0.08] rounded-lg">
+                <p className="text-xs text-slate-300">
+                  Se preferir escrever livremente, o sistema tentara inferir sua acao.
+                </p>
               </div>
             )}
           </div>

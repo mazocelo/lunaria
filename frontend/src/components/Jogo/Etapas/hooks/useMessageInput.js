@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { showGameNotification } from '../../NotificationManager';
 import { useSocketStore } from '../../../../store/index.js';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS } from '../../../../constants/game';
 
-export const useMessageInput = (historia, personagemSelecionado, user, onAdicionarMensagem, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal) => {
+export const useMessageInput = (historia, personagemSelecionado, user, onAdicionarMensagem, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, combateAtivo = false) => {
   const [mensagemAtual, setMensagemAtual] = useState('');
+  const [combatIntentAtual, setCombatIntentAtual] = useState(null);
   const combatIntentRef = useRef(null);
   const enviandoRef = useRef(false);
 
@@ -18,10 +19,28 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
     nivel: personagemSelecionado?.nivel || 1
   }), [personagemSelecionado]);
 
-  const handleMensagemChange = useCallback((e, intent = null) => {
-    setMensagemAtual(e.target.value);
+  const setCombatIntent = useCallback((intent) => {
     combatIntentRef.current = intent || null;
+    setCombatIntentAtual(intent || null);
   }, []);
+
+  const clearCombatIntent = useCallback(() => {
+    combatIntentRef.current = null;
+    setCombatIntentAtual(null);
+  }, []);
+
+  useEffect(() => {
+    if (!combateAtivo) {
+      clearCombatIntent();
+    }
+  }, [combateAtivo, clearCombatIntent]);
+
+  const handleMensagemChange = useCallback((e, intent) => {
+    setMensagemAtual(e.target.value);
+    if (intent !== undefined) {
+      setCombatIntent(intent);
+    }
+  }, [setCombatIntent]);
 
   const handleEnviarMensagem = useCallback(async () => {
     if (!mensagemAtual.trim()) return;
@@ -49,6 +68,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         if (enviado) {
           setCooldownLocal(ROLEPLAY_COOLDOWN_SECONDS);
           setMensagemAtual('');
+          clearCombatIntent();
         }
         return;
       }
@@ -81,7 +101,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
       }
 
       setMensagemAtual('');
-      combatIntentRef.current = null;
+      clearCombatIntent();
       useSocketStore.setState({
         mestreTimedOut: false,
         mestreStale: false,
@@ -96,7 +116,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         enviandoRef.current = false;
       }, TIMEOUTS.FLAG_RESET_DELAY);
     }
-  }, [mensagemAtual, historia?.id, user, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, buildPersonagemPayload]);
+  }, [mensagemAtual, historia?.id, user, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, buildPersonagemPayload, clearCombatIntent]);
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -107,6 +127,9 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
 
   return {
     mensagemAtual,
+    combatIntentAtual,
+    setCombatIntent,
+    clearCombatIntent,
     handleMensagemChange,
     handleKeyPress,
     handleEnviarMensagem

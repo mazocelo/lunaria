@@ -48,6 +48,8 @@ const EtapaJogoRPGView = (props) => {
     levelUpData,
     setLevelUpData,
     mensagemAtual,
+    combatIntentAtual,
+    clearCombatIntent,
     handleMensagemChange,
     handleKeyPress,
     handleEnviarMensagem,
@@ -56,6 +58,7 @@ const EtapaJogoRPGView = (props) => {
     handleIniciarTurno,
     handleExecutarAcao,
     handleUsarHabilidade,
+    handleUsarMagia,
     handleUsarEquipamento,
     fichaModalAberta,
     fichaSelecionada,
@@ -77,6 +80,9 @@ const EtapaJogoRPGView = (props) => {
     inventarioAberto,
     setInventarioAberto,
     habilidadesPersonagem,
+    magiasPersonagem,
+    cooldownsHabilidades,
+    concentracaoAtiva,
     infoPersonagem,
     jogadoresExibir,
     dadosSolicitados,
@@ -98,7 +104,6 @@ const EtapaJogoRPGView = (props) => {
     ordemDefinida,
     manaAtual,
     manaMax,
-    handleUsarMagia,
   } = props;
 
   const panelTitle = showActions ? 'Acoes RPG' : 'Painel recolhido';
@@ -223,6 +228,8 @@ const EtapaJogoRPGView = (props) => {
               cooldownsHabilidades={cooldownsHabilidades}
               concentracaoAtiva={concentracaoAtiva}
               onUsarMagia={handleUsarMagia}
+              combatIntentAtual={combatIntentAtual}
+              onClearCombatIntent={clearCombatIntent}
             />
           </div>
 

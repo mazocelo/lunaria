@@ -147,7 +147,17 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
         userId: String(user?.id),
         username: user?.nome || user?.name,
         mensagem: descricao,
-        combatIntent: { tipo: 'usar_habilidade', habilidadeId: magia.id, habilidadeNome: magia.nome },
+        combatIntent: {
+          tipo: 'conjurar_magia',
+          magiaId: magia.id,
+          magiaNome: magia.nome,
+          custo_mana: magia.custo_mana,
+          cooldown_turnos: magia.cooldown_turnos,
+          usa_concentracao: magia.usa_concentracao,
+          dano_base: magia.dano_base,
+          elemento: magia.elemento,
+          alvoId: null
+        },
         personagem: buildPersonagemPayload(),
         requestId
       });

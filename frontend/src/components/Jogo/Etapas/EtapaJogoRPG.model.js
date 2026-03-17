@@ -71,7 +71,7 @@ export const useEtapaJogoRPGModel = ({
 
   const messageInput = useMessageInput(
     historia, personagemSelecionado, user, onAdicionarMensagem,
-    faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal
+    faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, combateAtivo
   );
 
   const diceAndTurns = useDiceAndTurns(historia, personagemSelecionado, user, onAdicionarMensagem);

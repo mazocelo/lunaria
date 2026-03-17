@@ -303,6 +303,7 @@ const EditarMestreView = ({
                   <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (Avancado)</option>
                 </optgroup>
                 <optgroup label="Anthropic">
+                  <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Premium+)</option>
                   <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Premium)</option>
                 </optgroup>
               </select>

@@ -65,14 +65,19 @@ export function shouldTriggerReview(ctx) {
     reasons.push('claims_detectadas');
   }
 
-  // Narrativa longa com roteiro → continuista
+  // Continuista: verificar coerência quando há material narrativo relevante
   const temRoteiro = Boolean(
     sessao?.historiaRoteiro ||
     sessao?.mestreContexto?.historia?.roteiroCondensado
   );
-  if (narrativa.length > 800 && temRoteiro) {
+  const npcsPresentes = sessao?.mestreContexto?.sessao?.npcsPresentes || [];
+  const temNpcs = Array.isArray(npcsPresentes) && npcsPresentes.length > 0;
+  const segmentos = narrativa.split(/\n\n+/).filter(Boolean);
+  const narrativaMultiSegmento = segmentos.length > 3;
+
+  if (temRoteiro || temNpcs || narrativaMultiSegmento) {
     reviewers.add('continuista');
-    reasons.push('narrativa_longa_com_roteiro');
+    reasons.push('material_narrativo_relevante');
   }
 
   const respostaFinalizaBatida = Boolean(
@@ -86,8 +91,8 @@ export function shouldTriggerReview(ctx) {
     reasons.push(hookAnalysis.reason || 'gancho_fraco');
   }
 
-  // Remover continuista se não há roteiro nem combate
-  if (reviewers.has('continuista') && !temRoteiro && !combateAtivo) {
+  // Remover continuista se não há material narrativo relevante nem combate
+  if (reviewers.has('continuista') && !temRoteiro && !temNpcs && !narrativaMultiSegmento && !combateAtivo) {
     reviewers.delete('continuista');
   }
 

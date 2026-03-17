@@ -1031,7 +1031,20 @@ export default class TurnEngine {
         lockReason: null
       });
 
-      const proximoTurno = turnoAtual + 1;
+      // Avançar turno, pulando jogadores inconscientes/derrotados em combate
+      let proximoTurno = turnoAtual + 1;
+      const combate = estadoJogo.combate;
+      if (combate?.ativo) {
+        while (proximoTurno < ordemJogadores.length) {
+          const candidato = ordemJogadores[proximoTurno];
+          const statusCombate = candidato?.userId && combate.jogadores[candidato.userId];
+          if (statusCombate && (statusCombate.status === 'inconsciente' || statusCombate.status === 'derrotado')) {
+            proximoTurno++;
+          } else {
+            break;
+          }
+        }
+      }
       if (proximoTurno >= ordemJogadores.length) {
         await this.finalizarRodada(roomId);
         return;

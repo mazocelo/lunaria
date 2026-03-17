@@ -232,7 +232,7 @@ function buildAttackBonus(pc = {}, jogadorStats = {}, statusEfeitos = []) {
     .reduce((acc, [nome, val]) => statusEfeitos.some((efeito) => efeito.nome === nome) ? acc + val : acc, 0);
 
   return {
-    bonusAtaque: modForca + Math.floor((pc.nivel || 1) * 0.7) + bonusAtaqueEquip - penalidadeCego,
+    bonusAtaque: modForca + Math.min(2, Math.floor((pc.nivel || 1) / 6)) + bonusAtaqueEquip - penalidadeCego,
     modForca,
     penalidadeCego,
     bonusDanoEquip: jogadorStats.bonusDano || 0
@@ -389,7 +389,7 @@ export function calcularStatsEfetivos(monstro, nivel) {
 
   return {
     hp_max: Math.round(hpBase + (n * constituicao * 0.5)),
-    ataque: Math.round(ataqueBase + Math.floor((forca - 10) / 2) + Math.floor(n * 0.7)),
+    ataque: Math.round(ataqueBase + Math.floor((forca - 10) / 2) + Math.min(2, Math.floor(n / 6))),
     defesa: Math.round(defesaBase + modAgi + Math.floor(n * 0.4)),
     armadura: Math.max(0, Math.round(Math.floor(defesaBase * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
     esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
@@ -578,7 +578,7 @@ function _gerarStatsGenericos(nivel, tipo) {
   const baseHP = tipo === 'dragao' ? 30 : tipo === 'demonio' ? 25 : 15;
   return {
     hp_max: Math.round(baseHP + (n * 5)),
-    ataque: Math.round(2 + Math.floor(n * 0.7)),
+    ataque: Math.round(2 + Math.min(2, Math.floor(n / 6))),
     defesa: Math.round(10 + Math.floor(n * 0.4)),
     armadura: Math.round(Math.floor(n * 0.3)),
     esquiva: Math.min(20, Math.round(n * 1.5)),
@@ -805,7 +805,7 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
 
   const jogadorStats = combate.jogadores[userId];
   if (!jogadorStats) return resultados;
-  if (jogadorStats.status === 'derrotado') {
+  if (jogadorStats.status === 'derrotado' || jogadorStats.status === STATUS_COMBATENTE.INCONSCIENTE) {
     resultados.jogadorDerrotado = true;
     return resultados;
   }
@@ -1617,7 +1617,7 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
   const atk = resultados.ataqueJogador;
   if (atk) {
     if (!atk.acertou && !atk.esquivou) {
-      linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem} — ERROU!`);
+      linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem}${atk.rolagem === 1 ? ' — FALHA CRÍTICA! Errou desastrosamente!' : ' — ERROU!'}`);
     } else if (atk.esquivou) {
       linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem} (acertou) mas ${atk.alvo} ESQUIVOU!`);
     } else {
@@ -1671,7 +1671,7 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
   for (const ca of resultados.contraAtaques) {
     const atkName = ca.habilidade !== 'Ataque básico' ? `usou ${ca.habilidade} contra` : 'atacou';
     if (!ca.acertou && !ca.esquivou) {
-      linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem} — ERROU!`);
+      linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem}${ca.rolagem === 1 ? ' — FALHA CRÍTICA! Errou desastrosamente!' : ' — ERROU!'}`);
     } else if (ca.esquivou) {
       linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem} (acertou) mas ${ca.alvoNome} ESQUIVOU!`);
     } else {

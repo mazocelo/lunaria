@@ -22,8 +22,8 @@ const MAX_LIST_ITEMS = 8;
 // ── Memória Semântica ─────────────────────────────────────────────
 const TIPOS_MEMORIA_VALIDOS = ['promessa', 'segredo', 'decisao', 'relacao', 'ameaca', 'fato'];
 const MAX_MEMORIA_POR_RESPOSTA = 3;
-const MAX_NON_PERMANENTES = 30;
-const MAX_PERMANENTES = 10;
+const MAX_NON_PERMANENTES = 40;
+const MAX_PERMANENTES = 15;
 const MAX_RENDER_ENTRIES = 12;
 
 function truncateText(value, max = MAX_BLOCK_CHARS) {
@@ -116,8 +116,9 @@ export function extrairMemoriaSemantica(metadados = {}, sessao = {}) {
   }
 
   let todos = Array.from(mapa.values());
+  const removidos = [];
 
-  // Enforce permanentes hard cap (10)
+  // Enforce permanentes hard cap (15)
   const permanentes = todos.filter(i => i.permanente);
   if (permanentes.length > MAX_PERMANENTES) {
     permanentes.sort(sortForEviction);
@@ -130,16 +131,25 @@ export function extrairMemoriaSemantica(metadados = {}, sessao = {}) {
     }
   }
 
-  // Enforce non-permanentes soft cap (30)
+  // Enforce non-permanentes soft cap (40)
   const nonPerm = todos.filter(i => !i.permanente);
   if (nonPerm.length > MAX_NON_PERMANENTES) {
     nonPerm.sort(sortForEviction);
     const remover = nonPerm.length - MAX_NON_PERMANENTES;
-    const idsRemover = new Set(nonPerm.slice(0, remover).map(i => i.id));
+    const evictados = nonPerm.slice(0, remover);
+    removidos.push(...evictados);
+    const idsRemover = new Set(evictados.map(i => i.id));
     todos = todos.filter(i => !idsRemover.has(i.id));
     if (novas.length > 0) {
       log.info({ removed: remover }, 'Evicted low-score memories');
     }
+  }
+
+  // Track evicted facts so the LLM can be warned
+  if (removidos.length > 0) {
+    sessao.estadoJogo = sessao.estadoJogo || {};
+    sessao.estadoJogo._memoriaEvictada = removidos.map(f => f.descricao);
+    log.warn({ evictados: removidos.length, descricoes: sessao.estadoJogo._memoriaEvictada }, 'Memoria semantica evictada');
   }
 
   return todos;
@@ -715,25 +725,33 @@ export function extractSummarySignals(summary = '') {
 export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = null) {
   const estadoJogo = { ...(sessao.estadoJogo || {}) };
   const contextoAtual = sessao.mestreContexto || buildMestreContext(sessao, historia);
-  const { presentes, emergentes } = normalizeNpcList(
-    metadados.npcs_presentes || metadados.npcsPresentes || [],
-    sessao,
-    historia
-  );
+
+  // NPCs: undefined = preservar estado atual, [] = zerar, [items] = sobrescrever
+  const rawNpcs = metadados.npcs_presentes !== undefined
+    ? metadados.npcs_presentes
+    : metadados.npcsPresentes;
+  const npcFoiEnviado = rawNpcs !== undefined;
+  const { presentes, emergentes } = npcFoiEnviado
+    ? normalizeNpcList(rawNpcs, sessao, historia)
+    : { presentes: [], emergentes: [] };
 
   // Mudança de local → reset de terreno e ameaças (contexto antigo fica stale)
   const localMudou = presenteOrTruthy(metadados.local_atual) || presenteOrTruthy(metadados.local);
+  const combateAtivo = estadoJogo.combate?.ativo === true;
 
-  if (presenteOrTruthy(metadados.local_atual)) {
-    estadoJogo.cenaAtual = metadados.local_atual;
-    estadoJogo.ambiente = metadados.local_atual;
-  }
-  if (presenteOrTruthy(metadados.local)) {
-    estadoJogo.cenaAtual = metadados.local;
-    estadoJogo.ambiente = metadados.local;
-  }
+  if (combateAtivo && localMudou) {
+    log.warn('Tentativa de mudar local durante combate. Rejeitado.');
+    // Skip local change — combat takes precedence
+  } else if (localMudou) {
+    if (presenteOrTruthy(metadados.local_atual)) {
+      estadoJogo.cenaAtual = metadados.local_atual;
+      estadoJogo.ambiente = metadados.local_atual;
+    }
+    if (presenteOrTruthy(metadados.local)) {
+      estadoJogo.cenaAtual = metadados.local;
+      estadoJogo.ambiente = metadados.local;
+    }
 
-  if (localMudou) {
     // Terreno, ameaças e efeitos de terreno do local anterior não se aplicam mais
     if (!presenteOrTruthy(metadados.terreno)) estadoJogo.terreno = null;
     if (!Array.isArray(metadados.ameacas)) estadoJogo.ameacas = [];
@@ -767,7 +785,8 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
       : [];
   }
 
-  if (presentes.length > 0) {
+  // npcs_presentes: enviado pelo LLM → sobrescreve (pode ser [] para zerar); omitido → preserva
+  if (npcFoiEnviado) {
     estadoJogo.npcs = presentes;
   }
 
@@ -781,7 +800,7 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
       ultimaAtualizacao: new Date().toISOString(),
       rodadaAtual: estadoJogo.rodadaAtual || contextoAtual?.sessao?.rodadaAtual || 1,
       fase: estadoJogo.fase || contextoAtual?.sessao?.fase || 'aguardando_inicio',
-      npcsPresentes: presentes.length > 0 ? presentes : (contextoAtual?.sessao?.npcsPresentes || []),
+      npcsPresentes: npcFoiEnviado ? presentes : (contextoAtual?.sessao?.npcsPresentes || []),
       npcsEncontrados: uniqueList([
         ...(contextoAtual?.sessao?.npcsEncontrados || []),
         ...presentes

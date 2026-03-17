@@ -149,6 +149,17 @@ export function calcularModificadorTeste(personagem, nomeTeste) {
 }
 
 /**
+ * Calcula a DC de um saving throw de magia
+ * Fórmula: 8 + custo_mana da magia
+ * @param {Object} magia - Objeto da magia com campo custo_mana
+ * @returns {number} DC do saving throw
+ */
+export function calcularDCSavingThrow(magia) {
+  const custoMana = magia?.custo_mana || 0;
+  return 8 + custoMana;
+}
+
+/**
  * Resolve um teste de habilidade completo
  * @param {Object} personagem - Dados do personagem (atributos + nivel)
  * @param {string} nomeTeste - Nome do teste (ex: "Percepção")

@@ -58,26 +58,57 @@ export function pontosAtributoTotal(nivel) {
   return ATRIBUTO_BASE + pontosAtributoBonus(nivel);
 }
 
-// ===== XP =====
+// ===== XP — Thresholds fixos de progressao =====
 
 /**
- * XP necessario para ir do nivel atual para o proximo
- * Escala exponencial: 100 * 1.5^(nivel-1)
+ * XP acumulado necessario para alcancar cada nivel (indice 0 = Nv1).
+ * Nv1=0, Nv2=100, Nv3=300, Nv4=600, Nv5=1000, Nv6=1500, Nv7=2100, Nv8=2800, Nv9=3600, Nv10=4500
+ * A partir do Nv11 a progressao continua com incremento de +1000 por nivel.
+ */
+const XP_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500];
+
+// Preencher thresholds ate NIVEL_MAX para manter compatibilidade
+(function preencherThresholds() {
+  for (let i = XP_THRESHOLDS.length; i < NIVEL_MAX; i++) {
+    XP_THRESHOLDS.push(XP_THRESHOLDS[i - 1] + 1000 * (i - 8));
+  }
+})();
+
+/**
+ * XP necessario para ir do nivel atual para o proximo (custo incremental)
  */
 export function xpParaNivel(nivel) {
   if (nivel >= NIVEL_MAX) return Number.POSITIVE_INFINITY;
-  return Math.round(100 * Math.pow(1.5, nivel - 1));
+  return XP_THRESHOLDS[nivel] - XP_THRESHOLDS[nivel - 1];
 }
 
 /**
  * XP total acumulado necessario para alcancar um nivel
  */
 export function xpAcumuladoParaNivel(nivel) {
-  let total = 0;
-  for (let i = 1; i < nivel; i++) {
-    total += xpParaNivel(i);
+  if (nivel <= 1) return 0;
+  if (nivel - 1 < XP_THRESHOLDS.length) return XP_THRESHOLDS[nivel - 1];
+  return XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+}
+
+/**
+ * Calcula o nivel correspondente a um total de XP acumulado
+ */
+export function calcularNivelPorXP(xpTotal) {
+  for (let i = XP_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xpTotal >= XP_THRESHOLDS[i]) return i + 1;
   }
-  return total;
+  return 1;
+}
+
+/**
+ * XP acumulado necessario para o proximo nivel (threshold absoluto)
+ * Retorna null se ja esta no nivel maximo
+ */
+export function xpParaProximoNivel(nivelAtual) {
+  if (nivelAtual >= NIVEL_MAX) return null;
+  if (nivelAtual < XP_THRESHOLDS.length) return XP_THRESHOLDS[nivelAtual];
+  return XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 1000 * (nivelAtual - XP_THRESHOLDS.length + 1);
 }
 
 // ===== VALIDACAO DE CRIACAO =====
@@ -228,6 +259,8 @@ export default {
   pontosAtributoTotal,
   xpParaNivel,
   xpAcumuladoParaNivel,
+  calcularNivelPorXP,
+  xpParaProximoNivel,
   calcularPontosVantagem,
   validarAtributos,
   validarVantagens,

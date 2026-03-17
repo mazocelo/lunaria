@@ -40,9 +40,17 @@ export function buildTurnState(sessao, userId, personagem = {}) {
   const itensPerdidos = pSessao.itens_perdidos || [];
   const efeitos = pSessao.status_efeitos || pcCompleto.status_efeitos || [];
 
+  // Verificar se personagem está inconsciente (em combate)
+  const combate = estadoJogo.combate;
+  const jogadorCombate = combate?.ativo && userId ? combate.jogadores[String(userId)] : null;
+  const inconsciente = jogadorCombate
+    ? (jogadorCombate.status === 'inconsciente' || jogadorCombate.status === 'derrotado')
+    : (hpAtual <= 0);
+
   const state = {
     nome: pcCompleto.nome || personagemRef.nome || 'Aventureiro',
     hp: { atual: hpAtual, max: hpMax },
+    inconsciente,
     xpGanho,
     itensGanhos,
     itensPerdidos,
@@ -144,6 +152,7 @@ export function formatTurnStateText(state) {
   if (cenaParts.length > 0) lines.push(cenaParts.join(' | '));
 
   lines.push(`HP: ${state.hp.atual}/${state.hp.max} | Mana: ${state.mana?.atual ?? '?'}/${state.mana?.max ?? '?'}`);
+  if (state.inconsciente) lines.push(`⚠ INCONSCIENTE — não pode agir, precisa ser estabilizado ou curado`);
   if (state.rodadaAtual > 1) lines.push(`Rodada: ${state.rodadaAtual}`);
 
   if (state.xpGanho > 0) lines.push(`XP acumulado: ${state.xpGanho}`);

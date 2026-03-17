@@ -8,10 +8,6 @@ Personagem: ${personagem}
 Acao: ${acao}
 
 INSTRUCOES:
-- IMPORTANTE: Revise o historico de chat antes de narrar. Nao repita dialogos, descricoes ou introducoes que ja ocorreram. Cada resposta deve avancar a historia.
-- Continue exatamente da cena e da fala mais recentes.
-- Nao reapresente NPCs ou ambiente ja estabelecidos.
-- Se o prologo ou a cena ja estabeleceram a atmosfera, nao a descreva de novo; entregue apenas o delta da cena.
 - Se a acao do jogador for uma resposta curta em dialogo, faca o NPC ou o mundo responder a ela, em vez de recomecar a cena.
 - Mantenha o personagem aderido ao fio principal do roteiro e ao objetivo imediato da cena.
 - Use detalhes de classe, raca, juramento, passado ou reputacao apenas quando isso mudar a resposta da cena.

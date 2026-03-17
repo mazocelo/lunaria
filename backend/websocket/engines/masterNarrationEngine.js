@@ -22,6 +22,7 @@ import {
 import { sanitizePromptInput } from '../../helpers/sanitize.js';
 import { resolvePlayerVoice, pickRandomFreeVoice } from '../../helpers/playerVoiceHelper.js';
 import { runClaimDetection } from '../../helpers/claimDetector.js';
+import { validateMestreResponse } from '../../helpers/responseValidator.js';
 import {
   getTestePendente,
   criarTestePendente,
@@ -616,6 +617,7 @@ export default class MasterNarrationEngine {
         segmentos: resposta.segmentos || []
       });
       appendMensagemSessao(sessao, mensagemMestre);
+      validateMestreResponse(resposta, sessao.estadoJogo);
       await sm.aplicarMetadadosNarrativos(roomId, sessao, resposta.metadados || {});
 
       // 6b. Atualizar snapshot da última mensagem do mestre
@@ -1201,6 +1203,7 @@ export default class MasterNarrationEngine {
           }
         });
         appendMensagemSessao(workingSessao, mensagemMestre);
+        validateMestreResponse(resposta, workingSessao.estadoJogo);
         await sm.aplicarMetadadosNarrativos(roomId, workingSessao, resposta.metadados || {});
 
         if (resultadosCombatePreResolvido?._emitirTesteAposNarracao) {

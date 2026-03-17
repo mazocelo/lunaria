@@ -378,19 +378,38 @@ export function runClaimDetection(mensagem, sources, meta = {}) {
 
   const flags = claims.map(c => validateClaim(c, sources));
 
-  // Modo observacao: logar flags nao-ok
+  // Modo soft_block: logar flags nao-ok com severidade adequada
   for (const flag of flags) {
     if (flag.status !== 'ok') {
-      log.info({
-        roomId: meta.roomId,
-        userId: meta.userId,
-        tipo: flag.tipo,
-        status: flag.status,
-        claim: flag.claim,
-        motivo: flag.motivo,
-        fonte: flag.fonte,
-        acaoRecomendada: flag.acaoRecomendada,
-      }, 'claim_detected');
+      const severity = (flag.blockLevel === 'hard' || flag.status === 'inexistente')
+        ? 'warn'
+        : 'info';
+
+      if (severity === 'warn') {
+        log.warn({
+          roomId: meta.roomId,
+          userId: meta.userId,
+          tipo: flag.tipo,
+          status: flag.status,
+          claim: flag.claim,
+          motivo: flag.motivo,
+          fonte: flag.fonte,
+          acaoRecomendada: flag.acaoRecomendada,
+          blockLevel: flag.blockLevel,
+        }, 'claim_detected_soft_block');
+      } else {
+        log.info({
+          roomId: meta.roomId,
+          userId: meta.userId,
+          tipo: flag.tipo,
+          status: flag.status,
+          claim: flag.claim,
+          motivo: flag.motivo,
+          fonte: flag.fonte,
+          acaoRecomendada: flag.acaoRecomendada,
+          blockLevel: flag.blockLevel,
+        }, 'claim_detected');
+      }
     }
   }
 

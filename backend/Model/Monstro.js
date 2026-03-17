@@ -215,7 +215,7 @@ const Monstro = (prisma) => {
       const modTam = this._getModTamanho(monstro.tamanho);
       return {
         hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
-        ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.floor(n * 0.7)),
+        ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.min(2, Math.floor(n / 6))),
         defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
         armadura: Math.max(0, Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
         esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),

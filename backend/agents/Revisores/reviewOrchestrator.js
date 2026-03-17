@@ -93,8 +93,9 @@ function extrairPersonagemSnapshot(sessao, userId) {
 }
 
 /**
- * Aplica correções leves baseadas nos veredictos.
- * v1: apenas append de nota ou strip simples. Nunca re-narra.
+ * Aplica correções baseadas nos veredictos dos revisores.
+ * Árbitro/Continuista: apenas logam warnings (correção mecânica é do claim detector).
+ * Gancho: substitui narrativa se gancho_fraco.
  */
 function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnalysis = null } = {}) {
   let corrected = narrativa;
@@ -103,14 +104,26 @@ function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnaly
   for (const v of verdicts) {
     if (v.severidade !== 'error') continue;
 
-    if (v.veredicto === 'faltou_resultado' && v.correcao_sugerida) {
-      // Append informação mecânica faltante
-      corrected += `\n\n*[${v.correcao_sugerida}]*`;
-      applied = true;
+    // Árbitro — logar, não alterar narrativa (correção mecânica é responsabilidade do claim detector)
+    if (v.reviewer === 'arbitro') {
+      log.warn(
+        { veredicto: v.veredicto, correcao: v.correcao_sugerida, notas: v.notas },
+        'Arbitro detectou erro mecanico na narrativa'
+      );
+      continue;
     }
-    // Para outros erros graves, apenas loga — não modifica narrativa em v1
+
+    // Continuista — logar com contexto do problema, não alterar narrativa
+    if (v.reviewer === 'continuista') {
+      log.warn(
+        { veredicto: v.veredicto, trecho: v.trecho_problematico, notas: v.notas },
+        'Continuista detectou incoerencia narrativa'
+      );
+      continue;
+    }
   }
 
+  // Gancho — substitui narrativa se necessário (mantido como estava)
   const hookVerdict = verdicts.find(v => v.reviewer === 'gancho' && v.veredicto !== 'ok');
   if (hookVerdict) {
     if (hookVerdict.correcao_sugerida) {

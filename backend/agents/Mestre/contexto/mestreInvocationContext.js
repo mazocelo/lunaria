@@ -221,15 +221,29 @@ export function buildImmediateSceneLock(sessao = {}) {
   return partes.join('\n');
 }
 
+function buildMemoriaEvictadaAviso(sessao = {}) {
+  const evictada = sessao.estadoJogo?._memoriaEvictada;
+  if (!Array.isArray(evictada) || evictada.length === 0) return '';
+  const lista = evictada.map(d => `"${d}"`).join(', ');
+  // Limpa para não repetir o aviso em invocações subsequentes
+  sessao.estadoJogo._memoriaEvictada = [];
+  return `[AVISO: Memorias esquecidas recentemente: ${lista}. Se relevantes para a cena atual, re-registre via memoria_semantica.]`;
+}
+
 function buildBaseContext(sessao = {}) {
   const sceneAnchor = buildSceneAnchor(sessao);
-  return {
+  const avisoEvicção = buildMemoriaEvictadaAviso(sessao);
+  const ctx = {
     chatHistory: getFormalChatHistory(sessao),
     resumo: getResumoMaisRecente(sessao),
     contextoLateralRoleplay: buildRoleplayLateralContext(sessao),
     lockContinuidade: buildImmediateSceneLock(sessao),
     sceneAnchor
   };
+  if (avisoEvicção) {
+    ctx.avisoMemoriaEvictada = avisoEvicção;
+  }
+  return ctx;
 }
 
 export function buildNarracaoContext(sessao = {}) {

@@ -739,7 +739,7 @@ async function processarDarXP(acao, sessao, roomId, sm) {
 
   log.info({ personagem: nomePersonagem, xp, xpTotalSessao: pSessao.xp_ganho }, 'dar_xp: XP concedido');
 
-  // Persistir XP no clone
+  // Persistir XP no clone e verificar level-up
   if (alvo.personagemId) {
     try {
       const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
@@ -748,7 +748,35 @@ async function processarDarXP(acao, sessao, roomId, sm) {
           sessaoJogoRow.id, parseInt(alvo.personagemId)
         );
         if (clone) {
-          await db.PersonagemSessao.atualizarRuntime(clone.id, { xp_ganho: pSessao.xp_ganho });
+          const xpTotalClone = (clone.xp_inicio + pSessao.xp_ganho);
+          let nivelAtual = clone.nivel_fim || clone.nivel_inicio;
+          let xpRestante = xpTotalClone;
+
+          // Multi-level-up loop (mesma logica do combatEngine)
+          let levelUp = verificarLevelUp(nivelAtual, xpRestante);
+          while (levelUp.podeEvoluir) {
+            nivelAtual = levelUp.ganhos.novoNivel;
+            xpRestante = levelUp.ganhos.xpRestante;
+
+            // @event level_up → room (broadcast) | fires when narrative XP causes level-up
+            sm.sendToRoom(roomId, 'level_up', {
+              userId: alvo.userId,
+              personagemNome: nomePersonagem,
+              novoNivel: nivelAtual,
+              ganhos: levelUp.ganhos,
+              timestamp: Date.now()
+            });
+            log.info({ personagem: nomePersonagem, novoNivel: nivelAtual }, 'dar_xp: Level up!');
+
+            db.FeedPost.createAutoEvent(parseInt(alvo.userId), 'level_up', { personagem: nomePersonagem, nivel: nivelAtual }, 'personagem', parseInt(alvo.personagemId)).catch(() => {});
+
+            levelUp = verificarLevelUp(nivelAtual, xpRestante);
+          }
+
+          await db.PersonagemSessao.atualizarRuntime(clone.id, {
+            xp_ganho: pSessao.xp_ganho,
+            nivel_fim: nivelAtual
+          });
         }
       }
     } catch (e) {

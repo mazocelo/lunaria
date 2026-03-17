@@ -15,6 +15,7 @@
  * Shape de retorno alinhado com PLANO-parte-2-detector-de-alegacoes.md
  */
 import logger from './logger.js';
+import { getOwnedCombatActionList } from './ownedActionsHelper.js';
 
 const log = logger.child({ module: 'claimDetector' });
 
@@ -218,13 +219,7 @@ function _validateItem(claim, turnState, personagemCompleto, base) {
 }
 
 function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, base) {
-  // Merge todas as habilidades do personagem
-  const habilidades = [
-    ...(Array.isArray(personagemCompleto?.habilidadesClasse) ? personagemCompleto.habilidadesClasse : []),
-    ...(Array.isArray(personagemCompleto?.magias) ? personagemCompleto.magias : []),
-    ...(Array.isArray(personagemCompleto?.habilidades) ? personagemCompleto.habilidades : []),
-    ...(Array.isArray(personagemCompleto?.vantagens) ? personagemCompleto.vantagens : []),
-  ];
+  const habilidades = getOwnedCombatActionList(personagemCompleto);
 
   const result = findInList(claim, habilidades);
 

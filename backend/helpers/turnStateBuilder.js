@@ -4,6 +4,7 @@
  * Inclui HP, mana, cooldowns, concentração, alertas de vantagens/desvantagens.
  */
 import { calcularHP, calcularMana } from './combateHelper.js';
+import { getOwnedCombatActions } from './ownedActionsHelper.js';
 import {
   normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno,
   getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo,
@@ -65,16 +66,16 @@ export function buildTurnState(sessao, userId, personagem = {}) {
   // Concentração ativa
   state.concentracao = estadoJogo.concentracao?.[String(userId)] || null;
 
-  // Habilidades e magias disponíveis (do personagem completo)
-  const habilidadesClasse = (pcCompleto.habilidadesClasse || [])
-    .filter(h => !h.escola_magia || h.escola_magia === 'nenhuma')
+  const ownedActions = getOwnedCombatActions(pcCompleto);
+
+  // Habilidades e magias disponiveis (somente do loadout proprio do personagem)
+  const habilidadesClasse = ownedActions.habilidades
     .map(h => {
       const cdKey = `hab_${h.id}`;
       const cdRestante = cooldowns[cdKey] || 0;
       return { nome: h.nome, cd: cdRestante, custo_mana: h.custo_mana || 0 };
     });
-  const magias = (pcCompleto.habilidadesClasse || []).concat(pcCompleto.magias || [])
-    .filter(h => h.escola_magia && h.escola_magia !== 'nenhuma')
+  const magias = ownedActions.magias
     .map(h => {
       const cdKey = `mag_${h.id}`;
       const cdRestante = cooldowns[cdKey] || 0;

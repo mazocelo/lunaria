@@ -1,3 +1,5 @@
+import { getOwnedCombatActionList } from '../../helpers/ownedActionsHelper.js';
+
 function normalizeText(value) {
   return String(value || '')
     .toLowerCase()
@@ -13,20 +15,7 @@ function isSpellAction(item) {
 }
 
 function collectCharacterActions(personagemCompleto = {}) {
-  const merged = [
-    ...(Array.isArray(personagemCompleto.habilidadesClasse) ? personagemCompleto.habilidadesClasse : []),
-    ...(Array.isArray(personagemCompleto.magias) ? personagemCompleto.magias : []),
-    ...(Array.isArray(personagemCompleto.habilidades) ? personagemCompleto.habilidades : []),
-    ...(Array.isArray(personagemCompleto.vantagens) ? personagemCompleto.vantagens : [])
-  ];
-
-  const seen = new Set();
-  return merged.filter((item) => {
-    const key = `${isSpellAction(item) ? 'mag' : 'hab'}:${item?.id ?? item?.nome ?? ''}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return !!item?.nome;
-  });
+  return getOwnedCombatActionList(personagemCompleto);
 }
 
 function buildNamedIntent(item) {

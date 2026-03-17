@@ -23,6 +23,7 @@ import {
   normalizarElementoPrimario,
 } from './catalogJsonHelper.js';
 import { setCooldown } from './cooldownManager.js';
+import { getOwnedCombatActionList } from './ownedActionsHelper.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -109,20 +110,7 @@ function _resolvePersonagemSnapshot(sessao, userId, personagem = null, jogadorSt
 }
 
 function _getPersonagemHabilidades(personagemCompleto = {}) {
-  const merged = [
-    ...(Array.isArray(personagemCompleto.habilidadesClasse) ? personagemCompleto.habilidadesClasse : []),
-    ...(Array.isArray(personagemCompleto.magias) ? personagemCompleto.magias : []),
-    ...(Array.isArray(personagemCompleto.habilidades) ? personagemCompleto.habilidades : []),
-    ...(Array.isArray(personagemCompleto.vantagens) ? personagemCompleto.vantagens : [])
-  ];
-
-  const seen = new Set();
-  return merged.filter((habilidade) => {
-    const key = String(habilidade?.id ?? habilidade?.nome ?? Math.random());
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return getOwnedCombatActionList(personagemCompleto);
 }
 
 function _buildResultadoHabilidadeInvalida({ personagem, userId, habilidadeId, habilidadeNome, erro, jogadorStats, habilidadeBase = null, tipoAcao = 'usar_habilidade' }) {

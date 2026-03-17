@@ -119,6 +119,16 @@ class PersonagemController {
         nivel: v.vantagem.nivel,
         elemento: v.vantagem.elemento,
         bonus: v.vantagem.bonus,
+        usar: v.vantagem.usar,
+        usos: v.vantagem.usos,
+        dano_base: v.vantagem.dano_base,
+        efeito: v.vantagem.efeito,
+        custo_mana: v.vantagem.custo_mana,
+        cooldown_turnos: v.vantagem.cooldown_turnos,
+        escola_magia: v.vantagem.escola_magia,
+        alcance: v.vantagem.alcance,
+        alvo: v.vantagem.alvo,
+        usa_concentracao: v.vantagem.usa_concentracao,
       }));
     }
 

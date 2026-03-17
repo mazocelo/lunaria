@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { apiClient } from '../../../services';
+import { apiClient, personagemService } from '../../../services';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
 import { TIMEOUTS, PARTICLES } from '../../../constants/game';
 import { calcularMana } from '../../../utils/rpgHelpers';
@@ -78,17 +78,31 @@ export const useEtapaJogoRPGModel = ({
 
   const fichaModal = useFichaModal(personagemSelecionado, user);
 
-  // Domain K: Habilidades
-  const [habilidadesPersonagem, setHabilidadesPersonagem] = useState([]);
-
+  // Domain K: Habilidades e Magias (hidratação do personagem completo)
   useEffect(() => {
-    if (!personagemSelecionado?.classe_id) return;
-    apiClient.get('/catalogos/habilidades', {
-      params: { classe_id: personagemSelecionado.classe_id, nivel: personagemSelecionado.nivel || 1 }
-    }).then(res => {
-      if (res.data?.success) setHabilidadesPersonagem(res.data.data || []);
+    if (!personagemSelecionado?.id) return;
+    if (personagemSelecionado.habilidadesClasse) return; // já hidratado
+    personagemService.getById(personagemSelecionado.id).then(res => {
+      const data = res.data?.data || res.data;
+      if (data) {
+        useGameStore.setState({
+          personagemSelecionado: {
+            ...personagemSelecionado,
+            habilidadesClasse: data.habilidadesClasse || [],
+            magias: data.magias || [],
+          }
+        });
+      }
     }).catch(() => {});
-  }, [personagemSelecionado?.classe_id, personagemSelecionado?.nivel]);
+  }, [personagemSelecionado?.id]);
+
+  const habilidadesPersonagem = personagemSelecionado?.habilidadesClasse || [];
+  const magiasPersonagem = personagemSelecionado?.magias || [];
+
+  // Cooldowns e concentração do combate
+  const combateStats = combateJogadores?.[user?.id] || {};
+  const cooldownsHabilidades = combateStats.cooldowns || {};
+  const concentracaoAtiva = combateStats.concentracao || null;
 
   // Domain L: UI Layout
   const [mobileDrawer, setMobileDrawer] = useState(null);
@@ -289,8 +303,11 @@ export const useEtapaJogoRPGModel = ({
     rodadaDropdownRef,
     inventarioAberto, setInventarioAberto,
 
-    // Habilidades
+    // Habilidades e Magias
     habilidadesPersonagem,
+    magiasPersonagem,
+    cooldownsHabilidades,
+    concentracaoAtiva,
 
     // Derived
     infoPersonagem, participantesFormatados, jogadoresExibir,

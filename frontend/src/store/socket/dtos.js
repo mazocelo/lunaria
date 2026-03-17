@@ -69,6 +69,8 @@ export function normalizeJogadorStats(s) {
     armadura: s.armadura ?? 0,
     status: s.status || 'vivo',
     status_efeitos: s.status_efeitos || [],
+    cooldowns: s.cooldowns || {},
+    concentracao: s.concentracao || null,
   };
 }
 

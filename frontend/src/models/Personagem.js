@@ -28,6 +28,8 @@ export class Personagem {
     this.vantagens = data.vantagens || [];
     this.desvantagens = data.desvantagens || [];
     this.equipamentos = data.equipamentos || [];
+    this.habilidadesClasse = data.habilidadesClasse || [];
+    this.magias = data.magias || [];
     this.xp_atual = data.xp_atual || 0;
     this.xp_proximo_nivel = data.xp_proximo_nivel || 100;
     this.hp_max = data.hp_max || data.hp_maximo || this.calcularHPMaximo();
@@ -168,6 +170,8 @@ export class Personagem {
       vantagens: this.vantagens,
       desvantagens: this.desvantagens,
       equipamentos: this.equipamentos,
+      habilidadesClasse: this.habilidadesClasse,
+      magias: this.magias,
       xp_atual: this.xp_atual,
       xp_proximo_nivel: this.xp_proximo_nivel,
       hp: this.hp,
@@ -212,6 +216,8 @@ export class Personagem {
       vantagens: apiData.vantagens,
       desvantagens: apiData.desvantagens,
       equipamentos: apiData.equipamentos,
+      habilidadesClasse: apiData.habilidadesClasse,
+      magias: apiData.magias,
       xp_atual: apiData.xp_atual || 0,
       xp_proximo_nivel: apiData.xp_proximo_nivel || 100,
       hp_max: apiData.hp_max || apiData.hp_maximo,

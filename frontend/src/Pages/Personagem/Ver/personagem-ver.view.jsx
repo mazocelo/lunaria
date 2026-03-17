@@ -4,6 +4,7 @@ import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import { Badge } from '../../../components/shared';
 import { BONUS_ATTR_KEYS, parseBonusMap } from '../../../utils/personagemBonus.js';
+import { isSpellAction } from '../../../utils/isSpellAction.js';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
@@ -587,9 +588,9 @@ const VerPersonagemView = ({
 
 const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }) => {
   const todos = [...vantagens, ...desvantagens];
-  const magias = todos.filter(item => item.tipo?.includes('magia'));
+  const magias = todos.filter(item => isSpellAction(item));
   const habilidades = todos.filter(item =>
-    item.tipo?.some(t => ['ativa', 'passiva'].includes(t)) && !item.tipo?.includes('magia')
+    item.tipo?.some(t => ['ativa', 'passiva'].includes(t)) && !isSpellAction(item)
   );
 
   if (magias.length === 0 && habilidades.length === 0) return null;

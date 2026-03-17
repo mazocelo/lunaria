@@ -216,9 +216,12 @@ const EtapaJogoRPGView = (props) => {
               combateAtivo={combateAtivo}
               combateMonstros={combateMonstros}
               habilidadesPersonagem={habilidadesPersonagem}
+              magiasPersonagem={magiasPersonagem}
               manaAtual={manaAtual}
               manaMax={manaMax}
-              cooldownsHabilidades={{}}
+              cooldownsHabilidades={cooldownsHabilidades}
+              concentracaoAtiva={concentracaoAtiva}
+              onUsarMagia={handleUsarMagia}
             />
           </div>
 

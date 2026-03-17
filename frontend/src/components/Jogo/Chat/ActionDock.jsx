@@ -25,9 +25,12 @@ const ActionDock = ({
   combateAtivo = false,
   combateMonstros = [],
   habilidadesPersonagem = [],
+  magiasPersonagem = [],
   manaAtual = 0,
   manaMax = 0,
-  cooldownsHabilidades = {}
+  cooldownsHabilidades = {},
+  concentracaoAtiva = null,
+  onUsarMagia,
 }) => {
   const isConnected = useSocketStore((s) => s.isConnected);
   const inRoom = useSocketStore((s) => s.inRoom);
@@ -35,6 +38,7 @@ const ActionDock = ({
   const [isSending, setIsSending] = useState(false);
   const [iniciandoTurno, setIniciandoTurno] = useState(false);
   const [showSkillMenu, setShowSkillMenu] = useState(false);
+  const [showSpellMenu, setShowSpellMenu] = useState(false);
   const lastSentTimeRef = useRef(null);
 
   const getConnectionStatus = useCallback(() => {
@@ -218,7 +222,7 @@ const ActionDock = ({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setShowSkillMenu(!showSkillMenu)}
+                onClick={() => { setShowSkillMenu(!showSkillMenu); setShowSpellMenu(false); }}
                 className={`px-3 py-1.5 text-xs border rounded-lg transition-all ${
                   habilidadesPersonagem.length > 0
                     ? 'bg-purple-900/40 border-purple-500/40 text-purple-200 hover:bg-purple-800/50'
@@ -231,7 +235,7 @@ const ActionDock = ({
               {showSkillMenu && habilidadesPersonagem.length > 0 && (
                 <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto game-glass-solid border border-purple-500/30 rounded-xl shadow-lg z-50">
                   {habilidadesPersonagem.map((hab) => {
-                    const cdRestante = cooldownsHabilidades[hab.id] || 0;
+                    const cdRestante = cooldownsHabilidades[`hab_${hab.id}`] || cooldownsHabilidades[hab.id] || 0;
                     const semMana = hab.custo_mana > manaAtual;
                     const desabilitada = cdRestante > 0 || semMana;
                     return (
@@ -272,6 +276,83 @@ const ActionDock = ({
                 </div>
               )}
             </div>
+
+            {magiasPersonagem.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setShowSpellMenu(!showSpellMenu); setShowSkillMenu(false); }}
+                  className="px-3 py-1.5 text-xs bg-blue-900/40 border border-blue-500/40 text-blue-200 rounded-lg hover:bg-blue-800/50 transition-all"
+                >
+                  🔮 Magias ({magiasPersonagem.length})
+                </button>
+
+                {showSpellMenu && (
+                  <div className="absolute bottom-full left-0 mb-1 w-72 max-h-56 overflow-y-auto game-glass-solid border border-blue-500/30 rounded-xl shadow-lg z-50">
+                    {concentracaoAtiva && (
+                      <div className="px-3 py-1.5 border-b border-blue-500/20 bg-amber-900/30">
+                        <p className="text-xs text-amber-200">⚡ Concentracao: <span className="font-bold">{concentracaoAtiva.nome || 'Ativa'}</span></p>
+                      </div>
+                    )}
+                    {magiasPersonagem.map((mag) => {
+                      const cdKey = `mag_${mag.id}`;
+                      const cdRestante = cooldownsHabilidades[cdKey] || 0;
+                      const semMana = mag.custo_mana > manaAtual;
+                      const bloqueioConcentracao = mag.usa_concentracao && concentracaoAtiva;
+                      const desabilitada = cdRestante > 0 || semMana || bloqueioConcentracao;
+                      let motivo = '';
+                      if (cdRestante > 0) motivo = `CD: ${cdRestante}t`;
+                      else if (semMana) motivo = 'Mana insuficiente';
+                      else if (bloqueioConcentracao) motivo = 'Concentracao ativa';
+
+                      return (
+                        <button
+                          type="button"
+                          key={mag.id}
+                          disabled={desabilitada}
+                          onClick={() => {
+                            if (onUsarMagia) {
+                              onUsarMagia(mag);
+                            } else {
+                              fillInput(`Conjuro a magia ${mag.nome}!`, {
+                                tipo: 'usar_habilidade',
+                                habilidadeId: mag.id,
+                                habilidadeNome: mag.nome,
+                                alvoId: alvoIdPadrao
+                              });
+                            }
+                            setShowSpellMenu(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm border-b border-slate-700/50 last:border-0 transition-colors ${
+                            desabilitada ? 'text-slate-500 cursor-not-allowed' : 'text-blue-200 hover:bg-blue-800/30'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium">{mag.nome}</span>
+                              {mag.escola_magia && (
+                                <span className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">
+                                  {mag.escola_magia}
+                                </span>
+                              )}
+                              {mag.usa_concentracao && (
+                                <span className="text-[10px] text-amber-300" title="Requer concentracao">⚡</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs">
+                              {mag.custo_mana > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{mag.custo_mana} MP</span>}
+                              {cdRestante > 0 && <span className="text-yellow-400">{cdRestante}t</span>}
+                              {motivo && desabilitada && cdRestante === 0 && <span className="text-red-400/70 text-[10px]">{motivo}</span>}
+                            </div>
+                          </div>
+                          {mag.descricao && <p className="text-xs text-slate-400 mt-0.5 truncate">{mag.descricao}</p>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -282,7 +363,7 @@ const ActionDock = ({
                 { label: 'Falar', emoji: '💬', acao: 'Quero conversar com ' },
                 { label: 'Investigar', emoji: '🔍', acao: 'Investigo os arredores em busca de ' },
                 { label: 'Interagir', emoji: '🤝', acao: 'Interajo com ' },
-                { label: 'Magia', emoji: '✨', acao: 'Uso magia para ' },
+                { label: 'Descrever magia', emoji: '✨', acao: 'Uso magia para ' },
                 { label: 'Item', emoji: '🎒', acao: 'Uso um item: ' }
               ].map((btn) => (
                 <button

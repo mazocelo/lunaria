@@ -120,6 +120,51 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     }
   }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
 
+  const handleUsarMagia = useCallback(async (magia) => {
+    try {
+      const roomId = `historia_${historia?.id}`;
+      const requestId = crypto.randomUUID();
+      const descricao = `[CONJURA MAGIA: ${magia.nome}]${magia.escola_magia ? ` Escola: ${magia.escola_magia}` : ''}${magia.custo_mana ? ` Custo: ${magia.custo_mana} MP` : ''}${magia.dano_base ? ` Dano base: ${magia.dano_base}` : ''}${magia.usa_concentracao ? ' (Concentracao)' : ''} - ${magia.descricao || ''}`;
+      const store = useSocketStore.getState();
+      const activeStatus = store.activeMestreRequestStatus;
+      if (store.pendingMestreRequestId || (activeStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeStatus))) {
+        showGameNotification('Ja existe uma resposta do Mestre em andamento nesta sala. Aguarde a conclusao ou verifique o status.', 'warning');
+        return;
+      }
+
+      onAdicionarMensagem({
+        id: `loading_${Date.now()}`,
+        userId: 'sistema',
+        username: 'Sistema',
+        requestId,
+        message: '⏳ O Mestre esta pensando...',
+        tipo: 'loading',
+        timestamp: Date.now()
+      });
+
+      const enviado = socketStoreSafeEmit('mensagem_para_mestre', {
+        roomId,
+        userId: String(user?.id),
+        username: user?.nome || user?.name,
+        mensagem: descricao,
+        combatIntent: { tipo: 'usar_habilidade', habilidadeId: magia.id, habilidadeNome: magia.nome },
+        personagem: buildPersonagemPayload(),
+        requestId
+      });
+      if (enviado) {
+        useSocketStore.setState({
+          mestreTimedOut: false,
+          mestreStale: false,
+          pendingMestreRequestId: requestId,
+          pendingMestreRequestKind: 'player_action',
+          pendingMestreSentAt: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      // silenced
+    }
+  }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
+
   const handleUsarEquipamento = useCallback(async (equipamento) => {
     try {
       const roomId = `historia_${historia?.id}`;
@@ -170,6 +215,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     handleIniciarTurno,
     handleExecutarAcao,
     handleUsarHabilidade,
+    handleUsarMagia,
     handleUsarEquipamento,
   };
 };

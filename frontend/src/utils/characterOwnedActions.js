@@ -21,6 +21,7 @@ const dedupeActions = (items = []) => {
 
 const getExplicitOwnedSkills = (personagem = {}) =>
   dedupeActions([
+    ...asArray(personagem.habilidadesClasse),
     ...asArray(personagem.habilidadesProprias),
     ...asArray(personagem.habilidadesConhecidas),
     ...asArray(personagem.habilidadesAtivas),
@@ -29,6 +30,7 @@ const getExplicitOwnedSkills = (personagem = {}) =>
 
 const getExplicitOwnedSpells = (personagem = {}) =>
   dedupeActions([
+    ...asArray(personagem.magias),
     ...asArray(personagem.magiasProprias),
     ...asArray(personagem.magiasConhecidas),
     ...asArray(personagem.magiasPreparadas),

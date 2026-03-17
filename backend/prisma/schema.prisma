@@ -187,6 +187,8 @@ model personagens {
   xp_proximo_nivel          Int?                     @default(100)
   hp_atual                  Int?
   mp_atual                  Int?
+  voice_id                  String?                  @db.VarChar(100)
+  voice_provider            String?                  @db.VarChar(50)
   historias_personagens     historias_personagens[]
   personagem_vantagem       personagem_vantagem[]
   personagem_desvantagem    personagem_desvantagem[]

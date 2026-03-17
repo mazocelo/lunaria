@@ -80,7 +80,10 @@ export default class ChatHandler {
         message,
         type,
         roomId,
-        timestamp: Date.now().toString()
+        timestamp: Date.now().toString(),
+        voice_id: data.voice_id || null,
+        voice_provider: data.voice_provider || null,
+        speech_text: message
       };
 
       // Enviar para todos na sala

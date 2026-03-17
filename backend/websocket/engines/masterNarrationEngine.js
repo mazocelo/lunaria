@@ -20,6 +20,7 @@ import {
   buildRoleplayMensagem
 } from '../utils/sessionMessages.js';
 import { sanitizePromptInput } from '../../helpers/sanitize.js';
+import { resolvePlayerVoice, pickRandomFreeVoice } from '../../helpers/playerVoiceHelper.js';
 import { runClaimDetection } from '../../helpers/claimDetector.js';
 import {
   getTestePendente,
@@ -570,13 +571,22 @@ export default class MasterNarrationEngine {
         log.warn({ err: reviewErr.message }, 'Revisao pos-IA falhou (fail-open)');
       }
 
-      // 5. Salvar mensagem do jogador na sessão
+      // 5. Salvar mensagem do jogador na sessão (com voz TTS)
+      const playerVoice = await resolvePlayerVoice(
+        Number(personagem.id || personagem.personagemId) || null
+      ).catch(() => pickRandomFreeVoice());
+
       const mensagemJogador = buildJogadorMensagem({
         userId,
         username,
         personagem: personagem.nome,
         message: mensagem,
-        origem: combateAtivo ? 'combate' : 'turno'
+        origem: combateAtivo ? 'combate' : 'turno',
+        extraFields: {
+          voice_id: playerVoice.voice_id,
+          voice_provider: playerVoice.voice_provider,
+          speech_text: mensagem
+        }
       });
       appendMensagemSessao(sessao, mensagemJogador);
 
@@ -783,6 +793,10 @@ export default class MasterNarrationEngine {
         throw error;
       }
 
+      const playerVoice2 = await resolvePlayerVoice(
+        Number(personagem.id || personagem.personagemId) || null
+      ).catch(() => pickRandomFreeVoice());
+
       const mensagemJogador = buildJogadorMensagem({
         userId,
         username,
@@ -791,7 +805,10 @@ export default class MasterNarrationEngine {
         origem: combateAtivo ? 'combate' : 'turno',
         extraFields: {
           requestId,
-          attempt: acceptedRequest.attempt
+          attempt: acceptedRequest.attempt,
+          voice_id: playerVoice2.voice_id,
+          voice_provider: playerVoice2.voice_provider,
+          speech_text: mensagem
         }
       });
       acceptedRequest.playerMessageId = mensagemJogador.id;

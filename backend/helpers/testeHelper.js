@@ -161,7 +161,7 @@ export function resolverTeste(personagem, nomeTeste, rolagemBruta, dificuldade) 
   const dc = obterDC(dificuldade);
   const mod = calcularModificadorTeste(personagem, nomeTeste);
 
-  const total = roll + mod.totalModificador;
+  const total = Math.max(1, roll + mod.totalModificador);
   const critico = roll === 20;
   const falha_critica = roll === 1;
 

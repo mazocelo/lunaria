@@ -590,6 +590,25 @@ export default class MasterNarrationEngine {
       });
       appendMensagemSessao(sessao, mensagemJogador);
 
+      // 5b. Persistir ação estruturada + tracking de combate
+      try {
+        await sm.gerenciadorSessoes.adicionarAcao(roomId, {
+          userId, username,
+          personagem: personagem?.nome,
+          mensagem,
+          origem: combateAtivo ? 'combate' : 'turno',
+          combatIntent: combatIntent || null,
+        });
+      } catch (errAcao) {
+        log.warn({ err: errAcao.message }, 'Falha ao persistir acao (fail-open)');
+      }
+      if (combateAtivo && estadoJogo.combate) {
+        if (!estadoJogo.combate.jogadoresQueAgiram) estadoJogo.combate.jogadoresQueAgiram = [];
+        if (!estadoJogo.combate.jogadoresQueAgiram.includes(userId)) {
+          estadoJogo.combate.jogadoresQueAgiram.push(userId);
+        }
+      }
+
       // 6. Salvar resposta do mestre na sessão
       const mensagemMestre = sm.buildMestreMensagem(resposta.narracao, sessao.mestreConfig, {
         sessao,
@@ -597,6 +616,11 @@ export default class MasterNarrationEngine {
       });
       appendMensagemSessao(sessao, mensagemMestre);
       await sm.aplicarMetadadosNarrativos(roomId, sessao, resposta.metadados || {});
+
+      // 6b. Atualizar snapshot da última mensagem do mestre
+      if (resposta.narracao && sessao.estadoJogo) {
+        sessao.estadoJogo.mensagemMestre = resposta.narracao.substring(0, 500);
+      }
 
       // 7. Atualizar sessão no Redis
       sessao.atualizadaEm = new Date().toISOString();
@@ -813,6 +837,26 @@ export default class MasterNarrationEngine {
       });
       acceptedRequest.playerMessageId = mensagemJogador.id;
       appendMensagemSessao(sessao, mensagemJogador);
+
+      // Persistir ação estruturada + tracking de combate
+      try {
+        await sm.gerenciadorSessoes.adicionarAcao(roomId, {
+          userId, username,
+          personagem: personagem?.nome,
+          mensagem,
+          origem: combateAtivo ? 'combate' : 'turno',
+          combatIntent: combatIntent || null,
+        });
+      } catch (errAcao) {
+        log.warn({ err: errAcao.message }, 'Falha ao persistir acao (fail-open)');
+      }
+      if (combateAtivo && estadoJogo.combate) {
+        if (!estadoJogo.combate.jogadoresQueAgiram) estadoJogo.combate.jogadoresQueAgiram = [];
+        if (!estadoJogo.combate.jogadoresQueAgiram.includes(userId)) {
+          estadoJogo.combate.jogadoresQueAgiram.push(userId);
+        }
+      }
+
       markMestreRequestStatus(sessao, requestId, {
         playerMessageId: mensagemJogador.id
       });
@@ -1204,6 +1248,11 @@ export default class MasterNarrationEngine {
           combatIntent: combatIntentResolvido,
           playerCombatActionResolved
         });
+
+        // Atualizar snapshot da última mensagem do mestre
+        if (narrativa && workingSessao.estadoJogo) {
+          workingSessao.estadoJogo.mensagemMestre = narrativa.substring(0, 500);
+        }
 
         const completedRequest = completeMestreRequest(workingSessao, requestId, attempt);
         workingSessao.atualizadaEm = new Date().toISOString();

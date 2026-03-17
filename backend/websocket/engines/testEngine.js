@@ -290,6 +290,26 @@ export default class TestEngine {
         }));
         syncPendingTestPrompt(sessao, testeResolvido.groupId, remainingGroupTests);
 
+        // Persistir resultado do teste no array de rolagens
+        if (roomId.startsWith('historia_')) {
+          try {
+            await sm.gerenciadorSessoes.adicionarRolagem(roomId, {
+              tipo: 'resultado_teste',
+              userId,
+              teste: testeResolvido.teste,
+              atributo: resultadoTestePayload.atributoNome,
+              rolagemBruta: resultadoTestePayload.rolagemBruta,
+              total: resultadoTestePayload.total,
+              dc: resultadoTestePayload.dc,
+              sucesso: resultadoTestePayload.sucesso,
+              critico: resultadoTestePayload.critico,
+              descricaoResultado: resultadoTestePayload.descricaoResultado,
+            });
+          } catch (errRol) {
+            log.warn({ err: errRol.message }, 'Falha ao persistir rolagem de teste (fail-open)');
+          }
+        }
+
         // @event resultado_teste → room (broadcast) | fires after a pending skill test is mechanically resolved
         sm.sendToRoom(roomId, 'resultado_teste', resultadoTestePayload);
 

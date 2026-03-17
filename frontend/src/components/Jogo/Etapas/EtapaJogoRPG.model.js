@@ -3,6 +3,7 @@ import { apiClient, personagemService } from '../../../services';
 import { useSocketStore, useGameStore } from '../../../store/index.js';
 import { TIMEOUTS, PARTICLES } from '../../../constants/game';
 import { calcularMana } from '../../../utils/rpgHelpers';
+import { getOwnedCombatActions } from '../../../utils/characterOwnedActions.js';
 import { formatarInformacoesPersonagem, formatarParticipantes } from './EtapaJogoRPG.utils.js';
 
 import { useVoice } from './hooks/useVoice.js';
@@ -81,23 +82,25 @@ export const useEtapaJogoRPGModel = ({
   // Domain K: Habilidades e Magias (hidratação do personagem completo)
   useEffect(() => {
     if (!personagemSelecionado?.id) return;
-    if (personagemSelecionado.habilidadesClasse) return; // já hidratado
     personagemService.getById(personagemSelecionado.id).then(res => {
       const data = res.data?.data || res.data;
       if (data) {
         useGameStore.setState({
           personagemSelecionado: {
             ...personagemSelecionado,
-            habilidadesClasse: data.habilidadesClasse || [],
-            magias: data.magias || [],
+            ...data,
           }
         });
       }
     }).catch(() => {});
   }, [personagemSelecionado?.id]);
 
-  const habilidadesPersonagem = personagemSelecionado?.habilidadesClasse || [];
-  const magiasPersonagem = personagemSelecionado?.magias || [];
+  const ownedCombatActions = useMemo(
+    () => getOwnedCombatActions(personagemSelecionado || {}),
+    [personagemSelecionado]
+  );
+  const habilidadesPersonagem = ownedCombatActions.habilidades;
+  const magiasPersonagem = ownedCombatActions.magias;
 
   // Cooldowns e concentração do combate
   const combateStats = combateJogadores?.[user?.id] || {};

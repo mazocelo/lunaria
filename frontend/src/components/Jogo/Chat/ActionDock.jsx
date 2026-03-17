@@ -103,6 +103,9 @@ const ActionDock = ({
   const showQuickActions = ehMeuTurno && turnoIniciado && faseJogo === 'rodada_em_andamento';
   const primeiroMonstroVivo = combateMonstros.find((m) => m.status === 'vivo');
   const alvoIdPadrao = primeiroMonstroVivo?.id || null;
+  const hasOwnedSkills = habilidadesPersonagem.length > 0;
+  const hasOwnedSpells = magiasPersonagem.length > 0;
+  const hasOwnedCombatActions = hasOwnedSkills || hasOwnedSpells;
   const combatIntentLabel = combatIntentAtual?.habilidadeNome
     || combatIntentAtual?.magiaNome
     || ({
@@ -230,7 +233,8 @@ const ActionDock = ({
               </button>
             ))}
 
-            <div className="relative">
+            {hasOwnedSkills && (
+              <div className="relative">
               <button
                 type="button"
                 onClick={() => { setShowSkillMenu(!showSkillMenu); setShowSpellMenu(false); }}
@@ -281,14 +285,10 @@ const ActionDock = ({
                 </div>
               )}
 
-              {showSkillMenu && habilidadesPersonagem.length === 0 && (
-                <div className="absolute bottom-full left-0 mb-1 w-48 game-glass-solid border border-white/[0.08] rounded-xl shadow-lg z-50 p-3">
-                  <p className="text-xs text-slate-400">Nenhuma habilidade disponivel para sua classe e nivel.</p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {magiasPersonagem.length > 0 && (
+            {hasOwnedSpells && (
               <div className="relative">
                 <button
                   type="button"
@@ -362,6 +362,12 @@ const ActionDock = ({
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {!hasOwnedCombatActions && (
+              <div className="px-3 py-1.5 text-xs game-glass-subtle border border-white/[0.08] text-slate-300 rounded-lg">
+                Voce nao possui habilidades, magias ou vantagens ativaveis neste momento.
               </div>
             )}
           </div>

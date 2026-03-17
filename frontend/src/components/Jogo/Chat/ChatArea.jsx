@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { ListMusic, Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
 import { RPGMessage } from '../../RPGMessage';
-import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup } from './renderers';
+import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup, JogadorMessage } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
 import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
 import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
@@ -202,6 +202,10 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
           estiloImagem={estiloImagem}
         />
       );
+    }
+
+    if (tipo === 'jogador' || tipo === 'player') {
+      return <JogadorMessage key={key} mensagem={mensagem} tts={tts} />;
     }
 
     const renderer = MESSAGE_RENDERERS[tipo];

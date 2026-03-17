@@ -833,29 +833,95 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
   );
 };
 
-export const renderJogador = (mensagem, key) => (
-  <div key={key} className="max-w-[80%] ml-auto animate-fade-in">
-    <div className="game-glass p-4 rounded-xl border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
-      <div className="flex items-start space-x-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 text-sm font-bold">
-          {mensagem.username?.charAt(0)?.toUpperCase() || '?'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-cyan-300 font-semibold text-sm mb-1">
-            {mensagem.username}
-            {mensagem.personagem && (
-              <span className="text-cyan-400/70 text-xs ml-1.5">
-                {mensagem.personagem}
-              </span>
-            )}
-          </p>
-          <p className="text-white text-base leading-relaxed">
-            {getConteudo(mensagem)}
-          </p>
+/**
+ * JogadorMessage — Balão do jogador com suporte a TTS.
+ * Se a mensagem tiver voice_id, exibe botão de play.
+ */
+export const JogadorMessage = ({ mensagem, tts }) => {
+  const voiceId = mensagem.voice_id;
+  const voiceProvider = mensagem.voice_provider || 'opensource';
+  const hasVoice = Boolean(voiceId && tts);
+  const messageText = mensagem.speech_text || getConteudo(mensagem);
+
+  const messageSequenceKey = `jogador:${mensagem.id}`;
+  const isThisActive = tts?.currentSequenceKey === messageSequenceKey;
+  const isThisPlaying = isThisActive && tts?.isPlaying;
+  const isThisLoading = isThisActive && (tts?.isLoading || tts?.isGenerating);
+
+  const handlePlay = async () => {
+    if (!hasVoice) return;
+    if (isThisActive) { tts.togglePause(); return; }
+
+    const items = [{
+      itemKey: buildTtsItemKey(mensagem.id, null, voiceId, voiceProvider, null, messageText),
+      messageId: mensagem.id,
+      segmentId: null,
+      text: messageText,
+      speech_text: messageText,
+      voiceId,
+      provider: voiceProvider,
+      emotion: null,
+      speakerLabel: mensagem.username || 'Jogador',
+      tipo: 'fala_jogador',
+      hasPersistedAudio: false,
+    }];
+
+    await tts.playSequence(items, mensagem.id, {
+      sequenceKey: messageSequenceKey,
+      title: mensagem.username || 'Jogador',
+      source: 'message_balloon',
+      contextLabel: `Fala de ${mensagem.username || 'Jogador'}`
+    });
+  };
+
+  return (
+    <div className="max-w-[80%] ml-auto animate-fade-in">
+      <div className="game-glass p-4 rounded-xl border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 text-sm font-bold">
+            {mensagem.username?.charAt(0)?.toUpperCase() || '?'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-cyan-300 font-semibold text-sm">
+                {mensagem.username}
+                {mensagem.personagem && (
+                  <span className="text-cyan-400/70 text-xs ml-1.5">
+                    {mensagem.personagem}
+                  </span>
+                )}
+              </p>
+              {hasVoice && (
+                <button
+                  type="button"
+                  onClick={handlePlay}
+                  className="p-1 rounded-full text-cyan-400/70 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+                  title={isThisPlaying ? 'Pausar' : 'Ouvir'}
+                  aria-label={isThisPlaying ? 'Pausar audio' : 'Ouvir mensagem'}
+                >
+                  {isThisLoading ? (
+                    <div className="w-3.5 h-3.5 border-2 border-cyan-400/50 border-t-cyan-300 rounded-full animate-spin" />
+                  ) : isThisPlaying ? (
+                    <Pause size={14} />
+                  ) : (
+                    <Play size={14} />
+                  )}
+                </button>
+              )}
+            </div>
+            <p className="text-white text-base leading-relaxed">
+              {getConteudo(mensagem)}
+            </p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  );
+};
+
+/** Fallback renderer sem TTS (para MESSAGE_RENDERERS registry) */
+export const renderJogador = (mensagem, key) => (
+  <JogadorMessage key={key} mensagem={mensagem} tts={null} />
 );
 
 export const renderMestreStreaming = (mensagem, key) => {

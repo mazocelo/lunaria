@@ -38,6 +38,8 @@ export class Personagem {
     this.pontos_atributo_pendentes = data.pontos_atributo_pendentes || 0;
     this.pontos_iniciais = data.pontos_iniciais || 0;
     this.pontos_totais = data.pontos_totais || 0;
+    this.voice_id = data.voice_id || null;
+    this.voice_provider = data.voice_provider || null;
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
   }
@@ -180,6 +182,8 @@ export class Personagem {
       pontos_atributo_pendentes: this.pontos_atributo_pendentes,
       pontos_iniciais: this.pontos_iniciais,
       pontos_totais: this.pontos_totais,
+      voice_id: this.voice_id,
+      voice_provider: this.voice_provider,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
@@ -228,6 +232,8 @@ export class Personagem {
       pontos_atributo_pendentes: apiData.pontos_atributo_pendentes || 0,
       pontos_iniciais: apiData.pontos_iniciais,
       pontos_totais: apiData.pontos_totais,
+      voice_id: apiData.voice_id,
+      voice_provider: apiData.voice_provider,
       created_at: apiData.created_at,
       updated_at: apiData.updated_at
     });

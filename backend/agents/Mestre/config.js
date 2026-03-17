@@ -4,20 +4,26 @@
  * Override via env vars quando disponível.
  */
 
+// Timeouts padrão por kind (fallback quando o modelo não define)
+const DEFAULT_TIMEOUT_MS_BY_KIND = {
+  player_action: 30000,
+  turn_start: 60000
+};
+
 // Catálogo de modelos disponíveis com metadata
 export const AI_MODELS = {
   // Google Gemini
-  'gemini-2.5-flash':      { provider: 'gemini', label: 'Gemini 2.5 Flash', badge: 'Recomendado', inputPrice: 0.30, outputPrice: 2.50, context: 1048576 },
-  'gemini-2.5-flash-lite': { provider: 'gemini', label: 'Gemini 2.5 Flash-Lite', badge: 'Economico', inputPrice: 0.10, outputPrice: 0.40, context: 1048576 },
-  'gemini-2.0-flash':      { provider: 'gemini', label: 'Gemini 2.0 Flash', badge: 'Legado', inputPrice: 0.10, outputPrice: 0.40, context: 1048576 },
-  // Groq (Llama)
-  'openai/gpt-oss-120b':                       { provider: 'groq', label: 'GPT OSS 120B', badge: null, inputPrice: 0, outputPrice: 0, context: 131072 },
-  'llama-3.3-70b-versatile':                   { provider: 'groq', label: 'Llama 3.3 70B Versatile', badge: null, inputPrice: 0, outputPrice: 0, context: 131072 },
-  'openai/gpt-oss-20b':                        { provider: 'groq', label: 'GPT OSS 20B', badge: 'Rapido', inputPrice: 0, outputPrice: 0, context: 131072 },
-  'meta-llama/llama-4-scout-17b-16e-instruct': { provider: 'groq', label: 'Llama 4 Scout', badge: 'Avancado', inputPrice: 0, outputPrice: 0, context: 131072 },
-  // Anthropic
-  'claude-sonnet-4-6': { provider: 'anthropic', label: 'Claude Sonnet 4.6', badge: 'Premium+', inputPrice: 3.00, outputPrice: 15.00, context: 200000 },
-  'claude-haiku-4-5-20251001': { provider: 'anthropic', label: 'Claude Haiku 4.5', badge: 'Premium', inputPrice: 0.80, outputPrice: 4.00, context: 200000 },
+  'gemini-2.5-flash':      { provider: 'gemini', label: 'Gemini 2.5 Flash', badge: 'Recomendado', inputPrice: 0.30, outputPrice: 2.50, context: 1048576, timeouts: { player_action: 15000, turn_start: 30000 } },
+  'gemini-2.5-flash-lite': { provider: 'gemini', label: 'Gemini 2.5 Flash-Lite', badge: 'Economico', inputPrice: 0.10, outputPrice: 0.40, context: 1048576, timeouts: { player_action: 15000, turn_start: 30000 } },
+  'gemini-2.0-flash':      { provider: 'gemini', label: 'Gemini 2.0 Flash', badge: 'Legado', inputPrice: 0.10, outputPrice: 0.40, context: 1048576, timeouts: { player_action: 15000, turn_start: 30000 } },
+  // Groq (Llama) — LPU hardware, inferência rápida mas com picos sob carga
+  'openai/gpt-oss-120b':                       { provider: 'groq', label: 'GPT OSS 120B', badge: null, inputPrice: 0, outputPrice: 0, context: 131072, timeouts: { player_action: 35000, turn_start: 70000 } },
+  'llama-3.3-70b-versatile':                   { provider: 'groq', label: 'Llama 3.3 70B Versatile', badge: null, inputPrice: 0, outputPrice: 0, context: 131072, timeouts: { player_action: 30000, turn_start: 60000 } },
+  'openai/gpt-oss-20b':                        { provider: 'groq', label: 'GPT OSS 20B', badge: 'Rapido', inputPrice: 0, outputPrice: 0, context: 131072, timeouts: { player_action: 12000, turn_start: 25000 } },
+  'meta-llama/llama-4-scout-17b-16e-instruct': { provider: 'groq', label: 'Llama 4 Scout', badge: 'Avancado', inputPrice: 0, outputPrice: 0, context: 131072, timeouts: { player_action: 20000, turn_start: 40000 } },
+  // Anthropic — latência maior, especialmente Sonnet com prompts narrativos densos
+  'claude-sonnet-4-6': { provider: 'anthropic', label: 'Claude Sonnet 4.6', badge: 'Premium+', inputPrice: 3.00, outputPrice: 15.00, context: 200000, timeouts: { player_action: 60000, turn_start: 120000 } },
+  'claude-haiku-4-5-20251001': { provider: 'anthropic', label: 'Claude Haiku 4.5', badge: 'Premium', inputPrice: 0.80, outputPrice: 4.00, context: 200000, timeouts: { player_action: 30000, turn_start: 60000 } },
 };
 
 // Modelos deprecados → fallback automático
@@ -28,6 +34,20 @@ export const DEPRECATED_MODELS = {
   'llama-3.1-8b-instant': 'gemini-2.5-flash',
   'meta-llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
 };
+
+// Resolve o nome do modelo efetivo a partir da config da sessão
+export function resolveModelName(mestreConfig) {
+  const name = mestreConfig?.modelo || MESTRE_CONFIG.model.name;
+  return DEPRECATED_MODELS[name] || name;
+}
+
+// Retorna timeout em ms para um modelo e tipo de operação
+export function getModelTimeoutMs(modelName, kind = 'player_action') {
+  const resolved = DEPRECATED_MODELS[modelName] || modelName;
+  const model = AI_MODELS[resolved];
+  if (model?.timeouts?.[kind]) return model.timeouts[kind];
+  return DEFAULT_TIMEOUT_MS_BY_KIND[kind] || DEFAULT_TIMEOUT_MS_BY_KIND.player_action;
+}
 
 // Detecta provider pelo nome do modelo
 export function detectProvider(modelName) {
@@ -44,7 +64,7 @@ export const MESTRE_CONFIG = {
     temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.9,
     maxTokens: parseInt(process.env.AI_MAX_TOKENS) || 8000,
     topP: parseFloat(process.env.AI_TOP_P) || 0.99,
-    timeout: parseInt(process.env.AI_TIMEOUT_MS) || 10000,
+    timeout: parseInt(process.env.AI_TIMEOUT_MS) || 60000,
   },
 
   // Configurações de comportamento

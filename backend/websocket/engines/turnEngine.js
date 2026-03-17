@@ -30,6 +30,7 @@ import {
   normalizeExpiredActiveMestreRequest
 } from '../utils/mestreRequestLifecycle.js';
 import { isRoomLockBusyError as isBusyRoomLockError } from '../utils/roomLockError.js';
+import { resolveModelName } from '../../agents/Mestre/config.js';
 
 // ── Abertura com transição personalizada ──────────────────────────
 
@@ -569,7 +570,7 @@ export default class TurnEngine {
           originalMessage: `Inicio do turno de ${jogadorDaVez.personagemNome || username}`,
           combatIntent: null,
           playerMessageId: null,
-          timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start')
+          timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start', resolveModelName(sessao.mestreConfig))
         }));
       } catch (error) {
         if (error.code === 'MESTRE_REQUEST_BUSY') {
@@ -669,7 +670,7 @@ export default class TurnEngine {
           contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
           runtimeOptions: {
             historiaConfig: accepted.sessao.historiaConfig || null,
-            timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start'),
+            timeoutMs: getDefaultMestreRequestTimeoutMs('turn_start', resolveModelName(accepted.sessao.mestreConfig)),
             retryOnTimeout: false,
             throwOnFailure: true
           }

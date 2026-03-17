@@ -1,3 +1,5 @@
+import { getModelTimeoutMs } from '../../agents/Mestre/config.js';
+
 const TERMINAL_REQUEST_STATUSES = new Set([
   'completed',
   'failed',
@@ -7,10 +9,6 @@ const TERMINAL_REQUEST_STATUSES = new Set([
 
 const MAX_REQUEST_HISTORY = 20;
 const REQUEST_TIMEOUT_GRACE_MS = 3000;
-const DEFAULT_TIMEOUT_MS_BY_KIND = {
-  player_action: 10000,
-  turn_start: 25000
-};
 
 function nowIso() {
   return new Date().toISOString();
@@ -41,11 +39,11 @@ function computeExpiresAt(acceptedAt, timeoutMs) {
   return new Date(baseTime + Number(timeoutMs || 0) + REQUEST_TIMEOUT_GRACE_MS).toISOString();
 }
 
-function normalizeRequestTimeoutMs(kind, timeoutMs) {
+function normalizeRequestTimeoutMs(kind, timeoutMs, modelName = null) {
   if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
     return Number(timeoutMs);
   }
-  return DEFAULT_TIMEOUT_MS_BY_KIND[kind] || DEFAULT_TIMEOUT_MS_BY_KIND.player_action;
+  return getModelTimeoutMs(modelName, kind);
 }
 
 function buildTimeoutExpiredPatch(request) {
@@ -60,8 +58,8 @@ function buildTimeoutExpiredPatch(request) {
   };
 }
 
-export function getDefaultMestreRequestTimeoutMs(kind = 'player_action') {
-  return normalizeRequestTimeoutMs(kind, null);
+export function getDefaultMestreRequestTimeoutMs(kind = 'player_action', modelName = null) {
+  return normalizeRequestTimeoutMs(kind, null, modelName);
 }
 
 export function isTerminalMestreRequest(status) {

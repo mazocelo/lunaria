@@ -51,6 +51,7 @@ import {
   normalizeExpiredActiveMestreRequest
 } from '../utils/mestreRequestLifecycle.js';
 import { isRoomLockBusyError as isBusyRoomLockError } from '../utils/roomLockError.js';
+import { resolveModelName } from '../../agents/Mestre/config.js';
 
 export default class MasterNarrationEngine {
   constructor(manager) {
@@ -794,7 +795,7 @@ export default class MasterNarrationEngine {
           originalMessage: mensagem,
           combatIntent,
           playerMessageId: null,
-          timeoutMs: getDefaultMestreRequestTimeoutMs('player_action')
+          timeoutMs: getDefaultMestreRequestTimeoutMs('player_action', resolveModelName(sessao.mestreConfig))
         });
         acceptedRequest = acceptedResult.request;
         if (acceptedResult.duplicate) {

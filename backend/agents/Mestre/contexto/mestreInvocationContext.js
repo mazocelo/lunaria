@@ -8,7 +8,7 @@ export function getResumoMaisRecente(sessao = {}) {
 const ROLEPLAY_MAX_ITEMS = 2;
 const ROLEPLAY_MAX_CHARS = 140;
 const ROLEPLAY_SPAM_WINDOW_MS = 30000;
-const CONTINUIDADE_MAX_ITEMS = 3;
+const CONTINUIDADE_MAX_ITEMS = 1;
 const CONTINUIDADE_MAX_CHARS = 180;
 
 function getFormalChatHistory(sessao = {}) {
@@ -205,27 +205,18 @@ export function buildImmediateSceneLock(sessao = {}) {
     })
     .filter(Boolean);
 
-  const partes = [
-    '[LOCK DE CONTINUIDADE - siga a cena atual]',
-  ];
+  const partes = ['[CONTINUIDADE]'];
 
-  if (cenaAtual) partes.push(`Cena atual: ${cenaAtual}`);
+  if (cenaAtual) partes.push(`Cena: ${cenaAtual}`);
   if (ambiente) partes.push(`Ambiente: ${ambiente}`);
   if (npcsPresentes.length > 0) {
-    partes.push(`NPCs presentes: ${npcsPresentes.join(', ')}`);
+    partes.push(`NPCs: ${npcsPresentes.join(', ')}`);
   }
   if (ultimaFala?.text) {
     partes.push(`Ultima fala: ${ultimaFala.speaker || 'Alguem'}: ${ultimaFala.text}`);
   }
 
-  partes.push(
-    'Ultimas batidas canonicas:',
-    ...linhas,
-    'Regras:',
-    '- Continue exatamente da mesma cena e da ultima fala relevante.',
-    '- Nao reabra a ambientacao nem reapresente NPCs ja presentes sem mudanca explicita.',
-    '- Se a ultima batida foi dialogo direto, responda a ela antes de introduzir novo evento.'
-  );
+  partes.push('Continue da mesma cena. Se o jogador for passivo, avance: NPC fala algo novo, evento ocorre, ou cena evolui. Nao reapresente NPCs ja presentes.');
 
   return partes.join('\n');
 }

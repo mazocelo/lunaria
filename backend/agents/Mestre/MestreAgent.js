@@ -157,14 +157,77 @@ function parseXMLLikeResponse(content) {
     }
   }
 
+  // Extrair acoes de tags <acao .../>  ou <acao ...>...</acao>
+  const acoes = [];
+  const acaoRx = /<acao\s+([^>]*?)\s*\/?>/gi;
+  let acaoTagMatch;
+  while ((acaoTagMatch = acaoRx.exec(content)) !== null) {
+    const attrsStr = acaoTagMatch[1];
+    const attrs = {};
+    const attrRx = /(\w+)="([^"]*)"/g;
+    let attrMatch;
+    while ((attrMatch = attrRx.exec(attrsStr)) !== null) {
+      attrs[attrMatch[1]] = attrMatch[2];
+    }
+    if (attrs.tipo) {
+      acoes.push(attrs);
+    }
+  }
+
+  // Extrair metadados
+  let metadados = null;
+  const localMatch = content.match(/<local_atual>([\s\S]*?)<\/local_atual>/i);
+  const horaMatch = content.match(/<hora_ficcional>([\s\S]*?)<\/hora_ficcional>/i);
+  const npcsMatch = content.match(/<npcs_presentes>([\s\S]*?)<\/npcs_presentes>/i);
+  if (localMatch || horaMatch || npcsMatch) {
+    metadados = {};
+    if (localMatch) metadados.local_atual = localMatch[1].trim();
+    if (horaMatch) metadados.hora_ficcional = horaMatch[1].trim();
+    if (npcsMatch) {
+      metadados.npcs_presentes = npcsMatch[1].trim()
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+  }
+  // Also check for <metadados> wrapper block
+  if (!metadados) {
+    const metaBlock = content.match(/<metadados>([\s\S]*?)<\/metadados>/i);
+    if (metaBlock) {
+      metadados = {};
+      const innerLocal = metaBlock[1].match(/<local_atual>([\s\S]*?)<\/local_atual>/i);
+      const innerHora = metaBlock[1].match(/<hora_ficcional>([\s\S]*?)<\/hora_ficcional>/i);
+      const innerNpcs = metaBlock[1].match(/<npcs_presentes>([\s\S]*?)<\/npcs_presentes>/i);
+      if (innerLocal) metadados.local_atual = innerLocal[1].trim();
+      if (innerHora) metadados.hora_ficcional = innerHora[1].trim();
+      if (innerNpcs) {
+        metadados.npcs_presentes = innerNpcs[1].trim()
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+      }
+    }
+  }
+
+  // Extrair combate
+  let combate = null;
+  const combateInitMatch = content.match(/<combate\s+iniciado="(true|false)"[^>]*\/?>/i);
+  const combateBlock = content.match(/<combate>([\s\S]*?)<\/combate>/i);
+  if (combateInitMatch) {
+    combate = { iniciado: combateInitMatch[1].toLowerCase() === 'true' };
+  } else if (combateBlock) {
+    combate = { iniciado: true };
+  }
+
   return {
     narrativa,
     segmentos: segmentos.length > 0 ? segmentos : undefined,
     fimDeTurno,
     solicitaDados: { solicita },
     acaoCompleta,
-    combate: null,
-    acoes: []
+    combate,
+    acoes,
+    metadados
   };
 }
 
@@ -192,6 +255,73 @@ function sanitizeNarrativa(text) {
 }
 
 /**
+ * Known action types for validation.
+ */
+const KNOWN_ACAO_TIPOS = new Set([
+  'dar_item', 'remover_item', 'curar', 'aplicar_dano', 'aplicar_status',
+  'remover_status', 'usar_habilidade', 'conjurar_magia', 'ativar_desvantagem',
+  'aplicar_vantagem', 'aplicar_efeito', 'remover_efeito', 'dar_xp',
+  'concentracao_quebrada', 'dano_ambiental', 'alterar_terreno', 'mudar_cenario',
+  'estabilizar_personagem', 'danificar_equipamento', 'iniciar_fase_boss',
+  'missao_batalha'
+]);
+
+/**
+ * Post-parse validation with logging and minor auto-repairs.
+ * Mutates respostaJSON in-place and returns void.
+ */
+function validateParseResult(respostaJSON, modelName, method) {
+  if (!respostaJSON) return;
+
+  // Auto-repair: normalize segmentos items missing tipo
+  if (Array.isArray(respostaJSON.segmentos)) {
+    for (const seg of respostaJSON.segmentos) {
+      if (!seg.tipo) {
+        seg.tipo = 'narracao';
+      }
+    }
+  }
+
+  // Auto-repair: normalize acao tipo with spaces to underscores
+  if (Array.isArray(respostaJSON.acoes)) {
+    for (const acao of respostaJSON.acoes) {
+      if (acao.tipo && typeof acao.tipo === 'string') {
+        acao.tipo = acao.tipo.replace(/\s+/g, '_');
+      }
+    }
+  }
+
+  // Warn: segmentos empty/missing
+  if (!respostaJSON.segmentos || (Array.isArray(respostaJSON.segmentos) && respostaJSON.segmentos.length === 0)) {
+    log.warn({ modelName, method }, 'Parse result: segmentos is empty or missing');
+  }
+
+  // Warn: acoes with unknown tipo
+  if (Array.isArray(respostaJSON.acoes)) {
+    for (const acao of respostaJSON.acoes) {
+      if (acao.tipo && !KNOWN_ACAO_TIPOS.has(acao.tipo)) {
+        log.warn({ modelName, method, tipo: acao.tipo }, 'Parse result: unknown acao tipo');
+      }
+    }
+  }
+
+  // Warn: metadados completely missing
+  if (!respostaJSON.metadados) {
+    log.warn({ modelName, method }, 'Parse result: metadados is missing');
+  }
+
+  // Warn: solicitaDados.solicita true but teste or dificuldade empty
+  if (respostaJSON.solicitaDados?.solicita === true) {
+    if (!respostaJSON.solicitaDados.teste) {
+      log.warn({ modelName, method }, 'Parse result: solicitaDados.solicita=true but teste is empty');
+    }
+    if (!respostaJSON.solicitaDados.dificuldade) {
+      log.warn({ modelName, method }, 'Parse result: solicitaDados.solicita=true but dificuldade is empty');
+    }
+  }
+}
+
+/**
  * Fallback: detecta solicitação de dados na narrativa quando o JSON não incluiu.
  * Extrai teste e dificuldade do padrão "🎲 Role 1d20 para X! (Dificuldade: Y)"
  * ou "🎲 Role 1d20 para X!" sem dificuldade explícita.
@@ -201,15 +331,16 @@ function fallbackSolicitaDados(respostaJSON) {
   if (respostaJSON.solicitaDados?.solicita) return; // Já está correto
 
   const narrativa = respostaJSON.narrativa;
-  // Padrão: 🎲 Role 1d20 para Teste! (Dificuldade: X) ou 🎲 Role 1d20 para Teste!
-  const match = narrativa.match(/🎲\s*[Rr]ole\s+1?d20\s+para\s+([^!(.]+?)(?:\s*!\s*\((?:[Dd]ificuldade:\s*)([^)]+)\)|\s*!)/);
+  // Padrão expandido: com ou sem emoji 🎲, suporta d20, d12, d8, d6, 2d6, d100
+  const match = narrativa.match(/(?:🎲\s*)?[Rr]ole\s+(\d*d\d+)\s+para\s+([^!(.]+?)(?:\s*!\s*\((?:[Dd]ificuldade:\s*)([^)]+)\)|\s*!)/);
   if (match) {
-    const teste = match[1].trim();
-    const dificuldade = match[2]?.trim() || 'Média';
-    log.info({ teste, dificuldade }, 'Fallback solicitaDados detectado na narrativa');
+    const diceType = match[1] || 'd20';
+    const teste = match[2].trim();
+    const dificuldade = match[3]?.trim() || 'Média';
+    log.info({ teste, dificuldade, diceType }, 'Fallback solicitaDados detectado na narrativa');
     respostaJSON.solicitaDados = {
       solicita: true,
-      tipo: 'd20',
+      tipo: diceType,
       teste,
       dificuldade
     };
@@ -445,6 +576,9 @@ export class MestreAgent {
           temperature,
           maxTokens,
         });
+        // LangChain sets topP=-1 by default which Anthropic rejects;
+        // also Claude 4.x doesn't allow temperature+top_p together
+        this.model.topP = undefined;
         log.info({ provider: 'anthropic', modelName }, 'Modelo inicializado');
       } else {
         this.model = new ChatGroq({
@@ -559,6 +693,7 @@ export class MestreAgent {
           acaoCompleta: false
         };
       }
+      validateParseResult(respostaJSON, this.modelName, 'narrarAcao');
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
@@ -694,6 +829,7 @@ export class MestreAgent {
           acaoCompleta: false
         };
       }
+      validateParseResult(respostaJSON, this.modelName, 'narrarAcaoStream');
 
       fallbackSolicitaDados(respostaJSON);
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
@@ -793,6 +929,7 @@ export class MestreAgent {
           acaoCompleta: false
         };
       }
+      validateParseResult(respostaJSON, this.modelName, 'iniciarSessao');
 
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
       const narrativa = sanitizeNarrativa(rawNarrativa);
@@ -968,6 +1105,7 @@ Mensagem do Jogador:
           acaoCompleta: false
         };
       }
+      validateParseResult(respostaJSON, this.modelName, 'narrarTurnoJogador');
 
       // Fallback: detectar solicitação de dados na narrativa se JSON não incluiu
       fallbackSolicitaDados(respostaJSON);
@@ -1081,6 +1219,7 @@ Narre a transição e apresente o novo desafio:`;
           acaoCompleta: false
         };
       }
+      validateParseResult(respostaJSON, this.modelName, 'narrarEntreRodadas');
 
       const { narrativa: rawNarrativa, segmentos } = normalizeRespostaSegmentos(respostaJSON);
       const narrativa = sanitizeNarrativa(rawNarrativa);

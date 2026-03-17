@@ -3,6 +3,7 @@
  */
 import { interagir } from '../../agents/MestreCriador/MestreCriadorAgent.js';
 import { ETAPAS } from '../../agents/MestreCriador/config.js';
+import { sanitizePromptInput } from '../../helpers/sanitize.js';
 
 class MestreCriadorController {
   /**
@@ -31,7 +32,7 @@ class MestreCriadorController {
     const resultado = await interagir({
       etapa,
       estado: estado || {},
-      mensagemJogador: mensagemJogador.trim(),
+      mensagemJogador: sanitizePromptInput(mensagemJogador, 2000),
       historico: Array.isArray(historico) ? historico : [],
       userId,
       actionMode: actionMode || 'reply',

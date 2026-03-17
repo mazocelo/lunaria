@@ -13,6 +13,7 @@ import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import dotenv from 'dotenv';
 
 import logger from '../../helpers/logger.js';
+import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
 import { sanitizeEtapaProxima, shouldLockStage, getPolicy } from './stages/stagePolicy.js';
 import { tierDesbloqueado } from '../../helpers/evolucaoHelper.js';
@@ -221,6 +222,11 @@ function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino, idsPermitidos) 
       }
     }
     return true;
+  }).map(s => {
+    if (s.tipo === 'nome') {
+      return { ...s, nome: sanitizeCharacterName(s.nome) };
+    }
+    return s;
   });
 }
 
@@ -285,7 +291,7 @@ function construirInput(etapa, estado, mensagemJogador) {
   }
 
   // Contexto do personagem construído até agora
-  if (estado.nome) parts.push(`Nome do personagem: ${estado.nome}`);
+  if (estado.nome) parts.push(`Nome do personagem: ${sanitizeCharacterName(estado.nome)}`);
   if (estado.raca_nome) parts.push(`Raça escolhida: ${estado.raca_nome} (ID:${estado.raca_id})`);
   if (estado.classe_nome) parts.push(`Classe escolhida: ${estado.classe_nome} (ID:${estado.classe_id})`);
   if (estado.background) parts.push(`Background: ${estado.background}`);

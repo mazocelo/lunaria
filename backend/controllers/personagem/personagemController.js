@@ -18,6 +18,7 @@ import { buildFinalizacaoBase } from '../../helpers/finalizacaoInicialHelper.js'
 import { buildFinalizacaoPreviewBase } from '../../helpers/finalizacaoPreviewHelper.js';
 import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/FinalizacaoInicialAgent.js';
 import { parsearBonusEntidade } from '../../helpers/bonusHelper.js';
+import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -246,8 +247,13 @@ class PersonagemController {
       const desvantagemIds = normalizeRelationIds(desvantagens, 'desvantagens');
       const equipamentoIds = normalizeRelationIds(equipamentos, 'equipamentos');
       const historiaIds = normalizeRelationIds(historias, 'historias');
+
+      // Sanitizar campos de texto controlados pelo usuario
+      const nomeSanitizado = sanitizeCharacterName(nome);
+      const backgroundSanitizado = sanitizePromptInput(background, 2000);
+
       // Validacoes basicas
-      if (!nome) {
+      if (!nomeSanitizado) {
         return res.status(400).json({ success: false, error: 'Nome e obrigatorio' });
       }
 
@@ -341,7 +347,7 @@ class PersonagemController {
       }
 
       // Background é enviado pelo frontend (pode ser vazio, será gerado sob demanda via POST /:id/background)
-      const backgroundFinal = background || '';
+      const backgroundFinal = backgroundSanitizado || '';
 
       // Aplicar bonus de atributos da raca/classe sobre os valores base
       const bonusAttrRaca = parsearBonusEntidade(racaBonusRaw);
@@ -350,7 +356,7 @@ class PersonagemController {
       // Preparar dados do personagem
       const pontosIniciais = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, 0);
       const dadosPersonagem = this.converterCamposNumericos({
-        nome,
+        nome: nomeSanitizado,
         nivel: nivelEfetivo,
         pontos_totais: 0,
         pontos_iniciais: pontosIniciais,

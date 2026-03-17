@@ -1,4 +1,5 @@
 import db from '../../Model/index.js';
+import { sanitizePromptInput } from '../../helpers/sanitize.js';
 
 function normalizeTags(input) {
   if (!Array.isArray(input)) return null;
@@ -29,13 +30,13 @@ class MestreController {
     const novoMestre = await db.Mestre.createMestre({
       nome: nome.trim(),
       descricao: descricao || null,
-      personalidade: personalidade || null,
+      personalidade: personalidade ? sanitizePromptInput(personalidade, 800) : null,
       tags: normalizedTags,
       modelo: modelo || undefined,
       temperatura: temperatura !== undefined ? (isNaN(parseFloat(temperatura)) ? 0.9 : parseFloat(temperatura)) : undefined,
       max_tokens: max_tokens !== undefined ? (isNaN(parseInt(max_tokens, 10)) ? 8000 : parseInt(max_tokens, 10)) : undefined,
-      tom_narrativo: tom_narrativo || null,
-      regras_especiais: regras_especiais || null,
+      tom_narrativo: tom_narrativo ? sanitizePromptInput(tom_narrativo, 100) : null,
+      regras_especiais: regras_especiais ? sanitizePromptInput(regras_especiais, 800) : null,
       imagem: imagem || null,
       voice_id: voice_id || null,
       voice_provider: voice_provider || null,
@@ -120,12 +121,12 @@ class MestreController {
     const dadosAtualizacao = {};
     if (nome !== undefined) dadosAtualizacao.nome = nome;
     if (descricao !== undefined) dadosAtualizacao.descricao = descricao;
-    if (personalidade !== undefined) dadosAtualizacao.personalidade = personalidade;
+    if (personalidade !== undefined) dadosAtualizacao.personalidade = personalidade ? sanitizePromptInput(personalidade, 800) : personalidade;
     if (modelo !== undefined) dadosAtualizacao.modelo = modelo;
     if (temperatura !== undefined) dadosAtualizacao.temperatura = isNaN(parseFloat(temperatura)) ? 0.9 : parseFloat(temperatura);
     if (max_tokens !== undefined) dadosAtualizacao.max_tokens = isNaN(parseInt(max_tokens, 10)) ? 8000 : parseInt(max_tokens, 10);
-    if (tom_narrativo !== undefined) dadosAtualizacao.tom_narrativo = tom_narrativo;
-    if (regras_especiais !== undefined) dadosAtualizacao.regras_especiais = regras_especiais;
+    if (tom_narrativo !== undefined) dadosAtualizacao.tom_narrativo = tom_narrativo ? sanitizePromptInput(tom_narrativo, 100) : tom_narrativo;
+    if (regras_especiais !== undefined) dadosAtualizacao.regras_especiais = regras_especiais ? sanitizePromptInput(regras_especiais, 800) : regras_especiais;
     if (imagem !== undefined) dadosAtualizacao.imagem = imagem;
     if (voice_id !== undefined) dadosAtualizacao.voice_id = voice_id;
     if (voice_provider !== undefined) dadosAtualizacao.voice_provider = voice_provider;

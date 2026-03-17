@@ -125,9 +125,10 @@ function _getPersonagemHabilidades(personagemCompleto = {}) {
   });
 }
 
-function _buildResultadoHabilidadeInvalida({ personagem, userId, habilidadeId, habilidadeNome, erro, jogadorStats, habilidadeBase = null }) {
+function _buildResultadoHabilidadeInvalida({ personagem, userId, habilidadeId, habilidadeNome, erro, jogadorStats, habilidadeBase = null, tipoAcao = 'usar_habilidade' }) {
   return {
     valido: false,
+    tipoAcao,
     personagem: personagem?.nome || 'Aventureiro',
     userId,
     habilidadeNome: habilidadeBase?.nome || habilidadeNome || 'Habilidade',
@@ -590,7 +591,7 @@ export function formatarContextoCombate(combateState, userId) {
  * @param {string} userId - ID do jogador
  * @param {Object} sessao - Sessao completa
  * @param {Object} personagem - Dados do personagem
- * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade', habilidadeId?, habilidadeNome? }
+ * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade'|'conjurar_magia', habilidadeId?, habilidadeNome?, magiaId?, magiaNome? }
  */
 /**
  * Handler map por intent de combate.
@@ -612,6 +613,10 @@ const COMBAT_INTENT_HANDLERS = {
     log.info({ userId: ctx.userId, teste: r.requerTeste }, 'Fuga requer teste de habilidade');
   },
   usar_habilidade: (ctx, r) => {
+    r.habilidade = _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.combatIntent);
+    r.acaoConsumida = r.habilidade?.valido !== false;
+  },
+  conjurar_magia: (ctx, r) => {
     r.habilidade = _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.combatIntent);
     r.acaoConsumida = r.habilidade?.valido !== false;
   },
@@ -681,7 +686,7 @@ function _finalizeCombatState(combate, resultados) {
  * @param {string} userId - ID do jogador
  * @param {Object} sessao - Sessao completa
  * @param {Object} personagem - Dados do personagem
- * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade', habilidadeId?, habilidadeNome? }
+ * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade'|'conjurar_magia', habilidadeId?, habilidadeNome?, magiaId?, magiaNome? }
  * @returns {CombatRoundResult}
  */
 export function resolverMecanicaCombate(combate, userId, sessao, personagem, combatIntent = null) {
@@ -994,8 +999,9 @@ function _resolverFuga(combate, userId, sessao, personagem) {
  * Resolve uso de habilidade ativa em combate
  */
 function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, combatIntent) {
-  const habilidadeId = combatIntent?.habilidadeId;
-  const habilidadeNome = combatIntent?.habilidadeNome;
+  const tipoAcao = combatIntent?.tipo === 'conjurar_magia' ? 'conjurar_magia' : 'usar_habilidade';
+  const habilidadeId = combatIntent?.habilidadeId ?? combatIntent?.magiaId;
+  const habilidadeNome = combatIntent?.habilidadeNome ?? combatIntent?.magiaNome;
 
   const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
   const pc = snapshot.personagem || {};
@@ -1007,9 +1013,10 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
     const result = _buildResultadoHabilidadeInvalida({
       personagem, userId, habilidadeId, habilidadeNome,
       erro: 'Habilidade nao encontrada',
-      jogadorStats
+      jogadorStats,
+      tipoAcao
     });
-    _pushCombatLog(combate, { tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
+    _pushCombatLog(combate, { tipo: tipoAcao === 'conjurar_magia' ? 'magia_falhou' : 'habilidade_falhou', ...result, timestamp: Date.now() });
     return result;
   }
 
@@ -1019,9 +1026,10 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
       personagem, userId, habilidadeId, habilidadeNome,
       erro: validacao.erro,
       jogadorStats,
-      habilidadeBase: hab
+      habilidadeBase: hab,
+      tipoAcao
     });
-    _pushCombatLog(combate, { tipo: 'habilidade_falhou', ...result, timestamp: Date.now() });
+    _pushCombatLog(combate, { tipo: tipoAcao === 'conjurar_magia' ? 'magia_falhou' : 'habilidade_falhou', ...result, timestamp: Date.now() });
     return result;
   }
 
@@ -1081,6 +1089,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
 
   const result = {
     valido: true,
+    tipoAcao,
     personagem: personagem.nome, userId,
     habilidadeNome: hab.nome, habilidadeId: hab.id,
     custoMana: validacao.custoMana || 0,
@@ -1092,7 +1101,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
     manaRestante: jogadorStats.mana_atual,
     manaMax: jogadorStats.mana_max,
   };
-  _pushCombatLog(combate, { tipo: 'habilidade_jogador', ...result, timestamp: Date.now() });
+  _pushCombatLog(combate, { tipo: tipoAcao === 'conjurar_magia' ? 'magia_jogador' : 'habilidade_jogador', ...result, timestamp: Date.now() });
   return result;
 }
 
@@ -1154,12 +1163,13 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
       _verificarFimEAtribuir(combate, resultados);
       log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: FALHA, contra-ataques aplicados');
     }
-  } else if (acaoPendente.tipo === 'usar_habilidade') {
+  } else if (acaoPendente.tipo === 'usar_habilidade' || acaoPendente.tipo === 'conjurar_magia') {
     // Futuro: habilidade com requer_teste
     const sucesso = resultadoTeste.sucesso;
     const preValidada = acaoPendente.habilidadePreValidada;
     const hab = acaoPendente.habilidadeBase;
     const jogadorStats = combate.jogadores[userId];
+    const tipoAcao = acaoPendente.tipo === 'conjurar_magia' ? 'conjurar_magia' : 'usar_habilidade';
 
     if (sucesso && preValidada && hab && jogadorStats) {
       // Teste passou: calcular dano e aplicar efeito
@@ -1206,6 +1216,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
 
       resultados.habilidade = {
         valido: true,
+        tipoAcao,
         personagem: personagem.nome, userId,
         habilidadeNome: hab.nome, habilidadeId: hab.id,
         custoMana: preValidada.custoMana || 0,
@@ -1217,11 +1228,12 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
         manaRestante: jogadorStats.mana_atual,
         manaMax: jogadorStats.mana_max,
       };
-      _pushCombatLog(combate, { tipo: 'habilidade_jogador', ...resultados.habilidade, timestamp: Date.now() });
+      _pushCombatLog(combate, { tipo: tipoAcao === 'conjurar_magia' ? 'magia_jogador' : 'habilidade_jogador', ...resultados.habilidade, timestamp: Date.now() });
     } else {
       // Teste falhou: habilidade fizzles (mana já gasta)
       resultados.habilidade = {
         valido: true,
+        tipoAcao,
         testeFalhou: true,
         personagem: personagem.nome, userId,
         habilidadeNome: hab?.nome || acaoPendente.combatIntent?.habilidadeNome,
@@ -1235,7 +1247,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
         manaRestante: jogadorStats?.mana_atual,
         manaMax: jogadorStats?.mana_max,
       };
-      _pushCombatLog(combate, { tipo: 'habilidade_falhou', ...resultados.habilidade, motivo: 'teste_falhou', timestamp: Date.now() });
+      _pushCombatLog(combate, { tipo: tipoAcao === 'conjurar_magia' ? 'magia_falhou' : 'habilidade_falhou', ...resultados.habilidade, motivo: 'teste_falhou', timestamp: Date.now() });
     }
 
     // Sempre: contra-ataques + controle rodada

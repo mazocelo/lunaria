@@ -23,6 +23,39 @@ import {
 import { appendMensagemSessao, buildSolicitacaoDadosMensagem } from './sessionMessages.js';
 import { hasPendingCombatAction } from './combatPendingAction.js';
 
+function normalizeText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function shouldSkipDuplicateCombatAction(acao, ctx = {}) {
+  const resolved = ctx.playerCombatActionResolved;
+  if (!resolved || !acao?.tipo) return false;
+
+  const actionType = String(acao.tipo);
+  const resolvedType = String(resolved.tipo || '');
+  const sameActor = normalizeText(acao.personagem) === normalizeText(ctx.personagem?.nome);
+  const actionId = acao.habilidade_id || acao.magia_id || acao.id || null;
+  const sameActionId = actionId != null && resolved.actionId != null && String(actionId) === String(resolved.actionId);
+  const sameActionName = normalizeText(acao.nome) && normalizeText(acao.nome) === normalizeText(resolved.actionName);
+  const skillOrSpellAction = ['usar_habilidade', 'conjurar_magia'].includes(actionType);
+  const resolvedSkillOrSpell = ['usar_habilidade', 'conjurar_magia'].includes(resolvedType);
+
+  if (resolvedSkillOrSpell && skillOrSpellAction && (sameActionId || sameActionName)) {
+    return true;
+  }
+
+  if (resolvedSkillOrSpell && sameActor && ['aplicar_vantagem', 'aplicar_efeito'].includes(actionType)) {
+    return true;
+  }
+
+  return false;
+}
+
 function shouldHoldTurnForContinuity(resposta = {}, ctx = {}, turno = {}) {
   if ((turno?.contadorInteracoes || 0) !== 1) return false;
   if (ctx.combateAtivo) return false;
@@ -135,9 +168,19 @@ function emitSolicitacao(ctx, resposta, testePendente, testesCriados, modificado
 async function processarAcoesMecanicas(resposta, ctx) {
   if (!resposta.acoes?.length) return;
 
+  const acoesFiltradas = resposta.acoes.filter((acao) => !shouldSkipDuplicateCombatAction(acao, ctx));
+  if (!acoesFiltradas.length) {
+    log.info({
+      roomId: ctx.roomId,
+      userId: ctx.userId,
+      tipoResolvido: ctx.playerCombatActionResolved?.tipo || null
+    }, 'Acoes mecanicas duplicadas da IA foram ignoradas');
+    return;
+  }
+
   const existeTestePendente = hasPendingTests(ctx.sessao);
   if (existeTestePendente) {
-    const acoesPosTeste = resposta.acoes.filter(acao => {
+    const acoesPosTeste = acoesFiltradas.filter(acao => {
       const stage = acao?.stage || (acao?.dependeDeTeste ? 'posTeste' : 'independente');
       return stage === 'posTeste';
     });
@@ -145,7 +188,7 @@ async function processarAcoesMecanicas(resposta, ctx) {
     ctx.sessao.estadoJogo.acoesPendentesTeste = acoesPosTeste;
   }
 
-  await processarAcoes(resposta.acoes, ctx.sessao, ctx.roomId, ctx.sm, {
+  await processarAcoes(acoesFiltradas, ctx.sessao, ctx.roomId, ctx.sm, {
     stage: existeTestePendente ? 'preTeste' : 'all',
     onTesteSolicitado: async (testePayload) => {
       await criarSolicitacaoTeste({

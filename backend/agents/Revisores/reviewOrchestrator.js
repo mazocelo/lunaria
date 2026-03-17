@@ -1,7 +1,9 @@
 import { shouldTriggerReview } from './triggerLogic.js';
 import { ArbitroMecanico } from './ArbitroMecanico.js';
 import { Continuista } from './Continuista.js';
+import { GanchoNarrativo } from './GanchoNarrativo.js';
 import { REVIEWER_CONFIG } from './config.js';
+import { applyFallbackHook } from '../../helpers/narrativeHookGuard.js';
 import logger from '../../helpers/logger.js';
 
 const log = logger.child({ module: 'ReviewOrchestrator' });
@@ -9,6 +11,7 @@ const log = logger.child({ module: 'ReviewOrchestrator' });
 // Cache de instâncias (reutilizar entre chamadas)
 let _arbitro = null;
 let _continuista = null;
+let _gancho = null;
 
 function getArbitro() {
   if (!_arbitro) _arbitro = new ArbitroMecanico();
@@ -18,6 +21,11 @@ function getArbitro() {
 function getContinuista() {
   if (!_continuista) _continuista = new Continuista();
   return _continuista;
+}
+
+function getGancho() {
+  if (!_gancho) _gancho = new GanchoNarrativo();
+  return _gancho;
 }
 
 /**
@@ -88,7 +96,7 @@ function extrairPersonagemSnapshot(sessao, userId) {
  * Aplica correções leves baseadas nos veredictos.
  * v1: apenas append de nota ou strip simples. Nunca re-narra.
  */
-function aplicarCorrecoes(narrativa, verdicts) {
+function aplicarCorrecoes(narrativa, verdicts, { combateAtivo = false, hookAnalysis = null } = {}) {
   let corrected = narrativa;
   let applied = false;
 
@@ -101,6 +109,20 @@ function aplicarCorrecoes(narrativa, verdicts) {
       applied = true;
     }
     // Para outros erros graves, apenas loga — não modifica narrativa em v1
+  }
+
+  const hookVerdict = verdicts.find(v => v.reviewer === 'gancho' && v.veredicto !== 'ok');
+  if (hookVerdict) {
+    if (hookVerdict.correcao_sugerida) {
+      corrected = hookVerdict.correcao_sugerida;
+      applied = true;
+    } else {
+      corrected = applyFallbackHook(corrected, {
+        combateAtivo,
+        shouldSuggest: hookAnalysis?.shouldSuggest || false
+      });
+      applied = true;
+    }
   }
 
   return applied ? { narrativa: corrected } : null;
@@ -168,6 +190,18 @@ export async function executarRevisao(ctx) {
     labels.push('continuista');
   }
 
+  if (trigger.reviewers.includes('gancho')) {
+    promises.push(
+      getGancho().validar({
+        narrativa,
+        shouldSuggest: trigger.hookAnalysis?.shouldSuggest || false,
+        combateAtivo: ctx.combateAtivo,
+        userId: ctx.userId,
+      })
+    );
+    labels.push('gancho');
+  }
+
   // Executar em paralelo
   const results = await Promise.allSettled(promises);
 
@@ -180,10 +214,13 @@ export async function executarRevisao(ctx) {
   });
 
   const hasIssues = verdicts.some(v => v.veredicto !== 'ok');
-  const hasErrors = verdicts.some(v => v.severidade === 'error');
 
-  // Aplicar correções leves se houver erros graves
-  const corrections = hasErrors ? aplicarCorrecoes(narrativa, verdicts) : null;
+  const corrections = hasIssues
+    ? aplicarCorrecoes(narrativa, verdicts, {
+        combateAtivo: ctx.combateAtivo,
+        hookAnalysis: trigger.hookAnalysis
+      })
+    : null;
 
   log.info({
     passed: !hasIssues,

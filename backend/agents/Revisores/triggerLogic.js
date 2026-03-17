@@ -1,4 +1,5 @@
 import { REVIEWER_CONFIG } from './config.js';
+import { analyzeNarrativeHook } from '../../helpers/narrativeHookGuard.js';
 
 /**
  * Determina se a revisão pós-IA deve ser acionada e quais revisores usar.
@@ -20,13 +21,14 @@ export function shouldTriggerReview(ctx) {
   const { combateAtivo, respostaIA, sessao, claimFlags } = ctx;
   const narrativa = respostaIA?.narracao || '';
 
-  // Skip: narrativa trivial
-  if (narrativa.length < 100) {
-    return { needsReview: false, reviewers: [], reasons: ['narrativa_curta'] };
-  }
-
   const reviewers = new Set();
   const reasons = [];
+  const hookAnalysis = analyzeNarrativeHook({
+    narrativa,
+    respostaIA,
+    combateAtivo,
+    fimDeTurno: respostaIA?.fimDeTurno || respostaIA?.acaoCompleta
+  });
 
   // Combate ativo com resultado mecanico → arbitro (nao revisar rodadas puramente narrativas)
   if (combateAtivo && ctx.resultadosCombatePreResolvido) {
@@ -73,18 +75,30 @@ export function shouldTriggerReview(ctx) {
     reasons.push('narrativa_longa_com_roteiro');
   }
 
+  const respostaFinalizaBatida = Boolean(
+    respostaIA?.fimDeTurno
+    || respostaIA?.acaoCompleta
+    || respostaIA?.solicitaDados?.solicita
+    || respostaIA?.teste
+  );
+  if (!respostaFinalizaBatida && !hookAnalysis.hasActionableHook) {
+    reviewers.add('gancho');
+    reasons.push(hookAnalysis.reason || 'gancho_fraco');
+  }
+
   // Remover continuista se não há roteiro nem combate
   if (reviewers.has('continuista') && !temRoteiro && !combateAtivo) {
     reviewers.delete('continuista');
   }
 
   if (reviewers.size === 0) {
-    return { needsReview: false, reviewers: [], reasons: ['nenhum_trigger'] };
+    return { needsReview: false, reviewers: [], reasons: ['nenhum_trigger'], hookAnalysis };
   }
 
   return {
     needsReview: true,
     reviewers: [...reviewers],
     reasons,
+    hookAnalysis,
   };
 }

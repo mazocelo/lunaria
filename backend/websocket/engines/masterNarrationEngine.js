@@ -2,10 +2,10 @@ import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'masterNarrationEngine' });
 
 import {
-  formatarContextoCombate,
-  resolverMecanicaCombate,
-  formatarResultadoMecanico
+  resolverMecanicaCombate
 } from '../../helpers/combateHelper.js';
+import { buildCombatPromptContext } from '../../helpers/combatPromptContext.js';
+import { resolveCombatIntent } from '../utils/combatIntentResolver.js';
 import { decrementCooldowns } from '../../helpers/cooldownManager.js';
 import { decrementConcentracao } from '../../helpers/concentrationManager.js';
 import { decrementEfeitos, aplicarEfeitosPorTurno } from '../../helpers/effectManager.js';
@@ -926,31 +926,113 @@ export default class MasterNarrationEngine {
         return;
       }
 
-      const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId, personagem));
+      const personagemCompleto = invocationContext.personagem || personagem;
+      const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId, personagemCompleto));
+      const promptAcao = sanitizePromptInput(mensagem, 2000);
       let resultadosCombatePreResolvido = null;
-      if (combateAtivo && combatIntent) {
-        resultadosCombatePreResolvido = await resolverMecanicaCombate(workingSessao, {
-          roomId,
-          userId,
-          username,
-          personagem,
+      let combatIntentResolvido = combatIntent || null;
+      let acaoComContexto = promptAcao;
+
+      if (combateAtivo) {
+        const combatIntentResolution = resolveCombatIntent({
           mensagem,
-          combatIntent,
-          turnStateText
+          explicitIntent: combatIntent,
+          personagemCompleto,
+          combate: workingSessao.estadoJogo?.combate || null,
+          userId
         });
+
+        if (!combatIntentResolution.intent) {
+          const reason = combatIntentResolution.reason
+            || 'Nao ficou claro se voce quer atacar, defender, fugir ou usar uma habilidade/magia.';
+          const hint = combatIntentResolution.candidates?.length
+            ? ` Candidatos: ${combatIntentResolution.candidates.join(', ')}.`
+            : '';
+
+          await sm.withRoomLock(roomId, async () => {
+            const sessaoAtual = await sm.obterSessaoHistoria(roomId);
+            const activeRequest = getActiveMestreRequest(sessaoAtual || {});
+            if (!sessaoAtual || !activeRequest || activeRequest.requestId !== requestId || Number(activeRequest.attempt || 0) !== Number(attempt)) {
+              return;
+            }
+
+            const completed = completeMestreRequest(sessaoAtual, requestId, attempt);
+            await sm.gerenciadorSessoes.atualizarSessao(roomId, sessaoAtual);
+            sm.sendToRoom(roomId, 'mestre_pensando', { ativo: false, timestamp: Date.now(), requestId, attempt });
+            emitMestreRequestStatus(sm, roomId, completed, { status: 'completed' });
+          }, { maxWaitMs: 0 });
+
+          socket.emit('erro_mensagem', {
+            message: `${reason} Escolha uma acao ou nomeie a habilidade/magia.${hint}`.trim()
+          });
+          heartbeat.stop();
+          return;
+        }
+
+        combatIntentResolvido = combatIntentResolution.intent;
+        resultadosCombatePreResolvido = resolverMecanicaCombate(
+          workingSessao.estadoJogo?.combate || null,
+          userId,
+          workingSessao,
+          personagemCompleto,
+          combatIntentResolvido
+        );
+
+        if (resultadosCombatePreResolvido?.requerTeste) {
+          const rt = resultadosCombatePreResolvido.requerTeste;
+          const testeCriado = criarTestePendente(workingSessao, {
+            origem: 'combate',
+            jogadorAlvo: userId,
+            personagemAlvo: personagemCompleto.nome,
+            teste: rt.teste,
+            dificuldade: rt.dcNumerico,
+            tipoDado: rt.tipoDado || 'd20',
+            contexto: rt.contexto,
+            metadata: { dificuldadeLabel: rt.dificuldade },
+          }, userId);
+
+          createPendingCombatAction(workingSessao, {
+            tipo: rt.intentTipo,
+            userId,
+            personagem: {
+              nome: personagemCompleto.nome,
+              id: personagemCompleto.id,
+              personagemId: personagemCompleto.personagemId || personagemCompleto.personagem_id
+            },
+            combatIntent: combatIntentResolvido,
+            testeId: testeCriado?.id || null,
+            statusEfeitos: resultadosCombatePreResolvido.statusEfeitos || [],
+          });
+
+          resultadosCombatePreResolvido._emitirTesteAposNarracao = { testeCriado, rt };
+        } else if (resultadosCombatePreResolvido) {
+          workingSessao._combatePreResolvido = resultadosCombatePreResolvido;
+        }
+
+        const combatPromptContext = buildCombatPromptContext({
+          combate: workingSessao.estadoJogo?.combate || null,
+          userId,
+          personagem: personagemCompleto,
+          turnStateText,
+          resultadoMecanico: resultadosCombatePreResolvido,
+          pendingTest: Boolean(resultadosCombatePreResolvido?.requerTeste)
+        });
+
+        const promptChunks = [
+          combatPromptContext.promptText,
+          resultadosCombatePreResolvido?.requerTeste
+            ? `[TESTE NECESSARIO: ${resultadosCombatePreResolvido.requerTeste.teste} DC ${resultadosCombatePreResolvido.requerTeste.dcNumerico} (${resultadosCombatePreResolvido.requerTeste.dificuldade}). Narre apenas a tentativa e a pressao do momento. Nao confirme sucesso, dano letal nem abate antes da rolagem.]`
+            : null,
+          `Acao do jogador: "${promptAcao}"`
+        ].filter(Boolean);
+
+        acaoComContexto = promptChunks.join('\n');
       }
 
-      const contextoCombate = combateAtivo
-        ? formatarContextoCombate(workingSessao, userId, resultadosCombatePreResolvido, turnStateText)
-        : '';
-
-      const promptAcao = sanitizePromptInput(mensagem, 2000);
       let resposta = await mestre.narrarAcaoStream({
         jogador: username,
         personagem: personagem.nome,
-        acao: contextoCombate
-          ? `${promptAcao}\n\n[CONTEXTO COMBATE]\n${contextoCombate}`
-          : promptAcao,
+        acao: acaoComContexto,
         chatHistory: invocationContext.chatHistory,
         resumo: invocationContext.resumo,
         contextoLateralRoleplay: invocationContext.contextoLateralRoleplay,
@@ -1066,6 +1148,23 @@ export default class MasterNarrationEngine {
           });
         }
 
+        const playerCombatActionResolved = workingSessao._combatePreResolvido
+          ? {
+              tipo: combatIntentResolvido?.tipo || resultadosCombatePreResolvido?.intentTipo || null,
+              actionId: combatIntentResolvido?.habilidadeId
+                || combatIntentResolvido?.magiaId
+                || null,
+              actionName: combatIntentResolvido?.habilidadeNome
+                || combatIntentResolvido?.magiaNome
+                || null,
+              targetId: combatIntentResolvido?.alvoId
+                || resultadosCombatePreResolvido?.ataqueJogador?.alvoId
+                || resultadosCombatePreResolvido?.habilidade?.ataque?.alvoId
+                || null,
+              source: 'pre_resolved'
+            }
+          : null;
+
         const { despacharResposta } = await import('../utils/respostaDispatcher.js');
         await despacharResposta(resposta, {
           roomId,
@@ -1077,7 +1176,9 @@ export default class MasterNarrationEngine {
           socket,
           sm,
           fase,
-          combateAtivo
+          combateAtivo,
+          combatIntent: combatIntentResolvido,
+          playerCombatActionResolved
         });
 
         const completedRequest = completeMestreRequest(workingSessao, requestId, attempt);

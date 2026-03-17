@@ -988,7 +988,10 @@ export default class MasterNarrationEngine {
             dificuldade: rt.dcNumerico,
             tipoDado: rt.tipoDado || 'd20',
             contexto: rt.contexto,
-            metadata: { dificuldadeLabel: rt.dificuldade },
+            metadata: {
+              ...(rt.metadata || {}),
+              difficultyLabel: rt.dificuldadeLabel || rt.dificuldade
+            },
           }, userId);
 
           createPendingCombatAction(workingSessao, {
@@ -1002,6 +1005,7 @@ export default class MasterNarrationEngine {
             combatIntent: combatIntentResolvido,
             testeId: testeCriado?.id || null,
             statusEfeitos: resultadosCombatePreResolvido.statusEfeitos || [],
+            ...(rt.pendingCombatAction || {})
           });
 
           resultadosCombatePreResolvido._emitirTesteAposNarracao = { testeCriado, rt };
@@ -1091,9 +1095,10 @@ export default class MasterNarrationEngine {
           emitMestreRequestStatus(sm, roomId, reviewingRequest);
         }
 
+        const combateAtivoEfetivo = combateAtivo || Boolean(resposta?.combate?.iniciado);
         const { executarRevisao } = await import('../../agents/Revisores/index.js');
         const reviewResult = await executarRevisao({
-          combateAtivo,
+          combateAtivo: combateAtivoEfetivo,
           resultadosCombatePreResolvido,
           respostaIA: resposta,
           acaoJogador: mensagem,
@@ -1171,12 +1176,13 @@ export default class MasterNarrationEngine {
           userId,
           username,
           personagem,
+          personagemCompleto,
           mensagem,
           sessao: workingSessao,
           socket,
           sm,
           fase,
-          combateAtivo,
+          combateAtivo: combateAtivoEfetivo,
           combatIntent: combatIntentResolvido,
           playerCombatActionResolved
         });

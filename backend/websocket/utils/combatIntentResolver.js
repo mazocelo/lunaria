@@ -66,14 +66,19 @@ function findNamedMatches(normalizedMessage, actions) {
 
 function inferGenericIntent(normalizedMessage) {
   const attackPatterns = [
-    /\batac(?:o|ar|a|amos|ando)?\b/,
-    /\bgolpei(?:o|ar)?\b/,
-    /\binvest(?:ida|ir|o|e)\b/,
-    /\bextermin(?:o|ar|ei)\b/,
-    /\bcort(?:o|ar|a)\b/,
+    /\batac[a-z]*\b/,
+    /\bgolpe[a-z]*\b/,
+    /\binvest[a-z]*\b/,
+    /\bextermin[a-z]*\b/,
+    /\bcort[a-z]*\b/,
+    /\besmag[a-z]*\b/,
+    /\bdestru[a-z]*\b/,
+    /\barrebent[a-z]*\b/,
+    /\bdeton[a-z]*\b/,
     /\bdesco .* machad/,
     /\bbato\b/,
     /\bparto pra cima\b/,
+    /\bvou pra cima\b/,
     /\bvou ataca/
   ];
   const defendPatterns = [

@@ -16,9 +16,9 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutos
 /**
  * Cria e armazena ação pendente de combate na sessão.
  * @param {object} sessao
- * @param {{ tipo: string, userId: string, personagem: object, combatIntent: object, testeId?: string, statusEfeitos?: Array }} params
+ * @param {{ tipo: string, userId: string, personagem: object, combatIntent: object, testeId?: string, statusEfeitos?: Array, [key: string]: any }} params
  */
-export function createPendingCombatAction(sessao, { tipo, userId, personagem, combatIntent, testeId, statusEfeitos }) {
+export function createPendingCombatAction(sessao, { tipo, userId, personagem, combatIntent, testeId, statusEfeitos, ...extra }) {
   const estadoJogo = sessao.estadoJogo || {};
   sessao.estadoJogo = estadoJogo;
 
@@ -30,6 +30,7 @@ export function createPendingCombatAction(sessao, { tipo, userId, personagem, co
     testeId: testeId ?? null,
     statusEfeitos: statusEfeitos || [],
     criadoEm: new Date().toISOString(),
+    ...extra
   };
 
   log.info({ userId, tipo, testeId }, 'Ação pendente de combate criada');

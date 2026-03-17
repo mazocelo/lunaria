@@ -29,6 +29,10 @@ export function createCombatRoundResult(overrides = {}) {
     statusEfeitosMonstro: [],
     jogadorDerrotado: false,
     requerTeste: null,
+    aguardandoProximoTeste: false,
+    proximoTeste: null,
+    proximaAcaoPendente: null,
+    openRolls: [],
     ...overrides,
   };
 }

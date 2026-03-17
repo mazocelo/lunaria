@@ -5,6 +5,7 @@ import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'respostaDispatcher' });
 
 import { processarAcoes } from '../../helpers/acoesProcessor.js';
+import { resolverMecanicaCombate } from '../../helpers/combateHelper.js';
 import { getTurnActionLimit } from '../../helpers/historiaConfigHelper.js';
 import { calcularModificadorTeste } from '../../helpers/testeHelper.js';
 import {
@@ -14,6 +15,7 @@ import {
 } from './turnStateMachine.js';
 import {
   compactarTestesPendentes,
+  criarTestePendente,
   criarTestesPendentes,
   emitirSolicitacaoTeste,
   getTestePendente,
@@ -21,7 +23,8 @@ import {
   limparTestePendente
 } from './testePipeline.js';
 import { appendMensagemSessao, buildSolicitacaoDadosMensagem } from './sessionMessages.js';
-import { hasPendingCombatAction } from './combatPendingAction.js';
+import { createPendingCombatAction, hasPendingCombatAction } from './combatPendingAction.js';
+import { resolveCombatIntent } from './combatIntentResolver.js';
 
 function normalizeText(value) {
   return String(value || '')
@@ -56,9 +59,135 @@ function shouldSkipDuplicateCombatAction(acao, ctx = {}) {
   return false;
 }
 
+function isCombatActive(ctx = {}) {
+  return Boolean(ctx.sessao?.estadoJogo?.combate?.ativo || ctx.combateAtivo);
+}
+
+function buildResolvedCombatMeta(intent, resultados) {
+  if (!intent && !resultados) return null;
+  return {
+    tipo: intent?.tipo || resultados?.intentTipo || null,
+    actionId: intent?.habilidadeId || intent?.magiaId || null,
+    actionName: intent?.habilidadeNome || intent?.magiaNome || null,
+    targetId: intent?.alvoId
+      || resultados?.ataqueJogador?.alvoId
+      || resultados?.habilidade?.ataque?.alvoId
+      || null,
+    source: 'pre_resolved'
+  };
+}
+
+function emitCombatTestPrompt(resposta, ctx, testePendente) {
+  if (!testePendente) return;
+
+  let modificadorPreview = 0;
+  let atributoPreview = null;
+  try {
+    const jogadorInfo = ctx.sessao.jogadores?.[String(testePendente.jogadorAlvo || ctx.userId)];
+    const personagemId = jogadorInfo?.personagemId;
+    const personagemCompleto = personagemId
+      ? ctx.sessao.personagensCompletos?.[String(personagemId)]
+      : (ctx.personagemCompleto || null);
+
+    if (personagemCompleto && testePendente.teste) {
+      const modInfo = calcularModificadorTeste(personagemCompleto, testePendente.teste);
+      modificadorPreview = modInfo.totalModificador;
+      atributoPreview = modInfo.atributoNome;
+    }
+  } catch (_error) {
+    // fail-open: prompt de teste ainda pode ser emitido sem preview
+  }
+
+  appendMensagemSessao(ctx.sessao, buildSolicitacaoDadosMensagem({
+    narrativa: resposta.narracao,
+    origem: testePendente.origem || 'combate',
+    payload: {
+      groupId: testePendente.groupId,
+      testePendente,
+      testesPendentes: [testePendente],
+      tipoDado: testePendente.tipoDado,
+      teste: testePendente.teste,
+      dificuldade: testePendente.dificuldade,
+      modificador: modificadorPreview,
+      atributo: atributoPreview,
+      contexto: testePendente.contexto
+    }
+  }));
+
+  emitirSolicitacaoTeste(ctx.sm, ctx.roomId, ctx.sessao, {
+    narrativa: resposta.narracao,
+    tipoDado: testePendente.tipoDado,
+    teste: testePendente.teste,
+    dificuldade: testePendente.dificuldade,
+    modificador: modificadorPreview,
+    atributo: atributoPreview,
+    contexto: testePendente.contexto,
+    testesPendentes: [testePendente],
+    testePendente
+  });
+}
+
+function ensureCombatPreResolution(resposta, ctx) {
+  const combate = ctx.sessao?.estadoJogo?.combate;
+  if (!combate?.ativo) return;
+  if (ctx.sessao?._combatePreResolvido || hasPendingCombatAction(ctx.sessao)) return;
+
+  const personagemRuntime = ctx.personagemCompleto || ctx.personagem;
+  const resolution = resolveCombatIntent({
+    mensagem: ctx.mensagem,
+    explicitIntent: ctx.combatIntent,
+    personagemCompleto: personagemRuntime,
+    combate,
+    userId: ctx.userId
+  });
+
+  if (!resolution.intent) return;
+
+  ctx.combatIntent = resolution.intent;
+  const resultados = resolverMecanicaCombate(combate, ctx.userId, ctx.sessao, personagemRuntime, resolution.intent);
+  if (!resultados) return;
+
+  if (resultados.requerTeste) {
+    const rt = resultados.requerTeste;
+    const testeCriado = criarTestePendente(ctx.sessao, {
+      origem: 'combate',
+      jogadorAlvo: ctx.userId,
+      personagemAlvo: personagemRuntime?.nome || ctx.personagem?.nome || ctx.username,
+      teste: rt.teste,
+      dificuldade: rt.dcNumerico,
+      tipoDado: rt.tipoDado || 'd20',
+      contexto: rt.contexto,
+      metadata: {
+        ...(rt.metadata || {}),
+        difficultyLabel: rt.dificuldadeLabel || rt.dificuldade
+      }
+    }, ctx.userId);
+
+    createPendingCombatAction(ctx.sessao, {
+      tipo: rt.intentTipo,
+      userId: ctx.userId,
+      personagem: {
+        nome: personagemRuntime?.nome || ctx.personagem?.nome || ctx.username,
+        id: personagemRuntime?.id ?? ctx.personagem?.id ?? null,
+        personagemId: personagemRuntime?.personagemId || personagemRuntime?.personagem_id || ctx.personagem?.personagemId || ctx.personagem?.personagem_id || null
+      },
+      combatIntent: resolution.intent,
+      testeId: testeCriado?.id || null,
+      statusEfeitos: resultados.statusEfeitos || [],
+      ...(rt.pendingCombatAction || {})
+    });
+
+    emitCombatTestPrompt(resposta, ctx, testeCriado);
+  } else {
+    ctx.sessao._combatePreResolvido = resultados;
+  }
+
+  ctx.playerCombatActionResolved = buildResolvedCombatMeta(resolution.intent, resultados);
+}
+
 function shouldHoldTurnForContinuity(resposta = {}, ctx = {}, turno = {}) {
   if ((turno?.contadorInteracoes || 0) !== 1) return false;
-  if (ctx.combateAtivo) return false;
+  if (isCombatActive(ctx)) return false;
   if (hasPendingCombatAction(ctx.sessao)) return false;
   if (hasPendingTests(ctx.sessao)) return false;
   if (resposta.solicitaDados?.solicita === true) return false;
@@ -77,9 +206,14 @@ async function processarInicioCombate(resposta, ctx) {
     dificuldade: resposta.combate.dificuldade
   });
   await ctx.sm.iniciarCombate(ctx.roomId, resposta.combate, ctx.sessao, ctx.userId);
+  ctx.combateAtivo = true;
 }
 
 async function processarAcaoCombateHandler(resposta, ctx) {
+  ensureCombatPreResolution(resposta, ctx);
+  if (!ctx.sessao?._combatePreResolvido) {
+    return;
+  }
   await ctx.sm.processarAcaoCombate(
     ctx.roomId, ctx.userId, ctx.username, ctx.personagem, ctx.mensagem, resposta, ctx.sessao
   );
@@ -275,13 +409,13 @@ async function processarControleTurno(resposta, ctx) {
 }
 
 const RESPONSE_HANDLERS = [
-  { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !ctx.combateAtivo, process: processarInicioCombate },
-  { nome: 'fuga_combate', check: (r, ctx) => ctx.combateAtivo && ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarFugaCombate },
-  { nome: 'acao_combate', check: (r, ctx) => ctx.combateAtivo && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso && !hasPendingCombatAction(ctx.sessao), process: processarAcaoCombateHandler },
+  { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !isCombatActive(ctx), process: processarInicioCombate },
+  { nome: 'fuga_combate', check: (r, ctx) => isCombatActive(ctx) && ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarFugaCombate },
+  { nome: 'acao_combate', check: (r, ctx) => isCombatActive(ctx) && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso && !hasPendingCombatAction(ctx.sessao), process: processarAcaoCombateHandler },
   { nome: 'solicita_dados', check: (r, ctx) => (r.solicitaDados?.solicita || !!r.teste) && !hasPendingCombatAction(ctx.sessao), process: criarSolicitacaoTeste },
   { nome: 'acoes_mecanicas', check: (r) => r.acoes?.length > 0, process: processarAcoesMecanicas },
   { nome: 'limpar_dados', check: (r, ctx) => !r.solicitaDados?.solicita && !r.teste && !hasPendingCombatAction(ctx.sessao), process: limparFlagDados },
-  { nome: 'controle_turno', check: (r, ctx) => ctx.fase === 'rodada_em_andamento' && !ctx.combateAtivo, process: processarControleTurno }
+  { nome: 'controle_turno', check: (r, ctx) => ctx.fase === 'rodada_em_andamento' && !isCombatActive(ctx), process: processarControleTurno }
 ];
 
 export async function despacharResposta(resposta, ctx) {

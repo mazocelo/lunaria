@@ -66,7 +66,7 @@ export class ArbitroMecanico {
           new HumanMessage(userInput),
         ]),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('REVIEWER_TIMEOUT')), 400)
+          setTimeout(() => reject(new Error('REVIEWER_TIMEOUT')), REVIEWER_CONFIG.model.timeout)
         ),
       ]);
 

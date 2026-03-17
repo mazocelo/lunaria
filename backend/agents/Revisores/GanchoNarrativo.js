@@ -63,7 +63,7 @@ export class GanchoNarrativo {
           new SystemMessage(criarPromptGancho()),
           new HumanMessage(montarInputGancho({ narrativa, shouldSuggest, combateAtivo })),
         ]),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('REVIEWER_TIMEOUT')), 500))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('REVIEWER_TIMEOUT')), REVIEWER_CONFIG.model.timeout))
       ]);
 
       usageService.track({

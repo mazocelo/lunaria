@@ -103,8 +103,15 @@ export function useActiveModel() {
   // ------------------------------------------------------------------
   // EFFECT 3: Conectar socket quando user disponivel e desconectado
   // ------------------------------------------------------------------
+  const connectBackoffRef = useRef(0);
   useEffect(() => {
-    if (!user?.id || isConnected) return;
+    if (!user?.id || isConnected) {
+      connectBackoffRef.current = 0; // reset on success
+      return;
+    }
+
+    // Backoff: don't retry if we failed recently
+    if (connectBackoffRef.current > Date.now()) return;
 
     const connect = async () => {
       try {
@@ -113,8 +120,12 @@ export function useActiveModel() {
           username: user.nome || user.name,
           email: user.email,
         });
+        connectBackoffRef.current = 0;
       } catch (err) {
         console.error('Erro ao conectar socket:', err);
+        // Exponential backoff: 5s, 10s, 20s, max 30s
+        const delay = Math.min(30000, 5000 * Math.pow(2, Math.floor(Math.random() * 3)));
+        connectBackoffRef.current = Date.now() + delay;
       }
     };
 
@@ -142,9 +153,9 @@ export function useActiveModel() {
           email: user.email,
         });
       } catch (err) {
-        // Reset guard para permitir retry quando condicoes mudarem
-        joinAttemptKeyRef.current = null;
+        // Reset guard after delay to prevent instant retry loop
         console.error('Erro ao entrar na sala do jogo ativo:', err);
+        setTimeout(() => { joinAttemptKeyRef.current = null; }, 10000);
       }
     };
 

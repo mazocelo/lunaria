@@ -150,7 +150,7 @@ export function useLobbyModel() {
           personagemSelecionado.id,
           user,
         ).catch(() => {
-          tentouConectarRef.current = false;
+          setTimeout(() => { tentouConectarRef.current = false; }, 10000);
         });
       } else {
         conectarSocket({
@@ -166,7 +166,7 @@ export function useLobbyModel() {
             }
           })
           .catch(() => {
-            tentouConectarRef.current = false;
+            setTimeout(() => { tentouConectarRef.current = false; }, 10000);
           });
       }
     }

@@ -354,53 +354,87 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
           const textoPreview = acao.texto.length > 40 ? acao.texto.slice(0, 40) + '...' : acao.texto;
           log(`turno ${currentTurno}/${totalAcoes}: mensagem "${textoPreview}"...`);
 
-          iaCallStart = Date.now();
-
-          // Map gameIntent to combatIntent for the internal API
-          let acaoTexto = acao.texto;
-          if (combateAtivo && acao.gameIntent?.categoria === 'combate') {
-            const inimigosVivos = inimigos.filter(i => i.hp > 0).map(i => `${i.nome} (HP: ${i.hp}/${i.hpMax})`).join(', ');
-            const statusJogador = `HP: ${jogador.hp}/${jogador.hpMax}, Mana: ${jogador.mana}/${jogador.manaMax}`;
-            acaoTexto = `[COMBATE ATIVO — Inimigos: ${inimigosVivos} | Jogador: ${statusJogador}]\n${acao.texto}`;
-          }
-
-          const result = await mestre.narrarAcaoStream({
-            jogador: fixture.personagem.nome,
-            personagem: fixture.personagem.nome,
-            acao: acaoTexto,
-            chatHistory,
-            resumo: null,
-            runtimeOptions: { throwOnFailure: true },
-          }, {
-            onStreamStart: () => {},
-            onChunk: () => {},
-            onStreamEnd: () => {},
-            onError: () => {},
-          });
-
-          tempoRespostaMs = Date.now() - iaCallStart;
-          respostaBruta = result.narracao || JSON.stringify(result);
-          respostaIA = {
-            narracao: result.narracao || '',
-            fimDeTurno: result.fimDeTurno || false,
-            solicitaDados: result.solicitaDados || { solicita: false },
-            acoes: result.acoes || [],
-            metadados: result.metadados || {},
+          // ── Claim detection — same pipeline as masterNarrationEngine ──
+          let skipAICall = false;
+          const claimSources = {
+            turnState: {
+              inventario: personagemForMestre.equipamentos || [],
+              mana: { atual: jogador.mana, max: jogador.manaMax },
+            },
+            personagemCompleto: personagemForMestre,
+            cooldowns: jogador.cooldowns || {},
           };
-          respostaParseou = true;
-          lastAIResponse = respostaIA;
-
-          // Track chat history
-          chatHistory.push({ role: 'user', content: acao.texto });
-          chatHistory.push({ role: 'assistant', content: respostaBruta });
-
-          // If combat action and parse succeeded, attempt mechanic resolution
-          if (acao.gameIntent?.categoria === 'combate' && combateAtivo) {
-            resolucaoMecanica = resolveSimplifiedCombat(acao.gameIntent, jogador, inimigos, fixture.personagem);
+          const claimFlags = runClaimDetection(acao.texto, claimSources, {
+            userId: 'test_player',
+            roomId: cenarioId,
+          });
+          const hardBlock = claimFlags.find(f => f?.blockLevel === 'hard');
+          if (hardBlock) {
+            const motivo = hardBlock.reason || hardBlock.motivo || 'acao invalida';
+            log(`turno ${currentTurno}/${totalAcoes}: BLOCKED by claimDetector — ${motivo}`);
+            respostaIA = {
+              narracao: `[BLOQUEADO] ${motivo}`,
+              fimDeTurno: false,
+              solicitaDados: { solicita: false },
+              acoes: [],
+            };
+            respostaParseou = true;
+            respostaBruta = JSON.stringify(respostaIA);
+            lastAIResponse = respostaIA;
+            tempoRespostaMs = 0;
+            resolucaoMecanica = { bloqueado: true, motivo, claimFlags };
+            skipAICall = true;
           }
 
-          // If AI says combat started
-          if (result.combate?.iniciado) combateAtivo = true;
+          if (!skipAICall) {
+            iaCallStart = Date.now();
+
+            // Map gameIntent to combatIntent for the internal API
+            let acaoTexto = acao.texto;
+            if (combateAtivo && acao.gameIntent?.categoria === 'combate') {
+              const inimigosVivos = inimigos.filter(i => i.hp > 0).map(i => `${i.nome} (HP: ${i.hp}/${i.hpMax})`).join(', ');
+              const statusJogador = `HP: ${jogador.hp}/${jogador.hpMax}, Mana: ${jogador.mana}/${jogador.manaMax}`;
+              acaoTexto = `[COMBATE ATIVO — Inimigos: ${inimigosVivos} | Jogador: ${statusJogador}]\n${acao.texto}`;
+            }
+
+            const result = await mestre.narrarAcaoStream({
+              jogador: fixture.personagem.nome,
+              personagem: fixture.personagem.nome,
+              acao: acaoTexto,
+              chatHistory,
+              resumo: null,
+              runtimeOptions: { throwOnFailure: true },
+            }, {
+              onStreamStart: () => {},
+              onChunk: () => {},
+              onStreamEnd: () => {},
+              onError: () => {},
+            });
+
+            tempoRespostaMs = Date.now() - iaCallStart;
+            respostaBruta = result.narracao || JSON.stringify(result);
+            respostaIA = {
+              narracao: result.narracao || '',
+              fimDeTurno: result.fimDeTurno || false,
+              solicitaDados: result.solicitaDados || { solicita: false },
+              acoes: result.acoes || [],
+              metadados: result.metadados || {},
+            };
+            respostaParseou = true;
+            lastAIResponse = respostaIA;
+
+            // Track chat history
+            chatHistory.push({ role: 'user', content: acao.texto });
+            chatHistory.push({ role: 'assistant', content: respostaBruta });
+
+            // If combat action and parse succeeded, attempt mechanic resolution
+            if (acao.gameIntent?.categoria === 'combate' && combateAtivo) {
+              resolucaoMecanica = resolveSimplifiedCombat(acao.gameIntent, jogador, inimigos, fixture.personagem);
+            }
+
+            // If AI says combat started
+            if (result.combate?.iniciado) combateAtivo = true;
+          }
 
         } else if (acao.tipo === 'rolar_dado') {
           // Already checked se_solicitado above — if we're here, solicita was true

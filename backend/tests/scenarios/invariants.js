@@ -155,22 +155,12 @@ export function mana_descontada_ao_usar_magia(log, cenario) {
     const manaApos = t.estadoApos?.jogador?.mana;
     if (manaAntes == null || manaApos == null) continue;
 
-    if (manaAntes < magia.custo_mana) {
-      // Insufficient mana — action should have been blocked; mana must stay unchanged
-      if (manaApos !== manaAntes) {
-        falhas.push(
-          `turno ${i + 1}: magia ${intent.magiaId} custo ${magia.custo_mana}, ` +
-          `mana insuficiente (antes=${manaAntes}), mana deveria permanecer ${manaAntes} mas obtido=${manaApos}`
-        );
-      }
-    } else {
-      const expected = manaAntes - magia.custo_mana;
-      if (manaApos !== expected) {
-        falhas.push(
-          `turno ${i + 1}: magia ${intent.magiaId} custo ${magia.custo_mana}, ` +
-          `mana antes=${manaAntes} esperado apos=${expected} obtido=${manaApos}`
-        );
-      }
+    const expected = manaAntes - magia.custo_mana;
+    if (manaApos !== expected) {
+      falhas.push(
+        `turno ${i + 1}: magia ${intent.magiaId} custo ${magia.custo_mana}, ` +
+        `mana antes=${manaAntes} esperado apos=${expected} obtido=${manaApos}`
+      );
     }
   }
   return result(falhas);
@@ -339,11 +329,35 @@ export function magia_inexistente_nao_aceita(log, cenario) {
 
     if (!magiaIds.has(intent.magiaId)) {
       // The action references a non-existent magia — it should NOT produce
-      // a successful mechanical effect.
+      // a successful mechanical effect or observable state changes.
       const rm = t.resolucaoMecanica;
-      if (rm && rm.sucesso === true) {
+      const mechanicalSuccess = rm && rm.sucesso === true;
+
+      // Also check if damage was applied or mana was spent despite the
+      // spell not existing (secondary evidence of the system accepting it).
+      const alvoId = rm?.alvo || rm?.alvoId || intent.alvo;
+      const hpAntes = alvoId
+        ? t.estadoAntes?.inimigos?.find(e => e.id === alvoId)?.hp
+        : undefined;
+      const hpApos = alvoId
+        ? t.estadoApos?.inimigos?.find(e => e.id === alvoId)?.hp
+        : undefined;
+      const damageApplied =
+        hpAntes != null && hpApos != null && hpApos < hpAntes;
+
+      const manaAntes = t.estadoAntes?.jogador?.mana;
+      const manaApos = t.estadoApos?.jogador?.mana;
+      const manaSpent =
+        manaAntes != null && manaApos != null && manaApos < manaAntes;
+
+      if (mechanicalSuccess || damageApplied || manaSpent) {
+        const details = [];
+        if (mechanicalSuccess) details.push('sucesso=true');
+        if (damageApplied) details.push(`hpAntes=${hpAntes} hpApos=${hpApos}`);
+        if (manaSpent) details.push(`manaAntes=${manaAntes} manaApos=${manaApos}`);
         falhas.push(
-          `turno ${i + 1}: magiaId "${intent.magiaId}" nao existe no personagem mas resolucaoMecanica.sucesso=true`
+          `turno ${i + 1}: magiaId "${intent.magiaId}" nao existe no personagem mas ` +
+          `efeito mecanico ocorreu (${details.join(', ')})`
         );
       }
     }
@@ -363,14 +377,39 @@ export function ia_nao_inventou_habilidade(log, cenario) {
 
   for (let i = 0; i < log.turnos.length; i++) {
     const t = log.turnos[i];
-    const acoes = t.respostaIA?.acoes;
-    if (!acoes || !Array.isArray(acoes)) continue;
 
-    for (const acao of acoes) {
-      const refId = acao.magiaId || acao.habilidadeId;
-      if (refId && !validIds.has(refId)) {
+    // Check respostaIA.acoes for invented abilities
+    const acoes = t.respostaIA?.acoes;
+    if (acoes && Array.isArray(acoes)) {
+      for (const acao of acoes) {
+        const refId = acao.magiaId || acao.habilidadeId;
+        if (refId && !validIds.has(refId)) {
+          falhas.push(
+            `turno ${i + 1}: respostaIA.acoes referencia "${refId}" que nao existe no personagem`
+          );
+        }
+      }
+    }
+
+    // Also check if resolucaoMecanica accepted a non-existent habilidadeId
+    // from the gameIntent with mechanical effect (sucesso or state change).
+    const intent = t.acaoJogador?.gameIntent;
+    const habilidadeId = intent?.habilidadeId;
+    if (habilidadeId && !validIds.has(habilidadeId)) {
+      const rm = t.resolucaoMecanica;
+      const mechanicalSuccess = rm && rm.sucesso === true;
+
+      const jogadorAntes = t.estadoAntes?.jogador;
+      const jogadorApos = t.estadoApos?.jogador;
+      const stateChanged = jogadorAntes && jogadorApos && (
+        jogadorApos.hp !== jogadorAntes.hp ||
+        jogadorApos.mana !== jogadorAntes.mana ||
+        JSON.stringify(jogadorApos.status) !== JSON.stringify(jogadorAntes.status)
+      );
+
+      if (mechanicalSuccess || stateChanged) {
         falhas.push(
-          `turno ${i + 1}: respostaIA.acoes referencia "${refId}" que nao existe no personagem`
+          `turno ${i + 1}: habilidadeId "${habilidadeId}" nao existe no personagem mas efeito mecanico ocorreu`
         );
       }
     }

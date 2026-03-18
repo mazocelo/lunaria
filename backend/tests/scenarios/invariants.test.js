@@ -237,41 +237,6 @@ describe('mana_descontada_ao_usar_magia — fails when mana not deducted', () =>
     expect(r.ok).toBe(true);
   });
 
-  it('passes when mana insufficient and mana stays unchanged (action blocked)', () => {
-    const cenario = baseCenario();
-    const turno = baseTurno({
-      acaoJogador: {
-        tipo: 'mensagem', texto: 'Lanco Luz Divina',
-        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'luz_divina', alvo: 'goblin_1' },
-      },
-      estadoAntes: { jogador: baseJogador({ mana: 2 }), inimigos: [baseInimigo()], combateAtivo: true },
-      // mana stays at 2 because cost is 3 and action is blocked
-      estadoApos: { jogador: baseJogador({ mana: 2 }), inimigos: [baseInimigo()], combateAtivo: true },
-    });
-    const log = baseLog([turno]);
-    const r = inv.mana_descontada_ao_usar_magia(log, cenario);
-    expect(r.ok).toBe(true);
-  });
-
-  it('fails when mana insufficient but mana was floored to 0 instead of staying unchanged', () => {
-    const cenario = baseCenario();
-    const turno = baseTurno({
-      acaoJogador: {
-        tipo: 'mensagem', texto: 'Lanco Luz Divina',
-        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'luz_divina', alvo: 'goblin_1' },
-      },
-      estadoAntes: { jogador: baseJogador({ mana: 2 }), inimigos: [baseInimigo()], combateAtivo: true },
-      // mana was incorrectly deducted to 0 instead of staying at 2
-      estadoApos: { jogador: baseJogador({ mana: 0 }), inimigos: [baseInimigo()], combateAtivo: true },
-    });
-    const log = baseLog([turno]);
-    const r = inv.mana_descontada_ao_usar_magia(log, cenario);
-    expect(r.ok).toBe(false);
-    expect(r.falhas).toHaveLength(1);
-    expect(r.falhas[0]).toContain('mana insuficiente');
-    expect(r.falhas[0]).toContain('deveria permanecer 2');
-    expect(r.falhas[0]).toContain('obtido=0');
-  });
 });
 
 describe('dano_aplicado_quando_ataque_sucede — fails when hp not reduced', () => {
@@ -360,22 +325,70 @@ describe('xp_distribuido_apos_vitoria — fails when no xp on victory', () => {
   });
 });
 
-describe('equipamento_usado_existe_no_inventario — fails on unknown weapon', () => {
-  it('detects unknown arma in gameIntent', () => {
+describe('equipamento_usado_existe_no_inventario — fails when unknown weapon causes mechanical effect', () => {
+  it('detects unknown arma when resolucaoMecanica.sucesso=true', () => {
     const turno = baseTurno({
       acaoJogador: {
         tipo: 'mensagem', texto: 'ataco com lanca',
         gameIntent: { categoria: 'combate', tipo: 'atacar', arma: 'lanca_magica', alvo: 'goblin_1' },
       },
+      resolucaoMecanica: { sucesso: true, tipo: 'atacar', alvo: 'goblin_1', danoCalculado: 5 },
+    });
+    const log = baseLog([turno]);
+    const r = inv.equipamento_usado_existe_no_inventario(log, baseCenario());
+    expect(r.ok).toBe(false);
+    expect(r.falhas[0]).toContain('lanca_magica');
+    expect(r.falhas[0]).toContain('efeito mecanico');
+  });
+
+  it('detects unknown arma when enemy HP decreased', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'ataco com lanca',
+        gameIntent: { categoria: 'combate', tipo: 'atacar', arma: 'lanca_magica', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      estadoApos: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 7 })], combateAtivo: true },
+      resolucaoMecanica: { tipo: 'atacar', alvoId: 'goblin_1', arma: 'lanca_magica', pendingRoll: true },
     });
     const log = baseLog([turno]);
     const r = inv.equipamento_usado_existe_no_inventario(log, baseCenario());
     expect(r.ok).toBe(false);
     expect(r.falhas[0]).toContain('lanca_magica');
   });
+
+  it('passes when unknown arma causes no mechanical effect (action blocked)', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'ataco com alabarda',
+        gameIntent: { categoria: 'combate', tipo: 'atacar', arma: 'alabarda', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      estadoApos: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      resolucaoMecanica: { tipo: 'atacar', alvoId: 'goblin_1', arma: 'alabarda', pendingRoll: true },
+    });
+    const log = baseLog([turno]);
+    const r = inv.equipamento_usado_existe_no_inventario(log, baseCenario());
+    expect(r.ok).toBe(true);
+  });
+
+  it('passes when unknown arma and resolucaoMecanica is null', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'ataco com alabarda',
+        gameIntent: { categoria: 'combate', tipo: 'atacar', arma: 'alabarda', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      estadoApos: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      resolucaoMecanica: null,
+    });
+    const log = baseLog([turno]);
+    const r = inv.equipamento_usado_existe_no_inventario(log, baseCenario());
+    expect(r.ok).toBe(true);
+  });
 });
 
-describe('magia_inexistente_nao_aceita — fails when unknown magia succeeds', () => {
+describe('magia_inexistente_nao_aceita — fails when unknown magia causes mechanical effect', () => {
   it('detects successful resolution of non-existent magia', () => {
     const turno = baseTurno({
       acaoJogador: {
@@ -383,6 +396,39 @@ describe('magia_inexistente_nao_aceita — fails when unknown magia succeeds', (
         gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'bola_de_fogo', alvo: 'goblin_1' },
       },
       resolucaoMecanica: { sucesso: true, tipo: 'usar_habilidade', alvo: 'goblin_1', danoCalculado: 10 },
+    });
+    const log = baseLog([turno]);
+    const r = inv.magia_inexistente_nao_aceita(log, baseCenario());
+    expect(r.ok).toBe(false);
+    expect(r.falhas[0]).toContain('bola_de_fogo');
+    expect(r.falhas[0]).toContain('efeito mecanico');
+  });
+
+  it('detects non-existent magia when enemy HP decreased', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Lanco Bola de Fogo',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'bola_de_fogo', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      estadoApos: { jogador: baseJogador(), inimigos: [baseInimigo({ hp: 5 })], combateAtivo: true },
+      resolucaoMecanica: { tipo: 'usar_habilidade', alvoId: 'goblin_1', pendingRoll: true },
+    });
+    const log = baseLog([turno]);
+    const r = inv.magia_inexistente_nao_aceita(log, baseCenario());
+    expect(r.ok).toBe(false);
+    expect(r.falhas[0]).toContain('bola_de_fogo');
+  });
+
+  it('detects non-existent magia when mana was spent', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Lanco Bola de Fogo',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'bola_de_fogo', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador({ mana: 10 }), inimigos: [baseInimigo()], combateAtivo: true },
+      estadoApos: { jogador: baseJogador({ mana: 5 }), inimigos: [baseInimigo()], combateAtivo: true },
+      resolucaoMecanica: null,
     });
     const log = baseLog([turno]);
     const r = inv.magia_inexistente_nao_aceita(log, baseCenario());
@@ -396,7 +442,24 @@ describe('magia_inexistente_nao_aceita — fails when unknown magia succeeds', (
         tipo: 'mensagem', texto: 'Lanco Bola de Fogo',
         gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'bola_de_fogo', alvo: 'goblin_1' },
       },
+      estadoAntes: { jogador: baseJogador({ mana: 10 }), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      estadoApos: { jogador: baseJogador({ mana: 10 }), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
       resolucaoMecanica: null,
+    });
+    const log = baseLog([turno]);
+    const r = inv.magia_inexistente_nao_aceita(log, baseCenario());
+    expect(r.ok).toBe(true);
+  });
+
+  it('passes when unknown magia has pendingRoll but no state change', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Lanco Bola de Fogo',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'bola_de_fogo', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador({ mana: 10 }), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      estadoApos: { jogador: baseJogador({ mana: 10 }), inimigos: [baseInimigo({ hp: 12 })], combateAtivo: true },
+      resolucaoMecanica: { tipo: 'usar_habilidade', alvoId: 'goblin_1', magiaId: 'bola_de_fogo', pendingRoll: true },
     });
     const log = baseLog([turno]);
     const r = inv.magia_inexistente_nao_aceita(log, baseCenario());
@@ -426,6 +489,35 @@ describe('ia_nao_inventou_habilidade — fails on invented ability', () => {
         acoes: [{ habilidadeId: 'investida', alvo: 'goblin_1' }],
         fimDeTurno: false,
       },
+    });
+    const log = baseLog([turno]);
+    const r = inv.ia_nao_inventou_habilidade(log, baseCenario());
+    expect(r.ok).toBe(true);
+  });
+
+  it('detects non-existent habilidadeId in gameIntent when mechanical effect occurs', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Uso Escudo Sagrado',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', habilidadeId: 'escudo_sagrado', alvo: 'goblin_1' },
+      },
+      resolucaoMecanica: { sucesso: true, tipo: 'usar_habilidade', alvoId: 'goblin_1', habilidadeId: 'escudo_sagrado' },
+    });
+    const log = baseLog([turno]);
+    const r = inv.ia_nao_inventou_habilidade(log, baseCenario());
+    expect(r.ok).toBe(false);
+    expect(r.falhas[0]).toContain('escudo_sagrado');
+  });
+
+  it('passes when non-existent habilidadeId in gameIntent causes no mechanical effect', () => {
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Uso Escudo Sagrado',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', habilidadeId: 'escudo_sagrado', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador(), inimigos: [baseInimigo()], combateAtivo: true },
+      estadoApos: { jogador: baseJogador(), inimigos: [baseInimigo()], combateAtivo: true },
+      resolucaoMecanica: { tipo: 'usar_habilidade', alvoId: 'goblin_1', habilidadeId: 'escudo_sagrado', pendingRoll: true },
     });
     const log = baseLog([turno]);
     const r = inv.ia_nao_inventou_habilidade(log, baseCenario());

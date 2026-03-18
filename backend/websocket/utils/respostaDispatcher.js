@@ -510,13 +510,6 @@ function detectarCombateNarrativa(narracao, sessao) {
     }
   }
 
-  // Procurar nos temas/roteiro da sessão
-  const temas = (sessao?.historiaTemas || []).map(t => (t.nome || t).toLowerCase());
-  if (temas.some(t => ['demônios', 'demonios', 'mortos-vivos'].includes(t))) {
-    // Tema justifica, mas sem nome específico — não arriscar falso positivo
-    return null;
-  }
-
   return null;
 }
 

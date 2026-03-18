@@ -1,0 +1,32 @@
+{
+  "cenarioId": "01-combate-basico",
+  "cenarioVersao": "1.0.0",
+  "geradoEm": "2026-03-18T07:29:42.524Z",
+  "modelos": {
+    "groq": {
+      "statusExecucao": "concluida",
+      "turnos": 4,
+      "latenciaMediaMs": 31644,
+      "invariantes": {
+        "total": 12,
+        "passaram": 12,
+        "falharam": 0
+      },
+      "falhas": []
+    },
+    "gemini": {
+      "statusExecucao": "sem_log",
+      "turnos": null,
+      "latenciaMediaMs": null,
+      "invariantes": null,
+      "falhas": []
+    },
+    "sonnet": {
+      "statusExecucao": "sem_log",
+      "turnos": null,
+      "latenciaMediaMs": null,
+      "invariantes": null,
+      "falhas": []
+    }
+  }
+}

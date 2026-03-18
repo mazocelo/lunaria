@@ -1,7 +1,7 @@
 {
   "cenarioId": "01-combate-basico",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T07:44:48.364Z",
+  "geradoEm": "2026-03-18T14:03:22.854Z",
   "modelos": {
     "groq": {
       "statusExecucao": "concluida",

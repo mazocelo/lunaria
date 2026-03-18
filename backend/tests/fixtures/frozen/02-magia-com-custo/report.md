@@ -1,6 +1,6 @@
 # Relatório: 02-magia-com-custo (v1.0.0)
 
-**Gerado em:** 2026-03-18 07:44:54
+**Gerado em:** 2026-03-18 14:03:22
 
 ## Métricas
 
@@ -9,8 +9,8 @@
 | Status             | ✅ ok            | ✅ ok            | ✅ ok            |
 | Turnos executados  | 5               | 5               | 5               |
 | Condição de parada | acoes_esgotadas | acoes_esgotadas | acoes_esgotadas |
-| Latência média     | 36.5s           | 8.3s            | 16.9s           |
-| Latência máxima    | 51.4s           | 11.4s           | 21.5s           |
+| Latência média     | 36.5s           | 8.4s            | 15.6s           |
+| Latência máxima    | 51.4s           | 10.9s           | 19.6s           |
 | Erros de parse     | 0               | 0               | 0               |
 
 ## Invariantes

@@ -1,23 +1,23 @@
 {
-  "runId": "run_20260318_044158_e5a8",
+  "runId": "run_20260318_110156_e0fc",
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
   "cenarioHash": "sha256:83232582e436",
   "modelo": "claude-sonnet-4-6",
   "provider": "sonnet",
-  "redisPrefix": "test_run_run_20260318_044158_e5a8_sonnet:",
+  "redisPrefix": "test_run_run_20260318_110156_e0fc_sonnet:",
   "statusExecucao": "concluida",
   "erroExecucao": null,
-  "iniciadoEm": "2026-03-18T07:41:58.549Z",
-  "finalizadoEm": "2026-03-18T07:43:23.115Z",
-  "duracaoMs": 84565,
+  "iniciadoEm": "2026-03-18T14:01:56.177Z",
+  "finalizadoEm": "2026-03-18T14:03:14.252Z",
+  "duracaoMs": 78075,
   "metricas": {
     "turnosExecutados": 5,
     "respostasParseadas": 5,
     "errosParse": 0,
     "rolagensAutomaticas": 0,
-    "latenciaMediaMs": 16908,
-    "latenciaMaxMs": 21483,
+    "latenciaMediaMs": 15613,
+    "latenciaMaxMs": 19579,
     "tokensInput": null,
     "tokensOutput": null,
     "custoEstimado": null
@@ -55,9 +55,9 @@
         ],
         "combateAtivo": false
       },
-      "respostaBruta": "A clareira se abre entre troncos retorcidos, banhada por uma luz filtrada e esverdeada. O cheiro de terra úmida e folhas podres paira no ar. No centro do espaço aberto, um goblin agachado vasculha os restos de uma mochila rasgada — provavelmente de algum viajante menos afortunado. Ele rosnava baixinho para si mesmo, enfiando itens miúdos dentro de uma bolsa de couro surrada.\n\nOs cascos de Moruxis estalaram sobre um galho seco. O goblin congela. Seus olhos amarelos e saltados se voltam para o minotauro com uma mistura de surpresa e desconfiança — então, ao ver a envergadura do paladino e os chifres curvados que quase tocam os galhos acima, o pequeno saqueador dá um passo atrás e arranha o cabo de uma faca enferrujada presa ao cinto.\n\n— **Ugh... você grande demais pra ser guarda da cidade.** — ele cospe, com a voz áspera e a faca ainda na bainha. — **O que quer aqui? Isso meu agora.**\n\nA bolsa do goblin cai levemente aberta ao chão, revelando um amuleto de prata que brilha entre os dedos verdes do saqueador.",
+      "respostaBruta": "A clareira se abre entre árvores retorcidas, a luz do sol cortando o verde em faixas douradas. O cheiro de terra úmida e folhas apodrecidas paira no ar. No centro, um **goblin saqueador** vasculha um saco rasgado, jogando ossos e trapos para os lados com mãos nervosas — claramente à procura de algo valioso.\n\nO goblin levanta o nariz. Fareja. Seus olhos amarelos e bulbosos giram na direção de Moruxis — dois metros de minotauro, chifres largos, espada longa reluzindo na bainha. Por um segundo, o goblin congela.\n\nDepois, mostra os dentes.\n\n— **Carne grande! Carne estúpida entrar na minha clareira!** — grasna ele, erguendo uma faca enferrujada com uma confiança desproporcional ao tamanho da lâmina.\n\n🎲 O goblin assume postura de ataque. Iniciativa — quem age primeiro?",
       "respostaIA": {
-        "narracao": "A clareira se abre entre troncos retorcidos, banhada por uma luz filtrada e esverdeada. O cheiro de terra úmida e folhas podres paira no ar. No centro do espaço aberto, um goblin agachado vasculha os restos de uma mochila rasgada — provavelmente de algum viajante menos afortunado. Ele rosnava baixinho para si mesmo, enfiando itens miúdos dentro de uma bolsa de couro surrada.\n\nOs cascos de Moruxis estalaram sobre um galho seco. O goblin congela. Seus olhos amarelos e saltados se voltam para o minotauro com uma mistura de surpresa e desconfiança — então, ao ver a envergadura do paladino e os chifres curvados que quase tocam os galhos acima, o pequeno saqueador dá um passo atrás e arranha o cabo de uma faca enferrujada presa ao cinto.\n\n— **Ugh... você grande demais pra ser guarda da cidade.** — ele cospe, com a voz áspera e a faca ainda na bainha. — **O que quer aqui? Isso meu agora.**\n\nA bolsa do goblin cai levemente aberta ao chão, revelando um amuleto de prata que brilha entre os dedos verdes do saqueador.",
+        "narracao": "A clareira se abre entre árvores retorcidas, a luz do sol cortando o verde em faixas douradas. O cheiro de terra úmida e folhas apodrecidas paira no ar. No centro, um **goblin saqueador** vasculha um saco rasgado, jogando ossos e trapos para os lados com mãos nervosas — claramente à procura de algo valioso.\n\nO goblin levanta o nariz. Fareja. Seus olhos amarelos e bulbosos giram na direção de Moruxis — dois metros de minotauro, chifres largos, espada longa reluzindo na bainha. Por um segundo, o goblin congela.\n\nDepois, mostra os dentes.\n\n— **Carne grande! Carne estúpida entrar na minha clareira!** — grasna ele, erguendo uma faca enferrujada com uma confiança desproporcional ao tamanho da lâmina.\n\n🎲 O goblin assume postura de ataque. Iniciativa — quem age primeiro?",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -74,15 +74,14 @@
             {
               "id": null,
               "nome": "Goblin Saqueador",
-              "status": "hostil/desconfiado",
-              "posicao": "centro da clareira"
+              "status": "hostil"
             }
           ],
           "memoria_semantica": [],
-          "terreno": "clareira aberta com galhos e folhas no chão",
-          "tensao": "alerta",
+          "terreno": "clareira aberta",
+          "tensao": "combate iminente",
           "ameacas": [
-            "goblin saqueador armado com faca"
+            "Goblin Saqueador armado com faca enferrujada"
           ]
         }
       },
@@ -114,10 +113,10 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "tempoRespostaMs": 21483,
-      "tempoTurnoTotalMs": 21484
+      "tempoRespostaMs": 19579,
+      "tempoTurnoTotalMs": 19579
     },
     {
       "turno": 2,
@@ -155,11 +154,11 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "O sol ainda não rompeu o horizonte quando Moruxis sai da estalagem. O ar da manhã cheira a terra úmida e fumaça de fogueiras distantes. Suas cascos batem no paralelepípedo da rua principal — uma vila pequena, de casas baixas e cercas de madeira torta. Alguns aldeões já estão acordados. Param o que estão fazendo quando o veem passar. Olhares de lado, crianças puxadas para dentro de casa, um velho que cuspiu no chão e virou as costas.\n\nA desvantagem de carregar o porte de um minotauro é essa: nenhum rosto neutro na multidão.\n\nNo centro da praça, um quadro de avisos de madeira está pregado num poste. Um papel novo — ainda branco nas bordas — chama atenção entre os outros.",
+      "respostaBruta": "A estrada de terra batida se abre entre colinas cobertas de grama alta. O sol da tarde projeta sombras longas. Moruxis caminha com passos pesados — cascos contra pedra soltam um som surdo e ritmado. Ao longe, uma aldeia pequena aparece no horizonte: telhados de palha, uma torre de madeira, fumaça fina subindo de duas chaminés.\n\nNão há movimento visível nas estradas. Silêncio demais para uma tarde comum.",
       "respostaIA": {
-        "narracao": "O sol ainda não rompeu o horizonte quando Moruxis sai da estalagem. O ar da manhã cheira a terra úmida e fumaça de fogueiras distantes. Suas cascos batem no paralelepípedo da rua principal — uma vila pequena, de casas baixas e cercas de madeira torta. Alguns aldeões já estão acordados. Param o que estão fazendo quando o veem passar. Olhares de lado, crianças puxadas para dentro de casa, um velho que cuspiu no chão e virou as costas.\n\nA desvantagem de carregar o porte de um minotauro é essa: nenhum rosto neutro na multidão.\n\nNo centro da praça, um quadro de avisos de madeira está pregado num poste. Um papel novo — ainda branco nas bordas — chama atenção entre os outros.",
+        "narracao": "A estrada de terra batida se abre entre colinas cobertas de grama alta. O sol da tarde projeta sombras longas. Moruxis caminha com passos pesados — cascos contra pedra soltam um som surdo e ritmado. Ao longe, uma aldeia pequena aparece no horizonte: telhados de palha, uma torre de madeira, fumaça fina subindo de duas chaminés.\n\nNão há movimento visível nas estradas. Silêncio demais para uma tarde comum.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -170,18 +169,28 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Vila — Praça Central",
-          "hora_ficcional": "Amanhecer",
+          "local_atual": "Estrada — entrada da aldeia",
+          "hora_ficcional": "tarde",
           "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "vila — rua de paralelepípedo",
+          "terreno": "estrada de terra, campo aberto",
           "tensao": "alerta",
-          "ameacas": []
+          "ameacas": [
+            "aldeia silenciosa — ausência de guardas no posto"
+          ]
         }
       },
       "respostaParseou": true,
       "erroParse": null,
-      "resolucaoMecanica": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -207,10 +216,10 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "tempoRespostaMs": 16570,
-      "tempoTurnoTotalMs": 16570
+      "tempoRespostaMs": 12834,
+      "tempoTurnoTotalMs": 12834
     },
     {
       "turno": 3,
@@ -248,11 +257,11 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "O sol ainda não rompeu o horizonte quando Moruxis desperta no celeiro de uma estalagem esquecida, palha grudada nos chifres e o cheiro de estrume misturado ao orvalho da manhã. A espada longa repousa encostada na viga ao lado — fria, familiar. Lá fora, o vilarejo de Veldrath começa a ganhar vida: um ferreiro bate o malho cedo, galinhas cacarejam, e uma voz de criança grita algo que o vento distorce antes de chegar aos seus ouvidos. Mas há outro som — mais próximo, mais urgente. Do outro lado da porta de madeira podre, alguém respira com dificuldade.",
+      "respostaBruta": "A névoa da manhã ainda rasteja pelo chão de pedra quando Moruxis abre os olhos. Chifres roçam o teto baixo da estalagem — um lembrete constante de que o mundo não foi construído para minotauros. O cheiro de palha úmida e gordura de vela preenche o ar. Lá fora, o vilarejo começa a despertar: um ferreiro bate o bigorna, galinhas cacarejam, e alguém, em algum lugar próximo, grita.",
       "respostaIA": {
-        "narracao": "O sol ainda não rompeu o horizonte quando Moruxis desperta no celeiro de uma estalagem esquecida, palha grudada nos chifres e o cheiro de estrume misturado ao orvalho da manhã. A espada longa repousa encostada na viga ao lado — fria, familiar. Lá fora, o vilarejo de Veldrath começa a ganhar vida: um ferreiro bate o malho cedo, galinhas cacarejam, e uma voz de criança grita algo que o vento distorce antes de chegar aos seus ouvidos. Mas há outro som — mais próximo, mais urgente. Do outro lado da porta de madeira podre, alguém respira com dificuldade.",
+        "narracao": "A névoa da manhã ainda rasteja pelo chão de pedra quando Moruxis abre os olhos. Chifres roçam o teto baixo da estalagem — um lembrete constante de que o mundo não foi construído para minotauros. O cheiro de palha úmida e gordura de vela preenche o ar. Lá fora, o vilarejo começa a despertar: um ferreiro bate o bigorna, galinhas cacarejam, e alguém, em algum lugar próximo, grita.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -263,18 +272,28 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Celeiro da Estalagem — Vilarejo de Veldrath",
-          "hora_ficcional": "Amanhecer",
+          "local_atual": "Estalagem — vilarejo desconhecido",
+          "hora_ficcional": "Manhã cedo",
           "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "interior de celeiro, madeira e palha",
+          "terreno": "urbano",
           "tensao": "alerta",
-          "ameacas": []
+          "ameacas": [
+            "grito no mercado — origem desconhecida"
+          ]
         }
       },
       "respostaParseou": true,
       "erroParse": null,
-      "resolucaoMecanica": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "protecao_mal",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -300,10 +319,10 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "tempoRespostaMs": 15468,
-      "tempoTurnoTotalMs": 15469
+      "tempoRespostaMs": 12771,
+      "tempoTurnoTotalMs": 12772
     },
     {
       "turno": 4,
@@ -341,11 +360,11 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "A névoa da manhã ainda abraça o chão quando Moruxis para na entrada da vila. Casas de pedra e madeira se alinham em ruas de terra batida — simples, funcionais. O cheiro de pão assado vaza de uma janela próxima. Alguns aldeões carregam cestos e ferramentas, mas param ao notar a silhueta do minotauro no portão: chifres erguidos, espada longa na cintura, olhos que varrem o ambiente com calma mecânica. Um homem deixa cair um feixe de lenha. Uma criança puxa a manga da mãe e some atrás dela.",
+      "respostaBruta": "O vento frio da manhã varre a estrada de terra batida enquanto Moruxis avança com passos pesados. Seus cascos reverberam contra o solo pedregoso, e o cheiro de pinho mistura-se com o de húmus úmido. A floresta à beira do caminho é densa — troncos escuros, galhos entrelaçados, sombras que não se dissipam mesmo com o sol ainda baixo no horizonte.\n\nAo longe, uma placa de madeira entalhada marca a entrada de uma pequena vila. As letras estão desgastadas, mas legíveis: **Pedra Funda**. Fumaça sobe de duas ou três chaminés. Um cão late uma vez e para.",
       "respostaIA": {
-        "narracao": "A névoa da manhã ainda abraça o chão quando Moruxis para na entrada da vila. Casas de pedra e madeira se alinham em ruas de terra batida — simples, funcionais. O cheiro de pão assado vaza de uma janela próxima. Alguns aldeões carregam cestos e ferramentas, mas param ao notar a silhueta do minotauro no portão: chifres erguidos, espada longa na cintura, olhos que varrem o ambiente com calma mecânica. Um homem deixa cair um feixe de lenha. Uma criança puxa a manga da mãe e some atrás dela.",
+        "narracao": "O vento frio da manhã varre a estrada de terra batida enquanto Moruxis avança com passos pesados. Seus cascos reverberam contra o solo pedregoso, e o cheiro de pinho mistura-se com o de húmus úmido. A floresta à beira do caminho é densa — troncos escuros, galhos entrelaçados, sombras que não se dissipam mesmo com o sol ainda baixo no horizonte.\n\nAo longe, uma placa de madeira entalhada marca a entrada de uma pequena vila. As letras estão desgastadas, mas legíveis: **Pedra Funda**. Fumaça sobe de duas ou três chaminés. Um cão late uma vez e para.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -354,33 +373,34 @@
           "dificuldade": "",
           "origem": null
         },
-        "acoes": [
-          {
-            "tipo": "ativar_desvantagem",
-            "personagem": "Aldeões",
-            "nome": "Aparencia Intimidadora",
-            "penalidade": "aldeões recuam e evitam contato com Moruxis"
-          }
-        ],
+        "acoes": [],
         "metadados": {
-          "local_atual": "Vila desconhecida — entrada principal",
-          "hora_ficcional": "manhã cedo",
+          "local_atual": "Estrada — entrada de Pedra Funda",
+          "hora_ficcional": "Manhã cedo",
           "npcs_presentes": [
             {
-              "id": "aldeao_velho",
-              "nome": "Aldeão de Cabelos Brancos",
-              "status": "presente, não recuou"
+              "id": null,
+              "nome": "Homem do avental",
+              "descricao": "Aldeão, parado na soleira, segurando vassoura"
             }
           ],
           "memoria_semantica": [],
-          "terreno": "rua de terra batida, vila pequena",
+          "terreno": "estrada de terra, beira de floresta",
           "tensao": "alerta",
           "ameacas": []
         }
       },
       "respostaParseou": true,
       "erroParse": null,
-      "resolucaoMecanica": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -406,10 +426,10 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "tempoRespostaMs": 17737,
-      "tempoTurnoTotalMs": 17737
+      "tempoRespostaMs": 18395,
+      "tempoTurnoTotalMs": 18395
     },
     {
       "turno": 5,
@@ -447,11 +467,11 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "O sol ainda não rompeu o horizonte quando Moruxis ergue a cabeça acima da grama alta. O campo à frente cheira a terra úmida e fumaça fria — restos de uma fogueira apagada horas atrás. Uma estrada de pedra irregular corta o terreno em direção a um vilarejo pequeno, suas casas de madeira escura visíveis na névoa matinal. Nenhum movimento nas janelas. Nenhum som de gado ou ferreiro. O silêncio pesa como armadura molhada.",
+      "respostaBruta": "O sol ainda está alto quando Moruxis pisa na estrada de terra batida que corta o vale. Seus cascos ecoam no chão seco, levantando pequenas nuvens de poeira a cada passo. A paisagem ao redor é de campos abertos com arbustos espinhosos e algumas árvores retorcidas — terreno simples, mas com poucos lugares para se esconder.\n\nNão há missão definida ainda. Apenas o horizonte à frente e o peso da espada longa no quadril.",
       "respostaIA": {
-        "narracao": "O sol ainda não rompeu o horizonte quando Moruxis ergue a cabeça acima da grama alta. O campo à frente cheira a terra úmida e fumaça fria — restos de uma fogueira apagada horas atrás. Uma estrada de pedra irregular corta o terreno em direção a um vilarejo pequeno, suas casas de madeira escura visíveis na névoa matinal. Nenhum movimento nas janelas. Nenhum som de gado ou ferreiro. O silêncio pesa como armadura molhada.",
+        "narracao": "O sol ainda está alto quando Moruxis pisa na estrada de terra batida que corta o vale. Seus cascos ecoam no chão seco, levantando pequenas nuvens de poeira a cada passo. A paisagem ao redor é de campos abertos com arbustos espinhosos e algumas árvores retorcidas — terreno simples, mas com poucos lugares para se esconder.\n\nNão há missão definida ainda. Apenas o horizonte à frente e o peso da espada longa no quadril.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -462,21 +482,28 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Estrada de pedra — entrada do vilarejo deserto",
-          "hora_ficcional": "Amanhecer",
+          "local_atual": "Estrada do Vale — a 2 léguas de Pedra Seca",
+          "hora_ficcional": "tarde",
           "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "campo aberto com névoa",
+          "terreno": "campo aberto, estrada de terra",
           "tensao": "alerta",
           "ameacas": [
-            "vilarejo aparentemente abandonado",
-            "porta aberta sem explicação"
+            "aviso misterioso na placa da estrada"
           ]
         }
       },
       "respostaParseou": true,
       "erroParse": null,
-      "resolucaoMecanica": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -502,10 +529,10 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "tempoRespostaMs": 13284,
-      "tempoTurnoTotalMs": 13284
+      "tempoRespostaMs": 14487,
+      "tempoTurnoTotalMs": 14487
     }
   ],
   "estadoFinal": {
@@ -525,7 +552,7 @@
         "status": []
       }
     ],
-    "combateAtivo": false,
+    "combateAtivo": true,
     "resultado": "indefinido",
     "resultadoDetalhe": null
   }

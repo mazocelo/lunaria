@@ -1,23 +1,23 @@
 {
-  "runId": "run_20260318_043952_ec8a",
+  "runId": "run_20260318_110049_9c5c",
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
   "cenarioHash": "sha256:83232582e436",
   "modelo": "gemini-2.5-flash",
   "provider": "gemini",
-  "redisPrefix": "test_run_run_20260318_043952_ec8a_gemini:",
+  "redisPrefix": "test_run_run_20260318_110049_9c5c_gemini:",
   "statusExecucao": "concluida",
   "erroExecucao": null,
-  "iniciadoEm": "2026-03-18T07:39:52.500Z",
-  "finalizadoEm": "2026-03-18T07:40:34.140Z",
-  "duracaoMs": 41640,
+  "iniciadoEm": "2026-03-18T14:00:49.353Z",
+  "finalizadoEm": "2026-03-18T14:01:31.430Z",
+  "duracaoMs": 42077,
   "metricas": {
     "turnosExecutados": 5,
     "respostasParseadas": 5,
     "errosParse": 0,
     "rolagensAutomaticas": 0,
-    "latenciaMediaMs": 8326,
-    "latenciaMaxMs": 11420,
+    "latenciaMediaMs": 8414,
+    "latenciaMaxMs": 10908,
     "tokensInput": null,
     "tokensOutput": null,
     "custoEstimado": null
@@ -55,9 +55,9 @@
         ],
         "combateAtivo": false
       },
-      "respostaBruta": "A clareira, antes pacífica, agora vibra com uma tensão palpável. Entre as árvores altas e o chão coberto de folhas secas, um goblin raquítico e de pele esverdeada se agita. Ele está curvado sobre um saco de couro, os olhos miúdos e malignos fixos em você. O fedor de terra úmida e algo azedo emana da criatura, que empunha uma cimitarra enferrujada e um escudo improvisado. Ao perceber sua presença imponente, o goblin solta um guincho agudo, sua postura defensiva se tornando agressiva. Moruxis sente o poder divino fluir, pronto para ser canalizado.",
+      "respostaBruta": "A clareira, banhada por uma luz solar filtrada pelas copas das árvores, revela um pequeno goblin. A criatura, de pele esverdeada e vestes esfarrapadas, empunha uma cimitarra enferrujada. Seus olhos miúdos e maliciosos fixam-se em Moruxis, e um rosnado gutural escapa de sua garganta. Moruxis, com sua espada longa em punho, sente a energia divina fluir, pronto para o confronto.",
       "respostaIA": {
-        "narracao": "A clareira, antes pacífica, agora vibra com uma tensão palpável. Entre as árvores altas e o chão coberto de folhas secas, um goblin raquítico e de pele esverdeada se agita. Ele está curvado sobre um saco de couro, os olhos miúdos e malignos fixos em você. O fedor de terra úmida e algo azedo emana da criatura, que empunha uma cimitarra enferrujada e um escudo improvisado. Ao perceber sua presença imponente, o goblin solta um guincho agudo, sua postura defensiva se tornando agressiva. Moruxis sente o poder divino fluir, pronto para ser canalizado.",
+        "narracao": "A clareira, banhada por uma luz solar filtrada pelas copas das árvores, revela um pequeno goblin. A criatura, de pele esverdeada e vestes esfarrapadas, empunha uma cimitarra enferrujada. Seus olhos miúdos e maliciosos fixam-se em Moruxis, e um rosnado gutural escapa de sua garganta. Moruxis, com sua espada longa em punho, sente a energia divina fluir, pronto para o confronto.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -68,20 +68,18 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Clareira da Floresta",
+          "local_atual": "Clareira",
           "hora_ficcional": "dia",
           "npcs_presentes": [
             {
               "nome": "Goblin Saqueador",
-              "estado": "hostil"
+              "tipo": "inimigo"
             }
           ],
           "memoria_semantica": [],
-          "terreno": "floresta densa",
+          "terreno": "floresta aberta",
           "tensao": "combate iminente",
-          "ameacas": [
-            "Goblin Saqueador"
-          ]
+          "ameacas": []
         }
       },
       "respostaParseou": true,
@@ -114,8 +112,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 7264,
-      "tempoTurnoTotalMs": 7265
+      "tempoRespostaMs": 8366,
+      "tempoTurnoTotalMs": 8366
     },
     {
       "turno": 2,
@@ -155,9 +153,9 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "O sol da manhã filtra-se pelas copas das árvores, lançando feixes de luz sobre a clareira onde você se encontra. O ar está pesado, e um sutil odor metálico, como de sangue seco, paira junto ao cheiro de terra úmida. À sua volta, galhos estão estraçalhados e o solo macio exibe marcas profundas, como se algo pesado tivesse sido arrastado ou uma luta rápida tivesse ocorrido ali. Uma trilha estreita se aprofunda na floresta densa a leste, enquanto um caminho mais largo se estende para o sul, onde uma tênue coluna de fumaça se eleva no horizonte, sugerindo um vilarejo distante.",
+      "respostaBruta": "Moruxis avança pela trilha principal da Floresta Sussurrante. A umidade do ar pesa, e o aroma de terra e musgo é intenso. A luz do sol filtra-se em feixes esparsos pela densa folhagem, desenhando padrões mutáveis no chão. Adiante, a trilha mostra sinais de recente perturbação: galhos quebrados e folhagem pisoteada desordenadamente. Mais à frente, uma figura jaz imóvel ao lado de uma árvore caída.",
       "respostaIA": {
-        "narracao": "O sol da manhã filtra-se pelas copas das árvores, lançando feixes de luz sobre a clareira onde você se encontra. O ar está pesado, e um sutil odor metálico, como de sangue seco, paira junto ao cheiro de terra úmida. À sua volta, galhos estão estraçalhados e o solo macio exibe marcas profundas, como se algo pesado tivesse sido arrastado ou uma luta rápida tivesse ocorrido ali. Uma trilha estreita se aprofunda na floresta densa a leste, enquanto um caminho mais largo se estende para o sul, onde uma tênue coluna de fumaça se eleva no horizonte, sugerindo um vilarejo distante.",
+        "narracao": "Moruxis avança pela trilha principal da Floresta Sussurrante. A umidade do ar pesa, e o aroma de terra e musgo é intenso. A luz do sol filtra-se em feixes esparsos pela densa folhagem, desenhando padrões mutáveis no chão. Adiante, a trilha mostra sinais de recente perturbação: galhos quebrados e folhagem pisoteada desordenadamente. Mais à frente, uma figura jaz imóvel ao lado de uma árvore caída.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -168,14 +166,14 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Clareira da Floresta",
+          "local_atual": "Floresta Sussurrante",
           "hora_ficcional": "Manhã",
           "npcs_presentes": [],
           "memoria_semantica": [],
           "terreno": "floresta densa",
           "tensao": "alerta",
           "ameacas": [
-            "perturbação recente"
+            "potencial perigo"
           ]
         }
       },
@@ -217,8 +215,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 7527,
-      "tempoTurnoTotalMs": 7527
+      "tempoRespostaMs": 10908,
+      "tempoTurnoTotalMs": 10908
     },
     {
       "turno": 3,
@@ -258,9 +256,9 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "O ar pesado e úmido envolve Moruxis enquanto ele se aproxima da entrada em ruínas de um templo antigo. Grandes blocos de pedra, corroídos pelo tempo e cobertos por musgo, formam um arco que leva a uma escuridão quase total. Um brilho fraco e pulsante, de um tom azulado, emerge das profundezas, acompanhado por um eco distante de um som metálico.",
+      "respostaBruta": "Moruxis, o Minotauro Paladino, emerge de uma trilha rochosa para um cruzamento de estradas. O ar está fresco e a luz do sol da manhã filtra-se pelas árvores, criando um jogo de sombras no chão. À sua esquerda, uma estrada de terra batida segue para o sul, onde a fumaça de chaminés indica um assentamento de pequeno porte. À direita, um caminho mais estreito mergulha na densidade de uma floresta escura e silenciosa. No centro do cruzamento, um poste de madeira, antigo e lascado, inclina-se ligeiramente.",
       "respostaIA": {
-        "narracao": "O ar pesado e úmido envolve Moruxis enquanto ele se aproxima da entrada em ruínas de um templo antigo. Grandes blocos de pedra, corroídos pelo tempo e cobertos por musgo, formam um arco que leva a uma escuridão quase total. Um brilho fraco e pulsante, de um tom azulado, emerge das profundezas, acompanhado por um eco distante de um som metálico.",
+        "narracao": "Moruxis, o Minotauro Paladino, emerge de uma trilha rochosa para um cruzamento de estradas. O ar está fresco e a luz do sol da manhã filtra-se pelas árvores, criando um jogo de sombras no chão. À sua esquerda, uma estrada de terra batida segue para o sul, onde a fumaça de chaminés indica um assentamento de pequeno porte. À direita, um caminho mais estreito mergulha na densidade de uma floresta escura e silenciosa. No centro do cruzamento, um poste de madeira, antigo e lascado, inclina-se ligeiramente.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -271,15 +269,13 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Entrada do Templo Antigo",
-          "hora_ficcional": "dia",
+          "local_atual": "Cruzamento de Estradas",
+          "hora_ficcional": "manhã",
           "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "ruínas de pedra",
-          "tensao": "alerta",
-          "ameacas": [
-            "desconhecido"
-          ]
+          "terreno": "caminho de terra",
+          "tensao": "calmo",
+          "ameacas": []
         }
       },
       "respostaParseou": true,
@@ -320,8 +316,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 5732,
-      "tempoTurnoTotalMs": 5733
+      "tempoRespostaMs": 8744,
+      "tempoTurnoTotalMs": 8744
     },
     {
       "turno": 4,
@@ -361,9 +357,9 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "O sol do meio-dia castiga a estrada de terra enquanto você, Moruxis, se aproxima do Vilarejo de Pedra Seca. As casas, feitas de rochas rústicas e telhados de palha, parecem se encolher sob o calor. Um silêncio pesado paira sobre o local, interrompido apenas pelo coaxar distante de um corvo. Não há crianças brincando, nem o burburinho habitual de uma vila em dia de feira. Próximo à fonte central, um pequeno grupo de aldeões se aglomera, suas vozes baixas e tensas. Um homem idoso, com a barba grisalha e vestes simples, gesticula, tentando acalmar os ânimos. Ele ergue o olhar e seus olhos fixam em sua figura imponente, um misto de apreensão e uma tênue chama de esperança surgindo em seu rosto.",
+      "respostaBruta": "A poeira fina da estrada de terra se eleva a cada passo pesado de Moruxis. O sol do meio-dia castiga a copa das árvores da Floresta de Eldoria, que margeia o caminho. Ao longe, a fumaça de chaminés indica o vilarejo de Oakhaven. Contudo, um cheiro acre de fumaça queimada, mais recente e intenso, paira no ar, vindo de uma pequena clareira à direita da estrada, antes de Oakhaven.",
       "respostaIA": {
-        "narracao": "O sol do meio-dia castiga a estrada de terra enquanto você, Moruxis, se aproxima do Vilarejo de Pedra Seca. As casas, feitas de rochas rústicas e telhados de palha, parecem se encolher sob o calor. Um silêncio pesado paira sobre o local, interrompido apenas pelo coaxar distante de um corvo. Não há crianças brincando, nem o burburinho habitual de uma vila em dia de feira. Próximo à fonte central, um pequeno grupo de aldeões se aglomera, suas vozes baixas e tensas. Um homem idoso, com a barba grisalha e vestes simples, gesticula, tentando acalmar os ânimos. Ele ergue o olhar e seus olhos fixam em sua figura imponente, um misto de apreensão e uma tênue chama de esperança surgindo em seu rosto.",
+        "narracao": "A poeira fina da estrada de terra se eleva a cada passo pesado de Moruxis. O sol do meio-dia castiga a copa das árvores da Floresta de Eldoria, que margeia o caminho. Ao longe, a fumaça de chaminés indica o vilarejo de Oakhaven. Contudo, um cheiro acre de fumaça queimada, mais recente e intenso, paira no ar, vindo de uma pequena clareira à direita da estrada, antes de Oakhaven.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -374,26 +370,15 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Vilarejo de Pedra Seca",
-          "hora_ficcional": "meio-dia",
-          "npcs_presentes": [
-            {
-              "nome": "Ancião Elara",
-              "descricao": "Líder idoso da vila, barba grisalha, vestes simples.",
-              "reputacao": "respeitado",
-              "relacao": "neutro"
-            },
-            {
-              "nome": "Aldeões Preocupados",
-              "descricao": "Grupo de moradores da vila, visivelmente aflitos.",
-              "reputacao": "neutro",
-              "relacao": "neutro"
-            }
-          ],
+          "local_atual": "Estrada para Oakhaven",
+          "hora_ficcional": "Meio-dia",
+          "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "vilarejo",
+          "terreno": "Estrada de terra e floresta",
           "tensao": "alerta",
-          "ameacas": []
+          "ameacas": [
+            "fumaça incomum"
+          ]
         }
       },
       "respostaParseou": true,
@@ -434,8 +419,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 9687,
-      "tempoTurnoTotalMs": 9687
+      "tempoRespostaMs": 6953,
+      "tempoTurnoTotalMs": 6953
     },
     {
       "turno": 5,
@@ -475,9 +460,9 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Os raios de sol lutam para perfurar a densa copa das árvores, lançando sombras longas e dançantes sobre a trilha de terra batida. O ar é pesado com o cheiro de terra úmida e musgo antigo, e o silêncio da floresta é quebrado apenas pelo farfalhar distante das folhas. Você, Moruxis, sente o peso de sua espada longa e a presença de sua fé enquanto avança. A trilha se abre em uma clareira circular, revelando os restos de um santuário esquecido. Blocos de pedra cobertos por hera e líquen formam o que um dia foi uma estrutura imponente. No centro, uma estátua de uma figura alada, corroída pelo tempo, jaz sobre um pedestal rachado, quase engolida pela vegetação. Um suave murmúrio de água se faz ouvir, vindo de algum lugar além das ruínas.",
+      "respostaBruta": "Moruxis, o minotauro paladino, emerge da densa folhagem da Floresta Sussurrante. O ar carregado de umidade e o canto distante de aves dão lugar a um silêncio estranho, quebrado apenas pelo ranger de uma carroça abandonada na estrada de terra à frente. A pequena vila de Oakhaven se estende no vale, suas casas de madeira parecendo encolhidas sob um céu nublado. Não há fumaça nas chaminés, nem crianças brincando nas ruas. Uma bandeira rasgada com o emblema da vila, um carvalho forte, pende flácida de um mastro quebrado perto da entrada.",
       "respostaIA": {
-        "narracao": "Os raios de sol lutam para perfurar a densa copa das árvores, lançando sombras longas e dançantes sobre a trilha de terra batida. O ar é pesado com o cheiro de terra úmida e musgo antigo, e o silêncio da floresta é quebrado apenas pelo farfalhar distante das folhas. Você, Moruxis, sente o peso de sua espada longa e a presença de sua fé enquanto avança. A trilha se abre em uma clareira circular, revelando os restos de um santuário esquecido. Blocos de pedra cobertos por hera e líquen formam o que um dia foi uma estrutura imponente. No centro, uma estátua de uma figura alada, corroída pelo tempo, jaz sobre um pedestal rachado, quase engolida pela vegetação. Um suave murmúrio de água se faz ouvir, vindo de algum lugar além das ruínas.",
+        "narracao": "Moruxis, o minotauro paladino, emerge da densa folhagem da Floresta Sussurrante. O ar carregado de umidade e o canto distante de aves dão lugar a um silêncio estranho, quebrado apenas pelo ranger de uma carroça abandonada na estrada de terra à frente. A pequena vila de Oakhaven se estende no vale, suas casas de madeira parecendo encolhidas sob um céu nublado. Não há fumaça nas chaminés, nem crianças brincando nas ruas. Uma bandeira rasgada com o emblema da vila, um carvalho forte, pende flácida de um mastro quebrado perto da entrada.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -488,13 +473,15 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Floresta Antiga - Clareira das Ruínas",
-          "hora_ficcional": "manhã",
+          "local_atual": "Vila de Oakhaven (entrada)",
+          "hora_ficcional": "Dia, mas nublado",
           "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "floresta densa",
+          "terreno": "estrada de terra, vila",
           "tensao": "alerta",
-          "ameacas": []
+          "ameacas": [
+            "silencio estranho"
+          ]
         }
       },
       "respostaParseou": true,
@@ -535,8 +522,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 11420,
-      "tempoTurnoTotalMs": 11420
+      "tempoRespostaMs": 7097,
+      "tempoTurnoTotalMs": 7097
     }
   ],
   "estadoFinal": {

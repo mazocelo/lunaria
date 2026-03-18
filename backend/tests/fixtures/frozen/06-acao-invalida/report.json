@@ -1,7 +1,7 @@
 {
   "cenarioId": "06-acao-invalida",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T07:44:59.285Z",
+  "geradoEm": "2026-03-18T14:03:22.859Z",
   "modelos": {
     "groq": {
       "statusExecucao": "falha_parsing",

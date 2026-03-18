@@ -1,7 +1,7 @@
 {
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T07:44:54.043Z",
+  "geradoEm": "2026-03-18T14:03:22.857Z",
   "modelos": {
     "groq": {
       "statusExecucao": "concluida",
@@ -22,7 +22,7 @@
     "gemini": {
       "statusExecucao": "concluida",
       "turnos": 5,
-      "latenciaMediaMs": 8326,
+      "latenciaMediaMs": 8414,
       "invariantes": {
         "total": 8,
         "passaram": 7,
@@ -38,7 +38,7 @@
     "sonnet": {
       "statusExecucao": "concluida",
       "turnos": 5,
-      "latenciaMediaMs": 16908,
+      "latenciaMediaMs": 15613,
       "invariantes": {
         "total": 8,
         "passaram": 7,

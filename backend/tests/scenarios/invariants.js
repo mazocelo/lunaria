@@ -155,12 +155,22 @@ export function mana_descontada_ao_usar_magia(log, cenario) {
     const manaApos = t.estadoApos?.jogador?.mana;
     if (manaAntes == null || manaApos == null) continue;
 
-    const expected = manaAntes - magia.custo_mana;
-    if (manaApos !== expected) {
-      falhas.push(
-        `turno ${i + 1}: magia ${intent.magiaId} custo ${magia.custo_mana}, ` +
-        `mana antes=${manaAntes} esperado apos=${expected} obtido=${manaApos}`
-      );
+    if (manaAntes < magia.custo_mana) {
+      // Insufficient mana — action should have been blocked; mana must stay unchanged
+      if (manaApos !== manaAntes) {
+        falhas.push(
+          `turno ${i + 1}: magia ${intent.magiaId} custo ${magia.custo_mana}, ` +
+          `mana insuficiente (antes=${manaAntes}), mana deveria permanecer ${manaAntes} mas obtido=${manaApos}`
+        );
+      }
+    } else {
+      const expected = manaAntes - magia.custo_mana;
+      if (manaApos !== expected) {
+        falhas.push(
+          `turno ${i + 1}: magia ${intent.magiaId} custo ${magia.custo_mana}, ` +
+          `mana antes=${manaAntes} esperado apos=${expected} obtido=${manaApos}`
+        );
+      }
     }
   }
   return result(falhas);
@@ -284,9 +294,29 @@ export function equipamento_usado_existe_no_inventario(log, cenario) {
     if (!intent || !intent.arma) continue;
 
     if (!equipIds.has(intent.arma)) {
-      falhas.push(
-        `turno ${i + 1}: arma "${intent.arma}" nao encontrada em equipamentos do personagem`
-      );
+      // The player referenced a weapon they don't own.
+      // This is only a *failure* if the system actually allowed a mechanical
+      // effect to happen — i.e. resolucaoMecanica.sucesso === true, or
+      // enemy HP decreased (damage was applied despite the invalid weapon).
+      const rm = t.resolucaoMecanica;
+      const mechanicalSuccess = rm && rm.sucesso === true;
+
+      const alvoId = rm?.alvo || rm?.alvoId || intent.alvo;
+      const hpAntes = alvoId
+        ? t.estadoAntes?.inimigos?.find(e => e.id === alvoId)?.hp
+        : undefined;
+      const hpApos = alvoId
+        ? t.estadoApos?.inimigos?.find(e => e.id === alvoId)?.hp
+        : undefined;
+      const damageApplied =
+        hpAntes != null && hpApos != null && hpApos < hpAntes;
+
+      if (mechanicalSuccess || damageApplied) {
+        falhas.push(
+          `turno ${i + 1}: arma "${intent.arma}" nao existe em equipamentos mas ` +
+          `efeito mecanico ocorreu (sucesso=${rm?.sucesso}, hpAntes=${hpAntes}, hpApos=${hpApos})`
+        );
+      }
     }
   }
   return result(falhas);

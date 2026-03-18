@@ -673,7 +673,11 @@ function applyIntentCosts(gameIntent, jogador, personagem) {
   if (gameIntent.magiaId) {
     const magia = personagem.magias?.find(m => m.id === gameIntent.magiaId);
     if (magia?.custo_mana) {
-      jogador.mana = Math.max(0, jogador.mana - magia.custo_mana);
+      if (jogador.mana < magia.custo_mana) {
+        log(`mana insuficiente para ${gameIntent.magiaId}: tem ${jogador.mana}, custo ${magia.custo_mana} — acao bloqueada`);
+        return; // Skip deduction — action is blocked
+      }
+      jogador.mana -= magia.custo_mana;
     }
   }
 

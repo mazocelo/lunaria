@@ -236,6 +236,42 @@ describe('mana_descontada_ao_usar_magia — fails when mana not deducted', () =>
     const r = inv.mana_descontada_ao_usar_magia(log, cenario);
     expect(r.ok).toBe(true);
   });
+
+  it('passes when mana insufficient and mana stays unchanged (action blocked)', () => {
+    const cenario = baseCenario();
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Lanco Luz Divina',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'luz_divina', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador({ mana: 2 }), inimigos: [baseInimigo()], combateAtivo: true },
+      // mana stays at 2 because cost is 3 and action is blocked
+      estadoApos: { jogador: baseJogador({ mana: 2 }), inimigos: [baseInimigo()], combateAtivo: true },
+    });
+    const log = baseLog([turno]);
+    const r = inv.mana_descontada_ao_usar_magia(log, cenario);
+    expect(r.ok).toBe(true);
+  });
+
+  it('fails when mana insufficient but mana was floored to 0 instead of staying unchanged', () => {
+    const cenario = baseCenario();
+    const turno = baseTurno({
+      acaoJogador: {
+        tipo: 'mensagem', texto: 'Lanco Luz Divina',
+        gameIntent: { categoria: 'combate', tipo: 'usar_habilidade', magiaId: 'luz_divina', alvo: 'goblin_1' },
+      },
+      estadoAntes: { jogador: baseJogador({ mana: 2 }), inimigos: [baseInimigo()], combateAtivo: true },
+      // mana was incorrectly deducted to 0 instead of staying at 2
+      estadoApos: { jogador: baseJogador({ mana: 0 }), inimigos: [baseInimigo()], combateAtivo: true },
+    });
+    const log = baseLog([turno]);
+    const r = inv.mana_descontada_ao_usar_magia(log, cenario);
+    expect(r.ok).toBe(false);
+    expect(r.falhas).toHaveLength(1);
+    expect(r.falhas[0]).toContain('mana insuficiente');
+    expect(r.falhas[0]).toContain('deveria permanecer 2');
+    expect(r.falhas[0]).toContain('obtido=0');
+  });
 });
 
 describe('dano_aplicado_quando_ataque_sucede — fails when hp not reduced', () => {

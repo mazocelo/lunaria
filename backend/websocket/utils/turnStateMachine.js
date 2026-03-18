@@ -19,7 +19,7 @@ function deriveLegacyTurnoIniciado(status) {
 }
 
 export function getTurnState(sessao = {}) {
-  const estadoJogo = sessao.estadoJogo || {};
+  const estadoJogo = (sessao || {}).estadoJogo || {};
   const turno = estadoJogo.turno || {};
 
   return {

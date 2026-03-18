@@ -447,11 +447,21 @@ function normalizeRespostaSegmentos(respostaJSON = {}) {
     ? respostaJSON.narrativa.trim()
     : '';
 
-  const segmentos = normalizeNarrationSegments(respostaJSON?.segmentos, {
+  let segmentos = normalizeNarrationSegments(respostaJSON?.segmentos, {
     fallbackText: narrativaBase
   });
 
   const narrativa = narrativaBase || aggregateNarrationFromSegments(segmentos);
+
+  // Guard: if segments cover significantly less text than narrativa,
+  // replace with a single fallback segment containing the full narrativa.
+  // This prevents the frontend from showing truncated content.
+  if (narrativa && segmentos.length > 0) {
+    const segTexto = segmentos.map(s => s.text || '').join('').length;
+    if (segTexto < narrativa.length * 0.7) {
+      segmentos = normalizeNarrationSegments([], { fallbackText: narrativa });
+    }
+  }
 
   return {
     narrativa,

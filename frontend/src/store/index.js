@@ -25,6 +25,7 @@ import { initializeMestreStore } from './mestre/index.js';
 // ===== INICIALIZACAO =====
 let storesInitialized = false;
 let initializationPromise = null;
+let _initBackoffUntil = 0;
 
 /**
  * Inicializa todos os stores do sistema (SINGLETON)
@@ -34,10 +35,14 @@ export const initializeAllStores = async () => {
   if (storesInitialized) return;
   if (initializationPromise) return await initializationPromise;
 
+  // Backoff: se falhou recentemente (429), esperar antes de retentar
+  if (Date.now() < _initBackoffUntil) return;
+
   initializationPromise = (async () => {
     try {
       initializeGameStore();
-      await Promise.all([
+      // allSettled: stores que falharem não impedem as outras
+      const results = await Promise.allSettled([
         initializeTemaStore(),
         initializeClasseStore(),
         initializeRacaStore(),
@@ -45,9 +50,17 @@ export const initializeAllStores = async () => {
         initializeDesvantagemStore(),
         initializeMestreStore()
       ]);
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length === results.length) {
+        // Todas falharam — propagar erro
+        throw failures[0].reason;
+      }
+      // Pelo menos algumas carregaram — marcar como inicializado
       storesInitialized = true;
     } catch (error) {
       console.error('Erro ao inicializar stores:', error);
+      // Backoff de 30s para evitar loop de requests em 429
+      _initBackoffUntil = Date.now() + 30000;
       initializationPromise = null;
       throw error;
     }

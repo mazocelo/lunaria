@@ -3,8 +3,13 @@ import { historiaService } from '../../services/index.js';
 export const createHistoriaActions = (set, get) => ({
 
   carregarHistorias: async (forceReload = false) => {
-    const { historiasCarregadas, loading } = get();
+    const { historiasCarregadas, loading, _backoffUntil } = get();
     if ((historiasCarregadas || loading) && !forceReload) {
+      return get().historias;
+    }
+
+    // Backoff: se recebeu 429 recentemente, retornar dados em cache
+    if (_backoffUntil && Date.now() < _backoffUntil) {
       return get().historias;
     }
 
@@ -20,8 +25,15 @@ export const createHistoriaActions = (set, get) => ({
       get().processarHistorias(historiasData, total, offset, limit);
       return historiasData;
     } catch (error) {
-      set({ loading: false, error: error.message, historias: [], historiasCarregadas: false });
-      throw error;
+      const is429 = error.message?.includes('429') || error.message?.includes('Muitas tentativas');
+      set({
+        loading: false,
+        error: error.message,
+        historiasCarregadas: is429 ? get().historiasCarregadas : false,
+        _backoffUntil: is429 ? Date.now() + 30000 : null
+      });
+      if (!is429) throw error;
+      return get().historias;
     }
   },
 

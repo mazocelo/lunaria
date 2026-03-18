@@ -1,0 +1,189 @@
+{
+  "id": "01-combate-basico",
+  "titulo": "Combate básico com monstro único",
+  "versao": "1.0.0",
+  "personagem": {
+    "nome": "Moruxis",
+    "classe": "Paladino",
+    "raca": "Minotauro",
+    "nivel": 1,
+    "atributos": {
+      "forca": 10,
+      "inteligencia": 10,
+      "carisma": 7,
+      "destreza": 14,
+      "constituicao": 10,
+      "agilidade": 14
+    },
+    "magias": [
+      {
+        "id": "luz_divina",
+        "nome": "Luz Divina",
+        "escola": "evocacao",
+        "custo_mana": 3,
+        "dano_base": "1d8",
+        "atributo": "carisma",
+        "descricao": "Lança radiante contra inimigo"
+      },
+      {
+        "id": "protecao_mal",
+        "nome": "Proteção contra o Mal",
+        "escola": "abjuracao",
+        "custo_mana": 2,
+        "tipo": "buff",
+        "duracao_turnos": 3
+      }
+    ],
+    "habilidades": [
+      {
+        "id": "investida",
+        "nome": "Investida",
+        "tipo": "ataque",
+        "recurso": "cooldown",
+        "cooldown_turnos": 2,
+        "bonus_dano": 4
+      },
+      {
+        "id": "golpe_brutal",
+        "nome": "Golpe Brutal",
+        "tipo": "ataque",
+        "recurso": "stamina",
+        "custo": 1
+      }
+    ],
+    "vantagens": [
+      {
+        "id": "mente_labirintica",
+        "nome": "Mente Labiríntica",
+        "efeito": "bonus_teste",
+        "atributo_afetado": "inteligencia",
+        "bonus": 2,
+        "contexto": "investigacao e puzzles"
+      }
+    ],
+    "desvantagens": [
+      {
+        "id": "intimidador",
+        "nome": "Aparência Intimidadora",
+        "efeito": "penalidade_teste",
+        "atributo_afetado": "carisma",
+        "penalidade": -2,
+        "contexto": "interacoes sociais"
+      }
+    ],
+    "equipamentos": [
+      {
+        "id": "espada_longa",
+        "nome": "Espada Longa",
+        "dano": "1d8",
+        "tipo": "melee",
+        "bonus_ataque": 1
+      }
+    ]
+  },
+  "estadoInicial": {
+    "hp": 30,
+    "hpMax": 30,
+    "mana": 10,
+    "manaMax": 10,
+    "status": [],
+    "cooldowns": {},
+    "concentracao": null,
+    "efeitos_ativos": [],
+    "emCombate": false,
+    "turno": 0,
+    "xp": 0
+  },
+  "inimigos": [
+    {
+      "id": "goblin_1",
+      "nome": "Goblin Saqueador",
+      "hp": 12,
+      "hpMax": 12,
+      "ataque": 4,
+      "dano": "1d6",
+      "esquiva": 8,
+      "armadura": 1,
+      "xp": 25,
+      "status": []
+    }
+  ],
+  "historia": {
+    "nome": "Cenário de Teste - Combate Básico",
+    "temas": ["Fantasia"],
+    "prologo": "Moruxis caminha por uma trilha na floresta quando um goblin saqueador salta de trás de uma árvore, brandindo uma adaga enferrujada.",
+    "mestreConfig": {
+      "nome": "Mestre Teste",
+      "personalidade": "Direto e mecânico, prioriza clareza sobre floreio narrativo. Sempre respeita as regras mecânicas.",
+      "temperatura": 0.6,
+      "tags": ["teste", "combate"]
+    }
+  },
+  "acoes": [
+    {
+      "tipo": "iniciar_turno"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Avanço e ataco o goblin com minha espada",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "atacar",
+        "arma": "espada_longa",
+        "alvo": "goblin_1"
+      }
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanço Luz Divina no goblin",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "luz_divina",
+        "alvo": "goblin_1"
+      }
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Uso Investida para finalizar o goblin",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "habilidadeId": "investida",
+        "alvo": "goblin_1"
+      }
+    }
+  ],
+  "condicoesDeParada": {
+    "qualquerUma": [
+      "combate_finalizado",
+      "acoes_esgotadas",
+      "fim_de_arco",
+      "jogador_derrotado"
+    ]
+  },
+  "invariantes": [
+    "resposta_ia_parseavel",
+    "hp_nunca_negativo",
+    "hp_nunca_acima_maximo",
+    "mana_nunca_negativa",
+    "mana_nunca_acima_maximo",
+    "mana_descontada_ao_usar_magia",
+    "dano_aplicado_quando_ataque_sucede",
+    "monstro_derrotado_quando_hp_zero",
+    "combate_encerra_sem_monstros_vivos",
+    "xp_distribuido_apos_vitoria",
+    "equipamento_usado_existe_no_inventario",
+    "alvos_referenciados_por_id"
+  ]
+}

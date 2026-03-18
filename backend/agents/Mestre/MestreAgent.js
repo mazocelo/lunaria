@@ -1484,3 +1484,17 @@ export async function criarMestreRPG(
 
 export default criarMestreRPG;
 
+// ── Exports internos para testes ──
+export {
+  parseIAJson,
+  parseXMLLikeResponse,
+  sanitizeNarrativa,
+  fallbackSolicitaDados,
+  fallbackGancho,
+  extrairTeste,
+  normalizeRespostaSegmentos,
+  validateParseResult,
+  NarrativaExtractor,
+  KNOWN_ACAO_TIPOS,
+};
+

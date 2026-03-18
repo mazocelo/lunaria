@@ -8,7 +8,6 @@ module.exports = {
       watch: false,
       max_memory_restart: '512M',
       kill_timeout: 10000,
-      wait_ready: true,
       listen_timeout: 10000,
       max_restarts: 5,
       min_uptime: 5000,

@@ -632,14 +632,22 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       if (!data?.requestId) {
         clearAnonymousMestreState();
       }
-      // Remover placeholder — mensagem_mestre chega logo depois
+      // Mark streaming balloon as completed but keep it visible until mensagem_mestre arrives.
+      // This prevents the flicker gap where text disappears then reappears.
       const msgs = useGameStore.getState().mensagens || [];
-      const sem = msgs.filter((m) => {
-        if (m.id === (data.streamId || `stream_${data.requestId}_${data.attempt}`)) return false;
+      const streamId = data.streamId || `stream_${data.requestId}_${data.attempt}`;
+      const updated = msgs.map((m) => {
+        if (m.id === streamId && m.tipo === 'mestre_streaming') {
+          return { ...m, streamEnded: true };
+        }
+        return m;
+      });
+      // Only remove loading placeholders, not the stream balloon itself
+      const sem = updated.filter((m) => {
         if (m.tipo === 'loading' && data?.requestId && String(m.requestId || '') === String(data.requestId)) return false;
         return true;
       });
-      if (msgs.length !== sem.length) gameStoreSetMensagens(sem);
+      if (msgs.length !== sem.length || updated.some((m, i) => m !== msgs[i])) gameStoreSetMensagens(sem);
     };
 
     const handleMestreStreamError = (data) => {

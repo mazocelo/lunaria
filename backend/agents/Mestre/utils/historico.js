@@ -14,10 +14,10 @@ export function converterHistoricoParaLangChain(mensagens) {
     if (msg.tipo === 'jogador') {
       return {
         role: 'user',
-        content: `Jogador: ${msg.jogador || msg.username}\nPersonagem: ${msg.personagem}\nAção: ${msg.mensagem || msg.acao}`
+        content: `Jogador: ${msg.username || msg.jogador || 'Jogador'}\nPersonagem: ${msg.personagem || 'Aventureiro'}\nAção: ${msg.message || msg.mensagem || msg.acao || ''}`
       };
     } else if (msg.tipo === 'mestre') {
-      let content = msg.narracao || msg.mensagem || '';
+      let content = msg.message || msg.narracao || msg.mensagem || '';
       if (typeof content === 'string' && content.trimStart().startsWith('{')) {
         try {
           const parsed = JSON.parse(content);

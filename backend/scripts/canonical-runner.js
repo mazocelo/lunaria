@@ -364,15 +364,10 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
             acaoTexto = `[COMBATE ATIVO — Inimigos: ${inimigosVivos} | Jogador: ${statusJogador}]\n${acao.texto}`;
           }
 
-          const acaoObj = {
-            texto: acaoTexto,
-            combatIntent: acao.gameIntent || null,
-          };
-
           const result = await mestre.narrarAcaoStream({
-            jogador: { nome: fixture.personagem.nome, id: 'test_player' },
-            personagem: personagemForMestre,
-            acao: acaoObj,
+            jogador: fixture.personagem.nome,
+            personagem: fixture.personagem.nome,
+            acao: acaoTexto,
             chatHistory,
             resumo: null,
             runtimeOptions: { throwOnFailure: true },

@@ -3,6 +3,7 @@ import criadorCompleto from '../../agents/historia/Criador.js';
 import { criarGeradorPrologo } from '../../agents/historia/prologo/index.js';
 import { criarGeradorTitulo } from '../../agents/historia/titulos/aleatorios/index.js';
 import gerenciadorSessoes from '../../redis/sessoes.js';
+import sessaoSnapshotService from '../../services/sessaoSnapshot.js';
 import blueprintService from '../../services/blueprintService.js';
 import { enqueueRoteiroJob } from '../../jobs/enqueueRoteiroJob.js';
 import { findLatestRoteiroJobForHistoria, serializeAiJob } from '../../jobs/aiJobs.js';
@@ -318,13 +319,14 @@ class HistoriaController {
       if (req.user && req.user.id) {
         historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
           try {
-            const sessao = await gerenciadorSessoes.obterSessao(`historia_${historia.id}`);
+            const salaId = `historia_${historia.id}`;
+            const sessao = await gerenciadorSessoes.obterSessao(salaId);
             if (sessao) {
               // Verificar se o usuário está na sessão
               const usuarioNaSessao = sessao.jogadoresConectados?.some(
                 jogador => String(jogador.userId) === String(req.user.id)
               );
-              
+
               return {
                 ...historia,
                 sessaoAtiva: true,
@@ -333,7 +335,19 @@ class HistoriaController {
                 totalJogadores: sessao.totalJogadores || 0
               };
             }
-            
+
+            // Redis vazio — checar se existe snapshot no banco (sessão restaurável)
+            const snapshot = await db.SessaoJogo.findBySalaId(salaId);
+            if (snapshot && snapshot.status !== 'finalizada') {
+              return {
+                ...historia,
+                sessaoAtiva: true,
+                statusSessao: 'restauravel',
+                usuarioNaSessao: false,
+                totalJogadores: 0
+              };
+            }
+
             return {
               ...historia,
               sessaoAtiva: false,
@@ -794,14 +808,14 @@ class HistoriaController {
       // Verificar status de sessão ativa para cada história
       const historiasComSessao = await Promise.all(historiasPaginadas.map(async (historia) => {
         try {
-          const sessao = await gerenciadorSessoes.obterSessao(`historia_${historia.id}`);
-          
+          const salaId = `historia_${historia.id}`;
+          const sessao = await gerenciadorSessoes.obterSessao(salaId);
+
           if (sessao) {
-            // Verificar se o usuário está na sessão
             const usuarioNaSessao = sessao.jogadoresConectados?.some(
               jogador => String(jogador.userId) === String(req.user.id)
             );
-            
+
             return {
               ...historia,
               sessaoAtiva: true,
@@ -810,7 +824,19 @@ class HistoriaController {
               totalJogadores: sessao.totalJogadores || 0
             };
           }
-          
+
+          // Redis vazio — checar snapshot no banco (sessão restaurável)
+          const snapshot = await db.SessaoJogo.findBySalaId(salaId);
+          if (snapshot && snapshot.status !== 'finalizada') {
+            return {
+              ...historia,
+              sessaoAtiva: true,
+              statusSessao: 'restauravel',
+              usuarioNaSessao: false,
+              totalJogadores: 0
+            };
+          }
+
           return {
             ...historia,
             sessaoAtiva: false,

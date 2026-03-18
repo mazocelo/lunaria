@@ -53,9 +53,10 @@ app.use(cors(corsOptions));
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 600,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas tentativas. Aguarde alguns minutos.' }
 });
 app.use(globalLimiter);
 

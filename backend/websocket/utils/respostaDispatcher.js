@@ -475,8 +475,11 @@ async function processarTransicaoArco(resposta, ctx) {
 
 // ── Fallback: detectar combate pela narrativa quando IA esqueceu o campo ──
 const COMBAT_SIGNAL_PATTERNS = [
-  /\b(?:ataca|avança contra|ergue.*garras|rosna.*ameaçador|investe contra|desfere.*golpe|salta.*sobre)\b/i,
-  /\b(?:postura.*ameaçadora|posição.*de.*ataque|pronto.*para.*atacar|hostil.*avança)\b/i,
+  /\b(?:ataca|avança contra|ergue.*garras|rosna|investe contra|desfere.*golpe|salta.*sobre)\b/i,
+  /\b(?:postura.*ameaçad|pronto.*para.*atacar|hostil|lan[çc]a-se.*contra|lan[çc]ando-se)\b/i,
+  /garras.*(?:estendidas|afiadas|imundas|erguidas)/i,
+  /\b(?:emerge|materializa|surge).*(?:hostil|ameaç|atac)/i,
+  /\b(?:garras|presas|dentes|mandibulas).*(?:afiad|expost|pront)/i,
 ];
 
 const CREATURE_TYPES_MAP = {

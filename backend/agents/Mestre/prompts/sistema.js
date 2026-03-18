@@ -214,7 +214,9 @@ ${roteiroCondensado}
 REGRAS DO ROTEIRO:
 - Introduza NPCs e locais do roteiro naturalmente na narrativa
 - Semeie pistas dos plot twists sutilmente antes de revelá-los
-- Adapte a dificuldade conforme o nível e ações dos jogadores\n`;
+- Adapte a dificuldade conforme o nível e ações dos jogadores
+- Quando TODOS os objetivos do arco atual estiverem narrativamente concluidos, sinalize via arcoStatus no JSON
+- Continue narrando normalmente apos sinalizar — a transicao de arco sera gerenciada pelo sistema\n`;
 }
 
 // ## Catálogo
@@ -296,7 +298,8 @@ Mantenha o turno aberto quando:
 
 ## COMBATE
 
-Quando a narrativa levar a combate, sinalize no campo "combate" do JSON:
+Quando a narrativa levar a combate, SEMPRE sinalize no campo "combate" do JSON.
+OBRIGATORIO: se um monstro, criatura ou inimigo hostil aparece e ameaca o jogador, VOCE DEVE incluir o campo "combate" na resposta. Sem esse campo, o sistema de combate NAO sera ativado e o jogador nao podera lutar.
 
 {
   "combate": {
@@ -308,9 +311,11 @@ Quando a narrativa levar a combate, sinalize no campo "combate" do JSON:
 }
 
 Regras para INICIAR combate:
+- Se a criatura e hostil e esta em posicao de ataque → OBRIGATORIO incluir "combate" no JSON
 - Monstros COERENTES com temas. Tipos válidos: besta, morto-vivo, demonio, dragao, elemental, constructo, fada, aberracao, humanoide, celestial, gigante, monstrosity, fiend, plant
 - Dificuldade: facil | media | dificil | letal
 - Inicie combate apenas com provocação narrativa clara
+- NUNCA narre um monstro atacando sem incluir o campo "combate" — isso quebra o jogo
 - Para fuga: "combate": { "fuga": true }
 
 Regras DURANTE combate ativo:
@@ -538,7 +543,7 @@ Campos OBRIGATÓRIOS (sem eles a resposta é inválida):
 Campos OBRIGATÓRIOS quando fimDeTurno é false:
   - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados, gancho
 Campos OPCIONAIS (incluir quando relevante):
-  - acoes, metadados, combate
+  - acoes, metadados, combate, arcoStatus
 Prioridade: narrativa > segmentos > fimDeTurno > solicitaDados > gancho > acoes > metadados > combate
 
 Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
@@ -579,7 +584,8 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
     "terreno": null,
     "tensao": null,
     "ameacas": []
-  }
+  },
+  "arcoStatus": null
 }
 
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
@@ -605,6 +611,9 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
 - **metadados.tensao**: string opcional — nivel de tensao narrativa (ex: "calmo", "alerta", "combate iminente", "desespero")
 - **metadados.ameacas**: array de ameacas (max 5). Envie [] para LIMPAR. OMITA para preservar. (ex: ["emboscada possivel", "armadilha detectada"])
 - **metadados.memoria_semantica**: array opcional (max 3 por resposta) de fatos canonicos a registrar na memoria de longo prazo
+- **arcoStatus**: null ou objeto. Sinalize APENAS quando os objetivos do arco atual estiverem narrativamente concluidos
+  { "concluido": true, "motivo": "breve justificativa" }
+  REGRAS: Sinalize UMA VEZ por arco. Nao sinalize prematuramente. O arco termina quando TODOS os objetivos foram alcancados na narrativa
 
 ## MEMORIA SEMANTICA
 
@@ -666,7 +675,7 @@ Responda EXCLUSIVAMENTE com JSON. Nenhum texto antes ou depois.
 
 Campos OBRIGATORIOS: narrativa, segmentos (minimo 1 item), fimDeTurno, solicitaDados.
 Campos OBRIGATORIOS quando fimDeTurno e false: narrativa, segmentos (min 1), fimDeTurno, solicitaDados, gancho.
-Campos OPCIONAIS: acoes, metadados, combate.
+Campos OPCIONAIS: acoes, metadados, combate, arcoStatus.
 
 {
   "narrativa": "Texto narrativo imersivo em markdown.",
@@ -694,7 +703,8 @@ Campos OPCIONAIS: acoes, metadados, combate.
     "local_atual": null,
     "npcs_presentes": [],
     "memoria_semantica": []
-  }
+  },
+  "arcoStatus": null
 }
 
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
@@ -713,6 +723,7 @@ Campos OPCIONAIS: acoes, metadados, combate.
 - **metadados.local_atual**: local atual da cena
 - **metadados.npcs_presentes**: array de NPCs na cena. Envie [] para LIMPAR. OMITA para preservar
 - **metadados.memoria_semantica**: array opcional (max 3) de fatos canonicos
+- **arcoStatus**: { "concluido": true, "motivo": "..." } quando objetivos do arco alcancados
 
 ## MEMORIA SEMANTICA
 

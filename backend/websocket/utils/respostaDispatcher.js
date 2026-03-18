@@ -409,12 +409,130 @@ async function processarControleTurno(resposta, ctx) {
   }, 500);
 }
 
+// ── Transicao de Arco ──
+
+async function processarTransicaoArco(resposta, ctx) {
+  const roteiro = ctx.sessao.historiaRoteiro;
+  const progressao = ctx.sessao.estadoJogo.progressao || {};
+  const arcoAtual = progressao.arco_atual || 1;
+  const arcos = roteiro.arcos || [];
+  const totalArcos = arcos.length;
+
+  if (arcoAtual > totalArcos) {
+    log.warn({ arcoAtual, totalArcos }, 'arcoStatus.concluido recebido mas ja no ultimo arco');
+    return;
+  }
+
+  // Marcar marcos do arco atual como concluidos
+  const marcos = progressao.marcos || [];
+  for (const marco of marcos) {
+    if (marco.arco === arcoAtual && !marco.concluido) {
+      marco.concluido = true;
+    }
+  }
+
+  const arcoAnterior = arcoAtual;
+  const arcoNovo = arcoAtual < totalArcos ? arcoAtual + 1 : null;
+  const tituloAnterior = arcos[arcoAtual - 1]?.titulo || `Arco ${arcoAtual}`;
+  const tituloNovo = arcoNovo ? (arcos[arcoNovo - 1]?.titulo || `Arco ${arcoNovo}`) : null;
+
+  // Avancar arco
+  progressao.arco_atual = arcoNovo || arcoAtual;
+  progressao.porcentagem_estimada = Math.round((arcoAnterior / totalArcos) * 100);
+  ctx.sessao.estadoJogo.progressao = progressao;
+
+  // Registrar memoria semantica da transicao
+  const memorias = ctx.sessao.estadoJogo.memoriaSemantica || [];
+  memorias.push({
+    tipo: 'fato',
+    descricao: `Arco "${tituloAnterior}" concluido. ${resposta.arcoStatus.motivo || ''}`.trim(),
+    envolvidos: [],
+    permanente: true,
+    importancia: 5,
+    timestamp: new Date().toISOString()
+  });
+  ctx.sessao.estadoJogo.memoriaSemantica = memorias;
+
+  // Persistir sessao
+  await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
+
+  // Invalidar cache do mestre para reconstruir com novo arco
+  ctx.sm.mestresCache?.delete(ctx.roomId);
+
+  // @event transicao_arco → room (broadcast) | arco concluido
+  ctx.sm.sendToRoom(ctx.roomId, 'transicao_arco', {
+    arcoAnterior,
+    arcoNovo,
+    tituloAnterior,
+    tituloNovo,
+    motivo: resposta.arcoStatus.motivo || null,
+    porcentagem: progressao.porcentagem_estimada,
+    timestamp: Date.now()
+  });
+
+  log.info({ arcoAnterior, arcoNovo, tituloAnterior, tituloNovo }, 'Transicao de arco processada');
+}
+
+// ── Fallback: detectar combate pela narrativa quando IA esqueceu o campo ──
+const COMBAT_SIGNAL_PATTERNS = [
+  /\b(?:ataca|avança contra|ergue.*garras|rosna.*ameaçador|investe contra|desfere.*golpe|salta.*sobre)\b/i,
+  /\b(?:postura.*ameaçadora|posição.*de.*ataque|pronto.*para.*atacar|hostil.*avança)\b/i,
+];
+
+const CREATURE_TYPES_MAP = {
+  demonio: 'demonio', dretch: 'demonio', diabo: 'demonio', sucubo: 'demonio', imp: 'demonio',
+  goblin: 'humanoide', orc: 'humanoide', bandido: 'humanoide', esqueleto: 'morto-vivo',
+  zumbi: 'morto-vivo', fantasma: 'morto-vivo', lobo: 'besta', urso: 'besta', aranha: 'besta',
+  dragao: 'dragao', slime: 'aberracao', golem: 'constructo', elemental: 'elemental',
+};
+
+function detectarCombateNarrativa(narracao, sessao) {
+  if (!narracao || narracao.length < 50) return null;
+  const texto = narracao.toLowerCase();
+
+  // Precisa de sinal de hostilidade
+  const temSinalHostil = COMBAT_SIGNAL_PATTERNS.some(p => p.test(texto));
+  if (!temSinalHostil) return null;
+
+  // Procurar nome de criatura conhecida
+  for (const [criatura, tipo] of Object.entries(CREATURE_TYPES_MAP)) {
+    if (texto.includes(criatura)) {
+      log.info({ criatura, tipo }, 'Fallback: combate detectado na narrativa sem campo combate');
+      return {
+        iniciado: true,
+        monstros: [{ nome: criatura.charAt(0).toUpperCase() + criatura.slice(1), tipo, quantidade: 1, nivel_sugerido: 1 }],
+        motivo: 'criatura hostil detectada na narrativa (fallback)',
+        dificuldade: 'media'
+      };
+    }
+  }
+
+  // Procurar nos temas/roteiro da sessão
+  const temas = (sessao?.historiaTemas || []).map(t => (t.nome || t).toLowerCase());
+  if (temas.some(t => ['demônios', 'demonios', 'mortos-vivos'].includes(t))) {
+    // Tema justifica, mas sem nome específico — não arriscar falso positivo
+    return null;
+  }
+
+  return null;
+}
+
 const RESPONSE_HANDLERS = [
   { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !isCombatActive(ctx), process: processarInicioCombate },
+  {
+    nome: 'combate_fallback',
+    check: (r, ctx) => !r.combate?.iniciado && !isCombatActive(ctx) && detectarCombateNarrativa(r.narracao, ctx.sessao),
+    process: async (resposta, ctx) => {
+      const combateDetectado = detectarCombateNarrativa(resposta.narracao, ctx.sessao);
+      resposta.combate = combateDetectado;
+      await processarInicioCombate(resposta, ctx);
+    }
+  },
   { nome: 'fuga_combate', check: (r, ctx) => isCombatActive(ctx) && ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarFugaCombate },
   { nome: 'acao_combate', check: (r, ctx) => isCombatActive(ctx) && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso && !hasPendingCombatAction(ctx.sessao), process: processarAcaoCombateHandler },
   { nome: 'solicita_dados', check: (r, ctx) => (r.solicitaDados?.solicita || !!r.teste) && !hasPendingCombatAction(ctx.sessao), process: criarSolicitacaoTeste },
   { nome: 'acoes_mecanicas', check: (r) => r.acoes?.length > 0, process: processarAcoesMecanicas },
+  { nome: 'transicao_arco', check: (r, ctx) => r.arcoStatus?.concluido === true && ctx.sessao?.historiaRoteiro?.arcos?.length > 0, process: processarTransicaoArco },
   { nome: 'limpar_dados', check: (r, ctx) => !r.solicitaDados?.solicita && !r.teste && !hasPendingCombatAction(ctx.sessao), process: limparFlagDados },
   { nome: 'controle_turno', check: (r, ctx) => ctx.fase === 'rodada_em_andamento' && !isCombatActive(ctx), process: processarControleTurno }
 ];

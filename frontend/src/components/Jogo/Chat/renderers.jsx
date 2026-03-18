@@ -132,9 +132,22 @@ export const findMentionedEntities = (text, entidadesComImagem = []) => {
 };
 
 export const renderDado = (mensagem, key) => {
-  const modBase = (mensagem.modificador || 0) + (mensagem.bonusNivel || 0);
+  // Resolve fields from top-level or payload (persisted resultado_teste messages
+  // store dice/roll fields inside payload, while live messages have them at the top level)
+  const p = mensagem.payload || {};
+  const dice = (typeof mensagem.dice === 'string' ? mensagem.dice : null) || (typeof p.dice === 'string' ? p.dice : null) || 'd20';
+  const rolagemBruta = mensagem.rolagemBruta ?? p.rolagemBruta ?? mensagem.result ?? p.resultado ?? mensagem.valor ?? '?';
+  const modificador = mensagem.modificador ?? p.modificador ?? 0;
+  const bonusNivel = mensagem.bonusNivel ?? p.bonusNivel ?? 0;
+  const atributoNome = mensagem.atributoNome || p.atributoNome || 'Sorte';
+  const detalhes = mensagem.detalhesBonus || p.detalhesBonus || [];
+  const total = mensagem.total ?? p.total;
+  const dc = mensagem.dc ?? p.dc;
+  const sucesso = mensagem.sucesso ?? p.sucesso;
+  const descricaoResultado = mensagem.descricaoResultado || p.descricaoResultado || null;
+
+  const modBase = (modificador || 0) + (bonusNivel || 0);
   const temModBase = modBase !== 0;
-  const detalhes = mensagem.detalhesBonus || [];
   const temDetalhes = detalhes.length > 0;
   return (
     <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-2">
@@ -143,14 +156,14 @@ export const renderDado = (mensagem, key) => {
           <span className="text-xl">{'\u{1F3B2}'}</span>
           <div className="text-center">
             <p className="text-amber-200/80 text-sm">
-              <span className="font-semibold text-amber-100">{mensagem.username}</span> rolou {mensagem.dice || 'd20'}
+              <span className="font-semibold text-amber-100">{mensagem.username}</span> rolou {dice}
               {' — '}
               <span className="text-amber-300 font-bold text-base">
-                {mensagem.rolagemBruta || mensagem.result || mensagem.valor || '?'}
+                {rolagemBruta}
               </span>
               {temModBase && (
                 <span className="text-amber-200/70">
-                  {' '}{modBase > 0 ? '+' : ''}{modBase} ({mensagem.atributoNome || 'Sorte'})
+                  {' '}{modBase > 0 ? '+' : ''}{modBase} ({atributoNome})
                 </span>
               )}
               {temDetalhes && detalhes.map((d, i) => (
@@ -159,12 +172,12 @@ export const renderDado = (mensagem, key) => {
                 </span>
               ))}
               {(temModBase || temDetalhes) && (
-                <span className="text-amber-100 font-bold"> = {mensagem.total}</span>
+                <span className="text-amber-100 font-bold"> = {total}</span>
               )}
             </p>
-            {mensagem.descricaoResultado && (
-              <p className={`text-xs font-semibold mt-0.5 ${mensagem.sucesso ? 'text-green-400' : 'text-red-400'}`}>
-                {mensagem.descricaoResultado} (DC {mensagem.dc})
+            {descricaoResultado && (
+              <p className={`text-xs font-semibold mt-0.5 ${sucesso ? 'text-green-400' : 'text-red-400'}`}>
+                {descricaoResultado} (DC {dc})
               </p>
             )}
           </div>

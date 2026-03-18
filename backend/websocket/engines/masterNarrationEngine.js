@@ -863,10 +863,10 @@ export default class MasterNarrationEngine {
       });
       if (sessao.acoes.length > 100) sessao.acoes.shift();
 
-      if (combateAtivo && estadoJogo.combate) {
-        if (!estadoJogo.combate.jogadoresQueAgiram) estadoJogo.combate.jogadoresQueAgiram = [];
-        if (!estadoJogo.combate.jogadoresQueAgiram.includes(userId)) {
-          estadoJogo.combate.jogadoresQueAgiram.push(userId);
+      if (combateAtivo && sessao.estadoJogo?.combate) {
+        if (!sessao.estadoJogo.combate.jogadoresQueAgiram) sessao.estadoJogo.combate.jogadoresQueAgiram = [];
+        if (!sessao.estadoJogo.combate.jogadoresQueAgiram.includes(userId)) {
+          sessao.estadoJogo.combate.jogadoresQueAgiram.push(userId);
         }
       }
 

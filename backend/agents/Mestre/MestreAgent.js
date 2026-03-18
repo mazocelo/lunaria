@@ -277,6 +277,9 @@ function sanitizeNarrativa(text) {
   clean = clean.replace(/<(?:solicitaDados|combate|acaoCompleta|fimDeTurno|acoes)[^>]*\/>/gi, '');
   // Remover remaining opening/closing protocol tags (orphaned)
   clean = clean.replace(PROTOCOL_TAG_REGEX, '');
+  // Remover tags HTML comuns que a IA pode injetar
+  clean = clean.replace(/<br\s*\/?>/gi, '\n');
+  clean = clean.replace(/<\/?(?:p|div|span|b|i|em|strong|ul|ol|li|h[1-6])[^>]*>/gi, '');
   // Limpar linhas vazias excessivas
   clean = clean.replace(/\n{3,}/g, '\n\n').trim();
 
@@ -337,6 +340,14 @@ function validateParseResult(respostaJSON, modelName, method) {
   // Warn: metadados completely missing
   if (!respostaJSON.metadados) {
     log.warn({ modelName, method }, 'Parse result: metadados is missing');
+  }
+
+  // Validate arcoStatus format
+  if (respostaJSON.arcoStatus) {
+    if (typeof respostaJSON.arcoStatus !== 'object' || typeof respostaJSON.arcoStatus.concluido !== 'boolean') {
+      log.warn({ modelName, method, arcoStatus: respostaJSON.arcoStatus }, 'Parse result: arcoStatus has invalid format, discarding');
+      respostaJSON.arcoStatus = null;
+    }
   }
 
   // Warn: solicitaDados.solicita true but teste or dificuldade empty
@@ -813,6 +824,7 @@ export class MestreAgent {
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
         gancho: respostaJSON.gancho || null,
+        arcoStatus: respostaJSON.arcoStatus || null,
         jogador,
         personagem,
         acao,
@@ -945,6 +957,7 @@ export class MestreAgent {
         acoes: respostaJSON.acoes || [],
         metadados: respostaJSON.metadados || {},
         gancho: respostaJSON.gancho || null,
+        arcoStatus: respostaJSON.arcoStatus || null,
         jogador, personagem, acao,
         timestamp: new Date().toISOString()
       };

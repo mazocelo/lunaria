@@ -539,12 +539,12 @@ function montarSchemaExpandido() {
 ## FORMATO DE RESPOSTA (OBRIGATORIO)
 
 Campos OBRIGATÓRIOS (sem eles a resposta é inválida):
-  - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados
+  - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados, combate
 Campos OBRIGATÓRIOS quando fimDeTurno é false:
-  - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados, gancho
+  - narrativa, segmentos (mín 1), fimDeTurno, solicitaDados, gancho, combate
 Campos OPCIONAIS (incluir quando relevante):
-  - acoes, metadados, combate, arcoStatus
-Prioridade: narrativa > segmentos > fimDeTurno > solicitaDados > gancho > acoes > metadados > combate
+  - acoes, metadados, arcoStatus
+Prioridade: narrativa > segmentos > fimDeTurno > solicitaDados > combate > gancho > acoes > metadados
 
 Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
 
@@ -574,7 +574,9 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
     "dificuldade": "",
     "origem": null
   },
-  "combate": null,
+  "combate": {
+    "iniciado": false
+  },
   "acoes": [],
   "metadados": {
     "local_atual": null,
@@ -586,6 +588,26 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
     "ameacas": []
   },
   "arcoStatus": null
+}
+
+### EXEMPLO: Resposta com inicio de combate
+
+Quando um monstro hostil aparece, combate.iniciado DEVE ser true:
+
+{
+  "narrativa": "Um goblin salta de tras de uma arvore, adaga erguida...",
+  "gancho": "O goblin avanca em sua direcao.",
+  "segmentos": [{ "id": "seg_1", "tipo": "narracao", "speaker": "mestre", "speaker_label": "Mestre", "text": "Um goblin salta de tras de uma arvore...", "npc_id": null, "narracao": { "emocao": "tenso", "ritmo": "rapido", "intensidade": "alta" } }],
+  "fimDeTurno": false,
+  "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "", "origem": null },
+  "combate": {
+    "iniciado": true,
+    "monstros": [{ "nome": "Goblin Saqueador", "tipo": "humanoide", "quantidade": 1, "nivel_sugerido": 1 }],
+    "motivo": "emboscada na trilha",
+    "dificuldade": "facil"
+  },
+  "acoes": [],
+  "metadados": { "local_atual": "Trilha na Floresta", "tensao": "combate iminente", "ameacas": ["goblin saqueador"] }
 }
 
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
@@ -603,7 +625,7 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
 - **solicitaDados.teste**: nome do teste (ex: Percepcao, Forca)
 - **solicitaDados.dificuldade**: nivel (ex: Facil, Media, Dificil)
 - **solicitaDados.origem**: fonte do teste se aplicavel (ex: "desvantagem:Ganancioso", "habilidade:Golpe_Atordoante", "magia:Bola_de_Fogo")
-- **combate**: null ou objeto de combate
+- **combate**: SEMPRE presente. { "iniciado": false } quando nao ha combate. { "iniciado": true, "monstros": [...] } quando monstro hostil aparece
 - **acoes**: array de acoes mecanicas (vazio se nenhuma)
 - **metadados**: informacoes contextuais opcionais (local, hora, NPCs presentes)
 - **metadados.npcs_presentes**: array de NPCs na cena. Envie [] para LIMPAR todos. OMITA o campo para preservar lista atual
@@ -659,7 +681,8 @@ Formato de cada entrada:
 2. Avance a cena com conteúdo novo a cada resposta
 3. Responda em JSON válido com ao menos 1 segmento
 4. Esquiva = AGI. Arco/flecha = DEX. Sem exceção
-5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador`;
+5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador
+6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o sistema de combate NAO ativa e o jogador nao pode lutar`;
 }
 
 /**
@@ -673,9 +696,9 @@ export function montarSchemaCompacto() {
 
 Responda EXCLUSIVAMENTE com JSON. Nenhum texto antes ou depois.
 
-Campos OBRIGATORIOS: narrativa, segmentos (minimo 1 item), fimDeTurno, solicitaDados.
-Campos OBRIGATORIOS quando fimDeTurno e false: narrativa, segmentos (min 1), fimDeTurno, solicitaDados, gancho.
-Campos OPCIONAIS: acoes, metadados, combate, arcoStatus.
+Campos OBRIGATORIOS: narrativa, segmentos (minimo 1 item), fimDeTurno, solicitaDados, combate.
+Campos OBRIGATORIOS quando fimDeTurno e false: narrativa, segmentos (min 1), fimDeTurno, solicitaDados, gancho, combate.
+Campos OPCIONAIS: acoes, metadados, arcoStatus.
 
 {
   "narrativa": "Texto narrativo imersivo em markdown.",
@@ -697,7 +720,9 @@ Campos OPCIONAIS: acoes, metadados, combate, arcoStatus.
     "dificuldade": "",
     "origem": null
   },
-  "combate": null,
+  "combate": {
+    "iniciado": false
+  },
   "acoes": [],
   "metadados": {
     "local_atual": null,
@@ -707,38 +732,33 @@ Campos OPCIONAIS: acoes, metadados, combate, arcoStatus.
   "arcoStatus": null
 }
 
+### EXEMPLO: Resposta com inicio de combate
+
+{
+  "narrativa": "Um goblin salta de tras de uma arvore, adaga erguida...",
+  "gancho": "O goblin avanca.",
+  "segmentos": [{ "id": "seg_1", "tipo": "narracao", "speaker": "mestre", "text": "Um goblin salta...", "npc_id": null }],
+  "fimDeTurno": false,
+  "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "", "origem": null },
+  "combate": { "iniciado": true, "monstros": [{ "nome": "Goblin", "tipo": "humanoide", "quantidade": 1, "nivel_sugerido": 1 }], "motivo": "emboscada", "dificuldade": "facil" },
+  "acoes": [],
+  "metadados": { "local_atual": "Trilha", "npcs_presentes": [], "memoria_semantica": [] }
+}
+
 - **narrativa**: texto narrativo (markdown). Termine com gancho contextual
-- **gancho**: frase curta (1-2 sentencas) com a deixa jogavel do final da narrativa. Deve conter um objeto, NPC, escolha ou evento concreto que o jogador pode interagir. Campo OBRIGATORIO quando fimDeTurno e false. NAO repita a ultima frase da narrativa — extraia o gancho como elemento separado
-- **segmentos**: array obrigatorio com ao menos 1 trecho da resposta
-- **segmentos[].tipo**: "narracao" ou "fala_npc"
-- **segmentos[].speaker**: "mestre" ou "npc"
-- **segmentos[].npc_id**: preenchido em fala de NPC quando existir no roteiro
-- **fimDeTurno**: true para encerrar turno do jogador
+- **gancho**: frase curta (1-2 sentencas) com a deixa jogavel. Campo OBRIGATORIO quando fimDeTurno e false
+- **segmentos**: array obrigatorio com ao menos 1 trecho
+- **combate**: SEMPRE presente. { "iniciado": false } quando nao ha combate. { "iniciado": true, "monstros": [...] } quando monstro hostil aparece
+- **fimDeTurno**: true para encerrar turno
 - **solicitaDados.solicita**: true quando pedir rolagem
-- **solicitaDados.teste**: nome do teste (ex: Percepcao, Forca)
-- **solicitaDados.dificuldade**: nivel (ex: Facil, Media, Dificil)
-- **solicitaDados.origem**: fonte do teste se aplicavel
-- **combate**: null ou objeto de combate
-- **acoes**: array de acoes mecanicas (vazio se nenhuma)
-- **metadados.local_atual**: local atual da cena
-- **metadados.npcs_presentes**: array de NPCs na cena. Envie [] para LIMPAR. OMITA para preservar
-- **metadados.memoria_semantica**: array opcional (max 3) de fatos canonicos
-- **arcoStatus**: { "concluido": true, "motivo": "..." } quando objetivos do arco alcancados
-
-## MEMORIA SEMANTICA
-
-Registre fatos canonicos importantes para memoria de longo prazo.
-
-Formato: { "tipo": "promessa|segredo|decisao|relacao|ameaca|fato", "descricao": "texto curto (max 200 chars)", "envolvidos": ["nomes"], "permanente": false, "importancia": 3 }
-
-Regras: Max 3 por resposta. Apenas fatos inéditos. Qualidade sobre quantidade.
 
 ## LEMBRE-SE (regras mais violadas)
 1. Comece direto pela narrativa do mundo — o narrador é invisível
 2. Avance a cena com conteúdo novo a cada resposta
 3. Responda em JSON válido com ao menos 1 segmento
 4. Esquiva = AGI. Arco/flecha = DEX. Sem exceção
-5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador`;
+5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador
+6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o jogo QUEBRA`;
 }
 
 export function criarPromptSistema(

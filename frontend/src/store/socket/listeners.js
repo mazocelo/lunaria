@@ -165,9 +165,19 @@ export const createListenerActions = (set, get) => ({
     });
 
     socket.io.on('reconnect_failed', () => {
-      console.error('❌ Reconexão falhou após todas as tentativas');
-      set({ isReconnecting: false, error: 'Nao foi possivel reconectar. Recarregue a pagina.' });
-      showGameNotification('Falha na reconexao. Recarregue a pagina.', 'error');
+      console.error('Reconexao falhou apos todas as tentativas');
+      set({
+        isReconnecting: false,
+        isConnected: false,
+        isAuthenticated: false,
+        inRoom: false,
+        error: 'Conexao perdida. Redirecionando...'
+      });
+      showGameNotification('Conexao perdida. Voltando a lista...', 'error');
+      // Redirect to historia list after brief delay
+      setTimeout(() => {
+        window.location.href = '/historias';
+      }, 2000);
     });
 
     // ===== LISTENERS DE AUTENTICAÇÃO =====
@@ -889,6 +899,29 @@ export const createListenerActions = (set, get) => ({
     socket.on('combate_loot', (data) => {
       set({ lastCombateLoot: data });
       get().log('Combate Loot', { totalItens: data.todosItens?.length || 0 });
+    });
+
+    // ===== TRANSICAO DE ARCO =====
+    socket.on('transicao_arco', (data) => {
+      get().log('Transicao de arco', {
+        arcoAnterior: data.arcoAnterior,
+        arcoNovo: data.arcoNovo,
+        tituloAnterior: data.tituloAnterior,
+        tituloNovo: data.tituloNovo,
+        porcentagem: data.porcentagem
+      });
+
+      // Adicionar mensagem de sistema no chat
+      const { addMessage } = get();
+      if (addMessage) {
+        addMessage({
+          tipo: 'sistema',
+          message: data.tituloNovo
+            ? `Arco "${data.tituloAnterior}" concluido! Proximo: "${data.tituloNovo}"`
+            : `Arco "${data.tituloAnterior}" concluido! A aventura se aproxima do fim...`,
+          timestamp: data.timestamp
+        });
+      }
     });
 
     // ===== LISTENERS DE PARTICIPANTES =====

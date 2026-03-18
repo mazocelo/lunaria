@@ -1,0 +1,199 @@
+{
+  "id": "02-magia-com-custo",
+  "titulo": "Magia com custo de mana e bloqueio por mana insuficiente",
+  "versao": "1.0.0",
+  "personagem": {
+    "nome": "Moruxis",
+    "classe": "Paladino",
+    "raca": "Minotauro",
+    "nivel": 1,
+    "atributos": {
+      "forca": 10,
+      "inteligencia": 10,
+      "carisma": 7,
+      "destreza": 14,
+      "constituicao": 10,
+      "agilidade": 14
+    },
+    "magias": [
+      {
+        "id": "luz_divina",
+        "nome": "Luz Divina",
+        "escola": "evocacao",
+        "custo_mana": 3,
+        "dano_base": "1d8",
+        "atributo": "carisma",
+        "descricao": "Lanca radiante contra inimigo"
+      },
+      {
+        "id": "protecao_mal",
+        "nome": "Protecao contra o Mal",
+        "escola": "abjuracao",
+        "custo_mana": 2,
+        "tipo": "buff",
+        "duracao_turnos": 3
+      }
+    ],
+    "habilidades": [
+      {
+        "id": "investida",
+        "nome": "Investida",
+        "tipo": "ataque",
+        "recurso": "cooldown",
+        "cooldown_turnos": 2,
+        "bonus_dano": 4
+      },
+      {
+        "id": "golpe_brutal",
+        "nome": "Golpe Brutal",
+        "tipo": "ataque",
+        "recurso": "stamina",
+        "custo": 1
+      }
+    ],
+    "vantagens": [
+      {
+        "id": "mente_labirintica",
+        "nome": "Mente Labirintica",
+        "efeito": "bonus_teste",
+        "atributo_afetado": "inteligencia",
+        "bonus": 2,
+        "contexto": "investigacao e puzzles"
+      }
+    ],
+    "desvantagens": [
+      {
+        "id": "intimidador",
+        "nome": "Aparencia Intimidadora",
+        "efeito": "penalidade_teste",
+        "atributo_afetado": "carisma",
+        "penalidade": -2,
+        "contexto": "interacoes sociais"
+      }
+    ],
+    "equipamentos": [
+      {
+        "id": "espada_longa",
+        "nome": "Espada Longa",
+        "dano": "1d8",
+        "tipo": "melee",
+        "bonus_ataque": 1
+      }
+    ]
+  },
+  "estadoInicial": {
+    "hp": 30,
+    "hpMax": 30,
+    "mana": 10,
+    "manaMax": 10,
+    "status": [],
+    "cooldowns": {},
+    "concentracao": null,
+    "efeitos_ativos": [],
+    "emCombate": false,
+    "turno": 0,
+    "xp": 0
+  },
+  "inimigos": [
+    {
+      "id": "goblin_1",
+      "nome": "Goblin Saqueador",
+      "hp": 12,
+      "hpMax": 12,
+      "ataque": 4,
+      "dano": "1d6",
+      "esquiva": 8,
+      "armadura": 1,
+      "xp": 25,
+      "status": []
+    }
+  ],
+  "historia": {
+    "nome": "Cenario de Teste - Magia com Custo",
+    "temas": ["Fantasia"],
+    "prologo": "Moruxis encontra um goblin saqueador em uma clareira. O paladino minotauro prepara suas magias divinas para enfrentar a ameaca.",
+    "mestreConfig": {
+      "nome": "Mestre Teste",
+      "personalidade": "Direto e mecanico, prioriza clareza sobre floreio narrativo. Sempre respeita as regras mecanicas.",
+      "temperatura": 0.6,
+      "tags": ["teste", "magia", "mana"]
+    }
+  },
+  "acoes": [
+    {
+      "tipo": "iniciar_turno"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanco Luz Divina no goblin",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "luz_divina",
+        "alvo": "goblin_1"
+      }
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanço Protecao contra o Mal em mim mesmo",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "protecao_mal",
+        "alvo": "goblin_1"
+      }
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanco Luz Divina novamente no goblin",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "luz_divina",
+        "alvo": "goblin_1"
+      }
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanco Luz Divina mais uma vez no goblin",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "luz_divina",
+        "alvo": "goblin_1"
+      },
+      "_comentario": "Deve falhar: mana restante = 2, custo = 3"
+    }
+  ],
+  "condicoesDeParada": {
+    "qualquerUma": [
+      "combate_finalizado",
+      "acoes_esgotadas"
+    ]
+  },
+  "invariantes": [
+    "resposta_ia_parseavel",
+    "hp_nunca_negativo",
+    "hp_nunca_acima_maximo",
+    "mana_nunca_negativa",
+    "mana_nunca_acima_maximo",
+    "mana_descontada_ao_usar_magia",
+    "magia_inexistente_nao_aceita",
+    "alvos_referenciados_por_id"
+  ]
+}

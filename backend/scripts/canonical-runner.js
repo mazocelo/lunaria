@@ -20,6 +20,7 @@ import { createClient } from 'redis';
 import { criarMestreRPG, parseIAJson } from '../agents/Mestre/MestreAgent.js';
 import { resolverTeste } from '../helpers/testeHelper.js';
 import { rolarDado } from '../helpers/combateHelper.js';
+import { runClaimDetection } from '../helpers/claimDetector.js';
 
 // ── Paths ──
 const __filename = fileURLToPath(import.meta.url);
@@ -256,11 +257,24 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
     let combateAtivo = fixture.estadoInicial.emCombate || false;
     let currentTurno = 0;
     let chatHistory = [];
+    if (fixture.historia.prologo) {
+      chatHistory.push({ role: 'system', content: `CONTEXTO DA CENA:\n${fixture.historia.prologo}` });
+    }
     let lastAIResponse = null;
     let condicaoDeParada = null;
 
     const totalAcoes = fixture.acoes.length;
     const latencies = [];
+
+    // ── Check if fixture is a combat scenario ──
+    if (!combateAtivo && fixture.inimigos.length > 0) {
+      const prologo = (fixture.historia.prologo || '').toLowerCase();
+      const hasEnemyInPrologo = fixture.inimigos.some(ini => prologo.includes(ini.nome.toLowerCase()));
+      if (hasEnemyInPrologo) {
+        combateAtivo = true;
+        log('combate pre-iniciado (inimigo no prologo)');
+      }
+    }
 
     // ── Execute actions ──
     for (let acaoIdx = 0; acaoIdx < totalAcoes; acaoIdx++) {
@@ -296,8 +310,8 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
           iaCallStart = Date.now();
 
           const result = await mestre.narrarTurnoJogador({
-            jogador: { nome: fixture.personagem.nome, id: 'test_player' },
-            personagem: personagemForMestre,
+            jogador: fixture.personagem.nome,
+            personagem: fixture.personagem.nome,
             mensagem: fixture.historia.prologo || 'O aventureiro chega ao local.',
             rodada: 1,
             turno: currentTurno,
@@ -320,10 +334,21 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
           lastAIResponse = respostaIA;
 
           // Track chat history
-          chatHistory.push({ role: 'assistant', content: respostaBruta });
+          chatHistory.push({ role: 'user', content: fixture.historia.prologo || 'O aventureiro chega.' });
+          chatHistory.push({ role: 'assistant', content: respostaIA.narracao });
 
           // If AI initiated combat
           if (result.combate?.iniciado) combateAtivo = true;
+
+          // Auto-detect combat from AI response or fixture
+          if (!combateAtivo && fixture.inimigos.length > 0) {
+            const narracao = (respostaIA?.narracao || '').toLowerCase();
+            const combatSignals = ['combate', 'ataque', 'atacar', 'luta', 'inimigo', 'hostil', 'iniciativa', 'arma', 'goblin', 'monstro'];
+            if (combatSignals.some(s => narracao.includes(s)) || respostaIA?.solicitaDados?.solicita) {
+              combateAtivo = true;
+              log('combate auto-detectado pela narrativa');
+            }
+          }
 
         } else if (acao.tipo === 'mensagem') {
           const textoPreview = acao.texto.length > 40 ? acao.texto.slice(0, 40) + '...' : acao.texto;
@@ -332,8 +357,15 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
           iaCallStart = Date.now();
 
           // Map gameIntent to combatIntent for the internal API
+          let acaoTexto = acao.texto;
+          if (combateAtivo && acao.gameIntent?.categoria === 'combate') {
+            const inimigosVivos = inimigos.filter(i => i.hp > 0).map(i => `${i.nome} (HP: ${i.hp}/${i.hpMax})`).join(', ');
+            const statusJogador = `HP: ${jogador.hp}/${jogador.hpMax}, Mana: ${jogador.mana}/${jogador.manaMax}`;
+            acaoTexto = `[COMBATE ATIVO — Inimigos: ${inimigosVivos} | Jogador: ${statusJogador}]\n${acao.texto}`;
+          }
+
           const acaoObj = {
-            texto: acao.texto,
+            texto: acaoTexto,
             combatIntent: acao.gameIntent || null,
           };
 

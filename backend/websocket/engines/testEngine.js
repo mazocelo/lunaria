@@ -136,9 +136,10 @@ export default class TestEngine {
       const roomId = String(rawRoomId);
       const userId = String(rawUserId);
       const username = rawUsername ? String(rawUsername) : 'Usuario';
-      const dice = (typeof rawDice === 'object' && rawDice !== null)
+      let dice = (typeof rawDice === 'object' && rawDice !== null)
         ? (rawDice.tipo || rawDice.dice || rawDice.tipoDado || 'd20')
         : String(rawDice || 'd20');
+      if (dice.includes('[object')) dice = 'd20';
       const result = String(rawResult);
       const description = rawDescription ? String(rawDescription) : null;
       const testeId = rawTesteId ? String(rawTesteId) : null;

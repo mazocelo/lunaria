@@ -203,11 +203,13 @@ router.post('/start', async (req, res, next) => {
 
       // Determinar mensagem introdutória (Prólogo ou IA)
       let mensagemIntrodutoria = '';
+      let prologoVeioDoBanco = false;
 
       // 1. Tentar usar o prólogo da história se existir
       if (historia.prologo && historia.prologo.trim().length > 0) {
         log.info('Usando prologo da historia como mensagem inicial');
         mensagemIntrodutoria = historia.prologo;
+        prologoVeioDoBanco = true;
       } else {
         // 2. Fallback: Gerar mensagem de boas-vindas do Mestre IA
         try {
@@ -249,14 +251,17 @@ router.post('/start', async (req, res, next) => {
       }
 
       // Guardar prólogo pendente — será emitido APÓS rolagem de dados inicial
+      // Não duplicar se o prólogo já veio do banco (frontend já exibe via estadoJogo)
       if (mensagemIntrodutoria) {
         if (sessao.estadoJogo) {
           sessao.estadoJogo.mensagemMestre = mensagemIntrodutoria;
-          sessao.estadoJogo.prologoPendente = mensagemIntrodutoria;
+          if (!prologoVeioDoBanco) {
+            sessao.estadoJogo.prologoPendente = mensagemIntrodutoria;
+          }
         }
 
         await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-        log.info('Prologo salvo como pendente (sera emitido apos rolagem de dados)');
+        log.info({ prologoVeioDoBanco }, 'Prologo salvo' + (prologoVeioDoBanco ? ' (sem pendente — frontend ja exibe)' : ' como pendente'));
       }
 
       // Notificar via WebSocket
@@ -409,15 +414,17 @@ router.post('/start', async (req, res, next) => {
 
     // Determinar mensagem introdutória (Prólogo ou IA)
     let mensagemIntrodutoria = '';
+    let prologoVeioDoBanco2 = false;
 
     if (historia.prologo && historia.prologo.trim().length > 0) {
       log.info('Usando prologo da historia como mensagem inicial');
       mensagemIntrodutoria = historia.prologo;
+      prologoVeioDoBanco2 = true;
     } else {
       // Fallback: Gerar mensagem de boas-vindas do Mestre IA
       try {
         log.info({ historia: historia.nome }, 'Gerando mensagem de boas-vindas do Mestre');
-        
+
         const payloadMestre = await prepareMestrePayload(sessao, historia);
         const mestre = await criarMestreRPG(
           payloadMestre.nomesTemas,
@@ -444,14 +451,17 @@ router.post('/start', async (req, res, next) => {
     }
 
     // Guardar prólogo pendente — será emitido APÓS rolagem de dados inicial
+    // Não duplicar se o prólogo já veio do banco (frontend já exibe via estadoJogo)
     if (mensagemIntrodutoria) {
       if (sessao.estadoJogo) {
         sessao.estadoJogo.mensagemMestre = mensagemIntrodutoria;
-        sessao.estadoJogo.prologoPendente = mensagemIntrodutoria;
+        if (!prologoVeioDoBanco2) {
+          sessao.estadoJogo.prologoPendente = mensagemIntrodutoria;
+        }
       }
 
       await gerenciadorSessoes.atualizarSessao(salaId, sessao);
-      log.info('Prologo salvo como pendente (sera emitido apos rolagem de dados)');
+      log.info({ prologoVeioDoBanco: prologoVeioDoBanco2 }, 'Prologo salvo' + (prologoVeioDoBanco2 ? ' (sem pendente)' : ' como pendente'));
     }
 
     // Notificar via WebSocket todos os usuários conectados à sala sobre o início

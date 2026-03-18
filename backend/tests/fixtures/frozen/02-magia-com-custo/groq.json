@@ -397,11 +397,11 @@
       "turno": 5,
       "acaoJogador": {
         "tipo": "mensagem",
-        "texto": "Lanco Luz Divina mais uma vez no goblin",
+        "texto": "Ataco o goblin com minha arma",
         "gameIntent": {
           "categoria": "combate",
-          "tipo": "usar_habilidade",
-          "magiaId": "luz_divina",
+          "tipo": "atacar",
+          "arma": "espada_longa",
           "alvo": "goblin_1"
         }
       },
@@ -454,11 +454,11 @@
       "respostaParseou": true,
       "erroParse": null,
       "resolucaoMecanica": {
-        "tipo": "usar_habilidade",
+        "tipo": "atacar",
         "alvoId": "goblin_1",
         "alvoNome": "Goblin Saqueador",
-        "arma": null,
-        "magiaId": "luz_divina",
+        "arma": "espada_longa",
+        "magiaId": null,
         "habilidadeId": null,
         "pendingRoll": true
       },
@@ -467,7 +467,7 @@
         "jogador": {
           "hp": 30,
           "hpMax": 30,
-          "mana": 0,
+          "mana": 2,
           "manaMax": 10,
           "status": [],
           "cooldowns": {},

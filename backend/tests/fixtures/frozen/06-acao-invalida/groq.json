@@ -6,7 +6,7 @@
   "modelo": "llama-3.3-70b-versatile",
   "provider": "groq",
   "redisPrefix": "test_run_run_20260318_043547_e46c_groq:",
-  "statusExecucao": "falha_parsing",
+  "statusExecucao": "concluida",
   "erroExecucao": null,
   "iniciadoEm": "2026-03-18T07:35:47.260Z",
   "finalizadoEm": "2026-03-18T07:39:45.289Z",
@@ -245,15 +245,41 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": null,
-      "respostaIA": null,
-      "respostaParseou": false,
-      "erroParse": {
-        "tipo": "json_invalido",
-        "mensagem": "429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99816, Requested 8754. Please try again in 2h3m24.48s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}",
-        "trecho": ""
+      "respostaBruta": "A armadura de Moruxis reluz sob o sol da manhã enquanto ele se aproxima da pequena vila de Oakhaven. O caminho de terra batida, geralmente movimentado, está estranhamente vazio. Nenhum fazendeiro à vista, nenhum carroceiro. O silêncio é pesado, quebrando a paz usual do campo. As casas de madeira e telhados de palha parecem intactas, mas não há fumaça saindo das chaminés, nem o som de crianças brincando ou de martelos de ferreiros. Um arrepio percorre sua espinha, um pressentimento de que algo não está certo.",
+      "respostaIA": {
+        "narracao": "A armadura de Moruxis reluz sob o sol da manhã enquanto ele se aproxima da pequena vila de Oakhaven. O caminho de terra batida, geralmente movimentado, está estranhamente vazio. Nenhum fazendeiro à vista, nenhum carroceiro. O silêncio é pesado, quebrando a paz usual do campo. As casas de madeira e telhados de palha parecem intactas, mas não há fumaça saindo das chaminés, nem o som de crianças brincando ou de martelos de ferreiros. Um arrepio percorre sua espinha, um pressentimento de que algo não está certo.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Entrada de Oakhaven",
+          "hora_ficcional": "Manhã",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "campo aberto",
+          "tensao": "alerta",
+          "ameacas": [
+            "silêncio incomum"
+          ]
+        }
       },
-      "resolucaoMecanica": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "atacar",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": "alabarda",
+        "magiaId": null,
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -281,8 +307,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 82306,
-      "tempoTurnoTotalMs": 82306
+      "tempoRespostaMs": 7182,
+      "tempoTurnoTotalMs": 7182
     },
     {
       "turno": 4,
@@ -322,15 +348,39 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": null,
-      "respostaIA": null,
-      "respostaParseou": false,
-      "erroParse": {
-        "tipo": "json_invalido",
-        "mensagem": "429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99697, Requested 8754. Please try again in 2h1m41.664s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}",
-        "trecho": ""
+      "respostaBruta": "Moruxis pisa sobre as folhas secas que forram o caminho de terra batida. A floresta, densa e antiga, estende-se por ambos os lados, suas copas fechando o céu e filtrando a luz em feixes esverdeados. Um cheiro úmido de terra e musgo preenche o ar, misturado a um leve odor de fumaça de lenha. À frente, entre as árvores, o som distante de um sino e a fumaça tênue indicam a proximidade de um assentamento. O caminho, embora um pouco gasto, parece seguro e leva diretamente na direção do vilarejo.",
+      "respostaIA": {
+        "narracao": "Moruxis pisa sobre as folhas secas que forram o caminho de terra batida. A floresta, densa e antiga, estende-se por ambos os lados, suas copas fechando o céu e filtrando a luz em feixes esverdeados. Um cheiro úmido de terra e musgo preenche o ar, misturado a um leve odor de fumaça de lenha. À frente, entre as árvores, o som distante de um sino e a fumaça tênue indicam a proximidade de um assentamento. O caminho, embora um pouco gasto, parece seguro e leva diretamente na direção do vilarejo.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Caminho da Floresta",
+          "hora_ficcional": "manhã",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "floresta densa",
+          "tensao": "calmo",
+          "ameacas": []
+        }
       },
-      "resolucaoMecanica": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": null,
+        "habilidadeId": "escudo_sagrado",
+        "pendingRoll": true
+      },
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -358,8 +408,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 103077,
-      "tempoTurnoTotalMs": 103077
+      "tempoRespostaMs": 10618,
+      "tempoTurnoTotalMs": 10619
     }
   ],
   "estadoFinal": {

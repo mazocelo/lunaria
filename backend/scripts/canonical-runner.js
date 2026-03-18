@@ -354,36 +354,58 @@ async function runScenario(cenarioId, modelSlug, opts = {}) {
           const textoPreview = acao.texto.length > 40 ? acao.texto.slice(0, 40) + '...' : acao.texto;
           log(`turno ${currentTurno}/${totalAcoes}: mensagem "${textoPreview}"...`);
 
-          // ── Claim detection — same pipeline as masterNarrationEngine ──
+          // ── Validate gameIntent against fixture (structural check) ──
           let skipAICall = false;
-          const claimSources = {
-            turnState: {
-              inventario: personagemForMestre.equipamentos || [],
-              mana: { atual: jogador.mana, max: jogador.manaMax },
-            },
-            personagemCompleto: personagemForMestre,
-            cooldowns: jogador.cooldowns || {},
-          };
-          const claimFlags = runClaimDetection(acao.texto, claimSources, {
-            userId: 'test_player',
-            roomId: cenarioId,
-          });
-          const hardBlock = claimFlags.find(f => f?.blockLevel === 'hard');
-          if (hardBlock) {
-            const motivo = hardBlock.reason || hardBlock.motivo || 'acao invalida';
-            log(`turno ${currentTurno}/${totalAcoes}: BLOCKED by claimDetector — ${motivo}`);
-            respostaIA = {
-              narracao: `[BLOQUEADO] ${motivo}`,
-              fimDeTurno: false,
-              solicitaDados: { solicita: false },
-              acoes: [],
-            };
-            respostaParseou = true;
-            respostaBruta = JSON.stringify(respostaIA);
-            lastAIResponse = respostaIA;
-            tempoRespostaMs = 0;
-            resolucaoMecanica = { bloqueado: true, motivo, claimFlags };
-            skipAICall = true;
+          if (acao.gameIntent) {
+            const gi = acao.gameIntent;
+            let motivo = null;
+
+            // Check weapon exists
+            if (gi.arma && !fixture.personagem.equipamentos?.some(e => e.id === gi.arma)) {
+              motivo = `arma '${gi.arma}' nao existe no inventario`;
+            }
+            // Check spell exists
+            if (gi.magiaId && !fixture.personagem.magias?.some(m => m.id === gi.magiaId)) {
+              motivo = `magia '${gi.magiaId}' nao existe na ficha`;
+            }
+            // Check ability exists
+            if (gi.habilidadeId && !fixture.personagem.habilidades?.some(h => h.id === gi.habilidadeId)) {
+              motivo = `habilidade '${gi.habilidadeId}' nao existe na ficha`;
+            }
+            // Check mana for spells
+            if (!motivo && gi.magiaId) {
+              const magia = fixture.personagem.magias?.find(m => m.id === gi.magiaId);
+              if (magia?.custo_mana && jogador.mana < magia.custo_mana) {
+                motivo = `mana insuficiente para ${gi.magiaId}: tem ${jogador.mana}, custo ${magia.custo_mana}`;
+              }
+            }
+            // Check cooldown for abilities
+            if (!motivo && gi.habilidadeId) {
+              const cdKey = `hab_${gi.habilidadeId}`;
+              if (jogador.cooldowns[cdKey] > 0) {
+                motivo = `habilidade ${gi.habilidadeId} em cooldown (${jogador.cooldowns[cdKey]} turnos)`;
+              }
+            }
+            // Check target exists
+            if (!motivo && gi.alvo && !fixture.inimigos?.some(i => i.id === gi.alvo)) {
+              motivo = `alvo '${gi.alvo}' nao existe no cenario`;
+            }
+
+            if (motivo) {
+              log(`turno ${currentTurno}/${totalAcoes}: BLOCKED — ${motivo}`);
+              respostaIA = {
+                narracao: `[BLOQUEADO] ${motivo}`,
+                fimDeTurno: false,
+                solicitaDados: { solicita: false },
+                acoes: [],
+              };
+              respostaParseou = true;
+              respostaBruta = JSON.stringify(respostaIA);
+              lastAIResponse = respostaIA;
+              tempoRespostaMs = 0;
+              resolucaoMecanica = { bloqueado: true, motivo };
+              skipAICall = true;
+            }
           }
 
           if (!skipAICall) {

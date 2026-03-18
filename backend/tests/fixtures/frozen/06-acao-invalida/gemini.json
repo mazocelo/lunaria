@@ -1,23 +1,23 @@
 {
-  "runId": "run_20260318_044052_d9ec",
+  "runId": "run_20260318_150606_a22d",
   "cenarioId": "06-acao-invalida",
   "cenarioVersao": "1.0.0",
   "cenarioHash": "sha256:c57e076f427b",
   "modelo": "gemini-2.5-flash",
   "provider": "gemini",
-  "redisPrefix": "test_run_run_20260318_044052_d9ec_gemini:",
+  "redisPrefix": "test_run_run_20260318_150606_a22d_gemini:",
   "statusExecucao": "concluida",
   "erroExecucao": null,
-  "iniciadoEm": "2026-03-18T07:40:52.996Z",
-  "finalizadoEm": "2026-03-18T07:41:27.345Z",
-  "duracaoMs": 34349,
+  "iniciadoEm": "2026-03-18T18:06:06.554Z",
+  "finalizadoEm": "2026-03-18T18:06:16.424Z",
+  "duracaoMs": 9870,
   "metricas": {
     "turnosExecutados": 4,
     "respostasParseadas": 4,
     "errosParse": 0,
     "rolagensAutomaticas": 0,
-    "latenciaMediaMs": 8583,
-    "latenciaMaxMs": 10618,
+    "latenciaMediaMs": 2463,
+    "latenciaMaxMs": 9853,
     "tokensInput": null,
     "tokensOutput": null,
     "custoEstimado": null
@@ -53,11 +53,11 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "Moruxis se encontra na orla de uma clareira. Um goblin de pele esverdeada e olhos vermelhos revira uma mochila rasgada no chão, resmungando. Ao perceber a presença de Moruxis, o goblin para, seus olhos fixam-se no minotauro. Ele solta um guincho agudo e puxa uma adaga enferrujada. A criatura se posiciona para atacar.",
+      "respostaBruta": "A densa folhagem se abre para revelar uma clareira úmida, onde um **Goblin Saqueador** de pele esverdeada e olhos injetados vasculha um saco de pano surrado. Ele está ajoelhado, alheio à sua presença por um instante, mas o farfalhar de suas passadas ou o brilho da armadura de Moruxis o alerta. Com um guincho agudo e um movimento rápido, o goblin se vira, revelando uma cimitarra enferrujada em sua mão e um escudo improvisado no outro braço. Seus olhos pequenos fixam-se em Moruxis, e uma expressão de malícia se forma em seu rosto, seguida por um grito de guerra estridente. Ele se ergue, assumindo uma postura agressiva, pronto para defender seu saque.",
       "respostaIA": {
-        "narracao": "Moruxis se encontra na orla de uma clareira. Um goblin de pele esverdeada e olhos vermelhos revira uma mochila rasgada no chão, resmungando. Ao perceber a presença de Moruxis, o goblin para, seus olhos fixam-se no minotauro. Ele solta um guincho agudo e puxa uma adaga enferrujada. A criatura se posiciona para atacar.",
+        "narracao": "A densa folhagem se abre para revelar uma clareira úmida, onde um **Goblin Saqueador** de pele esverdeada e olhos injetados vasculha um saco de pano surrado. Ele está ajoelhado, alheio à sua presença por um instante, mas o farfalhar de suas passadas ou o brilho da armadura de Moruxis o alerta. Com um guincho agudo e um movimento rápido, o goblin se vira, revelando uma cimitarra enferrujada em sua mão e um escudo improvisado no outro braço. Seus olhos pequenos fixam-se em Moruxis, e uma expressão de malícia se forma em seu rosto, seguida por um grito de guerra estridente. Ele se ergue, assumindo uma postura agressiva, pronto para defender seu saque.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -68,21 +68,19 @@
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Orla da Clareira",
-          "hora_ficcional": "Dia",
+          "local_atual": "clareira na floresta",
+          "hora_ficcional": "dia",
           "npcs_presentes": [
             {
-              "id": "goblin_1",
               "nome": "Goblin Saqueador",
-              "tipo": "inimigo"
+              "tipo": "humanoide",
+              "status": "hostil"
             }
           ],
           "memoria_semantica": [],
-          "terreno": "Floresta Aberta",
+          "terreno": "floresta umida",
           "tensao": "combate iminente",
-          "ameacas": [
-            "Goblin Saqueador"
-          ]
+          "ameacas": []
         }
       },
       "respostaParseou": true,
@@ -115,8 +113,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 9481,
-      "tempoTurnoTotalMs": 9481
+      "tempoRespostaMs": 9853,
+      "tempoTurnoTotalMs": 9853
     },
     {
       "turno": 2,
@@ -156,46 +154,20 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "A trilha de terra batida serpenteia por entre árvores altas e densas, cujas copas quase bloqueiam a luz do sol, criando um ambiente de penumbra constante. O cheiro de terra úmida e folhas em decomposição preenche o ar. De repente, um som abafado de lamento ecoa à frente, seguido por um farfalhar de arbustos. Um homem, vestindo trapos e com o rosto pálido de medo, cambaleia para fora da folhagem, as mãos estendidas em desespero.",
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] magia 'bola_de_fogo' nao existe na ficha\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
       "respostaIA": {
-        "narracao": "A trilha de terra batida serpenteia por entre árvores altas e densas, cujas copas quase bloqueiam a luz do sol, criando um ambiente de penumbra constante. O cheiro de terra úmida e folhas em decomposição preenche o ar. De repente, um som abafado de lamento ecoa à frente, seguido por um farfalhar de arbustos. Um homem, vestindo trapos e com o rosto pálido de medo, cambaleia para fora da folhagem, as mãos estendidas em desespero.",
+        "narracao": "[BLOQUEADO] magia 'bola_de_fogo' nao existe na ficha",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
-          "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "solicita": false
         },
-        "acoes": [],
-        "metadados": {
-          "local_atual": "Trilha da Floresta Sombria",
-          "hora_ficcional": "Dia (penumbra)",
-          "npcs_presentes": [
-            {
-              "nome": "Homem Distraído",
-              "tipo": "humanoide",
-              "estado": "assustado"
-            }
-          ],
-          "memoria_semantica": [],
-          "terreno": "floresta densa",
-          "tensao": "alerta",
-          "ameacas": [
-            "ameaca desconhecida"
-          ]
-        }
+        "acoes": []
       },
       "respostaParseou": true,
       "erroParse": null,
       "resolucaoMecanica": {
-        "tipo": "usar_habilidade",
-        "alvoId": "goblin_1",
-        "alvoNome": "Goblin Saqueador",
-        "arma": null,
-        "magiaId": "bola_de_fogo",
-        "habilidadeId": null,
-        "pendingRoll": true
+        "bloqueado": true,
+        "motivo": "magia 'bola_de_fogo' nao existe na ficha"
       },
       "rolagemAutomatica": null,
       "estadoApos": {
@@ -224,8 +196,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 7052,
-      "tempoTurnoTotalMs": 7052
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
     },
     {
       "turno": 3,
@@ -265,40 +237,20 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "A armadura de Moruxis reluz sob o sol da manhã enquanto ele se aproxima da pequena vila de Oakhaven. O caminho de terra batida, geralmente movimentado, está estranhamente vazio. Nenhum fazendeiro à vista, nenhum carroceiro. O silêncio é pesado, quebrando a paz usual do campo. As casas de madeira e telhados de palha parecem intactas, mas não há fumaça saindo das chaminés, nem o som de crianças brincando ou de martelos de ferreiros. Um arrepio percorre sua espinha, um pressentimento de que algo não está certo.",
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] arma 'alabarda' nao existe no inventario\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
       "respostaIA": {
-        "narracao": "A armadura de Moruxis reluz sob o sol da manhã enquanto ele se aproxima da pequena vila de Oakhaven. O caminho de terra batida, geralmente movimentado, está estranhamente vazio. Nenhum fazendeiro à vista, nenhum carroceiro. O silêncio é pesado, quebrando a paz usual do campo. As casas de madeira e telhados de palha parecem intactas, mas não há fumaça saindo das chaminés, nem o som de crianças brincando ou de martelos de ferreiros. Um arrepio percorre sua espinha, um pressentimento de que algo não está certo.",
+        "narracao": "[BLOQUEADO] arma 'alabarda' nao existe no inventario",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
-          "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "solicita": false
         },
-        "acoes": [],
-        "metadados": {
-          "local_atual": "Entrada de Oakhaven",
-          "hora_ficcional": "Manhã",
-          "npcs_presentes": [],
-          "memoria_semantica": [],
-          "terreno": "campo aberto",
-          "tensao": "alerta",
-          "ameacas": [
-            "silêncio incomum"
-          ]
-        }
+        "acoes": []
       },
       "respostaParseou": true,
       "erroParse": null,
       "resolucaoMecanica": {
-        "tipo": "atacar",
-        "alvoId": "goblin_1",
-        "alvoNome": "Goblin Saqueador",
-        "arma": "alabarda",
-        "magiaId": null,
-        "habilidadeId": null,
-        "pendingRoll": true
+        "bloqueado": true,
+        "motivo": "arma 'alabarda' nao existe no inventario"
       },
       "rolagemAutomatica": null,
       "estadoApos": {
@@ -327,8 +279,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 7182,
-      "tempoTurnoTotalMs": 7182
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
     },
     {
       "turno": 4,
@@ -368,38 +320,20 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Moruxis pisa sobre as folhas secas que forram o caminho de terra batida. A floresta, densa e antiga, estende-se por ambos os lados, suas copas fechando o céu e filtrando a luz em feixes esverdeados. Um cheiro úmido de terra e musgo preenche o ar, misturado a um leve odor de fumaça de lenha. À frente, entre as árvores, o som distante de um sino e a fumaça tênue indicam a proximidade de um assentamento. O caminho, embora um pouco gasto, parece seguro e leva diretamente na direção do vilarejo.",
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] habilidade 'escudo_sagrado' nao existe na ficha\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
       "respostaIA": {
-        "narracao": "Moruxis pisa sobre as folhas secas que forram o caminho de terra batida. A floresta, densa e antiga, estende-se por ambos os lados, suas copas fechando o céu e filtrando a luz em feixes esverdeados. Um cheiro úmido de terra e musgo preenche o ar, misturado a um leve odor de fumaça de lenha. À frente, entre as árvores, o som distante de um sino e a fumaça tênue indicam a proximidade de um assentamento. O caminho, embora um pouco gasto, parece seguro e leva diretamente na direção do vilarejo.",
+        "narracao": "[BLOQUEADO] habilidade 'escudo_sagrado' nao existe na ficha",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
-          "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "solicita": false
         },
-        "acoes": [],
-        "metadados": {
-          "local_atual": "Caminho da Floresta",
-          "hora_ficcional": "manhã",
-          "npcs_presentes": [],
-          "memoria_semantica": [],
-          "terreno": "floresta densa",
-          "tensao": "calmo",
-          "ameacas": []
-        }
+        "acoes": []
       },
       "respostaParseou": true,
       "erroParse": null,
       "resolucaoMecanica": {
-        "tipo": "usar_habilidade",
-        "alvoId": "goblin_1",
-        "alvoNome": "Goblin Saqueador",
-        "arma": null,
-        "magiaId": null,
-        "habilidadeId": "escudo_sagrado",
-        "pendingRoll": true
+        "bloqueado": true,
+        "motivo": "habilidade 'escudo_sagrado' nao existe na ficha"
       },
       "rolagemAutomatica": null,
       "estadoApos": {
@@ -428,8 +362,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 10618,
-      "tempoTurnoTotalMs": 10619
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
     }
   ],
   "estadoFinal": {

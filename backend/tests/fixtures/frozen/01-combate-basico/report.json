@@ -1,18 +1,23 @@
 {
   "cenarioId": "01-combate-basico",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T14:03:22.854Z",
+  "geradoEm": "2026-03-18T18:08:22.199Z",
   "modelos": {
     "groq": {
-      "statusExecucao": "concluida",
-      "turnos": 4,
-      "latenciaMediaMs": 31644,
+      "statusExecucao": "falha_parsing",
+      "turnos": 6,
+      "latenciaMediaMs": 34438,
       "invariantes": {
         "total": 12,
-        "passaram": 12,
-        "falharam": 0
+        "passaram": 11,
+        "falharam": 1
       },
-      "falhas": []
+      "falhas": [
+        {
+          "invariante": "resposta_ia_parseavel",
+          "detalhe": "turno 6: respostaParseou = false (json_invalido: 429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 93099, Requested 8803. Please try again in 27m23.328s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}})"
+        }
+      ]
     },
     "gemini": {
       "statusExecucao": "concluida",

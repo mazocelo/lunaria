@@ -1,23 +1,23 @@
 {
-  "runId": "run_20260318_042710_f34f",
+  "runId": "run_20260318_150232_f9de",
   "cenarioId": "01-combate-basico",
   "cenarioVersao": "1.0.0",
   "cenarioHash": "sha256:9c899ed37abe",
   "modelo": "llama-3.3-70b-versatile",
   "provider": "groq",
-  "redisPrefix": "test_run_run_20260318_042710_f34f_groq:",
-  "statusExecucao": "concluida",
+  "redisPrefix": "test_run_run_20260318_150232_f9de_groq:",
+  "statusExecucao": "falha_parsing",
   "erroExecucao": null,
-  "iniciadoEm": "2026-03-18T07:27:10.239Z",
-  "finalizadoEm": "2026-03-18T07:29:16.853Z",
-  "duracaoMs": 126614,
+  "iniciadoEm": "2026-03-18T18:02:32.402Z",
+  "finalizadoEm": "2026-03-18T18:05:59.040Z",
+  "duracaoMs": 206637,
   "metricas": {
-    "turnosExecutados": 4,
-    "respostasParseadas": 4,
-    "errosParse": 0,
-    "rolagensAutomaticas": 0,
-    "latenciaMediaMs": 31644,
-    "latenciaMaxMs": 45504,
+    "turnosExecutados": 6,
+    "respostasParseadas": 5,
+    "errosParse": 1,
+    "rolagensAutomaticas": 2,
+    "latenciaMediaMs": 34438,
+    "latenciaMaxMs": 93353,
     "tokensInput": null,
     "tokensOutput": null,
     "custoEstimado": null
@@ -53,22 +53,22 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "A trilha estreita na floresta é abruptamente interrompida pela aparição do goblin, que parece ter estado à espreita. O goblin, com sua adaga enferrujada, olha para Moruxis com um olhar feroz e desesperado, como se a vida dele dependesse desta emboscada. A floresta ao redor parece silenciosa, exceto pelo som de folhas farfalhando suavemente com a brisa. O goblin, visivelmente nervoso, começa a falar em uma língua estranha, mas então para e olha para Moruxis com um olhar de desafio.",
+      "respostaBruta": "Moruxis está em uma trilha estreita na floresta, com árvores altas e folhagem densa ao redor. O goblin saqueador, com sua adaga enferrujada, agora está a cerca de 5 metros de distância, olhando para Moruxis com um olhar feroz e selvagem. O goblin parece ter sido pego de surpresa pela aparição de Moruxis, mas agora está pronto para atacar. Moruxis nota que o goblin está usando um pedaço de couro como armadura e carrega uma bolsa pequena nas costas.",
       "respostaIA": {
-        "narracao": "A trilha estreita na floresta é abruptamente interrompida pela aparição do goblin, que parece ter estado à espreita. O goblin, com sua adaga enferrujada, olha para Moruxis com um olhar feroz e desesperado, como se a vida dele dependesse desta emboscada. A floresta ao redor parece silenciosa, exceto pelo som de folhas farfalhando suavemente com a brisa. O goblin, visivelmente nervoso, começa a falar em uma língua estranha, mas então para e olha para Moruxis com um olhar de desafio.",
+        "narracao": "Moruxis está em uma trilha estreita na floresta, com árvores altas e folhagem densa ao redor. O goblin saqueador, com sua adaga enferrujada, agora está a cerca de 5 metros de distância, olhando para Moruxis com um olhar feroz e selvagem. O goblin parece ter sido pego de surpresa pela aparição de Moruxis, mas agora está pronto para atacar. Moruxis nota que o goblin está usando um pedaço de couro como armadura e carrega uma bolsa pequena nas costas.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": true,
           "tipo": "d20",
           "teste": "Iniciativa",
           "dificuldade": "",
-          "origem": "iniciativa de combate"
+          "origem": "Combate iniciado"
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "floresta",
+          "local_atual": "Trilha na floresta",
           "npcs_presentes": [
             "Goblin Saqueador"
           ],
@@ -105,8 +105,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 2572,
-      "tempoTurnoTotalMs": 2572
+      "tempoRespostaMs": 2496,
+      "tempoTurnoTotalMs": 2496
     },
     {
       "turno": 2,
@@ -146,22 +146,22 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Você se encontra em uma sala escura e úmida, com paredes de pedra e um teto baixo. Há uma porta de madeira à sua frente, com um buraco de fechadura no centro. Você ouve o som de água pingando em algum lugar ao longe. De repente, uma figura emerge das sombras, um homem magro e alto com olhos fundos e uma barba desgrenhada. Ele se aproxima de você e pergunta em uma voz rouca: 'Quem é você e o que você quer aqui?'",
+      "respostaBruta": "Você avança com sua espada longa, pronto para atacar o goblin saqueador. O goblin, percebendo o perigo, se prepara para defender-se, segurando sua adaga suja. O ar está tenso, e o silêncio é quebrado apenas pelo som de sua respiração e do goblin preparando-se para o combate. Você está a uma distância de cerca de 5 metros do goblin, e o terreno é relativamente plano, sem obstáculos imediatos.",
       "respostaIA": {
-        "narracao": "Você se encontra em uma sala escura e úmida, com paredes de pedra e um teto baixo. Há uma porta de madeira à sua frente, com um buraco de fechadura no centro. Você ouve o som de água pingando em algum lugar ao longe. De repente, uma figura emerge das sombras, um homem magro e alto com olhos fundos e uma barba desgrenhada. Ele se aproxima de você e pergunta em uma voz rouca: 'Quem é você e o que você quer aqui?'",
+        "narracao": "Você avança com sua espada longa, pronto para atacar o goblin saqueador. O goblin, percebendo o perigo, se prepara para defender-se, segurando sua adaga suja. O ar está tenso, e o silêncio é quebrado apenas pelo som de sua respiração e do goblin preparando-se para o combate. Você está a uma distância de cerca de 5 metros do goblin, e o terreno é relativamente plano, sem obstáculos imediatos.",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
+          "solicita": true,
           "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "teste": "Ataque",
+          "dificuldade": "Media",
+          "origem": "Combate"
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "sala_escura",
+          "local_atual": "Floresta Escura",
           "npcs_presentes": [
-            "homem_misterioso"
+            "Goblin Saqueador"
           ],
           "memoria_semantica": []
         }
@@ -204,11 +204,101 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 37476,
-      "tempoTurnoTotalMs": 37477
+      "tempoRespostaMs": 53212,
+      "tempoTurnoTotalMs": 53213
     },
     {
       "turno": 3,
+      "acaoJogador": {
+        "tipo": "rolar_dado",
+        "quando": "se_solicitado"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"rolagemBruta\":5,\"atributo\":null,\"atributoNome\":null,\"valorAtributo\":10,\"modificador\":0,\"bonusNivel\":0,\"bonusVantDesvant\":0,\"detalhesBonus\":[],\"totalModificador\":0,\"total\":5,\"dc\":12,\"dificuldadeNome\":\"Media\",\"sucesso\":false,\"margem\":-7,\"critico\":false,\"falha_critica\":false,\"descricaoResultado\":\"Falha\"}",
+      "respostaIA": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": {
+        "dado": "d20",
+        "resultado": 5,
+        "teste": "Ataque",
+        "resolucao": {
+          "rolagemBruta": 5,
+          "atributo": null,
+          "atributoNome": null,
+          "valorAtributo": 10,
+          "modificador": 0,
+          "bonusNivel": 0,
+          "bonusVantDesvant": 0,
+          "detalhesBonus": [],
+          "totalModificador": 0,
+          "total": 5,
+          "dc": 12,
+          "dificuldadeNome": "Media",
+          "sucesso": false,
+          "margem": -7,
+          "critico": false,
+          "falha_critica": false,
+          "descricaoResultado": "Falha"
+        }
+      },
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
+    },
+    {
+      "turno": 4,
       "acaoJogador": {
         "tipo": "mensagem",
         "texto": "Lanço Luz Divina no goblin",
@@ -245,25 +335,26 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Você se encontra em uma pequena vila à beira de uma floresta escura e densa. A vila é chamada de Oakwood e é conhecida por suas madeiras valiosas e artesãos habilidosos. Você está aqui em busca de um local para se estabelecer e começar uma nova vida. Ao entrar na vila, você nota um clima de tensão no ar. Os habitantes estão nervosos e cochicham entre si. Você se aproxima de um dos moradores, um ancião com uma longa barba branca, e pergunta o que está acontecendo.",
+      "respostaBruta": "Você levanta a mão e uma luz divina brilhante irrompe, iluminando o ambiente sombrio da caverna. O goblin, momentaneamente cegado, recua em busca de proteção. A luz atinge o goblin, causando um dano mágico.",
       "respostaIA": {
-        "narracao": "Você se encontra em uma pequena vila à beira de uma floresta escura e densa. A vila é chamada de Oakwood e é conhecida por suas madeiras valiosas e artesãos habilidosos. Você está aqui em busca de um local para se estabelecer e começar uma nova vida. Ao entrar na vila, você nota um clima de tensão no ar. Os habitantes estão nervosos e cochicham entre si. Você se aproxima de um dos moradores, um ancião com uma longa barba branca, e pergunta o que está acontecendo.",
+        "narracao": "Você levanta a mão e uma luz divina brilhante irrompe, iluminando o ambiente sombrio da caverna. O goblin, momentaneamente cegado, recua em busca de proteção. A luz atinge o goblin, causando um dano mágico.",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
+          "solicita": true,
           "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "teste": "Ataque",
+          "dificuldade": "Media",
+          "origem": "Luz Divina"
         },
-        "acoes": [],
-        "metadados": {
-          "local_atual": "Vila de Oakwood",
-          "npcs_presentes": [
-            "anciao"
-          ],
-          "memoria_semantica": []
-        }
+        "acoes": [
+          {
+            "tipo": "aplicar_dano",
+            "personagem": "Goblin Saqueador",
+            "dano": 5,
+            "elemento": "divino"
+          }
+        ],
+        "metadados": {}
       },
       "respostaParseou": true,
       "erroParse": null,
@@ -303,11 +394,101 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 45504,
-      "tempoTurnoTotalMs": 45505
+      "tempoRespostaMs": 57566,
+      "tempoTurnoTotalMs": 57567
     },
     {
-      "turno": 4,
+      "turno": 5,
+      "acaoJogador": {
+        "tipo": "rolar_dado",
+        "quando": "se_solicitado"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"rolagemBruta\":6,\"atributo\":null,\"atributoNome\":null,\"valorAtributo\":10,\"modificador\":0,\"bonusNivel\":0,\"bonusVantDesvant\":0,\"detalhesBonus\":[],\"totalModificador\":0,\"total\":6,\"dc\":12,\"dificuldadeNome\":\"Media\",\"sucesso\":false,\"margem\":-6,\"critico\":false,\"falha_critica\":false,\"descricaoResultado\":\"Falha\"}",
+      "respostaIA": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": {
+        "dado": "d20",
+        "resultado": 6,
+        "teste": "Ataque",
+        "resolucao": {
+          "rolagemBruta": 6,
+          "atributo": null,
+          "atributoNome": null,
+          "valorAtributo": 10,
+          "modificador": 0,
+          "bonusNivel": 0,
+          "bonusVantDesvant": 0,
+          "detalhesBonus": [],
+          "totalModificador": 0,
+          "total": 6,
+          "dc": 12,
+          "dificuldadeNome": "Media",
+          "sucesso": false,
+          "margem": -6,
+          "critico": false,
+          "falha_critica": false,
+          "descricaoResultado": "Falha"
+        }
+      },
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 1,
+      "tempoTurnoTotalMs": 1
+    },
+    {
+      "turno": 6,
       "acaoJogador": {
         "tipo": "mensagem",
         "texto": "Uso Investida para finalizar o goblin",
@@ -344,37 +525,15 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Você se encontra em uma floresta escura e densa, com árvores altas e galhos que parecem esticar como dedos esqueléticos. O ar está frio e úmido, e você pode ouvir o som de água corrente ao longe. De repente, uma figura emerge das sombras. É um homem alto e magro, com olhos fundos e uma barba grisalha. Ele se aproxima de você com um olhar curioso.",
-      "respostaIA": {
-        "narracao": "Você se encontra em uma floresta escura e densa, com árvores altas e galhos que parecem esticar como dedos esqueléticos. O ar está frio e úmido, e você pode ouvir o som de água corrente ao longe. De repente, uma figura emerge das sombras. É um homem alto e magro, com olhos fundos e uma barba grisalha. Ele se aproxima de você com um olhar curioso.",
-        "fimDeTurno": false,
-        "solicitaDados": {
-          "solicita": false,
-          "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
-        },
-        "acoes": [],
-        "metadados": {
-          "local_atual": "floresta escura",
-          "npcs_presentes": [
-            "eremita"
-          ],
-          "memoria_semantica": []
-        }
+      "respostaBruta": null,
+      "respostaIA": null,
+      "respostaParseou": false,
+      "erroParse": {
+        "tipo": "json_invalido",
+        "mensagem": "429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 93099, Requested 8803. Please try again in 27m23.328s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}",
+        "trecho": ""
       },
-      "respostaParseou": true,
-      "erroParse": null,
-      "resolucaoMecanica": {
-        "tipo": "usar_habilidade",
-        "alvoId": "goblin_1",
-        "alvoNome": "Goblin Saqueador",
-        "arma": null,
-        "magiaId": null,
-        "habilidadeId": "investida",
-        "pendingRoll": true
-      },
+      "resolucaoMecanica": null,
       "rolagemAutomatica": null,
       "estadoApos": {
         "jogador": {
@@ -404,8 +563,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 41022,
-      "tempoTurnoTotalMs": 41022
+      "tempoRespostaMs": 93353,
+      "tempoTurnoTotalMs": 93353
     }
   ],
   "estadoFinal": {

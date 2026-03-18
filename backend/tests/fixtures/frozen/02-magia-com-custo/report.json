@@ -1,7 +1,7 @@
 {
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T14:03:22.857Z",
+  "geradoEm": "2026-03-18T18:08:22.202Z",
   "modelos": {
     "groq": {
       "statusExecucao": "concluida",
@@ -9,20 +9,15 @@
       "latenciaMediaMs": 36487,
       "invariantes": {
         "total": 8,
-        "passaram": 7,
-        "falharam": 1
+        "passaram": 8,
+        "falharam": 0
       },
-      "falhas": [
-        {
-          "invariante": "mana_descontada_ao_usar_magia",
-          "detalhe": "turno 5: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=0"
-        }
-      ]
+      "falhas": []
     },
     "gemini": {
       "statusExecucao": "concluida",
-      "turnos": 5,
-      "latenciaMediaMs": 8414,
+      "turnos": 6,
+      "latenciaMediaMs": 7321,
       "invariantes": {
         "total": 8,
         "passaram": 7,
@@ -31,7 +26,7 @@
       "falhas": [
         {
           "invariante": "mana_descontada_ao_usar_magia",
-          "detalhe": "turno 5: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=0"
+          "detalhe": "turno 6: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=2"
         }
       ]
     },
@@ -41,15 +36,10 @@
       "latenciaMediaMs": 15613,
       "invariantes": {
         "total": 8,
-        "passaram": 7,
-        "falharam": 1
+        "passaram": 8,
+        "falharam": 0
       },
-      "falhas": [
-        {
-          "invariante": "mana_descontada_ao_usar_magia",
-          "detalhe": "turno 5: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=0"
-        }
-      ]
+      "falhas": []
     }
   }
 }

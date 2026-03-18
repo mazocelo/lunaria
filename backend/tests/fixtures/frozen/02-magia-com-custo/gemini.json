@@ -1,23 +1,23 @@
 {
-  "runId": "run_20260318_110049_9c5c",
+  "runId": "run_20260318_150713_7fef",
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
   "cenarioHash": "sha256:83232582e436",
   "modelo": "gemini-2.5-flash",
   "provider": "gemini",
-  "redisPrefix": "test_run_run_20260318_110049_9c5c_gemini:",
+  "redisPrefix": "test_run_run_20260318_150713_7fef_gemini:",
   "statusExecucao": "concluida",
   "erroExecucao": null,
-  "iniciadoEm": "2026-03-18T14:00:49.353Z",
-  "finalizadoEm": "2026-03-18T14:01:31.430Z",
-  "duracaoMs": 42077,
+  "iniciadoEm": "2026-03-18T18:07:13.427Z",
+  "finalizadoEm": "2026-03-18T18:07:57.361Z",
+  "duracaoMs": 43934,
   "metricas": {
-    "turnosExecutados": 5,
-    "respostasParseadas": 5,
+    "turnosExecutados": 6,
+    "respostasParseadas": 6,
     "errosParse": 0,
-    "rolagensAutomaticas": 0,
-    "latenciaMediaMs": 8414,
-    "latenciaMaxMs": 10908,
+    "rolagensAutomaticas": 1,
+    "latenciaMediaMs": 7321,
+    "latenciaMaxMs": 15727,
     "tokensInput": null,
     "tokensOutput": null,
     "custoEstimado": null
@@ -53,33 +53,30 @@
             "status": []
           }
         ],
-        "combateAtivo": false
+        "combateAtivo": true
       },
-      "respostaBruta": "A clareira, banhada por uma luz solar filtrada pelas copas das árvores, revela um pequeno goblin. A criatura, de pele esverdeada e vestes esfarrapadas, empunha uma cimitarra enferrujada. Seus olhos miúdos e maliciosos fixam-se em Moruxis, e um rosnado gutural escapa de sua garganta. Moruxis, com sua espada longa em punho, sente a energia divina fluir, pronto para o confronto.",
+      "respostaBruta": "O ar da clareira é denso, carregado com o cheiro de terra úmida e folhas secas. À sua frente, um **Goblin Saqueador** de pele esverdeada e olhos injetados, está agachado perto de um tronco caído, examinando um pequeno saco de couro. Ele não parece ter notado sua presença até o momento. Seus músculos tensos e o brilho em seus olhos indicam que você está pronto para invocar a **Luz Divina** ou **Proteção contra o Mal**. \n\nDe repente, o goblin ergue a cabeça, farejando o ar. Seus olhos pequenos e astutos encontram os seus. Um grunhido gutural escapa de sua garganta enquanto ele larga o saco e saca uma cimitarra enferrujada, assumindo uma postura defensiva instintiva. A ameaça é clara. A clareira, antes pacífica, agora é um palco para o confronto.",
       "respostaIA": {
-        "narracao": "A clareira, banhada por uma luz solar filtrada pelas copas das árvores, revela um pequeno goblin. A criatura, de pele esverdeada e vestes esfarrapadas, empunha uma cimitarra enferrujada. Seus olhos miúdos e maliciosos fixam-se em Moruxis, e um rosnado gutural escapa de sua garganta. Moruxis, com sua espada longa em punho, sente a energia divina fluir, pronto para o confronto.",
+        "narracao": "O ar da clareira é denso, carregado com o cheiro de terra úmida e folhas secas. À sua frente, um **Goblin Saqueador** de pele esverdeada e olhos injetados, está agachado perto de um tronco caído, examinando um pequeno saco de couro. Ele não parece ter notado sua presença até o momento. Seus músculos tensos e o brilho em seus olhos indicam que você está pronto para invocar a **Luz Divina** ou **Proteção contra o Mal**. \n\nDe repente, o goblin ergue a cabeça, farejando o ar. Seus olhos pequenos e astutos encontram os seus. Um grunhido gutural escapa de sua garganta enquanto ele larga o saco e saca uma cimitarra enferrujada, assumindo uma postura defensiva instintiva. A ameaça é clara. A clareira, antes pacífica, agora é um palco para o confronto.",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
+          "solicita": true,
           "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
+          "teste": "Agilidade",
+          "dificuldade": "Média",
           "origem": null
         },
         "acoes": [],
         "metadados": {
-          "local_atual": "Clareira",
+          "local_atual": "clareira na floresta",
           "hora_ficcional": "dia",
-          "npcs_presentes": [
-            {
-              "nome": "Goblin Saqueador",
-              "tipo": "inimigo"
-            }
-          ],
+          "npcs_presentes": [],
           "memoria_semantica": [],
           "terreno": "floresta aberta",
           "tensao": "combate iminente",
-          "ameacas": []
+          "ameacas": [
+            "Goblin Saqueador"
+          ]
         }
       },
       "respostaParseou": true,
@@ -112,8 +109,8 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 8366,
-      "tempoTurnoTotalMs": 8366
+      "tempoRespostaMs": 8313,
+      "tempoTurnoTotalMs": 8313
     },
     {
       "turno": 2,
@@ -153,28 +150,39 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Moruxis avança pela trilha principal da Floresta Sussurrante. A umidade do ar pesa, e o aroma de terra e musgo é intenso. A luz do sol filtra-se em feixes esparsos pela densa folhagem, desenhando padrões mutáveis no chão. Adiante, a trilha mostra sinais de recente perturbação: galhos quebrados e folhagem pisoteada desordenadamente. Mais à frente, uma figura jaz imóvel ao lado de uma árvore caída.",
+      "respostaBruta": "Moruxis, com um rugido gutural, canaliza a energia divina. Uma esfera de luz pura se materializa entre seus chifres, brilhando intensamente antes de ser lançada em direção ao Goblin Saqueador. O brilho ofuscante corta o ar sujo da caverna, mirando o pequeno e ágil inimigo.",
       "respostaIA": {
-        "narracao": "Moruxis avança pela trilha principal da Floresta Sussurrante. A umidade do ar pesa, e o aroma de terra e musgo é intenso. A luz do sol filtra-se em feixes esparsos pela densa folhagem, desenhando padrões mutáveis no chão. Adiante, a trilha mostra sinais de recente perturbação: galhos quebrados e folhagem pisoteada desordenadamente. Mais à frente, uma figura jaz imóvel ao lado de uma árvore caída.",
+        "narracao": "Moruxis, com um rugido gutural, canaliza a energia divina. Uma esfera de luz pura se materializa entre seus chifres, brilhando intensamente antes de ser lançada em direção ao Goblin Saqueador. O brilho ofuscante corta o ar sujo da caverna, mirando o pequeno e ágil inimigo.",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
+          "solicita": true,
           "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "teste": "Inteligência",
+          "dificuldade": "Média",
+          "origem": "magia:Luz Divina"
         },
-        "acoes": [],
+        "acoes": [
+          {
+            "tipo": "conjurar_magia",
+            "personagem": "Moruxis",
+            "magia_id": null,
+            "nome": "Luz Divina",
+            "custo_mana": 3,
+            "cooldown_turnos": 0,
+            "usa_concentracao": false,
+            "dano_base": "1d8",
+            "elemento": "radiante",
+            "alvo": "Goblin Saqueador"
+          }
+        ],
         "metadados": {
-          "local_atual": "Floresta Sussurrante",
-          "hora_ficcional": "Manhã",
+          "local_atual": null,
+          "hora_ficcional": null,
           "npcs_presentes": [],
           "memoria_semantica": [],
-          "terreno": "floresta densa",
-          "tensao": "alerta",
-          "ameacas": [
-            "potencial perigo"
-          ]
+          "terreno": null,
+          "tensao": "combate iminente",
+          "ameacas": []
         }
       },
       "respostaParseou": true,
@@ -215,20 +223,14 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 10908,
-      "tempoTurnoTotalMs": 10908
+      "tempoRespostaMs": 4787,
+      "tempoTurnoTotalMs": 4787
     },
     {
       "turno": 3,
       "acaoJogador": {
-        "tipo": "mensagem",
-        "texto": "Lanço Protecao contra o Mal em mim mesmo",
-        "gameIntent": {
-          "categoria": "combate",
-          "tipo": "usar_habilidade",
-          "magiaId": "protecao_mal",
-          "alvo": "goblin_1"
-        }
+        "tipo": "rolar_dado",
+        "quando": "se_solicitado"
       },
       "estadoAntes": {
         "jogador": {
@@ -256,9 +258,113 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Moruxis, o Minotauro Paladino, emerge de uma trilha rochosa para um cruzamento de estradas. O ar está fresco e a luz do sol da manhã filtra-se pelas árvores, criando um jogo de sombras no chão. À sua esquerda, uma estrada de terra batida segue para o sul, onde a fumaça de chaminés indica um assentamento de pequeno porte. À direita, um caminho mais estreito mergulha na densidade de uma floresta escura e silenciosa. No centro do cruzamento, um poste de madeira, antigo e lascado, inclina-se ligeiramente.",
+      "respostaBruta": "{\"rolagemBruta\":14,\"atributo\":\"inteligencia\",\"atributoNome\":\"Inteligência\",\"valorAtributo\":10,\"modificador\":0,\"bonusNivel\":0,\"bonusVantDesvant\":0,\"detalhesBonus\":[],\"totalModificador\":0,\"total\":14,\"dc\":12,\"dificuldadeNome\":\"Média\",\"sucesso\":true,\"margem\":2,\"critico\":false,\"falha_critica\":false,\"descricaoResultado\":\"Sucesso!\"}",
+      "respostaIA": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "ataque",
+        "sucesso": true,
+        "dano": 7,
+        "danoRolado": 8,
+        "armadura": 1,
+        "alvoId": "goblin_1",
+        "alvoHpRestante": 5
+      },
+      "rolagemAutomatica": {
+        "dado": "d20",
+        "resultado": 14,
+        "teste": "Inteligência",
+        "resolucao": {
+          "rolagemBruta": 14,
+          "atributo": "inteligencia",
+          "atributoNome": "Inteligência",
+          "valorAtributo": 10,
+          "modificador": 0,
+          "bonusNivel": 0,
+          "bonusVantDesvant": 0,
+          "detalhesBonus": [],
+          "totalModificador": 0,
+          "total": 14,
+          "dc": 12,
+          "dificuldadeNome": "Média",
+          "sucesso": true,
+          "margem": 2,
+          "critico": false,
+          "falha_critica": false,
+          "descricaoResultado": "Sucesso!"
+        }
+      },
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 1,
+      "tempoTurnoTotalMs": 1
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanço Protecao contra o Mal em mim mesmo",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "protecao_mal",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Uma aura tênue e dourada envolve Moruxis, pulsando com energia protetora. O efeito da magia 'Proteção contra o Mal' se manifesta. O Goblin Saqueador, visivelmente ferido, rosna e mantém sua postura agressiva, os olhos fixos em Moruxis.",
       "respostaIA": {
-        "narracao": "Moruxis, o Minotauro Paladino, emerge de uma trilha rochosa para um cruzamento de estradas. O ar está fresco e a luz do sol da manhã filtra-se pelas árvores, criando um jogo de sombras no chão. À sua esquerda, uma estrada de terra batida segue para o sul, onde a fumaça de chaminés indica um assentamento de pequeno porte. À direita, um caminho mais estreito mergulha na densidade de uma floresta escura e silenciosa. No centro do cruzamento, um poste de madeira, antigo e lascado, inclina-se ligeiramente.",
+        "narracao": "Uma aura tênue e dourada envolve Moruxis, pulsando com energia protetora. O efeito da magia 'Proteção contra o Mal' se manifesta. O Goblin Saqueador, visivelmente ferido, rosna e mantém sua postura agressiva, os olhos fixos em Moruxis.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -267,14 +373,35 @@
           "dificuldade": "",
           "origem": null
         },
-        "acoes": [],
+        "acoes": [
+          {
+            "tipo": "conjurar_magia",
+            "personagem": "Moruxis",
+            "magia_id": null,
+            "nome": "Protecao contra o Mal",
+            "custo_mana": 2,
+            "usa_concentracao": false
+          },
+          {
+            "tipo": "aplicar_efeito",
+            "personagem": "Moruxis",
+            "nome": "Proteção contra o Mal",
+            "duracao": null
+          }
+        ],
         "metadados": {
-          "local_atual": "Cruzamento de Estradas",
-          "hora_ficcional": "manhã",
-          "npcs_presentes": [],
+          "local_atual": null,
+          "hora_ficcional": null,
+          "npcs_presentes": [
+            {
+              "nome": "Goblin Saqueador",
+              "tipo": "humanoide",
+              "status": "ferido"
+            }
+          ],
           "memoria_semantica": [],
-          "terreno": "caminho de terra",
-          "tensao": "calmo",
+          "terreno": null,
+          "tensao": "combate ativo",
           "ameacas": []
         }
       },
@@ -304,7 +431,7 @@
           {
             "id": "goblin_1",
             "nome": "Goblin Saqueador",
-            "hp": 12,
+            "hp": 5,
             "hpMax": 12,
             "ataque": 4,
             "dano": "1d6",
@@ -316,11 +443,11 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 8744,
-      "tempoTurnoTotalMs": 8744
+      "tempoRespostaMs": 15099,
+      "tempoTurnoTotalMs": 15099
     },
     {
-      "turno": 4,
+      "turno": 5,
       "acaoJogador": {
         "tipo": "mensagem",
         "texto": "Lanco Luz Divina novamente no goblin",
@@ -345,7 +472,7 @@
           {
             "id": "goblin_1",
             "nome": "Goblin Saqueador",
-            "hp": 12,
+            "hp": 5,
             "hpMax": 12,
             "ataque": 4,
             "dano": "1d6",
@@ -357,9 +484,9 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "A poeira fina da estrada de terra se eleva a cada passo pesado de Moruxis. O sol do meio-dia castiga a copa das árvores da Floresta de Eldoria, que margeia o caminho. Ao longe, a fumaça de chaminés indica o vilarejo de Oakhaven. Contudo, um cheiro acre de fumaça queimada, mais recente e intenso, paira no ar, vindo de uma pequena clareira à direita da estrada, antes de Oakhaven.",
+      "respostaBruta": "Moruxis levanta sua mão com determinação, e um brilho dourado emana de sua palma. A energia sagrada se condensa rapidamente, formando um projétil radiante. Com um gesto firme, o minotauro lança a luz divina em direção ao Goblin Saqueador, que cambaleia, já ferido. O feixe de energia corta o ar, buscando seu alvo com precisão.",
       "respostaIA": {
-        "narracao": "A poeira fina da estrada de terra se eleva a cada passo pesado de Moruxis. O sol do meio-dia castiga a copa das árvores da Floresta de Eldoria, que margeia o caminho. Ao longe, a fumaça de chaminés indica o vilarejo de Oakhaven. Contudo, um cheiro acre de fumaça queimada, mais recente e intenso, paira no ar, vindo de uma pequena clareira à direita da estrada, antes de Oakhaven.",
+        "narracao": "Moruxis levanta sua mão com determinação, e um brilho dourado emana de sua palma. A energia sagrada se condensa rapidamente, formando um projétil radiante. Com um gesto firme, o minotauro lança a luz divina em direção ao Goblin Saqueador, que cambaleia, já ferido. O feixe de energia corta o ar, buscando seu alvo com precisão.",
         "fimDeTurno": false,
         "solicitaDados": {
           "solicita": false,
@@ -368,16 +495,34 @@
           "dificuldade": "",
           "origem": null
         },
-        "acoes": [],
+        "acoes": [
+          {
+            "tipo": "conjurar_magia",
+            "personagem": "Moruxis",
+            "magia_id": 1,
+            "nome": "Luz Divina",
+            "custo_mana": 3,
+            "cooldown_turnos": 0,
+            "usa_concentracao": false,
+            "dano_base": "1d8",
+            "elemento": "radiante",
+            "alvo": "Goblin Saqueador"
+          }
+        ],
         "metadados": {
-          "local_atual": "Estrada para Oakhaven",
-          "hora_ficcional": "Meio-dia",
-          "npcs_presentes": [],
+          "local_atual": null,
+          "hora_ficcional": null,
+          "npcs_presentes": [
+            {
+              "nome": "Goblin Saqueador",
+              "status": "ferido"
+            }
+          ],
           "memoria_semantica": [],
-          "terreno": "Estrada de terra e floresta",
-          "tensao": "alerta",
+          "terreno": null,
+          "tensao": "combate ativo",
           "ameacas": [
-            "fumaça incomum"
+            "Goblin Saqueador"
           ]
         }
       },
@@ -407,7 +552,7 @@
           {
             "id": "goblin_1",
             "nome": "Goblin Saqueador",
-            "hp": 12,
+            "hp": 5,
             "hpMax": 12,
             "ataque": 4,
             "dano": "1d6",
@@ -419,18 +564,18 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 6953,
-      "tempoTurnoTotalMs": 6953
+      "tempoRespostaMs": 15727,
+      "tempoTurnoTotalMs": 15727
     },
     {
-      "turno": 5,
+      "turno": 6,
       "acaoJogador": {
         "tipo": "mensagem",
-        "texto": "Ataco o goblin com minha arma",
+        "texto": "Lanco Luz Divina mais uma vez no goblin",
         "gameIntent": {
           "categoria": "combate",
-          "tipo": "atacar",
-          "arma": "espada_longa",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
           "alvo": "goblin_1"
         }
       },
@@ -448,7 +593,7 @@
           {
             "id": "goblin_1",
             "nome": "Goblin Saqueador",
-            "hp": 12,
+            "hp": 5,
             "hpMax": 12,
             "ataque": 4,
             "dano": "1d6",
@@ -460,40 +605,20 @@
         ],
         "combateAtivo": true
       },
-      "respostaBruta": "Moruxis, o minotauro paladino, emerge da densa folhagem da Floresta Sussurrante. O ar carregado de umidade e o canto distante de aves dão lugar a um silêncio estranho, quebrado apenas pelo ranger de uma carroça abandonada na estrada de terra à frente. A pequena vila de Oakhaven se estende no vale, suas casas de madeira parecendo encolhidas sob um céu nublado. Não há fumaça nas chaminés, nem crianças brincando nas ruas. Uma bandeira rasgada com o emblema da vila, um carvalho forte, pende flácida de um mastro quebrado perto da entrada.",
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] mana insuficiente para luz_divina: tem 2, custo 3\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
       "respostaIA": {
-        "narracao": "Moruxis, o minotauro paladino, emerge da densa folhagem da Floresta Sussurrante. O ar carregado de umidade e o canto distante de aves dão lugar a um silêncio estranho, quebrado apenas pelo ranger de uma carroça abandonada na estrada de terra à frente. A pequena vila de Oakhaven se estende no vale, suas casas de madeira parecendo encolhidas sob um céu nublado. Não há fumaça nas chaminés, nem crianças brincando nas ruas. Uma bandeira rasgada com o emblema da vila, um carvalho forte, pende flácida de um mastro quebrado perto da entrada.",
+        "narracao": "[BLOQUEADO] mana insuficiente para luz_divina: tem 2, custo 3",
         "fimDeTurno": false,
         "solicitaDados": {
-          "solicita": false,
-          "tipo": "d20",
-          "teste": "",
-          "dificuldade": "",
-          "origem": null
+          "solicita": false
         },
-        "acoes": [],
-        "metadados": {
-          "local_atual": "Vila de Oakhaven (entrada)",
-          "hora_ficcional": "Dia, mas nublado",
-          "npcs_presentes": [],
-          "memoria_semantica": [],
-          "terreno": "estrada de terra, vila",
-          "tensao": "alerta",
-          "ameacas": [
-            "silencio estranho"
-          ]
-        }
+        "acoes": []
       },
       "respostaParseou": true,
       "erroParse": null,
       "resolucaoMecanica": {
-        "tipo": "atacar",
-        "alvoId": "goblin_1",
-        "alvoNome": "Goblin Saqueador",
-        "arma": "espada_longa",
-        "magiaId": null,
-        "habilidadeId": null,
-        "pendingRoll": true
+        "bloqueado": true,
+        "motivo": "mana insuficiente para luz_divina: tem 2, custo 3"
       },
       "rolagemAutomatica": null,
       "estadoApos": {
@@ -510,7 +635,7 @@
           {
             "id": "goblin_1",
             "nome": "Goblin Saqueador",
-            "hp": 12,
+            "hp": 5,
             "hpMax": 12,
             "ataque": 4,
             "dano": "1d6",
@@ -522,15 +647,15 @@
         ],
         "combateAtivo": true
       },
-      "tempoRespostaMs": 7097,
-      "tempoTurnoTotalMs": 7097
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 1
     }
   ],
   "estadoFinal": {
     "jogador": {
       "hp": 30,
       "hpMax": 30,
-      "mana": 0,
+      "mana": 2,
       "manaMax": 10,
       "xpGanho": 0,
       "status": []
@@ -538,7 +663,7 @@
     "inimigos": [
       {
         "id": "goblin_1",
-        "hp": 12,
+        "hp": 5,
         "hpMax": 12,
         "status": []
       }

@@ -1,6 +1,6 @@
 # Relatório: 02-magia-com-custo (v1.0.0)
 
-**Gerado em:** 2026-03-18 18:08:22
+**Gerado em:** 2026-03-18 18:16:58
 
 ## Métricas
 

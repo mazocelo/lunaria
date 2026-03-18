@@ -1,7 +1,7 @@
 {
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T18:08:22.202Z",
+  "geradoEm": "2026-03-18T18:16:58.152Z",
   "modelos": {
     "groq": {
       "statusExecucao": "concluida",

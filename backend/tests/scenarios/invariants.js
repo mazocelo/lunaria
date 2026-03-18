@@ -155,6 +155,17 @@ export function mana_descontada_ao_usar_magia(log, cenario) {
     const manaApos = t.estadoApos?.jogador?.mana;
     if (manaAntes == null || manaApos == null) continue;
 
+    // If action was blocked (insufficient mana), mana should stay the same
+    if (t.resolucaoMecanica?.bloqueado || manaAntes < magia.custo_mana) {
+      if (manaApos !== manaAntes) {
+        falhas.push(
+          `turno ${i + 1}: magia ${intent.magiaId} bloqueada (mana ${manaAntes} < custo ${magia.custo_mana}), ` +
+          `mana deveria ficar ${manaAntes} mas ficou ${manaApos}`
+        );
+      }
+      continue;
+    }
+
     const expected = manaAntes - magia.custo_mana;
     if (manaApos !== expected) {
       falhas.push(

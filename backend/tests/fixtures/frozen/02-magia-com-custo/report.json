@@ -1,28 +1,55 @@
 {
   "cenarioId": "02-magia-com-custo",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T07:26:13.011Z",
+  "geradoEm": "2026-03-18T07:44:54.043Z",
   "modelos": {
     "groq": {
-      "statusExecucao": "sem_log",
-      "turnos": null,
-      "latenciaMediaMs": null,
-      "invariantes": null,
-      "falhas": []
+      "statusExecucao": "concluida",
+      "turnos": 5,
+      "latenciaMediaMs": 36487,
+      "invariantes": {
+        "total": 8,
+        "passaram": 7,
+        "falharam": 1
+      },
+      "falhas": [
+        {
+          "invariante": "mana_descontada_ao_usar_magia",
+          "detalhe": "turno 5: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=0"
+        }
+      ]
     },
     "gemini": {
-      "statusExecucao": "sem_log",
-      "turnos": null,
-      "latenciaMediaMs": null,
-      "invariantes": null,
-      "falhas": []
+      "statusExecucao": "concluida",
+      "turnos": 5,
+      "latenciaMediaMs": 8326,
+      "invariantes": {
+        "total": 8,
+        "passaram": 7,
+        "falharam": 1
+      },
+      "falhas": [
+        {
+          "invariante": "mana_descontada_ao_usar_magia",
+          "detalhe": "turno 5: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=0"
+        }
+      ]
     },
     "sonnet": {
-      "statusExecucao": "sem_log",
-      "turnos": null,
-      "latenciaMediaMs": null,
-      "invariantes": null,
-      "falhas": []
+      "statusExecucao": "concluida",
+      "turnos": 5,
+      "latenciaMediaMs": 16908,
+      "invariantes": {
+        "total": 8,
+        "passaram": 7,
+        "falharam": 1
+      },
+      "falhas": [
+        {
+          "invariante": "mana_descontada_ao_usar_magia",
+          "detalhe": "turno 5: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=0"
+        }
+      ]
     }
   }
 }

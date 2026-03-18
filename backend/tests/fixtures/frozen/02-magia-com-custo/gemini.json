@@ -1,0 +1,563 @@
+{
+  "runId": "run_20260318_043952_ec8a",
+  "cenarioId": "02-magia-com-custo",
+  "cenarioVersao": "1.0.0",
+  "cenarioHash": "sha256:83232582e436",
+  "modelo": "gemini-2.5-flash",
+  "provider": "gemini",
+  "redisPrefix": "test_run_run_20260318_043952_ec8a_gemini:",
+  "statusExecucao": "concluida",
+  "erroExecucao": null,
+  "iniciadoEm": "2026-03-18T07:39:52.500Z",
+  "finalizadoEm": "2026-03-18T07:40:34.140Z",
+  "duracaoMs": 41640,
+  "metricas": {
+    "turnosExecutados": 5,
+    "respostasParseadas": 5,
+    "errosParse": 0,
+    "rolagensAutomaticas": 0,
+    "latenciaMediaMs": 8326,
+    "latenciaMaxMs": 11420,
+    "tokensInput": null,
+    "tokensOutput": null,
+    "custoEstimado": null
+  },
+  "condicaoDeParada": "acoes_esgotadas",
+  "turnos": [
+    {
+      "turno": 1,
+      "acaoJogador": {
+        "tipo": "iniciar_turno"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": false
+      },
+      "respostaBruta": "A clareira, antes pacífica, agora vibra com uma tensão palpável. Entre as árvores altas e o chão coberto de folhas secas, um goblin raquítico e de pele esverdeada se agita. Ele está curvado sobre um saco de couro, os olhos miúdos e malignos fixos em você. O fedor de terra úmida e algo azedo emana da criatura, que empunha uma cimitarra enferrujada e um escudo improvisado. Ao perceber sua presença imponente, o goblin solta um guincho agudo, sua postura defensiva se tornando agressiva. Moruxis sente o poder divino fluir, pronto para ser canalizado.",
+      "respostaIA": {
+        "narracao": "A clareira, antes pacífica, agora vibra com uma tensão palpável. Entre as árvores altas e o chão coberto de folhas secas, um goblin raquítico e de pele esverdeada se agita. Ele está curvado sobre um saco de couro, os olhos miúdos e malignos fixos em você. O fedor de terra úmida e algo azedo emana da criatura, que empunha uma cimitarra enferrujada e um escudo improvisado. Ao perceber sua presença imponente, o goblin solta um guincho agudo, sua postura defensiva se tornando agressiva. Moruxis sente o poder divino fluir, pronto para ser canalizado.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Clareira da Floresta",
+          "hora_ficcional": "dia",
+          "npcs_presentes": [
+            {
+              "nome": "Goblin Saqueador",
+              "estado": "hostil"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": "floresta densa",
+          "tensao": "combate iminente",
+          "ameacas": [
+            "Goblin Saqueador"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 7264,
+      "tempoTurnoTotalMs": 7265
+    },
+    {
+      "turno": 2,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "O sol da manhã filtra-se pelas copas das árvores, lançando feixes de luz sobre a clareira onde você se encontra. O ar está pesado, e um sutil odor metálico, como de sangue seco, paira junto ao cheiro de terra úmida. À sua volta, galhos estão estraçalhados e o solo macio exibe marcas profundas, como se algo pesado tivesse sido arrastado ou uma luta rápida tivesse ocorrido ali. Uma trilha estreita se aprofunda na floresta densa a leste, enquanto um caminho mais largo se estende para o sul, onde uma tênue coluna de fumaça se eleva no horizonte, sugerindo um vilarejo distante.",
+      "respostaIA": {
+        "narracao": "O sol da manhã filtra-se pelas copas das árvores, lançando feixes de luz sobre a clareira onde você se encontra. O ar está pesado, e um sutil odor metálico, como de sangue seco, paira junto ao cheiro de terra úmida. À sua volta, galhos estão estraçalhados e o solo macio exibe marcas profundas, como se algo pesado tivesse sido arrastado ou uma luta rápida tivesse ocorrido ali. Uma trilha estreita se aprofunda na floresta densa a leste, enquanto um caminho mais largo se estende para o sul, onde uma tênue coluna de fumaça se eleva no horizonte, sugerindo um vilarejo distante.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Clareira da Floresta",
+          "hora_ficcional": "Manhã",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "floresta densa",
+          "tensao": "alerta",
+          "ameacas": [
+            "perturbação recente"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 7527,
+      "tempoTurnoTotalMs": 7527
+    },
+    {
+      "turno": 3,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanço Protecao contra o Mal em mim mesmo",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "protecao_mal",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "O ar pesado e úmido envolve Moruxis enquanto ele se aproxima da entrada em ruínas de um templo antigo. Grandes blocos de pedra, corroídos pelo tempo e cobertos por musgo, formam um arco que leva a uma escuridão quase total. Um brilho fraco e pulsante, de um tom azulado, emerge das profundezas, acompanhado por um eco distante de um som metálico.",
+      "respostaIA": {
+        "narracao": "O ar pesado e úmido envolve Moruxis enquanto ele se aproxima da entrada em ruínas de um templo antigo. Grandes blocos de pedra, corroídos pelo tempo e cobertos por musgo, formam um arco que leva a uma escuridão quase total. Um brilho fraco e pulsante, de um tom azulado, emerge das profundezas, acompanhado por um eco distante de um som metálico.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Entrada do Templo Antigo",
+          "hora_ficcional": "dia",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "ruínas de pedra",
+          "tensao": "alerta",
+          "ameacas": [
+            "desconhecido"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "protecao_mal",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 5732,
+      "tempoTurnoTotalMs": 5733
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina novamente no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "O sol do meio-dia castiga a estrada de terra enquanto você, Moruxis, se aproxima do Vilarejo de Pedra Seca. As casas, feitas de rochas rústicas e telhados de palha, parecem se encolher sob o calor. Um silêncio pesado paira sobre o local, interrompido apenas pelo coaxar distante de um corvo. Não há crianças brincando, nem o burburinho habitual de uma vila em dia de feira. Próximo à fonte central, um pequeno grupo de aldeões se aglomera, suas vozes baixas e tensas. Um homem idoso, com a barba grisalha e vestes simples, gesticula, tentando acalmar os ânimos. Ele ergue o olhar e seus olhos fixam em sua figura imponente, um misto de apreensão e uma tênue chama de esperança surgindo em seu rosto.",
+      "respostaIA": {
+        "narracao": "O sol do meio-dia castiga a estrada de terra enquanto você, Moruxis, se aproxima do Vilarejo de Pedra Seca. As casas, feitas de rochas rústicas e telhados de palha, parecem se encolher sob o calor. Um silêncio pesado paira sobre o local, interrompido apenas pelo coaxar distante de um corvo. Não há crianças brincando, nem o burburinho habitual de uma vila em dia de feira. Próximo à fonte central, um pequeno grupo de aldeões se aglomera, suas vozes baixas e tensas. Um homem idoso, com a barba grisalha e vestes simples, gesticula, tentando acalmar os ânimos. Ele ergue o olhar e seus olhos fixam em sua figura imponente, um misto de apreensão e uma tênue chama de esperança surgindo em seu rosto.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Vilarejo de Pedra Seca",
+          "hora_ficcional": "meio-dia",
+          "npcs_presentes": [
+            {
+              "nome": "Ancião Elara",
+              "descricao": "Líder idoso da vila, barba grisalha, vestes simples.",
+              "reputacao": "respeitado",
+              "relacao": "neutro"
+            },
+            {
+              "nome": "Aldeões Preocupados",
+              "descricao": "Grupo de moradores da vila, visivelmente aflitos.",
+              "reputacao": "neutro",
+              "relacao": "neutro"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": "vilarejo",
+          "tensao": "alerta",
+          "ameacas": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 9687,
+      "tempoTurnoTotalMs": 9687
+    },
+    {
+      "turno": 5,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina mais uma vez no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Os raios de sol lutam para perfurar a densa copa das árvores, lançando sombras longas e dançantes sobre a trilha de terra batida. O ar é pesado com o cheiro de terra úmida e musgo antigo, e o silêncio da floresta é quebrado apenas pelo farfalhar distante das folhas. Você, Moruxis, sente o peso de sua espada longa e a presença de sua fé enquanto avança. A trilha se abre em uma clareira circular, revelando os restos de um santuário esquecido. Blocos de pedra cobertos por hera e líquen formam o que um dia foi uma estrutura imponente. No centro, uma estátua de uma figura alada, corroída pelo tempo, jaz sobre um pedestal rachado, quase engolida pela vegetação. Um suave murmúrio de água se faz ouvir, vindo de algum lugar além das ruínas.",
+      "respostaIA": {
+        "narracao": "Os raios de sol lutam para perfurar a densa copa das árvores, lançando sombras longas e dançantes sobre a trilha de terra batida. O ar é pesado com o cheiro de terra úmida e musgo antigo, e o silêncio da floresta é quebrado apenas pelo farfalhar distante das folhas. Você, Moruxis, sente o peso de sua espada longa e a presença de sua fé enquanto avança. A trilha se abre em uma clareira circular, revelando os restos de um santuário esquecido. Blocos de pedra cobertos por hera e líquen formam o que um dia foi uma estrutura imponente. No centro, uma estátua de uma figura alada, corroída pelo tempo, jaz sobre um pedestal rachado, quase engolida pela vegetação. Um suave murmúrio de água se faz ouvir, vindo de algum lugar além das ruínas.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Floresta Antiga - Clareira das Ruínas",
+          "hora_ficcional": "manhã",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "floresta densa",
+          "tensao": "alerta",
+          "ameacas": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 0,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 11420,
+      "tempoTurnoTotalMs": 11420
+    }
+  ],
+  "estadoFinal": {
+    "jogador": {
+      "hp": 30,
+      "hpMax": 30,
+      "mana": 0,
+      "manaMax": 10,
+      "xpGanho": 0,
+      "status": []
+    },
+    "inimigos": [
+      {
+        "id": "goblin_1",
+        "hp": 12,
+        "hpMax": 12,
+        "status": []
+      }
+    ],
+    "combateAtivo": true,
+    "resultado": "indefinido",
+    "resultadoDetalhe": null
+  }
+}

@@ -1,28 +1,63 @@
 {
   "cenarioId": "06-acao-invalida",
   "cenarioVersao": "1.0.0",
-  "geradoEm": "2026-03-18T07:26:13.012Z",
+  "geradoEm": "2026-03-18T07:44:59.285Z",
   "modelos": {
     "groq": {
-      "statusExecucao": "sem_log",
-      "turnos": null,
-      "latenciaMediaMs": null,
-      "invariantes": null,
-      "falhas": []
+      "statusExecucao": "falha_parsing",
+      "turnos": 4,
+      "latenciaMediaMs": 59505,
+      "invariantes": {
+        "total": 7,
+        "passaram": 5,
+        "falharam": 2
+      },
+      "falhas": [
+        {
+          "invariante": "resposta_ia_parseavel",
+          "detalhe": "turno 3: respostaParseou = false (json_invalido: 429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99816, Requested 8754. Please try again in 2h3m24.48s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}})"
+        },
+        {
+          "invariante": "resposta_ia_parseavel",
+          "detalhe": "turno 4: respostaParseou = false (json_invalido: 429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99697, Requested 8754. Please try again in 2h1m41.664s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}})"
+        },
+        {
+          "invariante": "equipamento_usado_existe_no_inventario",
+          "detalhe": "turno 3: arma \"alabarda\" nao encontrada em equipamentos do personagem"
+        }
+      ]
     },
     "gemini": {
-      "statusExecucao": "sem_log",
-      "turnos": null,
-      "latenciaMediaMs": null,
-      "invariantes": null,
-      "falhas": []
+      "statusExecucao": "concluida",
+      "turnos": 4,
+      "latenciaMediaMs": 8583,
+      "invariantes": {
+        "total": 7,
+        "passaram": 6,
+        "falharam": 1
+      },
+      "falhas": [
+        {
+          "invariante": "equipamento_usado_existe_no_inventario",
+          "detalhe": "turno 3: arma \"alabarda\" nao encontrada em equipamentos do personagem"
+        }
+      ]
     },
     "sonnet": {
-      "statusExecucao": "sem_log",
-      "turnos": null,
-      "latenciaMediaMs": null,
-      "invariantes": null,
-      "falhas": []
+      "statusExecucao": "concluida",
+      "turnos": 4,
+      "latenciaMediaMs": 16175,
+      "invariantes": {
+        "total": 7,
+        "passaram": 6,
+        "falharam": 1
+      },
+      "falhas": [
+        {
+          "invariante": "equipamento_usado_existe_no_inventario",
+          "detalhe": "turno 3: arma \"alabarda\" nao encontrada em equipamentos do personagem"
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,517 @@
+{
+  "runId": "run_20260318_043128_aa29",
+  "cenarioId": "02-magia-com-custo",
+  "cenarioVersao": "1.0.0",
+  "cenarioHash": "sha256:83232582e436",
+  "modelo": "llama-3.3-70b-versatile",
+  "provider": "groq",
+  "redisPrefix": "test_run_run_20260318_043128_aa29_groq:",
+  "statusExecucao": "concluida",
+  "erroExecucao": null,
+  "iniciadoEm": "2026-03-18T07:31:28.813Z",
+  "finalizadoEm": "2026-03-18T07:34:31.257Z",
+  "duracaoMs": 182444,
+  "metricas": {
+    "turnosExecutados": 5,
+    "respostasParseadas": 5,
+    "errosParse": 0,
+    "rolagensAutomaticas": 0,
+    "latenciaMediaMs": 36487,
+    "latenciaMaxMs": 51414,
+    "tokensInput": null,
+    "tokensOutput": null,
+    "custoEstimado": null
+  },
+  "condicaoDeParada": "acoes_esgotadas",
+  "turnos": [
+    {
+      "turno": 1,
+      "acaoJogador": {
+        "tipo": "iniciar_turno"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": false
+      },
+      "respostaBruta": "O goblin, com sua pele verde escura e olhos arregalados, segura uma faca suja e parece ter sido pego de surpresa pela presença de Moruxis. Ele está parado ao lado de um baú velho e quebrado, com várias coisas espalhadas ao redor, como se tivesse sido saqueado recentemente. O goblin olha para Moruxis com uma mistura de medo e agressividade, preparando-se para atacar.",
+      "respostaIA": {
+        "narracao": "O goblin, com sua pele verde escura e olhos arregalados, segura uma faca suja e parece ter sido pego de surpresa pela presença de Moruxis. Ele está parado ao lado de um baú velho e quebrado, com várias coisas espalhadas ao redor, como se tivesse sido saqueado recentemente. O goblin olha para Moruxis com uma mistura de medo e agressividade, preparando-se para atacar.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": true,
+          "tipo": "d20",
+          "teste": "Iniciativa",
+          "dificuldade": "Media",
+          "origem": "Combate"
+        },
+        "acoes": [],
+        "metadados": {}
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 2173,
+      "tempoTurnoTotalMs": 2173
+    },
+    {
+      "turno": 2,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Você se encontra em uma grande praça, cercada por prédios antigos e uma atmosfera de mistério. No centro da praça, há uma grande estátua de um herói esquecido, coberta de musgo e teias de aranha. De repente, um vento suave começa a soprar, e as folhas das árvores ao redor começam a farfalhar.",
+      "respostaIA": {
+        "narracao": "Você se encontra em uma grande praça, cercada por prédios antigos e uma atmosfera de mistério. No centro da praça, há uma grande estátua de um herói esquecido, coberta de musgo e teias de aranha. De repente, um vento suave começa a soprar, e as folhas das árvores ao redor começam a farfalhar.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Praça Central",
+          "npcs_presentes": [],
+          "memoria_semantica": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 49302,
+      "tempoTurnoTotalMs": 49302
+    },
+    {
+      "turno": 3,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanço Protecao contra o Mal em mim mesmo",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "protecao_mal",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Você se encontra em uma sala escura e úmida, com paredes de pedra e um teto baixo. Há uma porta de madeira à sua frente, que parece levar a um corredor. De repente, você ouve um barulho vindo de trás da porta. Parece que algo ou alguém está se aproximando.",
+      "respostaIA": {
+        "narracao": "Você se encontra em uma sala escura e úmida, com paredes de pedra e um teto baixo. Há uma porta de madeira à sua frente, que parece levar a um corredor. De repente, você ouve um barulho vindo de trás da porta. Parece que algo ou alguém está se aproximando.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "sala escura",
+          "npcs_presentes": [],
+          "memoria_semantica": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "protecao_mal",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 51414,
+      "tempoTurnoTotalMs": 51414
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina novamente no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Você se encontra em uma sala escura e úmida, com paredes de pedra e um teto baixo. Há uma porta de madeira à sua frente, que parece levar a um corredor. De repente, você ouve um barulho vindo de trás da porta. Parece que alguém ou algo está se aproximando.",
+      "respostaIA": {
+        "narracao": "Você se encontra em uma sala escura e úmida, com paredes de pedra e um teto baixo. Há uma porta de madeira à sua frente, que parece levar a um corredor. De repente, você ouve um barulho vindo de trás da porta. Parece que alguém ou algo está se aproximando.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Sala escura e úmida",
+          "npcs_presentes": [],
+          "memoria_semantica": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 37202,
+      "tempoTurnoTotalMs": 37202
+    },
+    {
+      "turno": 5,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina mais uma vez no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Você se encontra em uma pequena taverna, iluminada apenas por algumas velas e o fogo da lareira. O ar está carregado com o cheiro de cerveja e carne assada. Um homem mais velho, com uma barba grisalha, se aproxima de você, olhando para sua armadura e sua espada.",
+      "respostaIA": {
+        "narracao": "Você se encontra em uma pequena taverna, iluminada apenas por algumas velas e o fogo da lareira. O ar está carregado com o cheiro de cerveja e carne assada. Um homem mais velho, com uma barba grisalha, se aproxima de você, olhando para sua armadura e sua espada.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "dialogo",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Taverna",
+          "npcs_presentes": [
+            "Gorin"
+          ],
+          "memoria_semantica": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 0,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 42346,
+      "tempoTurnoTotalMs": 42346
+    }
+  ],
+  "estadoFinal": {
+    "jogador": {
+      "hp": 30,
+      "hpMax": 30,
+      "mana": 0,
+      "manaMax": 10,
+      "xpGanho": 0,
+      "status": []
+    },
+    "inimigos": [
+      {
+        "id": "goblin_1",
+        "hp": 12,
+        "hpMax": 12,
+        "status": []
+      }
+    ],
+    "combateAtivo": true,
+    "resultado": "indefinido",
+    "resultadoDetalhe": null
+  }
+}

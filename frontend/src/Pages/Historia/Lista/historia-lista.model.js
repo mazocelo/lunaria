@@ -60,10 +60,10 @@ export const useHistoriaListaModel = () => {
   const [bulkDeleteIgnoredCount, setBulkDeleteIgnoredCount] = useState(0);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
-  // Carregar historias do store
+  // Carregar historias do store (forceReload para refletir mudanças de sessão)
   useEffect(() => {
     carregarTemas();
-    carregarHistorias();
+    recarregarHistorias();
     return () => setError(null);
   }, []);
 

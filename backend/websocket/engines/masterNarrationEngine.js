@@ -1278,7 +1278,7 @@ export default class MasterNarrationEngine {
           socket,
           sm,
           fase,
-          combateAtivo: combateAtivo || Boolean(resposta?.combate?.iniciado),
+          combateAtivo,
           combatIntent: combatIntentResolvido,
           playerCombatActionResolved
         });

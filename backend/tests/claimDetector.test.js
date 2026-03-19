@@ -195,7 +195,7 @@ describe('validateClaim', () => {
         turnState: { inventario: [], mana: { atual: 3, max: 30 } },
         personagemCompleto: {
           ...baseSources.personagemCompleto,
-          magias: [{ nome: 'Bola de Fogo', id: 10, custo_mana: 10 }],
+          magias: [{ nome: 'Bola de Fogo', id: 10, custo_mana: 10, escola_magia: 'evocacao' }],
         },
       };
       const result = validateClaim({ claim: 'bola de fogo', tipo: 'habilidade' }, sources);
@@ -210,7 +210,7 @@ describe('validateClaim', () => {
         turnState: { inventario: [], mana: { atual: 15, max: 30 } },
         personagemCompleto: {
           ...baseSources.personagemCompleto,
-          magias: [{ nome: 'Bola de Fogo', id: 10, custo_mana: 10 }],
+          magias: [{ nome: 'Bola de Fogo', id: 10, custo_mana: 10, escola_magia: 'evocacao' }],
         },
       };
       const result = validateClaim({ claim: 'bola de fogo', tipo: 'habilidade' }, sources);

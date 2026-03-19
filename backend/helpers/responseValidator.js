@@ -20,6 +20,11 @@ export function validateMestreResponse(resposta, estadoJogo) {
     });
   }
 
+  if (combateAtivo && resposta.arcoStatus?.concluido) {
+    log.warn('LLM enviou arcoStatus.concluido durante combate. Ignorando.');
+    resposta.arcoStatus = null;
+  }
+
   if (combateAtivo && resposta.metadados?.local_atual) {
     log.warn({ local: resposta.metadados.local_atual }, 'local_atual ignorado durante combate');
     delete resposta.metadados.local_atual;

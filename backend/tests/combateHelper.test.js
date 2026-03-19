@@ -341,7 +341,7 @@ describe('processarHabilidade', () => {
   it('em cooldown → invalido', () => {
     const result = processarHabilidade(
       { custo_mana: 0, id: 1 },
-      { mana_atual: 20, cooldowns: { '1': 3 } }
+      { mana_atual: 20, cooldowns: { 'hab_1': 3 } }
     );
     expect(result.valido).toBe(false);
     expect(result.erro).toContain('cooldown');

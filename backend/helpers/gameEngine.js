@@ -6,7 +6,8 @@
  *
  * Uses existing functions from combateHelper, testeHelper, etc.
  */
-import { resolverMecanicaCombate } from './combateHelper.js';
+import { resolverMecanicaCombate, finalizarAcaoCombatePosTeste } from './combateHelper.js';
+import { buildCombatPromptContext } from './combatPromptContext.js';
 import logger from './logger.js';
 
 const log = logger.child({ module: 'gameEngine' });
@@ -35,6 +36,57 @@ export function prepararTurno(sessao, userId, intent) {
   }
 
   return resolverMecanicaCombate(combate, userId, sessao, personagem, intent);
+}
+
+/**
+ * Phase 2: Resolve combat action AFTER player rolls dice.
+ * Wraps finalizarAcaoCombatePosTeste.
+ *
+ * @param {Object} sessao - Full session state
+ * @param {Object} acaoPendente - Pending combat action (from sessao.estadoJogo.acaoPendenteCombate)
+ * @param {Object} resultadoTeste - Test result from testeHelper.resolverTeste()
+ * @returns {import('./combat/combatRoundResult.js').CombatRoundResult|null}
+ */
+export function resolverTurno(sessao, acaoPendente, resultadoTeste) {
+  const combate = sessao?.estadoJogo?.combate;
+  if (!combate?.ativo) {
+    log.debug('resolverTurno: combate não ativo');
+    return null;
+  }
+  if (!acaoPendente) {
+    log.warn('resolverTurno: acaoPendente é null');
+    return null;
+  }
+
+  return finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTeste);
+}
+
+/**
+ * Build AI prompt context from mechanical results.
+ *
+ * @param {Object} sessao - Session state
+ * @param {string} userId - Player who acted
+ * @param {Object|null} resultado - CombatRoundResult from prepararTurno/resolverTurno
+ * @param {Object} [options]
+ * @param {string} [options.turnStateText] - Pre-computed turn state text (HP, mana, status)
+ * @returns {{ promptText: string, mechanicalSummary: string, requiresTest: boolean }}
+ */
+export function formatarContexto(sessao, userId, resultado, options = {}) {
+  if (!resultado) {
+    return { promptText: '', mechanicalSummary: '', requiresTest: false };
+  }
+
+  const combate = sessao?.estadoJogo?.combate || null;
+  const personagem = _resolvePersonagem(sessao, userId);
+
+  return buildCombatPromptContext({
+    combate,
+    userId,
+    personagem,
+    turnStateText: options.turnStateText || '',
+    resultadoMecanico: resultado,
+    pendingTest: Boolean(resultado.requerTeste)
+  });
 }
 
 /**

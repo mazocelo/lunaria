@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prepararTurno } from '../helpers/gameEngine.js';
+import { prepararTurno, resolverTurno, formatarContexto } from '../helpers/gameEngine.js';
 
 // ── Factories ──
 
@@ -93,6 +93,92 @@ describe('gameEngine', () => {
       const resultado = prepararTurno(sessao, 'user_1', intent);
 
       expect(resultado.defesa.personagem).toBe('Moruxis');
+    });
+  });
+
+  describe('resolverTurno', () => {
+    it('finaliza ataque após rolagem de dado', () => {
+      const sessao = makeSessao();
+      const intent = { tipo: 'atacar' };
+      const prep = prepararTurno(sessao, 'user_1', intent);
+
+      expect(prep.requerTeste).toBeTruthy();
+
+      const acaoPendente = {
+        tipo: 'atacar',
+        userId: 'user_1',
+        personagem: { nome: 'Moruxis', id: 'user_1' },
+        combatIntent: intent,
+        statusEfeitos: prep.statusEfeitos || [],
+        stage: 'attack_roll',
+        targetId: 'dretch_0',
+        targetName: 'Dretch',
+        targetDefense: 10,
+        targetEvasion: 0,
+        targetArmor: 2,
+        damageNotation: '1d6+1',
+        attackBonus: 2,
+        sourceActionName: 'Ataque',
+        ...(prep.requerTeste?.pendingCombatAction || {})
+      };
+      sessao.estadoJogo.acaoPendenteCombate = acaoPendente;
+
+      const resultadoTeste = {
+        rolagemBruta: 15,
+        total: 17,
+        sucesso: true
+      };
+
+      const resultado = resolverTurno(sessao, acaoPendente, resultadoTeste);
+      expect(resultado).toBeDefined();
+      expect(resultado.acaoConsumida !== undefined || resultado.aguardandoProximoTeste !== undefined).toBe(true);
+    });
+
+    it('retorna null quando sessao sem combate', () => {
+      const sessao = makeSessao({ estadoJogo: {} });
+      const resultado = resolverTurno(sessao, {}, {});
+      expect(resultado).toBeNull();
+    });
+
+    it('retorna null quando acaoPendente é null', () => {
+      const sessao = makeSessao();
+      const resultado = resolverTurno(sessao, null, {});
+      expect(resultado).toBeNull();
+    });
+  });
+
+  describe('formatarContexto', () => {
+    it('gera contexto com resultado de defesa', () => {
+      const sessao = makeSessao();
+      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+
+      const contexto = formatarContexto(sessao, 'user_1', resultado);
+      expect(contexto).toBeDefined();
+      expect(typeof contexto.promptText).toBe('string');
+      expect(contexto.promptText.length).toBeGreaterThan(0);
+    });
+
+    it('marca requiresTest quando há teste pendente', () => {
+      const sessao = makeSessao();
+      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
+
+      const contexto = formatarContexto(sessao, 'user_1', resultado);
+      expect(contexto.requiresTest).toBe(true);
+    });
+
+    it('retorna contexto vazio quando resultado é null', () => {
+      const sessao = makeSessao();
+      const contexto = formatarContexto(sessao, 'user_1', null);
+      expect(contexto.promptText).toBe('');
+    });
+
+    it('passa turnStateText para buildCombatPromptContext', () => {
+      const sessao = makeSessao();
+      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+
+      const contexto = formatarContexto(sessao, 'user_1', resultado, { turnStateText: 'HP: 20/20 Mana: 15/15' });
+      expect(contexto).toBeDefined();
+      expect(typeof contexto.promptText).toBe('string');
     });
   });
 });

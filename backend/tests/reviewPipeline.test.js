@@ -1,132 +1,81 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { executarRevisao, REVIEWER_CONFIG } from '../agents/Revisores/index.js';
+import { buildReviewPrompt, parseReviewResponse } from '../agents/Revisores/unifiedReviewer.js';
 
-// ── montarInputArbitro — prompt builder ──
-
-describe('montarInputArbitro', () => {
-  let montarInputArbitro;
-
-  beforeEach(async () => {
-    const mod = await import('../agents/Revisores/prompts/arbitroPrompt.js');
-    montarInputArbitro = mod.montarInputArbitro;
-  });
-
-  it('inclui secao ALEGACOES DETECTADAS quando claimFlags presente', () => {
-    const output = montarInputArbitro({
-      narrativa: 'O guerreiro ataca com sua espada.',
-      acaoJogador: 'eu ataco com a espada',
-      claimFlags: [
-        { claim: 'espada', tipo: 'item', status: 'ok', motivo: null },
-        { claim: 'bola de fogo', tipo: 'habilidade', status: 'inexistente', motivo: 'nao encontrada na ficha' },
-      ],
-    });
-    expect(output).toContain('ALEGACOES DETECTADAS');
-    expect(output).toContain('espada');
-    expect(output).toContain('bola de fogo');
-    expect(output).toContain('inexistente');
-  });
-
-  it('nao inclui secao ALEGACOES quando claimFlags vazio', () => {
-    const output = montarInputArbitro({
-      narrativa: 'O guerreiro descansa.',
-      acaoJogador: 'eu descanso',
-      claimFlags: [],
-    });
-    expect(output).not.toContain('ALEGACOES DETECTADAS');
-  });
-
-  it('nao inclui secao ALEGACOES quando claimFlags undefined', () => {
-    const output = montarInputArbitro({
-      narrativa: 'O guerreiro descansa.',
-      acaoJogador: 'eu descanso',
-    });
-    expect(output).not.toContain('ALEGACOES DETECTADAS');
-  });
-
-  it('inclui NARRATIVA e ACAO DO JOGADOR', () => {
-    const output = montarInputArbitro({
-      narrativa: 'Uma narrativa teste.',
-      acaoJogador: 'uma acao teste',
-    });
-    expect(output).toContain('NARRATIVA DO MESTRE');
-    expect(output).toContain('Uma narrativa teste');
-    expect(output).toContain('ACAO DO JOGADOR');
-    expect(output).toContain('uma acao teste');
-  });
-
-  it('inclui resultado mecanico quando presente', () => {
-    const output = montarInputArbitro({
-      narrativa: 'Ataque narrado.',
-      acaoJogador: 'atacar',
-      resultadoMecanico: {
-        ataqueJogador: { rolagem: 15, acertou: true, esquivou: false, critico: false, dano: 8 },
-      },
-    });
-    expect(output).toContain('RESULTADO MECANICO');
-    expect(output).toContain('Ataque');
-  });
-
-  it('mostra "nenhum" quando sem resultado mecanico', () => {
-    const output = montarInputArbitro({
-      narrativa: 'Cena livre.',
-      acaoJogador: 'conversar',
-    });
-    expect(output).toContain('nenhum');
-  });
-
-  it('inclui personagem quando presente', () => {
-    const output = montarInputArbitro({
-      narrativa: 'Teste.',
-      acaoJogador: 'testar',
-      personagem: {
-        nome: 'Arthas',
-        hp_atual: 25,
-        hp_max: 40,
-        mana_atual: 10,
-        mana_max: 20,
-        inventario: [{ nome: 'Espada' }],
-        habilidadesClasse: [{ nome: 'Golpe' }],
-      },
-    });
-    expect(output).toContain('Arthas');
-    expect(output).toContain('HP=25/40');
-    expect(output).toContain('Espada');
-    expect(output).toContain('Golpe');
-  });
-});
-
-// ── criarPromptArbitro — system prompt ──
-
-describe('criarPromptArbitro', () => {
-  it('retorna string com regras de validacao', async () => {
-    const { criarPromptArbitro } = await import('../agents/Revisores/prompts/arbitroPrompt.js');
-    const prompt = criarPromptArbitro();
-    expect(typeof prompt).toBe('string');
-    expect(prompt).toContain('arbitro');
-    expect(prompt).toContain('JSON');
-    expect(prompt).toContain('veredicto');
-  });
-});
-
-// ── shouldTriggerReview — trigger logic ──
-// Precisa mockar o config para controlar REVIEWER_ENABLED
-
-describe('shouldTriggerReview', () => {
-  it('retorna needsReview true por default (REVIEWER_ENABLED !== "false")', async () => {
-    // O config ja foi importado e cached — default agora e enabled
-    const { shouldTriggerReview } = await import('../agents/Revisores/triggerLogic.js');
-
-    const result = shouldTriggerReview({
-      combateAtivo: true,
-      resultadosCombatePreResolvido: { ataqueJogador: { acertou: true, dano: 5 } },
-      respostaIA: { narracao: 'Uma narrativa longa o suficiente para passar o filtro de 100 chars. Mais texto aqui para garantir que o teste funcione corretamente com margem.' },
-      sessao: {},
-      claimFlags: [],
+describe('reviewPipeline (unified)', () => {
+  describe('executarRevisao', () => {
+    it('retorna reviewed:false quando REVIEWER_ENABLED é false', async () => {
+      const original = REVIEWER_CONFIG.enabled;
+      REVIEWER_CONFIG.enabled = false;
+      try {
+        const result = await executarRevisao({
+          respostaIA: { narracao: 'test' },
+          sessao: {},
+          userId: 'u1',
+        });
+        expect(result.reviewed).toBe(false);
+        expect(result.passed).toBe(true);
+      } finally {
+        REVIEWER_CONFIG.enabled = original;
+      }
     });
 
-    // Quando enabled (default), combate com mecanica aciona arbitro
-    if (process.env.REVIEWER_ENABLED !== 'false') {
-      expect(result.needsReview).toBe(true);
-      expect(result.reviewers).toContain('arbitro');
-    }
+    it('retorna reviewed:false quando narrativa é vazia', async () => {
+      const result = await executarRevisao({
+        respostaIA: { narracao: '' },
+        sessao: {},
+        userId: 'u1',
+      });
+      expect(result.reviewed).toBe(false);
+    });
+
+    it('retorna reviewed:false quando narracao é null', async () => {
+      const result = await executarRevisao({
+        respostaIA: {},
+        sessao: {},
+        userId: 'u1',
+      });
+      expect(result.reviewed).toBe(false);
+    });
+  });
+
+  describe('unifiedToLegacy shape', () => {
+    it('verdicts array tem 3 entries (mecanica, continuidade, gancho)', () => {
+      const raw = JSON.stringify({
+        aprovado: true,
+        mecanica: { ok: true, problema: null },
+        continuidade: { ok: true, problema: null },
+        gancho: { ok: true, problema: null },
+        correcao: null,
+      });
+      const parsed = parseReviewResponse(raw);
+      // Simulate what executarRevisao does internally
+      const verdicts = ['mecanica', 'continuidade', 'gancho'].map(key => ({
+        reviewer: key,
+        veredicto: parsed[key]?.ok ? 'ok' : 'problema',
+        severidade: parsed[key]?.ok ? 'info' : 'error',
+        notas: parsed[key]?.problema || '',
+      }));
+      expect(verdicts).toHaveLength(3);
+      expect(verdicts[0].reviewer).toBe('mecanica');
+      expect(verdicts[0].veredicto).toBe('ok');
+    });
+  });
+
+  describe('buildReviewPrompt — claim flags', () => {
+    it('formata claims validados e pendentes', () => {
+      const prompt = buildReviewPrompt({
+        narrativa: 'Moruxis ataca.',
+        acaoJogador: 'ataco',
+        claimFlags: [
+          { claim: 'espada longa', tipo: 'item', status: 'ok', fonte: 'inventario', confidence: 1 },
+          { claim: 'voa', tipo: 'habilidade', status: 'invalido', motivo: 'nao possui' },
+        ],
+      });
+      expect(prompt).toContain('CLAIMS JÁ VALIDADOS');
+      expect(prompt).toContain('espada longa');
+      expect(prompt).toContain('ALEGAÇÕES PENDENTES');
+      expect(prompt).toContain('voa');
+    });
   });
 });

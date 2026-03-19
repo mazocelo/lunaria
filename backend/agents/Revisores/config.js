@@ -11,10 +11,14 @@ export const REVIEWER_CONFIG = {
     name: modelName,
     provider: detectProvider(modelName),
     temperature: 0.1,
-    maxTokens: 1000,
-    timeout: Math.max(5000, parseInt(process.env.REVIEWER_TIMEOUT_MS) || 12000),
+    maxTokens: 2000,
+    timeout: Math.max(5000, parseInt(process.env.REVIEWER_TIMEOUT_MS) || 10000),
   },
   failOpen: true,
+  circuitBreaker: {
+    maxFailures: 5,
+    cooldownMs: 5 * 60 * 1000,
+  },
 };
 
 if (REVIEWER_CONFIG.enabled) {

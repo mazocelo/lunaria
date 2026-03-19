@@ -58,7 +58,10 @@ export function hasPendingCombatAction(sessao) {
 export function resolvePendingCombatAction(sessao, testeResolvido) {
   const acaoPendente = getPendingCombatAction(sessao);
   if (!acaoPendente) return null;
-  if (acaoPendente.testeId !== testeResolvido?.id) return null;
+  if (acaoPendente.testeId !== testeResolvido?.id) {
+    log.warn({ acaoPendenteTesteId: acaoPendente.testeId, testeResolvidoId: testeResolvido?.id, testeResolvidoKeys: Object.keys(testeResolvido || {}) }, 'resolvePendingCombatAction: testeId MISMATCH');
+    return null;
+  }
 
   const resolved = { ...acaoPendente };
   delete sessao.estadoJogo.acaoPendenteCombate;

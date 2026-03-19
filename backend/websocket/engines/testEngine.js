@@ -334,6 +334,7 @@ export default class TestEngine {
         };
 
         // Verificar se este teste resolve uma ação pendente de combate
+        log.warn({ testeResolvidoId: testeResolvido?.id, acaoPendenteTesteId: sessao.estadoJogo?.acaoPendenteCombate?.testeId, hasAcaoPendente: !!sessao.estadoJogo?.acaoPendenteCombate }, 'testEngine: pre-resolve check');
         const acaoPendenteCombate = resolvePendingCombatAction(sessao, testeResolvido);
         let resultadosCombatePosTeste = null;
         let contextoCombateExtra = '';

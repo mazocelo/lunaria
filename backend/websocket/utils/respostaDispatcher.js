@@ -24,7 +24,6 @@ import {
 } from './testePipeline.js';
 import { appendMensagemSessao, buildSolicitacaoDadosMensagem } from './sessionMessages.js';
 import { createPendingCombatAction, hasPendingCombatAction } from './combatPendingAction.js';
-import { resolveCombatIntent } from './combatIntentResolver.js';
 
 function normalizeText(value) {
   return String(value || '')
@@ -127,28 +126,21 @@ function emitCombatTestPrompt(resposta, ctx, testePendente) {
   });
 }
 
-function ensureCombatPreResolution(resposta, ctx) {
+async function ensureCombatPreResolution(resposta, ctx) {
   const combate = ctx.sessao?.estadoJogo?.combate;
   if (!combate?.ativo) return;
   if (ctx.sessao?._combatePreResolvido || hasPendingCombatAction(ctx.sessao)) return;
 
-  const personagemRuntime = ctx.personagemCompleto || ctx.personagem;
-  const resolution = resolveCombatIntent({
+  const resultados = await prepararTurno(ctx.sessao, ctx.userId, {
     mensagem: ctx.mensagem,
-    explicitIntent: ctx.combatIntent,
-    personagemCompleto: personagemRuntime,
-    combate,
-    userId: ctx.userId
+    explicitIntent: ctx.combatIntent
   });
 
-  if (!resolution.intent) return;
-
-  ctx.combatIntent = resolution.intent;
-  const resultados = prepararTurno(ctx.sessao, ctx.userId, resolution.intent);
-  if (!resultados) return;
+  if (!resultados || resultados.requerIntentMestre) return;
 
   if (resultados.requerTeste) {
     const rt = resultados.requerTeste;
+    const personagemRuntime = ctx.personagemCompleto || ctx.personagem;
     const testeCriado = criarTestePendente(ctx.sessao, {
       origem: 'combate',
       jogadorAlvo: ctx.userId,
@@ -157,10 +149,7 @@ function ensureCombatPreResolution(resposta, ctx) {
       dificuldade: rt.dcNumerico,
       tipoDado: rt.tipoDado || 'd20',
       contexto: rt.contexto,
-      metadata: {
-        ...(rt.metadata || {}),
-        difficultyLabel: rt.dificuldadeLabel || rt.dificuldade
-      }
+      metadata: { ...(rt.metadata || {}), difficultyLabel: rt.dificuldadeLabel || rt.dificuldade }
     }, ctx.userId);
 
     createPendingCombatAction(ctx.sessao, {
@@ -171,7 +160,7 @@ function ensureCombatPreResolution(resposta, ctx) {
         id: personagemRuntime?.id ?? ctx.personagem?.id ?? null,
         personagemId: personagemRuntime?.personagemId || personagemRuntime?.personagem_id || ctx.personagem?.personagemId || ctx.personagem?.personagem_id || null
       },
-      combatIntent: resolution.intent,
+      combatIntent: ctx.combatIntent,
       testeId: testeCriado?.id || null,
       statusEfeitos: resultados.statusEfeitos || [],
       ...(rt.pendingCombatAction || {})
@@ -182,7 +171,7 @@ function ensureCombatPreResolution(resposta, ctx) {
     ctx.sessao._combatePreResolvido = resultados;
   }
 
-  ctx.playerCombatActionResolved = buildResolvedCombatMeta(resolution.intent, resultados);
+  ctx.playerCombatActionResolved = buildResolvedCombatMeta(ctx.combatIntent, resultados);
 }
 
 function shouldHoldTurnForContinuity(resposta = {}, ctx = {}, turno = {}) {
@@ -210,7 +199,7 @@ async function processarInicioCombate(resposta, ctx) {
 }
 
 async function processarAcaoCombateHandler(resposta, ctx) {
-  ensureCombatPreResolution(resposta, ctx);
+  await ensureCombatPreResolution(resposta, ctx);
   if (!ctx.sessao?._combatePreResolvido) {
     return;
   }
@@ -513,6 +502,62 @@ function detectarCombateNarrativa(narracao, sessao) {
   return null;
 }
 
+async function processarIntentSugerido(resposta, ctx) {
+  const sugerido = resposta.intentSugerido;
+  log.info({ tipo: sugerido.tipo, teste: sugerido.teste }, 'processing intentSugerido from Mestre');
+
+  if (sugerido.tipo === 'teste') {
+    const { obterDC } = await import('../../helpers/testeHelper.js');
+    const dc = typeof sugerido.dificuldade === 'number'
+      ? sugerido.dificuldade
+      : obterDC(sugerido.dificuldade || 'Média');
+
+    const testeCriado = criarTestePendente(ctx.sessao, {
+      origem: 'combate',
+      jogadorAlvo: ctx.userId,
+      personagemAlvo: ctx.personagem?.nome || ctx.username,
+      teste: sugerido.teste || 'Força',
+      dificuldade: dc,
+      tipoDado: 'd20',
+      contexto: sugerido.justificativa || '',
+      metadata: { source: 'intentSugerido' }
+    }, ctx.userId);
+
+    // Persist to session history
+    appendMensagemSessao(ctx.sessao, buildSolicitacaoDadosMensagem({
+      narrativa: resposta.narracao,
+      origem: 'combate',
+      payload: {
+        testePendente: testeCriado,
+        testesPendentes: [testeCriado],
+        tipoDado: 'd20',
+        teste: sugerido.teste,
+        dificuldade: sugerido.dificuldade,
+        contexto: sugerido.justificativa
+      }
+    }));
+
+    emitirSolicitacaoTeste(ctx.sm, ctx.roomId, ctx.sessao, {
+      narrativa: resposta.narracao,
+      tipoDado: 'd20',
+      teste: sugerido.teste,
+      dificuldade: sugerido.dificuldade,
+      contexto: sugerido.justificativa,
+      testePendente: testeCriado
+    });
+
+    await ctx.sm.gerenciadorSessoes.atualizarSessao(ctx.roomId, ctx.sessao);
+  } else if (sugerido.tipo === 'atacar' || sugerido.tipo === 'defender') {
+    const resultado = await prepararTurno(ctx.sessao, ctx.userId, { tipo: sugerido.tipo });
+    if (resultado && !resultado.requerTeste) {
+      ctx.sessao._combatePreResolvido = resultado;
+      await ctx.sm.processarAcaoCombate(
+        ctx.roomId, ctx.userId, ctx.username, ctx.personagem, ctx.mensagem, resposta, ctx.sessao
+      );
+    }
+  }
+}
+
 const RESPONSE_HANDLERS = [
   { nome: 'combate_inicio', check: (r, ctx) => r.combate?.iniciado && !isCombatActive(ctx), process: processarInicioCombate },
   {
@@ -540,6 +585,15 @@ const RESPONSE_HANDLERS = [
   },
   { nome: 'fuga_combate', check: (r, ctx) => isCombatActive(ctx) && ctx.sessao?._combatePreResolvido?.fuga?.sucesso, process: processarFugaCombate },
   { nome: 'acao_combate', check: (r, ctx) => isCombatActive(ctx) && !ctx.sessao?._combatePreResolvido?.fuga?.sucesso && !hasPendingCombatAction(ctx.sessao), process: processarAcaoCombateHandler },
+  // Phase 2 — handle Mestre-suggested intent for creative actions
+  {
+    nome: 'intent_sugerido',
+    check: (r, ctx) => isCombatActive(ctx)
+      && r.intentSugerido
+      && !ctx.sessao._combatePreResolvido
+      && !r.solicitaDados?.solicita,
+    process: processarIntentSugerido
+  },
   { nome: 'solicita_dados', check: (r, ctx) => (r.solicitaDados?.solicita || !!r.teste) && !hasPendingCombatAction(ctx.sessao), process: criarSolicitacaoTeste },
   { nome: 'acoes_mecanicas', check: (r) => r.acoes?.length > 0, process: processarAcoesMecanicas },
   { nome: 'transicao_arco', check: (r, ctx) => r.arcoStatus?.concluido === true && ctx.sessao?.historiaRoteiro?.arcos?.length > 0, process: processarTransicaoArco },

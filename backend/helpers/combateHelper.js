@@ -791,7 +791,7 @@ function _resolveCombatAction(ctx, resultados) {
  * Fase 3: Contra-ataques + controle de rodada.
  */
 function _applyRoundConsequences(combate, userId, sessao, resultados) {
-  _executarContraAtaques(combate, resultados);
+  _executarContraAtaques(combate, sessao, resultados);
   _controlarRodada(combate, userId, sessao, resultados);
 }
 
@@ -908,7 +908,7 @@ function _resolverDefesa(combate, userId, personagem, jogadorStats) {
 /**
  * Seção 3 — Contra-ataques dos monstros vivos contra jogadores aleatórios
  */
-function _executarContraAtaques(combate, resultados) {
+function _executarContraAtaques(combate, sessao, resultados) {
   const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
   for (const monstro of monstrosVivos) {
     const jogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo');

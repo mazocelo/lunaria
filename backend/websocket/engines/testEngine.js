@@ -11,7 +11,8 @@ import {
   resolverTestePendente
 } from '../utils/testePipeline.js';
 import { buildDiceResolutionContext, buildNarracaoContext } from '../../agents/Mestre/contexto/mestreInvocationContext.js';
-import { finalizarAcaoCombatePosTeste, formatarResultadoMecanico } from '../../helpers/combateHelper.js';
+import { formatarResultadoMecanico } from '../../helpers/combateHelper.js';
+import { resolverTurno } from '../../helpers/gameEngine.js';
 import { getTurnState, TURN_STATUS } from '../utils/turnStateMachine.js';
 import { resolvePendingCombatAction } from '../utils/combatPendingAction.js';
 import {
@@ -338,7 +339,7 @@ export default class TestEngine {
         let contextoCombateExtra = '';
 
         if (acaoPendenteCombate) {
-          resultadosCombatePosTeste = finalizarAcaoCombatePosTeste(sessao, acaoPendenteCombate, resultadoTestePayload);
+          resultadosCombatePosTeste = resolverTurno(sessao, acaoPendenteCombate, resultadoTestePayload);
           if (resultadosCombatePosTeste) {
             sessao._combatePreResolvido = resultadosCombatePosTeste;
             const personagemNomePosTeste = acaoPendenteCombate.personagem?.nome || personagemNome;

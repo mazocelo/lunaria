@@ -386,7 +386,9 @@ export default class CombatEngine {
       await emitCombatActionResults(sm, roomId, r, sessao, { userId, personagem });
 
       // Verificar fim de combate
+      log.warn({ combateFinalizado: r.combateFinalizado, resultadoCombate: r.resultadoCombate, monstrosHP: combate.monstros?.map(m => ({ nome: m.nome, hp: m.hp_atual, status: m.status })) }, 'processarAcaoCombate: verificando fim');
       if (r.combateFinalizado) {
+        log.warn({ resultado: r.resultadoCombate }, 'processarAcaoCombate: FINALIZANDO COMBATE');
         await this.finalizarCombate(roomId, r.resultadoCombate);
         return;
       }
@@ -476,6 +478,8 @@ export default class CombatEngine {
     let dano = 0;
     let esquivou = false;
 
+    log.warn({ monstroNome: monstro.nome, alvoNome: alvoStats.personagemNome, rolagem, acertou, critico, dano_base: monstro.dano_base, habilidadeNome: habilidade?.nome, habilidadeDano: habilidade?.dano }, 'MONSTER_TURN: attack roll');
+
     if (acertou) {
       // Check player evasion
       const defesaTemp = alvoStats.defesaTemporaria;
@@ -491,6 +495,8 @@ export default class CombatEngine {
         const modForca = Math.floor(((monstro.forca || 10) - 10) / 2);
         dano = calcularDano(danoRolado, modForca, critico, alvoStats.armadura || 0);
 
+        log.warn({ danoBase, danoRolado, modForca, critico, armadura: alvoStats.armadura, danoFinal: dano }, 'MONSTER_TURN: damage calc');
+
         // Apply damage reduction from defense
         if (defesaTemp?.reducaoDano) {
           dano = Math.max(1, Math.floor(dano * (1 - defesaTemp.reducaoDano)));
@@ -500,6 +506,9 @@ export default class CombatEngine {
         if (alvoStats.hp_atual <= 0) {
           alvoStats.status = 'inconsciente';
         }
+        log.warn({ dano, hpRestante: alvoStats.hp_atual, status: alvoStats.status }, 'MONSTER_TURN: damage applied');
+      } else {
+        log.warn({ esquivaEfetiva }, 'MONSTER_TURN: player dodged');
       }
     }
 

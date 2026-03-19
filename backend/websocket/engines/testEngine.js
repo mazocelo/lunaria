@@ -220,6 +220,7 @@ export default class TestEngine {
         let descricaoParaIA = `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`;
 
         const isDamageRoll = testeResolvido.metadata?.rollKind === 'combat_damage';
+        log.warn({ isDamageRoll, rollKind: testeResolvido.metadata?.rollKind, testeNome: testeResolvido.teste, tipoDado: testeResolvido.tipoDado, dificuldade: testeResolvido.dificuldade, metadataKeys: Object.keys(testeResolvido.metadata || {}) }, 'testEngine: isDamageRoll check');
 
         if (isDamageRoll) {
           // Damage rolls: raw value is the damage, no modifiers, no DC

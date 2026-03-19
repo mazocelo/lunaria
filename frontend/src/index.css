@@ -700,6 +700,37 @@ input[type="range"].tts-slider:disabled {
   @apply bg-purple-50/50 border border-purple-200/50;
 }
 
+/* ============================================
+   VITRAL ARCANO - Catalog Detail Sections
+   ============================================ */
+.vitral-section {
+  position: relative;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+.vitral-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--vitral-accent, #8b5cf6);
+}
+
+.vitral-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--vitral-accent, #8b5cf6), transparent 80%);
+  opacity: 0.5;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .glass, .glass-subtle, .glass-solid, .game-glass, .game-glass-subtle, .game-glass-solid {

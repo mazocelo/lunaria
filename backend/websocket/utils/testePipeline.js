@@ -34,7 +34,7 @@ function normalizeTestePayload(payload = {}, fallbackUserId = null, groupId = nu
     teste: payload.teste || '',
     atributo: payload.atributo || null,
     pericia: payload.pericia || null,
-    dificuldade: payload.dificuldade || 'Media',
+    dificuldade: payload.dificuldade != null ? payload.dificuldade : 'Media',
     contexto: payload.contexto || null,
     tipoDado: payload.tipoDado || payload.tipo || 'd20',
     criadoEm: payload.criadoEm || new Date().toISOString(),

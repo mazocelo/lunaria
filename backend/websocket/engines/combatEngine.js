@@ -109,7 +109,7 @@ export default class CombatEngine {
             armadura: calcularArmadura(bonusEquip),
             bonusAtaque: bonusEquip.ataque || 0,
             bonusDano: bonusEquip.dano || 0,
-            dano_base: p.melhorArma || null,
+            dano_base: p.melhorArma || (p.equipamentos?.length > 0 ? '1d6' : '1d6-1'),
             elemento: p.elementoArma || null,
             status: 'vivo',
             personagemNome: p.nome || jogador.personagemNome || jogador.nome || jogador.username || 'Jogador',
@@ -126,7 +126,7 @@ export default class CombatEngine {
             armadura: 0,
             bonusAtaque: 0,
             bonusDano: 0,
-            dano_base: null,
+            dano_base: '1d6-1',
             status: 'vivo',
             personagemNome: jogador.personagemNome || jogador.nome || jogador.username || 'Jogador',
             cooldowns: {}

@@ -1119,7 +1119,8 @@ function buildDamageTestRequest(acaoPendente, personagem) {
     jogadorAlvo: acaoPendente.userId,
     personagemAlvo: personagem?.nome || 'Aventureiro',
     teste: `Dano de ${acaoPendente.sourceActionName || 'Ataque'}`,
-    dificuldade: null,
+    dificuldade: 0,  // damage rolls have no DC
+    dcNumerico: 0,
     tipoDado: acaoPendente.damageNotation || '1d6',
     contexto: `${personagem?.nome || 'Aventureiro'} conectou o golpe em ${acaoPendente.targetName || 'o alvo'}. Role o dano.`,
     metadata: {
@@ -1246,7 +1247,8 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
           actionKind: tipoAcao === 'conjurar_magia' ? 'spell' : 'ability',
           habilidadeBase: hab,
           habilidadePreValidada: validacao,
-          combatIntent
+          combatIntent,
+          resourcesConsumed: true  // mana/cooldown already consumed above
         }
       })
     };

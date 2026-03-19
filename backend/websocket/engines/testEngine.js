@@ -219,54 +219,80 @@ export default class TestEngine {
         let resultadoTestePayload;
         let descricaoParaIA = `Rolou ${dice} e obteve ${result}${description ? ` para ${description}` : ''}`;
 
-        try {
-          const { resolverTeste } = await import('../../helpers/testeHelper.js');
-          const resultadoTeste = resolverTeste(
-            personagemCompleto,
-            testeResolvido.teste || description,
-            parseInt(result, 10),
-            testeResolvido.dificuldade
-          );
+        const isDamageRoll = testeResolvido.metadata?.rollKind === 'combat_damage';
 
+        if (isDamageRoll) {
+          // Damage rolls: raw value is the damage, no modifiers, no DC
+          const rawDamage = parseInt(result, 10) || 1;
           resultadoTestePayload = {
-            ...resultadoTeste,
-            userId,
-            username,
-            personagemNome,
-            dice,
-            testeId: testeResolvido.id,
-            groupId: testeResolvido.groupId,
-            timestamp: Date.now()
-          };
-
-          if (resultadoTeste.atributo) {
-            descricaoParaIA =
-              `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} + ${resultadoTeste.totalModificador} ` +
-              `(${resultadoTeste.atributoNome}) = ${resultadoTeste.total} vs DC ${resultadoTeste.dc} ` +
-              `(${resultadoTeste.dificuldadeNome}) -> ${resultadoTeste.descricaoResultado}`;
-          } else {
-            descricaoParaIA =
-              `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} (teste de Sorte) ` +
-              `vs DC ${resultadoTeste.dc} -> ${resultadoTeste.descricaoResultado}`;
-          }
-        } catch (testeError) {
-          log.warn({ err: testeError }, 'Erro ao resolver teste mecanicamente, usando resultado bruto');
-          resultadoTestePayload = {
-            userId,
-            username,
-            personagemNome,
-            dice,
-            rolagemBruta: parseInt(result, 10) || 1,
-            total: parseInt(result, 10) || 1,
+            rolagemBruta: rawDamage,
+            total: rawDamage,
             totalModificador: 0,
             atributoNome: null,
-            dc: null,
-            sucesso: null,
-            descricaoResultado: null,
+            dc: 0,
+            sucesso: true,  // damage rolls always "succeed"
+            descricaoResultado: `${rawDamage} de dano`,
+            critico: false,
+            falha_critica: false,
+            userId,
+            username,
+            personagemNome,
+            dice,
             testeId: testeResolvido.id,
             groupId: testeResolvido.groupId,
             timestamp: Date.now()
           };
+          descricaoParaIA = `Rolou ${dice} para dano e obteve ${rawDamage}`;
+        } else {
+          try {
+            const { resolverTeste } = await import('../../helpers/testeHelper.js');
+            const resultadoTeste = resolverTeste(
+              personagemCompleto,
+              testeResolvido.teste || description,
+              parseInt(result, 10),
+              testeResolvido.dificuldade
+            );
+
+            resultadoTestePayload = {
+              ...resultadoTeste,
+              userId,
+              username,
+              personagemNome,
+              dice,
+              testeId: testeResolvido.id,
+              groupId: testeResolvido.groupId,
+              timestamp: Date.now()
+            };
+
+            if (resultadoTeste.atributo) {
+              descricaoParaIA =
+                `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} + ${resultadoTeste.totalModificador} ` +
+                `(${resultadoTeste.atributoNome}) = ${resultadoTeste.total} vs DC ${resultadoTeste.dc} ` +
+                `(${resultadoTeste.dificuldadeNome}) -> ${resultadoTeste.descricaoResultado}`;
+            } else {
+              descricaoParaIA =
+                `Rolou ${dice} e obteve ${resultadoTeste.rolagemBruta} (teste de Sorte) ` +
+                `vs DC ${resultadoTeste.dc} -> ${resultadoTeste.descricaoResultado}`;
+            }
+          } catch (testeError) {
+            log.warn({ err: testeError }, 'Erro ao resolver teste mecanicamente, usando resultado bruto');
+            resultadoTestePayload = {
+              userId,
+              username,
+              personagemNome,
+              dice,
+              rolagemBruta: parseInt(result, 10) || 1,
+              total: parseInt(result, 10) || 1,
+              totalModificador: 0,
+              atributoNome: null,
+              dc: null,
+              sucesso: null,
+              descricaoResultado: null,
+              testeId: testeResolvido.id,
+              groupId: testeResolvido.groupId,
+              timestamp: Date.now()
+            };
+          }
         }
 
         const remainingGroupTests = getTestesPendentes(sessao).filter(

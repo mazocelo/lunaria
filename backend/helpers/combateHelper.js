@@ -889,7 +889,7 @@ function _resolverDefesa(combate, userId, personagem, jogadorStats) {
   jogadorStats.defesaTemporaria = {
     esquivaBonus: 25,
     reducaoDano: 0.5,
-    ativaAteRodada: combate.rodadaCombate
+    ativaAteRodada: combate.rodadaCombate + 1
   };
   const result = {
     personagem: personagem.nome,
@@ -1156,7 +1156,7 @@ function buildBaseAttackOutcome(acaoPendente, personagem, monstroAlvo, { rolagem
 }
 
 function finalizeResolvedCombatRound(sessao, combate, userId, resultados) {
-  _executarContraAtaques(combate, resultados);
+  _executarContraAtaques(combate, sessao, resultados);
   _controlarRodada(combate, userId, sessao, resultados);
   _verificarFimEAtribuir(combate, resultados);
   return resultados;

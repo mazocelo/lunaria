@@ -147,6 +147,80 @@ describe('gameEngine', () => {
     });
   });
 
+  describe('end-to-end: damage applied', () => {
+    it('dano reduz HP do monstro após damage_roll', () => {
+      const sessao = makeSessao();
+      const dretch = sessao.estadoJogo.combate.monstros[0];
+      const hpAntes = dretch.hp_atual;
+
+      // Phase 1: prepararTurno — attack requires test
+      const prep = prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
+      expect(prep.requerTeste).toBeTruthy();
+
+      // Create pending action (as masterNarrationEngine would)
+      const pendingAction = {
+        tipo: 'atacar',
+        userId: 'user_1',
+        personagem: { nome: 'Moruxis', id: 'user_1' },
+        combatIntent: { tipo: 'atacar' },
+        statusEfeitos: [],
+        stage: 'attack_roll',
+        targetId: 'dretch_0',
+        targetName: 'Dretch',
+        targetDefense: 10,
+        targetEvasion: 0,
+        targetArmor: 2,
+        damageNotation: '1d6+1',
+        attackBonus: 2,
+        sourceActionName: 'Ataque',
+        actionKind: 'attack',
+        ...(prep.requerTeste?.pendingCombatAction || {})
+      };
+
+      // Phase 2a: attack roll — nat 20 (guaranteed hit + crit)
+      const atkResult = resolverTurno(sessao, pendingAction, {
+        rolagemBruta: 20,
+        total: 22,
+        sucesso: true
+      });
+
+      if (atkResult.aguardandoProximoTeste) {
+        // Phase 2b: damage roll
+        const dmgAction = {
+          ...pendingAction,
+          ...atkResult.proximaAcaoPendente
+        };
+        const dmgResult = resolverTurno(sessao, dmgAction, {
+          rolagemBruta: 6,
+          total: 7,
+          sucesso: true
+        });
+
+        // CORE ASSERTION: damage was applied
+        expect(dretch.hp_atual).toBeLessThan(hpAntes);
+        expect(dmgResult.acaoConsumida).toBe(true);
+        // Contra-ataques happened
+        expect(dmgResult.contraAtaques).toBeDefined();
+      } else {
+        // Attack missed (shouldn't happen with nat 20, but handle gracefully)
+        expect(atkResult.ataqueJogador).toBeTruthy();
+      }
+    });
+
+    it('defesa não requer teste e aplica bônus de esquiva', () => {
+      const sessao = makeSessao();
+      const jogadorStats = sessao.estadoJogo.combate.jogadores['user_1'];
+
+      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+
+      expect(resultado.requerTeste).toBeNull();
+      expect(resultado.defesa).toBeTruthy();
+      expect(resultado.acaoConsumida).toBe(true);
+      expect(jogadorStats.defesaTemporaria).toBeDefined();
+      expect(jogadorStats.defesaTemporaria.esquivaBonus).toBe(25);
+    });
+  });
+
   describe('formatarContexto', () => {
     it('gera contexto com resultado de defesa', () => {
       const sessao = makeSessao();

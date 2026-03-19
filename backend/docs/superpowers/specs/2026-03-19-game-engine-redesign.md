@@ -2,7 +2,7 @@
 
 **Data:** 2026-03-19
 **Status:** Aprovado
-**Versão:** 1.0
+**Versão:** 1.1
 
 ---
 
@@ -69,44 +69,82 @@ gameEngine.resolverTurno(sessao, userId, intent)
 }
 ```
 
-**Output:**
+**Nota:** `personagem` (com habilidades/magias/stats) é resolvido internamente via `sessao.personagensCompletos[userId]`.
+
+**Output (multi-jogador):**
 ```js
 {
-  jogador: {
-    acaoNarrada: "Moruxis conjura Luz Divina",
-    dado: 17,
-    acertou: true,
-    dano: 8,
-    alvo: "Dretch"
+  jogadores: {
+    "user_1": {
+      nome: "Moruxis",
+      acaoNarrada: "Moruxis conjura Luz Divina",
+      dado: 17,
+      acertou: true,
+      critico: false,
+      dano: 8,
+      alvo: "dretch_0"
+    }
   },
   monstros: [
     {
+      id: "dretch_0",
       nome: "Dretch",
       acao: "ataca com garras",
       dado: 12,
       acertou: false,
+      critico: false,
       dano: 0,
-      alvo: "Moruxis"
+      alvo: "user_1"
     }
   ],
   estado: {
-    jogadorHP: 14,
-    jogadorMana: 9,
-    monstrosHP: [17],
+    jogadores: {
+      "user_1": { hp: 14, maxHp: 20, mana: 9, maxMana: 15, status: [] }
+    },
+    monstros: {
+      "dretch_0": { hp: 17, maxHp: 25, status: [] }
+    },
     combateAtivo: true,
-    monstrosDerrotados: []
+    monstrosDerrotados: [],
+    rodada: 2
   },
-  contextoParaIA: "RESULTADO MECÂNICO: Moruxis acerta Luz Divina no Dretch (8 dano, HP 17/25). Dretch erra garras em Moruxis."
+  contextoParaIA: {
+    jogador: "Moruxis acerta Luz Divina no Dretch (8 dano, HP 17/25).",
+    monstros: "Dretch erra garras em Moruxis."
+  },
+  // quando intent inválido (mana insuficiente, cooldown, alvo morto)
+  erro: null  // ou { tipo: "mana_insuficiente", mensagem: "Mana insuficiente para Luz Divina (custo: 5, atual: 3)" }
 }
+```
+
+### Fluxo de dados com dice roll do jogador
+
+O sistema atual usa dice roll via UI (jogador rola dado). O GameEngine opera em 2 fases:
+
+```
+Fase 1: gameEngine.prepararTurno(sessao, userId, intent)
+  → retorna: { teste necessário, atributo, DC, modificador }
+  → frontend mostra dice roll UI
+
+Fase 2: gameEngine.resolverTurno(sessao, userId, intent, dadoRolado)
+  → recebe o valor do dado rolado pelo jogador
+  → resolve acerto/dano/contra-ataque com base no dado real
+  → retorna output completo acima
+```
+
+Na Fase 1 o jogador é livre para abortar (cancelar ação). Na Fase 1 single-player, auto-roll server-side é permitido como opção futura.
 ```
 
 ### O que faz
 - Recebe ação com intent resolvido
-- Resolve mecânica do jogador (dado, acerto, dano, mana)
-- Resolve ação automática dos monstros (ataque, dado, dano no jogador)
-- Atualiza HP/mana/cooldowns/status de todos
-- Verifica fim de combate (monstros HP=0, jogador HP=0)
-- Gera `contextoParaIA` como texto descritivo dos resultados
+- Resolve mecânica do jogador (dado, acerto, crítico, dano, mana)
+- Resolve ação automática dos monstros (contra-ataque após ação de cada jogador)
+- Atualiza HP/mana/cooldowns/status/concentração de todos
+- Aplica DOT (dano por turno) de efeitos ativos
+- Verifica concentração (quebra em dano recebido)
+- Valida ação antes de executar (mana, cooldown, alvo vivo) — retorna `erro` se inválida
+- Verifica fim de combate (monstros HP=0, jogador HP=0/inconsciente)
+- Gera `contextoParaIA` separado por entidade (jogador + monstros)
 
 ### O que NÃO faz
 - Não chama IA
@@ -120,7 +158,22 @@ gameEngine.resolverTurno(sessao, userId, intent)
 - `calcularHP()`, `calcularMana()`, `calcularEsquiva()`, `calcularArmadura()`
 - `rolarDado()`, `calcularDano()`, `verificarAcerto()`
 - `verificarFimCombate()`
-- `selecionarHabilidadeMonstro()`
+- `selecionarHabilidadeMonstro()` (preservado: seleção probabilística com cooldowns)
+- `concentrationManager` (preservado: track + quebra em dano)
+- `effectManager` (preservado: DOT, buffs, debuffs)
+- `cooldownManager` (preservado: cooldowns por habilidade)
+
+### Mecânicas preservadas (sem redesign)
+| Mecânica | Módulo atual | Status |
+|----------|-------------|--------|
+| Concentração (quebra em dano) | `concentrationManager.js` | Preservado |
+| DOT (dano por turno) | `effectManager.js` | Preservado |
+| Cooldowns | `cooldownManager.js` | Preservado |
+| Resistência elemental | `combateHelper.js` | Preservado |
+| Rolagem aberta (crítico) | `combateHelper.js` | Preservado |
+| Equipamentos/bônus | `bonusHelper.js` | Preservado |
+| Fuga (teste vs DC baseado em monstros) | `combateHelper.js` | Preservado |
+| Seleção de habilidade monstro | `combateHelper.js` | Preservado |
 
 ## 5. Intent Resolver
 
@@ -145,6 +198,12 @@ Resultado negativo/vazio/ambíguo? → Flash Lite decide
 - Output: JSON com `{ tipo, magiaId/habilidadeId, alvo }`
 - Custo: ~$0.00005 por chamada (~R$0.03/sessão)
 - Latência: 100-300ms
+
+### Validação do retorno LLM
+- Resposta deve ser JSON válido com `{ tipo, magiaId/habilidadeId, alvo }`
+- `magiaId` deve existir na lista de magias/habilidades do personagem
+- `alvo` deve existir na lista de inimigos vivos
+- Se validação falha → fallback para `{ tipo: "atacar", alvo: primeiro_monstro_vivo }`
 
 ### Quando NÃO usar LLM
 - Regex resolveu com confidence > 0.8
@@ -192,15 +251,16 @@ Quando combate está ativo, toda ação do jogador:
     {
       solicitaDados: {
         solicita: true,
-        justificativa: "tomo corrompido resiste à leitura, exige concentração mental",
-        contexto: "investigação arcana em ambiente hostil"
+        tipo: "Investigação",        ← tipo estruturado (não texto livre)
+        dificuldade: "difícil",       ← label de dificuldade
+        justificativa: "tomo corrompido resiste à leitura"
       }
     }
 
-[3] GAME ENGINE infere teste da justificativa:
-    Regex: "concentração mental" + "investigação" → INT
-    DC: "ambiente hostil" + "corrompido" → DC 15
-    Se regex falha → Flash Lite decide atributo e DC
+[3] GAME ENGINE resolve teste via código:
+    mapearTesteParaAtributo("Investigação") → INT     (testeHelper.js existente)
+    obterDC("difícil") → DC 15                        (testesConfig.js existente)
+    Se tipo não mapeado → Flash Lite decide atributo e DC
 
 [4] JOGADOR rola dado
 
@@ -210,7 +270,9 @@ Quando combate está ativo, toda ação do jogador:
 [6] MESTRE IA narra resultado baseado no fato mecânico
 ```
 
-**Diferença do combate:** fora de combate, a IA pode narrar ANTES do teste (passo 2) porque a ação não tem consequência mecânica imediata. O teste é resolvido pela engine (DC, atributo, resultado). A IA não decide se passou ou falhou.
+**Diferença do combate:** fora de combate, a IA pode narrar ANTES do teste (passo 2) porque a ação não tem consequência mecânica imediata.
+
+**Nota:** A IA envia tipo estruturado ("Investigação", "Percepção", "Atletismo") e dificuldade em label ("fácil", "médio", "difícil", "muito difícil"). O Engine usa `mapearTesteParaAtributo()` e `obterDC()` existentes. LLM fallback só quando tipo não está no mapeamento — mantendo o princípio "código decide primeiro".
 
 ## 8. Revisor Único
 
@@ -316,3 +378,5 @@ Cada fase é independente, testável, e deployável.
 | Revisor único não cobre todos os casos dos 3 antigos | Prompt mais rico + modelo melhor (Flash vs Lite) |
 | Frontend UI de combate complexa | Incremental — painel básico primeiro, polish depois |
 | Migração quebra fluxo existente | Cada fase preserva fallback pro comportamento antigo |
+| Fluxo 2-fases (prepararTurno→resolverTurno) complicar interface | Fase 1 pode usar auto-roll server-side; dice UI evolui incrementalmente |
+| Jogador desconecta mid-turno | cleanupStalePendingCombatAction existente (timeout 5min) preservado |

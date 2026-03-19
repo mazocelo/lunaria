@@ -55,12 +55,22 @@ const CatalogCard = ({
       {/* Image */}
       <div className="relative w-full h-44 overflow-hidden">
         {image ? (
-          <img
-            src={image}
-            alt={title}
-            className="w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-110"
-            loading="lazy"
-          />
+          <>
+            {/* Blurred background fill */}
+            <img
+              src={image}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-60"
+            />
+            {/* Sharp image on top */}
+            <img
+              src={image}
+              alt={title}
+              className="relative w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-110"
+              loading="lazy"
+            />
+          </>
         ) : (
           <div className={`w-full h-full flex items-center justify-center ${
             isLight

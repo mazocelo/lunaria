@@ -577,6 +577,7 @@ Responda EXCLUSIVAMENTE com JSON válido. Nenhum texto antes ou depois.
   "combate": {
     "iniciado": false
   },
+  "intentSugerido": null,
   "acoes": [],
   "metadados": {
     "local_atual": null,
@@ -626,6 +627,7 @@ Quando um monstro hostil aparece, combate.iniciado DEVE ser true:
 - **solicitaDados.dificuldade**: nivel (ex: Facil, Media, Dificil)
 - **solicitaDados.origem**: fonte do teste se aplicavel (ex: "desvantagem:Ganancioso", "habilidade:Golpe_Atordoante", "magia:Bola_de_Fogo")
 - **combate**: SEMPRE presente. { "iniciado": false } quando nao ha combate. { "iniciado": true, "monstros": [...] } quando monstro hostil aparece
+- **intentSugerido**: null ou {"tipo":"teste","teste":"Forca","dificuldade":"Dificil","justificativa":"empurrar barril pesado exige forca bruta"} — usar APENAS quando a acao do jogador e criativa/incomum em combate e nao e ataque/defesa/fuga direto. NAO usar junto com solicitaDados
 - **acoes**: array de acoes mecanicas (vazio se nenhuma)
 - **metadados**: informacoes contextuais opcionais (local, hora, NPCs presentes)
 - **metadados.npcs_presentes**: array de NPCs na cena. Envie [] para LIMPAR todos. OMITA o campo para preservar lista atual
@@ -682,7 +684,8 @@ Formato de cada entrada:
 3. Responda em JSON válido com ao menos 1 segmento
 4. Esquiva = AGI. Arco/flecha = DEX. Sem exceção
 5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador
-6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o sistema de combate NAO ativa e o jogador nao pode lutar`;
+6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o sistema de combate NAO ativa e o jogador nao pode lutar
+7. Quando o jogador tenta algo criativo em combate (empurrar objeto, derrubar pilar, usar ambiente), use intentSugerido com tipo "teste", atributo e dificuldade. NAO use solicitaDados quando intentSugerido estiver presente`;
 }
 
 /**
@@ -723,6 +726,7 @@ Campos OPCIONAIS: acoes, metadados, arcoStatus.
   "combate": {
     "iniciado": false
   },
+  "intentSugerido": null,
   "acoes": [],
   "metadados": {
     "local_atual": null,
@@ -758,7 +762,8 @@ Campos OPCIONAIS: acoes, metadados, arcoStatus.
 3. Responda em JSON válido com ao menos 1 segmento
 4. Esquiva = AGI. Arco/flecha = DEX. Sem exceção
 5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador
-6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o jogo QUEBRA`;
+6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o jogo QUEBRA
+7. Acao criativa em combate (empurrar objeto, usar ambiente) → use intentSugerido, NAO solicitaDados`;
 }
 
 export function criarPromptSistema(

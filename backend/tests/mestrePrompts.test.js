@@ -525,9 +525,9 @@ describe('montarSchemaCompacto', () => {
     expect(result).toContain('"solicitaDados"');
   });
 
-  it('contem MEMORIA SEMANTICA', () => {
+  it('contem memoria_semantica', () => {
     const result = montarSchemaCompacto();
-    expect(result).toContain('MEMORIA SEMANTICA');
+    expect(result).toContain('memoria_semantica');
   });
 });
 

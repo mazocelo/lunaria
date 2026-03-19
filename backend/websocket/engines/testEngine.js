@@ -340,7 +340,9 @@ export default class TestEngine {
         let contextoCombateExtra = '';
 
         if (acaoPendenteCombate) {
+          log.warn({ stage: acaoPendenteCombate.stage, tipo: acaoPendenteCombate.tipo, targetId: acaoPendenteCombate.targetId, rolagemBruta: resultadoTestePayload.rolagemBruta, total: resultadoTestePayload.total, sucesso: resultadoTestePayload.sucesso }, 'testEngine: calling resolverTurno');
           resultadosCombatePosTeste = resolverTurno(sessao, acaoPendenteCombate, resultadoTestePayload);
+          log.warn({ hasResult: !!resultadosCombatePosTeste, aguardandoProximoTeste: resultadosCombatePosTeste?.aguardandoProximoTeste, acaoConsumida: resultadosCombatePosTeste?.acaoConsumida, ataqueJogador: !!resultadosCombatePosTeste?.ataqueJogador, habilidade: !!resultadosCombatePosTeste?.habilidade }, 'testEngine: resolverTurno result');
           if (resultadosCombatePosTeste) {
             sessao._combatePreResolvido = resultadosCombatePosTeste;
             const personagemNomePosTeste = acaoPendenteCombate.personagem?.nome || personagemNome;
@@ -398,6 +400,27 @@ export default class TestEngine {
           // Processar eventos de combate pós-teste (contra-ataques, fim de combate, etc.)
           if (resultadosCombatePosTeste) {
             await _processPostTestCombat(sm, roomId, acaoPendenteCombate, username, interpretacao.narracao, sessao);
+          }
+
+          // Despachar resposta pós-teste para detectar combate_inicio/fallback na narração
+          if (!resultadosCombatePosTeste && !sessao.estadoJogo?.combate?.ativo) {
+            try {
+              const { despacharResposta } = await import('../utils/respostaDispatcher.js');
+              await despacharResposta(interpretacao, {
+                roomId,
+                userId,
+                username,
+                personagem: personagemCompleto || { nome: personagemNome },
+                mensagem: descricaoParaIA,
+                sessao,
+                socket,
+                sm,
+                fase: 'rodada_em_andamento',
+                combateAtivo: false,
+              });
+            } catch (dispatchErr) {
+              log.warn({ err: dispatchErr.message }, 'testEngine: despacharResposta pos-teste falhou (fail-open)');
+            }
           }
 
           const outrosTestesNoLote = getTestesPendentes(sessao).some(

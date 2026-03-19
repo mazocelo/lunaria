@@ -4,7 +4,7 @@ const log = logger.child({ module: 'masterNarrationEngine' });
 import {
   resolverMecanicaCombate
 } from '../../helpers/combateHelper.js';
-import { buildCombatPromptContext } from '../../helpers/combatPromptContext.js';
+import { prepararTurno, formatarContexto } from '../../helpers/gameEngine.js';
 import { resolveCombatIntent } from '../utils/combatIntentResolver.js';
 import { decrementCooldowns } from '../../helpers/cooldownManager.js';
 import { decrementConcentracao } from '../../helpers/concentrationManager.js';
@@ -1052,13 +1052,8 @@ export default class MasterNarrationEngine {
         }
 
         combatIntentResolvido = combatIntentResolution.intent;
-        resultadosCombatePreResolvido = resolverMecanicaCombate(
-          workingSessao.estadoJogo?.combate || null,
-          userId,
-          workingSessao,
-          personagemCompleto,
-          combatIntentResolvido
-        );
+        // GameEngine pre-resolves mechanics (resolves personagem internally from session)
+        resultadosCombatePreResolvido = prepararTurno(workingSessao, userId, combatIntentResolvido);
 
         if (resultadosCombatePreResolvido?.requerTeste) {
           const rt = resultadosCombatePreResolvido.requerTeste;
@@ -1095,17 +1090,11 @@ export default class MasterNarrationEngine {
           workingSessao._combatePreResolvido = resultadosCombatePreResolvido;
         }
 
-        const combatPromptContext = buildCombatPromptContext({
-          combate: workingSessao.estadoJogo?.combate || null,
-          userId,
-          personagem: personagemCompleto,
-          turnStateText,
-          resultadoMecanico: resultadosCombatePreResolvido,
-          pendingTest: Boolean(resultadosCombatePreResolvido?.requerTeste)
-        });
+        // Build AI context from mechanical results (pass turnStateText computed at line 1012)
+        const combatPromptCtx = formatarContexto(workingSessao, userId, resultadosCombatePreResolvido, { turnStateText });
 
         const promptChunks = [
-          combatPromptContext.promptText,
+          combatPromptCtx.promptText,
           resultadosCombatePreResolvido?.requerTeste
             ? `[TESTE NECESSARIO: ${resultadosCombatePreResolvido.requerTeste.teste} DC ${resultadosCombatePreResolvido.requerTeste.dcNumerico} (${resultadosCombatePreResolvido.requerTeste.dificuldade}). Narre apenas a tentativa e a pressao do momento. Nao confirme sucesso, dano letal nem abate antes da rolagem.]`
             : null,

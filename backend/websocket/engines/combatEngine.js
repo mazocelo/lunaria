@@ -35,7 +35,7 @@ export default class CombatEngine {
     const sm = this.manager;
 
     try {
-      log.info({ roomId, motivo: combateData.motivo }, 'Iniciando combate');
+      log.warn({ roomId, motivo: combateData.motivo, monstrosIA: combateData.monstros }, 'COMBAT_INIT: inicio');
 
       const monstrosIA = combateData.monstros || [];
       const dificuldade = combateData.dificuldade || 'media';
@@ -45,6 +45,8 @@ export default class CombatEngine {
         ? sessao.jogadoresConectados
         : Object.values(sessao.jogadores || {});
       const personagensCompletos = sessao.personagensCompletos || {};
+
+      log.warn({ jogadoresCount: jogadores.length, personagensKeys: Object.keys(personagensCompletos) }, 'COMBAT_INIT: jogadores');
 
       let somaLevels = 0;
       let countLevels = 0;
@@ -61,16 +63,19 @@ export default class CombatEngine {
       // Buscar monstros no banco
       const monstrosBanco = [];
       for (const sugestao of monstrosIA) {
+        log.warn({ nome: sugestao.nome }, 'COMBAT_INIT: buscando monstro');
         const encontrado = await db.Monstro.buscarPorNomeSimilar(sugestao.nome);
+        log.warn({ nome: sugestao.nome, encontrado: !!encontrado, encontradoNome: encontrado?.nome }, 'COMBAT_INIT: resultado busca');
         if (encontrado) {
           monstrosBanco.push(encontrado);
         }
       }
 
-      log.info({ encontrados: monstrosBanco.length, total: monstrosIA.length }, 'Monstros encontrados no banco');
+      log.warn({ encontrados: monstrosBanco.length, total: monstrosIA.length }, 'COMBAT_INIT: monstros encontrados');
 
       // Gerar instâncias de combate
       const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio);
+      log.warn({ instancias: instancias.length }, 'COMBAT_INIT: instancias geradas');
 
       // Calcular HP/Esquiva/Armadura dos jogadores
       const jogadoresCombate = {};
@@ -146,9 +151,10 @@ export default class CombatEngine {
       const estadoJogo = sessao.estadoJogo || {};
       estadoJogo.combate = combateState;
       sessao.estadoJogo = estadoJogo;
+      log.warn({ combateAtivo: combateState.ativo, monstrosCount: instancias.length, jogadoresCount: Object.keys(jogadoresCombate).length }, 'COMBAT_INIT: salvando no Redis');
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 
-      log.info({ monstros: instancias.length, jogadores: Object.keys(jogadoresCombate).length }, 'Combate iniciado');
+      log.warn({ monstros: instancias.length, jogadores: Object.keys(jogadoresCombate).length }, 'COMBAT_INIT: combate salvo com sucesso');
 
       // Snapshot forçado ao iniciar combate (garante estado persistido)
       sm._tentarSnapshot(roomId, sessao, true);
@@ -164,8 +170,10 @@ export default class CombatEngine {
         timestamp: Date.now()
       });
 
+      log.warn('COMBAT_INIT: evento combate_iniciado emitido');
+
     } catch (error) {
-      log.error({ err: error, roomId }, 'Erro ao iniciar combate');
+      log.error({ err: error, roomId, stack: error.stack }, 'COMBAT_INIT: ERRO ao iniciar combate');
     }
   }
 

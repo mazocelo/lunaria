@@ -46,7 +46,7 @@ const CatalogDetailLayout = ({
   // Loading
   if (loading) {
     return (
-      <div className="animate-fade-in max-w-5xl mx-auto">
+      <div className="animate-fade-in max-w-7xl mx-auto">
         <div className="card-rpg flex items-center justify-center py-20">
           <LoadingSpinner size="xl" text={loadingText} variant="primary" />
         </div>
@@ -57,7 +57,7 @@ const CatalogDetailLayout = ({
   // Error
   if (error) {
     return (
-      <div className="animate-fade-in max-w-5xl mx-auto">
+      <div className="animate-fade-in max-w-7xl mx-auto">
         <div className={`rounded-xl text-center py-12 px-6 ${
           isLight ? 'bg-white/90 border border-slate-200' : 'card-rpg'
         }`}>
@@ -303,7 +303,7 @@ const CatalogDetailLayout = ({
   // MAIN RENDER
   // -------------------------------------------------
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {renderHero()}
 
       {(hasSections || children || hasSidebar) && (

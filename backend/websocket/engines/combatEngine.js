@@ -7,7 +7,13 @@ import {
   calcularEsquiva,
   calcularArmadura,
   gerarInstanciasCombate,
-  calcularMana
+  calcularMana,
+  selecionarHabilidadeMonstro,
+  verificarAcerto,
+  calcularDano,
+  rolarDado,
+  verificarFimCombate,
+  avancarTurno,
 } from '../../helpers/combateHelper.js';
 import { COMBAT_EVENTS } from '../events/eventTypes.js';
 import { emitCombatActionResults, emitCombatState } from './combatEventEmitter.js';
@@ -134,6 +140,49 @@ export default class CombatEngine {
         }
       }
 
+      // Roll initiative for all combatants
+      const ordemIniciativa = [];
+
+      // Players
+      for (const [jUserId, jogador] of Object.entries(jogadoresCombate)) {
+        const pc = personagensCompletos[jogador.personagemId] || personagensCompletos[String(jogador.personagemId)] || {};
+        const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
+        const modAgi = Math.floor((agiValue - 10) / 2);
+        const roll = Math.floor(Math.random() * 20) + 1;
+        ordemIniciativa.push({
+          id: jUserId,
+          tipo: 'jogador',
+          nome: jogador.personagemNome || 'Jogador',
+          rolagem: roll,
+          modificador: modAgi,
+          iniciativa: roll + modAgi,
+        });
+      }
+
+      // Monsters
+      for (const monstro of instancias) {
+        const modBase = Math.floor(((monstro.forca || 10) - 10) / 2);
+        const roll = Math.floor(Math.random() * 20) + 1;
+        ordemIniciativa.push({
+          id: monstro.id,
+          tipo: 'monstro',
+          nome: monstro.nome,
+          rolagem: roll,
+          modificador: modBase,
+          iniciativa: roll + modBase,
+        });
+      }
+
+      // Sort: highest first, ties → player wins
+      ordemIniciativa.sort((a, b) => {
+        if (b.iniciativa !== a.iniciativa) return b.iniciativa - a.iniciativa;
+        if (a.tipo === 'jogador' && b.tipo === 'monstro') return -1;
+        if (a.tipo === 'monstro' && b.tipo === 'jogador') return 1;
+        return 0;
+      });
+
+      log.warn({ ordemIniciativa: ordemIniciativa.map(o => ({ nome: o.nome, iniciativa: o.iniciativa })) }, 'COMBAT_INIT: ordem de iniciativa');
+
       // Montar estado de combate
       const combateState = {
         ativo: true,
@@ -143,6 +192,9 @@ export default class CombatEngine {
         monstros: instancias,
         jogadores: jogadoresCombate,
         jogadoresQueAgiram: [],
+        ordemIniciativa,
+        turnoAtualIdx: 0,
+        aguardandoAcao: ordemIniciativa[0]?.id || null,
         log: [],
         resultado: null
       };
@@ -164,6 +216,7 @@ export default class CombatEngine {
       sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_INICIADO, {
         monstros: instancias,
         jogadores: jogadoresCombate,
+        ordemIniciativa,
         rodada: 1,
         motivo: combateData.motivo,
         dificuldade,
@@ -227,6 +280,51 @@ export default class CombatEngine {
         return;
       }
 
+      // Advance initiative turn and process consecutive monster turns
+      if (combate.ordemIniciativa?.length) {
+        // Emit current player's turn result, then advance
+        let turnoAvancado = false;
+        while (true) {
+          const proximo = avancarTurno(combate);
+          if (!proximo) break;
+
+          if (proximo.tipo === 'jogador') {
+            // Next is a player — emit turn info and stop
+            sm.sendToRoom(roomId, 'combat_turn', {
+              turnoAtual: proximo,
+              rodada: combate.rodadaCombate,
+              timestamp: Date.now()
+            });
+            turnoAvancado = true;
+            break;
+          }
+
+          // Monster turn — execute automatically
+          sm.sendToRoom(roomId, 'combat_turn', {
+            turnoAtual: proximo,
+            rodada: combate.rodadaCombate,
+            timestamp: Date.now()
+          });
+
+          const resultadoMonstro = await this.executarTurnoMonstro(roomId, proximo.id, sessao);
+          if (resultadoMonstro) {
+            sm.sendToRoom(roomId, 'combat_monster_action', {
+              ...resultadoMonstro,
+              timestamp: Date.now()
+            });
+
+            const fimCheck = verificarFimCombate(combate);
+            if (fimCheck.finalizado) {
+              sessao.estadoJogo = estadoJogo;
+              await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+              await this.finalizarCombate(roomId, fimCheck.resultado);
+              return;
+            }
+          }
+          turnoAvancado = true;
+        }
+      }
+
       // Salvar estado atualizado no Redis
       sessao.estadoJogo = estadoJogo;
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
@@ -237,6 +335,85 @@ export default class CombatEngine {
     } catch (error) {
       log.error({ err: error, roomId, userId }, 'Erro ao processar acao de combate');
     }
+  }
+
+  /**
+   * Execute a monster's turn automatically.
+   * Called when initiative order reaches a monster.
+   */
+  async executarTurnoMonstro(roomId, monstroId, sessao) {
+    const combate = sessao.estadoJogo?.combate;
+    if (!combate?.ativo) return null;
+
+    const monstro = combate.monstros.find(m => m.id === monstroId && m.status === 'vivo');
+    if (!monstro) return null;
+
+    // Pick target: random living player
+    const jogadoresVivos = Object.entries(combate.jogadores)
+      .filter(([_, j]) => j.status === 'vivo');
+    if (jogadoresVivos.length === 0) return null;
+
+    const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
+
+    // Pick ability or basic attack
+    const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
+
+    // Roll attack
+    const rolagem = Math.floor(Math.random() * 20) + 1;
+    const { acertou, critico } = verificarAcerto(rolagem);
+
+    let dano = 0;
+    let esquivou = false;
+
+    if (acertou) {
+      // Check player evasion
+      const defesaTemp = alvoStats.defesaTemporaria;
+      const esquivaExtra = defesaTemp?.esquivaBonus || 0;
+      const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
+      if (!critico && esquivaEfetiva > 0) {
+        esquivou = Math.floor(Math.random() * 100) + 1 <= esquivaEfetiva;
+      }
+
+      if (!esquivou) {
+        const danoBase = habilidade?.dano || monstro.dano_base || '1d6';
+        const danoRolado = rolarDado(typeof danoBase === 'string' ? danoBase : '1d6');
+        const modForca = Math.floor(((monstro.forca || 10) - 10) / 2);
+        dano = calcularDano(danoRolado, modForca, critico, alvoStats.armadura || 0);
+
+        // Apply damage reduction from defense
+        if (defesaTemp?.reducaoDano) {
+          dano = Math.max(1, Math.floor(dano * (1 - defesaTemp.reducaoDano)));
+        }
+
+        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - dano);
+        if (alvoStats.hp_atual <= 0) {
+          alvoStats.status = 'inconsciente';
+        }
+      }
+    }
+
+    const resultado = {
+      atacanteId: monstro.id,
+      atacanteNome: monstro.nome,
+      habilidade: habilidade?.nome || 'Ataque básico',
+      alvoId,
+      alvoNome: alvoStats.personagemNome,
+      rolagem,
+      acertou: acertou && !esquivou,
+      esquivou,
+      critico,
+      dano,
+      hpRestante: alvoStats.hp_atual,
+      hpMax: alvoStats.hp_max,
+    };
+
+    // Log
+    if (!Array.isArray(combate.log)) combate.log = [];
+    combate.log.push({ tipo: 'ataque_monstro', ...resultado, timestamp: Date.now() });
+
+    log.warn({ monstroId, alvoId, dano, acertou: resultado.acertou, critico }, 'COMBAT_MONSTER_TURN: ataque executado');
+
+    return resultado;
   }
 
   /**

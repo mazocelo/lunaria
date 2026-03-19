@@ -788,10 +788,10 @@ function _resolveCombatAction(ctx, resultados) {
 }
 
 /**
- * Fase 3: Contra-ataques + controle de rodada.
+ * Fase 3: Controle de rodada (contra-ataques removidos — monstros têm turnos próprios via iniciativa).
  */
 function _applyRoundConsequences(combate, userId, sessao, resultados) {
-  _executarContraAtaques(combate, sessao, resultados);
+  // Monster counter-attacks REMOVED — monsters have their own turns via initiative
   _controlarRodada(combate, userId, sessao, resultados);
 }
 
@@ -1157,7 +1157,7 @@ function buildBaseAttackOutcome(acaoPendente, personagem, monstroAlvo, { rolagem
 }
 
 function finalizeResolvedCombatRound(sessao, combate, userId, resultados) {
-  _executarContraAtaques(combate, sessao, resultados);
+  // Monster counter-attacks REMOVED — monsters have their own turns via initiative
   _controlarRodada(combate, userId, sessao, resultados);
   _verificarFimEAtribuir(combate, resultados);
   return resultados;
@@ -1529,12 +1529,11 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
       _pushCombatLog(combate, { tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
       log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: SUCESSO');
     } else {
-      // Fuga falhou: contra-ataques + controle de rodada
+      // Fuga falhou: controle de rodada (contra-ataques removidos — monstros têm turnos próprios via iniciativa)
       _pushCombatLog(combate, { tipo: 'fuga_jogador', ...resultados.fuga, timestamp: Date.now() });
-      _executarContraAtaques(combate, resultados);
       _controlarRodada(combate, userId, sessao, resultados);
       _verificarFimEAtribuir(combate, resultados);
-      log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: FALHA, contra-ataques aplicados');
+      log.info({ userId, dc: resultadoTeste.dc, total: resultadoTeste.total }, 'Fuga pós-teste: FALHA, rodada controlada');
     }
   } else if (acaoPendente.tipo === 'usar_habilidade' || acaoPendente.tipo === 'conjurar_magia') {
     // Futuro: habilidade com requer_teste
@@ -1623,8 +1622,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
       _pushCombatLog(combate, { tipo: tipoAcao === 'conjurar_magia' ? 'magia_falhou' : 'habilidade_falhou', ...resultados.habilidade, motivo: 'teste_falhou', timestamp: Date.now() });
     }
 
-    // Sempre: contra-ataques + controle rodada
-    _executarContraAtaques(combate, resultados);
+    // Sempre: controle de rodada (contra-ataques removidos — monstros têm turnos próprios via iniciativa)
     _controlarRodada(combate, userId, sessao, resultados);
     _verificarFimEAtribuir(combate, resultados);
   }
@@ -1732,6 +1730,59 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
   return '\n' + linhas.join('\n');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Initiative & Turn Order
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _isAlive(combate, entry) {
+  if (entry.tipo === 'jogador') {
+    const j = combate.jogadores?.[entry.id];
+    return j && j.status !== 'derrotado' && j.status !== 'inconsciente';
+  } else {
+    const m = combate.monstros?.find(mo => mo.id === entry.id);
+    return m && m.status === 'vivo';
+  }
+}
+
+/**
+ * Advance to next turn in initiative order.
+ * Skips dead/unconscious combatants.
+ * Returns the next combatant info or null if everyone is dead.
+ */
+export function avancarTurno(combate) {
+  if (!combate?.ordemIniciativa?.length) return null;
+
+  const ordem = combate.ordemIniciativa;
+  let nextIdx = (combate.turnoAtualIdx + 1) % ordem.length;
+
+  // Check if we completed a round
+  const novaRodada = nextIdx === 0;
+  if (novaRodada) {
+    combate.rodadaCombate = (combate.rodadaCombate || 1) + 1;
+  }
+
+  // Skip dead combatants
+  let attempts = 0;
+  while (attempts < ordem.length) {
+    const entry = ordem[nextIdx];
+    const isAlive = _isAlive(combate, entry);
+    if (isAlive) break;
+    nextIdx = (nextIdx + 1) % ordem.length;
+    attempts++;
+  }
+
+  if (attempts >= ordem.length) return null; // everyone dead
+
+  combate.turnoAtualIdx = nextIdx;
+  combate.aguardandoAcao = ordem[nextIdx].id;
+
+  return {
+    ...ordem[nextIdx],
+    rodadaAvancou: novaRodada,
+    rodada: combate.rodadaCombate,
+  };
+}
+
 export default {
   rolarDado,
   calcularHP,
@@ -1751,4 +1802,5 @@ export default {
   resolverMecanicaCombate,
   formatarResultadoMecanico,
   finalizarAcaoCombatePosTeste,
+  avancarTurno,
 };

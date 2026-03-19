@@ -41,9 +41,9 @@ export default class CombatEngine {
       const dificuldade = combateData.dificuldade || 'media';
 
       // Calcular nível médio dos jogadores
-      const jogadores = Array.isArray(sessao.jogadoresConectados)
-        ? sessao.jogadoresConectados
-        : Object.values(sessao.jogadores || {});
+      // Always resolve full player objects from sessao.jogadores (sessao.jogadoresConectados is a string[] of userIds)
+      const jogadores = Object.values(sessao.jogadores || {});
+      log.warn({ jogadoresResolved: jogadores.map(j => ({ id: j.id, nome: j.nome, personagemId: j.personagemId })) }, 'COMBAT_INIT: jogadores resolved from sessao.jogadores');
       const personagensCompletos = sessao.personagensCompletos || {};
 
       log.warn({ jogadoresCount: jogadores.length, personagensKeys: Object.keys(personagensCompletos) }, 'COMBAT_INIT: jogadores');

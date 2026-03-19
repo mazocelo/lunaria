@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validarIntentLLM, buildClassifierPrompt } from '../helpers/intentClassifier.js';
+import { validarIntentLLM, buildClassifierPrompt, classificarIntent } from '../helpers/intentClassifier.js';
 
 function makePersonagem() {
   return {
@@ -85,6 +85,32 @@ describe('intentClassifier', () => {
       const raw = '{"tipo":"atacar","alvo":"dretch_1"}';
       const result = validarIntentLLM(raw, personagem, combate);
       expect(result.alvoId).toBe('dretch_0');
+    });
+  });
+
+  describe('classificarIntent', () => {
+    it('retorna intent quando LLM responde JSON válido', async () => {
+      const result = await classificarIntent('atacar o dretch', makePersonagem(), makeCombate(), {
+        _mockResponse: '{"tipo":"atacar","alvo":"dretch_0"}'
+      });
+      expect(result).not.toBeNull();
+      expect(result.intent.tipo).toBe('atacar');
+      expect(result.source).toBe('flash_lite');
+    });
+
+    it('retorna null quando LLM retorna JSON inválido', async () => {
+      const result = await classificarIntent('dançar', makePersonagem(), makeCombate(), {
+        _mockResponse: 'sorry I cannot'
+      });
+      expect(result).toBeNull();
+    });
+
+    it('retorna null quando timeout', async () => {
+      const result = await classificarIntent('atacar', makePersonagem(), makeCombate(), {
+        _mockResponse: null,
+        _simulateTimeout: true
+      });
+      expect(result).toBeNull();
     });
   });
 

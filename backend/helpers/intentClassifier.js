@@ -66,6 +66,64 @@ export function validarIntentLLM(raw, personagem, combate) {
 }
 
 /**
+ * Classify player's combat action via Flash Lite LLM.
+ * @param {string} mensagem - Player's message text
+ * @param {Object} personagem - Character with habilidades/magias
+ * @param {Object} combate - Combat state
+ * @param {Object} [options]
+ * @param {string[]} [options.candidates] - Ambiguous candidates from Camada 1
+ * @param {string} [options._mockResponse] - Mock LLM response for testing
+ * @param {boolean} [options._simulateTimeout] - Simulate timeout for testing
+ * @returns {Promise<{ intent, source, raw } | null>}
+ */
+export async function classificarIntent(mensagem, personagem, combate, options = {}) {
+  const prompt = buildClassifierPrompt(mensagem, personagem, combate, options.candidates || []);
+
+  let raw;
+  try {
+    if (options._simulateTimeout) {
+      throw new Error('Timeout');
+    }
+    if (options._mockResponse !== undefined) {
+      raw = options._mockResponse;
+    } else {
+      raw = await _callFlashLite(prompt);
+    }
+  } catch (err) {
+    log.info({ err: err.message }, 'intentClassifier: LLM call failed (fail-open)');
+    return null;
+  }
+
+  if (!raw) return null;
+
+  const intent = validarIntentLLM(raw, personagem, combate);
+  if (!intent) {
+    log.info({ raw }, 'intentClassifier: LLM response failed validation');
+    return null;
+  }
+
+  log.info({ tipo: intent.tipo, source: 'flash_lite' }, 'intent resolved by flash_lite');
+  return { intent, source: 'flash_lite', raw };
+}
+
+async function _callFlashLite(prompt) {
+  const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
+  const model = new ChatGoogleGenerativeAI({
+    model: 'gemini-2.5-flash-lite',
+    temperature: 0,
+    maxOutputTokens: 100,
+    apiKey: process.env.GOOGLE_API_KEY,
+  });
+  const response = await Promise.race([
+    model.invoke(prompt),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Classifier timeout')), 3000))
+  ]);
+  return typeof response.content === 'string'
+    ? response.content.trim()
+    : String(response.content || '');
+}
+
+/**
  * Build the classifier prompt from player message + character abilities + combat state.
  * @param {string} mensagem - Player's message text
  * @param {Object} personagem - Character with habilidades/magias

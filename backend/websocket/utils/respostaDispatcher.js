@@ -518,8 +518,14 @@ const RESPONSE_HANDLERS = [
   {
     nome: 'combate_fallback',
     check: (r, ctx) => {
-      if (r.combate?.iniciado || isCombatActive(ctx)) return false;
+      const combateIniciado = r.combate?.iniciado;
+      const combateActive = isCombatActive(ctx);
+      if (combateIniciado || combateActive) {
+        log.warn({ combateIniciado, combateActive }, 'COMBATE_FALLBACK: skip (already active or AI signaled)');
+        return false;
+      }
       const detected = detectarCombateNarrativa(r.narracao, ctx.sessao);
+      log.warn({ detected: !!detected, narracaoLen: r.narracao?.length }, 'COMBATE_FALLBACK: check result');
       if (detected) {
         log.warn({ criatura: detected.monstros?.[0]?.nome, motivo: detected.motivo }, 'COMBATE_FALLBACK: detectado na narrativa');
       }
@@ -542,7 +548,7 @@ const RESPONSE_HANDLERS = [
 ];
 
 export async function despacharResposta(resposta, ctx) {
-  log.info({ narracaoLen: resposta?.narracao?.length, combateIA: !!resposta?.combate?.iniciado, combateAtivo: !!ctx.combateAtivo }, 'despacharResposta chamado');
+  log.warn({ narracaoLen: resposta?.narracao?.length, combateIA: !!resposta?.combate?.iniciado, combateIniciado: resposta?.combate?.iniciado, combateAtivo: !!ctx.combateAtivo, combateSessao: !!ctx.sessao?.estadoJogo?.combate?.ativo }, 'despacharResposta chamado');
   for (const handler of RESPONSE_HANDLERS) {
     if (!handler.check(resposta, ctx)) continue;
     try {

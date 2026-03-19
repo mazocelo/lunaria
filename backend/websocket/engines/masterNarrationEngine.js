@@ -1224,9 +1224,11 @@ export default class MasterNarrationEngine {
         }
 
         const narrativa = resposta.narracao || '';
+        const combateAtivoAgora = combateAtivo || Boolean(resposta?.combate?.iniciado) || !!workingSessao.estadoJogo?.combate?.ativo;
         const mensagemMestre = sm.buildMestreMensagem(narrativa, workingSessao.mestreConfig, {
           sessao: workingSessao,
           segmentos: resposta.segmentos || [],
+          origem: combateAtivoAgora ? 'combate' : 'turno',
           extraFields: {
             requestId,
             attempt

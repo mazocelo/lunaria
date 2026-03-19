@@ -112,7 +112,7 @@ export default class CombatEngine {
             dano_base: p.melhorArma || null,
             elemento: p.elementoArma || null,
             status: 'vivo',
-            personagemNome: p.nome || jogador.username,
+            personagemNome: p.nome || jogador.personagemNome || jogador.nome || jogador.username || 'Jogador',
             cooldowns: {}
           };
         } else {
@@ -128,7 +128,7 @@ export default class CombatEngine {
             bonusDano: 0,
             dano_base: null,
             status: 'vivo',
-            personagemNome: jogador.username || 'Jogador',
+            personagemNome: jogador.personagemNome || jogador.nome || jogador.username || 'Jogador',
             cooldowns: {}
           };
         }

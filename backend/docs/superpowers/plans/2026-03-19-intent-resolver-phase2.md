@@ -230,7 +230,7 @@ export function validarIntentLLM(raw, personagem, combate) {
  * @param {Object} combate - Combat state with monstros
  * @returns {string}
  */
-export function buildClassifierPrompt(mensagem, personagem, combate) {
+export function buildClassifierPrompt(mensagem, personagem, combate, candidates = []) {
   const habilidades = personagem?.habilidades || [];
   const magias = personagem?.magias || [];
   const monstrosVivos = (combate?.monstros || []).filter(m => m.status === 'vivo');
@@ -242,6 +242,10 @@ export function buildClassifierPrompt(mensagem, personagem, combate) {
 
   const monstros = monstrosVivos.map(m => `- ${m.nome} (id: ${m.id})`).join('\n');
 
+  const candidateHint = candidates.length > 0
+    ? `\nCandidatos ambíguos (escolha o mais provável):\n${candidates.map(c => `- ${c}`).join('\n')}\n`
+    : '';
+
   return `Classifique a ação de combate do jogador.
 
 Habilidades disponíveis:
@@ -249,8 +253,7 @@ ${acoes || '(nenhuma)'}
 
 Monstros vivos:
 ${monstros || '(nenhum)'}
-
-Tipos válidos: atacar, defender, fugir, usar_habilidade, conjurar_magia
+${candidateHint}Tipos válidos: atacar, defender, fugir, usar_habilidade, conjurar_magia
 
 Ação do jogador: "${mensagem}"
 
@@ -347,7 +350,7 @@ Add to `helpers/intentClassifier.js`:
  * @returns {Promise<{ intent, source, raw } | null>}
  */
 export async function classificarIntent(mensagem, personagem, combate, options = {}) {
-  const prompt = buildClassifierPrompt(mensagem, personagem, combate);
+  const prompt = buildClassifierPrompt(mensagem, personagem, combate, options.candidates || []);
 
   let raw;
   try {
@@ -463,6 +466,27 @@ describe('prepararTurno — intent pipeline (Phase 2)', () => {
     expect(resultado.defesa).toBeTruthy();
   });
 
+  it('Camada 1 ambíguo → Flash Lite desambigua (mocked)', async () => {
+    // Personagem with 2 similar abilities to trigger ambiguity
+    const sessao = makeSessao({
+      personagensCompletos: {
+        'user_1': makePersonagemCompleto({
+          habilidades: [
+            { id: 'investida', nome: 'Investida', custo_mana: 3, dano_base: '1d8' },
+            { id: 'investida_brutal', nome: 'Investida Brutal', custo_mana: 5, dano_base: '2d8' },
+          ]
+        })
+      }
+    });
+    // "investida" matches both — ambiguous in Camada 1
+    // With _skipFlashLite, falls to Camada 3
+    const resultado = await prepararTurno(sessao, 'user_1', {
+      mensagem: 'investida',
+      _skipFlashLite: true
+    });
+    expect(resultado.requerIntentMestre).toBe(true);
+  });
+
   it('retorna requerIntentMestre quando todas camadas falham', async () => {
     const sessao = makeSessao();
     const resultado = await prepararTurno(sessao, 'user_1', {
@@ -542,7 +566,9 @@ export async function prepararTurno(sessao, userId, intentOrMessage) {
     return { requerIntentMestre: true, mensagem };
   }
 
-  return _prepararMecanica(sessao, userId, intent);
+  const resultado = _prepararMecanica(sessao, userId, intent);
+  if (resultado) resultado._resolvedIntent = intent;  // propagate for caller
+  return resultado;
 }
 
 /**
@@ -885,6 +911,20 @@ async function processarIntentSugerido(resposta, ctx) {
       metadata: { source: 'intentSugerido' }
     }, ctx.userId);
 
+    // Persist test prompt to session history + emit via websocket
+    appendMensagemSessao(ctx.sessao, buildSolicitacaoDadosMensagem({
+      narrativa: resposta.narracao,
+      origem: 'combate',
+      payload: {
+        testePendente: testeCriado,
+        testesPendentes: [testeCriado],
+        tipoDado: 'd20',
+        teste: sugerido.teste,
+        dificuldade: sugerido.dificuldade,
+        contexto: sugerido.justificativa
+      }
+    }));
+
     emitirSolicitacaoTeste(ctx.sm, ctx.roomId, ctx.sessao, {
       narrativa: resposta.narracao,
       tipoDado: 'd20',
@@ -977,7 +1017,7 @@ Do the same in `montarSchemaCompacto()`.
 Find the LEMBRE-SE rules and add:
 
 ```
-8. Quando o jogador tenta algo criativo em combate (empurrar objeto, derrubar pilar, usar ambiente), use intentSugerido com tipo "teste", atributo e dificuldade. NÃO use solicitaDados quando intentSugerido estiver presente.
+7. Quando o jogador tenta algo criativo em combate (empurrar objeto, derrubar pilar, usar ambiente), use intentSugerido com tipo "teste", atributo e dificuldade. NÃO use solicitaDados quando intentSugerido estiver presente.
 ```
 
 - [ ] **Step 4: Run tests**

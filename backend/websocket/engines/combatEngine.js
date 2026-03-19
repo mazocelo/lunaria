@@ -140,30 +140,12 @@ export default class CombatEngine {
         }
       }
 
-      // Roll initiative for all combatants
-      const ordemIniciativa = [];
-
-      // Players
-      for (const [jUserId, jogador] of Object.entries(jogadoresCombate)) {
-        const pc = personagensCompletos[jogador.personagemId] || personagensCompletos[String(jogador.personagemId)] || {};
-        const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
-        const modAgi = Math.floor((agiValue - 10) / 2);
-        const roll = Math.floor(Math.random() * 20) + 1;
-        ordemIniciativa.push({
-          id: jUserId,
-          tipo: 'jogador',
-          nome: jogador.personagemNome || 'Jogador',
-          rolagem: roll,
-          modificador: modAgi,
-          iniciativa: roll + modAgi,
-        });
-      }
-
-      // Monsters
+      // Roll initiative for monsters (server-side)
+      const iniciativaMonstros = [];
       for (const monstro of instancias) {
         const modBase = Math.floor(((monstro.forca || 10) - 10) / 2);
         const roll = Math.floor(Math.random() * 20) + 1;
-        ordemIniciativa.push({
+        iniciativaMonstros.push({
           id: monstro.id,
           tipo: 'monstro',
           nome: monstro.nome,
@@ -173,31 +155,26 @@ export default class CombatEngine {
         });
       }
 
-      // Sort: highest first, ties → player wins
-      ordemIniciativa.sort((a, b) => {
-        if (b.iniciativa !== a.iniciativa) return b.iniciativa - a.iniciativa;
-        if (a.tipo === 'jogador' && b.tipo === 'monstro') return -1;
-        if (a.tipo === 'monstro' && b.tipo === 'jogador') return 1;
-        return 0;
-      });
-
-      log.warn({ ordemIniciativa: ordemIniciativa.map(o => ({ nome: o.nome, iniciativa: o.iniciativa })) }, 'COMBAT_INIT: ordem de iniciativa');
-
-      // Montar estado de combate
+      // Montar estado de combate — aguardando iniciativa dos jogadores
       const combateState = {
         ativo: true,
-        rodadaCombate: 1,
+        fase: 'iniciativa',  // aguardando jogadores rolarem iniciativa
+        rodadaCombate: 0,
         motivo: combateData.motivo,
         dificuldade,
         monstros: instancias,
         jogadores: jogadoresCombate,
         jogadoresQueAgiram: [],
-        ordemIniciativa,
+        iniciativaMonstros,
+        iniciativaJogadores: {},  // preenchido quando jogadores rolam
+        ordemIniciativa: [],
         turnoAtualIdx: 0,
-        aguardandoAcao: ordemIniciativa[0]?.id || null,
+        aguardandoAcao: null,
         log: [],
         resultado: null
       };
+
+      log.warn({ monstros: iniciativaMonstros.map(m => ({ nome: m.nome, iniciativa: m.iniciativa })) }, 'COMBAT_INIT: iniciativa monstros (server-side)');
 
       // Salvar no estadoJogo
       const estadoJogo = sessao.estadoJogo || {};
@@ -216,17 +193,147 @@ export default class CombatEngine {
       sm.sendToRoom(roomId,COMBAT_EVENTS.COMBATE_INICIADO, {
         monstros: instancias,
         jogadores: jogadoresCombate,
-        ordemIniciativa,
-        rodada: 1,
+        fase: 'iniciativa',
+        iniciativaMonstros,
+        rodada: 0,
         motivo: combateData.motivo,
         dificuldade,
         timestamp: Date.now()
       });
 
-      log.warn('COMBAT_INIT: evento combate_iniciado emitido');
+      log.warn('COMBAT_INIT: evento combate_iniciado emitido (fase: iniciativa)');
+
+      // Solicitar dado de iniciativa para cada jogador
+      for (const [jUserId, jogador] of Object.entries(jogadoresCombate)) {
+        const pc = personagensCompletos[jogador.personagemId] || personagensCompletos[String(jogador.personagemId)] || {};
+        const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
+        const modAgi = Math.floor((agiValue - 10) / 2);
+
+        // @event combate_solicita_iniciativa → room (broadcast) | requests initiative roll from player
+        sm.sendToRoom(roomId, 'combate_solicita_iniciativa', {
+          userId: jUserId,
+          personagemNome: jogador.personagemNome,
+          modificador: modAgi,
+          atributo: 'Agilidade',
+          timestamp: Date.now()
+        });
+        log.warn({ userId: jUserId, personagemNome: jogador.personagemNome, modAgi }, 'COMBAT_INIT: solicitando iniciativa do jogador');
+      }
 
     } catch (error) {
       log.error({ err: error, roomId, stack: error.stack }, 'COMBAT_INIT: ERRO ao iniciar combate');
+    }
+  }
+
+  /**
+   * Process initiative roll from a player.
+   * When all players have rolled, calculate order and start combat turns.
+   */
+  async processarIniciativaCombate(roomId, userId, valorDado, sessao) {
+    const sm = this.manager;
+
+    try {
+      const combate = sessao.estadoJogo?.combate;
+      if (!combate?.ativo || combate.fase !== 'iniciativa') {
+        log.warn({ roomId, userId, fase: combate?.fase }, 'processarIniciativaCombate: não está na fase de iniciativa');
+        return;
+      }
+
+      if (combate.iniciativaJogadores[userId]) {
+        log.warn({ roomId, userId }, 'processarIniciativaCombate: jogador já rolou iniciativa');
+        return;
+      }
+
+      // Get player's agility modifier
+      const jogadorStats = combate.jogadores[userId];
+      const personagensCompletos = sessao.personagensCompletos || {};
+      const pc = personagensCompletos[jogadorStats?.personagemId] || personagensCompletos[String(jogadorStats?.personagemId)] || {};
+      const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
+      const modAgi = Math.floor((agiValue - 10) / 2);
+
+      const roll = parseInt(valorDado, 10) || 1;
+      combate.iniciativaJogadores[userId] = {
+        id: userId,
+        tipo: 'jogador',
+        nome: jogadorStats?.personagemNome || 'Jogador',
+        rolagem: roll,
+        modificador: modAgi,
+        iniciativa: roll + modAgi,
+      };
+
+      log.warn({ userId, roll, modAgi, iniciativa: roll + modAgi }, 'COMBAT_INIT: jogador rolou iniciativa');
+
+      // Broadcast the roll result
+      sm.sendToRoom(roomId, 'combate_resultado_iniciativa', {
+        userId,
+        personagemNome: jogadorStats?.personagemNome || 'Jogador',
+        rolagem: roll,
+        modificador: modAgi,
+        iniciativa: roll + modAgi,
+        timestamp: Date.now()
+      });
+
+      // Check if all players have rolled
+      const jogadoresIds = Object.keys(combate.jogadores);
+      const todosRolaram = jogadoresIds.every(id => combate.iniciativaJogadores[id]);
+
+      if (!todosRolaram) {
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+        return;
+      }
+
+      // All players rolled — define order
+      const ordemIniciativa = [
+        ...Object.values(combate.iniciativaJogadores),
+        ...combate.iniciativaMonstros,
+      ];
+
+      ordemIniciativa.sort((a, b) => {
+        if (b.iniciativa !== a.iniciativa) return b.iniciativa - a.iniciativa;
+        if (a.tipo === 'jogador' && b.tipo === 'monstro') return -1;
+        if (a.tipo === 'monstro' && b.tipo === 'jogador') return 1;
+        return 0;
+      });
+
+      combate.ordemIniciativa = ordemIniciativa;
+      combate.fase = 'combate';
+      combate.rodadaCombate = 1;
+      combate.turnoAtualIdx = 0;
+      combate.aguardandoAcao = ordemIniciativa[0]?.id || null;
+
+      log.warn({ ordemIniciativa: ordemIniciativa.map(o => ({ nome: o.nome, iniciativa: o.iniciativa })) }, 'COMBAT_INIT: ordem definida, combate começa');
+
+      // @event combate_ordem_definida → room (broadcast) | initiative order finalized, combat begins
+      sm.sendToRoom(roomId, 'combate_ordem_definida', {
+        ordemIniciativa,
+        primeiroTurno: ordemIniciativa[0],
+        rodada: 1,
+        timestamp: Date.now()
+      });
+
+      await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+
+      // If first turn is a monster, auto-execute
+      if (ordemIniciativa[0]?.tipo === 'monstro') {
+        const resultado = await this.executarTurnoMonstro(roomId, ordemIniciativa[0].id, sessao);
+        if (resultado) {
+          sm.sendToRoom(roomId, 'combat_monster_action', { ...resultado, timestamp: Date.now() });
+          const fimCheck = verificarFimCombate(combate);
+          if (fimCheck.finalizado) {
+            await this.finalizarCombate(roomId, fimCheck.resultado);
+            return;
+          }
+          // Advance to next turn
+          const proximo = avancarTurno(combate);
+          if (proximo) {
+            sm.sendToRoom(roomId, 'combat_turn', { turnoAtual: proximo, rodada: combate.rodadaCombate, timestamp: Date.now() });
+          }
+        }
+        await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+      }
+
+    } catch (error) {
+      log.error({ err: error, roomId, userId, stack: error.stack }, 'processarIniciativaCombate: ERRO');
     }
   }
 
@@ -240,6 +347,10 @@ export default class CombatEngine {
       const estadoJogo = sessao.estadoJogo || {};
       const combate = estadoJogo.combate;
       if (!combate?.ativo) return;
+      if (combate.fase === 'iniciativa') {
+        log.warn({ roomId, userId }, 'processarAcaoCombate: aguardando iniciativa, ignorando ação');
+        return;
+      }
 
       // ✅ Usar resultados pré-resolvidos (mecânica já foi computada ANTES da IA narrar)
       const r = sessao._combatePreResolvido;

@@ -30,6 +30,10 @@ export async function prepararTurno(sessao, userId, intentOrMessage) {
     log.debug({ userId }, 'prepararTurno: combate não ativo');
     return null;
   }
+  if (combate.fase === 'iniciativa') {
+    log.debug({ userId }, 'prepararTurno: aguardando iniciativa');
+    return null;
+  }
 
   // Phase 1 compat: intent already resolved
   if (intentOrMessage?.tipo) {

@@ -414,6 +414,27 @@ class SocketManager {
         }
       });
 
+      // @listen rolar_iniciativa_combate → combatEngine | d20 para iniciativa em combate
+      socket.on('rolar_iniciativa_combate', async (data) => {
+        this.log('INFO', 'ROLAR_INICIATIVA_COMBATE', socket.id, socket.userId, {
+          roomId: data?.roomId || socket.currentRoom
+        });
+        try {
+          const roomId = String(data?.roomId || socket.currentRoom);
+          const userId = String(socket.userId);
+          await this.withRoomLock(roomId, async () => {
+            const sessao = await this.obterSessaoHistoria(roomId);
+            if (!sessao) return;
+            const valorDado = Math.floor(Math.random() * 20) + 1;
+            await this.combatEngine.processarIniciativaCombate(roomId, userId, valorDado, sessao);
+          });
+        } catch (error) {
+          this.log('ERROR', 'ROLAR_INICIATIVA_COMBATE_FAILED', socket.id, socket.userId, {
+            error: error.message
+          });
+        }
+      });
+
       // @listen iniciar_turno → turnEngine | jogador inicia seu turno com o mestre
       socket.on('iniciar_turno', async (data) => {
         this.log('INFO', 'INICIAR_TURNO_RECEIVED', socket.id, socket.userId, {

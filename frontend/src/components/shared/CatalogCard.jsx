@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../contexts/theme.jsx';
+import { Maximize2 } from 'lucide-react';
+import ImageLightbox from '../ImageLightbox.jsx';
 
 const rarityBorderColors = {
   'Comum': '#94a3b8',
@@ -24,6 +26,7 @@ const CatalogCard = ({
   delay = 0,
   className = '',
 }) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const borderColor = rarity ? rarityBorderColors[rarity] : null;
@@ -92,6 +95,23 @@ const CatalogCard = ({
           isLight ? 'from-white to-transparent' : 'from-slate-800/90 to-transparent'
         }`} />
 
+        {/* View image button */}
+        {image && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+            title="Ver imagem"
+            className={`absolute top-2.5 left-2.5 z-10 w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer
+              opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200
+              ${isLight
+                ? 'bg-white/90 shadow-md hover:bg-white text-slate-500 hover:text-purple-600'
+                : 'bg-slate-900/80 backdrop-blur-sm shadow-lg hover:bg-slate-800 text-slate-400 hover:text-white'
+              }
+            `}
+          >
+            <Maximize2 size={14} />
+          </button>
+        )}
+
         {/* Header badge */}
         {headerBadge && (
           <div className="absolute top-2.5 right-2.5 z-10">
@@ -142,6 +162,16 @@ const CatalogCard = ({
 
         {children}
       </div>
+
+      {/* Lightbox */}
+      {image && (
+        <ImageLightbox
+          src={image}
+          alt={title}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </div>
   );
 };

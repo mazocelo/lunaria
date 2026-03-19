@@ -5,7 +5,7 @@ import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'respostaDispatcher' });
 
 import { processarAcoes } from '../../helpers/acoesProcessor.js';
-import { resolverMecanicaCombate } from '../../helpers/combateHelper.js';
+import { prepararTurno } from '../../helpers/gameEngine.js';
 import { getTurnActionLimit } from '../../helpers/historiaConfigHelper.js';
 import { calcularModificadorTeste } from '../../helpers/testeHelper.js';
 import {
@@ -144,7 +144,7 @@ function ensureCombatPreResolution(resposta, ctx) {
   if (!resolution.intent) return;
 
   ctx.combatIntent = resolution.intent;
-  const resultados = resolverMecanicaCombate(combate, ctx.userId, ctx.sessao, personagemRuntime, resolution.intent);
+  const resultados = prepararTurno(ctx.sessao, ctx.userId, resolution.intent);
   if (!resultados) return;
 
   if (resultados.requerTeste) {

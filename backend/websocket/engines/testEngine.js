@@ -3,6 +3,7 @@ const log = logger.child({ module: 'testEngine' });
 
 import {
   compactarTestesPendentes,
+  criarTestePendente,
   criarTestesPendentes,
   emitirSolicitacaoTeste,
   getTestesPendentes,
@@ -14,7 +15,7 @@ import { buildDiceResolutionContext, buildNarracaoContext } from '../../agents/M
 import { formatarResultadoMecanico } from '../../helpers/combateHelper.js';
 import { resolverTurno } from '../../helpers/gameEngine.js';
 import { getTurnState, TURN_STATUS } from '../utils/turnStateMachine.js';
-import { resolvePendingCombatAction } from '../utils/combatPendingAction.js';
+import { resolvePendingCombatAction, createPendingCombatAction } from '../utils/combatPendingAction.js';
 import {
   appendMensagemSessao,
   buildDadoMensagem,
@@ -343,7 +344,35 @@ export default class TestEngine {
           log.warn({ stage: acaoPendenteCombate.stage, tipo: acaoPendenteCombate.tipo, targetId: acaoPendenteCombate.targetId, rolagemBruta: resultadoTestePayload.rolagemBruta, total: resultadoTestePayload.total, sucesso: resultadoTestePayload.sucesso }, 'testEngine: calling resolverTurno');
           resultadosCombatePosTeste = resolverTurno(sessao, acaoPendenteCombate, resultadoTestePayload);
           log.warn({ hasResult: !!resultadosCombatePosTeste, aguardandoProximoTeste: resultadosCombatePosTeste?.aguardandoProximoTeste, acaoConsumida: resultadosCombatePosTeste?.acaoConsumida, ataqueJogador: !!resultadosCombatePosTeste?.ataqueJogador, habilidade: !!resultadosCombatePosTeste?.habilidade }, 'testEngine: resolverTurno result');
-          if (resultadosCombatePosTeste) {
+
+          if (resultadosCombatePosTeste?.aguardandoProximoTeste && resultadosCombatePosTeste.proximoTeste) {
+            // Attack roll succeeded — need damage roll next
+            const nextTest = resultadosCombatePosTeste.proximoTeste;
+            const nextAction = resultadosCombatePosTeste.proximaAcaoPendente;
+
+            const testeDano = criarTestePendente(sessao, {
+              origem: 'combate',
+              jogadorAlvo: userId,
+              personagemAlvo: acaoPendenteCombate.personagem?.nome || personagemNome,
+              teste: nextTest.teste || 'Dano',
+              dificuldade: nextTest.dcNumerico || 0,
+              tipoDado: nextTest.tipoDado || 'd6',
+              contexto: nextTest.contexto || 'Rolagem de dano',
+              metadata: { ...(nextTest.metadata || {}), stage: 'damage_roll' }
+            }, userId);
+
+            if (nextAction) {
+              createPendingCombatAction(sessao, {
+                ...nextAction,
+                testeId: testeDano?.id || null,
+              });
+            }
+
+            log.warn({ testeId: testeDano?.id, stage: 'damage_roll', tipoDado: nextTest.tipoDado }, 'testEngine: damage roll test created');
+
+            // Don't set _combatePreResolvido yet — wait for damage roll
+            resultadosCombatePosTeste = null;
+          } else if (resultadosCombatePosTeste) {
             sessao._combatePreResolvido = resultadosCombatePosTeste;
             const personagemNomePosTeste = acaoPendenteCombate.personagem?.nome || personagemNome;
             contextoCombateExtra = formatarResultadoMecanico(resultadosCombatePosTeste, personagemNomePosTeste);

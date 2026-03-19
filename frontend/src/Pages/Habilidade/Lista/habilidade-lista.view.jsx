@@ -1,8 +1,8 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { TabelaList, PageHeader, Badge, SearchBar, TableSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
-import { Wand2, Eye, Swords, Heart, Shield, Flame } from 'lucide-react';
+import { Wand2, Swords, Heart, Flame } from 'lucide-react';
 
 const categoriaLabels = {
   combate_fisico: 'Combate Físico',
@@ -25,8 +25,10 @@ const categoriaVariant = {
   controle: 'amber',
   utilidade: 'slate',
   social: 'pink',
-  crafting: 'orange',
+  crafting: 'amber',
 };
+
+const tipoVariant = { dano: 'red', cura: 'green', buff: 'cyan', debuff: 'amber', controle: 'purple' };
 
 const HabilidadeListaView = ({
   habilidades,
@@ -44,89 +46,15 @@ const HabilidadeListaView = ({
   generateRoute,
 }) => {
   if (loading && habilidades.length === 0) {
-    return <TableSkeleton cols={7} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Habilidades" subtitle={`${total} habilidades no sistema de RPG`} icon={Wand2} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
-
-  const columns = [
-    {
-      key: 'id',
-      label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
-    },
-    {
-      key: 'nome',
-      label: 'Nome',
-      align: 'left',
-      render: (row) => (
-        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-          {row.nome}
-        </span>
-      )
-    },
-    {
-      key: 'categoria',
-      label: 'Categoria',
-      align: 'left',
-      render: (row) => (
-        <Badge variant={categoriaVariant[row.categoria] || 'slate'}>
-          {categoriaLabels[row.categoria] || row.categoria}
-        </Badge>
-      )
-    },
-    {
-      key: 'tipo',
-      label: 'Tipo',
-      align: 'left',
-      render: (row) => {
-        const variantMap = { dano: 'red', cura: 'green', buff: 'cyan', debuff: 'amber', controle: 'purple' };
-        return <Badge variant={variantMap[row.tipo] || 'slate'}>{row.tipo}</Badge>;
-      }
-    },
-    {
-      key: 'nivel_requerido',
-      label: 'Nivel',
-      align: 'left',
-      render: (row) => <span className="text-cyan-400 font-semibold">{row.nivel_requerido}</span>
-    },
-    {
-      key: 'custo_mana',
-      label: 'Mana',
-      align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400'
-        }`}>
-          {row.custo_mana}
-        </span>
-      )
-    },
-    {
-      key: 'elemento',
-      label: 'Elemento',
-      align: 'left',
-      render: (row) => row.elemento
-        ? <Badge variant="purple">{row.elemento}</Badge>
-        : <span className="text-slate-500 text-xs">-</span>
-    },
-    {
-      key: 'classe',
-      label: 'Classe',
-      align: 'left',
-      render: (row) => row.classe
-        ? <span className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{row.classe.nome}</span>
-        : <span className="text-slate-500 text-xs">Genérica</span>
-    }
-  ];
-
-  const actions = [
-    {
-      label: 'Ver',
-      icon: <Eye size={18} />,
-      color: 'purple',
-      onClick: (row) => navigate(generateRoute.verHabilidade(row.id))
-    }
-  ];
 
   const displayData = filteredHabilidades?.length > 0 || filteredHabilidades?.length === 0
     ? filteredHabilidades
@@ -174,19 +102,46 @@ const HabilidadeListaView = ({
         </select>
       </div>
 
-      <TabelaList
-        header="Lista de Habilidades"
-        columns={columns}
-        data={displayData}
-        actions={actions}
-        loading={loading}
-        pagination={true}
-        initialPageSize={15}
-        pageSizeOptions={[10, 15, 25, 50, 100]}
-        emptyMessage="Nenhuma habilidade encontrada"
-        emptyIcon={<Wand2 size={32} />}
-        hoverable={true}
-      />
+      {displayData.length === 0 ? (
+        <div className="text-center py-16">
+          <Wand2 size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma habilidade encontrada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {displayData.map((row, i) => (
+            <CatalogCard
+              key={row.id}
+              image={row.imagem}
+              icon={Wand2}
+              title={row.nome}
+              delay={i}
+              onClick={() => navigate(generateRoute.verHabilidade(row.id))}
+              headerBadge={
+                <Badge variant={categoriaVariant[row.categoria] || 'slate'} className="shadow-sm backdrop-blur-sm">
+                  {categoriaLabels[row.categoria] || row.categoria}
+                </Badge>
+              }
+            >
+              <div className="flex flex-wrap gap-1 mt-1">
+                {row.tipo && <Badge variant={tipoVariant[row.tipo] || 'slate'}>{row.tipo}</Badge>}
+                {row.elemento && <Badge variant="purple">{row.elemento}</Badge>}
+              </div>
+              <div className={`flex items-center gap-3 mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span className="text-cyan-500 font-semibold">Nv {row.nivel_requerido}</span>
+                <span className={`px-1.5 py-0.5 rounded-full font-semibold ${
+                  isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {row.custo_mana} MP
+                </span>
+                {row.classe && (
+                  <span className={isLight ? 'text-slate-400' : 'text-slate-500'}>{row.classe.nome}</span>
+                )}
+              </div>
+            </CatalogCard>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

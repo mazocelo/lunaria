@@ -1,8 +1,10 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { TabelaList, PageHeader, Badge, SearchBar, TableSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
-import { AlertTriangle, Eye, BarChart3, Tag } from 'lucide-react';
+import { AlertTriangle, BarChart3, Tag } from 'lucide-react';
+
+const tipoVariant = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
 
 const DesvantagemListaView = ({
   desvantagens,
@@ -18,92 +20,15 @@ const DesvantagemListaView = ({
   generateRoute,
 }) => {
   if (loading && desvantagens.length === 0) {
-    return <TableSkeleton cols={6} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Desvantagens" subtitle="Fraquezas e desvantagens para personagens" icon={AlertTriangle} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
-
-  const renderTipo = (row) => {
-    const tipos = Array.isArray(row.tipo) ? row.tipo : [];
-    const variantMap = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
-    return (
-      <div className="flex flex-wrap gap-1">
-        {tipos.length > 0 ? tipos.map((t, i) => (
-          <Badge key={i} variant={variantMap[t] || 'slate'}>{t}</Badge>
-        )) : <span className="text-slate-500 text-xs">-</span>}
-      </div>
-    );
-  };
-
-  const renderElemento = (row) => {
-    const elementos = Array.isArray(row.elemento) ? row.elemento : [];
-    if (elementos.length === 0) return <span className="text-slate-500 text-xs">-</span>;
-    return (
-      <div className="flex flex-wrap gap-1">
-        {elementos.map((e, i) => (
-          <Badge key={i} variant="red">{e}</Badge>
-        ))}
-      </div>
-    );
-  };
-
-  const columns = [
-    {
-      key: 'id',
-      label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
-    },
-    {
-      key: 'nome',
-      label: 'Nome',
-      align: 'left',
-      render: (row) => (
-        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-          {row.nome}
-        </span>
-      )
-    },
-    {
-      key: 'tipo',
-      label: 'Tipo',
-      align: 'left',
-      render: renderTipo
-    },
-    {
-      key: 'nivel',
-      label: 'Nivel',
-      align: 'left',
-      render: (row) => (
-        <span className="text-cyan-400 font-semibold">{row.nivel || 1}</span>
-      )
-    },
-    {
-      key: 'custo',
-      label: 'Custo',
-      align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400'
-        }`}>
-          {row.custo} pts
-        </span>
-      )
-    },
-    {
-      key: 'elemento',
-      label: 'Elemento',
-      align: 'left',
-      render: renderElemento
-    }
-  ];
-
-  const actions = [
-    {
-      label: 'Ver',
-      icon: <Eye size={18} />,
-      color: 'purple',
-      onClick: (row) => navigate(generateRoute.verDesvantagem(row.id))
-    }
-  ];
 
   const displayDesvantagens = filteredDesvantagens?.length > 0 ? filteredDesvantagens : desvantagens;
 
@@ -130,19 +55,49 @@ const DesvantagemListaView = ({
         onChange={(texto) => buscarDesvantagens(texto)}
       />
 
-      <TabelaList
-        header="Lista de Desvantagens"
-        columns={columns}
-        data={displayDesvantagens}
-        actions={actions}
-        loading={loading}
-        pagination={true}
-        initialPageSize={10}
-        pageSizeOptions={[5, 10, 25, 50]}
-        emptyMessage="Nenhuma desvantagem encontrada"
-        emptyIcon={<AlertTriangle size={32} />}
-        hoverable={true}
-      />
+      {displayDesvantagens.length === 0 ? (
+        <div className="text-center py-16">
+          <AlertTriangle size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma desvantagem encontrada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {displayDesvantagens.map((row, i) => {
+            const tipos = Array.isArray(row.tipo) ? row.tipo : [];
+            const elementos = Array.isArray(row.elemento) ? row.elemento : [];
+
+            return (
+              <CatalogCard
+                key={row.id}
+                image={row.imagem}
+                icon={AlertTriangle}
+                title={row.nome}
+                delay={i}
+                onClick={() => navigate(generateRoute.verDesvantagem(row.id))}
+                headerBadge={
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
+                    isLight ? 'bg-red-100/90 text-red-800' : 'bg-red-500/30 text-red-300'
+                  }`}>
+                    {row.custo} pts
+                  </span>
+                }
+              >
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {tipos.map((t, j) => (
+                    <Badge key={j} variant={tipoVariant[t] || 'slate'}>{t}</Badge>
+                  ))}
+                  {elementos.map((e, j) => (
+                    <Badge key={`el-${j}`} variant="red">{e}</Badge>
+                  ))}
+                </div>
+                <div className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <span className="text-cyan-500 font-semibold">Nv {row.nivel || 1}</span>
+                </div>
+              </CatalogCard>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

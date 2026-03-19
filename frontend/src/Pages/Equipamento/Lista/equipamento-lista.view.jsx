@@ -2,21 +2,18 @@ import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import { TabelaList, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame, Sparkles } from 'lucide-react';
 
-const raridadeColors = (raridade, isLight) => {
-  const map = {
-    'Comum': isLight ? 'bg-gray-100 text-gray-800' : 'bg-gray-500/20 text-gray-400',
-    'Incomum': isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400',
-    'Raro': isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
-    'Muito Raro': isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
-    'Épico': isLight ? 'bg-orange-100 text-orange-800' : 'bg-orange-500/20 text-orange-400',
-    'Lendário': isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400',
-    'Artefato': isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400',
-    'Variável': isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-500/20 text-slate-400',
-  };
-  return map[raridade] || (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300');
+const raridadeVariant = {
+  'Comum': 'slate',
+  'Incomum': 'green',
+  'Raro': 'blue',
+  'Muito Raro': 'purple',
+  'Épico': 'pink',
+  'Lendário': 'amber',
+  'Artefato': 'red',
+  'Variável': 'slate',
 };
 
 const EquipamentoListaView = ({
@@ -48,87 +45,15 @@ const EquipamentoListaView = ({
   generateRoute,
 }) => {
   if (loading && equipamentos.length === 0) {
-    return <TableSkeleton cols={5} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Equipamentos" subtitle="Armas, armaduras e itens mágicos" icon={Sword} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
-
-  const columns = [
-    {
-      key: 'numero',
-      label: '#',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.numero || row.id}</span>
-    },
-    {
-      key: 'nome',
-      label: 'Nome',
-      align: 'left',
-      render: (row) => (
-        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-          {row.nome}
-        </span>
-      )
-    },
-    {
-      key: 'categoria',
-      label: 'Categoria',
-      align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
-          isLight ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-500/20 text-indigo-400'
-        }`}>
-          {row.categoria_rel?.nome || '-'}
-        </span>
-      )
-    },
-    {
-      key: 'raridade',
-      label: 'Raridade',
-      align: 'left',
-      render: (row) => {
-        const nome = row.raridade_rel?.nome || 'Comum';
-        return (
-          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${raridadeColors(nome, isLight)}`}>
-            {nome}
-          </span>
-        );
-      }
-    },
-    {
-      key: 'vinculo',
-      label: 'Vinculo',
-      align: 'center',
-      render: (row) => row.vinculo?.requer ? (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-modern ${
-          isLight ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500/20 text-yellow-400'
-        }`} title={row.vinculo.restricao_tipo ? `Tipo: ${row.vinculo.restricao_tipo}${row.vinculo.restricao ? ' \u2014 ' + row.vinculo.restricao.join(', ') : ''}` : 'Requer vinculo magico (max. 3 por personagem)'}>
-          <Sparkles size={12} className="inline" /> {row.vinculo.restricao_tipo || 'Livre'}
-        </span>
-      ) : (
-        <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>{"\u2014"}</span>
-      )
-    }
-  ];
-
-  const actions = [
-    {
-      label: 'Ver',
-      icon: <Eye size={18} />,
-      color: 'purple',
-      onClick: (row) => navigate(generateRoute.verEquipamento(row.id))
-    },
-    {
-      label: 'Editar',
-      icon: <Pencil size={18} />,
-      color: 'blue',
-      onClick: (row) => navigate(generateRoute.editarEquipamento(row.id))
-    },
-    {
-      label: 'Deletar',
-      icon: <Trash2 size={18} />,
-      color: 'red',
-      onClick: handleDeleteClick
-    }
-  ];
 
   const selectCls = `px-3 py-2 rounded-lg text-sm font-modern transition-all duration-200 ${
     isLight
@@ -155,7 +80,7 @@ const EquipamentoListaView = ({
         <StatCard title="Artefatos" value={countByRaridade('Artefato')} icon={Flame} variant="primary" />
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-4">
+      <div className="flex flex-wrap gap-4">
         <select
           value={categoriaFilter}
           onChange={(e) => setCategoriaFilter(e.target.value)}
@@ -179,23 +104,62 @@ const EquipamentoListaView = ({
         </select>
       </div>
 
-      <TabelaList
-        header="Lista de Equipamentos"
-        columns={columns}
-        data={displayEquipamentos}
-        actions={actions}
-        loading={loading}
-        pagination={true}
-        totalCount={totalCount}
+      {displayEquipamentos.length === 0 ? (
+        <div className="text-center py-16">
+          <Sword size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum equipamento encontrado</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {displayEquipamentos.map((row, i) => {
+            const rarNome = row.raridade_rel?.nome || 'Comum';
+
+            return (
+              <CatalogCard
+                key={row.id}
+                image={row.imagem}
+                icon={Sword}
+                title={row.nome}
+                rarity={rarNome}
+                delay={i}
+                onClick={() => navigate(generateRoute.verEquipamento(row.id))}
+                headerBadge={
+                  <Badge variant={raridadeVariant[rarNome] || 'slate'} className="shadow-sm backdrop-blur-sm">
+                    {rarNome}
+                  </Badge>
+                }
+                actions={[
+                  { label: 'Ver', icon: Eye, onClick: () => navigate(generateRoute.verEquipamento(row.id)) },
+                  { label: 'Editar', icon: Pencil, onClick: () => navigate(generateRoute.editarEquipamento(row.id)) },
+                  { label: 'Deletar', icon: Trash2, onClick: () => handleDeleteClick(row) },
+                ]}
+              >
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {row.categoria_rel?.nome && (
+                    <Badge variant="indigo">{row.categoria_rel.nome}</Badge>
+                  )}
+                  {row.vinculo?.requer && (
+                    <Badge variant="amber" icon={Sparkles}>
+                      {row.vinculo.restricao_tipo || 'Vinculo'}
+                    </Badge>
+                  )}
+                </div>
+                <div className={`mt-1.5 text-xs font-mono ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                  #{row.numero || row.id}
+                </div>
+              </CatalogCard>
+            );
+          })}
+        </div>
+      )}
+
+      <CatalogPagination
         currentPage={currentPage}
         pageSize={pageSize}
+        totalCount={totalCount}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
-        initialPageSize={25}
-        pageSizeOptions={[10, 25, 50, 100]}
-        emptyMessage="Nenhum equipamento encontrado"
-        emptyIcon={<Sword size={32} />}
-        hoverable={true}
+        pageSizeOptions={[12, 24, 48, 100]}
       />
 
       <ConfirmationModal

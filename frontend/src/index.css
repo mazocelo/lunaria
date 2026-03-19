@@ -257,6 +257,17 @@
   50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
 }
 
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Classes utilitárias */
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out;
@@ -284,6 +295,10 @@
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
+}
+
+.animate-card-reveal {
+  animation: cardReveal 0.4s ease-out both;
 }
 
 /* Glass effect para RPG — hierarquia de opacidade */

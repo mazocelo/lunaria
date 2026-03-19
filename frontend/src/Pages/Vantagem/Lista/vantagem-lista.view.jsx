@@ -1,8 +1,10 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { TabelaList, PageHeader, Badge, SearchBar, TableSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
-import { Sparkles, Eye, TrendingUp, TrendingDown } from 'lucide-react';
+import { Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
+
+const tipoVariant = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
 
 const VantagemListaView = ({
   vantagens,
@@ -18,96 +20,15 @@ const VantagemListaView = ({
   generateRoute,
 }) => {
   if (loading && vantagens.length === 0) {
-    return <TableSkeleton cols={6} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Vantagens" subtitle="Habilidades e poderes para personagens" icon={Sparkles} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
-
-  const renderTipo = (row) => {
-    const tipos = Array.isArray(row.tipo) ? row.tipo : [];
-    const variantMap = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
-    return (
-      <div className="flex flex-wrap gap-1">
-        {tipos.length > 0 ? tipos.map((t, i) => (
-          <Badge key={i} variant={variantMap[t] || 'slate'}>{t}</Badge>
-        )) : <span className="text-slate-500 text-xs">-</span>}
-      </div>
-    );
-  };
-
-  const renderElemento = (row) => {
-    const elementos = Array.isArray(row.elemento) ? row.elemento : [];
-    if (elementos.length === 0) return <span className="text-slate-500 text-xs">-</span>;
-    return (
-      <div className="flex flex-wrap gap-1">
-        {elementos.map((e, i) => (
-          <Badge key={i} variant="purple">{e}</Badge>
-        ))}
-      </div>
-    );
-  };
-
-  const columns = [
-    {
-      key: 'id',
-      label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
-    },
-    {
-      key: 'nome',
-      label: 'Nome',
-      align: 'left',
-      render: (row) => (
-        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-          {row.nome}
-        </span>
-      )
-    },
-    {
-      key: 'tipo',
-      label: 'Tipo',
-      align: 'left',
-      render: renderTipo
-    },
-    {
-      key: 'nivel',
-      label: 'Nivel',
-      align: 'left',
-      render: (row) => (
-        <span className="text-cyan-400 font-semibold">{row.nivel || 1}</span>
-      )
-    },
-    {
-      key: 'custo',
-      label: 'Custo',
-      align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          row.custo > 0
-            ? (isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400')
-            : row.custo < 0
-            ? (isLight ? 'bg-red-100 text-red-800' : 'bg-red-500/20 text-red-400')
-            : (isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-700/50 text-slate-300')
-        }`}>
-          {row.custo > 0 ? `+${row.custo}` : row.custo} pts
-        </span>
-      )
-    },
-    {
-      key: 'elemento',
-      label: 'Elemento',
-      align: 'left',
-      render: renderElemento
-    }
-  ];
-
-  const actions = [
-    {
-      label: 'Ver',
-      icon: <Eye size={18} />,
-      color: 'purple',
-      onClick: (row) => navigate(generateRoute.verVantagem(row.id))
-    }
-  ];
 
   const displayVantagens = filteredVantagens?.length > 0 ? filteredVantagens : vantagens;
 
@@ -134,19 +55,53 @@ const VantagemListaView = ({
         onChange={(texto) => buscarVantagens(texto)}
       />
 
-      <TabelaList
-        header="Lista de Vantagens"
-        columns={columns}
-        data={displayVantagens}
-        actions={actions}
-        loading={loading}
-        pagination={true}
-        initialPageSize={10}
-        pageSizeOptions={[5, 10, 25, 50]}
-        emptyMessage="Nenhuma vantagem encontrada"
-        emptyIcon={<Sparkles size={32} />}
-        hoverable={true}
-      />
+      {displayVantagens.length === 0 ? (
+        <div className="text-center py-16">
+          <Sparkles size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma vantagem encontrada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {displayVantagens.map((row, i) => {
+            const tipos = Array.isArray(row.tipo) ? row.tipo : [];
+            const elementos = Array.isArray(row.elemento) ? row.elemento : [];
+
+            return (
+              <CatalogCard
+                key={row.id}
+                image={row.imagem}
+                icon={Sparkles}
+                title={row.nome}
+                delay={i}
+                onClick={() => navigate(generateRoute.verVantagem(row.id))}
+                headerBadge={
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
+                    row.custo > 0
+                      ? (isLight ? 'bg-green-100/90 text-green-800' : 'bg-green-500/30 text-green-300')
+                      : row.custo < 0
+                      ? (isLight ? 'bg-red-100/90 text-red-800' : 'bg-red-500/30 text-red-300')
+                      : (isLight ? 'bg-slate-100/90 text-slate-700' : 'bg-slate-600/50 text-slate-300')
+                  }`}>
+                    {row.custo > 0 ? `+${row.custo}` : row.custo} pts
+                  </span>
+                }
+              >
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {tipos.map((t, j) => (
+                    <Badge key={j} variant={tipoVariant[t] || 'slate'}>{t}</Badge>
+                  ))}
+                  {elementos.map((e, j) => (
+                    <Badge key={`el-${j}`} variant="purple">{e}</Badge>
+                  ))}
+                </div>
+                <div className={`mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <span className="text-cyan-500 font-semibold">Nv {row.nivel || 1}</span>
+                </div>
+              </CatalogCard>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

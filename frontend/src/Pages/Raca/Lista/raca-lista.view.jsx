@@ -1,8 +1,8 @@
 import React from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { TabelaList, PageHeader, SearchBar, TableSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
-import { Dna, Eye, Gift, Coins } from 'lucide-react';
+import { Dna, Gift, Coins } from 'lucide-react';
 
 const RacaListaView = ({
   racas,
@@ -18,60 +18,15 @@ const RacaListaView = ({
   generateRoute,
 }) => {
   if (loading && racas.length === 0) {
-    return <TableSkeleton cols={4} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Racas" subtitle="Racas disponiveis para personagens" icon={Dna} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
-
-  const columns = [
-    {
-      key: 'id',
-      label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
-    },
-    {
-      key: 'nome',
-      label: 'Nome',
-      align: 'left',
-      render: (row) => (
-        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-          {row.nome}
-        </span>
-      )
-    },
-    {
-      key: 'descricao',
-      label: 'Descricao',
-      align: 'left',
-      render: (row) => (
-        <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern text-sm`}>
-          {row.descricao ? (row.descricao.length > 80 ? row.descricao.slice(0, 80) + '...' : row.descricao) : '-'}
-        </span>
-      )
-    },
-    {
-      key: 'custo',
-      label: 'Custo',
-      align: 'left',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          row.custo === 0
-            ? (isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400')
-            : (isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-400')
-        }`}>
-          {row.custo === 0 ? 'Gratuita' : `${row.custo} pts`}
-        </span>
-      )
-    }
-  ];
-
-  const actions = [
-    {
-      label: 'Ver',
-      icon: <Eye size={18} />,
-      color: 'purple',
-      onClick: (row) => navigate(generateRoute.verRaca(row.id))
-    }
-  ];
 
   const displayRacas = filteredRacas?.length > 0 ? filteredRacas : racas;
 
@@ -98,19 +53,35 @@ const RacaListaView = ({
         onChange={(texto) => buscarRacas(texto)}
       />
 
-      <TabelaList
-        header="Lista de Racas"
-        columns={columns}
-        data={displayRacas}
-        actions={actions}
-        loading={loading}
-        pagination={true}
-        initialPageSize={10}
-        pageSizeOptions={[5, 10, 25, 50]}
-        emptyMessage="Nenhuma raca encontrada"
-        emptyIcon={<Dna size={32} />}
-        hoverable={true}
-      />
+      {displayRacas.length === 0 ? (
+        <div className="text-center py-16">
+          <Dna size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma raca encontrada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {displayRacas.map((row, i) => (
+            <CatalogCard
+              key={row.id}
+              image={row.imagem}
+              icon={Dna}
+              title={row.nome}
+              subtitle={row.descricao}
+              delay={i}
+              onClick={() => navigate(generateRoute.verRaca(row.id))}
+              headerBadge={
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
+                  row.custo === 0
+                    ? (isLight ? 'bg-green-100/90 text-green-800' : 'bg-green-500/30 text-green-300')
+                    : (isLight ? 'bg-amber-100/90 text-amber-800' : 'bg-amber-500/30 text-amber-300')
+                }`}>
+                  {row.custo === 0 ? 'Gratuita' : `${row.custo} pts`}
+                </span>
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

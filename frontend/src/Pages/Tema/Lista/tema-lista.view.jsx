@@ -1,8 +1,8 @@
 import React from 'react';
-import { TabelaList, PageHeader, TableSkeleton } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import { PageHeader, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const TemaListaView = ({
@@ -22,52 +22,15 @@ const TemaListaView = ({
   ROUTES,
 }) => {
   if (loading && temas.length === 0) {
-    return <TableSkeleton cols={3} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Temas" subtitle="Temas de ambientacao para historias" icon={Palette} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
-
-  const columns = [
-    {
-      key: 'id',
-      label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
-    },
-    {
-      key: 'nome',
-      label: 'Nome',
-      align: 'left',
-      render: (row) => (
-        <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'} font-modern`}>
-          {row.nome}
-        </span>
-      )
-    },
-    {
-      key: 'descricao',
-      label: 'Descricao',
-      align: 'left',
-      render: (row) => (
-        <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern text-sm`}>
-          {row.descricao ? (row.descricao.length > 100 ? row.descricao.slice(0, 100) + '...' : row.descricao) : '-'}
-        </span>
-      )
-    }
-  ];
-
-  const actions = [
-    {
-      label: 'Editar',
-      icon: <Pencil size={18} />,
-      color: 'cyan',
-      onClick: (row) => navigate(generateRoute.editarTema(row.id))
-    },
-    {
-      label: 'Excluir',
-      icon: <Trash2 size={18} />,
-      color: 'red',
-      onClick: handleDeleteClick
-    }
-  ];
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -91,19 +54,30 @@ const TemaListaView = ({
         <StatCard title="Total de Temas" value={temas?.length || 0} icon={Palette} variant="primary" />
       </div>
 
-      <TabelaList
-        header="Lista de Temas"
-        columns={columns}
-        data={temas}
-        actions={actions}
-        loading={loading}
-        pagination={true}
-        initialPageSize={10}
-        pageSizeOptions={[5, 10, 25, 50]}
-        emptyMessage="Nenhum tema encontrado"
-        emptyIcon={<Palette size={32} />}
-        hoverable={true}
-      />
+      {temas.length === 0 ? (
+        <div className="text-center py-16">
+          <Palette size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum tema encontrado</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {temas.map((row, i) => (
+            <CatalogCard
+              key={row.id}
+              image={row.imagem}
+              icon={Palette}
+              title={row.nome}
+              subtitle={row.descricao}
+              delay={i}
+              onClick={() => navigate(generateRoute.editarTema(row.id))}
+              actions={[
+                { label: 'Editar', icon: Pencil, onClick: () => navigate(generateRoute.editarTema(row.id)) },
+                { label: 'Excluir', icon: Trash2, onClick: () => handleDeleteClick(row) },
+              ]}
+            />
+          ))}
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={showDeleteModal}

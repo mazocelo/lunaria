@@ -6,3 +6,4 @@ export { default as EmptyState } from './EmptyState';
 export { default as ScrollToTop } from './ScrollToTop';
 export { default as Skeleton } from './Skeleton';
 export { default as TableSkeleton } from './TableSkeleton';
+export { default as CatalogCard, CatalogCardSkeleton, CatalogPagination } from './CatalogCard';

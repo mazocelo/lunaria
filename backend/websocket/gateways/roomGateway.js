@@ -1,6 +1,7 @@
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'roomGateway' });
 import { normalizeExpiredActiveMestreRequest } from '../utils/mestreRequestLifecycle.js';
+import { buscarPersonagensCompletos } from '../../helpers/personagensHelper.js';
 
 export default class RoomGateway {
   constructor(manager) {
@@ -170,6 +171,23 @@ export default class RoomGateway {
             statusJogo: sessao.statusJogo,
             personagem: estaNoMapaJogadores.personagemNome
           });
+
+          // Re-populate personagensCompletos if empty (lost on Redis restart/cleanup)
+          if (!sessao.personagensCompletos || Object.keys(sessao.personagensCompletos).length === 0) {
+            try {
+              const jogadoresMap = sessao.jogadores || {};
+              const pcIds = Object.values(jogadoresMap).map(j => j.personagemId).filter(Boolean);
+              if (pcIds.length > 0) {
+                const personagens = await buscarPersonagensCompletos(pcIds);
+                sessao.personagensCompletos = {};
+                personagens.forEach(p => { sessao.personagensCompletos[p.id] = p; });
+                await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
+                log.warn({ count: personagens.length, pcIds }, 'JOIN_ROOM: re-populated personagensCompletos from DB');
+              }
+            } catch (err) {
+              log.error({ err: err.message }, 'JOIN_ROOM: failed to re-populate personagensCompletos');
+            }
+          }
         }
 
         if (sessao.status === 'iniciada' && !sessao.statusJogo) {

@@ -1,68 +1,61 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Notification from '../../../components/Notification.jsx';
-import RPGCard from '../../../components/RPGCard.jsx';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import { Badge } from '../../../components/shared';
-import { ROUTES } from '../../../constants/routes.js';
 import {
-  Crown, ArrowLeft, Pencil, X, BookOpen, Theater, ScrollText,
-  Settings, Target, Terminal, ChevronDown, ChevronUp, Copy, Check
+  Crown, BookOpen, Theater, ScrollText, Settings, Terminal, Volume2,
+  ChevronDown, ChevronUp, Copy, Check,
 } from 'lucide-react';
+import { CatalogDetailLayout, Badge } from '../../../components/shared';
 
+// PAGE-SPECIFIC: Prompt preview builder
+const buildPromptPreview = ({ nome, personalidade, tom_narrativo, regras_especiais }) => [
+  'Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.',
+  nome && `Seu nome como Mestre e "${nome}".`,
+  personalidade && `PERSONALIDADE: ${personalidade}`,
+  tom_narrativo && `TOM NARRATIVO: ${tom_narrativo}`,
+  regras_especiais && `REGRAS ESPECIAIS: ${regras_especiais}`,
+  '',
+  'TEMAS DA CAMPANHA: [definidos pela historia]',
+  'PERSONAGENS JOGANDO: [definidos na sessao]',
+  '',
+  '## REGRAS FUNDAMENTAIS',
+  '1. Reaja com criatividade e coerencia a cada acao do jogador',
+  '2. Descreva ambiente, efeitos e desdobramentos narrativos',
+  '3. Nunca tome decisoes pelo personagem - apenas descreva consequencias',
+  '4. Mantenha imersao, suspense e ritmo adequado aos temas',
+  '5. SEMPRE responda em JSON valido',
+  '',
+  '## ROLAGEM DE DADOS',
+  'Solicite rolagem quando a acao for ARRISCADA, INCERTA ou de COMBATE (~30-40% das acoes).',
+  'Testes: Forca, Destreza, Constituicao, Inteligencia, Agilidade, Carisma, Atletismo, Intimidacao, Percepcao, Furtividade, etc.',
+  'Dificuldades: Muito Facil | Facil | Media | Dificil | Muito Dificil | Quase Impossivel',
+  '',
+  '## FORMATO DE RESPOSTA (JSON)',
+  '{ "narrativa": "...", "fimDeTurno": false, "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }, "combate": null, "acoes": [] }',
+].filter(v => v !== false).join('\n');
+
+// PAGE-SPECIFIC: Collapsible prompt preview with copy-to-clipboard
 const PromptPreviewSection = ({ promptPreview, isLight }) => {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-
   const handleCopy = async (e) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(promptPreview);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    try { await navigator.clipboard.writeText(promptPreview); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
   };
-
+  const lt = isLight;
   return (
     <div>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className={`w-full text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 cursor-pointer transition-colors ${
-          isLight ? 'text-slate-700 hover:text-purple-600' : 'text-white hover:text-purple-300'
-        }`}
-      >
-        <Terminal size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
+      <button onClick={() => setExpanded(!expanded)} className={`w-full text-sm font-fantasy font-bold flex items-center gap-2 cursor-pointer transition-colors ${lt ? 'text-slate-700 hover:text-purple-600' : 'text-slate-200 hover:text-purple-300'}`}>
         Prompt do Sistema
-        <span className="ml-auto">
-          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </span>
+        <span className="ml-auto">{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
       </button>
-
       {expanded && (
-        <div className="relative">
-          <button
-            onClick={handleCopy}
-            className={`absolute top-3 right-3 p-1.5 rounded-md transition-all cursor-pointer ${
-              isLight
-                ? 'hover:bg-slate-200 text-slate-500'
-                : 'hover:bg-slate-600 text-slate-400'
-            }`}
-            title="Copiar prompt"
-          >
+        <div className="relative mt-3">
+          <button onClick={handleCopy} className={`absolute top-3 right-3 p-1.5 rounded-md transition-all cursor-pointer ${lt ? 'hover:bg-slate-200 text-slate-500' : 'hover:bg-slate-600 text-slate-400'}`} title="Copiar prompt">
             {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
           </button>
-          <div className={`p-4 rounded-lg overflow-auto max-h-96 ${
-            isLight
-              ? 'bg-slate-100 border border-slate-200'
-              : 'bg-slate-900/80 border border-slate-600'
-          }`}>
-            <pre className={`font-mono text-xs leading-relaxed whitespace-pre-wrap break-words ${
-              isLight ? 'text-slate-700' : 'text-slate-300'
-            }`}>
-              {promptPreview}
-            </pre>
+          <div className={`p-4 rounded-lg overflow-auto max-h-96 ${lt ? 'bg-slate-100 border border-slate-200' : 'bg-slate-900/80 border border-slate-600'}`}>
+            <pre className={`font-mono text-xs leading-relaxed whitespace-pre-wrap break-words ${lt ? 'text-slate-700' : 'text-slate-300'}`}>{promptPreview}</pre>
           </div>
-          <p className={`text-xs mt-2 font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p className={`text-xs mt-2 font-modern ${lt ? 'text-slate-400' : 'text-slate-500'}`}>
             Previa do prompt enviado a IA. Temas e personagens sao adicionados dinamicamente na sessao.
           </p>
         </div>
@@ -71,301 +64,115 @@ const PromptPreviewSection = ({ promptPreview, isLight }) => {
   );
 };
 
-const InfoRow = ({ label, value, fallback = 'Nao definido', isLight }) => (
-  <div className="flex items-center justify-between">
-    <span className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{label}:</span>
-    <span className={`font-modern text-sm ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-      {value || fallback}
-    </span>
-  </div>
-);
-
-const buildPromptPreview = ({ nome, personalidade, tom_narrativo, regras_especiais }) => {
-  const parts = [];
-  parts.push('Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.');
-  if (nome) parts.push(`Seu nome como Mestre e "${nome}".`);
-  if (personalidade) parts.push(`PERSONALIDADE: ${personalidade}`);
-  if (tom_narrativo) parts.push(`TOM NARRATIVO: ${tom_narrativo}`);
-  if (regras_especiais) parts.push(`REGRAS ESPECIAIS: ${regras_especiais}`);
-  parts.push('');
-  parts.push('TEMAS DA CAMPANHA: [definidos pela historia]');
-  parts.push('PERSONAGENS JOGANDO: [definidos na sessao]');
-  parts.push('');
-  parts.push('## REGRAS FUNDAMENTAIS');
-  parts.push('1. Reaja com criatividade e coerencia a cada acao do jogador');
-  parts.push('2. Descreva ambiente, efeitos e desdobramentos narrativos');
-  parts.push('3. Nunca tome decisoes pelo personagem - apenas descreva consequencias');
-  parts.push('4. Mantenha imersao, suspense e ritmo adequado aos temas');
-  parts.push('5. SEMPRE responda em JSON valido');
-  parts.push('');
-  parts.push('## ROLAGEM DE DADOS');
-  parts.push('Solicite rolagem quando a acao for ARRISCADA, INCERTA ou de COMBATE (~30-40% das acoes).');
-  parts.push('Testes: Forca, Destreza, Constituicao, Inteligencia, Agilidade, Carisma, Atletismo, Intimidacao, Percepcao, Furtividade, etc.');
-  parts.push('Dificuldades: Muito Facil | Facil | Media | Dificil | Muito Dificil | Quase Impossivel');
-  parts.push('');
-  parts.push('## FORMATO DE RESPOSTA (JSON)');
-  parts.push('{ "narrativa": "...", "fimDeTurno": false, "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }, "combate": null, "acoes": [] }');
-  return parts.join('\n');
-};
-
+// MAIN VIEW
 const VerMestreView = ({
   id, mestre, loading, error, isLight, voiceName,
   clearError, navigate, generateRoute,
 }) => {
-  const [lightboxSrc, setLightboxSrc] = useState(null);
-  const {
-    nome,
-    descricao,
-    personalidade,
-    tags,
-    modelo,
-    temperatura,
-    max_tokens,
-    tom_narrativo,
-    regras_especiais,
-    imagem,
-    voice_id,
-    voice_provider,
-  } = mestre || {};
-  const promptPreview = buildPromptPreview({ nome, personalidade, tom_narrativo, regras_especiais });
-
-  if (loading) {
+  if (loading || error || !mestre) {
     return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <Crown size={24} className="text-white" />
-              </div>
-              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando mestre...</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CatalogDetailLayout
+        loading={loading}
+        loadingText="Carregando mestre..."
+        error={error || (!loading && !mestre ? 'Mestre nao encontrado' : undefined)}
+        icon={Crown}
+        title=""
+        onBack={() => navigate(-1)}
+        onEdit={() => navigate(generateRoute.editarMestre(id))}
+      />
     );
   }
 
-  if (!mestre && !loading && error) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg text-center py-12">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-500/20">
-            <X size={36} className="text-red-400" />
-          </div>
-          <h3 className={`text-lg font-semibold mb-2 font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}>
-            Mestre nao encontrado
-          </h3>
-          <p className="text-slate-400 font-modern mb-6">
-            O mestre que voce esta procurando nao existe ou foi removido.
-          </p>
-          <Link to={ROUTES.MESTRES}>
-            <button className="btn-rpg">Voltar aos Mestres</button>
-          </Link>
-        </div>
-      </div>
-    );
+  const m = mestre;
+  const tags = Array.isArray(m.tags) ? m.tags : [];
+  const promptPreview = buildPromptPreview({
+    nome: m.nome, personalidade: m.personalidade,
+    tom_narrativo: m.tom_narrativo, regras_especiais: m.regras_especiais,
+  });
+
+  const voiceProviderLabel = m.voice_provider === 'cartesia' ? 'Cartesia'
+    : m.voice_provider === 'opensource' ? 'Open Source' : 'ElevenLabs';
+
+  // -- Badges ----------------------------------------------------------
+  const badges = [
+    <Badge key="model" variant="slate">{m.modelo || 'Padrao'}</Badge>,
+    m.voice_id && (
+      <Badge key="voice" variant="cyan">{voiceProviderLabel}</Badge>
+    ),
+    ...tags.slice(0, 3).map((tag) => (
+      <Badge key={tag} variant="purple">{tag}</Badge>
+    )),
+    tags.length > 3 && (
+      <Badge key="more-tags" variant="purple">+{tags.length - 3}</Badge>
+    ),
+  ].filter(Boolean);
+
+  // -- Sections --------------------------------------------------------
+  const sections = [];
+
+  if (m.descricao) {
+    sections.push({
+      title: 'Descricao',
+      icon: BookOpen,
+      color: '#d97706',
+      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.descricao}</p>,
+    });
   }
 
-  if (!mestre) return null;
+  if (m.personalidade) {
+    sections.push({
+      title: 'Personalidade',
+      icon: Theater,
+      color: '#8b5cf6',
+      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.personalidade}</p>,
+    });
+  }
+
+  if (m.regras_especiais) {
+    sections.push({
+      title: 'Regras Especiais',
+      icon: ScrollText,
+      color: '#ef4444',
+      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.regras_especiais}</p>,
+    });
+  }
+
+  sections.push({
+    title: 'Preview do Prompt',
+    icon: Terminal,
+    color: '#64748b',
+    content: <PromptPreviewSection promptPreview={promptPreview} isLight={isLight} />,
+  });
+
+  // -- Stats (sidebar) -------------------------------------------------
+  const stats = [
+    { icon: Settings, label: 'Modelo', content: m.modelo || 'Padrao' },
+    { icon: Settings, label: 'Temperatura', content: m.temperatura ?? 'Nao definido' },
+    { icon: Settings, label: 'Max Tokens', content: m.max_tokens ?? 'Nao definido' },
+    { icon: BookOpen, label: 'Tom Narrativo', content: m.tom_narrativo || 'Nao definido' },
+    {
+      icon: Volume2,
+      label: 'Voz (TTS)',
+      content: m.voice_id
+        ? `${voiceName || m.voice_id} (${voiceProviderLabel})`
+        : 'Sem voz',
+    },
+  ];
 
   return (
-    <div className="animate-fade-in space-y-6">
-      {error && (
-        <Notification message={error} type="error" onClose={clearError} />
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {imagem ? (
-            <img
-              src={imagem}
-              alt={nome}
-              className="w-10 h-10 rounded-xl object-cover cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setLightboxSrc(imagem)}
-            />
-          ) : (
-            <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-              isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-900/40 text-purple-400'
-            }`}>
-              <Crown size={22} />
-            </div>
-          )}
-          <div>
-            <h1 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-              {nome}
-            </h1>
-            <p className={`text-sm font-modern mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              Detalhes do mestre narrador
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <Link to={ROUTES.MESTRES}>
-            <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
-              isLight
-                ? 'border border-slate-300 text-slate-600 hover:bg-slate-50'
-                : 'border border-slate-600 text-slate-300 hover:bg-slate-700/50'
-            }`}>
-              <ArrowLeft size={16} />
-              Voltar
-            </button>
-          </Link>
-          <button
-            onClick={() => navigate(generateRoute.editarMestre(id))}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
-          >
-            <Pencil size={16} />
-            Editar
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <RPGCard className="p-6">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {imagem && (
-                    <img
-                      src={imagem}
-                      alt={nome}
-                      className="w-16 h-16 rounded-xl object-cover shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => setLightboxSrc(imagem)}
-                    />
-                  )}
-                  <div>
-                    <h2 className={`text-2xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-1`}>
-                      {nome}
-                    </h2>
-                    <p className="text-slate-400 font-modern text-sm">
-                      ID: #{id}
-                    </p>
-                  </div>
-                </div>
-                {tom_narrativo && (
-                  <Badge variant="purple">{tom_narrativo}</Badge>
-                )}
-              </div>
-
-              {Array.isArray(tags) && tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="purple">{tag}</Badge>
-                  ))}
-                </div>
-              )}
-
-              {descricao && (
-                <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    <BookOpen size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-                    Descricao
-                  </h3>
-                  <div className={`p-4 rounded-lg ${
-                    isLight
-                      ? 'bg-slate-50 border border-slate-200'
-                      : 'bg-slate-800/50 border border-slate-700'
-                  }`}>
-                    <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      {descricao}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {personalidade && (
-                <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    <Theater size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-                    Personalidade
-                  </h3>
-                  <div className={`p-4 rounded-lg ${
-                    isLight
-                      ? 'bg-slate-50 border border-slate-200'
-                      : 'bg-slate-800/50 border border-slate-700'
-                  }`}>
-                    <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      {personalidade}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {regras_especiais && (
-                <div>
-                  <h3 className={`text-lg font-semibold font-fantasy mb-3 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-                    <ScrollText size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-                    Regras Especiais
-                  </h3>
-                  <div className={`p-4 rounded-lg ${
-                    isLight
-                      ? 'bg-slate-50 border border-slate-200'
-                      : 'bg-slate-800/50 border border-slate-700'
-                  }`}>
-                    <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      {regras_especiais}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <PromptPreviewSection promptPreview={promptPreview} isLight={isLight} />
-            </div>
-          </RPGCard>
-        </div>
-
-        <div className="space-y-6">
-          <RPGCard className="p-6">
-            <h3 className={`text-lg font-semibold font-fantasy mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              <Settings size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-              Configuracoes
-            </h3>
-            <div className="space-y-3">
-              <InfoRow label="Modelo" value={modelo} isLight={isLight} />
-              <InfoRow label="Temperatura" value={temperatura} isLight={isLight} />
-              <InfoRow label="Max Tokens" value={max_tokens} isLight={isLight} />
-              <InfoRow label="Tom Narrativo" value={tom_narrativo} isLight={isLight} />
-              <InfoRow
-                label="Voz (TTS)"
-                value={voice_id ? `${voiceName || voice_id} (${voice_provider === 'cartesia' ? 'Cartesia' : voice_provider === 'opensource' ? 'Open Source' : 'ElevenLabs'})` : null}
-                fallback="Sem voz"
-                isLight={isLight}
-              />
-            </div>
-          </RPGCard>
-
-          <RPGCard className="p-6">
-            <h3 className={`text-lg font-semibold font-fantasy mb-4 flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-white'}`}>
-              <Target size={18} className={isLight ? 'text-purple-500' : 'text-purple-400'} />
-              Acoes
-            </h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => navigate(generateRoute.editarMestre(id))}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-modern font-semibold text-white gradient-primary transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
-              >
-                <Pencil size={16} />
-                Editar Mestre
-              </button>
-              <Link to={ROUTES.MESTRES} className="block">
-                <button className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-modern transition-all duration-200 cursor-pointer ${
-                  isLight
-                    ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                }`}>
-                  <ArrowLeft size={16} />
-                  Voltar aos Mestres
-                </button>
-              </Link>
-            </div>
-          </RPGCard>
-        </div>
-      </div>
-      <ImageLightbox src={lightboxSrc} alt={nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
-    </div>
+    <CatalogDetailLayout
+      title={m.nome}
+      image={m.imagem}
+      icon={Crown}
+      accentColor="#f59e0b"
+      badges={badges}
+      sections={sections}
+      stats={stats}
+      sidebarTitle="Configuracoes"
+      sidebarIcon={Settings}
+      onBack={() => navigate(-1)}
+      onEdit={() => navigate(generateRoute.editarMestre(id))}
+    />
   );
 };
 

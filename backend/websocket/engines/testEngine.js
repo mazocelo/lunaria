@@ -199,7 +199,7 @@ export default class TestEngine {
             dice,
             result,
             description,
-            origem: 'turno'
+            origem: sessao.estadoJogo?.combate?.ativo ? 'combate' : 'turno'
           }));
           await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
           await sm.executarCompactacaoSeNecessaria(roomId, sessao, { userId });
@@ -278,7 +278,8 @@ export default class TestEngine {
           groupResolved: remainingGroupTests.length === 0
         };
 
-        appendMensagemSessao(sessao, buildResultadoTesteMensagem({
+        const origemAtual = sessao.estadoJogo?.combate?.ativo ? 'combate' : 'turno';
+        const msgResultadoTeste = buildResultadoTesteMensagem({
           userId,
           username,
           personagemNome,
@@ -292,7 +293,9 @@ export default class TestEngine {
           sucesso: resultadoTestePayload.sucesso,
           descricaoResultado: resultadoTestePayload.descricaoResultado,
           payload: resultadoTestePayload
-        }));
+        });
+        msgResultadoTeste.origem = origemAtual;
+        appendMensagemSessao(sessao, msgResultadoTeste);
         syncPendingTestPrompt(sessao, testeResolvido.groupId, remainingGroupTests);
 
         // Persistir resultado do teste inline no array de rolagens (evita race condition)
@@ -377,7 +380,8 @@ export default class TestEngine {
 
           const msgInterpretacao = sm.criarMensagemMestre(interpretacao.narracao, sessao.mestreConfig, {
             sessao,
-            segmentos: interpretacao.segmentos || []
+            segmentos: interpretacao.segmentos || [],
+            origem: origemAtual
           });
           appendMensagemSessao(sessao, msgInterpretacao);
           await sm.aplicarMetadadosNarrativos(roomId, sessao, interpretacao.metadados || {});
@@ -422,7 +426,7 @@ export default class TestEngine {
           const textoFallback =
             `${personagemNome} rolou ${dice} e obteve **${result}**` +
             `${description ? ` para ${description}` : ''}. Continue a aventura!`;
-          const mensagemFallback = sm.criarMensagemMestre(textoFallback, sessao.mestreConfig, { sessao });
+          const mensagemFallback = sm.criarMensagemMestre(textoFallback, sessao.mestreConfig, { sessao, origem: origemAtual });
           appendMensagemSessao(sessao, mensagemFallback);
 
           if (sessao.estadoJogo?.acoesPendentesTeste) {

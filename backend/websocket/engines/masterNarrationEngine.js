@@ -1007,7 +1007,8 @@ export default class MasterNarrationEngine {
         return;
       }
 
-      const personagemCompleto = invocationContext.personagem || personagem;
+      const pcIdCombat = String(personagem.id || personagem.personagemId || userId);
+      const personagemCompleto = workingSessao.personagensCompletos?.[pcIdCombat] || invocationContext.personagem || personagem;
       const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId, personagemCompleto));
       const promptAcao = sanitizePromptInput(mensagem, 2000);
       let resultadosCombatePreResolvido = null;

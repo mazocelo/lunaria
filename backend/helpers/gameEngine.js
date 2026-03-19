@@ -8,33 +8,97 @@
  */
 import { resolverMecanicaCombate, finalizarAcaoCombatePosTeste } from './combateHelper.js';
 import { buildCombatPromptContext } from './combatPromptContext.js';
+import { resolveCombatIntent } from '../websocket/utils/combatIntentResolver.js';
 import logger from './logger.js';
 
 const log = logger.child({ module: 'gameEngine' });
 
 /**
- * Phase 1: Pre-resolve combat mechanics for a player's action.
+ * Pre-resolve combat mechanics for a player's action.
+ * Accepts either a resolved intent ({ tipo, ... }) or a message-based object ({ mensagem, ... }).
  * If the action requires a dice roll (test), returns the test request.
  * If the action is immediate (defend), returns the full result.
  *
  * @param {Object} sessao - Full session state
  * @param {string} userId - Player who acted
- * @param {Object} intent - { tipo, habilidadeId?, magiaId?, alvoId?, ... }
- * @returns {import('./combat/combatRoundResult.js').CombatRoundResult|null}
+ * @param {Object} intentOrMessage - { tipo, ... } OR { mensagem, _skipFlashLite?, explicitIntent? }
+ * @returns {Promise<import('./combat/combatRoundResult.js').CombatRoundResult|null>}
  */
-export function prepararTurno(sessao, userId, intent) {
+export async function prepararTurno(sessao, userId, intentOrMessage) {
   const combate = sessao?.estadoJogo?.combate;
   if (!combate?.ativo) {
     log.debug({ userId }, 'prepararTurno: combate não ativo');
     return null;
   }
 
+  // Phase 1 compat: intent already resolved
+  if (intentOrMessage?.tipo) {
+    return _prepararMecanica(sessao, userId, intentOrMessage);
+  }
+
+  // Phase 2: resolve intent from message
+  const mensagem = intentOrMessage?.mensagem;
+  if (!mensagem) return null;
+
+  const explicitIntent = intentOrMessage?.explicitIntent || null;
+  const skipFlashLite = intentOrMessage?._skipFlashLite || false;
+
+  const intent = await _resolveIntentPipeline(sessao, userId, mensagem, explicitIntent, { skipFlashLite });
+  if (!intent) {
+    return { requerIntentMestre: true, mensagem };
+  }
+
+  const resultado = _prepararMecanica(sessao, userId, intent);
+  if (resultado) resultado._resolvedIntent = intent;
+  return resultado;
+}
+
+async function _resolveIntentPipeline(sessao, userId, mensagem, explicitIntent, options = {}) {
+  const combate = sessao?.estadoJogo?.combate;
+  const personagem = _resolvePersonagem(sessao, userId);
+
+  // Camada 1: Regex + name match
+  const resolution = resolveCombatIntent({
+    mensagem,
+    explicitIntent,
+    personagemCompleto: personagem,
+    combate,
+    userId
+  });
+
+  if (resolution.intent && !resolution.ambiguous) {
+    log.info({ camada: 1, tipo: resolution.intent.tipo, confidence: resolution.confidence }, 'intent resolved by regex');
+    return resolution.intent;
+  }
+
+  // Camada 2: Flash Lite classifier
+  if (!options.skipFlashLite) {
+    try {
+      const { classificarIntent } = await import('./intentClassifier.js');
+      const llmResult = await classificarIntent(mensagem, personagem, combate, {
+        candidates: resolution.candidates || []
+      });
+      if (llmResult?.intent) {
+        log.info({ camada: 2, tipo: llmResult.intent.tipo }, 'intent resolved by flash_lite');
+        return llmResult.intent;
+      }
+    } catch (err) {
+      log.warn({ err: err.message }, 'intentClassifier failed (fail-open)');
+    }
+  }
+
+  // Camada 3: delegate to Mestre AI
+  log.info({ camada: 3, mensagem }, 'intent delegated to mestre');
+  return null;
+}
+
+function _prepararMecanica(sessao, userId, intent) {
+  const combate = sessao?.estadoJogo?.combate;
   const personagem = _resolvePersonagem(sessao, userId);
   if (!personagem) {
     log.warn({ userId }, 'prepararTurno: personagem não encontrado');
     return null;
   }
-
   return resolverMecanicaCombate(combate, userId, sessao, personagem, intent);
 }
 

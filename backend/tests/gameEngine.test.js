@@ -58,20 +58,20 @@ function makePersonagemCompleto(overrides = {}) {
 
 describe('gameEngine', () => {
   describe('prepararTurno', () => {
-    it('retorna resultado pré-resolvido para ataque básico', () => {
+    it('retorna resultado pré-resolvido para ataque básico', async () => {
       const sessao = makeSessao();
       const intent = { tipo: 'atacar' };
-      const resultado = prepararTurno(sessao, 'user_1', intent);
+      const resultado = await prepararTurno(sessao, 'user_1', intent);
 
       expect(resultado).toBeDefined();
       expect(resultado.requerTeste).toBeTruthy();
       expect(resultado.requerTeste.intentTipo).toBe('atacar');
     });
 
-    it('retorna resultado com defesa (sem teste)', () => {
+    it('retorna resultado com defesa (sem teste)', async () => {
       const sessao = makeSessao();
       const intent = { tipo: 'defender' };
-      const resultado = prepararTurno(sessao, 'user_1', intent);
+      const resultado = await prepararTurno(sessao, 'user_1', intent);
 
       expect(resultado).toBeDefined();
       expect(resultado.requerTeste).toBeNull();
@@ -80,27 +80,27 @@ describe('gameEngine', () => {
       expect(resultado.acaoConsumida).toBe(true);
     });
 
-    it('retorna null quando combate não está ativo', () => {
+    it('retorna null quando combate não está ativo', async () => {
       const sessao = makeSessao({ estadoJogo: { combate: { ativo: false } } });
-      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
+      const resultado = await prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
 
       expect(resultado).toBeNull();
     });
 
-    it('resolve personagem de personagensCompletos', () => {
+    it('resolve personagem de personagensCompletos', async () => {
       const sessao = makeSessao();
       const intent = { tipo: 'defender' };
-      const resultado = prepararTurno(sessao, 'user_1', intent);
+      const resultado = await prepararTurno(sessao, 'user_1', intent);
 
       expect(resultado.defesa.personagem).toBe('Moruxis');
     });
   });
 
   describe('resolverTurno', () => {
-    it('finaliza ataque após rolagem de dado', () => {
+    it('finaliza ataque após rolagem de dado', async () => {
       const sessao = makeSessao();
       const intent = { tipo: 'atacar' };
-      const prep = prepararTurno(sessao, 'user_1', intent);
+      const prep = await prepararTurno(sessao, 'user_1', intent);
 
       expect(prep.requerTeste).toBeTruthy();
 
@@ -148,13 +148,13 @@ describe('gameEngine', () => {
   });
 
   describe('end-to-end: damage applied', () => {
-    it('dano reduz HP do monstro após damage_roll', () => {
+    it('dano reduz HP do monstro após damage_roll', async () => {
       const sessao = makeSessao();
       const dretch = sessao.estadoJogo.combate.monstros[0];
       const hpAntes = dretch.hp_atual;
 
       // Phase 1: prepararTurno — attack requires test
-      const prep = prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
+      const prep = await prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
       expect(prep.requerTeste).toBeTruthy();
 
       // Create pending action (as masterNarrationEngine would)
@@ -207,11 +207,11 @@ describe('gameEngine', () => {
       }
     });
 
-    it('defesa não requer teste e aplica bônus de esquiva', () => {
+    it('defesa não requer teste e aplica bônus de esquiva', async () => {
       const sessao = makeSessao();
       const jogadorStats = sessao.estadoJogo.combate.jogadores['user_1'];
 
-      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+      const resultado = await prepararTurno(sessao, 'user_1', { tipo: 'defender' });
 
       expect(resultado.requerTeste).toBeNull();
       expect(resultado.defesa).toBeTruthy();
@@ -222,9 +222,9 @@ describe('gameEngine', () => {
   });
 
   describe('formatarContexto', () => {
-    it('gera contexto com resultado de defesa', () => {
+    it('gera contexto com resultado de defesa', async () => {
       const sessao = makeSessao();
-      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+      const resultado = await prepararTurno(sessao, 'user_1', { tipo: 'defender' });
 
       const contexto = formatarContexto(sessao, 'user_1', resultado);
       expect(contexto).toBeDefined();
@@ -232,9 +232,9 @@ describe('gameEngine', () => {
       expect(contexto.promptText.length).toBeGreaterThan(0);
     });
 
-    it('marca requiresTest quando há teste pendente', () => {
+    it('marca requiresTest quando há teste pendente', async () => {
       const sessao = makeSessao();
-      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
+      const resultado = await prepararTurno(sessao, 'user_1', { tipo: 'atacar' });
 
       const contexto = formatarContexto(sessao, 'user_1', resultado);
       expect(contexto.requiresTest).toBe(true);
@@ -246,13 +246,74 @@ describe('gameEngine', () => {
       expect(contexto.promptText).toBe('');
     });
 
-    it('passa turnStateText para buildCombatPromptContext', () => {
+    it('passa turnStateText para buildCombatPromptContext', async () => {
       const sessao = makeSessao();
-      const resultado = prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+      const resultado = await prepararTurno(sessao, 'user_1', { tipo: 'defender' });
 
       const contexto = formatarContexto(sessao, 'user_1', resultado, { turnStateText: 'HP: 20/20 Mana: 15/15' });
       expect(contexto).toBeDefined();
       expect(typeof contexto.promptText).toBe('string');
+    });
+  });
+
+  describe('prepararTurno — intent pipeline (Phase 2)', () => {
+    it('resolve intent via mensagem (Camada 1 regex)', async () => {
+      const sessao = makeSessao();
+      const resultado = await prepararTurno(sessao, 'user_1', {
+        mensagem: 'defendo'
+      });
+      expect(resultado).not.toBeNull();
+      expect(resultado.defesa).toBeTruthy();
+    });
+
+    it('Phase 1 compat: intent com tipo funciona igual', async () => {
+      const sessao = makeSessao();
+      const resultado = await prepararTurno(sessao, 'user_1', { tipo: 'defender' });
+      expect(resultado).not.toBeNull();
+      expect(resultado.defesa).toBeTruthy();
+    });
+
+    it('Camada 1 ambíguo → falls to Camada 3 when Flash Lite skipped', async () => {
+      const sessao = makeSessao({
+        personagensCompletos: {
+          'user_1': makePersonagemCompleto({
+            habilidadesClasse: [
+              { id: 'investida', nome: 'Investida', custo_mana: 3, dano_base: '1d8' },
+              { id: 'investida_brutal', nome: 'Investida Brutal', custo_mana: 5, dano_base: '2d8' },
+            ]
+          })
+        }
+      });
+      const resultado = await prepararTurno(sessao, 'user_1', {
+        mensagem: 'investida brutal',
+        _skipFlashLite: true
+      });
+      expect(resultado.requerIntentMestre).toBe(true);
+    });
+
+    it('retorna requerIntentMestre quando todas camadas falham', async () => {
+      const sessao = makeSessao();
+      const resultado = await prepararTurno(sessao, 'user_1', {
+        mensagem: 'empurro o barril de pólvora no demônio',
+        _skipFlashLite: true
+      });
+      expect(resultado).not.toBeNull();
+      expect(resultado.requerIntentMestre).toBe(true);
+    });
+
+    it('retorna null quando combate não ativo', async () => {
+      const sessao = makeSessao({ estadoJogo: { combate: { ativo: false } } });
+      const resultado = await prepararTurno(sessao, 'user_1', { mensagem: 'ataco' });
+      expect(resultado).toBeNull();
+    });
+
+    it('propaga _resolvedIntent no resultado', async () => {
+      const sessao = makeSessao();
+      const resultado = await prepararTurno(sessao, 'user_1', {
+        mensagem: 'defendo'
+      });
+      expect(resultado._resolvedIntent).toBeDefined();
+      expect(resultado._resolvedIntent.tipo).toBe('defender');
     });
   });
 });

@@ -989,7 +989,7 @@ function _controlarRodada(combate, userId, sessao, resultados) {
 
   const totalJogadoresVivos = Object.entries(combate.jogadores).filter(([_, j]) => j.status === 'vivo').length;
   if (combate.jogadoresQueAgiram.length >= totalJogadoresVivos) {
-    combate.rodadaCombate++;
+    // Round advancement is now handled by avancarTurno (initiative system)
     combate.jogadoresQueAgiram = [];
     resultados.rodadaAvancou = true;
 
@@ -1754,21 +1754,21 @@ export function avancarTurno(combate) {
 
   const ordem = combate.ordemIniciativa;
   let nextIdx = (combate.turnoAtualIdx + 1) % ordem.length;
-
-  // Check if we completed a round
-  const novaRodada = nextIdx === 0;
-  if (novaRodada) {
-    combate.rodadaCombate = (combate.rodadaCombate || 1) + 1;
-  }
+  let passedZero = nextIdx === 0;
 
   // Skip dead combatants
   let attempts = 0;
   while (attempts < ordem.length) {
     const entry = ordem[nextIdx];
-    const isAlive = _isAlive(combate, entry);
-    if (isAlive) break;
+    if (_isAlive(combate, entry)) break;
     nextIdx = (nextIdx + 1) % ordem.length;
+    if (nextIdx === 0) passedZero = true;
     attempts++;
+  }
+
+  // New round if we wrapped past index 0
+  if (passedZero) {
+    combate.rodadaCombate = (combate.rodadaCombate || 1) + 1;
   }
 
   if (attempts >= ordem.length) return null; // everyone dead
@@ -1778,7 +1778,7 @@ export function avancarTurno(combate) {
 
   return {
     ...ordem[nextIdx],
-    rodadaAvancou: novaRodada,
+    rodadaAvancou: passedZero,
     rodada: combate.rodadaCombate,
   };
 }

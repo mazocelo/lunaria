@@ -5,6 +5,7 @@ import { GameLoadingProvider } from './contexts/GameLoadingContext'
 import Sidebar from './components/sidebar'
 import TopHeader from './components/TopHeader'
 import ParticlesBackground from './components/ParticlesBackground.jsx'
+import GothicDecorations from './components/GothicDecorations.jsx'
 import LoadingSpinner from './components/LoadingSpinner'
 import NotificationsModal from './components/NotificationsModal'
 import { AuthContainer } from './components/Auth'
@@ -132,6 +133,7 @@ function AppContent() {
         <div className="w-screen h-screen overflow-hidden">
           {/* Fundo de partículas */}
           <ParticlesBackground />
+          <GothicDecorations />
 
           {/* Gradiente de fundo */}
           <div className={`fixed inset-0 z-0 pointer-events-none ${

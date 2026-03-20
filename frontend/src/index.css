@@ -333,6 +333,14 @@
   50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
 }
 
+@keyframes batFly {
+  0% { transform: translateX(-60px) translateY(0); }
+  25% { transform: translateX(25vw) translateY(-15px); }
+  50% { transform: translateX(50vw) translateY(5px); }
+  75% { transform: translateX(75vw) translateY(-10px); }
+  100% { transform: translateX(calc(100vw + 60px)) translateY(0); }
+}
+
 @keyframes cardReveal {
   from {
     opacity: 0;

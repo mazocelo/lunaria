@@ -3,6 +3,7 @@ import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Skull, Circle, Gem, Leaf } from 'lucide-react';
 
 const raridadeVariant = {
@@ -24,15 +25,16 @@ const MonstroListaView = ({
   totalCount,
   currentPage,
   pageSize,
-  isLight,
   raridades,
   handlePageChange,
   handlePageSizeChange,
   buscarMonstros,
   clearError,
-  navigate,
-  generateRoute,
+  onVerMonstro,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const [galleryIndex, setGalleryIndex] = useState(null);
 
   const hasFilters = !!searchTerm;
@@ -114,7 +116,7 @@ const MonstroListaView = ({
                 title={row.nome}
                 rarity={rarNome}
                 delay={i}
-                onClick={() => navigate(generateRoute.verMonstro(row.id))}
+                onClick={() => onVerMonstro(row.id)}
                 onImageClick={row.imagem ? () => setGalleryIndex(i) : undefined}
                 headerBadge={
                   <Badge variant={raridadeVariant[rarNome] || 'slate'} className="shadow-sm backdrop-blur-sm">

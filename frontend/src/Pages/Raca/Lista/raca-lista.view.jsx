@@ -3,6 +3,7 @@ import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Dna, Gift, Coins } from 'lucide-react';
 
 const RacaListaView = ({
@@ -10,14 +11,15 @@ const RacaListaView = ({
   filteredRacas,
   loading,
   error,
-  isLight,
   gratuitas,
   pagas,
   buscarRacas,
   clearError,
-  navigate,
-  generateRoute,
+  onVerRaca,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading && racas.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -98,7 +100,7 @@ const RacaListaView = ({
               title={row.nome}
               subtitle={row.descricao}
               delay={i}
-              onClick={() => navigate(generateRoute.verRaca(row.id))}
+              onClick={() => onVerRaca(row.id)}
               onImageClick={row.imagem ? () => setGalleryIndex(displayRacas.findIndex(item => item.id === row.id)) : undefined}
               headerBadge={
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${

@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useRacaStore } from '../../../store/raca';
 import { racaService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS das racas vive aqui.
+ */
 export const useRacaListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const racas = useRacaStore(s => s.racas);
   const loading = useRacaStore(s => s.loading);
   const error = useRacaStore(s => s.error);
@@ -55,13 +52,10 @@ export const useRacaListaModel = () => {
     loading,
     error: localError || error,
     searchTerm,
-    isLight,
     gratuitas,
     pagas,
     buscarRacas: setSearchTerm,
     deleteRaca,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

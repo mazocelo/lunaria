@@ -1,14 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useMonstroStore } from '../../../store/monstro/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS dos monstros vive aqui.
+ */
 export const useMonstroListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   // Monstro store
   const allMonstros = useMonstroStore(s => s.monstros);
   const storeLoading = useMonstroStore(s => s.loading);
@@ -78,13 +75,10 @@ export const useMonstroListaModel = () => {
     totalCount: hasFilters ? undefined : totalCount,
     currentPage: hasFilters ? undefined : currentPage,
     pageSize: hasFilters ? undefined : pageSize,
-    isLight,
     raridades,
     handlePageChange: hasFilters ? undefined : handlePageChange,
     handlePageSizeChange: hasFilters ? undefined : handlePageSizeChange,
     buscarMonstros,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

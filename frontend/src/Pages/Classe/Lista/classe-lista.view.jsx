@@ -3,6 +3,7 @@ import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Shield, Gift, Coins } from 'lucide-react';
 
 const ClasseListaView = ({
@@ -10,14 +11,15 @@ const ClasseListaView = ({
   filteredClasses,
   loading,
   error,
-  isLight,
   gratuitas,
   pagas,
   buscarClasses,
   clearError,
-  navigate,
-  generateRoute,
+  onVerClasse,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading && classes.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -98,7 +100,7 @@ const ClasseListaView = ({
               title={row.nome}
               subtitle={row.descricao}
               delay={i}
-              onClick={() => navigate(generateRoute.verClasse(row.id))}
+              onClick={() => onVerClasse(row.id)}
               onImageClick={row.imagem ? () => setGalleryIndex(displayClasses.findIndex(item => item.id === row.id)) : undefined}
               headerBadge={
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${

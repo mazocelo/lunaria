@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useClasseStore } from '../../../store/classe';
 import { classeService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS das classes vive aqui.
+ */
 export const useClasseListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const classes = useClasseStore(s => s.classes);
   const loading = useClasseStore(s => s.loading);
   const error = useClasseStore(s => s.error);
@@ -55,13 +52,10 @@ export const useClasseListaModel = () => {
     loading,
     error: localError || error,
     searchTerm,
-    isLight,
     gratuitas,
     pagas,
     buscarClasses: setSearchTerm,
     deleteClasse,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

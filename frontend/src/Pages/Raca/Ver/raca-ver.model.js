@@ -1,39 +1,48 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { racaService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { formatBonusDisplay } from '../../../components/shared';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS da raca vive aqui.
+ */
 export const useRacaVerModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
-  const [raca, setRaca] = useState(null);
+  const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const response = await racaService.getById(id);
-        setRaca(response.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) load();
+  // --- Fetch ---
+  const carregar = useCallback(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    racaService.getById(id)
+      .then(res => setRaw(res.data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const handleBack = () => navigate(ROUTES.RACAS);
-  const handleEdit = () => {
-    if (raca) navigate(generateRoute.editarRaca(raca.id));
-  };
-  const clearError = () => setError(null);
+  useEffect(() => { carregar(); }, [carregar]);
 
-  return { raca, loading, error, isLight, handleBack, handleEdit, clearError };
+  // --- Normalizacao da entidade ---
+  const raca = raw ? normalizarRaca(raw) : null;
+
+  return { id, raca, loading, error, setError, recarregar: carregar };
 };
+
+/**
+ * Normaliza dados crus da API em formato limpo pra consumo.
+ * Resolve bonus, converte campos, trata defaults.
+ */
+function normalizarRaca(r) {
+  return {
+    id: r.id,
+    nome: r.nome,
+    descricao: r.descricao,
+    imagem: r.imagem,
+    custo: r.custo ?? 0,
+    bonus: formatBonusDisplay(r.bonus),
+  };
+}

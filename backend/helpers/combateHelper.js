@@ -173,14 +173,16 @@ export function rolarDado(notacao) {
 
 /**
  * Calcula HP maximo de um personagem jogador
+ * Formula: mult_raca * (nivel + max(1, modCON))
  * @param {Object} personagem - Dados do personagem
+ * @param {number} multRaca - Multiplicador da raca (default 5 para humano)
  * @returns {number} HP maximo
  */
-export function calcularHP(personagem) {
+export function calcularHP(personagem, multRaca = 5) {
   const constituicao = personagem.constituicao || 10;
   const nivel = personagem.nivel || 1;
-  const modConstituicao = Math.floor((constituicao - 10) / 2);
-  return Math.max(1, 10 + (nivel * 2) + (modConstituicao * nivel));
+  const modCON = Math.floor((constituicao - 10) / 2);
+  return multRaca * (nivel + Math.max(1, modCON));
 }
 
 /**
@@ -376,28 +378,26 @@ export function verificarEsquiva(taxaEsquiva) {
 /**
  * Aplica formula de escalamento dinamico ao monstro
  * @param {Object} monstro - Monstro base do banco
- * @param {number} nivel - Nivel efetivo
+ * @param {number} nivelEfetivo - Nivel efetivo
  * @returns {Object} Stats efetivos
  */
-export function calcularStatsEfetivos(monstro, nivel) {
-  const n = Math.max(1, nivel);
-  const hpBase = monstro.hp_base || 10;
-  const constituicao = monstro.constituicao || 10;
-  const forca = monstro.forca || 10;
-  const ataqueBase = monstro.ataque_base || 2;
-  const defesaBase = monstro.defesa_base || 10;
-  const xpBase = monstro.xp_base || 50;
-  const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
-  const modTam = _getModTamanho(monstro.tamanho);
+export function calcularStatsEfetivos(monstro, nivelEfetivo) {
+  const n = Math.max(1, nivelEfetivo);
+  const modCON = Math.floor(((monstro.constituicao || 10) - 10) / 2);
+  const modFOR = Math.floor(((monstro.forca || 10) - 10) / 2);
+  const modAGI = Math.floor(((monstro.agilidade || 10) - 10) / 2);
+  const modDEX = Math.floor(((monstro.destreza || 10) - 10) / 2);
+  const mult = monstro.mult_raca || 5;
+  const armNat = monstro.armadura_natural || 0;
 
   return {
-    hp_max: Math.round(hpBase + (n * constituicao * 0.5)),
-    ataque: Math.round(ataqueBase + Math.floor((forca - 10) / 2) + Math.min(2, Math.floor(n / 6))),
-    defesa: Math.round(defesaBase + modAgi + Math.floor(n * 0.4)),
-    armadura: Math.max(0, Math.round(Math.floor(defesaBase * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
-    esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
+    hp_max: mult * (n + Math.max(1, modCON)),
+    defesa: 10 + modCON + armNat,
+    ataque: modFOR + Math.floor(n / 3),
+    armadura: armNat,
+    esquiva: Math.min(50, Math.max(0, (modAGI + Math.floor(modDEX / 2)) * 5 + Math.floor(n * 0.5))),
     dano_base: monstro.dano_base || '1d6',
-    xp: xpBase * n
+    xp: (monstro.xp_base || 50) * n
   };
 }
 

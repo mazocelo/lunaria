@@ -61,15 +61,14 @@ describe('rolarDado', () => {
 // ── calcularHP ──
 
 describe('calcularHP', () => {
-  it('personagem nivel 1, CON 10 → 12', () => {
-    // 10 + (1*2) + (0*1) = 12
-    expect(calcularHP({ constituicao: 10, nivel: 1 })).toBe(12);
+  it('personagem nivel 1, CON 10 → 10', () => {
+    // multRaca=5, modCON=0, max(1,0)=1 → 5*(1+1) = 10
+    expect(calcularHP({ constituicao: 10, nivel: 1 })).toBe(10);
   });
 
-  it('personagem nivel 5, CON 16 → 35', () => {
-    // modCON = floor((16-10)/2) = 3
-    // 10 + (5*2) + (3*5) = 10 + 10 + 15 = 35
-    expect(calcularHP({ constituicao: 16, nivel: 5 })).toBe(35);
+  it('personagem nivel 5, CON 16 → 40', () => {
+    // modCON = floor((16-10)/2) = 3, max(1,3)=3 → 5*(5+3) = 40
+    expect(calcularHP({ constituicao: 16, nivel: 5 })).toBe(40);
   });
 
   it('CON baixo nunca retorna menos que 1', () => {
@@ -77,7 +76,13 @@ describe('calcularHP', () => {
   });
 
   it('sem parametros usa defaults (CON 10, nivel 1)', () => {
-    expect(calcularHP({})).toBe(12);
+    // multRaca default 5 → 5*(1+1) = 10
+    expect(calcularHP({})).toBe(10);
+  });
+
+  it('multRaca customizado altera HP', () => {
+    // Anão multRaca=6, nivel=1, CON=10 → 6*(1+1) = 12
+    expect(calcularHP({ constituicao: 10, nivel: 1 }, 6)).toBe(12);
   });
 });
 

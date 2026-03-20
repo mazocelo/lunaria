@@ -14,6 +14,7 @@ model classes {
   custo       Int           @default(0)
   descricao   String?
   bonus       String?
+  imagem      String?       @db.VarChar(500)
   personagens personagens[]
   habilidades habilidades[]
   ferramentas ferramentas[]
@@ -35,6 +36,7 @@ model desvantagens {
   elemento      String[]  @db.VarChar(255)
   nivel         Int       @default(1)
   requisitos    Json?
+  imagem        String?   @db.VarChar(500)
   criada_em     DateTime? @db.Timestamptz(6)
   atualizada_em DateTime? @db.Timestamptz(6)
 
@@ -211,6 +213,8 @@ model racas {
   custo       Int           @default(0)
   descricao   String?
   bonus       String?
+  imagem      String?       @db.VarChar(500)
+  mult_raca   Int?          @default(5)
   personagens personagens[]
   habilidades habilidades[]
 }
@@ -264,6 +268,7 @@ model vantagens {
   elemento      String[]  @db.VarChar(255)
   nivel         Int       @default(1)
   requisitos    Json?
+  imagem        String?   @db.VarChar(500)
   criada_em     DateTime? @db.Timestamptz(6)
   atualizada_em DateTime? @db.Timestamptz(6)
 
@@ -600,6 +605,7 @@ model habilidades {
   usos_por_descanso   Int?
   componente_material Json?
   saving_throw        String?  @db.VarChar(30)
+  imagem              String?  @db.VarChar(500)
 
   // Relations
   classe              classes? @relation(fields: [classe_id], references: [id])

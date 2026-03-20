@@ -113,7 +113,7 @@ export default class CombatEngine {
             mana_atual: (p.mana_atual != null && p.mana_atual < manaMax) ? p.mana_atual : manaMax,
             esquiva: calcularEsquiva(personagemStats, bonusEquip),
             armadura: calcularArmadura(bonusEquip),
-            bonusAtaque: bonusEquip.ataque || 0,
+            bonusAtaque: Math.floor(((attrs.forca || 10) - 10) / 2) + (bonusEquip.ataque || 0),
             bonusDano: bonusEquip.dano || 0,
             dano_base: p.melhorArma || (p.equipamentos?.length > 0 ? '1d6' : '1d6-1'),
             elemento: p.elementoArma || null,
@@ -475,7 +475,14 @@ export default class CombatEngine {
     const rolagem = Math.floor(Math.random() * 20) + 1;
     const bonusAtaqueMonstro = monstro.ataque || 0;
     const totalAtaque = rolagem + bonusAtaqueMonstro;
-    const defesaJogador = 10 + (alvoStats.armadura || 0) + Math.floor(((alvoStats.esquiva || 0) / 5)); // base 10 + armadura + esquiva/5
+    // Defense = 10 + modCON + armadura
+    // modCON comes from the personagem's constituicao
+    const personagensCompletos = sessao?.personagensCompletos || {};
+    const pcId = alvoStats.personagemId;
+    const pc = personagensCompletos[pcId] || personagensCompletos[String(pcId)] || {};
+    const conValue = pc.atributos?.constituicao || pc.constituicao || 10;
+    const modCON = Math.floor((conValue - 10) / 2);
+    const defesaJogador = 10 + modCON + (alvoStats.armadura || 0);
     const { acertou, critico } = verificarAcerto(rolagem, totalAtaque, defesaJogador);
 
     let dano = 0;

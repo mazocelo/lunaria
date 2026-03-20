@@ -1,8 +1,9 @@
 import React from 'react';
 import { Zap, BookOpen, Sparkles, BarChart3, FlaskConical, Swords, Tag, Shield, Target, Clock, Flame, Brain, ClipboardList } from 'lucide-react';
-import { CatalogDetailLayout, formatObjectDisplay, formatJson } from '../../../components/shared';
+import { useTheme } from '../../../contexts/theme.jsx';
+import { CatalogDetailLayout, formatObjectDisplay } from '../../../components/shared';
 
-// ── Category mappings (page-specific) ──────────────────────
+// ── Category mappings (visual config, local to View) ─────
 const categoriaColors = {
   combate_fisico: '#ef4444', magia_ofensiva: '#8b5cf6', magia_defensiva: '#3b82f6',
   cura: '#22c55e', suporte: '#06b6d4', controle: '#f59e0b',
@@ -14,8 +15,8 @@ const categoriaLabels = {
   utilidade: 'Utilidade', social: 'Social', crafting: 'Crafting',
 };
 
-// ── Badge helper ───────────────────────────────────────────
-const catBadge = (categoria, isLight) => {
+// ── Badge helpers ─────────────────────────────────────────
+const catBadge = (categoria) => {
   const color = categoriaColors[categoria] || '#8b5cf6';
   return (
     <span key="cat" className="px-3 py-1 rounded-full text-xs font-semibold"
@@ -67,24 +68,22 @@ const RecipeCard = ({ receita, isLight }) => (
 );
 
 // ── Main view ─────────────────────────────────────────────
-const VerHabilidadeView = ({ habilidade, loading, error, isLight, handleBack, handleEdit }) => {
-  if (loading || error || !habilidade) {
+const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  if (loading || error || !h) {
     return (
       <CatalogDetailLayout
         loading={loading} loadingText="Carregando habilidade..."
-        error={error || (!loading && !habilidade ? 'Habilidade não encontrada' : undefined)}
-        icon={Zap} title="" onBack={handleBack} onEdit={handleEdit}
+        error={error || (!loading && !h ? 'Habilidade não encontrada' : undefined)}
+        icon={Zap} title="" onBack={onBack} onEdit={onEdit}
       />
     );
   }
 
-  const h = habilidade;
   const accent = categoriaColors[h.categoria] || '#8b5cf6';
-  const efeitoItems = formatObjectDisplay(h.efeito);
-  const escalamentoItems = formatObjectDisplay(h.escalamento);
-  const preRequisitoItems = formatObjectDisplay(h.pre_requisitos ?? h.pre_requisito);
-  const areaItems = formatObjectDisplay(h.area_efeito);
-  const componenteItems = formatObjectDisplay(h.componente_material);
+  const preRequisitoItems = formatObjectDisplay(h.preRequisitos);
 
   const mono = (items, color) => (
     <div className="space-y-2">
@@ -94,10 +93,10 @@ const VerHabilidadeView = ({ habilidade, loading, error, isLight, handleBack, ha
 
   // ── Badges ──
   const badges = [
-    catBadge(h.categoria, isLight),
+    catBadge(h.categoria),
     h.tipo && simpleBadge('tipo', h.tipo, isLight, 'bg-blue-50 text-blue-700', 'bg-blue-500/15 text-blue-400'),
     h.elemento && simpleBadge('elem', h.elemento, isLight, 'bg-purple-50 text-purple-700', 'bg-purple-500/15 text-purple-400'),
-    h.usa_concentracao && simpleBadge('conc', 'Concentração', isLight, 'bg-amber-50 text-amber-700', 'bg-amber-500/15 text-amber-400'),
+    h.usaConcentracao && simpleBadge('conc', 'Concentração', isLight, 'bg-amber-50 text-amber-700', 'bg-amber-500/15 text-amber-400'),
   ].filter(Boolean);
 
   // ── Sections ──
@@ -105,10 +104,10 @@ const VerHabilidadeView = ({ habilidade, loading, error, isLight, handleBack, ha
   const sections = [
     h.descricao && { title: 'Descrição', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${textCls}`}>{h.descricao}</p> },
-    efeitoItems?.length > 0 && { title: 'Efeito', icon: Sparkles, color: '#8b5cf6',
-      content: mono(efeitoItems, textCls) },
-    escalamentoItems?.length > 0 && { title: 'Escalamento', icon: BarChart3, color: '#3b82f6',
-      content: mono(escalamentoItems, textCls) },
+    h.efeito?.length > 0 && { title: 'Efeito', icon: Sparkles, color: '#8b5cf6',
+      content: mono(h.efeito, textCls) },
+    h.escalamento?.length > 0 && { title: 'Escalamento', icon: BarChart3, color: '#3b82f6',
+      content: mono(h.escalamento, textCls) },
     h.receitas?.length > 0 && { title: `Receitas de Crafting (${h.receitas.length})`, icon: FlaskConical, color: '#22c55e',
       content: <div className="space-y-4">{h.receitas.map((r, i) => <RecipeCard key={r.id || i} receita={r} isLight={isLight} />)}</div> },
   ].filter(Boolean);
@@ -117,23 +116,23 @@ const VerHabilidadeView = ({ habilidade, loading, error, isLight, handleBack, ha
   const monoBlock = (items, cls) => <div className="space-y-1">{items.map((a, i) => <span key={i} className={`block font-mono text-xs ${cls}`}>{a}</span>)}</div>;
 
   const stats = [
-    { icon: Tag, label: 'Categoria', content: catBadge(h.categoria, isLight) },
+    { icon: Tag, label: 'Categoria', content: catBadge(h.categoria) },
     h.tipo && { icon: Swords, label: 'Tipo', content: h.tipo },
-    h.nivel_requerido && { icon: BarChart3, label: 'Nível Requerido', content: <span className="text-cyan-400 font-semibold">{h.nivel_requerido}</span> },
-    h.custo_mana > 0 && { icon: Zap, label: 'Custo de Mana', content: <span className={`font-mono font-semibold ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{h.custo_mana}</span> },
-    h.dano_base && { icon: Swords, label: 'Dano Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{h.dano_base}</span> },
+    h.nivelRequerido && { icon: BarChart3, label: 'Nível Requerido', content: <span className="text-cyan-400 font-semibold">{h.nivelRequerido}</span> },
+    h.custoMana > 0 && { icon: Zap, label: 'Custo de Mana', content: <span className={`font-mono font-semibold ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{h.custoMana}</span> },
+    h.danoBase && { icon: Swords, label: 'Dano Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{h.danoBase}</span> },
     h.elemento && { icon: Flame, label: 'Elemento', content: h.elemento },
     h.alvo && { icon: Target, label: 'Alvo', content: h.alvo },
     h.alcance && { icon: Target, label: 'Alcance', content: h.alcance },
-    h.tempo_conjuracao && { icon: Clock, label: 'Tempo de Conjuração', content: h.tempo_conjuracao },
-    h.cooldown_turnos > 0 && { icon: Clock, label: 'Cooldown', content: `${h.cooldown_turnos} turno${h.cooldown_turnos > 1 ? 's' : ''}` },
-    h.usos_por_descanso && { icon: Zap, label: 'Usos por Descanso', content: h.usos_por_descanso },
-    h.escola_magia && { icon: Brain, label: 'Escola Mágica', content: h.escola_magia },
-    h.saving_throw && { icon: Shield, label: 'Saving Throw', content: h.saving_throw },
-    h.classe?.nome && { icon: Shield, label: 'Classe', content: h.classe.nome },
-    h.raca?.nome && { icon: Tag, label: 'Raça', content: h.raca.nome },
-    areaItems?.length > 0 && { icon: Target, label: 'Área de Efeito', content: monoBlock(areaItems, isLight ? 'text-cyan-700' : 'text-cyan-400') },
-    componenteItems?.length > 0 && { icon: Sparkles, label: 'Componente Material', content: monoBlock(componenteItems, isLight ? 'text-amber-700' : 'text-amber-400') },
+    h.tempoConjuracao && { icon: Clock, label: 'Tempo de Conjuração', content: h.tempoConjuracao },
+    h.cooldownTurnos > 0 && { icon: Clock, label: 'Cooldown', content: `${h.cooldownTurnos} turno${h.cooldownTurnos > 1 ? 's' : ''}` },
+    h.usosPorDescanso && { icon: Zap, label: 'Usos por Descanso', content: h.usosPorDescanso },
+    h.escolaMagia && { icon: Brain, label: 'Escola Mágica', content: h.escolaMagia },
+    h.savingThrow && { icon: Shield, label: 'Saving Throw', content: h.savingThrow },
+    h.classeNome && { icon: Shield, label: 'Classe', content: h.classeNome },
+    h.racaNome && { icon: Tag, label: 'Raça', content: h.racaNome },
+    h.areaEfeito?.length > 0 && { icon: Target, label: 'Área de Efeito', content: monoBlock(h.areaEfeito, isLight ? 'text-cyan-700' : 'text-cyan-400') },
+    h.componenteMaterial?.length > 0 && { icon: Sparkles, label: 'Componente Material', content: monoBlock(h.componenteMaterial, isLight ? 'text-amber-700' : 'text-amber-400') },
     preRequisitoItems?.length > 0 && { icon: ClipboardList, label: 'Pré-requisitos', content: monoBlock(preRequisitoItems, isLight ? 'text-amber-700' : 'text-amber-400') },
   ].filter(Boolean);
 
@@ -141,7 +140,7 @@ const VerHabilidadeView = ({ habilidade, loading, error, isLight, handleBack, ha
     <CatalogDetailLayout
       title={h.nome} image={h.imagem} icon={Zap} accentColor={accent}
       badges={badges} sections={sections} stats={stats}
-      onBack={handleBack} onEdit={handleEdit}
+      onBack={onBack} onEdit={onEdit}
       loadingText="Carregando habilidade..."
     />
   );

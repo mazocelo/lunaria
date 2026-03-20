@@ -263,6 +263,11 @@ export const useWizardModel = () => {
 
   /** Refs para evitar stale closures em getEstado/getHistorico */
   const estadoRef = useRef();
+
+  // Extrair vantagens/desvantagens concedidas pela raça e classe selecionadas
+  const racaSelecionada = racaId ? racas.find(r => String(r.id) === String(racaId)) : null;
+  const classeSelecionada = classeId ? classes.find(c => String(c.id) === String(classeId)) : null;
+
   estadoRef.current = {
     nome, racaId, racaNome, classeId, classeNome, background,
     vantagensIds: pointSystem.vantagensIds,
@@ -271,6 +276,11 @@ export const useWizardModel = () => {
     desvantagensNomes: pointSystem.desvantagensNomes,
     atributosBase: bonusCalc.atributosBase,
     atributosFinal: bonusCalc.atributosFinal,
+    // Vantagens/desvantagens concedidas por raça/classe (para excluir das sugestões)
+    vantagensDaRaca: racaSelecionada?.vantagens?.map(v => v.nome || v) || [],
+    desvantagensDaRaca: racaSelecionada?.desvantagens?.map(d => d.nome || d) || [],
+    vantagensDaClasse: classeSelecionada?.vantagens?.map(v => v.nome || v) || [],
+    desvantagensDaClasse: classeSelecionada?.desvantagens?.map(d => d.nome || d) || [],
   };
 
   const mensagensRef = useRef();
@@ -291,6 +301,11 @@ export const useWizardModel = () => {
       desvantagens_ids: s.desvantagensIds,
       desvantagens_nomes: s.desvantagensNomes,
       atributos: s.atributosFinal,
+      // Vantagens/desvantagens concedidas por raça/classe
+      vantagens_da_raca: s.vantagensDaRaca,
+      desvantagens_da_raca: s.desvantagensDaRaca,
+      vantagens_da_classe: s.vantagensDaClasse,
+      desvantagens_da_classe: s.desvantagensDaClasse,
     };
   }, []);
 

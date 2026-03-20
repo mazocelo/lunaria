@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import { Heart, Swords, Shield, Star, BarChart3, Zap, Tag } from 'lucide-react';
 import { ROUTES, generateRoute } from '../../../constants/routes.js';
 import { useMonstroVerModel } from './monstro-ver.model';
 import VerMonstroView from './monstro-ver.view';
 
 /**
- * ViewModel: orquestracao pura.
- * Conecta Model e View, fornece handlers de navegacao e logica de negocio.
- * Sem JSX, sem classes CSS, sem resolucao de tema.
+ * ViewModel: orquestracao + decisoes de conteudo.
+ * Decide O QUE mostrar. A View decide COMO mostrar.
  */
 export default function MonstroVerPage() {
   const model = useMonstroVerModel();
@@ -15,11 +15,36 @@ export default function MonstroVerPage() {
   const handleBack = () => navigate(ROUTES.MONSTROS);
   const handleEdit = () => { if (model.monstro) navigate(generateRoute.editarMonstro(model.monstro.id)); };
 
+  if (!model.monstro) {
+    return (
+      <VerMonstroView
+        loading={model.loading}
+        error={model.error || (!model.loading ? 'Monstro não encontrado' : undefined)}
+        onBack={handleBack}
+        onEdit={handleEdit}
+      />
+    );
+  }
+
+  const m = model.monstro;
+
+  // ViewModel decide QUAIS stats mostrar (condicional de negocio)
+  const stats = [
+    { icon: Heart, label: 'HP Base', value: m.combate.hpBase, color: 'danger' },
+    { icon: Swords, label: 'Ataque Base', value: m.combate.ataqueBase, color: 'warning' },
+    { icon: Shield, label: 'Defesa Base', value: m.combate.defesaBase, color: 'info' },
+    m.combate.danoBase && { icon: Swords, label: 'Dano Base', value: m.combate.danoBase, color: 'danger' },
+    { icon: Star, label: 'XP Base', value: m.combate.xpBase, color: 'accent' },
+    { icon: BarChart3, label: 'Nivel', value: `${m.nivelMin} - ${m.nivelMax}`, color: 'cyan' },
+    m.tipos.length > 0 && { icon: Tag, label: 'Tipo', chips: m.tipos, chipColor: 'amber' },
+    m.elementos.length > 0 && { icon: Zap, label: 'Elemento', chips: m.elementos, chipColor: 'purple' },
+    m.temas.length > 0 && { icon: Tag, label: 'Temas', chips: m.temas, chipColor: 'indigo' },
+  ].filter(Boolean);
+
   return (
     <VerMonstroView
-      monstro={model.monstro}
-      loading={model.loading}
-      error={model.error}
+      monstro={m}
+      stats={stats}
       onBack={handleBack}
       onEdit={handleEdit}
     />

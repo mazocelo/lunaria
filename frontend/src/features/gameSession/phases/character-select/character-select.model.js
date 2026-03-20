@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLayout } from '../../../../contexts/LayoutContext';
 import { useGameLoading } from '../../../../contexts/GameLoadingContext';
@@ -20,7 +20,7 @@ import { useJogo } from '../../../../Pages/Jogo/hooks/index.js';
  *
  * Retorna o MESMO shape que useSelecaoPersonagemModel original.
  */
-export function useCharacterSelectModel() {
+export function useCharacterSelectModel({ navigate }) {
   // === LEGADO (acao + erro/loading acoplados na mesma instancia) ===
   const {
     historiaAtual,
@@ -42,7 +42,6 @@ export function useCharacterSelectModel() {
   const { user } = useAuth();
   const { hideSidebar, openSidebar } = useLayout();
   const { getSelection } = useGameLoading();
-  const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
 

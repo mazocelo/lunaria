@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLayout } from '../../../../contexts/LayoutContext';
 
@@ -21,7 +21,7 @@ import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hoo
  *
  * Retorna o MESMO shape que useJogoAtivoModel original.
  */
-export function useActiveModel() {
+export function useActiveModel({ navigate }) {
   // === CORE (apenas sairDoJogo — store-backed) ===
   const core = useGameSessionCore();
 
@@ -59,7 +59,6 @@ export function useActiveModel() {
   // === CONTEXTS ===
   const { user } = useAuth();
   const { hideSidebar, openSidebar } = useLayout();
-  const navigate = useNavigate();
   const { id } = useParams();
 
   // === LOCAL STATE ===

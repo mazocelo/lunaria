@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLayout } from '../../../../contexts/LayoutContext';
 import { useGameLoading } from '../../../../contexts/GameLoadingContext';
@@ -23,7 +23,7 @@ import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hoo
  *
  * Retorna o MESMO shape que useSalaEsperaModel original.
  */
-export function useLobbyModel() {
+export function useLobbyModel({ navigate }) {
   // === CORE (leitura de state store-backed + helpers puros) ===
   const core = useGameSessionCore();
 
@@ -59,7 +59,6 @@ export function useLobbyModel() {
   const { user } = useAuth();
   const { hideSidebar, openSidebar } = useLayout();
   const { getSelection } = useGameLoading();
-  const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
 

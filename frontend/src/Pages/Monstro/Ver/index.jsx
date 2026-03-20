@@ -6,7 +6,8 @@ import VerMonstroView from './monstro-ver.view';
 
 /**
  * ViewModel: orquestracao + decisoes de conteudo.
- * Decide O QUE mostrar. A View decide COMO mostrar.
+ * Decide O QUE mostrar (quais badges, sections, stats).
+ * Passa dados estruturados — sem JSX, sem CSS, sem tema.
  */
 export default function MonstroVerPage() {
   const model = useMonstroVerModel();
@@ -28,7 +29,21 @@ export default function MonstroVerPage() {
 
   const m = model.monstro;
 
-  // ViewModel decide QUAIS stats mostrar (condicional de negocio)
+  // Decide QUAIS badges mostrar
+  const badges = [
+    { key: 'rar', text: m.raridade, variant: 'rarity' },
+    m.categoria && { key: 'cat', text: m.categoria, variant: 'info' },
+    { key: 'nv', text: `Nv. ${m.nivelMin}-${m.nivelMax}`, variant: 'level' },
+  ].filter(Boolean);
+
+  // Decide QUAIS sections mostrar
+  const sections = [
+    m.descricao && { key: 'descricao', type: 'text', text: m.descricao },
+    { key: 'atributos', type: 'atributos' },
+    m.habilidades && { key: 'habilidades', type: 'habilidades' },
+  ].filter(Boolean);
+
+  // Decide QUAIS stats mostrar
   const stats = [
     { icon: Heart, label: 'HP Base', value: m.combate.hpBase, color: 'danger' },
     { icon: Swords, label: 'Ataque Base', value: m.combate.ataqueBase, color: 'warning' },
@@ -44,6 +59,8 @@ export default function MonstroVerPage() {
   return (
     <VerMonstroView
       monstro={m}
+      badges={badges}
+      sections={sections}
       stats={stats}
       onBack={handleBack}
       onEdit={handleEdit}

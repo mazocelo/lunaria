@@ -61,6 +61,8 @@ const VerHistoriaView = ({
   mestresAtivos,
   editandoMestre,
   mestreSelecionadoId,
+  mestreTierSelecionado,
+  setMestreTierSelecionado,
   salvandoMestre,
   getMestreNome,
   handleSalvarMestre,
@@ -818,6 +820,32 @@ const VerHistoriaView = ({
                     {playingMestreId && String(playingMestreId) === String(selectedMestre.id) ? 'Pausar voz' : 'Ouvir voz do mestre'}
                   </button>
                 )}
+                <div>
+                  <p className={`text-xs font-semibold mb-2 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Qualidade do Mestre</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'pescador', label: 'Pescador' },
+                      { id: 'poeta', label: 'Poeta' },
+                      { id: 'bardo', label: 'Bardo' },
+                      { id: 'profeta', label: 'Profeta' },
+                    ].map((tier) => (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() => setMestreTierSelecionado(tier.id)}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          mestreTierSelecionado === tier.id
+                            ? 'bg-purple-600 text-white border border-purple-500'
+                            : isLight
+                              ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:border-slate-300'
+                              : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        {tier.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button
                     disabled={salvandoMestre}
@@ -846,6 +874,9 @@ const VerHistoriaView = ({
                   </span>
                   <div className="flex items-center gap-2 mt-1.5">
                     <Badge variant="purple">{mestreProviderLabel}</Badge>
+                    <Badge variant="default">
+                      {({ pescador: 'Pescador', poeta: 'Poeta', bardo: 'Bardo', profeta: 'Profeta' })[historiaAtual?.mestre_tier] || 'Poeta'}
+                    </Badge>
                     {effectiveMestreVoiceId && (
                       <span className={`text-xs font-modern flex items-center gap-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
                         <Volume2 size={12} />

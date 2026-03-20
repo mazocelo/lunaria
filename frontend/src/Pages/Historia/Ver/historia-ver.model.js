@@ -63,6 +63,7 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
   // Mestre editing
   const [editandoMestre, setEditandoMestre] = useState(false);
   const [mestreSelecionadoId, setMestreSelecionadoId] = useState(null);
+  const [mestreTierSelecionado, setMestreTierSelecionado] = useState(null);
   const [salvandoMestre, setSalvandoMestre] = useState(false);
 
   // Voice preview
@@ -154,7 +155,9 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     if (!historiaAtual) return;
     setSalvandoMestre(true);
     try {
-      await historiaService.update(historiaAtual.id, { mestre_id: mestreSelecionadoId });
+      const updateData = { mestre_id: mestreSelecionadoId };
+      if (mestreTierSelecionado) updateData.mestre_tier = mestreTierSelecionado;
+      await historiaService.update(historiaAtual.id, updateData);
       await loadHistoria(historiaAtual.id);
       setEditandoMestre(false);
     } catch (err) {
@@ -163,11 +166,12 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     } finally {
       setSalvandoMestre(false);
     }
-  }, [historiaAtual, mestreSelecionadoId, loadHistoria]);
+  }, [historiaAtual, mestreSelecionadoId, mestreTierSelecionado, loadHistoria]);
 
   const handleEditarMestre = useCallback(() => {
     if (historiaAtual) {
       setMestreSelecionadoId(historiaAtual.mestre_id || historiaAtual.mestres?.id || null);
+      setMestreTierSelecionado(historiaAtual.mestre_tier || 'poeta');
       setEditandoMestre(true);
     }
   }, [historiaAtual]);
@@ -534,6 +538,8 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     mestresAtivos,
     editandoMestre,
     mestreSelecionadoId,
+    mestreTierSelecionado,
+    setMestreTierSelecionado,
     salvandoMestre,
     getMestreNome,
     handleSalvarMestre,

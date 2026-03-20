@@ -111,7 +111,7 @@ function gerarNomesFallback(quantidade = 8) {
 
 
 /** Gera sugestões fallback do catálogo quando IA retorna vazio */
-async function gerarFallbackSugestoes(etapa, estado) {
+async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
   try {
     const { racas, classes, vantagens: vantagensRaw, desvantagens: desvantagensRaw } = await fetchCatalogo();
     const tier = tierDesbloqueado(estado.nivel || 1);
@@ -119,7 +119,8 @@ async function gerarFallbackSugestoes(etapa, estado) {
     const desvantagens = desvantagensRaw.filter(d => (d.nivel || 1) <= tier);
 
     if (etapa === 'raca') {
-      const shuffled = [...racas].sort(() => Math.random() - 0.5).slice(0, 5);
+      const disponiveis = racas.filter(r => !excluirIds.has(String(r.id)));
+      const shuffled = [...disponiveis].sort(() => Math.random() - 0.5).slice(0, 5);
       return shuffled.map(r => ({
         tipo: 'raca', id: r.id, nome: r.nome,
         descricao: r.descricao || '', custo: r.custo ?? 0,
@@ -127,7 +128,8 @@ async function gerarFallbackSugestoes(etapa, estado) {
     }
 
     if (etapa === 'classe') {
-      const shuffled = [...classes].sort(() => Math.random() - 0.5).slice(0, 4);
+      const disponiveis = classes.filter(c => !excluirIds.has(String(c.id)));
+      const shuffled = [...disponiveis].sort(() => Math.random() - 0.5).slice(0, 4);
       return shuffled.map(c => ({
         tipo: 'classe', id: c.id, nome: c.nome,
         descricao: c.descricao || '', custo: c.custo ?? 0,
@@ -136,7 +138,7 @@ async function gerarFallbackSugestoes(etapa, estado) {
 
     if (etapa === 'vantagens') {
       const jaSelecionados = new Set((estado.vantagens_ids || []).map(String));
-      const compraveis = vantagens.filter(v => (v.custo > 0 || v.compravel !== false) && !jaSelecionados.has(String(v.id)));
+      const compraveis = vantagens.filter(v => (v.custo > 0 || v.compravel !== false) && !jaSelecionados.has(String(v.id)) && !excluirIds.has(String(v.id)));
       const shuffled = [...compraveis].sort(() => Math.random() - 0.5).slice(0, 4);
       return shuffled.map(v => ({
         tipo: 'vantagem', id: v.id, nome: v.nome,
@@ -146,7 +148,7 @@ async function gerarFallbackSugestoes(etapa, estado) {
 
     if (etapa === 'desvantagens') {
       const jaSelecionados = new Set((estado.desvantagens_ids || []).map(String));
-      const disponiveis = desvantagens.filter(d => !jaSelecionados.has(String(d.id)));
+      const disponiveis = desvantagens.filter(d => !jaSelecionados.has(String(d.id)) && !excluirIds.has(String(d.id)));
       const shuffled = [...disponiveis].sort(() => Math.random() - 0.5).slice(0, 4);
       return shuffled.map(d => ({
         tipo: 'desvantagem', id: d.id, nome: d.nome,
@@ -281,7 +283,30 @@ function converterHistorico(historico) {
 // Seed de mitologias para variar nomes a cada sessão
 const MITOLOGIAS = ['celta', 'japonesa', 'africana', 'eslava', 'árabe', 'grega', 'indiana', 'nórdica', 'latina', 'persa', 'polinésia', 'tupi', 'asteca', 'egípcia', 'tibetana', 'gaélica', 'suméria', 'finlandesa', 'maori', 'iorubá'];
 
-function construirInput(etapa, estado, mensagemJogador) {
+/**
+ * Extrai nomes/IDs de sugestões já mostradas do histórico de chat.
+ * Percorre as mensagens da IA buscando JSONs com campo "sugestoes".
+ */
+function extrairSugestoesAnteriores(historico, etapa) {
+  const nomes = new Set();
+  const ids = new Set();
+  if (!Array.isArray(historico)) return { nomes, ids };
+
+  for (const msg of historico) {
+    if (msg.role === 'user' || msg.tipo === 'jogador') continue;
+    const content = msg.content || msg.texto || '';
+    const parsed = parseIAJson(content);
+    if (parsed?.sugestoes && Array.isArray(parsed.sugestoes)) {
+      for (const s of parsed.sugestoes) {
+        if (s.nome) nomes.add(s.nome);
+        if (s.id) ids.add(String(s.id));
+      }
+    }
+  }
+  return { nomes, ids };
+}
+
+function construirInput(etapa, estado, mensagemJogador, { historico, actionMode } = {}) {
   const parts = [`[ETAPA ATUAL: ${etapa}]`];
 
   // Seed aleatório para variar sugestões de nomes
@@ -305,6 +330,36 @@ function construirInput(etapa, estado, mensagemJogador) {
   // Lembrete de contextualização para sugestões
   if (['classe', 'vantagens', 'desvantagens', 'background'].includes(etapa)) {
     parts.push(`[LEMBRETE: Suas sugestões DEVEM ser coerentes com as escolhas anteriores do personagem. Sugira opções que combinem narrativamente.]`);
+  }
+
+  // Anti-repetição: listar sugestões já mostradas, já selecionadas, e ganhas por raça/classe
+  const excluir = new Set();
+
+  // Itens já selecionados pelo jogador
+  if (estado.raca_nome) excluir.add(estado.raca_nome);
+  if (estado.classe_nome) excluir.add(estado.classe_nome);
+  if (estado.vantagens_nomes?.length) estado.vantagens_nomes.forEach(n => excluir.add(n));
+  if (estado.desvantagens_nomes?.length) estado.desvantagens_nomes.forEach(n => excluir.add(n));
+
+  // Vantagens/desvantagens concedidas automaticamente pela raça/classe (não devem ser sugeridas)
+  if (estado.vantagens_da_raca?.length) estado.vantagens_da_raca.forEach(n => excluir.add(n));
+  if (estado.desvantagens_da_raca?.length) estado.desvantagens_da_raca.forEach(n => excluir.add(n));
+  if (estado.vantagens_da_classe?.length) estado.vantagens_da_classe.forEach(n => excluir.add(n));
+  if (estado.desvantagens_da_classe?.length) estado.desvantagens_da_classe.forEach(n => excluir.add(n));
+
+  // Sugestões já mostradas no histórico
+  if (historico) {
+    const { nomes } = extrairSugestoesAnteriores(historico, etapa);
+    nomes.forEach(n => excluir.add(n));
+  }
+
+  if (excluir.size > 0 && ETAPAS_COM_SUGESTOES.includes(etapa)) {
+    parts.push(`[IMPORTANTE: NÃO sugira nenhum destes itens já mostrados, selecionados ou concedidos por raça/classe: ${[...excluir].join(', ')}. Sugira APENAS opções novas e diferentes.]`);
+  }
+
+  // Restrições: lembrar a IA das restrições de raça/classe para vantagens/desvantagens
+  if (['vantagens', 'desvantagens'].includes(etapa) && (estado.raca_nome || estado.classe_nome)) {
+    parts.push(`[RESTRIÇÕES: Considere que o personagem é ${estado.raca_nome || '?'} / ${estado.classe_nome || '?'}. Sugira apenas vantagens/desvantagens compatíveis com essa combinação. Se um item tiver restrição de raça ou classe que não corresponda, NÃO o sugira.]`);
   }
 
   parts.push(`\nMensagem do jogador: ${mensagemJogador}`);
@@ -416,7 +471,7 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
   try {
     const { chain, modelName } = await buildChainForRequest(estado);
 
-    const input = construirInput(etapa, estado, mensagemJogador);
+    const input = construirInput(etapa, estado, mensagemJogador, { historico, actionMode });
     const chatHistory = converterHistorico(historico).slice(-20); // limitar histórico
 
     const response = await withRetry(() => withTimeout(chain.invoke({
@@ -463,13 +518,20 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     // Se destino não usa cards, limpar sugestões
     let sugestoesFinal = ETAPAS_SEM_CARDS.includes(etapaDestino) ? [] : sugestoes;
 
+    // Extrair IDs já sugeridos + já selecionados para evitar repetição nos fallbacks
+    const { ids: idsJaSugeridos } = extrairSugestoesAnteriores(historico, etapa);
+    if (estado.raca_id) idsJaSugeridos.add(String(estado.raca_id));
+    if (estado.classe_id) idsJaSugeridos.add(String(estado.classe_id));
+    if (estado.vantagens_ids?.length) estado.vantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
+    if (estado.desvantagens_ids?.length) estado.desvantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
+
     // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
     if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapaDestino)) {
       log.warn({ etapa, etapaDestino, originalCount: resultado.sugestoes?.length || 0 }, 'IA retornou 0 sugestoes validas, gerando fallback');
-      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado);
+      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado, idsJaSugeridos);
     } else if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapa) && !ETAPAS_SEM_CARDS.includes(etapaDestino)) {
       log.warn({ etapa, etapaDestino }, 'Sem sugestoes, gerando fallback');
-      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado);
+      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado, idsJaSugeridos);
     }
 
     // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão
@@ -495,8 +557,13 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     }
 
     // Mesmo em erro, tentar gerar sugestões do catálogo para a etapa destino
+    const { ids: idsJaSugeridos } = extrairSugestoesAnteriores(historico, etapa);
+    if (estado.raca_id) idsJaSugeridos.add(String(estado.raca_id));
+    if (estado.classe_id) idsJaSugeridos.add(String(estado.classe_id));
+    if (estado.vantagens_ids?.length) estado.vantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
+    if (estado.desvantagens_ids?.length) estado.desvantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
     const fallbackSugestoes = ETAPAS_COM_SUGESTOES.includes(catchEtapaDestino)
-      ? await gerarFallbackSugestoes(catchEtapaDestino, estado).catch(() => [])
+      ? await gerarFallbackSugestoes(catchEtapaDestino, estado, idsJaSugeridos).catch(() => [])
       : [];
 
     return {

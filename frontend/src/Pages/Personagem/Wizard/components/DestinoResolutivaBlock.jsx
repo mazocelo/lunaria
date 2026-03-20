@@ -121,6 +121,25 @@ const DestinoResolutivaBlock = ({
 
         </div>
 
+        {/* --- Secondary create button at top (always visible) --- */}
+        {data && !error && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={onCriar}
+              disabled={!podeCriar || criando || loading || !data}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-modern font-semibold transition-all ${
+                !podeCriar || criando || loading || !data
+                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
+                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+              }`}
+            >
+              {criando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {criando ? 'Selando...' : 'Criar personagem'}
+            </button>
+          </div>
+        )}
+
         {error && (
           <div className="wa-panel-soft flex items-start gap-3 rounded-2xl border border-[var(--wa-ember)]/30 px-4 py-3">
             <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
@@ -314,7 +333,7 @@ const DestinoResolutivaBlock = ({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-                Selo da etapa
+                Pronto para a aventura?
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                 Criar usa este combo exatamente como ele esta agora. Volte ao Arsenal para regenerar.
@@ -325,17 +344,36 @@ const DestinoResolutivaBlock = ({
               type="button"
               onClick={onCriar}
               disabled={!podeCriar || criando || loading || !data}
-              className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
+              className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-modern font-semibold transition-all ${
                 !podeCriar || criando || loading || !data
                   ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
-              }`}
+                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl'
+              } ${podeCriar && !criando && !loading && data ? 'animate-pulse shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
             >
-              {criando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {criando ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
               {criando ? 'Selando...' : 'Criar personagem'}
             </button>
           </div>
         </div>
+
+        {/* --- Sticky bottom bar on mobile --- */}
+        {data && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--wa-border)] bg-[var(--wa-surface,rgba(15,23,42,0.95))] p-3 backdrop-blur-md md:hidden">
+            <button
+              type="button"
+              onClick={onCriar}
+              disabled={!podeCriar || criando || loading || !data}
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-modern font-semibold transition-all ${
+                !podeCriar || criando || loading || !data
+                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
+                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg'
+              } ${podeCriar && !criando && !loading && data ? 'shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
+            >
+              {criando ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+              {criando ? 'Selando...' : 'Criar personagem'}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

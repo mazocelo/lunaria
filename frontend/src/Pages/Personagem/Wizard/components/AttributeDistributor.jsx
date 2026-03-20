@@ -183,30 +183,49 @@ const AttributeDistributor = ({
   const [infoAberta, setInfoAberta] = useState(null);
   const pronto = pontosRestantes === 0;
 
+  const progressPct = pontosTotais > 0 ? Math.min(100, (pontosDistribuidos / pontosTotais) * 100) : 0;
+  const erro = pontosRestantes < 0;
+
   return (
     <div className="wa-panel wa-etched rounded-[22px] p-4 md:p-5">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-            <Sparkles size={11} />
-            Mesa de calibracao
-          </div>
-          <h4 className={`mt-3 text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-            Distribuir Atributos
-          </h4>
-          <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-            Ajuste o corpo mecanico da ficha antes de aplicar os bonus finais.
-          </p>
+      {/* --- Centered prominent points counter --- */}
+      <div className="mb-5 flex flex-col items-center gap-2">
+        <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+          <Sparkles size={11} />
+          Mesa de calibracao
+        </div>
+        <h4 className={`mt-2 text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+          Distribuir Atributos
+        </h4>
+        <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
+          Ajuste o corpo mecanico da ficha antes de aplicar os bonus finais.
+        </p>
+
+        {/* Big points badge */}
+        <div className={`mt-2 flex flex-col items-center gap-1.5 rounded-2xl px-6 py-3 transition-all duration-300 ${
+          pronto ? 'bg-emerald-500/15 ring-2 ring-emerald-400/50 animate-pulse' : erro ? 'bg-red-500/15 ring-2 ring-red-400/50' : isLight ? 'bg-slate-100' : 'bg-slate-800/60'
+        }`}>
+          <span className={`flex items-center gap-2 text-2xl font-mono font-bold ${
+            pronto ? 'text-emerald-400' : erro ? 'text-red-400' : isLight ? 'text-slate-900' : 'text-white'
+          }`}>
+            {pronto ? <CheckCircle2 size={22} /> : <Sparkles size={22} />}
+            {pontosDistribuidos} / {pontosTotais}
+          </span>
+          <span className={`text-xs font-modern font-medium ${
+            pronto ? 'text-emerald-400' : erro ? 'text-red-400' : 'text-[var(--wa-muted)]'
+          }`}>
+            {pronto ? 'Todos os pontos distribuidos — pronto para confirmar!' : erro ? `${Math.abs(pontosRestantes)} pontos acima do limite!` : `${pontosRestantes} pontos restantes`}
+          </span>
         </div>
 
-        <div className="text-right">
-          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-mono font-semibold ${pronto ? 'wa-emerald-chip' : pontosRestantes < 0 ? 'wa-ember-chip' : 'wa-violet-chip'}`}>
-            {pronto ? <CheckCircle2 size={12} /> : <Sparkles size={12} />}
-            {pontosDistribuidos}/{pontosTotais}
-          </span>
-          <p className={`mt-2 text-[11px] font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
-            {pronto ? 'Pronto para confirmar' : `${pontosRestantes} restantes`}
-          </p>
+        {/* Progress bar */}
+        <div className={`mt-1 h-2 w-full max-w-xs overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${
+              pronto ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : erro ? 'bg-red-500' : 'bg-[var(--wa-accent)]'
+            }`}
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
       </div>
 
@@ -253,13 +272,13 @@ const AttributeDistributor = ({
                 <button
                   onClick={() => setAtributo(key, val - 1)}
                   disabled={disabled || val <= attrMin}
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border transition-colors cursor-pointer ${
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 cursor-pointer ${
                     disabled || val <= attrMin
                       ? 'opacity-35 cursor-not-allowed'
-                      : isLight ? 'border-slate-300 text-slate-600 hover:bg-white' : 'border-slate-700 text-slate-300 hover:bg-slate-900'
+                      : isLight ? 'border-slate-300 text-slate-600 hover:bg-white hover:border-slate-400' : 'border-slate-700 text-slate-300 hover:bg-slate-900 hover:border-slate-500'
                   }`}
                 >
-                  <Minus size={14} />
+                  <Minus size={16} />
                 </button>
 
                 <div className={`w-10 text-center text-lg font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{val}</div>
@@ -267,13 +286,13 @@ const AttributeDistributor = ({
                 <button
                   onClick={() => setAtributo(key, val + 1)}
                   disabled={disabled || val >= attrMax || pontosRestantes <= 0}
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border transition-colors cursor-pointer ${
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 cursor-pointer ${
                     disabled || val >= attrMax || pontosRestantes <= 0
                       ? 'opacity-35 cursor-not-allowed'
-                      : isLight ? 'border-slate-300 text-slate-600 hover:bg-white' : 'border-slate-700 text-slate-300 hover:bg-slate-900'
+                      : isLight ? 'border-slate-300 text-slate-600 hover:bg-white hover:border-slate-400' : 'border-slate-700 text-slate-300 hover:bg-slate-900 hover:border-slate-500'
                   }`}
                 >
-                  <Plus size={14} />
+                  <Plus size={16} />
                 </button>
 
                 <span className={`${modClass} inline-flex min-w-[3.25rem] items-center justify-center rounded-full px-2 py-1 text-xs font-mono font-semibold`}>

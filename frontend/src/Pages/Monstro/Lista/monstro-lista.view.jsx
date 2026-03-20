@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
-import { Skull, Circle, Gem, Leaf, Eye } from 'lucide-react';
+import { Skull, Circle, Gem, Leaf } from 'lucide-react';
 
 const raridadeVariant = {
   'Comum': 'slate',
@@ -32,6 +33,32 @@ const MonstroListaView = ({
   navigate,
   generateRoute,
 }) => {
+  const [galleryIndex, setGalleryIndex] = useState(null);
+
+  const hasFilters = !!searchTerm;
+  const displayMonstros = hasFilters ? filteredMonstros : monstros;
+
+  // Build list of items with images for gallery navigation
+  const itemsWithImages = displayMonstros
+    .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
+    .filter(item => item.src);
+
+  const currentGalleryPos = galleryIndex !== null
+    ? itemsWithImages.findIndex(item => item.index === galleryIndex)
+    : -1;
+
+  const handlePrev = useCallback(() => {
+    if (currentGalleryPos > 0) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos - 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
+  const handleNext = useCallback(() => {
+    if (currentGalleryPos < itemsWithImages.length - 1) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos + 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
   if (loading && monstros.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -42,9 +69,6 @@ const MonstroListaView = ({
       </div>
     );
   }
-
-  const hasFilters = !!searchTerm;
-  const displayMonstros = hasFilters ? filteredMonstros : monstros;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -91,6 +115,7 @@ const MonstroListaView = ({
                 rarity={rarNome}
                 delay={i}
                 onClick={() => navigate(generateRoute.verMonstro(row.id))}
+                onImageClick={row.imagem ? () => setGalleryIndex(i) : undefined}
                 headerBadge={
                   <Badge variant={raridadeVariant[rarNome] || 'slate'} className="shadow-sm backdrop-blur-sm">
                     {rarNome}
@@ -128,6 +153,19 @@ const MonstroListaView = ({
         onPageSizeChange={handlePageSizeChange}
         pageSizeOptions={[12, 24, 48, 100]}
       />
+
+      {/* Gallery lightbox with prev/next navigation */}
+      {galleryIndex !== null && displayMonstros[galleryIndex] && (
+        <ImageLightbox
+          src={displayMonstros[galleryIndex].imagem}
+          alt={displayMonstros[galleryIndex].nome}
+          title={displayMonstros[galleryIndex].nome}
+          isOpen={true}
+          onClose={() => setGalleryIndex(null)}
+          onPrev={currentGalleryPos > 0 ? handlePrev : undefined}
+          onNext={currentGalleryPos < itemsWithImages.length - 1 ? handleNext : undefined}
+        />
+      )}
     </div>
   );
 };

@@ -23,10 +23,16 @@ const CatalogCard = ({
   rarity,
   actions,
   onClick,
+  onImageClick,
   delay = 0,
   className = '',
 }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const handleImageClick = (e) => {
+    e.stopPropagation();
+    if (onImageClick) onImageClick();
+    else setLightboxOpen(true);
+  };
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const borderColor = rarity ? rarityBorderColors[rarity] : null;
@@ -98,7 +104,7 @@ const CatalogCard = ({
         {/* View image button */}
         {image && (
           <button
-            onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+            onClick={handleImageClick}
             title="Ver imagem"
             className={`absolute top-2.5 left-2.5 z-10 w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer
               opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200

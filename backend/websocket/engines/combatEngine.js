@@ -591,6 +591,39 @@ export default class CombatEngine {
       combate.ativo = false;
       combate.resultado = resultado;
 
+      // Tratamento de derrota: marcar jogadores inconscientes e verificar fim de sessão
+      if (resultado === 'derrota') {
+        for (const [uid, jogador] of Object.entries(combate.jogadores || {})) {
+          if (jogador.status === 'inconsciente' || jogador.hp_atual <= 0) {
+            jogador.status = 'derrotado';
+
+            // @event jogador_derrotado → room (broadcast) | fires for each defeated/unconscious player when combat ends in defeat
+            sm.sendToRoom(roomId, 'jogador_derrotado', {
+              userId: uid,
+              personagemNome: jogador.personagemNome,
+              mensagem: `${jogador.personagemNome} foi derrotado em combate.`,
+              timestamp: Date.now()
+            });
+          }
+        }
+
+        // Verificar se algum jogador ainda está vivo na sessão
+        const jogadoresVivos = Object.values(sessao.jogadores || {}).filter(j => {
+          const combatStats = combate.jogadores?.[j.id || j.personagemId];
+          return !combatStats || combatStats.status === 'vivo';
+        });
+
+        if (jogadoresVivos.length === 0) {
+          log.warn({ roomId }, 'Todos jogadores derrotados — encerrando sessao');
+          // @event sessao_encerrada → room (broadcast) | fires when all players are defeated and no living players remain in the session
+          sm.sendToRoom(roomId, 'sessao_encerrada', {
+            motivo: 'derrota_total',
+            mensagem: 'Todos os aventureiros caíram. A sessão foi encerrada.',
+            timestamp: Date.now()
+          });
+        }
+      }
+
       sessao.estadoJogo = estadoJogo;
       await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
 

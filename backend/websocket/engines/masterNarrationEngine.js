@@ -783,6 +783,14 @@ export default class MasterNarrationEngine {
         return null;
       }
 
+      // Verificar se o jogador foi derrotado em combate — não pode agir
+      if (sessao.estadoJogo?.combate?.jogadores?.[userId]?.status === 'derrotado') {
+        socket.emit('erro_mensagem', {
+          message: 'Seu personagem foi derrotado e não pode agir. Aguarde ser revivido ou o fim da sessão.'
+        });
+        return null;
+      }
+
       if (fase === 'rodada_em_andamento' && !combateAtivo) {
         if (turnoState.jogadorAtual && String(turnoState.jogadorAtual) !== String(userId)) {
           socket.emit('erro_turno', { message: 'Nao e seu turno!' });

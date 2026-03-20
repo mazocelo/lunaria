@@ -300,6 +300,34 @@ function buildAttackTestRequest({
 }
 
 /**
+ * Infere notação de dano a partir de texto de descrição (Layer A: regex, Layer C: default)
+ * @param {string} descricao - Texto da descrição da habilidade/vantagem
+ * @returns {string} Notação de dado (ex: "1d8+2" ou "1d6")
+ */
+export function inferirDanoDescricao(descricao) {
+  if (!descricao || typeof descricao !== 'string') return '1d6';
+
+  // Layer A: regex for dice notation in description
+  const dicePattern = /\+?(\d+d\d+(?:[+-]\d+)?)/gi;
+  const matches = descricao.match(dicePattern);
+
+  if (matches && matches.length === 1) {
+    // Single match — use it (strip leading +)
+    return matches[0].replace(/^\+/, '');
+  }
+
+  // Check for "+N dano" or "+N no dano" patterns
+  const bonusPattern = /\+(\d+)\s*(?:de\s+)?(?:no\s+)?dano/i;
+  const bonusMatch = descricao.match(bonusPattern);
+  if (bonusMatch) {
+    return `1d6+${bonusMatch[1]}`;
+  }
+
+  // Layer C: default
+  return '1d6';
+}
+
+/**
  * Valida e processa uso de habilidade ativa em combate
  * @returns {{ valido: boolean, erro?: string, dano?: number, efeito?: object }}
  */
@@ -330,7 +358,7 @@ export function processarHabilidade(habilidade, jogadorState, options = {}) {
   return {
     valido: true,
     dano,
-    danoBaseNotation: habilidade.dano_base || '1d6',
+    danoBaseNotation: habilidade.dano_base || inferirDanoDescricao(habilidade.descricao || habilidade.efeito?.descricao || ''),
     cooldownKey,
     custoMana: habilidade.custo_mana,
     cooldown: habilidade.cooldown_turnos,
@@ -1842,6 +1870,7 @@ export default {
   rolarDado,
   calcularHP,
   calcularMana,
+  inferirDanoDescricao,
   processarHabilidade,
   calcularEsquiva,
   calcularArmadura,

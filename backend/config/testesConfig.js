@@ -36,6 +36,12 @@ export const TESTES_CONFIG = {
     'Arrombamento': 'destreza',
     'Prestidigitação': 'destreza',
 
+    // Ataques de combate — mapeados para Destreza
+    'Ataque': 'destreza',
+    'Ataque Básico': 'destreza',
+    'Ataque Corpo a Corpo': 'destreza',
+    'Ataque à Distância': 'destreza',
+
     // Testes derivados — Constituição
     'Resistência': 'constituicao',
     'Fortitude': 'constituicao',

@@ -74,6 +74,11 @@ export function mapearTesteParaAtributo(nomeTeste) {
     return testeLC;
   }
 
+  // Qualquer teste que comece com "ataque" mapeia para destreza
+  if (nomeTeste && nomeTeste.toLowerCase().startsWith('ataque')) {
+    return 'destreza';
+  }
+
   log.warn({ teste: nomeTeste }, 'testeHelper: Teste nao mapeado, usando d20 puro');
   return null;
 }

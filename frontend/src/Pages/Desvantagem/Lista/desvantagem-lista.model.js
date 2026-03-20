@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { desvantagemService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS das desvantagens vive aqui.
+ */
 export const useDesvantagemListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const desvantagens = useDesvantagemStore(s => s.desvantagens);
   const loading = useDesvantagemStore(s => s.loading);
   const error = useDesvantagemStore(s => s.error);
@@ -55,13 +52,10 @@ export const useDesvantagemListaModel = () => {
     loading,
     error: localError || error,
     searchTerm,
-    isLight,
     nivelMaisComum,
     tipoMaisComum,
     buscarDesvantagens: setSearchTerm,
     deleteDesvantagem,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

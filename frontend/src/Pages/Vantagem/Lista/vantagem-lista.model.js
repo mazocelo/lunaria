@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useVantagemStore } from '../../../store/vantagem';
 import { vantagemService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS das vantagens vive aqui.
+ */
 export const useVantagemListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const vantagens = useVantagemStore(s => s.vantagens);
   const loading = useVantagemStore(s => s.loading);
   const error = useVantagemStore(s => s.error);
@@ -55,13 +52,10 @@ export const useVantagemListaModel = () => {
     loading,
     error: localError || error,
     searchTerm,
-    isLight,
     positivas,
     negativas,
     buscarVantagens: setSearchTerm,
     deleteVantagem,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

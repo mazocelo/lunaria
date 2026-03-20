@@ -3,13 +3,13 @@ import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { PageHeader, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const TemaListaView = ({
   temas,
   loading,
   error,
-  isLight,
   showDeleteModal,
   temaToDelete,
   deleteLoading,
@@ -17,10 +17,12 @@ const TemaListaView = ({
   handleConfirmDelete,
   handleCancelDelete,
   clearError,
-  navigate,
-  generateRoute,
-  ROUTES,
+  onEditarTema,
+  onNovoTema,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading && temas.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -43,7 +45,7 @@ const TemaListaView = ({
         subtitle="Temas de ambientacao para historias"
         icon={Palette}
         actions={
-          <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer" onClick={() => navigate(ROUTES.NOVO_TEMA)}>
+          <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer" onClick={onNovoTema}>
             <Plus size={18} />
             <span>Novo Tema</span>
           </button>
@@ -69,9 +71,9 @@ const TemaListaView = ({
               title={row.nome}
               subtitle={row.descricao}
               delay={i}
-              onClick={() => navigate(generateRoute.editarTema(row.id))}
+              onClick={() => onEditarTema(row.id)}
               actions={[
-                { label: 'Editar', icon: Pencil, onClick: () => navigate(generateRoute.editarTema(row.id)) },
+                { label: 'Editar', icon: Pencil, onClick: () => onEditarTema(row.id) },
                 { label: 'Excluir', icon: Trash2, onClick: () => handleDeleteClick(row) },
               ]}
             />

@@ -1,10 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import { ROUTES } from '../../../constants/routes.js';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Crown, Plus, Eye, Pencil, Trash2, Volume2 } from 'lucide-react';
 
 const MestreListaView = ({
@@ -12,7 +11,6 @@ const MestreListaView = ({
   filteredMestres,
   loading,
   error,
-  isLight,
   showDeleteModal,
   mestreToDelete,
   deleteLoading,
@@ -22,9 +20,13 @@ const MestreListaView = ({
   handleCancelDelete,
   handlePreviewVoz,
   clearError,
-  navigate,
-  generateRoute,
+  onVerMestre,
+  onEditarMestre,
+  onNovoMestre,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading && mestres.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -47,12 +49,10 @@ const MestreListaView = ({
         subtitle="Gerencie seus mestres e narradores"
         icon={Crown}
         actions={
-          <Link to={ROUTES.NOVO_MESTRE}>
-            <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer">
-              <Plus size={18} />
-              <span>Novo Mestre</span>
-            </button>
-          </Link>
+          <button className="btn-rpg hover-lift flex items-center gap-2 cursor-pointer" onClick={onNovoMestre}>
+            <Plus size={18} />
+            <span>Novo Mestre</span>
+          </button>
         }
       />
 
@@ -79,8 +79,8 @@ const MestreListaView = ({
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredMestres.map((row, i) => {
             const actions = [
-              { label: 'Ver', icon: Eye, onClick: () => navigate(generateRoute.verMestre(row.id)) },
-              { label: 'Editar', icon: Pencil, onClick: () => navigate(generateRoute.editarMestre(row.id)) },
+              { label: 'Ver', icon: Eye, onClick: () => onVerMestre(row.id) },
+              { label: 'Editar', icon: Pencil, onClick: () => onEditarMestre(row.id) },
             ];
             if (row.voice_id) {
               actions.push({ label: 'Ouvir voz', icon: Volume2, onClick: () => handlePreviewVoz(row) });
@@ -94,7 +94,7 @@ const MestreListaView = ({
                 icon={Crown}
                 title={row.nome}
                 delay={i}
-                onClick={() => navigate(generateRoute.verMestre(row.id))}
+                onClick={() => onVerMestre(row.id)}
                 actions={actions}
                 headerBadge={
                   <Badge variant="slate" className="shadow-sm backdrop-blur-sm">

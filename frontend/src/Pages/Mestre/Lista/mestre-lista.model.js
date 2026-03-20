@@ -1,17 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useMestreStore } from '../../../store/mestre';
 import { apiClient, mestreService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS dos mestres vive aqui.
+ */
 export const useMestreListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const mestres = useMestreStore(s => s.mestresAtivos);
   const loading = useMestreStore(s => s.loading);
   const error = useMestreStore(s => s.error);
@@ -136,7 +133,6 @@ export const useMestreListaModel = () => {
     filteredMestres,
     loading,
     error: localError || error,
-    isLight,
     showDeleteModal,
     mestreToDelete,
     deleteLoading,
@@ -147,7 +143,5 @@ export const useMestreListaModel = () => {
     handlePreviewVoz,
     playingMestreId,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

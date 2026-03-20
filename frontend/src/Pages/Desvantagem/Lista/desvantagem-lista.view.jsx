@@ -3,6 +3,7 @@ import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { AlertTriangle, BarChart3, Tag } from 'lucide-react';
 
 const tipoVariant = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
@@ -12,14 +13,15 @@ const DesvantagemListaView = ({
   filteredDesvantagens,
   loading,
   error,
-  isLight,
   nivelMaisComum,
   tipoMaisComum,
   buscarDesvantagens,
   clearError,
-  navigate,
-  generateRoute,
+  onVerDesvantagem,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading && desvantagens.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -103,7 +105,7 @@ const DesvantagemListaView = ({
                 icon={AlertTriangle}
                 title={row.nome}
                 delay={i}
-                onClick={() => navigate(generateRoute.verDesvantagem(row.id))}
+                onClick={() => onVerDesvantagem(row.id)}
                 onImageClick={row.imagem ? () => setGalleryIndex(displayDesvantagens.findIndex(item => item.id === row.id)) : undefined}
                 headerBadge={
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${

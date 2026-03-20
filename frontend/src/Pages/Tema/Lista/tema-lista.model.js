@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema';
 import { temaService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS dos temas vive aqui.
+ */
 export const useTemaListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const temas = useTemaStore(s => s.temas);
   const loading = useTemaStore(s => s.loading);
   const error = useTemaStore(s => s.error);
@@ -58,7 +55,6 @@ export const useTemaListaModel = () => {
     temas,
     loading,
     error: localError || error,
-    isLight,
     showDeleteModal,
     temaToDelete,
     deleteLoading,
@@ -66,8 +62,5 @@ export const useTemaListaModel = () => {
     handleConfirmDelete,
     handleCancelDelete,
     clearError,
-    navigate,
-    generateRoute,
-    ROUTES,
   };
 };

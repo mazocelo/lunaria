@@ -370,6 +370,9 @@ const WizardChat = ({
                               className={`block w-full border-b border-[var(--wa-border)] px-3 py-3 text-left transition-colors last:border-b-0 cursor-pointer ${isSelected ? (isLight ? 'bg-purple-100/70' : 'bg-purple-500/14') : isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-900/60'}`}
                             >
                               <div className="flex items-center gap-2">
+                                {item.imagem && (
+                                  <img src={item.imagem} alt={item.nome} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                                )}
                                 <span className={`text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{item.nome}</span>
                                 {item.custo != null && (
                                   <span className={`rounded-full px-2 py-1 text-[10px] font-mono ${item.custo > 0 ? 'wa-ember-chip' : 'wa-emerald-chip'}`}>
@@ -378,7 +381,7 @@ const WizardChat = ({
                                 )}
                                 {isSelected && <Check size={12} className="text-[var(--wa-accent)]" />}
                               </div>
-                              {item.descricao && <span className={`mt-1 block text-[11px] font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{item.descricao}</span>}
+                              {item.descricao && <span className={`mt-1 block text-[11px] font-modern ${isLight ? 'text-slate-600' : item.imagem ? 'ml-12 text-slate-300' : 'text-slate-300'}`}>{item.descricao}</span>}
                             </button>
                           );
                         })

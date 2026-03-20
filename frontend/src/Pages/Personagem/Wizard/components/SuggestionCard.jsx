@@ -35,9 +35,13 @@ const TIPO_CONFIG = {
   },
 };
 
+const hasVisualImage = (sugestao) =>
+  sugestao.imagem && (sugestao.tipo === 'raca' || sugestao.tipo === 'classe');
+
 const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant = 'default' }) => {
   const config = TIPO_CONFIG[sugestao.tipo] || TIPO_CONFIG.vantagem;
   const Icon = config.icon;
+  const showImage = hasVisualImage(sugestao);
 
   if (variant !== 'atelier') {
     return (
@@ -52,9 +56,18 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
         }`}
       >
         <div className="flex items-start gap-3">
-          <div className="rounded-lg p-2" style={{ backgroundColor: isLight ? `${config.accent}18` : `${config.accent}22` }}>
-            <Icon size={14} style={{ color: config.accent }} />
-          </div>
+          {showImage ? (
+            <img
+              src={sugestao.imagem}
+              alt={sugestao.nome}
+              className="h-10 w-10 shrink-0 rounded-lg object-cover ring-2"
+              style={{ ringColor: `${config.accent}66` }}
+            />
+          ) : (
+            <div className="rounded-lg p-2" style={{ backgroundColor: isLight ? `${config.accent}18` : `${config.accent}22` }}>
+              <Icon size={14} style={{ color: config.accent }} />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -90,9 +103,18 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
       ].join(' ')}
     >
       <div className="flex items-start gap-3">
-        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border" style={{ borderColor: `${config.accent}55`, background: isLight ? `${config.accent}10` : `${config.accent}18` }}>
-          <Icon size={18} style={{ color: config.accent }} />
-        </div>
+        {showImage ? (
+          <img
+            src={sugestao.imagem}
+            alt={sugestao.nome}
+            className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-2 transition-transform duration-200 group-hover:scale-105"
+            style={{ '--tw-ring-color': `${config.accent}66` }}
+          />
+        ) : (
+          <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border" style={{ borderColor: `${config.accent}55`, background: isLight ? `${config.accent}10` : `${config.accent}18` }}>
+            <Icon size={18} style={{ color: config.accent }} />
+          </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

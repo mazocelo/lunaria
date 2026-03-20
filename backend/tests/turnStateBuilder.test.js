@@ -420,11 +420,11 @@ describe('buildTurnState', () => {
     const sessao = makeSessao();
     const state = buildTurnState(sessao, 'user1', personagem);
 
-    // calcularHP({ constituicao: 14, nivel: 3 })
-    // modConst = floor((14-10)/2) = 2
-    // HP = max(1, 10 + 3*2 + 2*3) = 10 + 6 + 6 = 22
-    expect(state.hp.max).toBe(22);
-    expect(state.hp.atual).toBe(22); // no override, defaults to max
+    // calcularHP({ constituicao: 14, nivel: 3 }, multRaca=5)
+    // modCON = floor((14-10)/2) = 2
+    // HP = 5 * (3 + max(1, 2)) = 5 * 5 = 25
+    expect(state.hp.max).toBe(25);
+    expect(state.hp.atual).toBe(25); // no override, defaults to max
   });
 
   it('calculates mana based on inteligência and nivel when not in session bucket', () => {

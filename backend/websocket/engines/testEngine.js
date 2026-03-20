@@ -223,8 +223,11 @@ export default class TestEngine {
         log.warn({ isDamageRoll, rollKind: testeResolvido.metadata?.rollKind, testeNome: testeResolvido.teste, tipoDado: testeResolvido.tipoDado, dificuldade: testeResolvido.dificuldade, metadataKeys: Object.keys(testeResolvido.metadata || {}) }, 'testEngine: isDamageRoll check');
 
         if (isDamageRoll) {
-          // Damage rolls: raw value is the damage, no modifiers, no DC
-          const rawDamage = parseInt(result, 10) || 1;
+          // Damage rolls: server rolls the correct die, ignoring frontend d20 value
+          const { rolarDado } = await import('../../helpers/combateHelper.js');
+          const damageNotation = testeResolvido.tipoDado || '1d6';
+          const rawDamage = rolarDado(damageNotation);
+          log.warn({ damageNotation, rawDamage, frontendResult: result }, 'testEngine: damage roll server-side');
           resultadoTestePayload = {
             rolagemBruta: rawDamage,
             total: rawDamage,

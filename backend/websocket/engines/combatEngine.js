@@ -471,14 +471,17 @@ export default class CombatEngine {
     // Pick ability or basic attack
     const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
 
-    // Roll attack
+    // Roll attack vs player defense
     const rolagem = Math.floor(Math.random() * 20) + 1;
-    const { acertou, critico } = verificarAcerto(rolagem);
+    const bonusAtaqueMonstro = monstro.ataque || 0;
+    const totalAtaque = rolagem + bonusAtaqueMonstro;
+    const defesaJogador = 10 + (alvoStats.armadura || 0) + Math.floor(((alvoStats.esquiva || 0) / 5)); // base 10 + armadura + esquiva/5
+    const { acertou, critico } = verificarAcerto(rolagem, totalAtaque, defesaJogador);
 
     let dano = 0;
     let esquivou = false;
 
-    log.warn({ monstroNome: monstro.nome, alvoNome: alvoStats.personagemNome, rolagem, acertou, critico, dano_base: monstro.dano_base, habilidadeNome: habilidade?.nome, habilidadeDano: habilidade?.dano }, 'MONSTER_TURN: attack roll');
+    log.warn({ monstroNome: monstro.nome, alvoNome: alvoStats.personagemNome, rolagem, bonusAtaque: bonusAtaqueMonstro, totalAtaque, defesaJogador, acertou, critico, dano_base: monstro.dano_base, habilidadeNome: habilidade?.nome, habilidadeDano: habilidade?.dano }, 'MONSTER_TURN: attack roll');
 
     if (acertou) {
       // Check player evasion

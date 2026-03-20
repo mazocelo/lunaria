@@ -73,10 +73,10 @@ const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit })
               </p>
             </div>
           )}
-          {eq.vinculo.restricao_tipo && (
+          {eq.vinculo.restricaoTipo && (
             <div className={`flex flex-wrap gap-2 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               <span>Restricao: <strong className={isLight ? 'text-slate-700' : 'text-white'}>
-                {eq.vinculo.restricao_tipo.charAt(0).toUpperCase() + eq.vinculo.restricao_tipo.slice(1)}
+                {eq.vinculo.restricaoTipo}
               </strong></span>
               {eq.vinculo.restricao?.length > 0 && <span>({eq.vinculo.restricao.join(', ')})</span>}
             </div>

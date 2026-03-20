@@ -1,7 +1,7 @@
 import React from 'react';
 import { Zap, BookOpen, Sparkles, BarChart3, FlaskConical, Swords, Tag, Shield, Target, Clock, Flame, Brain, ClipboardList } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { CatalogDetailLayout, formatObjectDisplay } from '../../../components/shared';
+import { CatalogDetailLayout } from '../../../components/shared';
 
 // ── Category mappings (visual config, local to View) ─────
 const categoriaColors = {
@@ -34,31 +34,31 @@ const RecipeCard = ({ receita, isLight }) => (
     <div className="flex items-center justify-between mb-2">
       <span className={`font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{receita.nome}</span>
       <span className={`text-xs font-mono px-2 py-0.5 rounded ${isLight ? 'bg-orange-100 text-orange-700' : 'bg-orange-500/20 text-orange-400'}`}>
-        Nv. {receita.nivel_requerido || 1} | {receita.tempo_minutos || '?'}min | DC {receita.dificuldade || '?'}
+        Nv. {receita.nivelRequerido || 1} | {receita.tempo || '?'}min | DC {receita.dificuldade || '?'}
       </span>
     </div>
     {receita.descricao && (
       <p className={`text-xs font-modern mb-2 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{receita.descricao}</p>
     )}
-    {receita.ingredientes_rel?.length > 0 && (
+    {receita.ingredientes?.length > 0 && (
       <div className="mt-2">
         <span className={`text-[10px] uppercase tracking-widest ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Ingredientes</span>
         <div className="flex flex-wrap gap-1 mt-1">
-          {receita.ingredientes_rel.map((ri, j) => (
+          {receita.ingredientes.map((ri, j) => (
             <span key={j} className={`px-2 py-0.5 rounded text-[11px] font-modern ${isLight ? 'bg-green-50 text-green-700' : 'bg-green-500/15 text-green-400'}`}>
-              {ri.ingrediente?.nome || `ID ${ri.ingrediente_id}`} x{ri.quantidade}
+              {ri.nome} x{ri.quantidade}
             </span>
           ))}
         </div>
       </div>
     )}
-    {receita.ferramentas_rel?.length > 0 && (
+    {receita.ferramentas?.length > 0 && (
       <div className="mt-2">
         <span className={`text-[10px] uppercase tracking-widest ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Ferramentas</span>
         <div className="flex flex-wrap gap-1 mt-1">
-          {receita.ferramentas_rel.map((rf, j) => (
+          {receita.ferramentas.map((rf, j) => (
             <span key={j} className={`px-2 py-0.5 rounded text-[11px] font-modern ${isLight ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/15 text-blue-400'}`}>
-              {rf.ferramenta?.nome || `ID ${rf.ferramenta_id}`}
+              {rf.nome}
             </span>
           ))}
         </div>
@@ -83,7 +83,6 @@ const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) =>
   }
 
   const accent = categoriaColors[h.categoria] || '#8b5cf6';
-  const preRequisitoItems = formatObjectDisplay(h.preRequisitos);
 
   const mono = (items, color) => (
     <div className="space-y-2">
@@ -133,7 +132,7 @@ const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) =>
     h.racaNome && { icon: Tag, label: 'Raça', content: h.racaNome },
     h.areaEfeito?.length > 0 && { icon: Target, label: 'Área de Efeito', content: monoBlock(h.areaEfeito, isLight ? 'text-cyan-700' : 'text-cyan-400') },
     h.componenteMaterial?.length > 0 && { icon: Sparkles, label: 'Componente Material', content: monoBlock(h.componenteMaterial, isLight ? 'text-amber-700' : 'text-amber-400') },
-    preRequisitoItems?.length > 0 && { icon: ClipboardList, label: 'Pré-requisitos', content: monoBlock(preRequisitoItems, isLight ? 'text-amber-700' : 'text-amber-400') },
+    h.preRequisitoItems?.length > 0 && { icon: ClipboardList, label: 'Pré-requisitos', content: monoBlock(h.preRequisitoItems, isLight ? 'text-amber-700' : 'text-amber-400') },
   ].filter(Boolean);
 
   return (

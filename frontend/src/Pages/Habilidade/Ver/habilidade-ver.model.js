@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { habilidadeService } from '../../../services/index.js';
-import { formatJson, formatObjectDisplay } from '../../../components/shared';
+import { formatObjectDisplay } from '../../../components/shared';
 
 /**
  * Model: estado, sincronizacao, normalizacao e metodos da entidade.
@@ -70,11 +70,23 @@ function normalizarHabilidade(h) {
     // Objetos complexos (formatados para exibicao)
     areaEfeito: formatObjectDisplay(h.area_efeito),
     componenteMaterial: formatObjectDisplay(h.componente_material),
-    preRequisitos: formatJson(h.pre_requisitos ?? h.pre_requisito),
+    preRequisitoItems: formatObjectDisplay(h.pre_requisitos ?? h.pre_requisito),
     efeito: formatObjectDisplay(h.efeito),
     escalamento: formatObjectDisplay(h.escalamento),
 
-    // Arrays (keep as-is, nested relations)
-    receitas: Array.isArray(h.receitas) ? h.receitas : [],
+    // Receitas normalizadas (snake_case -> camelCase, relacoes resolvidas)
+    receitas: Array.isArray(h.receitas) ? h.receitas.map(r => ({
+      nome: r.nome,
+      nivelRequerido: r.nivel_requerido,
+      tempo: r.tempo,
+      dificuldade: r.dificuldade,
+      ingredientes: (r.ingredientes_rel || []).map(ri => ({
+        nome: ri.ingrediente?.nome || ri.nome || '?',
+        quantidade: ri.quantidade || 1,
+      })),
+      ferramentas: (r.ferramentas_rel || []).map(rf => ({
+        nome: rf.ferramenta?.nome || rf.nome || '?',
+      })),
+    })) : [],
   };
 }

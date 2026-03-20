@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { mestreService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
 
+// Config constant lives in the Model because it's used for data-fetching logic
+// (resolving voice names from the TTS API), not for presentation.
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
 /**

@@ -51,8 +51,15 @@ function normalizarEquipamento(eq) {
     // snake_case -> camelCase
     origemLore: eq.origem_lore,
 
-    // Vinculo (keep structure as-is)
-    vinculo: eq.vinculo || null,
+    // Vinculo (normalizado: snake_case -> camelCase, string formatting resolvido)
+    vinculo: eq.vinculo ? {
+      requer: eq.vinculo.requer,
+      descricao: eq.vinculo.descricao,
+      restricaoTipo: eq.vinculo.restricao_tipo
+        ? eq.vinculo.restricao_tipo.charAt(0).toUpperCase() + eq.vinculo.restricao_tipo.slice(1)
+        : null,
+      restricao: Array.isArray(eq.vinculo.restricao) ? eq.vinculo.restricao : [],
+    } : null,
 
     // Arrays normalizados (nunca undefined)
     tipos: Array.isArray(eq.tipo) ? eq.tipo : [],

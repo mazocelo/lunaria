@@ -16,6 +16,9 @@ export const AI_MODELS = {
   'gemini-2.5-flash':      { provider: 'gemini', label: 'Gemini 2.5 Flash', badge: 'Recomendado', inputPrice: 0.30, outputPrice: 2.50, context: 1048576, temperature: 0.9, topP: 0.99, timeouts: { player_action: 15000, turn_start: 30000 } },
   'gemini-2.5-flash-lite': { provider: 'gemini', label: 'Gemini 2.5 Flash-Lite', badge: 'Economico', inputPrice: 0.10, outputPrice: 0.40, context: 1048576, temperature: 0.9, topP: 0.99, timeouts: { player_action: 15000, turn_start: 30000 } },
   'gemini-2.0-flash':      { provider: 'gemini', label: 'Gemini 2.0 Flash', badge: 'Legado', inputPrice: 0.10, outputPrice: 0.40, context: 1048576, temperature: 0.9, topP: 0.99, timeouts: { player_action: 15000, turn_start: 30000 } },
+  'gemini-3.1-flash-lite-preview': { provider: 'gemini', label: 'Gemini 3.1 Flash-Lite', badge: 'Poeta', inputPrice: 0.25, outputPrice: 1.50, context: 1048576, temperature: 0.9, topP: 0.99, timeouts: { player_action: 15000, turn_start: 30000 } },
+  'gemini-3-flash-preview':        { provider: 'gemini', label: 'Gemini 3 Flash', badge: 'Bardo', inputPrice: 0.50, outputPrice: 3.00, context: 1048576, temperature: 0.9, topP: 0.99, timeouts: { player_action: 15000, turn_start: 30000 } },
+  'gemini-3.1-pro-preview':        { provider: 'gemini', label: 'Gemini 3.1 Pro', badge: 'Profeta', inputPrice: 2.00, outputPrice: 12.00, context: 1048576, temperature: 0.85, topP: 0.95, timeouts: { player_action: 30000, turn_start: 60000 } },
   // Groq (Llama) — LPU hardware, inferência rápida mas com picos sob carga
   'openai/gpt-oss-120b':                       { provider: 'groq', label: 'GPT OSS 120B', badge: null, inputPrice: 0, outputPrice: 0, context: 131072, temperature: 0.8, topP: 0.92, timeouts: { player_action: 35000, turn_start: 70000 } },
   'llama-3.3-70b-versatile':                   { provider: 'groq', label: 'Llama 3.3 70B Versatile', badge: null, inputPrice: 0, outputPrice: 0, context: 131072, temperature: 0.8, topP: 0.92, timeouts: { player_action: 30000, turn_start: 60000 } },
@@ -25,6 +28,19 @@ export const AI_MODELS = {
   'claude-sonnet-4-6': { provider: 'anthropic', label: 'Claude Sonnet 4.6', badge: 'Premium+', inputPrice: 3.00, outputPrice: 15.00, context: 200000, temperature: 0.85, topP: null, timeouts: { player_action: 60000, turn_start: 120000 } },
   'claude-haiku-4-5-20251001': { provider: 'anthropic', label: 'Claude Haiku 4.5', badge: 'Premium', inputPrice: 0.80, outputPrice: 4.00, context: 200000, temperature: 0.85, topP: null, timeouts: { player_action: 30000, turn_start: 60000 } },
 };
+
+// Tiers de Mestre — determina modelo por historia
+export const MESTRE_TIERS = {
+  pescador: { model: 'gemini-2.5-flash-lite',        label: 'Pescador', badge: 'Gratis' },
+  poeta:    { model: 'gemini-3.1-flash-lite-preview', label: 'Poeta',    badge: 'Basico' },
+  bardo:    { model: 'gemini-3-flash-preview',        label: 'Bardo',    badge: 'Premium' },
+  profeta:  { model: 'gemini-3.1-pro-preview',         label: 'Profeta',  badge: 'Top' },
+};
+export const DEFAULT_MESTRE_TIER = 'poeta';
+export const VALID_MESTRE_TIERS = Object.keys(MESTRE_TIERS);
+export function resolveModelFromTier(tier) {
+  return (MESTRE_TIERS[tier] || MESTRE_TIERS[DEFAULT_MESTRE_TIER]).model;
+}
 
 // Modelos deprecados → fallback automático
 export const DEPRECATED_MODELS = {

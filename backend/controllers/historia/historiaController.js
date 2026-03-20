@@ -12,6 +12,7 @@ import { isValidMode } from '../../config/blueprintModes.js';
 import { consumirCotaBlueprint } from '../../services/blueprintQuotaService.js';
 import { usuarioPodeAcessarHistoria, sincronizarRoteiroNaSessao } from '../../helpers/historiaAuthPolicy.js';
 import { mergeHistoriaConfig, validateHistoriaConfig } from '../../helpers/historiaConfigHelper.js';
+import { VALID_MESTRE_TIERS, DEFAULT_MESTRE_TIER } from '../../agents/Mestre/config.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'historiaController' });
 
@@ -123,7 +124,8 @@ class HistoriaController {
         publica,
         imagem,
         mapas,
-        config
+        config,
+        mestre_tier
       } = req.body;
       
       // Validações básicas
@@ -177,10 +179,13 @@ class HistoriaController {
         return res.status(401).json({ success: false, error: 'Autenticação necessária para criar história' });
       }
 
+      // Validar mestre_tier
+      const tierValido = mestre_tier && VALID_MESTRE_TIERS.includes(mestre_tier) ? mestre_tier : DEFAULT_MESTRE_TIER;
+
       // Criar história no banco com prólogo
       const novaHistoria = await db.Historia.createHistoria({
         nome: nomeHistoria,
-        temas: temas, // Salvar IDs diretamente
+        temas: temas,
         maximo_de_participantes: maximo_de_participantes || 5,
         descricao: descricao || '',
         prologo: resultadoPrologo.prologo,
@@ -189,6 +194,7 @@ class HistoriaController {
         mestre_id: mestre_id ? parseInt(mestre_id) : null,
         publica: publica === true || publica === 'true' ? true : false,
         config: historiaConfig,
+        mestre_tier: tierValido,
         ...(imagem ? { imagem } : {}),
         ...(mapas && Array.isArray(mapas) ? { mapas } : {})
       });
@@ -452,7 +458,7 @@ class HistoriaController {
 
       // Ownership já verificado pelo middleware requireResourceOwnerOrAdmin
 
-      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas, estilo_imagem, config } = req.body;
+      const { nome, temas, descricao, maximo_de_participantes, status, prologo, mestre_id, imagem, mapas, estilo_imagem, config, mestre_tier } = req.body;
       const dadosSeguros = {};
       if (nome !== undefined) dadosSeguros.nome = nome;
       if (temas !== undefined) dadosSeguros.temas = temas;
@@ -464,6 +470,7 @@ class HistoriaController {
       if (imagem !== undefined) dadosSeguros.imagem = imagem;
       if (mapas !== undefined) dadosSeguros.mapas = Array.isArray(mapas) ? mapas : [];
       if (estilo_imagem !== undefined) dadosSeguros.estilo_imagem = estilo_imagem;
+      if (mestre_tier !== undefined && VALID_MESTRE_TIERS.includes(mestre_tier)) dadosSeguros.mestre_tier = mestre_tier;
       if (config !== undefined) {
         try {
           dadosSeguros.config = mergeHistoriaConfig(historia.config, config);
@@ -514,6 +521,28 @@ class HistoriaController {
           }
         } catch (cacheError) {
           log.warn({ err: cacheError }, 'Erro ao invalidar cache de mestre (nao critico)');
+        }
+      }
+
+      // Se mestre_tier mudou, sincronizar sessao Redis e invalidar cache
+      if (mestre_tier !== undefined && VALID_MESTRE_TIERS.includes(mestre_tier)) {
+        const salaId = `historia_${id}`;
+        try {
+          const { resolveModelFromTier } = await import('../../agents/Mestre/config.js');
+          const sessao = await gerenciadorSessoes.obterSessao(salaId);
+          if (sessao) {
+            const tierModel = resolveModelFromTier(mestre_tier);
+            const mestreConfig = sessao.mestreConfig || {};
+            mestreConfig.modelo = tierModel;
+            await gerenciadorSessoes.atualizarSessao(salaId, { mestreTier: mestre_tier, mestreConfig });
+            log.info({ salaId, mestre_tier, tierModel }, 'mestreTier atualizado no Redis');
+          }
+          const socketManager = (await import('../../websocket/socketManager.js')).default;
+          if (socketManager?.mestresCache) {
+            socketManager.mestresCache.delete(salaId);
+          }
+        } catch (cacheError) {
+          log.warn({ err: cacheError }, 'Erro ao sincronizar mestre_tier (nao critico)');
         }
       }
 

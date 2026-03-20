@@ -8,7 +8,7 @@ import { buscarTemasCompletos, extrairNomesTemas } from '../../helpers/temasHelp
 import { formatarPersonagensParaMestre } from '../../helpers/personagensHelper.js';
 import sessaoSnapshotService from '../../services/sessaoSnapshot.js';
 import analyticsService from '../../services/analyticsService.js';
-import { MESTRE_CONFIG } from '../../agents/Mestre/config.js';
+import { MESTRE_CONFIG, resolveModelFromTier } from '../../agents/Mestre/config.js';
 import { buildCatalogo } from '../../agents/Mestre/catalogo/catalogoMestre.js';
 import { atualizarProgressao, condensarRoteiro } from '../../agents/Mestre/prompts/roteiroCondenser.js';
 import {
@@ -104,6 +104,13 @@ export default class SessionEngine {
         voice_provider: historia.mestres.voice_provider || null
       } : null;
 
+      // Aplicar tier do mestre — sobrescreve modelo da config
+      const mestreTier = historia.mestre_tier || 'poeta';
+      const tierModel = resolveModelFromTier(mestreTier);
+      if (mestreConfig) {
+        mestreConfig.modelo = tierModel;
+      }
+
       // Criar dados da sessão
       const dadosSessao = {
         historiaId: historia.id,
@@ -115,7 +122,8 @@ export default class SessionEngine {
         donoNome: donoNome,
         historiaConfig: historia.config || null,
         maxJogadores: historia.maximo_de_participantes || 5,
-        mestreConfig,
+        mestreTier,
+        mestreConfig: mestreConfig || { modelo: tierModel },
         status: 'aberta',
         statusJogo: null,
         jogadoresConectados: [],

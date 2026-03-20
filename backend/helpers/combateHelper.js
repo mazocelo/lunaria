@@ -471,8 +471,8 @@ export function calcularDano(dano_base, modForca = 0, critico = false, armadura 
     // Critico ignora armadura
     return Math.max(1, dano);
   }
-  // Cap: armadura reduz no maximo 75% do dano
-  return Math.max(Math.ceil(dano * 0.25), dano - armadura);
+  // Cap: armadura reduz no maximo 75% do dano. Minimum damage: 1
+  return Math.max(1, Math.ceil(dano * 0.25), dano - armadura);
 }
 
 /**

@@ -272,10 +272,18 @@ const NovaHistoriaView = ({
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { id: 'pescador', label: 'Pescador', desc: 'Conta o basico', color: 'slate' },
-              { id: 'poeta', label: 'Poeta', desc: 'Narrativa rica', color: 'blue' },
-              { id: 'bardo', label: 'Bardo', desc: 'Historias vivas', color: 'purple' },
-              { id: 'profeta', label: 'Profeta', desc: 'A melhor IA', color: 'amber' },
+              { id: 'pescador', label: 'Pescador', desc: 'Conta o basico',
+                active: isLight ? 'border-slate-500 bg-slate-50 ring-2 ring-slate-500/30' : 'border-slate-400 bg-slate-900/30 ring-2 ring-slate-400/30',
+                text: isLight ? 'text-slate-700' : 'text-slate-300' },
+              { id: 'poeta', label: 'Poeta', desc: 'Narrativa rica',
+                active: isLight ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/30' : 'border-blue-400 bg-blue-900/30 ring-2 ring-blue-400/30',
+                text: isLight ? 'text-blue-700' : 'text-blue-300' },
+              { id: 'bardo', label: 'Bardo', desc: 'Historias vivas',
+                active: isLight ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500/30' : 'border-purple-400 bg-purple-900/30 ring-2 ring-purple-400/30',
+                text: isLight ? 'text-purple-700' : 'text-purple-300' },
+              { id: 'profeta', label: 'Profeta', desc: 'A melhor IA',
+                active: isLight ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/30' : 'border-amber-400 bg-amber-900/30 ring-2 ring-amber-400/30',
+                text: isLight ? 'text-amber-700' : 'text-amber-300' },
             ].map((tier) => (
               <button
                 key={tier.id}
@@ -283,15 +291,13 @@ const NovaHistoriaView = ({
                 onClick={() => setMestreTier(tier.id)}
                 className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
                   mestreTier === tier.id
-                    ? isLight
-                      ? `border-${tier.color}-500 bg-${tier.color}-50 ring-2 ring-${tier.color}-500/30`
-                      : `border-${tier.color}-400 bg-${tier.color}-900/30 ring-2 ring-${tier.color}-400/30`
+                    ? tier.active
                     : isLight
                       ? 'border-slate-200 bg-white hover:border-slate-300'
                       : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                 }`}
               >
-                <p className={`text-sm font-bold ${mestreTier === tier.id ? (isLight ? `text-${tier.color}-700` : `text-${tier.color}-300`) : (isLight ? 'text-slate-700' : 'text-slate-200')}`}>
+                <p className={`text-sm font-bold ${mestreTier === tier.id ? tier.text : (isLight ? 'text-slate-700' : 'text-slate-200')}`}>
                   {tier.label}
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">{tier.desc}</p>

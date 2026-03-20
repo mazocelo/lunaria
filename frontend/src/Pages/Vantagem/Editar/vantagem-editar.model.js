@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { vantagemService } from '../../../services/index.js';
 import { useVantagemStore } from '../../../store/vantagem';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useVantagemEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarVantagens = useVantagemStore(s => s.recarregarVantagens);
 
   const [nome, setNome] = useState('');
@@ -101,28 +96,27 @@ export const useVantagemEditarModel = () => {
     requisitos: _parseJson(requisitos),
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveVantagem = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await vantagemService.update(id, _buildData());
       await recarregarVantagens();
       setSaving(false);
-      navigate(ROUTES.VANTAGENS);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar vantagem: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = () => navigate(ROUTES.VANTAGENS);
   const clearError = () => setError(null);
 
   return {
     nome, descricao, custo, tipo, elemento, nivel, dano_base, usar,
-    bonus, restricao, efeito, requisitos, loading, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    bonus, restricao, efeito, requisitos, loading, saving, error,
+    setField, saveVantagem, clearError,
   };
 };

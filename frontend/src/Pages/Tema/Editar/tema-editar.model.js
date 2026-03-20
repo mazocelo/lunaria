@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { temaService } from '../../../services/index.js';
 import { useTemaStore } from '../../../store/tema';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useTemaEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarTemas = useTemaStore(s => s.recarregarTemas);
 
   const [nome, setNome] = useState('');
@@ -42,27 +37,26 @@ export const useTemaEditarModel = () => {
     setters[name]?.(value);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveTema = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await temaService.update(id, { nome, descricao: descricao || null });
       await recarregarTemas();
       setSaving(false);
-      navigate(ROUTES.TEMAS);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar tema: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = () => navigate(ROUTES.TEMAS);
   const clearError = () => setError(null);
 
   return {
-    nome, descricao, loading, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    nome, descricao, loading, saving, error,
+    setField, saveTema, clearError,
   };
 };

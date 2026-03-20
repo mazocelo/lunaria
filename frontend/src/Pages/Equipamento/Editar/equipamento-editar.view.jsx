@@ -3,16 +3,20 @@ import { Sword, Save, Loader2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import ImageGenerator from '../../../components/form/ImageGenerator';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const EditarEquipamentoView = ({
   nome, descricao, tipo, elemento, bonus, dano_base, requisitos, numero,
   raridade_id, origem_lore, categoria_id,
   vinculo_requer, vinculo_restricao_tipo, vinculo_restricao, vinculo_descricao,
   propriedades, cargas, usos_por_dia,
-  raridades, categorias, loading, saving, error, isLight,
+  raridades, categorias, loading, saving, error,
   imagem, setImagem,
   setField, handleSubmit, handleCancel,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const inputCls = `w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
   const labelCls = `block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`;
   const sectionCls = `text-lg font-fantasy font-bold mb-4 ${isLight ? 'text-slate-700' : 'text-slate-200'}`;

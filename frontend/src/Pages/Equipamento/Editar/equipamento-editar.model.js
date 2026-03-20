@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { equipamentoService, catalogoService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useEquipamentoEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -151,22 +146,21 @@ export const useEquipamentoEditarModel = () => {
     ...(imagem ? { imagem } : {}),
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveEquipamento = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await equipamentoService.update(id, _buildData());
       setSaving(false);
-      navigate(ROUTES.EQUIPAMENTOS);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar equipamento: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = () => navigate(ROUTES.EQUIPAMENTOS);
   const clearError = () => setError(null);
 
   return {
@@ -174,8 +168,8 @@ export const useEquipamentoEditarModel = () => {
     raridade_id, origem_lore, categoria_id,
     vinculo_requer, vinculo_restricao_tipo, vinculo_restricao, vinculo_descricao,
     propriedades, cargas, usos_por_dia,
-    raridades, categorias, loading, saving, error, isLight,
+    raridades, categorias, loading, saving, error,
     imagem, setImagem,
-    setField, handleSubmit, handleCancel, clearError,
+    setField, saveEquipamento, clearError,
   };
 };

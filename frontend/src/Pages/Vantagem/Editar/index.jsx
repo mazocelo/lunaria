@@ -1,7 +1,25 @@
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../../constants/routes.js';
 import { useVantagemEditarModel } from './vantagem-editar.model';
 import EditarVantagemView from './vantagem-editar.view';
 
 export default function VantagemEditarPage() {
-  const props = useVantagemEditarModel();
-  return <EditarVantagemView {...props} />;
+  const model = useVantagemEditarModel();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const result = await model.saveVantagem();
+    if (result.success) navigate(ROUTES.VANTAGENS);
+  };
+
+  const handleCancel = () => navigate(ROUTES.VANTAGENS);
+
+  return (
+    <EditarVantagemView
+      {...model}
+      handleSubmit={handleSubmit}
+      handleCancel={handleCancel}
+    />
+  );
 }

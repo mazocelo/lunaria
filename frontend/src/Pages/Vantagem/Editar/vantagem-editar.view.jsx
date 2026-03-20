@@ -1,13 +1,17 @@
 import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Sparkles, Save, Loader2 } from 'lucide-react';
 
 const EditarVantagemView = ({
   nome, descricao, custo, tipo, elemento, nivel, dano_base, usar,
-  bonus, efeito, loading, saving, error, isLight,
+  bonus, efeito, loading, saving, error,
   setField, handleSubmit, handleCancel,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const inputCls = `w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
 
   if (loading) {

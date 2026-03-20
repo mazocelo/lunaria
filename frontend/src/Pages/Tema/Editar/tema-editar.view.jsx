@@ -1,12 +1,16 @@
 import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Palette, Save, Loader2 } from 'lucide-react';
 
 const EditarTemaView = ({
-  nome, descricao, loading, saving, error, isLight,
+  nome, descricao, loading, saving, error,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading) {
     return (
       <div className="animate-fade-in">

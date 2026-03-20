@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { monstroService, catalogoService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useMonstroEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -118,22 +113,21 @@ export const useMonstroEditarModel = () => {
     };
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveMonstro = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await monstroService.update(id, _buildData());
       setSaving(false);
-      navigate(ROUTES.MONSTROS);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar monstro: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = useCallback(() => navigate(ROUTES.MONSTROS), [navigate]);
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -141,8 +135,8 @@ export const useMonstroEditarModel = () => {
     nivel_min, nivel_max, hp_base, xp_base,
     forca, destreza, constituicao, inteligencia, sabedoria, carisma,
     ataque, defesa, dano_base,
-    raridades, categorias, loading, saving, error, isLight,
+    raridades, categorias, loading, saving, error,
     imagem, setImagem,
-    setField, handleSubmit, handleCancel, clearError,
+    setField, saveMonstro, clearError,
   };
 };

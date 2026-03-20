@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { desvantagemService } from '../../../services/index.js';
 import { useDesvantagemStore } from '../../../store/desvantagem';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useDesvantagemEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarDesvantagens = useDesvantagemStore(s => s.recarregarDesvantagens);
 
   const [nome, setNome] = useState('');
@@ -58,9 +53,8 @@ export const useDesvantagemEditarModel = () => {
     setters[name]?.(value);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveDesvantagem = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
@@ -68,19 +62,19 @@ export const useDesvantagemEditarModel = () => {
       await desvantagemService.update(id, desvantagemData);
       await recarregarDesvantagens();
       setSaving(false);
-      navigate(ROUTES.DESVANTAGENS);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar desvantagem: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = () => navigate(ROUTES.DESVANTAGENS);
   const clearError = () => setError(null);
 
   return {
     nome, descricao, custo, tipo, elemento, nivel, usar, dano_base,
-    loading, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    loading, saving, error,
+    setField, saveDesvantagem, clearError,
   };
 };

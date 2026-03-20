@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { habilidadeService } from '../../../services/index.js';
 import { useHabilidadeStore } from '../../../store/habilidade';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useHabilidadeEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const carregarHabilidades = useHabilidadeStore(s => s.carregarHabilidades);
 
   const [nome, setNome] = useState('');
@@ -133,23 +128,22 @@ export const useHabilidadeEditarModel = () => {
     componente_material: _parseJson(componente_material),
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveHabilidade = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await habilidadeService.update(id, _buildData());
       await carregarHabilidades({}, true);
       setSaving(false);
-      navigate(ROUTES.HABILIDADES);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar habilidade: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = () => navigate(ROUTES.HABILIDADES);
   const clearError = () => setError(null);
 
   return {
@@ -157,7 +151,7 @@ export const useHabilidadeEditarModel = () => {
     cooldown_turnos, classe_id, alvo, alcance, tempo_conjuracao, usa_concentracao,
     categoria, escola_magia, raca_id, usos_por_descanso, saving_throw,
     efeito, escalamento, pre_requisito, area_efeito, componente_material,
-    loading, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    loading, saving, error,
+    setField, saveHabilidade, clearError,
   };
 };

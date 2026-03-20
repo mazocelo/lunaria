@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { classeService } from '../../../services/index.js';
 import { useClasseStore } from '../../../store/classe';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useClasseEditarModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarClasses = useClasseStore(s => s.recarregarClasses);
 
   const [nome, setNome] = useState('');
@@ -54,27 +49,26 @@ export const useClasseEditarModel = () => {
     return { nome, descricao: descricao || null, custo: parseInt(custo) || 0, bonus: bonusObj };
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const saveClasse = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await classeService.update(id, _buildData());
       await recarregarClasses();
       setSaving(false);
-      navigate(ROUTES.CLASSES);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao salvar classe: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = () => navigate(ROUTES.CLASSES);
   const clearError = () => setError(null);
 
   return {
-    nome, descricao, custo, bonus, loading, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    nome, descricao, custo, bonus, loading, saving, error,
+    setField, saveClasse, clearError,
   };
 };

@@ -4,6 +4,7 @@ import { apiClient } from '../../../services/ApiClient.js';
 import InputSimples from '../../../components/form/inputSimples';
 import ImageGenerator from '../../../components/form/ImageGenerator';
 import Button from '../../../components/form/button';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const EMOTION_OPTIONS = [
   { value: '', label: 'Nenhuma' },
@@ -144,9 +145,12 @@ const EditarMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
   max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
   voice_id, voice_provider, voices, providers, loadingVoices,
-  loading, saving, error, isLight,
+  loading, saving, error,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading) {
     return (
       <div className="animate-fade-in">

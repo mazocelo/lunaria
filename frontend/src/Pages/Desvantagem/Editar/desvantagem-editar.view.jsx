@@ -1,13 +1,17 @@
 import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { AlertTriangle, Save, Loader2 } from 'lucide-react';
 
 const EditarDesvantagemView = ({
   nome, descricao, custo, tipo, elemento, nivel, usar, dano_base,
-  loading, saving, error, isLight,
+  loading, saving, error,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const inputCls = `w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${
     isLight
       ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'

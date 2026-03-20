@@ -1,68 +1,53 @@
-# Arquitetura MVV — Lunaria Frontend
+# Arquitetura Model / ViewModel / View — Lunaria Frontend
 
 ## Visao Geral
 
-Cada pagina/feature segue o padrao **Model → ViewModel → View** com responsabilidades rigidas:
+Cada pagina/feature usa 3 arquivos com responsabilidades claras:
 
 ```
-Model (.model.js)          ViewModel (index.jsx)          View (.view.jsx)
-Estado + entidade     →    Orquestracao pura         →    Apresentacao completa
-Fetch, normalize,          Handlers, navegacao,           Tema, JSX, badges,
-metodos da entidade        logica de negocio              sections, stats, CSS
+.model.js (Hook de dados)     index.jsx (ViewModel)        .view.jsx (View)
+Fetch, estado, normalize  →   Navegacao, handlers,     →   Tema, JSX, visual
+Metodos da entidade            logica de negocio            Badges, sections, stats
 ```
 
 ---
 
 ## Model (`*.model.js`)
 
-O Model e o **dono da entidade**. Gerencia estado, sincronizacao com API/stores, e normaliza dados crus em formato limpo.
+**Dono da entidade.** Gerencia estado, sincronizacao com API/stores, e normaliza dados crus.
 
-### DEVE conter:
-- `useState` para estado local
-- `useEffect` / `useCallback` para fetch
-- Normalizacao de dados da API (snake_case → camelCase, arrays safe, JSON parse)
-- Resolucao de relacoes (`.raridade_rel?.nome` → `raridade`)
-- Derivados da entidade (contagens, agrupamentos, configs de dados)
-- Metodos da entidade (recarregar, deletar, atualizar)
+### Faz:
+- `useState`, `useEffect`, `useCallback` para estado e fetch
 - `useParams` para ID da rota
+- Normalizacao: snake_case → camelCase, arrays safe, JSON parse
+- Resolucao de relacoes (`.raridade_rel?.nome` → `raridade`)
+- Agrupamento de dados (`.atributos`, `.combate`)
+- Metodos da entidade (`recarregar`, `deletar`)
 
-### NAO DEVE conter:
-- `useNavigate` (navegacao e orquestracao, vive no ViewModel)
-- `useTheme` (tema e apresentacao, vive na View)
-- JSX ou classes CSS
-- Handlers de UI (modals, confirmacoes)
+### Nao faz:
+- `useNavigate` (ViewModel)
+- `useTheme` (View)
+- JSX ou CSS
+- Handlers de UI
 
 ### Exemplo:
-
 ```javascript
-// monstro-ver.model.js
 export const useMonstroVerModel = () => {
   const { id } = useParams();
   const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const carregar = useCallback(() => {
-    if (!id) return;
-    setLoading(true);
-    monstroService.getById(id)
-      .then(res => setRaw(res.data))
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
-
+  const carregar = useCallback(() => { ... fetch ... }, [id]);
   useEffect(() => { carregar(); }, [carregar]);
 
-  // Normalizacao: dados crus → formato limpo
   const monstro = raw ? {
-    id: raw.id,
     nome: raw.nome,
     raridade: raw.raridade_rel?.nome || 'Comum',
-    raridadeConfig: getRaridadeConfig(raridade),
-    tipos: Array.isArray(raw.tipo) ? raw.tipo : [],
-    habilidades: normalizarHabilidades(formatJson(raw.habilidades)),
     atributos: { forca: raw.forca || 0, ... },
     combate: { hpBase: raw.hp_base, ... },
+    tipos: Array.isArray(raw.tipo) ? raw.tipo : [],
+    habilidades: normalizarHabilidades(formatJson(raw.habilidades)),
   } : null;
 
   return { id, monstro, loading, error, setError, recarregar: carregar };
@@ -73,33 +58,27 @@ export const useMonstroVerModel = () => {
 
 ## ViewModel (`index.jsx`)
 
-O ViewModel e o **orquestrador**. Conecta Model e View, fornece handlers e logica de negocio pura.
+**Orquestrador curto.** Conecta Model e View. Apenas navegacao e logica de negocio.
 
-### DEVE conter:
-- Importar e chamar o Model (hook de dados)
+### Faz:
 - `useNavigate` e handlers de navegacao
-- Logica de negocio pura (validacoes, regras, permissoes)
-- Decisoes de fluxo (redirect se nao autorizado, etc.)
+- Logica de negocio (validacoes, permissoes, redirects)
+- Chamar o Model e passar dados + handlers pra View
 
-### NAO DEVE conter:
-- JSX de apresentacao (badges, sections, cards)
-- Classes CSS ou `isLight`
-- `useTheme`
-- Montagem de arrays de sections/stats
-- Formatacao visual
+### Nao faz:
+- JSX de apresentacao
+- CSS, `isLight`, `useTheme`
+- Montagem de badges/sections/stats
+- Normalizacao de dados (Model faz isso)
 
-### Exemplo:
-
+### Deve ser curto (< 30 linhas ideal):
 ```javascript
-// index.jsx (ViewModel)
 export default function MonstroVerPage() {
   const model = useMonstroVerModel();
   const navigate = useNavigate();
 
   const handleBack = () => navigate(ROUTES.MONSTROS);
-  const handleEdit = () => {
-    if (model.monstro) navigate(generateRoute.editarMonstro(model.monstro.id));
-  };
+  const handleEdit = () => { if (model.monstro) navigate(generateRoute.editarMonstro(model.monstro.id)); };
 
   return (
     <VerMonstroView
@@ -113,55 +92,40 @@ export default function MonstroVerPage() {
 }
 ```
 
-O ViewModel e **curto**. Se esta ficando grande, provavelmente esta fazendo trabalho de Model ou de View.
+Se o ViewModel esta ficando grande, provavelmente esta fazendo trabalho de Model ou de View.
 
 ---
 
 ## View (`*.view.jsx`)
 
-A View e dona da **apresentacao completa**. Recebe dados normalizados do Model (via ViewModel) e constroi toda a UI.
+**Apresentacao completa.** Recebe dados normalizados do Model e handlers do ViewModel. Monta toda a UI.
 
-### DEVE conter:
+### Faz:
 - `useTheme` para resolver `isLight`
-- Montagem de JSX (badges, sections, stats, cards)
-- Escolha de icones, cores, classes CSS
-- Componentes visuais (Badge, ChipGroup, AtributoBar)
-- Layout e responsividade
+- Montar badges, sections, stats como JSX
+- Escolher icones, cores, classes CSS
+- Decidir o que renderizar condicionalmente (`m.descricao &&`)
 - Estado visual local (tooltips, gallery, accordion)
 
-### NAO DEVE conter:
-- Fetch de dados ou `useEffect` de API
-- `useNavigate` (recebe handlers prontos)
-- Transformacao/normalizacao de dados (vem pronto do Model)
-- `formatJson`, `Array.isArray()` checks, `?.nome || 'default'`
+### Nao faz:
+- Fetch ou `useEffect` de API
+- `useNavigate` (recebe handlers)
+- Normalizacao de dados (`formatJson`, `Array.isArray` checks)
+- Acessar dados crus da API (`.raridade_rel?.nome`)
 
 ### Exemplo:
-
 ```javascript
-// monstro-ver.view.jsx
 const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  if (loading || error || !m) {
-    return <CatalogDetailLayout loading={loading} error={error} ... />;
-  }
+  if (loading || error || !m) return <CatalogDetailLayout loading={loading} error={error} ... />;
 
-  // View monta toda a apresentacao
-  const badges = [ ... ];
-  const sections = [ ... ];
-  const stats = [ ... ];
+  const badges = [ ... ]; // monta JSX dos badges
+  const sections = [ ... ]; // monta sections com tema
+  const stats = [ ... ]; // monta stats do sidebar
 
-  return (
-    <CatalogDetailLayout
-      title={m.nome}
-      badges={badges}
-      sections={sections}
-      stats={stats}
-      onBack={onBack}
-      onEdit={onEdit}
-    />
-  );
+  return <CatalogDetailLayout title={m.nome} badges={badges} sections={sections} stats={stats} ... />;
 };
 ```
 
@@ -169,40 +133,51 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
 
 ## Testes Mentais
 
-### "Quem sabe o formato da API?"
-So o Model. Se a View ou ViewModel acessa `.raridade_rel?.nome` ou faz `Array.isArray(m.tipo)`, a normalizacao deveria estar no Model.
-
-### "Quem sabe que cor usar?"
-So a View. Se o Model ou ViewModel retorna classes CSS ou `isLight`, isso deveria estar na View.
-
-### "Quem decide pra onde navegar?"
-So o ViewModel. Se o Model tem `useNavigate` ou a View chama `navigate()`, isso deveria estar no ViewModel.
-
-### "O ViewModel esta grande?"
-Se o ViewModel tem mais de 30-40 linhas, provavelmente esta fazendo trabalho de Model (normalizacao) ou de View (montagem de JSX).
+| Pergunta | Resposta |
+|----------|---------|
+| Quem acessa `.raridade_rel?.nome`? | **Model** (normaliza pra `m.raridade`) |
+| Quem sabe que cor usar? | **View** (resolve `isLight ? x : y`) |
+| Quem decide pra onde navegar? | **ViewModel** (tem `useNavigate`) |
+| Quem decide se a secao de descricao aparece? | **View** (`m.descricao &&` e decisao visual) |
+| O ViewModel esta grande? | Provavelmente fazendo trabalho de Model ou View |
 
 ---
 
-## Fluxo de Dados
+## Anti-Patterns
 
+### NAO faca protocolo intermediario
+```javascript
+// RUIM: ViewModel passa dados tipados pra View decodificar
+stats = [{ icon: Heart, label: 'HP', value: 125, color: 'danger' }]
+// View precisa de COLOR_MAP pra resolver 'danger' → 'text-red-600'
+
+// BOM: View acessa dados normalizados e monta direto
+stats = [{ icon: Heart, label: 'HP', content: <span className="text-red-600">125</span> }]
 ```
-API Response (snake_case, nulls, raw JSON)
-    ↓
-Model (normaliza → camelCase, defaults, arrays safe, relacoes resolvidas)
-    ↓
-ViewModel (adiciona handlers de navegacao, logica de negocio)
-    ↓
-View (resolve tema, monta badges/sections/stats como JSX, renderiza)
+
+### NAO normalize na View
+```javascript
+// RUIM: View faz normalizacao
+const tipos = Array.isArray(m.tipo) ? m.tipo : [];
+
+// BOM: Model ja normalizou
+// m.tipos ja e array garantido
+```
+
+### NAO navegue na View
+```javascript
+// RUIM: View usa navigate
+onClick={() => navigate(generateRoute.verMonstro(id))}
+
+// BOM: View usa handler do ViewModel
+onClick={() => onVerMonstro(id)}
 ```
 
 ---
 
-## Migracao Gradual
+## Quando usar 3 arquivos vs menos
 
-Para cada pagina tocada:
-
-1. Mover normalizacao de dados (formatJson, Array.isArray, ?.nome) da View/ViewModel pro Model
-2. Mover montagem de JSX (badges, sections, stats) do ViewModel pra View
-3. Mover useNavigate/handlers do Model pro ViewModel
-4. Mover useTheme/isLight do ViewModel pra View
-5. O ViewModel deve ficar curto (< 30 linhas ideal)
+- **Pagina complexa** (50+ linhas de logica, 100+ de JSX): 3 arquivos
+- **Pagina simples** (Ver Raca com 3 campos): 2 arquivos (model + page com JSX inline) ou ate 1
+- **Componente compartilhado** (Badge, Card): arquivo unico
+- **A regra**: separe quando a complexidade justifica, nao por dogma

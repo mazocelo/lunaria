@@ -1,15 +1,14 @@
 import React from 'react';
-import { Skull, BookOpen, BarChart3, Zap } from 'lucide-react';
+import { Skull, BookOpen, BarChart3, Zap, Heart, Swords, Shield, Star, Tag } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme.jsx';
 import { CatalogDetailLayout, ChipGroup, AtributoBar } from '../../../components/shared';
 
 /**
- * View: renderizacao visual.
- * Recebe decisoes de conteudo do ViewModel (dados estruturados)
- * e converte em JSX com tema, cores e componentes visuais.
+ * View: apresentacao completa.
+ * Recebe dados normalizados do Model (via ViewModel) e monta toda a UI.
+ * Resolve tema, badges, sections, stats — tudo visual vive aqui.
  */
 
-// Mapeamento visual — configs de renderizacao
 const ATTR_BARS = [
   { key: 'forca', label: 'FOR', color: 'bg-red-500' },
   { key: 'inteligencia', label: 'INT', color: 'bg-blue-500' },
@@ -19,72 +18,52 @@ const ATTR_BARS = [
   { key: 'carisma', label: 'CAR', color: 'bg-pink-500' },
 ];
 
-const STAT_COLORS = {
-  danger: { light: 'text-red-600', dark: 'text-red-400' },
-  warning: { light: 'text-orange-600', dark: 'text-orange-400' },
-  info: { light: 'text-blue-600', dark: 'text-blue-400' },
-  accent: { light: 'text-amber-600', dark: 'text-amber-400' },
-  cyan: { light: 'text-cyan-600', dark: 'text-cyan-400' },
-};
-
-const CHIP_COLORS = {
-  amber: { light: 'bg-amber-50 text-amber-700', dark: 'bg-amber-500/15 text-amber-400' },
-  purple: { light: 'bg-purple-50 text-purple-700', dark: 'bg-purple-500/15 text-purple-400' },
-  indigo: { light: 'bg-indigo-50 text-indigo-700', dark: 'bg-indigo-500/15 text-indigo-400' },
-};
-
-const BADGE_VARIANTS = {
-  info: { light: 'bg-indigo-50 text-indigo-600', dark: 'bg-indigo-500/15 text-indigo-400' },
-  level: { light: 'bg-cyan-50 text-cyan-700', dark: 'bg-cyan-500/15 text-cyan-400' },
-};
-
-const SECTION_CONFIG = {
-  descricao: { title: 'Descrição', icon: BookOpen, color: '#d97706' },
-  atributos: { title: 'Atributos', icon: BarChart3, color: '#3b82f6' },
-  habilidades: { title: 'Habilidades', icon: Zap, color: '#8b5cf6' },
-};
-
-const VerMonstroView = ({ monstro: m, badges, sections, stats, loading, error, onBack, onEdit }) => {
+const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const t = isLight ? 'light' : 'dark';
 
   if (loading || error || !m) {
     return (
       <CatalogDetailLayout
         loading={loading} loadingText="Carregando monstro..."
-        error={error} icon={Skull} title="" onBack={onBack} onEdit={onEdit}
+        error={error || (!loading && !m ? 'Monstro não encontrado' : undefined)}
+        icon={Skull} title="" onBack={onBack} onEdit={onEdit}
       />
     );
   }
 
-  // Renderizar badges
-  const renderedBadges = badges?.map(b => (
-    <span key={b.key} className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-      b.variant === 'rarity'
-        ? (isLight ? m.raridadeConfig.badgeLight : m.raridadeConfig.badge)
-        : `font-modern ${BADGE_VARIANTS[b.variant]?.[t] || ''}`
-    }`}>
-      {b.text}
-    </span>
-  ));
+  // Badges
+  const badges = [
+    <span key="rar" className={`px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? m.raridadeConfig.badgeLight : m.raridadeConfig.badge}`}>
+      {m.raridade}
+    </span>,
+    m.categoria && (
+      <span key="cat" className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-500/15 text-indigo-400'}`}>
+        {m.categoria}
+      </span>
+    ),
+    <span key="nv" className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-cyan-50 text-cyan-700' : 'bg-cyan-500/15 text-cyan-400'}`}>
+      Nv. {m.nivelMin}-{m.nivelMax}
+    </span>,
+  ].filter(Boolean);
 
-  // Renderizar sections
-  const renderedSections = sections?.map(s => {
-    const cfg = SECTION_CONFIG[s.type] || SECTION_CONFIG[s.key];
-    if (!cfg) return null;
-
-    let content;
-    if (s.type === 'text') {
-      content = <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{s.text}</p>;
-    } else if (s.type === 'atributos') {
-      content = (
+  // Sections
+  const sections = [
+    m.descricao && {
+      title: 'Descrição', icon: BookOpen, color: '#d97706',
+      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.descricao}</p>,
+    },
+    {
+      title: 'Atributos', icon: BarChart3, color: '#3b82f6',
+      content: (
         <div className="space-y-3">
           {ATTR_BARS.map(a => <AtributoBar key={a.key} label={a.label} value={m.atributos[a.key]} color={a.color} isLight={isLight} />)}
         </div>
-      );
-    } else if (s.type === 'habilidades') {
-      content = (
+      ),
+    },
+    m.habilidades && {
+      title: 'Habilidades', icon: Zap, color: '#8b5cf6',
+      content: (
         <div className="space-y-3">
           {m.habilidades.map((hab, i) => (
             <div key={i} className={`p-3 rounded-lg ${isLight ? 'bg-slate-50' : 'bg-slate-700/30'}`}>
@@ -94,26 +73,28 @@ const VerMonstroView = ({ monstro: m, badges, sections, stats, loading, error, o
             </div>
           ))}
         </div>
-      );
-    }
+      ),
+    },
+  ].filter(Boolean);
 
-    return { title: cfg.title, icon: cfg.icon, color: cfg.color, content };
-  }).filter(Boolean);
-
-  // Renderizar stats
-  const renderedStats = stats?.map(stat => ({
-    icon: stat.icon,
-    label: stat.label,
-    content: stat.chips
-      ? <ChipGroup items={stat.chips} colorClass={CHIP_COLORS[stat.chipColor]?.[t]} />
-      : <span className={`font-mono font-semibold ${STAT_COLORS[stat.color]?.[t]}`}>{stat.value}</span>,
-  }));
+  // Stats sidebar
+  const stats = [
+    { icon: Heart, label: 'HP Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{m.combate.hpBase}</span> },
+    { icon: Swords, label: 'Ataque Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>{m.combate.ataqueBase}</span> },
+    { icon: Shield, label: 'Defesa Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{m.combate.defesaBase}</span> },
+    m.combate.danoBase && { icon: Swords, label: 'Dano Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{m.combate.danoBase}</span> },
+    { icon: Star, label: 'XP Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>{m.combate.xpBase}</span> },
+    { icon: BarChart3, label: 'Nivel', content: <span className="text-cyan-400 font-semibold">{m.nivelMin} - {m.nivelMax}</span> },
+    m.tipos.length > 0 && { icon: Tag, label: 'Tipo', content: <ChipGroup items={m.tipos} colorClass={isLight ? 'bg-amber-50 text-amber-700' : 'bg-amber-500/15 text-amber-400'} /> },
+    m.elementos.length > 0 && { icon: Zap, label: 'Elemento', content: <ChipGroup items={m.elementos} colorClass={isLight ? 'bg-purple-50 text-purple-700' : 'bg-purple-500/15 text-purple-400'} /> },
+    m.temas.length > 0 && { icon: Tag, label: 'Temas', content: <ChipGroup items={m.temas} colorClass={isLight ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-500/15 text-indigo-400'} /> },
+  ].filter(Boolean);
 
   return (
     <CatalogDetailLayout
       title={m.nome} image={m.imagem} icon={Skull}
       rarity={m.raridade} accentColor={m.raridadeConfig.accent}
-      badges={renderedBadges} sections={renderedSections} stats={renderedStats}
+      badges={badges} sections={sections} stats={stats}
       sidebarTitle="Ficha de Combate" onBack={onBack} onEdit={onEdit}
     />
   );

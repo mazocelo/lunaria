@@ -15,7 +15,8 @@ export class Historia {
     this.imagem = data.imagem || null;
     this.mapas = data.mapas || [];
     this.config = data.config || null;
-    this.id_usuario = data.id_usuario || null;  // ID do usuário dono da história
+    this.mestre_tier = data.mestre_tier || 'poeta';
+    this.id_usuario = data.id_usuario || null;
     this.created_at = data.created_at || null;
     this.updated_at = data.updated_at || null;
   }
@@ -62,6 +63,7 @@ export class Historia {
       descricao: this.descricao,
       prologo: this.prologo,
       mestre_id: this.mestre_id,
+      mestre_tier: this.mestre_tier,
       imagem: this.imagem,
       mapas: this.mapas,
       config: this.config,

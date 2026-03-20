@@ -50,6 +50,8 @@ const NovaHistoriaView = ({
   handleCancelar,
   publica,
   setPublica,
+  mestreTier,
+  setMestreTier,
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -260,6 +262,44 @@ const NovaHistoriaView = ({
           </select>
           <p className="text-xs text-slate-400 font-modern">
             Se nenhum mestre for selecionado, sera usado um mestre padrao
+          </p>
+        </div>
+
+        {/* Tier do Mestre */}
+        <div className="flex flex-col gap-2 mb-2">
+          <label className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+            Qualidade do Mestre
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { id: 'pescador', label: 'Pescador', desc: 'Conta o basico', color: 'slate' },
+              { id: 'poeta', label: 'Poeta', desc: 'Narrativa rica', color: 'blue' },
+              { id: 'bardo', label: 'Bardo', desc: 'Historias vivas', color: 'purple' },
+              { id: 'profeta', label: 'Profeta', desc: 'A melhor IA', color: 'amber' },
+            ].map((tier) => (
+              <button
+                key={tier.id}
+                type="button"
+                onClick={() => setMestreTier(tier.id)}
+                className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                  mestreTier === tier.id
+                    ? isLight
+                      ? `border-${tier.color}-500 bg-${tier.color}-50 ring-2 ring-${tier.color}-500/30`
+                      : `border-${tier.color}-400 bg-${tier.color}-900/30 ring-2 ring-${tier.color}-400/30`
+                    : isLight
+                      ? 'border-slate-200 bg-white hover:border-slate-300'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                }`}
+              >
+                <p className={`text-sm font-bold ${mestreTier === tier.id ? (isLight ? `text-${tier.color}-700` : `text-${tier.color}-300`) : (isLight ? 'text-slate-700' : 'text-slate-200')}`}>
+                  {tier.label}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">{tier.desc}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 font-modern">
+            Define a qualidade da narrativa gerada pelo Mestre da historia
           </p>
         </div>
 

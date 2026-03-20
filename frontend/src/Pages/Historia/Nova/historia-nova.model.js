@@ -29,6 +29,7 @@ export const useHistoriaNovaModel = ({ navigate } = {}) => {
   const [mestreSelecionado, setMestreSelecionado] = useState(null);
   const [nomeError, setNomeError] = useState('');
   const [publica, setPublica] = useState(false);
+  const [mestreTier, setMestreTier] = useState('poeta');
   const [velocidadeNarrativa, setVelocidadeNarrativa] = useState(DEFAULT_HISTORIA_CONFIG.ritmo.velocidade);
   const [orcamentoDeBeats, setOrcamentoDeBeats] = useState(DEFAULT_HISTORIA_CONFIG.ritmo.orcamento_de_beats);
   const [maxAcoesPorTurno, setMaxAcoesPorTurno] = useState(DEFAULT_HISTORIA_CONFIG.regras_de_turno.max_acoes_por_turno);
@@ -96,6 +97,7 @@ export const useHistoriaNovaModel = ({ navigate } = {}) => {
         maximo_de_participantes,
         descricao,
         mestre_id: mestreSelecionado,
+        mestre_tier: mestreTier,
         publica,
         config: {
           ritmo: {
@@ -172,5 +174,7 @@ export const useHistoriaNovaModel = ({ navigate } = {}) => {
     clearError,
     publica,
     setPublica,
+    mestreTier,
+    setMestreTier,
   };
 };

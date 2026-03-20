@@ -147,7 +147,7 @@ export default class CombatEngine {
       // Roll initiative for monsters (server-side)
       const iniciativaMonstros = [];
       for (const monstro of instancias) {
-        const modBase = Math.floor(((monstro.forca || 10) - 10) / 2);
+        const modBase = Math.floor(((monstro.agilidade || 10) - 10) / 2);
         const roll = Math.floor(Math.random() * 20) + 1;
         iniciativaMonstros.push({
           id: monstro.id,
@@ -482,12 +482,13 @@ export default class CombatEngine {
     const bonusAtaqueMonstro = modDEX + bonusNivel;
     const totalAtaque = rolagem + bonusAtaqueMonstro;
 
-    // Target's dodge DC from AGI
+    // Target's dodge DC from AGI (+ defend action bonus if active)
     const personagensCompletos = sessao?.personagensCompletos || {};
     const pcId = alvoStats.personagemId;
     const pc = personagensCompletos[pcId] || personagensCompletos[String(pcId)] || {};
     const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
-    const dcEsquiva = 8 + Math.floor((agiValue - 10) / 2);
+    const dcBonus = alvoStats.defesaTemporaria?.dcBonus || 0;
+    const dcEsquiva = 8 + Math.floor((agiValue - 10) / 2) + dcBonus;
 
     const { acertou, critico } = verificarAcerto(rolagem, totalAtaque, dcEsquiva);
 

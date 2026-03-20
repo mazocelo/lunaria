@@ -284,7 +284,7 @@ function buildAttackTestRequest({
   extraPendingAction = {}
 } = {}) {
   // DC = 8 + modAGI (dodge DC based on target's agility)
-  const modAGI = Math.floor(((monstroAlvo?.agilidade || monstroAlvo?.esquiva || 10) - 10) / 2);
+  const modAGI = Math.floor(((monstroAlvo?.agilidade || 10) - 10) / 2);
   const dcEsquiva = 8 + modAGI;
   // Fallback: use dc_esquiva if already computed on instance, else monstroAlvo.defesa for legacy
   const defesaAlvo = monstroAlvo?.dc_esquiva ?? dcEsquiva;
@@ -304,7 +304,6 @@ function buildAttackTestRequest({
       targetId: monstroAlvo?.id || null,
       targetName: monstroAlvo?.nome || 'Alvo',
       targetDefense: defesaAlvo,
-      targetEvasion: monstroAlvo?.esquiva || 0,
       targetArmor: monstroAlvo?.armadura || 0,
       damageNotation,
       sourceActionName: actionName || 'Ataque',
@@ -315,7 +314,6 @@ function buildAttackTestRequest({
       targetId: monstroAlvo?.id || null,
       targetName: monstroAlvo?.nome || 'Alvo',
       targetDefense: defesaAlvo,
-      targetEvasion: monstroAlvo?.esquiva || 0,
       targetArmor: monstroAlvo?.armadura || 0,
       damageNotation,
       attackBonus: bonusAtaque,
@@ -744,7 +742,7 @@ export function formatarContextoCombate(combateState, userId) {
 
   const monstrosInfo = combateState.monstros
     .filter(m => m.status === 'vivo')
-    .map(m => `${m.nome} (HP ${m.hp_atual}/${m.hp_max}, ATK ${m.ataque}, ARM ${m.armadura || 0}, ESQ ${m.esquiva || 0}%${m.imunidades?.length ? `, Imune: ${m.imunidades.join(',')}` : ''})`)
+    .map(m => `${m.nome} (HP ${m.hp_atual}/${m.hp_max}, ATK ${m.ataque}, ARM ${m.armadura || 0}, DC ${m.dc_esquiva || 10}${m.imunidades?.length ? `, Imune: ${m.imunidades.join(',')}` : ''})`)
     .join(', ');
 
   const monstrosDerrotados = combateState.monstros
@@ -755,7 +753,7 @@ export function formatarContextoCombate(combateState, userId) {
   const jogadorHP = combateState.jogadores[userId];
   const manaStr = jogadorHP?.mana_atual != null ? ` | Mana ${jogadorHP.mana_atual}/${jogadorHP.mana_max}` : '';
   const jogadorInfo = jogadorHP
-    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max}${manaStr} | Esquiva ${jogadorHP.esquiva || 0}% | Armadura ${jogadorHP.armadura || 0}`
+    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max}${manaStr} | DC Esquiva ${8 + Math.floor(((jogadorHP.agilidade || 10) - 10) / 2)} | Armadura ${jogadorHP.armadura || 0}`
     : 'HP desconhecido';
 
   // HP e status de todos os aliados (excluindo o jogador atual)
@@ -989,18 +987,19 @@ function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, stat
 }
 
 /**
- * Resolve defesa: bonus de esquiva +25%, reducao de dano 50% nos contra-ataques
+ * Resolve defesa: +2 ao DC de esquiva (mais difícil de acertar) e 50% de
+ * redução de dano caso o ataque passe pelo DC.
  */
 function _resolverDefesa(combate, userId, personagem, jogadorStats) {
   jogadorStats.defesaTemporaria = {
-    esquivaBonus: 25,
-    reducaoDano: 0.5,
+    dcBonus: 2,       // +2 to dodge DC
+    reducaoDano: 0.5, // 50% damage reduction
     ativaAteRodada: combate.rodadaCombate + 1
   };
   const result = {
     personagem: personagem.nome,
     userId,
-    esquivaBonus: jogadorStats.defesaTemporaria.esquivaBonus,
+    dcBonus: jogadorStats.defesaTemporaria.dcBonus,
     reducaoDano: jogadorStats.defesaTemporaria.reducaoDano,
     hpAtual: jogadorStats.hp_atual,
     hpMax: jogadorStats.hp_max,
@@ -1013,6 +1012,9 @@ function _resolverDefesa(combate, userId, personagem, jogadorStats) {
 
 /**
  * Seção 3 — Contra-ataques dos monstros vivos contra jogadores aleatórios
+ *
+ * @deprecated Não é mais chamada — monstros possuem turnos próprios via
+ *   executarTurnoMonstro em combatEngine.js. Mantida apenas como referência.
  */
 function _executarContraAtaques(combate, sessao, resultados) {
   const monstrosVivos = combate.monstros.filter(m => m.status === 'vivo');
@@ -1464,7 +1466,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
       const rolagem = Number(resultadoTeste.rolagemBruta ?? resultadoTeste.total ?? 0);
       const bonus = Number(acaoPendente.attackBonus || 0);
       const total = rolagem + bonus;
-      const defesaAlvo = Number(acaoPendente.targetDefense || monstroAlvo.defesa || 10);
+      const defesaAlvo = Number(acaoPendente.targetDefense || monstroAlvo.dc_esquiva || 10);
       const { acertou, critico } = verificarAcerto(rolagem, total, defesaAlvo);
       const attackKind = acaoPendente.actionKind || 'attack';
 
@@ -1479,21 +1481,8 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
         acaoPendente.resourcesConsumed = true;
       }
 
-      let esquivaRolagem = null;
-      let esquivou = false;
-      if (acertou && !critico && Number(acaoPendente.targetEvasion || 0) > 0) {
-        esquivaRolagem = Math.floor(Math.random() * 100) + 1;
-        esquivou = esquivaRolagem <= Number(acaoPendente.targetEvasion || 0);
-        resultados.openRolls.push({
-          actorName: monstroAlvo.nome,
-          actorUserId: 'sistema',
-          dice: 'd100',
-          result: esquivaRolagem,
-          description: `Esquiva de ${monstroAlvo.nome}`,
-          threshold: Number(acaoPendente.targetEvasion || 0),
-          success: esquivou
-        });
-      }
+      // Dodge is handled via DC in verificarAcerto — no legacy d100 esquiva check.
+      const esquivou = false;
 
       if (!acertou || esquivou) {
         const ataqueBase = buildBaseAttackOutcome(acaoPendente, personagem, monstroAlvo, {
@@ -1775,7 +1764,7 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
 
   // Defesa
   if (resultados.defesa) {
-    linhas.push(`${personagemNome} adotou postura defensiva! Esquiva +${resultados.defesa.esquivaBonus}%, dano recebido reduzido em 50%.`);
+    linhas.push(`${personagemNome} adotou postura defensiva! DC Esquiva +${resultados.defesa.dcBonus}, dano recebido reduzido em 50%.`);
   }
 
   // Teste necessário (ação pendente)

@@ -76,7 +76,7 @@ describe('gameEngine', () => {
       expect(resultado).toBeDefined();
       expect(resultado.requerTeste).toBeNull();
       expect(resultado.defesa).toBeTruthy();
-      expect(resultado.defesa.esquivaBonus).toBe(25);
+      expect(resultado.defesa.dcBonus).toBe(2);
       expect(resultado.acaoConsumida).toBe(true);
     });
 
@@ -217,7 +217,7 @@ describe('gameEngine', () => {
       expect(resultado.defesa).toBeTruthy();
       expect(resultado.acaoConsumida).toBe(true);
       expect(jogadorStats.defesaTemporaria).toBeDefined();
-      expect(jogadorStats.defesaTemporaria.esquivaBonus).toBe(25);
+      expect(jogadorStats.defesaTemporaria.dcBonus).toBe(2);
     });
   });
 

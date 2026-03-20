@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { classeService } from '../../../services/index.js';
 import { useClasseStore } from '../../../store/classe';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useClasseNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarClasses = useClasseStore(s => s.recarregarClasses);
 
   const [nome, setNome] = useState('');
@@ -51,17 +45,10 @@ export const useClasseNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarClasse();
-    if (result.success) navigate(ROUTES.CLASSES);
-  };
-
-  const handleCancel = () => navigate(ROUTES.CLASSES);
   const clearError = () => setError(null);
 
   return {
-    nome, descricao, custo, bonus, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    nome, descricao, custo, bonus, saving, error,
+    setField, criarClasse, clearError,
   };
 };

@@ -1,12 +1,16 @@
 import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Palette, Sparkles, Loader2 } from 'lucide-react';
 
 const NovoTemaView = ({
-  nome, descricao, saving, error, isLight,
+  nome, descricao, saving, error,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">

@@ -1,7 +1,25 @@
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../../constants/routes.js';
 import { useMestreNovaModel } from './mestre-nova.model';
 import NovaMestreView from './mestre-nova.view';
 
 export default function MestreNovaPage() {
-  const props = useMestreNovaModel();
-  return <NovaMestreView {...props} />;
+  const model = useMestreNovaModel();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const result = await model.criarMestre();
+    if (result.success) navigate(ROUTES.MESTRES);
+  };
+
+  const handleCancel = () => navigate(ROUTES.MESTRES);
+
+  return (
+    <NovaMestreView
+      {...model}
+      handleSubmit={handleSubmit}
+      handleCancel={handleCancel}
+    />
+  );
 }

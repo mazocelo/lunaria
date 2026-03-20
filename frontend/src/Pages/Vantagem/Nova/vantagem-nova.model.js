@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { vantagemService } from '../../../services/index.js';
 import { useVantagemStore } from '../../../store/vantagem';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useVantagemNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarVantagens = useVantagemStore(s => s.recarregarVantagens);
 
   const [nome, setNome] = useState('');
@@ -80,18 +74,11 @@ export const useVantagemNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarVantagem();
-    if (result.success) navigate(ROUTES.VANTAGENS);
-  };
-
-  const handleCancel = () => navigate(ROUTES.VANTAGENS);
   const clearError = () => setError(null);
 
   return {
     nome, descricao, custo, tipo, elemento, nivel, dano_base, usar,
-    bonus, restricao, efeito, requisitos, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    bonus, restricao, efeito, requisitos, saving, error,
+    setField, criarVantagem, clearError,
   };
 };

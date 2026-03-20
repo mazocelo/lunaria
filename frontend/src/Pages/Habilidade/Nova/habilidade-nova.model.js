@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { habilidadeService } from '../../../services/index.js';
 import { useHabilidadeStore } from '../../../store/habilidade';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useHabilidadeNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const carregarHabilidades = useHabilidadeStore(s => s.carregarHabilidades);
 
   const [nome, setNome] = useState('');
@@ -104,13 +98,6 @@ export const useHabilidadeNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarHabilidade();
-    if (result.success) navigate(ROUTES.HABILIDADES);
-  };
-
-  const handleCancel = () => navigate(ROUTES.HABILIDADES);
   const clearError = () => setError(null);
 
   return {
@@ -118,7 +105,7 @@ export const useHabilidadeNovaModel = () => {
     cooldown_turnos, classe_id, alvo, alcance, tempo_conjuracao, usa_concentracao,
     categoria, escola_magia, raca_id, usos_por_descanso, saving_throw,
     efeito, escalamento, pre_requisito, area_efeito, componente_material,
-    saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    saving, error,
+    setField, criarHabilidade, clearError,
   };
 };

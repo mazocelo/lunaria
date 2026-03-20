@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { monstroService, catalogoService } from '../../../services/index.js';
 import { useMonstroStore } from '../../../store/monstro/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useMonstroNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarMonstros = useMonstroStore(s => s.recarregarMonstros);
 
   const [nome, setNome] = useState('');
@@ -87,23 +81,22 @@ export const useMonstroNovaModel = () => {
     };
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!nome.trim()) { setError('Nome e obrigatorio'); return; }
+  const criarMonstro = async () => {
+    if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
       await monstroService.create(_buildData());
       await recarregarMonstros();
       setSaving(false);
-      navigate(ROUTES.MONSTROS);
+      return { success: true };
     } catch (err) {
       setSaving(false);
       setError(`Erro ao criar monstro: ${err.message}`);
+      return { success: false };
     }
   };
 
-  const handleCancel = useCallback(() => navigate(ROUTES.MONSTROS), [navigate]);
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -111,8 +104,8 @@ export const useMonstroNovaModel = () => {
     nivel_min, nivel_max, hp_base, xp_base,
     forca, destreza, constituicao, inteligencia, sabedoria, carisma,
     ataque, defesa, dano_base,
-    raridades, categorias, saving, error, isLight,
+    raridades, categorias, saving, error,
     imagem, setImagem,
-    setField, handleSubmit, handleCancel, clearError,
+    setField, criarMonstro, clearError,
   };
 };

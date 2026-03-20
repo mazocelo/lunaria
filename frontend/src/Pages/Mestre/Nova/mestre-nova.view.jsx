@@ -3,6 +3,7 @@ import { Crown, Sparkles, Loader2, Volume2 } from 'lucide-react';
 import { apiClient } from '../../../services/ApiClient.js';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const EMOTION_OPTIONS = [
   { value: '', label: 'Nenhuma' },
@@ -143,9 +144,12 @@ const NovaMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
   max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
   voice_id, voice_provider, voices, providers, loadingVoices,
-  saving, error, isLight,
+  saving, error,
   setField, handleSubmit, handleCancel, clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">

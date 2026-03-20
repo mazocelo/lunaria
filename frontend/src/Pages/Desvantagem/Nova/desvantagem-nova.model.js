@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { desvantagemService } from '../../../services/index.js';
 import { useDesvantagemStore } from '../../../store/desvantagem';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useDesvantagemNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarDesvantagens = useDesvantagemStore(s => s.recarregarDesvantagens);
 
   const [nome, setNome] = useState('');
@@ -55,18 +49,11 @@ export const useDesvantagemNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarDesvantagem();
-    if (result.success) navigate(ROUTES.DESVANTAGENS);
-  };
-
-  const handleCancel = () => navigate(ROUTES.DESVANTAGENS);
   const clearError = () => setError(null);
 
   return {
     nome, descricao, custo, tipo, elemento, nivel, usar, dano_base,
-    saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    saving, error,
+    setField, criarDesvantagem, clearError,
   };
 };

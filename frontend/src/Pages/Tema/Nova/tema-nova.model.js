@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { temaService } from '../../../services/index.js';
 import { useTemaStore } from '../../../store/tema';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useTemaNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarTemas = useTemaStore(s => s.recarregarTemas);
 
   const [nome, setNome] = useState('');
@@ -41,17 +35,10 @@ export const useTemaNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarTema();
-    if (result.success) navigate(ROUTES.TEMAS);
-  };
-
-  const handleCancel = () => navigate(ROUTES.TEMAS);
   const clearError = () => setError(null);
 
   return {
-    nome, descricao, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    nome, descricao, saving, error,
+    setField, criarTema, clearError,
   };
 };

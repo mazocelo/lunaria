@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { racaService } from '../../../services/index.js';
 import { useRacaStore } from '../../../store/raca';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
 
 export const useRacaNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarRacas = useRacaStore(s => s.recarregarRacas);
 
   const [nome, setNome] = useState('');
@@ -51,17 +45,10 @@ export const useRacaNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarRaca();
-    if (result.success) navigate(ROUTES.RACAS);
-  };
-
-  const handleCancel = () => navigate(ROUTES.RACAS);
   const clearError = () => setError(null);
 
   return {
-    nome, descricao, custo, bonus, saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    nome, descricao, custo, bonus, saving, error,
+    setField, criarRaca, clearError,
   };
 };

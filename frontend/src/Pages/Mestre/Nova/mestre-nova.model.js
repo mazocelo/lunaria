@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { mestreService } from '../../../services/index.js';
 import { useMestreStore } from '../../../store/mestre';
-import { useTheme } from '../../../contexts/theme.jsx';
-
 import { apiClient } from '../../../services/ApiClient.js';
-import { ROUTES } from '../../../constants/routes.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
 export const useMestreNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const recarregarMestres = useMestreStore(s => s.recarregarMestres);
 
   const [nome, setNome] = useState('');
@@ -131,20 +124,13 @@ export const useMestreNovaModel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await criarMestre();
-    if (result.success) navigate(ROUTES.MESTRES);
-  };
-
-  const handleCancel = () => navigate(ROUTES.MESTRES);
   const clearError = () => setError(null);
 
   return {
     nome, descricao, personalidade, modelo, temperatura,
     max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
     voice_id, voice_provider, voices, providers, loadingVoices,
-    saving, error, isLight,
-    setField, handleSubmit, handleCancel, clearError,
+    saving, error,
+    setField, criarMestre, clearError,
   };
 };

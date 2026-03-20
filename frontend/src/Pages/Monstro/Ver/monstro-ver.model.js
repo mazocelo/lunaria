@@ -1,39 +1,30 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { monstroService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
 
+/**
+ * Model puro: estado + sincronizacao.
+ * Sem logica de negocio, sem tema, sem navegacao.
+ */
 export const useMonstroVerModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
   const [monstro, setMonstro] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const response = await monstroService.getById(id);
-        setMonstro(response.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) load();
+    if (!id) return;
+    setLoading(true);
+    monstroService.getById(id)
+      .then(res => setMonstro(res.data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const handleBack = () => navigate(ROUTES.MONSTROS);
-  const handleEdit = () => {
-    if (monstro) navigate(generateRoute.editarMonstro(monstro.id));
+  return {
+    monstro,
+    loading,
+    error,
+    setError,
   };
-  const clearError = () => setError(null);
-
-  return { monstro, loading, error, isLight, handleBack, handleEdit, clearError };
 };

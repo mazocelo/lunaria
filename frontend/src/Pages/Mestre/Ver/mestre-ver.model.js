@@ -1,23 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { mestreService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
+/**
+ * Model: estado, sincronizacao, normalizacao e metodos da entidade.
+ * Tudo que diz respeito aos DADOS do mestre vive aqui.
+ */
 export const useMestreVerModel = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
-
-  const [mestre, setMestre] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [raw, setRaw] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [voiceName, setVoiceName] = useState(null);
 
+  // --- Voice name resolution ---
   const resolveVoiceName = useCallback(async (voiceId, provider) => {
     if (!voiceId) return;
     try {
@@ -29,29 +28,52 @@ export const useMestreVerModel = () => {
     } catch { /* TTS nao disponivel */ }
   }, []);
 
-  useEffect(() => {
-    if (id) loadMestre(id);
-    return () => setError(null);
-  }, [id]);
-
-  const loadMestre = async (mestreId) => {
+  // --- Fetch ---
+  const carregar = useCallback(() => {
+    if (!id) return;
     setLoading(true);
     setError(null);
-    try {
-      const { data } = await mestreService.getById(mestreId);
-      setMestre(data);
-      if (data.voice_id) resolveVoiceName(data.voice_id, data.voice_provider);
-      setLoading(false);
-    } catch (err) {
-      setLoading(false);
-      setError(`Erro ao carregar mestre: ${err.message}`);
-    }
-  };
+    mestreService.getById(id)
+      .then(res => {
+        setRaw(res.data);
+        if (res.data.voice_id) resolveVoiceName(res.data.voice_id, res.data.voice_provider);
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id, resolveVoiceName]);
 
-  const clearError = () => setError(null);
+  useEffect(() => { carregar(); }, [carregar]);
 
-  return {
-    id, mestre, loading, error, isLight, voiceName,
-    clearError, navigate, generateRoute,
-  };
+  // --- Normalizacao da entidade ---
+  const mestre = raw ? normalizarMestre(raw) : null;
+
+  return { id, mestre, loading, error, setError, voiceName, recarregar: carregar };
 };
+
+/**
+ * Normaliza dados crus da API em formato limpo pra consumo.
+ * Resolve relacoes, converte snake_case, trata arrays e JSON.
+ */
+function normalizarMestre(m) {
+  return {
+    id: m.id,
+    nome: m.nome,
+    descricao: m.descricao,
+    imagem: m.imagem,
+    personalidade: m.personalidade,
+    regrasEspeciais: m.regras_especiais,
+
+    // Arrays normalizados (nunca undefined)
+    tags: Array.isArray(m.tags) ? m.tags : [],
+
+    // Configuracoes IA
+    modelo: m.modelo,
+    temperatura: m.temperatura,
+    maxTokens: m.max_tokens,
+    tomNarrativo: m.tom_narrativo,
+
+    // TTS
+    voiceId: m.voice_id,
+    voiceProvider: m.voice_provider,
+  };
+}

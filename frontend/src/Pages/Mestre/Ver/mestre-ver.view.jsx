@@ -3,15 +3,22 @@ import {
   Crown, BookOpen, Theater, ScrollText, Settings, Terminal, Volume2,
   ChevronDown, ChevronUp, Copy, Check,
 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { CatalogDetailLayout, Badge } from '../../../components/shared';
 
-// PAGE-SPECIFIC: Prompt preview builder
-const buildPromptPreview = ({ nome, personalidade, tom_narrativo, regras_especiais }) => [
+/**
+ * View: apresentacao completa.
+ * Recebe dados normalizados do Model (via ViewModel) e monta toda a UI.
+ * Resolve tema, badges, sections, stats — tudo visual vive aqui.
+ */
+
+// PAGE-SPECIFIC: Prompt preview builder (presentation logic)
+const buildPromptPreview = ({ nome, personalidade, tomNarrativo, regrasEspeciais }) => [
   'Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.',
   nome && `Seu nome como Mestre e "${nome}".`,
   personalidade && `PERSONALIDADE: ${personalidade}`,
-  tom_narrativo && `TOM NARRATIVO: ${tom_narrativo}`,
-  regras_especiais && `REGRAS ESPECIAIS: ${regras_especiais}`,
+  tomNarrativo && `TOM NARRATIVO: ${tomNarrativo}`,
+  regrasEspeciais && `REGRAS ESPECIAIS: ${regrasEspeciais}`,
   '',
   'TEMAS DA CAMPANHA: [definidos pela historia]',
   'PERSONAGENS JOGANDO: [definidos na sessao]',
@@ -65,96 +72,87 @@ const PromptPreviewSection = ({ promptPreview, isLight }) => {
 };
 
 // MAIN VIEW
-const VerMestreView = ({
-  id, mestre, loading, error, isLight, voiceName,
-  clearError, navigate, generateRoute,
-}) => {
-  if (loading || error || !mestre) {
+const VerMestreView = ({ mestre: m, loading, error, voiceName, onBack, onEdit }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  if (loading || error || !m) {
     return (
       <CatalogDetailLayout
         loading={loading}
         loadingText="Carregando mestre..."
-        error={error || (!loading && !mestre ? 'Mestre nao encontrado' : undefined)}
+        error={error || (!loading && !m ? 'Mestre nao encontrado' : undefined)}
         icon={Crown}
         title=""
-        onBack={() => navigate(-1)}
-        onEdit={() => navigate(generateRoute.editarMestre(id))}
+        onBack={onBack}
+        onEdit={onEdit}
       />
     );
   }
 
-  const m = mestre;
-  const tags = Array.isArray(m.tags) ? m.tags : [];
   const promptPreview = buildPromptPreview({
     nome: m.nome, personalidade: m.personalidade,
-    tom_narrativo: m.tom_narrativo, regras_especiais: m.regras_especiais,
+    tomNarrativo: m.tomNarrativo, regrasEspeciais: m.regrasEspeciais,
   });
 
-  const voiceProviderLabel = m.voice_provider === 'cartesia' ? 'Cartesia'
-    : m.voice_provider === 'opensource' ? 'Open Source' : 'ElevenLabs';
+  const voiceProviderLabel = m.voiceProvider === 'cartesia' ? 'Cartesia'
+    : m.voiceProvider === 'opensource' ? 'Open Source' : 'ElevenLabs';
 
-  // -- Badges ----------------------------------------------------------
+  // -- Badges --
   const badges = [
     <Badge key="model" variant="slate">{m.modelo || 'Padrao'}</Badge>,
-    m.voice_id && (
+    m.voiceId && (
       <Badge key="voice" variant="cyan">{voiceProviderLabel}</Badge>
     ),
-    ...tags.slice(0, 3).map((tag) => (
+    ...m.tags.slice(0, 3).map((tag) => (
       <Badge key={tag} variant="purple">{tag}</Badge>
     )),
-    tags.length > 3 && (
-      <Badge key="more-tags" variant="purple">+{tags.length - 3}</Badge>
+    m.tags.length > 3 && (
+      <Badge key="more-tags" variant="purple">+{m.tags.length - 3}</Badge>
     ),
   ].filter(Boolean);
 
-  // -- Sections --------------------------------------------------------
+  // -- Sections --
+  const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
   const sections = [];
 
   if (m.descricao) {
     sections.push({
-      title: 'Descricao',
-      icon: BookOpen,
-      color: '#d97706',
-      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.descricao}</p>,
+      title: 'Descricao', icon: BookOpen, color: '#d97706',
+      content: <p className={`font-modern leading-relaxed ${textCls}`}>{m.descricao}</p>,
     });
   }
 
   if (m.personalidade) {
     sections.push({
-      title: 'Personalidade',
-      icon: Theater,
-      color: '#8b5cf6',
-      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.personalidade}</p>,
+      title: 'Personalidade', icon: Theater, color: '#8b5cf6',
+      content: <p className={`font-modern leading-relaxed ${textCls}`}>{m.personalidade}</p>,
     });
   }
 
-  if (m.regras_especiais) {
+  if (m.regrasEspeciais) {
     sections.push({
-      title: 'Regras Especiais',
-      icon: ScrollText,
-      color: '#ef4444',
-      content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.regras_especiais}</p>,
+      title: 'Regras Especiais', icon: ScrollText, color: '#ef4444',
+      content: <p className={`font-modern leading-relaxed ${textCls}`}>{m.regrasEspeciais}</p>,
     });
   }
 
   sections.push({
-    title: 'Preview do Prompt',
-    icon: Terminal,
-    color: '#64748b',
+    title: 'Preview do Prompt', icon: Terminal, color: '#64748b',
     content: <PromptPreviewSection promptPreview={promptPreview} isLight={isLight} />,
   });
 
-  // -- Stats (sidebar) -------------------------------------------------
+  // -- Stats (sidebar) --
   const stats = [
     { icon: Settings, label: 'Modelo', content: m.modelo || 'Padrao' },
     { icon: Settings, label: 'Temperatura', content: m.temperatura ?? 'Nao definido' },
-    { icon: Settings, label: 'Max Tokens', content: m.max_tokens ?? 'Nao definido' },
-    { icon: BookOpen, label: 'Tom Narrativo', content: m.tom_narrativo || 'Nao definido' },
+    { icon: Settings, label: 'Max Tokens', content: m.maxTokens ?? 'Nao definido' },
+    { icon: BookOpen, label: 'Tom Narrativo', content: m.tomNarrativo || 'Nao definido' },
     {
       icon: Volume2,
       label: 'Voz (TTS)',
-      content: m.voice_id
-        ? `${voiceName || m.voice_id} (${voiceProviderLabel})`
+      content: m.voiceId
+        ? `${voiceName || m.voiceId} (${voiceProviderLabel})`
         : 'Sem voz',
     },
   ];
@@ -170,8 +168,8 @@ const VerMestreView = ({
       stats={stats}
       sidebarTitle="Configuracoes"
       sidebarIcon={Settings}
-      onBack={() => navigate(-1)}
-      onEdit={() => navigate(generateRoute.editarMestre(id))}
+      onBack={onBack}
+      onEdit={onEdit}
     />
   );
 };

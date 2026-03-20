@@ -97,12 +97,14 @@ Cada atributo deve ter no minimo 5 e no maximo 16 (antes de bonus de raca/classe
 
 ### vantagens
 - Inclua 3-5 vantagens no array sugestoes com IDs reais do catalogo, baseadas no background
+- Sugira vantagens que sejam TEMATICAMENTE coerentes com a raca e classe do personagem. Um Anjo nao deveria receber Magia Sombria. Um Barbaro nao deveria receber Afinidade Arcana. Pense na identidade do personagem antes de sugerir.
 - Na mensagem, narre brevemente como cada vantagem se conecta a historia (sem IDs no texto)
 - etapa_proxima: "atributos"
 
 ### atributos
 - Sugira distribuicao de 60 pontos baseada na classe/raca/background (min 5, max 16 por atributo)
-- Preencha atributos_sugeridos com valores que somem 60
+- Para personagens iniciantes, prefira distribuicoes EQUILIBRADAS: nenhum atributo abaixo de 7 e nenhum acima de 14. Evite builds min-maxed extremas.
+- Preencha atributos_sugeridos com valores que somem exatamente 60
 - Explique brevemente por que cada valor faz sentido
 - etapa_proxima: "equipamentos"
 

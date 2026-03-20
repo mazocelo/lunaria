@@ -124,6 +124,7 @@ async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
       return shuffled.map(r => ({
         tipo: 'raca', id: r.id, nome: r.nome,
         descricao: r.descricao || '', custo: r.custo ?? 0,
+        imagem: r.imagem || null,
       }));
     }
 
@@ -133,6 +134,7 @@ async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
       return shuffled.map(c => ({
         tipo: 'classe', id: c.id, nome: c.nome,
         descricao: c.descricao || '', custo: c.custo ?? 0,
+        imagem: c.imagem || null,
       }));
     }
 
@@ -157,11 +159,13 @@ async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
     }
 
     if (etapa === 'background') {
+      const raca = estado.raca_nome || 'aventureiro';
+      const classe = estado.classe_nome || 'guerreiro';
       return [
-        { tipo: 'background', id: null, nome: 'Órfão de guerra criado por monges', descricao: 'Uma infância marcada pela perda, mas moldada pela disciplina.' },
-        { tipo: 'background', id: null, nome: 'Nobre exilado em busca de redenção', descricao: 'Nascido na nobreza, agora busca provar seu valor longe dos privilégios.' },
-        { tipo: 'background', id: null, nome: 'Mercenário aposentado que ouviu um chamado', descricao: 'Anos de batalha, agora um propósito maior o guia.' },
-        { tipo: 'background', id: null, nome: 'Aprendiz que fugiu após descobrir um segredo proibido', descricao: 'O conhecimento pode ser tão perigoso quanto uma espada.' },
+        { tipo: 'background', id: null, nome: `${raca} orfao criado em terras selvagens`, descricao: `Cresceu sem pais, aprendendo a sobreviver pela forca de vontade e determinacao.` },
+        { tipo: 'background', id: null, nome: `Ex-soldado ${classe} que desertou por principios`, descricao: `Serviu fielmente ate testemunhar algo que mudou tudo.` },
+        { tipo: 'background', id: null, nome: `Aprendiz de ${classe} que fugiu de seu mestre`, descricao: `Descobriu um segredo sombrio e agora busca seu proprio caminho.` },
+        { tipo: 'background', id: null, nome: `${raca} nobre exilado em busca de redencao`, descricao: `Nascido com privilegios, agora deve provar seu valor sem eles.` },
       ];
     }
 
@@ -363,6 +367,7 @@ function construirInput(etapa, estado, mensagemJogador, { historico, actionMode 
   }
 
   parts.push(`\nMensagem do jogador: ${mensagemJogador}`);
+  parts.push(`\n[FORMATO OBRIGATÓRIO: Responda APENAS com JSON válido. Nenhum texto antes ou depois do JSON. Comece com { e termine com }]`);
   return parts.join('\n');
 }
 

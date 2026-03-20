@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
 import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { PageHeader, Badge, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame, Sparkles } from 'lucide-react';
 
 const raridadeVariant = {
@@ -54,6 +55,29 @@ const EquipamentoListaView = ({
       </div>
     );
   }
+
+  const [galleryIndex, setGalleryIndex] = useState(null);
+
+  // Build list of items with images for gallery navigation (server-side paginated, current page only)
+  const itemsWithImages = displayEquipamentos
+    .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
+    .filter(item => item.src);
+
+  const currentGalleryPos = galleryIndex !== null
+    ? itemsWithImages.findIndex(item => item.index === galleryIndex)
+    : -1;
+
+  const handlePrev = useCallback(() => {
+    if (currentGalleryPos > 0) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos - 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
+  const handleNext = useCallback(() => {
+    if (currentGalleryPos < itemsWithImages.length - 1) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos + 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
 
   const selectCls = `px-3 py-2 rounded-lg text-sm font-modern transition-all duration-200 ${
     isLight
@@ -123,6 +147,7 @@ const EquipamentoListaView = ({
                 rarity={rarNome}
                 delay={i}
                 onClick={() => navigate(generateRoute.verEquipamento(row.id))}
+                onImageClick={row.imagem ? () => setGalleryIndex(displayEquipamentos.findIndex(item => item.id === row.id)) : undefined}
                 headerBadge={
                   <Badge variant={raridadeVariant[rarNome] || 'slate'} className="shadow-sm backdrop-blur-sm">
                     {rarNome}
@@ -161,6 +186,19 @@ const EquipamentoListaView = ({
         onPageSizeChange={handlePageSizeChange}
         pageSizeOptions={[12, 24, 48, 100]}
       />
+
+      {/* Gallery lightbox with prev/next navigation */}
+      {galleryIndex !== null && displayEquipamentos[galleryIndex] && (
+        <ImageLightbox
+          src={displayEquipamentos[galleryIndex].imagem}
+          alt={displayEquipamentos[galleryIndex].nome}
+          title={displayEquipamentos[galleryIndex].nome}
+          isOpen={true}
+          onClose={() => setGalleryIndex(null)}
+          onPrev={currentGalleryPos > 0 ? handlePrev : undefined}
+          onNext={currentGalleryPos < itemsWithImages.length - 1 ? handleNext : undefined}
+        />
+      )}
 
       <ConfirmationModal
         isOpen={showDeleteModal}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
 import { Wand2, Swords, Heart, Flame } from 'lucide-react';
 
@@ -58,6 +59,7 @@ const HabilidadeListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 
   const displayData = filteredHabilidades?.length > 0 || filteredHabilidades?.length === 0
     ? filteredHabilidades
@@ -66,6 +68,27 @@ const HabilidadeListaView = ({
   useEffect(() => { setPage(1); }, [displayData]);
 
   const paginatedData = displayData.slice((page - 1) * perPage, page * perPage);
+
+  // Build list of items with images for gallery navigation
+  const itemsWithImages = displayData
+    .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
+    .filter(item => item.src);
+
+  const currentGalleryPos = galleryIndex !== null
+    ? itemsWithImages.findIndex(item => item.index === galleryIndex)
+    : -1;
+
+  const handlePrev = useCallback(() => {
+    if (currentGalleryPos > 0) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos - 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
+  const handleNext = useCallback(() => {
+    if (currentGalleryPos < itemsWithImages.length - 1) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos + 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
 
   const categoriaOptions = Object.entries(categoriaLabels);
 
@@ -124,6 +147,7 @@ const HabilidadeListaView = ({
               title={row.nome}
               delay={i}
               onClick={() => navigate(generateRoute.verHabilidade(row.id))}
+              onImageClick={row.imagem ? () => setGalleryIndex(displayData.findIndex(item => item.id === row.id)) : undefined}
               headerBadge={
                 <Badge variant={categoriaVariant[row.categoria] || 'slate'} className="shadow-sm backdrop-blur-sm">
                   {categoriaLabels[row.categoria] || row.categoria}
@@ -158,6 +182,19 @@ const HabilidadeListaView = ({
         onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
         pageSizeOptions={[12, 24, 48]}
       />
+
+      {/* Gallery lightbox with prev/next navigation */}
+      {galleryIndex !== null && displayData[galleryIndex] && (
+        <ImageLightbox
+          src={displayData[galleryIndex].imagem}
+          alt={displayData[galleryIndex].nome}
+          title={displayData[galleryIndex].nome}
+          isOpen={true}
+          onClose={() => setGalleryIndex(null)}
+          onPrev={currentGalleryPos > 0 ? handlePrev : undefined}
+          onNext={currentGalleryPos < itemsWithImages.length - 1 ? handleNext : undefined}
+        />
+      )}
     </div>
   );
 };

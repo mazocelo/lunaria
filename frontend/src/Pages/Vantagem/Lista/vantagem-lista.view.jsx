@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
+import ImageLightbox from '../../../components/ImageLightbox.jsx';
 import Notification from '../../../components/Notification.jsx';
 import { Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -32,12 +33,34 @@ const VantagemListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 
   const displayVantagens = filteredVantagens?.length > 0 ? filteredVantagens : vantagens;
 
   useEffect(() => { setPage(1); }, [displayVantagens]);
 
   const paginatedVantagens = displayVantagens.slice((page - 1) * perPage, page * perPage);
+
+  // Build list of items with images for gallery navigation
+  const itemsWithImages = displayVantagens
+    .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
+    .filter(item => item.src);
+
+  const currentGalleryPos = galleryIndex !== null
+    ? itemsWithImages.findIndex(item => item.index === galleryIndex)
+    : -1;
+
+  const handlePrev = useCallback(() => {
+    if (currentGalleryPos > 0) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos - 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
+  const handleNext = useCallback(() => {
+    if (currentGalleryPos < itemsWithImages.length - 1) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos + 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -81,6 +104,7 @@ const VantagemListaView = ({
                 title={row.nome}
                 delay={i}
                 onClick={() => navigate(generateRoute.verVantagem(row.id))}
+                onImageClick={row.imagem ? () => setGalleryIndex(displayVantagens.findIndex(item => item.id === row.id)) : undefined}
                 headerBadge={
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
                     row.custo > 0
@@ -118,6 +142,19 @@ const VantagemListaView = ({
         onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
         pageSizeOptions={[12, 24, 48]}
       />
+
+      {/* Gallery lightbox with prev/next navigation */}
+      {galleryIndex !== null && displayVantagens[galleryIndex] && (
+        <ImageLightbox
+          src={displayVantagens[galleryIndex].imagem}
+          alt={displayVantagens[galleryIndex].nome}
+          title={displayVantagens[galleryIndex].nome}
+          isOpen={true}
+          onClose={() => setGalleryIndex(null)}
+          onPrev={currentGalleryPos > 0 ? handlePrev : undefined}
+          onNext={currentGalleryPos < itemsWithImages.length - 1 ? handleNext : undefined}
+        />
+      )}
     </div>
   );
 };

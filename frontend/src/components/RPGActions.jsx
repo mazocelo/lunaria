@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 /**
  * Componente para acoes RPG na sidebar (sempre dark/game context)
@@ -9,6 +9,7 @@ export const RPGActions = ({
   onUsarHabilidade,
   onUsarEquipamento,
   personagem,
+  rolando = false,
   className = ''
 }) => {
   const [customDice, setCustomDice] = useState('1d20');
@@ -27,12 +28,14 @@ export const RPGActions = ({
   ];
 
   const handleDiceRoll = (dice) => {
+    if (rolando) return;
     if (onRollDice) {
       onRollDice(dice, `Rolagem de ${dice}`);
     }
   };
 
   const handleCustomDiceRoll = () => {
+    if (rolando) return;
     if (customDice && onRollDice) {
       onRollDice(customDice, `Rolagem personalizada: ${customDice}`);
     }
@@ -89,7 +92,8 @@ export const RPGActions = ({
             <button
               key={dice.value}
               onClick={() => handleDiceRoll(dice.value)}
-            className="game-glass-subtle aspect-square rounded-xl border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(139,92,246,0.1)] text-purple-200 font-fantasy font-bold text-base transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
+              disabled={rolando}
+              className={`game-glass-subtle aspect-square rounded-xl border border-purple-500/20 text-purple-200 font-fantasy font-bold text-base transition-all flex items-center justify-center ${rolando ? 'opacity-50 cursor-not-allowed' : 'hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(139,92,246,0.1)] hover:scale-105 cursor-pointer'}`}
             >
               {dice.label}
             </button>
@@ -103,13 +107,15 @@ export const RPGActions = ({
             value={customDice}
             onChange={(e) => setCustomDice(e.target.value)}
             placeholder="1d20+5"
-            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg game-glass-subtle border border-purple-500/20 text-purple-100 placeholder-purple-400/40 focus:outline-none focus:border-purple-400/50 focus:shadow-[0_0_8px_rgba(139,92,246,0.1)] transition-all"
+            disabled={rolando}
+            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg game-glass-subtle border border-purple-500/20 text-purple-100 placeholder-purple-400/40 focus:outline-none focus:border-purple-400/50 focus:shadow-[0_0_8px_rgba(139,92,246,0.1)] transition-all disabled:opacity-50"
           />
           <button
             onClick={handleCustomDiceRoll}
-            className="px-3 py-1.5 text-sm font-medium rounded-lg game-glass-subtle border border-purple-500/25 text-purple-200 hover:border-purple-400/40 hover:bg-purple-500/15 transition-all cursor-pointer"
+            disabled={rolando}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg game-glass-subtle border border-purple-500/25 text-purple-200 transition-all ${rolando ? 'opacity-50 cursor-not-allowed' : 'hover:border-purple-400/40 hover:bg-purple-500/15 cursor-pointer'}`}
           >
-            Rolar
+            {rolando ? '⏳' : 'Rolar'}
           </button>
         </div>
       </div>

@@ -113,44 +113,44 @@
 }
 
 .gothic {
-  --background: linear-gradient(135deg, #0a0508 0%, #1a0a10 50%, #12080e 100%);
+  --background: linear-gradient(135deg, #1a0e12 0%, #241418 50%, #1c1014 100%);
   --foreground: #f5e6d3;
-  --card: rgba(20, 8, 12, 0.85);
+  --card: rgba(30, 14, 18, 0.9);
   --card-foreground: #f5e6d3;
-  --popover: rgba(20, 8, 12, 0.95);
+  --popover: rgba(30, 14, 18, 0.95);
   --popover-foreground: #f5e6d3;
   --primary: #dc2626;
   --primary-foreground: #ffffff;
   --secondary: #b8860b;
   --secondary-foreground: #ffffff;
-  --muted: rgba(107, 92, 92, 0.6);
-  --muted-foreground: #a89090;
+  --muted: rgba(120, 90, 90, 0.6);
+  --muted-foreground: #c0a8a8;
   --accent: #ef4444;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: rgba(220, 38, 38, 0.15);
-  --input: rgba(20, 8, 12, 0.8);
+  --border: rgba(220, 38, 38, 0.18);
+  --input: rgba(30, 14, 18, 0.85);
   --ring: #dc2626;
   --chart-1: #dc2626;
   --chart-2: #b8860b;
   --chart-3: #ef4444;
   --chart-4: #8b0000;
   --chart-5: #cd853f;
-  --sidebar: rgba(10, 5, 8, 0.95);
+  --sidebar: rgba(18, 10, 12, 0.97);
   --sidebar-foreground: #f5e6d3;
   --sidebar-primary: #dc2626;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #b8860b;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(220, 38, 38, 0.12);
+  --sidebar-border: rgba(220, 38, 38, 0.15);
   --sidebar-ring: #dc2626;
 }
 
 /* Gothic header override */
 .gothic header,
 .gothic [role="banner"] {
-  background: rgba(10, 5, 8, 0.95) !important;
-  border-color: rgba(220, 38, 38, 0.12) !important;
+  background: rgba(24, 12, 16, 0.95) !important;
+  border-color: rgba(220, 38, 38, 0.18) !important;
 }
 
 /* Gothic gradient-primary override (buttons, accents) */
@@ -164,31 +164,31 @@
 
 /* Gothic sidebar override */
 .gothic aside {
-  background: rgba(10, 5, 8, 0.97) !important;
-  border-color: rgba(220, 38, 38, 0.15) !important;
+  background: rgba(18, 10, 12, 0.97) !important;
+  border-color: rgba(220, 38, 38, 0.18) !important;
 }
 
 /* Gothic glass/card overrides */
 .gothic .card-rpg {
-  background: rgba(20, 8, 12, 0.85);
-  border: 1.5px solid rgba(220, 38, 38, 0.15);
-  box-shadow: 0 2px 16px 0 rgba(139, 0, 0, 0.12);
+  background: rgba(30, 16, 20, 0.88);
+  border: 1.5px solid rgba(220, 38, 38, 0.18);
+  box-shadow: 0 2px 16px 0 rgba(139, 0, 0, 0.15);
   backdrop-filter: blur(10px);
 }
 
 .gothic .card-rpg:hover {
-  box-shadow: 0 8px 30px rgba(220, 38, 38, 0.2);
-  border-color: rgba(220, 38, 38, 0.3);
+  box-shadow: 0 8px 30px rgba(220, 38, 38, 0.25);
+  border-color: rgba(220, 38, 38, 0.35);
 }
 
 .gothic .glass, .gothic .glass-subtle, .gothic .glass-solid {
-  background: rgba(20, 8, 12, 0.7);
-  border-color: rgba(220, 38, 38, 0.1);
+  background: rgba(30, 16, 20, 0.75);
+  border-color: rgba(220, 38, 38, 0.12);
 }
 
 .gothic .game-glass, .gothic .game-glass-subtle, .gothic .game-glass-solid {
-  background: rgba(10, 5, 8, 0.7);
-  border-color: rgba(220, 38, 38, 0.08);
+  background: rgba(24, 12, 16, 0.75);
+  border-color: rgba(220, 38, 38, 0.1);
 }
 
 /* Gothic buttons */
@@ -203,6 +203,52 @@
 
 .gothic ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #ef4444, #b91c1c);
+}
+
+.gothic ::-webkit-scrollbar-track {
+  background: rgba(20, 10, 12, 0.5);
+}
+
+/* Gothic btn overrides — kill purple */
+.gothic .btn-rpg-secondary {
+  color: #f87171;
+  background: rgba(139, 0, 0, 0.3);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.gothic .btn-rpg-secondary:hover {
+  background: rgba(139, 0, 0, 0.4);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+/* Gothic scroll-top button */
+.gothic .scroll-top-btn {
+  background: #b91c1c !important;
+}
+
+.gothic .scroll-top-btn:hover {
+  background: #dc2626 !important;
+}
+
+/* Gothic StatCard gradient */
+.gothic .gradient-secondary {
+  background: linear-gradient(135deg, #8b0000, #b91c1c) !important;
+}
+
+.gothic .gradient-accent {
+  background: linear-gradient(135deg, #92400e, #b8860b) !important;
+}
+
+/* Gothic PageHeader icon bg */
+.gothic [class*="bg-purple-900"],
+.gothic [class*="bg-purple-100"] {
+  background-color: rgba(139, 0, 0, 0.4) !important;
+}
+
+.gothic [class*="text-purple-400"],
+.gothic [class*="text-purple-600"],
+.gothic [class*="text-purple-300"] {
+  color: #f87171 !important;
 }
 
 /* Gothic nav active indicator */

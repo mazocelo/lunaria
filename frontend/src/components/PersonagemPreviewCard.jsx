@@ -20,9 +20,9 @@ function calcMod(val) {
   return Math.floor((v - 10) / 2);
 }
 
-function calcHP(con, nivel) {
+function calcHP(con, nivel, multRaca = 5) {
   const mod = calcMod(con);
-  return 10 + mod * 2 + (nivel - 1) * (6 + mod);
+  return multRaca * (nivel + Math.max(1, mod));
 }
 
 const PendingBadge = ({ children, isLight }) => (
@@ -104,7 +104,7 @@ const PersonagemPreviewCard = ({
     return result;
   }, [atributos, bonusJaAplicado, mergedAttrBonus]);
 
-  const hpEstimado = calcHP(atributosEfetivos.constituicao, 1);
+  const hpEstimado = calcHP(atributosEfetivos.constituicao, 1, racaObj?.mult_raca ?? 5);
 
   const atributosPendentes = mostrarPendencias
     ? !bonusAplicados

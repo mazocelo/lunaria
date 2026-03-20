@@ -36,6 +36,8 @@ export const createListenerActions = (set, get) => ({
       'erro_sistema', 'erro_mensagem', 'erro_dado_inicial', 'rate_limit_exceeded',
       'combate_iniciado', 'combate_resultado_acao', 'combate_monstro_derrotado',
       'combate_jogador_ferido', 'combate_finalizado', 'combate_estado',
+      'combate_solicita_iniciativa', 'combate_resultado_iniciativa', 'combate_ordem_definida',
+      'combat_turn', 'combat_monster_action',
       'acao_mestre', 'level_up', 'combate_loot',
       'user_joined', 'user_left',
       'status_jogo_alterado',
@@ -667,14 +669,81 @@ export const createListenerActions = (set, get) => ({
       const dto = normalizeCombateIniciado(data);
       set({
         combateAtivo: true,
+        combateFase: data.fase || 'combate',
         combateMonstros: dto.monstros,
         combateJogadores: dto.jogadores,
         combateRodada: dto.rodada,
         combateResultado: null,
         combateLog: [],
-        combateXpGanho: 0
+        combateXpGanho: 0,
+        combateOrdemIniciativa: [],
+        combateTurnoAtual: null,
+        combateIniciativaPendente: false,
       });
-      get().log('Combate iniciado', { monstros: dto.monstros.length, success: true });
+      get().log('Combate iniciado', { fase: data.fase, monstros: dto.monstros.length, success: true });
+    });
+
+    socket.on('combate_solicita_iniciativa', (data) => {
+      const { currentUser } = get();
+      if (String(data.userId) === String(currentUser?.id)) {
+        set({
+          combateIniciativaPendente: true,
+          combateIniciativaModificador: data.modificador || 0,
+        });
+        get().log('Iniciativa solicitada', { modificador: data.modificador });
+      }
+    });
+
+    socket.on('combate_resultado_iniciativa', (data) => {
+      set({ combateIniciativaPendente: false });
+      get().log('Resultado iniciativa', { nome: data.personagemNome, iniciativa: data.iniciativa });
+    });
+
+    socket.on('combate_ordem_definida', (data) => {
+      // Mostrar ordem na fase 'ordem_definida' por 4s antes de ir para combate
+      set({
+        combateFase: 'ordem_definida',
+        combateOrdemIniciativa: data.ordemIniciativa || [],
+        combateTurnoAtual: data.primeiroTurno || null,
+        combateRodada: data.rodada || 1,
+        combateIniciativaPendente: false,
+      });
+      get().log('Ordem de combate definida', { ordem: (data.ordemIniciativa||[]).map(o => o.nome) });
+
+      // Após 4s, transição para fase combate
+      setTimeout(() => {
+        const current = get();
+        if (current.combateFase === 'ordem_definida') {
+          set({ combateFase: 'combate' });
+        }
+      }, 4000);
+    });
+
+    socket.on('combat_turn', (data) => {
+      set({
+        combateTurnoAtual: data.turnoAtual || null,
+        combateRodada: data.rodada || get().combateRodada,
+      });
+      get().log('Turno de combate', { nome: data.turnoAtual?.nome, tipo: data.turnoAtual?.tipo });
+    });
+
+    socket.on('combat_monster_action', (data) => {
+      const { combateJogadores, combateLog } = get();
+      // Update player HP if monster hit
+      if (data.acertou && data.alvoId) {
+        const jogadoresAtualizados = { ...combateJogadores };
+        if (jogadoresAtualizados[data.alvoId]) {
+          jogadoresAtualizados[data.alvoId] = {
+            ...jogadoresAtualizados[data.alvoId],
+            hp_atual: data.hpRestante,
+            status: data.hpRestante <= 0 ? 'derrotado' : 'vivo'
+          };
+        }
+        set({ combateJogadores: jogadoresAtualizados });
+      }
+      // Add to combat log
+      set({ combateLog: [...combateLog.slice(-19), { tipo: 'ataque_monstro', ...data }] });
+      get().log('Ação do monstro', { atacante: data.atacanteNome, acertou: data.acertou, dano: data.dano });
     });
 
     socket.on('combate_resultado_acao', (data) => {
@@ -786,8 +855,12 @@ export const createListenerActions = (set, get) => ({
       const dto = normalizeCombateFinalizado(data);
       set({
         combateAtivo: false,
+        combateFase: null,
         combateResultado: dto.resultado,
-        combateXpGanho: dto.xpTotal
+        combateXpGanho: dto.xpTotal,
+        combateOrdemIniciativa: [],
+        combateTurnoAtual: null,
+        combateIniciativaPendente: false,
       });
       get().log('Combate finalizado', { resultado: dto.resultado, xp: dto.xpTotal, success: true });
 

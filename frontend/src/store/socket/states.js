@@ -90,12 +90,17 @@ export const socketInitialStates = {
   
   // ===== SISTEMA DE COMBATE =====
   combateAtivo: false,
+  combateFase: null,          // null | 'iniciativa' | 'combate'
   combateMonstros: [],       // Instâncias de monstros com HP atual
   combateJogadores: {},      // HP dos jogadores { [userId]: { hp_max, hp_atual, esquiva, armadura, status } }
   combateRodada: 0,
   combateResultado: null,    // null | 'vitoria' | 'derrota' | 'fuga'
   combateLog: [],            // Últimas ações do combate
   combateXpGanho: 0,
+  combateOrdemIniciativa: [], // Ordem de iniciativa [{id, tipo, nome, iniciativa}]
+  combateTurnoAtual: null,   // Quem deve agir agora {id, tipo, nome}
+  combateIniciativaPendente: false, // true quando jogador precisa rolar iniciativa
+  combateIniciativaModificador: 0,  // mod Agilidade para mostrar na UI
 
   // ===== PROGRESSÃO =====
   lastLevelUp: null, // { userId, username, novoNivel, ganhos, timestamp }

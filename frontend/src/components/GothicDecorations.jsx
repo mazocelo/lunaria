@@ -90,7 +90,7 @@ const BatSwarm = ({ count = 3, trigger }) => {
             opacity: 0.35,
           }}
         >
-          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#2a0a0a">
+          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#0a0000">
             <ellipse cx="20" cy="12" rx="4" ry="3" />
             <path d="M16 12 Q8 4 2 8 Q6 10 8 12 Q10 14 14 13 Z" />
             <path d="M24 12 Q32 4 38 8 Q34 10 32 12 Q30 14 26 13 Z" />
@@ -132,7 +132,7 @@ const GothicDecorations = () => {
 
       {/* Ambient bats (slow, always) */}
       <div className="fixed pointer-events-none z-[2]" style={{ top: '15%', animation: 'batFly 45s linear 10s infinite', opacity: 0.15 }}>
-        <svg width="35" height="18" viewBox="0 0 40 20" fill="#2a0a0a">
+        <svg width="35" height="18" viewBox="0 0 40 20" fill="#0a0000">
           <ellipse cx="20" cy="12" rx="4" ry="3" />
           <path d="M16 12 Q8 4 2 8 Q6 10 8 12 Q10 14 14 13 Z" />
           <path d="M24 12 Q32 4 38 8 Q34 10 32 12 Q30 14 26 13 Z" />

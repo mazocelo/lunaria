@@ -35,6 +35,20 @@ export const createSendActions = (set, get) => ({
     return safeEmit('rolar_dado_inicial', dadoData);
   },
 
+  rolarIniciativaCombate: () => {
+    const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
+    if (!socket || !isConnected || !roomId || !currentUser) {
+      log('Não conectado para rolar iniciativa', {}, 'error');
+      return false;
+    }
+    log('Rolando iniciativa de combate', { userId: currentUser.id });
+    set({ combateIniciativaPendente: false });
+    return safeEmit('rolar_iniciativa_combate', {
+      roomId,
+      userId: currentUser.id,
+    });
+  },
+
   iniciarTurno: () => {
     const {
       socket, isConnected, roomId, currentUser, safeEmit, log,

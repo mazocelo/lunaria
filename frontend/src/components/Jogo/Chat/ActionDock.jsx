@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSocketStore } from '../../../store/index.js';
 import CooldownRoleplay from '../Gameplay/CooldownRoleplay';
 import { TIMEOUTS } from '../../../constants/game';
@@ -33,6 +33,7 @@ const ActionDock = ({
   onUsarMagia,
   combatIntentAtual = null,
   onClearCombatIntent = null,
+  rolando = false,
 }) => {
   const isConnected = useSocketStore((s) => s.isConnected);
   const inRoom = useSocketStore((s) => s.inRoom);
@@ -42,6 +43,7 @@ const ActionDock = ({
   const [showSkillMenu, setShowSkillMenu] = useState(false);
   const [showSpellMenu, setShowSpellMenu] = useState(false);
   const lastSentTimeRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const getConnectionStatus = useCallback(() => {
     if (!isConnected) return { status: 'error', text: 'Desconectado', color: 'text-red-400' };
@@ -59,10 +61,35 @@ const ActionDock = ({
     try {
       await onEnviarMensagem();
       lastSentTimeRef.current = Date.now();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     } finally {
       setIsSending(false);
     }
   };
+
+  const handleIniciarTurno = async () => {
+    if (iniciandoTurno || !onIniciarTurno) return;
+    setIniciandoTurno(true);
+    try {
+      await onIniciarTurno();
+    } finally {
+      setIniciandoTurno(false);
+    }
+  };
+
+  const handleTextareaInput = useCallback((e) => {
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+  }, []);
+
+  useEffect(() => {
+    if (textareaRef.current && !mensagemAtual) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [mensagemAtual]);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -132,77 +159,6 @@ const ActionDock = ({
             <span className={`text-xs ${connectionStatus.color}`}>{connectionStatus.text}</span>
           )}
         </div>
-
-        {faseJogo === 'rodada_em_andamento' && ehMeuTurno && (
-          <div className="flex justify-center">
-            {!turnoIniciado ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  setIniciandoTurno(true);
-                  if (onIniciarTurno) await onIniciarTurno();
-                  setTimeout(() => setIniciandoTurno(false), TIMEOUTS.INICIAR_TURNO_RESET);
-                }}
-                disabled={iniciandoTurno || aguardandoMestre}
-                className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
-                  iniciandoTurno || aguardandoMestre ? '' : 'hover:scale-105 animate-pulse'
-                }`}
-              >
-                <span className="flex items-center space-x-2">
-                  {iniciandoTurno || aguardandoMestre ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span>Aguarde o Mestre...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-xl">⚡</span>
-                      <span>Iniciar Turno</span>
-                    </>
-                  )}
-                </span>
-              </button>
-            ) : (
-              <div className="px-4 py-2 game-glass border border-cyan-400/40 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.1)] animate-pulse">
-                <p className="text-cyan-200 text-sm font-bold">
-                  {turnoStatus === 'awaiting_roll' ? 'Sua vez: resolva a rolagem pendente.' : 'E SUA VEZ! Responda ao Mestre.'}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {dadosSolicitados && dadoSolicitadoInfo && (
-          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-amber-900/50 to-orange-900/40 border border-amber-400/60 rounded-lg shadow-lg animate-fade-in">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xl animate-bounce flex-shrink-0">🎲</span>
-              <div className="min-w-0">
-                <p className="text-amber-100 font-bold text-sm truncate">
-                  O Mestre pede: {dadoSolicitadoInfo.teste || 'Rolagem'}
-                </p>
-                <p className="text-amber-300/80 text-xs">
-                  {dadoSolicitadoInfo.tipoDado?.toUpperCase()} · DC {dadoSolicitadoInfo.dificuldade}
-                  {dadoSolicitadoInfo.modificador != null && dadoSolicitadoInfo.modificador !== 0 && (
-                    <span className="ml-1 text-green-300 font-bold">
-                      ({dadoSolicitadoInfo.modificador > 0 ? '+' : ''}{dadoSolicitadoInfo.modificador} {dadoSolicitadoInfo.atributo})
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onRolarDados && onRolarDados(dadoSolicitadoInfo.tipoDado, dadoSolicitadoInfo.teste, dadoSolicitadoInfo)}
-              disabled={connectionStatus.status === 'error'}
-              className="flex-shrink-0 px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-lg font-bold shadow-lg transition-all hover:scale-105 animate-pulse disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              Rolar {dadoSolicitadoInfo.tipoDado?.toUpperCase()}
-            </button>
-          </div>
-        )}
 
         {showQuickActions && combateAtivo && (
           <div className="flex items-center gap-2 flex-wrap">
@@ -400,40 +356,50 @@ const ActionDock = ({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          {showQuickActions && !combateAtivo && (
-            <>
-              {[
-                { label: 'Falar', emoji: '💬', acao: 'Quero conversar com ' },
-                { label: 'Investigar', emoji: '🔍', acao: 'Investigo os arredores em busca de ' },
-                { label: 'Interagir', emoji: '🤝', acao: 'Interajo com ' },
-                { label: 'Descrever magia', emoji: '✨', acao: 'Uso magia para ' },
-                { label: 'Item', emoji: '🎒', acao: 'Uso um item: ' }
-              ].map((btn) => (
-                <button
-                  type="button"
-                  key={btn.label}
-                  onClick={() => fillInput(btn.acao)}
-                  className="flex-shrink-0 px-3 py-1.5 text-xs game-glass-subtle border border-purple-500/20 text-purple-200 rounded-lg hover:border-purple-400/40 hover:bg-purple-500/10 transition-all"
-                >
-                  {btn.emoji} {btn.label}
-                </button>
-              ))}
-            </>
+        <div className="flex items-end gap-2">
+          {ehMeuTurno && !turnoIniciado && faseJogo === 'rodada_em_andamento' && (
+            <button
+              type="button"
+              onClick={handleIniciarTurno}
+              disabled={iniciandoTurno || turnoStatus === 'starting'}
+              className="flex-shrink-0 px-4 py-2.5 text-sm bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg whitespace-nowrap"
+            >
+              {iniciandoTurno || turnoStatus === 'starting' ? '...' : '▶ Iniciar Turno'}
+            </button>
           )}
 
-          <input
-            type="text"
+          {ehMeuTurno && turnoIniciado && faseJogo === 'rodada_em_andamento' && (
+            <span className="flex-shrink-0 px-3 py-2.5 text-xs font-bold text-cyan-300 border border-cyan-400/40 bg-cyan-500/10 rounded-xl whitespace-nowrap">
+              ⚡ Sua vez
+            </span>
+          )}
+
+          {dadosSolicitados && (
+            <button
+              type="button"
+              onClick={() => !rolando && onRolarDados(dadoSolicitadoInfo?.tipoDado || 'd20', dadoSolicitadoInfo?.teste || '', dadoSolicitadoInfo)}
+              disabled={rolando}
+              className={`flex-shrink-0 px-4 py-2.5 text-sm bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-bold transition-all shadow-lg whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed ${rolando ? '' : 'hover:from-yellow-500 hover:to-orange-500 animate-pulse'}`}
+            >
+              {rolando ? '⏳ Rolando...' : `🎲 ${dadoSolicitadoInfo?.tipoDado || dadoSolicitadoInfo?.tipo || 'Rolar Dados'}`}
+            </button>
+          )}
+
+          <textarea
+            ref={textareaRef}
+            rows={1}
             placeholder={getPlaceholderDinamico()}
             value={mensagemAtual || ''}
             onChange={onMensagemChange}
             onKeyDown={handleKeyPress}
+            onInput={handleTextareaInput}
             disabled={isSending || inputDesabilitado}
-            className={`flex-1 min-w-0 px-4 py-2.5 text-sm rounded-xl game-glass-subtle border border-purple-500/25 shadow-lg caret-purple-400 ${
+            className={`flex-1 min-w-0 px-4 py-2.5 text-sm rounded-xl game-glass-subtle border shadow-lg caret-purple-400 resize-none overflow-hidden leading-5 ${
               ehMeuTurno && faseJogo === 'rodada_em_andamento' && turnoIniciado
                 ? 'border-cyan-400/50 shadow-[0_0_12px_rgba(34,211,238,0.12)]'
                 : 'border-purple-500/25'
             } text-white placeholder-purple-300/60 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-all`}
+            style={{ minHeight: '40px', maxHeight: '96px' }}
           />
 
           <button

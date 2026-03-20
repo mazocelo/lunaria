@@ -138,7 +138,7 @@ function AppContent() {
           {/* Gradiente de fundo */}
           <div className={`fixed inset-0 z-0 pointer-events-none ${
             theme === 'gothic'
-              ? 'bg-gradient-to-br from-[#0a0508] via-[#1a0a10] to-[#12080e]'
+              ? 'bg-gradient-to-br from-[#1a0e12] via-[#241418] to-[#1c1014]'
               : isLight
                 ? 'bg-gradient-to-br from-slate-100 via-purple-100/30 to-slate-100'
                 : 'bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900'

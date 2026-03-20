@@ -129,8 +129,8 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome })
                           <Shield size={10} /> +{b.armadura}
                         </span>
                       )}
-                      {b.esquiva_bonus > 0 && <span className="text-green-300">+{b.esquiva_bonus}% ESQ</span>}
-                      {b.esquiva_penalidade > 0 && <span className="text-red-400">-{b.esquiva_penalidade}% ESQ</span>}
+                      {b.dc_esquiva > 0 && <span className="text-green-300">+{b.dc_esquiva} DC</span>}
+                      {b.absorcao > 0 && <span className="text-cyan-300">+{b.absorcao} TA</span>}
                     </div>
 
                     {elementos.length > 0 && (
@@ -170,10 +170,8 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome })
                 </div>
                 <div className="text-center game-glass-subtle p-1.5 rounded col-span-3">
                   <div className="flex items-center justify-center gap-3">
-                    <span className="text-green-300 font-bold">+{bonus.esquiva_bonus}% ESQ</span>
-                    {bonus.esquiva_penalidade > 0 && (
-                      <span className="text-red-400 font-bold">-{bonus.esquiva_penalidade}% ESQ</span>
-                    )}
+                    <span className="text-green-300 font-bold">+{bonus.dc_esquiva ?? 0} DC</span>
+                    <span className="text-cyan-300 font-bold">+{bonus.absorcao ?? 0} TA</span>
                   </div>
                 </div>
               </div>

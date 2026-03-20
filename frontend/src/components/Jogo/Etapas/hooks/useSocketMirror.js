@@ -24,12 +24,17 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     testesPendentes: s.testesPendentes ?? [],
     cooldownRoleplay: s.cooldownRoleplay ?? 0,
     combateAtivo: s.combateAtivo ?? false,
+    combateFase: s.combateFase ?? null,
     combateMonstros: s.combateMonstros ?? [],
     combateJogadores: s.combateJogadores ?? {},
     combateRodada: s.combateRodada ?? 0,
     combateResultado: s.combateResultado ?? null,
     combateLog: s.combateLog ?? [],
     combateXpGanho: s.combateXpGanho ?? 0,
+    combateOrdemIniciativa: s.combateOrdemIniciativa ?? [],
+    combateTurnoAtual: s.combateTurnoAtual ?? null,
+    combateIniciativaPendente: s.combateIniciativaPendente ?? false,
+    combateIniciativaModificador: s.combateIniciativaModificador ?? 0,
     sessionRecap: s.sessionRecap ?? null,
     pendingMestreRequestId: s.pendingMestreRequestId ?? null,
     pendingMestreRequestKind: s.pendingMestreRequestKind ?? null,
@@ -678,6 +683,43 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
     socketStoreOn('mestre_solicita_dados', handleMestreSolicitaDados);
     socketStoreOn('level_up', handleLevelUp);
     socketStoreOn('acao_mestre', handleAcaoMestre);
+
+    // Monster action → chat message
+    const handleCombatMonsterAction = (data) => {
+      if (!data || !onAdicionarMensagemRef.current) return;
+      const atacante = data.atacanteNome || 'Monstro';
+      const alvo = data.alvoNome || 'Jogador';
+      const bonus = data.bonusAtaque || 0;
+      const total = data.rolagem != null ? data.rolagem + bonus : '?';
+      const defesa = data.defesaJogador || '?';
+
+      let texto;
+      if (!data.acertou && !data.esquivou) {
+        texto = `**${atacante}** ataca ${alvo}! d20:${data.rolagem}${bonus ? `+${bonus}=${total}` : ''} vs DEF ${defesa} — **ERROU**`;
+      } else if (data.esquivou) {
+        texto = `**${atacante}** ataca ${alvo}! d20:${data.rolagem}${bonus ? `+${bonus}=${total}` : ''} — ${alvo} **ESQUIVOU!**`;
+      } else {
+        const critico = data.critico ? ' **CRÍTICO!**' : '';
+        const danoTexto = data.dano > 0 ? ` Dano: ${data.dano}` : ' Golpe fraco!';
+        const hpTexto = data.hpRestante != null && data.hpMax != null ? ` (HP: ${data.hpRestante}/${data.hpMax})` : '';
+        texto = `**${atacante}** ataca ${alvo}! d20:${data.rolagem}${bonus ? `+${bonus}=${total}` : ''} vs DEF ${defesa} — **HIT!**${critico}${danoTexto}${hpTexto}`;
+      }
+      if (data.habilidade && data.habilidade !== 'Ataque básico' && data.habilidade !== 'Ataque basico') {
+        texto += ` _(${data.habilidade})_`;
+      }
+
+      onAdicionarMensagemRef.current({
+        id: `monster_action_${Date.now()}`,
+        userId: 'combat',
+        username: atacante,
+        message: texto,
+        tipo: 'combat_monster',
+        origem: 'combate',
+        timestamp: Date.now()
+      });
+    };
+    socketStoreOn('combat_monster_action', handleCombatMonsterAction);
+
     socketStoreOn('combate_finalizado', handleCombateFinalizado);
     socketStoreOn('combate_loot', handleCombateLoot);
     socketStoreOn('erro_mensagem', handleErroMensagem);
@@ -700,6 +742,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       socketStoreOff('mestre_solicita_dados', handleMestreSolicitaDados);
       socketStoreOff('level_up', handleLevelUp);
       socketStoreOff('acao_mestre', handleAcaoMestre);
+      socketStoreOff('combat_monster_action', handleCombatMonsterAction);
       socketStoreOff('combate_finalizado', handleCombateFinalizado);
       socketStoreOff('combate_loot', handleCombateLoot);
       socketStoreOff('erro_mensagem', handleErroMensagem);

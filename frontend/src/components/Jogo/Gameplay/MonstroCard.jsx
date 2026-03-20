@@ -49,7 +49,7 @@ const MonstroCard = ({ monstro, compact = false }) => {
               {monstro.nome}
             </span>
             <span className={`text-xs flex-shrink-0 ${isDerrotado ? 'text-gray-500' : 'text-red-200'}`}>
-              {monstro.hp_atual}/{monstro.hp_max}
+              {isDerrotado ? '\u{1F480} DERROTADO' : `${monstro.hp_atual}/${monstro.hp_max}`}
             </span>
           </div>
           <div className="w-full bg-gray-700/50 rounded-full h-1 mt-0.5 overflow-hidden">
@@ -92,8 +92,8 @@ const MonstroCard = ({ monstro, compact = false }) => {
       <div className="mb-1">
         <div className="flex justify-between text-xs mb-0.5">
           <span className={isDerrotado ? 'text-gray-500' : 'text-red-300'}>HP</span>
-          <span className={isDerrotado ? 'text-gray-500' : 'text-red-200'}>
-            {monstro.hp_atual}/{monstro.hp_max}
+          <span className={isDerrotado ? 'text-gray-500 font-bold' : 'text-red-200'}>
+            {isDerrotado ? '\u{1F480} DERROTADO' : `${monstro.hp_atual}/${monstro.hp_max}`}
           </span>
         </div>
         <div className="w-full bg-gray-700/50 rounded-full h-2 overflow-hidden">

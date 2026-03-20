@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { showGameNotification } from '../../NotificationManager';
 import { useSocketStore } from '../../../../store/index.js';
 import { rolarDados } from '../EtapaJogoRPG.utils.js';
@@ -7,6 +7,34 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
   const socketStoreRolarDadoInicial = useSocketStore(s => s.rolarDadoInicial);
   const socketStoreIniciarTurno = useSocketStore(s => s.iniciarTurno);
+  const socketStoreOn = useSocketStore(s => s.on);
+  const socketStoreOff = useSocketStore(s => s.off);
+
+  // Anti-spam: lock dice roll until server responds
+  const [rolando, setRolando] = useState(false);
+  const rolandoTimeoutRef = useRef(null);
+
+  // Sync ref lock — prevents double-click in same frame (state is async)
+  const rolandoLockRef = useRef(false);
+
+  // Clear rolando flag on server response (resultado_teste or dice_roll echo)
+  useEffect(() => {
+    const clearRolando = () => {
+      setRolando(false);
+      rolandoLockRef.current = false;
+      if (rolandoTimeoutRef.current) {
+        clearTimeout(rolandoTimeoutRef.current);
+        rolandoTimeoutRef.current = null;
+      }
+    };
+    socketStoreOn('resultado_teste', clearRolando);
+    socketStoreOn('dice_roll', clearRolando);
+    return () => {
+      socketStoreOff('resultado_teste', clearRolando);
+      socketStoreOff('dice_roll', clearRolando);
+    };
+  }, [socketStoreOn, socketStoreOff]);
+
   const buildPersonagemPayload = useCallback(() => ({
     id: personagemSelecionado?.id ?? personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? null,
     personagemId: personagemSelecionado?.personagemId ?? personagemSelecionado?.personagem_id ?? personagemSelecionado?.id ?? null,
@@ -16,6 +44,16 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
   }), [personagemSelecionado]);
 
   const handleRolarDados = useCallback(async (tipoDado = 'd20', descricao = '', dadoSolicitadoInfo = null) => {
+    if (rolando || rolandoLockRef.current) return;
+    rolandoLockRef.current = true;
+    setRolando(true);
+    // Safety fallback: clear lock after 8s if no server response
+    rolandoTimeoutRef.current = setTimeout(() => {
+      setRolando(false);
+      rolandoLockRef.current = false;
+      rolandoTimeoutRef.current = null;
+    }, 8000);
+
     try {
       const dadoFinal = dadoSolicitadoInfo?.tipoDado || tipoDado;
       const descricaoFinal = descricao || dadoSolicitadoInfo?.teste || '';
@@ -36,12 +74,23 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
 
       if (!enviado) {
         onAdicionarMensagem(resultado.mensagem);
+        // Clear immediately if not sent via socket
+        setRolando(false);
+        if (rolandoTimeoutRef.current) {
+          clearTimeout(rolandoTimeoutRef.current);
+          rolandoTimeoutRef.current = null;
+        }
       }
     } catch (error) {
       const resultado = rolarDados(tipoDado, descricao);
       onAdicionarMensagem(resultado.mensagem);
+      setRolando(false);
+      if (rolandoTimeoutRef.current) {
+        clearTimeout(rolandoTimeoutRef.current);
+        rolandoTimeoutRef.current = null;
+      }
     }
-  }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem]);
+  }, [rolando, historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem]);
 
   const handleRolarDadoInicial = useCallback(async () => {
     try {
@@ -227,5 +276,6 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     handleUsarHabilidade,
     handleUsarMagia,
     handleUsarEquipamento,
+    rolando,
   };
 };

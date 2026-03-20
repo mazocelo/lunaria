@@ -11,6 +11,7 @@ export const useCharacterCreation = ({
   getEstado, navigate, comboPreviewData, comboPreviewLoading,
   navigation, bonusCalc, pointSystem,
   estadoRef, setError, limparDraft, recarregarPersonagens,
+  imageUrl,
 }) => {
   const [salvando, setSalvando] = useState(false);
   const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
@@ -82,6 +83,12 @@ export const useCharacterCreation = ({
         }
       }
 
+      if (criado?.id && imageUrl) {
+        try {
+          await personagemService.update(criado.id, { imagem: imageUrl });
+        } catch { /* non-blocking */ }
+      }
+
       limparDraft();
       await recarregarPersonagens();
 
@@ -110,6 +117,7 @@ export const useCharacterCreation = ({
     comboPreviewData,
     recarregarPersonagens,
     limparDraft,
+    imageUrl,
   ]);
 
   /** Fecha o modal de resultado de criação */

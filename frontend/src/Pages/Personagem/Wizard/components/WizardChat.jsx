@@ -61,6 +61,10 @@ const WizardChat = ({
   onRegenerarComboPreview,
   onRecarregarComboPreview,
   creationFlowStatus = 'idle',
+  imageUrl = null,
+  imageLoading = false,
+  imageError = null,
+  onGerarImagem,
   embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -629,6 +633,10 @@ const WizardChat = ({
             podeCriar={podeCriar}
             salvando={salvando}
             creationFlowStatus={creationFlowStatus}
+            imageUrl={imageUrl}
+            imageLoading={imageLoading}
+            imageError={imageError}
+            onGerarImagem={onGerarImagem}
             isLight={isLight}
           />
         )}

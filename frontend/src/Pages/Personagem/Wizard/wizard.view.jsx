@@ -94,6 +94,10 @@ const WizardView = (props) => {
     fecharResultadoCriacao,
     irParaPersonagens,
     verFichaCriada,
+    imageUrl,
+    imageLoading,
+    imageError,
+    gerarImagem,
     navigate,
   } = props;
 
@@ -302,6 +306,17 @@ const WizardView = (props) => {
                 onRecarregarComboPreview={recarregarComboPreview}
                 creationFlowStatus={creationFlowStatus}
                 sugestoes={sugestoes}
+                imageUrl={imageUrl}
+                imageLoading={imageLoading}
+                imageError={imageError}
+                onGerarImagem={() => gerarImagem({
+                  nome,
+                  racaNome: racaAtual?.nome,
+                  classeNome: classeAtual?.nome,
+                  background,
+                  vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter(Boolean),
+                  desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter(Boolean),
+                })}
                 embedded
               />
             </div>

@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ImageIcon,
   Loader2,
   RefreshCw,
   ScrollText,
@@ -61,6 +62,10 @@ const DestinoResolutivaBlock = ({
   podeCriar = false,
   salvando = false,
   creationFlowStatus = 'idle',
+  imageUrl = null,
+  imageLoading = false,
+  imageError = null,
+  onGerarImagem,
   isLight = false,
 }) => {
   const itensCombo = useMemo(() => buildItensCombo(data?.combo), [data]);
@@ -268,6 +273,41 @@ const DestinoResolutivaBlock = ({
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="wa-panel wa-etched rounded-[22px] p-4 md:p-5">
+          <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+            <ImageIcon size={11} />
+            Retrato do heroi
+          </div>
+
+          {imageUrl ? (
+            <div className="mt-3 flex justify-center">
+              <img src={imageUrl} alt={snapshot.nome || 'Retrato'} className="w-48 h-48 rounded-2xl object-cover border-2 border-purple-500/30 shadow-lg" />
+            </div>
+          ) : (
+            <div className="mt-3">
+              {imageLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={24} className="animate-spin text-purple-400" />
+                  <span className="ml-3 text-sm font-modern text-slate-400">Gerando retrato...</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onGerarImagem}
+                  disabled={imageLoading}
+                  className="wa-panel-soft w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <Sparkles size={15} className="text-[var(--wa-forge-gold)]" />
+                  Gerar retrato do personagem
+                </button>
+              )}
+              {imageError && (
+                <p className="mt-2 text-xs text-red-400 text-center">{imageError}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-[var(--wa-border)] pt-4">

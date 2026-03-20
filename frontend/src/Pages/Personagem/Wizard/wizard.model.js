@@ -13,6 +13,7 @@ import { useChatState } from './hooks/useChatState';
 import { useComboPreview } from './hooks/useComboPreview';
 import { useMestreInteraction } from './hooks/useMestreInteraction';
 import { useCharacterCreation } from './hooks/useCharacterCreation';
+import { useCharacterImage } from './hooks/useCharacterImage';
 import { useWizardInit } from './hooks/useWizardInit';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
@@ -193,11 +194,13 @@ export const useWizardModel = ({ navigate }) => {
     setRacaId, setRacaNome, setClasseId, setClasseNome,
     pointSystem, bonusCalc, getEstado, getHistorico, estadoRef,
   });
+  const characterImage = useCharacterImage();
   const characterCreation = useCharacterCreation({
     getEstado, navigate, comboPreviewData: comboPreview.comboPreviewData,
     comboPreviewLoading: comboPreview.comboPreviewLoading,
     navigation, bonusCalc, pointSystem,
     estadoRef, setError, limparDraft, recarregarPersonagens,
+    imageUrl: characterImage.imageUrl,
   });
   const { descartarDraft } = useWizardInit({
     chat, navigation, nome, racaId,
@@ -268,6 +271,12 @@ export const useWizardModel = ({ navigate }) => {
     fecharResultadoCriacao: characterCreation.fecharResultadoCriacao,
     irParaPersonagens: characterCreation.irParaPersonagens,
     verFichaCriada: characterCreation.verFichaCriada,
+    // Character image
+    imageUrl: characterImage.imageUrl,
+    imageLoading: characterImage.imageLoading,
+    imageError: characterImage.imageError,
+    gerarImagem: characterImage.gerarImagem,
+    resetImage: characterImage.resetImage,
     navigate,
   };
 };

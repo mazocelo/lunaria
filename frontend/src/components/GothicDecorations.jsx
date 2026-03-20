@@ -13,7 +13,7 @@ const SpiderWeb = ({ side = 'left', size = 120 }) => (
     height={size}
     viewBox="0 0 120 120"
     className={`fixed top-0 ${side === 'left' ? 'left-0' : 'right-0 scale-x-[-1]'} pointer-events-none z-[2]`}
-    style={{ opacity: 0.07 }}
+    style={{ opacity: 0.15 }}
   >
     {/* Radial threads from corner */}
     {[0, 15, 30, 45, 60, 75, 90].map(angle => {
@@ -48,7 +48,7 @@ const BatSilhouette = ({ delay = 0, duration = 35, y = 15 }) => (
     style={{
       top: `${y}%`,
       animation: `batFly ${duration}s linear ${delay}s infinite`,
-      opacity: 0.1,
+      opacity: 0.2,
     }}
   >
     <svg width="40" height="20" viewBox="0 0 40 20" fill="#1a0a10">
@@ -71,8 +71,8 @@ const GothicDecorations = () => {
 
   return (
     <>
-      <SpiderWeb side="left" size={100} />
-      <SpiderWeb side="right" size={80} />
+      <SpiderWeb side="left" size={160} />
+      <SpiderWeb side="right" size={120} />
       <BatSilhouette delay={5} duration={40} y={12} />
       <BatSilhouette delay={25} duration={55} y={25} />
     </>

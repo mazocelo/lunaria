@@ -118,11 +118,11 @@ const ParticlesBackground = () => {
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height * -0.3;
-        this.vy = Math.random() * 0.3 + 0.15;
-        this.vx = (Math.random() - 0.5) * 0.05;
-        this.w = Math.random() * 2 + 1.5;
-        this.h = Math.random() * 6 + 4;
-        this.opacity = Math.random() * 0.2 + 0.15;
+        this.vy = Math.random() * 0.5 + 0.3;
+        this.vx = (Math.random() - 0.5) * 0.08;
+        this.w = Math.random() * 3 + 2;
+        this.h = Math.random() * 10 + 6;
+        this.opacity = Math.random() * 0.35 + 0.25;
       }
       update() {
         this.y += this.vy;
@@ -147,11 +147,11 @@ const ParticlesBackground = () => {
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = canvas.height + Math.random() * 50;
-        this.vy = -(Math.random() * 0.4 + 0.1);
-        this.vx = (Math.random() - 0.5) * 0.3;
-        this.size = Math.random() * 2 + 0.5;
-        this.opacity = Math.random() * 0.2 + 0.1;
-        this.glow = Math.random() > 0.5;
+        this.vy = -(Math.random() * 0.6 + 0.2);
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.size = Math.random() * 3 + 1;
+        this.opacity = Math.random() * 0.4 + 0.2;
+        this.glow = Math.random() > 0.3;
         this.color = this.glow ? '#ff4500' : '#cc3300';
         this.life = 0;
         this.maxLife = Math.random() * 400 + 200;
@@ -186,8 +186,8 @@ const ParticlesBackground = () => {
 
     // ─── Create particles based on theme ────────────────────
     if (isGothic) {
-      for (let i = 0; i < 15; i++) particles.push(new BloodDrop());
-      for (let i = 0; i < 25; i++) particles.push(new Ember());
+      for (let i = 0; i < 30; i++) particles.push(new BloodDrop());
+      for (let i = 0; i < 40; i++) particles.push(new Ember());
     } else if (isLight) {
       for (let i = 0; i < 550; i++) particles.push(new NatureElement());
     } else {
@@ -231,12 +231,12 @@ const ParticlesBackground = () => {
       // Gothic: fog at the bottom
       if (isGothic) {
         fogOffset += 0.003;
-        const fogH = canvas.height * 0.15;
+        const fogH = canvas.height * 0.25;
         const fogY = canvas.height - fogH;
         const grad = ctx.createLinearGradient(0, fogY, 0, canvas.height);
         grad.addColorStop(0, 'rgba(139, 0, 0, 0)');
-        grad.addColorStop(0.5, `rgba(139, 0, 0, ${0.03 + Math.sin(fogOffset) * 0.01})`);
-        grad.addColorStop(1, `rgba(139, 0, 0, ${0.06 + Math.sin(fogOffset * 1.5) * 0.02})`);
+        grad.addColorStop(0.4, `rgba(139, 0, 0, ${0.06 + Math.sin(fogOffset) * 0.03})`);
+        grad.addColorStop(1, `rgba(139, 0, 0, ${0.15 + Math.sin(fogOffset * 1.5) * 0.05})`);
         ctx.save();
         ctx.fillStyle = grad;
         ctx.fillRect(0, fogY, canvas.width, fogH);

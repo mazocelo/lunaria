@@ -6,6 +6,8 @@ import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import ConviteModal from '../../../components/ConviteModal.jsx';
 import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import { BookOpen, Plus, Eye, Mail, Play, Target, RotateCcw, StopCircle, Trash2 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme.jsx';
+import { ROUTES } from '../../../constants/routes.js';
 
 const HistoriaListaView = ({
   // Data
@@ -14,7 +16,6 @@ const HistoriaListaView = ({
   estatisticas,
   loading,
   error,
-  isLight,
 
   // Filtros
   aplicarFiltros,
@@ -69,8 +70,10 @@ const HistoriaListaView = ({
 
   // Utils
   clearError,
-  ROUTES,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   // Renderizador para temas
   const renderTemas = (historia) => {
     const nomesTemas = getNomesTemas ? getNomesTemas(historia) : [];

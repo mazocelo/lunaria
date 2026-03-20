@@ -5,6 +5,7 @@ import Combobox from '../../../components/form/Combobox';
 import MultiSelect from '../../../components/form/MultiSelect';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
 import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus, Link2, X } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const PONTOS_MAXIMO = 60;
 
@@ -58,10 +59,11 @@ const NovoPersonagemView = ({
   criarPersonagem,
   clearError,
   navigate,
-  isLight,
   imagem,
   setImagem,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const saldoCriacaoNegativo = pontosCriacaoRestantes < 0;
 
   return (

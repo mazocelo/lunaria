@@ -1,17 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useHistoriaStore } from '../../../store/historia/index.js';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { generateRoute } from '../../../constants/routes.js';
 
-export const useHistoriaListaModel = () => {
-  const navigate = useNavigate();
+export const useHistoriaListaModel = ({ navigate } = {}) => {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   // Tema store
   const carregarTemas = useTemaStore(s => s.carregarTemas);
@@ -327,7 +322,6 @@ export const useHistoriaListaModel = () => {
     estatisticas,
     loading,
     error: error || storeError,
-    isLight,
 
     // Filtros
     aplicarFiltros,
@@ -382,6 +376,5 @@ export const useHistoriaListaModel = () => {
 
     // Utils
     clearError,
-    ROUTES,
   };
 };

@@ -1,14 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { usePersonagemStore } from '../../../store/personagem/index.js';
 import { personagemService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
 
-export const usePersonagemListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
+export const usePersonagemListaModel = ({ navigate } = {}) => {
 
   // Personagem store
   const personagens = usePersonagemStore(s => s.personagens);
@@ -118,12 +112,10 @@ export const usePersonagemListaModel = () => {
     allPersonagens: personagens,
     loading,
     error: error || storeError,
-    isLight,
     estatisticas,
     buscarPersonagens: setSearchTerm,
     clearError,
     navigate,
-    generateRoute,
     // Delete individual
     showDeleteModal,
     personagemToDelete,

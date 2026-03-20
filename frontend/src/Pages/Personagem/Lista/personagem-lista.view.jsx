@@ -1,22 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ROUTES } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes.js';
 import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import StatCard from '../../../components/StatCard.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import Notification from '../../../components/Notification.jsx';
 import { Users, Plus, Eye, Trash2, Shield, Sparkles } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const PersonagemListaView = ({
   personagens,
   loading,
   error,
-  isLight,
   estatisticas,
   buscarPersonagens,
   clearError,
   navigate,
-  generateRoute,
   // Delete individual
   showDeleteModal,
   personagemToDelete,
@@ -32,6 +31,9 @@ const PersonagemListaView = ({
   handleConfirmBulkDelete,
   handleCancelBulkDelete,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (loading && personagens.length === 0) {
     return <TableSkeleton cols={7} />;
   }

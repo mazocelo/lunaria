@@ -1,6 +1,7 @@
 import React from 'react';
 import AmizadeItem from '../../components/AmizadeItem';
 import { Users, UserPlus, Search, Loader2 } from 'lucide-react';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const TABS = [
   { id: 'amigos', label: 'Meus Amigos', icon: Users, countKey: 'friends' },
@@ -19,7 +20,6 @@ const AmigosView = ({
   loadingAction,
   error,
   successMessage,
-  isDark,
   setActiveTab,
   setSearchInput,
   handleSearch,
@@ -29,6 +29,8 @@ const AmigosView = ({
   rejectRequest,
   removeFriend,
 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const counts = { friends: friends?.length, pending: pending?.length };
 
   return (

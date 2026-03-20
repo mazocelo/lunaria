@@ -3,6 +3,7 @@ import FeedPostCard from '../../components/FeedPostCard';
 import FeedPostForm from '../../components/FeedPostForm';
 import { TableSkeleton } from '../../components/shared';
 import { Users, Globe, Loader2, MessageSquare } from 'lucide-react';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const TABS = [
   { id: 'amigos', label: 'Amigos', icon: Users },
@@ -19,7 +20,6 @@ const FeedView = ({
   newPostVisibility,
   creatingPost,
   error,
-  isDark,
   currentUserId,
   setActiveTab,
   setNewPostText,
@@ -29,6 +29,9 @@ const FeedView = ({
   toggleLike,
   deletePost,
 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <div className={`max-w-2xl mx-auto ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
       <h1 className="text-2xl font-bold mb-6">Feed</h1>

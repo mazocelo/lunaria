@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
 import { useAmizadeStore } from '../../store/amizade/index.js';
 import { amizadeService } from '../../services';
 
 export const useAmigosModel = () => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   // Amizade store
   const friends = useAmizadeStore(s => s.amigos);
@@ -145,7 +142,6 @@ export const useAmigosModel = () => {
     loadingAction,
     error: error || storeError,
     successMessage,
-    isDark,
     setActiveTab,
     setSearchInput,
     handleSearch,

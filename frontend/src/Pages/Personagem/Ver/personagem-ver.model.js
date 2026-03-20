@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { personagemService, equipamentoService, historiaService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { sanitizeTextForSpeech } from '../../../utils/speechText.js';
 
-export const usePersonagemVerModel = () => {
+export const usePersonagemVerModel = ({ navigate } = {}) => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   // Core state
   const [personagem, setPersonagem] = useState(null);
@@ -344,7 +340,6 @@ export const usePersonagemVerModel = () => {
     evolucao,
     loading,
     error,
-    isLight,
     navigate,
     // Background
     gerandoBackground,

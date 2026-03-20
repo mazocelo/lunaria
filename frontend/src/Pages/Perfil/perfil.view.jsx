@@ -1,6 +1,7 @@
 import React from 'react';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
+import { useTheme } from '../../contexts/theme.jsx';
 
 const PerfilView = ({
   nome,
@@ -17,7 +18,6 @@ const PerfilView = ({
   savingPassword,
   error,
   successMessage,
-  isLight,
   setNome,
   setEmail,
   setBio,
@@ -29,8 +29,10 @@ const PerfilView = ({
   setConfirmarSenha,
   salvarPerfil,
   alterarSenha,
-  toggleTheme,
 }) => {
+  const { theme, toggleTheme } = useTheme();
+  const isLight = theme === 'light';
+
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       {/* Header */}

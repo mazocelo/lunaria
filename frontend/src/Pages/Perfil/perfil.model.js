@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/theme.jsx';
 import { apiClient } from '../../services/ApiClient';
 
 export const usePerfilModel = () => {
   const { user, updateUser } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const isLight = theme === 'light';
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -114,7 +111,6 @@ export const usePerfilModel = () => {
     savingPassword,
     error,
     successMessage,
-    isLight,
     setNome,
     setEmail,
     setBio,
@@ -126,6 +122,5 @@ export const usePerfilModel = () => {
     setConfirmarSenha,
     salvarPerfil,
     alterarSenha,
-    toggleTheme,
   };
 };

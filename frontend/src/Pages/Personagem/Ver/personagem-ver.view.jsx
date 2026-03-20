@@ -11,6 +11,7 @@ import {
   Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus, Crown, Shield,
   Wand2, Volume2, Download, Check
 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const atributosConfig = [
   { key: 'forca', label: 'Forca', icon: Swords },
@@ -99,7 +100,6 @@ const VerPersonagemView = ({
   evolucao,
   loading,
   error,
-  isLight,
   navigate,
   distribuindo,
   pontosParaDistribuir,
@@ -121,6 +121,8 @@ const VerPersonagemView = ({
   gerarAudioBackground,
   clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   if (loading) {

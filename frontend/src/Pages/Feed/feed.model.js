@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useFeedStore } from '../../store/feed/index.js';
 import { feedService } from '../../services';
 
 export const useFeedModel = () => {
-  const { theme } = useTheme();
   const { user } = useAuth();
-  const isDark = theme === 'dark';
 
   // Feed store
   const posts = useFeedStore(s => s.posts);
@@ -105,7 +102,6 @@ export const useFeedModel = () => {
     newPostVisibility,
     creatingPost,
     error: error || storeError,
-    isDark,
     currentUserId: user?.id,
     setActiveTab,
     setNewPostText,

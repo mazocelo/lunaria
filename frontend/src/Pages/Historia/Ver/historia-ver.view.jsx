@@ -21,6 +21,7 @@ import {
   OPCOES_ORCAMENTO_BEATS,
   VELOCIDADES_NARRATIVA
 } from '../../../utils/historiaConfig.js';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const CopyInviteLinkButton = ({ historiaId, isLight }) => {
   const [copied, setCopied] = React.useState(false);
@@ -53,7 +54,6 @@ const VerHistoriaView = ({
   historiaAtual,
   loading,
   error,
-  isLight,
   nomesTemas,
   canMutateHistoria,
 
@@ -140,6 +140,9 @@ const VerHistoriaView = ({
   // Utils
   clearError,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const formatDisplayDate = (value) => {
     if (!value) return '-';
     const date = new Date(value);

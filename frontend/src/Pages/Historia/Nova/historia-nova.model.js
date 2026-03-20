@@ -1,17 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useMestreStore } from '../../../store/mestre/index.js';
 import { useHistoriaStore } from '../../../store/historia/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { historiaService } from '../../../services/index.js';
 import { Historia } from '../../../models/Historia.js';
 import { DEFAULT_HISTORIA_CONFIG } from '../../../utils/historiaConfig.js';
 
-export const useHistoriaNovaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
+export const useHistoriaNovaModel = ({ navigate } = {}) => {
 
   // Tema store
   const temas = useTemaStore(s => s.temasAtivos);
@@ -153,7 +148,6 @@ export const useHistoriaNovaModel = () => {
     nomeError,
     loading,
     error,
-    isLight,
     velocidadeNarrativa,
     orcamentoDeBeats,
     maxAcoesPorTurno,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useGameLoading } from '../../contexts/GameLoadingContext';
@@ -16,11 +16,10 @@ import { historiaService } from '../../services/index.js';
  * 4. Salva selecoes no GameLoadingContext
  * 5. Redireciona para /jogo/:id com estado otimizado
  */
-export const useConviteJogoModel = () => {
+export const useConviteJogoModel = ({ navigate } = {}) => {
   const { user } = useAuth();
   const { hideSidebar, openSidebar } = useLayout();
   const { saveSelection, setLoading: setContextLoading, startTransition } = useGameLoading();
-  const navigate = useNavigate();
   const { id } = useParams();
 
   // Estados locais

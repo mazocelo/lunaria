@@ -8,6 +8,7 @@ import {
   OPCOES_ORCAMENTO_BEATS,
   VELOCIDADES_NARRATIVA
 } from '../../../utils/historiaConfig.js';
+import { useTheme } from '../../../contexts/theme.jsx';
 
 const PROMPT_SUGGESTIONS = [
   'Uma maldição antiga desperta em uma floresta proibida. Os aventureiros devem encontrar a fonte antes que ela consuma o reino.',
@@ -30,7 +31,6 @@ const NovaHistoriaView = ({
   nomeError,
   loading,
   error,
-  isLight,
 
   // Options
   temas,
@@ -51,6 +51,9 @@ const NovaHistoriaView = ({
   publica,
   setPublica,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       {/* Header */}

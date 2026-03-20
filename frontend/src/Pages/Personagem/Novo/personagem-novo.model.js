@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { personagemService, historiaService } from '../../../services/index.js';
 import { usePersonagemStore } from '../../../store/personagem';
 import { useVantagemStore } from '../../../store/vantagem';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { Personagem } from '../../../models/Personagem';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
@@ -35,10 +33,7 @@ function toNumericCost(value) {
   return Number(value) || 0;
 }
 
-export const usePersonagemNovoModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
+export const usePersonagemNovoModel = ({ navigate } = {}) => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
 
   // Zustand stores
@@ -354,7 +349,6 @@ export const usePersonagemNovoModel = () => {
     criarPersonagem,
     clearError,
     navigate,
-    isLight,
     imagem,
     setImagem,
   };

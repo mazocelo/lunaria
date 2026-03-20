@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTemaStore } from '../../../store/tema/index.js';
 import { useMestreStore } from '../../../store/mestre/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
 import { historiaService } from '../../../services/index.js';
 import { sessaoService } from '../../../services/index.js';
@@ -40,12 +39,9 @@ export const MODOS_ROTEIRO = [
   { value: 'political', label: 'Político', desc: 'Facções, poder, diplomacia' },
 ];
 
-export const useHistoriaVerModel = () => {
+export const useHistoriaVerModel = ({ navigate } = {}) => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
   const { user } = useAuth();
-  const isLight = theme === 'light';
   const tts = useTTS();
 
   // Tema store
@@ -531,7 +527,6 @@ export const useHistoriaVerModel = () => {
     historiaAtual,
     loading,
     error,
-    isLight,
     nomesTemas,
     canMutateHistoria,
 

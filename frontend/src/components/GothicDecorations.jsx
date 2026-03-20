@@ -87,10 +87,10 @@ const BatSwarm = ({ count = 3, trigger }) => {
             top: `${bat.y}%`,
             left: '-60px',
             animation: `batFlyFast ${bat.duration}s ease-in-out ${bat.delay}s forwards`,
-            opacity: 0.6,
+            opacity: 0.75,
           }}
         >
-          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#8b2020">
+          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#cc3333">
             <ellipse cx="20" cy="12" rx="4" ry="3" />
             <path d="M16 12 Q8 4 2 8 Q6 10 8 12 Q10 14 14 13 Z" />
             <path d="M24 12 Q32 4 38 8 Q34 10 32 12 Q30 14 26 13 Z" />
@@ -132,12 +132,12 @@ const GothicDecorations = () => {
 
       {/* Ambient bats (slow, always — 3 at different heights/speeds) */}
       {[
-        { top: '10%', duration: 30, delay: 3, size: 45, opacity: 0.5 },
-        { top: '22%', duration: 40, delay: 15, size: 38, opacity: 0.4 },
-        { top: '35%', duration: 50, delay: 28, size: 32, opacity: 0.35 },
+        { top: '10%', duration: 30, delay: 3, size: 50, opacity: 0.65 },
+        { top: '22%', duration: 40, delay: 15, size: 42, opacity: 0.55 },
+        { top: '35%', duration: 50, delay: 28, size: 36, opacity: 0.45 },
       ].map((bat, i) => (
         <div key={`amb-${i}`} className="fixed pointer-events-none z-[2]" style={{ top: bat.top, animation: `batFly ${bat.duration}s linear ${bat.delay}s infinite`, opacity: bat.opacity }}>
-          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#8b2020">
+          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#cc3333">
             <ellipse cx="20" cy="12" rx="4" ry="3" />
             <path d="M16 12 Q8 4 2 8 Q6 10 8 12 Q10 14 14 13 Z" />
             <path d="M24 12 Q32 4 38 8 Q34 10 32 12 Q30 14 26 13 Z" />

@@ -1,4 +1,4 @@
-import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import dotenv from 'dotenv';
 import { trackLLMUsage } from '../../services/llmTracker.js';
 import logger from '../../helpers/logger.js';
@@ -13,11 +13,11 @@ dotenv.config();
  */
 export class ResumoAgent {
   constructor() {
-    this.model = new ChatGroq({
-      apiKey: process.env.GROQ_API_KEY,
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    this.model = new ChatGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+      model: 'gemini-2.5-flash-lite',
       temperature: 0.3,
-      maxTokens: 2000
+      maxOutputTokens: 2000,
     });
   }
 

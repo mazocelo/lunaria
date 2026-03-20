@@ -108,7 +108,7 @@ export default class CombatEngine {
           // sem reviver automaticamente personagens que ja estejam com 0 HP.
           const hpNarrativo = Number.isFinite(Number(p.hp_atual)) ? Number(p.hp_atual) : null;
           const hpAtual = (hpNarrativo != null && hpNarrativo < hpMax) ? Math.max(0, hpNarrativo) : hpMax;
-          const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, nivel: p.nivel || 1 });
+          const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, carisma: attrs.carisma || 10, nivel: p.nivel || 1 });
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId),
             hp_max: hpMax,
@@ -475,7 +475,7 @@ export default class CombatEngine {
     // Pick ability or basic attack
     const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
 
-    // Roll attack: d20 + modDEX + bonusNivel vs DC = 8 + target's modAGI
+    // Roll attack: d20 + modDEX + bonusNivel vs DC = 10 + target's modAGI
     const rolagem = Math.floor(Math.random() * 20) + 1;
     const modDEX = Math.floor(((monstro.destreza || 10) - 10) / 2);
     const bonusNivel = Math.floor(((monstro.nivel || 1)) / 2);
@@ -488,7 +488,7 @@ export default class CombatEngine {
     const pc = personagensCompletos[pcId] || personagensCompletos[String(pcId)] || {};
     const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
     const dcBonus = alvoStats.defesaTemporaria?.dcBonus || 0;
-    const dcEsquiva = 8 + Math.floor((agiValue - 10) / 2) + dcBonus;
+    const dcEsquiva = 10 + Math.floor((agiValue - 10) / 2) + dcBonus;
 
     const { acertou, critico } = verificarAcerto(rolagem, totalAtaque, dcEsquiva);
 

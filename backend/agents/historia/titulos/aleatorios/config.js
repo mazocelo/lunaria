@@ -4,16 +4,16 @@ dotenv.config();
 
 // Configurações padrão do modelo para títulos
 export const DEFAULT_MODEL_SETTINGS = {
-    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-    temperature: 0.9, // Mais criativo para títulos
+    model: 'gemini-2.5-flash-lite',
+    temperature: 0.9,
     maxTokens: 2000,
     topP: 0.99,
     language: 'pt-br',
 };
 
-// Configurações da API
 export const API_CONFIG = {
     groqApiKey: process.env.GROQ_API_KEY,
+    googleApiKey: process.env.GOOGLE_API_KEY,
 };
 
 // Configurações de geração de títulos

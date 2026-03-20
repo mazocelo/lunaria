@@ -272,20 +272,20 @@ describe('calcularAbsorcao', () => {
 // ── calcularDCEsquiva ──
 
 describe('calcularDCEsquiva', () => {
-  it('AGI 10 → DC 8', () => {
-    expect(calcularDCEsquiva(10)).toBe(8);
+  it('AGI 10 → DC 10', () => {
+    expect(calcularDCEsquiva(10)).toBe(10);
   });
 
-  it('AGI 14 → modAGI=2 → DC 10', () => {
-    expect(calcularDCEsquiva(14)).toBe(10);
+  it('AGI 14 → modAGI=2 → DC 12', () => {
+    expect(calcularDCEsquiva(14)).toBe(12);
   });
 
-  it('AGI 8 → modAGI=-1 → DC 7', () => {
-    expect(calcularDCEsquiva(8)).toBe(7);
+  it('AGI 8 → modAGI=-1 → DC 9', () => {
+    expect(calcularDCEsquiva(8)).toBe(9);
   });
 
-  it('AGI undefined → usa 10 como default → DC 8', () => {
-    expect(calcularDCEsquiva(undefined)).toBe(8);
+  it('AGI undefined → usa 10 como default → DC 10', () => {
+    expect(calcularDCEsquiva(undefined)).toBe(10);
   });
 });
 

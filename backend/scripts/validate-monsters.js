@@ -45,16 +45,15 @@ function validateMonster(m) {
     warnings.push(`hp_base ${m.hp_base} != expected ${expectedHP} (mult=${m.mult_raca}, nv=${m.nivel_min}, modCON=${modCON})`);
   }
 
-  // 3. DC Esquiva consistency
-  const modAGI = calcMod(m.agilidade);
-  const expectedDC = 8 + modAGI;
-  if (m.defesa_base && Math.abs(m.defesa_base - expectedDC) > 2) {
-    warnings.push(`defesa_base ${m.defesa_base} != expected DC ${expectedDC}`);
+  // 3. Defense consistency (10 + modCON + armadura_natural)
+  const expectedDEF = 10 + modCON + (m.armadura_natural || 0);
+  if (m.defesa_base && Math.abs(m.defesa_base - expectedDEF) > 2) {
+    warnings.push(`defesa_base ${m.defesa_base} != expected ${expectedDEF} (modCON=${modCON}, arm=${m.armadura_natural || 0})`);
   }
 
-  // 4. Attack consistency
-  const modDEX = calcMod(m.destreza);
-  const expectedATK = modDEX + Math.floor(m.nivel_min / 2);
+  // 4. Attack consistency (modFOR + floor(nivel/3))
+  const modFOR = calcMod(m.forca);
+  const expectedATK = modFOR + Math.floor(m.nivel_min / 3);
   if (m.ataque_base != null && Math.abs(m.ataque_base - expectedATK) > 2) {
     warnings.push(`ataque_base ${m.ataque_base} != expected ${expectedATK}`);
   }

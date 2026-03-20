@@ -214,13 +214,15 @@ export function calcularHP(personagem, multRaca = 5) {
 
 /**
  * Calcula mana maxima de um personagem
- * Formula: 10 + nivel + modInteligencia * 2
+ * Formula: 10 + nivel + max(modINT, modCHA) * 2
  */
 export function calcularMana(personagem) {
   const inteligencia = personagem.inteligencia || 10;
   const nivel = personagem.nivel || 1;
   const modInt = Math.floor((inteligencia - 10) / 2);
-  return Math.max(5, 10 + nivel + modInt * 2);
+  const modCha = Math.floor(((personagem.carisma || 10) - 10) / 2);
+  const modCaster = Math.max(modInt, modCha);
+  return Math.max(5, 10 + nivel + modCaster * 2);
 }
 
 function parseDiceNotation(notacao) {
@@ -256,7 +258,7 @@ function applyOpenRollDamage(rawDamage, { critico = false, armadura = 0 } = {}) 
   return Math.max(Math.ceil(danoBase * 0.25), danoBase - (Number(armadura) || 0));
 }
 
-function buildAttackBonus(pc = {}, jogadorStats = {}, statusEfeitos = []) {
+function buildAttackBonus(pc = {}, jogadorStats = {}, statusEfeitos = [], { isRanged = false } = {}) {
   const attrs = pc.atributos || {};
   const modDEX = Math.floor(((attrs.destreza || 10) - 10) / 2);
   const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
@@ -267,7 +269,9 @@ function buildAttackBonus(pc = {}, jogadorStats = {}, statusEfeitos = []) {
 
   return {
     bonusAtaque: modDEX + bonusNivel + bonusAtaqueEquip - penalidadeCego,
+    modDano: isRanged ? modDEX : modForca,
     modForca,
+    modDEX,
     penalidadeCego,
     bonusDanoEquip: jogadorStats.bonusDano || 0
   };
@@ -283,9 +287,9 @@ function buildAttackTestRequest({
   elemento = null,
   extraPendingAction = {}
 } = {}) {
-  // DC = 8 + modAGI (dodge DC based on target's agility)
+  // DC = 10 + modAGI (dodge DC based on target's agility)
   const modAGI = Math.floor(((monstroAlvo?.agilidade || 10) - 10) / 2);
-  const dcEsquiva = 8 + modAGI;
+  const dcEsquiva = 10 + modAGI;
   // Fallback: use dc_esquiva if already computed on instance, else monstroAlvo.defesa for legacy
   const defesaAlvo = monstroAlvo?.dc_esquiva ?? dcEsquiva;
   return {
@@ -426,7 +430,7 @@ export function calcularArmadura(bonusEquip = {}) {
 }
 
 /**
- * @deprecated O sistema de esquiva por % foi substituído pelo sistema DC (8 + modAGI).
+ * @deprecated O sistema de esquiva por % foi substituído pelo sistema DC (10 + modAGI).
  * A função verificarAcerto já lida com o desvio via DC. Esta função não deve ser usada
  * em novos fluxos de combate.
  *
@@ -455,7 +459,7 @@ export function calcularStatsEfetivos(monstro, nivelEfetivo) {
 
   return {
     hp_max: mult * (n + Math.max(1, modCON)),
-    dc_esquiva: 8 + modAGI,
+    dc_esquiva: 10 + modAGI,
     ataque: modDEX + Math.floor(n / 2),
     armadura: armNat,
     constituicao: monstro.constituicao || 10,
@@ -553,13 +557,13 @@ export function calcularAbsorcao(constituicao, armadura = 0) {
 
 /**
  * Calcula DC de esquiva baseada em AGI do alvo.
- * DC = 8 + modAGI
+ * DC = 10 + modAGI
  * @param {number} agilidade - Valor de agilidade do alvo
  * @returns {number} DC de esquiva
  */
 export function calcularDCEsquiva(agilidade) {
   const modAGI = Math.floor(((agilidade || 10) - 10) / 2);
-  return 8 + modAGI;
+  return 10 + modAGI;
 }
 
 /**
@@ -700,7 +704,7 @@ function _gerarStatsGenericos(nivel, tipo) {
   return {
     hp_max: Math.round(baseHP + (n * 5)),
     ataque: Math.round(Math.floor(n / 2)),
-    dc_esquiva: 8, // AGI 10 → modAGI 0 → DC 8
+    dc_esquiva: 10, // AGI 10 → modAGI 0 → DC 10
     armadura: Math.round(Math.floor(n * 0.3)),
     dano_base: n <= 3 ? '1d6' : n <= 6 ? '1d8' : '1d10',
     xp: 50 * n
@@ -753,7 +757,7 @@ export function formatarContextoCombate(combateState, userId) {
   const jogadorHP = combateState.jogadores[userId];
   const manaStr = jogadorHP?.mana_atual != null ? ` | Mana ${jogadorHP.mana_atual}/${jogadorHP.mana_max}` : '';
   const jogadorInfo = jogadorHP
-    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max}${manaStr} | DC Esquiva ${8 + Math.floor(((jogadorHP.agilidade || 10) - 10) / 2)} | Armadura ${jogadorHP.armadura || 0}`
+    ? `HP ${jogadorHP.hp_atual}/${jogadorHP.hp_max}${manaStr} | DC Esquiva ${10 + Math.floor(((jogadorHP.agilidade || 10) - 10) / 2)} | Armadura ${jogadorHP.armadura || 0}`
     : 'HP desconhecido';
 
   // HP e status de todos os aliados (excluindo o jogador atual)
@@ -966,9 +970,9 @@ function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, stat
 
   const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
   const pc = snapshot.personagem || {};
-  const { bonusAtaque, modForca, bonusDanoEquip } = buildAttackBonus(pc, jogadorStats, statusEfeitos);
+  const { bonusAtaque, modDano, bonusDanoEquip } = buildAttackBonus(pc, jogadorStats, statusEfeitos);
   const danoBase = jogadorStats.dano_base || (pc.nivel >= 5 ? '1d8' : '1d6');
-  const damageNotation = buildDiceNotation(danoBase, modForca + bonusDanoEquip);
+  const damageNotation = buildDiceNotation(danoBase, modDano + bonusDanoEquip);
 
   return {
     requerTeste: buildAttackTestRequest({

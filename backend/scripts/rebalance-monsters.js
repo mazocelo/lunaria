@@ -117,7 +117,7 @@ let model;
 function getModel() {
   if (!model) {
     model = new ChatGoogleGenerativeAI({
-      model: 'gemini-3.1-pro-preview',
+      model: process.env.REBALANCE_MODEL || 'gemini-2.5-flash-lite',
       apiKey: API_KEY,
       temperature: 0.3,
       maxOutputTokens: 4000,

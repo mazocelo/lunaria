@@ -37,29 +37,13 @@ const SpiderWeb = ({ side = 'left', position = 'top', size = 140 }) => {
 
 // Bat SVG — more detailed with wing membrane lines
 const BatSvg = ({ size = 50, color = '#cc3333' }) => (
-  <svg width={size} height={size * 0.55} viewBox="0 0 60 33" className="gothic-bat-wings">
+  <svg width={size} height={size * 0.45} viewBox="0 0 60 27">
     {/* Body */}
-    <ellipse cx="30" cy="18" rx="5" ry="4" fill={color} />
-    {/* Head */}
-    <circle cx="30" cy="12" r="3.5" fill={color} />
-    {/* Eyes */}
-    <circle cx="28.5" cy="11.5" r="0.8" fill="#ff4444" opacity="0.8" />
-    <circle cx="31.5" cy="11.5" r="0.8" fill="#ff4444" opacity="0.8" />
-    {/* Ears */}
-    <path d="M27 9 L25.5 4 L28 8 Z" fill={color} />
-    <path d="M33 9 L34.5 4 L32 8 Z" fill={color} />
+    <ellipse cx="30" cy="14" rx="4" ry="3" fill={color} />
     {/* Left wing */}
-    <path d="M25 17 Q15 6 3 12 Q8 14 10 17 Q12 20 16 19 Q18 18 20 19 Q22 20 24 18 Z" fill={color} opacity="0.9" />
-    {/* Left wing membrane lines */}
-    <line x1="25" y1="17" x2="8" y2="13" stroke={color} strokeWidth="0.4" opacity="0.5" />
-    <line x1="25" y1="17" x2="14" y2="14" stroke={color} strokeWidth="0.3" opacity="0.4" />
+    <path d="M26 14 Q16 5 3 10 Q8 12 11 15 Q14 17 18 16 Q22 15 25 14 Z" fill={color} opacity="0.85" />
     {/* Right wing */}
-    <path d="M35 17 Q45 6 57 12 Q52 14 50 17 Q48 20 44 19 Q42 18 40 19 Q38 20 36 18 Z" fill={color} opacity="0.9" />
-    {/* Right wing membrane lines */}
-    <line x1="35" y1="17" x2="52" y2="13" stroke={color} strokeWidth="0.4" opacity="0.5" />
-    <line x1="35" y1="17" x2="46" y2="14" stroke={color} strokeWidth="0.3" opacity="0.4" />
-    {/* Tail */}
-    <path d="M28 22 Q30 26 32 22" fill="none" stroke={color} strokeWidth="0.6" />
+    <path d="M34 14 Q44 5 57 10 Q52 12 49 15 Q46 17 42 16 Q38 15 35 14 Z" fill={color} opacity="0.85" />
   </svg>
 );
 

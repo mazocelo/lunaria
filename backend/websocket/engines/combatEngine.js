@@ -491,9 +491,9 @@ export default class CombatEngine {
 
       if (!esquivou) {
         const danoBase = habilidade?.dano || monstro.dano_base || '1d6';
-        const danoRolado = rolarDado(typeof danoBase === 'string' ? danoBase : '1d6');
         const modForca = Math.floor(((monstro.forca || 10) - 10) / 2);
-        dano = calcularDano(danoRolado, modForca, critico, alvoStats.armadura || 0);
+        // calcularDano rola o dado internamente — passar notação, não valor rolado
+        dano = calcularDano(danoBase, modForca, critico, alvoStats.armadura || 0);
 
         log.warn({ danoBase, danoRolado, modForca, critico, armadura: alvoStats.armadura, danoFinal: dano }, 'MONSTER_TURN: damage calc');
 

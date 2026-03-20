@@ -455,7 +455,10 @@ export default class TestEngine {
 
           // Processar eventos de combate pós-teste (contra-ataques, fim de combate, etc.)
           if (resultadosCombatePosTeste) {
+            log.warn({ combateFinalizado: resultadosCombatePosTeste.combateFinalizado, resultadoCombate: resultadosCombatePosTeste.resultadoCombate, hasCombatePreResolvido: !!sessao._combatePreResolvido }, 'testEngine: calling _processPostTestCombat');
             await _processPostTestCombat(sm, roomId, acaoPendenteCombate, username, interpretacao.narracao, sessao);
+          } else {
+            log.warn({ hasAcaoPendente: !!acaoPendenteCombate, combateAtivo: !!sessao.estadoJogo?.combate?.ativo }, 'testEngine: skipped _processPostTestCombat');
           }
 
           // Despachar resposta pós-teste para detectar combate_inicio/fallback na narração

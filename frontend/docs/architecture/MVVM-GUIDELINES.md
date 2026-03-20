@@ -1,4 +1,4 @@
-# Arquitetura MVVM — Lunaria Frontend
+# Arquitetura MVV — Lunaria Frontend
 
 ## Visao Geral
 
@@ -6,78 +6,66 @@ Cada pagina/feature segue o padrao **Model → ViewModel → View** com responsa
 
 ```
 Model (.model.js)          ViewModel (index.jsx)          View (.view.jsx)
-Estado puro + sync    →    Logica de negocio         →    Render puro
-Dados crus + setters       Transformacao + regras         Valores finais
-API calls, stores          Handlers, derivados            Zero logica
+Estado + entidade     →    Orquestracao pura         →    Apresentacao completa
+Fetch, normalize,          Handlers, navegacao,           Tema, JSX, badges,
+metodos da entidade        logica de negocio              sections, stats, CSS
 ```
 
 ---
 
 ## Model (`*.model.js`)
 
-O Model e um **hook de estado puro**. Sua unica responsabilidade e manter dados atualizados.
+O Model e o **dono da entidade**. Gerencia estado, sincronizacao com API/stores, e normaliza dados crus em formato limpo.
 
 ### DEVE conter:
 - `useState` para estado local
-- `useEffect` para fetch de dados (API calls)
-- Sincronizacao com Zustand stores
-- Setters de estado (`setNome`, `setFiltro`, etc.)
-- Loading/error states
+- `useEffect` / `useCallback` para fetch
+- Normalizacao de dados da API (snake_case → camelCase, arrays safe, JSON parse)
+- Resolucao de relacoes (`.raridade_rel?.nome` → `raridade`)
+- Derivados da entidade (contagens, agrupamentos, configs de dados)
+- Metodos da entidade (recarregar, deletar, atualizar)
+- `useParams` para ID da rota
 
 ### NAO DEVE conter:
-- Logica de negocio (validacao, calculos, regras)
-- Formatacao de dados (`formatJson`, `formatBonus`)
-- Concerns de navegacao (`navigate`, `generateRoute`)
-- Concerns de tema (`isLight`, `useTheme`)
-- Handlers complexos (delete com modal, multi-step flows)
-- Derivados computados (filtragem, ordenacao, agrupamento)
+- `useNavigate` (navegacao e orquestracao, vive no ViewModel)
+- `useTheme` (tema e apresentacao, vive na View)
+- JSX ou classes CSS
+- Handlers de UI (modals, confirmacoes)
 
 ### Exemplo:
 
 ```javascript
-// monstro-lista.model.js
-export const useMonstroListaModel = () => {
-  const [monstros, setMonstros] = useState([]);
+// monstro-ver.model.js
+export const useMonstroVerModel = () => {
+  const { id } = useParams();
+  const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
-  const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    fetchMonstros();
-  }, [currentPage, pageSize]);
-
-  const fetchMonstros = async () => {
+  const carregar = useCallback(() => {
+    if (!id) return;
     setLoading(true);
-    try {
-      const res = await monstroService.getAll({ page: currentPage, limit: pageSize });
-      setMonstros(res.data);
-      setTotalCount(res.pagination.total);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    monstroService.getById(id)
+      .then(res => setRaw(res.data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  return {
-    // Estado cru
-    monstros,
-    loading,
-    error,
-    searchTerm,
-    currentPage,
-    pageSize,
-    totalCount,
-    // Setters
-    setSearchTerm,
-    setCurrentPage,
-    setPageSize,
-    setError,
-    recarregar: fetchMonstros,
-  };
+  useEffect(() => { carregar(); }, [carregar]);
+
+  // Normalizacao: dados crus → formato limpo
+  const monstro = raw ? {
+    id: raw.id,
+    nome: raw.nome,
+    raridade: raw.raridade_rel?.nome || 'Comum',
+    raridadeConfig: getRaridadeConfig(raridade),
+    tipos: Array.isArray(raw.tipo) ? raw.tipo : [],
+    habilidades: normalizarHabilidades(formatJson(raw.habilidades)),
+    atributos: { forca: raw.forca || 0, ... },
+    combate: { hpBase: raw.hp_base, ... },
+  } : null;
+
+  return { id, monstro, loading, error, setError, recarregar: carregar };
 };
 ```
 
@@ -85,204 +73,136 @@ export const useMonstroListaModel = () => {
 
 ## ViewModel (`index.jsx`)
 
-O ViewModel e o **cerebro da pagina**. Conecta Model e View, aplicando toda logica de negocio.
+O ViewModel e o **orquestrador**. Conecta Model e View, fornece handlers e logica de negocio pura.
 
 ### DEVE conter:
 - Importar e chamar o Model (hook de dados)
-- Logica de negocio (validacao, regras, calculos)
-- Transformacao de dados para exibicao (formatacao, derivados)
-- Resolucao de tema (`isLight`)
-- Navegacao (`navigate`, `generateRoute`)
-- Handlers de UI (modals, confirmacoes, actions)
-- Filtragem, ordenacao, agrupamento de dados
-- Montagem de props formatadas para a View
+- `useNavigate` e handlers de navegacao
+- Logica de negocio pura (validacoes, regras, permissoes)
+- Decisoes de fluxo (redirect se nao autorizado, etc.)
 
 ### NAO DEVE conter:
-- JSX de apresentacao (esse e o papel da View)
-- CSS classes ou estilos
-- Estado bruto de API (vem do Model)
+- JSX de apresentacao (badges, sections, cards)
+- Classes CSS ou `isLight`
+- `useTheme`
+- Montagem de arrays de sections/stats
+- Formatacao visual
 
 ### Exemplo:
 
 ```javascript
 // index.jsx (ViewModel)
-import { useMonstroListaModel } from './monstro-lista.model';
-import MonstroListaView from './monstro-lista.view';
-
-export default function MonstroListaPage() {
-  const model = useMonstroListaModel();
-  const { theme } = useTheme();
+export default function MonstroVerPage() {
+  const model = useMonstroVerModel();
   const navigate = useNavigate();
-  const isLight = theme === 'light';
 
-  // --- Logica de negocio ---
-
-  // Filtragem por busca
-  const filteredMonstros = useMemo(() => {
-    if (!model.searchTerm.trim()) return model.monstros;
-    const term = model.searchTerm.toLowerCase();
-    return model.monstros.filter(m =>
-      m.nome.toLowerCase().includes(term)
-    );
-  }, [model.monstros, model.searchTerm]);
-
-  // Contagem por raridade
-  const raridades = useMemo(() => {
-    const counts = {};
-    model.monstros.forEach(m => {
-      const r = m.raridade_rel?.nome || 'Comum';
-      counts[r] = (counts[r] || 0) + 1;
-    });
-    return counts;
-  }, [model.monstros]);
-
-  // --- Handlers ---
-
-  const handleVerMonstro = (id) => navigate(generateRoute.verMonstro(id));
-  const handleEditarMonstro = (id) => navigate(generateRoute.editarMonstro(id));
-
-  // --- Transformacao para View ---
-  // A View recebe valores PRONTOS, sem precisar processar nada
+  const handleBack = () => navigate(ROUTES.MONSTROS);
+  const handleEdit = () => {
+    if (model.monstro) navigate(generateRoute.editarMonstro(model.monstro.id));
+  };
 
   return (
-    <MonstroListaView
-      // Dados prontos
-      monstros={filteredMonstros}
-      totalCount={model.totalCount}
-      raridades={raridades}
-      // Estado de UI
+    <VerMonstroView
+      monstro={model.monstro}
       loading={model.loading}
       error={model.error}
-      isLight={isLight}
-      // Paginacao
-      currentPage={model.currentPage}
-      pageSize={model.pageSize}
-      onPageChange={model.setCurrentPage}
-      onPageSizeChange={model.setPageSize}
-      // Handlers prontos
-      onSearch={model.setSearchTerm}
-      onClearError={() => model.setError(null)}
-      onVerMonstro={handleVerMonstro}
-      onEditarMonstro={handleEditarMonstro}
+      onBack={handleBack}
+      onEdit={handleEdit}
     />
   );
 }
 ```
 
+O ViewModel e **curto**. Se esta ficando grande, provavelmente esta fazendo trabalho de Model ou de View.
+
 ---
 
 ## View (`*.view.jsx`)
 
-A View e **render puro**. Recebe valores finais e renderiza.
+A View e dona da **apresentacao completa**. Recebe dados normalizados do Model (via ViewModel) e constroi toda a UI.
 
 ### DEVE conter:
-- JSX de apresentacao
-- Componentes visuais (Badge, Card, Button)
+- `useTheme` para resolver `isLight`
+- Montagem de JSX (badges, sections, stats, cards)
+- Escolha de icones, cores, classes CSS
+- Componentes visuais (Badge, ChipGroup, AtributoBar)
 - Layout e responsividade
-- Animacoes CSS
+- Estado visual local (tooltips, gallery, accordion)
 
 ### NAO DEVE conter:
-- `useState` (exceto estado visual local como tooltips, dropdowns abertos)
-- `useEffect`
-- `useMemo` com logica de negocio
-- Formatacao de dados (`formatJson`, `.filter()`, `.map()` de transformacao)
-- `useTheme()` (recebe `isLight` pronto do ViewModel)
-- `useNavigate()` (recebe handlers prontos)
-- Condicionais de negocio (`if (pontosCriacao < 0)`)
-
-### Estado visual local permitido:
-- `useState` para: tooltip aberto, accordion expandido, tab ativa, gallery index
-- Esses sao estados puramente visuais que nao afetam logica de negocio
+- Fetch de dados ou `useEffect` de API
+- `useNavigate` (recebe handlers prontos)
+- Transformacao/normalizacao de dados (vem pronto do Model)
+- `formatJson`, `Array.isArray()` checks, `?.nome || 'default'`
 
 ### Exemplo:
 
 ```javascript
-// monstro-lista.view.jsx (View pura)
-const MonstroListaView = ({
-  monstros,
-  totalCount,
-  raridades,
-  loading,
-  error,
-  isLight,
-  currentPage,
-  pageSize,
-  onPageChange,
-  onPageSizeChange,
-  onSearch,
-  onClearError,
-  onVerMonstro,
-}) => {
-  // Unico estado permitido: visual local
-  const [galleryIndex, setGalleryIndex] = useState(null);
+// monstro-ver.view.jsx
+const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
-  if (loading) return <Skeleton />;
+  if (loading || error || !m) {
+    return <CatalogDetailLayout loading={loading} error={error} ... />;
+  }
+
+  // View monta toda a apresentacao
+  const badges = [ ... ];
+  const sections = [ ... ];
+  const stats = [ ... ];
 
   return (
-    <div>
-      <PageHeader title="Monstros" />
-      <SearchBar onChange={onSearch} />
-      <div className="grid grid-cols-4 gap-4">
-        {monstros.map(m => (
-          <CatalogCard
-            key={m.id}
-            title={m.nome}
-            image={m.imagem}
-            onClick={() => onVerMonstro(m.id)}
-          />
-        ))}
-      </div>
-    </div>
+    <CatalogDetailLayout
+      title={m.nome}
+      badges={badges}
+      sections={sections}
+      stats={stats}
+      onBack={onBack}
+      onEdit={onEdit}
+    />
   );
 };
 ```
 
 ---
 
-## Regras de Ouro
+## Testes Mentais
 
-### 1. Teste mental: "A View sabe o que e um monstro?"
-Se a View precisa saber a estrutura do dado (`.raridade_rel?.nome`), a transformacao deveria estar no ViewModel.
+### "Quem sabe o formato da API?"
+So o Model. Se a View ou ViewModel acessa `.raridade_rel?.nome` ou faz `Array.isArray(m.tipo)`, a normalizacao deveria estar no Model.
 
-### 2. Teste mental: "O Model sabe que cor usar?"
-Se o Model retorna `isLight` ou classes CSS, isso deveria estar no ViewModel.
+### "Quem sabe que cor usar?"
+So a View. Se o Model ou ViewModel retorna classes CSS ou `isLight`, isso deveria estar na View.
 
-### 3. Teste mental: "O ViewModel renderiza algo?"
-Se o ViewModel tem JSX, esse JSX deveria estar na View.
+### "Quem decide pra onde navegar?"
+So o ViewModel. Se o Model tem `useNavigate` ou a View chama `navigate()`, isso deveria estar no ViewModel.
 
-### 4. Props devem ser agrupadas por dominio
-```javascript
-// Ruim: 40 props flat
-<View nome={nome} racaId={racaId} racaNome={racaNome} classeId={classeId} ... />
+### "O ViewModel esta grande?"
+Se o ViewModel tem mais de 30-40 linhas, provavelmente esta fazendo trabalho de Model (normalizacao) ou de View (montagem de JSX).
 
-// Bom: props agrupadas
-<View
-  character={{ nome, raca: racaNome, classe: classeNome }}
-  stats={{ hp, ataque, defesa }}
-  actions={{ onSave, onDelete, onEdit }}
-  ui={{ isLight, loading, error }}
-/>
+---
+
+## Fluxo de Dados
+
 ```
-
-### 5. Handlers devem ser resolvidos no ViewModel
-```javascript
-// Ruim: View recebe navigate e generateRoute e monta o handler
-onClick={() => navigate(generateRoute.verMonstro(row.id))}
-
-// Bom: View recebe handler pronto
-onClick={() => onVerMonstro(row.id)}
+API Response (snake_case, nulls, raw JSON)
+    ↓
+Model (normaliza → camelCase, defaults, arrays safe, relacoes resolvidas)
+    ↓
+ViewModel (adiciona handlers de navegacao, logica de negocio)
+    ↓
+View (resolve tema, monta badges/sections/stats como JSX, renderiza)
 ```
 
 ---
 
 ## Migracao Gradual
 
-Nao e necessario refatorar tudo de uma vez. Para cada pagina tocada:
+Para cada pagina tocada:
 
-1. Identificar o que no `.model.js` e logica de negocio vs estado puro
-2. Mover logica de negocio para o `index.jsx` (ViewModel)
-3. Mover formatacao/derivados da `.view.jsx` para o ViewModel
-4. Limpar o Model para ficar so com estado + sync
-5. Limpar a View para ficar so com render
-
-Prioridade: paginas que vao ser modificadas a seguir naturalmente passam pelo refactor.
+1. Mover normalizacao de dados (formatJson, Array.isArray, ?.nome) da View/ViewModel pro Model
+2. Mover montagem de JSX (badges, sections, stats) do ViewModel pra View
+3. Mover useNavigate/handlers do Model pro ViewModel
+4. Mover useTheme/isLight do ViewModel pra View
+5. O ViewModel deve ficar curto (< 30 linhas ideal)

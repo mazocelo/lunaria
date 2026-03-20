@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/theme.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { useLayout } from '../contexts/LayoutContext';
-import { Sun, Moon, Bell, BellRing, BellOff, LogOut, User, ChevronDown, Settings, PanelLeftClose, PanelLeft, Volume2, VolumeX } from 'lucide-react';
+import { Sun, Moon, Skull, Bell, BellRing, BellOff, LogOut, User, ChevronDown, Settings, PanelLeftClose, PanelLeft, Volume2, VolumeX } from 'lucide-react';
 import { isSoundEnabled, toggleSound } from '../utils/audio.js';
 import { isNotificationsEnabled, requestPermission, getPermissionState, setNotificationsEnabled } from '../utils/notifications.js';
 
@@ -91,9 +91,9 @@ const TopHeader = ({ notificationCount, onOpenNotifications }) => {
         <button
           onClick={toggleTheme}
           className={`icon-btn ${isLight ? 'text-slate-600' : 'text-slate-400'}`}
-          aria-label="Alternar tema"
+          aria-label={theme === 'light' ? 'Mudar para tema escuro' : theme === 'dark' ? 'Mudar para tema gótico' : 'Mudar para tema claro'}
         >
-          {isLight ? <Sun size={20} /> : <Moon size={20} />}
+          {theme === 'light' ? <Sun size={20} /> : theme === 'dark' ? <Moon size={20} /> : <Skull size={20} />}
         </button>
 
         {/* Notifications */}

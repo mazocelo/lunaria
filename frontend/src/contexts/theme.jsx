@@ -16,10 +16,11 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.remove('dark', 'gothic');
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    } else if (theme === 'gothic') {
+      document.documentElement.classList.add('dark', 'gothic');
     }
   }, [theme]);
 
@@ -37,7 +38,7 @@ export const ThemeProvider = ({ children }) => {
 
   const toggleTheme = () => {
     setTheme((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
+      const next = prev === 'light' ? 'dark' : prev === 'dark' ? 'gothic' : 'light';
       localStorage.setItem('theme', next);
       return next;
     });

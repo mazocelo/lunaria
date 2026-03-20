@@ -231,13 +231,15 @@ function applyOpenRollDamage(rawDamage, { critico = false, armadura = 0 } = {}) 
 
 function buildAttackBonus(pc = {}, jogadorStats = {}, statusEfeitos = []) {
   const attrs = pc.atributos || {};
+  const modDEX = Math.floor(((attrs.destreza || 10) - 10) / 2);
   const modForca = Math.floor(((attrs.forca || 10) - 10) / 2);
+  const bonusNivel = Math.floor((pc.nivel || 1) / 2);
   const bonusAtaqueEquip = jogadorStats.bonusAtaque || 0;
   const penalidadeCego = Object.entries(STATUS_PENALIDADE_ATAQUE)
     .reduce((acc, [nome, val]) => statusEfeitos.some((efeito) => efeito.nome === nome) ? acc + val : acc, 0);
 
   return {
-    bonusAtaque: modForca + Math.min(2, Math.floor((pc.nivel || 1) / 6)) + bonusAtaqueEquip - penalidadeCego,
+    bonusAtaque: modDEX + bonusNivel + bonusAtaqueEquip - penalidadeCego,
     modForca,
     penalidadeCego,
     bonusDanoEquip: jogadorStats.bonusDano || 0
@@ -254,7 +256,11 @@ function buildAttackTestRequest({
   elemento = null,
   extraPendingAction = {}
 } = {}) {
-  const defesaAlvo = monstroAlvo?.defesa || 10;
+  // DC = 8 + modAGI (dodge DC based on target's agility)
+  const modAGI = Math.floor(((monstroAlvo?.agilidade || monstroAlvo?.esquiva || 10) - 10) / 2);
+  const dcEsquiva = 8 + modAGI;
+  // Fallback: use dc_esquiva if already computed on instance, else monstroAlvo.defesa for legacy
+  const defesaAlvo = monstroAlvo?.dc_esquiva ?? dcEsquiva;
   return {
     teste: `Ataque em ${monstroAlvo?.nome || 'Alvo'}`,
     atributo: 'Ataque',
@@ -264,7 +270,7 @@ function buildAttackTestRequest({
     tipoDado: 'd20',
     origem: 'combate',
     intentTipo,
-    dificuldadeLabel: `TA ${defesaAlvo}`,
+    dificuldadeLabel: `DC ${defesaAlvo}`,
     metadata: {
       rollKind: 'combat_attack',
       attackBonus: bonusAtaque,
@@ -392,11 +398,12 @@ export function calcularStatsEfetivos(monstro, nivelEfetivo) {
 
   return {
     hp_max: mult * (n + Math.max(1, modCON)),
-    defesa: 10 + modCON + armNat,
-    ataque: modFOR + Math.floor(n / 3),
+    dc_esquiva: 8 + modAGI,
+    ataque: modDEX + Math.floor(n / 2),
     armadura: armNat,
-    esquiva: Math.min(50, Math.max(0, (modAGI + Math.floor(modDEX / 2)) * 5 + Math.floor(n * 0.5))),
+    constituicao: monstro.constituicao || 10,
     dano_base: monstro.dano_base || '1d6',
+    mod_forca: modFOR,
     xp: (monstro.xp_base || 50) * n
   };
 }
@@ -456,23 +463,56 @@ export function verificarAcerto(rolagem, total = null, defesaAlvo = null) {
 }
 
 /**
- * Calcula dano de um ataque
- * Se critico, ignora armadura (dano cheio)
+ * Calcula dano de um ataque.
  * @param {string} dano_base - Notacao do dado (ex: "1d8+2")
- * @param {number} modForca - Modificador de forca
- * @param {boolean} critico - Se acerto critico (2x dano, ignora armadura)
- * @param {number} armadura - Reducao flat de dano do alvo
- * @returns {number} Dano total
+ * @param {number} modForca - Modificador de FOR do atacante
+ * @param {boolean} critico - Se acerto critico (2x dano, ignora absorcao)
+ * @returns {number} Dano total (sem absorcao — tratada separadamente)
  */
-export function calcularDano(dano_base, modForca = 0, critico = false, armadura = 0) {
+export function calcularDano(dano_base, modForca = 0, critico = false) {
   let dano = rolarDado(dano_base) + modForca;
   if (critico) {
     dano *= 2;
-    // Critico ignora armadura
-    return Math.max(1, dano);
   }
-  // Cap: armadura reduz no maximo 75% do dano
-  return Math.max(0, Math.ceil(dano * 0.25), dano - armadura);
+  return Math.max(0, dano);
+}
+
+/**
+ * Rola absorcao (TA) baseada em CON e armadura.
+ * TA = max(0, modCON - 1)d4 + armadura
+ * @param {number} constituicao - Valor de constituicao do alvo
+ * @param {number} armadura - Armadura fixa do alvo
+ * @returns {number} Valor de absorcao rolado
+ */
+export function calcularAbsorcao(constituicao, armadura = 0) {
+  const modCON = Math.floor(((constituicao || 10) - 10) / 2);
+  const dados = Math.max(0, modCON - 1);
+  let absorcao = 0;
+  for (let i = 0; i < dados; i++) {
+    absorcao += Math.floor(Math.random() * 4) + 1; // 1d4
+  }
+  return absorcao + (armadura || 0);
+}
+
+/**
+ * Calcula DC de esquiva baseada em AGI do alvo.
+ * DC = 8 + modAGI
+ * @param {number} agilidade - Valor de agilidade do alvo
+ * @returns {number} DC de esquiva
+ */
+export function calcularDCEsquiva(agilidade) {
+  const modAGI = Math.floor(((agilidade || 10) - 10) / 2);
+  return 8 + modAGI;
+}
+
+/**
+ * Calcula bonus de nivel para ataque em combate.
+ * bonusNivel = floor(nivel / 2)
+ * @param {number} nivel - Nivel do atacante
+ * @returns {number} Bonus de ataque por nivel
+ */
+export function calcularBonusNivelCombate(nivel) {
+  return Math.floor((nivel || 1) / 2);
 }
 
 /**
@@ -545,12 +585,15 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           hp_max: stats.hp_max,
           hp_atual: stats.hp_max,
           ataque: stats.ataque,
-          defesa: stats.defesa,
+          dc_esquiva: stats.dc_esquiva,
           armadura: stats.armadura,
-          esquiva: stats.esquiva,
+          constituicao: stats.constituicao,
           dano_base: stats.dano_base,
+          mod_forca: stats.mod_forca,
           habilidades: monstroBase.habilidades || [],
           forca: monstroBase.forca || 10,
+          destreza: monstroBase.destreza || 10,
+          agilidade: monstroBase.agilidade || 10,
           elemento: monstroBase.elemento || [],
           resistencias: monstroBase.resistencias || {},
           imunidades: monstroBase.imunidades || [],
@@ -570,11 +613,14 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           hp_max: stats.hp_max,
           hp_atual: stats.hp_max,
           ataque: stats.ataque,
-          defesa: stats.defesa,
+          dc_esquiva: stats.dc_esquiva,
           armadura: stats.armadura,
-          esquiva: stats.esquiva,
+          constituicao: 10,
           dano_base: stats.dano_base,
+          mod_forca: Math.floor(nivelEfetivo * 0.25),
           forca: 10 + Math.floor(nivelEfetivo * 0.5),
+          destreza: 10 + Math.floor(nivelEfetivo * 0.25),
+          agilidade: 10,
           habilidades: [],
           elemento: [],
           xp: stats.xp,
@@ -596,10 +642,9 @@ function _gerarStatsGenericos(nivel, tipo) {
   const baseHP = tipo === 'dragao' ? 30 : tipo === 'demonio' ? 25 : 15;
   return {
     hp_max: Math.round(baseHP + (n * 5)),
-    ataque: Math.round(2 + Math.min(2, Math.floor(n / 6))),
-    defesa: Math.round(10 + Math.floor(n * 0.4)),
+    ataque: Math.round(Math.floor(n / 2)),
+    dc_esquiva: 8, // AGI 10 → modAGI 0 → DC 8
     armadura: Math.round(Math.floor(n * 0.3)),
-    esquiva: Math.min(20, Math.round(n * 1.5)),
     dano_base: n <= 3 ? '1d6' : n <= 6 ? '1d8' : '1d10',
     xp: 50 * n
   };
@@ -932,7 +977,12 @@ function _executarContraAtaques(combate, sessao, resultados) {
       } else {
         const danoNotacao = habilidade?.dano || monstro.dano_base;
         const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
-        danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico, alvoStats.armadura || 0);
+        danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico);
+        // Absorption: max(0, modCON-1)d4 + armadura — crits ignore absorption
+        if (!mCritico) {
+          const absorcaoM = calcularAbsorcao(alvoStats.constituicao || 10, alvoStats.armadura || 0);
+          danoMonstro = Math.max(0, danoMonstro - absorcaoM);
+        }
         if (defesaTemporaria?.reducaoDano) {
           danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
         }
@@ -1444,10 +1494,13 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
     }
 
     const danoRolado = Math.max(0, Number(resultadoTeste.total ?? resultadoTeste.rolagemBruta ?? 0));
-    let danoFinal = applyOpenRollDamage(danoRolado, {
-      critico: Boolean(acaoPendente.critico),
-      armadura: Number(acaoPendente.targetArmor || monstroAlvo.armadura || 0)
-    });
+    const critico = Boolean(acaoPendente.critico);
+    let danoFinal = critico ? Math.max(0, danoRolado * 2) : danoRolado;
+    // Apply absorption: max(0, modCON-1)d4 + armadura — crits ignore absorption
+    if (!critico) {
+      const absorcao = calcularAbsorcao(monstroAlvo.constituicao || 10, monstroAlvo.armadura || 0);
+      danoFinal = Math.max(0, danoFinal - absorcao);
+    }
     if (acaoPendente.elemento) {
       danoFinal = aplicarResistencias(danoFinal, acaoPendente.elemento, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
     }

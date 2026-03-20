@@ -11,6 +11,8 @@ import {
   selecionarHabilidadeMonstro,
   verificarAcerto,
   calcularDano,
+  calcularAbsorcao,
+  calcularDCEsquiva,
   rolarDado,
   verificarFimCombate,
   avancarTurno,
@@ -113,7 +115,7 @@ export default class CombatEngine {
             mana_atual: (p.mana_atual != null && p.mana_atual < manaMax) ? p.mana_atual : manaMax,
             esquiva: calcularEsquiva(personagemStats, bonusEquip),
             armadura: calcularArmadura(bonusEquip),
-            bonusAtaque: Math.floor(((attrs.forca || 10) - 10) / 2) + (bonusEquip.ataque || 0),
+            bonusAtaque: Math.floor(((attrs.destreza || 10) - 10) / 2) + (bonusEquip.ataque || 0),
             bonusDano: bonusEquip.dano || 0,
             dano_base: p.melhorArma || (p.equipamentos?.length > 0 ? '1d6' : '1d6-1'),
             elemento: p.elementoArma || null,
@@ -471,27 +473,29 @@ export default class CombatEngine {
     // Pick ability or basic attack
     const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
 
-    // Roll attack vs player defense
+    // Roll attack: d20 + modDEX + bonusNivel vs DC = 8 + target's modAGI
     const rolagem = Math.floor(Math.random() * 20) + 1;
-    const bonusAtaqueMonstro = monstro.ataque || 0;
+    const modDEX = Math.floor(((monstro.destreza || 10) - 10) / 2);
+    const bonusNivel = Math.floor(((monstro.nivel || 1)) / 2);
+    const bonusAtaqueMonstro = modDEX + bonusNivel;
     const totalAtaque = rolagem + bonusAtaqueMonstro;
-    // Defense = 10 + modCON + armadura
-    // modCON comes from the personagem's constituicao
+
+    // Target's dodge DC from AGI
     const personagensCompletos = sessao?.personagensCompletos || {};
     const pcId = alvoStats.personagemId;
     const pc = personagensCompletos[pcId] || personagensCompletos[String(pcId)] || {};
-    const conValue = pc.atributos?.constituicao || pc.constituicao || 10;
-    const modCON = Math.floor((conValue - 10) / 2);
-    const defesaJogador = 10 + modCON + (alvoStats.armadura || 0);
-    const { acertou, critico } = verificarAcerto(rolagem, totalAtaque, defesaJogador);
+    const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
+    const dcEsquiva = 8 + Math.floor((agiValue - 10) / 2);
+
+    const { acertou, critico } = verificarAcerto(rolagem, totalAtaque, dcEsquiva);
 
     let dano = 0;
     let esquivou = false;
 
-    log.warn({ monstroNome: monstro.nome, alvoNome: alvoStats.personagemNome, rolagem, bonusAtaque: bonusAtaqueMonstro, totalAtaque, defesaJogador, acertou, critico, dano_base: monstro.dano_base, habilidadeNome: habilidade?.nome, habilidadeDano: habilidade?.dano }, 'MONSTER_TURN: attack roll');
+    log.warn({ monstroNome: monstro.nome, alvoNome: alvoStats.personagemNome, rolagem, bonusAtaque: bonusAtaqueMonstro, totalAtaque, dcEsquiva, acertou, critico, dano_base: monstro.dano_base, habilidadeNome: habilidade?.nome, habilidadeDano: habilidade?.dano }, 'MONSTER_TURN: attack roll');
 
     if (acertou) {
-      // Check player evasion
+      // Check player evasion (legacy percentual esquiva still applies as fallback)
       const defesaTemp = alvoStats.defesaTemporaria;
       const esquivaExtra = defesaTemp?.esquivaBonus || 0;
       const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
@@ -502,10 +506,18 @@ export default class CombatEngine {
       if (!esquivou) {
         const danoBase = habilidade?.dano || monstro.dano_base || '1d6';
         const modForca = Math.floor(((monstro.forca || 10) - 10) / 2);
-        // calcularDano rola o dado internamente — passar notação, não valor rolado
-        dano = calcularDano(danoBase, modForca, critico, alvoStats.armadura || 0);
+        // calcularDano rola o dado internamente — passar notacao, nao valor rolado
+        dano = calcularDano(danoBase, modForca, critico);
 
-        log.warn({ danoBase, danoFinal: dano, modForca, critico, armadura: alvoStats.armadura }, 'MONSTER_TURN: damage calc');
+        // Absorption: max(0, modCON-1)d4 + armadura — crits ignore absorption
+        let absorcao = 0;
+        if (!critico) {
+          const conAlvo = pc.atributos?.constituicao || pc.constituicao || alvoStats.constituicao || 10;
+          absorcao = calcularAbsorcao(conAlvo, alvoStats.armadura || 0);
+          dano = Math.max(0, dano - absorcao);
+        }
+
+        log.warn({ danoBase, danoFinal: dano, modForca, critico, absorcao }, 'MONSTER_TURN: damage calc');
 
         // Apply damage reduction from defense
         if (defesaTemp?.reducaoDano) {
@@ -531,7 +543,7 @@ export default class CombatEngine {
       rolagem,
       bonusAtaque: bonusAtaqueMonstro,
       totalAtaque,
-      defesaJogador,
+      dcEsquiva,
       acertou: acertou && !esquivou,
       esquivou,
       critico,

@@ -7,6 +7,9 @@ import {
   calcularArmadura,
   verificarEsquiva,
   calcularDano,
+  calcularAbsorcao,
+  calcularDCEsquiva,
+  calcularBonusNivelCombate,
   aplicarResistencias,
   verificarAcerto,
   normalizeCombatLogEntry,
@@ -204,28 +207,105 @@ describe('verificarAcerto', () => {
 // ── calcularDano ──
 
 describe('calcularDano', () => {
-  it('dano basico com armadura reduz', () => {
-    // Com dado fixo, testamos a formula
+  it('dano basico retorna valor positivo', () => {
+    // Nova formula: rola dado + modFOR, sem armadura (absorcao e tratada separadamente)
     for (let i = 0; i < 20; i++) {
-      const dano = calcularDano('1d8', 0, false, 2);
+      const dano = calcularDano('1d8', 0, false);
       expect(dano).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it('critico ignora armadura e dobra dano', () => {
-    // Critico: dano * 2, ignora armadura, min 1
+  it('critico dobra o dano', () => {
+    // Critico: dano * 2, range (1d6+2)*2 = 6-16
     for (let i = 0; i < 20; i++) {
-      const dano = calcularDano('1d6', 2, true, 100);
-      expect(dano).toBeGreaterThanOrEqual(1);
-      // Critico: (1d6 + 2) * 2, range 6-16
+      const dano = calcularDano('1d6', 2, true);
+      expect(dano).toBeGreaterThanOrEqual(6);
       expect(dano).toBeLessThanOrEqual(16);
     }
   });
 
-  it('dano minimo garante pelo menos 25% do dano base', () => {
-    // armadura alta nao pode reduzir alem de 75%
-    const dano = calcularDano('1d4', 0, false, 1000);
-    expect(dano).toBeGreaterThanOrEqual(1);
+  it('dano com modForca positivo aumenta resultado', () => {
+    // 1d4 + 3 = 4-7
+    for (let i = 0; i < 20; i++) {
+      const dano = calcularDano('1d4', 3, false);
+      expect(dano).toBeGreaterThanOrEqual(4);
+      expect(dano).toBeLessThanOrEqual(7);
+    }
+  });
+});
+
+// ── calcularAbsorcao ──
+
+describe('calcularAbsorcao', () => {
+  it('CON 10 → modCON=0, dados=max(0,-1)=0 → apenas armadura', () => {
+    const absorcao = calcularAbsorcao(10, 3);
+    expect(absorcao).toBe(3); // 0d4 + 3
+  });
+
+  it('CON 12 → modCON=1, dados=0 → apenas armadura', () => {
+    const absorcao = calcularAbsorcao(12, 2);
+    expect(absorcao).toBe(2); // max(0,0)=0 dados + 2
+  });
+
+  it('CON 14 → modCON=2, dados=1 → 1d4 + armadura', () => {
+    for (let i = 0; i < 20; i++) {
+      const absorcao = calcularAbsorcao(14, 0);
+      expect(absorcao).toBeGreaterThanOrEqual(1);
+      expect(absorcao).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it('CON 18 → modCON=4, dados=3 → 3d4 + armadura', () => {
+    for (let i = 0; i < 20; i++) {
+      const absorcao = calcularAbsorcao(18, 0);
+      expect(absorcao).toBeGreaterThanOrEqual(3);
+      expect(absorcao).toBeLessThanOrEqual(12);
+    }
+  });
+
+  it('sem armadura usa 0 como default', () => {
+    const absorcao = calcularAbsorcao(10);
+    expect(absorcao).toBe(0); // 0d4 + 0
+  });
+});
+
+// ── calcularDCEsquiva ──
+
+describe('calcularDCEsquiva', () => {
+  it('AGI 10 → DC 8', () => {
+    expect(calcularDCEsquiva(10)).toBe(8);
+  });
+
+  it('AGI 14 → modAGI=2 → DC 10', () => {
+    expect(calcularDCEsquiva(14)).toBe(10);
+  });
+
+  it('AGI 8 → modAGI=-1 → DC 7', () => {
+    expect(calcularDCEsquiva(8)).toBe(7);
+  });
+
+  it('AGI undefined → usa 10 como default → DC 8', () => {
+    expect(calcularDCEsquiva(undefined)).toBe(8);
+  });
+});
+
+// ── calcularBonusNivelCombate ──
+
+describe('calcularBonusNivelCombate', () => {
+  it('nivel 1 → bonus 0', () => {
+    expect(calcularBonusNivelCombate(1)).toBe(0);
+  });
+
+  it('nivel 2 → bonus 1', () => {
+    expect(calcularBonusNivelCombate(2)).toBe(1);
+  });
+
+  it('nivel 5 → bonus 2', () => {
+    expect(calcularBonusNivelCombate(5)).toBe(2);
+  });
+
+  it('nivel undefined → usa 1 → bonus 0', () => {
+    expect(calcularBonusNivelCombate(undefined)).toBe(0);
   });
 });
 

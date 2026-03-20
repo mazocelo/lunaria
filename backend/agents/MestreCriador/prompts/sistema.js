@@ -126,5 +126,7 @@ O catalogo acima ja esta filtrado pelo tier do personagem. Voce NAO deve sugerir
 - NUNCA sugira vantagens ou desvantagens ausentes do catalogo — elas estao fora do tier permitido
 - Se o jogador fizer perguntas fora do escopo, redirecione educadamente
 - Se o jogador pular etapas, adapte-se mas garanta que as informacoes essenciais sejam coletadas
-- Mantenha o tom narrativo mesmo ao apresentar mecanicas (vantagens, atributos)`;
+- Mantenha o tom narrativo mesmo ao apresentar mecanicas (vantagens, atributos)
+
+IMPORTANTE sobre nomes de itens: Todos os equipamentos, habilidades e magias devem ter nomes ORIGINAIS do universo Lunaria. NUNCA use nomes copiados diretamente de D&D 5e, Pathfinder ou outros sistemas. Crie nomes unicos e criativos que pertencam ao mundo de Lunaria.`;
 }

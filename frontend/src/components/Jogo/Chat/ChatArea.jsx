@@ -43,7 +43,7 @@ function groupConsecutiveMessages(mensagens) {
   return groups;
 }
 
-const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, prologo }) => {
+const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, prologo, imagemCapa }) => {
   const chatEndRef = useRef(null);
   const tts = useTTS();
 
@@ -229,7 +229,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {mestreNarrationItems.length > 0 && (
-        <div className="px-6 pt-4">
+        <div className="px-6 pt-4 relative z-10">
           <div className="w-full max-w-4xl mx-auto flex justify-end">
             <div className="flex items-center gap-2">
               <button
@@ -267,6 +267,34 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-6 pb-6">
         <div className="w-full max-w-4xl mx-auto">
           <div className="space-y-5 mb-6">
+            {(prologo || imagemCapa) && (
+              <div className="max-w-[88%] mx-auto animate-fade-in">
+                <div className="game-glass p-5 rounded-2xl border border-purple-500/30 shadow-[0_0_24px_rgba(139,92,246,0.12)] overflow-hidden">
+                  {imagemCapa && (
+                    <img
+                      src={imagemCapa}
+                      alt="Capa da aventura"
+                      className="w-full max-h-72 object-cover rounded-xl border border-purple-500/20 mb-4 select-none caret-transparent"
+                      draggable={false}
+                    />
+                  )}
+                  {prologo && (
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl mt-0.5">{'\u{1F4DC}'}</span>
+                      <div className="flex-1">
+                        <p className="font-fantasy text-xs uppercase tracking-widest text-purple-300/70 mb-2">
+                          Prologo
+                        </p>
+                        <p className="text-white/90 text-base leading-relaxed italic">
+                          {prologo}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {mensagens.length > 0 ? (
               groupedMessages.map((group, idx) => {
                 if (group.type === 'mestre_group') {

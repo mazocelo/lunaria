@@ -60,11 +60,11 @@ const PainelJogadores = ({
 
           <div className="flex-1 min-w-0">
             <div className="text-white font-medium text-sm flex items-center gap-1.5">
-              <span className="truncate">{username || 'Jogador'}</span>
+              <span className="truncate">{personagem || username || 'Jogador'}</span>
               {jogador.isOwner && <Crown size={12} className="text-yellow-400 flex-shrink-0" />}
               {ehUsuarioAtual && <span className="text-purple-400 text-xs flex-shrink-0">(Voce)</span>}
             </div>
-            {personagem && <div className="text-green-300 text-xs truncate">{personagem}</div>}
+            {personagem && <div className="text-purple-300/70 text-xs truncate">{username}</div>}
           </div>
 
           {ehTurnoAtual && <Zap size={16} className="text-cyan-300 animate-pulse flex-shrink-0" />}

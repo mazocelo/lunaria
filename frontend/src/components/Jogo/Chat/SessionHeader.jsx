@@ -23,6 +23,9 @@ const SessionHeader = ({
   tts,
   voiceId,
   voiceProvider,
+  combateAtivo,
+  combateRodada,
+  combateMonstros = [],
 }) => {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [openSceneId, setOpenSceneId] = useState('scene-0');
@@ -49,7 +52,7 @@ const SessionHeader = ({
   const faseLabel = faseJogo === 'rolagem_inicial'
     ? 'Rolagem Inicial'
     : faseJogo === 'rodada_em_andamento'
-      ? `Rodada ${rodadaAtual}`
+      ? combateAtivo ? `R${combateRodada || 1} ⚔` : `Rodada ${rodadaAtual}`
       : 'Aguardando';
 
   const statusLabel = faseJogo === 'rolagem_inicial'
@@ -74,7 +77,7 @@ const SessionHeader = ({
             Seu Turno
           </span>
         )}
-        <span className="text-purple-300/70 text-xs hidden sm:inline">{jogadoresExibir.length} jogadores</span>
+        <span className="text-purple-300/70 text-xs hidden sm:inline">{jogadoresExibir.length} jogador{jogadoresExibir.length !== 1 ? 'es' : ''}</span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -206,15 +209,38 @@ const SessionHeader = ({
                             <div className="flex items-center gap-2">
                               <span className="text-purple-400 font-bold text-sm">#{index + 1}</span>
                               <div>
-                                <p className="text-white text-sm font-semibold">{jogador.username}</p>
+                                <p className="text-white text-sm font-semibold">{jogador.personagemNome || jogador.username}</p>
                                 {jogador.personagemNome && (
-                                  <p className="text-purple-300 text-xs">{jogador.personagemNome}</p>
+                                  <p className="text-purple-300 text-xs">{jogador.username}</p>
                                 )}
                               </div>
                             </div>
                             {index === turnoAtual && faseJogo === 'rodada_em_andamento' && (
                               <span className="text-cyan-400 text-xs font-bold">TURNO</span>
                             )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {combateAtivo && combateMonstros.length > 0 && (
+                    <div className="border-t border-red-500/20 pt-3">
+                      <p className="text-red-300 text-xs font-semibold mb-2">Inimigos</p>
+                      <div className="space-y-1.5">
+                        {combateMonstros.map((m) => (
+                          <div
+                            key={m.id || m.nome}
+                            className={`flex items-center justify-between p-2 rounded-lg game-glass-subtle border ${
+                              m.status === 'derrotado' ? 'border-gray-600/30 opacity-50' : 'border-red-500/20'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-red-400 text-sm">{'\u{1F479}'}</span>
+                              <p className={`text-sm font-semibold ${m.status === 'derrotado' ? 'text-gray-500 line-through' : 'text-red-200'}`}>{m.nome}</p>
+                            </div>
+                            <span className={`text-xs ${m.status === 'derrotado' ? 'text-gray-500' : 'text-red-300'}`}>
+                              {m.status === 'derrotado' ? 'DERROTADO' : `${m.hp_atual ?? '?'}/${m.hp_max ?? m.hp_base ?? '?'}`}
+                            </span>
                           </div>
                         ))}
                       </div>

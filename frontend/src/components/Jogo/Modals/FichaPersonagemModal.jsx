@@ -18,7 +18,10 @@ const FichaPersonagemModal = ({
   personagem,
   loading = false,
   error = null,
-  titulo = 'Ficha do Personagem'
+  titulo = 'Ficha do Personagem',
+  combateAtivo = false,
+  combateJogadores = {},
+  userId = null
 }) => {
   if (!isOpen) return null;
 
@@ -76,6 +79,10 @@ const FichaPersonagemModal = ({
         ? personagem.equipamentos.split(',').map((item) => item.trim()).filter(Boolean)
         : [];
 
+    const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
+    const hpAtual = combateStats?.hp_atual ?? personagem.hp ?? personagem.hp_atual ?? '???';
+    const hpMax = combateStats?.hp_max ?? personagem.hp_max ?? personagem.hp_maximo ?? '?';
+
     return (
       <div className="space-y-6">
         <div className="game-glass border border-cyan-500/30 rounded-2xl p-4">
@@ -102,7 +109,7 @@ const FichaPersonagemModal = ({
               <div className="text-center">
                 <p className="text-xs text-purple-200/70 uppercase tracking-wide">HP</p>
                 <p className="text-2xl font-bold text-red-300">
-                  {personagem.hp ?? personagem.hp_atual ?? '???'} / {personagem.hp_max ?? personagem.hp_maximo ?? '?'}
+                  {hpAtual} / {hpMax}
                 </p>
               </div>
               <div className="text-center">
@@ -122,6 +129,35 @@ const FichaPersonagemModal = ({
                 <p className="text-2xl font-bold text-white">{personagem[atributo.key] ?? '-'}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="game-glass border border-purple-500/20 rounded-2xl p-4">
+          <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wide mb-4">Stats de Combate</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {(() => {
+              const modAGI = Math.floor(((personagem.agilidade || 10) - 10) / 2);
+              const modDEX = Math.floor(((personagem.destreza || 10) - 10) / 2);
+              const modCON = Math.floor(((personagem.constituicao || 10) - 10) / 2);
+              const modFOR = Math.floor(((personagem.forca || 10) - 10) / 2);
+              const nivel = personagem.nivel || 1;
+              const bonusNivel = Math.floor(nivel / 2);
+              const dc = 10 + modAGI;
+              const atk = modDEX + bonusNivel;
+              const ta = Math.max(0, modCON - 1);
+              const dano = modFOR >= 0 ? `+${modFOR}` : `${modFOR}`;
+              return [
+                { label: 'DC Esquiva', value: dc, color: 'text-cyan-300' },
+                { label: 'Ataque', value: `+${atk}`, color: 'text-amber-300' },
+                { label: 'TA', value: ta > 0 ? `${ta}d4` : '0', color: 'text-green-300' },
+                { label: 'Dano', value: `1d6${dano}`, color: 'text-red-300' },
+              ].map((stat) => (
+                <div key={stat.label} className="p-3 rounded-xl game-glass-subtle border border-purple-500/20 text-center">
+                  <p className="text-xs text-purple-200/70 uppercase tracking-wide">{stat.label}</p>
+                  <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+                </div>
+              ));
+            })()}
           </div>
         </div>
 

@@ -9,12 +9,16 @@ const normalizeUses = (item) => {
 };
 
 const dedupeActions = (items = []) => {
-  const seen = new Set();
+  const seenById = new Set();
+  const seenByName = new Set();
   return items.filter((item) => {
     if (!item?.nome) return false;
-    const key = `${isSpellAction(item) ? 'mag' : 'hab'}:${item?.id ?? item.nome}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const prefix = isSpellAction(item) ? 'mag' : 'hab';
+    const idKey = `${prefix}:${item?.id ?? item.nome}`;
+    const nameKey = `${prefix}:${item.nome.toLowerCase()}`;
+    if (seenById.has(idKey) || seenByName.has(nameKey)) return false;
+    seenById.add(idKey);
+    seenByName.add(nameKey);
     return true;
   });
 };

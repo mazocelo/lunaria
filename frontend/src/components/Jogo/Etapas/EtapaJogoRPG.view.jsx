@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSocketStore } from '../../../store/index.js';
 import { BarChart3, ChevronLeft, ChevronRight, Swords, Users, X } from 'lucide-react';
 import { RPGActions } from '../../RPGActions';
 import BackgroundEffects from '../Shared/BackgroundEffects';
@@ -39,12 +40,17 @@ const EtapaJogoRPGView = (props) => {
     resultadosDados,
     ehMeuTurno,
     combateAtivo,
+    combateFase,
     combateMonstros,
     combateJogadores,
     combateRodada,
     combateResultado,
     combateLog,
     combateXpGanho,
+    combateOrdemIniciativa,
+    combateTurnoAtual,
+    combateIniciativaPendente,
+    combateIniciativaModificador,
     sessionRecap,
     clearSessionRecap,
     levelUpData,
@@ -98,6 +104,7 @@ const EtapaJogoRPGView = (props) => {
     handleMestreBannerAction,
     jaRolouDadoInicial,
     cooldownLocal,
+    rolando,
     entidadesComImagem,
     contextoImagemCena,
     handleSceneImageGenerated,
@@ -141,6 +148,9 @@ const EtapaJogoRPGView = (props) => {
           tts={tts}
           voiceId={effectiveVoiceId}
           voiceProvider={effectiveVoiceProvider}
+          combateAtivo={combateAtivo}
+          combateRodada={combateRodada}
+          combateMonstros={combateMonstros}
         />
 
         <div className="flex-1 flex overflow-hidden">
@@ -185,6 +195,12 @@ const EtapaJogoRPGView = (props) => {
                   resultado={combateResultado}
                   xpGanho={combateXpGanho}
                   userId={String(user?.id)}
+                  fase={combateFase}
+                  iniciativaPendente={combateIniciativaPendente}
+                  iniciativaModificador={combateIniciativaModificador}
+                  ordemIniciativa={combateOrdemIniciativa}
+                  turnoAtual={combateTurnoAtual}
+                  onRolarIniciativa={() => useSocketStore.getState().rolarIniciativaCombate()}
                 />
               </div>
             )}
@@ -200,6 +216,7 @@ const EtapaJogoRPGView = (props) => {
               onSceneImageGenerated={handleSceneImageGenerated}
               estiloImagem={historia?.estilo_imagem}
               prologo={historia?.prologo}
+              imagemCapa={historia?.imagem}
             />
 
             <MestrePensandoBanner
@@ -228,6 +245,7 @@ const EtapaJogoRPGView = (props) => {
               aguardandoMestre={aguardandoMestre}
               combateAtivo={combateAtivo}
               combateMonstros={combateMonstros}
+              rolando={rolando}
               habilidadesPersonagem={habilidadesPersonagem}
               magiasPersonagem={magiasPersonagem}
               manaAtual={manaAtual}
@@ -237,6 +255,7 @@ const EtapaJogoRPGView = (props) => {
               onUsarMagia={handleUsarMagia}
               combatIntentAtual={combatIntentAtual}
               onClearCombatIntent={clearCombatIntent}
+              rolando={rolando}
             />
           </div>
 
@@ -271,6 +290,7 @@ const EtapaJogoRPGView = (props) => {
                     onUsarHabilidade={handleUsarHabilidade}
                     onUsarEquipamento={handleUsarEquipamento}
                     personagem={personagemSelecionado}
+                    rolando={rolando}
                   />
                   <div className="border-t border-purple-500/20 pt-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -370,6 +390,7 @@ const EtapaJogoRPGView = (props) => {
                     onUsarHabilidade={handleUsarHabilidade}
                     onUsarEquipamento={handleUsarEquipamento}
                     personagem={personagemSelecionado}
+                    rolando={rolando}
                   />
                   <div className="border-t border-purple-500/20 pt-4">
                     <StatusPersonagem
@@ -399,6 +420,9 @@ const EtapaJogoRPGView = (props) => {
         loading={fichaCarregando}
         error={fichaErro}
         titulo={tituloFicha}
+        combateAtivo={combateAtivo}
+        combateJogadores={combateJogadores}
+        userId={user?.id}
       />
 
       <InventarioPanel

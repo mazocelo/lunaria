@@ -6,7 +6,11 @@ import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/Nar
 import { ImageIcon, Play, Pause } from 'lucide-react';
 import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
 
-const getConteudo = (msg) => msg.message || msg.mensagem;
+const getConteudo = (msg) => {
+  const text = msg.message || msg.mensagem || '';
+  // Sanitize legacy [object Object] from old dice roll messages
+  return typeof text === 'string' ? text.replace(/\[object Object\]/g, 'd20') : String(text);
+};
 const RE_SOLICITACAO_DADOS = /(\u{1F3B2}\s*)?[Rr]ole/iu;
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -135,7 +139,8 @@ export const renderDado = (mensagem, key) => {
   // Resolve fields from top-level or payload (persisted resultado_teste messages
   // store dice/roll fields inside payload, while live messages have them at the top level)
   const p = mensagem.payload || {};
-  const dice = (typeof mensagem.dice === 'string' ? mensagem.dice : null) || (typeof p.dice === 'string' ? p.dice : null) || 'd20';
+  const rawDice = (typeof mensagem.dice === 'string' ? mensagem.dice : null) || (typeof p.dice === 'string' ? p.dice : null) || 'd20';
+  const dice = rawDice.includes('[object Object]') ? 'd20' : rawDice;
   const rolagemBruta = mensagem.rolagemBruta ?? p.rolagemBruta ?? mensagem.result ?? p.resultado ?? mensagem.valor ?? '?';
   const modificador = mensagem.modificador ?? p.modificador ?? 0;
   const bonusNivel = mensagem.bonusNivel ?? p.bonusNivel ?? 0;
@@ -149,6 +154,7 @@ export const renderDado = (mensagem, key) => {
   const modBase = (modificador || 0) + (bonusNivel || 0);
   const temModBase = modBase !== 0;
   const temDetalhes = detalhes.length > 0;
+  const isDamageRoll = dc === 0 || descricaoResultado?.toLowerCase().includes('dano');
   return (
     <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-2">
       <div className="game-glass-subtle px-5 py-3 rounded-full border border-amber-500/30">
@@ -177,7 +183,7 @@ export const renderDado = (mensagem, key) => {
             </p>
             {descricaoResultado && (
               <p className={`text-xs font-semibold mt-0.5 ${sucesso ? 'text-green-400' : 'text-red-400'}`}>
-                {descricaoResultado} (DC {dc})
+                {descricaoResultado}{!isDamageRoll && dc != null ? ` (DC ${dc})` : ''}
               </p>
             )}
           </div>
@@ -971,6 +977,25 @@ export const renderMestreStreaming = (mensagem, key) => {
   );
 };
 
+export const renderCombatMonster = (mensagem, key) => {
+  // Simple markdown: **bold** → <strong>
+  const text = getConteudo(mensagem)
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-red-300">$1</strong>')
+    .replace(/_(.+?)_/g, '<em class="text-red-400/70">$1</em>');
+  return (
+    <div key={key} className="max-w-[85%] mx-auto animate-fade-in my-1.5">
+      <div className="game-glass-subtle px-3 py-2 rounded-xl border border-red-500/25 bg-red-950/20">
+        <div className="flex items-start gap-2">
+          <span className="text-base mt-0.5">{'\u{1F479}'}</span>
+          <div className="flex-1">
+            <p className="text-sm text-red-200/90 leading-relaxed" dangerouslySetInnerHTML={{ __html: text }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /**
  * Registry: tipo -> renderer (com aliases)
  */
@@ -983,6 +1008,7 @@ export const MESSAGE_RENDERERS = {
   roleplay: renderRoleplay,
   loading: renderLoading,
   combate: renderCombate,
+  combat_monster: renderCombatMonster,
   sistema: renderTransicaoTurno,
   ordem_definida: renderTransicaoTurno,
   transicao_turno: renderTransicaoTurno,

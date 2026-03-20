@@ -1,51 +1,20 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { mestreCriadorService, personagemService } from '../../../services/index.js';
+import { mestreCriadorService } from '../../../services/index.js';
 import { usePersonagemStore } from '../../../store/personagem';
 import { useVantagemStore } from '../../../store/vantagem';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
-import { Personagem } from '../../../models/Personagem';
 import { useDraftPersistence } from './hooks/useDraftPersistence';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useBonusCalculation } from './hooks/useBonusCalculation';
 import { usePointSystem } from './hooks/usePointSystem';
 import { useChatState } from './hooks/useChatState';
 import { useComboPreview } from './hooks/useComboPreview';
+import { useMestreInteraction } from './hooks/useMestreInteraction';
+import { useCharacterCreation } from './hooks/useCharacterCreation';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
-
-function deveDefinirNomeInicial(texto, options = {}) {
-  if (options.aceitarNome) return true;
-  if (options.manterEtapa) return false;
-
-  const valor = String(texto || '').trim();
-  if (!valor) return false;
-  if (valor.length > 40) return false;
-  if (/[.!?]$/.test(valor)) return false;
-
-  const normalizado = valor.toLowerCase();
-  const marcadoresDePedido = [
-    'sugira',
-    'sugest',
-    'nomes',
-    'nome para',
-    'personagem',
-    'mostre',
-    'outras op',
-    'novas leituras',
-    'me de',
-    'me dê',
-    'quero ajuda',
-  ];
-
-  if (marcadoresDePedido.some((termo) => normalizado.includes(termo))) {
-    return false;
-  }
-
-  const palavras = valor.split(/\s+/).filter(Boolean);
-  return palavras.length >= 1 && palavras.length <= 4;
-}
 
 export const useWizardModel = ({ navigate }) => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
@@ -119,11 +88,6 @@ export const useWizardModel = ({ navigate }) => {
     error, setError,
     chatEndRef,
   } = chat;
-
-  const [salvando, setSalvando] = useState(false);
-  const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
-  const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
-  const [creationResultData, setCreationResultData] = useState(null);
 
   /** Refs para evitar stale closures em getEstado/getHistorico */
   const estadoRef = useRef();
@@ -407,110 +371,38 @@ export const useWizardModel = ({ navigate }) => {
     iniciarWizard();
   }, [draftInicial, iniciarWizard, rehidratarEtapaAtual]);
 
-  /** Envia mensagem textual do jogador */
-  const enviarMensagem = useCallback(async (texto, options = {}) => {
-    if (!texto?.trim() || enviandoRef.current) return;
-    const mensagemJogador = texto.trim();
-    const manterEtapa = options?.manterEtapa === true;
-    const estadoOverride = {};
+  // --- Mestre Interaction ---
+  const mestreInteraction = useMestreInteraction({
+    setMensagens, setEnviando, enviandoRef, setSugestoes, setError,
+    setInputTexto,
+    navigation,
+    nome, setNome, racaId, classeId, background, setBackground,
+    setRacaId, setRacaNome, setClasseId, setClasseNome,
+    pointSystem,
+    bonusCalc,
+    getEstado, getHistorico,
+    estadoRef,
+  });
 
-    if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome && deveDefinirNomeInicial(mensagemJogador, options)) {
-      setNome(mensagemJogador);
-      estadoOverride.nome = mensagemJogador;
-    } else if (navigation.etapaAtual === 'background' && !manterEtapa) {
-      const backgroundAtualizado = mensagemJogador.slice(0, 2000);
-      setBackground(backgroundAtualizado);
-      estadoOverride.background = backgroundAtualizado;
-    }
+  const {
+    enviarMensagem, aplicarSugestaoAtributos, selecionarSugestao,
+    avancarComMestre, pularEtapa,
+  } = mestreInteraction;
 
-    setMensagens(prev => [...prev, {
-      id: Date.now(),
-      role: 'jogador',
-      content: mensagemJogador,
-      etapa: navigation.etapaAtual,
-      timestamp: new Date(),
-    }]);
-    setInputTexto('');
-    enviandoRef.current = true;
-    setEnviando(true);
-    setError(null);
+  // --- Character Creation ---
+  const characterCreation = useCharacterCreation({
+    getEstado, navigate, comboPreviewData, comboPreviewLoading,
+    navigation, bonusCalc, pointSystem,
+    estadoRef, setError, limparDraft, recarregarPersonagens,
+  });
 
-    try {
-      const resultado = await mestreCriadorService.interagir({
-        etapa: navigation.etapaAtual,
-        estado: { ...getEstado(), ...estadoOverride },
-        mensagemJogador,
-        historico: getHistorico(),
-        actionMode: manterEtapa ? 'refresh_options' : 'reply',
-      });
-
-      const etapaMensagem = manterEtapa
-        ? navigation.etapaAtual
-        : (resultado.etapa_proxima || navigation.etapaAtual);
-
-      setMensagens(prev => [...prev, {
-        id: Date.now() + 1,
-        role: 'mestre',
-        content: resultado.mensagem,
-        etapa: etapaMensagem,
-        sugestoes: resultado.sugestoes,
-        timestamp: new Date(),
-      }]);
-
-      setSugestoes(resultado.sugestoes || []);
-      if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
-
-      if (!manterEtapa && resultado.etapa_proxima && resultado.etapa_proxima !== navigation.etapaAtual) {
-        navigation.registrarVisita(resultado.etapa_proxima);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      enviandoRef.current = false;
-      setEnviando(false);
-    }
-  }, [navigation.etapaAtual, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, navigation.registrarVisita]);
-
-  const aplicarSugestaoAtributos = useCallback(() => {
-    const resultado = bonusCalc.aplicarAtributosSugeridos();
-    if (!resultado?.applied) {
-      setError(resultado?.reason || 'A sugestao de atributos do Mestre veio invalida e nao foi aplicada.');
-      return resultado;
-    }
-    setError(null);
-    return resultado;
-  }, [bonusCalc.aplicarAtributosSugeridos]);
-
-
-  /** Seleciona sugestão silenciosamente (T1) */
-  const selecionarSugestao = useCallback((sugestao) => {
-    const { tipo, id, nome: sugestaoNome, custo } = sugestao;
-
-    switch (tipo) {
-      case 'raca':
-        setRacaId(id);
-        setRacaNome(sugestaoNome);
-        break;
-      case 'classe':
-        setClasseId(id);
-        setClasseNome(sugestaoNome);
-        break;
-      case 'vantagem': {
-        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
-        if (erro) { setError(erro); return; }
-        // P2: reset skip ao selecionar manualmente
-        pointSystem.setSkipVantagens(false);
-        break;
-      }
-      case 'desvantagem': {
-        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
-        if (erro) { setError(erro); return; }
-        // P2: reset skip ao selecionar manualmente
-        pointSystem.setSkipDesvantagens(false);
-        break;
-      }
-    }
-  }, [pointSystem.selecionarVantagemDesvantagem, pointSystem.setSkipVantagens, pointSystem.setSkipDesvantagens]);
+  const {
+    salvando, creationFlowStatus,
+    creationResultModalOpen, creationResultData,
+    salvarPersonagem, fecharResultadoCriacao,
+    irParaPersonagens, verFichaCriada,
+    setCreationFlowStatus, setCreationResultModalOpen, setCreationResultData,
+  } = characterCreation;
 
   /** Descarta draft e reseta todo estado */
   const descartarDraft = useCallback(() => {
@@ -535,206 +427,6 @@ export const useWizardModel = ({ navigate }) => {
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos, resetComboPreview]);
 
-  /** P3: Chama backend com continue_stage e avanca somente apos resposta.
-   *  Se backend rejeitar avanco (etapa_proxima === etapa_atual), permanece.
-   *  Se backend falhar, avanca localmente como fallback.
-   *  @param {Object} [estadoOverride] - sobrescreve campos em getEstado() (ex: skip limpa selecoes) */
-  const avancarComMestre = useCallback(async (estadoOverride) => {
-    if (enviandoRef.current) return;
-
-    // Calcular destino esperado (read-only) para fallback e deteccao de revisit
-    const info = navigation.getProximaEtapa();
-    if (!info) return;
-
-    const etapaAtual = navigation.etapaAtual;
-    const estado = estadoOverride ? { ...getEstado(), ...estadoOverride } : getEstado();
-
-    // Revisit: se a proxima etapa ja foi visitada, navegar sem chamar backend
-    if (!info.primeiraVisita) {
-      navigation.registrarVisita(info.etapa);
-      setSugestoes([]);
-      if (info.etapa !== 'atributos') {
-        bonusCalc.setAtributosSugeridos(null);
-      }
-      return;
-    }
-
-    // Primeira visita: chamar backend ANTES de avancar
-    enviandoRef.current = true;
-    setEnviando(true);
-    try {
-      const resultado = await mestreCriadorService.interagir({
-        etapa: etapaAtual,
-        estado,
-        mensagemJogador: '',
-        historico: getHistorico(),
-        actionMode: 'continue_stage',
-      });
-
-      // Consumir etapa_proxima do backend como fonte de verdade
-      const destino = resultado.etapa_proxima || info.etapa;
-
-      if (destino !== etapaAtual) {
-        navigation.registrarVisita(destino);
-      }
-
-      setMensagens(prev => [...prev, {
-        id: Date.now(),
-        role: 'mestre',
-        content: resultado.mensagem,
-        etapa: destino,
-        sugestoes: resultado.sugestoes,
-        timestamp: new Date(),
-      }]);
-
-      setSugestoes(resultado.sugestoes || []);
-      if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
-    } catch (err) {
-      // Fallback: avancar localmente se backend falhar
-      navigation.avancarEtapa();
-      setMensagens(prev => [...prev, {
-        id: Date.now(),
-        role: 'sistema',
-        content: 'Nao foi possivel contatar o Mestre Criador. Continue normalmente ou envie uma mensagem.',
-        etapa: info.etapa,
-        timestamp: new Date(),
-      }]);
-    } finally {
-      enviandoRef.current = false;
-      setEnviando(false);
-    }
-  }, [navigation.getProximaEtapa, navigation.etapaAtual, navigation.registrarVisita, navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos]);
-  /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
-  const pularEtapa = useCallback((tipo) => {
-    if (tipo !== 'vantagens' && tipo !== 'desvantagens') return;
-    const override = {};
-    if (tipo === 'vantagens') {
-      pointSystem.vantagensIds.forEach(id => pointSystem.removerSelecao('vantagem', id));
-      pointSystem.setSkipVantagens(true);
-      override.vantagens_ids = [];
-      override.vantagens_nomes = [];
-    } else {
-      pointSystem.desvantagensIds.forEach(id => pointSystem.removerSelecao('desvantagem', id));
-      pointSystem.setSkipDesvantagens(true);
-      override.desvantagens_ids = [];
-      override.desvantagens_nomes = [];
-    }
-    avancarComMestre(override);
-  }, [avancarComMestre, pointSystem]);
-
-  /** Salva o personagem usando o combo atual do preview */
-  const salvarPersonagem = useCallback(async () => {
-    const s = estadoRef.current;
-    if (!s.nome?.trim()) { setError('Nome do personagem e obrigatorio'); return; }
-    if (!s.racaId) { setError('Selecione uma raca antes de salvar'); return; }
-    if (!s.classeId) { setError('Selecione uma classe antes de salvar'); return; }
-    if (!s.background?.trim()) { setError('Descreva a origem do personagem antes de salvar'); return; }
-    if (!bonusCalc.bonusAplicados) {
-      setError('Confirme seus atributos antes de salvar.');
-      return;
-    }
-    if (pointSystem.pontosCriacaoRestantes < 0) {
-      setError('A ficha excede o orcamento de criacao.');
-      return;
-    }
-    if (comboPreviewLoading) {
-      setError('A resolutiva ainda esta sendo preparada. Aguarde um instante.');
-      return;
-    }
-    if (!comboPreviewData?.combo) {
-      setError('A resolutiva final ainda nao esta disponivel. Gere o combo antes de criar.');
-      return;
-    }
-
-    setSalvando(true);
-    setError(null);
-    setCreationFlowStatus('creating_character');
-    setCreationResultModalOpen(false);
-    setCreationResultData(null);
-
-    try {
-      const base = s.atributosBase;
-      const dados = {
-        nome: s.nome,
-        raca_id: s.racaId,
-        classe_id: s.classeId,
-        sugestao_background: 'guiado',
-        background: s.background,
-        forca: base.forca,
-        destreza: base.destreza,
-        constituicao: base.constituicao,
-        inteligencia: base.inteligencia,
-        agilidade: base.agilidade,
-        carisma: base.carisma,
-        vantagens: s.vantagensIds,
-        desvantagens: s.desvantagensIds,
-        equipamentos: (comboPreviewData.combo.equipamentos || []).map((item) => item.id),
-        nivel: 1,
-      };
-
-      const personagem = new Personagem(dados);
-      const criado = await personagemService.create(personagem, { context: 'criacao' });
-
-      let backgroundResult = null;
-      let backgroundIndisponivel = false;
-      if (criado?.id && s.background) {
-        setCreationFlowStatus('generating_background');
-        try {
-          backgroundResult = await personagemService.gerarBackground(criado.id, s.background);
-        } catch (bgError) {
-          backgroundIndisponivel = true;
-          console.warn('Background IA nao gerado:', bgError.message);
-        }
-      }
-
-      limparDraft();
-      await recarregarPersonagens();
-
-      setCreationFlowStatus('opening_result');
-      setCreationResultData({
-        personagem: criado,
-        preview: comboPreviewData,
-        background_digitado: s.background,
-        background_gerado: backgroundResult?.background_gerado || null,
-        background_final: backgroundResult?.background_gerado || s.background,
-        background_indisponivel: backgroundIndisponivel || !backgroundResult?.background_gerado,
-      });
-      setCreationResultModalOpen(true);
-      setCreationFlowStatus('idle');
-    } catch (err) {
-      setCreationFlowStatus('error');
-      setError(err.message || 'Erro ao criar personagem');
-      setCreationFlowStatus('idle');
-    } finally {
-      setSalvando(false);
-    }
-  }, [
-    bonusCalc.bonusAplicados,
-    pointSystem.pontosCriacaoRestantes,
-    comboPreviewLoading,
-    comboPreviewData,
-    recarregarPersonagens,
-    limparDraft,
-  ]);
-
-  const fecharResultadoCriacao = useCallback(() => {
-    setCreationResultModalOpen(false);
-  }, []);
-
-  const irParaPersonagens = useCallback(() => {
-    setCreationResultModalOpen(false);
-    navigate('/personagens');
-  }, [navigate]);
-
-  const verFichaCriada = useCallback(() => {
-    const personagemId = creationResultData?.personagem?.id;
-    setCreationResultModalOpen(false);
-    if (personagemId) {
-      navigate(`/personagens/${personagemId}`);
-      return;
-    }
-    navigate('/personagens');
-  }, [creationResultData, navigate]);
   return {
     // Wizard / Navigation
     etapas: navigation.etapas,

@@ -69,7 +69,7 @@ const BatSwarm = ({ count = 3, trigger }) => {
       y: 8 + Math.random() * 25,
       duration: 3 + Math.random() * 2,
       delay: i * 0.4,
-      size: 30 + Math.random() * 20,
+      size: 35 + Math.random() * 25,
     }));
     setBats(newBats);
     // Clean up after animation
@@ -87,7 +87,7 @@ const BatSwarm = ({ count = 3, trigger }) => {
             top: `${bat.y}%`,
             left: '-60px',
             animation: `batFlyFast ${bat.duration}s ease-in-out ${bat.delay}s forwards`,
-            opacity: 0.35,
+            opacity: 0.45,
           }}
         >
           <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#0a0000">
@@ -130,19 +130,25 @@ const GothicDecorations = () => {
       <SpiderWeb side="left" position="bottom" size={100} />
       <SpiderWeb side="right" position="bottom" size={110} />
 
-      {/* Ambient bats (slow, always) */}
-      <div className="fixed pointer-events-none z-[2]" style={{ top: '15%', animation: 'batFly 45s linear 10s infinite', opacity: 0.15 }}>
-        <svg width="35" height="18" viewBox="0 0 40 20" fill="#0a0000">
-          <ellipse cx="20" cy="12" rx="4" ry="3" />
-          <path d="M16 12 Q8 4 2 8 Q6 10 8 12 Q10 14 14 13 Z" />
-          <path d="M24 12 Q32 4 38 8 Q34 10 32 12 Q30 14 26 13 Z" />
-          <path d="M18 9 L17 6 L19 8 Z" />
-          <path d="M22 9 L23 6 L21 8 Z" />
-        </svg>
-      </div>
+      {/* Ambient bats (slow, always — 3 at different heights/speeds) */}
+      {[
+        { top: '10%', duration: 30, delay: 3, size: 40, opacity: 0.25 },
+        { top: '22%', duration: 40, delay: 15, size: 32, opacity: 0.2 },
+        { top: '35%', duration: 50, delay: 28, size: 28, opacity: 0.18 },
+      ].map((bat, i) => (
+        <div key={`amb-${i}`} className="fixed pointer-events-none z-[2]" style={{ top: bat.top, animation: `batFly ${bat.duration}s linear ${bat.delay}s infinite`, opacity: bat.opacity }}>
+          <svg width={bat.size} height={bat.size * 0.5} viewBox="0 0 40 20" fill="#0a0000">
+            <ellipse cx="20" cy="12" rx="4" ry="3" />
+            <path d="M16 12 Q8 4 2 8 Q6 10 8 12 Q10 14 14 13 Z" />
+            <path d="M24 12 Q32 4 38 8 Q34 10 32 12 Q30 14 26 13 Z" />
+            <path d="M18 9 L17 6 L19 8 Z" />
+            <path d="M22 9 L23 6 L21 8 Z" />
+          </svg>
+        </div>
+      ))}
 
-      {/* Bat swarm on navigation/theme change */}
-      <BatSwarm count={4} trigger={batTrigger} />
+      {/* Bat swarm on navigation/theme change — 6 bats */}
+      <BatSwarm count={6} trigger={batTrigger} />
     </>
   );
 };

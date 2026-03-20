@@ -9,6 +9,7 @@ import {
   Hammer,
   Loader2,
 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme.jsx';
 import './wizard-theme.css';
 import WizardProgressBar from './components/WizardProgressBar.jsx';
 import WizardChat from './components/WizardChat.jsx';
@@ -93,9 +94,11 @@ const WizardView = (props) => {
     fecharResultadoCriacao,
     irParaPersonagens,
     verFichaCriada,
-    isLight,
     navigate,
   } = props;
+
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [fichaAberta, setFichaAberta] = useState(false);
 

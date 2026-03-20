@@ -1,13 +1,11 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { mestreCriadorService, personagemService } from '../../../services/index.js';
 import { usePersonagemStore } from '../../../store/personagem';
 import { useVantagemStore } from '../../../store/vantagem';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
-import { useTheme } from '../../../contexts/theme.jsx';
 import { Personagem } from '../../../models/Personagem';
 import { useDraftPersistence } from './hooks/useDraftPersistence';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
@@ -47,10 +45,7 @@ function deveDefinirNomeInicial(texto, options = {}) {
   return palavras.length >= 1 && palavras.length <= 4;
 }
 
-export const useWizardModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
+export const useWizardModel = ({ navigate }) => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
   const chatEndRef = useRef(null);
   const wizardInitRef = useRef(false);
@@ -951,8 +946,6 @@ export const useWizardModel = () => {
     irParaPersonagens,
     verFichaCriada,
 
-    // Theme
-    isLight,
     navigate,
   };
 };

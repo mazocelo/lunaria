@@ -495,7 +495,7 @@ export default class CombatEngine {
         // calcularDano rola o dado internamente — passar notação, não valor rolado
         dano = calcularDano(danoBase, modForca, critico, alvoStats.armadura || 0);
 
-        log.warn({ danoBase, danoRolado, modForca, critico, armadura: alvoStats.armadura, danoFinal: dano }, 'MONSTER_TURN: damage calc');
+        log.warn({ danoBase, danoFinal: dano, modForca, critico, armadura: alvoStats.armadura }, 'MONSTER_TURN: damage calc');
 
         // Apply damage reduction from defense
         if (defesaTemp?.reducaoDano) {

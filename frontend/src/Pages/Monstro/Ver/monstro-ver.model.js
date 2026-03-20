@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { monstroService } from '../../../services/index.js';
-import { getRaridadeConfig, formatJson } from '../../../components/shared';
+import { formatJson } from '../../../components/shared';
 
 /**
  * Model: estado, sincronizacao, normalizacao e metodos da entidade.
@@ -37,8 +37,6 @@ export const useMonstroVerModel = () => {
  * Resolve relacoes, converte snake_case, trata arrays e JSON.
  */
 function normalizarMonstro(m) {
-  const raridade = m.raridade_rel?.nome || 'Comum';
-  const raridadeConfig = getRaridadeConfig(raridade);
   const habilidadesRaw = formatJson(m.habilidades);
 
   return {
@@ -48,8 +46,7 @@ function normalizarMonstro(m) {
     descricao: m.descricao,
 
     // Relacoes resolvidas
-    raridade,
-    raridadeConfig,
+    raridade: m.raridade_rel?.nome || 'Comum',
     categoria: m.categoria_rel?.nome || null,
 
     // Nivel

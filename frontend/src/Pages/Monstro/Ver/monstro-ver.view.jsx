@@ -1,7 +1,7 @@
 import React from 'react';
 import { Skull, BookOpen, BarChart3, Zap, Heart, Swords, Shield, Star, Tag } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme.jsx';
-import { CatalogDetailLayout, ChipGroup, AtributoBar } from '../../../components/shared';
+import { CatalogDetailLayout, ChipGroup, AtributoBar, getRaridadeConfig } from '../../../components/shared';
 
 /**
  * View: apresentacao completa.
@@ -32,9 +32,11 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
     );
   }
 
+  const raridadeConfig = getRaridadeConfig(m.raridade);
+
   // Badges
   const badges = [
-    <span key="rar" className={`px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? m.raridadeConfig.badgeLight : m.raridadeConfig.badge}`}>
+    <span key="rar" className={`px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? raridadeConfig.badgeLight : raridadeConfig.badge}`}>
       {m.raridade}
     </span>,
     m.categoria && (
@@ -93,7 +95,7 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
   return (
     <CatalogDetailLayout
       title={m.nome} image={m.imagem} icon={Skull}
-      rarity={m.raridade} accentColor={m.raridadeConfig.accent}
+      rarity={m.raridade} accentColor={raridadeConfig.accent}
       badges={badges} sections={sections} stats={stats}
       sidebarTitle="Ficha de Combate" onBack={onBack} onEdit={onEdit}
     />

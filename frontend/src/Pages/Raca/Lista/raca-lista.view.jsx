@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Dna, Gift, Coins } from 'lucide-react';
 
@@ -28,7 +28,14 @@ const RacaListaView = ({
     );
   }
 
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(12);
+
   const displayRacas = filteredRacas?.length > 0 ? filteredRacas : racas;
+
+  useEffect(() => { setPage(1); }, [displayRacas]);
+
+  const paginatedRacas = displayRacas.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -60,7 +67,7 @@ const RacaListaView = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {displayRacas.map((row, i) => (
+          {paginatedRacas.map((row, i) => (
             <CatalogCard
               key={row.id}
               image={row.imagem}
@@ -82,6 +89,15 @@ const RacaListaView = ({
           ))}
         </div>
       )}
+
+      <CatalogPagination
+        currentPage={page}
+        pageSize={perPage}
+        totalCount={displayRacas.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
+        pageSizeOptions={[12, 24, 48]}
+      />
     </div>
   );
 };

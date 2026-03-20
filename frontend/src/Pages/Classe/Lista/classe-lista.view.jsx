@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { PageHeader, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
+import { PageHeader, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Shield, Gift, Coins } from 'lucide-react';
 
@@ -28,7 +28,14 @@ const ClasseListaView = ({
     );
   }
 
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(12);
+
   const displayClasses = filteredClasses?.length > 0 ? filteredClasses : classes;
+
+  useEffect(() => { setPage(1); }, [displayClasses]);
+
+  const paginatedClasses = displayClasses.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -60,7 +67,7 @@ const ClasseListaView = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {displayClasses.map((row, i) => (
+          {paginatedClasses.map((row, i) => (
             <CatalogCard
               key={row.id}
               image={row.imagem}
@@ -82,6 +89,15 @@ const ClasseListaView = ({
           ))}
         </div>
       )}
+
+      <CatalogPagination
+        currentPage={page}
+        pageSize={perPage}
+        totalCount={displayClasses.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
+        pageSizeOptions={[12, 24, 48]}
+      />
     </div>
   );
 };

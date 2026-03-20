@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Wand2, Swords, Heart, Flame } from 'lucide-react';
 
@@ -56,9 +56,16 @@ const HabilidadeListaView = ({
     );
   }
 
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(12);
+
   const displayData = filteredHabilidades?.length > 0 || filteredHabilidades?.length === 0
     ? filteredHabilidades
     : habilidades;
+
+  useEffect(() => { setPage(1); }, [displayData]);
+
+  const paginatedData = displayData.slice((page - 1) * perPage, page * perPage);
 
   const categoriaOptions = Object.entries(categoriaLabels);
 
@@ -109,7 +116,7 @@ const HabilidadeListaView = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {displayData.map((row, i) => (
+          {paginatedData.map((row, i) => (
             <CatalogCard
               key={row.id}
               image={row.imagem}
@@ -142,6 +149,15 @@ const HabilidadeListaView = ({
           ))}
         </div>
       )}
+
+      <CatalogPagination
+        currentPage={page}
+        pageSize={perPage}
+        totalCount={displayData.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
+        pageSizeOptions={[12, 24, 48]}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StatCard from '../../../components/StatCard.jsx';
-import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import Notification from '../../../components/Notification.jsx';
 import { Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -30,7 +30,14 @@ const VantagemListaView = ({
     );
   }
 
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(12);
+
   const displayVantagens = filteredVantagens?.length > 0 ? filteredVantagens : vantagens;
+
+  useEffect(() => { setPage(1); }, [displayVantagens]);
+
+  const paginatedVantagens = displayVantagens.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -62,7 +69,7 @@ const VantagemListaView = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {displayVantagens.map((row, i) => {
+          {paginatedVantagens.map((row, i) => {
             const tipos = Array.isArray(row.tipo) ? row.tipo : [];
             const elementos = Array.isArray(row.elemento) ? row.elemento : [];
 
@@ -102,6 +109,15 @@ const VantagemListaView = ({
           })}
         </div>
       )}
+
+      <CatalogPagination
+        currentPage={page}
+        pageSize={perPage}
+        totalCount={displayVantagens.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
+        pageSizeOptions={[12, 24, 48]}
+      />
     </div>
   );
 };

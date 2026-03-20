@@ -172,6 +172,33 @@ export function rolarDado(notacao) {
 }
 
 /**
+ * Mapa estático de mult_raca por nome de raça.
+ * Valores espelham a coluna mult_raca da tabela `racas`.
+ * Fallback: 5 (Humano) quando a raça não for encontrada.
+ */
+const MULT_RACA_MAP = {
+  'Humano': 5, 'Anão': 6, 'Elfo': 4, 'Elfo Negro': 4, 'Meio-Elfo': 5,
+  'Halfling': 4, 'Gnomo': 4, 'Orc': 7, 'Meio-Orc': 6, 'Tiefling': 5,
+  'Draconato': 7, 'Aasimar': 5, 'Primordiano': 5, 'Anfíbio': 5, 'Centauro': 7,
+  'Minotauro': 7, 'Kythari': 5, 'Kemono': 5, 'Pardalino': 4, 'Kobold': 3,
+  'Goblin': 3, 'Hobgoblin': 5, 'Bugbear': 6, 'Meio-Dragão': 7,
+  'Ogro': 8, 'Meio-Ogro': 7, 'Troglodita': 5, 'Verdeante': 5,
+  'Cristálide': 5, 'Anjo': 6, 'Demônio': 6, 'Meio-Abissal': 6,
+  'Meio-Celestial': 6, 'Fada': 3, 'Licantropo': 7, 'Meio-Gênio': 6,
+  'Silvagante': 7, 'Deva': 6, 'Androide': 6, 'Golem': 9,
+};
+
+/**
+ * Retorna o multiplicador de HP da raça pelo nome.
+ * @param {string|null|undefined} racaNome - Nome da raça do personagem
+ * @returns {number} mult_raca (fallback: 5)
+ */
+export function getMultRaca(racaNome) {
+  if (!racaNome) return 5;
+  return MULT_RACA_MAP[racaNome] || 5;
+}
+
+/**
  * Calcula HP maximo de um personagem jogador
  * Formula: mult_raca * (nivel + max(1, modCON))
  * @param {Object} personagem - Dados do personagem
@@ -401,7 +428,11 @@ export function calcularArmadura(bonusEquip = {}) {
 }
 
 /**
- * Verifica se o alvo esquivou do ataque
+ * @deprecated O sistema de esquiva por % foi substituído pelo sistema DC (8 + modAGI).
+ * A função verificarAcerto já lida com o desvio via DC. Esta função não deve ser usada
+ * em novos fluxos de combate.
+ *
+ * Verifica se o alvo esquivou do ataque (sistema legado por %)
  * @param {number} taxaEsquiva - Taxa de esquiva em % (0-50)
  * @returns {boolean} true se esquivou
  */

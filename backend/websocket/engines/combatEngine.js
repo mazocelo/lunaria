@@ -16,6 +16,7 @@ import {
   rolarDado,
   verificarFimCombate,
   avancarTurno,
+  getMultRaca,
 } from '../../helpers/combateHelper.js';
 import { COMBAT_EVENTS } from '../events/eventTypes.js';
 import { emitCombatActionResults, emitCombatState } from './combatEventEmitter.js';
@@ -101,7 +102,8 @@ export default class CombatEngine {
             agilidade: attrs.agilidade || 10,
             nivel: p.nivel || 1
           };
-          const hpMax = calcularHP(personagemStats);
+          const multRaca = getMultRaca(p.raca || p.raca_nome || '');
+          const hpMax = calcularHP(personagemStats, multRaca);
           // Preservar HP da narrativa (dano de armadilhas, aplicar_dano, etc.)
           // sem reviver automaticamente personagens que ja estejam com 0 HP.
           const hpNarrativo = Number.isFinite(Number(p.hp_atual)) ? Number(p.hp_atual) : null;
@@ -495,13 +497,8 @@ export default class CombatEngine {
     log.warn({ monstroNome: monstro.nome, alvoNome: alvoStats.personagemNome, rolagem, bonusAtaque: bonusAtaqueMonstro, totalAtaque, dcEsquiva, acertou, critico, dano_base: monstro.dano_base, habilidadeNome: habilidade?.nome, habilidadeDano: habilidade?.dano }, 'MONSTER_TURN: attack roll');
 
     if (acertou) {
-      // Check player evasion (legacy percentual esquiva still applies as fallback)
+      // DC esquiva já foi verificado por verificarAcerto — sem checagem % adicional.
       const defesaTemp = alvoStats.defesaTemporaria;
-      const esquivaExtra = defesaTemp?.esquivaBonus || 0;
-      const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
-      if (!critico && esquivaEfetiva > 0) {
-        esquivou = Math.floor(Math.random() * 100) + 1 <= esquivaEfetiva;
-      }
 
       if (!esquivou) {
         const danoBase = habilidade?.dano || monstro.dano_base || '1d6';
@@ -529,8 +526,6 @@ export default class CombatEngine {
           alvoStats.status = 'inconsciente';
         }
         log.warn({ dano, hpRestante: alvoStats.hp_atual, status: alvoStats.status }, 'MONSTER_TURN: damage applied');
-      } else {
-        log.warn({ esquivaEfetiva }, 'MONSTER_TURN: player dodged');
       }
     }
 

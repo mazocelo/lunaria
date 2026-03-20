@@ -151,7 +151,9 @@ export function rolarDado(notacao) {
     return 1;
   }
 
-  const match = notacao.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
+  // Strip leading + (bonus notation like "+1d6")
+  const cleaned = notacao.trim().replace(/^\+/, '');
+  const match = cleaned.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
   if (!match) {
     log.warn({ notacao }, 'rolarDado: notacao nao reconhecida');
     return 1;
@@ -320,7 +322,7 @@ export function processarHabilidade(habilidade, jogadorState, options = {}) {
   return {
     valido: true,
     dano,
-    danoBaseNotation: habilidade.dano_base || null,
+    danoBaseNotation: habilidade.dano_base || '1d6',
     cooldownKey,
     custoMana: habilidade.custo_mana,
     cooldown: habilidade.cooldown_turnos,

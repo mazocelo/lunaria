@@ -1,14 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useHabilidadeStore } from '../../../store/habilidade';
 import { habilidadeService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
 export const useHabilidadeListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   const habilidades = useHabilidadeStore(s => s.habilidades);
   const loading = useHabilidadeStore(s => s.loading);
@@ -75,7 +69,6 @@ export const useHabilidadeListaModel = () => {
     searchTerm,
     filtroCategoria,
     filtroElemento,
-    isLight,
     total,
     stats,
     buscarHabilidades: setSearchTerm,
@@ -83,7 +76,5 @@ export const useHabilidadeListaModel = () => {
     setFiltroElemento,
     deleteHabilidade,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

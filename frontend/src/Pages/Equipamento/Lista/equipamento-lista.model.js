@@ -1,14 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useEquipamentoStore } from '../../../store/equipamento/index.js';
 import { equipamentoService, catalogoService } from '../../../services/index.js';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { generateRoute } from '../../../constants/routes.js';
 
 export const useEquipamentoListaModel = () => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
 
   // Equipamento store
   const allEquipamentos = useEquipamentoStore(s => s.equipamentos);
@@ -128,7 +122,6 @@ export const useEquipamentoListaModel = () => {
     showDeleteModal,
     equipToDelete,
     deleteLoading,
-    isLight,
     setSearchTerm,
     setCategoriaFilter,
     setRaridadeFilter,
@@ -139,7 +132,5 @@ export const useEquipamentoListaModel = () => {
     handleCancelDelete,
     countByRaridade,
     clearError,
-    navigate,
-    generateRoute,
   };
 };

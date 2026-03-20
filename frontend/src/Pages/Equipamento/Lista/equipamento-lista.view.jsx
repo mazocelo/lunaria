@@ -4,6 +4,7 @@ import Notification from '../../../components/Notification.jsx';
 import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
 import { PageHeader, Badge, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
 import ImageLightbox from '../../../components/ImageLightbox.jsx';
+import { useTheme } from '../../../contexts/theme.jsx';
 import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame, Sparkles } from 'lucide-react';
 
 const raridadeVariant = {
@@ -32,7 +33,6 @@ const EquipamentoListaView = ({
   showDeleteModal,
   equipToDelete,
   deleteLoading,
-  isLight,
   setCategoriaFilter,
   setRaridadeFilter,
   handlePageChange,
@@ -42,9 +42,11 @@ const EquipamentoListaView = ({
   handleCancelDelete,
   countByRaridade,
   clearError,
-  navigate,
-  generateRoute,
+  onVerEquipamento,
+  onEditarEquipamento,
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (loading && equipamentos.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
@@ -146,7 +148,7 @@ const EquipamentoListaView = ({
                 title={row.nome}
                 rarity={rarNome}
                 delay={i}
-                onClick={() => navigate(generateRoute.verEquipamento(row.id))}
+                onClick={() => onVerEquipamento(row.id)}
                 onImageClick={row.imagem ? () => setGalleryIndex(displayEquipamentos.findIndex(item => item.id === row.id)) : undefined}
                 headerBadge={
                   <Badge variant={raridadeVariant[rarNome] || 'slate'} className="shadow-sm backdrop-blur-sm">
@@ -154,8 +156,8 @@ const EquipamentoListaView = ({
                   </Badge>
                 }
                 actions={[
-                  { label: 'Ver', icon: Eye, onClick: () => navigate(generateRoute.verEquipamento(row.id)) },
-                  { label: 'Editar', icon: Pencil, onClick: () => navigate(generateRoute.editarEquipamento(row.id)) },
+                  { label: 'Ver', icon: Eye, onClick: () => onVerEquipamento(row.id) },
+                  { label: 'Editar', icon: Pencil, onClick: () => onEditarEquipamento(row.id) },
                   { label: 'Deletar', icon: Trash2, onClick: () => handleDeleteClick(row) },
                 ]}
               >

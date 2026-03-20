@@ -11,6 +11,8 @@ import { useDraftPersistence } from './hooks/useDraftPersistence';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useBonusCalculation } from './hooks/useBonusCalculation';
 import { usePointSystem } from './hooks/usePointSystem';
+import { useChatState } from './hooks/useChatState';
+import { useComboPreview } from './hooks/useComboPreview';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
 function deveDefinirNomeInicial(texto, options = {}) {
@@ -47,7 +49,6 @@ function deveDefinirNomeInicial(texto, options = {}) {
 
 export const useWizardModel = ({ navigate }) => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
-  const chatEndRef = useRef(null);
   const wizardInitRef = useRef(false);
 
   // Zustand stores
@@ -108,13 +109,63 @@ export const useWizardModel = ({ navigate }) => {
     racasDisponiveis, classesDisponiveis, vantagensDisponiveis,
   });
 
-  // --- Combo Preview state (declarado antes de navigation para evitar TDZ) ---
-  const [comboPreviewData, setComboPreviewData] = useState(null);
-  const [comboPreviewLoading, setComboPreviewLoading] = useState(false);
-  const [comboPreviewErro, setComboPreviewErro] = useState(null);
-  const [comboPreviewTentativa, setComboPreviewTentativa] = useState(0);
-  const previewRequestRef = useRef(0);
-  const comboPreviewLoadedKeyRef = useRef(null);
+  // --- Chat State ---
+  const chat = useChatState();
+  const {
+    mensagens, setMensagens,
+    inputTexto, setInputTexto,
+    enviando, setEnviando, enviandoRef,
+    sugestoes, setSugestoes,
+    error, setError,
+    chatEndRef,
+  } = chat;
+
+  const [salvando, setSalvando] = useState(false);
+  const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
+  const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
+  const [creationResultData, setCreationResultData] = useState(null);
+
+  /** Refs para evitar stale closures em getEstado/getHistorico */
+  const estadoRef = useRef();
+
+  // Extrair vantagens/desvantagens concedidas pela raça e classe selecionadas
+  const racaSelecionada = racaId ? racas.find(r => String(r.id) === String(racaId)) : null;
+  const classeSelecionada = classeId ? classes.find(c => String(c.id) === String(classeId)) : null;
+
+  estadoRef.current = {
+    nome, racaId, racaNome, classeId, classeNome, background,
+    vantagensIds: pointSystem.vantagensIds,
+    vantagensNomes: pointSystem.vantagensNomes,
+    desvantagensIds: pointSystem.desvantagensIds,
+    desvantagensNomes: pointSystem.desvantagensNomes,
+    atributosBase: bonusCalc.atributosBase,
+    atributosFinal: bonusCalc.atributosFinal,
+    // Vantagens/desvantagens concedidas por raça/classe (para excluir das sugestões)
+    vantagensDaRaca: racaSelecionada?.vantagens?.map(v => v.nome || v) || [],
+    desvantagensDaRaca: racaSelecionada?.desvantagens?.map(d => d.nome || d) || [],
+    vantagensDaClasse: classeSelecionada?.vantagens?.map(v => v.nome || v) || [],
+    desvantagensDaClasse: classeSelecionada?.desvantagens?.map(d => d.nome || d) || [],
+  };
+
+  // --- Combo Preview ---
+  const comboPreview = useComboPreview({
+    nome, racaId, classeId, background,
+    bonusAplicados: bonusCalc.bonusAplicados,
+    pontosCriacaoRestantes: pointSystem.pontosCriacaoRestantes,
+    vantagensIds: pointSystem.vantagensIds,
+    desvantagensIds: pointSystem.desvantagensIds,
+    atributosBase: bonusCalc.atributosBase,
+    etapaAtual: null, // set via ref below, auto-load uses etapaAtualRef
+    estadoRef,
+  });
+
+  const {
+    comboPreviewData, comboPreviewLoading, comboPreviewErro,
+    comboPreviewTentativa, comboPreviewBuildKey,
+    podeGerarPreview, carregarComboPreview,
+    regenerarComboPreview, recarregarComboPreview,
+    resetComboPreview, jaCarregouBuildAtual,
+  } = comboPreview;
 
   // --- Navigation ---
   const navigation = useWizardNavigation(draftInicial, {
@@ -157,17 +208,23 @@ export const useWizardModel = ({ navigate }) => {
   }, [racaId, classeId, pointSystem.vantagensIds, pointSystem.desvantagensIds,
       navigation.etapaAtual, bonusCalc.bonusAplicados]);
 
-  // Chat state
-  const [mensagens, setMensagens] = useState([]);
-  const [inputTexto, setInputTexto] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const enviandoRef = useRef(false);
-  const [error, setError] = useState(null);
-  const [sugestoes, setSugestoes] = useState([]);
-  const [salvando, setSalvando] = useState(false);
-  const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
-  const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
-  const [creationResultData, setCreationResultData] = useState(null);
+  // Auto-load combo preview when on equipamentos stage and ready
+  useEffect(() => {
+    if (navigation.etapaAtual !== 'equipamentos') return;
+    if (!podeGerarPreview) return;
+    if (comboPreviewLoading) return;
+    if (jaCarregouBuildAtual()) return;
+
+    carregarComboPreview(0, []);
+  }, [
+    navigation.etapaAtual,
+    podeGerarPreview,
+    comboPreviewLoading,
+    comboPreviewData,
+    comboPreviewBuildKey,
+    carregarComboPreview,
+    jaCarregouBuildAtual,
+  ]);
 
   // Aviso ao fechar aba
   useEffect(() => {
@@ -193,11 +250,6 @@ export const useWizardModel = ({ navigate }) => {
     };
     loadAll();
   }, []);
-
-  // Auto-scroll chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensagens]);
 
   // Draft save
   useEffect(() => {
@@ -256,28 +308,6 @@ export const useWizardModel = ({ navigate }) => {
     }
   }, []);
 
-  /** Refs para evitar stale closures em getEstado/getHistorico */
-  const estadoRef = useRef();
-
-  // Extrair vantagens/desvantagens concedidas pela raça e classe selecionadas
-  const racaSelecionada = racaId ? racas.find(r => String(r.id) === String(racaId)) : null;
-  const classeSelecionada = classeId ? classes.find(c => String(c.id) === String(classeId)) : null;
-
-  estadoRef.current = {
-    nome, racaId, racaNome, classeId, classeNome, background,
-    vantagensIds: pointSystem.vantagensIds,
-    vantagensNomes: pointSystem.vantagensNomes,
-    desvantagensIds: pointSystem.desvantagensIds,
-    desvantagensNomes: pointSystem.desvantagensNomes,
-    atributosBase: bonusCalc.atributosBase,
-    atributosFinal: bonusCalc.atributosFinal,
-    // Vantagens/desvantagens concedidas por raça/classe (para excluir das sugestões)
-    vantagensDaRaca: racaSelecionada?.vantagens?.map(v => v.nome || v) || [],
-    desvantagensDaRaca: racaSelecionada?.desvantagens?.map(d => d.nome || d) || [],
-    vantagensDaClasse: classeSelecionada?.vantagens?.map(v => v.nome || v) || [],
-    desvantagensDaClasse: classeSelecionada?.desvantagens?.map(d => d.nome || d) || [],
-  };
-
   const mensagensRef = useRef();
   mensagensRef.current = mensagens;
 
@@ -311,100 +341,6 @@ export const useWizardModel = ({ navigate }) => {
       content: m.content,
     }));
   }, []);
-
-  const podeGerarPreview = useMemo(() => (
-    !!nome?.trim()
-    && !!racaId
-    && !!classeId
-    && !!background?.trim()
-    && !!bonusCalc.bonusAplicados
-    && pointSystem.pontosCriacaoRestantes >= 0
-  ), [
-    nome,
-    racaId,
-    classeId,
-    background,
-    bonusCalc.bonusAplicados,
-    pointSystem.pontosCriacaoRestantes,
-  ]);
-
-  const comboPreviewBuildKey = useMemo(() => JSON.stringify({
-    nome: nome?.trim() || '',
-    racaId: racaId || null,
-    classeId: classeId || null,
-    background: background?.trim() || '',
-    atributosBase: bonusCalc.atributosBase,
-    vantagensIds: pointSystem.vantagensIds,
-    desvantagensIds: pointSystem.desvantagensIds,
-    bonusAplicados: bonusCalc.bonusAplicados,
-    pontosCriacaoRestantes: pointSystem.pontosCriacaoRestantes,
-  }), [
-    nome,
-    racaId,
-    classeId,
-    background,
-    bonusCalc.atributosBase,
-    pointSystem.vantagensIds,
-    pointSystem.desvantagensIds,
-    bonusCalc.bonusAplicados,
-    pointSystem.pontosCriacaoRestantes,
-  ]);
-
-  const montarDraftPreview = useCallback(() => {
-    const s = estadoRef.current;
-    return {
-      nome: s.nome,
-      raca_id: s.racaId,
-      classe_id: s.classeId,
-      background: s.background,
-      nivel: 1,
-      atributos: s.atributosBase,
-      vantagens_ids: s.vantagensIds,
-      desvantagens_ids: s.desvantagensIds,
-    };
-  }, []);
-
-  const flattenComboPreview = useCallback((combo) => ([
-    ...((combo?.equipamentos || []).map(item => ({ grupo: 'equipamento', id: item.id, nome: item.nome }))),
-    ...((combo?.habilidades || []).map(item => ({ grupo: 'habilidade', id: item.id, nome: item.nome }))),
-    ...((combo?.magias || []).map(item => ({ grupo: 'magia', id: item.id, nome: item.nome }))),
-  ]), []);
-
-  const carregarComboPreview = useCallback(async (tentativa = 0, comboAnterior = []) => {
-    if (!podeGerarPreview) return null;
-
-    const requestId = previewRequestRef.current + 1;
-    previewRequestRef.current = requestId;
-    comboPreviewLoadedKeyRef.current = comboPreviewBuildKey;
-
-    setComboPreviewLoading(true);
-    setComboPreviewErro(null);
-
-    try {
-      const resultado = await personagemService.gerarFinalizacaoPreview(
-        montarDraftPreview(),
-        tentativa,
-        comboAnterior
-      );
-
-      if (previewRequestRef.current !== requestId) return null;
-
-      setComboPreviewData(resultado);
-      setComboPreviewTentativa(tentativa);
-      return resultado;
-    } catch (err) {
-      if (previewRequestRef.current !== requestId) return null;
-      setComboPreviewErro(err.message || 'Nao foi possivel gerar a resolutiva final.');
-      if (tentativa === 0) {
-        setComboPreviewData(null);
-      }
-      return null;
-    } finally {
-      if (previewRequestRef.current === requestId) {
-        setComboPreviewLoading(false);
-      }
-    }
-  }, [podeGerarPreview, montarDraftPreview, comboPreviewBuildKey]);
 
   const rehidratarEtapaAtual = useCallback(async () => {
     const etapa = navigation.etapaAtual;
@@ -470,30 +406,6 @@ export const useWizardModel = ({ navigate }) => {
 
     iniciarWizard();
   }, [draftInicial, iniciarWizard, rehidratarEtapaAtual]);
-
-  useEffect(() => {
-    if (comboPreviewLoadedKeyRef.current && comboPreviewLoadedKeyRef.current !== comboPreviewBuildKey) {
-      setComboPreviewData(null);
-      setComboPreviewErro(null);
-      setComboPreviewTentativa(0);
-    }
-  }, [comboPreviewBuildKey]);
-
-  useEffect(() => {
-    if (navigation.etapaAtual !== 'equipamentos') return;
-    if (!podeGerarPreview) return;
-    if (comboPreviewLoading) return;
-    if (comboPreviewLoadedKeyRef.current === comboPreviewBuildKey) return;
-
-    carregarComboPreview(0, []);
-  }, [
-    navigation.etapaAtual,
-    podeGerarPreview,
-    comboPreviewLoading,
-    comboPreviewData,
-    comboPreviewBuildKey,
-    carregarComboPreview,
-  ]);
 
   /** Envia mensagem textual do jogador */
   const enviarMensagem = useCallback(async (texto, options = {}) => {
@@ -616,15 +528,12 @@ export const useWizardModel = ({ navigate }) => {
     setDraftRestaurado(false);
     setMensagens([]);
     setError(null);
-    setComboPreviewData(null);
-    setComboPreviewErro(null);
-    setComboPreviewTentativa(0);
+    resetComboPreview();
     setCreationFlowStatus('idle');
     setCreationResultModalOpen(false);
     setCreationResultData(null);
-    comboPreviewLoadedKeyRef.current = null;
     iniciarWizard();
-  }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos]);
+  }, [iniciarWizard, limparDraft, navigation.resetarNavegacao, pointSystem.resetarSelecoes, bonusCalc.resetarAtributos, resetComboPreview]);
 
   /** P3: Chama backend com continue_stage e avanca somente apos resposta.
    *  Se backend rejeitar avanco (etapa_proxima === etapa_atual), permanece.
@@ -712,26 +621,6 @@ export const useWizardModel = ({ navigate }) => {
     }
     avancarComMestre(override);
   }, [avancarComMestre, pointSystem]);
-
-  const regenerarComboPreview = useCallback(async () => {
-    if (!comboPreviewData || comboPreviewLoading || comboPreviewTentativa >= 3) return;
-    await carregarComboPreview(
-      comboPreviewTentativa + 1,
-      flattenComboPreview(comboPreviewData.combo)
-    );
-  }, [
-    comboPreviewData,
-    comboPreviewLoading,
-    comboPreviewTentativa,
-    carregarComboPreview,
-    flattenComboPreview,
-  ]);
-
-  const recarregarComboPreview = useCallback(async () => {
-    const tentativa = comboPreviewData ? comboPreviewTentativa : 0;
-    const anterior = comboPreviewData ? flattenComboPreview(comboPreviewData.combo) : [];
-    await carregarComboPreview(tentativa, anterior);
-  }, [carregarComboPreview, comboPreviewData, comboPreviewTentativa, flattenComboPreview]);
 
   /** Salva o personagem usando o combo atual do preview */
   const salvarPersonagem = useCallback(async () => {
@@ -828,8 +717,6 @@ export const useWizardModel = ({ navigate }) => {
     limparDraft,
   ]);
 
-  const clearError = useCallback(() => setError(null), []);
-
   const fecharResultadoCriacao = useCallback(() => {
     setCreationResultModalOpen(false);
   }, []);
@@ -920,7 +807,7 @@ export const useWizardModel = ({ navigate }) => {
     selecionarSugestao,
     removerSelecao: pointSystem.removerSelecao,
     salvarPersonagem,
-    clearError,
+    clearError: chat.clearError,
 
     // Draft
     draftRestaurado,

@@ -98,6 +98,86 @@
   --wa-glow: 0 0 16px rgba(220, 38, 38, 0.25);
 }
 
+/* Gothic scan lines — carmesim */
+.wizard-atelier.gothic::after {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(220,38,38,0.015) 0px, transparent 1px, transparent 3px) !important;
+}
+
+/* Gothic etched overlay */
+.wizard-atelier.gothic .wa-etched::before,
+.wizard-atelier.gothic .wa-etched::after {
+  background: linear-gradient(120deg, rgba(255,255,255,0.02), transparent 26%, transparent 74%, rgba(220,38,38,0.04)) !important;
+}
+
+/* Gothic main shell glow */
+.wizard-atelier.gothic .wa-main-shell {
+  background:
+    radial-gradient(circle at top left, rgba(220, 38, 38, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(184, 134, 11, 0.05), transparent 24%),
+    var(--wa-panel-strong) !important;
+}
+
+.wizard-atelier.gothic .wa-main-shell::after {
+  background: repeating-linear-gradient(0deg, rgba(220,38,38,0.01) 0px, transparent 1px, transparent 4px) !important;
+}
+
+/* Gothic choice card selected */
+.wizard-atelier.gothic .wa-choice-card--selected {
+  border-color: color-mix(in srgb, #dc2626 55%, var(--wa-border)) !important;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.18), 0 0 20px rgba(220, 38, 38, 0.12) !important;
+}
+
+/* Gothic violet chip → carmesim */
+.wizard-atelier.gothic .wa-violet-chip {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.06)) !important;
+  border-color: rgba(220, 38, 38, 0.18) !important;
+  color: #dc2626 !important;
+}
+
+/* Gothic master glyph */
+.wizard-atelier.gothic .wa-master-glyph {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12), transparent 35%), linear-gradient(180deg, rgba(220,38,38,0.18), rgba(220,38,38,0.06)) !important;
+  border-color: rgba(220, 38, 38, 0.25) !important;
+}
+
+.wizard-atelier.gothic .wa-glyph-glow {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(220,38,38,0.15), 0 0 18px rgba(220, 38, 38, 0.2) !important;
+}
+
+/* Gothic readiness shaping */
+.wizard-atelier.gothic .wa-readiness-shaping {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.06)) !important;
+}
+
+/* Gothic chat shell */
+.wizard-atelier.gothic .wa-chat-shell {
+  border-color: color-mix(in srgb, #dc2626 50%, var(--wa-border)) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 16px rgba(220, 38, 38, 0.1) !important;
+}
+
+/* Gothic player card */
+.wizard-atelier.gothic .wa-player-card {
+  border-color: color-mix(in srgb, #dc2626 45%, var(--wa-border)) !important;
+  box-shadow: 0 0 0 1px rgba(220,38,38,0.12), 0 12px 28px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Gothic pulse glow */
+.wizard-atelier.gothic .wa-choice-card--selected {
+  animation: wa-gothicPulseGlow 2s ease infinite;
+}
+
+@keyframes wa-gothicPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(220,38,38,0.18), 0 0 16px rgba(220,38,38,0.15); }
+  50% { box-shadow: 0 0 0 1px rgba(220,38,38,0.25), 0 0 28px rgba(220,38,38,0.25); }
+}
+
+/* Gothic input focus ring */
+.wizard-atelier.gothic input:focus,
+.wizard-atelier.gothic textarea:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+
 /* ── Ambient overlays ── */
 
 .wizard-atelier::before {

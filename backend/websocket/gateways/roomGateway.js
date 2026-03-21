@@ -2,6 +2,7 @@ import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'roomGateway' });
 import { normalizeExpiredActiveMestreRequest } from '../utils/mestreRequestLifecycle.js';
 import { buscarPersonagensCompletos } from '../../helpers/personagensHelper.js';
+import { calcularHP, getMultRaca } from '../../helpers/combateHelper.js';
 
 export default class RoomGateway {
   constructor(manager) {
@@ -180,7 +181,16 @@ export default class RoomGateway {
               if (pcIds.length > 0) {
                 const personagens = await buscarPersonagensCompletos(pcIds);
                 sessao.personagensCompletos = {};
-                personagens.forEach(p => { sessao.personagensCompletos[p.id] = p; });
+                personagens.forEach(p => {
+                  // Restaurar HP full se personagem esta com HP 0 e nao ha combate ativo
+                  if ((p.hp_atual <= 0 || p.hp_atual == null) && !sessao.estadoJogo?.combate?.ativo) {
+                    const multRaca = getMultRaca(p.racas?.nome || p.raca_nome || '');
+                    const hpMax = calcularHP(p, multRaca);
+                    p.hp_atual = hpMax;
+                    log.warn({ personagem: p.nome, hp: hpMax, mult: multRaca }, 'JOIN_ROOM: restored HP to full');
+                  }
+                  sessao.personagensCompletos[p.id] = p;
+                });
                 await sm.gerenciadorSessoes.atualizarSessao(roomId, sessao);
                 log.warn({ count: personagens.length, pcIds }, 'JOIN_ROOM: re-populated personagensCompletos from DB');
               }

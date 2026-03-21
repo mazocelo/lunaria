@@ -280,6 +280,12 @@ function sanitizeNarrativa(text) {
   // Remover tags HTML comuns que a IA pode injetar
   clean = clean.replace(/<br\s*\/?>/gi, '\n');
   clean = clean.replace(/<\/?(?:p|div|span|b|i|em|strong|ul|ol|li|h[1-6])[^>]*>/gi, '');
+  // Remover blocos JSON soltos que a IA pode incluir (ex: segmentos, metadados)
+  clean = clean.replace(/^\s*\{[\s\S]*?"(?:segmentos|narrativa|metadados|gancho|solicitaDados|combate|arcoStatus)"[\s\S]*\}\s*$/gm, '');
+  clean = clean.replace(/^\s*\{[\s\S]{0,50}"(?:id|tipo)"[\s\S]*?\}\s*,?\s*$/gm, '');
+  // Limpar linhas que sao apenas JSON fragments (linhas comecando com " ou {)
+  clean = clean.replace(/^\s*"[a-zA-Z_]+"\s*:.*$/gm, '');
+  clean = clean.replace(/^\s*[{}\[\],]+\s*$/gm, '');
   // Limpar linhas vazias excessivas
   clean = clean.replace(/\n{3,}/g, '\n\n').trim();
 

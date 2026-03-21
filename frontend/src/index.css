@@ -251,6 +251,29 @@
   color: #f87171 !important;
 }
 
+/* Gothic fallback gradients — kill purple in card/layout backgrounds */
+.gothic [class*="via-purple-900"],
+.gothic [class*="via-purple-50"] {
+  --tw-gradient-via: rgba(42, 16, 24, 0.4) !important;
+}
+
+.gothic [class*="from-purple-"],
+.gothic [class*="to-purple-"] {
+  --tw-gradient-from: rgba(30, 14, 18, 1) !important;
+  --tw-gradient-to: rgba(30, 14, 18, 1) !important;
+}
+
+/* Gothic fallback icon color — carmesim instead of purple */
+.gothic [class*="text-purple-600\\/30"],
+.gothic [class*="text-purple-300\\/60"] {
+  color: rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Gothic tabs/panels — kill white backgrounds */
+.gothic [class*="bg-white"] {
+  background-color: rgba(30, 14, 18, 0.9) !important;
+}
+
 /* Gothic CatalogCard hover glow — carmesim instead of purple */
 .gothic .hover\:shadow-purple-500\/20:hover {
   --tw-shadow-color: rgba(220, 38, 38, 0.2) !important;

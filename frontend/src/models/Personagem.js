@@ -1,3 +1,5 @@
+import { calcularHPMaximo as _calcHPMax } from '../utils/rpgHelpers.js';
+
 /**
  * Modelo de dados para Personagem
  * Responsável pela estrutura e validação dos dados
@@ -138,8 +140,7 @@ export class Personagem {
    * @returns {number} HP máximo
    */
   calcularHPMaximo() {
-    const modificadorConstituicao = this.getModificador('constituicao');
-    return Math.max(1, 10 + (this.nivel * 2) + (modificadorConstituicao * this.nivel));
+    return _calcHPMax(this);
   }
 
   /**

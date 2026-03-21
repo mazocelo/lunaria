@@ -229,9 +229,9 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {mestreNarrationItems.length > 0 && (
-        <div className="px-6 pt-4 relative z-10">
+        <div className="px-6 pt-4 relative z-10 pointer-events-none">
           <div className="w-full max-w-4xl mx-auto flex justify-end">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pointer-events-auto">
               <button
                 type="button"
                 onClick={handlePlayAllNarration}

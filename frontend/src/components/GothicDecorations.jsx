@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../contexts/theme.jsx';
 import { useLocation } from 'react-router-dom';
 
@@ -133,7 +134,7 @@ const GothicDecorations = () => {
 
   if (theme !== 'gothic') return null;
 
-  return (
+  return createPortal(
     <>
       {/* Blood drips from header */}
       <BloodDrip left={18} delay={0} duration={9} height={65} />
@@ -181,7 +182,8 @@ const GothicDecorations = () => {
 
       {/* Bat swarm on navigation */}
       <BatSwarm count={6} trigger={batTrigger} />
-    </>
+    </>,
+    document.body
   );
 };
 

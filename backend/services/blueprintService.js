@@ -421,35 +421,32 @@ class BlueprintService {
     const temperature = MODE_TEMPERATURES[mode] || 0.3;
     log.info({ historia: historia.nome, mode, tamanho: tamanhoKey, maxTokens: tamanho.maxTokens }, 'Gerando roteiro');
 
-    let content;
+    const providers = [
+      { name: MODEL, fn: () => this._createMessageGemini(prompt, temperature, tamanho.maxTokens, tamanho.timeout) },
+      { name: FALLBACK_MODEL, fn: () => this._createMessage(prompt, userId, 'blueprint', temperature, tamanho.maxTokens, Math.max(tamanho.timeout, 300000)) },
+      { name: 'gemini-2.5-pro', fn: () => this._createMessageGeminiFallback(prompt, temperature, tamanho.maxTokens, tamanho.timeout) },
+    ];
+
+    let roteiro = null;
     let usedModel = MODEL;
-    try {
-      content = await this._createMessageGemini(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
-    } catch (err) {
-      log.warn({ err: err.message }, 'Gemini 3.1 Pro falhou, tentando Claude Sonnet');
+    for (const provider of providers) {
       try {
-        usedModel = FALLBACK_MODEL;
-        content = await this._createMessage(prompt, userId, 'blueprint', temperature, tamanho.maxTokens, Math.max(tamanho.timeout, 300000));
-      } catch (err2) {
-        log.warn({ err: err2.message }, 'Claude Sonnet falhou, tentando Gemini 2.5 Pro');
-        usedModel = 'gemini-2.5-pro';
-        content = await this._createMessageGeminiFallback(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
+        const content = await provider.fn();
+        roteiro = this._parseRoteiro(content);
+        usedModel = provider.name;
+        if (roteiro) break;
+        log.warn({ model: provider.name }, 'Resposta nao e JSON valido, tentando proximo provider');
+      } catch (err) {
+        log.warn({ err: err.message, model: provider.name }, 'Provider falhou, tentando proximo');
       }
     }
 
-    let roteiro = this._parseRoteiro(content);
-
-    if (!roteiro) {
-      log.warn('Primeira resposta invalida, tentando repair');
-      roteiro = await this._repairRoteiro(content, userId);
-    }
-
-    const roteiroNormalizado = this.normalizarRoteiro(roteiro);
+    const roteiroNormalizado = roteiro ? this.normalizarRoteiro(roteiro) : null;
     if (!roteiroNormalizado) {
-      throw new Error('Falha ao parsear roteiro da IA. Resposta nao e JSON valido.');
+      throw new Error('Falha ao parsear roteiro da IA. Todos os providers falharam.');
     }
 
-    return { roteiro: roteiroNormalizado, prompt, responseText: content, model: usedModel };
+    return { roteiro: roteiroNormalizado, prompt, responseText: '', model: usedModel };
   }
 
   async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = 0.3, maxTokens = MAX_TOKENS, timeoutMs = TIMEOUT_MS) {

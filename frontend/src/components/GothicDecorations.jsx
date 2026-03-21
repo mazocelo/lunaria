@@ -160,29 +160,7 @@ const GothicDecorations = () => {
       <SpiderWeb side="left" position="bottom" size={100} />
       <SpiderWeb side="right" position="bottom" size={110} />
 
-      {/* Ambient bats — fly in front of content (z-30), with wing flap */}
-      {[
-        { top: '10%', duration: 28, delay: 3, size: 55, opacity: 0.6 },
-        { top: '20%', duration: 38, delay: 14, size: 45, opacity: 0.5 },
-        { top: '32%', duration: 48, delay: 26, size: 38, opacity: 0.4 },
-      ].map((bat, i) => (
-        <div
-          key={`amb-${i}`}
-          className="fixed pointer-events-none z-[30]"
-          style={{
-            top: bat.top,
-            animation: `batFly ${bat.duration}s linear ${bat.delay}s infinite`,
-            opacity: bat.opacity,
-            filter: 'drop-shadow(0 0 4px rgba(204, 51, 51, 0.3))',
-          }}
-        >
-          <div style={{ animation: `batFlap 0.2s ease-in-out infinite alternate` }}>
-            <BatSvg size={bat.size} />
-          </div>
-        </div>
-      ))}
-
-      {/* Bat swarm on navigation */}
+      {/* Bat swarm on navigation/theme change only — no ambient */}
       <BatSwarm count={6} trigger={batTrigger} />
     </>,
     document.body

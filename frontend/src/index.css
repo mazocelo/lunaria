@@ -149,8 +149,14 @@
 /* Gothic header override */
 .gothic header,
 .gothic [role="banner"] {
-  background: rgba(24, 12, 16, 0.95) !important;
-  border-color: rgba(220, 38, 38, 0.18) !important;
+  background: rgba(30, 16, 20, 0.98) !important;
+  border-color: rgba(220, 38, 38, 0.2) !important;
+  color: #f5e6d3 !important;
+}
+
+.gothic header *,
+.gothic [role="banner"] * {
+  color: inherit;
 }
 
 /* Gothic gradient-primary override (buttons, accents) */

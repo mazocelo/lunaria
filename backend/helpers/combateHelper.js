@@ -571,6 +571,19 @@ export function calcularDCEsquiva(agilidade) {
 }
 
 /**
+ * Calcula DC de resistencia a magia ofensiva.
+ * DC = 8 + custo_mana + floor(max(modINT, modCHA) / 2)
+ * @param {Object} personagem - Personagem que lanca a magia
+ * @param {number} custoMana - Custo de mana da magia
+ * @returns {number} DC de resistencia
+ */
+export function calcularDCMagia(personagem, custoMana = 0) {
+  const modINT = Math.floor(((personagem?.inteligencia || 10) - 10) / 2);
+  const modCHA = Math.floor(((personagem?.carisma || 10) - 10) / 2);
+  return 8 + custoMana + Math.floor(Math.max(modINT, modCHA) / 2);
+}
+
+/**
  * Calcula bonus de nivel para ataque em combate.
  * bonusNivel = floor(nivel / 2)
  * @param {number} nivel - Nivel do atacante
@@ -1569,6 +1582,19 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
     if (acaoPendente.elemento) {
       danoFinal = aplicarResistencias(danoFinal, acaoPendente.elemento, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
     }
+    // DC de Magia: monstro pode resistir magias ofensivas (dano reduzido pela metade)
+    let monstroResistiu = false;
+    if (acaoPendente.tipo === 'conjurar_magia' && acaoPendente.habilidadePreValidada?.custoMana > 0) {
+      const pcCompleto = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats)?.personagem || personagem;
+      const dcMagia = calcularDCMagia(pcCompleto, acaoPendente.habilidadePreValidada.custoMana);
+      const rolagemResist = Math.floor(Math.random() * 20) + 1;
+      const modResist = Math.floor(((monstroAlvo.constituicao || 10) - 10) / 2);
+      if (rolagemResist + modResist >= dcMagia) {
+        danoFinal = Math.max(1, Math.floor(danoFinal / 2));
+        monstroResistiu = true;
+      }
+      log.info({ dcMagia, rolagemResist, modResist, total: rolagemResist + modResist, resistiu: monstroResistiu, danoFinal }, 'DC_MAGIA: resistencia');
+    }
     monstroAlvo.hp_atual = Math.max(0, monstroAlvo.hp_atual - danoFinal);
     if (monstroAlvo.hp_atual <= 0) monstroAlvo.status = 'derrotado';
 
@@ -1907,6 +1933,7 @@ export default {
   rolarDado,
   calcularHP,
   calcularMana,
+  calcularDCMagia,
   inferirDanoDescricao,
   processarHabilidade,
   calcularEsquiva,

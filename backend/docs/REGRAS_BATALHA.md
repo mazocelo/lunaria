@@ -362,17 +362,20 @@ A rodada avanca quando todos os jogadores vivos agiram:
 
 ---
 
-## 12. Pendente de Implementacao
+## 12. DC de Magia (Resistencia)
 
-### DC de Magia ❌
-
-Quando um jogador lanca uma magia ofensiva, o alvo precisa resistir:
+Quando um jogador lanca uma magia ofensiva com custo de mana, o monstro faz um teste de resistencia automatico (server-side):
 
 ```
-DC resistencia = 8 + custo_mana_da_magia + floor(max(modINT, modCHA) / 2)
+DC resistencia = 8 + custo_mana + floor(max(modINT, modCHA) / 2)
+Teste monstro = d20 + modCON
+
+Se teste >= DC: monstro resiste, dano reduzido pela metade (minimo 1)
+Se teste < DC: magia causa dano total
 ```
 
-Magias mais caras sao mais dificeis de resistir. Unica mecanica de combate que ainda nao esta no codigo.
+Exemplo: Mago (INT 18, mod +4) lanca magia de custo 3 MP.
+DC = 8 + 3 + floor(4/2) = 13. Monstro precisa rolar 13+ pra resistir.
 
 ---
 
@@ -393,5 +396,5 @@ FUGA:         d20 + modAGI vs 10 + (monstros_vivos × 2)
 CONCENTRACAO: d20 + modCON vs max(10, dano/2)
 DOT:          envenenado 1d4/turno, queimando 1d6/turno
 CEGO:         -5 no ataque
-DC MAGIA:     8 + custo_mana + floor(max(modINT, modCHA)/2) [pendente]
+DC MAGIA:     8 + custo_mana + floor(max(modINT, modCHA)/2) → monstro d20+modCON resiste
 ```

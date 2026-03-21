@@ -822,12 +822,13 @@ const VerHistoriaView = ({
                 )}
                 <div>
                   <p className={`text-xs font-semibold mb-2 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Qualidade do Mestre</p>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-5 gap-1.5">
                     {[
                       { id: 'pescador', label: 'Pescador' },
                       { id: 'poeta', label: 'Poeta' },
                       { id: 'bardo', label: 'Bardo' },
                       { id: 'profeta', label: 'Profeta' },
+                      { id: 'profetisa', label: 'Profetisa' },
                     ].map((tier) => (
                       <button
                         key={tier.id}
@@ -875,7 +876,7 @@ const VerHistoriaView = ({
                   <div className="flex items-center gap-2 mt-1.5">
                     <Badge variant="purple">{mestreProviderLabel}</Badge>
                     <Badge variant="default">
-                      {({ pescador: 'Pescador', poeta: 'Poeta', bardo: 'Bardo', profeta: 'Profeta' })[historiaAtual?.mestre_tier] || 'Poeta'}
+                      {({ pescador: 'Pescador', poeta: 'Poeta', bardo: 'Bardo', profeta: 'Profeta', profetisa: 'Profetisa' })[historiaAtual?.mestre_tier] || 'Poeta'}
                     </Badge>
                     {effectiveMestreVoiceId && (
                       <span className={`text-xs font-modern flex items-center gap-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>

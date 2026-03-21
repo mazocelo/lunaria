@@ -270,7 +270,7 @@ const NovaHistoriaView = ({
           <label className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
             Qualidade do Mestre
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
               { id: 'pescador', label: 'Pescador', desc: 'Conta o basico',
                 active: isLight ? 'border-slate-500 bg-slate-50 ring-2 ring-slate-500/30' : 'border-slate-400 bg-slate-900/30 ring-2 ring-slate-400/30',
@@ -281,9 +281,12 @@ const NovaHistoriaView = ({
               { id: 'bardo', label: 'Bardo', desc: 'Historias vivas',
                 active: isLight ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500/30' : 'border-purple-400 bg-purple-900/30 ring-2 ring-purple-400/30',
                 text: isLight ? 'text-purple-700' : 'text-purple-300' },
-              { id: 'profeta', label: 'Profeta', desc: 'A melhor IA',
+              { id: 'profeta', label: 'Profeta', desc: 'Gemini Top',
                 active: isLight ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/30' : 'border-amber-400 bg-amber-900/30 ring-2 ring-amber-400/30',
                 text: isLight ? 'text-amber-700' : 'text-amber-300' },
+              { id: 'profetisa', label: 'Profetisa', desc: 'Claude Sonnet',
+                active: isLight ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-500/30' : 'border-rose-400 bg-rose-900/30 ring-2 ring-rose-400/30',
+                text: isLight ? 'text-rose-700' : 'text-rose-300' },
             ].map((tier) => (
               <button
                 key={tier.id}

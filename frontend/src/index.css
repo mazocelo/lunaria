@@ -295,6 +295,29 @@
   background-color: rgba(30, 14, 18, 0.6) !important;
 }
 
+/* Gothic — replace ALL slate backgrounds with carmesim tones */
+.gothic [class*="bg-slate-800"] {
+  background-color: rgba(30, 14, 18, 0.85) !important;
+}
+
+.gothic [class*="bg-slate-900"] {
+  background-color: rgba(20, 10, 14, 0.9) !important;
+}
+
+.gothic [class*="bg-slate-700"] {
+  background-color: rgba(36, 18, 22, 0.7) !important;
+}
+
+.gothic [class*="border-slate-700"],
+.gothic [class*="border-slate-600"] {
+  border-color: rgba(220, 38, 38, 0.15) !important;
+}
+
+.gothic [class*="hover\\:bg-slate-700"]:hover,
+.gothic [class*="hover\\:bg-slate-800"]:hover {
+  background-color: rgba(40, 20, 26, 0.8) !important;
+}
+
 /* Gothic CatalogCard — carmesim bg, borders, glow, hover */
 .gothic .animate-card-reveal {
   background-color: rgba(30, 14, 18, 0.9) !important;
@@ -522,6 +545,15 @@
 @keyframes batFlap {
   0% { transform: scaleY(1); }
   100% { transform: scaleY(0.7); }
+}
+
+@keyframes batFlyRight {
+  0% { transform: translateX(0) translateY(0) scaleX(-1); opacity: 0; }
+  10% { opacity: 0.4; }
+  30% { transform: translateX(-30vw) translateY(-20px) scaleX(-1.1); }
+  60% { transform: translateX(-60vw) translateY(10px) scaleX(-0.9); }
+  90% { opacity: 0.3; }
+  100% { transform: translateX(calc(-100vw - 80px)) translateY(-5px) scaleX(-1); opacity: 0; }
 }
 
 @keyframes batFlyFast {

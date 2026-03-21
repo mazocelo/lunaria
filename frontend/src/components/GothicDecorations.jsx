@@ -90,6 +90,7 @@ const BatSwarm = ({ count = 6, trigger }) => {
       delay: i * 0.3,
       size: 40 + Math.random() * 30,
       flapSpeed: 0.15 + Math.random() * 0.1,
+      fromRight: i % 2 === 1,
     }));
     setBats(newBats);
     const timer = setTimeout(() => setBats([]), 8000);
@@ -104,8 +105,9 @@ const BatSwarm = ({ count = 6, trigger }) => {
           className="fixed pointer-events-none z-[100]"
           style={{
             top: `${bat.y}%`,
-            left: '-80px',
-            animation: `batFlyFast ${bat.duration}s ease-in-out ${bat.delay}s forwards`,
+            [bat.fromRight ? 'right' : 'left']: '-80px',
+            animation: `${bat.fromRight ? 'batFlyRight' : 'batFlyFast'} ${bat.duration}s ease-in-out ${bat.delay}s forwards`,
+            transform: bat.fromRight ? 'scaleX(-1)' : undefined,
             filter: 'drop-shadow(0 0 6px rgba(204, 51, 51, 0.4))',
           }}
         >

@@ -269,9 +269,30 @@
   color: rgba(220, 38, 38, 0.3) !important;
 }
 
-/* Gothic tabs/panels — kill white backgrounds */
+/* Gothic tabs/panels — kill white/indigo backgrounds */
 .gothic [class*="bg-white"] {
   background-color: rgba(30, 14, 18, 0.9) !important;
+}
+
+.gothic [class*="bg-indigo-"] {
+  background-color: rgba(139, 0, 0, 0.7) !important;
+}
+
+.gothic [class*="border-gray-"] {
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+.gothic [class*="text-indigo-"] {
+  color: #f87171 !important;
+}
+
+.gothic [class*="focus\\:border-indigo-"] {
+  border-color: #dc2626 !important;
+}
+
+.gothic [class*="bg-slate-50"],
+.gothic [class*="bg-slate-100"] {
+  background-color: rgba(30, 14, 18, 0.6) !important;
 }
 
 /* Gothic CatalogCard hover glow — carmesim instead of purple */

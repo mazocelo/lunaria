@@ -11,8 +11,8 @@ import { ensureNpcIds } from './narrationSegmentsService.js';
 import { getDefaultProviderName } from './ttsService.js';
 import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
 
-const MODEL = 'claude-sonnet-4-6';
-const FALLBACK_MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.1-pro-preview';
+const FALLBACK_MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 8000;
 const TIMEOUT_MS = 180000;
 const REPAIR_TEMPERATURE = 0.1;
@@ -410,16 +410,16 @@ class BlueprintService {
       previousBlueprint: options.previousBlueprint || historia?.roteiro || null
     });
     const temperature = MODE_TEMPERATURES[mode] || 0.3;
-    log.info({ historia: historia.nome, mode }, 'Gerando roteiro com Claude (fallback Gemini)');
+    log.info({ historia: historia.nome, mode }, 'Gerando roteiro com Gemini 3.1 Pro (fallback Claude Sonnet)');
 
     let content;
     let usedModel = MODEL;
     try {
-      content = await this._createMessage(prompt, userId, 'blueprint', temperature);
-    } catch (err) {
-      log.warn({ err: err.message }, 'Claude falhou para roteiro, tentando fallback Gemini');
-      usedModel = FALLBACK_MODEL;
       content = await this._createMessageGemini(prompt, temperature);
+    } catch (err) {
+      log.warn({ err: err.message }, 'Gemini falhou para roteiro, tentando fallback Claude Sonnet');
+      usedModel = FALLBACK_MODEL;
+      content = await this._createMessage(prompt, userId, 'blueprint', temperature);
     }
 
     let roteiro = this._parseRoteiro(content);
@@ -446,7 +446,7 @@ class BlueprintService {
     let response;
     try {
       response = await client.messages.create({
-        model: MODEL,
+        model: FALLBACK_MODEL,
         max_tokens: MAX_TOKENS,
         temperature,
         messages: [{ role: 'user', content: prompt }]
@@ -487,7 +487,7 @@ class BlueprintService {
     const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
     const llm = new ChatGoogleGenerativeAI({
       apiKey: process.env.GOOGLE_API_KEY,
-      model: FALLBACK_MODEL,
+      model: MODEL,
       temperature,
       maxOutputTokens: MAX_TOKENS,
       responseMimeType: 'application/json',
@@ -495,7 +495,7 @@ class BlueprintService {
     const startTime = Date.now();
     const response = await llm.invoke(prompt);
     const content = response.content || '';
-    log.info({ duracao: Date.now() - startTime, chars: content.length, model: FALLBACK_MODEL }, 'Fallback Gemini respondeu');
+    log.info({ duracao: Date.now() - startTime, chars: content.length, model: MODEL }, 'Gemini respondeu para roteiro');
     return content;
   }
 

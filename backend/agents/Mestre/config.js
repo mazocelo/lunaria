@@ -34,7 +34,8 @@ export const MESTRE_TIERS = {
   pescador: { model: 'gemini-2.5-flash-lite',        label: 'Pescador', badge: 'Gratis' },
   poeta:    { model: 'gemini-2.5-flash',              label: 'Poeta',    badge: 'Basico' },
   bardo:    { model: 'gemini-3-flash-preview',        label: 'Bardo',    badge: 'Premium' },
-  profeta:  { model: 'claude-sonnet-4-6',               label: 'Profeta',  badge: 'Top' },
+  profeta:  { model: 'gemini-3.1-pro-preview',           label: 'Profeta',  badge: 'Top' },
+  profetisa:{ model: 'claude-sonnet-4-6',               label: 'Profetisa', badge: 'Top' },
 };
 export const DEFAULT_MESTRE_TIER = 'poeta';
 export const VALID_MESTRE_TIERS = Object.keys(MESTRE_TIERS);

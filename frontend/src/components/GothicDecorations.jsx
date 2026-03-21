@@ -7,6 +7,37 @@ import { useLocation } from 'react-router-dom';
  * Bats fly in front of content (high z-index), flap wings via CSS.
  */
 
+const BloodDrip = ({ left, delay = 0, duration = 4, height = 120 }) => (
+  <div
+    className="fixed pointer-events-none z-[3]"
+    style={{ left: `${left}%`, top: '56px' }}
+  >
+    {/* Drip trail */}
+    <div
+      style={{
+        width: '2px',
+        height: `${height}px`,
+        background: 'linear-gradient(to bottom, #8b0000, #cc0000 40%, transparent)',
+        opacity: 0,
+        animation: `bloodDrip ${duration}s ease-in ${delay}s infinite`,
+      }}
+    />
+    {/* Drop at bottom */}
+    <div
+      style={{
+        width: '6px',
+        height: '8px',
+        borderRadius: '50% 50% 50% 50% / 30% 30% 70% 70%',
+        background: '#cc0000',
+        marginLeft: '-2px',
+        opacity: 0,
+        animation: `bloodDrop ${duration}s ease-in ${delay}s infinite`,
+        filter: 'drop-shadow(0 0 3px rgba(204, 0, 0, 0.5))',
+      }}
+    />
+  </div>
+);
+
 const SpiderWeb = ({ side = 'left', position = 'top', size = 140 }) => {
   const isBottom = position === 'bottom';
   const isRight = side === 'right';
@@ -105,6 +136,13 @@ const GothicDecorations = () => {
 
   return (
     <>
+      {/* Blood drips from header */}
+      <BloodDrip left={25} delay={0} duration={5} height={100} />
+      <BloodDrip left={42} delay={2.5} duration={6} height={130} />
+      <BloodDrip left={58} delay={1} duration={4.5} height={90} />
+      <BloodDrip left={73} delay={3.5} duration={5.5} height={110} />
+      <BloodDrip left={88} delay={0.8} duration={7} height={140} />
+
       {/* Webs */}
       <SpiderWeb side="left" position="top" size={160} />
       <SpiderWeb side="right" position="top" size={130} />

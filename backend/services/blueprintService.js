@@ -426,9 +426,15 @@ class BlueprintService {
     try {
       content = await this._createMessageGemini(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
     } catch (err) {
-      log.warn({ err: err.message }, 'Gemini falhou para roteiro, tentando fallback Claude Sonnet');
-      usedModel = FALLBACK_MODEL;
-      content = await this._createMessage(prompt, userId, 'blueprint', temperature, tamanho.maxTokens, tamanho.timeout);
+      log.warn({ err: err.message }, 'Gemini 3.1 Pro falhou, tentando Gemini 2.5 Pro');
+      try {
+        content = await this._createMessageGeminiFallback(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
+        usedModel = 'gemini-2.5-pro';
+      } catch (err2) {
+        log.warn({ err: err2.message }, 'Gemini 2.5 Pro falhou, tentando Claude Sonnet');
+        usedModel = FALLBACK_MODEL;
+        content = await this._createMessage(prompt, userId, 'blueprint', temperature, tamanho.maxTokens, Math.max(tamanho.timeout, 300000));
+      }
     }
 
     let roteiro = this._parseRoteiro(content);
@@ -458,7 +464,10 @@ class BlueprintService {
         model: FALLBACK_MODEL,
         max_tokens: maxTokens,
         temperature,
-        messages: [{ role: 'user', content: prompt }]
+        system: 'Voce e um gerador de roteiros de RPG. Responda APENAS com JSON valido. Sem markdown, sem explicacoes, sem texto antes ou depois do JSON. A resposta DEVE comecar com { e terminar com }.',
+        messages: [
+          { role: 'user', content: prompt + '\n\nIMPORTANTE: Responda APENAS com o JSON do roteiro. Sem markdown (```), sem explicacoes. Comece diretamente com {' }
+        ]
       }, { signal: controller.signal });
     } catch (err) {
       clearTimeout(timeout);
@@ -471,7 +480,7 @@ class BlueprintService {
 
     const content = response.content[0]?.text || '';
     const duracao = Date.now() - startTime;
-    log.info({ duracao, chars: content.length }, 'Resposta recebida');
+    log.info({ duracao, chars: content.length }, 'Claude respondeu para roteiro');
 
     if (userId) {
       try {
@@ -505,6 +514,22 @@ class BlueprintService {
     const response = await llm.invoke(prompt);
     const content = response.content || '';
     log.info({ duracao: Date.now() - startTime, chars: content.length, model: MODEL }, 'Gemini respondeu para roteiro');
+    return content;
+  }
+
+  async _createMessageGeminiFallback(prompt, temperature = 0.3, maxTokens = MAX_TOKENS, timeoutMs = TIMEOUT_MS) {
+    const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
+    const llm = new ChatGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+      model: 'gemini-2.5-pro',
+      temperature,
+      maxOutputTokens: maxTokens,
+      responseMimeType: 'application/json',
+    });
+    const startTime = Date.now();
+    const response = await llm.invoke(prompt);
+    const content = response.content || '';
+    log.info({ duracao: Date.now() - startTime, chars: content.length, model: 'gemini-2.5-pro' }, 'Gemini 2.5 Pro respondeu para roteiro');
     return content;
   }
 
@@ -544,10 +569,13 @@ ${content}`;
       // continue
     }
 
-    const match = String(content || '').match(/\{[\s\S]*\}/);
-    if (match) {
+    // Tentar extrair o maior bloco JSON valido
+    const str = String(content || '');
+    const firstBrace = str.indexOf('{');
+    const lastBrace = str.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
       try {
-        return JSON.parse(match[0]);
+        return JSON.parse(str.slice(firstBrace, lastBrace + 1));
       } catch (_) {
         // continue
       }

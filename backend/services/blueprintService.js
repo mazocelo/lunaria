@@ -13,6 +13,13 @@ import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
 
 const MODEL = 'gemini-3.1-pro-preview';
 const FALLBACK_MODEL = 'claude-sonnet-4-6';
+const ROTEIRO_TAMANHOS = {
+  historia:  { maxTokens: 8000,  label: 'Historia',  timeout: 120000 },
+  campanha:  { maxTokens: 16000, label: 'Campanha',  timeout: 180000 },
+  epico:     { maxTokens: 32000, label: 'Epico',     timeout: 240000 },
+  mito:      { maxTokens: 64000, label: 'Mito',      timeout: 360000 },
+};
+const DEFAULT_ROTEIRO_TAMANHO = 'historia';
 const MAX_TOKENS = 8000;
 const TIMEOUT_MS = 180000;
 const REPAIR_TEMPERATURE = 0.1;
@@ -405,21 +412,23 @@ class BlueprintService {
 
   async gerarRoteiro(historia, catalogo, temasNomes, userId = null, options = {}) {
     const mode = options.mode || 'initial';
+    const tamanhoKey = options.tamanho || historia?.config?.roteiro_tamanho || DEFAULT_ROTEIRO_TAMANHO;
+    const tamanho = ROTEIRO_TAMANHOS[tamanhoKey] || ROTEIRO_TAMANHOS[DEFAULT_ROTEIRO_TAMANHO];
     const prompt = buildBlueprintPrompt(historia, catalogo, temasNomes, {
       mode,
       previousBlueprint: options.previousBlueprint || historia?.roteiro || null
     });
     const temperature = MODE_TEMPERATURES[mode] || 0.3;
-    log.info({ historia: historia.nome, mode }, 'Gerando roteiro com Gemini 3.1 Pro (fallback Claude Sonnet)');
+    log.info({ historia: historia.nome, mode, tamanho: tamanhoKey, maxTokens: tamanho.maxTokens }, 'Gerando roteiro');
 
     let content;
     let usedModel = MODEL;
     try {
-      content = await this._createMessageGemini(prompt, temperature);
+      content = await this._createMessageGemini(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
     } catch (err) {
       log.warn({ err: err.message }, 'Gemini falhou para roteiro, tentando fallback Claude Sonnet');
       usedModel = FALLBACK_MODEL;
-      content = await this._createMessage(prompt, userId, 'blueprint', temperature);
+      content = await this._createMessage(prompt, userId, 'blueprint', temperature, tamanho.maxTokens, tamanho.timeout);
     }
 
     let roteiro = this._parseRoteiro(content);
@@ -437,17 +446,17 @@ class BlueprintService {
     return { roteiro: roteiroNormalizado, prompt, responseText: content, model: usedModel };
   }
 
-  async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = 0.3) {
+  async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = 0.3, maxTokens = MAX_TOKENS, timeoutMs = TIMEOUT_MS) {
     const client = this._getClient();
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     let response;
     try {
       response = await client.messages.create({
         model: FALLBACK_MODEL,
-        max_tokens: MAX_TOKENS,
+        max_tokens: maxTokens,
         temperature,
         messages: [{ role: 'user', content: prompt }]
       }, { signal: controller.signal });
@@ -483,13 +492,13 @@ class BlueprintService {
     return content;
   }
 
-  async _createMessageGemini(prompt, temperature = 0.3) {
+  async _createMessageGemini(prompt, temperature = 0.3, maxTokens = MAX_TOKENS, timeoutMs = TIMEOUT_MS) {
     const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
     const llm = new ChatGoogleGenerativeAI({
       apiKey: process.env.GOOGLE_API_KEY,
       model: MODEL,
       temperature,
-      maxOutputTokens: MAX_TOKENS,
+      maxOutputTokens: maxTokens,
       responseMimeType: 'application/json',
     });
     const startTime = Date.now();
@@ -548,4 +557,6 @@ ${content}`;
   }
 }
 
-export default new BlueprintService();
+const blueprintServiceInstance = new BlueprintService();
+export default blueprintServiceInstance;
+export { ROTEIRO_TAMANHOS, DEFAULT_ROTEIRO_TAMANHO };

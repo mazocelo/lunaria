@@ -14,12 +14,12 @@ import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
 const MODEL = 'gemini-3.1-pro-preview';
 const FALLBACK_MODEL = 'claude-sonnet-4-6';
 const ROTEIRO_TAMANHOS = {
-  historia:  { maxTokens: 8000,  label: 'Historia',  timeout: 120000 },
-  campanha:  { maxTokens: 16000, label: 'Campanha',  timeout: 180000 },
+  aventura:  { maxTokens: 8000,  label: 'Aventura',  timeout: 120000 },
+  historia:  { maxTokens: 16000, label: 'Historia',  timeout: 180000 },
   epico:     { maxTokens: 32000, label: 'Epico',     timeout: 240000 },
   mito:      { maxTokens: 64000, label: 'Mito',      timeout: 360000 },
 };
-const DEFAULT_ROTEIRO_TAMANHO = 'historia';
+const DEFAULT_ROTEIRO_TAMANHO = 'aventura';
 const MAX_TOKENS = 8000;
 const TIMEOUT_MS = 180000;
 const REPAIR_TEMPERATURE = 0.1;

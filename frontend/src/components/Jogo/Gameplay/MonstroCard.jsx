@@ -31,13 +31,17 @@ const MonstroCard = ({ monstro, compact = false }) => {
       ? 'from-yellow-500 to-yellow-400'
       : 'from-red-600 to-red-400';
 
+  const woundedStyle = isDerrotado
+    ? 'border-gray-600/20 opacity-40 grayscale'
+    : hpPercentage <= 25
+      ? 'border-red-500/40 bg-red-900/20'
+      : hpPercentage <= 50
+        ? 'border-yellow-500/40 bg-yellow-900/20'
+        : 'border-red-500/30 bg-red-900/10';
+
   if (compact) {
     return (
-      <div className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all ${
-        isDerrotado
-          ? 'border-gray-600/20 opacity-40 grayscale'
-          : 'border-red-500/30 bg-red-900/10'
-      }`}>
+      <div className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all ${woundedStyle}`}>
         {monstro.imagem ? (
           <img src={monstro.imagem} alt={monstro.nome} className="w-6 h-6 rounded-full object-cover flex-shrink-0 border border-red-500/30" />
         ) : (
@@ -64,12 +68,16 @@ const MonstroCard = ({ monstro, compact = false }) => {
     );
   }
 
+  const woundedStyleFull = isDerrotado
+    ? 'border-gray-600/30 opacity-50 grayscale'
+    : hpPercentage <= 25
+      ? 'border-red-500/40 bg-red-900/20 hover:border-red-400/60'
+      : hpPercentage <= 50
+        ? 'border-yellow-500/40 bg-yellow-900/20 hover:border-yellow-400/60'
+        : 'border-red-500/40 hover:border-red-400/60';
+
   return (
-    <div className={`game-glass rounded-lg border p-3 transition-all duration-300 ${
-      isDerrotado
-        ? 'border-gray-600/30 opacity-50 grayscale'
-        : 'border-red-500/40 hover:border-red-400/60'
-    }`}>
+    <div className={`game-glass rounded-lg border p-3 transition-all duration-300 ${woundedStyleFull}`}>
       <div className="flex items-center space-x-2 mb-2">
         {monstro.imagem ? (
           <img src={monstro.imagem} alt={monstro.nome} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-red-500/30" />

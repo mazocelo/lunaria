@@ -346,13 +346,7 @@ const ActionDock = ({
                   Limpar
                 </button>
               </div>
-            ) : (
-              <div className="px-3 py-1.5 game-glass-subtle border border-white/[0.08] rounded-lg">
-                <p className="text-xs text-slate-300">
-                  Se preferir escrever livremente, o sistema tentara inferir sua acao.
-                </p>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
 

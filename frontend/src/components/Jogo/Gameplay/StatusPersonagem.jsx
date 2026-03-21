@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Package, Shield } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
 import { calcularMana, calcularHPMaximo } from '../../../utils/rpgHelpers';
@@ -27,6 +27,17 @@ const StatusPersonagem = ({
   }
 
   const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
+  const hpAtualNum = combateStats?.hp_atual ?? personagemSelecionado?.hp ?? 0;
+  const prevHpRef = useRef(hpAtualNum);
+  const [hpFlash, setHpFlash] = useState(false);
+  useEffect(() => {
+    if (hpAtualNum < prevHpRef.current && prevHpRef.current > 0) {
+      setHpFlash(true);
+      const t = setTimeout(() => setHpFlash(false), 1200);
+      return () => clearTimeout(t);
+    }
+    prevHpRef.current = hpAtualNum;
+  }, [hpAtualNum]);
   const hpDisplay = combateStats
     ? `${combateStats.hp_atual}/${combateStats.hp_max}`
     : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || calcularHPMaximo(personagemSelecionado)}` : '???');
@@ -80,7 +91,8 @@ const StatusPersonagem = ({
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center space-x-3">
                 <div className="text-center">
-                  <div className={`text-base font-bold ${
+                  <div className={`text-base font-bold transition-all duration-300 ${
+                    hpFlash ? 'text-red-500 scale-110' :
                     derrotado ? 'text-gray-500' : hpBaixo ? 'text-red-400 animate-pulse' : combateStats ? 'text-red-300' : 'text-red-400'
                   }`}>
                     {hpDisplay}
@@ -154,7 +166,8 @@ const StatusPersonagem = ({
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4">
                 <div className="text-center">
-                  <div className={`text-lg font-bold ${
+                  <div className={`text-lg font-bold transition-all duration-300 ${
+                    hpFlash ? 'text-red-500 scale-110' :
                     derrotado ? 'text-gray-500' : hpBaixo ? 'text-red-400 animate-pulse' : combateStats ? 'text-red-300' : 'text-red-400'
                   }`}>
                     {hpDisplay}

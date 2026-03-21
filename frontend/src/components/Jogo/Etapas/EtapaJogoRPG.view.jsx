@@ -162,6 +162,8 @@ const EtapaJogoRPGView = (props) => {
             faseJogo={faseJogo}
             onVerFichaJogador={handleVerFichaJogador}
             compactMode={jogadoresExibir.length <= 2}
+            combateAtivo={combateAtivo}
+            combateOrdemIniciativa={combateOrdemIniciativa}
           />
 
           <div className="flex-1 flex flex-col min-w-0">

@@ -147,12 +147,12 @@ const FichaPersonagemModal = ({
               const ta = Math.max(0, modCON - 1);
               const dano = modFOR >= 0 ? `+${modFOR}` : `${modFOR}`;
               return [
-                { label: 'DC Esquiva', value: dc, color: 'text-cyan-300' },
-                { label: 'Ataque', value: `+${atk}`, color: 'text-amber-300' },
-                { label: 'TA', value: ta > 0 ? `${ta}d4` : '0', color: 'text-green-300' },
-                { label: 'Dano', value: `1d6${dano}`, color: 'text-red-300' },
+                { label: 'DC Esquiva', value: dc, color: 'text-cyan-300', tooltip: `10 + modAGI(${modAGI >= 0 ? '+' : ''}${modAGI})` },
+                { label: 'Ataque', value: `+${atk}`, color: 'text-amber-300', tooltip: `modDEX(${modDEX >= 0 ? '+' : ''}${modDEX}) + bonusNv(+${bonusNivel})` },
+                { label: 'TA', value: ta > 0 ? `${ta}d4` : '0', color: 'text-green-300', tooltip: `max(0, modCON(${modCON >= 0 ? '+' : ''}${modCON})-1)d4` },
+                { label: 'Dano', value: `1d6${dano}`, color: 'text-red-300', tooltip: `1d6 + modFOR(${modFOR >= 0 ? '+' : ''}${modFOR})` },
               ].map((stat) => (
-                <div key={stat.label} className="p-3 rounded-xl game-glass-subtle border border-purple-500/20 text-center">
+                <div key={stat.label} className="p-3 rounded-xl game-glass-subtle border border-purple-500/20 text-center cursor-help" title={stat.tooltip}>
                   <p className="text-xs text-purple-200/70 uppercase tracking-wide">{stat.label}</p>
                   <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
                 </div>

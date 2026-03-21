@@ -169,6 +169,33 @@ const BatalhaUI = ({
         )}
       </div>
 
+      {/* Ordem de iniciativa — sempre visivel */}
+      {ordemIniciativa.length > 0 && (
+        <div className="px-3 py-1.5 border-t border-red-500/15">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-xs text-gray-500">Ordem:</span>
+            {ordemIniciativa.map((e, i) => {
+              const isCurrent = turnoAtual?.id === e.id;
+              const isDerrotado = e.tipo === 'monstro' && monstros.find(m => m.id === e.id && (m.status === 'derrotado' || m.hp_atual <= 0));
+              return (
+                <React.Fragment key={e.id}>
+                  {i > 0 && <span className="text-gray-600 text-xs">{'\u2192'}</span>}
+                  <span className={`text-xs px-1 rounded ${
+                    isDerrotado
+                      ? 'text-gray-600 line-through'
+                      : isCurrent
+                        ? (e.tipo === 'jogador' ? 'bg-cyan-800/50 text-cyan-200 font-bold ring-1 ring-cyan-400/40' : 'bg-red-800/50 text-red-200 font-bold ring-1 ring-red-400/40')
+                        : (e.tipo === 'jogador' ? 'text-cyan-400/70' : 'text-red-400/70')
+                  }`}>
+                    {e.nome}({e.iniciativa})
+                  </span>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Conteudo expandido */}
       {!collapsed && (
         <div className="px-3 pb-2 space-y-1.5">
@@ -178,33 +205,6 @@ const BatalhaUI = ({
               <MonstroCard key={monstro.id} monstro={monstro} compact />
             ))}
           </div>
-
-          {/* Ordem de iniciativa — compacta inline */}
-          {ordemIniciativa.length > 0 && (
-            <div className="border-t border-red-500/15 pt-1.5">
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-xs text-gray-500">Ordem:</span>
-                {ordemIniciativa.map((e, i) => {
-                  const isCurrent = turnoAtual?.id === e.id;
-                  const isDerrotado = e.tipo === 'monstro' && monstros.find(m => m.id === e.id && (m.status === 'derrotado' || m.hp_atual <= 0));
-                  return (
-                    <React.Fragment key={e.id}>
-                      {i > 0 && <span className="text-gray-600 text-xs">{'\u2192'}</span>}
-                      <span className={`text-xs px-1 rounded ${
-                        isDerrotado
-                          ? 'text-gray-600 line-through'
-                          : isCurrent
-                            ? (e.tipo === 'jogador' ? 'bg-cyan-800/50 text-cyan-200 font-bold ring-1 ring-cyan-400/40' : 'bg-red-800/50 text-red-200 font-bold ring-1 ring-red-400/40')
-                            : (e.tipo === 'jogador' ? 'text-cyan-400/70' : 'text-red-400/70')
-                      }`}>
-                        {e.nome}({e.iniciativa})
-                      </span>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Log de combate — ultimas 5 entradas, scrollable */}
           {log.length > 0 && (

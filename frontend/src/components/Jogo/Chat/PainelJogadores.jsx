@@ -9,7 +9,9 @@ const PainelJogadores = ({
   turnoAtual = null,
   faseJogo = 'aguardando_inicio',
   onVerFichaJogador,
-  compactMode = false
+  compactMode = false,
+  combateAtivo = false,
+  combateOrdemIniciativa = []
 }) => {
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -28,7 +30,8 @@ const PainelJogadores = ({
     const userId = jogador.userId || jogador.id;
     const username = jogador.username || jogador.nome;
     const personagem = jogador.personagemNome || jogador.personagem;
-    const valorDado = jogador.valorDado || resultadosDados[userId]?.valor;
+    const combateInit = combateAtivo && combateOrdemIniciativa.find(o => String(o.id).includes(String(userId)) || o.nome === personagem);
+    const valorDado = combateInit ? combateInit.iniciativa : (jogador.valorDado || resultadosDados[userId]?.valor);
     const ehTurnoAtual = turnoAtual === index;
     const ehUsuarioAtual = String(userId) === String(user?.id);
 

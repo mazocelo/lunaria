@@ -74,6 +74,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 app.use('/', indexRouter);
 
 
+// Start BullMQ workers
+import { createRoteiroWorker } from './jobs/processRoteiroJob.js';
+try {
+  const roteiroWorker = createRoteiroWorker();
+  roteiroWorker.on('completed', (job) => log.info({ jobId: job.id }, 'Roteiro job completed'));
+  roteiroWorker.on('failed', (job, err) => log.error({ jobId: job?.id, err: err.message }, 'Roteiro job failed'));
+  log.info('BullMQ roteiro worker started');
+} catch (err) {
+  log.warn({ err: err.message }, 'Failed to start roteiro worker (non-critical)');
+}
+
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
   next(createError(404));

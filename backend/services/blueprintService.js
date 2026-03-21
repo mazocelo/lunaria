@@ -426,14 +426,14 @@ class BlueprintService {
     try {
       content = await this._createMessageGemini(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
     } catch (err) {
-      log.warn({ err: err.message }, 'Gemini 3.1 Pro falhou, tentando Gemini 2.5 Pro');
+      log.warn({ err: err.message }, 'Gemini 3.1 Pro falhou, tentando Claude Sonnet');
       try {
-        content = await this._createMessageGeminiFallback(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
-        usedModel = 'gemini-2.5-pro';
-      } catch (err2) {
-        log.warn({ err: err2.message }, 'Gemini 2.5 Pro falhou, tentando Claude Sonnet');
         usedModel = FALLBACK_MODEL;
         content = await this._createMessage(prompt, userId, 'blueprint', temperature, tamanho.maxTokens, Math.max(tamanho.timeout, 300000));
+      } catch (err2) {
+        log.warn({ err: err2.message }, 'Claude Sonnet falhou, tentando Gemini 2.5 Pro');
+        usedModel = 'gemini-2.5-pro';
+        content = await this._createMessageGeminiFallback(prompt, temperature, tamanho.maxTokens, tamanho.timeout);
       }
     }
 

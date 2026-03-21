@@ -246,3 +246,45 @@ _controlarRodada():
 ```
 
 O avanço de rodada via `rodadaCombate++` é feito por `avancarTurno()` ao cruzar o índice 0 da ordem de iniciativa (sistema passedZero).
+
+---
+
+## Habilidades e Magias em Combate
+
+### Resolução de Ações Disponíveis
+
+`_getPersonagemHabilidades(personagemCompleto)` chama `getOwnedCombatActionList()` que agrega:
+- Habilidades da classe (automáticas)
+- Habilidades próprias via `hm_personagem` (grimório, level-up, loot)
+- Vantagens com `usos >= 1`
+
+### Uso de Habilidade/Magia
+
+```
+1. Jogador seleciona habilidade/magia
+2. Verifica custo_mana <= mp_atual
+3. Verifica cooldown_turnos (se em cooldown → bloqueado)
+4. Verifica nivel_requerido <= nivel_personagem
+5. Deduz mana: mp_atual -= custo_mana
+6. Resolve escalamento: resolverEscalamento(habilidade, nivel)
+7. Aplica dano/efeito com modificadores de escalamento
+8. Se usa_concentracao: registra concentração ativa
+9. Se efeito: aplica status effect no alvo (DOT, stun, etc.)
+```
+
+### Escalamento em Combate
+
+Quando uma habilidade tem campo `escalamento`:
+- `resolverEscalamento()` retorna `{ dano_bonus, multiplicador }`
+- Dano final = `rolar(dano_base) + dano_bonus`, multiplicado por `multiplicador` se presente
+- Aplicado tanto para jogadores quanto para monstros (via `selecionarHabilidadeMonstro`)
+
+### Seleção de Habilidade do Monstro
+
+```
+selecionarHabilidadeMonstro(monstro, rodada):
+  filtra habilidades com cooldown expirado
+  chance% de usar habilidade vs ataque básico
+  se selecionada: usa dano da habilidade + escalamento
+  senão: usa dano_base do monstro
+```

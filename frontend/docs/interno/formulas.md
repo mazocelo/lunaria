@@ -209,3 +209,80 @@ xp_monstro = xp_base × nivel_efetivo
 ```
 
 XP total distribuído ao fim do combate = soma do `xp` de todos os monstros derrotados.
+
+---
+
+## Habilidades e Magias
+
+### Modelo de Dados
+
+Tabela unificada `habilidades_magias` com junction tables:
+- `hm_classe` — vincula habilidades a classes (many-to-many)
+- `hm_raca` — vincula habilidades a raças (many-to-many)
+- `hm_personagem` — registra quais habilidades/magias o personagem possui, com origem (`criacao`, `level-up`, `loot`, `racial`)
+- `hm_slots_classe` — define slots de magia por classe + nível
+
+### Campos Relevantes
+
+```
+custo_mana         — custo em MP para usar
+dano_base          — dado de dano (ex: "2d6", "1d8+2")
+tipo               — "dano", "suporte", "controle", etc.
+escola_magia       — evocacao, abjuracao, conjuracao, transmutacao,
+                     adivinhacao, encantamento, ilusao, necromancia
+elemento           — fire, ice, lightning, etc.
+nivel_requerido    — nível mínimo para usar
+cooldown_turnos    — turnos de espera entre usos
+alvo               — inimigo, aliado, auto
+alcance            — proximo, medio, distante
+tempo_conjuracao   — acao, bonus, reacao
+usa_concentracao   — boolean
+escalamento        — JSON com tiers de escala por nível
+efeito             — JSON com status effects aplicados
+saving_throw       — tipo de teste de resistência
+usos_por_descanso  — limite de usos por descanso longo
+```
+
+### Escalamento (Damage Scaling)
+
+`resolverEscalamento(habilidade, nivelPersonagem)` em `combateHelper.js`.
+
+**Formato novo (tiers):**
+
+```json
+{
+  "upgrades": [
+    { "nivel": 5, "dano_bonus": 10, "multiplicador": 1.2 },
+    { "nivel": 10, "dano_bonus": 15, "multiplicador": 1.5 }
+  ]
+}
+```
+
+Aplica o tier mais alto onde `upgrade.nivel <= nivelPersonagem`.
+
+**Formato legado (linear):**
+
+```json
+{ "por_nivel": 5, "a_cada": 3 }
+```
+
+Aplica: `vezes = floor((nivelPersonagem - 1) / a_cada)`, dano_bonus = `por_nivel × vezes`.
+
+### Slots de Magia
+
+```
+GET /habilidades-magias/slots?classe_id=X&nivel=Y → { slots: N }
+```
+
+Fonte: `HmSlotsClasse.getSlots(classeId, nivel)`.
+
+Define quantas magias o personagem pode selecionar no Grimório durante criação. Classes sem magia retornam 0 slots.
+
+### Ownership (hm_personagem)
+
+Fontes de habilidades em combate (`getOwnedCombatActionList`):
+- `habilidadesClasse` — automáticas pela classe
+- `habilidadesProprias` — owned via `hm_personagem` (grimório + level-up + loot)
+- `vantagens` — vantagens com `usos >= 1`
+
+Distinção magia vs habilidade: `isSpellAction(item)` checa `escola_magia && escola_magia !== 'nenhuma'`.

@@ -36,13 +36,23 @@ Equipamentos fazem uma diferença enorme na capacidade do seu personagem. Existe
 
 Uma boa espada aumenta o dano dos seus ataques. Uma armadura resistente reduz o dano recebido. Uma varinha mágica potente amplifica seus feitiços. Vale a pena sempre estar de olho em upgrades.
 
+## Habilidades e Magias
+
+Seu personagem tem acesso a habilidades e magias que vêm de três fontes:
+
+**Classe:** cada classe concede habilidades automaticamente. Um Guerreiro ganha poderes de combate, um Clérigo ganha curas e bênçãos.
+
+**Raça:** algumas raças concedem habilidades raciais únicas. Um Tiefling pode ter resistência a fogo, um Elfo pode ter visão aguçada.
+
+**Grimório:** ao criar seu personagem, você escolhe magias iniciais de um catálogo disponível para sua classe. O número de magias que pode escolher depende dos **slots** da sua classe e nível. Um Mago nível 1 pode ter 3 slots, um Guerreiro pode ter 0.
+
+Conforme sobe de nível, suas habilidades e magias ficam mais fortes — o dano escala automaticamente. Um feitiço básico no nível 1 se torna significativamente mais poderoso no nível 10.
+
 ## Vantagens de raça e classe
 
-Além dos atributos e equipamentos, seu personagem possui vantagens únicas determinadas pela raça e classe escolhidas. Essas vantagens são habilidades especiais — poderes passivos, ataques únicos, magias exclusivas — que desbloqueiam conforme você evolui.
+Além das habilidades e magias, seu personagem possui vantagens únicas — poderes passivos, resistências e bônus — que desbloqueiam conforme evolui. Um guerreiro anão pode desenvolver resistência a venenos, um elfo pode ter afinidade natural com arcos.
 
-Um elfo, por exemplo, pode ter visão aguçada e afinidade com arcos. Um guerreiro anão pode desenvolver resistência a venenos. Um mago humano pode aprender feitiços de escolas arcanas variadas mais rapidamente.
-
-Essas vantagens são parte da identidade do personagem e o diferenciam de outros aventureiros de mesma classe ou nível. Vale a pena ler as habilidades da sua raça e classe para planejar como vai evoluir.
+Essas vantagens são parte da identidade do personagem e o diferenciam de outros aventureiros.
 
 ---
 

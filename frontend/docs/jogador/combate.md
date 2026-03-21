@@ -34,11 +34,19 @@ Fugir não é desonra — às vezes é a decisão mais inteligente.
 
 ### Habilidades
 
-Cada classe tem poderes especiais únicos, chamados de habilidades. Elas podem causar dano extra, curar, debilitar inimigos, fortalecer aliados e muito mais. As habilidades custam mana para ser usadas — fique de olho no seu MP. Um guerreiro com habilidades esgotadas ainda é um guerreiro, mas um mago sem mana fica vulnerável.
+Cada classe tem poderes especiais únicos, chamados de habilidades. Elas podem causar dano extra, curar, debilitar inimigos, fortalecer aliados e muito mais. Habilidades custam mana para ser usadas — fique de olho no seu MP. Um guerreiro com habilidades esgotadas ainda é um guerreiro, mas um mago sem mana fica vulnerável.
+
+Habilidades são concedidas automaticamente pela sua classe e raça. Conforme sobe de nível, novas habilidades podem desbloquear.
 
 ### Magias
 
-Feitiços arcanos com efeitos variados — bolas de fogo, raios, gelo, cura, ilusões, buff de aliados. Magias geralmente têm efeitos mais poderosos do que ataques comuns, mas custam mais mana. Use com sabedoria, especialmente em batalhas longas.
+Feitiços arcanos organizados em **escolas de magia**: Evocação (dano direto), Abjuração (proteção), Conjuração (invocações), Transmutação (transformações), Adivinhação (percepção), Encantamento (controle mental), Ilusão (engano) e Necromancia (morte e não-morte).
+
+Ao criar seu personagem, você escolhe magias iniciais no **Grimório** — um livro de feitiços limitado pelo número de slots da sua classe. Cada magia tem um custo de mana, e magias mais poderosas custam mais. Use com sabedoria, especialmente em batalhas longas.
+
+Magias podem escalar com seu nível — um feitiço que causa 1d6 de dano no nível 1 pode causar 2d6 no nível 5. Esse escalamento acontece automaticamente.
+
+Algumas magias exigem **concentração**: enquanto mantém o efeito ativo, se você levar dano, precisa passar em um teste ou a magia se desfaz.
 
 ---
 

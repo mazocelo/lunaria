@@ -11,7 +11,8 @@ import { ensureNpcIds } from './narrationSegmentsService.js';
 import { getDefaultProviderName } from './ttsService.js';
 import { MODE_TEMPERATURES } from '../config/blueprintModes.js';
 
-const MODEL = 'claude-sonnet-4-5-20250929';
+const MODEL = 'claude-sonnet-4-6';
+const FALLBACK_MODEL = 'gemini-2.5-flash';
 const MAX_TOKENS = 8000;
 const TIMEOUT_MS = 180000;
 const REPAIR_TEMPERATURE = 0.1;
@@ -409,9 +410,18 @@ class BlueprintService {
       previousBlueprint: options.previousBlueprint || historia?.roteiro || null
     });
     const temperature = MODE_TEMPERATURES[mode] || 0.3;
-    log.info({ historia: historia.nome, mode }, 'Gerando roteiro com Claude Sonnet 4.5');
+    log.info({ historia: historia.nome, mode }, 'Gerando roteiro com Claude (fallback Gemini)');
 
-    const content = await this._createMessage(prompt, userId, 'blueprint', temperature);
+    let content;
+    let usedModel = MODEL;
+    try {
+      content = await this._createMessage(prompt, userId, 'blueprint', temperature);
+    } catch (err) {
+      log.warn({ err: err.message }, 'Claude falhou para roteiro, tentando fallback Gemini');
+      usedModel = FALLBACK_MODEL;
+      content = await this._createMessageGemini(prompt, temperature);
+    }
+
     let roteiro = this._parseRoteiro(content);
 
     if (!roteiro) {
@@ -424,7 +434,7 @@ class BlueprintService {
       throw new Error('Falha ao parsear roteiro da IA. Resposta nao e JSON valido.');
     }
 
-    return { roteiro: roteiroNormalizado, prompt, responseText: content, model: MODEL };
+    return { roteiro: roteiroNormalizado, prompt, responseText: content, model: usedModel };
   }
 
   async _createMessage(prompt, userId = null, tipo = 'blueprint', temperature = 0.3) {
@@ -470,6 +480,22 @@ class BlueprintService {
       }
     }
 
+    return content;
+  }
+
+  async _createMessageGemini(prompt, temperature = 0.3) {
+    const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
+    const llm = new ChatGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+      model: FALLBACK_MODEL,
+      temperature,
+      maxOutputTokens: MAX_TOKENS,
+      responseMimeType: 'application/json',
+    });
+    const startTime = Date.now();
+    const response = await llm.invoke(prompt);
+    const content = response.content || '';
+    log.info({ duracao: Date.now() - startTime, chars: content.length, model: FALLBACK_MODEL }, 'Fallback Gemini respondeu');
     return content;
   }
 

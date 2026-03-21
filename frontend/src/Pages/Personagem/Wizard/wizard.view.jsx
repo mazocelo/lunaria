@@ -154,7 +154,7 @@ const WizardView = (props) => {
   }, [creationFlowStatus]);
 
   return (
-    <div className={`wizard-atelier ${isLight ? 'light' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
+    <div className={`wizard-atelier ${isLight ? 'light' : ''} ${theme === 'gothic' ? 'gothic' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
       <div className="relative z-[1] flex h-full min-h-0 flex-col">
         {fichaAberta && (
           <div className="mx-4 mt-3 shrink-0 xl:hidden md:mx-5">

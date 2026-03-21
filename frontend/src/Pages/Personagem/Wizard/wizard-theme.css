@@ -71,6 +71,33 @@
   --wa-glow: 0 0 12px rgba(139, 92, 246, 0.15);
 }
 
+/* ── Gothic mode — carmesim/gold ── */
+.wizard-atelier.gothic {
+  --wa-bg: radial-gradient(circle at top, rgba(220,38,38,0.1), transparent 40%),
+           linear-gradient(180deg, #1a0e12 0%, #241418 38%, #1a0e12 100%);
+  --wa-bg-accent: radial-gradient(circle at 15% 20%, rgba(220,38,38,0.08), transparent 24%),
+                  radial-gradient(circle at 85% 10%, rgba(184,134,11,0.05), transparent 22%);
+  --wa-panel: rgba(30, 14, 18, 0.85);
+  --wa-panel-strong: rgba(20, 10, 14, 0.95);
+  --wa-panel-soft: rgba(40, 20, 26, 0.5);
+  --wa-ink: #f5e6d3;
+  --wa-muted: #c0a8a8;
+  --wa-border: rgba(220, 38, 38, 0.12);
+  --wa-accent: #dc2626;
+  --wa-accent-bright: #ef4444;
+  --wa-teal: #b8860b;
+  --wa-ember: #ef4444;
+  --wa-forge-gold: #daa520;
+  --wa-forge-gold-muted: rgba(218,165,32,0.15);
+  --wa-info: #f87171;
+  --wa-success: #b8860b;
+  --wa-danger: #ef4444;
+  --wa-violet: var(--wa-accent);
+  --wa-emerald: var(--wa-teal);
+  --wa-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --wa-glow: 0 0 16px rgba(220, 38, 38, 0.25);
+}
+
 /* ── Ambient overlays ── */
 
 .wizard-atelier::before {

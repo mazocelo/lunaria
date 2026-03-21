@@ -251,6 +251,30 @@
   color: #f87171 !important;
 }
 
+/* Gothic CatalogCard hover glow — carmesim instead of purple */
+.gothic .hover\:shadow-purple-500\/20:hover {
+  --tw-shadow-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+.gothic .hover\:border-purple-500\/40:hover,
+.gothic .hover\:border-purple-300\/60:hover {
+  border-color: rgba(220, 38, 38, 0.4) !important;
+}
+
+.gothic .hover\:shadow-purple-500\/10:hover {
+  --tw-shadow-color: rgba(220, 38, 38, 0.1) !important;
+}
+
+/* Gothic CatalogDetailLayout — vitral accent defaults to carmesim */
+.gothic .vitral-section::before {
+  background: linear-gradient(90deg, #dc2626, transparent 80%);
+}
+
+/* Gothic image glow in cards */
+.gothic .hover\:shadow-purple-500\/25:hover {
+  --tw-shadow-color: rgba(220, 38, 38, 0.25) !important;
+}
+
 /* Gothic nav active indicator */
 .gothic .nav-item-active::before {
   background: linear-gradient(180deg, #dc2626, #b8860b);

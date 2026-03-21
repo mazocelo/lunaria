@@ -295,14 +295,16 @@
   background-color: rgba(30, 14, 18, 0.6) !important;
 }
 
-/* Gothic CatalogCard — carmesim borders, glow, hover */
+/* Gothic CatalogCard — carmesim bg, borders, glow, hover */
 .gothic .animate-card-reveal {
-  border-color: rgba(220, 38, 38, 0.12) !important;
+  background-color: rgba(30, 14, 18, 0.9) !important;
+  border-color: rgba(220, 38, 38, 0.15) !important;
 }
 
 .gothic .animate-card-reveal:hover {
-  border-color: rgba(220, 38, 38, 0.35) !important;
-  box-shadow: 0 12px 30px rgba(139, 0, 0, 0.25), 0 0 15px rgba(220, 38, 38, 0.1) !important;
+  background-color: rgba(40, 18, 24, 0.95) !important;
+  border-color: rgba(220, 38, 38, 0.4) !important;
+  box-shadow: 0 12px 30px rgba(139, 0, 0, 0.3), 0 0 15px rgba(220, 38, 38, 0.15) !important;
 }
 
 /* Gothic bottom gradient on card images */

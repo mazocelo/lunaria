@@ -295,6 +295,21 @@
   background-color: rgba(30, 14, 18, 0.6) !important;
 }
 
+/* Gothic CatalogCard — carmesim borders, glow, hover */
+.gothic .animate-card-reveal {
+  border-color: rgba(220, 38, 38, 0.12) !important;
+}
+
+.gothic .animate-card-reveal:hover {
+  border-color: rgba(220, 38, 38, 0.35) !important;
+  box-shadow: 0 12px 30px rgba(139, 0, 0, 0.25), 0 0 15px rgba(220, 38, 38, 0.1) !important;
+}
+
+/* Gothic bottom gradient on card images */
+.gothic .from-slate-800\/90 {
+  --tw-gradient-from: rgba(30, 14, 18, 0.9) !important;
+}
+
 /* Gothic CatalogCard hover glow — carmesim instead of purple */
 .gothic .hover\:shadow-purple-500\/20:hover {
   --tw-shadow-color: rgba(220, 38, 38, 0.2) !important;

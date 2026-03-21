@@ -7,32 +7,31 @@ import { useLocation } from 'react-router-dom';
  * Bats fly in front of content (high z-index), flap wings via CSS.
  */
 
-const BloodDrip = ({ left, delay = 0, duration = 4, height = 120 }) => (
+const BloodDrip = ({ left, delay = 0, duration = 8, height = 60 }) => (
   <div
     className="fixed pointer-events-none z-[3]"
     style={{ left: `${left}%`, top: '56px' }}
   >
-    {/* Drip trail */}
+    {/* Thin drip trail */}
     <div
       style={{
-        width: '2px',
+        width: '1px',
         height: `${height}px`,
-        background: 'linear-gradient(to bottom, #8b0000, #cc0000 40%, transparent)',
+        background: `linear-gradient(to bottom, rgba(139,0,0,0.6), rgba(180,20,20,0.3) 60%, transparent)`,
         opacity: 0,
-        animation: `bloodDrip ${duration}s ease-in ${delay}s infinite`,
+        animation: `bloodDrip ${duration}s ease-in-out ${delay}s infinite`,
       }}
     />
-    {/* Drop at bottom */}
+    {/* Tiny drop */}
     <div
       style={{
-        width: '6px',
-        height: '8px',
+        width: '3px',
+        height: '4px',
         borderRadius: '50% 50% 50% 50% / 30% 30% 70% 70%',
-        background: '#cc0000',
-        marginLeft: '-2px',
+        background: 'rgba(180, 20, 20, 0.5)',
+        marginLeft: '-1px',
         opacity: 0,
-        animation: `bloodDrop ${duration}s ease-in ${delay}s infinite`,
-        filter: 'drop-shadow(0 0 3px rgba(204, 0, 0, 0.5))',
+        animation: `bloodDrop ${duration}s ease-in-out ${delay}s infinite`,
       }}
     />
   </div>
@@ -136,12 +135,10 @@ const GothicDecorations = () => {
 
   return (
     <>
-      {/* Blood drips from header */}
-      <BloodDrip left={25} delay={0} duration={5} height={100} />
-      <BloodDrip left={42} delay={2.5} duration={6} height={130} />
-      <BloodDrip left={58} delay={1} duration={4.5} height={90} />
-      <BloodDrip left={73} delay={3.5} duration={5.5} height={110} />
-      <BloodDrip left={88} delay={0.8} duration={7} height={140} />
+      {/* Blood drips from header — subtle, thin */}
+      <BloodDrip left={30} delay={0} duration={9} height={45} />
+      <BloodDrip left={55} delay={4} duration={11} height={55} />
+      <BloodDrip left={78} delay={7} duration={10} height={40} />
 
       {/* Webs */}
       <SpiderWeb side="left" position="top" size={160} />

@@ -1105,8 +1105,14 @@ input[type="range"].tts-slider:disabled {
 }
 
 /* Documentation prose styles */
-.docs-content h1 { @apply text-2xl font-bold font-fantasy mb-4 text-purple-300; }
-.docs-content h2 { @apply text-xl font-bold font-fantasy mt-8 mb-3 text-purple-400; }
+.docs-content h1 {
+  @apply text-2xl font-bold mb-4 text-purple-300;
+  font-family: 'EB Garamond', serif;
+}
+.docs-content h2 {
+  @apply text-xl font-bold mt-8 mb-3 text-purple-400;
+  font-family: 'EB Garamond', serif;
+}
 .docs-content h3 { @apply text-lg font-semibold mt-6 mb-2; }
 .docs-content p { @apply mb-4 leading-relaxed; }
 .docs-content ul { @apply list-disc pl-6 mb-4 space-y-1; }
@@ -1119,4 +1125,3 @@ input[type="range"].tts-slider:disabled {
 .docs-content td { @apply px-3 py-2 border-b border-slate-800; }
 .docs-content a { @apply text-purple-400 hover:text-purple-300 underline; }
 .docs-content blockquote { @apply border-l-4 border-purple-500 pl-4 italic text-slate-400 mb-4; }
-}

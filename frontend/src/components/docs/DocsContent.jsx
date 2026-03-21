@@ -9,7 +9,7 @@ export default function DocsContent({ section, slug }) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/docs/${section}/${slug}.html`)
+    fetch(`/docs-html/${section}/${slug}.html`)
       .then(res => {
         if (!res.ok) throw new Error('Not found');
         return res.text();

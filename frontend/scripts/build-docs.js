@@ -6,7 +6,7 @@ import MarkdownIt from 'markdown-it';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const DOCS_SRC = join(ROOT, 'docs');
-const DOCS_OUT = join(ROOT, 'public', 'docs');
+const DOCS_OUT = join(ROOT, 'public', 'docs-html');
 
 const md = new MarkdownIt({ html: true, linkify: true, typographer: true });
 

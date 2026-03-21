@@ -12,24 +12,24 @@ const BloodDrip = ({ left, delay = 0, duration = 8, height = 60 }) => (
     className="fixed pointer-events-none z-[3]"
     style={{ left: `${left}%`, top: '56px' }}
   >
-    {/* Thin drip trail */}
+    {/* Drip trail */}
     <div
       style={{
-        width: '1px',
+        width: '1.5px',
         height: `${height}px`,
-        background: `linear-gradient(to bottom, rgba(139,0,0,0.6), rgba(180,20,20,0.3) 60%, transparent)`,
+        background: `linear-gradient(to bottom, rgba(139,0,0,0.7), rgba(180,20,20,0.35) 60%, transparent)`,
         opacity: 0,
         animation: `bloodDrip ${duration}s ease-in-out ${delay}s infinite`,
       }}
     />
-    {/* Tiny drop */}
+    {/* Drop */}
     <div
       style={{
-        width: '3px',
-        height: '4px',
+        width: '4px',
+        height: '6px',
         borderRadius: '50% 50% 50% 50% / 30% 30% 70% 70%',
-        background: 'rgba(180, 20, 20, 0.5)',
-        marginLeft: '-1px',
+        background: 'rgba(180, 20, 20, 0.55)',
+        marginLeft: '-1.25px',
         opacity: 0,
         animation: `bloodDrop ${duration}s ease-in-out ${delay}s infinite`,
       }}
@@ -135,16 +135,21 @@ const GothicDecorations = () => {
 
   return (
     <>
-      {/* Blood drips from header — subtle, thin */}
-      <BloodDrip left={22} delay={0} duration={9} height={50} />
-      <BloodDrip left={31} delay={3} duration={12} height={40} />
-      <BloodDrip left={40} delay={6.5} duration={10} height={55} />
-      <BloodDrip left={50} delay={1.5} duration={11} height={35} />
-      <BloodDrip left={59} delay={5} duration={9.5} height={48} />
-      <BloodDrip left={68} delay={8} duration={13} height={42} />
-      <BloodDrip left={76} delay={2} duration={10.5} height={52} />
-      <BloodDrip left={85} delay={4.5} duration={11.5} height={38} />
-      <BloodDrip left={93} delay={7.5} duration={9} height={45} />
+      {/* Blood drips from header */}
+      <BloodDrip left={18} delay={0} duration={9} height={65} />
+      <BloodDrip left={24} delay={5} duration={12} height={55} />
+      <BloodDrip left={30} delay={2} duration={10} height={70} />
+      <BloodDrip left={36} delay={8} duration={11} height={50} />
+      <BloodDrip left={42} delay={3.5} duration={13} height={60} />
+      <BloodDrip left={48} delay={1} duration={9.5} height={75} />
+      <BloodDrip left={54} delay={6.5} duration={11.5} height={55} />
+      <BloodDrip left={60} delay={4} duration={10} height={65} />
+      <BloodDrip left={66} delay={7} duration={12.5} height={50} />
+      <BloodDrip left={72} delay={2.5} duration={9} height={70} />
+      <BloodDrip left={78} delay={9} duration={11} height={60} />
+      <BloodDrip left={84} delay={1.5} duration={10.5} height={55} />
+      <BloodDrip left={90} delay={6} duration={13} height={65} />
+      <BloodDrip left={95} delay={4.5} duration={9.5} height={50} />
 
       {/* Webs */}
       <SpiderWeb side="left" position="top" size={160} />

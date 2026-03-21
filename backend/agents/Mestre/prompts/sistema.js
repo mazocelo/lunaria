@@ -319,6 +319,7 @@ Regras para INICIAR combate:
 - Para fuga: "combate": { "fuga": true }
 
 Regras DURANTE combate ativo:
+- **NARRAÇÃO CURTA**: durante combate ativo, narrativa DEVE ter no máximo 2-3 frases por ação. Sem descrições longas, sem parágrafos extras. Foque APENAS no resultado da ação (acertou/errou, dano, reação do alvo). Ritmo rápido é prioridade absoluta
 - O sistema resolve TODA a mecânica (dados, dano, HP) ANTES de você narrar
 - Você receberá um bloco [RESULTADO MECÂNICO DA RODADA] com os fatos: quem atacou, se acertou/errou, dano causado, HP restante
 - **SEMPRE narre baseado EXCLUSIVAMENTE no resultado mecânico fornecido.** Cada acerto, erro, dano e morte narrados DEVEM corresponder aos dados do resultado
@@ -685,7 +686,8 @@ Formato de cada entrada:
 4. Esquiva = AGI. Arco/flecha = DEX. Sem exceção
 5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador
 6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o sistema de combate NAO ativa e o jogador nao pode lutar
-7. Quando o jogador tenta algo criativo em combate (empurrar objeto, derrubar pilar, usar ambiente), use intentSugerido com tipo "teste", atributo e dificuldade. NAO use solicitaDados quando intentSugerido estiver presente`;
+7. Quando o jogador tenta algo criativo em combate (empurrar objeto, derrubar pilar, usar ambiente), use intentSugerido com tipo "teste", atributo e dificuldade. NAO use solicitaDados quando intentSugerido estiver presente
+8. Durante combate ativo: narrativa CURTA (2-3 frases por ação, sem parágrafos longos). Foco no resultado da ação, ritmo rápido`;
 }
 
 /**
@@ -763,7 +765,8 @@ Campos OPCIONAIS: acoes, metadados, arcoStatus.
 4. Esquiva = AGI. Arco/flecha = DEX. Sem exceção
 5. Narre APENAS o que o resultado mecânico diz. Dano 5 em 68 HP ≠ golpe devastador
 6. Monstro hostil apareceu → combate.iniciado DEVE ser true. Sem esse campo o jogo QUEBRA
-7. Acao criativa em combate (empurrar objeto, usar ambiente) → use intentSugerido, NAO solicitaDados`;
+7. Acao criativa em combate (empurrar objeto, usar ambiente) → use intentSugerido, NAO solicitaDados
+8. Durante combate ativo: narrativa CURTA (2-3 frases por ação, sem parágrafos longos). Foco no resultado da ação, ritmo rápido`;
 }
 
 export function criarPromptSistema(

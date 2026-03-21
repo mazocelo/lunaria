@@ -136,9 +136,15 @@ const GothicDecorations = () => {
   return (
     <>
       {/* Blood drips from header — subtle, thin */}
-      <BloodDrip left={30} delay={0} duration={9} height={45} />
-      <BloodDrip left={55} delay={4} duration={11} height={55} />
-      <BloodDrip left={78} delay={7} duration={10} height={40} />
+      <BloodDrip left={22} delay={0} duration={9} height={50} />
+      <BloodDrip left={31} delay={3} duration={12} height={40} />
+      <BloodDrip left={40} delay={6.5} duration={10} height={55} />
+      <BloodDrip left={50} delay={1.5} duration={11} height={35} />
+      <BloodDrip left={59} delay={5} duration={9.5} height={48} />
+      <BloodDrip left={68} delay={8} duration={13} height={42} />
+      <BloodDrip left={76} delay={2} duration={10.5} height={52} />
+      <BloodDrip left={85} delay={4.5} duration={11.5} height={38} />
+      <BloodDrip left={93} delay={7.5} duration={9} height={45} />
 
       {/* Webs */}
       <SpiderWeb side="left" position="top" size={160} />

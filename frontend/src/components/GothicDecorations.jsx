@@ -161,7 +161,7 @@ const GothicDecorations = () => {
       <SpiderWeb side="right" position="bottom" size={110} />
 
       {/* Bat swarm on navigation/theme change only — no ambient */}
-      <BatSwarm count={6} trigger={batTrigger} />
+      <BatSwarm count={4} trigger={batTrigger} />
     </>,
     document.body
   );

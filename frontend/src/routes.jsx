@@ -62,6 +62,8 @@ const EditarHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Editar'
 const VerHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Ver'));
 const BillingPage = React.lazy(() => import('./Pages/Billing'));
 const AdminMotorPage = React.lazy(() => import('./Pages/Admin/Motor'));
+const DocsJogadorPage = React.lazy(() => import('./Pages/Docs/Jogador'));
+const DocsInternoPage = React.lazy(() => import('./Pages/Docs/Interno'));
 
 /**
  * ============================================================================
@@ -476,7 +478,45 @@ const ROUTE_CONFIG = [
     name: 'Admin Motor',
     category: 'ADMIN',
     requireSuperAdmin: true
-  }
+  },
+
+  // ===== DOCS =====
+  {
+    path: ROUTES.DOCS,
+    component: DocsJogadorPage,
+    name: 'Documentação',
+    category: 'DOCS'
+  },
+  {
+    path: ROUTES.DOCS_SLUG,
+    component: DocsJogadorPage,
+    name: 'Documentação',
+    category: 'DOCS',
+    hasParams: true
+  },
+  {
+    path: ROUTES.ADMIN_DOCS,
+    component: DocsInternoPage,
+    name: 'Docs Interno',
+    category: 'ADMIN',
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.ADMIN_DOCS_SECTION,
+    component: DocsInternoPage,
+    name: 'Docs Interno',
+    category: 'ADMIN',
+    requireSuperAdmin: true,
+    hasParams: true
+  },
+  {
+    path: ROUTES.ADMIN_DOCS_SECTION_SLUG,
+    component: DocsInternoPage,
+    name: 'Docs Interno',
+    category: 'ADMIN',
+    requireSuperAdmin: true,
+    hasParams: true
+  },
 ];
 
 /**

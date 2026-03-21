@@ -105,7 +105,14 @@ export const ROUTES = {
   BILLING: '/billing',
 
   // ===== ADMIN =====
-  ADMIN_MOTOR: '/admin/motor'
+  ADMIN_MOTOR: '/admin/motor',
+
+  // ===== DOCS =====
+  DOCS: '/docs',
+  DOCS_SLUG: '/docs/:slug',
+  ADMIN_DOCS: '/admin/docs',
+  ADMIN_DOCS_SECTION: '/admin/docs/:section',
+  ADMIN_DOCS_SECTION_SLUG: '/admin/docs/:section/:slug',
 };
 
 /**

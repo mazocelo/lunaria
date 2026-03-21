@@ -7,7 +7,7 @@ import { useSocketStore } from '../../store';
 import {
   BookOpen, Users, Dna, Shield, Star, AlertTriangle,
   Sword, Skull, Palette, Crown, User, AlertCircle, RefreshCw,
-  UserPlus, Rss, Globe, BarChart3, Zap
+  UserPlus, Rss, Globe, BarChart3, Zap, ScrollText
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -26,6 +26,7 @@ const Sidebar = () => {
     { path: '/explorar', label: 'Explorar', icon: Globe, description: 'Descubra aventuras publicas' },
     { path: '/personagens', label: 'Personagens', icon: Users, description: 'Crie e edite personagens' },
     { path: '/billing', label: 'Consumo', icon: BarChart3, description: 'Consumo de API' },
+    { path: '/docs', label: 'Documentação', icon: BookOpen, description: 'Guia do jogador' },
   ];
 
   const socialItems = [
@@ -43,6 +44,7 @@ const Sidebar = () => {
     { path: '/temas', label: 'Temas', icon: Palette, description: 'Gerencie os temas' },
     { path: '/habilidades', label: 'Habilidades', icon: Zap, description: 'Gerencie as habilidades' },
     { path: '/mestres', label: 'Mestres', icon: Crown, description: 'Gerencie seus mestres' },
+    { path: '/admin/docs', label: 'Docs Interno', icon: ScrollText, description: 'Base de conhecimento' },
   ];
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');

@@ -323,6 +323,7 @@ Regras DURANTE combate ativo:
 - O sistema resolve TODA a mecânica (dados, dano, HP) ANTES de você narrar
 - Você receberá um bloco [RESULTADO MECÂNICO DA RODADA] com os fatos: quem atacou, se acertou/errou, dano causado, HP restante
 - **SEMPRE narre baseado EXCLUSIVAMENTE no resultado mecânico fornecido.** Cada acerto, erro, dano e morte narrados DEVEM corresponder aos dados do resultado
+- **NUNCA narre a morte de um monstro a menos que o resultado mecânico diga HP <= 0.** Se o monstro ainda tem HP > 0, ele esta ferido mas VIVO. Nao antecipe mortes ou vitorias
 - Se o resultado diz "ERROU", narre a falha. Se diz "5 de dano, HP 60/68", mantenha a intensidade proporcional ao dano real
 - Use os valores de HP para calibrar a intensidade narrativa (HP > 70% = saudável, 30-70% = ferido, < 30% = crítico)
 - O sistema resolve dados automaticamente durante combate

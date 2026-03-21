@@ -539,20 +539,24 @@ export function calcularDano(dano_base, modForca = 0, critico = false) {
 }
 
 /**
- * Rola absorcao (TA) baseada em CON e armadura.
- * TA = max(0, modCON - 1)d4 + armadura
+ * Calcula absorcao (TA) baseada em CON e armadura.
+ * TA = floor(modCON / 2) + armadura (flat, previsível, não escala exponencialmente)
+ *
+ * CON 10 = 0, CON 14 = 1, CON 16 = 1, CON 18 = 2, CON 20 = 2
+ * Com armadura 3: range 3-5 (vs antigo 3-13 com dados)
+ *
  * @param {number} constituicao - Valor de constituicao do alvo
  * @param {number} armadura - Armadura fixa do alvo
- * @returns {number} Valor de absorcao rolado
+ * @returns {number} Valor de absorcao
  */
 export function calcularAbsorcao(constituicao, armadura = 0) {
   const modCON = Math.floor(((constituicao || 10) - 10) / 2);
-  const dados = Math.max(0, modCON - 1);
-  let absorcao = 0;
-  for (let i = 0; i < dados; i++) {
-    absorcao += Math.floor(Math.random() * 4) + 1; // 1d4
+  const numDados = Math.max(0, modCON - 1);
+  let total = 0;
+  for (let i = 0; i < numDados; i++) {
+    total += Math.floor(Math.random() * 4) + 1;
   }
-  return absorcao + (armadura || 0);
+  return total + (armadura || 0);
 }
 
 /**
@@ -1029,55 +1033,64 @@ function _executarContraAtaques(combate, sessao, resultados) {
     const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
     const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
     const rolagemMonstro = Math.floor(Math.random() * 20) + 1;
-    const { acertou: mAcertou, critico: mCritico } = verificarAcerto(rolagemMonstro);
+
+    // d20 + modDEX + floor(nivel/2) vs DC esquiva do jogador (10 + modAGI + dcBonus)
+    const modDEX = Math.floor(((monstro.destreza || 10) - 10) / 2);
+    const bonusNivel = Math.floor((monstro.nivel || 1) / 2);
+    const totalAtaque = rolagemMonstro + modDEX + bonusNivel;
+
+    const personagensCompletos = sessao?.personagensCompletos || {};
+    const pcId = alvoStats.personagemId;
+    const pc = personagensCompletos[pcId] || personagensCompletos[String(pcId)] || {};
+    const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
+    const defesaTemporaria = _getDefesaTemporaria(combate, alvoStats);
+    const dcBonus = defesaTemporaria?.dcBonus || 0;
+    const dcEsquiva = 10 + Math.floor((agiValue - 10) / 2) + dcBonus;
+
+    const { acertou: mAcertou, critico: mCritico } = verificarAcerto(rolagemMonstro, totalAtaque, dcEsquiva);
 
     let danoMonstro = 0;
     let mEsquivou = false;
     if (mAcertou) {
-      const defesaTemporaria = _getDefesaTemporaria(combate, alvoStats);
-      const esquivaExtra = defesaTemporaria?.esquivaBonus || 0;
-      const esquivaEfetiva = Math.min(75, (alvoStats.esquiva || 0) + esquivaExtra);
-      if (!mCritico && verificarEsquiva(esquivaEfetiva)) {
-        mEsquivou = true;
-      } else {
-        const danoNotacao = habilidade?.dano || monstro.dano_base;
-        const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
-        danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico);
-        // Absorption: max(0, modCON-1)d4 + armadura — crits ignore absorption
-        if (!mCritico) {
-          const absorcaoM = calcularAbsorcao(alvoStats.constituicao || 10, alvoStats.armadura || 0);
-          danoMonstro = Math.max(0, danoMonstro - absorcaoM);
-        }
-        if (defesaTemporaria?.reducaoDano) {
-          danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
-        }
-        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
+      // DC esquiva já verificado por verificarAcerto — sem checagem % adicional.
+      const danoNotacao = habilidade?.dano || monstro.dano_base;
+      const modForcaM = Math.floor(((monstro.forca || 10) - 10) / 2);
+      danoMonstro = calcularDano(danoNotacao, modForcaM, mCritico);
+      // Absorption: crits ignore absorption
+      if (!mCritico) {
+        const conAlvo = pc.atributos?.constituicao || pc.constituicao || alvoStats.constituicao || 10;
+        const absorcaoM = calcularAbsorcao(conAlvo, alvoStats.armadura || 0);
+        danoMonstro = Math.max(0, danoMonstro - absorcaoM);
+      }
+      if (defesaTemporaria?.reducaoDano) {
+        danoMonstro = Math.max(1, Math.floor(danoMonstro * (1 - defesaTemporaria.reducaoDano)));
+      }
+      alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoMonstro);
 
-        // Teste de concentração ao receber dano (DC = max(10, dano/2))
-        if (danoMonstro > 0 && alvoStats.hp_atual > 0) {
-          const concCheck = checkDanoConcentracao(sessao, alvoId, danoMonstro);
-          if (concCheck.precisaTestar) {
-            const rolagemConc = Math.floor(Math.random() * 20) + 1;
-            const modCon = Math.floor(((alvoStats.constituicao || 10) - 10) / 2);
-            const totalConc = rolagemConc + modCon;
-            if (totalConc < concCheck.dc) {
-              const magiaQuebrada = quebrarConcentracao(sessao, alvoId, 'dano_recebido');
-              if (magiaQuebrada) {
-                resultados.concentracaoQuebrada = {
-                  personagem: alvoStats.personagemNome,
-                  magia: magiaQuebrada.nome,
-                  dano: danoMonstro,
-                  dc: concCheck.dc,
-                  rolagem: rolagemConc,
-                  total: totalConc,
-                };
-              }
+      // Teste de concentração ao receber dano (DC = max(10, dano/2))
+      if (danoMonstro > 0 && alvoStats.hp_atual > 0) {
+        const concCheck = checkDanoConcentracao(sessao, alvoId, danoMonstro);
+        if (concCheck.precisaTestar) {
+          const rolagemConc = Math.floor(Math.random() * 20) + 1;
+          const modCon = Math.floor(((alvoStats.constituicao || 10) - 10) / 2);
+          const totalConc = rolagemConc + modCon;
+          if (totalConc < concCheck.dc) {
+            const magiaQuebrada = quebrarConcentracao(sessao, alvoId, 'dano_recebido');
+            if (magiaQuebrada) {
+              resultados.concentracaoQuebrada = {
+                personagem: alvoStats.personagemNome,
+                magia: magiaQuebrada.nome,
+                dano: danoMonstro,
+                dc: concCheck.dc,
+                rolagem: rolagemConc,
+                total: totalConc,
+              };
             }
           }
         }
-
-        if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
       }
+
+      if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
     }
 
     if (habilidade) monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
@@ -1111,8 +1124,8 @@ function _controlarRodada(combate, userId, sessao, resultados) {
     resultados.rodadaAvancou = true;
 
     // Limpar defesa temporária expirada dos jogadores.
-    // Status effects de jogadores são decrementados pelo effectManager (masterNarrationEngine),
-    // então NÃO decrementamos aqui para evitar decremento duplo.
+    // Efeitos de jogadores são decrementados pelo effectManager (masterNarrationEngine).
+    // Aqui só tratamos monstros (abaixo) e limpeza de defesa temporária.
     for (const [jId, jStats] of Object.entries(combate.jogadores)) {
       const defesaTemporaria = _getDefesaTemporaria(combate, jStats);
       if (!defesaTemporaria) {

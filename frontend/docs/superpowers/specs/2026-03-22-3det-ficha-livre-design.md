@@ -29,14 +29,27 @@ Todos os gastos saem do mesmo pool:
 - **Características** (F/H/R/A/PdF): 1 ponto por nível, range 0-5
 - **Vantagens**: custo variável por item (1-3 pts)
 - **Focus Elementais**: 1 ponto por nível, range 0-5, por elemento
-- **Desvantagens**: devolvem pontos ao pool (-1 a -3 pts)
+- **Desvantagens**: devolvem pontos ao pool (-1 a -3 pts), sem cap total (diferente de Lunaria que limita a -3)
+
+### Regras de Pool
+- Botões +/- ficam **desabilitados** quando pontosRestantes = 0 (não permite overspend temporário)
+- Ao reduzir Nível de Poder com pontos já gastos, auto-remove na ordem: Focus (maior valor primeiro) → Características (PdF → A → R → H → F) → Vantagens (última adicionada primeiro)
+- `pontosRestantes` é sempre uma computação derivada do state, nunca armazenado diretamente
 
 ### Stats Derivados
 - PV = 5 × Resistência
 - PM = 5 × max(Habilidade, Poder de Fogo) — somente se possui vantagem de Magia
 
 ### Focus Elementais
-6 elementos: Fogo, Água, Terra, Ar, Luz, Trevas. Cada nível custa 1 ponto do pool. A seção fica **bloqueada** até o jogador comprar uma vantagem de Magia (Branca, Negra ou Elemental). Ao remover a vantagem de Magia, os pontos de Focus são devolvidos ao pool.
+6 elementos: Fogo, Água, Terra, Ar, Luz, Trevas. Cada nível custa 1 ponto do pool. A seção fica **bloqueada** até o jogador comprar uma vantagem de Magia. "Vantagem de Magia" = qualquer vantagem com `tipo: 'magico'` (Magia Branca, Magia Negra, Magia Elemental). Se o jogador possui múltiplas vantagens mágicas e remove uma, Focus permanece acessível enquanto pelo menos uma vantagem mágica existir. Ao remover a última vantagem mágica, pontos de Focus são zerados e devolvidos ao pool.
+
+### Decisões Técnicas
+- **State management**: hook local (`useTresDetFichaModel`) seguindo o padrão do `useWizardModel`
+- **Componentes existentes**: `TresDetCaracteristicasBlock` e `TresDetVantagensBlock` NÃO serão reutilizados (foram desenhados para pool separado). Novos componentes serão criados para o pool único.
+- **Mestre**: novo hook `useMestreFichaLivre` (o `useMestreInteraction` depende de navegação linear)
+- **Draft**: localStorage básico (save on state change, restore on mount) incluído nesta fase
+- **Backend**: `POST /personagens` com `sistema: 'tresdet'` já aceita payload sem `raca_id`/`classe_id`. Campos `nivelPoder` e `focus` são novos e precisam de migração no backend.
+- **Equipamentos**: seção renderiza com texto "Em breve" (catálogo não existe ainda), payload envia `equipamentosIds: []`
 
 ## Layout
 

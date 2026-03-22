@@ -1,13 +1,31 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useWizardModel } from './wizard.model';
 import WizardView from './wizard.view';
+import WizardSystemPicker from './components/WizardSystemPicker';
 
-export default function PersonagemWizardPage() {
+function WizardWithSystem({ sistema }) {
   const navigate = useNavigate();
-  const props = useWizardModel({ navigate });
+  const props = useWizardModel({ navigate, sistema });
   return (
     <div className="-m-6 h-[calc(100vh-3.5rem)] overflow-hidden">
       <WizardView {...props} />
     </div>
   );
+}
+
+export default function PersonagemWizardPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sistemaParam = searchParams.get('sistema');
+
+  if (!sistemaParam) {
+    return (
+      <WizardSystemPicker
+        onSelect={(id) => setSearchParams({ sistema: id })}
+        onBack={() => navigate('/personagens')}
+      />
+    );
+  }
+
+  return <WizardWithSystem sistema={sistemaParam} />;
 }

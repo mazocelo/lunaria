@@ -2,6 +2,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { mestreCriadorService } from '../../../../services/index.js';
 
+const SISTEMA_LABELS = { lunaria: 'Lunaria RPG', tresdet: '3D&T Alpha', dnd5e: 'D&D 5e' };
+
 /**
  * Handles wizard initialization (first-time start or draft restoration),
  * the `beforeunload` warning, and draft discard / full reset.
@@ -27,6 +29,8 @@ export const useWizardInit = ({
   getEstado,
   // Combo preview
   comboPreview,
+  // Sistema
+  sistema,
 }) => {
   const {
     setMensagens, setEnviando, enviandoRef,
@@ -37,6 +41,18 @@ export const useWizardInit = ({
 
   // ---- iniciarWizard ----
   const iniciarWizard = useCallback(async () => {
+    const sistemaEfetivo = sistema || 'lunaria';
+    const label = SISTEMA_LABELS[sistemaEfetivo] || sistemaEfetivo;
+
+    const mensagemSistema = {
+      id: Date.now(),
+      role: 'sistema',
+      content: `**Criando ficha: ${label}**`,
+      etapa: 'boas_vindas',
+      timestamp: new Date(),
+    };
+
+    setMensagens([mensagemSistema]);
     setEnviando(true);
     try {
       const resultado = await mestreCriadorService.interagir({
@@ -45,9 +61,10 @@ export const useWizardInit = ({
         mensagemJogador: 'Olá, estou pronto para criar meu personagem!',
         historico: [],
         actionMode: 'enter_stage',
+        sistema: sistemaEfetivo,
       });
-      setMensagens([{
-        id: Date.now(),
+      setMensagens([mensagemSistema, {
+        id: Date.now() + 1,
         role: 'mestre',
         content: resultado.mensagem,
         etapa: 'boas_vindas',
@@ -57,8 +74,8 @@ export const useWizardInit = ({
       if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
     } catch (err) {
       setError(err.message);
-      setMensagens([{
-        id: Date.now(),
+      setMensagens([mensagemSistema, {
+        id: Date.now() + 1,
         role: 'mestre',
         content: '**Bem-vindo, aventureiro!** Você chega a uma taverna antiga onde pergaminhos e mapas cobrem as paredes. Um sábio ancião sorri ao vê-lo.\n\n*"Ah, mais um herói em busca de destino! Diga-me, como deseja ser chamado neste mundo?"*',
         etapa: 'boas_vindas',
@@ -68,7 +85,7 @@ export const useWizardInit = ({
     } finally {
       setEnviando(false);
     }
-  }, []);
+  }, [sistema]);
 
   // ---- rehidratarEtapaAtual ----
   const rehidratarEtapaAtual = useCallback(async () => {
@@ -84,6 +101,7 @@ export const useWizardInit = ({
         mensagemJogador: '',
         historico: [],
         actionMode: 'enter_stage',
+        sistema: sistema || 'lunaria',
       });
 
       setMensagens(prev => [...prev, {
@@ -112,7 +130,7 @@ export const useWizardInit = ({
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.etapaAtual, getEstado, bonusCalc.setAtributosSugeridos]);
+  }, [navigation.etapaAtual, getEstado, bonusCalc.setAtributosSugeridos, sistema]);
 
   // ---- Main initialization effect ----
   useEffect(() => {

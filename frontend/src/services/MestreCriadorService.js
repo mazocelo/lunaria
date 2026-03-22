@@ -13,13 +13,14 @@ export class MestreCriadorService {
    * @param {Array} params.historico - Histórico de mensagens
    * @returns {Object} { mensagem, sugestoes, etapa_proxima, atributos_sugeridos }
    */
-  async interagir({ etapa, estado, mensagemJogador, historico, manterEtapa = false, actionMode = 'reply' }) {
+  async interagir({ etapa, estado, mensagemJogador, historico, actionMode = 'reply', sistema }) {
     const response = await this.apiClient.post(`${this.baseUrl}/interagir`, {
       etapa,
       estado,
       mensagemJogador,
       historico,
       actionMode,
+      sistema,
     });
     if (response.success) return response.data;
     throw new Error(response.data?.message || 'Erro ao interagir com Mestre Criador');

@@ -61,6 +61,8 @@ export const useMestreInteraction = ({
   getEstado, getHistorico,
   // Estado ref
   estadoRef,
+  // Sistema
+  sistema,
 }) => {
 
   /** Envia mensagem textual do jogador */
@@ -98,6 +100,7 @@ export const useMestreInteraction = ({
         mensagemJogador,
         historico: getHistorico(),
         actionMode: manterEtapa ? 'refresh_options' : 'reply',
+        sistema: sistema || 'lunaria',
       });
 
       const etapaMensagem = manterEtapa
@@ -125,7 +128,7 @@ export const useMestreInteraction = ({
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.etapaAtual, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, navigation.registrarVisita]);
+  }, [navigation.etapaAtual, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, navigation.registrarVisita, sistema]);
 
   /** Aplica sugestão de atributos do Mestre */
   const aplicarSugestaoAtributos = useCallback(() => {
@@ -202,6 +205,7 @@ export const useMestreInteraction = ({
         mensagemJogador: '',
         historico: getHistorico(),
         actionMode: 'continue_stage',
+        sistema: sistema || 'lunaria',
       });
 
       // Consumir etapa_proxima do backend como fonte de verdade
@@ -236,7 +240,7 @@ export const useMestreInteraction = ({
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [navigation.getProximaEtapa, navigation.etapaAtual, navigation.registrarVisita, navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos]);
+  }, [navigation.getProximaEtapa, navigation.etapaAtual, navigation.registrarVisita, navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, sistema]);
 
   /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
   const pularEtapa = useCallback((tipo) => {

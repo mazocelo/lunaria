@@ -685,59 +685,126 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio, si
     for (let i = 0; i < quantidade; i++) {
       if (monstroBase) {
         // Monstro encontrado no banco - usar stats reais
-        const stats = calcularStatsEfetivos(monstroBase, nivelEfetivo);
-        instancias.push({
-          id: `${monstroBase.nome.toLowerCase().replace(/\s/g, '_')}_${idCounter++}`,
-          monstroId: monstroBase.id,
-          nome: quantidade > 1 ? `${monstroBase.nome} ${String.fromCharCode(64 + i + 1)}` : monstroBase.nome,
-          tipo: monstroBase.tipo[0] || 'besta',
-          tamanho: monstroBase.tamanho || 'medio',
-          nivel: nivelEfetivo,
-          hp_max: stats.hp_max,
-          hp_atual: stats.hp_max,
-          ataque: stats.ataque,
-          dc_esquiva: stats.dc_esquiva,
-          armadura: stats.armadura,
-          constituicao: stats.constituicao,
-          dano_base: stats.dano_base,
-          mod_forca: stats.mod_forca,
-          habilidades: monstroBase.habilidades || [],
-          forca: getAtributo(monstroBase, 'forca'),
-          destreza: getAtributo(monstroBase, 'destreza'),
-          agilidade: getAtributo(monstroBase, 'agilidade'),
-          elemento: monstroBase.elemento || [],
-          resistencias: monstroBase.resistencias || {},
-          imunidades: monstroBase.imunidades || [],
-          xp: stats.xp,
-          status: 'vivo',
-          cooldowns: {}
-        });
+        const nomeInstancia = quantidade > 1 ? `${monstroBase.nome} ${String.fromCharCode(64 + i + 1)}` : monstroBase.nome;
+        const idInstancia = `${monstroBase.nome.toLowerCase().replace(/\s/g, '_')}_${idCounter++}`;
+
+        if (sistema === 'tresdet') {
+          const F = getAtributo(monstroBase, 'F', 1);
+          const H = getAtributo(monstroBase, 'H', 1);
+          const R = getAtributo(monstroBase, 'R', 1);
+          const A = getAtributo(monstroBase, 'A', 0);
+          const PdF = getAtributo(monstroBase, 'PdF', 0);
+          instancias.push({
+            id: idInstancia,
+            monstroId: monstroBase.id,
+            nome: nomeInstancia,
+            tipo: monstroBase.tipo[0] || 'besta',
+            tamanho: monstroBase.tamanho || 'medio',
+            nivel: nivelEfetivo,
+            hp_max: R * 5,
+            hp_atual: R * 5,
+            atributos_personagem: [
+              { nome: 'F', valor: F },
+              { nome: 'H', valor: H },
+              { nome: 'R', valor: R },
+              { nome: 'A', valor: A },
+              { nome: 'PdF', valor: PdF },
+            ],
+            habilidades: monstroBase.habilidades || [],
+            elemento: monstroBase.elemento || [],
+            resistencias: monstroBase.resistencias || {},
+            imunidades: monstroBase.imunidades || [],
+            xp: (monstroBase.xp_base || 50) * nivelEfetivo,
+            status: 'vivo',
+            cooldowns: {}
+          });
+        } else {
+          const stats = calcularStatsEfetivos(monstroBase, nivelEfetivo);
+          instancias.push({
+            id: idInstancia,
+            monstroId: monstroBase.id,
+            nome: nomeInstancia,
+            tipo: monstroBase.tipo[0] || 'besta',
+            tamanho: monstroBase.tamanho || 'medio',
+            nivel: nivelEfetivo,
+            hp_max: stats.hp_max,
+            hp_atual: stats.hp_max,
+            ataque: stats.ataque,
+            dc_esquiva: stats.dc_esquiva,
+            armadura: stats.armadura,
+            constituicao: stats.constituicao,
+            dano_base: stats.dano_base,
+            mod_forca: stats.mod_forca,
+            habilidades: monstroBase.habilidades || [],
+            forca: getAtributo(monstroBase, 'forca'),
+            destreza: getAtributo(monstroBase, 'destreza'),
+            agilidade: getAtributo(monstroBase, 'agilidade'),
+            elemento: monstroBase.elemento || [],
+            resistencias: monstroBase.resistencias || {},
+            imunidades: monstroBase.imunidades || [],
+            xp: stats.xp,
+            status: 'vivo',
+            cooldowns: {}
+          });
+        }
       } else {
         // Monstro nao encontrado - gerar generico
-        const stats = _gerarStatsGenericos(nivelEfetivo, sugestao.tipo);
-        instancias.push({
-          id: `${sugestao.nome.toLowerCase().replace(/\s/g, '_')}_${idCounter++}`,
-          monstroId: null,
-          nome: quantidade > 1 ? `${sugestao.nome} ${String.fromCharCode(64 + i + 1)}` : sugestao.nome,
-          tipo: sugestao.tipo || 'besta',
-          nivel: nivelEfetivo,
-          hp_max: stats.hp_max,
-          hp_atual: stats.hp_max,
-          ataque: stats.ataque,
-          dc_esquiva: stats.dc_esquiva,
-          armadura: stats.armadura,
-          constituicao: 10,
-          dano_base: stats.dano_base,
-          mod_forca: Math.floor(nivelEfetivo * 0.25),
-          forca: 10 + Math.floor(nivelEfetivo * 0.5),
-          destreza: 10 + Math.floor(nivelEfetivo * 0.25),
-          agilidade: 10,
-          habilidades: [],
-          elemento: [],
-          xp: stats.xp,
-          status: 'vivo',
-          cooldowns: {}
-        });
+        const nomeInstancia = quantidade > 1 ? `${sugestao.nome} ${String.fromCharCode(64 + i + 1)}` : sugestao.nome;
+        const idInstancia = `${sugestao.nome.toLowerCase().replace(/\s/g, '_')}_${idCounter++}`;
+
+        if (sistema === 'tresdet') {
+          const n = Math.max(1, nivelEfetivo);
+          const baseF = Math.min(5, Math.max(1, Math.ceil(n / 2)));
+          const baseH = Math.min(5, Math.max(1, Math.ceil(n / 3)));
+          const baseR = Math.min(5, Math.max(1, Math.ceil(n / 2)));
+          const baseA = Math.min(5, Math.max(1, Math.floor(n / 3)));
+          instancias.push({
+            id: idInstancia,
+            monstroId: null,
+            nome: nomeInstancia,
+            tipo: sugestao.tipo || 'besta',
+            nivel: nivelEfetivo,
+            hp_max: baseR * 5,
+            hp_atual: baseR * 5,
+            atributos_personagem: [
+              { nome: 'F', valor: baseF },
+              { nome: 'H', valor: baseH },
+              { nome: 'R', valor: baseR },
+              { nome: 'A', valor: baseA },
+              { nome: 'PdF', valor: Math.min(5, Math.max(0, Math.floor(n / 4))) },
+            ],
+            habilidades: [],
+            elemento: [],
+            xp: 50 * n,
+            status: 'vivo',
+            cooldowns: {},
+          });
+        } else {
+          const stats = _gerarStatsGenericos(nivelEfetivo, sugestao.tipo);
+          instancias.push({
+            id: idInstancia,
+            monstroId: null,
+            nome: nomeInstancia,
+            tipo: sugestao.tipo || 'besta',
+            nivel: nivelEfetivo,
+            hp_max: stats.hp_max,
+            hp_atual: stats.hp_max,
+            ataque: stats.ataque,
+            dc_esquiva: stats.dc_esquiva,
+            armadura: stats.armadura,
+            constituicao: 10,
+            dano_base: stats.dano_base,
+            mod_forca: Math.floor(nivelEfetivo * 0.25),
+            forca: 10 + Math.floor(nivelEfetivo * 0.5),
+            destreza: 10 + Math.floor(nivelEfetivo * 0.25),
+            agilidade: 10,
+            habilidades: [],
+            elemento: [],
+            xp: stats.xp,
+            status: 'vivo',
+            cooldowns: {}
+          });
+        }
       }
     }
   }

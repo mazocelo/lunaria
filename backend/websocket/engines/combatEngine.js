@@ -85,7 +85,7 @@ export default class CombatEngine {
       log.warn({ encontrados: monstrosBanco.length, total: monstrosIA.length }, 'COMBAT_INIT: monstros encontrados');
 
       // Gerar instâncias de combate
-      const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio);
+      const instancias = gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio, sistema);
       log.warn({ instancias: instancias.length }, 'COMBAT_INIT: instancias geradas');
 
       // Calcular HP/Esquiva/Armadura dos jogadores

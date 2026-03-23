@@ -19,6 +19,8 @@ import {
   buildCombatState,
   getIniciativaConfig,
   resolverConsumo,
+  processarDescansoTresDet,
+  parseCustoPM,
 } from './combatEngine.js';
 
 import { extrairBonusEquipamentos } from './equipmentEngine.js';
@@ -61,6 +63,8 @@ const tresdetEngine = {
   buildCombatState,
   getIniciativaConfig,
   resolverConsumo,
+  processarDescansoTresDet,
+  parseCustoPM,
 };
 
 export default tresdetEngine;

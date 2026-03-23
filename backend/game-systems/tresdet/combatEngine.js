@@ -109,6 +109,39 @@ export function getIniciativaConfig(personagem) {
   };
 }
 
+export function parseCustoPM(custoPmStr) {
+  if (typeof custoPmStr === 'number') return custoPmStr;
+  if (!custoPmStr) return 0;
+  const match = String(custoPmStr).match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+export function processarDescansoTresDet(personagem) {
+  const R = getAtributo(personagem, 'R', 0);
+  const hpMax = calcularHP(personagem);
+  const mpMax = calcularMP(personagem);
+  const hpAtual = personagem.hp_atual ?? hpMax;
+  const mpAtual = personagem.mana_atual ?? mpMax;
+
+  const dadosPV = Array.from({ length: Math.max(1, R) }, () => rolarD6());
+  const dadosPM = Array.from({ length: Math.max(1, R) }, () => rolarD6());
+
+  const recPV = dadosPV.reduce((s, d) => s + d, 0);
+  const recPM = dadosPM.reduce((s, d) => s + d, 0);
+
+  const novoPV = Math.min(hpMax, hpAtual + recPV);
+  const novoPM = Math.min(mpMax, mpAtual + recPM);
+
+  return {
+    hp_atual: novoPV,
+    mana_atual: novoPM,
+    detalhes: {
+      pv: { dados: dadosPV, total: recPV, antes: hpAtual, depois: novoPV, max: hpMax },
+      pm: { dados: dadosPM, total: recPM, antes: mpAtual, depois: novoPM, max: mpMax },
+    },
+  };
+}
+
 export function resolverConsumo(_personagem, item) {
   const efeito = item?.efeito || '';
   const resultados = [];

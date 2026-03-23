@@ -449,6 +449,42 @@ export default class CombatEngine {
 
     const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
 
+    // System-aware attack resolution
+    const sistema = sessao?.sistema || combate?.sistema || 'lunaria';
+    if (sistema !== 'lunaria') {
+      const engine = getEngine(sistema);
+      const resultado = engine.resolverAtaque(monstro, alvoStats, {});
+
+      let dano = resultado.dano;
+      if (resultado.acertou) {
+        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - dano);
+        if (alvoStats.hp_atual <= 0) {
+          alvoStats.status = 'inconsciente';
+        }
+      }
+
+      const resultadoFinal = {
+        atacanteId: monstro.id,
+        atacanteNome: monstro.nome,
+        habilidade: 'Ataque básico',
+        alvoId,
+        alvoNome: alvoStats.personagemNome,
+        acertou: resultado.acertou,
+        critico: resultado.critico,
+        dano,
+        hpRestante: alvoStats.hp_atual,
+        hpMax: alvoStats.hp_max,
+        detalhes: resultado.detalhes,
+      };
+
+      if (!Array.isArray(combate.log)) combate.log = [];
+      combate.log.push({ tipo: 'ataque_monstro', ...resultadoFinal, timestamp: Date.now() });
+
+      log.warn({ monstroId, alvoId, dano, acertou: resultado.acertou, critico: resultado.critico }, 'COMBAT_MONSTER_TURN: ataque 3D&T executado');
+
+      return resultadoFinal;
+    }
+
     // Pick ability or basic attack
     const habilidade = selecionarHabilidadeMonstro(monstro, combate.rodadaCombate);
 

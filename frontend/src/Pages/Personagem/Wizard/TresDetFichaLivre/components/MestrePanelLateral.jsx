@@ -1,12 +1,20 @@
-// components/MestrePanelLateral.jsx
 import { useState, useRef, useEffect } from 'react';
-import { X, Send } from 'lucide-react';
+import { X, Send, Sparkles } from 'lucide-react';
 
 export default function MestrePanelLateral({ aberto, onToggle, mensagens, enviando, enviarMensagem, onSugestaoClick }) {
   const [input, setInput] = useState('');
+  const [visible, setVisible] = useState(false);
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens]);
+
+  useEffect(() => {
+    if (aberto) {
+      requestAnimationFrame(() => setVisible(true));
+    } else {
+      setVisible(false);
+    }
+  }, [aberto]);
 
   const handleEnviar = () => {
     if (!input.trim()) return;
@@ -18,11 +26,14 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
 
   return (
     <div
-      className="w-[380px] max-[768px]:fixed max-[768px]:inset-y-0 max-[768px]:right-0 max-[768px]:w-[85vw] max-[768px]:z-50 border-l flex flex-col backdrop-blur-[24px]"
+      className="wa-mestre-panel w-[380px] max-[768px]:fixed max-[768px]:inset-y-0 max-[768px]:right-0 max-[768px]:w-[85vw] max-[768px]:z-50 border-l flex flex-col backdrop-blur-[24px] transition-all duration-300 ease-out"
       style={{
-        background: 'var(--wa-panel-strong)',
+        background: 'linear-gradient(180deg, color-mix(in srgb, var(--wa-panel-strong) 95%, transparent), color-mix(in srgb, var(--wa-panel) 92%, transparent))',
         borderColor: 'var(--wa-border)',
-        boxShadow: 'var(--wa-shadow)',
+        boxShadow: 'var(--wa-glow), var(--wa-shadow)',
+        borderLeft: '2px solid color-mix(in srgb, var(--wa-accent) 40%, var(--wa-border))',
+        transform: visible ? 'translateX(0)' : 'translateX(16px)',
+        opacity: visible ? 1 : 0,
       }}
     >
       {/* Header */}
@@ -33,15 +44,18 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
           borderColor: 'var(--wa-border)',
         }}
       >
-        <span
-          className="font-fantasy text-sm font-bold"
-          style={{ color: 'var(--wa-accent-bright)' }}
-        >
-          Mestre Criador
-        </span>
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} style={{ color: 'var(--wa-forge-gold)' }} />
+          <span
+            className="font-fantasy text-sm font-bold uppercase tracking-wider"
+            style={{ color: 'var(--wa-accent-bright)' }}
+          >
+            Mestre Criador
+          </span>
+        </div>
         <button
           onClick={onToggle}
-          className="wa-mestre-close cursor-pointer p-1 transition-colors"
+          className="wa-mestre-close cursor-pointer p-1.5 rounded-lg transition-all duration-200"
           style={{ color: 'var(--wa-muted)' }}
         >
           <X size={16} />
@@ -55,13 +69,15 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
             {msg.role === 'jogador' ? (
               <div
                 className="rounded-xl px-4 py-3 font-modern text-sm max-w-[90%] ml-auto text-white"
-                style={{ background: 'var(--wa-accent)' }}
+                style={{
+                  background: 'linear-gradient(135deg, var(--wa-accent), color-mix(in srgb, var(--wa-accent) 75%, var(--wa-teal)))',
+                }}
               >
                 {msg.content}
               </div>
             ) : msg.role === 'sistema' ? (
               <div
-                className="rounded-xl px-4 py-3 font-modern text-sm max-w-[90%]"
+                className="rounded-xl px-4 py-3 font-modern text-xs max-w-[90%] italic"
                 style={{
                   background: 'var(--wa-panel-soft)',
                   color: 'var(--wa-muted)',
@@ -71,9 +87,10 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
               </div>
             ) : (
               <div
-                className="rounded-xl px-4 py-3 font-modern text-sm max-w-[90%] border"
+                className="rounded-xl px-4 py-3 font-modern text-sm max-w-[90%] border-l-2"
                 style={{
                   background: 'var(--wa-panel-soft)',
+                  borderLeftColor: 'color-mix(in srgb, var(--wa-accent) 50%, transparent)',
                   borderColor: 'var(--wa-border)',
                   color: 'var(--wa-ink)',
                 }}
@@ -88,12 +105,7 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
                   <button
                     key={i}
                     onClick={() => onSugestaoClick(s)}
-                    className="wa-sugestao-btn px-3 py-1.5 rounded-lg font-modern text-xs font-semibold cursor-pointer border transition-all"
-                    style={{
-                      background: 'color-mix(in srgb, var(--wa-ember) 15%, transparent)',
-                      color: 'var(--wa-ember)',
-                      borderColor: 'color-mix(in srgb, var(--wa-ember) 30%, transparent)',
-                    }}
+                    className="wa-sugestao-btn wa-forge-chip px-3 py-1.5 rounded-lg font-modern text-xs font-semibold cursor-pointer border transition-all duration-200"
                   >
                     + {s.nome} ({s.custo || 0}pt)
                   </button>
@@ -115,7 +127,7 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleEnviar()}
           placeholder="Peca ajuda ao Mestre..."
-          className="wa-mestre-input flex-1 rounded-lg border px-3 py-2 font-modern text-sm outline-none transition-colors"
+          className="wa-mestre-input flex-1 rounded-xl border px-3 py-2.5 font-modern text-sm outline-none transition-all duration-200 backdrop-blur-[18px]"
           style={{
             background: 'var(--wa-panel-soft)',
             borderColor: 'var(--wa-border)',
@@ -125,20 +137,32 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
         <button
           disabled={enviando || !input.trim()}
           onClick={handleEnviar}
-          className="px-4 py-2 rounded-lg text-white text-sm font-semibold cursor-pointer disabled:opacity-40 transition-colors"
-          style={{ background: 'var(--wa-accent)' }}
+          className="wa-mestre-send px-4 py-2.5 rounded-xl text-white text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, var(--wa-accent), var(--wa-teal))',
+          }}
         >
           <Send size={14} />
         </button>
       </div>
 
       <style>{`
-        .wa-mestre-close:hover { color: var(--wa-ink) !important; }
+        .wa-mestre-close:hover {
+          color: var(--wa-ink) !important;
+          background: var(--wa-panel-soft);
+        }
         .wa-mestre-input::placeholder { color: var(--wa-muted); }
-        .wa-mestre-input:focus { border-color: var(--wa-accent) !important; }
+        .wa-mestre-input:focus {
+          border-color: var(--wa-accent) !important;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
         .wa-sugestao-btn:hover {
-          background: color-mix(in srgb, var(--wa-ember) 25%, transparent) !important;
           transform: translateY(-1px);
+          box-shadow: 0 0 12px rgba(232, 180, 72, 0.25);
+        }
+        .wa-mestre-send:not(:disabled):hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
         }
       `}</style>
     </div>

@@ -759,6 +759,8 @@ async function processarConjurarMagiaTresDet(acao, sessao, roomId, sm) {
  * acao: { tipo, personagem }
  */
 async function processarDescanso(acao, sessao, roomId, sm) {
+  if (sessao.sistema !== 'tresdet') return;
+
   const { personagem: nomePersonagem } = acao;
   if (!nomePersonagem) return;
 

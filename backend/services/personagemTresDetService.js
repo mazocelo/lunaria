@@ -37,6 +37,7 @@ export async function criarPersonagemTresDet(body, userId) {
   // --- IDs ---
   const vantagemIds = normalizeIds(vantagens);
   const desvantagemIds = normalizeIds(desvantagens);
+  const magiaIdsSanitizados = normalizeIds(magias_ids);
 
   // --- Buscar vantagens/desvantagens do banco para validar custos ---
   const [vantagensObj, desvantagensObj] = await Promise.all([
@@ -61,13 +62,13 @@ export async function criarPersonagemTresDet(body, userId) {
   }
 
   // --- Validar magias ---
-  if (magias_ids.length > 0) {
+  if (magiaIdsSanitizados.length > 0) {
     const magiasExistentes = await db.prisma.magias_tresdet.findMany({
-      where: { id: { in: magias_ids } },
+      where: { id: { in: magiaIdsSanitizados } },
       select: { id: true },
     });
     const idsValidos = new Set(magiasExistentes.map(m => m.id));
-    const idsInvalidos = magias_ids.filter(id => !idsValidos.has(id));
+    const idsInvalidos = magiaIdsSanitizados.filter(id => !idsValidos.has(id));
     if (idsInvalidos.length > 0) {
       throw Object.assign(new Error(`Magias não encontradas: ${idsInvalidos.join(', ')}`), { statusCode: 400 });
     }
@@ -150,9 +151,9 @@ export async function criarPersonagemTresDet(body, userId) {
     }
 
     // Magias
-    if (magias_ids.length > 0) {
+    if (magiaIdsSanitizados.length > 0) {
       await tx.personagem_magia_tresdet.createMany({
-        data: magias_ids.map(magiaId => ({
+        data: magiaIdsSanitizados.map(magiaId => ({
           personagem_id: created.id,
           magia_tresdet_id: magiaId,
           origem: 'criacao',

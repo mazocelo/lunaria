@@ -60,6 +60,10 @@ const HabilidadePage = React.lazy(() => import('./Pages/Habilidade/Lista'));
 const NovaHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Nova'));
 const EditarHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Editar'));
 const VerHabilidadePage = React.lazy(() => import('./Pages/Habilidade/Ver'));
+const ItemTresDetListaPage = React.lazy(() => import('./Pages/ItemTresDet/Lista'));
+const NovoItemTresDetPage = React.lazy(() => import('./Pages/ItemTresDet/Nova'));
+const EditarItemTresDetPage = React.lazy(() => import('./Pages/ItemTresDet/Editar'));
+const VerItemTresDetPage = React.lazy(() => import('./Pages/ItemTresDet/Ver'));
 const BillingPage = React.lazy(() => import('./Pages/Billing'));
 const AdminMotorPage = React.lazy(() => import('./Pages/Admin/Motor'));
 const DocsJogadorPage = React.lazy(() => import('./Pages/Docs/Jogador'));
@@ -340,6 +344,36 @@ const ROUTE_CONFIG = [
     path: ROUTES.VER_EQUIPAMENTO,
     component: VerEquipamentoPage,
     name: 'Ver Equipamento',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+
+  // ===== ITENS 3D&T =====
+  {
+    path: ROUTES.ITENS_TRESDET,
+    component: ItemTresDetListaPage,
+    name: 'Itens 3D&T',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVO_ITEM_TRESDET,
+    component: NovoItemTresDetPage,
+    name: 'Novo Item 3D&T',
+    category: 'SISTEMA',
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.EDITAR_ITEM_TRESDET,
+    component: EditarItemTresDetPage,
+    name: 'Editar Item 3D&T',
+    category: 'SISTEMA',
+    hasParams: true,
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.VER_ITEM_TRESDET,
+    component: VerItemTresDetPage,
+    name: 'Ver Item 3D&T',
     category: 'SISTEMA',
     hasParams: true
   },

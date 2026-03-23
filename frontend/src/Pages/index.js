@@ -43,6 +43,12 @@ export { default as NovoEquipamentoPage } from './Equipamento/Nova';
 export { default as EditarEquipamentoPage } from './Equipamento/Editar';
 export { default as VerEquipamentoPage } from './Equipamento/Ver';
 
+// Item 3D&T
+export { default as ItemTresDetListaPage } from './ItemTresDet/Lista';
+export { default as NovoItemTresDetPage } from './ItemTresDet/Nova';
+export { default as EditarItemTresDetPage } from './ItemTresDet/Editar';
+export { default as VerItemTresDetPage } from './ItemTresDet/Ver';
+
 // Monstro
 export { default as MonstroListaPage } from './Monstro/Lista';
 export { default as NovoMonstroPage } from './Monstro/Nova';

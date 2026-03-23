@@ -81,8 +81,14 @@ export const ROUTES = {
   EDITAR_MONSTRO: '/editar-monstro/:id',
   VER_MONSTRO: '/ver-monstro/:id',
 
+  // ===== ITENS 3D&T =====
+  ITENS_TRESDET: '/itens-tresdet',
+  NOVO_ITEM_TRESDET: '/criar-item-tresdet',
+  EDITAR_ITEM_TRESDET: '/editar-item-tresdet/:id',
+  VER_ITEM_TRESDET: '/ver-item-tresdet/:id',
+
   // ===== HABILIDADES =====
-  HABILIDADES: '/habilidades',
+  HABILIDADES: '/habilidades-magias',
   NOVA_HABILIDADE: '/criar-habilidade',
   EDITAR_HABILIDADE: '/editar-habilidade/:id',
   VER_HABILIDADE: '/ver-habilidade/:id',
@@ -151,5 +157,7 @@ export const generateRoute = {
   editarMestre: (id) => `/editar-mestre/${id}`,
   verMestre: (id) => `/ver-mestre/${id}`,
   verHabilidade: (id) => `/ver-habilidade/${id}`,
-  editarHabilidade: (id) => `/editar-habilidade/${id}`
+  editarHabilidade: (id) => `/editar-habilidade/${id}`,
+  verItemTresDet: (id) => `/ver-item-tresdet/${id}`,
+  editarItemTresDet: (id) => `/editar-item-tresdet/${id}`,
 };

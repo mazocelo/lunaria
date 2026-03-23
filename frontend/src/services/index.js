@@ -16,8 +16,10 @@ import { SessaoService } from './SessaoService';
 import { AmizadeService } from './AmizadeService';
 import { FeedService } from './FeedService';
 import { ImageGenerationService } from './ImageGenerationService';
-import { HabilidadeService } from './HabilidadeService';
+import { HabilidadeMagiaService } from './HabilidadeMagiaService';
 import { MestreCriadorService } from './MestreCriadorService';
+import { ItemTresDetService } from './ItemTresDetService';
+import { MagiasTresDetService } from './MagiasTresDetService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
@@ -39,8 +41,10 @@ export { SessaoService } from './SessaoService';
 export { AmizadeService } from './AmizadeService';
 export { FeedService } from './FeedService';
 export { ImageGenerationService } from './ImageGenerationService';
-export { HabilidadeService } from './HabilidadeService';
+export { HabilidadeMagiaService } from './HabilidadeMagiaService';
 export { MestreCriadorService } from './MestreCriadorService';
+export { ItemTresDetService } from './ItemTresDetService';
+export { MagiasTresDetService } from './MagiasTresDetService';
 
 // Instâncias padrão dos serviços
 export const historiaService = new HistoriaService(apiClient);
@@ -59,8 +63,10 @@ export const sessaoService = new SessaoService(apiClient);
 export const amizadeService = new AmizadeService(apiClient);
 export const feedService = new FeedService(apiClient);
 export const imageGenerationService = new ImageGenerationService(apiClient);
-export const habilidadeService = new HabilidadeService(apiClient);
+export const habilidadeService = new HabilidadeMagiaService(apiClient);
 export const mestreCriadorService = new MestreCriadorService(apiClient);
+export const itemTresDetService = new ItemTresDetService(apiClient);
+export const magiasTresDetService = new MagiasTresDetService(apiClient);
 
 // Catalogos (raridades, categorias)
 export const catalogoService = {

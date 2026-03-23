@@ -72,17 +72,11 @@ export async function criarPersonagemTresDet(body, userId) {
     focusValues[k] = parseInt(focus?.[k], 10) || 0;
   }
 
-  // --- Detectar magia ---
+  // --- Detectar magia (para calculo de PM) ---
   const temMagia = vantagensObj.some(v => {
     const tipo = v.tipo;
     return tipo === 'magico' || (Array.isArray(tipo) && tipo.includes('magico'));
   });
-
-  // Focus so pode ter pontos se tem magia
-  const totalFocus = FOCUS_KEYS.reduce((sum, k) => sum + focusValues[k], 0);
-  if (totalFocus > 0 && !temMagia) {
-    throw Object.assign(new Error('Focus elementais requerem uma vantagem de Magia'), { statusCode: 400 });
-  }
 
   // --- Validacao de pool ---
   const validacao = validarCriacao({

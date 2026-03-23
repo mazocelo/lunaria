@@ -15,9 +15,9 @@ export const CARACTERISTICA_IDS = CARACTERISTICAS.map(c => c.id);
 
 export const TIERS = {
   novato:   { nome: 'Novato',   pontos: 5,  maxDesv: 3, maxAttr: 3 },
-  lutador:  { nome: 'Lutador',  pontos: 7,  maxDesv: 4, maxAttr: 3 },
-  campeao:  { nome: 'Campeao',  pontos: 10, maxDesv: 5, maxAttr: 4 },
-  lenda:    { nome: 'Lenda',    pontos: 12, maxDesv: 6, maxAttr: 4 },
+  lutador:  { nome: 'Lutador',  pontos: 7,  maxDesv: 4, maxAttr: 4 },
+  campeao:  { nome: 'Campeao',  pontos: 10, maxDesv: 5, maxAttr: 5 },
+  lenda:    { nome: 'Lenda',    pontos: 12, maxDesv: 6, maxAttr: 5 },
 };
 
 export const FOCUS_KEYS = ['fogo', 'agua', 'terra', 'ar', 'luz', 'trevas'];

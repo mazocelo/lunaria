@@ -25,6 +25,8 @@ import {
 import { setCooldown } from './cooldownManager.js';
 import { getOwnedCombatActionList } from './ownedActionsHelper.js';
 import { checkDanoConcentracao, quebrarConcentracao } from './concentrationManager.js';
+import { getAtributo, getAtributosMap } from './atributosHelper.js';
+import { getEngine } from '../game-systems/index.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -112,6 +114,30 @@ function _resolvePersonagemSnapshot(sessao, userId, personagem = null, jogadorSt
 
 function _getPersonagemHabilidades(personagemCompleto = {}) {
   return getOwnedCombatActionList(personagemCompleto);
+}
+
+/**
+ * Resolve escalamento de habilidade com suporte a dois formatos:
+ * - Novo: { upgrades: [{ nivel, dano_bonus, ... }] }
+ * - Legado: { por_nivel, a_cada }
+ * @param {Object} habilidade - Habilidade com campo escalamento (JSON)
+ * @param {number} nivelPersonagem - Nivel atual do personagem
+ * @returns {Object} Modificadores aplicáveis (ex: { dano_bonus, multiplicador })
+ */
+function resolverEscalamento(habilidade, nivelPersonagem) {
+  const esc = habilidade.escalamento;
+  if (!esc) return {};
+  // Novo formato: array de upgrades por nivel
+  if (Array.isArray(esc.upgrades)) {
+    const aplicaveis = esc.upgrades.filter(u => u.nivel <= nivelPersonagem);
+    return aplicaveis.length > 0 ? aplicaveis[aplicaveis.length - 1] : {};
+  }
+  // Formato legado: { por_nivel, a_cada }
+  if (esc.por_nivel && esc.a_cada) {
+    const vezes = Math.floor((nivelPersonagem - 1) / esc.a_cada);
+    return { dano_bonus: esc.por_nivel, multiplicador: vezes };
+  }
+  return {};
 }
 
 function _buildResultadoHabilidadeInvalida({ personagem, userId, habilidadeId, habilidadeNome, erro, jogadorStats, habilidadeBase = null, tipoAcao = 'usar_habilidade' }) {
@@ -206,7 +232,8 @@ export function getMultRaca(racaNome) {
  * @returns {number} HP maximo
  */
 export function calcularHP(personagem, multRaca = 5) {
-  const constituicao = personagem.constituicao || 10;
+  const attrs = personagem.atributos || {};
+  const constituicao = personagem.constituicao ?? attrs.constituicao ?? getAtributo(personagem, 'constituicao');
   const nivel = personagem.nivel || 1;
   const modCON = Math.floor((constituicao - 10) / 2);
   return multRaca * (nivel + Math.max(1, modCON));
@@ -217,10 +244,12 @@ export function calcularHP(personagem, multRaca = 5) {
  * Formula: 10 + nivel + max(modINT, modCHA) * 2
  */
 export function calcularMana(personagem) {
-  const inteligencia = personagem.inteligencia || 10;
+  const attrs = personagem.atributos || {};
+  const inteligencia = personagem.inteligencia ?? attrs.inteligencia ?? getAtributo(personagem, 'inteligencia');
   const nivel = personagem.nivel || 1;
   const modInt = Math.floor((inteligencia - 10) / 2);
-  const modCha = Math.floor(((personagem.carisma || 10) - 10) / 2);
+  const carisma = personagem.carisma ?? attrs.carisma ?? getAtributo(personagem, 'carisma');
+  const modCha = Math.floor((carisma - 10) / 2);
   const modCaster = Math.max(modInt, modCha);
   return Math.max(5, 10 + nivel + modCaster * 2);
 }
@@ -404,8 +433,9 @@ export function processarHabilidade(habilidade, jogadorState, options = {}) {
  * @returns {number} Taxa de esquiva em porcentagem (0-50)
  */
 export function calcularEsquiva(personagem, bonusEquip = {}) {
-  const agilidade = personagem.agilidade || 10;
-  const destreza = personagem.destreza || 10;
+  const attrs = personagem.atributos || {};
+  const agilidade = personagem.agilidade ?? attrs.agilidade ?? getAtributo(personagem, 'agilidade');
+  const destreza = personagem.destreza ?? attrs.destreza ?? getAtributo(personagem, 'destreza');
   const nivel = personagem.nivel || 1;
 
   const modAgi = Math.floor((agilidade - 10) / 2);
@@ -450,10 +480,14 @@ export function verificarEsquiva(taxaEsquiva) {
  */
 export function calcularStatsEfetivos(monstro, nivelEfetivo) {
   const n = Math.max(1, nivelEfetivo);
-  const modCON = Math.floor(((monstro.constituicao || 10) - 10) / 2);
-  const modFOR = Math.floor(((monstro.forca || 10) - 10) / 2);
-  const modAGI = Math.floor(((monstro.agilidade || 10) - 10) / 2);
-  const modDEX = Math.floor(((monstro.destreza || 10) - 10) / 2);
+  const constituicao = getAtributo(monstro, 'constituicao');
+  const forca = getAtributo(monstro, 'forca');
+  const agilidade = getAtributo(monstro, 'agilidade');
+  const destreza = getAtributo(monstro, 'destreza');
+  const modCON = Math.floor((constituicao - 10) / 2);
+  const modFOR = Math.floor((forca - 10) / 2);
+  const modAGI = Math.floor((agilidade - 10) / 2);
+  const modDEX = Math.floor((destreza - 10) / 2);
   const mult = monstro.mult_raca || 5;
   const armNat = monstro.armadura_natural || 0;
 
@@ -462,7 +496,7 @@ export function calcularStatsEfetivos(monstro, nivelEfetivo) {
     dc_esquiva: 10 + modAGI,
     ataque: modDEX + Math.floor(n / 2),
     armadura: armNat,
-    constituicao: monstro.constituicao || 10,
+    constituicao,
     dano_base: monstro.dano_base || '1d6',
     mod_forca: modFOR,
     xp: (monstro.xp_base || 50) * n
@@ -551,12 +585,7 @@ export function calcularDano(dano_base, modForca = 0, critico = false) {
  */
 export function calcularAbsorcao(constituicao, armadura = 0) {
   const modCON = Math.floor(((constituicao || 10) - 10) / 2);
-  const numDados = Math.max(0, modCON - 1);
-  let total = 0;
-  for (let i = 0; i < numDados; i++) {
-    total += Math.floor(Math.random() * 4) + 1;
-  }
-  return total + (armadura || 0);
+  return Math.floor(modCON / 2) + (armadura || 0);
 }
 
 /**
@@ -578,8 +607,11 @@ export function calcularDCEsquiva(agilidade) {
  * @returns {number} DC de resistencia
  */
 export function calcularDCMagia(personagem, custoMana = 0) {
-  const modINT = Math.floor(((personagem?.inteligencia || 10) - 10) / 2);
-  const modCHA = Math.floor(((personagem?.carisma || 10) - 10) / 2);
+  const attrs = personagem?.atributos || {};
+  const intVal = personagem?.inteligencia ?? attrs.inteligencia ?? getAtributo(personagem || {}, 'inteligencia');
+  const chaVal = personagem?.carisma ?? attrs.carisma ?? getAtributo(personagem || {}, 'carisma');
+  const modINT = Math.floor((intVal - 10) / 2);
+  const modCHA = Math.floor((chaVal - 10) / 2);
   return 8 + custoMana + Math.floor(Math.max(modINT, modCHA) / 2);
 }
 
@@ -669,9 +701,9 @@ export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
           dano_base: stats.dano_base,
           mod_forca: stats.mod_forca,
           habilidades: monstroBase.habilidades || [],
-          forca: monstroBase.forca || 10,
-          destreza: monstroBase.destreza || 10,
-          agilidade: monstroBase.agilidade || 10,
+          forca: getAtributo(monstroBase, 'forca'),
+          destreza: getAtributo(monstroBase, 'destreza'),
+          agilidade: getAtributo(monstroBase, 'agilidade'),
           elemento: monstroBase.elemento || [],
           resistencias: monstroBase.resistencias || {},
           imunidades: monstroBase.imunidades || [],
@@ -980,6 +1012,12 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
  * Resolve ataque basico do jogador contra primeiro monstro vivo
  */
 function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent = null) {
+  const sistema = sessao?.sistema || 'lunaria';
+
+  if (sistema !== 'lunaria') {
+    return _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIntent);
+  }
+
   const alvoId = combatIntent?.alvoId;
   const monstroAlvo = (alvoId && combate.monstros.find(m => m.id === alvoId && m.status === 'vivo'))
     || combate.monstros.find(m => m.status === 'vivo');
@@ -1004,6 +1042,22 @@ function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, stat
         actionKind: 'attack'
       }
     })
+  };
+}
+
+function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIntent) {
+  const engine = getEngine(sistema);
+  const alvoId = combatIntent?.alvoId;
+  const monstroAlvo = (alvoId && combate.monstros.find(m => m.id === alvoId && m.status === 'vivo'))
+    || combate.monstros.find(m => m.status === 'vivo');
+  if (!monstroAlvo) return null;
+
+  const resultado = engine.resolverAtaque(jogadorStats, monstroAlvo, combatIntent || {});
+
+  return {
+    ataque: resultado,
+    monstroAlvo,
+    acaoConsumida: true,
   };
 }
 
@@ -1371,8 +1425,18 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
   const monstroAlvo = (alvoId && combate.monstros.find(m => m.id === alvoId && m.status === 'vivo'))
     || combate.monstros.find(m => m.status === 'vivo');
 
+  // Escalamento: bonus de dano por nivel do personagem
+  const nivelPersonagem = pc.nivel || 1;
+  const escBonus = resolverEscalamento(hab, nivelPersonagem);
+  const danoEscalamento = escBonus.dano_bonus
+    ? (escBonus.multiplicador != null ? escBonus.dano_bonus * escBonus.multiplicador : escBonus.dano_bonus)
+    : 0;
+
   if (validacao.danoBaseNotation && monstroAlvo) {
     const { bonusAtaque } = buildAttackBonus(pc, jogadorStats, statusEfeitos);
+    const damageNotation = danoEscalamento > 0
+      ? buildDiceNotation(validacao.danoBaseNotation, danoEscalamento)
+      : validacao.danoBaseNotation;
     return {
       valido: true,
       tipoAcao,
@@ -1382,7 +1446,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
         personagem,
         monstroAlvo,
         bonusAtaque,
-        damageNotation: validacao.danoBaseNotation,
+        damageNotation,
         intentTipo: tipoAcao,
         actionName: hab.nome,
         elemento: normalizarElementoPrimario(hab.elemento),
@@ -1398,7 +1462,7 @@ function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, 
   }
 
   if (validacao.dano > 0 && monstroAlvo) {
-    let danoFinal = validacao.dano;
+    let danoFinal = validacao.dano + danoEscalamento;
     const elementoHab = normalizarElementoPrimario(hab.elemento);
     if (elementoHab) {
       danoFinal = aplicarResistencias(danoFinal, elementoHab, monstroAlvo.resistencias || {}, monstroAlvo.imunidades || []);
@@ -1929,6 +1993,34 @@ export function avancarTurno(combate) {
   };
 }
 
+// ── System-aware dispatchers ─────────────────────────────────────
+// Delegates to the correct engine based on personagem.sistema.
+// Existing functions are kept for backward compatibility.
+
+export function calcularHPSistema(personagem, multRaca = 5) {
+  const sistema = personagem.sistema || 'lunaria';
+  const engine = getEngine(sistema);
+  return engine.calcularHP(personagem, multRaca);
+}
+
+export function calcularManaSistema(personagem) {
+  const sistema = personagem.sistema || 'lunaria';
+  const engine = getEngine(sistema);
+  return engine.calcularMP(personagem);
+}
+
+export function calcularAtaqueSistema(personagem) {
+  const sistema = personagem.sistema || 'lunaria';
+  const engine = getEngine(sistema);
+  return engine.calcularAtaque(personagem);
+}
+
+export function calcularDefesaSistema(personagem) {
+  const sistema = personagem.sistema || 'lunaria';
+  const engine = getEngine(sistema);
+  return engine.calcularDefesa(personagem);
+}
+
 export default {
   rolarDado,
   calcularHP,
@@ -1951,4 +2043,9 @@ export default {
   formatarResultadoMecanico,
   finalizarAcaoCombatePosTeste,
   avancarTurno,
+  resolverEscalamento,
+  calcularHPSistema,
+  calcularManaSistema,
+  calcularAtaqueSistema,
+  calcularDefesaSistema,
 };

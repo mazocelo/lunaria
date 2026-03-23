@@ -105,6 +105,7 @@ model equipamentos {
   raridade_id            Int?
   peso                   Float?
   preco_sugerido         String?
+  preco                  Int                      @default(0)
   sistema                Sistema                  @default(lunaria)
   categoria_rel          categorias_equipamento?  @relation(fields: [categoria_id], references: [id])
   raridade_rel           raridades?               @relation(fields: [raridade_id], references: [id])
@@ -166,6 +167,8 @@ model personagem_desvantagem {
 model personagem_equipamento {
   personagem_id  Int
   equipamento_id Int
+  quantidade     Int          @default(1)
+  equipado       Boolean      @default(false)
   equipamentos   equipamentos @relation(fields: [equipamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   personagens    personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -200,6 +203,7 @@ model personagens {
   xp_proximo_nivel          Int?                     @default(100)
   hp_atual                  Int?
   mp_atual                  Int?
+  moedas                    Int                      @default(0)
   voice_id                  String?                  @db.VarChar(100)
   voice_provider            String?                  @db.VarChar(50)
   sistema                   Sistema                  @default(lunaria)
@@ -209,6 +213,7 @@ model personagens {
   historias_personagens     historias_personagens[]
   personagem_desvantagem    personagem_desvantagem[]
   personagem_equipamento    personagem_equipamento[]
+  personagem_item_tresdet   personagem_item_tresdet[]
   personagem_sessao         personagem_sessao[]
   personagem_vantagem       personagem_vantagem[]
   usuarios                  usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
@@ -939,4 +944,35 @@ enum enum_categoria_receita {
   equipamento
   engenhoca
   kit
+}
+
+model itens_tresdet {
+  id              Int      @id @default(autoincrement())
+  nome            String   @db.VarChar(200)
+  descricao       String?
+  tipo            String   @db.VarChar(30)
+  custo_pe        Int      @default(0)
+  preco_moedas    Int      @default(0)
+  poderes         Json?
+  efeito          String?
+  empilhavel      Boolean  @default(false)
+  raridade        String?  @db.VarChar(30)
+  imagem          String?  @db.VarChar(500)
+  magia_vinculada String?  @db.VarChar(200)
+
+  personagem_item_tresdet personagem_item_tresdet[]
+
+  @@unique([nome])
+}
+
+model personagem_item_tresdet {
+  personagem_id  Int
+  item_id        Int
+  quantidade     Int      @default(1)
+  equipado       Boolean  @default(false)
+
+  personagens    personagens    @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  item           itens_tresdet  @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@id([personagem_id, item_id])
 }

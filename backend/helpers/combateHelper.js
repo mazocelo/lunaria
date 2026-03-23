@@ -662,9 +662,10 @@ export function selecionarHabilidadeMonstro(monstro, rodadaCombate) {
  * @param {Array} monstrosBanco - Monstros encontrados no banco
  * @param {Array} monstrosIA - Monstros sugeridos pela IA [{nome, tipo, quantidade, nivel_sugerido}]
  * @param {number} nivelMedio - Nivel medio dos jogadores
+ * @param {string} sistema - Sistema de jogo ('lunaria' | 'tresdet')
  * @returns {Array} Instancias prontas para combate
  */
-export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio) {
+export function gerarInstanciasCombate(monstrosBanco, monstrosIA, nivelMedio, sistema = 'lunaria') {
   const instancias = [];
   let idCounter = 1;
 
@@ -1899,7 +1900,9 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
   // Ataque
   const atk = resultados.ataqueJogador;
   if (atk) {
-    if (!atk.acertou && !atk.esquivou) {
+    if (atk.detalhes) {
+      linhas.push(`${atk.atacante || atk.personagem} atacou ${atk.alvo || atk.alvoNome}: ${atk.detalhes}`);
+    } else if (!atk.acertou && !atk.esquivou) {
       linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem}${atk.rolagem === 1 ? ' — FALHA CRÍTICA! Errou desastrosamente!' : ' — ERROU!'}`);
     } else if (atk.esquivou) {
       linhas.push(`${atk.atacante} atacou ${atk.alvo}: d20=${atk.rolagem} (acertou) mas ${atk.alvo} ESQUIVOU!`);
@@ -1953,7 +1956,9 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
 
   for (const ca of resultados.contraAtaques) {
     const atkName = ca.habilidade !== 'Ataque básico' ? `usou ${ca.habilidade} contra` : 'atacou';
-    if (!ca.acertou && !ca.esquivou) {
+    if (ca.detalhes) {
+      linhas.push(`${ca.atacante || ca.atacanteNome} ${atkName} ${ca.alvoNome}: ${ca.detalhes}`);
+    } else if (!ca.acertou && !ca.esquivou) {
       linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem}${ca.rolagem === 1 ? ' — FALHA CRÍTICA! Errou desastrosamente!' : ' — ERROU!'}`);
     } else if (ca.esquivou) {
       linhas.push(`${ca.atacante} ${atkName} ${ca.alvoNome}: d20=${ca.rolagem} (acertou) mas ${ca.alvoNome} ESQUIVOU!`);

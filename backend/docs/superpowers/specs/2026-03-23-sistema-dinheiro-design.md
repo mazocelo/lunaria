@@ -287,6 +287,12 @@ O InventarioPanel existente expande para mostrar:
 - Mostra: "Você começa com X Moedas" + breakdown dos modificadores
 - Dinheiro final salvo ao confirmar criação
 
+### Ficha de Personagem
+
+- Mostra saldo de moedas na ficha (FichaPersonagemModal)
+- Valor formatado com ícone de moeda
+- Visível tanto na ficha do wizard quanto na ficha durante o jogo
+
 ---
 
 ## Extensibilidade

@@ -1,5 +1,4 @@
 // components/FocusSection.jsx
-import { Lock } from 'lucide-react';
 import { useTheme } from '../../../../../contexts/theme.jsx';
 
 const FOCUS_FALLBACK = [
@@ -22,7 +21,7 @@ const ELEMENT_COLORS = {
 
 const STAGGER = ['wa-stagger-1', 'wa-stagger-2', 'wa-stagger-3', 'wa-stagger-4', 'wa-stagger-5', 'wa-stagger-6'];
 
-export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontosRestantes, temMagia, maxAttr = 3, focusCatalogo }) {
+export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontosRestantes, maxAttr = 3, focusCatalogo }) {
   const focusConfig = (focusCatalogo?.length > 0 ? focusCatalogo : FOCUS_FALLBACK)
     .map(f => ({ key: f.nome, label: f.label, emoji: f.emoji, descricao: f.descricao }));
   const { theme } = useTheme();
@@ -39,39 +38,6 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
         boxShadow: 'var(--wa-glow)',
       }}
     >
-      {/* Lock overlay */}
-      {!temMagia && (
-        <div
-          className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl backdrop-blur-[6px]"
-          style={{
-            background: isLight
-              ? 'rgba(255,255,255,0.65)'
-              : 'rgba(13,11,26,0.72)',
-          }}
-        >
-          <div
-            className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-xs font-semibold font-modern backdrop-blur-[12px]"
-            style={{
-              background: isLight
-                ? 'rgba(255,255,255,0.9)'
-                : 'var(--wa-panel-strong)',
-              border: '1px solid var(--wa-border)',
-              color: 'var(--wa-muted)',
-              boxShadow: 'var(--wa-shadow)',
-            }}
-          >
-            <Lock
-              size={16}
-              style={{
-                color: 'var(--wa-accent)',
-                animation: 'wa-pulseGlow 2s ease infinite',
-                filter: 'drop-shadow(0 0 6px rgba(139,92,246,0.4))',
-              }}
-            />
-            Compre uma vantagem de Magia para desbloquear
-          </div>
-        </div>
-      )}
 
       <div className="flex items-center justify-between mb-1">
         <h3

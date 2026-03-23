@@ -161,7 +161,6 @@ export default function FichaLivreView(props) {
                 setFocusNivel={setFocusNivel}
                 pontosFocus={pontosFocus}
                 pontosRestantes={pontosRestantes}
-                temMagia={temMagia}
                 maxAttr={maxAttr}
                 focusCatalogo={focusCatalogo}
               />

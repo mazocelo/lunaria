@@ -9,9 +9,9 @@ const NIVEL_PODER = {
 
 const MAX_ATTR = {
   novato: 3,
-  lutador: 3,
-  campeao: 4,
-  lenda: 4,
+  lutador: 4,
+  campeao: 5,
+  lenda: 5,
 };
 
 const TIER_LIMITS = {
@@ -143,16 +143,7 @@ export function useTresDetFichaModel({ navigate }) {
   const removerVantagem = useCallback((id) => {
     const sid = String(id);
     setVantagensIds(prev => prev.filter(x => x !== sid));
-    // If removing last magic advantage, clear focus
-    const remaining = vantagensIds.filter(x => x !== sid);
-    const stillHasMagia = remaining.some(vid => {
-      const v = vantagensCatalogo.find(x => String(x.id) === vid);
-      return v?.tipo === 'magico' || (Array.isArray(v?.tipo) && v.tipo.includes('magico'));
-    });
-    if (!stillHasMagia) {
-      setFocus({ fogo: 0, agua: 0, terra: 0, ar: 0, luz: 0, trevas: 0 });
-    }
-  }, [vantagensIds, vantagensCatalogo]);
+  }, []);
 
   const adicionarDesvantagem = useCallback((id) => {
     const sid = String(id);

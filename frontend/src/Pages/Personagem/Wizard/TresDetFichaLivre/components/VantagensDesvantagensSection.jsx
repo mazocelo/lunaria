@@ -9,7 +9,7 @@ function ItemCard({ item, onRemover }) {
 
   return (
     <div
-      className="wa-item-card group flex items-center gap-3 rounded-xl border px-4 py-3 backdrop-blur-[18px] transition-all duration-200"
+      className="wa-item-card group flex items-center gap-2 rounded-xl border px-3 py-2 backdrop-blur-[18px] transition-all duration-200"
       style={{
         background: 'var(--wa-panel-soft)',
         borderColor: 'var(--wa-border)',
@@ -67,13 +67,13 @@ export default function VantagensDesvantagensSection({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1 wa-stage-enter wa-stagger-2">
+      <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1 wa-stage-enter wa-stagger-2">
         {/* Vantagens */}
         <section
-          className="wa-panel rounded-2xl border p-5 backdrop-blur-[18px]"
+          className="wa-panel rounded-2xl border p-3 backdrop-blur-[18px]"
           style={{ background: 'var(--wa-panel)', borderColor: 'var(--wa-border)' }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <h3
               className="font-fantasy text-sm font-bold uppercase tracking-wider"
               style={{ color: 'var(--wa-ember)' }}
@@ -92,7 +92,7 @@ export default function VantagensDesvantagensSection({
 
             <button
               onClick={() => setModalAberto('vantagens')}
-              className="wa-add-btn w-full rounded-xl border border-dashed p-3 text-center text-sm cursor-pointer transition-all duration-200 font-modern"
+              className="wa-add-btn w-full rounded-xl border border-dashed p-2 text-center text-sm cursor-pointer transition-all duration-200 font-modern"
               style={{ borderColor: 'color-mix(in srgb, var(--wa-accent) 40%, transparent)', color: 'var(--wa-muted)' }}
             >
               <Plus size={14} className="inline mr-1" /> Adicionar vantagem
@@ -102,10 +102,10 @@ export default function VantagensDesvantagensSection({
 
         {/* Desvantagens */}
         <section
-          className="wa-panel rounded-2xl border p-5 backdrop-blur-[18px]"
+          className="wa-panel rounded-2xl border p-3 backdrop-blur-[18px]"
           style={{ background: 'var(--wa-panel)', borderColor: 'var(--wa-border)' }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <h3
               className="font-fantasy text-sm font-bold uppercase tracking-wider"
               style={{ color: 'var(--wa-teal)' }}
@@ -124,7 +124,7 @@ export default function VantagensDesvantagensSection({
 
             <button
               onClick={() => setModalAberto('desvantagens')}
-              className="wa-add-btn w-full rounded-xl border border-dashed p-3 text-center text-sm cursor-pointer transition-all duration-200 font-modern"
+              className="wa-add-btn w-full rounded-xl border border-dashed p-2 text-center text-sm cursor-pointer transition-all duration-200 font-modern"
               style={{ borderColor: 'color-mix(in srgb, var(--wa-accent) 40%, transparent)', color: 'var(--wa-muted)' }}
             >
               <Plus size={14} className="inline mr-1" /> Adicionar desvantagem

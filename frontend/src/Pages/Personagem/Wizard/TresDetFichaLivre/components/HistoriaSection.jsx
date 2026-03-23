@@ -10,13 +10,13 @@ export default function HistoriaSection({ historia, setHistoria }) {
 
   return (
     <section
-      className="wa-panel rounded-2xl border p-5 backdrop-blur-[18px] wa-stage-enter wa-stagger-3"
+      className="wa-panel rounded-2xl border p-3 backdrop-blur-[18px] wa-stage-enter wa-stagger-3"
       style={{
         background: 'var(--wa-panel)',
         borderColor: 'var(--wa-border)',
       }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h3
           className="font-fantasy text-base font-bold uppercase tracking-wider"
           style={{ color: 'var(--wa-accent-bright)' }}
@@ -35,7 +35,7 @@ export default function HistoriaSection({ historia, setHistoria }) {
         value={historia}
         onChange={handleChange}
         placeholder="Descreva a historia, motivacoes e personalidade do personagem..."
-        className="wa-historia-textarea w-full min-h-[140px] rounded-xl border p-4 font-modern text-sm resize-y outline-none transition-all duration-200 backdrop-blur-[18px]"
+        className="wa-historia-textarea w-full min-h-[70px] rounded-xl border p-3 font-modern text-sm resize-y outline-none transition-all duration-200 backdrop-blur-[18px]"
         style={{
           background: 'var(--wa-panel-soft)',
           borderColor: 'var(--wa-border)',

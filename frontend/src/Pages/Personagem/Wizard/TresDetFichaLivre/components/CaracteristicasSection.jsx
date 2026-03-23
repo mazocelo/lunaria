@@ -20,7 +20,7 @@ export default function CaracteristicasSection({
 
   return (
     <section
-      className="wa-panel wa-etched relative rounded-2xl p-5 backdrop-blur-[18px]"
+      className="wa-panel wa-etched relative rounded-2xl p-3 backdrop-blur-[18px]"
       style={{
         background: isLight
           ? 'linear-gradient(180deg, rgba(255,253,255,0.92), rgba(232,228,245,0.70))'
@@ -45,7 +45,7 @@ export default function CaracteristicasSection({
 
       {/* decorative line */}
       <div
-        className="mb-4 rounded-full"
+        className="mb-2 rounded-full"
         style={{
           height: 2,
           width: 48,
@@ -64,7 +64,7 @@ export default function CaracteristicasSection({
           return (
             <div
               key={attr.key}
-              className={`wa-stage-enter ${STAGGER[i]} rounded-xl p-4 text-center transition-all duration-200`}
+              className={`wa-stage-enter ${STAGGER[i]} rounded-xl p-2.5 text-center transition-all duration-200`}
               style={{
                 background: active
                   ? isLight
@@ -88,14 +88,14 @@ export default function CaracteristicasSection({
               }}
             >
               <div
-                className="font-modern text-[10px] font-bold uppercase tracking-widest mb-2"
+                className="font-modern text-[10px] font-bold uppercase tracking-widest mb-1"
                 style={{ color: 'var(--wa-muted)' }}
               >
                 {attr.label}
               </div>
 
               <div
-                className="font-fantasy text-4xl font-extrabold mb-2 transition-all duration-200"
+                className="font-fantasy text-2xl font-extrabold mb-1 transition-all duration-200"
                 style={{
                   color: active ? 'var(--wa-ink)' : 'var(--wa-muted)',
                   textShadow: active
@@ -110,7 +110,7 @@ export default function CaracteristicasSection({
                 <button
                   disabled={!canDec}
                   onClick={() => setCaracteristica(attr.key, val - 1)}
-                  className="w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
                   style={{
                     background: 'transparent',
                     color: 'var(--wa-accent)',
@@ -134,7 +134,7 @@ export default function CaracteristicasSection({
                 <button
                   disabled={!canInc}
                   onClick={() => setCaracteristica(attr.key, val + 1)}
-                  className="w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
                   style={{
                     background: 'transparent',
                     color: 'var(--wa-accent)',
@@ -161,10 +161,10 @@ export default function CaracteristicasSection({
         })}
       </div>
 
-      <div className="flex gap-3 mt-4">
+      <div className="flex gap-3 mt-2">
         {/* PV badge — teal */}
         <div
-          className="wa-teal-chip flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-modern font-semibold backdrop-blur-[12px]"
+          className="wa-teal-chip flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-modern font-semibold backdrop-blur-[12px]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -174,7 +174,7 @@ export default function CaracteristicasSection({
 
         {/* PM badge — violet */}
         <div
-          className="wa-violet-chip flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-modern font-semibold backdrop-blur-[12px]"
+          className="wa-violet-chip flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-modern font-semibold backdrop-blur-[12px]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>

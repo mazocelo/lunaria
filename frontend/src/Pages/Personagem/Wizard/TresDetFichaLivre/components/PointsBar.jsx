@@ -19,7 +19,7 @@ export default function PointsBar({
 
   return (
     <div
-      className="wa-panel-strong sticky top-0 z-10 flex items-center gap-5 flex-wrap px-6 py-3 backdrop-blur-sm"
+      className="wa-panel-strong sticky top-0 z-10 flex items-center gap-3 flex-wrap px-4 py-2 backdrop-blur-sm"
     >
       {/* Nivel de Poder */}
       <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default function PointsBar({
           {Array.from({ length: pontosCaracteristicas }).map((_, i) => (
             <div
               key={`c${i}`}
-              className="w-3 h-3 rounded-sm"
+              className="w-2.5 h-2.5 rounded-sm"
               style={{
                 background: 'var(--wa-accent)',
                 boxShadow: '0 0 6px color-mix(in srgb, var(--wa-accent) 50%, transparent)',
@@ -82,7 +82,7 @@ export default function PointsBar({
           {Array.from({ length: pontosVantagens }).map((_, i) => (
             <div
               key={`v${i}`}
-              className="w-3 h-3 rounded-sm"
+              className="w-2.5 h-2.5 rounded-sm"
               style={{
                 background: 'var(--wa-ember)',
                 boxShadow: '0 0 6px color-mix(in srgb, var(--wa-ember) 50%, transparent)',
@@ -92,7 +92,7 @@ export default function PointsBar({
           {Array.from({ length: pontosFocus }).map((_, i) => (
             <div
               key={`f${i}`}
-              className="w-3 h-3 rounded-sm"
+              className="w-2.5 h-2.5 rounded-sm"
               style={{
                 background: 'var(--wa-teal)',
                 boxShadow: '0 0 6px color-mix(in srgb, var(--wa-teal) 50%, transparent)',
@@ -102,7 +102,7 @@ export default function PointsBar({
           {Array.from({ length: Math.max(0, pontosRestantes) }).map((_, i) => (
             <div
               key={`r${i}`}
-              className="w-3 h-3 rounded-sm"
+              className="w-2.5 h-2.5 rounded-sm"
               style={{
                 border: '1px solid var(--wa-border)',
                 background: 'transparent',
@@ -112,7 +112,7 @@ export default function PointsBar({
           {Array.from({ length: Math.abs(pontosDesvantagens) }).map((_, i) => (
             <div
               key={`d${i}`}
-              className="w-3 h-3 rounded-sm"
+              className="w-2.5 h-2.5 rounded-sm"
               style={{
                 background: '#34d399',
                 boxShadow: '0 0 6px rgba(52, 211, 153, 0.5)',
@@ -124,7 +124,7 @@ export default function PointsBar({
         {/* Counter */}
         <div className="text-center">
           <div
-            className="text-2xl font-extrabold font-fantasy"
+            className="text-xl font-extrabold font-fantasy"
             style={{
               color: isOver ? 'var(--wa-danger)' : 'var(--wa-forge-gold)',
               textShadow: isOver

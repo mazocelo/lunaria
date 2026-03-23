@@ -30,7 +30,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
 
   return (
     <section
-      className="relative rounded-2xl p-5 backdrop-blur-[18px]"
+      className="relative rounded-2xl p-3 backdrop-blur-[18px]"
       style={{
         background: isLight
           ? 'linear-gradient(180deg, rgba(255,253,255,0.92), rgba(232,228,245,0.70))'
@@ -87,7 +87,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
 
       {/* decorative line */}
       <div
-        className="mb-4 rounded-full"
+        className="mb-2 rounded-full"
         style={{
           height: 2,
           width: 48,
@@ -109,7 +109,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
           return (
             <div
               key={fc.key}
-              className={`wa-stage-enter ${STAGGER[i]} rounded-xl p-4 text-center transition-all duration-200`}
+              className={`wa-stage-enter ${STAGGER[i]} rounded-xl p-2.5 text-center transition-all duration-200`}
               style={{
                 background: hasPoints
                   ? isLight ? colors.bgLight : colors.bg
@@ -128,10 +128,10 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
                 e.currentTarget.style.borderColor = hasPoints ? colors.border : 'var(--wa-border)';
               }}
             >
-              <div className="text-2xl mb-1">{fc.emoji}</div>
+              <div className="text-xl mb-1">{fc.emoji}</div>
 
               <div
-                className="font-modern text-[10px] font-bold uppercase tracking-widest mb-2 transition-colors duration-200"
+                className="font-modern text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors duration-200"
                 style={{
                   color: hasPoints
                     ? isLight ? colors.textLight : colors.text
@@ -142,7 +142,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
               </div>
 
               <div
-                className="font-fantasy text-3xl font-extrabold mb-2 transition-all duration-200"
+                className="font-fantasy text-2xl font-extrabold mb-1 transition-all duration-200"
                 style={{
                   color: hasPoints
                     ? isLight ? colors.textLight : colors.text
@@ -159,7 +159,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
                 <button
                   disabled={val <= 0}
                   onClick={() => setFocusNivel(fc.key, val - 1)}
-                  className="w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
                   style={{
                     background: 'transparent',
                     color: colors.border,
@@ -182,7 +182,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
                 <button
                   disabled={!canInc}
                   onClick={() => setFocusNivel(fc.key, val + 1)}
-                  className="w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center cursor-pointer transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
                   style={{
                     background: 'transparent',
                     color: colors.border,

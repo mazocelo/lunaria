@@ -168,4 +168,18 @@ router.get('/focus-elementais', async (req, res) => {
   }
 });
 
+// Magias 3D&T
+router.get('/magias-tresdet', async (req, res) => {
+  try {
+    const { escola, tipo } = req.query;
+    const where = {};
+    if (escola) where.escola = { contains: escola };
+    if (tipo) where.tipo = tipo;
+    const magias = await db.prisma.magias_tresdet.findMany({ where, orderBy: { nome: 'asc' } });
+    res.json({ success: true, data: magias });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar magias 3D&T' });
+  }
+});
+
 export default router;

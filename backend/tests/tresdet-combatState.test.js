@@ -34,15 +34,9 @@ describe('tresdet buildCombatState', () => {
     expect(state.defensivo.H).toBe(2);
   });
 
-  it('mana zero sem magia', () => {
+  it('mana R*5 para todos (3D&T: todos têm PM)', () => {
     const state = tresdetEngine.buildCombatState(personagem, bonusEquip);
-    expect(state.mana_max).toBe(0);
-  });
-
-  it('mana R*5 com magia', () => {
-    const mago = { ...personagem, stats_sistema: { temMagia: true } };
-    const state = tresdetEngine.buildCombatState(mago, bonusEquip);
-    expect(state.mana_max).toBe(10);
+    expect(state.mana_max).toBe(10); // R=2, 2*5=10
   });
 
   it('retorna defaults para personagem null', () => {

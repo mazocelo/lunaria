@@ -125,14 +125,15 @@ class PersonagemController {
     }
 
     // Buscar todos os relacionamentos em paralelo (evita 4 queries sequenciais)
-    const [vantagens, desvantagens, equipamentos, historiasVinculadas] = await Promise.all([
+    const [vantagens, desvantagens, equipamentos, historiasVinculadas, magiasTresDet] = await Promise.all([
       db.Personagem.listarVantagens(personagemData.id),
       db.Personagem.listarDesvantagens(personagemData.id),
       db.Personagem.listarEquipamentos(personagemData.id),
       db.Personagem.listarHistoriasPersonagem(personagemData.id).catch(err => {
         log.error({ err: err }, 'Erro ao processar histórias');
         return [];
-      })
+      }),
+      db.Personagem.listarMagiasTresDet(personagemData.id),
     ]);
 
     if (vantagens.length > 0) {
@@ -197,6 +198,21 @@ class PersonagemController {
       personagemData.historia_id = historiasVinculadas[0].historias.id;
     } else {
       personagemData.historias = [];
+    }
+
+    if (magiasTresDet.length > 0) {
+      personagemData.magiasPersonagem = magiasTresDet.map(pm => ({
+        id: pm.magias_tresdet.id,
+        nome: pm.magias_tresdet.nome,
+        custo_pm: pm.magias_tresdet.custo_pm,
+        escola: pm.magias_tresdet.escola,
+        alcance: pm.magias_tresdet.alcance,
+        duracao: pm.magias_tresdet.duracao,
+        descricao: pm.magias_tresdet.descricao,
+        focus_requisito: pm.magias_tresdet.focus_requisito,
+        efeito: pm.magias_tresdet.efeito,
+        origem: pm.origem,
+      }));
     }
 
     // Buscar habilidades de classe/raça e magias

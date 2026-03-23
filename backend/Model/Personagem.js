@@ -14,7 +14,8 @@ const Personagem = (prisma) => {
           classes: true,
           racas: true,
           personagem_desvantagem: true,
-          personagem_equipamento: true
+          personagem_equipamento: true,
+          atributos_personagem: true
         }
       });
     },
@@ -67,7 +68,8 @@ const Personagem = (prisma) => {
         where: { deleted_at: null },
         include: {
           classes: true,
-          racas: true
+          racas: true,
+          atributos_personagem: true
         },
         orderBy: { nome: 'asc' }
       });
@@ -76,7 +78,8 @@ const Personagem = (prisma) => {
     // Buscar por ID
     async findPersonagemById(id) {
       return await model.findFirst({
-        where: { id, deleted_at: null }
+        where: { id, deleted_at: null },
+        include: { atributos_personagem: true }
       });
     },
 
@@ -109,7 +112,7 @@ const Personagem = (prisma) => {
       });
     },
 
-    async listarVantagens(personagem_id) {
+    async listarVantagens(personagem_id, sistema = 'lunaria') {
       const vinculos = await prisma.personagem_vantagem.findMany({
         where: { personagem_id: parseInt(personagem_id) }
       });
@@ -119,7 +122,7 @@ const Personagem = (prisma) => {
       // Batch query: 1 query instead of N
       const ids = vinculos.map(v => v.vantagem_id);
       const vantagens = await prisma.vantagens.findMany({
-        where: { id: { in: ids } }
+        where: { id: { in: ids }, sistema }
       });
 
       return vantagens.map(vantagem => ({ vantagem }));
@@ -144,7 +147,7 @@ const Personagem = (prisma) => {
       });
     },
 
-    async listarDesvantagens(personagem_id) {
+    async listarDesvantagens(personagem_id, sistema = 'lunaria') {
       const vinculos = await prisma.personagem_desvantagem.findMany({
         where: { personagem_id: parseInt(personagem_id) }
       });
@@ -154,7 +157,7 @@ const Personagem = (prisma) => {
       // Batch query: 1 query instead of N
       const ids = vinculos.map(v => v.desvantagem_id);
       const desvantagens = await prisma.desvantagens.findMany({
-        where: { id: { in: ids } }
+        where: { id: { in: ids }, sistema }
       });
 
       return desvantagens.map(desvantagem => ({ desvantagem }));
@@ -188,7 +191,7 @@ const Personagem = (prisma) => {
       });
     },
 
-    async listarEquipamentos(personagem_id) {
+    async listarEquipamentos(personagem_id, sistema = 'lunaria') {
       const vinculos = await prisma.personagem_equipamento.findMany({
         where: { personagem_id: parseInt(personagem_id) }
       });
@@ -198,7 +201,7 @@ const Personagem = (prisma) => {
       // Batch query: 1 query instead of N
       const ids = vinculos.map(v => v.equipamento_id);
       const equipamentos = await prisma.equipamentos.findMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, sistema },
         include: { raridade_rel: true, categoria_rel: true }
       });
 
@@ -225,6 +228,13 @@ const Personagem = (prisma) => {
       });
     },
 
+    async listarMagiasTresDet(personagem_id) {
+      return await prisma.personagem_magia_tresdet.findMany({
+        where: { personagem_id: parseInt(personagem_id) },
+        include: { magias_tresdet: true },
+      });
+    },
+
     async listarHistoriasPersonagem(personagem_id) {
       return await prisma.historias_personagens.findMany({
         where: { personagem_id: parseInt(personagem_id), historias: { deleted_at: null } },
@@ -241,7 +251,8 @@ const Personagem = (prisma) => {
           personagens: {
             include: {
               classes: true,
-              racas: true
+              racas: true,
+              atributos_personagem: true
             }
           }
         }

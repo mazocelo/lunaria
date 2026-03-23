@@ -203,6 +203,7 @@ const EtapaJogoRPGView = (props) => {
                   ordemIniciativa={combateOrdemIniciativa}
                   turnoAtual={combateTurnoAtual}
                   onRolarIniciativa={() => useSocketStore.getState().rolarIniciativaCombate()}
+                  sistema={personagemSelecionado?.sistema}
                 />
               </div>
             )}
@@ -257,7 +258,8 @@ const EtapaJogoRPGView = (props) => {
               onUsarMagia={handleUsarMagia}
               combatIntentAtual={combatIntentAtual}
               onClearCombatIntent={clearCombatIntent}
-              rolando={rolando}
+              sistema={personagemSelecionado?.sistema}
+              personagemAtributos={personagemSelecionado?.atributos}
             />
           </div>
 
@@ -432,6 +434,8 @@ const EtapaJogoRPGView = (props) => {
         onClose={() => setInventarioAberto(false)}
         equipamentos={personagemSelecionado?.equipamentos || []}
         personagemNome={personagemSelecionado?.nome || 'Aventureiro'}
+        personagemId={personagemSelecionado?.id}
+        sistema={personagemSelecionado?.sistema}
       />
 
       <LevelUpCelebration

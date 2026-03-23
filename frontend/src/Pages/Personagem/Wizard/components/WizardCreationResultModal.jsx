@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { BookOpen, CheckCircle2, Shield, Sparkles, ScrollText, Swords } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { BookOpen, CheckCircle2, Shield, Sparkles, ScrollText, Swords, ShoppingBag } from 'lucide-react';
+import LojaMestreModal from '../../../../components/LojaMestreModal.jsx';
 
 const ATTR_LABELS = {
   forca: 'FOR',
@@ -26,11 +27,13 @@ const WizardCreationResultModal = ({
   isLight = false,
 }) => {
   const itensCombo = useMemo(() => buildItensCombo(data?.preview?.combo), [data]);
+  const [lojaAberta, setLojaAberta] = useState(false);
 
   if (!open || !data) return null;
 
   const snapshot = data.preview?.snapshot || {};
   const personagem = data.personagem || {};
+  const isTresDet = personagem.sistema === 'tresdet';
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/72 px-4 py-6 backdrop-blur-md">
@@ -183,6 +186,16 @@ const WizardCreationResultModal = ({
               >
                 Ir para personagens
               </button>
+              {isTresDet && personagem.moedas > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setLojaAberta(true)}
+                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-500 px-5 py-3 text-sm font-modern font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5"
+                >
+                  <ShoppingBag size={16} />
+                  Comprar Equipamentos
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onViewSheet}
@@ -191,6 +204,15 @@ const WizardCreationResultModal = ({
                 Ver ficha
               </button>
             </div>
+
+            {isTresDet && (
+              <LojaMestreModal
+                isOpen={lojaAberta}
+                onClose={() => setLojaAberta(false)}
+                personagemId={personagem.id}
+                moedas={personagem.moedas || 0}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -1,11 +1,13 @@
-# Sistema de Dinheiro — Design Spec
+# Sistema de Dinheiro + Itens 3D&T — Design Spec
 
 **Data:** 2026-03-23
-**Objetivo:** Sistema de economia completo para 3D&T Alpha (extensível para Lunaria e D&D).
+**Objetivo:** Sistema de economia completo + catálogo de itens para 3D&T Alpha (extensível para Lunaria e D&D).
 
 ## Resumo
 
-Adicionar moeda ao jogo: campo no personagem, preço nos equipamentos, cálculo de dinheiro inicial na criação, compra/venda durante o jogo, loja com comerciantes NPC, inventário expandido com equipar/desequipar.
+Duas frentes:
+1. **Economia** — campo moedas no personagem, cálculo de dinheiro inicial, compra/venda, loja com comerciantes NPC
+2. **Itens 3D&T** — tabela separada dos equipamentos genéricos, com 5 tipos, catálogo extraído dos manuais via Gemini
 
 ---
 
@@ -20,16 +22,58 @@ moedas Int @default(0)
 
 Valor negativo = dívida (regra 3D&T). Tipo Int — valores sempre inteiros (arredonda pra baixo em vendas).
 
-### equipamentos
+### itens_tresdet (NOVA TABELA)
 
-Novo campo:
+Tabela separada de `equipamentos` — o 3D&T tem modelo fundamentalmente diferente (poderes compostos, custo em PEs, limites por tipo).
+
+```prisma
+model itens_tresdet {
+  id             Int      @id @default(autoincrement())
+  nome           String   @db.VarChar(200)
+  descricao      String?
+  tipo           String   @db.VarChar(30)    // consumivel, pergaminho, arma, armadura, acessorio
+  custo_pe       Int      @default(0)        // custo em Pontos de Experiência
+  preco_moedas   Int      @default(0)        // preço em Moedas (pra comércio)
+  poderes        Json?                       // poderes mágicos compostos (armas/armaduras)
+  efeito         String?                     // efeito textual (consumíveis/acessórios)
+  empilhavel     Boolean  @default(false)    // true pra consumíveis e pergaminhos
+  raridade       String?  @db.VarChar(30)    // comum, incomum, raro, lendario
+  imagem         String?  @db.VarChar(500)
+  magia_vinculada String? @db.VarChar(200)   // pra pergaminhos: nome da magia contida
+
+  personagem_item_tresdet personagem_item_tresdet[]
+
+  @@unique([nome])
+}
 ```
-preco Int @default(0)
+
+**5 tipos:**
+
+| Tipo | Empilhável | Limite equipado | Exemplos |
+|------|------------|-----------------|----------|
+| `consumivel` | Sim | N/A (usa e descarta) | Cura Menor, Poção de Voo, Antídoto |
+| `pergaminho` | Sim | N/A (usa e descarta) | Pergaminho de Bola de Fogo |
+| `arma` | Não | 1 por vez | Arma +2, Espada Vorpal, Arma Venenosa |
+| `armadura` | Não | 1 por vez | Armadura +3, Armadura Incorpórea |
+| `acessorio` | Não | Max 2 por vez | Anel de Vivara, Medalhão de Renasa |
+
+### personagem_item_tresdet (NOVA TABELA)
+
+```prisma
+model personagem_item_tresdet {
+  personagem_id  Int
+  item_id        Int
+  quantidade     Int      @default(1)
+  equipado       Boolean  @default(false)
+
+  personagens    personagens    @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  item           itens_tresdet  @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@id([personagem_id, item_id])
+}
 ```
 
-Mantém `preco_sugerido` (String) para legado. O novo `preco` é numérico inteiro em Moedas.
-
-### personagem_equipamento (já existe)
+### personagem_equipamento (já existe — Lunaria/D&D)
 
 Novos campos:
 ```
@@ -37,10 +81,7 @@ quantidade Int @default(1)
 equipado   Boolean @default(false)
 ```
 
-- `equipado = true` → item no corpo do personagem
-- `equipado = false` → item na mochila/inventário
-- `quantidade` → suporta itens empilháveis (poções, materiais)
-- PK mantém `@@id([personagem_id, equipamento_id])` — compra usa `upsert` com increment na quantidade
+PK mantém `@@id([personagem_id, equipamento_id])` — compra usa `upsert` com increment.
 
 ---
 
@@ -90,6 +131,53 @@ Se o resultado for negativo, o personagem começa com dívida (moedas < 0). Pers
 
 ---
 
+## Catálogo de Itens 3D&T (Seed via Gemini)
+
+### Script: `scripts/seed-itens-tresdet.js`
+
+Usa Gemini pra ler os 3 PDFs na raiz do projeto e extrair todos os itens:
+
+**PDFs fonte:**
+- `1-Manual3dtAlpha-EdioRevisada.pdf` — Parte 8: Objetos Mágicos (itens de cura, pergaminhos, poções, armas mágicas, armaduras mágicas, acessórios)
+- `3D&T Alpha - MAGIAS.pdf` — magias adicionais (pergaminhos derivados)
+- `3dt-alpha-manual-da-magia-biblioteca-elfica.pdf` — mais magias (pergaminhos derivados)
+
+**Fluxo do script:**
+1. Envia páginas relevantes do PDF pro Gemini com prompt estruturado
+2. Gemini retorna JSON com itens extraídos
+3. Script valida e insere via Prisma `createMany` com `skipDuplicates`
+
+**Itens a extrair do manual principal (Parte 8):**
+
+Consumíveis:
+- Cura Menor (1 PE), Cura Maior (3 PEs), Cura Total (5 PEs)
+- Magia Menor (3 PEs), Magia Maior (10 PEs), Magia Total (20 PEs)
+- Cura & Magia Menores (5 PEs), Cura & Magia Maiores (15 PEs), Cura & Magia Totais (30 PEs)
+- Antídoto Menor (3 PEs), Antídoto Maior (10 PEs), Antídoto Total (30 PEs)
+
+Armas Mágicas (poderes como JSON):
+- Bônus Mágico +1 a +5 (10-100 PEs)
+- Anti-Inimigo (10 PEs), Assassina (20 PEs), Ataque Especial (5 PEs)
+- Espiritual (20 PEs), Flagelo (5 PEs cada), Sagrada (30 PEs)
+- Veloz (5 PEs), Venenosa (15 PEs), Vorpal (30 PEs)
+
+Armaduras Mágicas (poderes como JSON):
+- Bônus Mágico +1 a +5 (10-100 PEs)
+- Armadura Extra (variável), Confortável (5 PEs), Incorpórea (30 PEs)
+- Invulnerável (variável), Magia Irresistível (variável)
+- Submarina (10 PEs), Toque de Energia (5 PEs), Voadora (20 PEs)
+
+Acessórios:
+- Anel de Anulação (5 PEs), Anel de Competência (15 PEs)
+- Anel do Dragão (30 PEs), Anel de Vivara (40 PEs)
+- Bola de Cristal (10 PEs), Brincos de Seraya (30 PEs)
+- Brincos de Arcanys (5 PEs cada), Colar do Mar (10 PEs)
+- Coroa da Resistência Espiritual (20 PEs), Escudo da Lua (20 PEs)
+- Medalhão de Vivara (40 PEs), Medalhão de Renasa (10 PEs)
+- Medalhão de Arcanys (60 PEs)
+
+---
+
 ## Backend
 
 ### Helper: `helpers/economiaHelper.js` (cálculos puros)
@@ -108,15 +196,15 @@ calcularPrecoVenda(preco)
 Todas as operações usam `prisma.$transaction()` pra garantir consistência.
 
 ```
-processarCompra(personagemId, equipamentoId, quantidade)
+processarCompra(personagemId, itemId, quantidade, sistema)
   → $transaction:
-    → busca personagem.moedas e equipamento.preco
+    → busca personagem.moedas e item.preco_moedas (ou equipamento.preco)
     → valida moedas >= preco × quantidade (rejeita se em dívida)
     → deduz moedas
-    → upsert personagem_equipamento (increment quantidade)
+    → upsert inventário (increment quantidade)
   → retorna { sucesso, saldoAtual, item }
 
-processarVenda(personagemId, equipamentoId, quantidade)
+processarVenda(personagemId, itemId, quantidade, sistema)
   → $transaction:
     → valida item existe no inventário com quantidade suficiente
     → valorVenda = Math.floor(preco * 0.5) × quantidade
@@ -124,27 +212,32 @@ processarVenda(personagemId, equipamentoId, quantidade)
     → decrementa quantidade (deleta registro se quantidade chega a 0)
   → retorna { sucesso, saldoAtual, valorRecebido }
 
-equiparItem(personagemId, equipamentoId)
+equiparItem(personagemId, itemId, sistema)
+  → valida limites por tipo:
+    - arma: max 1 equipada
+    - armadura: max 1 equipada
+    - acessorio: max 2 equipados
+    - consumivel/pergaminho: não pode equipar
   → marca equipado = true
 
-desequiparItem(personagemId, equipamentoId)
+desequiparItem(personagemId, itemId, sistema)
   → marca equipado = false
 ```
 
-### Controller: `controllers/personagem/personagemController.js` (rotas existentes expandidas)
-
-Segue o padrão existente de rotas aninhadas sob `/personagens/:id/`.
+### Controller: rotas aninhadas sob `/personagens/:id/`
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/personagens/:id/saldo` | Retorna moedas atuais |
 | GET | `/personagens/:id/inventario` | Lista itens com quantidade e status equipado |
-| POST | `/personagens/:id/comprar` | Body: `{ equipamentoId, quantidade }` |
-| POST | `/personagens/:id/vender` | Body: `{ equipamentoId, quantidade }` |
-| POST | `/personagens/:id/equipar` | Body: `{ equipamentoId }` |
-| POST | `/personagens/:id/desequipar` | Body: `{ equipamentoId }` |
+| POST | `/personagens/:id/comprar` | Body: `{ itemId, quantidade, sistema }` |
+| POST | `/personagens/:id/vender` | Body: `{ itemId, quantidade, sistema }` |
+| POST | `/personagens/:id/equipar` | Body: `{ itemId, sistema }` |
+| POST | `/personagens/:id/desequipar` | Body: `{ itemId, sistema }` |
 
 Auth: `requireResourceOwnerOrSuperAdmin('Personagem')` em todas as rotas de escrita.
+
+O campo `sistema` determina se opera em `itens_tresdet`/`personagem_item_tresdet` ou `equipamentos`/`personagem_equipamento`.
 
 ### Integração com criação
 
@@ -186,7 +279,7 @@ O InventarioPanel existente expande para mostrar:
 - Seção "Mochila" — itens com `equipado = false`, botão "Equipar"
 - Quantidade por item empilhável
 - Botão "Vender" (visível quando comerciante disponível)
-- Sem limite de equip slots na v1 (restrições por sistema adicionadas depois)
+- Limites de equip visíveis (1 arma, 1 armadura, 2 acessórios)
 
 ### Wizard (criação 3D&T)
 
@@ -198,9 +291,10 @@ O InventarioPanel existente expande para mostrar:
 
 ## Extensibilidade
 
-O campo `moedas` e `preco` são agnósticos de sistema. Cada game-system define:
+O campo `moedas` no personagem é agnóstico de sistema. Cada game-system define:
 - Como calcular dinheiro inicial (3D&T: 1d6×100, D&D: por classe/background, Lunaria: TBD)
 - Nome da moeda (Moeda, Gold Piece, etc.)
 - Regras de venda (50% é padrão, pode variar)
+- Tabela de itens (3D&T: `itens_tresdet`, Lunaria/D&D: `equipamentos`)
 
-A lógica de cálculo de dinheiro inicial fica em `game-systems/{sistema}/characterEngine.js`. O service genérico (`economiaService.js`) delega pra o engine do sistema.
+A lógica de cálculo fica em `game-systems/{sistema}/characterEngine.js`. O service genérico delega.

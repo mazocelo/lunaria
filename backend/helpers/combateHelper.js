@@ -1098,6 +1098,11 @@ function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIn
  * redução de dano caso o ataque passe pelo DC.
  */
 function _resolverDefesa(combate, userId, personagem, jogadorStats) {
+  // 3D&T doesn't have a separate defend action
+  if (combate?.sistema && combate.sistema !== 'lunaria') {
+    return null;
+  }
+
   jogadorStats.defesaTemporaria = {
     dcBonus: 2,       // +2 to dodge DC
     reducaoDano: 0.5, // 50% damage reduction
@@ -1671,7 +1676,9 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
     const critico = Boolean(acaoPendente.critico);
     let danoFinal = critico ? Math.max(0, danoRolado * 2) : danoRolado;
     // Apply absorption: max(0, modCON-1)d4 + armadura — crits ignore absorption
-    if (!critico) {
+    // Absorption is Lunaria-only
+    const sistema = sessao?.sistema || 'lunaria';
+    if (!critico && sistema === 'lunaria') {
       const absorcao = calcularAbsorcao(monstroAlvo.constituicao || 10, monstroAlvo.armadura || 0);
       danoFinal = Math.max(0, danoFinal - absorcao);
     }

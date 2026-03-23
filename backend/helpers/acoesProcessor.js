@@ -7,7 +7,7 @@
 import db from '../Model/index.js';
 import logger from './logger.js';
 const log = logger.child({ module: 'acoesProcessor' });
-import { calcularHP, calcularMana, calcularEsquiva, calcularArmadura, aplicarResistencias } from './combateHelper.js';
+import { calcularHP, calcularMana, calcularEsquiva, calcularArmadura, aplicarResistencias, getMultRaca } from './combateHelper.js';
 import { setCooldown, checkCooldown } from './cooldownManager.js';
 import { setConcentracao, quebrarConcentracao, checkDanoConcentracao } from './concentrationManager.js';
 import { aplicarEfeito, removerEfeito } from './effectManager.js';
@@ -16,6 +16,7 @@ import { normalizarTerrenoInput, getTerrenoLabel, addEfeitoTerreno, clearEfeitos
 import { normalizarElemento } from '../config/domainConstants.js';
 import { verificarLevelUp, xpParaNivel } from './evolucaoHelper.js';
 import { appendMensagemSessao, buildAcaoMestreMensagem } from '../websocket/utils/sessionMessages.js';
+import { processarDescansoTresDet, parseCustoPM } from '../game-systems/tresdet/combatEngine.js';
 
 /**
  * Persiste estado runtime (HP, status_efeitos) no clone da sessão
@@ -69,7 +70,8 @@ const ACTION_HANDLERS = new Map([
   ['remover_status', processarRemoverStatus],
   // 4 Pilares — novos handlers
   ['usar_habilidade', processarUsarHabilidade],
-  ['conjurar_magia', processarConjurarMagia],
+  ['conjurar_magia', processarConjurarMagiaDispatch],
+  ['descansar', processarDescanso],
   ['ativar_desvantagem', processarAtivarDesvantagem],
   ['aplicar_vantagem', processarAplicarVantagem],
   ['aplicar_efeito', processarAplicarEfeito],
@@ -381,7 +383,7 @@ async function processarCurar(acao, sessao, roomId, sm) {
   } else {
     // Fora de combate: calcular HP max e armazenar na sessão
     const attrs = alvo.personagem.atributos || {};
-    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });
+    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 }, getMultRaca(alvo.personagem.raca_nome || alvo.personagem.raca || ''));
     hpAnterior = alvo.personagem.hp_atual ?? hpMax;
     hpNovo = Math.min(hpMax, hpAnterior + hp);
     alvo.personagem.hp_atual = hpNovo;
@@ -458,7 +460,7 @@ async function processarAplicarDano(acao, sessao, roomId, sm) {
     if (hpNovo <= 0 && jogadorCombate.status === 'vivo') jogadorCombate.status = 'inconsciente';
   } else {
     const attrs = alvo.personagem.atributos || {};
-    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });
+    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 }, getMultRaca(alvo.personagem.raca_nome || alvo.personagem.raca || ''));
     hpAnterior = alvo.personagem.hp_atual ?? hpMax;
     hpNovo = Math.max(0, hpAnterior - danoFinal);
     alvo.personagem.hp_atual = hpNovo;
@@ -687,6 +689,123 @@ async function processarConjurarMagia(acao, sessao, roomId, sm) {
     nome, magia_id, custo_mana, usa_concentracao,
     dano_base: acao.dano_base || null, elemento: elementoNormMagia,
     concentracao_anterior_quebrada: concentracaoQuebrada?.nome || null,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * conjurar_magia dispatcher: roteia para handler correto conforme o sistema da sessão
+ */
+async function processarConjurarMagiaDispatch(acao, sessao, roomId, sm, options) {
+  if (sessao.sistema === 'tresdet') {
+    return processarConjurarMagiaTresDet(acao, sessao, roomId, sm);
+  }
+  return processarConjurarMagia(acao, sessao, roomId, sm);
+}
+
+/**
+ * conjurar_magia (3D&T): Busca magia no catálogo, parseia custo PM, deduz e emite evento
+ * acao: { tipo, personagem, magia_id, nome, custo_pm_override }
+ */
+async function processarConjurarMagiaTresDet(acao, sessao, roomId, sm) {
+  const { personagem: nomePersonagem, magia_id, nome, custo_pm_override } = acao;
+  if (!nomePersonagem || (!magia_id && !nome)) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo || !alvo.userId) return;
+
+  // Buscar magia no catálogo
+  let magia = null;
+  if (magia_id) {
+    magia = await db.prisma.magias_tresdet.findUnique({ where: { id: magia_id } });
+  } else if (nome) {
+    magia = await db.prisma.magias_tresdet.findUnique({ where: { nome } });
+  }
+  if (!magia) {
+    log.warn({ magia_id, nome, personagem: nomePersonagem }, 'conjurar_magia_3det: magia nao encontrada no catalogo');
+    return;
+  }
+
+  // Custo PM: override do Mestre IA tem prioridade, senão parsear do catálogo
+  const custoPM = custo_pm_override != null ? custo_pm_override : parseCustoPM(magia.custo_pm);
+
+  // Verificar e deduzir PM
+  if (custoPM > 0) {
+    const manaState = ensureManaState(sessao, alvo.userId, alvo.personagem);
+    if (manaState.mana_atual < custoPM) {
+      emitAcaoMestre(sessao, roomId, sm, {
+        tipo: 'magia_bloqueada', personagem: nomePersonagem, userId: alvo.userId,
+        nome: magia.nome, motivo: 'pm_insuficiente', mana_atual: manaState.mana_atual, custo: custoPM,
+        timestamp: Date.now()
+      });
+      return;
+    }
+    manaState.mana_atual -= custoPM;
+    persistirEstadoClone(roomId, alvo.personagemId, { mana_atual: manaState.mana_atual });
+  }
+
+  log.info({ personagem: nomePersonagem, magia: magia.nome, custoPM }, 'conjurar_magia_3det: magia conjurada');
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'magia_conjurada', personagem: nomePersonagem, userId: alvo.userId,
+    nome: magia.nome, magia_id: magia.id, custo_pm: custoPM,
+    escola: magia.escola, tipo_magia: magia.tipo,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * descansar (3D&T): Rola Rd6 para PV e PM, atualiza sessão e emite evento
+ * acao: { tipo, personagem }
+ */
+async function processarDescanso(acao, sessao, roomId, sm) {
+  const { personagem: nomePersonagem } = acao;
+  if (!nomePersonagem) return;
+
+  const alvo = encontrarPersonagemPorNome(sessao, nomePersonagem);
+  if (!alvo) {
+    log.warn({ personagem: nomePersonagem }, 'descansar: Personagem nao encontrado na sessao');
+    return;
+  }
+
+  // Montar objeto com atributos_personagem + hp/mana atuais para processarDescansoTresDet
+  const personagemData = {
+    ...alvo.personagem,
+    hp_atual: alvo.personagem.hp_atual ?? null,
+    mana_atual: alvo.personagem.mana_atual ?? null,
+  };
+
+  // Recuperar mana da manaState se existir
+  const uid = String(alvo.userId);
+  if (sessao.estadoJogo?.manaState?.[uid]) {
+    personagemData.mana_atual = sessao.estadoJogo.manaState[uid].mana_atual;
+  }
+
+  const resultado = processarDescansoTresDet(personagemData);
+
+  // Atualizar HP na sessão
+  alvo.personagem.hp_atual = resultado.hp_atual;
+
+  // Atualizar mana na sessão
+  alvo.personagem.mana_atual = resultado.mana_atual;
+  if (sessao.estadoJogo?.manaState?.[uid]) {
+    sessao.estadoJogo.manaState[uid].mana_atual = resultado.mana_atual;
+  }
+
+  // Persistir no clone
+  if (alvo.personagemId) {
+    persistirEstadoClone(roomId, alvo.personagemId, {
+      hp_atual: resultado.hp_atual,
+      mana_atual: resultado.mana_atual,
+    });
+  }
+
+  log.info({ personagem: nomePersonagem, pv: resultado.detalhes.pv, pm: resultado.detalhes.pm }, 'descansar: descanso realizado');
+
+  emitAcaoMestre(sessao, roomId, sm, {
+    tipo: 'descanso_realizado', personagem: nomePersonagem, userId: alvo.userId,
+    hp_atual: resultado.hp_atual, mana_atual: resultado.mana_atual,
+    detalhes: resultado.detalhes,
     timestamp: Date.now()
   });
 }
@@ -1039,7 +1158,7 @@ async function processarDanoAmbiental(acao, sessao, roomId, sm) {
     if (hpNovo <= 0 && jogadorCombate.status === 'vivo') jogadorCombate.status = 'inconsciente';
   } else {
     const attrs = alvo.personagem.atributos || {};
-    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });
+    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 }, getMultRaca(alvo.personagem.raca_nome || alvo.personagem.raca || ''));
     hpAnterior = alvo.personagem.hp_atual ?? hpMax;
     hpNovo = Math.max(0, hpAnterior - danoFinal);
     alvo.personagem.hp_atual = hpNovo;
@@ -1085,7 +1204,7 @@ async function processarEstabilizarPersonagem(acao, sessao, roomId, sm) {
     jogadorCombate.status = 'vivo';
   } else {
     const attrs = alvo.personagem.atributos || {};
-    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 });
+    hpMax = calcularHP({ constituicao: attrs.constituicao || 10, nivel: alvo.personagem.nivel || 1 }, getMultRaca(alvo.personagem.raca_nome || alvo.personagem.raca || ''));
     const hpAnterior = alvo.personagem.hp_atual || 0;
     hpNovo = Math.min(hpMax, Math.max(hpGanho, hpAnterior + hpGanho));
     alvo.personagem.hp_atual = hpNovo;
@@ -1172,7 +1291,7 @@ function ensureManaState(sessao, userId, personagem) {
   const uid = String(userId);
   if (!sessao.estadoJogo.manaState[uid]) {
     const attrs = personagem?.atributos || {};
-    const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, nivel: personagem?.nivel || 1 });
+    const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, carisma: attrs.carisma || 10, nivel: personagem?.nivel || 1 });
     sessao.estadoJogo.manaState[uid] = { mana_atual: manaMax, mana_max: manaMax };
   }
   return sessao.estadoJogo.manaState[uid];

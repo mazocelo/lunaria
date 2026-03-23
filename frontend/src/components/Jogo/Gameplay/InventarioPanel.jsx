@@ -91,7 +91,7 @@ function normalizeInventarioItem(entry, sistema) {
   };
 }
 
-const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, personagemId, sistema }) => {
+const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, personagemId, sistema, onUsarItem }) => {
   const [inventario, setInventario] = useState(null);
   const [moedas, setMoedas] = useState(null);
   const [loadingAction, setLoadingAction] = useState(null); // itemId being toggled
@@ -253,10 +253,13 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, p
                         <ItemCard
                           key={item.id || i}
                           item={item}
-                          acao="equipar"
+                          acao={isConsumivel(item) ? 'usar' : 'equipar'}
                           carregando={loadingAction === item.id}
-                          onAcao={() => handleEquipar(item.id)}
-                          semBotao={!personagemId || isConsumivel(item)}
+                          onAcao={isConsumivel(item)
+                            ? () => onUsarItem?.(item)
+                            : () => handleEquipar(item.id)
+                          }
+                          semBotao={!personagemId || (isConsumivel(item) && !onUsarItem)}
                         />
                       ))}
                     </div>
@@ -330,12 +333,14 @@ function ItemCard({ item, acao, carregando, onAcao, semBotao }) {
                 onClick={onAcao}
                 disabled={carregando}
                 className={`text-[10px] px-2 py-0.5 rounded font-modern transition-colors ${
-                  acao === 'equipar'
-                    ? 'bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40'
-                    : 'bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 border border-slate-500/40'
+                  acao === 'usar'
+                    ? 'bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40'
+                    : acao === 'equipar'
+                      ? 'bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40'
+                      : 'bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 border border-slate-500/40'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {carregando ? '...' : acao === 'equipar' ? 'Equipar' : 'Desequipar'}
+                {carregando ? '...' : acao === 'usar' ? 'Usar' : acao === 'equipar' ? 'Equipar' : 'Desequipar'}
               </button>
             )}
           </div>

@@ -436,6 +436,7 @@ const EtapaJogoRPGView = (props) => {
         personagemNome={personagemSelecionado?.nome || 'Aventureiro'}
         personagemId={personagemSelecionado?.id}
         sistema={personagemSelecionado?.sistema}
+        onUsarItem={handleUsarEquipamento}
       />
 
       <LevelUpCelebration

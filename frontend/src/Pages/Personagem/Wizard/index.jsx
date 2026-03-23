@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useWizardModel } from './wizard.model';
 import WizardView from './wizard.view';
 import WizardSystemPicker from './components/WizardSystemPicker';
+import TresDetFichaLivre from './TresDetFichaLivre/index.jsx';
 
 function WizardWithSystem({ sistema }) {
   const navigate = useNavigate();
@@ -24,6 +25,14 @@ export default function PersonagemWizardPage() {
         onSelect={(id) => setSearchParams({ sistema: id })}
         onBack={() => navigate('/personagens')}
       />
+    );
+  }
+
+  if (sistemaParam === 'tresdet') {
+    return (
+      <div className="-m-6 h-[calc(100vh-3.5rem)] overflow-hidden">
+        <TresDetFichaLivre />
+      </div>
     );
   }
 

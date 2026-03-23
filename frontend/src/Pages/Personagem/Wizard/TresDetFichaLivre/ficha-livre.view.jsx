@@ -33,8 +33,8 @@ export default function FichaLivreView(props) {
   } = props;
 
   return (
-    <div className={`wizard-atelier ${isLight ? 'light' : ''} ${theme === 'gothic' ? 'gothic' : ''}`}>
-      <div className="relative z-[1] flex flex-col h-full">
+    <div className={`wizard-atelier ${isLight ? 'light' : ''} ${theme === 'gothic' ? 'gothic' : ''} flex flex-col h-full min-h-0 overflow-hidden`}>
+      <div className="relative z-[1] flex flex-col flex-1 min-h-0">
         {/* Top bar */}
         <div
           className="wa-panel-strong wa-etched flex items-center justify-between px-6 py-3 shrink-0"

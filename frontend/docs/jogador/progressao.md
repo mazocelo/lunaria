@@ -36,6 +36,25 @@ Equipamentos fazem uma diferença enorme na capacidade do seu personagem. Existe
 
 Uma boa espada aumenta o dano dos seus ataques. Uma armadura resistente reduz o dano recebido. Uma varinha mágica potente amplifica seus feitiços. Vale a pena sempre estar de olho em upgrades.
 
+## Dinheiro e Comércio
+
+Seu personagem começa com uma quantia de Moedas determinada por suas vantagens e desvantagens. Personagens com Riqueza começam milionários. Personagens com muitas desvantagens podem começar endividados.
+
+**Como ganhar Moedas:**
+- Derrotando monstros e coletando loot
+- Vendendo itens que não precisa mais (por metade do preço original)
+- Recompensas narrativas do Mestre por missões completadas
+
+**Como gastar:**
+- Comprando itens de comerciantes que aparecem na história
+- Você também pode pedir ao Mestre para comprar algo pelo chat
+
+**Inventário e Equipamento:**
+Itens comprados vão para sua mochila. Para usar os bônus de uma arma, armadura ou acessório, você precisa equipá-lo. Existem limites: você pode equipar no máximo 1 arma, 1 armadura e 2 acessórios ao mesmo tempo. Poções e pergaminhos são consumidos ao usar.
+
+**Dívida:**
+Se suas desvantagens reduzirem seu dinheiro inicial abaixo de zero, você começa endividado. Qualquer Moeda ganha durante aventuras vai primeiro para saldar a dívida — você não pode comprar nada até sair do vermelho.
+
 ## Habilidades e Magias
 
 Seu personagem tem acesso a habilidades e magias que vêm de três fontes:
@@ -56,8 +75,34 @@ Essas vantagens são parte da identidade do personagem e o diferenciam de outros
 
 ---
 
+## Progressão por Sistema
+
+### Lunaria RPG
+
+- **XP por nível:** Nv2=100, Nv3=300, Nv4=600, Nv5=1.000, Nv6=1.500, Nv7=2.100, Nv8=2.800, Nv9=3.600, Nv10=4.500
+- **Pontos de vantagem:** 10 no nível 1, +1 por nível
+- **Tiers desbloqueados:** T1 no Nv1, T2 no Nv5, T3 no Nv9, T4 no Nv13, T5 no Nv17
+- **Grimório:** ao criar o personagem, você escolhe magias iniciais no Grimório. O número de slots depende da classe e nível. Conforme sobe de nível, magias existentes escalam automaticamente (mais dano, efeitos maiores).
+
+### 3D&T Alpha
+
+- **Sem tabela fixa de XP** — a progressão é narrativa, a critério do Mestre
+- **+1 ponto por nível** após o primeiro, para distribuir entre características ou comprar vantagens
+- **Nível máximo:** 10
+- O Mestre decide quando o personagem sobe de nível e como os pontos são distribuídos
+
+### D&D 5e
+
+- **XP por nível:** segue a tabela SRD padrão (Nv2=300, Nv3=900, Nv5=6.500, Nv10=64.000, Nv20=355.000)
+- **Proficiency bonus:** escala com o nível (+2 no Nv1-4, +3 no Nv5-8, +4 no Nv9-12, +5 no Nv13-16, +6 no Nv17-20)
+- **ASI (Ability Score Improvement):** nos níveis 4, 8, 12, 16 e 19, você ganha +2 em uma ability ou +1 em duas (ou escolhe um feat)
+- **Spell Slots:** conjuradores ganham mais slots e níveis de magia mais altos conforme sobem de nível
+- **Hit Dice:** varia por classe (Barbarian d12, Fighter/Paladin/Ranger d10, maioria d8, Sorcerer/Wizard d6)
+
+---
+
 ## A jornada é o destino
 
-A progressão em Lunaria não é apenas sobre ficar mais forte numericamente — é sobre a história que você vai construindo. Um personagem de nível alto que passou por batalhas épicas, fez escolhas morais difíceis e forjou alianças com NPCs marcantes é mais do que a soma de seus atributos.
+A progressão não é apenas sobre ficar mais forte numericamente — é sobre a história que você vai construindo. Um personagem de nível alto que passou por batalhas épicas, fez escolhas morais difíceis e forjou alianças com NPCs marcantes é mais do que a soma de seus atributos.
 
 Cada sessão deixa uma marca. Cada nível ganho representa uma parte da sua aventura. Boa sorte, aventureiro.

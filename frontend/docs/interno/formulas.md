@@ -1,6 +1,10 @@
 # Fórmulas do Sistema de Combate
 
-Referência técnica de todas as fórmulas. Os valores aqui espelham exatamente o código em `helpers/combateHelper.js`.
+Referência técnica de todas as fórmulas por sistema de RPG. As fórmulas do Lunaria espelham o código em `helpers/combateHelper.js`. As fórmulas de 3D&T e D&D espelham os engines em `game-systems/tresdet/` e `game-systems/dnd5e/`.
+
+---
+
+# Sistema Lunaria
 
 ---
 
@@ -286,3 +290,321 @@ Fontes de habilidades em combate (`getOwnedCombatActionList`):
 - `vantagens` — vantagens com `usos >= 1`
 
 Distinção magia vs habilidade: `isSpellAction(item)` checa `escola_magia && escola_magia !== 'nenhuma'`.
+
+---
+
+# Sistema 3D&T Alpha
+
+Referência: `game-systems/tresdet/combatEngine.js` e `game-systems/tresdet/characterEngine.js`.
+
+---
+
+## Características
+
+Cinco características com range 0-5: F, H, R, A, PdF. Sem modificadores — valores usados diretamente.
+
+---
+
+## Estatísticas Derivadas
+
+### PV (Pontos de Vida)
+
+```
+PV = R × 5 (mínimo 1)
+```
+
+### PM (Pontos de Magia)
+
+```
+PM = R × 5 (somente se tiver vantagem Magia; senão 0)
+```
+
+---
+
+## Combate
+
+### Força de Ataque (FA)
+
+```
+FA (melee)  = F + H + 1d6
+FA (ranged) = PdF + H + 1d6
+```
+
+### Força de Defesa (FD)
+
+```
+FD = A + H + 1d6
+```
+
+### Dano
+
+```
+Dano = max(0, FA - FD)
+```
+
+Se FA <= FD, o ataque falha (dano 0). Não existe crítico no 3D&T.
+
+### Iniciativa
+
+```
+Iniciativa = 1d6 + H
+```
+
+---
+
+## Testes de Habilidade
+
+```
+Teste simples: 1d6 <= valor da característica → sucesso
+Teste difícil:  1d6 <= característica - N → sucesso
+Teste oposto:  ambos rolam 1d6 + característica, maior vence
+```
+
+Fonte: `game-systems/tresdet/testEngine.js`.
+
+---
+
+## Sistema de Pontos (Criação)
+
+```
+Tier     | Pontos | Max Desvantagens
+---------|--------|------------------
+Novato   |   6    |     5
+Lutador  |   7    |     5
+Campeão  |   8    |     6
+Lenda    |  10    |     7
+Herói    |  15    |     8
+```
+
+Pontos distribuídos entre F, H, R, A, PdF (0-5 cada). Vantagens custam pontos; desvantagens devolvem pontos (limitado pelo tier).
+
+---
+
+## Progressão
+
+```
++1 ponto por nível após o primeiro (máximo nível 10)
+Sem tabela fixa de XP — progressão narrativa a critério do Mestre
+```
+
+---
+
+# Sistema D&D 5e (SRD)
+
+Referência: `game-systems/dnd5e/combatEngine.js` e `game-systems/dnd5e/characterEngine.js`.
+
+---
+
+## Ability Modifier
+
+```
+modifier = floor((score - 10) / 2)
+```
+
+Exemplos: 10 → 0, 14 → +2, 8 → -1, 16 → +3, 20 → +5.
+
+---
+
+## Proficiency Bonus
+
+```
+Nível 1-4:   +2
+Nível 5-8:   +3
+Nível 9-12:  +4
+Nível 13-16: +5
+Nível 17-20: +6
+```
+
+Fonte: `PROFICIENCY_BONUS` em `game-systems/dnd5e/constants.js`.
+
+---
+
+## Estatísticas Derivadas
+
+### HP (Hit Points)
+
+```
+HP nível 1     = hitDie + modCON
+HP níveis 2+   = avg(hitDie) + 1 + modCON por nível adicional
+HP total       = HP_nv1 + (avg(hitDie) + 1 + modCON) × (nível - 1)
+Mínimo: 1
+```
+
+Hit dice por classe:
+
+| Classe | Hit Die | Classe | Hit Die |
+|--------|---------|--------|---------|
+| Barbarian | d12 | Fighter / Paladin / Ranger | d10 |
+| Bard / Cleric / Druid / Monk / Rogue / Warlock | d8 | Sorcerer / Wizard | d6 |
+
+Fonte: `calcularHP()` em `game-systems/dnd5e/characterEngine.js`.
+
+### AC (Armor Class)
+
+```
+AC = stats_sistema.ac ou 10 + modDEX (sem armadura)
+```
+
+### Mana
+
+D&D **não usa mana**. Usa spell slots. `calcularMP()` retorna 0.
+
+---
+
+## Combate
+
+### Rolagem de Ataque
+
+```
+Total = d20 + ability_modifier + proficiency_bonus
+DC    = AC do defensor
+
+Total >= AC → Acerto
+Total <  AC → Erro
+d20 = 20    → Critical Hit (acerto automático, dados de dano dobrados)
+d20 = 1     → Fumble (erro automático)
+```
+
+**Ability usada:**
+- Melee: STR modifier
+- Ranged: DEX modifier
+- Spell: casting ability modifier (INT, WIS ou CHA conforme a classe)
+
+### Advantage / Disadvantage
+
+```
+Advantage:    rola 2d20, usa o MAIOR
+Disadvantage: rola 2d20, usa o MENOR
+Ambos:        se cancelam, rola normalmente
+```
+
+Fonte: `resolverAtaque()` em `game-systems/dnd5e/combatEngine.js`.
+
+### Iniciativa
+
+```
+Iniciativa = d20 + modDEX
+```
+
+---
+
+## Saving Throws
+
+```
+d20 + ability_modifier + proficiency (se proficiente) vs DC
+```
+
+Cada classe é proficiente em 2 saving throws.
+
+---
+
+## Skill Checks
+
+```
+d20 + ability_modifier + proficiency (se proficiente) vs DC
+
+DCs: Muito Fácil (5) | Fácil (10) | Média (15) | Difícil (20) | Muito Difícil (25) | Quase Impossível (30)
+```
+
+18 skills mapeadas para as 6 abilities.
+
+---
+
+## Death Saving Throws
+
+```
+d20 >= 10 → sucesso
+d20 <  10 → falha
+d20 =  20 → volta com 1 HP (nat 20)
+d20 =  1  → conta como 2 falhas (nat 1)
+
+3 sucessos → estabiliza
+3 falhas   → morre
+```
+
+Fonte: `resolverDeathSave()` em `game-systems/dnd5e/combatEngine.js`.
+
+---
+
+## Spell Slots
+
+Full casters (Wizard, Cleric, Druid, Bard, Sorcerer): slots de nível 1-9.
+Half casters (Paladin, Ranger): slots de nível 1-5.
+Warlock: pact magic (slots limitados, recuperam em short rest).
+Cantrips: nível 0, uso ilimitado.
+
+Slots recuperam em long rest (exceto Warlock: short rest).
+
+Fonte: `FULL_CASTER_SLOTS`, `HALF_CASTER_SLOTS` em `game-systems/dnd5e/constants.js`.
+
+---
+
+## ASI (Ability Score Improvement)
+
+```
+Níveis 4, 8, 12, 16, 19: +2 em uma ability OU +1 em duas abilities (ou um feat)
+```
+
+---
+
+## Economia
+
+### Dinheiro Inicial (3D&T)
+
+```
+base = 1d6 × 100
+```
+
+Modificadores aplicados por vantagens/desvantagens do personagem (case-insensitive match no nome):
+
+| Vantagem | Modificador | Desvantagem | Modificador |
+|----------|-------------|-------------|-------------|
+| Aparência Inofensiva | +1d6×50 | Assombrado | -1d6×10 |
+| Boa Fama | +1d6×50 | Maldição | -1d6×10 |
+| Genialidade | +2d6×100 | Código de Honra | -1d6×10 |
+| Patrono | +2d6×100 | Clericato | -1d6×10 |
+| Torcida | +1d6×10 | Paladino | -1d6×10 |
+| Perícia (tipo) | +2d6×100 | Inculto | -1d6×100 |
+| Especialização (tipo) | +1d6×50 | Insano | -1d6×50 |
+| | | Má Fama | -1d6×100 |
+| | | Monstruoso | -1d6×10 |
+
+Riqueza: ignora tudo, `1d6 × 100_000_000`.
+Negativo = dívida. Personagem em dívida não pode comprar.
+
+Fonte: `helpers/economiaHelper.js` → `calcularDinheiroInicial()`.
+
+### Preço de Venda
+
+```
+valorVenda = Math.floor(preco * 0.5)
+```
+
+### Limites de Equipamento (3D&T)
+
+| Tipo | Max Equipados |
+|------|--------------|
+| arma | 1 |
+| armadura | 1 |
+| acessorio | 2 |
+| consumivel | N/A (usa e descarta) |
+| pergaminho | N/A (usa e descarta) |
+
+Fonte: `LIMITES_EQUIP` em `helpers/economiaHelper.js`.
+
+### Tabelas
+
+- `itens_tresdet` — catálogo de itens 3D&T (90 itens: armas, armaduras, acessórios, consumíveis, pergaminhos)
+- `personagem_item_tresdet` — inventário do personagem 3D&T (quantidade + equipado)
+- `personagem_equipamento` — inventário Lunaria/D&D (expandido com quantidade + equipado)
+
+### Rotas
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/personagens/:id/saldo` | Moedas atuais |
+| GET | `/personagens/:id/inventario` | Inventário com status equipado |
+| POST | `/personagens/:id/comprar` | `{ itemId, quantidade, sistema }` |
+| POST | `/personagens/:id/vender` | `{ itemId, quantidade, sistema }` |
+| POST | `/personagens/:id/equipar` | `{ itemId, sistema }` |
+| POST | `/personagens/:id/desequipar` | `{ itemId, sistema }` |

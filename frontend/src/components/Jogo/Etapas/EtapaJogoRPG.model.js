@@ -117,6 +117,7 @@ export const useEtapaJogoRPGModel = ({
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
   const rodadaDropdownRef = useRef(null);
   const [inventarioAberto, setInventarioAberto] = useState(false);
+  const [grimorioAberto, setGrimorioAberto] = useState(false);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -357,6 +358,7 @@ export const useEtapaJogoRPGModel = ({
     showRodadaInfo, setShowRodadaInfo,
     rodadaDropdownRef,
     inventarioAberto, setInventarioAberto,
+    grimorioAberto, setGrimorioAberto,
 
     // Habilidades e Magias
     habilidadesPersonagem,

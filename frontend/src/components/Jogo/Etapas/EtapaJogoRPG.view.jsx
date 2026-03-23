@@ -17,6 +17,7 @@ import SessionRecap from '../Gameplay/SessionRecap';
 import NotificationManager from '../NotificationManager';
 import BarraStatusCompacta from '../Gameplay/BarraStatusCompacta';
 import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
+import GrimorioModal from '../Modals/GrimorioModal';
 import SceneTransition from '../Shared/SceneTransition';
 import SessionGallery from '../Shared/SessionGallery';
 import { PARTICLES } from '../../../constants/game';
@@ -87,6 +88,8 @@ const EtapaJogoRPGView = (props) => {
     rodadaDropdownRef,
     inventarioAberto,
     setInventarioAberto,
+    grimorioAberto,
+    setGrimorioAberto,
     habilidadesPersonagem,
     magiasPersonagem,
     cooldownsHabilidades,
@@ -141,6 +144,8 @@ const EtapaJogoRPGView = (props) => {
           setShowRodadaInfo={setShowRodadaInfo}
           rodadaDropdownRef={rodadaDropdownRef}
           handleVerMinhaFicha={handleVerMinhaFicha}
+          onAbrirGrimorio={() => setGrimorioAberto(true)}
+          temMagias={magiasPersonagem?.length > 0}
           onSair={onSair}
           mobileDrawer={mobileDrawer}
           setMobileDrawer={setMobileDrawer}
@@ -427,6 +432,20 @@ const EtapaJogoRPGView = (props) => {
         combateAtivo={combateAtivo}
         combateJogadores={combateJogadores}
         userId={user?.id}
+      />
+
+      <GrimorioModal
+        isOpen={grimorioAberto}
+        onClose={() => setGrimorioAberto(false)}
+        magias={magiasPersonagem}
+        manaAtual={manaAtual}
+        manaMax={manaMax}
+        combateAtivo={combateAtivo}
+        onUsarMagia={(magia) => {
+          handleUsarMagia(magia);
+          setGrimorioAberto(false);
+        }}
+        sistema={personagemSelecionado?.sistema}
       />
 
       <InventarioPanel

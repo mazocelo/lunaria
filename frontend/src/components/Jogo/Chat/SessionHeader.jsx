@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { BookOpen, DoorOpen, ScrollText, Swords, Users, ListMusic, ChevronDown } from 'lucide-react';
+import { BookOpen, DoorOpen, ScrollText, Swords, Users, ListMusic, ChevronDown, Sparkles } from 'lucide-react';
 
 /**
  * Header compacto da sessao de jogo RPG
@@ -17,6 +17,8 @@ const SessionHeader = ({
   setShowRodadaInfo,
   rodadaDropdownRef,
   handleVerMinhaFicha,
+  onAbrirGrimorio,
+  temMagias,
   onSair,
   mobileDrawer,
   setMobileDrawer,
@@ -261,6 +263,19 @@ const SessionHeader = ({
             <BookOpen size={14} />
             <span className="hidden sm:inline">FICHA</span>
           </button>
+
+          {temMagias && (
+            <button
+              type="button"
+              onClick={onAbrirGrimorio}
+              className="px-3 py-1.5 rounded-lg font-bold shadow-md transition-all flex items-center gap-1.5 text-sm bg-gradient-to-r from-purple-600/70 to-indigo-600/70 text-white border border-purple-300/40 hover:from-purple-500/80 hover:to-indigo-500/80"
+              title="Abrir grimorio"
+              aria-label="Abrir grimorio"
+            >
+              <Sparkles size={14} />
+              <span className="hidden sm:inline">GRIMORIO</span>
+            </button>
+          )}
 
           <button
             type="button"

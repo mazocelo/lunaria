@@ -1,6 +1,7 @@
 import db from '../Model/index.js';
 import logger from './logger.js';
 const log = logger.child({ module: 'personagensHelper' });
+import { getEngine } from '../game-systems/index.js';
 import {
   agregarBonusEquipamentos,
   encontrarMelhorArma
@@ -35,10 +36,9 @@ export async function buscarPersonagensCompletos(personagensIds) {
             return null;
           }
 
-          // Buscar vantagens, desvantagens, equipamentos e habilidades
+          // Buscar vantagens, desvantagens e habilidades
           const vantagens = await db.Personagem.listarVantagens(personagem.id);
           const desvantagens = await db.Personagem.listarDesvantagens(personagem.id);
-          const equipamentos = await db.Personagem.listarEquipamentos(personagem.id);
 
           // Buscar habilidades/magias do personagem via tabela de vínculo
           let habilidadesClasse = [];
@@ -69,21 +69,43 @@ export async function buscarPersonagensCompletos(personagensIds) {
             agilidade: attrMap.agilidade ?? 10
           };
 
-          // Mapear equipamentos com dados completos
-          const equipamentosMapeados = equipamentos.map(e => ({
-            nome: e.equipamento?.nome || e.nome,
-            tipo: e.equipamento?.tipo || e.tipo,
-            descricao: e.equipamento?.descricao || e.descricao,
-            dano_base: e.equipamento?.dano_base || e.dano_base || null,
-            bonus: e.equipamento?.bonus || e.bonus || null,
-            requisitos: normalizarRequisitos(e.equipamento?.requisitos || e.requisitos || null),
-            efeito: normalizarEfeitoCatalogo(e.equipamento?.efeito || e.efeito || null),
-            elemento: normalizarListaElementos(e.equipamento?.elemento || e.elemento) || []
-          }));
+          // Carregar equipamentos conforme o sistema do personagem
+          const sistema = personagem.sistema || 'lunaria';
+          const engine = getEngine(sistema);
+          let itensEquipados;
+          let equipamentosMapeados;
 
-          // Agregar bonus de equipamentos
-          const bonusEquip = agregarBonusEquipamentos(equipamentosMapeados);
-          const melhorArma = encontrarMelhorArma(equipamentosMapeados);
+          if (sistema === 'tresdet') {
+            const inv = await db.PersonagemItemTresDet.listarInventario(personagem.id);
+            const equipadosRaw = inv.filter(e => e.equipado);
+            itensEquipados = equipadosRaw.map(e => e.item);
+            equipamentosMapeados = itensEquipados.map(item => ({
+              nome: item.nome,
+              tipo: item.tipo ? [item.tipo] : [],
+              descricao: item.descricao,
+              dano_base: null,
+              bonus: null,
+              requisitos: null,
+              efeito: item.efeito,
+              elemento: [],
+            }));
+          } else {
+            const equipamentos = await db.Personagem.listarEquipamentos(personagem.id);
+            equipamentosMapeados = equipamentos.map(e => ({
+              nome: e.equipamento?.nome || e.nome,
+              tipo: e.equipamento?.tipo || e.tipo,
+              descricao: e.equipamento?.descricao || e.descricao,
+              dano_base: e.equipamento?.dano_base || e.dano_base || null,
+              bonus: e.equipamento?.bonus || e.bonus || null,
+              requisitos: normalizarRequisitos(e.equipamento?.requisitos || e.requisitos || null),
+              efeito: normalizarEfeitoCatalogo(e.equipamento?.efeito || e.efeito || null),
+              elemento: normalizarListaElementos(e.equipamento?.elemento || e.elemento) || [],
+            }));
+            itensEquipados = equipamentosMapeados;
+          }
+
+          const bonusEquip = engine.extrairBonusEquipamentos(itensEquipados);
+          const melhorArma = sistema === 'tresdet' ? null : encontrarMelhorArma(equipamentosMapeados);
 
           // Encontrar elemento da melhor arma
           let elementoArma = null;

@@ -6,6 +6,7 @@ import db from '../Model/index.js';
 import { TIERS, TIER_DEFAULT, CARACTERISTICA_IDS, FOCUS_KEYS } from '../game-systems/tresdet/constants.js';
 import { validarCriacao } from '../game-systems/tresdet/characterEngine.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../helpers/sanitize.js';
+import { calcularDinheiroInicial } from '../helpers/economiaHelper.js';
 import logger from '../helpers/logger.js';
 
 const log = logger.child({ module: 'PersonagemTresDetService' });
@@ -140,6 +141,13 @@ export async function criarPersonagemTresDet(body, userId) {
         data: desvantagemIds.map(id => ({ personagem_id: created.id, desvantagem_id: id })),
       });
     }
+
+    // Dinheiro inicial baseado em vantagens/desvantagens
+    const moedas = calcularDinheiroInicial(vantagensObj, desvantagensObj);
+    await tx.personagens.update({
+      where: { id: created.id },
+      data: { moedas },
+    });
 
     return created;
   });

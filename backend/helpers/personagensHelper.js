@@ -5,6 +5,7 @@ import {
   agregarBonusEquipamentos,
   encontrarMelhorArma
 } from './bonusHelper.js';
+import { getAtributosMap } from './atributosHelper.js';
 import {
   normalizarElementoPrimario,
   normalizarListaElementos,
@@ -39,38 +40,33 @@ export async function buscarPersonagensCompletos(personagensIds) {
           const desvantagens = await db.Personagem.listarDesvantagens(personagem.id);
           const equipamentos = await db.Personagem.listarEquipamentos(personagem.id);
 
-          // Buscar habilidades da classe + raciais (filtradas por nível)
+          // Buscar habilidades/magias do personagem via tabela de vínculo
           let habilidadesClasse = [];
           let magiasUniversais = [];
           try {
-            const nivelAtual = personagem.nivel || 1;
-            const promises = [];
-            if (personagem.classe_id) promises.push(db.Habilidade.findByClasse(personagem.classe_id));
-            if (personagem.raca_id) promises.push(db.Habilidade.findByRaca(personagem.raca_id));
-            const results = await Promise.all(promises);
-            const merged = results.flat();
-            const seen = new Set();
-            const todas = merged.filter(h => {
-              if (seen.has(h.id)) return false;
-              seen.add(h.id);
-              return (h.nivel_requerido || 1) <= nivelAtual;
-            });
-            habilidadesClasse = todas.filter(h => h.classe_id != null || h.raca_id != null);
+            const vinculos = await db.HmPersonagem.findByPersonagem(personagem.id);
+            const todas = vinculos
+              .map(v => v.habilidades_magias)
+              .filter(Boolean);
+            habilidadesClasse = todas.filter(h =>
+              !h.escola_magia || h.escola_magia === 'nenhuma'
+            );
             magiasUniversais = todas.filter(h =>
-              h.classe_id == null && h.raca_id == null && h.escola_magia && h.escola_magia !== 'nenhuma'
+              h.escola_magia && h.escola_magia !== 'nenhuma'
             );
           } catch (e) {
             log.warn({ err: e, personagemId: personagem.id }, 'Erro ao buscar habilidades do personagem');
           }
 
-          // Atributos efetivos: DB ja armazena base + bonus de raca/classe
+          // Atributos efetivos: lidos da tabela atributos_personagem
+          const attrMap = getAtributosMap(personagem);
           const atributosEfetivos = {
-            forca: personagem.forca || 10,
-            inteligencia: personagem.inteligencia || 10,
-            carisma: personagem.carisma || 10,
-            destreza: personagem.destreza || 10,
-            constituicao: personagem.constituicao || 10,
-            agilidade: personagem.agilidade || 10
+            forca: attrMap.forca ?? 10,
+            inteligencia: attrMap.inteligencia ?? 10,
+            carisma: attrMap.carisma ?? 10,
+            destreza: attrMap.destreza ?? 10,
+            constituicao: attrMap.constituicao ?? 10,
+            agilidade: attrMap.agilidade ?? 10
           };
 
           // Mapear equipamentos com dados completos
@@ -100,6 +96,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
             id: personagem.id,
             nome: personagem.nome,
             nivel: personagem.nivel || 1,
+            sistema: personagem.sistema || 'lunaria',
             classe: personagem.classes?.nome || 'Aventureiro',
             raca: personagem.racas?.nome || 'Humano',
             atributos: atributosEfetivos,
@@ -153,6 +150,7 @@ export async function buscarPersonagensCompletos(personagensIds) {
               pre_requisito: normalizarRequisitos(m.pre_requisito),
               pre_requisitos: normalizarRequisitos(m.pre_requisito),
             })),
+            moedas: personagem.moedas ?? 0,
             descricaoCompleta: `${personagem.nome} - ${personagem.racas?.nome || 'Humano'} ${personagem.classes?.nome || 'Aventureiro'} Nível ${personagem.nivel || 1}`
           };
         } catch (error) {

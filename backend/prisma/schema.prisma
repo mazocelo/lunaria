@@ -214,6 +214,7 @@ model personagens {
   personagem_desvantagem    personagem_desvantagem[]
   personagem_equipamento    personagem_equipamento[]
   personagem_item_tresdet   personagem_item_tresdet[]
+  personagem_magia_tresdet  personagem_magia_tresdet[]
   personagem_sessao         personagem_sessao[]
   personagem_vantagem       personagem_vantagem[]
   usuarios                  usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
@@ -481,6 +482,8 @@ model magias_tresdet {
   focus_requisito Json?
   efeito          Json?
   nivel_minimo    Int     @default(1)
+
+  personagem_magia_tresdet personagem_magia_tresdet[]
 
   @@index([escola])
   @@index([tipo])
@@ -975,4 +978,18 @@ model personagem_item_tresdet {
   item           itens_tresdet  @relation(fields: [item_id], references: [id], onDelete: Cascade)
 
   @@id([personagem_id, item_id])
+}
+
+model personagem_magia_tresdet {
+  id                Int             @id @default(autoincrement())
+  personagem_id     Int
+  magia_tresdet_id  Int
+  origem            String          @default("criacao") @db.VarChar(30)
+  created_at        DateTime        @default(now())
+
+  personagens    personagens    @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  magias_tresdet magias_tresdet @relation(fields: [magia_tresdet_id], references: [id], onDelete: Cascade)
+
+  @@unique([personagem_id, magia_tresdet_id])
+  @@index([personagem_id])
 }

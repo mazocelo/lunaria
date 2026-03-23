@@ -18,7 +18,9 @@ import { buildFinalizacaoBase } from '../../helpers/finalizacaoInicialHelper.js'
 import { buildFinalizacaoPreviewBase } from '../../helpers/finalizacaoPreviewHelper.js';
 import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/FinalizacaoInicialAgent.js';
 import { parsearBonusEntidade } from '../../helpers/bonusHelper.js';
+import { getAtributosMap, LUNARIA_ATTRS, getAttrNamesForSystem } from '../../helpers/atributosHelper.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
+import { criarPersonagemTresDet } from '../../services/personagemTresDetService.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -70,7 +72,7 @@ class PersonagemController {
     const dadosConvertidos = { ...dados };
     
     // Converter campos que devem ser inteiros
-    const camposInteiros = ['nivel', 'pontos_totais', 'pontos_iniciais', 'raca_id', 'classe_id', 'forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade', 'xp_atual', 'xp_proximo_nivel', 'pontos_atributo_pendentes'];
+    const camposInteiros = ['nivel', 'pontos_totais', 'pontos_iniciais', 'raca_id', 'classe_id', 'xp_atual', 'xp_proximo_nivel', 'pontos_atributo_pendentes'];
     
     camposInteiros.forEach(campo => {
       if (dadosConvertidos[campo] !== undefined && dadosConvertidos[campo] !== null) {
@@ -88,12 +90,35 @@ class PersonagemController {
    */
   async processarDadosPersonagem(personagem) {
     const personagemData = { ...personagem };
-    
+
+    // Expor atributos como mapa flat para consumo pelo frontend
+    if (personagemData.atributos_personagem) {
+      const attrMap = getAtributosMap(personagemData);
+      if (personagemData.sistema === 'tresdet') {
+        personagemData.atributos = {
+          F: attrMap.F ?? 0,
+          H: attrMap.H ?? 0,
+          R: attrMap.R ?? 0,
+          A: attrMap.A ?? 0,
+          PdF: attrMap.PdF ?? 0,
+        };
+      } else {
+        personagemData.atributos = {
+          forca: attrMap.forca ?? 10,
+          inteligencia: attrMap.inteligencia ?? 10,
+          carisma: attrMap.carisma ?? 10,
+          destreza: attrMap.destreza ?? 10,
+          constituicao: attrMap.constituicao ?? 10,
+          agilidade: attrMap.agilidade ?? 10,
+        };
+      }
+    }
+
     // Adicionar nome da classe
     if (personagemData.classes) {
       personagemData.classe = personagemData.classes.nome;
     }
-    
+
     // Adicionar nome da raça
     if (personagemData.racas) {
       personagemData.raca = personagemData.racas.nome;
@@ -180,8 +205,8 @@ class PersonagemController {
     try {
       const nivelAtual = personagemData.nivel || 1;
       const habPromises = [];
-      if (personagemData.classe_id) habPromises.push(db.Habilidade.findByClasse(personagemData.classe_id));
-      if (personagemData.raca_id) habPromises.push(db.Habilidade.findByRaca(personagemData.raca_id));
+      if (personagemData.classe_id) habPromises.push(db.HabilidadeMagia.findByClasse(personagemData.classe_id));
+      if (personagemData.raca_id) habPromises.push(db.HabilidadeMagia.findByRaca(personagemData.raca_id));
       if (habPromises.length > 0) {
         const habResults = await Promise.all(habPromises);
         const merged = habResults.flat();
@@ -222,6 +247,15 @@ class PersonagemController {
     try {
       log.info('Criando novo personagem');
 
+      // --- Despacho por sistema ---
+      if (req.body.sistema === 'tresdet') {
+        const personagem = await criarPersonagemTresDet(req.body, req.user?.id);
+        const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
+        const personagemData = await this.processarDadosPersonagem(personagemCompleto);
+        db.FeedPost.createAutoEvent(req.user.id, 'personagem_criado', { nome: personagem.nome }, 'personagem', personagem.id);
+        return res.status(201).json({ success: true, message: 'Personagem criado com sucesso', data: personagemData });
+      }
+
       const {
         nome,
         nivel,
@@ -241,7 +275,8 @@ class PersonagemController {
         equipamentos,
         sugestao_background = '',
         historias, // Array de IDs de histórias para vincular
-        imagem
+        imagem,
+        sistema
       } = req.body;
       const vantagemIds = normalizeRelationIds(vantagens, 'vantagens');
       const desvantagemIds = normalizeRelationIds(desvantagens, 'desvantagens');
@@ -301,12 +336,12 @@ class PersonagemController {
 
       // Validar que IDs bonus existem no banco (filtrar silenciosamente os invalidos)
       if (bonusVantagemIds.length > 0) {
-        const existentes = await db.prisma.vantagens.findMany({ where: { id: { in: bonusVantagemIds } }, select: { id: true } });
+        const existentes = await db.prisma.vantagens.findMany({ where: { id: { in: bonusVantagemIds }, sistema: 'lunaria' }, select: { id: true } });
         const idsValidos = new Set(existentes.map(v => v.id));
         bonusVantagemIds = bonusVantagemIds.filter(id => idsValidos.has(id));
       }
       if (bonusDesvantagemIds.length > 0) {
-        const existentes = await db.prisma.desvantagens.findMany({ where: { id: { in: bonusDesvantagemIds } }, select: { id: true } });
+        const existentes = await db.prisma.desvantagens.findMany({ where: { id: { in: bonusDesvantagemIds }, sistema: 'lunaria' }, select: { id: true } });
         const idsValidos = new Set(existentes.map(d => d.id));
         bonusDesvantagemIds = bonusDesvantagemIds.filter(id => idsValidos.has(id));
       }
@@ -353,7 +388,18 @@ class PersonagemController {
       const bonusAttrRaca = parsearBonusEntidade(racaBonusRaw);
       const bonusAttrClasse = parsearBonusEntidade(classeBonusRaw);
 
+      // Calcular atributos efetivos (base + bonus raca/classe)
+      const atributosEfetivos = {
+        forca: (forca || 10) + bonusAttrRaca.forca + bonusAttrClasse.forca,
+        inteligencia: (inteligencia || 10) + bonusAttrRaca.inteligencia + bonusAttrClasse.inteligencia,
+        carisma: (carisma || 10) + bonusAttrRaca.carisma + bonusAttrClasse.carisma,
+        destreza: (destreza || 10) + bonusAttrRaca.destreza + bonusAttrClasse.destreza,
+        constituicao: (constituicao || 10) + bonusAttrRaca.constituicao + bonusAttrClasse.constituicao,
+        agilidade: (agilidade || 10) + bonusAttrRaca.agilidade + bonusAttrClasse.agilidade,
+      };
+
       // Preparar dados do personagem
+      const sistemaEfetivo = ['lunaria', 'tresdet', 'dnd5e'].includes(sistema) ? sistema : 'lunaria';
       const pontosIniciais = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, 0);
       const dadosPersonagem = this.converterCamposNumericos({
         nome: nomeSanitizado,
@@ -363,17 +409,12 @@ class PersonagemController {
         background: backgroundFinal || '',
         raca_id: raca_id || null,
         classe_id: classe_id || null,
-        forca: (forca || 10) + bonusAttrRaca.forca + bonusAttrClasse.forca,
-        inteligencia: (inteligencia || 10) + bonusAttrRaca.inteligencia + bonusAttrClasse.inteligencia,
-        carisma: (carisma || 10) + bonusAttrRaca.carisma + bonusAttrClasse.carisma,
-        destreza: (destreza || 10) + bonusAttrRaca.destreza + bonusAttrClasse.destreza,
-        constituicao: (constituicao || 10) + bonusAttrRaca.constituicao + bonusAttrClasse.constituicao,
-        agilidade: (agilidade || 10) + bonusAttrRaca.agilidade + bonusAttrClasse.agilidade,
         xp_atual: 0,
         xp_proximo_nivel: xpParaNivel(nivelEfetivo),
         pontos_atributo_pendentes: 0,
         id_usuario: req.user?.id || null,
         criado_em: new Date(),
+        sistema: sistemaEfetivo,
         ...(imagem ? { imagem } : {})
       });
 
@@ -404,6 +445,17 @@ class PersonagemController {
         }
 
         const personagem = await tx.personagens.create({ data: dadosPersonagem });
+
+        // Atributos (sistema-aware)
+        const attrNames = getAttrNamesForSystem(sistemaEfetivo);
+        const defaultAttrVal = sistemaEfetivo === 'tresdet' ? 0 : 10;
+        await tx.atributos_personagem.createMany({
+          data: attrNames.map(nome => ({
+            personagem_id: personagem.id,
+            nome,
+            valor: atributosEfetivos[nome] ?? defaultAttrVal
+          }))
+        });
 
         // Historias
         if (historiaIds.length > 0) {
@@ -638,13 +690,19 @@ class PersonagemController {
       delete dadosAtualizacao.xp_proximo_nivel; // gerenciado pelo sistema de evolução
       delete dadosAtualizacao.pontos_atributo_pendentes; // gerenciado pelo sistema de evolução
 
-      // Validar atributos se fornecidos
-      const atributos = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
-      for (const atributo of atributos) {
-        if (dadosAtualizacao[atributo] && (dadosAtualizacao[atributo] < 1 || dadosAtualizacao[atributo] > 20)) {
-          return res.status(400).json({
-            error: `${atributo} deve estar entre 1 e 20`
-          });
+      // Extrair e validar atributos (vao para atributos_personagem, nao para personagens)
+      const attrNamesUpdate = getAttrNamesForSystem(personagem.sistema || 'lunaria');
+      const atributosMudar = {};
+      for (const atributo of attrNamesUpdate) {
+        if (dadosAtualizacao[atributo] !== undefined) {
+          const val = parseInt(dadosAtualizacao[atributo]);
+          if (val < 1 || val > 20) {
+            return res.status(400).json({
+              error: `${atributo} deve estar entre 1 e 20`
+            });
+          }
+          atributosMudar[atributo] = val;
+          delete dadosAtualizacao[atributo];
         }
       }
 
@@ -703,6 +761,16 @@ class PersonagemController {
         if (Object.keys(dadosConvertidos).length > 0) {
           await tx.personagens.update({ where: { id: parseInt(id) }, data: dadosConvertidos });
         }
+
+        // Atualizar atributos na tabela atributos_personagem
+        for (const [nome, valor] of Object.entries(atributosMudar)) {
+          await tx.atributos_personagem.upsert({
+            where: { personagem_id_nome: { personagem_id: parseInt(id), nome } },
+            update: { valor },
+            create: { personagem_id: parseInt(id), nome, valor }
+          });
+        }
+
         // Vantagens
         if (vantagens !== undefined) {
           await tx.personagem_vantagem.deleteMany({ where: { personagem_id: parseInt(id) } });
@@ -887,6 +955,7 @@ class PersonagemController {
 
       const geradorBackground = await criarGeradorBackground(temasFiltrados);
 
+      const attrMap = getAtributosMap(personagemCompleto);
       const resultadoBackground = await geradorBackground.gerarBackground({
         nome: personagemCompleto.nome,
         classe: nomeClasse,
@@ -896,12 +965,12 @@ class PersonagemController {
         vantagens: vantagensCompletas,
         desvantagens: desvantagensCompletas,
         nivel: personagemCompleto.nivel || 1,
-        forca: personagemCompleto.forca || 10,
-        inteligencia: personagemCompleto.inteligencia || 10,
-        carisma: personagemCompleto.carisma || 10,
-        destreza: personagemCompleto.destreza || 10,
-        constituicao: personagemCompleto.constituicao || 10,
-        agilidade: personagemCompleto.agilidade || 10,
+        forca: attrMap.forca ?? 10,
+        inteligencia: attrMap.inteligencia ?? 10,
+        carisma: attrMap.carisma ?? 10,
+        destreza: attrMap.destreza ?? 10,
+        constituicao: attrMap.constituicao ?? 10,
+        agilidade: attrMap.agilidade ?? 10,
         equipamentos: equipamentosNomes,
         userId: req.user?.id
       });
@@ -1657,7 +1726,7 @@ class PersonagemController {
       const { id } = req.params;
       const incrementos = req.body;
 
-      const personagem = await db.Personagem.findPersonagemById(parseInt(id));
+      const personagem = await db.Personagem.findByIdWithRelations(parseInt(id));
       if (!personagem) {
         return res.status(404).json({ success: false, error: 'Personagem nao encontrado' });
       }
@@ -1671,6 +1740,7 @@ class PersonagemController {
         return res.status(400).json({ success: false, error: 'Nenhum ponto de atributo pendente para distribuir' });
       }
 
+      const attrMap = getAtributosMap(personagem);
       const statsNomes = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
       let totalGasto = 0;
       const novosStats = {};
@@ -1681,9 +1751,10 @@ class PersonagemController {
           return res.status(400).json({ success: false, error: `Incremento de ${stat} nao pode ser negativo` });
         }
         if (inc > 0) {
-          const novoValor = (personagem[stat] || 10) + inc;
+          const valorAtual = attrMap[stat] ?? 10;
+          const novoValor = valorAtual + inc;
           if (novoValor > EVOLUCAO.STAT_MAX) {
-            return res.status(400).json({ success: false, error: `${stat} excederia o maximo de ${EVOLUCAO.STAT_MAX} (atual: ${personagem[stat]}, incremento: ${inc})` });
+            return res.status(400).json({ success: false, error: `${stat} excederia o maximo de ${EVOLUCAO.STAT_MAX} (atual: ${valorAtual}, incremento: ${inc})` });
           }
           novosStats[stat] = novoValor;
           totalGasto += inc;
@@ -1698,10 +1769,19 @@ class PersonagemController {
         return res.status(400).json({ success: false, error: `Pontos insuficientes: ${totalGasto} solicitados, ${pendentes} disponiveis` });
       }
 
-      await db.Personagem.updatePersonagem(parseInt(id), {
-        ...novosStats,
-        pontos_atributo_pendentes: pendentes - totalGasto,
-        atualizado_em: new Date()
+      // Update atributos_personagem rows and pendentes in a single transaction
+      await db.prisma.$transaction(async (tx) => {
+        for (const [nome, valor] of Object.entries(novosStats)) {
+          await tx.atributos_personagem.upsert({
+            where: { personagem_id_nome: { personagem_id: parseInt(id), nome } },
+            update: { valor },
+            create: { personagem_id: parseInt(id), nome, valor }
+          });
+        }
+        await tx.personagens.update({
+          where: { id: parseInt(id) },
+          data: { pontos_atributo_pendentes: pendentes - totalGasto, atualizado_em: new Date() }
+        });
       });
 
       res.status(200).json({
@@ -1817,17 +1897,18 @@ class PersonagemController {
         .join(', ') || 'Nenhum';
 
       const validador = await criarValidadorPersonagem();
+      const validAttrMap = getAtributosMap(personagemCompleto);
       const resultado = await validador.validar({
         nome: personagemCompleto.nome,
         classe: nomeClasse,
         raca: nomeRaca,
         nivel: personagemCompleto.nivel || 1,
-        forca: personagemCompleto.forca || 10,
-        inteligencia: personagemCompleto.inteligencia || 10,
-        carisma: personagemCompleto.carisma || 10,
-        destreza: personagemCompleto.destreza || 10,
-        constituicao: personagemCompleto.constituicao || 10,
-        agilidade: personagemCompleto.agilidade || 10,
+        forca: validAttrMap.forca ?? 10,
+        inteligencia: validAttrMap.inteligencia ?? 10,
+        carisma: validAttrMap.carisma ?? 10,
+        destreza: validAttrMap.destreza ?? 10,
+        constituicao: validAttrMap.constituicao ?? 10,
+        agilidade: validAttrMap.agilidade ?? 10,
         vantagens: vantagensTexto,
         desvantagens: desvantagensTexto,
         equipamentos: equipamentosTexto,
@@ -1943,6 +2024,23 @@ class PersonagemController {
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
   }
+  async aprenderMagias(req, res) {
+    const personagemId = parseInt(req.params.id, 10);
+    if (isNaN(personagemId)) {
+      return res.status(400).json({ success: false, error: 'ID de personagem invalido' });
+    }
+
+    const { habilidade_ids, origem = 'criacao' } = req.body;
+    if (!Array.isArray(habilidade_ids) || habilidade_ids.length === 0) {
+      return res.status(400).json({ success: false, error: 'habilidade_ids deve ser um array com pelo menos um ID' });
+    }
+
+    const resultados = await Promise.all(
+      habilidade_ids.map(id => db.HmPersonagem.aprender(personagemId, parseInt(id, 10), origem))
+    );
+
+    res.status(200).json({ success: true, count: resultados.length });
+  }
 }
 
-export default new PersonagemController(); 
+export default new PersonagemController();

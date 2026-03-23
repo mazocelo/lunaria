@@ -64,5 +64,9 @@ describe('economiaHelper', () => {
       expect(LIMITES_EQUIP.consumivel).toBe(0);
       expect(LIMITES_EQUIP.pergaminho).toBe(0);
     });
+
+    it('define limite para mecha', () => {
+      expect(LIMITES_EQUIP.mecha).toBe(0);
+    });
   });
 });

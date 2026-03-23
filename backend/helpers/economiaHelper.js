@@ -73,4 +73,5 @@ export const LIMITES_EQUIP = {
   acessorio: 2,
   consumivel: 0,
   pergaminho: 0,
+  mecha: 0,
 };

@@ -23,7 +23,7 @@ export default function FichaLivreView(props) {
     historia, setHistoria,
     pontosTotal, pontosCaracteristicas, pontosVantagens, pontosDesvantagens,
     pontosFocus, pontosRestantes,
-    temMagia, pv, pm, podeCriar,
+    temMagia, pv, pm, podeCriar, maxAttr,
     vantagensCatalogo, desvantagensCatalogo, catalogoLoading,
     salvando, error, setError,
     onCriar, navigate,
@@ -97,6 +97,7 @@ export default function FichaLivreView(props) {
             pontosCaracteristicas={pontosCaracteristicas}
             pontosRestantes={pontosRestantes}
             pv={pv} pm={pm} temMagia={temMagia}
+            maxAttr={maxAttr}
           />
 
           <VantagensDesvantagensSection
@@ -119,6 +120,7 @@ export default function FichaLivreView(props) {
             pontosFocus={pontosFocus}
             pontosRestantes={pontosRestantes}
             temMagia={temMagia}
+            maxAttr={maxAttr}
           />
 
           {/* Equipamentos stub */}

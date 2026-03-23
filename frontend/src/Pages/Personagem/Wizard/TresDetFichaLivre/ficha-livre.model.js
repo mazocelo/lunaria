@@ -14,6 +14,13 @@ const MAX_ATTR = {
   lenda: 4,
 };
 
+const TIER_LIMITS = {
+  novato:  { maxVantagens: 2, maxDesvantagemPts: -4 },
+  lutador: { maxVantagens: 3, maxDesvantagemPts: -5 },
+  campeao: { maxVantagens: 4, maxDesvantagemPts: -6 },
+  lenda:   { maxVantagens: 5, maxDesvantagemPts: -6 },
+};
+
 const FOCUS_KEYS = ['fogo', 'agua', 'terra', 'ar', 'luz', 'trevas'];
 const CHAR_KEYS = ['F', 'H', 'R', 'A', 'PdF'];
 const DRAFT_KEY = 'lunaria_3det_ficha_draft_v1';
@@ -68,6 +75,20 @@ export function useTresDetFichaModel({ navigate }) {
   const pontosUsados = pontosCaracteristicas + pontosVantagens + pontosFocus;
   const pontosRestantes = pontosTotal + pontosDesvantagens - pontosUsados;
 
+  // ---- Tier limits ----
+  const tierLimits = TIER_LIMITS[nivelPoder] || TIER_LIMITS.lutador;
+
+  const vantagensContaveis = useMemo(
+    () => vantagensIds.filter(id => {
+      const v = vantagensCatalogo.find(x => String(x.id) === String(id));
+      return v?.subtipo !== 'racial';
+    }).length,
+    [vantagensIds, vantagensCatalogo],
+  );
+
+  const limiteVantagensAtingido = vantagensContaveis >= tierLimits.maxVantagens;
+  const limiteDesvantagensAtingido = pontosDesvantagens <= tierLimits.maxDesvantagemPts;
+
   // ---- Magic detection ----
   const temMagia = useMemo(
     () => vantagensIds.some(id => {
@@ -105,8 +126,19 @@ export function useTresDetFichaModel({ navigate }) {
     if (vantagensIds.includes(sid)) return;
     const v = vantagensCatalogo.find(x => String(x.id) === sid);
     if (v && v.custo > pontosRestantes) return;
+
+    if (v?.subtipo === 'racial') {
+      const jaTemRacial = vantagensIds.some(vid => {
+        const vt = vantagensCatalogo.find(x => String(x.id) === vid);
+        return vt?.subtipo === 'racial';
+      });
+      if (jaTemRacial) return;
+    } else if (vantagensContaveis >= tierLimits.maxVantagens) {
+      return;
+    }
+
     setVantagensIds(prev => [...prev, sid]);
-  }, [vantagensIds, vantagensCatalogo, pontosRestantes]);
+  }, [vantagensIds, vantagensCatalogo, pontosRestantes, vantagensContaveis, tierLimits]);
 
   const removerVantagem = useCallback((id) => {
     const sid = String(id);
@@ -125,8 +157,10 @@ export function useTresDetFichaModel({ navigate }) {
   const adicionarDesvantagem = useCallback((id) => {
     const sid = String(id);
     if (desvantagensIds.includes(sid)) return;
+    const d = desvantagensCatalogo.find(x => String(x.id) === sid);
+    if (d && pontosDesvantagens + d.custo < tierLimits.maxDesvantagemPts) return;
     setDesvantagensIds(prev => [...prev, sid]);
-  }, [desvantagensIds]);
+  }, [desvantagensIds, desvantagensCatalogo, pontosDesvantagens, tierLimits]);
 
   const removerDesvantagem = useCallback((id) => {
     setDesvantagensIds(prev => prev.filter(x => x !== String(id)));
@@ -234,6 +268,7 @@ export function useTresDetFichaModel({ navigate }) {
     pontosFocus, pontosUsados, pontosRestantes,
     // Derived
     temMagia, pv, pm, podeCriar, maxAttr,
+    tierLimits, vantagensContaveis, limiteVantagensAtingido, limiteDesvantagensAtingido,
     // Catalog
     vantagensCatalogo, desvantagensCatalogo, catalogoLoading,
     setVantagensCatalogo, setDesvantagensCatalogo, setCatalogoLoading,

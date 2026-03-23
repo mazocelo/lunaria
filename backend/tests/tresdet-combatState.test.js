@@ -73,6 +73,25 @@ describe('tresdet getIniciativaConfig', () => {
   });
 });
 
+describe('tresdet resolverAtaque', () => {
+  const atacante = { atributos_personagem: [{ nome: 'F', valor: 3 }, { nome: 'H', valor: 2 }] };
+  const defensor = { atributos_personagem: [{ nome: 'A', valor: 1 }, { nome: 'H', valor: 1 }] };
+
+  it('retorna shape unificado com campo dados', () => {
+    const result = tresdetEngine.resolverAtaque(atacante, defensor, {});
+    expect(result).toHaveProperty('acertou');
+    expect(result).toHaveProperty('dano');
+    expect(result).toHaveProperty('critico');
+    expect(result).toHaveProperty('detalhes');
+    expect(result).toHaveProperty('dados');
+    expect(typeof result.detalhes).toBe('string');
+    expect(result.dados).toHaveProperty('FA');
+    expect(result.dados).toHaveProperty('FD');
+    expect(result.dados).toHaveProperty('dadoAtaque');
+    expect(result.dados).toHaveProperty('dadoDefesa');
+  });
+});
+
 describe('tresdet resolverConsumo', () => {
   it('parseia cura de PV', () => {
     const item = { efeito: 'Restaura 5 Pontos de Vida.' };

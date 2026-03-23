@@ -17,11 +17,12 @@ function rolarD6() {
 
 /**
  * Resolve ataque no sistema 3D&T.
+ * Crítico: dado=6 dobra F/PdF (ataque) ou A (defesa).
  *
  * @param {Object} atacante - Personagem atacante
  * @param {Object} defensor - Personagem/monstro defensor
  * @param {Object} [acao] - Acao opcional (tipo: 'ranged' ou alcance: 'distancia')
- * @returns {{ acertou: boolean, dano: number, critico: boolean, FA: number, FD: number, dadoAtaque: number, dadoDefesa: number, detalhes: string }}
+ * @returns {{ acertou: boolean, dano: number, critico: boolean, detalhes: string, dados: Object }}
  */
 export function resolverAtaque(atacante, defensor, acao = {}) {
   const isRanged = acao.tipo === 'ranged' || acao.alcance === 'distancia';
@@ -30,12 +31,16 @@ export function resolverAtaque(atacante, defensor, acao = {}) {
   const valorAtaque = getAtributo(atacante, attrAtaque, 0);
   const hAtacante = getAtributo(atacante, 'H', 0);
   const dadoAtaque = rolarD6();
-  const FA = valorAtaque + hAtacante + dadoAtaque;
+  const criticoAtaque = dadoAtaque === 6;
+  const valorAtaqueEfetivo = criticoAtaque ? valorAtaque * 2 : valorAtaque;
+  const FA = valorAtaqueEfetivo + hAtacante + dadoAtaque;
 
   const aDefensor = getAtributo(defensor, 'A', 0);
   const hDefensor = getAtributo(defensor, 'H', 0);
   const dadoDefesa = rolarD6();
-  const FD = aDefensor + hDefensor + dadoDefesa;
+  const criticoDefesa = dadoDefesa === 6;
+  const aDefensorEfetivo = criticoDefesa ? aDefensor * 2 : aDefensor;
+  const FD = aDefensorEfetivo + hDefensor + dadoDefesa;
 
   const dano = Math.max(0, FA - FD);
   const acertou = dano > 0;
@@ -43,12 +48,9 @@ export function resolverAtaque(atacante, defensor, acao = {}) {
   return {
     acertou,
     dano,
-    critico: false,
-    FA,
-    FD,
-    dadoAtaque,
-    dadoDefesa,
-    detalhes: `FA: ${attrAtaque}(${valorAtaque})+H(${hAtacante})+d6(${dadoAtaque})=${FA} vs FD: A(${aDefensor})+H(${hDefensor})+d6(${dadoDefesa})=${FD} → Dano: ${dano}`,
+    critico: criticoAtaque,
+    detalhes: `FA: ${attrAtaque}(${valorAtaque}${criticoAtaque ? 'x2' : ''})+H(${hAtacante})+d6(${dadoAtaque})=${FA} vs FD: A(${aDefensor}${criticoDefesa ? 'x2' : ''})+H(${hDefensor})+d6(${dadoDefesa})=${FD} → Dano: ${dano}`,
+    dados: { FA, FD, dadoAtaque, dadoDefesa, criticoAtaque, criticoDefesa },
   };
 }
 

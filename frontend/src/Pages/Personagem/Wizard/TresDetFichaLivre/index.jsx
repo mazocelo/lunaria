@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { vantagemService, desvantagemService } from '../../../../services/index.js';
+import { vantagemService, desvantagemService, apiClient } from '../../../../services/index.js';
 import { useTresDetFichaModel } from './ficha-livre.model.js';
 import { useMestreFichaLivre } from './hooks/useMestreFichaLivre.js';
 import FichaLivreView from './ficha-livre.view.jsx';
@@ -46,13 +46,22 @@ export default function TresDetFichaLivre() {
     else if (sugestao.tipo === 'desvantagem') model.adicionarDesvantagem(sugestao.id);
   }, [model.adicionarVantagem, model.adicionarDesvantagem]);
 
-  // Create character (stub -- full implementation depends on backend contract)
   const onCriar = useCallback(async () => {
     model.setSalvando(true);
     model.setError(null);
     try {
-      // TODO: integrate with personagem creation endpoint
-      await new Promise(r => setTimeout(r, 1500));
+      const payload = {
+        sistema: 'tresdet',
+        nome: model.nome,
+        nivelPoder: model.nivelPoder,
+        caracteristicas: model.caracteristicas,
+        focus: model.focus,
+        vantagens: model.vantagensIds.map(Number),
+        desvantagens: model.desvantagensIds.map(Number),
+        background: model.historia,
+      };
+      const resp = await apiClient.post('/personagens', payload);
+      if (!resp.success) throw new Error(resp.message || 'Erro ao criar personagem');
       model.limparDraft();
       navigate('/personagens');
     } catch (err) {

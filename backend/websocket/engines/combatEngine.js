@@ -187,18 +187,18 @@ export default class CombatEngine {
       // Solicitar dado de iniciativa para cada jogador
       for (const [jUserId, jogador] of Object.entries(jogadoresCombate)) {
         const pc = personagensCompletos[jogador.personagemId] || personagensCompletos[String(jogador.personagemId)] || {};
-        const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
-        const modAgi = Math.floor((agiValue - 10) / 2);
+        const inicConfig = engine.getIniciativaConfig(pc);
 
         // @event combate_solicita_iniciativa → room (broadcast) | requests initiative roll from player
         sm.sendToRoom(roomId, 'combate_solicita_iniciativa', {
           userId: jUserId,
           personagemNome: jogador.personagemNome,
-          modificador: modAgi,
-          atributo: 'Agilidade',
+          modificador: inicConfig.modificador,
+          atributo: inicConfig.atributo,
+          lados: inicConfig.lados,
           timestamp: Date.now()
         });
-        log.warn({ userId: jUserId, personagemNome: jogador.personagemNome, modAgi }, 'COMBAT_INIT: solicitando iniciativa do jogador');
+        log.warn({ userId: jUserId, personagemNome: jogador.personagemNome, modificador: inicConfig.modificador }, 'COMBAT_INIT: solicitando iniciativa do jogador');
       }
 
     } catch (error) {
@@ -225,12 +225,12 @@ export default class CombatEngine {
         return;
       }
 
-      // Get player's agility modifier
+      // Get player's initiative config from engine
       const jogadorStats = combate.jogadores[userId];
       const personagensCompletos = sessao.personagensCompletos || {};
       const pc = personagensCompletos[jogadorStats?.personagemId] || personagensCompletos[String(jogadorStats?.personagemId)] || {};
-      const agiValue = pc.atributos?.agilidade || pc.agilidade || 10;
-      const modAgi = Math.floor((agiValue - 10) / 2);
+      const sistemaAtual = combate.sistema || sessao.sistema || 'lunaria';
+      const inicConfig = getEngine(sistemaAtual).getIniciativaConfig(pc);
 
       const roll = parseInt(valorDado, 10) || 1;
       combate.iniciativaJogadores[userId] = {
@@ -238,19 +238,19 @@ export default class CombatEngine {
         tipo: 'jogador',
         nome: jogadorStats?.personagemNome || 'Jogador',
         rolagem: roll,
-        modificador: modAgi,
-        iniciativa: roll + modAgi,
+        modificador: inicConfig.modificador,
+        iniciativa: roll + inicConfig.modificador,
       };
 
-      log.warn({ userId, roll, modAgi, iniciativa: roll + modAgi }, 'COMBAT_INIT: jogador rolou iniciativa');
+      log.warn({ userId, roll, modificador: inicConfig.modificador, iniciativa: roll + inicConfig.modificador }, 'COMBAT_INIT: jogador rolou iniciativa');
 
       // Broadcast the roll result
       sm.sendToRoom(roomId, 'combate_resultado_iniciativa', {
         userId,
         personagemNome: jogadorStats?.personagemNome || 'Jogador',
         rolagem: roll,
-        modificador: modAgi,
-        iniciativa: roll + modAgi,
+        modificador: inicConfig.modificador,
+        iniciativa: roll + inicConfig.modificador,
         timestamp: Date.now()
       });
 

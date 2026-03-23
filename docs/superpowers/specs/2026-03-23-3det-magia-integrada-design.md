@@ -18,7 +18,7 @@ O sistema 3D&T Alpha no Lunaria tem 100+ magias em `magias_tresdet` com `focus_r
 Nova seção "Grimório" na ficha-livre, entre FocusSection e Equipamentos. Mostra magias cujo `focus_requisito` é atendido pelos Focus atuais do personagem.
 
 ### Filtro de Elegibilidade
-Uma magia com `focus_requisito: [{fogo: 2}, {luz: 1}]` exige Fogo ≥ 2 E Luz ≥ 1. Todos os itens do array devem ser atendidos (AND).
+Uma magia com `focus_requisito: [{fogo: 2}, {luz: 1}]` exige Fogo ≥ 2 E Luz ≥ 1. Todos os itens do array devem ser atendidos (AND). Cada entry do array tem exatamente uma chave (invariante garantida pelos seeds).
 
 ### Componente: GrimorioTresDetSection
 - Busca por nome + filtro por elemento (chips dos 6 focus)
@@ -32,8 +32,12 @@ Uma magia com `focus_requisito: [{fogo: 2}, {luz: 1}]` exige Fogo ≥ 2 E Luz �
 - Persistência: campo `magias_ids` no payload de criação
 
 ### Backend
-- Adaptar `POST /personagens` para aceitar `magias_ids` quando `sistema === 'tresdet'`
-- Salvar na tabela `hm_personagem` com origem `'criacao'`
+- Nova tabela `personagem_magia_tresdet` (join table com FK para `personagens` e `magias_tresdet`)
+  - Campos: `id`, `personagem_id` (FK), `magia_tresdet_id` (FK), `origem` ('criacao'|'npc'|'evento'), `created_at`
+  - Unique constraint: `[personagem_id, magia_tresdet_id]`
+  - Cascade delete em ambos os lados
+- Nota: `hm_personagem` NÃO pode ser reutilizada pois tem FK para `habilidades_magias` (tabela Lunaria)
+- Adaptar `POST /personagens` (service `personagemTresDetService.js`) para aceitar `magias_ids` e persistir na nova tabela
 
 ### Model (ficha-livre.model.js)
 - Novo state: `magiasIds` (array de IDs selecionados)
@@ -44,13 +48,13 @@ Uma magia com `focus_requisito: [{fogo: 2}, {luz: 1}]` exige Fogo ≥ 2 E Luz �
 
 ### View (ficha-livre.view.jsx)
 - Nova seção entre FocusSection e Equipamentos
-- Stagger animation: wa-stagger-5 (Equipamentos vira 6, Historia vira 7)
+- Stagger animation: Grimório em wa-stagger-5, Equipamentos vira wa-stagger-6, Historia vira wa-stagger-7
 
 ## Parte 2: Conjuração em Combate + Descanso
 
 ### Conjuração
 - Buscar magia em `magias_tresdet` (não em `habilidades_magias`)
-- Consumir `custo_pm` do PM atual (campo string, parsear)
+- Consumir `custo_pm` do PM atual. O campo é `VarChar(50)` — parsear valor numérico base (ex: "3" → 3, "1 a 5" → mínimo 1, "2 PMs por turno" → 2). Custos variáveis: Mestre IA define o valor no intent
 - Validar Focus do personagem vs `focus_requisito`
 - Sem cooldown/slots — limitação é PM disponível
 - Emitir evento `magia_conjurada` com mesma estrutura do Lunaria
@@ -85,7 +89,7 @@ Uma magia com `focus_requisito: [{fogo: 2}, {luz: 1}]` exige Fogo ≥ 2 E Luz �
 - Fora do combate: consulta. Em combate: clique → gera intent
 
 ### Dados
-- Reutiliza `hm_personagem` para carregar magias do personagem
+- Usa `personagem_magia_tresdet` para carregar magias do personagem
 - Include magias 3D&T no `GET /personagens/:id`
 
 ## Decisões Técnicas
@@ -97,7 +101,7 @@ Uma magia com `focus_requisito: [{fogo: 2}, {luz: 1}]` exige Fogo ≥ 2 E Luz �
 | Limite de magias | Sem limite | Manual não impõe quantidade |
 | PM para todos | Sim | Manual p.25: "Todos os personagens começam com 5 PMs para cada ponto de R" |
 | Descanso | R×d6 individual | Manual: PV e PM recuperam separadamente |
-| Persistência magias | `hm_personagem` | Reutiliza tabela existente |
+| Persistência magias | Nova `personagem_magia_tresdet` | `hm_personagem` tem FK para `habilidades_magias` (Lunaria), incompatível |
 
 ## Fora de Escopo
 - Regeneração de mana para Lunaria (outro design)

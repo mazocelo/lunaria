@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import personagemController from '../controllers/personagem/personagemController.js';
+import economiaController from '../controllers/economia/economiaController.js';
 import { asyncHandler, asyncHandlerWithContext } from '../middleware/errorHandler.js';
 import { requireResourceOwnerOrSuperAdmin } from '../middleware/authMiddleware.js';
 
@@ -922,6 +923,11 @@ router.delete('/:id/equipamentos/:equipamento_id', writeLimiter, requireResource
  */
 router.get('/:id/equipamentos', asyncHandlerWithContext(personagemController.listarEquipamentos, personagemController));
 
+// ===== ROTAS PARA GERENCIAR MAGIAS DO PERSONAGEM =====
+
+// POST /personagens/:id/magias — aprender magias selecionadas
+router.post('/:id/magias', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandlerWithContext(personagemController.aprenderMagias, personagemController));
+
 // ===== ROTAS PARA GERENCIAR VÍNCULOS COM HISTÓRIAS =====
 
 /**
@@ -1058,5 +1064,14 @@ router.get('/:id/evolucao', asyncHandlerWithContext(personagemController.obterEv
 
 // POST /:id/validar-coerencia - Validar coerência narrativa via IA
 router.post('/:id/validar-coerencia', writeLimiter, asyncHandlerWithContext(personagemController.validarCoerencia, personagemController));
+
+// ===== ROTAS DE ECONOMIA =====
+
+router.get('/:id/saldo', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandler(economiaController.obterSaldo));
+router.get('/:id/inventario', requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandler(economiaController.obterInventario));
+router.post('/:id/comprar', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandler(economiaController.comprar));
+router.post('/:id/vender', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandler(economiaController.vender));
+router.post('/:id/equipar', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandler(economiaController.equipar));
+router.post('/:id/desequipar', writeLimiter, requireResourceOwnerOrSuperAdmin('Personagem'), asyncHandler(economiaController.desequipar));
 
 export default router;

@@ -20,7 +20,7 @@ function normalizeIds(raw) {
 export async function criarPersonagemTresDet(body, userId) {
   const {
     nome, nivelPoder, caracteristicas, focus,
-    vantagens, desvantagens, background, imagem,
+    vantagens, desvantagens, magias_ids = [], background, imagem,
   } = body;
 
   // --- Sanitizacao ---
@@ -58,6 +58,19 @@ export async function criarPersonagemTresDet(body, userId) {
     const encontrados = new Set(desvantagensObj.map(d => d.id));
     const faltando = desvantagemIds.filter(id => !encontrados.has(id));
     throw Object.assign(new Error(`Desvantagens nao encontradas: ${faltando.join(', ')}`), { statusCode: 400 });
+  }
+
+  // --- Validar magias ---
+  if (magias_ids.length > 0) {
+    const magiasExistentes = await db.prisma.magias_tresdet.findMany({
+      where: { id: { in: magias_ids } },
+      select: { id: true },
+    });
+    const idsValidos = new Set(magiasExistentes.map(m => m.id));
+    const idsInvalidos = magias_ids.filter(id => !idsValidos.has(id));
+    if (idsInvalidos.length > 0) {
+      throw Object.assign(new Error(`Magias não encontradas: ${idsInvalidos.join(', ')}`), { statusCode: 400 });
+    }
   }
 
   // --- Caracteristicas ---
@@ -133,6 +146,18 @@ export async function criarPersonagemTresDet(body, userId) {
     if (desvantagemIds.length > 0) {
       await tx.personagem_desvantagem.createMany({
         data: desvantagemIds.map(id => ({ personagem_id: created.id, desvantagem_id: id })),
+      });
+    }
+
+    // Magias
+    if (magias_ids.length > 0) {
+      await tx.personagem_magia_tresdet.createMany({
+        data: magias_ids.map(magiaId => ({
+          personagem_id: created.id,
+          magia_tresdet_id: magiaId,
+          origem: 'criacao',
+        })),
+        skipDuplicates: true,
       });
     }
 

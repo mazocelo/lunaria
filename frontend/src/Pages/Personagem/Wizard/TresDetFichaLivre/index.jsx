@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { vantagemService, desvantagemService, apiClient } from '../../../../services/index.js';
 import { useTresDetFichaModel } from './ficha-livre.model.js';
@@ -8,19 +8,22 @@ import FichaLivreView from './ficha-livre.view.jsx';
 export default function TresDetFichaLivre() {
   const navigate = useNavigate();
   const model = useTresDetFichaModel({ navigate });
+  const [focusCatalogo, setFocusCatalogo] = useState([]);
 
   // Fetch catalogs
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [vResp, dResp] = await Promise.all([
+        const [vResp, dResp, fResp] = await Promise.all([
           vantagemService.getAll({ sistema: 'tresdet' }),
           desvantagemService.getAll({ sistema: 'tresdet' }),
+          apiClient.get('/focus-elementais'),
         ]);
         if (cancelled) return;
         model.setVantagensCatalogo(vResp.data || vResp || []);
         model.setDesvantagensCatalogo(dResp.data || dResp || []);
+        if (fResp?.data) setFocusCatalogo(fResp.data);
       } catch { /* ignore */ }
       if (!cancelled) model.setCatalogoLoading(false);
     })();
@@ -79,6 +82,7 @@ export default function TresDetFichaLivre() {
       mestreEnviando={mestre.enviando}
       mestreEnviarMensagem={mestre.enviarMensagem}
       mestreOnSugestao={mestreOnSugestao}
+      focusCatalogo={focusCatalogo}
     />
   );
 }

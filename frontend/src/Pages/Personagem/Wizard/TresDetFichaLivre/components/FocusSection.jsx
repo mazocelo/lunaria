@@ -2,16 +2,18 @@
 import { Lock } from 'lucide-react';
 import { useTheme } from '../../../../../contexts/theme.jsx';
 
-const FOCUS_CONFIG = [
-  { key: 'fogo', label: 'Fogo', emoji: '🔥' },
-  { key: 'agua', label: 'Agua', emoji: '💧' },
-  { key: 'terra', label: 'Terra', emoji: '🍃' },
-  { key: 'ar', label: 'Ar', emoji: '🌀' },
-  { key: 'luz', label: 'Luz', emoji: '☀️' },
-  { key: 'trevas', label: 'Trevas', emoji: '🌑' },
+const FOCUS_FALLBACK = [
+  { nome: 'fogo', label: 'Fogo', emoji: '🔥' },
+  { nome: 'agua', label: 'Agua', emoji: '💧' },
+  { nome: 'terra', label: 'Terra', emoji: '🍃' },
+  { nome: 'ar', label: 'Ar', emoji: '🌀' },
+  { nome: 'luz', label: 'Luz', emoji: '☀️' },
+  { nome: 'trevas', label: 'Trevas', emoji: '🌑' },
 ];
 
-export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontosRestantes, temMagia, maxAttr = 3 }) {
+export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontosRestantes, temMagia, maxAttr = 3, focusCatalogo }) {
+  const focusConfig = (focusCatalogo?.length > 0 ? focusCatalogo : FOCUS_FALLBACK)
+    .map(f => ({ key: f.nome, label: f.label, emoji: f.emoji, descricao: f.descricao }));
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -39,7 +41,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
       </div>
 
       <div className="grid grid-cols-3 gap-3 max-[768px]:grid-cols-2">
-        {FOCUS_CONFIG.map(fc => {
+        {focusConfig.map(fc => {
           const val = focus[fc.key];
           const hasPoints = val > 0;
           const canInc = val < maxAttr && pontosRestantes > 0;

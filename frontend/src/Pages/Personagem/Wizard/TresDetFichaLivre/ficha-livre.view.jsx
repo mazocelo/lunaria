@@ -24,7 +24,7 @@ export default function FichaLivreView(props) {
     pontosTotal, pontosCaracteristicas, pontosVantagens, pontosDesvantagens,
     pontosFocus, pontosRestantes,
     temMagia, pv, pm, podeCriar, maxAttr,
-    vantagensCatalogo, desvantagensCatalogo, catalogoLoading,
+    vantagensCatalogo, desvantagensCatalogo, catalogoLoading, focusCatalogo,
     salvando, error, setError,
     onCriar, navigate,
     // Mestre
@@ -121,6 +121,7 @@ export default function FichaLivreView(props) {
             pontosRestantes={pontosRestantes}
             temMagia={temMagia}
             maxAttr={maxAttr}
+            focusCatalogo={focusCatalogo}
           />
 
           {/* Equipamentos stub */}

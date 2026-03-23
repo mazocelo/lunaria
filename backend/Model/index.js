@@ -23,6 +23,7 @@ import HmPersonagem from './HmPersonagem.js';
 import HmSlotsClasse from './HmSlotsClasse.js';
 import ItensTresDet from './ItensTresDet.js';
 import PersonagemItemTresDet from './PersonagemItemTresDet.js';
+import MagiasTresDet from './MagiasTresDet.js';
 
 const db = {
   prisma,
@@ -50,6 +51,7 @@ const db = {
   HmSlotsClasse: HmSlotsClasse(prisma),
   ItensTresDet: ItensTresDet(prisma),
   PersonagemItemTresDet: PersonagemItemTresDet(prisma),
+  MagiasTresDet: MagiasTresDet(prisma),
   // Legacy alias — remover quando todas as referências forem atualizadas
   get Habilidade() { return this.HabilidadeMagia; },
 };

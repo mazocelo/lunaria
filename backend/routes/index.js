@@ -28,6 +28,7 @@ import habilidadesMagiasRoutes from './habilidades-magias.js';
 import mestreCriadorRoutes from './mestreCriador.js';
 import adminMotorRoutes from './adminMotor.js';
 import itensTresdetRoutes from './itensTresdet.js';
+import magiasTresdetRoutes from './magiasTresdet.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
 import db from '../Model/index.js';
 import gerenciadorSessoes from '../redis/sessoes.js';
@@ -121,6 +122,7 @@ router.use('/temas',authenticateToken, temasRoutes);
 router.use('/equipamentos', authenticateToken, equipamentoRoutes);
 router.use('/catalogos', authenticateToken, catalogosRoutes);
 router.use('/itens-tresdet', authenticateToken, itensTresdetRoutes);
+router.use('/magias-tresdet', authenticateToken, magiasTresdetRoutes);
 router.use('/habilidades', authenticateToken, habilidadesMagiasRoutes);
 router.use('/habilidades-magias', authenticateToken, habilidadesMagiasRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
@@ -167,20 +169,6 @@ router.get('/focus-elementais', async (req, res) => {
     res.json({ success: true, data: focus });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erro ao buscar focus elementais' });
-  }
-});
-
-// Magias 3D&T
-router.get('/magias-tresdet', async (req, res) => {
-  try {
-    const { escola, tipo } = req.query;
-    const where = {};
-    if (escola) where.escola = { contains: escola };
-    if (tipo) where.tipo = tipo;
-    const magias = await db.prisma.magias_tresdet.findMany({ where, orderBy: { nome: 'asc' } });
-    res.json({ success: true, data: magias });
-  } catch (err) {
-    res.status(500).json({ success: false, error: 'Erro ao buscar magias 3D&T' });
   }
 });
 

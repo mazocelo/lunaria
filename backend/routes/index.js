@@ -24,7 +24,7 @@ import imageRoutes from './imageRoutes.js';
 import ttsRoutes from './tts.js';
 import analyticsRoutes from './analytics.js';
 import billingRoutes from './billing.js';
-import habilidadeRoutes from './habilidades.js';
+import habilidadesMagiasRoutes from './habilidades-magias.js';
 import mestreCriadorRoutes from './mestreCriador.js';
 import adminMotorRoutes from './adminMotor.js';
 import { authenticateToken, optionalAuth } from '../middleware/authMiddleware.js';
@@ -99,6 +99,7 @@ router.get('/', async (req, res, next) => {
       equipamentos: '/equipamentos',
       catalogos: '/catalogos',
       habilidades: '/habilidades',
+      'habilidades-magias': '/habilidades-magias',
       amizades: '/amizades',
       feed: '/feed',
       websocket: '/websocket',
@@ -118,7 +119,8 @@ router.use('/desvantagens',authenticateToken, desvantagemRoutes);
 router.use('/temas',authenticateToken, temasRoutes);
 router.use('/equipamentos', authenticateToken, equipamentoRoutes);
 router.use('/catalogos', authenticateToken, catalogosRoutes);
-router.use('/habilidades', authenticateToken, habilidadeRoutes);
+router.use('/habilidades', authenticateToken, habilidadesMagiasRoutes);
+router.use('/habilidades-magias', authenticateToken, habilidadesMagiasRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);
 
 // Rotas que requerem autenticação obrigatória
@@ -155,5 +157,15 @@ router.use('/billing', authenticateToken, billingRoutes);
 
 // Admin Motor (auth aplicado internamente - superadmin only)
 router.use('/admin/motor', adminMotorRoutes);
+
+// Focus Elementais (3D&T)
+router.get('/focus-elementais', async (req, res) => {
+  try {
+    const focus = await db.prisma.focus_elementais.findMany({ orderBy: { ordem: 'asc' } });
+    res.json({ success: true, data: focus });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar focus elementais' });
+  }
+});
 
 export default router;

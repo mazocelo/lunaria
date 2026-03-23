@@ -453,6 +453,16 @@ model elementos {
   ordem     Int?    @default(0)
 }
 
+model focus_elementais {
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique @db.VarChar(30)
+  label     String  @db.VarChar(50)
+  descricao String?
+  emoji     String? @db.VarChar(10)
+  cor       String? @db.VarChar(30)
+  ordem     Int     @default(0)
+}
+
 model amizades {
   id            Int       @id @default(autoincrement())
   requester_id  Int

@@ -2,6 +2,7 @@ import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'combatEngine' });
 
 import db from '../../Model/index.js';
+import { getEngine } from '../../game-systems/index.js';
 import {
   calcularHP,
   calcularEsquiva,
@@ -44,7 +45,8 @@ export default class CombatEngine {
     const sm = this.manager;
 
     try {
-      log.warn({ roomId, motivo: combateData.motivo, monstrosIA: combateData.monstros }, 'COMBAT_INIT: inicio');
+      const sistema = sessao.sistema || 'lunaria';
+      log.warn({ roomId, sistema, motivo: combateData.motivo, monstrosIA: combateData.monstros }, 'COMBAT_INIT: inicio');
 
       const monstrosIA = combateData.monstros || [];
       const dificuldade = combateData.dificuldade || 'media';
@@ -94,68 +96,42 @@ export default class CombatEngine {
         const p = personagensCompletos[pId];
 
         if (p) {
-          const attrs = p.atributos || {}; // já inclui bonus de raça/classe
-          const bonusEquip = p.bonusEquip || {};
-          const personagemStats = {
-            constituicao: attrs.constituicao || 10,
-            destreza: attrs.destreza || 10,
-            agilidade: attrs.agilidade || 10,
-            nivel: p.nivel || 1
-          };
-          const multRaca = getMultRaca(p.raca || p.raca_nome || '');
-          const hpMax = calcularHP(personagemStats, multRaca);
+          const engine = getEngine(sistema);
+          const combatState = engine.buildCombatState(p, p.bonusEquip || {});
+
           // Preservar HP da narrativa (dano de armadilhas, aplicar_dano, etc.)
-          // sem reviver automaticamente personagens que ja estejam com 0 HP.
           const hpNarrativo = Number.isFinite(Number(p.hp_atual)) ? Number(p.hp_atual) : null;
-          const hpAtual = (hpNarrativo != null && hpNarrativo < hpMax) ? Math.max(0, hpNarrativo) : hpMax;
-          const manaMax = calcularMana({ inteligencia: attrs.inteligencia || 10, carisma: attrs.carisma || 10, nivel: p.nivel || 1 });
+          const hpAtual = (hpNarrativo != null && hpNarrativo < combatState.hp_max) ? Math.max(0, hpNarrativo) : combatState.hp_max;
+
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId),
-            hp_max: hpMax,
+            ...combatState,
             hp_atual: hpAtual,
-            mana_max: manaMax,
-            mana_atual: (p.mana_atual != null && p.mana_atual < manaMax) ? p.mana_atual : manaMax,
-            esquiva: calcularEsquiva(personagemStats, bonusEquip),
-            armadura: calcularArmadura(bonusEquip),
-            bonusAtaque: Math.floor(((attrs.destreza || 10) - 10) / 2) + (bonusEquip.ataque || 0),
-            bonusDano: bonusEquip.dano || 0,
-            dano_base: p.melhorArma || (p.equipamentos?.length > 0 ? '1d6' : '1d6-1'),
-            elemento: p.elementoArma || null,
+            mana_atual: (p.mana_atual != null && p.mana_atual < combatState.mana_max) ? p.mana_atual : combatState.mana_max,
             status: 'vivo',
-            personagemNome: p.nome || jogador.personagemNome || jogador.nome || jogador.username || 'Jogador',
-            cooldowns: {}
+            cooldowns: {},
           };
         } else {
+          const engine = getEngine(sistema);
           jogadoresCombate[jUserId] = {
             personagemId: parseInt(pId) || null,
-            hp_max: 15,
-            hp_atual: 15,
-            mana_max: 10,
-            mana_atual: 10,
-            esquiva: 5,
-            armadura: 0,
-            bonusAtaque: 0,
-            bonusDano: 0,
-            dano_base: '1d6-1',
+            ...engine.buildCombatState(null, {}),
             status: 'vivo',
             personagemNome: jogador.personagemNome || jogador.nome || jogador.username || 'Jogador',
-            cooldowns: {}
+            cooldowns: {},
           };
         }
       }
 
       // Roll initiative for monsters (server-side)
       const iniciativaMonstros = [];
+      const engine = getEngine(sistema);
       for (const monstro of instancias) {
-        const modBase = Math.floor(((monstro.agilidade || 10) - 10) / 2);
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const inicConfig = engine.getIniciativaConfig(monstro);
+        const roll = Math.floor(Math.random() * inicConfig.lados) + 1;
         iniciativaMonstros.push({
-          id: monstro.id,
-          tipo: 'monstro',
-          nome: monstro.nome,
-          rolagem: roll,
-          modificador: modBase,
-          iniciativa: roll + modBase,
+          ...monstro,
+          iniciativa: roll + inicConfig.modificador,
         });
       }
 
@@ -166,6 +142,7 @@ export default class CombatEngine {
         rodadaCombate: 0,
         motivo: combateData.motivo,
         dificuldade,
+        sistema,
         monstros: instancias,
         jogadores: jogadoresCombate,
         jogadoresQueAgiram: [],

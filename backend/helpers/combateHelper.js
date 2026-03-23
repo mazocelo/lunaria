@@ -869,6 +869,11 @@ const COMBAT_INTENT_HANDLERS = {
       r.acaoConsumida = false;
       return;
     }
+    if (ataque?.ataqueSistema) {
+      r.acaoConsumida = true;
+      r.ataqueJogador = ataque.ataqueResultado;
+      return;
+    }
     r.ataqueJogador = ataque;
     r.acaoConsumida = !!ataque;
   },
@@ -1054,10 +1059,37 @@ function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIn
 
   const resultado = engine.resolverAtaque(jogadorStats, monstroAlvo, combatIntent || {});
 
+  if (resultado.acertou) {
+    monstroAlvo.hp = Math.max(0, (monstroAlvo.hp ?? monstroAlvo.hp_atual ?? 0) - resultado.dano);
+    if (monstroAlvo.hp <= 0) {
+      monstroAlvo.status = 'derrotado';
+    }
+  }
+
+  if (!Array.isArray(combate.log)) combate.log = [];
+  combate.log.push({
+    tipo: 'ataque_jogador',
+    atacante: { id: userId, nome: jogadorStats.personagemNome },
+    alvo: { id: monstroAlvo.id, nome: monstroAlvo.nome },
+    acertou: resultado.acertou,
+    dano: resultado.dano,
+    critico: resultado.critico,
+    detalhes: resultado.detalhes,
+    timestamp: Date.now(),
+  });
+
   return {
-    ataque: resultado,
-    monstroAlvo,
     acaoConsumida: true,
+    ataqueSistema: true,
+    ataqueResultado: {
+      acertou: resultado.acertou,
+      dano: resultado.dano,
+      critico: resultado.critico,
+      detalhes: resultado.detalhes,
+      alvoId: monstroAlvo.id,
+      alvoNome: monstroAlvo.nome,
+      hpRestante: monstroAlvo.hp,
+    },
   };
 }
 

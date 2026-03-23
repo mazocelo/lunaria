@@ -70,6 +70,9 @@ function normalizeInventarioItem(entry, sistema) {
       elemento: [],
       equipado: entry.equipado,
       quantidade: entry.quantidade,
+      efeito: item.efeito || null,
+      poderes: item.poderes || null,
+      descricao: item.descricao || null,
     };
   }
   // lunaria / dnd5e
@@ -375,6 +378,12 @@ function ItemCard({ item, acao, carregando, onAcao, semBotao }) {
             </span>
           ))}
         </div>
+      )}
+
+      {(item.efeito || item.poderes?.descricao) && (
+        <p className="text-[10px] text-slate-400 font-modern mt-1 line-clamp-2">
+          {item.efeito || item.poderes?.descricao}
+        </p>
       )}
     </div>
   );

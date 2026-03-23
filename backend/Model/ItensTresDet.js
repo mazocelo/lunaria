@@ -18,6 +18,10 @@ const ItensTresDet = (prisma) => {
     criar: (data) => model.create({ data }),
 
     criarVarios: (data) => model.createMany({ data, skipDuplicates: true }),
+
+    atualizar: (id, data) => model.update({ where: { id }, data }),
+
+    deletar: (id) => model.delete({ where: { id } }),
   };
 };
 

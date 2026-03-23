@@ -16,9 +16,14 @@ import Amizade from './Amizade.js';
 import FeedPost from './FeedPost.js';
 import PersonagemSessao from './PersonagemSessao.js';
 import MonstroLoot from './MonstroLoot.js';
-import Habilidade from './Habilidade.js';
+import HabilidadeMagia from './HabilidadeMagia.js';
+import HmClasse from './HmClasse.js';
+import HmRaca from './HmRaca.js';
+import HmPersonagem from './HmPersonagem.js';
+import HmSlotsClasse from './HmSlotsClasse.js';
+import ItensTresDet from './ItensTresDet.js';
+import PersonagemItemTresDet from './PersonagemItemTresDet.js';
 
-// Exportar o cliente Prisma e todos os modelos
 const db = {
   prisma,
   Historia: Historia(prisma),
@@ -38,7 +43,15 @@ const db = {
   FeedPost: FeedPost(prisma),
   PersonagemSessao: PersonagemSessao(prisma),
   MonstroLoot: MonstroLoot(prisma),
-  Habilidade: Habilidade(prisma)
+  HabilidadeMagia: HabilidadeMagia(prisma),
+  HmClasse: HmClasse(prisma),
+  HmRaca: HmRaca(prisma),
+  HmPersonagem: HmPersonagem(prisma),
+  HmSlotsClasse: HmSlotsClasse(prisma),
+  ItensTresDet: ItensTresDet(prisma),
+  PersonagemItemTresDet: PersonagemItemTresDet(prisma),
+  // Legacy alias — remover quando todas as referências forem atualizadas
+  get Habilidade() { return this.HabilidadeMagia; },
 };
 
 export default db;

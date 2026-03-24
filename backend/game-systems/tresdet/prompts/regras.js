@@ -55,5 +55,11 @@ Cada personagem tem 5 caracteristicas de 0 a 5:
 - **Armadura Extra (tipo):** dobra A contra dano do tipo especificado
 - **Invulneravel (tipo):** divide dano do tipo por 10 (arredonda para baixo)
 - **Consumiveis:** itens de cura restauram PV/PM conforme descricao; usados como acao
-- **Limite:** 1 arma magica, 1 armadura magica, 2 acessorios equipados ao mesmo tempo`;
+- **Limite:** 1 arma magica, 1 armadura magica, 2 acessorios equipados ao mesmo tempo
+
+### MANOBRAS DE COMBATE
+- **Ataque Concentrado:** o personagem pula seu turno para se concentrar. A cada turno concentrando, ganha F+1 ou PdF+1 no proximo ataque. Bonus maximo acumulavel = R. Se receber dano, perde a concentracao.
+- **Comando de Aliado:** gastar sua acao para comandar um Aliado ou mecha. O Aliado usa a Habilidade do lider ou a propria, a que for maior. Pode comandar movimento + acao do Aliado.
+- **Choque de Energia:** quando atacado com PdF, o personagem pode usar seu proprio PdF para tentar anular o ataque. Calcule FA = PdF + 1d6. Se sua FA igualar ou superar o dano do atacante, o dano e anulado. O personagem perde sua acao neste turno.
+- **Sacrificio Heroico:** o personagem recebe 1d extra na FA para um unico ataque fulminante. Apos esse ataque, o personagem morre. So pode ser trazido de volta por Ressurreicao ou Desejo.`;
 }

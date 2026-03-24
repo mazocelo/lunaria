@@ -453,6 +453,16 @@ export default class CombatEngine {
     const sistema = sessao?.sistema || combate?.sistema || 'lunaria';
     if (sistema !== 'lunaria') {
       const engine = getEngine(sistema);
+
+      // Absorção: deal back damage absorbed in previous turns
+      let danoAbsorcao = 0;
+      if (sistema === 'tresdet' && engine.temPoder(monstro, 'Absorção') && monstro._danoAbsorvido > 0) {
+        danoAbsorcao = monstro._danoAbsorvido;
+        alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoAbsorcao);
+        monstro._danoAbsorvido = 0;
+        log.warn({ monstroNome: monstro.nome, danoAbsorcao, alvoNome: alvoStats.personagemNome }, 'MONSTER_POWER: Absorção devolveu dano');
+      }
+
       const resultado = engine.resolverAtaque(monstro, alvoStats, {});
 
       let dano = resultado.dano;
@@ -478,6 +488,7 @@ export default class CombatEngine {
         acertou: resultado.acertou,
         critico: resultado.critico,
         dano,
+        danoAbsorcao,
         hpRestante: alvoStats.hp_atual,
         hpMax: alvoStats.hp_max,
         detalhes: resultado.detalhes,
@@ -487,7 +498,7 @@ export default class CombatEngine {
       if (!Array.isArray(combate.log)) combate.log = [];
       combate.log.push({ tipo: 'ataque_monstro', ...resultadoFinal, timestamp: Date.now() });
 
-      log.warn({ monstroId, alvoId, dano, acertou: resultado.acertou, critico: resultado.critico }, 'COMBAT_MONSTER_TURN: ataque 3D&T executado');
+      log.warn({ monstroId, alvoId, dano, danoAbsorcao, acertou: resultado.acertou, critico: resultado.critico }, 'COMBAT_MONSTER_TURN: ataque 3D&T executado');
 
       return resultadoFinal;
     }
@@ -595,12 +606,21 @@ export default class CombatEngine {
       const combate = estadoJogo.combate;
       if (!combate) return;
 
-      // Calcular XP total
+      // Calcular XP/PE total
+      const sistema = sessao.sistema || 'lunaria';
       let xpTotal = 0;
       if (resultado === 'vitoria') {
-        xpTotal = combate.monstros
-          .filter(m => m.status === 'derrotado')
-          .reduce((total, m) => total + (m.xp || 0), 0);
+        if (sistema === 'tresdet') {
+          const engine = getEngine(sistema);
+          const monstrosVencidos = combate.monstros.filter(m => m.status === 'derrotado');
+          const { peTotal } = engine.calcularPECombate(monstrosVencidos);
+          xpTotal = peTotal;
+          log.warn({ peTotal, monstrosVencidos: monstrosVencidos.length }, 'COMBAT_END: PE awarded (3D&T)');
+        } else {
+          xpTotal = combate.monstros
+            .filter(m => m.status === 'derrotado')
+            .reduce((total, m) => total + (m.xp || 0), 0);
+        }
       }
 
       // Desativar combate
@@ -653,9 +673,12 @@ export default class CombatEngine {
         }
       }
 
-      // Persistir XP no clone da sessão (não no personagem original)
+      // Persistir XP/PE no clone da sessão (não no personagem original)
+      const sobreviventes = Object.values(combate.jogadores).filter(j =>
+        j.status === 'vivo' || (sistema === 'tresdet' && j.status === 'muito_fraco')
+      );
       const xpPorJogador = xpTotal > 0
-        ? Math.floor(xpTotal / Math.max(1, Object.values(combate.jogadores).filter(j => j.status === 'vivo').length))
+        ? Math.max(1, Math.ceil(xpTotal / Math.max(1, sobreviventes.length)))
         : 0;
 
       if (xpTotal > 0) {
@@ -663,7 +686,9 @@ export default class CombatEngine {
           const sessaoJogoRow = await db.SessaoJogo.findBySalaId(roomId);
 
           for (const [jUserId, jogadorCombate] of Object.entries(combate.jogadores)) {
-            if (jogadorCombate.status !== 'vivo') continue;
+            const sobreviveu = jogadorCombate.status === 'vivo'
+              || (sistema === 'tresdet' && jogadorCombate.status === 'muito_fraco');
+            if (!sobreviveu) continue;
             if (!jogadorCombate.personagemId) continue;
 
             // Tentar gravar no clone primeiro
@@ -865,8 +890,9 @@ export default class CombatEngine {
       // Narrar desfecho via IA
       try {
         const mestre = await sm.obterMestre(roomId, sessao.historiaTemas || [], sessao, null);
+        const unidadeXP = sistema === 'tresdet' ? 'PE' : 'XP';
         const desfecho = resultado === 'vitoria'
-          ? `Os monstros foram derrotados! Os jogadores ganham ${xpTotal} XP. Narre o desfecho da batalha de forma épica.`
+          ? `Os monstros foram derrotados! Os jogadores ganham ${xpTotal} ${unidadeXP}. Narre o desfecho da batalha de forma épica.`
           : resultado === 'derrota'
             ? `Os jogadores foram derrotados em combate. Narre a consequência dessa derrota de forma dramática, mas não mate os personagens.`
             : `Os jogadores fugiram do combate. Narre a fuga de forma tensa.`;

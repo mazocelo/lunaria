@@ -1147,10 +1147,27 @@ function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIn
 
   const resultado = engine.resolverAtaque(jogadorStats, monstroAlvo, combatIntent || {});
 
+  let ressurreicao = null;
   if (resultado.acertou) {
     monstroAlvo.hp = Math.max(0, (monstroAlvo.hp ?? monstroAlvo.hp_atual ?? 0) - resultado.dano);
+
+    // 3D&T: track absorbed damage for Absorção power
+    if (sistema === 'tresdet' && engine.temPoder(monstroAlvo, 'Absorção')) {
+      monstroAlvo._danoAbsorvido = (monstroAlvo._danoAbsorvido || 0) + resultado.dano;
+      log.warn({ monstroNome: monstroAlvo.nome, danoAbsorvido: monstroAlvo._danoAbsorvido }, 'MONSTER_POWER: Absorção acumulou dano');
+    }
+
     if (monstroAlvo.hp <= 0) {
-      monstroAlvo.status = 'derrotado';
+      // 3D&T: check Ressurreição before marking as derrotado
+      if (sistema === 'tresdet' && engine.temPoder(monstroAlvo, 'Ressurreição') && !monstroAlvo._jaRessuscitou) {
+        ressurreicao = engine.resolverRessurreicao(monstroAlvo);
+        monstroAlvo.hp = ressurreicao.hpRestaurado;
+        monstroAlvo.status = 'vivo';
+        monstroAlvo._jaRessuscitou = true;
+        log.warn({ monstroNome: monstroAlvo.nome, hpRestaurado: ressurreicao.hpRestaurado }, 'MONSTER_POWER: Ressurreição');
+      } else {
+        monstroAlvo.status = 'derrotado';
+      }
     }
   }
 
@@ -1163,6 +1180,7 @@ function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIn
     dano: resultado.dano,
     critico: resultado.critico,
     detalhes: resultado.detalhes,
+    ressurreicao: ressurreicao?.detalhes || null,
     timestamp: Date.now(),
   });
 
@@ -1177,6 +1195,7 @@ function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIn
       alvoId: monstroAlvo.id,
       alvoNome: monstroAlvo.nome,
       hpRestante: monstroAlvo.hp,
+      ressurreicao: ressurreicao?.detalhes || null,
     },
   };
 }

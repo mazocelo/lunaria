@@ -41,10 +41,22 @@ Cada personagem tem 5 caracteristicas de 0 a 5:
 - Magia Elemental: controle de elementos (fogo, agua, terra, ar, etc.)
 - Custo em PM varia conforme a magia; PM = R x 5
 
-### PROGRESSAO
-- Niveis de 1 a 10; +1 ponto por nivel apos o primeiro
-- O Mestre decide como distribuir pontos ganhos (caracteristicas, vantagens, etc.)
-- Sem tabela fixa de XP — progressao narrativa a criterio do Mestre
+### PROGRESSAO (PONTOS DE EXPERIENCIA)
+- Personagens ganham Pontos de Experiencia (PE) por suas acoes:
+  - +1 PE por cada inimigo vencido em combate justo
+  - +1 PE se terminou a aventura com vida
+  - +1 PE se a missao foi concluida com sucesso
+  - -1 PE por cada derrota em combate justo
+  - -1 PE por cada companheiro morto ou perdido
+- **Usar PE:**
+  - 10 PE = 1 ponto de personagem (para comprar caracteristicas ou vantagens)
+  - 1 PE = 100 Moedas (trocar PE por dinheiro)
+  - 1 PE = aprender 1 magia nova (se tiver os requisitos)
+  - 1 PE = sucesso automatico em um teste (deve declarar ANTES de rolar o dado)
+  - 1 PE = acerto critico (resultado 6) em FA ou FD (deve declarar ANTES de rolar)
+  - 2 PE = recuperar 5 PV ou 5 PM instantaneamente
+- Caracteristicas acima de 5 custam mais PE: 6-10 = 10 PE cada, 11-15 = 30 PE cada
+- Maximo de 1 a 10 PE por aventura
 
 ### PERICIAS
 - Pericias sao um tipo especial de vantagem. Custam 2 pontos (pericia completa) ou 1 ponto (3 especializacoes).

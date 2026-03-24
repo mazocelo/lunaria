@@ -32,6 +32,8 @@ import { resolverTeste } from './testEngine.js';
 
 import { resolverAbsorcao, resolverRessurreicao, temPoder } from './monsterPowerEngine.js';
 
+import { calcularPECombate, calcularConversoesPE, converterPE } from './progressionEngine.js';
+
 import { getRegrasMestrePrompt } from './prompts/regras.js';
 
 const WIZARD_STAGES = [
@@ -77,6 +79,10 @@ const tresdetEngine = {
   resolverAbsorcao,
   resolverRessurreicao,
   temPoder,
+  // progression (PE)
+  calcularPECombate,
+  calcularConversoesPE,
+  converterPE,
 };
 
 export default tresdetEngine;

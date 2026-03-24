@@ -30,6 +30,8 @@ import { extrairBonusEquipamentos } from './equipmentEngine.js';
 
 import { resolverTeste } from './testEngine.js';
 
+import { resolverAbsorcao, resolverRessurreicao, temPoder } from './monsterPowerEngine.js';
+
 import { getRegrasMestrePrompt } from './prompts/regras.js';
 
 const WIZARD_STAGES = [
@@ -71,6 +73,10 @@ const tresdetEngine = {
   resolverTesteMorte,
   verificarPertoDaMorte,
   calcularMultiplicadorEscala,
+  // monster powers
+  resolverAbsorcao,
+  resolverRessurreicao,
+  temPoder,
 };
 
 export default tresdetEngine;

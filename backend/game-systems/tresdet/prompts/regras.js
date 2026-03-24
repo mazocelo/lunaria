@@ -91,5 +91,21 @@ Cada personagem tem 5 caracteristicas de 0 a 5:
 - **Ataque Concentrado:** o personagem pula seu turno para se concentrar. A cada turno concentrando, ganha F+1 ou PdF+1 no proximo ataque. Bonus maximo acumulavel = R. Se receber dano, perde a concentracao.
 - **Comando de Aliado:** gastar sua acao para comandar um Aliado ou mecha. O Aliado usa a Habilidade do lider ou a propria, a que for maior. Pode comandar movimento + acao do Aliado.
 - **Choque de Energia:** quando atacado com PdF, o personagem pode usar seu proprio PdF para tentar anular o ataque. Calcule FA = PdF + 1d6. Se sua FA igualar ou superar o dano do atacante, o dano e anulado. O personagem perde sua acao neste turno.
-- **Sacrificio Heroico:** o personagem recebe 1d extra na FA para um unico ataque fulminante. Apos esse ataque, o personagem morre. So pode ser trazido de volta por Ressurreicao ou Desejo.`;
+- **Sacrificio Heroico:** o personagem recebe 1d extra na FA para um unico ataque fulminante. Apos esse ataque, o personagem morre. So pode ser trazido de volta por Ressurreicao ou Desejo.
+
+### PODERES DE MONSTROS
+Monstros podem ter poderes unicos (anotados no campo habilidades). Estes sao os poderes possiveis:
+- **Absorcao:** o monstro absorve o dano recebido e o devolve no proximo turno
+- **Armadura Extra (tipo):** dobra A contra um tipo de dano secreto (escolhido pelo Mestre)
+- **Ataque Cegante:** emite um clarão que cega todos no alcance do PdF. Funciona como a magia Cegueira
+- **Ataque Corrosivo:** acido que derrete armas/armaduras, reduzindo F, A ou PdF do alvo em -1
+- **Caracteristica Superior:** uma caracteristica recebe bonus de +5
+- **Cerebro Superior:** mente superior, preve movimentos dos herois (H+2 contra os herois)
+- **Controle Mental:** controla mentalmente ate 2d pessoas (teste de R para resistir)
+- **Controle Mental Superior:** controla um unico personagem sem direito a teste
+- **Duplicador:** transforma-se em copia identica de um dos herois (mesmas caracteristicas)
+- **Fortificante:** fortalece 2d soldados grunts (+2 em F, R e A)
+- **Magia Ilimitada:** lanca uma magia escolhida sem gastar PMs
+- **Refem:** engole e aprisiona uma pessoa (alvo sofre metade do dano causado ao monstro)
+- **Ressurreicao:** ressuscita apos morto, regenerando a partir de uma parte do corpo nao destruida`;
 }

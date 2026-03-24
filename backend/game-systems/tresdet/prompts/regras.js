@@ -80,6 +80,13 @@ Cada personagem tem 5 caracteristicas de 0 a 5:
   - 6: Morto — apenas Ressurreicao ou Desejo podem trazer de volta.
 - **Castigo Continuo:** se um personagem com 0 PV recebe mais dano, faz NOVO Teste de Morte. Resultado so piora (nunca melhora).
 
+### ESCALAS DE PODER
+- 4 escalas: Ningen (normal, x1), Sugoi (incrivel, x10), Kiodai (gigante, x100), Kami (deus, x1000)
+- Dano contra escala inferior: multiplicado por 10 por diferenca de escala
+- Dano contra escala superior: dividido por 10 por diferenca de escala (minimo 0)
+- Testes de Forca entre escalas diferentes: escala superior recebe +10 por diferenca
+- Maioria dos personagens jogadores sao Ningen. Monstros gigantes podem ser Sugoi ou Kiodai.
+
 ### MANOBRAS DE COMBATE
 - **Ataque Concentrado:** o personagem pula seu turno para se concentrar. A cada turno concentrando, ganha F+1 ou PdF+1 no proximo ataque. Bonus maximo acumulavel = R. Se receber dano, perde a concentracao.
 - **Comando de Aliado:** gastar sua acao para comandar um Aliado ou mecha. O Aliado usa a Habilidade do lider ou a propria, a que for maior. Pode comandar movimento + acao do Aliado.

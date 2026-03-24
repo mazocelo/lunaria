@@ -10,9 +10,25 @@
 
 import { getAtributo } from '../../helpers/atributosHelper.js';
 import { calcularHP, calcularMP } from './characterEngine.js';
+import { ESCALAS, ESCALA_DEFAULT } from './constants.js';
 
 function rolarD6() {
   return Math.floor(Math.random() * 6) + 1;
+}
+
+/**
+ * Calcula multiplicador de dano entre escalas de poder.
+ * Atacante em escala superior: dano x 10 por diferenca.
+ * Atacante em escala inferior: dano / 10 por diferenca.
+ */
+export function calcularMultiplicadorEscala(escalaAtacante, escalaDefensor) {
+  const ea = ESCALAS[escalaAtacante || ESCALA_DEFAULT];
+  const ed = ESCALAS[escalaDefensor || ESCALA_DEFAULT];
+  if (!ea || !ed) return 1;
+
+  const diff = ea.ordem - ed.ordem;
+  if (diff === 0) return 1;
+  return Math.pow(10, diff);
 }
 
 /**
@@ -42,14 +58,25 @@ export function resolverAtaque(atacante, defensor, acao = {}) {
   const aDefensorEfetivo = criticoDefesa ? aDefensor * 2 : aDefensor;
   const FD = aDefensorEfetivo + hDefensor + dadoDefesa;
 
-  const dano = Math.max(0, FA - FD);
+  let dano = Math.max(0, FA - FD);
   const acertou = dano > 0;
+
+  let escalaInfo = '';
+  if (atacante.escala && defensor.escala) {
+    const mult = calcularMultiplicadorEscala(atacante.escala, defensor.escala);
+    if (mult !== 1) {
+      dano = Math.floor(dano * mult);
+      const eaName = ESCALAS[atacante.escala]?.nome || atacante.escala;
+      const edName = ESCALAS[defensor.escala]?.nome || defensor.escala;
+      escalaInfo = ` [Escala ${eaName} vs ${edName}: x${mult}]`;
+    }
+  }
 
   return {
     acertou,
     dano,
     critico: criticoAtaque,
-    detalhes: `FA: ${attrAtaque}(${valorAtaque}${criticoAtaque ? 'x2' : ''})+H(${hAtacante})+d6(${dadoAtaque})=${FA} vs FD: A(${aDefensor}${criticoDefesa ? 'x2' : ''})+H(${hDefensor})+d6(${dadoDefesa})=${FD} → Dano: ${dano}`,
+    detalhes: `FA: ${attrAtaque}(${valorAtaque}${criticoAtaque ? 'x2' : ''})+H(${hAtacante})+d6(${dadoAtaque})=${FA} vs FD: A(${aDefensor}${criticoDefesa ? 'x2' : ''})+H(${hDefensor})+d6(${dadoDefesa})=${FD} → Dano: ${dano}${escalaInfo}`,
     dados: { FA, FD, dadoAtaque, dadoDefesa, criticoAtaque, criticoDefesa },
   };
 }

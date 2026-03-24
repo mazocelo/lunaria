@@ -23,6 +23,7 @@ import {
   parseCustoPM,
   resolverTesteMorte,
   verificarPertoDaMorte,
+  calcularMultiplicadorEscala,
 } from './combatEngine.js';
 
 import { extrairBonusEquipamentos } from './equipmentEngine.js';
@@ -69,6 +70,7 @@ const tresdetEngine = {
   parseCustoPM,
   resolverTesteMorte,
   verificarPertoDaMorte,
+  calcularMultiplicadorEscala,
 };
 
 export default tresdetEngine;

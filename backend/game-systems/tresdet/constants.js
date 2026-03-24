@@ -24,3 +24,12 @@ export const FOCUS_KEYS = ['fogo', 'agua', 'terra', 'ar', 'luz', 'trevas'];
 
 export const TIER_DEFAULT = 'lutador';
 export const NIVEL_MAX = 10;
+
+export const ESCALAS = {
+  ningen: { nome: 'Ningen', multiplicador: 1, ordem: 0 },
+  sugoi:  { nome: 'Sugoi',  multiplicador: 10, ordem: 1 },
+  kiodai: { nome: 'Kiodai', multiplicador: 100, ordem: 2 },
+  kami:   { nome: 'Kami',   multiplicador: 1000, ordem: 3 },
+};
+
+export const ESCALA_DEFAULT = 'ningen';

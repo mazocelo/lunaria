@@ -229,22 +229,32 @@ const SessionHeader = ({
                     <div className="border-t border-red-500/20 pt-3">
                       <p className="text-red-300 text-xs font-semibold mb-2">Inimigos</p>
                       <div className="space-y-1.5">
-                        {combateMonstros.map((m) => (
-                          <div
-                            key={m.id || m.nome}
-                            className={`flex items-center justify-between p-2 rounded-lg game-glass-subtle border ${
-                              m.status === 'derrotado' ? 'border-gray-600/30 opacity-50' : 'border-red-500/20'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-red-400 text-sm">{'\u{1F479}'}</span>
-                              <p className={`text-sm font-semibold ${m.status === 'derrotado' ? 'text-gray-500 line-through' : 'text-red-200'}`}>{m.nome}</p>
+                        {combateMonstros.map((m) => {
+                          const isOut = m.status === 'derrotado' || m.status === 'morto';
+                          const statusStyle = m.status === 'quase_morto'
+                            ? { border: 'border-red-500/40', text: 'text-red-400', label: 'QUASE MORTO', pulse: true }
+                            : m.status === 'inconsciente'
+                              ? { border: 'border-orange-500/30', text: 'text-orange-400', label: 'INCONSCIENTE', pulse: false }
+                              : m.status === 'muito_fraco'
+                                ? { border: 'border-yellow-500/30', text: 'text-yellow-400', label: 'MUITO FRACO', pulse: false }
+                                : null;
+                          return (
+                            <div
+                              key={m.id || m.nome}
+                              className={`flex items-center justify-between p-2 rounded-lg game-glass-subtle border ${
+                                isOut ? 'border-gray-600/30 opacity-50' : statusStyle ? statusStyle.border : 'border-red-500/20'
+                              } ${statusStyle?.pulse ? 'animate-pulse' : ''}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-red-400 text-sm">{'\u{1F479}'}</span>
+                                <p className={`text-sm font-semibold ${isOut ? 'text-gray-500 line-through' : statusStyle ? statusStyle.text : 'text-red-200'}`}>{m.nome}</p>
+                              </div>
+                              <span className={`text-xs ${isOut ? 'text-gray-500' : statusStyle ? statusStyle.text : 'text-red-300'}`}>
+                                {isOut ? (m.status === 'morto' ? 'MORTO' : 'DERROTADO') : statusStyle ? statusStyle.label : `${m.hp_atual ?? '?'}/${m.hp_max ?? m.hp_base ?? '?'}`}
+                              </span>
                             </div>
-                            <span className={`text-xs ${m.status === 'derrotado' ? 'text-gray-500' : 'text-red-300'}`}>
-                              {m.status === 'derrotado' ? 'DERROTADO' : `${m.hp_atual ?? '?'}/${m.hp_max ?? m.hp_base ?? '?'}`}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

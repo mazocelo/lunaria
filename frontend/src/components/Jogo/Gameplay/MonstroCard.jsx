@@ -18,11 +18,19 @@ const TIPO_ICONS = {
   plant: Trees
 };
 
-const MonstroCard = ({ monstro, compact = false }) => {
+const MONSTRO_STATUS_LABELS = {
+  muito_fraco:  { label: 'MUITO FRACO', icon: '\u26A0\uFE0F', textClass: 'text-yellow-400' },
+  inconsciente: { label: 'INCONSCIENTE', icon: '\u{1F4A4}', textClass: 'text-orange-400' },
+  quase_morto:  { label: 'QUASE MORTO', icon: '\u{1F480}', textClass: 'text-red-400 animate-pulse' },
+  morto:        { label: 'MORTO', icon: '\u{1F480}', textClass: 'text-slate-500' },
+};
+
+const MonstroCard = ({ monstro, compact = false, hpLabel = 'HP' }) => {
   if (!monstro) return null;
 
   const hpPercentage = Math.max(0, (monstro.hp_atual / monstro.hp_max) * 100);
-  const isDerrotado = monstro.status === 'derrotado' || monstro.hp_atual <= 0;
+  const isDerrotado = monstro.status === 'derrotado' || monstro.status === 'morto' || monstro.hp_atual <= 0;
+  const statusInfo = MONSTRO_STATUS_LABELS[monstro.status];
   const Icon = TIPO_ICONS[monstro.tipo] || Ghost;
 
   const hpColor = hpPercentage > 60
@@ -33,11 +41,17 @@ const MonstroCard = ({ monstro, compact = false }) => {
 
   const woundedStyle = isDerrotado
     ? 'border-gray-600/20 opacity-40 grayscale'
-    : hpPercentage <= 25
-      ? 'border-red-500/40 bg-red-900/20'
-      : hpPercentage <= 50
-        ? 'border-yellow-500/40 bg-yellow-900/20'
-        : 'border-red-500/30 bg-red-900/10';
+    : monstro.status === 'quase_morto'
+      ? 'border-red-500/50 bg-red-900/30 animate-pulse'
+      : monstro.status === 'inconsciente'
+        ? 'border-orange-500/40 bg-orange-900/20'
+        : monstro.status === 'muito_fraco'
+          ? 'border-yellow-500/40 bg-yellow-900/20'
+          : hpPercentage <= 25
+            ? 'border-red-500/40 bg-red-900/20'
+            : hpPercentage <= 50
+              ? 'border-yellow-500/40 bg-yellow-900/20'
+              : 'border-red-500/30 bg-red-900/10';
 
   if (compact) {
     return (
@@ -52,8 +66,12 @@ const MonstroCard = ({ monstro, compact = false }) => {
             <span className={`text-xs font-semibold truncate ${isDerrotado ? 'text-gray-500 line-through' : 'text-red-300'}`}>
               {monstro.nome}
             </span>
-            <span className={`text-xs flex-shrink-0 ${isDerrotado ? 'text-gray-500' : 'text-red-200'}`}>
-              {isDerrotado ? '\u{1F480} DERROTADO' : `${monstro.hp_atual}/${monstro.hp_max}`}
+            <span className={`text-xs flex-shrink-0 ${isDerrotado ? 'text-gray-500' : statusInfo ? statusInfo.textClass : 'text-red-200'}`}>
+              {isDerrotado
+                ? `\u{1F480} ${statusInfo?.label || 'DERROTADO'}`
+                : statusInfo
+                  ? `${statusInfo.icon} ${statusInfo.label}`
+                  : `${monstro.hp_atual}/${monstro.hp_max}`}
             </span>
           </div>
           <div className="w-full bg-gray-700/50 rounded-full h-1 mt-0.5 overflow-hidden">
@@ -70,11 +88,17 @@ const MonstroCard = ({ monstro, compact = false }) => {
 
   const woundedStyleFull = isDerrotado
     ? 'border-gray-600/30 opacity-50 grayscale'
-    : hpPercentage <= 25
-      ? 'border-red-500/40 bg-red-900/20 hover:border-red-400/60'
-      : hpPercentage <= 50
-        ? 'border-yellow-500/40 bg-yellow-900/20 hover:border-yellow-400/60'
-        : 'border-red-500/40 hover:border-red-400/60';
+    : monstro.status === 'quase_morto'
+      ? 'border-red-500/50 bg-red-900/30 hover:border-red-400/60 animate-pulse'
+      : monstro.status === 'inconsciente'
+        ? 'border-orange-500/40 bg-orange-900/20 hover:border-orange-400/60'
+        : monstro.status === 'muito_fraco'
+          ? 'border-yellow-500/40 bg-yellow-900/20 hover:border-yellow-400/60'
+          : hpPercentage <= 25
+            ? 'border-red-500/40 bg-red-900/20 hover:border-red-400/60'
+            : hpPercentage <= 50
+              ? 'border-yellow-500/40 bg-yellow-900/20 hover:border-yellow-400/60'
+              : 'border-red-500/40 hover:border-red-400/60';
 
   return (
     <div className={`game-glass rounded-lg border p-3 transition-all duration-300 ${woundedStyleFull}`}>
@@ -99,9 +123,13 @@ const MonstroCard = ({ monstro, compact = false }) => {
 
       <div className="mb-1">
         <div className="flex justify-between text-xs mb-0.5">
-          <span className={isDerrotado ? 'text-gray-500' : 'text-red-300'}>HP</span>
-          <span className={isDerrotado ? 'text-gray-500 font-bold' : 'text-red-200'}>
-            {isDerrotado ? '\u{1F480} DERROTADO' : `${monstro.hp_atual}/${monstro.hp_max}`}
+          <span className={isDerrotado ? 'text-gray-500' : 'text-red-300'}>{hpLabel}</span>
+          <span className={isDerrotado ? 'text-gray-500 font-bold' : statusInfo ? `${statusInfo.textClass} font-bold` : 'text-red-200'}>
+            {isDerrotado
+              ? `\u{1F480} ${statusInfo?.label || 'DERROTADO'}`
+              : statusInfo
+                ? `${statusInfo.icon} ${statusInfo.label}`
+                : `${monstro.hp_atual}/${monstro.hp_max}`}
           </span>
         </div>
         <div className="w-full bg-gray-700/50 rounded-full h-2 overflow-hidden">

@@ -1,7 +1,23 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Package, Shield } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
-import { calcularMana, calcularHPMaximo } from '../../../utils/rpgHelpers';
+import { calcularMana, calcularHPMaximo, getDnd5eModifier, getDnd5eProficiencyBonus } from '../../../utils/rpgHelpers';
+
+const DEATH_STATES = {
+  muito_fraco:  { text: 'text-yellow-400', border: 'border-yellow-600', label: 'Muito Fraco', grayscale: false, pulse: false },
+  inconsciente: { text: 'text-orange-400', border: 'border-orange-600', label: 'Inconsciente', grayscale: false, pulse: false },
+  quase_morto:  { text: 'text-red-400',    border: 'border-red-600',    label: 'Quase Morto',  grayscale: false, pulse: true },
+  morto:        { text: 'text-slate-500',   border: 'border-gray-600',   label: 'Morto',        grayscale: true,  pulse: false },
+  derrotado:    { text: 'text-gray-500',    border: 'border-gray-600',   label: 'Derrotado',    grayscale: true,  pulse: false },
+};
+
+const STATUS_BADGE_STYLES = {
+  muito_fraco:  'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  inconsciente: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  quase_morto:  'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse',
+  morto:        'bg-slate-700/30 text-slate-500 border-slate-600/30',
+  derrotado:    'bg-slate-600/20 text-slate-500 border-slate-600/30',
+};
 
 const StatusPersonagem = ({
   personagemSelecionado,
@@ -42,11 +58,26 @@ const StatusPersonagem = ({
     ? `${combateStats.hp_atual}/${combateStats.hp_max}`
     : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || calcularHPMaximo(personagemSelecionado)}` : '???');
   const hpBaixo = combateStats && combateStats.hp_max > 0 ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
-  const derrotado = combateStats?.status === 'derrotado';
+  const combateStatus = combateStats?.status;
+  const deathState = DEATH_STATES[combateStatus];
+  const derrotado = deathState?.grayscale ?? false;
+  const isIncapacitated = !!deathState;
 
+  const isTresDet = personagemSelecionado?.sistema === 'tresdet';
+  const isDnd5e = personagemSelecionado?.sistema === 'dnd5e';
   const manaMax = combateStats?.mana_max ?? calcularMana(personagemSelecionado);
   const manaAtual = combateStats?.mana_atual ?? manaMax;
   const mpDisplay = `${manaAtual}/${manaMax}`;
+  const hpLabel = isTresDet ? 'PV' : 'HP';
+  const mpLabel = isTresDet ? 'PM' : 'MP';
+
+  const dnd5eAC = isDnd5e
+    ? (combateStats?.ac ?? personagemSelecionado?.stats_sistema?.ac ?? (10 + getDnd5eModifier(personagemSelecionado?.atributos?.DEX)))
+    : null;
+  const dnd5eProfBonus = isDnd5e ? getDnd5eProficiencyBonus(personagemSelecionado?.nivel || 1) : null;
+  const dnd5eSpellSlots = isDnd5e ? (personagemSelecionado?.stats_sistema?.spellSlots || []) : [];
+  const dnd5eHasSlots = dnd5eSpellSlots.some(s => s > 0);
+  const dnd5eDeathSaves = isDnd5e && combateStats?.hp_atual === 0 ? (combateStats?.deathSaves || { successes: 0, failures: 0 }) : null;
 
   const topContainerClass = compact
     ? `game-glass-subtle p-3 rounded-xl border ${combateAtivo ? 'border-red-500/30' : 'border-cyan-500/15'}`
@@ -54,9 +85,11 @@ const StatusPersonagem = ({
 
   const avatarFallbackClass = derrotado
     ? 'bg-gradient-to-r from-gray-600 to-gray-700'
-    : combateAtivo
-      ? 'bg-gradient-to-r from-red-500 to-orange-500'
-      : 'bg-gradient-to-r from-cyan-500 to-purple-500';
+    : isIncapacitated
+      ? 'bg-gradient-to-r from-yellow-600 to-orange-600'
+      : combateAtivo
+        ? 'bg-gradient-to-r from-red-500 to-orange-500'
+        : 'bg-gradient-to-r from-cyan-500 to-purple-500';
 
   const baseInfo = (
     <>
@@ -78,7 +111,7 @@ const StatusPersonagem = ({
               src={personagemSelecionado.imagem}
               alt={personagemSelecionado.nome}
               className={`w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 ${
-                derrotado ? 'border-gray-600 grayscale' : combateAtivo ? 'border-red-500' : 'border-cyan-500'
+                derrotado ? 'border-gray-600 grayscale' : deathState ? `${deathState.border} ${deathState.pulse ? 'animate-pulse' : ''}` : combateAtivo ? 'border-red-500' : 'border-cyan-500'
               }`}
             />
           ) : (
@@ -87,23 +120,50 @@ const StatusPersonagem = ({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            {baseInfo}
+            <div className="flex items-center gap-2">
+              {baseInfo}
+              {deathState && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${STATUS_BADGE_STYLES[combateStatus]}`}>
+                  {deathState.label}
+                </span>
+              )}
+            </div>
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center space-x-3">
                 <div className="text-center">
                   <div className={`text-base font-bold transition-all duration-300 ${
                     hpFlash ? 'text-red-500 scale-110' :
-                    derrotado ? 'text-gray-500' : hpBaixo ? 'text-red-400 animate-pulse' : combateStats ? 'text-red-300' : 'text-red-400'
+                    deathState ? `${deathState.text} ${deathState.pulse ? 'animate-pulse' : ''}` : hpBaixo ? 'text-red-400 animate-pulse' : combateStats ? 'text-red-300' : 'text-red-400'
                   }`}>
                     {hpDisplay}
                   </div>
-                  <div className="text-xs text-red-300">HP</div>
+                  <div className="text-xs text-red-300">{hpLabel}</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-base font-bold text-blue-400">{mpDisplay}</div>
-                  <div className="text-xs text-blue-300">MP</div>
-                </div>
-                {combateStats && (
+                {!isDnd5e && (manaMax > 0 || !isTresDet) && (
+                  <div className="text-center">
+                    <div className="text-base font-bold text-blue-400">{mpDisplay}</div>
+                    <div className="text-xs text-blue-300">{mpLabel}</div>
+                  </div>
+                )}
+                {isDnd5e && (
+                  <>
+                    <div className="text-center">
+                      <div className="text-base font-bold text-cyan-400">{dnd5eAC}</div>
+                      <div className="text-xs text-cyan-300">AC</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-base font-bold text-green-400">+{dnd5eProfBonus}</div>
+                      <div className="text-xs text-green-300">PROF</div>
+                    </div>
+                    {dnd5eHasSlots && (
+                      <div className="text-center">
+                        <div className="text-base font-bold text-indigo-400">{dnd5eSpellSlots.filter(s => s > 0).length}</div>
+                        <div className="text-xs text-indigo-300">SLOTS</div>
+                      </div>
+                    )}
+                  </>
+                )}
+                {combateStats && !isTresDet && !isDnd5e && (
                   <>
                     <div className="text-center">
                       <div className="text-base font-bold text-green-400">{combateStats.esquiva || 0}%</div>
@@ -116,6 +176,21 @@ const StatusPersonagem = ({
                   </>
                 )}
               </div>
+              {dnd5eDeathSaves && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-red-400 uppercase font-semibold">Death Saves</span>
+                  <div className="flex gap-0.5">
+                    {[0,1,2].map(i => (
+                      <span key={`s${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < dnd5eDeathSaves.successes ? 'bg-green-500 border-green-400' : 'border-green-500/30'}`} />
+                    ))}
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[0,1,2].map(i => (
+                      <span key={`f${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < dnd5eDeathSaves.failures ? 'bg-red-500 border-red-400' : 'border-red-500/30'}`} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="mt-2">
               <XPProgressBar
@@ -152,7 +227,7 @@ const StatusPersonagem = ({
                   src={personagemSelecionado.imagem}
                   alt={personagemSelecionado.nome}
                   className={`w-12 h-12 rounded-full object-cover border-2 ${
-                    derrotado ? 'border-gray-600 grayscale' : combateAtivo ? 'border-red-500' : 'border-cyan-500'
+                    derrotado ? 'border-gray-600 grayscale' : deathState ? `${deathState.border} ${deathState.pulse ? 'animate-pulse' : ''}` : combateAtivo ? 'border-red-500' : 'border-cyan-500'
                   }`}
                 />
               ) : (
@@ -160,7 +235,14 @@ const StatusPersonagem = ({
                   <Shield size={18} />
                 </div>
               )}
-              <div>{baseInfo}</div>
+              <div className="flex items-center gap-2">
+                {baseInfo}
+                {deathState && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${STATUS_BADGE_STYLES[combateStatus]}`}>
+                    {deathState.label}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center space-x-6">
@@ -168,16 +250,18 @@ const StatusPersonagem = ({
                 <div className="text-center">
                   <div className={`text-lg font-bold transition-all duration-300 ${
                     hpFlash ? 'text-red-500 scale-110' :
-                    derrotado ? 'text-gray-500' : hpBaixo ? 'text-red-400 animate-pulse' : combateStats ? 'text-red-300' : 'text-red-400'
+                    deathState ? `${deathState.text} ${deathState.pulse ? 'animate-pulse' : ''}` : hpBaixo ? 'text-red-400 animate-pulse' : combateStats ? 'text-red-300' : 'text-red-400'
                   }`}>
                     {hpDisplay}
                   </div>
-                  <div className="text-xs text-red-300">HP</div>
+                  <div className="text-xs text-red-300">{hpLabel}</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-blue-400">{mpDisplay}</div>
-                  <div className="text-xs text-blue-300">MP</div>
-                </div>
+                {!isDnd5e && (manaMax > 0 || !isTresDet) && (
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-400">{mpDisplay}</div>
+                    <div className="text-xs text-blue-300">{mpLabel}</div>
+                  </div>
+                )}
                 <div className="min-w-[120px]">
                   <XPProgressBar
                     xpAtual={personagemSelecionado.xp_atual || personagemSelecionado.xp || 0}
@@ -185,7 +269,25 @@ const StatusPersonagem = ({
                     nivel={personagemSelecionado.nivel || 1}
                   />
                 </div>
-                {combateStats && (
+                {isDnd5e && (
+                  <>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-cyan-400">{dnd5eAC}</div>
+                      <div className="text-xs text-cyan-300">AC</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-400">+{dnd5eProfBonus}</div>
+                      <div className="text-xs text-green-300">PROF</div>
+                    </div>
+                    {dnd5eHasSlots && (
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-indigo-400">{dnd5eSpellSlots.filter(s => s > 0).length}</div>
+                        <div className="text-xs text-indigo-300">SLOTS</div>
+                      </div>
+                    )}
+                  </>
+                )}
+                {combateStats && !isTresDet && !isDnd5e && (
                   <>
                     <div className="text-center">
                       <div className="text-lg font-bold text-green-400">{combateStats.esquiva || 0}%</div>

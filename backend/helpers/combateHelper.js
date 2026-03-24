@@ -839,7 +839,16 @@ export function verificarFimCombate(combateState) {
   }
 
   const monstrosVivos = combateState.monstros.filter(m => m.status === 'vivo');
-  const jogadoresVivos = Object.values(combateState.jogadores).filter(j => j.status === 'vivo');
+
+  // muito_fraco counts as alive for combat purposes (conscious, just unable to fight well)
+  const STATUS_FORA_COMBATE = [
+    STATUS_COMBATENTE.DERROTADO,
+    STATUS_COMBATENTE.INCONSCIENTE,
+    STATUS_COMBATENTE.QUASE_MORTO,
+    STATUS_COMBATENTE.MORTO,
+  ];
+  const jogadoresVivos = Object.values(combateState.jogadores)
+    .filter(j => !STATUS_FORA_COMBATE.includes(j.status));
 
   if (monstrosVivos.length === 0) {
     return { finalizado: true, resultado: RESULTADO_COMBATE.VITORIA };
@@ -994,7 +1003,17 @@ function _resolveCombatStatusEffects(sessao, userId, personagem, jogadorStats, r
     } else if (STATUS_DANO_POR_TURNO[efeito.nome]) {
       const danoPorTurno = rolarDado(STATUS_DANO_POR_TURNO[efeito.nome]);
       jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
-      if (jogadorStats.hp_atual <= 0 && jogadorStats.status === STATUS_COMBATENTE.VIVO) jogadorStats.status = STATUS_COMBATENTE.INCONSCIENTE;
+      if (jogadorStats.hp_atual <= 0 && jogadorStats.status === STATUS_COMBATENTE.VIVO) {
+        const sistema = sessao?.sistema || 'lunaria';
+        if (sistema === 'tresdet') {
+          const engine = getEngine(sistema);
+          const testeMorte = engine.resolverTesteMorte(jogadorStats);
+          jogadorStats.status = testeMorte.status;
+          resultados.testeMorte = testeMorte;
+        } else {
+          jogadorStats.status = STATUS_COMBATENTE.INCONSCIENTE;
+        }
+      }
       resultados.statusEfeitos.push({
         tipo: 'dano', efeito: efeito.nome, dano: danoPorTurno,
         hpRestante: jogadorStats.hp_atual, hpMax: jogadorStats.hp_max,
@@ -1051,7 +1070,8 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
 
   const jogadorStats = combate.jogadores[userId];
   if (!jogadorStats) return resultados;
-  if (jogadorStats.status === 'derrotado' || jogadorStats.status === STATUS_COMBATENTE.INCONSCIENTE) {
+  const _statusIncapaz = [STATUS_COMBATENTE.DERROTADO, STATUS_COMBATENTE.INCONSCIENTE, STATUS_COMBATENTE.QUASE_MORTO, STATUS_COMBATENTE.MORTO];
+  if (_statusIncapaz.includes(jogadorStats.status)) {
     resultados.jogadorDerrotado = true;
     return resultados;
   }
@@ -1262,11 +1282,22 @@ function _executarContraAtaques(combate, sessao, resultados) {
         }
       }
 
-      if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') alvoStats.status = 'inconsciente';
+      if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') {
+        const sistemaCA = combate?.sistema || 'lunaria';
+        if (sistemaCA === 'tresdet') {
+          const engineCA = getEngine(sistemaCA);
+          const testeMorte = engineCA.resolverTesteMorte(alvoStats);
+          alvoStats.status = testeMorte.status;
+          resultados.testeMorte = testeMorte;
+        } else {
+          alvoStats.status = 'inconsciente';
+        }
+      }
     }
 
     if (habilidade) monstro.cooldowns[habilidade.nome] = combate.rodadaCombate;
 
+    const _statusFora = ['inconsciente', 'quase_morto', 'morto', 'derrotado'];
     resultados.contraAtaques.push({
       atacante: monstro.nome, atacanteId: monstro.id,
       habilidade: habilidade?.nome || 'Ataque básico',
@@ -1274,8 +1305,7 @@ function _executarContraAtaques(combate, sessao, resultados) {
       rolagem: rolagemMonstro,
       acertou: mAcertou && !mEsquivou, esquivou: mEsquivou, critico: mCritico,
       dano: danoMonstro, armaduraAlvo: alvoStats.armadura || 0,
-      hpRestante: alvoStats.hp_atual, hpMax: alvoStats.hp_max,
-      inconsciente: alvoStats.status === 'inconsciente',
+      inconsciente: _statusFora.includes(alvoStats.status),
       personagemId: alvoStats.personagemId,
     });
     _pushCombatLog(combate, { tipo: 'ataque_monstro', ...resultados.contraAtaques.at(-1), timestamp: Date.now() });
@@ -2058,7 +2088,9 @@ export function formatarResultadoMecanico(resultados, personagemNome) {
 function _isAlive(combate, entry) {
   if (entry.tipo === 'jogador') {
     const j = combate.jogadores?.[entry.id];
-    return j && j.status !== 'derrotado' && j.status !== 'inconsciente';
+    if (!j) return false;
+    const foraJogador = [STATUS_COMBATENTE.DERROTADO, STATUS_COMBATENTE.INCONSCIENTE, STATUS_COMBATENTE.QUASE_MORTO, STATUS_COMBATENTE.MORTO];
+    return !foraJogador.includes(j.status);
   } else {
     const m = combate.monstros?.find(mo => mo.id === entry.id);
     return m && m.status === 'vivo';

@@ -21,6 +21,8 @@ import {
   resolverConsumo,
   processarDescansoTresDet,
   parseCustoPM,
+  resolverTesteMorte,
+  verificarPertoDaMorte,
 } from './combatEngine.js';
 
 import { extrairBonusEquipamentos } from './equipmentEngine.js';
@@ -65,6 +67,8 @@ const tresdetEngine = {
   resolverConsumo,
   processarDescansoTresDet,
   parseCustoPM,
+  resolverTesteMorte,
+  verificarPertoDaMorte,
 };
 
 export default tresdetEngine;

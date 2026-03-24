@@ -142,6 +142,44 @@ export function processarDescansoTresDet(personagem) {
   };
 }
 
+/**
+ * Teste de Morte 3D&T: at 0 PV, roll d6.
+ * 1=muito_fraco, 2-3=inconsciente, 4-5=quase_morto, 6=morto
+ */
+export function resolverTesteMorte(personagem) {
+  const rolagem = rolarD6();
+  let status, descricao;
+
+  if (rolagem === 1) {
+    status = 'muito_fraco';
+    descricao = 'Muito Fraco — consciente mas incapaz de agir';
+  } else if (rolagem <= 3) {
+    status = 'inconsciente';
+    descricao = 'Inconsciente — desmaiado, precisa de ajuda';
+  } else if (rolagem <= 5) {
+    status = 'quase_morto';
+    descricao = 'Quase Morto — morrendo, precisa de cura urgente';
+  } else {
+    status = 'morto';
+    descricao = 'Morto';
+  }
+
+  return {
+    status,
+    rolagem,
+    detalhes: `Teste de Morte: d6(${rolagem}) → ${descricao}`,
+  };
+}
+
+/**
+ * Perto da Morte: PV > 0 but PV <= R
+ */
+export function verificarPertoDaMorte(personagem) {
+  const R = getAtributo(personagem, 'R', 0);
+  const hp = personagem.hp_atual ?? 0;
+  return hp > 0 && hp <= R;
+}
+
 export function resolverConsumo(_personagem, item) {
   const efeito = item?.efeito || '';
   const resultados = [];

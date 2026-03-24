@@ -91,6 +91,9 @@ export const STATUS_COMBATENTE = {
   VIVO:         'vivo',
   DERROTADO:    'derrotado',
   INCONSCIENTE: 'inconsciente',
+  MUITO_FRACO:  'muito_fraco',
+  QUASE_MORTO:  'quase_morto',
+  MORTO:        'morto',
 };
 
 // ── Tipos de habilidade de monstro (Zod enum source) ─────────────────

@@ -459,7 +459,13 @@ export default class CombatEngine {
       if (resultado.acertou) {
         alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - dano);
         if (alvoStats.hp_atual <= 0) {
-          alvoStats.status = 'inconsciente';
+          if (sistema === 'tresdet') {
+            const testeMorte = engine.resolverTesteMorte(alvoStats);
+            alvoStats.status = testeMorte.status;
+            alvoStats.testeMorte = testeMorte;
+          } else {
+            alvoStats.status = 'inconsciente';
+          }
         }
       }
 
@@ -475,6 +481,7 @@ export default class CombatEngine {
         hpRestante: alvoStats.hp_atual,
         hpMax: alvoStats.hp_max,
         detalhes: resultado.detalhes,
+        testeMorte: alvoStats.testeMorte || null,
       };
 
       if (!Array.isArray(combate.log)) combate.log = [];
@@ -600,10 +607,11 @@ export default class CombatEngine {
       combate.ativo = false;
       combate.resultado = resultado;
 
-      // Tratamento de derrota: marcar jogadores inconscientes e verificar fim de sessão
+      // Tratamento de derrota: marcar jogadores incapacitados e verificar fim de sessão
       if (resultado === 'derrota') {
+        const _statusIncapaz = ['inconsciente', 'quase_morto', 'morto', 'muito_fraco'];
         for (const [uid, jogador] of Object.entries(combate.jogadores || {})) {
-          if (jogador.status === 'inconsciente' || jogador.hp_atual <= 0) {
+          if (_statusIncapaz.includes(jogador.status) || jogador.hp_atual <= 0) {
             jogador.status = 'derrotado';
 
             // @event jogador_derrotado → room (broadcast) | fires for each defeated/unconscious player when combat ends in defeat

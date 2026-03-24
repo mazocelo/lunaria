@@ -46,6 +46,20 @@ Cada personagem tem 5 caracteristicas de 0 a 5:
 - O Mestre decide como distribuir pontos ganhos (caracteristicas, vantagens, etc.)
 - Sem tabela fixa de XP — progressao narrativa a criterio do Mestre
 
+### PERICIAS
+- Pericias sao um tipo especial de vantagem. Custam 2 pontos (pericia completa) ou 1 ponto (3 especializacoes).
+- Existem 11 pericias: Animais, Arte, Ciencia, Crime, Esporte, Idiomas, Investigacao, Maquinas, Manipulacao, Medicina, Sobrevivencia.
+- Cada pericia tem especializacoes (sub-areas de conhecimento).
+- **Testes com pericia:**
+  - Tarefa Facil: sem teste necessario
+  - Tarefa Media: teste de H com bonus +1
+  - Tarefa Dificil: teste de H com penalidade -2
+- **Testes SEM pericia:**
+  - Tarefa Facil: teste de H com penalidade -1
+  - Tarefa Media: teste de H com penalidade -3
+  - Tarefa Dificil: NAO permitido (impossivel sem treinamento)
+- Algumas vantagens e desvantagens afetam testes de pericias (ex: Genialidade da +2 em todas, Inculto da -3)
+
 ### EQUIPAMENTOS MAGICOS
 - **Arma Magica +N:** aumenta F ou PdF em +N enquanto equipada (afeta FA diretamente)
 - **Armadura Magica +N:** aumenta A em +N enquanto equipada (afeta FD diretamente)

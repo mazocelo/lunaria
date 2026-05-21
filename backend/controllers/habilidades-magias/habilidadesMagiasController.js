@@ -155,7 +155,7 @@ class HabilidadesController {
     try {
       const habilidade = await db.HabilidadeMagia.findById(parseInt(req.params.id, 10));
       if (!habilidade) return res.status(404).json({ error: 'Habilidade nao encontrada' });
-      return res.json(serializarHabilidade(habilidade));
+      return res.json({ success: true, data: serializarHabilidade(habilidade) });
     } catch (error) {
       log.error({ err: error }, 'Erro ao obter habilidade');
       return res.status(500).json({ error: 'Erro ao obter habilidade' });

@@ -129,10 +129,6 @@ const Historia = (prisma) => {
       });
     },
 
-    async count(where = { deleted_at: null }) {
-      return await prisma.historias.count({ where });
-    },
-
     async countByUsuario(userId) {
       return await prisma.historias.count({ where: { id_usuario: userId, deleted_at: null } });
     },
@@ -263,7 +259,7 @@ const Historia = (prisma) => {
       if (status) where.status = status;
       const [data, total] = await Promise.all([
         model.findMany({ where, orderBy: { criada_em: 'desc' }, take: limit, skip: offset, include: { mestres: true } }),
-        model.count({ where })
+        prisma.historias.count({ where })
       ]);
       return { data, total };
     },

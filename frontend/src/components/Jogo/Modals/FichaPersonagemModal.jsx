@@ -216,7 +216,7 @@ const FichaPersonagemModal = ({
               {atributosPrincipais.map((atributo) => (
                 <div key={atributo.key} className="p-3 rounded-xl game-glass-subtle border border-purple-500/20 text-center">
                   <p className="text-xs text-purple-200/70 uppercase tracking-wide">{atributo.label}</p>
-                  <p className="text-2xl font-bold text-white">{personagem[atributo.key] ?? '-'}</p>
+                  <p className="text-2xl font-bold text-white">{personagem?.atributos?.[atributo.key] ?? personagem?.[atributo.key] ?? '-'}</p>
                 </div>
               ))}
             </div>
@@ -277,10 +277,10 @@ const FichaPersonagemModal = ({
                 </div>
               ));
             })() : (() => {
-              const modAGI = Math.floor(((personagem.agilidade || 10) - 10) / 2);
-              const modDEX = Math.floor(((personagem.destreza || 10) - 10) / 2);
-              const modCON = Math.floor(((personagem.constituicao || 10) - 10) / 2);
-              const modFOR = Math.floor(((personagem.forca || 10) - 10) / 2);
+              const modAGI = Math.floor(((personagem?.atributos?.agilidade ?? personagem.agilidade ?? 10) - 10) / 2);
+              const modDEX = Math.floor(((personagem?.atributos?.destreza ?? personagem.destreza ?? 10) - 10) / 2);
+              const modCON = Math.floor(((personagem?.atributos?.constituicao ?? personagem.constituicao ?? 10) - 10) / 2);
+              const modFOR = Math.floor(((personagem?.atributos?.forca ?? personagem.forca ?? 10) - 10) / 2);
               const nivel = personagem.nivel || 1;
               const bonusNivel = Math.floor(nivel / 2);
               const dc = 10 + modAGI;

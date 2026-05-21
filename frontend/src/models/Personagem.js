@@ -19,12 +19,16 @@ export class Personagem {
     this.classes = data.classes || null; // Objeto completo da classe (com bonus)
     this.imagem = data.imagem || null;
     this.nivel = data.nivel || 1;
-    this.forca = data.forca || 10;
-    this.destreza = data.destreza || 10;
-    this.constituicao = data.constituicao || 10;
-    this.inteligencia = data.inteligencia || 10;
-    this.agilidade = data.agilidade || 10;
-    this.carisma = data.carisma || 10;
+    this.sistema = data.sistema || 'lunaria';
+    this.atributos = data.atributos || {};
+    // Atributos individuais: prioriza o mapa data.atributos (fonte do backend),
+    // fallback para campos escalares legados.
+    this.forca = data.atributos?.forca ?? data.forca ?? 10;
+    this.destreza = data.atributos?.destreza ?? data.destreza ?? 10;
+    this.constituicao = data.atributos?.constituicao ?? data.constituicao ?? 10;
+    this.inteligencia = data.atributos?.inteligencia ?? data.inteligencia ?? 10;
+    this.agilidade = data.atributos?.agilidade ?? data.agilidade ?? 10;
+    this.carisma = data.atributos?.carisma ?? data.carisma ?? 10;
     this.sugestao_background = data.sugestao_background || 'guiado';
     this.background = data.background || '';
     this.vantagens = data.vantagens || [];
@@ -162,6 +166,8 @@ export class Personagem {
       classes: this.classes,
       imagem: this.imagem,
       nivel: this.nivel,
+      sistema: this.sistema,
+      atributos: this.atributos,
       forca: this.forca,
       destreza: this.destreza,
       constituicao: this.constituicao,
@@ -210,12 +216,14 @@ export class Personagem {
       classes: apiData.classes || null,
       imagem: apiData.imagem || null,
       nivel: apiData.nivel,
-      forca: apiData.forca || 10,
-      destreza: apiData.destreza || 10,
-      constituicao: apiData.constituicao || 10,
-      inteligencia: apiData.inteligencia || 10,
-      agilidade: apiData.agilidade || 10,
-      carisma: apiData.carisma || 10,
+      sistema: apiData.sistema || 'lunaria',
+      atributos: apiData.atributos || {},
+      forca: apiData.forca,
+      destreza: apiData.destreza,
+      constituicao: apiData.constituicao,
+      inteligencia: apiData.inteligencia,
+      agilidade: apiData.agilidade,
+      carisma: apiData.carisma,
       sugestao_background: apiData.sugestao_background,
       background: apiData.background,
       vantagens: apiData.vantagens,

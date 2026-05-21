@@ -382,7 +382,7 @@ const VerPersonagemView = ({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {atributosConfig.map(attr => {
-                const valor = p[attr.key] || p.atributos?.[attr.key] || 10;
+                const valor = p.atributos?.[attr.key] ?? p[attr.key] ?? 10;
                 const mod = Math.floor((valor - 10) / 2);
                 const AttrIcon = attr.icon;
                 const bonuses = bonusPorAtributo[attr.key] || [];

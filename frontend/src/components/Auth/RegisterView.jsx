@@ -20,7 +20,7 @@ const getPasswordStrength = (password) => {
 };
 
 const RegisterView = ({ onSwitchToLogin }) => {
-  const { register, loading, isAuthenticated } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nome: '',
@@ -30,6 +30,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
   });
   const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -151,11 +152,12 @@ const RegisterView = ({ onSwitchToLogin }) => {
     const { confirmSenha, ...registerData } = formData;
     
     try {
+      setSubmitting(true);
       // Se o contexto não tiver função register, simular por enquanto
-      const result = register 
+      const result = register
         ? await register(registerData)
         : { success: false, error: 'Funcionalidade de registro em desenvolvimento' };
-      
+
       if (result.success) {
         setNotification({
           type: 'success',
@@ -185,6 +187,8 @@ const RegisterView = ({ onSwitchToLogin }) => {
         type: 'error',
         message: 'Erro inesperado ao criar conta'
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -256,7 +260,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 onBlur={() => validateField('nome')}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="Seu nome completo"
-                disabled={loading}
+                disabled={submitting}
               />
               {errors.nome && (
                 <p className="text-red-400 text-xs mt-1">{errors.nome}</p>
@@ -277,7 +281,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                 onBlur={() => validateField('email')}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="seu@email.com"
-                disabled={loading}
+                disabled={submitting}
                 autoComplete="email"
               />
               {errors.email && (
@@ -300,7 +304,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                   onBlur={() => validateField('senha')}
                   className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
                   placeholder="••••••••"
-                  disabled={loading}
+                  disabled={submitting}
                   autoComplete="new-password"
                 />
                 <button
@@ -353,7 +357,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
                   onBlur={() => validateField('confirmSenha')}
                   className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
                   placeholder="••••••••"
-                  disabled={loading}
+                  disabled={submitting}
                   autoComplete="new-password"
                 />
                 <button
@@ -377,10 +381,10 @@ const RegisterView = ({ onSwitchToLogin }) => {
             {/* Botão de registro */}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full btn-rpg h-12 text-base font-semibold bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 mt-6"
             >
-              {loading ? (
+              {submitting ? (
                 <div className="flex items-center justify-center gap-2">
                   <LoadingSpinner size="sm" />
                   <span>Criando conta...</span>

@@ -112,22 +112,24 @@ axiosInstance.interceptors.response.use(
         }
       }
       
+      let message;
       switch (status) {
-        case 401:
-          throw new Error('Não autorizado');
-        case 403:
-          throw new Error('Acesso negado');
-        case 404:
-          throw new Error('Recurso não encontrado');
-        case 422:
-          throw new Error(data?.message || 'Dados inválidos');
-        case 429:
-          throw new Error(data?.message || 'Muitas tentativas. Aguarde alguns minutos.');
-        case 500:
-          throw new Error('Erro interno do servidor');
-        default:
-          throw new Error(data?.message || `Erro ${status}`);
+        case 401: message = 'Não autorizado'; break;
+        case 403: message = 'Acesso negado'; break;
+        case 404: message = 'Recurso não encontrado'; break;
+        case 422: message = data?.message || 'Dados inválidos'; break;
+        case 429: message = data?.message || 'Muitas tentativas. Aguarde alguns minutos.'; break;
+        case 500: message = 'Erro interno do servidor'; break;
+        default: message = data?.message || `Erro ${status}`;
       }
+
+      // Preserva status e corpo do erro para que os consumidores (ex.: AuthService)
+      // possam extrair a mensagem real da API em vez de cair no fallback de rede.
+      const httpError = new Error(message);
+      httpError.status = status;
+      httpError.data = data;
+      httpError.response = error.response;
+      throw httpError;
     } else if (error.request) {
       // Erro de rede
       throw new Error('Erro de conexão com o servidor');

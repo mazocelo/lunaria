@@ -183,28 +183,34 @@ export class AuthService {
    * @returns {Error} Erro tratado
    */
   handleAuthError(error) {
-    if (error.response) {
-      const { status, data } = error.response;
-      
+    const status = error.status ?? error.response?.status;
+    const data = error.data ?? error.response?.data;
+
+    if (status && data) {
+      // A API de auth retorna a mensagem em `data.error` (string); demais
+      // endpoints usam `data.message`.
+      const apiMessage = (typeof data.error === 'string' && data.error) || data.message;
+      const messageOr = (fallback) => new Error(apiMessage || fallback);
+
       switch (status) {
         case 401:
-          return new Error(data.message || 'Credenciais inválidas');
+          return messageOr('Credenciais inválidas');
         case 403:
-          return new Error(data.message || 'Acesso negado');
+          return messageOr('Acesso negado');
         case 422: {
           const details = data.error?.details || data.errors;
           if (Array.isArray(details) && details.length > 0) {
             return new Error(details.map(d => d.msg || d.message).join('. '));
           }
-          return new Error(data.error?.message || data.message || 'Dados inválidos');
+          return new Error(data.error?.message || apiMessage || 'Dados inválidos');
         }
         case 429:
-          return new Error(data.message || 'Muitas tentativas. Aguarde alguns minutos.');
+          return messageOr('Muitas tentativas. Aguarde alguns minutos.');
         default:
-          return new Error(data.message || 'Erro no servidor');
+          return messageOr('Erro no servidor');
       }
     }
-    
+
     return new Error('Erro de rede. Verifique sua conexão.');
   }
 } 

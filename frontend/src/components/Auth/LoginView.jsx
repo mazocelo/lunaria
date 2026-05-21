@@ -10,7 +10,7 @@ import { ROUTES } from '../../constants/routes.js';
 import { Eye, EyeOff } from 'lucide-react';
 
 const LoginView = ({ onSwitchToRegister }) => {
-  const { login, authService, loading, isAuthenticated } = useAuth();
+  const { login, authService, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -19,6 +19,7 @@ const LoginView = ({ onSwitchToRegister }) => {
   });
   const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -109,14 +110,16 @@ const LoginView = ({ onSwitchToRegister }) => {
     // Limpar notificação anterior
     setNotification(null);
 
+    setSubmitting(true);
     const result = await login(formData);
-    
+    setSubmitting(false);
+
     if (result.success) {
       setNotification({
         type: 'success',
         message: `Bem-vindo, ${result.user.nome}! Redirecionando...`
       });
-      
+
       // Redirect rápido após mostrar toast de sucesso
       setTimeout(() => {
         const redirectUrl = localStorage.getItem('redirectAfterLogin');
@@ -235,7 +238,7 @@ const LoginView = ({ onSwitchToRegister }) => {
                 onBlur={() => validateField('email')}
                 className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
                 placeholder="seu@email.com"
-                disabled={loading}
+                disabled={submitting}
                 autoComplete="email"
               />
               {errors.email && (
@@ -258,7 +261,7 @@ const LoginView = ({ onSwitchToRegister }) => {
                   onBlur={() => validateField('senha')}
                   className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
                   placeholder="••••••••"
-                  disabled={loading}
+                  disabled={submitting}
                   autoComplete="current-password"
                 />
                 <button
@@ -310,14 +313,14 @@ const LoginView = ({ onSwitchToRegister }) => {
             {/* Botão de login */}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className={`w-full btn-rpg h-12 text-base font-semibold transition-all duration-300 transform shadow-lg ${
-                loading 
-                  ? 'bg-gradient-to-r from-purple-600/70 to-cyan-600/70 cursor-not-allowed' 
+                submitting
+                  ? 'bg-gradient-to-r from-purple-600/70 to-cyan-600/70 cursor-not-allowed'
                   : 'bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 hover:scale-105 hover:shadow-purple-500/25'
               }`}
             >
-              {loading ? (
+              {submitting ? (
                 <div className="flex items-center justify-center gap-2">
                   <LoadingSpinner size="sm" />
                   <span>Entrando na aventura...</span>
@@ -372,7 +375,7 @@ const LoginView = ({ onSwitchToRegister }) => {
           type={notification.type}
           message={notification.message}
           onClose={() => setNotification(null)}
-          autoClose={notification.type === 'success' ? false : 5000}
+          duration={notification.type === 'success' ? 0 : 5000}
         />
       )}
 

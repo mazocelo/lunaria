@@ -52,20 +52,22 @@ export const AuthProvider = ({ children }) => {
    * @returns {Promise<Object>} Resultado do login
    */
   const login = async (credentials) => {
+    // `loading` global controla a verificacao inicial de auth (App.jsx troca a
+    // tela inteira por ele). O login NAO deve mexer nele: isso desmontaria a
+    // tela de login durante a requisicao e descartaria o feedback de erro.
     try {
-      setLoading(true);
       const response = await authService.login(credentials);
-      
+
       // Verificar se recebemos socketToken e dados do usuário
       if (response.socketToken && response.usuario) {
         // Armazenar socketToken no Zustand
         setSocketToken(response.socketToken);
-        
+
         setUser(response.usuario);
         setIsAuthenticated(true);
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           user: response.usuario,
           lembrarDeMim: response.lembrarDeMim
         };
@@ -74,12 +76,10 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Erro no login:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Erro ao fazer login' 
+      return {
+        success: false,
+        error: error.message || 'Erro ao fazer login'
       };
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -109,22 +109,21 @@ export const AuthProvider = ({ children }) => {
    * @returns {Promise<Object>} Resultado do registro
    */
   const register = async (userData) => {
+    // Mesmo motivo do `login`: nao mexer no `loading` global para nao
+    // desmontar a tela de registro durante a requisicao.
     try {
-      setLoading(true);
       const response = await authService.register(userData);
-      
+
       setUser(response.user);
       setIsAuthenticated(true);
-      
+
       return { success: true, user: response.user };
     } catch (error) {
       console.error('Erro no registro:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Erro ao registrar usuário' 
+      return {
+        success: false,
+        error: error.message || 'Erro ao registrar usuário'
       };
-    } finally {
-      setLoading(false);
     }
   };
 

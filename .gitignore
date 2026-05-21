@@ -1,0 +1,6 @@
+*.png
+.playwright-mcp/
+node_modules
+.env
+.env.*
+.drift-inventory.sql

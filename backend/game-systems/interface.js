@@ -49,6 +49,27 @@
  */
 
 /**
+ * @typedef {Object} MagiaConhecida
+ * @property {number} id - id no catálogo do sistema
+ * @property {'habilidades_magias'|'magias_tresdet'} fonte - tabela de origem
+ * @property {string} nome
+ * @property {'magia'|'tecnica'} tipo
+ * @property {string|null} escola - escola_magia (Lunaria/D&D) ou escola (3D&T)
+ * @property {number|string} custo - custo_mana (number) ou custo_pm (string 3D&T)
+ * @property {string} origem - 'criacao' | 'npc' | 'vantagem' | 'racial' | 'evento'
+ * @property {Object|null} upgradeAtivo - upgrade de escalamento ativo (Lunaria) ou null
+ */
+
+/**
+ * @typedef {Object} SlotsInfo
+ * @property {boolean} usaSlots - true só para Lunaria
+ * @property {number} total - total de slots no nível (0 se !usaSlots)
+ * @property {number} usados - magias conhecidas que ocupam slot
+ * @property {number} livres - total - usados
+ * @property {'slots'|'mana'|'pm'} recurso
+ */
+
+/**
  * @typedef {Object} GameEngine
  * @property {(atacante: Object, defensor: Object, acao: Object) => ResultadoAtaque} resolverAtaque
  * @property {(personagem: Object) => number} calcularIniciativa
@@ -62,6 +83,9 @@
  * @property {() => WizardStage[]} getWizardStages
  * @property {(dados: Object) => ResultadoValidacao} validarCriacao
  * @property {() => string} getRegrasMestrePrompt
+ * @property {(personagem: Object, db: Object) => Promise<MagiaConhecida[]>} getMagiasConhecidas - magias/técnicas que o personagem já possui
+ * @property {(personagem: Object, db: Object) => Promise<MagiaConhecida[]>} getMagiasDisponiveis - catálogo elegível, excluindo o já conhecido
+ * @property {(personagem: Object, db: Object) => Promise<SlotsInfo>} getSlotsInfo - capacidade de magia do personagem
  */
 
 /**

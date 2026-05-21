@@ -23,6 +23,12 @@ import {
   resolverConsumo,
 } from './combatEngine.js';
 
+import {
+  getMagiasConhecidas,
+  getMagiasDisponiveis,
+  getSlotsInfo,
+} from './magiaEngine.js';
+
 import { getRegrasMestrePrompt } from './prompts/regras.js';
 
 const WIZARD_STAGES = [
@@ -60,6 +66,10 @@ const lunariaEngine = {
   buildCombatState,
   getIniciativaConfig,
   resolverConsumo,
+  // contrato de magias (§5 spec H&M)
+  getMagiasConhecidas,
+  getMagiasDisponiveis,
+  getSlotsInfo,
 };
 
 export default lunariaEngine;

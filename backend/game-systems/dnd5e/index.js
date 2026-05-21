@@ -22,6 +22,12 @@ import {
 
 import { resolverTeste } from './testEngine.js';
 
+import {
+  getMagiasConhecidas,
+  getMagiasDisponiveis,
+  getSlotsInfo,
+} from './magiaEngine.js';
+
 import { getRegrasMestrePrompt } from './prompts/regras.js';
 
 const WIZARD_STAGES = [
@@ -57,6 +63,10 @@ const dnd5eEngine = {
   // D&D-specific extras
   resolverDeathSave,
   getSpellSlots,
+  // contrato de magias (§5 spec H&M)
+  getMagiasConhecidas,
+  getMagiasDisponiveis,
+  getSlotsInfo,
   // v2 interface stubs
   extrairBonusEquipamentos: () => { throw new Error('Not implemented: dnd5e.extrairBonusEquipamentos'); },
   buildCombatState: () => { throw new Error('Not implemented: dnd5e.buildCombatState'); },

@@ -64,6 +64,10 @@ const ItemTresDetListaPage = React.lazy(() => import('./Pages/ItemTresDet/Lista'
 const NovoItemTresDetPage = React.lazy(() => import('./Pages/ItemTresDet/Nova'));
 const EditarItemTresDetPage = React.lazy(() => import('./Pages/ItemTresDet/Editar'));
 const VerItemTresDetPage = React.lazy(() => import('./Pages/ItemTresDet/Ver'));
+const MagiaTresDetListaPage = React.lazy(() => import('./Pages/MagiaTresDet/Lista'));
+const NovaMagiaTresDetPage = React.lazy(() => import('./Pages/MagiaTresDet/Nova'));
+const EditarMagiaTresDetPage = React.lazy(() => import('./Pages/MagiaTresDet/Editar'));
+const VerMagiaTresDetPage = React.lazy(() => import('./Pages/MagiaTresDet/Ver'));
 const BillingPage = React.lazy(() => import('./Pages/Billing'));
 const AdminMotorPage = React.lazy(() => import('./Pages/Admin/Motor'));
 const DocsJogadorPage = React.lazy(() => import('./Pages/Docs/Jogador'));
@@ -374,6 +378,36 @@ const ROUTE_CONFIG = [
     path: ROUTES.VER_ITEM_TRESDET,
     component: VerItemTresDetPage,
     name: 'Ver Item 3D&T',
+    category: 'SISTEMA',
+    hasParams: true
+  },
+
+  // ===== MAGIAS 3D&T =====
+  {
+    path: ROUTES.MAGIAS_TRESDET,
+    component: MagiaTresDetListaPage,
+    name: 'Magias 3D&T',
+    category: 'SISTEMA'
+  },
+  {
+    path: ROUTES.NOVA_MAGIA_TRESDET,
+    component: NovaMagiaTresDetPage,
+    name: 'Nova Magia 3D&T',
+    category: 'SISTEMA',
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.EDITAR_MAGIA_TRESDET,
+    component: EditarMagiaTresDetPage,
+    name: 'Editar Magia 3D&T',
+    category: 'SISTEMA',
+    hasParams: true,
+    requireSuperAdmin: true
+  },
+  {
+    path: ROUTES.VER_MAGIA_TRESDET,
+    component: VerMagiaTresDetPage,
+    name: 'Ver Magia 3D&T',
     category: 'SISTEMA',
     hasParams: true
   },

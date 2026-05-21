@@ -1,6 +1,7 @@
 import { normalizarElemento } from '../config/domainConstants.js';
+import { ATRIBUTO_IDS } from '../game-systems/lunaria/constants.js';
 
-const ATRIBUTOS_BASE = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+const ATRIBUTOS_BASE = ATRIBUTO_IDS;
 
 function isPlainObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value);

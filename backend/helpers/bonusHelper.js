@@ -4,9 +4,10 @@
  */
 import logger from './logger.js';
 import { extrairAtributosBonus, normalizarBonusCombate } from './catalogJsonHelper.js';
+import { ATRIBUTO_IDS } from '../game-systems/lunaria/constants.js';
 
 const log = logger.child({ module: 'bonusHelper' });
-const ATRIBUTOS = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+const ATRIBUTOS = ATRIBUTO_IDS;
 
 /**
  * Parseia bonus de raca ou classe, aceitando string JSON legado ou objeto.
@@ -18,7 +19,7 @@ export function parsearBonusEntidade(bonusStr) {
     return extrairAtributosBonus(bonusStr);
   } catch (e) {
     log.warn({ err: e }, 'Erro ao parsear bonus');
-    return { forca: 0, inteligencia: 0, carisma: 0, destreza: 0, constituicao: 0, agilidade: 0 };
+    return Object.fromEntries(ATRIBUTOS.map(attr => [attr, 0]));
   }
 }
 

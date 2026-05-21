@@ -4,8 +4,9 @@
  */
 
 import { getEngine } from '../game-systems/index.js';
+import { ATRIBUTO_IDS } from '../game-systems/lunaria/constants.js';
 
-const LUNARIA_ATTRS = ['forca', 'destreza', 'constituicao', 'inteligencia', 'agilidade', 'carisma'];
+const LUNARIA_ATTRS = ATRIBUTO_IDS;
 
 /**
  * Builds a {nome: valor} map from an atributos array.

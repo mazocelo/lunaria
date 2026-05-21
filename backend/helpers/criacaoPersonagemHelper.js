@@ -1,7 +1,9 @@
-const ATRIBUTO_TOTAL_CRIACAO = 60;
-const ATRIBUTO_MIN_CRIACAO = 5;
-const ATRIBUTO_MAX_CRIACAO = 16;
-const ATRIBUTO_KEYS = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+import { ATRIBUTO_IDS, CRIACAO_ATRIBUTO_MIN, CRIACAO_ATRIBUTO_MAX, CRIACAO_ATRIBUTO_TOTAL } from '../game-systems/lunaria/constants.js';
+
+const ATRIBUTO_TOTAL_CRIACAO = CRIACAO_ATRIBUTO_TOTAL;
+const ATRIBUTO_MIN_CRIACAO = CRIACAO_ATRIBUTO_MIN;
+const ATRIBUTO_MAX_CRIACAO = CRIACAO_ATRIBUTO_MAX;
+const ATRIBUTO_KEYS = ATRIBUTO_IDS;
 
 export function validarAtributosCriacao(atributos) {
   const erros = [];

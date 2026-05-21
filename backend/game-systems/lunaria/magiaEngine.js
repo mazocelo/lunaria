@@ -47,6 +47,7 @@ function toMagiaConhecida(habilidade, origem, nivelPersonagem) {
     escola: habilidade.escola_magia || null,
     custo: habilidade.custo_mana ?? 0,
     origem: origem || 'criacao',
+    usa_concentracao: habilidade.usa_concentracao ?? false,
     upgradeAtivo: resolverUpgradeAtivo(habilidade, nivelPersonagem),
   };
 }

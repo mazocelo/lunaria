@@ -57,6 +57,7 @@
  * @property {string|null} escola - escola_magia (Lunaria/D&D) ou escola (3D&T)
  * @property {number|string} custo - custo_mana (number) ou custo_pm (string 3D&T)
  * @property {string} origem - 'criacao' | 'npc' | 'vantagem' | 'racial' | 'evento'
+ * @property {boolean} usa_concentracao - exige concentração para manter o efeito (Lunaria/D&D); 3D&T sempre false
  * @property {Object|null} upgradeAtivo - upgrade de escalamento ativo (Lunaria) ou null
  */
 

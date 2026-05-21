@@ -38,6 +38,8 @@ function toMagiaConhecida(magia, origem) {
     escola: magia.escola || null,
     custo: magia.custo_pm,
     origem: origem || 'criacao',
+    // 3D&T não tem mecânica de concentração — magias_tresdet não possui a coluna.
+    usa_concentracao: false,
     upgradeAtivo: null,
   };
 }

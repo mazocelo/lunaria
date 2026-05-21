@@ -21,6 +21,7 @@ import { parsearBonusEntidade } from '../../helpers/bonusHelper.js';
 import { getAtributosMap, LUNARIA_ATTRS, getAttrNamesForSystem } from '../../helpers/atributosHelper.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
 import { criarPersonagemTresDet } from '../../services/personagemTresDetService.js';
+import { getEngine } from '../../game-systems/index.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -215,40 +216,24 @@ class PersonagemController {
       }));
     }
 
-    // Buscar habilidades de classe/raça e magias
-    let habilidadesClasse = [];
-    let magias = [];
+    // getMagiasConhecidas lê o vínculo do personagem (hm_personagem /
+    // personagem_magia_tresdet), nunca o catálogo da classe/raça — ler o
+    // catálogo era a causa-raiz do bug das "161 magias".
+    personagemData.habilidadesClasse = [];
+    personagemData.magias = [];
     try {
-      const nivelAtual = personagemData.nivel || 1;
-      const habPromises = [];
-      if (personagemData.classe_id) habPromises.push(db.HabilidadeMagia.findByClasse(personagemData.classe_id));
-      if (personagemData.raca_id) habPromises.push(db.HabilidadeMagia.findByRaca(personagemData.raca_id));
-      if (habPromises.length > 0) {
-        const habResults = await Promise.all(habPromises);
-        const merged = habResults.flat();
-        const seen = new Set();
-        const todas = merged.filter(h => {
-          if (seen.has(h.id)) return false;
-          seen.add(h.id);
-          return (h.nivel_requerido || 1) <= nivelAtual;
-        });
-        magias = todas.filter(h => h.escola_magia && h.escola_magia !== 'nenhuma');
-        habilidadesClasse = todas.filter(h => !h.escola_magia || h.escola_magia === 'nenhuma');
+      const engine = getEngine(personagemData.sistema || 'lunaria');
+      const conhecidas = await engine.getMagiasConhecidas(personagemData, db);
+      for (const item of conhecidas) {
+        if (item.tipo === 'magia') {
+          personagemData.magias.push(item);
+        } else {
+          personagemData.habilidadesClasse.push(item);
+        }
       }
     } catch (err) {
-      log.warn({ err, personagemId: personagemData.id }, 'Erro ao buscar habilidades do personagem');
+      log.warn({ err, personagemId: personagemData.id }, 'Erro ao buscar magias conhecidas do personagem');
     }
-
-    const mapHabilidade = (h) => ({
-      id: h.id, nome: h.nome, descricao: h.descricao,
-      custo_mana: h.custo_mana || 0, cooldown_turnos: h.cooldown_turnos || 0,
-      dano_base: h.dano_base || null, tipo: h.tipo,
-      escola_magia: h.escola_magia || null, alcance: h.alcance || null, alvo: h.alvo || null,
-      usa_concentracao: h.usa_concentracao || false,
-      elemento: h.elemento || null, nivel_requerido: h.nivel_requerido || 1,
-    });
-    personagemData.habilidadesClasse = habilidadesClasse.map(mapHabilidade);
-    personagemData.magias = magias.map(mapHabilidade);
 
     return personagemData;
   }

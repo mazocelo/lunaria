@@ -155,20 +155,13 @@ function montarPersonagens4Pilares(personagens) {
     }
 
     // ── HABILIDADES DE CLASSE
+    // Shape enxuto de getMagiasConhecidas; o combate detalhado usa turnState/ownedActions.
     if (p.habilidadesClasse?.length) {
       resultado += `\n### HABILIDADES DE ${nome} (Classe: ${classe})\nHabilidades são ações ATIVAS que o jogador DECLARA usar. Custam mana e gastam ação.\n`;
       for (const h of p.habilidadesClasse) {
         const parts = [`**${h.nome}**`];
-        if (h.custo_mana) parts.push(`Mana: ${h.custo_mana}`);
-        if (h.cooldown_turnos) parts.push(`CD: ${h.cooldown_turnos}t`);
-        if (h.dano_base) parts.push(`Dano: ${h.dano_base}`);
-        if (h.elemento) parts.push(`Elem: ${h.elemento}`);
-        resultado += `- ${parts.join(' | ')}`;
-        if (h.descricao) resultado += `\n  ${h.descricao.substring(0, 120)}`;
-        if (h.efeito?.descricao) resultado += `\n  Efeito: ${h.efeito.descricao}`;
-        resultado += `\n  Alvo: ${h.alvo || 'inimigo'} | Alcance: ${h.alcance || 'medio'} | Ação: ${h.tempo_conjuracao || 'acao'}`;
-        if (h.escola_magia && h.escola_magia !== 'nenhuma') resultado += ` | Mágica (dissipável)`;
-        resultado += '\n';
+        if (h.custo) parts.push(`Custo: ${h.custo}`);
+        resultado += `- ${parts.join(' | ')}\n`;
       }
     }
 
@@ -177,16 +170,9 @@ function montarPersonagens4Pilares(personagens) {
       resultado += `\n### MAGIAS CONHECIDAS DE ${nome}\nMagias são feitiços do catálogo universal. Seguem regras de escola e concentração.\n`;
       for (const m of p.magias) {
         const parts = [`**${m.nome}**`];
-        if (m.escola_magia) parts.push(`Escola: ${m.escola_magia}`);
-        if (m.custo_mana) parts.push(`Mana: ${m.custo_mana}`);
-        if (m.dano_base) parts.push(`Dano: ${m.dano_base}`);
-        if (m.elemento) parts.push(`Elem: ${m.elemento}`);
-        resultado += `- ${parts.join(' | ')}`;
-        if (m.descricao) resultado += `\n  ${m.descricao.substring(0, 120)}`;
-        resultado += `\n  Concentração: ${m.usa_concentracao ? 'sim' : 'não'}`;
-        if (m.saving_throw) resultado += ` | Saving: ${m.saving_throw}`;
-        resultado += ` | Alcance: ${m.alcance || 'medio'}`;
-        resultado += '\n';
+        if (m.escola) parts.push(`Escola: ${m.escola}`);
+        if (m.custo) parts.push(`Custo: ${m.custo}`);
+        resultado += `- ${parts.join(' | ')}\n`;
       }
     }
   }

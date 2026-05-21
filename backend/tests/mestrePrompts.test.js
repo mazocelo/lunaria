@@ -37,28 +37,22 @@ const personagemCompleto = {
   ],
   habilidadesClasse: [
     {
+      id: 1,
       nome: 'Investida',
-      custo_mana: 3,
-      cooldown_turnos: 2,
-      dano_base: '2d6',
-      elemento: 'fisico',
-      descricao: 'Avança contra o inimigo com força total',
-      alvo: 'inimigo',
-      alcance: 'curto',
-      tempo_conjuracao: 'acao',
+      tipo: 'tecnica',
+      escola: null,
+      custo: 3,
+      origem: 'criacao',
     },
   ],
   magias: [
     {
+      id: 2,
       nome: 'Cura Menor',
-      escola_magia: 'restauracao',
-      custo_mana: 2,
-      dano_base: null,
-      elemento: 'sagrado',
-      descricao: 'Restaura uma pequena quantidade de vida',
-      usa_concentracao: false,
-      saving_throw: null,
-      alcance: 'toque',
+      tipo: 'magia',
+      escola: 'restauracao',
+      custo: 2,
+      origem: 'criacao',
     },
   ],
 };
@@ -269,7 +263,7 @@ describe('criarPromptSistema', () => {
     it('inclui habilidades de classe', () => {
       const result = criarPromptSistema([], [personagemCompleto]);
       expect(result).toContain('Investida');
-      expect(result).toContain('Mana: 3');
+      expect(result).toContain('Custo: 3');
     });
 
     it('inclui magias conhecidas', () => {

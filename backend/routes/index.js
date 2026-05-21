@@ -123,6 +123,7 @@ router.use('/equipamentos', authenticateToken, equipamentoRoutes);
 router.use('/catalogos', authenticateToken, catalogosRoutes);
 router.use('/itens-tresdet', authenticateToken, itensTresdetRoutes);
 router.use('/magias-tresdet', authenticateToken, magiasTresdetRoutes);
+// DEPRECATED: alias de /habilidades-magias (frontend ainda usa /habilidades)
 router.use('/habilidades', authenticateToken, habilidadesMagiasRoutes);
 router.use('/habilidades-magias', authenticateToken, habilidadesMagiasRoutes);
 router.use('/websocket',authenticateToken, websocketRoutes);

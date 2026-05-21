@@ -20,9 +20,10 @@ vi.mock('../../services/index.js', () => ({
   },
 }));
 
-import { useClasseStore, useClasseSelectors } from '../../store/classe/index.js';
+import { useClasseStore } from '../../store/classe/index.js';
 import { classeInitialStates } from '../../store/classe/states.js';
 import { classeService } from '../../services/index.js';
+import { resetStore } from '../helpers/resetStore.js';
 
 const SAMPLE_CLASSES = [
   { id: 1, nome: 'Guerreiro', descricao: 'Fighter class', nivel_inicial: 1 },
@@ -31,7 +32,7 @@ const SAMPLE_CLASSES = [
 ];
 
 beforeEach(() => {
-  useClasseStore.setState({ ...classeInitialStates }, true);
+  resetStore(useClasseStore, classeInitialStates);
   vi.clearAllMocks();
 });
 

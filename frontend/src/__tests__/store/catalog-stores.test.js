@@ -70,6 +70,29 @@ import { desvantagemInitialStates } from '../../store/desvantagem/states.js';
 import { useMonstroStore } from '../../store/monstro/index.js';
 import { monstroInitialStates } from '../../store/monstro/states.js';
 
+import { resetStore } from '../helpers/resetStore.js';
+
+/**
+ * Constrói uma cópia fresca dos estados iniciais, recriando instâncias
+ * de Map/Array/objeto para que cada teste comece sem referências
+ * compartilhadas. As ações do combine() são preservadas pelo resetStore.
+ */
+function freshInitialStates(initialStates) {
+  const fresh = {};
+  for (const [key, val] of Object.entries(initialStates)) {
+    if (val instanceof Map) {
+      fresh[key] = new Map();
+    } else if (Array.isArray(val)) {
+      fresh[key] = [];
+    } else if (val !== null && typeof val === 'object') {
+      fresh[key] = { ...val };
+    } else {
+      fresh[key] = val;
+    }
+  }
+  return fresh;
+}
+
 // =====================================================================
 // Helper to test common catalog store patterns
 // =====================================================================
@@ -86,24 +109,11 @@ import { monstroInitialStates } from '../../store/monstro/states.js';
  *   @param {boolean} opts.hasMapCache - Whether the store uses Map() for caches
  */
 function describeCatalogStore(name, store, initialStates, opts) {
-  const { listKeys = [], loadedKey, hasMapCache = false } = opts;
+  const { listKeys = [], loadedKey } = opts;
 
   describe(`${name} - Initial State`, () => {
     beforeEach(() => {
-      // Deep-reset: for stores using Map, we need to recreate them
-      const resetState = {};
-      for (const [key, val] of Object.entries(initialStates)) {
-        if (val instanceof Map) {
-          resetState[key] = new Map();
-        } else if (Array.isArray(val)) {
-          resetState[key] = [];
-        } else if (val !== null && typeof val === 'object') {
-          resetState[key] = { ...val };
-        } else {
-          resetState[key] = val;
-        }
-      }
-      store.setState(resetState, true);
+      resetStore(store, freshInitialStates(initialStates));
     });
 
     for (const listKey of listKeys) {
@@ -134,19 +144,7 @@ function describeCatalogStore(name, store, initialStates, opts) {
 
   describe(`${name} - State Mutations`, () => {
     beforeEach(() => {
-      const resetState = {};
-      for (const [key, val] of Object.entries(initialStates)) {
-        if (val instanceof Map) {
-          resetState[key] = new Map();
-        } else if (Array.isArray(val)) {
-          resetState[key] = [];
-        } else if (val !== null && typeof val === 'object') {
-          resetState[key] = { ...val };
-        } else {
-          resetState[key] = val;
-        }
-      }
-      store.setState(resetState, true);
+      resetStore(store, freshInitialStates(initialStates));
     });
 
     it('can set loading to true', () => {
@@ -262,10 +260,10 @@ describeCatalogStore('Monstro Store', useMonstroStore, monstroInitialStates, {
 
 describe('Personagem Store - Actions', () => {
   beforeEach(() => {
-    usePersonagemStore.setState({
-      ...personagemInitialStates,
+    resetStore(usePersonagemStore, {
+      ...freshInitialStates(personagemInitialStates),
       personagensPorId: new Map(),
-    }, true);
+    });
   });
 
   it('processarPersonagens populates personagens and map', () => {
@@ -333,7 +331,7 @@ describe('Personagem Store - Actions', () => {
 
 describe('Feed Store - Specific State', () => {
   beforeEach(() => {
-    useFeedStore.setState({ ...feedInitialStates }, true);
+    resetStore(useFeedStore, freshInitialStates(feedInitialStates));
   });
 
   it('has activeTab = "amigos" by default', () => {
@@ -360,7 +358,7 @@ describe('Feed Store - Specific State', () => {
 
 describe('Amizade Store - Specific State', () => {
   beforeEach(() => {
-    useAmizadeStore.setState({ ...amizadeInitialStates }, true);
+    resetStore(useAmizadeStore, freshInitialStates(amizadeInitialStates));
   });
 
   it('tracks three separate loaded flags', () => {
@@ -388,11 +386,11 @@ describe('Amizade Store - Specific State', () => {
 
 describe('Vantagem Store - Cost Partitioning', () => {
   beforeEach(() => {
-    useVantagemStore.setState({
-      ...vantagemInitialStates,
+    resetStore(useVantagemStore, {
+      ...freshInitialStates(vantagemInitialStates),
       vantagensPorId: new Map(),
       vantagensPorNome: new Map(),
-    }, true);
+    });
   });
 
   it('initial vantagensPositivas is empty', () => {
@@ -414,13 +412,13 @@ describe('Vantagem Store - Cost Partitioning', () => {
 
 describe('Desvantagem Store - Specific State', () => {
   beforeEach(() => {
-    useDesvantagemStore.setState({
-      ...desvantagemInitialStates,
+    resetStore(useDesvantagemStore, {
+      ...freshInitialStates(desvantagemInitialStates),
       desvantagensPorId: new Map(),
       desvantagensPorNome: new Map(),
       desvantagensPorNivel: new Map(),
       desvantagensPorTipo: new Map(),
-    }, true);
+    });
   });
 
   it('has empty desvantagensAtivas', () => {
@@ -443,7 +441,7 @@ describe('Desvantagem Store - Specific State', () => {
 
 describe('Raca Store - Specific State', () => {
   beforeEach(() => {
-    useRacaStore.setState({ ...racaInitialStates }, true);
+    resetStore(useRacaStore, freshInitialStates(racaInitialStates));
   });
 
   it('has pagination metadata', () => {

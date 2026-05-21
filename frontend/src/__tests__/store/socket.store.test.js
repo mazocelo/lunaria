@@ -44,24 +44,17 @@ vi.mock('../../components/Jogo/NotificationManager.jsx', () => ({
 // ---- Import store after mocks are in place ----
 import { useSocketStore, socketInitialStates } from '../../store/socket/index.js';
 import { transicaoFase, FASES_VALIDAS } from '../../store/socket/faseMachine.js';
-
-// Helper: deep-clone plain initial states (ignores Map/Set; sockets are null)
-function cloneInitialState() {
-  return JSON.parse(JSON.stringify({
-    ...socketInitialStates,
-    listeners: {},   // Map cannot be JSON-serialized
-    socket: null,
-  }));
-}
+import { resetStore } from '../helpers/resetStore.js';
 
 // ---- Reset store before each test ----
 beforeEach(() => {
-  useSocketStore.setState({
+  // Reseta preservando as ações do combine(); recria os defaults
+  // não-serializáveis para cada teste começar limpo.
+  resetStore(useSocketStore, {
     ...socketInitialStates,
-    // Overwrite non-serialisable defaults so each test starts clean
     listeners: new Map(),
     socket: null,
-  }, true); // `true` replaces state entirely
+  });
 });
 
 // ===========================================================================

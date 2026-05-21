@@ -21,9 +21,10 @@ vi.mock('../../services/index.js', () => ({
   },
 }));
 
-import { useTemaStore, useTemaSelectors } from '../../store/tema/index.js';
+import { useTemaStore } from '../../store/tema/index.js';
 import { temaInitialStates } from '../../store/tema/states.js';
 import { temaService } from '../../services/index.js';
+import { resetStore } from '../helpers/resetStore.js';
 
 const SAMPLE_TEMAS = [
   { id: 1, nome: 'Fantasia' },
@@ -33,7 +34,7 @@ const SAMPLE_TEMAS = [
 
 // ---- Reset store before each test ----
 beforeEach(() => {
-  useTemaStore.setState({ ...temaInitialStates }, true);
+  resetStore(useTemaStore, temaInitialStates);
   vi.clearAllMocks();
 });
 

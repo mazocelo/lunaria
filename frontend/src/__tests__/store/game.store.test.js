@@ -39,11 +39,12 @@ vi.mock('../../utils/gameMessageNormalizer.js', () => ({
 
 import { useGameStore, gameInitialStates } from '../../store/game/index.js';
 import { useGameSelectors } from '../../store/game/index.js';
+import { resetStore } from '../helpers/resetStore.js';
 
 // ---- Reset store before each test ----
 beforeEach(() => {
-  // Reset Zustand state fully
-  useGameStore.setState({ ...gameInitialStates }, true);
+  // Reset Zustand state preservando as ações do combine()
+  resetStore(useGameStore, gameInitialStates);
   localStorage.clear();
 });
 

@@ -1,37 +1,81 @@
 /**
- * Seed hm_raca — vincula habilidades raciais às suas raças.
+ * Seed hm_raca — vincula habilidades raciais às suas raças (Lunaria).
  * Uso: node prisma/seed_hm_raca.js
+ *
+ * Decisão D4 do modelo híbrido H&M: `hm_raca` é a FONTE DE VERDADE das
+ * habilidades raciais. Este seed DECLARA os vínculos [habilidade, raça]
+ * explicitamente — a partir do arquivo de dados versionado
+ * `habilidades_completas.js` (entradas com `raca_id`), e NÃO derivando da
+ * coluna legada `habilidades_magias.raca_id` lida do banco.
+ *
+ * Idempotente: usa upsert pela chave única @@unique([habilidade_id, raca_id]).
+ * Rodar duas vezes não duplica linha.
  */
 import { PrismaClient } from '@prisma/client';
+import habilidades from './habilidades_completas.js';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  const raciais = await prisma.habilidades_magias.findMany({
-    where: { sistema: 'lunaria', raca_id: { not: null } },
-    select: { id: true, raca_id: true },
-  });
+/**
+ * Declaração explícita dos vínculos raciais: cada habilidade do catálogo de
+ * dados que possui `raca_id` é uma habilidade racial. (nome, raca_id) é a
+ * fonte da declaração; o seed resolve para os ids reais do banco.
+ */
+const VINCULOS_RACIAIS = habilidades
+  .filter((h) => h.raca_id != null)
+  .map((h) => ({ habilidade: h.nome, raca_id: h.raca_id }));
 
-  if (raciais.length === 0) {
-    console.log('hm_raca: nenhuma habilidade racial encontrada.');
+async function main() {
+  if (VINCULOS_RACIAIS.length === 0) {
+    console.log('hm_raca: nenhum vínculo racial declarado.');
     return;
   }
 
-  const bindings = raciais.map(h => ({
-    habilidade_id: h.id,
-    raca_id: h.raca_id,
-  }));
+  const antes = await prisma.hm_raca.count();
 
-  await prisma.hm_raca.deleteMany();
+  let vinculados = 0;
+  const semHabilidade = [];
+  const semRaca = [];
 
-  const result = await prisma.hm_raca.createMany({ data: bindings, skipDuplicates: true });
+  for (const { habilidade, raca_id } of VINCULOS_RACIAIS) {
+    const hab = await prisma.habilidades_magias.findUnique({
+      where: { nome_sistema: { nome: habilidade, sistema: 'lunaria' } },
+      select: { id: true },
+    });
+    if (!hab) {
+      semHabilidade.push(habilidade);
+      continue;
+    }
 
-  console.log(`hm_raca: ${result.count} vínculos criados.`);
+    const raca = await prisma.racas.findUnique({ where: { id: raca_id }, select: { id: true } });
+    if (!raca) {
+      semRaca.push({ habilidade, raca_id });
+      continue;
+    }
 
-  const total = await prisma.hm_raca.count();
-  console.log(`Total hm_raca no banco: ${total}`);
+    await prisma.hm_raca.upsert({
+      where: { habilidade_id_raca_id: { habilidade_id: hab.id, raca_id } },
+      create: { habilidade_id: hab.id, raca_id },
+      update: {},
+    });
+    vinculados++;
+  }
+
+  const depois = await prisma.hm_raca.count();
+
+  console.log(`hm_raca: ${vinculados} vínculos declarados aplicados (de ${VINCULOS_RACIAIS.length}).`);
+  if (semHabilidade.length > 0) {
+    console.warn(`  ${semHabilidade.length} habilidade(s) racial(is) ausente(s) no catálogo: ${semHabilidade.join(', ')}`);
+  }
+  if (semRaca.length > 0) {
+    console.warn(`  ${semRaca.length} raça(s) ausente(s): ${semRaca.map((r) => `${r.habilidade}→raca ${r.raca_id}`).join(', ')}`);
+  }
+  console.log(`Total hm_raca no banco: ${antes} → ${depois}.`);
 }
 
 main()
-  .catch(e => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());

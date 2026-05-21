@@ -8,6 +8,9 @@
  *  - universal (classe_id=null, raca_id=null):
  *      - técnica de combate (escola_magia null ou 'nenhuma'): vincula a TODAS as classes
  *      - magia (escola_magia com valor real): vincula apenas a classes com slots > 0
+ *
+ * Idempotente: usa upsert pela chave única @@unique([habilidade_id, classe_id]).
+ * Rodar duas vezes não duplica linha.
  */
 import { PrismaClient } from '@prisma/client';
 
@@ -45,20 +48,20 @@ async function main() {
     }
   }
 
-  await prisma.hm_classe.deleteMany();
+  const antes = await prisma.hm_classe.count();
 
-  const BATCH = 500;
-  let created = 0;
-  for (let i = 0; i < bindings.length; i += BATCH) {
-    const batch = bindings.slice(i, i + BATCH);
-    const result = await prisma.hm_classe.createMany({ data: batch, skipDuplicates: true });
-    created += result.count;
+  for (const { habilidade_id, classe_id } of bindings) {
+    await prisma.hm_classe.upsert({
+      where: { habilidade_id_classe_id: { habilidade_id, classe_id } },
+      create: { habilidade_id, classe_id },
+      update: {},
+    });
   }
 
-  console.log(`hm_classe: ${created} vínculos criados (de ${bindings.length} preparados).`);
+  const depois = await prisma.hm_classe.count();
 
-  const total = await prisma.hm_classe.count();
-  console.log(`Total hm_classe no banco: ${total}`);
+  console.log(`hm_classe: ${bindings.length} vínculos declarados aplicados.`);
+  console.log(`Total hm_classe no banco: ${antes} → ${depois}.`);
 }
 
 main()

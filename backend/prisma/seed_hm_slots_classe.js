@@ -1,6 +1,10 @@
 /**
  * Seed hm_slots_classe — progressão de slots de magia por classe e nível (1-20).
  * Uso: node prisma/seed_hm_slots_classe.js
+ *
+ * Idempotente: usa upsert pela chave única @@unique([classe_id, nivel]).
+ * Rodar duas vezes não duplica linha; uma reclassificação de classe atualiza
+ * o valor de `slots` da linha existente.
  */
 import { PrismaClient } from '@prisma/client';
 
@@ -51,20 +55,20 @@ async function main() {
     console.log(`  ${classe.nome} → ${category} (lv1: ${calcSlots(category, 1)}, lv20: ${calcSlots(category, 20)})`);
   }
 
-  await prisma.hm_slots_classe.deleteMany();
+  const antes = await prisma.hm_slots_classe.count();
 
-  const BATCH = 500;
-  let created = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH);
-    const result = await prisma.hm_slots_classe.createMany({ data: batch, skipDuplicates: true });
-    created += result.count;
+  for (const { classe_id, nivel, slots } of rows) {
+    await prisma.hm_slots_classe.upsert({
+      where: { classe_id_nivel: { classe_id, nivel } },
+      create: { classe_id, nivel, slots },
+      update: { slots },
+    });
   }
 
-  console.log(`hm_slots_classe: ${created} linhas criadas (${classes.length} classes × 20 níveis).`);
+  const depois = await prisma.hm_slots_classe.count();
 
-  const total = await prisma.hm_slots_classe.count();
-  console.log(`Total hm_slots_classe no banco: ${total}`);
+  console.log(`hm_slots_classe: ${rows.length} linhas aplicadas (${classes.length} classes × 20 níveis).`);
+  console.log(`Total hm_slots_classe no banco: ${antes} → ${depois}.`);
 }
 
 main()

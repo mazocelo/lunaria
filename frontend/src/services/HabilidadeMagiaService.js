@@ -1,6 +1,6 @@
 import generateGETparams from './generateGETparams';
 
-export class HabilidadeService {
+export class HabilidadeMagiaService {
   constructor(apiClient) {
     this.apiClient = apiClient;
     this.baseUrl = '/habilidades';

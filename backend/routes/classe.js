@@ -95,6 +95,12 @@ router.post('/', writeLimiter, authenticateToken, requireSuperAdmin, asyncHandle
  *           type: integer
  *           default: 0
  *         description: Offset para paginação
+ *       - in: query
+ *         name: sistema
+ *         schema:
+ *           type: string
+ *           default: lunaria
+ *         description: Sistema de RPG (lunaria, dnd5e, tresdet)
  *     responses:
  *       200:
  *         description: Lista de classes

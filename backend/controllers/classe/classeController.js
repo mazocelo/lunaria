@@ -1,8 +1,18 @@
 import db from '../../Model/index.js';
 import logger from '../../helpers/logger.js';
 import { serializarBonusEntidade, serializarClasseOuRaca } from '../../helpers/catalogJsonHelper.js';
+import { getAvailableSystems } from '../../game-systems/index.js';
 
 const log = logger.child({ module: 'classeController' });
+
+/** Valida o query param `sistema`: ausente/vazio cai no default do Model. */
+function resolveSistemaQuery(raw) {
+  if (raw === undefined || raw === '') return { value: undefined };
+  if (!getAvailableSystems().includes(raw)) {
+    return { error: `sistema invalido. Use um de: ${getAvailableSystems().join(', ')}` };
+  }
+  return { value: raw };
+}
 
 function validateBonusPayload(body = {}) {
   const raw = body.bonus !== undefined ? body.bonus : body.atributos_bonus;
@@ -55,11 +65,14 @@ class ClasseController {
   async listarClasses(req, res) {
     try {
       const { limit, offset } = req.query;
+      const sistemaQuery = resolveSistemaQuery(req.query.sistema);
+      if (sistemaQuery.error) return res.status(400).json({ error: sistemaQuery.error });
+      const sistema = sistemaQuery.value;
 
       if (limit !== undefined) {
         const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
         const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
-        const result = await db.Classe.findPaginated({ limit: parsedLimit, offset: parsedOffset });
+        const result = await db.Classe.findPaginated({ limit: parsedLimit, offset: parsedOffset, sistema });
         return res.status(200).json({
           success: true,
           data: result.data.map(serializarClasseOuRaca),
@@ -72,7 +85,7 @@ class ClasseController {
         });
       }
 
-      const data = await db.Classe.findAll();
+      const data = await db.Classe.findAll(sistema);
       res.status(200).json({
         success: true,
         data: data.map(serializarClasseOuRaca),

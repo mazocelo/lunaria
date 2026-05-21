@@ -8,13 +8,10 @@ import { ABILITY_IDS, SRD_CLASSES } from '../game-systems/dnd5e/constants.js';
 import { validarCriacao } from '../game-systems/dnd5e/characterEngine.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../helpers/sanitize.js';
 import { xpParaNivel } from '../helpers/evolucaoHelper.js';
+import { httpError } from '../helpers/httpError.js';
 import logger from '../helpers/logger.js';
 
 const log = logger.child({ module: 'PersonagemDnd5eService' });
-
-function httpError(statusCode, message) {
-  return Object.assign(new Error(message), { statusCode });
-}
 
 function normalizeIds(raw, fieldName) {
   if (!raw) return [];
@@ -53,8 +50,8 @@ export async function criarPersonagemDnd5e(body, userId) {
 
   const scores = lerAbilityScores(body);
 
-  // Validacao D&D (point buy / standard array). Quando o metodo nao e
-  // informado, validarCriacao apenas confere os limites de sigla.
+  // Validacao D&D conforme o metodo informado (point_buy / standard_array).
+  // Sem metodo, validarCriacao nao aplica restricao de distribuicao.
   const validacao = validarCriacao({ ...scores, metodo });
   if (!validacao.valido) {
     throw httpError(400, validacao.erros.join('; '));

@@ -15,13 +15,10 @@ import { validarAtributosCriacao } from '../helpers/criacaoPersonagemHelper.js';
 import { parsearBonusEntidade } from '../helpers/bonusHelper.js';
 import { getAttrNamesForSystem } from '../helpers/atributosHelper.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../helpers/sanitize.js';
+import { httpError } from '../helpers/httpError.js';
 import logger from '../helpers/logger.js';
 
 const log = logger.child({ module: 'PersonagemLunariaService' });
-
-function httpError(statusCode, message) {
-  return Object.assign(new Error(message), { statusCode });
-}
 
 function normalizeRelationIds(rawIds, fieldName) {
   if (rawIds === undefined || rawIds === null) return [];
@@ -34,11 +31,6 @@ function normalizeRelationIds(rawIds, fieldName) {
     throw httpError(400, `${fieldName} contem IDs invalidos: ${invalidIds.join(', ')}`);
   }
   return [...new Set(parsedIds)];
-}
-
-function toInteger(value) {
-  if (value === undefined || value === null) return value;
-  return parseInt(value, 10);
 }
 
 /**
@@ -176,14 +168,14 @@ export async function criarPersonagemLunaria(body, userId) {
   const pontosIniciais = calcularPontosVantagem(nivelEfetivo, racaCusto, classeCusto, 0);
   const dadosPersonagem = {
     nome: nomeSanitizado,
-    nivel: toInteger(nivelEfetivo),
+    nivel: parseInt(nivelEfetivo, 10),
     pontos_totais: 0,
-    pontos_iniciais: toInteger(pontosIniciais),
+    pontos_iniciais: parseInt(pontosIniciais, 10),
     background: backgroundFinal,
-    raca_id: raca_id ? toInteger(raca_id) : null,
-    classe_id: classe_id ? toInteger(classe_id) : null,
+    raca_id: raca_id ? parseInt(raca_id, 10) : null,
+    classe_id: classe_id ? parseInt(classe_id, 10) : null,
     xp_atual: 0,
-    xp_proximo_nivel: toInteger(xpParaNivel(nivelEfetivo)),
+    xp_proximo_nivel: parseInt(xpParaNivel(nivelEfetivo), 10),
     pontos_atributo_pendentes: 0,
     id_usuario: userId || null,
     criado_em: new Date(),

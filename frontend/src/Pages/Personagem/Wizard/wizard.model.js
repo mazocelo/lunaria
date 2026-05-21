@@ -14,6 +14,7 @@ import { useComboPreview } from './hooks/useComboPreview';
 import { useMestreInteraction } from './hooks/useMestreInteraction';
 import { useCharacterCreation } from './hooks/useCharacterCreation';
 import { useCharacterImage } from './hooks/useCharacterImage';
+import { useGrimorio } from './hooks/useGrimorio';
 import { useWizardInit } from './hooks/useWizardInit';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
@@ -119,11 +120,13 @@ export const useWizardModel = ({ navigate }) => {
     atributosBase: bonusCalc.atributosBase,
     etapaAtual: null, estadoRef,
   });
+  const grimorio = useGrimorio({ racaId, racasDisponiveis });
   const navigation = useWizardNavigation(draftInicial, {
     nome, racaId, classeId, background,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds,
     skipVantagens: pointSystem.skipVantagens, skipDesvantagens: pointSystem.skipDesvantagens,
     bonusAplicados: bonusCalc.bonusAplicados, comboPreviewData: comboPreview.comboPreviewData,
+    grimorioSelecionado: grimorio.grimorioSelecionado,
   });
 
   // --- Orchestration effects ---
@@ -156,6 +159,33 @@ export const useWizardModel = ({ navigate }) => {
       comboPreview.comboPreviewLoading, comboPreview.comboPreviewData,
       comboPreview.comboPreviewBuildKey, comboPreview.carregarComboPreview,
       comboPreview.jaCarregouBuildAtual]);
+
+  // Auto-load grimorio na etapa grimorio; auto-pula se a raca nao usa magia
+  useEffect(() => {
+    if (navigation.etapaAtual !== 'grimorio') return;
+    if (!classeId) return;
+    if (grimorio.devePularGrimorio) {
+      grimorio.confirmarGrimorio();
+      navigation.avancarEtapa();
+      return;
+    }
+    grimorio.carregarGrimorio(classeId);
+  }, [navigation.etapaAtual, classeId, grimorio.devePularGrimorio]);
+
+  // Auto-skip grimorio after loading if slots are 0
+  useEffect(() => {
+    if (navigation.etapaAtual !== 'grimorio') return;
+    if (grimorio.grimorioLoading) return;
+    if (grimorio.grimorioSlots === 0 && !grimorio.grimorioSelecionado) {
+      grimorio.confirmarGrimorio();
+      navigation.avancarEtapa();
+    }
+  }, [navigation.etapaAtual, grimorio.grimorioLoading, grimorio.grimorioSlots, grimorio.grimorioSelecionado]);
+
+  // Reset grimorio when class changes
+  useEffect(() => {
+    grimorio.resetGrimorio();
+  }, [classeId]);
 
   // Load catalogs on mount
   useEffect(() => {
@@ -201,6 +231,7 @@ export const useWizardModel = ({ navigate }) => {
     navigation, bonusCalc, pointSystem,
     estadoRef, setError, limparDraft, recarregarPersonagens,
     imageUrl: characterImage.imageUrl,
+    grimorioSelecionadas: grimorio.grimorioSelecionadas,
   });
   const { descartarDraft } = useWizardInit({
     chat, navigation, nome, racaId,
@@ -209,6 +240,12 @@ export const useWizardModel = ({ navigate }) => {
     draftInicial, limparDraft, setDraftRestaurado,
     getEstado, comboPreview,
   });
+
+  // Grimorio: confirmar selecao e avancar
+  const confirmarEAvancarGrimorio = useCallback(() => {
+    grimorio.confirmarGrimorio();
+    navigation.avancarEtapa();
+  }, [grimorio.confirmarGrimorio, navigation.avancarEtapa]);
 
   // --- Return ---
   return {
@@ -277,6 +314,15 @@ export const useWizardModel = ({ navigate }) => {
     imageError: characterImage.imageError,
     gerarImagem: characterImage.gerarImagem,
     resetImage: characterImage.resetImage,
+    // Grimorio
+    grimorioMagias: grimorio.grimorioMagias,
+    grimorioSlots: grimorio.grimorioSlots,
+    grimorioSelecionadas: grimorio.grimorioSelecionadas,
+    grimorioLoading: grimorio.grimorioLoading,
+    grimorioError: grimorio.grimorioError,
+    grimorioSelecionado: grimorio.grimorioSelecionado,
+    toggleGrimorioMagia: grimorio.toggleGrimorioMagia,
+    confirmarGrimorio: confirmarEAvancarGrimorio,
     navigate,
   };
 };

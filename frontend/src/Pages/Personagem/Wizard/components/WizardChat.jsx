@@ -6,6 +6,7 @@ import AttributeDistributor from './AttributeDistributor.jsx';
 import MasterAvatarGlyph from './MasterAvatarGlyph.jsx';
 import DestinoResolutivaBlock from './DestinoResolutivaBlock.jsx';
 import EquipamentosBlock from './EquipamentosBlock.jsx';
+import GrimorioBlock from './GrimorioBlock.jsx';
 import { getStageConfig } from '../stages/stageConfig.js';
 import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
 
@@ -65,6 +66,13 @@ const WizardChat = ({
   imageLoading = false,
   imageError = null,
   onGerarImagem,
+  grimorioMagias = [],
+  grimorioSlots = 0,
+  grimorioSelecionadas = [],
+  grimorioLoading = false,
+  grimorioError = null,
+  onToggleGrimorioMagia,
+  onConfirmarGrimorio,
   embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -121,6 +129,7 @@ const WizardChat = ({
   const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat);
   const textoContinuarSelecoes = getContinueLabel(etapaAtual);
   const isEquipamentosStage = etapaAtual === 'equipamentos';
+  const isGrimorioStage = etapaAtual === 'grimorio';
   const isDestinoResolutivo = etapaAtual === 'resumo';
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
@@ -623,6 +632,19 @@ const WizardChat = ({
           />
         )}
 
+        {isGrimorioStage && (
+          <GrimorioBlock
+            magias={grimorioMagias}
+            slots={grimorioSlots}
+            selecionadas={grimorioSelecionadas}
+            onToggleMagia={onToggleGrimorioMagia}
+            onContinuar={onConfirmarGrimorio}
+            loading={grimorioLoading}
+            error={grimorioError}
+            isLight={isLight}
+          />
+        )}
+
         {isDestinoResolutivo && (
           <DestinoResolutivaBlock
             data={comboPreviewData}
@@ -660,10 +682,21 @@ const WizardChat = ({
         <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-              Revise o arsenal acima. Confirme para avancar ao resumo final.
+              Revise o arsenal acima. Confirme para avancar ao grimorio.
             </p>
             <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
               Arsenal definido pelo Mestre
+            </span>
+          </div>
+        </div>
+      ) : isGrimorioStage ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Selecione magias acima para preencher os slots do grimorio.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Grimorio — escolha do jogador
             </span>
           </div>
         </div>

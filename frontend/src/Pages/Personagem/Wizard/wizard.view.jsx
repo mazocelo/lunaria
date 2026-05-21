@@ -98,6 +98,14 @@ const WizardView = (props) => {
     imageLoading,
     imageError,
     gerarImagem,
+    grimorioMagias,
+    grimorioSlots,
+    grimorioSelecionadas,
+    grimorioLoading,
+    grimorioError,
+    grimorioSelecionado,
+    toggleGrimorioMagia,
+    confirmarGrimorio,
     navigate,
   } = props;
 
@@ -127,6 +135,7 @@ const WizardView = (props) => {
     racaAtual, classeAtual,
     orcamentoCriacaoValido: pontosCriacaoRestantes >= 0,
     pontosCriacaoRestantes,
+    grimorioSelecionado,
   }), [
     nome, racaId, classeId, background,
     vantagensIds, desvantagensIds,
@@ -134,6 +143,7 @@ const WizardView = (props) => {
     bonusAplicados, bonusInvalidado,
     racaAtual, classeAtual,
     pontosCriacaoRestantes,
+    grimorioSelecionado,
   ]);
 
   const podeCriar = useMemo(() => canCreate(buildState), [buildState]);
@@ -309,6 +319,13 @@ const WizardView = (props) => {
                 imageUrl={imageUrl}
                 imageLoading={imageLoading}
                 imageError={imageError}
+                grimorioMagias={grimorioMagias}
+                grimorioSlots={grimorioSlots}
+                grimorioSelecionadas={grimorioSelecionadas}
+                grimorioLoading={grimorioLoading}
+                grimorioError={grimorioError}
+                onToggleGrimorioMagia={toggleGrimorioMagia}
+                onConfirmarGrimorio={confirmarGrimorio}
                 onGerarImagem={() => gerarImagem({
                   nome,
                   racaNome: racaAtual?.nome,

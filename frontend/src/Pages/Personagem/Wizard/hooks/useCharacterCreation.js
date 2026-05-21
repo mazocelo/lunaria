@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { Personagem } from '../../../../models/Personagem';
-import { personagemService } from '../../../../services/index.js';
+import { personagemService, apiClient } from '../../../../services/index.js';
 
 /**
  * Encapsulates the character save flow: validation, creation, background
@@ -11,7 +11,7 @@ export const useCharacterCreation = ({
   getEstado, navigate, comboPreviewData, comboPreviewLoading,
   navigation, bonusCalc, pointSystem,
   estadoRef, setError, limparDraft, recarregarPersonagens,
-  imageUrl,
+  imageUrl, grimorioSelecionadas,
 }) => {
   const [salvando, setSalvando] = useState(false);
   const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
@@ -89,6 +89,15 @@ export const useCharacterCreation = ({
         } catch { /* non-blocking */ }
       }
 
+      if (criado?.id && grimorioSelecionadas?.length > 0) {
+        try {
+          await apiClient.post(`/personagens/${criado.id}/magias`, {
+            habilidade_ids: grimorioSelecionadas.map(id => parseInt(id, 10)),
+            origem: 'criacao',
+          });
+        } catch { /* non-blocking — magias podem ser adicionadas depois */ }
+      }
+
       limparDraft();
       await recarregarPersonagens();
 
@@ -118,6 +127,7 @@ export const useCharacterCreation = ({
     recarregarPersonagens,
     limparDraft,
     imageUrl,
+    grimorioSelecionadas,
   ]);
 
   /** Fecha o modal de resultado de criação */

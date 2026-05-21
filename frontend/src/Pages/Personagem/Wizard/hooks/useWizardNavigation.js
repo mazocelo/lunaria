@@ -22,6 +22,7 @@ export const useWizardNavigation = (draftInicial, buildState) => {
       skipDesvantagens,
       bonusAplicados,
       comboPreviewData,
+      grimorioSelecionado,
     } = buildState;
 
     const concluidas = [];
@@ -33,6 +34,7 @@ export const useWizardNavigation = (draftInicial, buildState) => {
     if (vantagensIds?.length > 0 || skipVantagens) concluidas.push('vantagens');
     if (bonusAplicados) concluidas.push('atributos');
     if (comboPreviewData) concluidas.push('equipamentos');
+    if (grimorioSelecionado) concluidas.push('grimorio');
     return concluidas;
   }, [
     buildState.nome,
@@ -45,6 +47,7 @@ export const useWizardNavigation = (draftInicial, buildState) => {
     buildState.skipDesvantagens,
     buildState.bonusAplicados,
     buildState.comboPreviewData,
+    buildState.grimorioSelecionado,
   ]);
 
   /** Retorna info da proxima etapa sem navegar (read-only) */

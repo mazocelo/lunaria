@@ -21,7 +21,9 @@ import { parsearBonusEntidade } from '../../helpers/bonusHelper.js';
 import { getAtributosMap, LUNARIA_ATTRS, getAttrNamesForSystem } from '../../helpers/atributosHelper.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
 import { criarPersonagemTresDet } from '../../services/personagemTresDetService.js';
+import { criarPersonagemDnd5e } from '../../services/personagemDnd5eService.js';
 import { getEngine } from '../../game-systems/index.js';
+import { ABILITY_IDS } from '../../game-systems/dnd5e/constants.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
 
@@ -103,6 +105,10 @@ class PersonagemController {
           A: attrMap.A ?? 0,
           PdF: attrMap.PdF ?? 0,
         };
+      } else if (personagemData.sistema === 'dnd5e') {
+        personagemData.atributos = Object.fromEntries(
+          ABILITY_IDS.map(sigla => [sigla, attrMap[sigla] ?? 10])
+        );
       } else {
         personagemData.atributos = {
           forca: attrMap.forca ?? 10,
@@ -251,6 +257,14 @@ class PersonagemController {
       // --- Despacho por sistema ---
       if (req.body.sistema === 'tresdet') {
         const personagem = await criarPersonagemTresDet(req.body, req.user?.id);
+        const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
+        const personagemData = await this.processarDadosPersonagem(personagemCompleto);
+        db.FeedPost.createAutoEvent(req.user.id, 'personagem_criado', { nome: personagem.nome }, 'personagem', personagem.id);
+        return res.status(201).json({ success: true, message: 'Personagem criado com sucesso', data: personagemData });
+      }
+
+      if (req.body.sistema === 'dnd5e') {
+        const personagem = await criarPersonagemDnd5e(req.body, req.user?.id);
         const personagemCompleto = await this.buscarPersonagemComRelacionamentos(personagem.id);
         const personagemData = await this.processarDadosPersonagem(personagemCompleto);
         db.FeedPost.createAutoEvent(req.user.id, 'personagem_criado', { nome: personagem.nome }, 'personagem', personagem.id);

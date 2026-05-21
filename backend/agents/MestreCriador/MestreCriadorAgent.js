@@ -15,7 +15,7 @@ import dotenv from 'dotenv';
 import logger from '../../helpers/logger.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
-import { sanitizeEtapaProxima, shouldLockStage, getPolicy, getStagePolicy } from './stages/stagePolicy.js';
+import { sanitizeEtapaProxima, shouldLockStage, resolveContinueStage, getPolicy, getStagePolicy } from './stages/stagePolicy.js';
 import { tierDesbloqueado } from '../../helpers/evolucaoHelper.js';
 import { getFallbackMessage, gerarAtributosFallback as gerarAtributosFallbackPolicy } from './stages/stageFallbacks.js';
 
@@ -600,6 +600,12 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     // Travar etapa se actionMode exigir (refresh, progressao manual sem continue)
     if (shouldLockStage(etapa, actionMode, sistemaEfetivo)) {
       resultado.etapa_proxima = etapa;
+    }
+
+    // continue_stage e ordem de avanco deterministico: a policy decide, nao a IA.
+    const destinoForcado = resolveContinueStage(etapa, actionMode, sistemaEfetivo);
+    if (destinoForcado) {
+      resultado.etapa_proxima = destinoForcado;
     }
 
     const etapaDestino = resultado.etapa_proxima || etapa;

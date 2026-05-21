@@ -375,6 +375,18 @@ export function shouldLockStage(etapa, actionMode, sistema) {
   return false;
 }
 
+/**
+ * Quando o jogador clica "continuar" (continue_stage) numa etapa gerenciada
+ * pelo frontend, o avanco e deterministico: segue o defaultNext da policy.
+ * A IA dessas etapas e decorativa e nao deve decidir o fluxo.
+ * @returns {string|null} etapa de destino, ou null se nao se aplica
+ */
+export function resolveContinueStage(etapa, actionMode, sistema) {
+  if (actionMode !== 'continue_stage') return null;
+  const policy = getPolicy(etapa, sistema);
+  return policy.defaultNext || null;
+}
+
 // Backward compat exports
 export const ETAPAS = STAGE_ORDER;
 export const TRANSICOES = Object.fromEntries(

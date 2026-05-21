@@ -5,6 +5,7 @@
  */
 import { calcularHP, calcularMana, getMultRaca, calcularHPSistema, calcularManaSistema } from './combateHelper.js';
 import { getOwnedCombatActions } from './ownedActionsHelper.js';
+import db from '../Model/index.js';
 import {
   normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno,
   getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo,
@@ -110,9 +111,10 @@ function filtrarPassivasAplicaveis(vantagens, sceneContext) {
 }
 
 /**
- * Monta state object estruturado para um jogador no turno
+ * Monta state object estruturado para um jogador no turno.
+ * Async: a resolução das ações de combate consulta o vínculo real via engine.
  */
-export function buildTurnState(sessao, userId, personagem = {}) {
+export async function buildTurnState(sessao, userId, personagem = {}) {
   // Migração oportunista de legado (idempotente)
   migrarEstadoTaticoLegado(sessao);
 
@@ -174,20 +176,21 @@ export function buildTurnState(sessao, userId, personagem = {}) {
   // Concentração ativa
   state.concentracao = estadoJogo.concentracao?.[String(userId)] || null;
 
-  const ownedActions = getOwnedCombatActions(pcCompleto);
+  const ownedActions = await getOwnedCombatActions(pcCompleto, db);
 
-  // Habilidades e magias disponiveis (somente do loadout proprio do personagem)
+  // Habilidades e magias disponiveis (somente do loadout proprio do personagem).
+  // As ações vindas do vínculo chegam como MagiaConhecida (custo); as concedidas
+  // por vantagem mantêm o JSON do personagem (custo_mana/usa_concentracao).
+  const custoDe = (h) => h.custo ?? h.custo_mana ?? 0;
   const habilidadesClasse = ownedActions.habilidades
     .map(h => {
-      const cdKey = `hab_${h.id}`;
-      const cdRestante = cooldowns[cdKey] || 0;
-      return { nome: h.nome, cd: cdRestante, custo_mana: h.custo_mana || 0 };
+      const cdRestante = cooldowns[`hab_${h.id}`] || 0;
+      return { nome: h.nome, cd: cdRestante, custo_mana: custoDe(h) };
     });
   const magias = ownedActions.magias
     .map(h => {
-      const cdKey = `mag_${h.id}`;
-      const cdRestante = cooldowns[cdKey] || 0;
-      return { nome: h.nome, cd: cdRestante, custo_mana: h.custo_mana || 0, concentracao: h.usa_concentracao || false };
+      const cdRestante = cooldowns[`mag_${h.id}`] || 0;
+      return { nome: h.nome, cd: cdRestante, custo_mana: custoDe(h), concentracao: h.usa_concentracao || false };
     });
   // Dedup magias por nome
   const magiasUnicas = [];

@@ -1,4 +1,5 @@
-import { getOwnedCombatActionList } from '../../helpers/ownedActionsHelper.js';
+import { getOwnedCombatActionList, isSpellAction } from '../../helpers/ownedActionsHelper.js';
+import db from '../../Model/index.js';
 
 function normalizeText(value) {
   return String(value || '')
@@ -10,12 +11,8 @@ function normalizeText(value) {
     .trim();
 }
 
-function isSpellAction(item) {
-  return Boolean(item?.escola_magia && item.escola_magia !== 'nenhuma');
-}
-
-function collectCharacterActions(personagemCompleto = {}) {
-  return getOwnedCombatActionList(personagemCompleto);
+async function collectCharacterActions(personagemCompleto = {}) {
+  return getOwnedCombatActionList(personagemCompleto, db);
 }
 
 function buildNamedIntent(item) {
@@ -120,7 +117,7 @@ function normalizeExplicitIntent(explicitIntent) {
   };
 }
 
-export function resolveCombatIntent({
+export async function resolveCombatIntent({
   mensagem,
   explicitIntent,
   personagemCompleto,
@@ -159,7 +156,7 @@ export function resolveCombatIntent({
     };
   }
 
-  const actions = collectCharacterActions(personagemCompleto);
+  const actions = await collectCharacterActions(personagemCompleto);
   const namedMatch = findNamedMatches(normalizedMessage, actions);
   if (namedMatch.ambiguous) {
     return {

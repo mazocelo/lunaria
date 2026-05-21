@@ -376,7 +376,7 @@ export default class MasterNarrationEngine {
       let acaoComContexto = '';
 
       // Estado dinâmico do personagem (via turnStateBuilder)
-      const turnState = buildTurnState(sessao, userId, personagem);
+      const turnState = await buildTurnState(sessao, userId, personagem);
       acaoComContexto = formatTurnStateText(turnState) + '\n';
 
       const combateAtivo = estadoJogo.combate?.ativo;
@@ -399,7 +399,7 @@ export default class MasterNarrationEngine {
         acaoComContexto += `${contextoCombate}\n`;
 
         // ✅ Resolver mecânica ANTES da IA para que ela narre baseada em fatos
-        resultadosCombatePreResolvido = resolverMecanicaCombate(combateAtivo ? estadoJogo.combate : null, userId, sessao, personagem, combatIntent);
+        resultadosCombatePreResolvido = await resolverMecanicaCombate(combateAtivo ? estadoJogo.combate : null, userId, sessao, personagem, combatIntent);
 
         // Se ação requer teste, criar teste pendente e desviar para pipeline de testes
         if (resultadosCombatePreResolvido.requerTeste) {
@@ -1008,7 +1008,7 @@ export default class MasterNarrationEngine {
 
       const pcIdCombat = String(personagem.id || personagem.personagemId || userId);
       const personagemCompleto = workingSessao.personagensCompletos?.[pcIdCombat] || invocationContext.personagem || personagem;
-      const turnStateText = formatTurnStateText(buildTurnState(workingSessao, userId, personagemCompleto));
+      const turnStateText = formatTurnStateText(await buildTurnState(workingSessao, userId, personagemCompleto));
       const promptAcao = sanitizePromptInput(mensagem, 2000);
       let resultadosCombatePreResolvido = null;
       let combatIntentResolvido = combatIntent || null;

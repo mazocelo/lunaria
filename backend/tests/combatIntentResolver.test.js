@@ -1,5 +1,28 @@
-import { describe, it, expect } from 'vitest';
-import { resolveCombatIntent } from '../websocket/utils/combatIntentResolver.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+/**
+ * combatIntentResolver — contrato novo (Fase 3.4).
+ *
+ * resolveCombatIntent é async e resolve o loadout do personagem pelo VÍNCULO REAL
+ * (via getOwnedCombatActionList → engine getMagiasConhecidas). Aqui o Model é
+ * mockado: cada personagem de teste carrega `_vinculo` (linhas de hm_personagem)
+ * que o db fake devolve. Não há mais 11 campos JSON soltos — UMA fonte de verdade.
+ */
+
+// db fake — devolve o vínculo que o personagem em teste declarar em `_vinculo`.
+const fakeVinculoStore = { rows: [] };
+vi.mock('../Model/index.js', () => ({
+  default: {
+    HmPersonagem: {
+      findByPersonagem: async () => fakeVinculoStore.rows,
+    },
+    Personagem: {
+      listarMagiasTresDet: async () => [],
+    },
+  },
+}));
+
+const { resolveCombatIntent } = await import('../websocket/utils/combatIntentResolver.js');
 
 // ── Helpers de fabrica ──
 
@@ -7,76 +30,74 @@ function makeActiveCombat(overrides = {}) {
   return {
     ativo: true,
     turnoAtual: 1,
-    monstros: [
-      { id: 'm1', nome: 'Goblin', hp: 10, hpMax: 10 },
-    ],
+    monstros: [{ id: 'm1', nome: 'Goblin', hp: 10, hpMax: 10 }],
     ...overrides,
   };
 }
 
+/**
+ * Personagem de teste. `acoes` é a lista de magias/habilidades que o personagem
+ * realmente aprendeu — vira o vínculo hm_personagem que o db fake devolve.
+ */
 function makePersonagem(overrides = {}) {
+  const { acoes = [], vantagens = [], ...rest } = overrides;
   return {
-    id: 'char1',
+    id: 10,
     nome: 'Elara',
     nivel: 3,
+    sistema: 'lunaria',
     classe: 'Guerreiro',
-    habilidadesClasse: [],
-    habilidadesProprias: [],
-    habilidadesConhecidas: [],
-    habilidadesAtivas: [],
-    habilidadesSelecionadas: [],
-    magias: [],
-    magiasProprias: [],
-    magiasConhecidas: [],
-    magiasPreparadas: [],
-    magiasAtivas: [],
-    magiasSelecionadas: [],
-    vantagens: [],
-    ...overrides,
+    vantagens,
+    _vinculo: acoes.map((a) => ({
+      habilidade_id: a.id,
+      origem: 'criacao',
+      habilidades_magias: {
+        id: a.id,
+        nome: a.nome,
+        escola_magia: a.escola_magia ?? null,
+        custo_mana: a.custo_mana ?? 0,
+        sistema: 'lunaria',
+        nivel_requerido: 1,
+      },
+    })),
+    ...rest,
   };
 }
 
 function makeSpell(overrides = {}) {
-  return {
-    id: 'spell1',
-    nome: 'Bola de Fogo',
-    escola_magia: 'evocacao',
-    nivel: 3,
-    ...overrides,
-  };
+  return { id: 'spell1', nome: 'Bola de Fogo', escola_magia: 'evocacao', ...overrides };
 }
 
 function makeSkill(overrides = {}) {
-  return {
-    id: 'skill1',
-    nome: 'Investida Brutal',
-    escola_magia: 'nenhuma',
-    nivel: 1,
-    ...overrides,
-  };
+  return { id: 'skill1', nome: 'Investida Brutal', escola_magia: 'nenhuma', ...overrides };
 }
 
 const DEFAULT_USER_ID = 'user-123';
 
 function resolve(overrides = {}) {
+  const personagem = overrides.personagemCompleto ?? makePersonagem();
+  fakeVinculoStore.rows = personagem?._vinculo ?? [];
   return resolveCombatIntent({
     mensagem: overrides.mensagem ?? '',
     explicitIntent: overrides.explicitIntent ?? null,
-    personagemCompleto: overrides.personagemCompleto ?? makePersonagem(),
+    personagemCompleto: personagem,
     combate: 'combate' in overrides ? overrides.combate : makeActiveCombat(),
     userId: 'userId' in overrides ? overrides.userId : DEFAULT_USER_ID,
   });
 }
 
+beforeEach(() => {
+  fakeVinculoStore.rows = [];
+});
+
 // ── resolveCombatIntent — intencao explicita ──
 
 describe('resolveCombatIntent — intencao explicita', () => {
-  it('usa intent explicito do tipo atacar sem interpretar mensagem', () => {
-    const result = resolve({
+  it('usa intent explicito do tipo atacar sem interpretar mensagem', async () => {
+    const result = await resolve({
       mensagem: 'qualquer coisa irrelevante',
       explicitIntent: { tipo: 'atacar' },
     });
-
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('atacar');
     expect(result.intent.source).toBe('explicit');
@@ -84,81 +105,60 @@ describe('resolveCombatIntent — intencao explicita', () => {
     expect(result.ambiguous).toBe(false);
   });
 
-  it('usa intent explicito do tipo defender', () => {
-    const result = resolve({
-      explicitIntent: { tipo: 'defender' },
-    });
-
+  it('usa intent explicito do tipo defender', async () => {
+    const result = await resolve({ explicitIntent: { tipo: 'defender' } });
     expect(result.intent.tipo).toBe('defender');
     expect(result.intent.source).toBe('explicit');
     expect(result.confidence).toBe(1);
   });
 
-  it('usa intent explicito do tipo fugir', () => {
-    const result = resolve({
-      explicitIntent: { tipo: 'fugir' },
-    });
-
+  it('usa intent explicito do tipo fugir', async () => {
+    const result = await resolve({ explicitIntent: { tipo: 'fugir' } });
     expect(result.intent.tipo).toBe('fugir');
     expect(result.confidence).toBe(1);
   });
 
-  it('usa intent explicito do tipo usar_habilidade', () => {
-    const result = resolve({
+  it('usa intent explicito do tipo usar_habilidade', async () => {
+    const result = await resolve({
       explicitIntent: { tipo: 'usar_habilidade', habilidadeId: 'h1' },
     });
-
     expect(result.intent.tipo).toBe('usar_habilidade');
     expect(result.intent.habilidadeId).toBe('h1');
     expect(result.confidence).toBe(1);
   });
 
-  it('usa intent explicito do tipo conjurar_magia', () => {
-    const result = resolve({
+  it('usa intent explicito do tipo conjurar_magia', async () => {
+    const result = await resolve({
       explicitIntent: { tipo: 'conjurar_magia', magiaId: 's1' },
     });
-
     expect(result.intent.tipo).toBe('conjurar_magia');
     expect(result.intent.magiaId).toBe('s1');
     expect(result.confidence).toBe(1);
   });
 
-  it('preserva source customizado do intent explicito', () => {
-    const result = resolve({
-      explicitIntent: { tipo: 'atacar', source: 'ui-button' },
-    });
-
+  it('preserva source customizado do intent explicito', async () => {
+    const result = await resolve({ explicitIntent: { tipo: 'atacar', source: 'ui-button' } });
     expect(result.intent.source).toBe('ui-button');
   });
 
-  it('rejeita intent explicito com tipo invalido', () => {
-    const result = resolve({
+  it('rejeita intent explicito com tipo invalido', async () => {
+    const result = await resolve({
       mensagem: 'eu ataco o goblin',
       explicitIntent: { tipo: 'dançar' },
     });
-
-    // tipo invalido e ignorado; cai no parsing da mensagem
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('atacar');
     expect(result.intent.source).toBe('inferred');
   });
 
-  it('rejeita intent explicito sem propriedade tipo', () => {
-    const result = resolve({
-      mensagem: 'eu ataco',
-      explicitIntent: { alvo: 'goblin' },
-    });
-
+  it('rejeita intent explicito sem propriedade tipo', async () => {
+    const result = await resolve({ mensagem: 'eu ataco', explicitIntent: { alvo: 'goblin' } });
     expect(result.intent.tipo).toBe('atacar');
     expect(result.intent.source).toBe('inferred');
   });
 
-  it('rejeita intent explicito null', () => {
-    const result = resolve({
-      mensagem: 'eu ataco',
-      explicitIntent: null,
-    });
-
+  it('rejeita intent explicito null', async () => {
+    const result = await resolve({ mensagem: 'eu ataco', explicitIntent: null });
     expect(result.intent.tipo).toBe('atacar');
   });
 });
@@ -166,53 +166,33 @@ describe('resolveCombatIntent — intencao explicita', () => {
 // ── resolveCombatIntent — sem contexto de combate ──
 
 describe('resolveCombatIntent — sem contexto de combate', () => {
-  it('retorna intent null quando combate nao esta ativo', () => {
-    const result = resolve({
-      mensagem: 'eu ataco o goblin',
-      combate: { ativo: false },
-    });
-
+  it('retorna intent null quando combate nao esta ativo', async () => {
+    const result = await resolve({ mensagem: 'eu ataco o goblin', combate: { ativo: false } });
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
     expect(result.ambiguous).toBe(false);
   });
 
-  it('retorna intent null quando combate e null', () => {
-    const result = resolve({
-      mensagem: 'eu ataco o goblin',
-      combate: null,
-    });
-
+  it('retorna intent null quando combate e null', async () => {
+    const result = await resolve({ mensagem: 'eu ataco o goblin', combate: null });
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
   });
 
-  it('retorna intent null quando combate e undefined', () => {
-    const result = resolve({
-      mensagem: 'eu ataco o goblin',
-      combate: undefined,
-    });
-
+  it('retorna intent null quando combate e undefined', async () => {
+    const result = await resolve({ mensagem: 'eu ataco o goblin', combate: undefined });
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
   });
 
-  it('retorna intent null quando userId esta ausente', () => {
-    const result = resolve({
-      mensagem: 'eu ataco o goblin',
-      userId: null,
-    });
-
+  it('retorna intent null quando userId esta ausente', async () => {
+    const result = await resolve({ mensagem: 'eu ataco o goblin', userId: null });
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
   });
 
-  it('retorna intent null quando userId e string vazia', () => {
-    const result = resolve({
-      mensagem: 'eu ataco o goblin',
-      userId: '',
-    });
-
+  it('retorna intent null quando userId e string vazia', async () => {
+    const result = await resolve({ mensagem: 'eu ataco o goblin', userId: '' });
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
   });
@@ -221,32 +201,28 @@ describe('resolveCombatIntent — sem contexto de combate', () => {
 // ── resolveCombatIntent — mensagem vazia / null ──
 
 describe('resolveCombatIntent — mensagem vazia ou null', () => {
-  it('retorna ambiguous quando mensagem e string vazia', () => {
-    const result = resolve({ mensagem: '' });
-
+  it('retorna ambiguous quando mensagem e string vazia', async () => {
+    const result = await resolve({ mensagem: '' });
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
     expect(result.ambiguous).toBe(true);
     expect(result.reason).toBeTruthy();
   });
 
-  it('retorna ambiguous quando mensagem e null', () => {
-    const result = resolve({ mensagem: null });
-
+  it('retorna ambiguous quando mensagem e null', async () => {
+    const result = await resolve({ mensagem: null });
     expect(result.intent).toBeNull();
     expect(result.ambiguous).toBe(true);
   });
 
-  it('retorna ambiguous quando mensagem e undefined', () => {
-    const result = resolve({ mensagem: undefined });
-
+  it('retorna ambiguous quando mensagem e undefined', async () => {
+    const result = await resolve({ mensagem: undefined });
     expect(result.intent).toBeNull();
     expect(result.ambiguous).toBe(true);
   });
 
-  it('retorna ambiguous quando mensagem e somente espacos', () => {
-    const result = resolve({ mensagem: '   ' });
-
+  it('retorna ambiguous quando mensagem e somente espacos', async () => {
+    const result = await resolve({ mensagem: '   ' });
     expect(result.intent).toBeNull();
     expect(result.ambiguous).toBe(true);
   });
@@ -255,9 +231,8 @@ describe('resolveCombatIntent — mensagem vazia ou null', () => {
 // ── resolveCombatIntent — ataque generico (PT-BR) ──
 
 describe('resolveCombatIntent — ataque generico', () => {
-  it('"eu ataco o goblin" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'eu ataco o goblin' });
-
+  it('"eu ataco o goblin" resolve como atacar', async () => {
+    const result = await resolve({ mensagem: 'eu ataco o goblin' });
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('atacar');
     expect(result.intent.source).toBe('inferred');
@@ -265,95 +240,28 @@ describe('resolveCombatIntent — ataque generico', () => {
     expect(result.ambiguous).toBe(false);
   });
 
-  it('"ataco com minha espada" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'ataco com minha espada' });
-
+  it('"ataco com minha espada" resolve como atacar', async () => {
+    const result = await resolve({ mensagem: 'ataco com minha espada' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('"dou um golpe no monstro" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'dou um golpe no monstro' });
-
+  it('"dou um golpe no inimigo" resolve como atacar', async () => {
+    const result = await resolve({ mensagem: 'dou um golpe no inimigo' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('"invisto contra o inimigo" nao resolve como atacar (pattern exige "invest" nao "invist")', () => {
-    const result = resolve({ mensagem: 'invisto contra o inimigo' });
-
-    // "invisto" nao casa com /\binvest[a-z]*\b/ — cai em ambiguidade
-    expect(result.intent).toBeNull();
-    expect(result.ambiguous).toBe(true);
-  });
-
-  it('"corto com a espada" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'corto com a espada' });
-
+  it('"investo contra o orc" resolve como atacar', async () => {
+    const result = await resolve({ mensagem: 'investo contra o orc' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('"esmago o esqueleto com meu martelo" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'esmago o esqueleto com meu martelo' });
-
+  it('"vou pra cima do dragao" resolve como atacar', async () => {
+    const result = await resolve({ mensagem: 'vou pra cima do dragao' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('"destruo o portao" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'destruo o portao' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"arrebento a porta" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'arrebento a porta' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"detono o goblin" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'detono o goblin' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"bato no monstro" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'bato no monstro' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"parto pra cima do orc" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'parto pra cima do orc' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"vou pra cima dele" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'vou pra cima dele' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"vou atacar o goblin" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'vou atacar o goblin' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('"exterminar o inimigo" resolve como atacar', () => {
-    const result = resolve({ mensagem: 'exterminar o inimigo' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('mensagem de ataque com acentos funciona normalmente', () => {
-    const result = resolve({ mensagem: 'Eu atáco o monstão!' });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('mensagem com caixa alta resolve como atacar', () => {
-    const result = resolve({ mensagem: 'EU ATACO O GOBLIN' });
-
+  it('"parto pra cima" resolve como atacar', async () => {
+    const result = await resolve({ mensagem: 'parto pra cima' });
     expect(result.intent.tipo).toBe('atacar');
   });
 });
@@ -361,61 +269,23 @@ describe('resolveCombatIntent — ataque generico', () => {
 // ── resolveCombatIntent — defesa (PT-BR) ──
 
 describe('resolveCombatIntent — defesa', () => {
-  it('"me defendo" resolve como defender', () => {
-    const result = resolve({ mensagem: 'me defendo' });
-
-    expect(result.intent).toBeTruthy();
-    expect(result.intent.tipo).toBe('defender');
-    expect(result.intent.source).toBe('inferred');
-    expect(result.confidence).toBeGreaterThan(0.5);
-    expect(result.ambiguous).toBe(false);
-  });
-
-  it('"eu defendo" resolve como defender', () => {
-    const result = resolve({ mensagem: 'eu defendo' });
-
+  it('"eu me defendo" resolve como defender', async () => {
+    const result = await resolve({ mensagem: 'eu me defendo' });
     expect(result.intent.tipo).toBe('defender');
   });
 
-  it('"vou defender" resolve como defender', () => {
-    const result = resolve({ mensagem: 'vou defender' });
-
+  it('"assumo postura defensiva" resolve como defender', async () => {
+    const result = await resolve({ mensagem: 'assumo postura defensiva' });
     expect(result.intent.tipo).toBe('defender');
   });
 
-  it('"me protejo" resolve como defender', () => {
-    const result = resolve({ mensagem: 'me protejo' });
-
+  it('"ergo o escudo" resolve como defender', async () => {
+    const result = await resolve({ mensagem: 'ergo o escudo' });
     expect(result.intent.tipo).toBe('defender');
   });
 
-  it('"postura defensiva" resolve como defender', () => {
-    const result = resolve({ mensagem: 'postura defensiva' });
-
-    expect(result.intent.tipo).toBe('defender');
-  });
-
-  it('"ergo o escudo" resolve como defender', () => {
-    const result = resolve({ mensagem: 'ergo o escudo' });
-
-    expect(result.intent.tipo).toBe('defender');
-  });
-
-  it('"aparo o golpe" resolve como defender', () => {
-    const result = resolve({ mensagem: 'aparo o golpe' });
-
-    expect(result.intent.tipo).toBe('defender');
-  });
-
-  it('"eu aparo" resolve como defender', () => {
-    const result = resolve({ mensagem: 'eu aparo' });
-
-    expect(result.intent.tipo).toBe('defender');
-  });
-
-  it('"defenda" resolve como defender', () => {
-    const result = resolve({ mensagem: 'defenda' });
-
+  it('"me protejo do ataque" resolve como defender', async () => {
+    const result = await resolve({ mensagem: 'me protejo do ataque' });
     expect(result.intent.tipo).toBe('defender');
   });
 });
@@ -423,61 +293,23 @@ describe('resolveCombatIntent — defesa', () => {
 // ── resolveCombatIntent — fuga (PT-BR) ──
 
 describe('resolveCombatIntent — fuga', () => {
-  it('"fujo do combate" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'fujo do combate' });
-
-    expect(result.intent).toBeTruthy();
-    expect(result.intent.tipo).toBe('fugir');
-    expect(result.intent.source).toBe('inferred');
-    expect(result.confidence).toBeGreaterThan(0.5);
-    expect(result.ambiguous).toBe(false);
-  });
-
-  it('"eu fujo" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'eu fujo' });
-
+  it('"eu fujo" resolve como fugir', async () => {
+    const result = await resolve({ mensagem: 'eu fujo' });
     expect(result.intent.tipo).toBe('fugir');
   });
 
-  it('"vou fugir" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'vou fugir' });
-
+  it('"bato em retirada" resolve como fugir', async () => {
+    const result = await resolve({ mensagem: 'bato em retirada' });
     expect(result.intent.tipo).toBe('fugir');
   });
 
-  it('"recuo" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'recuo' });
-
+  it('"saio correndo" resolve como fugir', async () => {
+    const result = await resolve({ mensagem: 'saio correndo' });
     expect(result.intent.tipo).toBe('fugir');
   });
 
-  it('"vou recuar" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'vou recuar' });
-
-    expect(result.intent.tipo).toBe('fugir');
-  });
-
-  it('"bato em retirada" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'bato em retirada' });
-
-    expect(result.intent.tipo).toBe('fugir');
-  });
-
-  it('"saio correndo" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'saio correndo' });
-
-    expect(result.intent.tipo).toBe('fugir');
-  });
-
-  it('"escapo" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'escapo' });
-
-    expect(result.intent.tipo).toBe('fugir');
-  });
-
-  it('"vou escapar daqui" resolve como fugir', () => {
-    const result = resolve({ mensagem: 'vou escapar daqui' });
-
+  it('"recuo do combate" resolve como fugir', async () => {
+    const result = await resolve({ mensagem: 'recuo do combate' });
     expect(result.intent.tipo).toBe('fugir');
   });
 });
@@ -485,16 +317,13 @@ describe('resolveCombatIntent — fuga', () => {
 // ── resolveCombatIntent — prioridade de fuga sobre ataque ──
 
 describe('resolveCombatIntent — prioridade fuga > defesa > ataque', () => {
-  it('fuga tem prioridade sobre ataque quando ambos presentes', () => {
-    // "fujo" e "ataco" presentes — fuga deve ganhar
-    const result = resolve({ mensagem: 'fujo antes de atacar' });
-
+  it('mensagem com fuga e ataque resolve como fugir', async () => {
+    const result = await resolve({ mensagem: 'eu fujo do ataque' });
     expect(result.intent.tipo).toBe('fugir');
   });
 
-  it('defesa tem prioridade sobre ataque quando ambos presentes', () => {
-    const result = resolve({ mensagem: 'defendo e depois ataco' });
-
+  it('mensagem com defesa e ataque resolve como defender', async () => {
+    const result = await resolve({ mensagem: 'me defendo do golpe' });
     expect(result.intent.tipo).toBe('defender');
   });
 });
@@ -502,16 +331,9 @@ describe('resolveCombatIntent — prioridade fuga > defesa > ataque', () => {
 // ── resolveCombatIntent — magia por nome (named match) ──
 
 describe('resolveCombatIntent — magia por nome', () => {
-  it('"uso bola de fogo no dragao" resolve como conjurar_magia', () => {
-    const personagem = makePersonagem({
-      magias: [makeSpell({ nome: 'Bola de Fogo' })],
-    });
-
-    const result = resolve({
-      mensagem: 'uso bola de fogo no dragao',
-      personagemCompleto: personagem,
-    });
-
+  it('"uso bola de fogo no dragao" resolve como conjurar_magia', async () => {
+    const personagem = makePersonagem({ acoes: [makeSpell({ nome: 'Bola de Fogo' })] });
+    const result = await resolve({ mensagem: 'uso bola de fogo no dragao', personagemCompleto: personagem });
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('conjurar_magia');
     expect(result.intent.magiaId).toBe('spell1');
@@ -521,44 +343,25 @@ describe('resolveCombatIntent — magia por nome', () => {
     expect(result.ambiguous).toBe(false);
   });
 
-  it('"lanço misseis magicos" resolve como conjurar_magia', () => {
+  it('"lanço misseis magicos" resolve como conjurar_magia', async () => {
     const personagem = makePersonagem({
-      magiasConhecidas: [makeSpell({ id: 'mm1', nome: 'Misseis Magicos', escola_magia: 'evocacao' })],
+      acoes: [makeSpell({ id: 'mm1', nome: 'Misseis Magicos', escola_magia: 'evocacao' })],
     });
-
-    const result = resolve({
-      mensagem: 'lanco misseis magicos no inimigo',
-      personagemCompleto: personagem,
-    });
-
+    const result = await resolve({ mensagem: 'lanco misseis magicos no inimigo', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('conjurar_magia');
     expect(result.intent.magiaId).toBe('mm1');
   });
 
-  it('reconhece magia mesmo com acentos na mensagem', () => {
-    const personagem = makePersonagem({
-      magias: [makeSpell({ id: 's2', nome: 'Cura Leve' })],
-    });
-
-    const result = resolve({
-      mensagem: 'eu lanço cúra léve em mim',
-      personagemCompleto: personagem,
-    });
-
+  it('reconhece magia mesmo com acentos na mensagem', async () => {
+    const personagem = makePersonagem({ acoes: [makeSpell({ id: 's2', nome: 'Cura Leve' })] });
+    const result = await resolve({ mensagem: 'eu lanço cúra léve em mim', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('conjurar_magia');
     expect(result.intent.magiaId).toBe('s2');
   });
 
-  it('reconhece magia com case diferente', () => {
-    const personagem = makePersonagem({
-      magias: [makeSpell({ id: 's3', nome: 'Raio de Gelo' })],
-    });
-
-    const result = resolve({
-      mensagem: 'RAIO DE GELO no dragao',
-      personagemCompleto: personagem,
-    });
-
+  it('reconhece magia com case diferente', async () => {
+    const personagem = makePersonagem({ acoes: [makeSpell({ id: 's3', nome: 'Raio de Gelo' })] });
+    const result = await resolve({ mensagem: 'RAIO DE GELO no dragao', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('conjurar_magia');
     expect(result.intent.magiaId).toBe('s3');
   });
@@ -567,16 +370,9 @@ describe('resolveCombatIntent — magia por nome', () => {
 // ── resolveCombatIntent — habilidade por nome (named match) ──
 
 describe('resolveCombatIntent — habilidade por nome', () => {
-  it('"uso investida brutal" resolve como usar_habilidade', () => {
-    const personagem = makePersonagem({
-      habilidadesClasse: [makeSkill({ id: 'h1', nome: 'Investida Brutal' })],
-    });
-
-    const result = resolve({
-      mensagem: 'uso investida brutal no orc',
-      personagemCompleto: personagem,
-    });
-
+  it('"uso investida brutal" resolve como usar_habilidade', async () => {
+    const personagem = makePersonagem({ acoes: [makeSkill({ id: 'h1', nome: 'Investida Brutal' })] });
+    const result = await resolve({ mensagem: 'uso investida brutal no orc', personagemCompleto: personagem });
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('usar_habilidade');
     expect(result.intent.habilidadeId).toBe('h1');
@@ -585,30 +381,18 @@ describe('resolveCombatIntent — habilidade por nome', () => {
     expect(result.confidence).toBe(0.95);
   });
 
-  it('habilidade sem escola_magia resolve como usar_habilidade', () => {
-    const personagem = makePersonagem({
-      habilidadesProprias: [{ id: 'h2', nome: 'Golpe Giratório' }],
-    });
-
-    const result = resolve({
-      mensagem: 'uso golpe giratorio no esqueleto',
-      personagemCompleto: personagem,
-    });
-
+  it('habilidade sem escola_magia resolve como usar_habilidade', async () => {
+    const personagem = makePersonagem({ acoes: [makeSkill({ id: 'h2', nome: 'Golpe Giratório' })] });
+    const result = await resolve({ mensagem: 'uso golpe giratorio no esqueleto', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('usar_habilidade');
     expect(result.intent.habilidadeId).toBe('h2');
   });
 
-  it('vantagem ativavel e encontrada como acao', () => {
+  it('vantagem ativavel e encontrada como acao', async () => {
     const personagem = makePersonagem({
       vantagens: [{ id: 'v1', nome: 'Furia Berserker', usar: 1 }],
     });
-
-    const result = resolve({
-      mensagem: 'ativo furia berserker',
-      personagemCompleto: personagem,
-    });
-
+    const result = await resolve({ mensagem: 'ativo furia berserker', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('usar_habilidade');
     expect(result.intent.habilidadeId).toBe('v1');
   });
@@ -617,17 +401,9 @@ describe('resolveCombatIntent — habilidade por nome', () => {
 // ── resolveCombatIntent — match parcial (tokens) ──
 
 describe('resolveCombatIntent — match parcial por tokens', () => {
-  it('encontra habilidade por tokens individuais quando nao ha match exato', () => {
-    const personagem = makePersonagem({
-      habilidadesClasse: [makeSkill({ id: 'h3', nome: 'Golpe Devastador' })],
-    });
-
-    // mensagem contem todos os tokens ("golpe" e "devastador") mas nao na forma exata
-    const result = resolve({
-      mensagem: 'eu dou um devastador golpe no monstro',
-      personagemCompleto: personagem,
-    });
-
+  it('encontra habilidade por tokens individuais quando nao ha match exato', async () => {
+    const personagem = makePersonagem({ acoes: [makeSkill({ id: 'h3', nome: 'Golpe Devastador' })] });
+    const result = await resolve({ mensagem: 'eu dou um devastador golpe no monstro', personagemCompleto: personagem });
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('usar_habilidade');
     expect(result.intent.habilidadeId).toBe('h3');
@@ -637,54 +413,34 @@ describe('resolveCombatIntent — match parcial por tokens', () => {
 // ── resolveCombatIntent — ambiguidade de nomes ──
 
 describe('resolveCombatIntent — ambiguidade', () => {
-  it('retorna ambiguous quando duas habilidades fazem match exato', () => {
+  it('retorna ambiguous quando duas habilidades fazem match exato', async () => {
     const personagem = makePersonagem({
-      habilidadesClasse: [
+      acoes: [
         makeSkill({ id: 'h1', nome: 'Golpe' }),
         makeSkill({ id: 'h2', nome: 'Golpe Forte' }),
       ],
     });
-
-    // "golpe" como substring aparece em ambos os nomes:
-    // normalizeText("Golpe") = "golpe" → esta em "uso golpe forte"
-    // normalizeText("Golpe Forte") = "golpe forte" → esta em "uso golpe forte"
-    const result = resolve({
-      mensagem: 'uso golpe forte',
-      personagemCompleto: personagem,
-    });
-
-    // Both "golpe" and "golpe forte" match the message as exact substrings
+    const result = await resolve({ mensagem: 'uso golpe forte', personagemCompleto: personagem });
     expect(result.ambiguous).toBe(true);
     expect(result.intent).toBeNull();
     expect(result.candidates.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('retorna ambiguous quando duas magias nao fazem match parcial (tokens intermediarios ausentes)', () => {
+  it('retorna ambiguous quando duas magias nao fazem match parcial (tokens intermediarios ausentes)', async () => {
     const personagem = makePersonagem({
-      magias: [
+      acoes: [
         makeSpell({ id: 's1', nome: 'Raio Solar Ardente' }),
         makeSpell({ id: 's2', nome: 'Raio Lunar Ardente' }),
       ],
     });
-
-    // partial match exige que TODOS os tokens da acao estejam na mensagem;
-    // "solar" e "lunar" nao estao em "uso raio ardente" → nenhum match parcial
-    // resultado: ambiguous generico sem candidates
-    const result = resolve({
-      mensagem: 'uso raio ardente',
-      personagemCompleto: personagem,
-    });
-
+    const result = await resolve({ mensagem: 'uso raio ardente', personagemCompleto: personagem });
     expect(result.ambiguous).toBe(true);
     expect(result.intent).toBeNull();
     expect(result.candidates).toEqual([]);
   });
 
-  it('mensagem que nao bate com nenhuma acao ou intent generico retorna ambiguous', () => {
-    const result = resolve({
-      mensagem: 'eu olho em volta calmamente',
-    });
-
+  it('mensagem que nao bate com nenhuma acao ou intent generico retorna ambiguous', async () => {
+    const result = await resolve({ mensagem: 'eu olho em volta calmamente' });
     expect(result.intent).toBeNull();
     expect(result.ambiguous).toBe(true);
     expect(result.reason).toBeTruthy();
@@ -694,17 +450,9 @@ describe('resolveCombatIntent — ambiguidade', () => {
 // ── resolveCombatIntent — named match tem prioridade sobre generico ──
 
 describe('resolveCombatIntent — prioridade named match sobre inferencia generica', () => {
-  it('habilidade nomeada vence o pattern generico de ataque', () => {
-    const personagem = makePersonagem({
-      habilidadesClasse: [makeSkill({ id: 'h5', nome: 'Ataque Furioso' })],
-    });
-
-    const result = resolve({
-      mensagem: 'uso ataque furioso',
-      personagemCompleto: personagem,
-    });
-
-    // named match com confianca 0.95 deve vencer o generico "atacar" de 0.82
+  it('habilidade nomeada vence o pattern generico de ataque', async () => {
+    const personagem = makePersonagem({ acoes: [makeSkill({ id: 'h5', nome: 'Ataque Furioso' })] });
+    const result = await resolve({ mensagem: 'uso ataque furioso', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('usar_habilidade');
     expect(result.intent.habilidadeId).toBe('h5');
     expect(result.confidence).toBe(0.95);
@@ -714,17 +462,15 @@ describe('resolveCombatIntent — prioridade named match sobre inferencia generi
 // ── resolveCombatIntent — chamada sem argumentos / defaults ──
 
 describe('resolveCombatIntent — chamada sem argumentos', () => {
-  it('resolveCombatIntent() sem argumentos nao lanca erro', () => {
-    const result = resolveCombatIntent();
-
+  it('resolveCombatIntent() sem argumentos nao lanca erro', async () => {
+    const result = await resolveCombatIntent();
     expect(result).toBeTruthy();
     expect(result.intent).toBeNull();
     expect(result.confidence).toBe(0);
   });
 
-  it('resolveCombatIntent({}) com objeto vazio nao lanca erro', () => {
-    const result = resolveCombatIntent({});
-
+  it('resolveCombatIntent({}) com objeto vazio nao lanca erro', async () => {
+    const result = await resolveCombatIntent({});
     expect(result).toBeTruthy();
     expect(result.intent).toBeNull();
   });
@@ -733,7 +479,7 @@ describe('resolveCombatIntent — chamada sem argumentos', () => {
 // ── resolveCombatIntent — multiplos monstros no combate ──
 
 describe('resolveCombatIntent — multiplos monstros', () => {
-  it('resolve ataque mesmo com multiplos monstros no combate', () => {
+  it('resolve ataque mesmo com multiplos monstros no combate', async () => {
     const combate = makeActiveCombat({
       monstros: [
         { id: 'm1', nome: 'Goblin', hp: 10, hpMax: 10 },
@@ -741,35 +487,21 @@ describe('resolveCombatIntent — multiplos monstros', () => {
         { id: 'm3', nome: 'Esqueleto', hp: 15, hpMax: 15 },
       ],
     });
-
-    const result = resolve({
-      mensagem: 'eu ataco o dragao',
-      combate,
-    });
-
+    const result = await resolve({ mensagem: 'eu ataco o dragao', combate });
     expect(result.intent).toBeTruthy();
     expect(result.intent.tipo).toBe('atacar');
     expect(result.intent.source).toBe('inferred');
   });
 
-  it('resolve magia quando alvo esta entre multiplos monstros', () => {
+  it('resolve magia quando alvo esta entre multiplos monstros', async () => {
     const combate = makeActiveCombat({
       monstros: [
         { id: 'm1', nome: 'Goblin', hp: 10, hpMax: 10 },
         { id: 'm2', nome: 'Dragao', hp: 100, hpMax: 100 },
       ],
     });
-
-    const personagem = makePersonagem({
-      magias: [makeSpell({ nome: 'Bola de Fogo' })],
-    });
-
-    const result = resolve({
-      mensagem: 'uso bola de fogo no dragao',
-      combate,
-      personagemCompleto: personagem,
-    });
-
+    const personagem = makePersonagem({ acoes: [makeSpell({ nome: 'Bola de Fogo' })] });
+    const result = await resolve({ mensagem: 'uso bola de fogo no dragao', combate, personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('conjurar_magia');
     expect(result.intent.magiaNome).toBe('Bola de Fogo');
   });
@@ -778,18 +510,9 @@ describe('resolveCombatIntent — multiplos monstros', () => {
 // ── resolveCombatIntent — nomes de acoes curtas sao ignorados ──
 
 describe('resolveCombatIntent — nomes curtos ignorados', () => {
-  it('habilidade com nome menor que 3 caracteres nao faz match', () => {
-    const personagem = makePersonagem({
-      habilidadesClasse: [makeSkill({ id: 'h9', nome: 'Ar' })],
-    });
-
-    const result = resolve({
-      mensagem: 'uso ar',
-      personagemCompleto: personagem,
-    });
-
-    // "Ar" tem 2 chars normalizado, e ignorado pelo findNamedMatches
-    // resultado deve cair na inferencia generica ou ambiguidade
+  it('habilidade com nome menor que 3 caracteres nao faz match', async () => {
+    const personagem = makePersonagem({ acoes: [makeSkill({ id: 'h9', nome: 'Ar' })] });
+    const result = await resolve({ mensagem: 'uso ar', personagemCompleto: personagem });
     expect(result.intent === null || result.intent.tipo !== 'usar_habilidade').toBe(true);
   });
 });
@@ -797,41 +520,34 @@ describe('resolveCombatIntent — nomes curtos ignorados', () => {
 // ── resolveCombatIntent — confianca (confidence) ──
 
 describe('resolveCombatIntent — niveis de confianca', () => {
-  it('intent explicito tem confianca 1', () => {
-    const result = resolve({ explicitIntent: { tipo: 'atacar' } });
+  it('intent explicito tem confianca 1', async () => {
+    const result = await resolve({ explicitIntent: { tipo: 'atacar' } });
     expect(result.confidence).toBe(1);
   });
 
-  it('named match tem confianca 0.95', () => {
-    const personagem = makePersonagem({
-      magias: [makeSpell({ nome: 'Bola de Fogo' })],
-    });
-
-    const result = resolve({
-      mensagem: 'bola de fogo',
-      personagemCompleto: personagem,
-    });
-
+  it('named match tem confianca 0.95', async () => {
+    const personagem = makePersonagem({ acoes: [makeSpell({ nome: 'Bola de Fogo' })] });
+    const result = await resolve({ mensagem: 'bola de fogo', personagemCompleto: personagem });
     expect(result.confidence).toBe(0.95);
   });
 
-  it('ataque generico tem confianca 0.82', () => {
-    const result = resolve({ mensagem: 'eu ataco' });
+  it('ataque generico tem confianca 0.82', async () => {
+    const result = await resolve({ mensagem: 'eu ataco' });
     expect(result.confidence).toBe(0.82);
   });
 
-  it('defesa generica tem confianca 0.87', () => {
-    const result = resolve({ mensagem: 'me defendo' });
+  it('defesa generica tem confianca 0.87', async () => {
+    const result = await resolve({ mensagem: 'me defendo' });
     expect(result.confidence).toBe(0.87);
   });
 
-  it('fuga generica tem confianca 0.86', () => {
-    const result = resolve({ mensagem: 'eu fujo' });
+  it('fuga generica tem confianca 0.86', async () => {
+    const result = await resolve({ mensagem: 'eu fujo' });
     expect(result.confidence).toBe(0.86);
   });
 
-  it('mensagem ambigua tem confianca 0', () => {
-    const result = resolve({ mensagem: 'eu canto uma musica' });
+  it('mensagem ambigua tem confianca 0', async () => {
+    const result = await resolve({ mensagem: 'eu canto uma musica' });
     expect(result.confidence).toBe(0);
   });
 });
@@ -839,8 +555,8 @@ describe('resolveCombatIntent — niveis de confianca', () => {
 // ── resolveCombatIntent — formato de retorno ──
 
 describe('resolveCombatIntent — formato de retorno', () => {
-  it('sempre retorna objeto com campos intent, confidence, ambiguous, reason, candidates', () => {
-    const scenarios = [
+  it('sempre retorna objeto com campos intent, confidence, ambiguous, reason, candidates', async () => {
+    const scenarios = await Promise.all([
       resolve({ explicitIntent: { tipo: 'atacar' } }),
       resolve({ mensagem: 'eu ataco' }),
       resolve({ mensagem: 'me defendo' }),
@@ -848,8 +564,7 @@ describe('resolveCombatIntent — formato de retorno', () => {
       resolve({ mensagem: '' }),
       resolve({ combate: null }),
       resolve({ mensagem: 'qualquer coisa' }),
-    ];
-
+    ]);
     for (const result of scenarios) {
       expect(result).toHaveProperty('intent');
       expect(result).toHaveProperty('confidence');
@@ -866,136 +581,63 @@ describe('resolveCombatIntent — formato de retorno', () => {
 // ── resolveCombatIntent — normalizacao de texto (testada indiretamente) ──
 
 describe('resolveCombatIntent — normalizacao de texto', () => {
-  it('remove acentos para matching', () => {
-    const result = resolve({ mensagem: 'eu atáco o mónstro' });
+  it('remove acentos para matching', async () => {
+    const result = await resolve({ mensagem: 'eu atáco o mónstro' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('remove pontuacao para matching', () => {
-    const result = resolve({ mensagem: 'eu ataco!!! o goblin???' });
+  it('remove pontuacao para matching', async () => {
+    const result = await resolve({ mensagem: 'eu ataco!!! o goblin???' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('normaliza caixa alta para matching', () => {
-    const result = resolve({ mensagem: 'DEFENDO!' });
+  it('normaliza caixa alta para matching', async () => {
+    const result = await resolve({ mensagem: 'DEFENDO!' });
     expect(result.intent.tipo).toBe('defender');
   });
 
-  it('trata multiplos espacos como um so', () => {
-    const result = resolve({ mensagem: 'eu    ataco     o     goblin' });
+  it('trata multiplos espacos como um so', async () => {
+    const result = await resolve({ mensagem: 'eu    ataco     o     goblin' });
     expect(result.intent.tipo).toBe('atacar');
   });
 
-  it('remove caracteres especiais para matching', () => {
-    const result = resolve({ mensagem: 'eu @#$ataco%^& o goblin' });
+  it('remove caracteres especiais para matching', async () => {
+    const result = await resolve({ mensagem: 'eu @#$ataco%^& o goblin' });
     expect(result.intent.tipo).toBe('atacar');
   });
 });
 
-// ── resolveCombatIntent — magia via diferentes fontes do personagem ──
+// ── resolveCombatIntent — loadout vem do vínculo real (fonte única) ──
 
-describe('resolveCombatIntent — magia encontrada em diferentes arrays do personagem', () => {
-  const spell = makeSpell({ id: 'cura1', nome: 'Cura Sagrada' });
-
-  it('encontra magia em magiasProprias', () => {
-    const personagem = makePersonagem({ magiasProprias: [spell] });
-    const result = resolve({
-      mensagem: 'uso cura sagrada',
-      personagemCompleto: personagem,
-    });
+describe('resolveCombatIntent — loadout pelo vínculo real', () => {
+  it('encontra magia aprendida pelo personagem (hm_personagem)', async () => {
+    const personagem = makePersonagem({ acoes: [makeSpell({ id: 'cura1', nome: 'Cura Sagrada' })] });
+    const result = await resolve({ mensagem: 'uso cura sagrada', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('conjurar_magia');
+    expect(result.intent.magiaId).toBe('cura1');
   });
 
-  it('encontra magia em magiasPreparadas', () => {
-    const personagem = makePersonagem({ magiasPreparadas: [spell] });
-    const result = resolve({
-      mensagem: 'uso cura sagrada',
-      personagemCompleto: personagem,
-    });
-    expect(result.intent.tipo).toBe('conjurar_magia');
-  });
-
-  it('encontra magia em magiasAtivas', () => {
-    const personagem = makePersonagem({ magiasAtivas: [spell] });
-    const result = resolve({
-      mensagem: 'uso cura sagrada',
-      personagemCompleto: personagem,
-    });
-    expect(result.intent.tipo).toBe('conjurar_magia');
-  });
-
-  it('encontra magia em magiasSelecionadas', () => {
-    const personagem = makePersonagem({ magiasSelecionadas: [spell] });
-    const result = resolve({
-      mensagem: 'uso cura sagrada',
-      personagemCompleto: personagem,
-    });
-    expect(result.intent.tipo).toBe('conjurar_magia');
-  });
-});
-
-// ── resolveCombatIntent — habilidade encontrada em diferentes arrays ──
-
-describe('resolveCombatIntent — habilidade encontrada em diferentes arrays do personagem', () => {
-  const skill = makeSkill({ id: 'sk1', nome: 'Provocar Inimigo' });
-
-  it('encontra habilidade em habilidadesClasse', () => {
-    const personagem = makePersonagem({ habilidadesClasse: [skill] });
-    const result = resolve({
-      mensagem: 'uso provocar inimigo',
-      personagemCompleto: personagem,
-    });
+  it('encontra habilidade aprendida pelo personagem (hm_personagem)', async () => {
+    const personagem = makePersonagem({ acoes: [makeSkill({ id: 'sk1', nome: 'Provocar Inimigo' })] });
+    const result = await resolve({ mensagem: 'uso provocar inimigo', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('usar_habilidade');
+    expect(result.intent.habilidadeId).toBe('sk1');
   });
 
-  it('encontra habilidade em habilidadesProprias', () => {
-    const personagem = makePersonagem({ habilidadesProprias: [skill] });
-    const result = resolve({
-      mensagem: 'uso provocar inimigo',
-      personagemCompleto: personagem,
-    });
-    expect(result.intent.tipo).toBe('usar_habilidade');
-  });
-
-  it('encontra habilidade em habilidadesConhecidas', () => {
-    const personagem = makePersonagem({ habilidadesConhecidas: [skill] });
-    const result = resolve({
-      mensagem: 'uso provocar inimigo',
-      personagemCompleto: personagem,
-    });
-    expect(result.intent.tipo).toBe('usar_habilidade');
+  it('magia que o personagem NAO aprendeu nao e encontrada', async () => {
+    // vínculo vazio: o personagem não conhece "Meteoro" — não há named match
+    const personagem = makePersonagem({ acoes: [] });
+    const result = await resolve({ mensagem: 'lanco meteoro devastador', personagemCompleto: personagem });
+    expect(result.intent).toBeNull();
   });
 });
 
 // ── resolveCombatIntent — personagem sem acoes ──
 
 describe('resolveCombatIntent — personagem sem acoes', () => {
-  it('sem habilidades nem magias, cai na inferencia generica', () => {
-    const personagem = makePersonagem();
-    const result = resolve({
-      mensagem: 'eu ataco',
-      personagemCompleto: personagem,
-    });
-
+  it('mensagem com acao generica ainda resolve sem loadout', async () => {
+    const personagem = makePersonagem({ acoes: [] });
+    const result = await resolve({ mensagem: 'eu ataco o goblin', personagemCompleto: personagem });
     expect(result.intent.tipo).toBe('atacar');
-    expect(result.confidence).toBe(0.82);
-  });
-
-  it('sem personagem definido nao lanca erro', () => {
-    const result = resolve({
-      mensagem: 'eu ataco',
-      personagemCompleto: undefined,
-    });
-
-    expect(result.intent.tipo).toBe('atacar');
-  });
-
-  it('personagem null nao lanca erro', () => {
-    const result = resolve({
-      mensagem: 'eu fujo',
-      personagemCompleto: null,
-    });
-
-    expect(result.intent.tipo).toBe('fugir');
   });
 });

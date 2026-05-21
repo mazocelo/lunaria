@@ -28,17 +28,22 @@ import {
 
 let passed = 0;
 let failed = 0;
+const pending = [];
 
+// Suporta callbacks sync e async (ex.: buildTurnState passou a ser async).
 function test(name, fn) {
-  try {
-    fn();
-    passed++;
-    console.log(`  ✓ ${name}`);
-  } catch (err) {
-    failed++;
-    console.error(`  ✗ ${name}`);
-    console.error(`    ${err.message}`);
-  }
+  const run = (async () => {
+    try {
+      await fn();
+      passed++;
+      console.log(`  ✓ ${name}`);
+    } catch (err) {
+      failed++;
+      console.error(`  ✗ ${name}`);
+      console.error(`    ${err.message}`);
+    }
+  })();
+  pending.push(run);
 }
 
 // ── condensarRoteiro ─────────────────────────────────────────────────
@@ -221,15 +226,15 @@ test('ensurePersonagemBucket cria bucket vazio', () => {
 
 console.log('\n── turnStateBuilder ──');
 
-test('buildTurnState: sessão mínima sem crash', () => {
+test('buildTurnState: sessão mínima sem crash', async () => {
   const sessao = { estadoJogo: {}, mestreContexto: {} };
   const pc = { nome: 'Herói', atributos: { constituicao: 12, inteligencia: 10 }, nivel: 3 };
-  const state = buildTurnState(sessao, '1', pc);
+  const state = await buildTurnState(sessao, '1', pc);
   assert.equal(state.nome, 'Herói');
   assert.ok(state.hp.max > 0);
 });
 
-test('formatTurnStateText: nunca gera [object Object]', () => {
+test('formatTurnStateText: nunca gera [object Object]', async () => {
   const sessao = {
     estadoJogo: {
       terreno: { tipo: 'caverna', label: 'Caverna Escura', tags: ['escuro', 'úmido'] },
@@ -240,7 +245,7 @@ test('formatTurnStateText: nunca gera [object Object]', () => {
     mestreContexto: {}
   };
   const pc = { nome: 'Mago', atributos: { constituicao: 10, inteligencia: 14 }, nivel: 5 };
-  const state = buildTurnState(sessao, '1', pc);
+  const state = await buildTurnState(sessao, '1', pc);
   const text = formatTurnStateText(state);
   assert.ok(!text.includes('[object Object]'), 'Não deve conter [object Object]');
   assert.ok(text.includes('Caverna Escura'));
@@ -250,10 +255,10 @@ test('formatTurnStateText: nunca gera [object Object]', () => {
   assert.ok(text.includes('Resgatar'));
 });
 
-test('formatTurnStateText: personagem sem desvantagens', () => {
+test('formatTurnStateText: personagem sem desvantagens', async () => {
   const sessao = { estadoJogo: {}, mestreContexto: {} };
   const pc = { nome: 'Guerreiro', atributos: { constituicao: 14 }, nivel: 2 };
-  const state = buildTurnState(sessao, '1', pc);
+  const state = await buildTurnState(sessao, '1', pc);
   const text = formatTurnStateText(state);
   assert.ok(!text.includes('Desvantagens'), 'Sem desvantagens = sem linha de desvantagens');
 });
@@ -324,6 +329,8 @@ test('applyResumoToSessao: persiste sinais v2', () => {
 });
 
 // ── Resultado ────────────────────────────────────────────────────────
+
+await Promise.all(pending);
 
 console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 console.log(`  Total: ${passed + failed} | Passed: ${passed} | Failed: ${failed}`);

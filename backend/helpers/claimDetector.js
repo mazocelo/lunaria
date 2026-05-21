@@ -15,7 +15,6 @@
  * Shape de retorno alinhado com PLANO-parte-2-detector-de-alegacoes.md
  */
 import logger from './logger.js';
-import { getOwnedCombatActionList } from './ownedActionsHelper.js';
 
 const log = logger.child({ module: 'claimDetector' });
 
@@ -139,7 +138,7 @@ export function detectClaims(mensagem) {
  */
 export function validateClaim(claimInfo, sources) {
   const { claim, tipo } = claimInfo;
-  const { turnState, personagemCompleto, cooldowns } = sources;
+  const { turnState, personagemCompleto } = sources;
 
   const base = {
     claim,
@@ -153,7 +152,7 @@ export function validateClaim(claimInfo, sources) {
   }
 
   if (tipo === 'habilidade') {
-    return _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, base);
+    return _validateHabilidade(claim, turnState, base);
   }
 
   if (tipo === 'fato_previo') {
@@ -235,14 +234,28 @@ function _validateItem(claim, turnState, personagemCompleto, base) {
   };
 }
 
-function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, base) {
-  const habilidades = getOwnedCombatActionList(personagemCompleto);
+/**
+ * Valida uma alegacao de habilidade/magia contra o loadout REAL do personagem.
+ *
+ * Fonte de verdade: turnState.habilidadesDisponiveis / turnState.magiasDisponiveis,
+ * já resolvidas pelo turnStateBuilder a partir do vínculo real (via o contrato de
+ * engine getMagiasConhecidas). O claimDetector não re-resolve o vínculo — consome
+ * o estado de turno que o turnStateBuilder produziu, evitando consulta duplicada.
+ */
+function _validateHabilidade(claim, turnState, base) {
+  const habilidadesDisp = Array.isArray(turnState?.habilidadesDisponiveis)
+    ? turnState.habilidadesDisponiveis
+    : [];
+  const magiasDisp = Array.isArray(turnState?.magiasDisponiveis)
+    ? turnState.magiasDisponiveis
+    : [];
+  const loadout = [...habilidadesDisp, ...magiasDisp];
 
-  const result = findInList(claim, habilidades);
+  const result = findInList(claim, loadout);
 
   if (!result.found) {
     // Checar candidatos parciais
-    const allNames = habilidades.map(h => h.nome).filter(Boolean);
+    const allNames = loadout.map(h => h.nome).filter(Boolean);
     const partial = allNames.filter(name => {
       const n = normalizeText(name);
       const c = normalizeText(claim);
@@ -254,7 +267,7 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
         ...base,
         status: 'suspeito',
         motivo: 'match parcial de habilidade',
-        fonte: 'personagemCompleto.habilidades',
+        fonte: 'turnState.habilidadesDisponiveis',
         acaoRecomendada: 'pedir_clarificacao',
         blockLevel: 'soft',
         confidence: 0.4,
@@ -266,7 +279,7 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
       ...base,
       status: 'inexistente',
       motivo: 'habilidade nao encontrada na ficha',
-      fonte: 'personagemCompleto.habilidades',
+      fonte: 'turnState.habilidadesDisponiveis',
       acaoRecomendada: 'bloquear',
       blockLevel: 'hard',
       confidence: 0.8,
@@ -276,23 +289,19 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
 
   const hab = result.candidates[0];
 
-  // Checar cooldown — soft block (mecanica autoritativa tem precedencia)
-  if (cooldowns && hab.id) {
-    const isSpell = Boolean(hab.escola_magia && hab.escola_magia !== 'nenhuma');
-    const cdKey = isSpell ? `mag_${hab.id}` : `hab_${hab.id}`;
-    const cdTurnos = cooldowns[cdKey];
-    if (cdTurnos && cdTurnos > 0) {
-      return {
-        ...base,
-        status: 'suspeito',
-        motivo: `habilidade em cooldown (${cdTurnos} turnos restantes)`,
-        fonte: 'estadoJogo.cooldowns',
-        acaoRecomendada: 'pedir_clarificacao',
-        blockLevel: 'soft',
-        confidence: 0.9,
-        candidatos: [hab.nome],
-      };
-    }
+  // Checar cooldown — soft block (mecanica autoritativa tem precedencia).
+  // turnState já traz os turnos de cooldown restantes em `cd`.
+  if (hab.cd && hab.cd > 0) {
+    return {
+      ...base,
+      status: 'suspeito',
+      motivo: `habilidade em cooldown (${hab.cd} turnos restantes)`,
+      fonte: 'turnState.cooldowns',
+      acaoRecomendada: 'pedir_clarificacao',
+      blockLevel: 'soft',
+      confidence: 0.9,
+      candidatos: [hab.nome],
+    };
   }
 
   // Checar mana — soft block (mecanica autoritativa tem precedencia)
@@ -316,7 +325,7 @@ function _validateHabilidade(claim, personagemCompleto, cooldowns, turnState, ba
     ...base,
     status: 'ok',
     motivo: null,
-    fonte: 'personagemCompleto.habilidades',
+    fonte: 'turnState.habilidadesDisponiveis',
     acaoRecomendada: 'seguir',
     blockLevel: null,
     confidence: 0.9,

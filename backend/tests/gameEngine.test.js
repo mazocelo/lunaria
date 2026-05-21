@@ -1,7 +1,39 @@
-import { describe, it, expect } from 'vitest';
-import { prepararTurno, resolverTurno, formatarContexto } from '../helpers/gameEngine.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock do Model: o pipeline de intent resolve o loadout pelo VÍNCULO REAL
+// (resolveCombatIntent → engine getMagiasConhecidas → hm_personagem). O db fake
+// devolve o que o teste declarar em fakeVinculoStore.rows.
+const fakeVinculoStore = { rows: [] };
+vi.mock('../Model/index.js', () => ({
+  default: {
+    HmPersonagem: { findByPersonagem: async () => fakeVinculoStore.rows },
+    Personagem: { listarMagiasTresDet: async () => [] },
+  },
+}));
+
+const { prepararTurno, resolverTurno, formatarContexto } = await import('../helpers/gameEngine.js');
+
+beforeEach(() => {
+  fakeVinculoStore.rows = [];
+});
 
 // ── Factories ──
+
+/** Linhas de vínculo hm_personagem para o db fake. */
+function vinculoRows(acoes = []) {
+  return acoes.map((a) => ({
+    habilidade_id: a.id,
+    origem: 'criacao',
+    habilidades_magias: {
+      id: a.id,
+      nome: a.nome,
+      escola_magia: a.escola_magia ?? null,
+      custo_mana: a.custo_mana ?? 0,
+      sistema: 'lunaria',
+      nivel_requerido: 1,
+    },
+  }));
+}
 
 function makeSessao(overrides = {}) {
   const userId = 'user_1';
@@ -274,16 +306,13 @@ describe('gameEngine', () => {
     });
 
     it('Camada 1 ambíguo → falls to Camada 3 when Flash Lite skipped', async () => {
-      const sessao = makeSessao({
-        personagensCompletos: {
-          'user_1': makePersonagemCompleto({
-            habilidadesClasse: [
-              { id: 'investida', nome: 'Investida', custo_mana: 3, dano_base: '1d8' },
-              { id: 'investida_brutal', nome: 'Investida Brutal', custo_mana: 5, dano_base: '2d8' },
-            ]
-          })
-        }
-      });
+      const sessao = makeSessao();
+      // Loadout real do personagem (vínculo): duas habilidades cujo named match
+      // é ambíguo para a mensagem "investida brutal".
+      fakeVinculoStore.rows = vinculoRows([
+        { id: 'investida', nome: 'Investida', custo_mana: 3 },
+        { id: 'investida_brutal', nome: 'Investida Brutal', custo_mana: 5 },
+      ]);
       const resultado = await prepararTurno(sessao, 'user_1', {
         mensagem: 'investida brutal',
         _skipFlashLite: true

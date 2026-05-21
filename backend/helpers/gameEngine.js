@@ -37,7 +37,7 @@ export async function prepararTurno(sessao, userId, intentOrMessage) {
 
   // Phase 1 compat: intent already resolved
   if (intentOrMessage?.tipo) {
-    return _prepararMecanica(sessao, userId, intentOrMessage);
+    return await _prepararMecanica(sessao, userId, intentOrMessage);
   }
 
   // Phase 2: resolve intent from message
@@ -52,7 +52,7 @@ export async function prepararTurno(sessao, userId, intentOrMessage) {
     return { requerIntentMestre: true, mensagem };
   }
 
-  const resultado = _prepararMecanica(sessao, userId, intent);
+  const resultado = await _prepararMecanica(sessao, userId, intent);
   if (resultado) resultado._resolvedIntent = intent;
   return resultado;
 }
@@ -62,7 +62,7 @@ async function _resolveIntentPipeline(sessao, userId, mensagem, explicitIntent, 
   const personagem = _resolvePersonagem(sessao, userId);
 
   // Camada 1: Regex + name match
-  const resolution = resolveCombatIntent({
+  const resolution = await resolveCombatIntent({
     mensagem,
     explicitIntent,
     personagemCompleto: personagem,
@@ -96,7 +96,7 @@ async function _resolveIntentPipeline(sessao, userId, mensagem, explicitIntent, 
   return null;
 }
 
-function _prepararMecanica(sessao, userId, intent) {
+async function _prepararMecanica(sessao, userId, intent) {
   const combate = sessao?.estadoJogo?.combate;
   const personagem = _resolvePersonagem(sessao, userId);
   if (!personagem) {

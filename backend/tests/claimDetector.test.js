@@ -153,13 +153,16 @@ describe('validateClaim', () => {
     });
   });
 
+  // Contrato novo (Fase 3.4): a validacao de habilidade le o loadout REAL do
+  // turnState (habilidadesDisponiveis/magiasDisponiveis), ja resolvido pelo
+  // turnStateBuilder a partir do vinculo. O cooldown vem pronto no campo `cd`.
   describe('habilidades', () => {
     it('habilidade existente → status ok', () => {
       const sources = {
         ...baseSources,
-        personagemCompleto: {
-          ...baseSources.personagemCompleto,
-          habilidadesClasse: [{ nome: 'Golpe Brutal', id: 1 }],
+        turnState: {
+          ...baseSources.turnState,
+          habilidadesDisponiveis: [{ nome: 'Golpe Brutal', cd: 0, custo_mana: 0 }],
         },
       };
       const result = validateClaim({ claim: 'golpe brutal', tipo: 'habilidade' }, sources);
@@ -177,11 +180,10 @@ describe('validateClaim', () => {
     it('habilidade em cooldown → status suspeito, blockLevel soft (mecanica autoritativa tem precedencia)', () => {
       const sources = {
         ...baseSources,
-        personagemCompleto: {
-          ...baseSources.personagemCompleto,
-          habilidadesClasse: [{ nome: 'Investida', id: 5, custo_mana: 0 }],
+        turnState: {
+          ...baseSources.turnState,
+          habilidadesDisponiveis: [{ nome: 'Investida', cd: 2, custo_mana: 0 }],
         },
-        cooldowns: { hab_5: 2 },
       };
       const result = validateClaim({ claim: 'investida', tipo: 'habilidade' }, sources);
       expect(result.status).toBe('suspeito');
@@ -192,10 +194,10 @@ describe('validateClaim', () => {
     it('magia com mana insuficiente → status suspeito, blockLevel soft (mecanica autoritativa tem precedencia)', () => {
       const sources = {
         ...baseSources,
-        turnState: { inventario: [], mana: { atual: 3, max: 30 } },
-        personagemCompleto: {
-          ...baseSources.personagemCompleto,
-          magias: [{ nome: 'Bola de Fogo', id: 10, custo_mana: 10, escola_magia: 'evocacao' }],
+        turnState: {
+          inventario: [],
+          mana: { atual: 3, max: 30 },
+          magiasDisponiveis: [{ nome: 'Bola de Fogo', cd: 0, custo_mana: 10 }],
         },
       };
       const result = validateClaim({ claim: 'bola de fogo', tipo: 'habilidade' }, sources);
@@ -207,10 +209,10 @@ describe('validateClaim', () => {
     it('magia com mana suficiente → status ok', () => {
       const sources = {
         ...baseSources,
-        turnState: { inventario: [], mana: { atual: 15, max: 30 } },
-        personagemCompleto: {
-          ...baseSources.personagemCompleto,
-          magias: [{ nome: 'Bola de Fogo', id: 10, custo_mana: 10, escola_magia: 'evocacao' }],
+        turnState: {
+          inventario: [],
+          mana: { atual: 15, max: 30 },
+          magiasDisponiveis: [{ nome: 'Bola de Fogo', cd: 0, custo_mana: 10 }],
         },
       };
       const result = validateClaim({ claim: 'bola de fogo', tipo: 'habilidade' }, sources);

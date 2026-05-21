@@ -23,10 +23,11 @@ import {
   normalizarElementoPrimario,
 } from './catalogJsonHelper.js';
 import { setCooldown } from './cooldownManager.js';
-import { getOwnedCombatActionList } from './ownedActionsHelper.js';
+import { getOwnedCombatActions } from './ownedActionsHelper.js';
 import { checkDanoConcentracao, quebrarConcentracao } from './concentrationManager.js';
 import { getAtributo, getAtributosMap } from './atributosHelper.js';
 import { getEngine } from '../game-systems/index.js';
+import db from '../Model/index.js';
 const log = logger.child({ module: 'combateHelper' });
 
 /**
@@ -112,8 +113,37 @@ function _resolvePersonagemSnapshot(sessao, userId, personagem = null, jogadorSt
   };
 }
 
-function _getPersonagemHabilidades(personagemCompleto = {}) {
-  return getOwnedCombatActionList(personagemCompleto);
+/**
+ * Hidrata uma ação de combate para o registro completo do catálogo.
+ * Magias/habilidades vindas do vínculo (engine) chegam como MagiaConhecida
+ * resumida; o combate precisa do registro completo (dano_base, efeito,
+ * escalamento, cooldown_turnos...). Vantagens ativáveis já carregam o JSON
+ * completo do personagem — são devolvidas como estão.
+ * @param {Object} acao - MagiaConhecida da engine ou vantagem ativável
+ * @returns {Promise<Object>} registro completo da ação
+ */
+async function _hidratarAcaoCombate(acao) {
+  if (!acao?.fonte || acao.id == null) return acao;
+  let registro = null;
+  if (acao.fonte === 'habilidades_magias') {
+    registro = await db.HabilidadeMagia.findById(acao.id);
+  } else if (acao.fonte === 'magias_tresdet') {
+    registro = await db.MagiasTresDet.buscarPorId(acao.id);
+  }
+  return registro ? { ...registro, origem: acao.origem } : acao;
+}
+
+/**
+ * Resolve as ações de combate que o personagem realmente possui (forma resumida).
+ * Fonte de verdade: o vínculo real, via o contrato de engine getMagiasConhecidas
+ * (helper ownedActionsHelper). A hidratação para o registro completo é feita
+ * depois, só para a ação efetivamente usada — ver _hidratarAcaoCombate.
+ * @param {Object} personagemCompleto
+ * @returns {Promise<Array>} habilidades + magias (MagiaConhecida ou vantagem)
+ */
+async function _getPersonagemHabilidades(personagemCompleto = {}) {
+  const loadout = await getOwnedCombatActions(personagemCompleto, db);
+  return [...loadout.habilidades, ...loadout.magias];
 }
 
 /**
@@ -963,8 +993,8 @@ const COMBAT_INTENT_HANDLERS = {
     r.acaoConsumida = false;
     log.info({ userId: ctx.userId, teste: r.requerTeste }, 'Fuga requer teste de habilidade');
   },
-  usar_habilidade: (ctx, r) => {
-    const habilidade = _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.statusEfeitos, ctx.combatIntent);
+  usar_habilidade: async (ctx, r) => {
+    const habilidade = await _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.statusEfeitos, ctx.combatIntent);
     if (habilidade?.requerTeste) {
       r.requerTeste = habilidade.requerTeste;
       r.acaoConsumida = false;
@@ -973,8 +1003,8 @@ const COMBAT_INTENT_HANDLERS = {
     r.habilidade = habilidade;
     r.acaoConsumida = habilidade?.valido !== false;
   },
-  conjurar_magia: (ctx, r) => {
-    const habilidade = _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.statusEfeitos, ctx.combatIntent);
+  conjurar_magia: async (ctx, r) => {
+    const habilidade = await _resolverHabilidade(ctx.combate, ctx.userId, ctx.sessao, ctx.personagem, ctx.jogadorStats, ctx.statusEfeitos, ctx.combatIntent);
     if (habilidade?.requerTeste) {
       r.requerTeste = habilidade.requerTeste;
       r.acaoConsumida = false;
@@ -1030,9 +1060,9 @@ function _resolveCombatStatusEffects(sessao, userId, personagem, jogadorStats, r
  * Fase 2: Resolve a acao do jogador via handler map por intent.
  * Retorna true se a acao requer teste (fuga, habilidade com teste).
  */
-function _resolveCombatAction(ctx, resultados) {
+async function _resolveCombatAction(ctx, resultados) {
   const handler = COMBAT_INTENT_HANDLERS[ctx.intentTipo];
-  if (handler) handler(ctx, resultados);
+  if (handler) await handler(ctx, resultados);
   return !!resultados.requerTeste;
 }
 
@@ -1062,7 +1092,7 @@ function _finalizeCombatState(combate, resultados) {
  * @param {Object|null} combatIntent - { tipo: 'atacar'|'defender'|'fugir'|'usar_habilidade'|'conjurar_magia', habilidadeId?, habilidadeNome?, magiaId?, magiaNome? }
  * @returns {CombatRoundResult}
  */
-export function resolverMecanicaCombate(combate, userId, sessao, personagem, combatIntent = null) {
+export async function resolverMecanicaCombate(combate, userId, sessao, personagem, combatIntent = null) {
   const intentTipo = combatIntent?.tipo || 'atacar';
   const resultados = createCombatRoundResult({ intentTipo });
 
@@ -1084,7 +1114,7 @@ export function resolverMecanicaCombate(combate, userId, sessao, personagem, com
   // --- 2. Acao do jogador (por intent via handler map) ---
   if (!impedidoDeAgir) {
     const ctx = { combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent, intentTipo };
-    const requerTeste = _resolveCombatAction(ctx, resultados);
+    const requerTeste = await _resolveCombatAction(ctx, resultados);
     if (requerTeste) return resultados;
   } else {
     resultados.acaoConsumida = true;
@@ -1526,15 +1556,19 @@ function _consumirRecursosHabilidade(sessao, userId, jogadorStats, hab, validaca
   }
 }
 
-function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent) {
+async function _resolverHabilidade(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent) {
   const tipoAcao = combatIntent?.tipo === 'conjurar_magia' ? 'conjurar_magia' : 'usar_habilidade';
   const habilidadeId = combatIntent?.habilidadeId ?? combatIntent?.magiaId;
   const habilidadeNome = combatIntent?.habilidadeNome ?? combatIntent?.magiaNome;
 
   const snapshot = _resolvePersonagemSnapshot(sessao, userId, personagem, jogadorStats);
   const pc = snapshot.personagem || {};
-  const habilidades = _getPersonagemHabilidades(pc);
-  const hab = habilidades.find(h => String(h.id) === String(habilidadeId)) || habilidades.find(h => h.nome === habilidadeNome);
+  const habilidades = await _getPersonagemHabilidades(pc);
+  const acao = habilidades.find(h => String(h.id) === String(habilidadeId))
+    || habilidades.find(h => h.nome === habilidadeNome);
+  // Hidrata só a ação usada: o registro completo do catálogo é carregado uma
+  // única vez, evitando consultar o catálogo inteiro do loadout.
+  const hab = acao ? await _hidratarAcaoCombate(acao) : null;
 
   if (!hab) {
     log.warn({ userId, habilidadeId, habilidadeNome }, 'Habilidade nao encontrada no personagem');

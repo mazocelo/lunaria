@@ -348,7 +348,8 @@ async function seedVantagens() {
     count++;
   }
 
-  await resetSequence('vantagens', count + 1);
+  const maxVantagem = await prisma.vantagens.aggregate({ _max: { id: true } });
+  await resetSequence('vantagens', (maxVantagem._max.id || 0) + 1);
   console.log(`✅ ${count} vantagens`);
 }
 
@@ -384,7 +385,8 @@ async function seedDesvantagens() {
     count++;
   }
 
-  await resetSequence('desvantagens', count + 1);
+  const maxDesvantagem = await prisma.desvantagens.aggregate({ _max: { id: true } });
+  await resetSequence('desvantagens', (maxDesvantagem._max.id || 0) + 1);
   console.log(`✅ ${count} desvantagens`);
 }
 
@@ -403,9 +405,21 @@ async function seedHabilidades() {
   let count = 0;
   let maxId = 0;
 
+  // O constraint unico e (nome, sistema). Os JSONs de habilidades e magias
+  // tem nomes repetidos entre si (ex.: "Bola de Fogo"); a primeira ocorrencia
+  // (habilidade) vence e a colidente e ignorada.
+  const nomesVistos = new Set();
+  const ignorados = [];
+
   for (const h of all) {
     const id = h.id;
     if (id > maxId) maxId = id;
+
+    if (nomesVistos.has(h.nome)) {
+      ignorados.push(h.nome);
+      continue;
+    }
+    nomesVistos.add(h.nome);
 
     await prisma.habilidades_magias.create({
       data: {
@@ -439,8 +453,11 @@ async function seedHabilidades() {
     count++;
   }
 
-  await resetSequence('habilidades', maxId + 1);
+  await resetSequence('habilidades_magias', maxId + 1);
   console.log(`✅ ${count} habilidades+magias (${habilidades.length} hab + ${magias.length} mag)`);
+  if (ignorados.length > 0) {
+    console.log(`⚠️  ${ignorados.length} ignorados por nome duplicado: ${ignorados.join(', ')}`);
+  }
 }
 
 // ──────────────────────────────────────────────────────────────

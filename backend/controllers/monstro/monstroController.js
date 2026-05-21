@@ -18,7 +18,7 @@ class MonstroController {
    */
   listar = async (req, res, next) => {
     try {
-      const { tipo, raridade_id, nivel, tema, limit, offset } = req.query;
+      const { tipo, raridade_id, nivel, tema, limit, offset, sistema } = req.query;
 
       if (limit !== undefined) {
         const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
@@ -26,7 +26,7 @@ class MonstroController {
         const result = await db.Monstro.findPaginated({
           limit: parsedLimit,
           offset: parsedOffset,
-          tipo, raridade_id, nivel, tema
+          tipo, raridade_id, nivel, tema, sistema
         });
         return res.status(200).json({
           success: true,
@@ -40,7 +40,7 @@ class MonstroController {
         });
       }
 
-      const data = await db.Monstro.findAll();
+      const data = await db.Monstro.findAll(sistema);
       res.status(200).json({
         success: true,
         data,

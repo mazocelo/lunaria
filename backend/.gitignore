@@ -5,6 +5,7 @@ node_modules
 .env.production
 .env*.local
 .env.save
+.env.qa
 *.png
 .playwright-mcp/
 scripts/balance-report.html

@@ -19,7 +19,6 @@ import { ImageGenerationService } from './ImageGenerationService';
 import { HabilidadeMagiaService } from './HabilidadeMagiaService';
 import { MestreCriadorService } from './MestreCriadorService';
 import { ItemTresDetService } from './ItemTresDetService';
-import { MagiasTresDetService } from './MagiasTresDetService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
@@ -44,7 +43,6 @@ export { ImageGenerationService } from './ImageGenerationService';
 export { HabilidadeMagiaService } from './HabilidadeMagiaService';
 export { MestreCriadorService } from './MestreCriadorService';
 export { ItemTresDetService } from './ItemTresDetService';
-export { MagiasTresDetService } from './MagiasTresDetService';
 
 // Instâncias padrão dos serviços
 export const historiaService = new HistoriaService(apiClient);
@@ -66,7 +64,6 @@ export const imageGenerationService = new ImageGenerationService(apiClient);
 export const habilidadeService = new HabilidadeMagiaService(apiClient);
 export const mestreCriadorService = new MestreCriadorService(apiClient);
 export const itemTresDetService = new ItemTresDetService(apiClient);
-export const magiasTresDetService = new MagiasTresDetService(apiClient);
 
 // Catalogos (raridades, categorias)
 export const catalogoService = {

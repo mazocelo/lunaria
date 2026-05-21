@@ -47,3 +47,17 @@ export function calcularMana(personagem) {
   const modCha = Math.floor((carisma - 10) / 2);
   return 10 + nivel + Math.max(modInt, modCha) * 2;
 }
+
+export function getDnd5eProficiencyBonus(nivel) {
+  if (nivel <= 4) return 2;
+  if (nivel <= 8) return 3;
+  if (nivel <= 12) return 4;
+  if (nivel <= 16) return 5;
+  return 6;
+}
+export function getDnd5eModifier(score) {
+  return Math.floor(((score || 10) - 10) / 2);
+}
+export function formatModifier(mod) {
+  return mod >= 0 ? `+${mod}` : `${mod}`;
+}

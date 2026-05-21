@@ -6,3 +6,8 @@ node_modules
 .drift-inventory.sql
 .backups/
 .qa/
+
+# Material de referência (não versionado)
+manuais-3dt/
+mds/
+novidades e mds

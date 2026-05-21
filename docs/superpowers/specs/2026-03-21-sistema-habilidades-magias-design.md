@@ -1,7 +1,13 @@
 # Sistema de Habilidades & Magias — Design Spec
 
+> ⚠️ **Superseded by `2026-05-20-modelo-hibrido-hm-design.md`** (seções §2 "catálogo
+> unificado / tabela separada", §3.1 "campos deprecados", §3.2 "`hm_raca` opcional",
+> §3.4/§3.5/§6 "slots e `pode_magia` e vantagens-slots", §4 "wizard Grimório").
+> A spec de 2026-05-20 é a **referência canônica** do sistema H&M. Onde esta spec
+> conflitar com ela, a de 2026-05-20 prevalece.
+
 **Data:** 2026-03-21
-**Status:** Aprovado
+**Status:** Aprovado — PARCIALMENTE SUPERSEDED (ver nota acima)
 **Escopo:** Reestruturação do sistema de habilidades/magias com aprendizado, slots e progressão
 
 ---

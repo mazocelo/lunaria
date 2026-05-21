@@ -1,5 +1,12 @@
 # Design: Integração de Magias 3D&T Alpha
 
+> ⚠️ **Superseded by `2026-05-20-modelo-hibrido-hm-design.md`** (seções §"Decisões
+> Técnicas" e §"Parte 2: Conjuração em Combate" — o contrato comum das engines
+> `getMagiasConhecidas`/`getMagiasDisponiveis`/`getSlotsInfo` passa a ser definido na
+> spec de 2026-05-20, §5). A spec de 2026-05-20 é a **referência canônica** do
+> sistema H&M. As decisões de schema desta spec (`magias_tresdet`,
+> `personagem_magia_tresdet`, conjuração por PM sem slots) seguem válidas.
+
 ## Contexto
 
 O sistema 3D&T Alpha no Lunaria tem 100+ magias em `magias_tresdet` com `focus_requisito` mapeando as escolas tradicionais (Branca, Negra, Elemental) para os 6 Focus elementais (Fogo, Agua, Terra, Ar, Luz, Trevas). A infraestrutura existe mas está desconectada do gameplay. Este design fecha o ciclo completo em 3 entregas independentes.

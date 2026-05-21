@@ -4,7 +4,9 @@
 
 **Goal:** Sair de um estado de repositório com drift severo (arquivos usados em runtime nunca commitados, schema Prisma divergente do histórico de migrations) para um estado consistente, com o sistema de Habilidades & Magias (H&M) fechado e um deploy controlado em produção.
 
-**Architecture:** Cinco fases sequenciais com freeze de features. Primeiro travamos o estado real (commit do drift), depois reconciliamos o banco com UMA migration de reconciliação (incluindo o rename `habilidades`→`habilidades_magias` como `ALTER TABLE ... RENAME`), saneamos os testes, fechamos o sistema H&M com o modelo híbrido decidido, e por fim publicamos e fazemos deploy controlado.
+**Architecture:** Cinco fases sequenciais com freeze de features. Primeiro travamos o estado real (commit do drift), depois reconciliamos o histórico de migrations via **re-baseline** (opção B): arquiva-se o histórico antigo, gera-se `0_init` a partir do `schema.prisma` atual e uma migration residual `fix_fks_indices` cobre o drift de índices/FKs já presente em produção. Em seguida saneamos os testes, fechamos o sistema H&M com o modelo híbrido decidido, e por fim publicamos e fazemos deploy controlado.
+
+> **Nota de revisão (2026-05-21):** A Fase 1 foi re-especificada para a **opção B (re-baseline)**. O rename físico `habilidades`→`habilidades_magias` **já está aplicado em produção** (via `db push` anterior); a tabela física já se chama `habilidades_magias`. Portanto não há mais "migration de reconciliação" com `ALTER TABLE ... RENAME` — o `0_init` descreve o estado atual e a `fix_fks_indices` só ajusta 3 índices ausentes e 4 FKs com `ON DELETE` divergente. Detalhes nas seções abaixo.
 
 **Tech Stack:** Node.js 22 + Express 4 + Prisma 6 (PostgreSQL) + Redis/BullMQ + Socket.IO | React 19 + Vite 6 + Zustand 5 + Tailwind 4
 
@@ -28,8 +30,8 @@ Estas decisões foram fechadas em 3 rodadas de revisão técnica. Implementar ex
 | D3 | **3D&T usa só PM, sem slots.** Conjuração consome PM; descanso recupera R×d6. Sem sistema de slots para 3D&T. |
 | D4 | **`hm_raca` é a fonte de verdade das habilidades raciais.** Seeds e runtime resolvem habilidade racial pelo vínculo `hm_raca`, não por coluna em `racas` nem por JSON. |
 | D5 | **Personagens muito antigos serão DELETADOS na migração.** Critério de corte exato a definir via diagnóstico (Fase 3.7) — não deletar nada antes do diagnóstico aprovado pelo tech-lead. |
-| D6 | **Rename de tabela é `ALTER TABLE ... RENAME`, nunca DROP+CREATE.** Vale para `habilidades`→`habilidades_magias` e qualquer outro rename. |
-| D7 | **Dev usa `prisma db push`; NUNCA `migrate reset`.** Deploy usa `prisma migrate deploy`. A migration de reconciliação (Fase 1) é a exceção controlada: é escrita/editada à mão e aplicada com `migrate deploy`. |
+| D6 | **Rename de tabela é `ALTER TABLE ... RENAME`, nunca DROP+CREATE.** Vale para `habilidades`→`habilidades_magias` e qualquer outro rename. **Histórico:** o rename `habilidades`→`habilidades_magias` já foi aplicado em produção por `db push` antes deste plano. A Fase 1 não precisa mais executá-lo — `0_init` já descreve a tabela com o nome final. |
+| D7 | **Dev usa `prisma db push`; NUNCA `migrate reset`.** Deploy usa `prisma migrate deploy`. **A Fase 1 NÃO é mais "uma migration de reconciliação", é um re-baseline (opção B):** (1) o histórico de migrations antigo (13 diretórios) é arquivado em `prisma/migrations_archive/`; (2) `prisma migrate diff --from-empty --to-schema-datamodel` gera `0_init` (somente `CREATE`/`AddForeignKey`, zero DDL destrutivo); (3) uma migration residual `20260521120000_fix_fks_indices` cobre o drift remanescente de produção (3 índices + 4 FKs). Em produção, o re-baseline se completa com `DELETE` das linhas antigas de `_prisma_migrations`, `migrate resolve --applied 0_init` e `migrate deploy` da `fix_fks_indices` — feito numa janela de manutenção com PM2 parado. Nenhum `migrate reset` em momento algum. |
 
 ---
 
@@ -38,7 +40,7 @@ Estas decisões foram fechadas em 3 rodadas de revisão técnica. Implementar ex
 | Fase | Título | Dono | Depende de | Bloqueia |
 |------|--------|------|------------|----------|
 | 0 | Travar o estado | dev-lunaria | — | Fase 1 |
-| 1 | Migration de reconciliação | dev-lunaria (revisão tech-lead) | Fase 0 | Fases 2, 3 |
+| 1 | Re-baseline do histórico de migrations (opção B) | dev-lunaria (revisão tech-lead) | Fase 0 | Fases 2, 3 |
 | 2 | Saneamento de testes | dev-lunaria | Fase 1 | Fase 4 |
 | 3 | Fechar o sistema H&M | dev / designer / qa | Fase 1 | Fase 4 |
 | 4 | Deploy controlado | dev / qa | Fases 2 e 3 | — (levanta o freeze) |
@@ -73,44 +75,40 @@ Estas decisões foram fechadas em 3 rodadas de revisão técnica. Implementar ex
 
 ---
 
-## Fase 1 — Migration de reconciliação
+## Fase 1 — Re-baseline do histórico de migrations (opção B)
 
 **Dono:** dev-lunaria. **Revisão obrigatória:** tech-lead-lunaria. **Depende de:** Fase 0.
 
-**Objetivo:** UMA única migration que reconcilia o histórico de migrations com o `schema.prisma` atual, sem perder dados e sem `db push`/`migrate reset`.
+**Objetivo:** reconciliar o histórico de migrations com o `schema.prisma` atual via re-baseline, sem perder dados e sem `migrate reset`. A Fase 1 é dividida em **Round 1 (sem escrita em produção)** e **Round 2 (escrita em produção, janela de manutenção)**.
 
-- [ ] **1.1 Gerar o esqueleto da migration**
-  ```bash
-  cd /opt/role-chat-game/backend
-  npx prisma migrate diff \
-    --from-migrations prisma/migrations \
-    --to-schema-datamodel prisma/schema.prisma \
-    --script > prisma/migrations/20260520_reconciliacao_drift/migration.sql
-  ```
-  (Criar o diretório antes; nome final `20260520120000_reconciliacao_drift` ou timestamp real.)
+### Round 1 — Preparação e validação fora de produção (CONCLUÍDO em 2026-05-21, commit `7207b1c`)
 
-- [ ] **1.2 Editar o rename à mão** — Prisma gera o rename de tabela como `DROP TABLE "habilidades"` + `CREATE TABLE "habilidades_magias"`, **o que apaga todos os dados**. Substituir esse bloco por:
-  ```sql
-  ALTER TABLE "habilidades" RENAME TO "habilidades_magias";
-  ```
-  E renomear índices/constraints associados via `ALTER ... RENAME` em vez de drop/create:
-  ```sql
-  ALTER INDEX "habilidades_pkey" RENAME TO "habilidades_magias_pkey";
-  ALTER INDEX "habilidades_nome_idx" RENAME TO "habilidades_magias_nome_idx";
-  -- ... demais índices listados no baseline (linhas 776-794)
-  ```
-  Idem para FKs em `receitas`, `hm_*`.
+- [x] **1.1 Backup** — `pg_dump -Fc` da produção em `.backups/role_chat_game_20260521_002725.dump` (2.471.582 bytes); `pg_restore --list` legível (520 entradas).
+- [x] **1.2 Bookkeeping** — `migrate status` registrado em `.qa/migrate-status-pre.txt` (13 migrations, 12 aplicadas, `20260320120000_add_mult_raca` pendente). Contagens-base em `.qa/row-counts-pre.txt`.
+- [x] **1.3 Arquivamento** — 13 diretórios de migration movidos via `git mv` para `prisma/migrations_archive/`; `prisma/migrations/` fica só com `migration_lock.toml`.
+- [x] **1.4 Gerar `0_init`** — `prisma migrate diff --from-empty --to-schema-datamodel --script` → `prisma/migrations/0_init/migration.sql` (1353 linhas, 0 DDL destrutivo: `grep -iE 'DROP |ALTER COLUMN .* DROP'` vazio).
+- [x] **1.5 Validar `0_init`** — aplicado num cluster PG14 efêmero limpo; `migrate diff` final vazio (`0_init ≡ schema.prisma`).
+- [x] **1.6 Revisão tech-lead do `0_init`** — concluída neste checkpoint (ver abaixo).
+- [x] **1.8 Migration residual `fix_fks_indices`** — `prisma/migrations/20260521120000_fix_fks_indices/migration.sql`: 3 `CREATE INDEX IF NOT EXISTS` + 4 FKs recriadas (`DROP CONSTRAINT IF EXISTS` + `ADD CONSTRAINT ... ON DELETE CASCADE`). Sem operação destrutiva de dados.
+- [x] **1.9 Validar a cadeia completa** — `0_init` + `fix_fks_indices` aplicados no efêmero → `migrate diff` vazio, `migrate status` limpo. Cadeia testada também em DB fresca.
+- [x] **1.10 Revisão tech-lead do `fix_fks_indices` + veredito** — concluída neste checkpoint (ver abaixo).
 
-- [ ] **1.3 Revisar todo o resto do diff** — confirmar que tabelas `hm_classe`, `hm_raca`, `hm_personagem`, `hm_slots_classe`, `magias_tresdet`, `personagem_magia_tresdet` e colunas novas (`sistema`, `pode_magia`, atributos flexíveis) entram com `CREATE TABLE`/`ADD COLUMN ... DEFAULT`, e que **nada** de DROP destrutivo sobrou.
+### Round 2 — Aplicação em produção (janela de manutenção, PM2 parado)
 
-- [ ] **1.4 Validar contra cópia de staging** — aplicar `npx prisma migrate deploy` numa cópia do banco de staging; confirmar que `prisma migrate status` fica limpo e que `prisma migrate diff --from-migrations ... --to-schema-datamodel ...` retorna vazio.
+- [ ] **1.11** Parar PM2 (API + worker).
+- [ ] **1.12** `DELETE` das 13 linhas antigas de `_prisma_migrations` em produção.
+- [ ] **1.13** `prisma migrate resolve --applied 0_init` (marca o baseline como já aplicado, sem rodar o SQL).
+- [ ] **1.14** `prisma migrate deploy` — aplica somente `20260521120000_fix_fks_indices`.
+- [ ] **1.15** Verificar `prisma migrate status` limpo e `prisma migrate diff` vazio em produção.
+- [ ] **1.16** Religar PM2 e smoke rápido.
 
-- [ ] **1.5 Tech-lead revisa o `migration.sql`** linha a linha antes de seguir.
+> O passo-a-passo EXATO do Round 2 está detalhado no checkpoint de revisão (entrega ao dev-lunaria de 2026-05-21).
 
 **Critérios de aceite:**
-- `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --script` retorna vazio (sem drift).
-- A migration aplicada numa cópia de staging preserva 100% das linhas de `habilidades`/`habilidades_magias`.
-- Não há nenhum `DROP TABLE`/`DROP COLUMN` não intencional na migration.
+- `0_init` é 100% `CREATE`/`AddForeignKey`/`CreateIndex`/`CreateEnum`; zero `DROP`/`ALTER COLUMN` destrutivo.
+- `0_init` cobre as 55 tabelas e 7 enums do `schema.prisma`, incluindo H&M (`hm_classe`, `hm_raca`, `hm_personagem`, `hm_slots_classe`) e 3D&T (`magias_tresdet`, `itens_tresdet`, `personagem_item_tresdet`, `personagem_magia_tresdet`).
+- `fix_fks_indices` é idempotente (`IF EXISTS`/`IF NOT EXISTS`) e não toca dados.
+- Após o Round 2: `prisma migrate status` limpo e `prisma migrate diff --from-migrations ... --to-schema-datamodel ...` vazio em produção; contagens de linhas idênticas às de `.qa/row-counts-pre.txt`.
 
 ---
 
@@ -136,7 +134,7 @@ Estas decisões foram fechadas em 3 rodadas de revisão técnica. Implementar ex
 **Dono:** dev-lunaria (designer-lunaria no 3.5, qa-lunaria valida). **Depende de:** Fase 1. **Pode rodar em paralelo com a Fase 2.**
 
 - [ ] **3.0** Registrar a decisão do **modelo híbrido** (D1–D4) numa spec formal em `docs/superpowers/specs/2026-05-20-modelo-hibrido-hm-design.md`.
-- [ ] **3.1** Migration formal H&M — se a Fase 1 não cobrir 100% das tabelas/índices H&M, escrever a migration complementar (mesmas regras: sem `db push`, rename via `ALTER`).
+- [x] **3.1** ~~Migration formal H&M~~ — **NÃO APLICÁVEL.** Com o re-baseline da Fase 1 (opção B), o `0_init` já descreve 100% das tabelas e índices H&M (`hm_classe`, `hm_raca`, `hm_personagem`, `hm_slots_classe` + suas FKs e índices únicos), confirmado na revisão tech-lead de 2026-05-21. Não há migration complementar a escrever; este passo está vazio por construção.
 - [ ] **3.2** Resolver os controllers/rotas duplicados: hoje `routes/index.js` aponta `/habilidades` **e** `/habilidades-magias` para o mesmo `habilidades-magias.js`, e existe `controllers/habilidades/` + `controllers/habilidades-magias/` e o órfão `routes/habilidades.js`. Consolidar num só (canônico: `habilidades-magias`), remover o morto, manter `/habilidades` como alias deprecado se necessário.
 - [ ] **3.3** Definir o contrato das engines: `getMagiasConhecidas`, `getMagiasDisponiveis`, `getSlotsInfo` implementados em cada engine (`game-systems/{lunaria,dnd5e,tresdet}/`), respeitando D2 (D&D só conhecidas) e D3 (3D&T só PM).
 - [ ] **3.4** Migrar `helpers/ownedActionsHelper.js` (ou equivalente) para resolver as ações do personagem pelo vínculo real (`hm_personagem` / `personagem_magia_tresdet`), não por JSON.
@@ -158,7 +156,7 @@ Estas decisões foram fechadas em 3 rodadas de revisão técnica. Implementar ex
 **Dono:** dev-lunaria (qa-lunaria valida). **Depende de:** Fases 2 e 3.
 
 - [ ] **4.1** Publicar o monorepo `/opt/role-chat-game` e os repositórios individuais (`backend` → `mazocelo/Role-Chat-Game`, `frontend` → `mazocelo/RPG-FRONT`).
-- [ ] **4.2** Aplicar a migration em produção: `npx prisma migrate deploy`.
+- [ ] **4.2** Aplicar migrations pendentes em produção: `npx prisma migrate deploy`. **Observação:** o re-baseline (`0_init` + `fix_fks_indices`) já foi aplicado em produção no Round 2 da Fase 1. Aqui o `migrate deploy` só aplica migrations **novas** criadas durante as Fases 2/3 (se houver). Se nenhuma migration nova foi criada nessas fases, este passo é um no-op e basta confirmar `prisma migrate status` limpo. Não usar `db push` em produção.
 - [ ] **4.3** Restart do PM2 (API + worker).
 - [ ] **4.4** Rebuild do frontend:
   ```bash
@@ -180,8 +178,10 @@ Estas decisões foram fechadas em 3 rodadas de revisão técnica. Implementar ex
 
 | Risco | Mitigação |
 |-------|-----------|
-| Prisma gera o rename como DROP+CREATE e apaga `habilidades` | Fase 1.2 obriga edição manual para `ALTER TABLE RENAME`; revisão tech-lead linha a linha. |
-| `db push` já aplicou parte do drift no banco de staging/prod | Fase 0.5 confere o nome físico da tabela; Fase 1.4 valida contra cópia de staging antes de prod. |
+| `migrate resolve --applied 0_init` rodaria o SQL do `0_init` sobre uma base populada e falharia / corromperia | `migrate resolve --applied` **não executa** o SQL — apenas insere a linha em `_prisma_migrations`. O `0_init` nunca chega a rodar contra produção. Validado no Round 1 em cluster efêmero. |
+| `_prisma_migrations` ficar inconsistente após o `DELETE` das 13 linhas antigas | Round 2 roda em janela de manutenção com PM2 parado; backup `pg_dump -Fc` feito na 1.1 permite restore; `migrate status` é verificado logo após (1.15). |
+| `fix_fks_indices` recria FK enquanto o app escreve nas tabelas-alvo | Round 2 com PM2 parado: sem conexões da aplicação durante o `DROP/ADD CONSTRAINT`. O `ADD CONSTRAINT` valida as linhas existentes — se houver órfão, falha alto antes de qualquer dano. |
+| Drift de produção difere do previsto (índices/FKs já existem ou faltam outros) | `fix_fks_indices` é idempotente (`IF EXISTS`/`IF NOT EXISTS`); Round 1 validou a cadeia completa em cluster efêmero; 1.15 confere `migrate diff` vazio em produção pós-aplicação. |
 | Deletar personagens antigos errado (perda de dados) | Fase 3.7 exige diagnóstico + aprovação do critério de corte antes de qualquer DELETE. |
 | Frontend inteiro está praticamente uncommitted | Tratar no início da Fase 4.1 como item próprio; não é escopo da Fase 0. |
 | Quebrar um dos 3 sistemas de RPG | qa-lunaria valida os 3 sistemas no smoke E2E (4.5); freeze impede features novas durante o trabalho. |

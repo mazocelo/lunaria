@@ -9,3 +9,6 @@ node_modules
 .playwright-mcp/
 scripts/balance-report.html
 piper-voices/
+.backups/
+.qa/
+.drift-inventory.sql

@@ -15,15 +15,17 @@ export default function TresDetFichaLivre() {
     let cancelled = false;
     (async () => {
       try {
-        const [vResp, dResp, fResp] = await Promise.all([
+        const [vResp, dResp, fResp, mResp] = await Promise.all([
           vantagemService.getAll({ sistema: 'tresdet' }),
           desvantagemService.getAll({ sistema: 'tresdet' }),
           apiClient.get('/focus-elementais'),
+          apiClient.get('/magias-tresdet'),
         ]);
         if (cancelled) return;
         model.setVantagensCatalogo(vResp.data || vResp || []);
         model.setDesvantagensCatalogo(dResp.data || dResp || []);
         if (fResp?.data) setFocusCatalogo(fResp.data);
+        if (mResp?.data) model.setMagiasCatalogo(mResp.data);
       } catch { /* ignore */ }
       if (!cancelled) model.setCatalogoLoading(false);
     })();
@@ -37,9 +39,10 @@ export default function TresDetFichaLivre() {
     caracteristicas: model.caracteristicas,
     vantagens_ids: model.vantagensIds,
     desvantagens_ids: model.desvantagensIds,
+    magias_ids: model.magiasIds,
     focus: model.focus,
     historia: model.historia,
-  }), [model.nome, model.nivelPoder, model.caracteristicas, model.vantagensIds, model.desvantagensIds, model.focus, model.historia]);
+  }), [model.nome, model.nivelPoder, model.caracteristicas, model.vantagensIds, model.desvantagensIds, model.magiasIds, model.focus, model.historia]);
 
   const mestre = useMestreFichaLivre({ getEstado });
 
@@ -61,6 +64,7 @@ export default function TresDetFichaLivre() {
         focus: model.focus,
         vantagens: model.vantagensIds.map(Number),
         desvantagens: model.desvantagensIds.map(Number),
+        magias_ids: model.magiasIds.map(Number),
         background: model.historia,
       };
       const resp = await apiClient.post('/personagens', payload);

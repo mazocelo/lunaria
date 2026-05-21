@@ -11,7 +11,7 @@ export const useCharacterCreation = ({
   getEstado, navigate, comboPreviewData, comboPreviewLoading,
   navigation, bonusCalc, pointSystem,
   estadoRef, setError, limparDraft, recarregarPersonagens,
-  imageUrl, grimorioSelecionadas,
+  imageUrl, grimorioSelecionadas, sistema = 'lunaria',
 }) => {
   const [salvando, setSalvando] = useState(false);
   const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
@@ -56,6 +56,7 @@ export const useCharacterCreation = ({
         classe_id: s.classeId,
         sugestao_background: 'guiado',
         background: s.background,
+        sistema,
         forca: base.forca,
         destreza: base.destreza,
         constituicao: base.constituicao,
@@ -128,6 +129,7 @@ export const useCharacterCreation = ({
     limparDraft,
     imageUrl,
     grimorioSelecionadas,
+    sistema,
   ]);
 
   /** Fecha o modal de resultado de criação */

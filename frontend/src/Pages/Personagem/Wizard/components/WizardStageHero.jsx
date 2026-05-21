@@ -40,6 +40,21 @@ const STAGE_COPY = {
     title: 'Revise o destino',
     description: 'Confirme se identidade, custo e atributos contam a mesma historia.',
     action: 'Ajuste o necessario antes de selar a ficha.'
+  },
+  conceito: {
+    title: 'Descreva seu personagem',
+    description: 'No 3D&T nao ha raca ou classe. Descreva o conceito do heroi.',
+    action: 'Conte ao Mestre quem e esse personagem.'
+  },
+  caracteristicas: {
+    title: 'Distribua F/H/R/A/PdF',
+    description: 'Distribua pontos entre as 5 caracteristicas do 3D&T.',
+    action: 'Defina a proporcao mecanica do heroi.'
+  },
+  magias: {
+    title: 'Escolha feiticos',
+    description: 'Se seu heroi tem magia, selecione os feiticos iniciais.',
+    action: 'Escolha com cuidado suas magias de partida.'
   }
 };
 

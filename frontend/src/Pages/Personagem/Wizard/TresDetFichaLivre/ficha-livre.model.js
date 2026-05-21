@@ -41,6 +41,8 @@ export function useTresDetFichaModel({ navigate }) {
   const [vantagensCatalogo, setVantagensCatalogo] = useState([]);
   const [desvantagensCatalogo, setDesvantagensCatalogo] = useState([]);
   const [catalogoLoading, setCatalogoLoading] = useState(true);
+  const [magiasIds, setMagiasIds] = useState([]);
+  const [magiasCatalogo, setMagiasCatalogo] = useState([]);
 
   // ---- Pool computations ----
   const pontosTotal = NIVEL_PODER[nivelPoder] || 7;
@@ -96,6 +98,17 @@ export function useTresDetFichaModel({ navigate }) {
       return v?.tipo === 'magico' || (Array.isArray(v?.tipo) && v.tipo.includes('magico'));
     }),
     [vantagensIds, vantagensCatalogo],
+  );
+
+  const magiasDisponiveis = useMemo(
+    () => magiasCatalogo.filter(m => {
+      if (!m.focus_requisito || !Array.isArray(m.focus_requisito)) return true;
+      return m.focus_requisito.every(req => {
+        const key = Object.keys(req)[0];
+        return (focus[key] || 0) >= req[key];
+      });
+    }),
+    [magiasCatalogo, focus],
   );
 
   // ---- Derived stats ----
@@ -155,6 +168,16 @@ export function useTresDetFichaModel({ navigate }) {
 
   const removerDesvantagem = useCallback((id) => {
     setDesvantagensIds(prev => prev.filter(x => x !== String(id)));
+  }, []);
+
+  const adicionarMagia = useCallback((id) => {
+    const sid = String(id);
+    if (magiasIds.includes(sid)) return;
+    setMagiasIds(prev => [...prev, sid]);
+  }, [magiasIds]);
+
+  const removerMagia = useCallback((id) => {
+    setMagiasIds(prev => prev.filter(x => x !== String(id)));
   }, []);
 
   // ---- Nível de Poder change with auto-trim ----
@@ -226,21 +249,35 @@ export function useTresDetFichaModel({ navigate }) {
       if (draft.desvantagensIds) setDesvantagensIds(draft.desvantagensIds);
       if (draft.focus) setFocus(draft.focus);
       if (draft.historia) setHistoria(draft.historia);
+      if (draft.magiasIds) setMagiasIds(draft.magiasIds);
     } catch { /* ignore corrupt draft */ }
   }, []);
 
   useEffect(() => {
     clearTimeout(draftTimerRef.current);
     draftTimerRef.current = setTimeout(() => {
-      const draft = { nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia };
+      const draft = { nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia, magiasIds };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     }, 1000);
     return () => clearTimeout(draftTimerRef.current);
-  }, [nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia]);
+  }, [nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia, magiasIds]);
 
   const limparDraft = useCallback(() => {
     localStorage.removeItem(DRAFT_KEY);
   }, []);
+
+  // Remove magias cujo focus deixou de cumprir o requisito apos mudanca de focus.
+  useEffect(() => {
+    if (magiasCatalogo.length === 0) return;
+    setMagiasIds(prev => prev.filter(id => {
+      const m = magiasCatalogo.find(x => String(x.id) === id);
+      if (!m?.focus_requisito) return true;
+      return m.focus_requisito.every(req => {
+        const key = Object.keys(req)[0];
+        return (focus[key] || 0) >= req[key];
+      });
+    }));
+  }, [focus, magiasCatalogo]);
 
   // ---- Validation ----
   const podeCriar = nome.trim().length > 0 && pontosRestantes >= 0;
@@ -252,17 +289,19 @@ export function useTresDetFichaModel({ navigate }) {
     caracteristicas, setCaracteristica,
     vantagensIds, adicionarVantagem, removerVantagem,
     desvantagensIds, adicionarDesvantagem, removerDesvantagem,
+    magiasIds, adicionarMagia, removerMagia,
     focus, setFocusNivel,
     historia, setHistoria,
     // Pool
     pontosTotal, pontosCaracteristicas, pontosVantagens, pontosDesvantagens,
     pontosFocus, pontosUsados, pontosRestantes,
     // Derived
-    temMagia, pv, pm, podeCriar, maxAttr,
+    temMagia, magiasDisponiveis, pv, pm, podeCriar, maxAttr,
     tierLimits, vantagensContaveis, limiteVantagensAtingido, limiteDesvantagensAtingido,
     // Catalog
     vantagensCatalogo, desvantagensCatalogo, catalogoLoading,
     setVantagensCatalogo, setDesvantagensCatalogo, setCatalogoLoading,
+    magiasCatalogo, setMagiasCatalogo,
     // Actions
     salvando, setSalvando, error, setError, limparDraft,
     navigate,

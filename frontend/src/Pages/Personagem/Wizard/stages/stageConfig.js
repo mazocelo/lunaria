@@ -3,13 +3,18 @@
  *
  * Toda constante de etapa do frontend (labels, placeholders, refresh prompts,
  * copy de progresso, flags de comportamento) vive aqui.
+ *
+ * Suporta tres sistemas: lunaria (padrao), tresdet (3D&T Alpha) e dnd5e (D&D 5e).
+ * O ramo dnd5e ainda e um STUB (DND5E_STAGES vazio); cai no fallback Lunaria.
  */
 
-export const STAGES = [
+// ===== LUNARIA STAGES =====
+
+export const LUNARIA_STAGES = [
   {
     id: 'boas_vindas',
     label: 'O Chamado',
-    icon: '\u2728',
+    icon: '✨',
     title: 'Batize a centelha do heroi',
     description: 'Escolha um nome que abra caminho para o resto da identidade do personagem.',
     placeholder: 'Descreva o nome que voce procura ou aceite uma sugestao...',
@@ -32,7 +37,7 @@ export const STAGES = [
   {
     id: 'raca',
     label: 'Linhagem',
-    icon: '\uD83D\uDC51',
+    icon: '👑',
     title: 'Sele a linhagem',
     description: 'A linhagem define imaginario, afinidades e o primeiro impacto da ficha.',
     placeholder: 'Peca outra linhagem ou descreva o heroi que imagina...',
@@ -55,7 +60,7 @@ export const STAGES = [
   {
     id: 'classe',
     label: 'Vocacao',
-    icon: '\u2694\uFE0F',
+    icon: '⚔️',
     title: 'Forje a vocacao',
     description: 'A vocacao define papel tatico, ritmo e como esse personagem atua em cena.',
     placeholder: 'Peca outra vocacao ou descreva como quer jogar...',
@@ -78,7 +83,7 @@ export const STAGES = [
   {
     id: 'background',
     label: 'Origens',
-    icon: '\uD83D\uDCDC',
+    icon: '📜',
     title: 'Amarre a origem',
     description: 'Agora a ficha precisa de um passado que explique as marcas e ambicoes do heroi.',
     placeholder: 'Descreva a origem do personagem ou peca ajuda ao Mestre...',
@@ -101,7 +106,7 @@ export const STAGES = [
   {
     id: 'desvantagens',
     label: 'Marcas',
-    icon: '\uD83D\uDD25',
+    icon: '🔥',
     title: 'Aceite as marcas',
     description: 'Marcas bem escolhidas devolvem pontos e criam conflitos memoraveis.',
     placeholder: 'Descreva falhas, custos ou conflitos interessantes...',
@@ -125,7 +130,7 @@ export const STAGES = [
   {
     id: 'vantagens',
     label: 'Dons',
-    icon: '\u2B50',
+    icon: '⭐',
     title: 'Escolha os dons',
     description: 'Os dons ampliam recursos, reputacao e versatilidade mecanica.',
     placeholder: 'Peca dons mais especificos ou refine o conceito...',
@@ -149,7 +154,7 @@ export const STAGES = [
   {
     id: 'atributos',
     label: 'Essencia',
-    icon: '\uD83D\uDD2E',
+    icon: '🔮',
     title: 'Calibre a essencia',
     description: 'Aqui a ficha deixa de ser conceito e passa a ter proporcao mecanica real.',
     placeholder: 'Peca uma sugestao de distribuicao ou refine a build...',
@@ -173,7 +178,7 @@ export const STAGES = [
   {
     id: 'equipamentos',
     label: 'Arsenal',
-    icon: '\uD83D\uDEE1\uFE0F',
+    icon: '🛡️',
     title: 'Escolha o arsenal',
     description: 'O Mestre seleciona equipamentos e recomendacoes taticas com base na sua build.',
     placeholder: '',
@@ -196,7 +201,7 @@ export const STAGES = [
   {
     id: 'grimorio',
     label: 'Grimorio',
-    icon: '\uD83D\uDD2E',
+    icon: '🔮',
     title: 'Escolha suas magias iniciais',
     description: 'Selecione as magias que deseja conhecer nos slots disponiveis.',
     placeholder: '',
@@ -220,7 +225,7 @@ export const STAGES = [
   {
     id: 'resumo',
     label: 'Destino',
-    icon: '\uD83C\uDFAF',
+    icon: '🎯',
     title: 'Sele a resolutiva',
     description: 'O Mestre fecha a leitura final da build e apresenta o combo que sela a ficha.',
     placeholder: 'Revise a resolutiva final antes de criar o personagem...',
@@ -242,14 +247,239 @@ export const STAGES = [
   },
 ];
 
-// Derived exports
-export const STAGE_ORDER = STAGES.map((s) => s.id);
-export const STAGE_IDS = new Set(STAGE_ORDER);
-export const STAGE_MAP = Object.fromEntries(STAGES.map((s) => [s.id, s]));
+// ===== 3D&T STAGES =====
 
-export function getStageConfig(id) {
-  return STAGE_MAP[id] || STAGES[0];
+export const TRESDET_STAGES = [
+  {
+    id: 'boas_vindas',
+    label: 'O Chamado',
+    icon: '✨',
+    title: 'Apresente-se ao Mestre',
+    description: 'Escolha um nome para o heroi que esta prestes a nascer.',
+    placeholder: 'Descreva o nome que voce procura ou aceite uma sugestao...',
+    refreshPrompt: 'Sugira nomes para meu personagem.',
+    next: 'conceito',
+    allowRefresh: true,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: 'nome',
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Nome',
+    doneCheck: 'nome',
+  },
+  {
+    id: 'conceito',
+    label: 'Conceito',
+    icon: '📜',
+    title: 'Descreva seu personagem',
+    description: 'No 3D&T nao ha raca ou classe. Descreva o conceito do heroi com suas proprias palavras.',
+    placeholder: 'Descreva o conceito, background e personalidade do personagem...',
+    refreshPrompt: 'Mostre-me outras ideias de conceito para esta etapa. Nao avance para a proxima etapa.',
+    next: 'caracteristicas',
+    allowRefresh: true,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: 'background',
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Conceito',
+    doneCheck: 'background',
+  },
+  {
+    id: 'caracteristicas',
+    label: 'Caracteristicas',
+    icon: '🔮',
+    title: 'Distribua F/H/R/A/PdF',
+    description: 'Distribua pontos entre Forca, Habilidade, Resistencia, Armadura e Poder de Fogo.',
+    placeholder: 'Peca uma sugestao de distribuicao ao Mestre...',
+    refreshPrompt: null,
+    next: 'vantagens',
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: true,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    showTresdetCaracteristicas: true,
+    progressLabel: 'Caracteristicas',
+    doneCheck: 'caracteristicasDistribuidas',
+    continueLabel: 'Confirmar caracteristicas',
+  },
+  {
+    id: 'vantagens',
+    label: 'Vantagens',
+    icon: '⭐',
+    title: 'Compre poderes',
+    description: 'Escolha vantagens para definir as habilidades especiais do heroi.',
+    placeholder: 'Peca sugestoes de vantagens ao Mestre...',
+    refreshPrompt: 'Mostre-me outras vantagens diferentes para esta etapa. Nao avance para a proxima etapa.',
+    next: 'desvantagens',
+    allowRefresh: true,
+    allowSkip: true,
+    requireExplicitContinue: true,
+    autoAdvanceOnSelect: false,
+    suggestionType: 'vantagem',
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    showTresdetVantagens: true,
+    progressLabel: 'Vantagens',
+    doneCheck: 'vantagensSelecionadas',
+    continueLabel: 'Continuar para fraquezas',
+  },
+  {
+    id: 'desvantagens',
+    label: 'Fraquezas',
+    icon: '🔥',
+    title: 'Aceite limitacoes',
+    description: 'Desvantagens devolvem pontos e criam conflitos memoraveis.',
+    placeholder: 'Descreva falhas ou limitacoes interessantes...',
+    refreshPrompt: 'Mostre-me outras desvantagens diferentes para esta etapa. Nao avance para a proxima etapa.',
+    next: 'equipamentos',
+    allowRefresh: true,
+    allowSkip: true,
+    requireExplicitContinue: true,
+    autoAdvanceOnSelect: false,
+    suggestionType: 'desvantagem',
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    showTresdetDesvantagens: true,
+    progressLabel: 'Fraquezas',
+    doneCheck: 'desvantagensSelecionadas',
+    continueLabel: 'Continuar para equipamentos',
+  },
+  {
+    id: 'equipamentos',
+    label: 'Arsenal',
+    icon: '🛡️',
+    title: 'Itens iniciais',
+    description: 'O Mestre seleciona equipamentos com base na sua build.',
+    placeholder: '',
+    refreshPrompt: null,
+    next: 'magias',
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Equipamentos',
+    doneCheck: 'comboPreviewData',
+  },
+  {
+    id: 'magias',
+    label: 'Magias',
+    icon: '🔮',
+    title: 'Escolha feiticos',
+    description: 'Se seu heroi tem magia, selecione os feiticos iniciais.',
+    placeholder: '',
+    refreshPrompt: null,
+    next: 'resumo',
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: true,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Magias',
+    doneCheck: 'magiasSelecionadas',
+    continueLabel: 'Confirmar magias',
+    condicao: (dados) => dados.temMagia,
+  },
+  {
+    id: 'resumo',
+    label: 'Destino',
+    icon: '🎯',
+    title: 'Confirme seu heroi',
+    description: 'Revise a ficha completa e sele o personagem.',
+    placeholder: 'Revise a ficha antes de criar o personagem...',
+    refreshPrompt: null,
+    next: null,
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: true,
+    progressLabel: null,
+    doneCheck: null,
+  },
+];
+
+// ===== D&D 5e STAGES (STUB) =====
+// O epico D&D 5e e a proxima onda. Por ora DND5E_STAGES e um stub vazio e
+// getSystemStages('dnd5e') cai controladamente no fallback Lunaria.
+export const DND5E_STAGES = [];
+
+// ===== BACKWARD-COMPAT: STAGES = LUNARIA_STAGES =====
+export const STAGES = LUNARIA_STAGES;
+
+// ===== SISTEMA-AWARE GETTERS =====
+
+function buildDerived(stages) {
+  const order = stages.map((s) => s.id);
+  const ids = new Set(order);
+  const map = Object.fromEntries(stages.map((s) => [s.id, s]));
+  const etapas = stages.map((s) => ({ id: s.id, label: s.label, icon: s.icon }));
+  return { stages, order, ids, map, etapas };
+}
+
+const LUNARIA_DERIVED = buildDerived(LUNARIA_STAGES);
+const TRESDET_DERIVED = buildDerived(TRESDET_STAGES);
+
+export function getSystemStages(sistema) {
+  if (sistema === 'tresdet') return TRESDET_DERIVED;
+  // dnd5e ainda e stub (DND5E_STAGES vazio): cai no fallback Lunaria.
+  return LUNARIA_DERIVED;
+}
+
+// Derived exports (backward-compat, always Lunaria)
+export const STAGE_ORDER = LUNARIA_DERIVED.order;
+export const STAGE_IDS = LUNARIA_DERIVED.ids;
+export const STAGE_MAP = LUNARIA_DERIVED.map;
+
+export function getStageConfig(id, sistema) {
+  const derived = getSystemStages(sistema);
+  return derived.map[id] || derived.stages[0];
 }
 
 // For useWizardNavigation compatibility
-export const ETAPAS_COMPAT = STAGES.map((s) => ({ id: s.id, label: s.label, icon: s.icon }));
+export const ETAPAS_COMPAT = LUNARIA_DERIVED.etapas;

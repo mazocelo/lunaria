@@ -2,16 +2,33 @@
  * stageSelectors.js — Funcoes puras de leitura do estado do wizard
  *
  * Nenhuma dessas funcoes causa side effects. Recebem buildState e retornam dados derivados.
+ * Suporta sistemas: lunaria (padrao) e tresdet (3D&T Alpha). O ramo dnd5e ainda
+ * nao existe — sistema 'dnd5e' cai controladamente no fallback Lunaria.
  */
-import { STAGES, getStageConfig } from './stageConfig.js';
+import { getStageConfig, getSystemStages } from './stageConfig.js';
+
+function getStagesForSystem(sistema) {
+  return getSystemStages(sistema).stages;
+}
 
 /**
  * Checa se uma etapa esta concluida.
- * @param {string} stageId
- * @param {Object} buildState - { nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados }
- * @returns {boolean}
  */
-export function isStageDone(stageId, buildState) {
+export function isStageDone(stageId, buildState, sistema) {
+  if (sistema === 'tresdet') {
+    switch (stageId) {
+      case 'boas_vindas': return !!buildState.nome?.trim();
+      case 'conceito': return !!buildState.background?.trim();
+      case 'caracteristicas': return !!buildState.caracteristicasDistribuidas;
+      case 'vantagens': return !!buildState.vantagensSelecionadas || !!buildState.skipVantagens;
+      case 'desvantagens': return !!buildState.desvantagensSelecionadas || !!buildState.skipDesvantagens;
+      case 'equipamentos': return !!buildState.comboPreviewData;
+      case 'magias': return !!buildState.magiasSelecionadas;
+      case 'resumo': return false;
+      default: return false;
+    }
+  }
+
   switch (stageId) {
     case 'boas_vindas': return !!buildState.nome?.trim();
     case 'raca': return !!buildState.racaId;
@@ -39,9 +56,29 @@ export function isStageSkipped(stageId, buildState) {
 /**
  * Retorna tooltip contextual de uma etapa.
  */
-export function getStageTooltip(stageId, buildState) {
+export function getStageTooltip(stageId, buildState, sistema) {
   const { nome, racaAtual, classeAtual, background, vantagensIds, desvantagensIds,
           skipVantagens, skipDesvantagens, bonusAplicados, bonusInvalidado, podeCriar } = buildState;
+
+  if (sistema === 'tresdet') {
+    switch (stageId) {
+      case 'boas_vindas': return nome?.trim() || 'Nome pendente';
+      case 'conceito': return background?.trim() ? 'Conceito definido' : 'Conceito pendente';
+      case 'caracteristicas': return buildState.caracteristicasDistribuidas ? 'Caracteristicas confirmadas' : 'Caracteristicas pendentes';
+      case 'vantagens':
+        if (buildState.vantagensSelecionadas) return 'Vantagens confirmadas';
+        if (skipVantagens) return 'Etapa pulada';
+        return 'Vantagens pendentes';
+      case 'desvantagens':
+        if (buildState.desvantagensSelecionadas) return 'Desvantagens confirmadas';
+        if (skipDesvantagens) return 'Etapa pulada';
+        return 'Desvantagens pendentes';
+      case 'equipamentos': return buildState.comboPreviewData ? 'Equipamentos definidos' : 'Equipamentos pendentes';
+      case 'magias': return buildState.magiasSelecionadas ? 'Magias selecionadas' : 'Magias pendentes';
+      case 'resumo': return podeCriar ? 'Pronto para selar' : 'Em preparo';
+      default: return '';
+    }
+  }
 
   switch (stageId) {
     case 'boas_vindas': return nome?.trim() || 'Nome pendente';
@@ -70,12 +107,13 @@ export function getStageTooltip(stageId, buildState) {
 /**
  * Retorna lista de items de progresso para a sidebar.
  */
-export function getProgressItems(buildState) {
-  return STAGES
+export function getProgressItems(buildState, sistema) {
+  const stages = getStagesForSystem(sistema);
+  return stages
     .filter((s) => s.progressLabel)
     .map((s) => ({
       label: s.progressLabel,
-      done: isStageDone(s.id, buildState),
+      done: isStageDone(s.id, buildState, sistema),
       skipped: isStageSkipped(s.id, buildState),
     }));
 }
@@ -83,10 +121,11 @@ export function getProgressItems(buildState) {
 /**
  * Retorna tooltipMap completo para todas as etapas.
  */
-export function getTooltipMap(buildState) {
+export function getTooltipMap(buildState, sistema) {
+  const stages = getStagesForSystem(sistema);
   const map = {};
-  for (const s of STAGES) {
-    map[s.id] = getStageTooltip(s.id, buildState);
+  for (const s of stages) {
+    map[s.id] = getStageTooltip(s.id, buildState, sistema);
   }
   return map;
 }
@@ -94,17 +133,38 @@ export function getTooltipMap(buildState) {
 /**
  * Retorna readiness state global do wizard.
  */
-export function getReadinessState(buildState) {
+export function getReadinessState(buildState, sistema) {
+  if (sistema === 'tresdet') {
+    const { nome, background, caracteristicasDistribuidas } = buildState;
+    if (!nome?.trim() || !background?.trim()) return 'open';
+    if (!caracteristicasDistribuidas) return 'shaping';
+    return 'sealed';
+  }
+
   const { nome, racaId, classeId, bonusInvalidado } = buildState;
   if (!nome?.trim() || !racaId || !classeId) return 'open';
-  if (getPendingCount(buildState) > 0 || bonusInvalidado) return 'shaping';
+  if (getPendingCount(buildState, sistema) > 0 || bonusInvalidado) return 'shaping';
   return 'sealed';
 }
 
 /**
  * Conta itens pendentes obrigatorios + opcionais.
  */
-export function getPendingCount(buildState) {
+export function getPendingCount(buildState, sistema) {
+  if (sistema === 'tresdet') {
+    const { nome, background, caracteristicasDistribuidas,
+            vantagensSelecionadas, desvantagensSelecionadas,
+            skipVantagens, skipDesvantagens } = buildState;
+    const obrigatorios = [
+      !nome?.trim(),
+      !background?.trim(),
+      !caracteristicasDistribuidas,
+    ].filter(Boolean).length;
+    const opcionais = Number(!vantagensSelecionadas && !skipVantagens)
+      + Number(!desvantagensSelecionadas && !skipDesvantagens);
+    return obrigatorios + opcionais;
+  }
+
   const { nome, racaId, classeId, background, bonusAplicados,
           vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens,
           orcamentoCriacaoValido } = buildState;
@@ -127,7 +187,12 @@ export function getPendingCount(buildState) {
 /**
  * Checa se o personagem pode ser criado.
  */
-export function canCreate(buildState) {
+export function canCreate(buildState, sistema) {
+  if (sistema === 'tresdet') {
+    const { nome, background, caracteristicasDistribuidas } = buildState;
+    return !!(nome?.trim() && background?.trim() && caracteristicasDistribuidas);
+  }
+
   const { nome, racaId, classeId, background, bonusAplicados, pontosCriacaoRestantes } = buildState;
   return !!(
     nome?.trim()
@@ -142,15 +207,23 @@ export function canCreate(buildState) {
 /**
  * Retorna label de continue contextual para a etapa.
  */
-export function getContinueLabel(stageId) {
-  const config = getStageConfig(stageId);
+export function getContinueLabel(stageId, sistema) {
+  const config = getStageConfig(stageId, sistema);
   return config.continueLabel || 'Continuar';
 }
 
 /**
  * Checa se continue esta disponivel na etapa com base no buildState.
  */
-export function canContinueStage(stageId, buildState) {
+export function canContinueStage(stageId, buildState, sistema) {
+  if (sistema === 'tresdet') {
+    if (stageId === 'caracteristicas') return !!buildState.caracteristicasDistribuidas;
+    if (stageId === 'vantagens') return !!buildState.vantagensSelecionadas || !!buildState.skipVantagens;
+    if (stageId === 'desvantagens') return !!buildState.desvantagensSelecionadas || !!buildState.skipDesvantagens;
+    if (stageId === 'magias') return !!buildState.magiasSelecionadas;
+    return false;
+  }
+
   if (stageId === 'desvantagens') {
     return buildState.desvantagensIds?.length > 0 || !!buildState.skipDesvantagens;
   }

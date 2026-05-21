@@ -6,6 +6,7 @@ import PointsBar from './components/PointsBar.jsx';
 import CaracteristicasSection from './components/CaracteristicasSection.jsx';
 import VantagensDesvantagensSection from './components/VantagensDesvantagensSection.jsx';
 import FocusSection from './components/FocusSection.jsx';
+import GrimorioTresDetSection from './components/GrimorioTresDetSection.jsx';
 import HistoriaSection from './components/HistoriaSection.jsx';
 import MestrePanelLateral from './components/MestrePanelLateral.jsx';
 
@@ -21,6 +22,8 @@ export default function FichaLivreView(props) {
     vantagensIds, adicionarVantagem, removerVantagem,
     desvantagensIds, adicionarDesvantagem, removerDesvantagem,
     focus, setFocusNivel,
+    magiasIds, adicionarMagia, removerMagia,
+    magiasDisponiveis, magiasCatalogo,
     historia, setHistoria,
     pontosTotal, pontosCaracteristicas, pontosVantagens, pontosDesvantagens,
     pontosFocus, pontosRestantes,
@@ -166,8 +169,18 @@ export default function FichaLivreView(props) {
               />
             </div>
 
+            <div className="wa-stage-enter wa-stagger-5">
+              <GrimorioTresDetSection
+                magiasDisponiveis={magiasDisponiveis}
+                magiasCatalogo={magiasCatalogo}
+                magiasIds={magiasIds}
+                adicionarMagia={adicionarMagia}
+                removerMagia={removerMagia}
+              />
+            </div>
+
             {/* Equipamentos stub */}
-            <section className="wa-main-shell wa-stage-enter wa-stagger-5 rounded-2xl p-3">
+            <section className="wa-main-shell wa-stage-enter wa-stagger-6 rounded-2xl p-3">
               <h3
                 className="font-fantasy text-base font-bold tracking-wider mb-3"
                 style={{ color: 'var(--wa-accent-bright)' }}
@@ -177,7 +190,7 @@ export default function FichaLivreView(props) {
               <p className="text-sm" style={{ color: 'var(--wa-muted)' }}>Em breve</p>
             </section>
 
-            <div className="wa-stage-enter wa-stagger-6">
+            <div className="wa-stage-enter wa-stagger-7">
               <HistoriaSection historia={historia} setHistoria={setHistoria} />
             </div>
 

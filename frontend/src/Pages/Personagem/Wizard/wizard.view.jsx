@@ -107,6 +107,22 @@ const WizardView = (props) => {
     toggleGrimorioMagia,
     confirmarGrimorio,
     navigate,
+    sistema,
+    isTresdet,
+    tresdetCaracteristicas,
+    tresdetCaracteristicasConfirmadas,
+    tresdetPontosTotais,
+    setTresdetCaracteristica,
+    confirmarTresdetCaracteristicas,
+    tresdetVantagensIds,
+    tresdetVantagensConfirmadas,
+    toggleTresdetVantagem,
+    confirmarTresdetVantagens,
+    tresdetDesvantagensIds,
+    tresdetDesvantagensConfirmadas,
+    toggleTresdetDesvantagem,
+    confirmarTresdetDesvantagens,
+    avancarEtapa,
   } = props;
 
   const { theme } = useTheme();
@@ -136,6 +152,10 @@ const WizardView = (props) => {
     orcamentoCriacaoValido: pontosCriacaoRestantes >= 0,
     pontosCriacaoRestantes,
     grimorioSelecionado,
+    caracteristicasDistribuidas: tresdetCaracteristicasConfirmadas,
+    vantagensSelecionadas: tresdetVantagensConfirmadas,
+    desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
+    magiasSelecionadas: grimorioSelecionado,
   }), [
     nome, racaId, classeId, background,
     vantagensIds, desvantagensIds,
@@ -144,12 +164,15 @@ const WizardView = (props) => {
     racaAtual, classeAtual,
     pontosCriacaoRestantes,
     grimorioSelecionado,
+    tresdetCaracteristicasConfirmadas,
+    tresdetVantagensConfirmadas,
+    tresdetDesvantagensConfirmadas,
   ]);
 
-  const podeCriar = useMemo(() => canCreate(buildState), [buildState]);
-  const progressoItems = useMemo(() => getProgressItems(buildState), [buildState]);
-  const tooltipMap = useMemo(() => getTooltipMap({ ...buildState, podeCriar }), [buildState, podeCriar]);
-  const readinessState = useMemo(() => getReadinessState(buildState), [buildState]);
+  const podeCriar = useMemo(() => canCreate(buildState, sistema), [buildState, sistema]);
+  const progressoItems = useMemo(() => getProgressItems(buildState, sistema), [buildState, sistema]);
+  const tooltipMap = useMemo(() => getTooltipMap({ ...buildState, podeCriar }, sistema), [buildState, podeCriar, sistema]);
+  const readinessState = useMemo(() => getReadinessState(buildState, sistema), [buildState, sistema]);
   const creationStatusLabel = useMemo(() => {
     switch (creationFlowStatus) {
       case 'creating_character':
@@ -334,6 +357,22 @@ const WizardView = (props) => {
                   vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter(Boolean),
                   desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter(Boolean),
                 })}
+                sistema={sistema}
+                isTresdet={isTresdet}
+                tresdetCaracteristicas={tresdetCaracteristicas}
+                tresdetCaracteristicasConfirmadas={tresdetCaracteristicasConfirmadas}
+                tresdetPontosTotais={tresdetPontosTotais}
+                onSetTresdetCaracteristica={setTresdetCaracteristica}
+                onConfirmarTresdetCaracteristicas={confirmarTresdetCaracteristicas}
+                tresdetVantagensIds={tresdetVantagensIds}
+                tresdetVantagensConfirmadas={tresdetVantagensConfirmadas}
+                onToggleTresdetVantagem={toggleTresdetVantagem}
+                onConfirmarTresdetVantagens={confirmarTresdetVantagens}
+                tresdetDesvantagensIds={tresdetDesvantagensIds}
+                tresdetDesvantagensConfirmadas={tresdetDesvantagensConfirmadas}
+                onToggleTresdetDesvantagem={toggleTresdetDesvantagem}
+                onConfirmarTresdetDesvantagens={confirmarTresdetDesvantagens}
+                onAvancarEtapa={avancarEtapa}
                 embedded
               />
             </div>

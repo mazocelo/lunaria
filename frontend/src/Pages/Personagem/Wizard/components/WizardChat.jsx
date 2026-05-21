@@ -7,6 +7,8 @@ import MasterAvatarGlyph from './MasterAvatarGlyph.jsx';
 import DestinoResolutivaBlock from './DestinoResolutivaBlock.jsx';
 import EquipamentosBlock from './EquipamentosBlock.jsx';
 import GrimorioBlock from './GrimorioBlock.jsx';
+import TresDetCaracteristicasBlock from './TresDetCaracteristicasBlock.jsx';
+import TresDetVantagensBlock from './TresDetVantagensBlock.jsx';
 import { getStageConfig } from '../stages/stageConfig.js';
 import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
 
@@ -73,6 +75,22 @@ const WizardChat = ({
   grimorioError = null,
   onToggleGrimorioMagia,
   onConfirmarGrimorio,
+  sistema,
+  isTresdet = false,
+  tresdetCaracteristicas,
+  tresdetCaracteristicasConfirmadas,
+  tresdetPontosTotais,
+  onSetTresdetCaracteristica,
+  onConfirmarTresdetCaracteristicas,
+  tresdetVantagensIds,
+  tresdetVantagensConfirmadas,
+  onToggleTresdetVantagem,
+  onConfirmarTresdetVantagens,
+  tresdetDesvantagensIds,
+  tresdetDesvantagensConfirmadas,
+  onToggleTresdetDesvantagem,
+  onConfirmarTresdetDesvantagens,
+  onAvancarEtapa,
   embedded = false,
 }) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -98,7 +116,7 @@ const WizardChat = ({
     return false;
   };
 
-  const config = getStageConfig(etapaAtual);
+  const config = getStageConfig(etapaAtual, sistema);
   const showAtributos = config.showAttributePanel;
   const mostrarBusca = config.showCatalog;
   const tipoAtual = config.catalogType || 'raca';
@@ -125,12 +143,21 @@ const WizardChat = ({
   const ultimaMensagemEhMestreDaEtapa = ultimaMensagem?.role === 'mestre' && ultimaMensagem?.etapa === etapaAtual;
   const saldoCriacaoInvalido = pontosCriacaoRestantes < 0;
   const refreshPrompt = config.refreshPrompt || 'Mostre-me outras opcoes diferentes para esta etapa sem avancar.';
-  const buildStateChat = { vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados };
-  const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat);
-  const textoContinuarSelecoes = getContinueLabel(etapaAtual);
+  const buildStateChat = {
+    vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados,
+    grimorioSelecionado: grimorioSelecionadas?.length > 0,
+    caracteristicasDistribuidas: tresdetCaracteristicasConfirmadas,
+    vantagensSelecionadas: tresdetVantagensConfirmadas,
+    desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
+  };
+  const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat, sistema);
+  const textoContinuarSelecoes = getContinueLabel(etapaAtual, sistema);
   const isEquipamentosStage = etapaAtual === 'equipamentos';
-  const isGrimorioStage = etapaAtual === 'grimorio';
+  const isGrimorioStage = isTresdet ? etapaAtual === 'magias' : etapaAtual === 'grimorio';
   const isDestinoResolutivo = etapaAtual === 'resumo';
+  const isTresdetCaracteristicasStage = isTresdet && etapaAtual === 'caracteristicas';
+  const isTresdetVantagensStage = isTresdet && etapaAtual === 'vantagens';
+  const isTresdetDesvantagensStage = isTresdet && etapaAtual === 'desvantagens';
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
   /** Seleciona e auto-avanÃƒÂ§a para raca/classe; sÃƒÂ³ seleciona para vantagem/desvantagem */
@@ -619,6 +646,48 @@ const WizardChat = ({
           </div>
         )}
 
+        {isTresdetCaracteristicasStage && (
+          <TresDetCaracteristicasBlock
+            valores={tresdetCaracteristicas}
+            pontosTotais={tresdetPontosTotais}
+            onSetValor={onSetTresdetCaracteristica}
+            onConfirmar={() => {
+              onConfirmarTresdetCaracteristicas();
+              onAvancarEtapa?.();
+            }}
+            confirmado={tresdetCaracteristicasConfirmadas}
+            isLight={isLight}
+          />
+        )}
+
+        {isTresdetVantagensStage && (
+          <TresDetVantagensBlock
+            modo="vantagens"
+            selecionadas={tresdetVantagensIds}
+            onToggle={onToggleTresdetVantagem}
+            onConfirmar={() => {
+              onConfirmarTresdetVantagens();
+              onAvancarEtapa?.();
+            }}
+            pontosDisponiveis={tresdetPontosTotais}
+            isLight={isLight}
+          />
+        )}
+
+        {isTresdetDesvantagensStage && (
+          <TresDetVantagensBlock
+            modo="desvantagens"
+            selecionadas={tresdetDesvantagensIds}
+            onToggle={onToggleTresdetDesvantagem}
+            onConfirmar={() => {
+              onConfirmarTresdetDesvantagens();
+              onAvancarEtapa?.();
+            }}
+            pontosDisponiveis={0}
+            isLight={isLight}
+          />
+        )}
+
         {isEquipamentosStage && (
           <EquipamentosBlock
             data={comboPreviewData}
@@ -678,7 +747,29 @@ const WizardChat = ({
         <div ref={chatEndRef} />
       </div>
 
-      {isEquipamentosStage ? (
+      {isTresdetCaracteristicasStage ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Distribua pontos entre F, H, R, A e PdF acima.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Caracteristicas 3D&T
+            </span>
+          </div>
+        </div>
+      ) : isTresdetVantagensStage || isTresdetDesvantagensStage ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Selecione {isTresdetVantagensStage ? 'vantagens' : 'desvantagens'} acima e confirme para avancar.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Catalogo 3D&T
+            </span>
+          </div>
+        </div>
+      ) : isEquipamentosStage ? (
         <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>

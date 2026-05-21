@@ -18,7 +18,8 @@ import { useGrimorio } from './hooks/useGrimorio';
 import { useWizardInit } from './hooks/useWizardInit';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
-export const useWizardModel = ({ navigate }) => {
+export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
+  const isTresdet = sistema === 'tresdet';
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
 
   // --- Zustand store subscriptions ---
@@ -55,6 +56,62 @@ export const useWizardModel = ({ navigate }) => {
   const [classeNome, setClasseNome] = useState(draftInicial?.classeNome || '');
   const [background, setBackground] = useState(draftInicial?.background || '');
 
+  // --- 3D&T-specific state ---
+  const [tresdetCaracteristicas, setTresdetCaracteristicas] = useState(
+    draftInicial?.tresdetCaracteristicas || { F: 0, H: 0, R: 0, A: 0, PdF: 0 }
+  );
+  const [tresdetCaracteristicasConfirmadas, setTresdetCaracteristicasConfirmadas] = useState(
+    draftInicial?.tresdetCaracteristicasConfirmadas || false
+  );
+  const [tresdetVantagensIds, setTresdetVantagensIds] = useState(
+    draftInicial?.tresdetVantagensIds || []
+  );
+  const [tresdetVantagensConfirmadas, setTresdetVantagensConfirmadas] = useState(
+    draftInicial?.tresdetVantagensConfirmadas || false
+  );
+  const [tresdetDesvantagensIds, setTresdetDesvantagensIds] = useState(
+    draftInicial?.tresdetDesvantagensIds || []
+  );
+  const [tresdetDesvantagensConfirmadas, setTresdetDesvantagensConfirmadas] = useState(
+    draftInicial?.tresdetDesvantagensConfirmadas || false
+  );
+  const tresdetPontosTotais = 5;
+
+  const setTresdetCaracteristica = useCallback((key, valor) => {
+    setTresdetCaracteristicas(prev => ({ ...prev, [key]: Math.max(0, Math.min(5, valor)) }));
+    setTresdetCaracteristicasConfirmadas(false);
+  }, []);
+
+  const confirmarTresdetCaracteristicas = useCallback(() => {
+    setTresdetCaracteristicasConfirmadas(true);
+  }, []);
+
+  const toggleTresdetVantagem = useCallback((id) => {
+    setTresdetVantagensIds(prev =>
+      prev.includes(String(id))
+        ? prev.filter(v => v !== String(id))
+        : [...prev, String(id)]
+    );
+    setTresdetVantagensConfirmadas(false);
+  }, []);
+
+  const confirmarTresdetVantagens = useCallback(() => {
+    setTresdetVantagensConfirmadas(true);
+  }, []);
+
+  const toggleTresdetDesvantagem = useCallback((id) => {
+    setTresdetDesvantagensIds(prev =>
+      prev.includes(String(id))
+        ? prev.filter(v => v !== String(id))
+        : [...prev, String(id)]
+    );
+    setTresdetDesvantagensConfirmadas(false);
+  }, []);
+
+  const confirmarTresdetDesvantagens = useCallback(() => {
+    setTresdetDesvantagensConfirmadas(true);
+  }, []);
+
   // --- Sub-hooks: point system & bonus ---
   const pointSystem = usePointSystem({
     draftInicial, vantagensDisponiveis,
@@ -87,6 +144,9 @@ export const useWizardModel = ({ navigate }) => {
     desvantagensDaRaca: racaSelecionada?.desvantagens?.map(d => d.nome || d) || [],
     vantagensDaClasse: classeSelecionada?.vantagens?.map(v => v.nome || v) || [],
     desvantagensDaClasse: classeSelecionada?.desvantagens?.map(d => d.nome || d) || [],
+    tresdetCaracteristicas,
+    tresdetVantagensIds,
+    tresdetDesvantagensIds,
   };
   const mensagensRef = useRef();
   mensagensRef.current = mensagens;
@@ -94,7 +154,7 @@ export const useWizardModel = ({ navigate }) => {
   // --- getEstado / getHistorico ---
   const getEstado = useCallback(() => {
     const s = estadoRef.current;
-    return {
+    const base = {
       nome: s.nome, raca_id: s.racaId, raca_nome: s.racaNome,
       classe_id: s.classeId, classe_nome: s.classeNome, background: s.background,
       vantagens_ids: s.vantagensIds, vantagens_nomes: s.vantagensNomes,
@@ -103,7 +163,13 @@ export const useWizardModel = ({ navigate }) => {
       vantagens_da_raca: s.vantagensDaRaca, desvantagens_da_raca: s.desvantagensDaRaca,
       vantagens_da_classe: s.vantagensDaClasse, desvantagens_da_classe: s.desvantagensDaClasse,
     };
-  }, []);
+    if (isTresdet) {
+      base.caracteristicas = s.tresdetCaracteristicas;
+      base.tresdet_vantagens_ids = s.tresdetVantagensIds;
+      base.tresdet_desvantagens_ids = s.tresdetDesvantagensIds;
+    }
+    return base;
+  }, [isTresdet]);
   const getHistorico = useCallback(() => {
     return mensagensRef.current.filter(m => m.role !== 'sistema').map(m => ({
       role: m.role === 'mestre' ? 'assistant' : 'user',
@@ -111,7 +177,7 @@ export const useWizardModel = ({ navigate }) => {
     }));
   }, []);
 
-  // --- Sub-hooks: combo preview & navigation ---
+  // --- Sub-hooks: combo preview, grimorio & navigation ---
   const comboPreview = useComboPreview({
     nome, racaId, classeId, background,
     bonusAplicados: bonusCalc.bonusAplicados,
@@ -121,20 +187,36 @@ export const useWizardModel = ({ navigate }) => {
     etapaAtual: null, estadoRef,
   });
   const grimorio = useGrimorio({ racaId, racasDisponiveis });
-  const navigation = useWizardNavigation(draftInicial, {
+
+  // Build navigation buildState com extras 3D&T
+  const navBuildState = useMemo(() => ({
     nome, racaId, classeId, background,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds,
     skipVantagens: pointSystem.skipVantagens, skipDesvantagens: pointSystem.skipDesvantagens,
     bonusAplicados: bonusCalc.bonusAplicados, comboPreviewData: comboPreview.comboPreviewData,
     grimorioSelecionado: grimorio.grimorioSelecionado,
-  });
+    caracteristicasDistribuidas: tresdetCaracteristicasConfirmadas,
+    vantagensSelecionadas: tresdetVantagensConfirmadas,
+    desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
+    magiasSelecionadas: grimorio.grimorioSelecionado,
+  }), [
+    nome, racaId, classeId, background,
+    pointSystem.vantagensIds, pointSystem.desvantagensIds,
+    pointSystem.skipVantagens, pointSystem.skipDesvantagens,
+    bonusCalc.bonusAplicados, comboPreview.comboPreviewData,
+    grimorio.grimorioSelecionado,
+    tresdetCaracteristicasConfirmadas, tresdetVantagensConfirmadas, tresdetDesvantagensConfirmadas,
+  ]);
+
+  const navigation = useWizardNavigation(draftInicial, navBuildState, sistema);
 
   // --- Orchestration effects ---
 
-  // Invalidate bonusAplicados when build changes
+  // Invalidate bonusAplicados when build changes (Lunaria only)
   const buildDepsRef = useRef({ racaId, classeId,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds });
   useEffect(() => {
+    if (isTresdet) return;
     const prev = buildDepsRef.current;
     const changed = prev.racaId !== racaId || prev.classeId !== classeId
       || prev.vantagensIds !== pointSystem.vantagensIds
@@ -147,7 +229,7 @@ export const useWizardModel = ({ navigate }) => {
       if (navigation.etapaAtual === 'resumo') bonusCalc.setBonusInvalidado(true);
     }
   }, [racaId, classeId, pointSystem.vantagensIds, pointSystem.desvantagensIds,
-      navigation.etapaAtual, bonusCalc.bonusAplicados]);
+      navigation.etapaAtual, bonusCalc.bonusAplicados, isTresdet]);
 
   // Auto-load combo preview on equipamentos stage
   useEffect(() => {
@@ -160,9 +242,19 @@ export const useWizardModel = ({ navigate }) => {
       comboPreview.comboPreviewBuildKey, comboPreview.carregarComboPreview,
       comboPreview.jaCarregouBuildAtual]);
 
-  // Auto-load grimorio na etapa grimorio; auto-pula se a raca nao usa magia
+  // Auto-load grimorio na etapa grimorio (Lunaria) / magias (3D&T); auto-pula se nao usa magia
+  const grimorioStageId = isTresdet ? 'magias' : 'grimorio';
   useEffect(() => {
-    if (navigation.etapaAtual !== 'grimorio') return;
+    if (navigation.etapaAtual !== grimorioStageId) return;
+    if (isTresdet) {
+      // No 3D&T, pula a etapa de magias se o heroi nao comprou vantagens magicas.
+      const temMagia = tresdetVantagensIds.length > 0;
+      if (!temMagia) {
+        grimorio.confirmarGrimorio();
+        navigation.avancarEtapa();
+      }
+      return;
+    }
     if (!classeId) return;
     if (grimorio.devePularGrimorio) {
       grimorio.confirmarGrimorio();
@@ -170,13 +262,15 @@ export const useWizardModel = ({ navigate }) => {
       return;
     }
     grimorio.carregarGrimorio(classeId);
-  }, [navigation.etapaAtual, classeId, grimorio.devePularGrimorio]);
+  }, [navigation.etapaAtual, classeId, grimorio.devePularGrimorio, grimorioStageId,
+      isTresdet, tresdetVantagensIds]);
 
   // Auto-pula grimorio so apos o GET /slots responder (grimorioCarregado): sem a
   // guarda, o effect rodaria no mount com slots=0 inicial e pularia indevidamente.
   // O skip depende de grimorioCarregado, nao de !grimorioSelecionado, porque
   // carregarGrimorio ja marca grimorioSelecionado quando ha 0 slots.
   useEffect(() => {
+    if (isTresdet) return;
     if (navigation.etapaAtual !== 'grimorio') return;
     if (grimorio.grimorioLoading) return;
     if (!grimorio.grimorioCarregado) return;
@@ -184,15 +278,18 @@ export const useWizardModel = ({ navigate }) => {
       grimorio.confirmarGrimorio();
       navigation.avancarEtapa();
     }
-  }, [navigation.etapaAtual, grimorio.grimorioLoading, grimorio.grimorioCarregado, grimorio.grimorioSlots]);
+  }, [navigation.etapaAtual, grimorio.grimorioLoading, grimorio.grimorioCarregado,
+      grimorio.grimorioSlots, isTresdet]);
 
-  // Reset grimorio when class changes
+  // Reset grimorio when class changes (Lunaria only)
   useEffect(() => {
+    if (isTresdet) return;
     grimorio.resetGrimorio();
-  }, [classeId]);
+  }, [classeId, isTresdet]);
 
-  // Load catalogs on mount
+  // Load catalogs on mount (3D&T busca catalogos nos proprios blocos)
   useEffect(() => {
+    if (isTresdet) return;
     const loadAll = async () => {
       const promises = [];
       if (!racasCarregadas) promises.push(carregarRacas());
@@ -202,11 +299,11 @@ export const useWizardModel = ({ navigate }) => {
       if (promises.length > 0) await Promise.all(promises);
     };
     loadAll();
-  }, []);
+  }, [isTresdet]);
 
   // Draft save
   useEffect(() => {
-    salvarDraft({
+    const draft = {
       etapaAtual: navigation.etapaAtual,
       nome, racaId, racaNome, classeId, classeNome, background,
       vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
@@ -214,19 +311,31 @@ export const useWizardModel = ({ navigate }) => {
       atributosBase: bonusCalc.atributosBase, bonusAplicados: bonusCalc.bonusAplicados,
       skipVantagens: pointSystem.skipVantagens, skipDesvantagens: pointSystem.skipDesvantagens,
       etapasVisitadas: navigation.etapasVisitadas, etapasConcluidas: navigation.etapasConcluidas,
-    });
+    };
+    if (isTresdet) {
+      draft.tresdetCaracteristicas = tresdetCaracteristicas;
+      draft.tresdetCaracteristicasConfirmadas = tresdetCaracteristicasConfirmadas;
+      draft.tresdetVantagensIds = tresdetVantagensIds;
+      draft.tresdetVantagensConfirmadas = tresdetVantagensConfirmadas;
+      draft.tresdetDesvantagensIds = tresdetDesvantagensIds;
+      draft.tresdetDesvantagensConfirmadas = tresdetDesvantagensConfirmadas;
+    }
+    salvarDraft(draft);
   }, [navigation.etapaAtual, nome, racaId, classeId, background,
       pointSystem.vantagensIds, pointSystem.desvantagensIds,
       bonusCalc.atributosBase, bonusCalc.bonusAplicados,
       pointSystem.skipVantagens, pointSystem.skipDesvantagens,
-      navigation.etapasVisitadas, navigation.etapasConcluidas]);
+      navigation.etapasVisitadas, navigation.etapasConcluidas,
+      tresdetCaracteristicas, tresdetCaracteristicasConfirmadas,
+      tresdetVantagensIds, tresdetVantagensConfirmadas,
+      tresdetDesvantagensIds, tresdetDesvantagensConfirmadas, isTresdet]);
 
   // --- Sub-hooks: mestre interaction, character creation, wizard init ---
   const mestreInteraction = useMestreInteraction({
     setMensagens, setEnviando, enviandoRef, setSugestoes, setError, setInputTexto,
     navigation, nome, setNome, racaId, classeId, background, setBackground,
     setRacaId, setRacaNome, setClasseId, setClasseNome,
-    pointSystem, bonusCalc, getEstado, getHistorico, estadoRef,
+    pointSystem, bonusCalc, getEstado, getHistorico, estadoRef, sistema,
   });
   const characterImage = useCharacterImage();
   const characterCreation = useCharacterCreation({
@@ -236,13 +345,14 @@ export const useWizardModel = ({ navigate }) => {
     estadoRef, setError, limparDraft, recarregarPersonagens,
     imageUrl: characterImage.imageUrl,
     grimorioSelecionadas: grimorio.grimorioSelecionadas,
+    sistema,
   });
   const { descartarDraft } = useWizardInit({
     chat, navigation, nome, racaId,
     setNome, setRacaId, setRacaNome, setClasseId, setClasseNome, setBackground,
     pointSystem, bonusCalc, creation: characterCreation,
     draftInicial, limparDraft, setDraftRestaurado,
-    getEstado, comboPreview,
+    getEstado, comboPreview, sistema,
   });
 
   // Grimorio: confirmar selecao e avancar
@@ -253,6 +363,9 @@ export const useWizardModel = ({ navigate }) => {
 
   // --- Return ---
   return {
+    // Sistema
+    sistema,
+    isTresdet,
     // Navigation
     etapas: navigation.etapas, etapaAtual: navigation.etapaAtual,
     etapaIndex: navigation.etapaIndex, etapasVisitadas: navigation.etapasVisitadas,
@@ -260,6 +373,7 @@ export const useWizardModel = ({ navigate }) => {
     avancarComMestre: mestreInteraction.avancarComMestre,
     pularEtapa: mestreInteraction.pularEtapa,
     navegarParaEtapa: navigation.navegarParaEtapa,
+    avancarEtapa: navigation.avancarEtapa,
     // Chat
     mensagens, inputTexto, setInputTexto, enviando, sugestoes, chatEndRef,
     // Atributos
@@ -327,6 +441,20 @@ export const useWizardModel = ({ navigate }) => {
     grimorioSelecionado: grimorio.grimorioSelecionado,
     toggleGrimorioMagia: grimorio.toggleGrimorioMagia,
     confirmarGrimorio: confirmarEAvancarGrimorio,
+    // 3D&T-specific
+    tresdetCaracteristicas,
+    tresdetCaracteristicasConfirmadas,
+    tresdetPontosTotais,
+    setTresdetCaracteristica,
+    confirmarTresdetCaracteristicas,
+    tresdetVantagensIds,
+    tresdetVantagensConfirmadas,
+    toggleTresdetVantagem,
+    confirmarTresdetVantagens,
+    tresdetDesvantagensIds,
+    tresdetDesvantagensConfirmadas,
+    toggleTresdetDesvantagem,
+    confirmarTresdetDesvantagens,
     navigate,
   };
 };

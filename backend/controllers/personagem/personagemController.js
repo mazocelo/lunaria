@@ -2026,21 +2026,70 @@ class PersonagemController {
     }
   }
   async aprenderMagias(req, res) {
-    const personagemId = parseInt(req.params.id, 10);
-    if (isNaN(personagemId)) {
-      return res.status(400).json({ success: false, error: 'ID de personagem invalido' });
+    try {
+      const personagemId = parseInt(req.params.id, 10);
+      if (isNaN(personagemId)) {
+        return res.status(400).json({ success: false, error: 'ID de personagem invalido' });
+      }
+
+      const { habilidade_ids, origem = 'criacao' } = req.body;
+      if (!Array.isArray(habilidade_ids) || habilidade_ids.length === 0) {
+        return res.status(400).json({ success: false, error: 'habilidade_ids deve ser um array com pelo menos um ID' });
+      }
+
+      const ids = habilidade_ids.map(id => parseInt(id, 10));
+      if (ids.some(id => isNaN(id))) {
+        return res.status(400).json({ success: false, error: 'habilidade_ids deve conter apenas IDs numericos' });
+      }
+
+      const personagem = await db.Personagem.findByIdWithRelations(personagemId);
+      if (!personagem) {
+        return res.status(404).json({ success: false, error: 'Personagem nao encontrado' });
+      }
+      if (!personagem.classe_id) {
+        return res.status(400).json({ success: false, error: 'Personagem nao possui classe definida' });
+      }
+
+      // Vinculos da classe = mesma fonte usada por GET /habilidades-magias/disponiveis
+      const vinculos = await db.HmClasse.findByClasse(personagem.classe_id);
+      const habilidadesPorId = new Map(
+        vinculos.filter(v => v.habilidades_magias).map(v => [v.habilidade_id, v.habilidades_magias])
+      );
+
+      const foraDaClasse = ids.filter(id => !habilidadesPorId.has(id));
+      if (foraDaClasse.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Habilidade(s) nao pertencem a classe do personagem: ${foraDaClasse.join(', ')}`
+        });
+      }
+
+      // Slots = mesma fonte usada por GET /habilidades-magias/slots
+      const isMagia = (h) => h.escola_magia && h.escola_magia !== 'nenhuma';
+      const novasMagias = ids.filter(id => isMagia(habilidadesPorId.get(id)));
+      if (novasMagias.length > 0) {
+        const slots = await db.HmSlotsClasse.getSlots(personagem.classe_id, personagem.nivel || 1);
+        const jaAprendidas = await db.HmPersonagem.contarMagias(personagemId);
+        if (jaAprendidas + novasMagias.length > slots) {
+          return res.status(400).json({
+            success: false,
+            error: `Excede o limite de slots de magia (${slots}). Ja aprendidas: ${jaAprendidas}, novas: ${novasMagias.length}`
+          });
+        }
+      }
+
+      const resultados = await Promise.all(
+        ids.map(id => db.HmPersonagem.aprender(personagemId, id, origem))
+      );
+
+      res.status(200).json({ success: true, count: resultados.length });
+    } catch (err) {
+      log.error({ err }, 'Erro ao aprender magias');
+      if (err.code === 'P2003' || err.code === 'P2025') {
+        return res.status(400).json({ success: false, error: 'Habilidade ou personagem invalido' });
+      }
+      res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
-
-    const { habilidade_ids, origem = 'criacao' } = req.body;
-    if (!Array.isArray(habilidade_ids) || habilidade_ids.length === 0) {
-      return res.status(400).json({ success: false, error: 'habilidade_ids deve ser um array com pelo menos um ID' });
-    }
-
-    const resultados = await Promise.all(
-      habilidade_ids.map(id => db.HmPersonagem.aprender(personagemId, parseInt(id, 10), origem))
-    );
-
-    res.status(200).json({ success: true, count: resultados.length });
   }
 }
 

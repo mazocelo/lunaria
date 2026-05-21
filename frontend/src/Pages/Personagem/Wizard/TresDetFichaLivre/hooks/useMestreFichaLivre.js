@@ -17,7 +17,7 @@ export function useMestreFichaLivre({ getEstado }) {
 
     try {
       const resultado = await mestreCriadorService.interagir({
-        etapa: 'ficha_livre',
+        etapa: 'vantagens',
         estado: getEstado(),
         mensagemJogador: msg,
         historico: mensagens.filter(m => m.role !== 'sistema').map(m => ({ role: m.role === 'jogador' ? 'user' : 'assistant', content: m.content })),

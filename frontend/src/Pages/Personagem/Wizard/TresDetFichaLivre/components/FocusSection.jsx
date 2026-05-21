@@ -62,10 +62,7 @@ export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontos
         }}
       />
 
-      <div
-        className="grid grid-cols-3 gap-3 max-[768px]:grid-cols-2"
-        style={!temMagia ? { opacity: 0.35, pointerEvents: 'none' } : undefined}
-      >
+      <div className="grid grid-cols-3 gap-3 max-[768px]:grid-cols-2">
         {focusConfig.map((fc, i) => {
           const val = focus[fc.key];
           const hasPoints = val > 0;

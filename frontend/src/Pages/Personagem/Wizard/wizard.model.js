@@ -172,15 +172,19 @@ export const useWizardModel = ({ navigate }) => {
     grimorio.carregarGrimorio(classeId);
   }, [navigation.etapaAtual, classeId, grimorio.devePularGrimorio]);
 
-  // Auto-skip grimorio after loading if slots are 0
+  // Auto-pula grimorio so apos o GET /slots responder (grimorioCarregado): sem a
+  // guarda, o effect rodaria no mount com slots=0 inicial e pularia indevidamente.
+  // O skip depende de grimorioCarregado, nao de !grimorioSelecionado, porque
+  // carregarGrimorio ja marca grimorioSelecionado quando ha 0 slots.
   useEffect(() => {
     if (navigation.etapaAtual !== 'grimorio') return;
     if (grimorio.grimorioLoading) return;
-    if (grimorio.grimorioSlots === 0 && !grimorio.grimorioSelecionado) {
+    if (!grimorio.grimorioCarregado) return;
+    if (grimorio.grimorioSlots === 0) {
       grimorio.confirmarGrimorio();
       navigation.avancarEtapa();
     }
-  }, [navigation.etapaAtual, grimorio.grimorioLoading, grimorio.grimorioSlots, grimorio.grimorioSelecionado]);
+  }, [navigation.etapaAtual, grimorio.grimorioLoading, grimorio.grimorioCarregado, grimorio.grimorioSlots]);
 
   // Reset grimorio when class changes
   useEffect(() => {

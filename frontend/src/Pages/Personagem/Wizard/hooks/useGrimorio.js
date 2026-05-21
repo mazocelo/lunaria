@@ -6,6 +6,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
   const [slots, setSlots] = useState(0);
   const [selecionadas, setSelecionadas] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [carregado, setCarregado] = useState(false);
   const [error, setError] = useState(null);
   const [grimorioSelecionado, setGrimorioSelecionado] = useState(false);
 
@@ -45,6 +46,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
       setMagias([]);
     } finally {
       setLoading(false);
+      setCarregado(true);
     }
   }, [racaPodeMagia]);
 
@@ -64,6 +66,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
   const resetGrimorio = useCallback(() => {
     setSelecionadas([]);
     setGrimorioSelecionado(false);
+    setCarregado(false);
     loadedClasseRef.current = null;
   }, []);
 
@@ -72,6 +75,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
     grimorioSlots: slots,
     grimorioSelecionadas: selecionadas,
     grimorioLoading: loading,
+    grimorioCarregado: carregado,
     grimorioError: error,
     grimorioSelecionado,
     toggleGrimorioMagia: toggleMagia,

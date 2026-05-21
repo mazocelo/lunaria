@@ -426,20 +426,28 @@ describe('cleanupStalePendingCombatAction', () => {
   });
 
   it('does not clean up action at exactly 5 minutes', () => {
-    const exactlyFiveMinutes = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const sessao = createMockSessao({
-      tipo: 'atacar',
-      userId: 'u1',
-      testeId: null,
-      personagem: null,
-      combatIntent: null,
-      statusEfeitos: [],
-      criadoEm: exactlyFiveMinutes
-    });
+    // Congela o relogio para que o Date.now() do teste e o do helper coincidam:
+    // a condicao de borda usa <= STALE_THRESHOLD_MS e e sensivel a qualquer
+    // milissegundo decorrido entre montar a sessao e chamar o cleanup.
+    vi.useFakeTimers();
+    try {
+      const exactlyFiveMinutes = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const sessao = createMockSessao({
+        tipo: 'atacar',
+        userId: 'u1',
+        testeId: null,
+        personagem: null,
+        combatIntent: null,
+        statusEfeitos: [],
+        criadoEm: exactlyFiveMinutes
+      });
 
-    // At exactly 5 min, Date.now() - criadoEm === STALE_THRESHOLD_MS,
-    // condition is <= so it should NOT clean up
-    expect(cleanupStalePendingCombatAction(sessao)).toBe(false);
+      // At exactly 5 min, Date.now() - criadoEm === STALE_THRESHOLD_MS,
+      // condition is <= so it should NOT clean up
+      expect(cleanupStalePendingCombatAction(sessao)).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -14,6 +14,13 @@ export const FALLBACK_MENSAGENS = {
   atributos: 'Distribua seus 60 pontos entre os atributos (min 5, max 16 cada).',
   equipamentos: 'O arsenal esta sendo preparado com base na sua build.',
   resumo: 'Seu personagem esta quase pronto. Revise os detalhes.',
+  // 3D&T
+  conceito: 'Descreva o conceito do seu personagem em uma frase. Quem ele e?',
+  caracteristicas: 'Distribua seus pontos entre as caracteristicas: Forca, Habilidade, Resistencia, Armadura e Poder de Fogo.',
+  magias: 'Selecione as magias do seu personagem.',
+  // D&D 5e
+  skills: 'Escolha suas skill proficiencies entre as opcoes disponiveis para sua classe.',
+  spells: 'Selecione seus cantrips e magias conhecidas.',
 };
 
 export function getFallbackMessage(etapa) {
@@ -38,11 +45,36 @@ const DISTRIBUICOES = {
 
 const DISTRIBUICAO_PADRAO = { forca: 10, destreza: 10, constituicao: 10, inteligencia: 10, agilidade: 10, carisma: 10 };
 
+// D&D 5e Standard Array (15, 14, 13, 12, 10, 8) distribuido por classe
+const DND5E_DISTRIBUICOES = {
+  barbarian:  { forca: 15, destreza: 13, constituicao: 14, inteligencia: 8, sabedoria: 10, carisma: 12 },
+  bard:       { forca: 8, destreza: 14, constituicao: 12, inteligencia: 10, sabedoria: 13, carisma: 15 },
+  cleric:     { forca: 14, destreza: 10, constituicao: 13, inteligencia: 8, sabedoria: 15, carisma: 12 },
+  druid:      { forca: 8, destreza: 12, constituicao: 14, inteligencia: 10, sabedoria: 15, carisma: 13 },
+  fighter:    { forca: 15, destreza: 13, constituicao: 14, inteligencia: 8, sabedoria: 12, carisma: 10 },
+  monk:       { forca: 10, destreza: 15, constituicao: 13, inteligencia: 8, sabedoria: 14, carisma: 12 },
+  paladin:    { forca: 15, destreza: 10, constituicao: 13, inteligencia: 8, sabedoria: 12, carisma: 14 },
+  ranger:     { forca: 12, destreza: 15, constituicao: 13, inteligencia: 8, sabedoria: 14, carisma: 10 },
+  rogue:      { forca: 8, destreza: 15, constituicao: 13, inteligencia: 14, sabedoria: 10, carisma: 12 },
+  sorcerer:   { forca: 8, destreza: 13, constituicao: 14, inteligencia: 10, sabedoria: 12, carisma: 15 },
+  warlock:    { forca: 8, destreza: 14, constituicao: 13, inteligencia: 10, sabedoria: 12, carisma: 15 },
+  wizard:     { forca: 8, destreza: 13, constituicao: 14, inteligencia: 15, sabedoria: 12, carisma: 10 },
+};
+
+const DND5E_DISTRIBUICAO_PADRAO = { forca: 15, destreza: 14, constituicao: 13, inteligencia: 12, sabedoria: 10, carisma: 8 };
+
 /**
  * Gera distribuicao de atributos fallback baseada na classe.
+ * Suporta Lunaria (soma 60) e D&D 5e (Standard Array).
  */
-export function gerarAtributosFallback(estado) {
+export function gerarAtributosFallback(estado, sistema) {
   const classeNome = (estado.classe_nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  if (sistema === 'dnd5e') {
+    const dist = Object.entries(DND5E_DISTRIBUICOES).find(([k]) => classeNome.includes(k));
+    return dist ? dist[1] : { ...DND5E_DISTRIBUICAO_PADRAO };
+  }
+
   const dist = Object.entries(DISTRIBUICOES).find(([k]) => classeNome.includes(k));
   return dist ? dist[1] : { ...DISTRIBUICAO_PADRAO };
 }

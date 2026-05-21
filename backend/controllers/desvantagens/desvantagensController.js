@@ -145,7 +145,8 @@ class DesvantagemController {
    */
   async listarDesvantagens(req, res, next) {
     try {
-      const { tipo, elemento, nivel, usar, usos, search, limit, offset } = req.query;
+      const { tipo, elemento, nivel, usar, usos, search, limit, offset, sistema } = req.query;
+      const sistemaFiltro = sistema || 'lunaria';
       const elementoFiltro = parseElementoFiltro(elemento);
       if (elementoFiltro.error) {
         return res.status(400).json({ error: elementoFiltro.error });
@@ -160,7 +161,8 @@ class DesvantagemController {
           tipo, elemento: elementoFiltro.value,
           nivel: nivel ? parseInt(nivel) : undefined,
           usar: (usar ?? usos) ? parseInt(usar ?? usos) : undefined,
-          search
+          search,
+          sistema: sistemaFiltro
         });
         return res.status(200).json({
           success: true,
@@ -176,8 +178,8 @@ class DesvantagemController {
 
       const nivelFiltro = nivel ? parseInt(nivel) : undefined;
       const data = nivelFiltro
-        ? await db.Desvantagem.findByNivelMax(nivelFiltro)
-        : await db.Desvantagem.findAll();
+        ? await db.Desvantagem.findByNivelMax(nivelFiltro, sistemaFiltro)
+        : await db.Desvantagem.findAll(sistemaFiltro);
       res.status(200).json({
         success: true,
         data: data.map(serializarVantagemOuDesvantagem),
@@ -241,10 +243,11 @@ class DesvantagemController {
       if (elementoFiltro.error) {
         return res.status(400).json({ error: elementoFiltro.error });
       }
-      
+      const sistemaFiltro = req.query.sistema || 'lunaria';
+
       log.info({ elemento: elementoFiltro.value }, 'Listando desvantagens do elemento');
-      
-      const desvantagens = await db.Desvantagem.findByElemento(elementoFiltro.value);
+
+      const desvantagens = await db.Desvantagem.findByElemento(elementoFiltro.value, sistemaFiltro);
       
       log.info({ desvantagens_length: desvantagens.length, elemento: elementoFiltro.value }, 'desvantagens encontradas do elemento');
       
@@ -268,10 +271,11 @@ class DesvantagemController {
   async listarPorTipo(req, res, next) {
     try {
       const { tipo } = req.params;
-      
+      const sistemaFiltro = req.query.sistema || 'lunaria';
+
       log.info({ tipo: tipo }, 'Listando desvantagens do tipo');
-      
-      const desvantagens = await db.Desvantagem.findByTipo(tipo);
+
+      const desvantagens = await db.Desvantagem.findByTipo(tipo, sistemaFiltro);
       
       log.info({ desvantagens_length: desvantagens.length, tipo: tipo }, 'desvantagens encontradas do tipo');
       
@@ -295,10 +299,11 @@ class DesvantagemController {
   async listarPorNivel(req, res, next) {
     try {
       const { nivel } = req.params;
-      
+      const sistemaFiltro = req.query.sistema || 'lunaria';
+
       log.info({ nivel: nivel }, 'Listando desvantagens do nível');
-      
-      const desvantagens = await db.Desvantagem.findByNivel(nivel);
+
+      const desvantagens = await db.Desvantagem.findByNivel(nivel, sistemaFiltro);
       
       log.info({ desvantagens_length: desvantagens.length, nivel: nivel }, 'desvantagens encontradas do nível');
       
@@ -321,17 +326,18 @@ class DesvantagemController {
    */
   async buscarDesvantagens(req, res, next) {
     try {
-      const { termo } = req.query;
-      
+      const { termo, sistema } = req.query;
+      const sistemaFiltro = sistema || 'lunaria';
+
       if (!termo) {
         return res.status(400).json({
           error: 'Termo de busca é obrigatório'
         });
       }
-      
+
       log.info({ termo: termo }, 'Buscando desvantagens com termo');
-      
-      const desvantagens = await db.Desvantagem.search(termo);
+
+      const desvantagens = await db.Desvantagem.search(termo, sistemaFiltro);
       
       log.info({ desvantagens_length: desvantagens.length, termo: termo }, 'desvantagens encontradas para ""');
       

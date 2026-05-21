@@ -2,10 +2,12 @@
  * Modelo de Monstro para RPG usando Prisma
  * Inclui formula de escalamento dinamico por nivel
  */
+import { getAtributo, getAtributosMap } from '../helpers/atributosHelper.js';
+
 const Monstro = (prisma) => {
   const model = prisma.monstros;
 
-  const includeRels = { raridade_rel: true, categoria_rel: true };
+  const includeRels = { raridade_rel: true, categoria_rel: true, atributos_monstro: true };
 
   const MonstroMethods = {
     // Buscar por ID
@@ -17,16 +19,17 @@ const Monstro = (prisma) => {
     },
 
     // Listar todos
-    async findAll() {
+    async findAll(sistema = 'lunaria') {
       return await model.findMany({
+        where: { sistema },
         include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
     // Listar monstros com paginação DB-level
-    async findPaginated({ limit = 50, offset = 0, tipo, raridade_id, nivel, tema } = {}) {
-      const where = {};
+    async findPaginated({ limit = 50, offset = 0, tipo, raridade_id, nivel, tema, sistema = 'lunaria' } = {}) {
+      const where = { sistema };
       if (tipo) where.tipo = { has: tipo };
       if (raridade_id) where.raridade_id = parseInt(raridade_id);
       if (nivel) {
@@ -43,93 +46,95 @@ const Monstro = (prisma) => {
     },
 
     // Buscar por tipo (ex: 'besta', 'demonio')
-    async findByTipo(tipo) {
+    async findByTipo(tipo, sistema = 'lunaria') {
       return await model.findMany({
-        where: { tipo: { has: tipo } },
+        where: { tipo: { has: tipo }, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por raridade (by ID)
-    async findByRaridade(raridadeId) {
+    async findByRaridade(raridadeId, sistema = 'lunaria') {
       return await model.findMany({
-        where: { raridade_id: raridadeId },
+        where: { raridade_id: raridadeId, sistema },
         include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por faixa de nivel
-    async findByNivelRange(min, max) {
+    async findByNivelRange(min, max, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           nivel_min: { lte: max },
-          nivel_max: { gte: min }
+          nivel_max: { gte: min },
+          sistema
         },
         orderBy: { nivel_min: 'asc' }
       });
     },
 
     // Buscar por tema compativel (tema = ID inteiro)
-    async findByTema(tema) {
+    async findByTema(tema, sistema = 'lunaria') {
       return await model.findMany({
-        where: { temas: { has: parseInt(tema) } },
+        where: { temas: { has: parseInt(tema) }, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por nome/descricao
-    async search(termo) {
+    async search(termo, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } }
-          ]
+          ],
+          sistema
         },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por elemento
-    async findByElemento(elemento) {
+    async findByElemento(elemento, sistema = 'lunaria') {
       return await model.findMany({
-        where: { elemento: { has: elemento } },
+        where: { elemento: { has: elemento }, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por tamanho (ex: 'grande', 'pequeno')
-    async findByTamanho(tamanho) {
+    async findByTamanho(tamanho, sistema = 'lunaria') {
       return await model.findMany({
-        where: { tamanho },
+        where: { tamanho, sistema },
         include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por habitat (ex: 'floresta', 'caverna')
-    async findByHabitat(habitat) {
+    async findByHabitat(habitat, sistema = 'lunaria') {
       return await model.findMany({
-        where: { habitat: { has: habitat } },
+        where: { habitat: { has: habitat }, sistema },
         include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por imunidade (ex: 'veneno', 'fogo')
-    async findByImunidade(elemento) {
+    async findByImunidade(elemento, sistema = 'lunaria') {
       return await model.findMany({
-        where: { imunidades: { has: elemento } },
+        where: { imunidades: { has: elemento }, sistema },
         include: includeRels,
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar por categoria
-    async findByCategoria(categoriaId) {
+    async findByCategoria(categoriaId, sistema = 'lunaria') {
       return await model.findMany({
-        where: { categoria_id: categoriaId },
+        where: { categoria_id: categoriaId, sistema },
         include: includeRels,
         orderBy: { nome: 'asc' }
       });
@@ -142,15 +147,17 @@ const Monstro = (prisma) => {
      * @param {string} dificuldade - facil | media | dificil | letal
      * @returns {Array} Monstros filtrados
      */
-    async selecionarParaCombate(nivel, temas = [], dificuldade = 'media') {
+    async selecionarParaCombate(nivel, temas = [], dificuldade = 'media', sistema = 'lunaria') {
       const nivelAjustado = this._ajustarNivelPorDificuldade(nivel, dificuldade);
 
       // Buscar monstros no range de nivel
       let monstros = await model.findMany({
         where: {
           nivel_min: { lte: nivelAjustado + 1 },
-          nivel_max: { gte: Math.max(1, nivelAjustado - 1) }
+          nivel_max: { gte: Math.max(1, nivelAjustado - 1) },
+          sistema
         },
+        include: { atributos_monstro: true },
         orderBy: { nivel_min: 'asc' }
       });
 
@@ -184,10 +191,11 @@ const Monstro = (prisma) => {
      * @param {string} nomeSugerido - Nome sugerido pela IA
      * @returns {Object|null} Monstro encontrado ou null
      */
-    async buscarPorNomeSimilar(nomeSugerido) {
+    async buscarPorNomeSimilar(nomeSugerido, sistema = 'lunaria') {
       // Busca exata primeiro
       let monstro = await model.findFirst({
-        where: { nome: { equals: nomeSugerido, mode: 'insensitive' } }
+        where: { nome: { equals: nomeSugerido, mode: 'insensitive' }, sistema },
+        include: { atributos_monstro: true }
       });
       if (monstro) return monstro;
 
@@ -195,7 +203,8 @@ const Monstro = (prisma) => {
       const palavras = nomeSugerido.split(' ').filter(p => p.length > 3);
       for (const palavra of palavras) {
         monstro = await model.findFirst({
-          where: { nome: { contains: palavra, mode: 'insensitive' } }
+          where: { nome: { contains: palavra, mode: 'insensitive' }, sistema },
+          include: { atributos_monstro: true }
         });
         if (monstro) return monstro;
       }
@@ -211,22 +220,26 @@ const Monstro = (prisma) => {
      */
     calcularStats(monstro, nivel) {
       const n = Math.max(1, nivel);
-      const modAgi = Math.floor(((monstro.agilidade || 10) - 10) / 2);
+      const agilidade = getAtributo(monstro, 'agilidade');
+      const constituicao = getAtributo(monstro, 'constituicao');
+      const forca = getAtributo(monstro, 'forca');
+      const modAgi = Math.floor((agilidade - 10) / 2);
       const modTam = this._getModTamanho(monstro.tamanho);
+      const attrMap = getAtributosMap(monstro);
       return {
-        hp_max: Math.round(monstro.hp_base + (n * monstro.constituicao * 0.5)),
-        ataque: Math.round(monstro.ataque_base + Math.floor((monstro.forca - 10) / 2) + Math.min(2, Math.floor(n / 6))),
+        hp_max: Math.round(monstro.hp_base + (n * constituicao * 0.5)),
+        ataque: Math.round(monstro.ataque_base + Math.floor((forca - 10) / 2) + Math.min(2, Math.floor(n / 6))),
         defesa: Math.round(monstro.defesa_base + modAgi + Math.floor(n * 0.4)),
         armadura: Math.max(0, Math.round(Math.floor(monstro.defesa_base * 0.3) + Math.floor(n * 0.2) + modTam.armadura)),
         esquiva: Math.min(30, Math.max(0, (modAgi * 3) + modTam.esquiva)),
         dano_base: monstro.dano_base,
         xp: monstro.xp_base * n,
-        forca: monstro.forca,
-        destreza: monstro.destreza,
-        inteligencia: monstro.inteligencia,
-        constituicao: monstro.constituicao,
-        agilidade: monstro.agilidade,
-        carisma: monstro.carisma
+        forca: attrMap.forca ?? 10,
+        destreza: attrMap.destreza ?? 10,
+        inteligencia: attrMap.inteligencia ?? 10,
+        constituicao: attrMap.constituicao ?? 10,
+        agilidade: attrMap.agilidade ?? 10,
+        carisma: attrMap.carisma ?? 10
       };
     },
 

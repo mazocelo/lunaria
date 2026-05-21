@@ -237,35 +237,26 @@ describe('calcularDano', () => {
 // ── calcularAbsorcao ──
 
 describe('calcularAbsorcao', () => {
-  it('CON 10 → modCON=0, dados=max(0,-1)=0 → apenas armadura', () => {
-    const absorcao = calcularAbsorcao(10, 3);
-    expect(absorcao).toBe(3); // 0d4 + 3
+  it('CON 10 → floor(0/2)=0 → apenas armadura', () => {
+    expect(calcularAbsorcao(10, 3)).toBe(3);
   });
 
-  it('CON 12 → modCON=1, dados=0 → apenas armadura', () => {
-    const absorcao = calcularAbsorcao(12, 2);
-    expect(absorcao).toBe(2); // max(0,0)=0 dados + 2
+  it('CON 12 → floor(1/2)=0 → apenas armadura', () => {
+    expect(calcularAbsorcao(12, 2)).toBe(2);
   });
 
-  it('CON 14 → modCON=2, dados=1 → 1d4 + armadura', () => {
-    for (let i = 0; i < 20; i++) {
-      const absorcao = calcularAbsorcao(14, 0);
-      expect(absorcao).toBeGreaterThanOrEqual(1);
-      expect(absorcao).toBeLessThanOrEqual(4);
-    }
+  it('CON 14 → floor(2/2)=1 → 1 + armadura', () => {
+    expect(calcularAbsorcao(14, 0)).toBe(1);
+    expect(calcularAbsorcao(14, 3)).toBe(4);
   });
 
-  it('CON 18 → modCON=4, dados=3 → 3d4 + armadura', () => {
-    for (let i = 0; i < 20; i++) {
-      const absorcao = calcularAbsorcao(18, 0);
-      expect(absorcao).toBeGreaterThanOrEqual(3);
-      expect(absorcao).toBeLessThanOrEqual(12);
-    }
+  it('CON 18 → floor(4/2)=2 → 2 + armadura', () => {
+    expect(calcularAbsorcao(18, 0)).toBe(2);
+    expect(calcularAbsorcao(18, 3)).toBe(5);
   });
 
   it('sem armadura usa 0 como default', () => {
-    const absorcao = calcularAbsorcao(10);
-    expect(absorcao).toBe(0); // 0d4 + 0
+    expect(calcularAbsorcao(10)).toBe(0);
   });
 });
 

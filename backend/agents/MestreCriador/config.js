@@ -4,8 +4,8 @@
 import { MESTRE_CONFIG, detectProvider } from '../Mestre/config.js';
 
 // Re-export from stagePolicy (fonte unica de etapas e transicoes)
-import { ETAPAS, TRANSICOES } from './stages/stagePolicy.js';
-export { ETAPAS, TRANSICOES };
+import { ETAPAS, TRANSICOES, TRESDET_STAGE_ORDER, DND5E_STAGE_ORDER, getStagePolicy } from './stages/stagePolicy.js';
+export { ETAPAS, TRANSICOES, TRESDET_STAGE_ORDER, DND5E_STAGE_ORDER, getStagePolicy };
 
 // Config do modelo para o Mestre Criador
 // Usa Gemini Flash por default (contexto grande para catálogo, JSON confiável)

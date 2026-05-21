@@ -3,7 +3,8 @@
  * Armazena snapshot imutavel + estado runtime + merge ao finalizar
  */
 import { verificarLevelUp, xpParaNivel } from '../helpers/evolucaoHelper.js';
-import { calcularHP } from '../helpers/combateHelper.js';
+import { calcularHP, getMultRaca } from '../helpers/combateHelper.js';
+import { getAtributosMap } from '../helpers/atributosHelper.js';
 
 const PersonagemSessao = (prisma) => {
   const model = prisma.personagem_sessao;
@@ -27,7 +28,8 @@ const PersonagemSessao = (prisma) => {
           classes: true,
           racas: true,
           personagem_equipamento: { include: { equipamentos: true } },
-          personagem_desvantagem: true
+          personagem_desvantagem: true,
+          atributos_personagem: true
         }
       });
 
@@ -40,7 +42,7 @@ const PersonagemSessao = (prisma) => {
       let vantagens = [];
       if (vantagensVinculos.length > 0) {
         vantagens = await prisma.vantagens.findMany({
-          where: { id: { in: vantagensVinculos.map(v => v.vantagem_id) } }
+          where: { id: { in: vantagensVinculos.map(v => v.vantagem_id) }, sistema: 'lunaria' }
         });
       }
 
@@ -48,14 +50,15 @@ const PersonagemSessao = (prisma) => {
       let desvantagens = [];
       if (personagem.personagem_desvantagem.length > 0) {
         desvantagens = await prisma.desvantagens.findMany({
-          where: { id: { in: personagem.personagem_desvantagem.map(d => d.desvantagem_id) } }
+          where: { id: { in: personagem.personagem_desvantagem.map(d => d.desvantagem_id) }, sistema: 'lunaria' }
         });
       }
 
       const equipamentos = personagem.personagem_equipamento.map(pe => pe.equipamentos);
       const nivel = personagem.nivel || 1;
 
-      const hpMax = calcularHP(personagem);
+      const multRaca = getMultRaca(personagem.racas?.nome);
+      const hpMax = calcularHP(personagem, multRaca);
 
       try {
         return await model.create({
@@ -66,14 +69,7 @@ const PersonagemSessao = (prisma) => {
             nome: personagem.nome,
             nivel_inicio: nivel,
             xp_inicio: personagem.xp_atual || 0,
-            atributos_snapshot: {
-              forca: personagem.forca || 10,
-              inteligencia: personagem.inteligencia || 10,
-              carisma: personagem.carisma || 10,
-              destreza: personagem.destreza || 10,
-              constituicao: personagem.constituicao || 10,
-              agilidade: personagem.agilidade || 10
-            },
+            atributos_snapshot: getAtributosMap(personagem),
             equipamentos_inicio: equipamentos.map(e => ({ id: e.id, nome: e.nome, tipo: e.tipo, bonus: e.bonus })),
             vantagens_snapshot: vantagens.map(v => ({ id: v.id, nome: v.nome, custo: v.custo })),
             desvantagens_snapshot: desvantagens.map(d => ({ id: d.id, nome: d.nome, custo: d.custo })),

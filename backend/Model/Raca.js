@@ -14,33 +14,35 @@ const Raca = (prisma) => {
     },
 
     // Buscar raças por custo
-    async findByCusto(custo) {
+    async findByCusto(custo, sistema = 'lunaria') {
       return await model.findMany({
-        where: { custo },
+        where: { custo, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar raças por custo máximo
-    async findByCustoMax(custo) {
+    async findByCustoMax(custo, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           custo: {
             lte: custo
-          }
+          },
+          sistema
         },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar raças por termo
-    async search(termo) {
+    async search(termo, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } }
-          ]
+          ],
+          sistema
         },
         orderBy: { nome: 'asc' }
       });
@@ -69,17 +71,19 @@ const Raca = (prisma) => {
     },
 
     // Listar todas as raças
-    async findAll() {
+    async findAll(sistema = 'lunaria') {
       return await model.findMany({
+        where: { sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Listar raças com paginação DB-level
-    async findPaginated({ limit = 50, offset = 0 } = {}) {
+    async findPaginated({ limit = 50, offset = 0, sistema = 'lunaria' } = {}) {
+      const where = { sistema };
       const [data, total] = await Promise.all([
-        model.findMany({ orderBy: { nome: 'asc' }, take: limit, skip: offset }),
-        model.count()
+        model.findMany({ where, orderBy: { nome: 'asc' }, take: limit, skip: offset }),
+        model.count({ where })
       ]);
       return { data, total };
     },
@@ -92,8 +96,9 @@ const Raca = (prisma) => {
     },
 
     // Buscar raças com personagens
-    async findWithPersonagens() {
+    async findWithPersonagens(sistema = 'lunaria') {
       return await model.findMany({
+        where: { sistema },
         include: {
           personagens: true
         },
@@ -112,20 +117,21 @@ const Raca = (prisma) => {
     },
 
     // Buscar raças gratuitas
-    async findGratuitas() {
+    async findGratuitas(sistema = 'lunaria') {
       return await model.findMany({
-        where: { custo: 0 },
+        where: { custo: 0, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar raças pagas
-    async findPagas() {
+    async findPagas(sistema = 'lunaria') {
       return await model.findMany({
         where: {
           custo: {
             gt: 0
-          }
+          },
+          sistema
         },
         orderBy: { nome: 'asc' }
       });

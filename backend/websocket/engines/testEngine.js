@@ -236,7 +236,7 @@ export default class TestEngine {
             dc: 0,
             sucesso: true,  // damage rolls always "succeed"
             descricaoResultado: `${rawDamage} de dano`,
-            critico: false,
+            critico: Boolean(testeResolvido.metadata?.critico),
             falha_critica: false,
             userId,
             username,

@@ -15,7 +15,7 @@ import dotenv from 'dotenv';
 import logger from '../../helpers/logger.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../../helpers/sanitize.js';
 import { CRIADOR_CONFIG, detectProvider, ETAPAS, TRANSICOES } from './config.js';
-import { sanitizeEtapaProxima, shouldLockStage, getPolicy } from './stages/stagePolicy.js';
+import { sanitizeEtapaProxima, shouldLockStage, getPolicy, getStagePolicy } from './stages/stagePolicy.js';
 import { tierDesbloqueado } from '../../helpers/evolucaoHelper.js';
 import { getFallbackMessage, gerarAtributosFallback as gerarAtributosFallbackPolicy } from './stages/stageFallbacks.js';
 
@@ -61,8 +61,16 @@ function parseIAJson(content) {
   return null;
 }
 
-// Etapas que DEVEM ter sugestões
-const ETAPAS_COM_SUGESTOES = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
+// Etapas que DEVEM ter sugestões (por sistema)
+const ETAPAS_COM_SUGESTOES_LUNARIA = ['boas_vindas', 'raca', 'classe', 'background', 'vantagens', 'desvantagens'];
+const ETAPAS_COM_SUGESTOES_TRESDET = ['boas_vindas', 'conceito', 'vantagens', 'desvantagens'];
+const ETAPAS_COM_SUGESTOES_DND5E = ['boas_vindas', 'raca', 'classe', 'background', 'skills'];
+
+function getEtapasComSugestoes(sistema) {
+  if (sistema === 'tresdet') return ETAPAS_COM_SUGESTOES_TRESDET;
+  if (sistema === 'dnd5e') return ETAPAS_COM_SUGESTOES_DND5E;
+  return ETAPAS_COM_SUGESTOES_LUNARIA;
+}
 
 const NOME_INICIOS = ['Aer', 'Bel', 'Cael', 'Dar', 'Ela', 'Fen', 'Gal', 'Ily', 'Kae', 'Lun', 'Mor', 'Nyr', 'Or', 'Rae', 'Syl', 'Tha', 'Val', 'Ysa', 'Zer'];
 const NOME_MEIOS = ['a', 'ae', 'ai', 'e', 'ei', 'ia', 'io', 'o', 'oa', 'u', 'ya'];
@@ -111,9 +119,9 @@ function gerarNomesFallback(quantidade = 8) {
 
 
 /** Gera sugestões fallback do catálogo quando IA retorna vazio */
-async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
+async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set(), sistema) {
   try {
-    const { racas, classes, vantagens: vantagensRaw, desvantagens: desvantagensRaw } = await fetchCatalogo();
+    const { racas, classes, vantagens: vantagensRaw, desvantagens: desvantagensRaw } = await fetchCatalogo(sistema);
     const tier = tierDesbloqueado(estado.nivel || 1);
     const vantagens = vantagensRaw.filter(v => (v.nivel || 1) <= tier);
     const desvantagens = desvantagensRaw.filter(d => (d.nivel || 1) <= tier);
@@ -169,6 +177,31 @@ async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
       ];
     }
 
+    if (etapa === 'conceito') {
+      const nome = estado.nome || 'heroi';
+      return [
+        { tipo: 'conceito', id: null, nome: `Guerreiro honrado`, descricao: `Um combatente leal que segue um codigo de honra rigido.` },
+        { tipo: 'conceito', id: null, nome: `Mago errante`, descricao: `Um estudioso das artes arcanas que viaja em busca de conhecimento proibido.` },
+        { tipo: 'conceito', id: null, nome: `Ladino das sombras`, descricao: `Especialista em furtividade que usa astucia para sobreviver.` },
+        { tipo: 'conceito', id: null, nome: `Protetor da natureza`, descricao: `Um guardiao que defende o equilibrio natural contra ameacas.` },
+      ];
+    }
+
+    if (etapa === 'skills') {
+      // Fallback generico de skills D&D 5e
+      const allSkills = [
+        'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
+        'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine',
+        'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion',
+        'Sleight of Hand', 'Stealth', 'Survival',
+      ];
+      const jaEscolhidas = new Set(estado.skills || []);
+      const disponiveis = allSkills.filter(s => !jaEscolhidas.has(s));
+      return disponiveis.slice(0, 6).map(s => ({
+        tipo: 'skill', id: null, nome: s, descricao: '', custo: 0,
+      }));
+    }
+
     if (etapa === 'boas_vindas') {
       return gerarNomesFallback(8);
     }
@@ -184,8 +217,8 @@ async function gerarFallbackSugestoes(etapa, estado, excluirIds = new Set()) {
 const gerarAtributosFallback = gerarAtributosFallbackPolicy;
 
 // Tipo esperado de sugestao — derivado da policy
-function getTipoEsperado(etapa) {
-  return getPolicy(etapa).suggestionType || null;
+function getTipoEsperado(etapa, sistema) {
+  return getPolicy(etapa, sistema).suggestionType || null;
 }
 
 /**
@@ -194,13 +227,14 @@ function getTipoEsperado(etapa) {
  * @param {string} etapaAtual
  * @param {string} etapaDestino
  * @param {Object} [idsPermitidos] - Sets de IDs permitidos por tipo: { raca, classe, vantagem, desvantagem }
+ * @param {string} [sistema]
  */
-function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino, idsPermitidos) {
+function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino, idsPermitidos, sistema) {
   if (!Array.isArray(sugestoes)) return [];
   // Aceitar tipo da etapa atual OU da etapa destino
   const tiposAceitos = new Set();
-  const tipoAtual = getTipoEsperado(etapaAtual);
-  const tipoDestino = getTipoEsperado(etapaDestino);
+  const tipoAtual = getTipoEsperado(etapaAtual, sistema);
+  const tipoDestino = getTipoEsperado(etapaDestino, sistema);
   if (tipoAtual) tiposAceitos.add(tipoAtual);
   if (tipoDestino) tiposAceitos.add(tipoDestino);
 
@@ -237,8 +271,8 @@ function sanitizarSugestoes(sugestoes, etapaAtual, etapaDestino, idsPermitidos) 
 }
 
 /** Constrói sets de IDs permitidos por tipo para o nível atual */
-async function buildIdsPermitidos(nivel) {
-  const { racas, classes, vantagens, desvantagens } = await fetchCatalogo();
+async function buildIdsPermitidos(nivel, sistema) {
+  const { racas, classes, vantagens, desvantagens } = await fetchCatalogo(sistema);
   const tier = tierDesbloqueado(nivel);
   return {
     raca: new Set(racas.map(r => String(r.id))),
@@ -310,7 +344,10 @@ function extrairSugestoesAnteriores(historico, etapa) {
   return { nomes, ids };
 }
 
-function construirInput(etapa, estado, mensagemJogador, { historico, actionMode } = {}) {
+function construirInput(etapa, estado, mensagemJogador, { historico, actionMode, sistema } = {}) {
+  const isTresDet = sistema === 'tresdet';
+  const isDnd5e = sistema === 'dnd5e';
+  const etapasComSugestoes = getEtapasComSugestoes(sistema);
   const parts = [`[ETAPA ATUAL: ${etapa}]`];
 
   // Seed aleatório para variar sugestões de nomes
@@ -321,18 +358,45 @@ function construirInput(etapa, estado, mensagemJogador, { historico, actionMode 
 
   // Contexto do personagem construído até agora
   if (estado.nome) parts.push(`Nome do personagem: ${sanitizeCharacterName(estado.nome)}`);
-  if (estado.raca_nome) parts.push(`Raça escolhida: ${estado.raca_nome} (ID:${estado.raca_id})`);
-  if (estado.classe_nome) parts.push(`Classe escolhida: ${estado.classe_nome} (ID:${estado.classe_id})`);
-  if (estado.background) parts.push(`Background: ${estado.background}`);
-  if (estado.vantagens_nomes?.length) parts.push(`Vantagens: ${estado.vantagens_nomes.join(', ')}`);
-  if (estado.desvantagens_nomes?.length) parts.push(`Desvantagens: ${estado.desvantagens_nomes.join(', ')}`);
-  if (estado.atributos) {
-    const attrs = estado.atributos;
-    parts.push(`Atributos: FOR:${attrs.forca} DES:${attrs.destreza} CON:${attrs.constituicao} INT:${attrs.inteligencia} AGI:${attrs.agilidade} CAR:${attrs.carisma}`);
+
+  if (isTresDet) {
+    // 3D&T: conceito em vez de raca/classe
+    if (estado.conceito) parts.push(`Conceito: ${estado.conceito}`);
+    if (estado.caracteristicas) {
+      const c = estado.caracteristicas;
+      parts.push(`Características: F:${c.forca} H:${c.habilidade} R:${c.resistencia} A:${c.armadura} PdF:${c.poder_de_fogo}`);
+    }
+  } else if (isDnd5e) {
+    // D&D 5e: race/class/background/ability scores/skills
+    if (estado.raca_nome) parts.push(`Race: ${estado.raca_nome} (ID:${estado.raca_id})`);
+    if (estado.classe_nome) parts.push(`Class: ${estado.classe_nome} (ID:${estado.classe_id})`);
+    if (estado.background) parts.push(`Background: ${estado.background}`);
+    if (estado.atributos) {
+      const a = estado.atributos;
+      parts.push(`Ability Scores: STR:${a.forca} DEX:${a.destreza} CON:${a.constituicao} INT:${a.inteligencia} WIS:${a.sabedoria} CHA:${a.carisma}`);
+    }
+    if (estado.skills?.length) parts.push(`Skill Proficiencies: ${estado.skills.join(', ')}`);
+  } else {
+    // Lunaria: raca/classe/background/atributos
+    if (estado.raca_nome) parts.push(`Raça escolhida: ${estado.raca_nome} (ID:${estado.raca_id})`);
+    if (estado.classe_nome) parts.push(`Classe escolhida: ${estado.classe_nome} (ID:${estado.classe_id})`);
+    if (estado.background) parts.push(`Background: ${estado.background}`);
+    if (estado.atributos) {
+      const attrs = estado.atributos;
+      parts.push(`Atributos: FOR:${attrs.forca} DES:${attrs.destreza} CON:${attrs.constituicao} INT:${attrs.inteligencia} AGI:${attrs.agilidade} CAR:${attrs.carisma}`);
+    }
   }
 
+  if (estado.vantagens_nomes?.length) parts.push(`Vantagens: ${estado.vantagens_nomes.join(', ')}`);
+  if (estado.desvantagens_nomes?.length) parts.push(`Desvantagens: ${estado.desvantagens_nomes.join(', ')}`);
+
   // Lembrete de contextualização para sugestões
-  if (['classe', 'vantagens', 'desvantagens', 'background'].includes(etapa)) {
+  const etapasContextuais = isTresDet
+    ? ['vantagens', 'desvantagens']
+    : isDnd5e
+      ? ['classe', 'background', 'skills']
+      : ['classe', 'vantagens', 'desvantagens', 'background'];
+  if (etapasContextuais.includes(etapa)) {
     parts.push(`[LEMBRETE: Suas sugestões DEVEM ser coerentes com as escolhas anteriores do personagem. Sugira opções que combinem narrativamente.]`);
   }
 
@@ -340,16 +404,21 @@ function construirInput(etapa, estado, mensagemJogador, { historico, actionMode 
   const excluir = new Set();
 
   // Itens já selecionados pelo jogador
-  if (estado.raca_nome) excluir.add(estado.raca_nome);
-  if (estado.classe_nome) excluir.add(estado.classe_nome);
+  if (!isTresDet) {
+    if (estado.raca_nome) excluir.add(estado.raca_nome);
+    if (estado.classe_nome) excluir.add(estado.classe_nome);
+  }
   if (estado.vantagens_nomes?.length) estado.vantagens_nomes.forEach(n => excluir.add(n));
   if (estado.desvantagens_nomes?.length) estado.desvantagens_nomes.forEach(n => excluir.add(n));
+  if (isDnd5e && estado.skills?.length) estado.skills.forEach(n => excluir.add(n));
 
-  // Vantagens/desvantagens concedidas automaticamente pela raça/classe (não devem ser sugeridas)
-  if (estado.vantagens_da_raca?.length) estado.vantagens_da_raca.forEach(n => excluir.add(n));
-  if (estado.desvantagens_da_raca?.length) estado.desvantagens_da_raca.forEach(n => excluir.add(n));
-  if (estado.vantagens_da_classe?.length) estado.vantagens_da_classe.forEach(n => excluir.add(n));
-  if (estado.desvantagens_da_classe?.length) estado.desvantagens_da_classe.forEach(n => excluir.add(n));
+  // Vantagens/desvantagens concedidas automaticamente pela raça/classe (apenas Lunaria)
+  if (!isTresDet && !isDnd5e) {
+    if (estado.vantagens_da_raca?.length) estado.vantagens_da_raca.forEach(n => excluir.add(n));
+    if (estado.desvantagens_da_raca?.length) estado.desvantagens_da_raca.forEach(n => excluir.add(n));
+    if (estado.vantagens_da_classe?.length) estado.vantagens_da_classe.forEach(n => excluir.add(n));
+    if (estado.desvantagens_da_classe?.length) estado.desvantagens_da_classe.forEach(n => excluir.add(n));
+  }
 
   // Sugestões já mostradas no histórico
   if (historico) {
@@ -357,13 +426,23 @@ function construirInput(etapa, estado, mensagemJogador, { historico, actionMode 
     nomes.forEach(n => excluir.add(n));
   }
 
-  if (excluir.size > 0 && ETAPAS_COM_SUGESTOES.includes(etapa)) {
-    parts.push(`[IMPORTANTE: NÃO sugira nenhum destes itens já mostrados, selecionados ou concedidos por raça/classe: ${[...excluir].join(', ')}. Sugira APENAS opções novas e diferentes.]`);
+  if (excluir.size > 0 && etapasComSugestoes.includes(etapa)) {
+    parts.push(`[IMPORTANTE: NÃO sugira nenhum destes itens já mostrados, selecionados ou concedidos: ${[...excluir].join(', ')}. Sugira APENAS opções novas e diferentes.]`);
   }
 
-  // Restrições: lembrar a IA das restrições de raça/classe para vantagens/desvantagens
-  if (['vantagens', 'desvantagens'].includes(etapa) && (estado.raca_nome || estado.classe_nome)) {
+  // Restrições de raça/classe (Lunaria)
+  if (!isTresDet && !isDnd5e && ['vantagens', 'desvantagens'].includes(etapa) && (estado.raca_nome || estado.classe_nome)) {
     parts.push(`[RESTRIÇÕES: Considere que o personagem é ${estado.raca_nome || '?'} / ${estado.classe_nome || '?'}. Sugira apenas vantagens/desvantagens compatíveis com essa combinação. Se um item tiver restrição de raça ou classe que não corresponda, NÃO o sugira.]`);
+  }
+
+  // Restrições de conceito (3D&T)
+  if (isTresDet && ['vantagens', 'desvantagens'].includes(etapa) && estado.conceito) {
+    parts.push(`[RESTRIÇÕES: O conceito do personagem é "${estado.conceito}". Sugira apenas vantagens/desvantagens coerentes com esse conceito.]`);
+  }
+
+  // Restrições de classe (D&D 5e skills)
+  if (isDnd5e && etapa === 'skills' && estado.classe_nome) {
+    parts.push(`[RESTRIÇÕES: Liste APENAS as skill proficiencies disponíveis para a classe ${estado.classe_nome}. Indique quantas o jogador pode escolher.]`);
   }
 
   parts.push(`\nMensagem do jogador: ${mensagemJogador}`);
@@ -423,12 +502,12 @@ function getModel() {
   return { model: _model, modelName: _modelName };
 }
 
-/** Constrói chain por request com catálogo filtrado pelo nível do estado */
-async function buildChainForRequest(estado) {
+/** Constrói chain por request com catálogo filtrado pelo nível e sistema do estado */
+async function buildChainForRequest(estado, sistema) {
   const { model, modelName } = getModel();
   const nivelEfetivo = estado.nivel || 1;
-  const catalogo = await buildCatalogoCriacao(nivelEfetivo);
-  const promptSistema = criarPromptSistemaCriador(catalogo);
+  const catalogo = await buildCatalogoCriacao(nivelEfetivo, sistema);
+  const promptSistema = criarPromptSistemaCriador(catalogo, sistema);
 
   const prompt = ChatPromptTemplate.fromMessages([
     ['system', promptSistema],
@@ -463,21 +542,37 @@ export function invalidarChain() {
  * @param {string} params.mensagemJogador - Mensagem enviada pelo jogador
  * @param {Array} params.historico - Histórico de mensagens do chat
  * @param {number} params.userId - ID do usuário (para tracking)
+ * @param {string} params.sistema - Sistema de jogo ('lunaria' | 'tresdet' | 'dnd5e')
  * @returns {Object} { mensagem, sugestoes, etapa_proxima, atributos_sugeridos }
  */
-export async function interagir({ etapa, estado, mensagemJogador, historico = [], userId, actionMode = 'reply' }) {
+export async function interagir({ etapa, estado, mensagemJogador, historico = [], userId, actionMode = 'reply', sistema }) {
   const startTime = Date.now();
+  // Resolver sistema: parametro explicito > estado > default
+  const sistemaEfetivo = sistema || estado?.sistema || 'lunaria';
+  log.debug({ sistema: sistemaEfetivo, etapa, actionMode }, 'MestreCriador: sistema resolvido');
+  const { stageOrder } = getStagePolicy(sistemaEfetivo);
+  const etapasComSugestoes = getEtapasComSugestoes(sistemaEfetivo);
 
   // Validar etapa
-  if (!ETAPAS.includes(etapa)) {
-    throw new Error(`Etapa inválida: ${etapa}`);
+  if (!stageOrder.includes(etapa)) {
+    throw new Error(`Etapa inválida para sistema ${sistemaEfetivo}: ${etapa}`);
   }
 
-  try {
-    const { chain, modelName } = await buildChainForRequest(estado);
+  // Etapas que NÃO usam cards de sugestão (usam UI própria)
+  const ETAPAS_SEM_CARDS_LUNARIA = ['atributos', 'equipamentos', 'grimorio', 'resumo'];
+  const ETAPAS_SEM_CARDS_TRESDET = ['caracteristicas', 'equipamentos', 'magias', 'resumo'];
+  const ETAPAS_SEM_CARDS_DND5E = ['atributos', 'equipamentos', 'spells', 'resumo'];
+  const etapasSemCards = sistemaEfetivo === 'tresdet'
+    ? ETAPAS_SEM_CARDS_TRESDET
+    : sistemaEfetivo === 'dnd5e'
+      ? ETAPAS_SEM_CARDS_DND5E
+      : ETAPAS_SEM_CARDS_LUNARIA;
 
-    const input = construirInput(etapa, estado, mensagemJogador, { historico, actionMode });
-    const chatHistory = converterHistorico(historico).slice(-20); // limitar histórico
+  try {
+    const { chain, modelName } = await buildChainForRequest(estado, sistemaEfetivo);
+
+    const input = construirInput(etapa, estado, mensagemJogador, { historico, actionMode, sistema: sistemaEfetivo });
+    const chatHistory = converterHistorico(historico).slice(-20);
 
     const response = await withRetry(() => withTimeout(chain.invoke({
       input,
@@ -489,39 +584,38 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     // Parse da resposta
     let resultado = parseIAJson(response.content);
     if (!resultado) {
+      const policy = getPolicy(etapa, sistemaEfetivo);
       log.warn({ etapa, rawContent: String(response.content).slice(0, 400) }, 'Fallback - IA nao retornou JSON valido');
       resultado = {
         mensagem: getFallbackMessage(etapa) || 'Ocorreu um erro. Tente novamente.',
         sugestoes: [],
-        etapa_proxima: TRANSICOES[etapa]?.[0] || etapa,
+        etapa_proxima: policy.defaultNext || etapa,
         atributos_sugeridos: null,
       };
     }
 
     // Validar etapa_proxima via policy
-    resultado.etapa_proxima = sanitizeEtapaProxima(etapa, resultado.etapa_proxima);
+    resultado.etapa_proxima = sanitizeEtapaProxima(etapa, resultado.etapa_proxima, sistemaEfetivo);
 
     // Travar etapa se actionMode exigir (refresh, progressao manual sem continue)
-    if (shouldLockStage(etapa, actionMode)) {
+    if (shouldLockStage(etapa, actionMode, sistemaEfetivo)) {
       resultado.etapa_proxima = etapa;
     }
 
     const etapaDestino = resultado.etapa_proxima || etapa;
 
     // Sanitizar sugestões (aceita tipo da etapa atual OU destino) + filtro de tier
-    const idsPermitidos = await buildIdsPermitidos(estado.nivel || 1);
+    const idsPermitidos = await buildIdsPermitidos(estado.nivel || 1, sistemaEfetivo);
     const sugestoes = sanitizarSugestoes(
       Array.isArray(resultado.sugestoes) ? resultado.sugestoes : [],
       etapa,
       etapaDestino,
-      idsPermitidos
+      idsPermitidos,
+      sistemaEfetivo
     );
 
-    // Etapas que NÃO usam cards de sugestão (usam UI própria: distribuidor, botão salvar)
-    const ETAPAS_SEM_CARDS = ['atributos', 'equipamentos', 'resumo'];
-
     // Se destino não usa cards, limpar sugestões
-    let sugestoesFinal = ETAPAS_SEM_CARDS.includes(etapaDestino) ? [] : sugestoes;
+    let sugestoesFinal = etapasSemCards.includes(etapaDestino) ? [] : sugestoes;
 
     // Extrair IDs já sugeridos + já selecionados para evitar repetição nos fallbacks
     const { ids: idsJaSugeridos } = extrairSugestoesAnteriores(historico, etapa);
@@ -531,19 +625,20 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     if (estado.desvantagens_ids?.length) estado.desvantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
 
     // Fallback: se sugestões vazias em etapa que deveria ter, buscar do catálogo
-    if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapaDestino)) {
+    if (sugestoesFinal.length === 0 && etapasComSugestoes.includes(etapaDestino)) {
       log.warn({ etapa, etapaDestino, originalCount: resultado.sugestoes?.length || 0 }, 'IA retornou 0 sugestoes validas, gerando fallback');
-      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado, idsJaSugeridos);
-    } else if (sugestoesFinal.length === 0 && ETAPAS_COM_SUGESTOES.includes(etapa) && !ETAPAS_SEM_CARDS.includes(etapaDestino)) {
+      sugestoesFinal = await gerarFallbackSugestoes(etapaDestino, estado, idsJaSugeridos, sistemaEfetivo);
+    } else if (sugestoesFinal.length === 0 && etapasComSugestoes.includes(etapa) && !etapasSemCards.includes(etapaDestino)) {
       log.warn({ etapa, etapaDestino }, 'Sem sugestoes, gerando fallback');
-      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado, idsJaSugeridos);
+      sugestoesFinal = await gerarFallbackSugestoes(etapa, estado, idsJaSugeridos, sistemaEfetivo);
     }
 
-    // Fallback: se atributos_sugeridos ausente na etapa de atributos, gerar distribuição padrão
+    // Fallback: se atributos_sugeridos ausente na etapa de atributos/caracteristicas, gerar distribuição padrão
     let atributosSugeridos = resultado.atributos_sugeridos || null;
-    if (etapaDestino === 'atributos' && !atributosSugeridos) {
+    const etapaAtributos = sistemaEfetivo === 'tresdet' ? 'caracteristicas' : 'atributos';
+    if (etapaDestino === etapaAtributos && !atributosSugeridos) {
       log.warn('IA nao retornou atributos_sugeridos, gerando fallback');
-      atributosSugeridos = gerarAtributosFallback(estado);
+      atributosSugeridos = gerarAtributosFallback(estado, sistemaEfetivo);
     }
 
     return {
@@ -556,8 +651,9 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     log.error({ err: error }, 'Erro na interacao');
 
     // Fallback graceful — respeitar policy e actionMode mesmo em erro
-    let catchEtapaDestino = sanitizeEtapaProxima(etapa, TRANSICOES[etapa]?.[0] || etapa);
-    if (shouldLockStage(etapa, actionMode)) {
+    const policy = getPolicy(etapa, sistemaEfetivo);
+    let catchEtapaDestino = sanitizeEtapaProxima(etapa, policy.defaultNext || etapa, sistemaEfetivo);
+    if (shouldLockStage(etapa, actionMode, sistemaEfetivo)) {
       catchEtapaDestino = etapa;
     }
 
@@ -567,15 +663,16 @@ export async function interagir({ etapa, estado, mensagemJogador, historico = []
     if (estado.classe_id) idsJaSugeridos.add(String(estado.classe_id));
     if (estado.vantagens_ids?.length) estado.vantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
     if (estado.desvantagens_ids?.length) estado.desvantagens_ids.forEach(id => idsJaSugeridos.add(String(id)));
-    const fallbackSugestoes = ETAPAS_COM_SUGESTOES.includes(catchEtapaDestino)
-      ? await gerarFallbackSugestoes(catchEtapaDestino, estado, idsJaSugeridos).catch(() => [])
+    const fallbackSugestoes = etapasComSugestoes.includes(catchEtapaDestino)
+      ? await gerarFallbackSugestoes(catchEtapaDestino, estado, idsJaSugeridos, sistemaEfetivo).catch(() => [])
       : [];
 
+    const etapaAtributos = sistemaEfetivo === 'tresdet' ? 'caracteristicas' : 'atributos';
     return {
       mensagem: getFallbackMessage(catchEtapaDestino) || getFallbackMessage(etapa) || 'Ocorreu um erro. Tente novamente.',
       sugestoes: fallbackSugestoes,
       etapa_proxima: catchEtapaDestino,
-      atributos_sugeridos: catchEtapaDestino === 'atributos' ? gerarAtributosFallback(estado) : null,
+      atributos_sugeridos: catchEtapaDestino === etapaAtributos ? gerarAtributosFallback(estado, sistemaEfetivo) : null,
     };
   }
 }

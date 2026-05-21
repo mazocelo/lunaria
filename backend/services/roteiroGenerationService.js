@@ -67,32 +67,23 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
     });
     const { roteiro, prompt: requestPrompt, responseText, model: usedModel } = resultado;
 
-    await db.Historia.updateHistoria(historiaId, {
-      roteiro,
-      roteiro_status: 'completed'
-    });
+    await db.prisma.$transaction(async (tx) => {
+      await tx.historias.update({
+        where: { id: historiaId },
+        data: { roteiro, roteiro_status: 'completed' }
+      });
 
-    const historiaAtualizada = {
-      ...historia,
-      roteiro,
-      roteiro_status: 'completed'
-    };
-
-    await sincronizarRoteiroNaSessao(historiaAtualizada, roteiro, 'completed');
-
-    // Salvar versão no histórico
-    try {
-      await db.prisma.roteiro_versoes.updateMany({
+      await tx.roteiro_versoes.updateMany({
         where: { historia_id: historiaId, ativa: true },
         data: { ativa: false }
       });
 
-      const lastVersion = await db.prisma.roteiro_versoes.findFirst({
+      const lastVersion = await tx.roteiro_versoes.findFirst({
         where: { historia_id: historiaId },
         orderBy: { versao: 'desc' }
       });
 
-      await db.prisma.roteiro_versoes.create({
+      await tx.roteiro_versoes.create({
         data: {
           historia_id: historiaId,
           versao: (lastVersion?.versao || 0) + 1,
@@ -104,9 +95,15 @@ export async function processarGeracaoRoteiro(historia, userId, options = {}) {
           metadados: { userId, geradoEm: new Date().toISOString() }
         }
       });
-    } catch (versionError) {
-      logger.warn({ historiaId, err: versionError.message }, 'Erro ao salvar versao do roteiro');
-    }
+    });
+
+    const historiaAtualizada = {
+      ...historia,
+      roteiro,
+      roteiro_status: 'completed'
+    };
+
+    await sincronizarRoteiroNaSessao(historiaAtualizada, roteiro, 'completed');
 
     // Persistir prompt/response no ai_job (se aiJobId fornecido)
     if (options.aiJobId && requestPrompt) {

@@ -4,3 +4,8 @@ node_modules
 .env.development
 .env.production
 .env*.local
+.env.save
+*.png
+.playwright-mcp/
+scripts/balance-report.html
+piper-voices/

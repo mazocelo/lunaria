@@ -122,6 +122,7 @@ export default class SessionEngine {
         donoNome: donoNome,
         historiaConfig: historia.config || null,
         maxJogadores: historia.maximo_de_participantes || 5,
+        sistema: historia.sistema || 'lunaria',
         mestreTier,
         mestreConfig: mestreConfig || { modelo: tierModel },
         status: 'aberta',

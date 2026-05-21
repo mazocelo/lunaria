@@ -15,12 +15,11 @@ export function calcularHP(personagem) {
 }
 
 /**
- * PM = R x 5 (somente se personagem tem vantagem Magia)
+ * PM = R x 5 (minimo 1). Todos os personagens têm PM (Manual 3D&T Alpha, p.25).
  */
 export function calcularMP(personagem) {
   const R = getAtributo(personagem, 'R', 0);
-  const temMagia = personagem.stats_sistema?.temMagia || false;
-  return temMagia ? R * 5 : 0;
+  return Math.max(1, R * 5);
 }
 
 /**

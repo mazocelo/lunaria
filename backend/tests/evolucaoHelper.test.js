@@ -198,25 +198,25 @@ describe('pontosAtributoBonus', () => {
 
 describe('pontosAtributoTotal', () => {
   it('nivel 1 retorna 75 (base)', () => {
-    expect(pontosAtributoTotal(1)).toBe(75);
+    expect(pontosAtributoTotal(1)).toBe(60);
   });
 
   it('nivel 3 retorna 77', () => {
-    expect(pontosAtributoTotal(3)).toBe(77);
+    expect(pontosAtributoTotal(3)).toBe(62);
   });
 
   it('nivel 5 retorna 79', () => {
-    expect(pontosAtributoTotal(5)).toBe(79);
+    expect(pontosAtributoTotal(5)).toBe(64);
   });
 
   it('nivel 20 retorna 93', () => {
-    // 75 + 18 = 93
-    expect(pontosAtributoTotal(20)).toBe(93);
+    // 60 + 18 = 78
+    expect(pontosAtributoTotal(20)).toBe(78);
   });
 
   it('e consistente com base + bonus', () => {
     for (let n = 1; n <= 20; n++) {
-      expect(pontosAtributoTotal(n)).toBe(75 + pontosAtributoBonus(n));
+      expect(pontosAtributoTotal(n)).toBe(60 + pontosAtributoBonus(n));
     }
   });
 });
@@ -435,16 +435,16 @@ describe('calcularPontosVantagem', () => {
 
 describe('validarAtributos', () => {
   const atributosPadrao = {
-    forca: 13,
-    inteligencia: 13,
-    carisma: 12,
-    destreza: 12,
-    constituicao: 13,
-    agilidade: 12,
+    forca: 10,
+    inteligencia: 10,
+    carisma: 10,
+    destreza: 10,
+    constituicao: 10,
+    agilidade: 10,
   };
-  // soma = 13+13+12+12+13+12 = 75
+  // soma = 10+10+10+10+10+10 = 60
 
-  it('atributos validos nivel 1 (soma=75) → valido', () => {
+  it('atributos validos nivel 1 (soma=60) → valido', () => {
     const result = validarAtributos(atributosPadrao, 1);
     expect(result.valido).toBe(true);
     expect(result.erros).toHaveLength(0);
@@ -474,7 +474,7 @@ describe('validarAtributos', () => {
       constituicao: 20,
       agilidade: 20,
     };
-    // soma = 120, max nivel 1 = 75
+    // soma = 120, max nivel 1 = 60
     const result = validarAtributos(attrs, 1);
     expect(result.valido).toBe(false);
     expect(result.erros.some(e => e.includes('excede'))).toBe(true);
@@ -482,16 +482,16 @@ describe('validarAtributos', () => {
 
   it('nivel mais alto permite mais pontos de atributo', () => {
     const attrs = {
-      forca: 14,
-      inteligencia: 13,
-      carisma: 13,
-      destreza: 13,
-      constituicao: 13,
-      agilidade: 13,
+      forca: 12,
+      inteligencia: 12,
+      carisma: 11,
+      destreza: 11,
+      constituicao: 12,
+      agilidade: 12,
     };
-    // soma = 79, max nivel 1 = 75 → invalido, max nivel 5 = 79 → valido
+    // soma = 70, max nivel 1 = 60 → invalido, nivel 11 = 60+10=70 → valido
     expect(validarAtributos(attrs, 1).valido).toBe(false);
-    expect(validarAtributos(attrs, 5).valido).toBe(true);
+    expect(validarAtributos(attrs, 11).valido).toBe(true);
   });
 
   it('atributos faltantes sao tratados como 0', () => {
@@ -510,12 +510,12 @@ describe('validarAtributos', () => {
       constituicao: 1,
       agilidade: 1,
     };
-    // soma = 6, max nivel 1 = 75 → valido, todos entre 1 e 20
+    // soma = 6, max nivel 1 = 60 → valido, todos entre 1 e 20
     const result = validarAtributos(attrs, 1);
     expect(result.valido).toBe(true);
   });
 
-  it('todos em 20 no nivel 20 (soma=120 > max 93) → invalido', () => {
+  it('todos em 20 no nivel 20 (soma=120 > max 78) → invalido', () => {
     const attrs = {
       forca: 20,
       inteligencia: 20,
@@ -810,7 +810,7 @@ describe('EVOLUCAO constantes', () => {
   });
 
   it('ATRIBUTO_BASE = 75', () => {
-    expect(EVOLUCAO.ATRIBUTO_BASE).toBe(75);
+    expect(EVOLUCAO.ATRIBUTO_BASE).toBe(60);
   });
 
   it('STAT_MAX = 20', () => {
@@ -875,12 +875,12 @@ describe('edge cases gerais', () => {
 
   it('validarAtributos com strings numericas', () => {
     const attrs = {
-      forca: '13',
-      inteligencia: '13',
-      carisma: '12',
-      destreza: '12',
-      constituicao: '13',
-      agilidade: '12',
+      forca: '10',
+      inteligencia: '10',
+      carisma: '10',
+      destreza: '10',
+      constituicao: '10',
+      agilidade: '10',
     };
     const result = validarAtributos(attrs, 1);
     expect(result.valido).toBe(true);

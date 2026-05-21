@@ -1,8 +1,5 @@
-/**
- * Modelo de Habilidades V2 para RPG usando Prisma
- */
-const Habilidade = (prisma) => {
-  const model = prisma.habilidades;
+const HabilidadeMagia = (prisma) => {
+  const model = prisma.habilidades_magias;
 
   const includeRelations = {
     classe: { select: { id: true, nome: true } },
@@ -10,74 +7,76 @@ const Habilidade = (prisma) => {
   };
 
   const HabilidadeMethods = {
-    async findByTipo(tipo) {
+    async findByTipo(tipo, sistema = 'lunaria') {
       return await model.findMany({
-        where: { tipo },
+        where: { tipo, sistema },
         include: includeRelations,
         orderBy: { nome: 'asc' }
       });
     },
 
-    async findByElemento(elemento) {
+    async findByElemento(elemento, sistema = 'lunaria') {
       return await model.findMany({
-        where: { elemento },
+        where: { elemento, sistema },
         include: includeRelations,
         orderBy: { nome: 'asc' }
       });
     },
 
-    async findByCategoria(categoria) {
+    async findByCategoria(categoria, sistema = 'lunaria') {
       return await model.findMany({
-        where: { categoria },
+        where: { categoria, sistema },
         include: includeRelations,
         orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }]
       });
     },
 
-    async findByEscolaMagia(escola_magia) {
+    async findByEscolaMagia(escola_magia, sistema = 'lunaria') {
       return await model.findMany({
-        where: { escola_magia },
+        where: { escola_magia, sistema },
         include: includeRelations,
         orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }]
       });
     },
 
-    async findByClasse(classe_id) {
+    async findByClasse(classe_id, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           OR: [
             { classe_id: parseInt(classe_id) },
-            { classe_id: null }
-          ]
+            { classe_id: null, raca_id: null }
+          ],
+          sistema
         },
         include: includeRelations,
         orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }]
       });
     },
 
-    async findByRaca(raca_id) {
+    async findByRaca(raca_id, sistema = 'lunaria') {
       return await model.findMany({
-        where: { raca_id: parseInt(raca_id) },
+        where: { raca_id: parseInt(raca_id), sistema },
         include: includeRelations,
         orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }]
       });
     },
 
-    async search(termo) {
+    async search(termo, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } }
-          ]
+          ],
+          sistema
         },
         include: includeRelations,
         orderBy: { nome: 'asc' }
       });
     },
 
-    async findPaginated({ limit = 50, offset = 0, tipo, elemento, classe_id, nivel, busca, categoria, escola_magia, raca_id, alcance } = {}) {
-      const where = {};
+    async findPaginated({ limit = 50, offset = 0, tipo, elemento, classe_id, nivel, busca, categoria, escola_magia, raca_id, alcance, sistema = 'lunaria' } = {}) {
+      const where = { sistema };
       if (tipo) where.tipo = tipo;
       if (elemento) where.elemento = elemento;
       if (classe_id) where.classe_id = parseInt(classe_id);
@@ -122,31 +121,32 @@ const Habilidade = (prisma) => {
     },
 
     async create(data) {
-      return await prisma.habilidades.create({ data });
+      return await prisma.habilidades_magias.create({ data });
     },
 
     async update(id, data) {
-      return await prisma.habilidades.update({ where: { id }, data });
+      return await prisma.habilidades_magias.update({ where: { id }, data });
     },
 
     async delete(id) {
-      return await prisma.habilidades.delete({ where: { id } });
+      return await prisma.habilidades_magias.delete({ where: { id } });
     },
 
-    async findAll() {
+    async findAll(sistema = 'lunaria') {
       return await model.findMany({
+        where: { sistema },
         include: includeRelations,
         orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }]
       });
     },
 
-    async getEstatisticas() {
+    async getEstatisticas(sistema = 'lunaria') {
       const [total, porTipo, porElemento, porCategoria, porEscola] = await Promise.all([
-        model.count(),
-        model.groupBy({ by: ['tipo'], _count: true }),
-        model.groupBy({ by: ['elemento'], _count: true, where: { elemento: { not: null } } }),
-        model.groupBy({ by: ['categoria'], _count: true }),
-        model.groupBy({ by: ['escola_magia'], _count: true, where: { escola_magia: { not: null } } })
+        model.count({ where: { sistema } }),
+        model.groupBy({ by: ['tipo'], _count: true, where: { sistema } }),
+        model.groupBy({ by: ['elemento'], _count: true, where: { elemento: { not: null }, sistema } }),
+        model.groupBy({ by: ['categoria'], _count: true, where: { sistema } }),
+        model.groupBy({ by: ['escola_magia'], _count: true, where: { escola_magia: { not: null }, sistema } })
       ]);
       return { total, porTipo, porElemento, porCategoria, porEscola };
     }
@@ -155,4 +155,4 @@ const Habilidade = (prisma) => {
   return Object.assign(model, HabilidadeMethods);
 };
 
-export default Habilidade;
+export default HabilidadeMagia;

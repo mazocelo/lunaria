@@ -3,7 +3,7 @@
  *
  * Inclui HP, mana, cooldowns, concentração, alertas de vantagens/desvantagens.
  */
-import { calcularHP, calcularMana } from './combateHelper.js';
+import { calcularHP, calcularMana, getMultRaca, calcularHPSistema, calcularManaSistema } from './combateHelper.js';
 import { getOwnedCombatActions } from './ownedActionsHelper.js';
 import {
   normalizarTerrenoInput, getTerrenoLabel, getEfeitosTerreno,
@@ -128,8 +128,10 @@ export function buildTurnState(sessao, userId, personagem = {}) {
   const attrs = pcCompleto.atributos || {};
   const nivel = pcCompleto.nivel || 1;
 
-  // HP
-  const hpMax = pSessao.hp_max ?? calcularHP({ constituicao: attrs.constituicao || 10, nivel });
+  // HP (dispatch via engine when personagem carries sistema)
+  const racaNome = pcCompleto.raca_nome || pcCompleto.raca || '';
+  const hpPersonagem = { atributos: attrs, nivel, sistema: pcCompleto.sistema || 'lunaria' };
+  const hpMax = pSessao.hp_max ?? calcularHPSistema(hpPersonagem, getMultRaca(racaNome));
   const hpAtual = pSessao.hp_atual ?? pcCompleto.hp ?? hpMax;
 
   // XP e itens
@@ -155,8 +157,8 @@ export function buildTurnState(sessao, userId, personagem = {}) {
     efeitos
   };
 
-  // Mana
-  const manaMax = pSessao.mana_max ?? calcularMana({ inteligencia: attrs.inteligencia || 10, nivel });
+  // Mana (dispatch via engine)
+  const manaMax = pSessao.mana_max ?? calcularManaSistema(hpPersonagem);
   const manaAtual = pSessao.mana_atual ?? pcCompleto.mana_atual ?? manaMax;
   state.mana = { atual: manaAtual, max: manaMax };
 

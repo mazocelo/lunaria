@@ -125,7 +125,8 @@ class HistoriaController {
         imagem,
         mapas,
         config,
-        mestre_tier
+        mestre_tier,
+        sistema
       } = req.body;
       
       // Validações básicas
@@ -183,6 +184,8 @@ class HistoriaController {
       const tierValido = mestre_tier && VALID_MESTRE_TIERS.includes(mestre_tier) ? mestre_tier : DEFAULT_MESTRE_TIER;
 
       // Criar história no banco com prólogo
+      const sistemaValido = ['lunaria', 'tresdet', 'dnd5e'].includes(sistema) ? sistema : 'lunaria';
+
       const novaHistoria = await db.Historia.createHistoria({
         nome: nomeHistoria,
         temas: temas,
@@ -195,6 +198,7 @@ class HistoriaController {
         publica: publica === true || publica === 'true' ? true : false,
         config: historiaConfig,
         mestre_tier: tierValido,
+        sistema: sistemaValido,
         ...(imagem ? { imagem } : {}),
         ...(mapas && Array.isArray(mapas) ? { mapas } : {})
       });
@@ -270,13 +274,25 @@ class HistoriaController {
 
       let historias = [];
       let total = 0;
-      let usedDbPagination = false;
 
       // Se o usuário estiver logado e não for solicitada listagem pública
       if (req.user && req.user.id && todas !== 'true') {
         if (incluir_personagens === 'true' || incluir_personagens === true) {
-          // Buscar histórias criadas + participação (query composta, paginação em memória)
-          historias = await db.Historia.findAllByUsuario(req.user.id);
+          // Buscar histórias criadas + participação (paginação no model)
+          const [paginatedHistorias, allHistorias] = await Promise.all([
+            db.Historia.findAllByUsuario(req.user.id, { take: parsedLimit, skip: parsedOffset }),
+            db.Historia.findAllByUsuario(req.user.id)
+          ]);
+          historias = paginatedHistorias;
+          total = allHistorias.length;
+
+          if (status) {
+            historias = historias.filter(h => h.status === status);
+          }
+          if (temaIdFiltro !== null) {
+            historias = historias.filter(h => Array.isArray(h.temas) && h.temas.includes(temaIdFiltro));
+          }
+
         } else {
           // Buscar apenas histórias criadas pelo usuário (paginação DB-level)
           const result = await db.Historia.findByUsuarioPaginated(req.user.id, {
@@ -286,7 +302,7 @@ class HistoriaController {
           });
           historias = result.data;
           total = result.total;
-          usedDbPagination = true;
+
         }
       } else {
         // Buscar histórias públicas (modo público)
@@ -298,24 +314,6 @@ class HistoriaController {
         });
         historias = result.data;
         total = result.total;
-        usedDbPagination = true;
-      }
-
-      // Aplicar filtros em memória apenas quando não usou paginação DB
-      if (!usedDbPagination) {
-        if (status) {
-          historias = historias.filter(h => h.status === status);
-        }
-        if (temaIdFiltro !== null) {
-          historias = historias.filter(h => Array.isArray(h.temas) && h.temas.includes(temaIdFiltro));
-        }
-
-        if (!req.user || todas === 'true') {
-          historias.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
-        }
-
-        total = historias.length;
-        historias = historias.slice(parsedOffset, parsedOffset + parsedLimit);
       }
 
       const historiasPaginadas = historias;
@@ -402,10 +400,12 @@ class HistoriaController {
   async obterHistoria(req, res, next) {
     try {
       const { id } = req.params;
-      
-      log.info({ id: id }, 'Buscando história ID');
-      
-      const historia = await db.Historia.findById(parseInt(id));
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
+
+      log.info({ id: parsedId }, 'Buscando história ID');
+
+      const historia = await db.Historia.findById(parsedId);
       
       if (!historia) {
         return res.status(404).json({
@@ -444,10 +444,12 @@ class HistoriaController {
   async atualizarHistoria(req, res, next) {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
-      log.info({ id: id }, 'Atualizando história ID');
+      log.info({ id: parsedId }, 'Atualizando história ID');
 
-      const historia = await db.Historia.findById(parseInt(id));
+      const historia = await db.Historia.findById(parsedId);
 
       if (!historia) {
         return res.status(404).json({
@@ -605,10 +607,12 @@ class HistoriaController {
   async excluirHistoria(req, res, next) {
     try {
       const { id } = req.params;
-      
-      log.info({ id: id }, 'Excluindo história ID');
-      
-      const historia = await db.Historia.findById(parseInt(id));
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
+
+      log.info({ id: parsedId }, 'Excluindo história ID');
+
+      const historia = await db.Historia.findById(parsedId);
       
       if (!historia) {
         return res.status(404).json({
@@ -638,8 +642,10 @@ class HistoriaController {
   async restaurarHistoria(req, res, next) {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
-      const historia = await db.Historia.restoreHistoria(parseInt(id));
+      const historia = await db.Historia.restoreHistoria(parsedId);
 
       res.status(200).json({
         success: true,
@@ -964,8 +970,10 @@ class HistoriaController {
   async gerarRoteiro(req, res, next) {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
       const userId = req.user?.id;
-      const historia = await db.Historia.findById(parseInt(id));
+      const historia = await db.Historia.findById(parsedId);
       if (!historia) {
         return res.status(404).json({ success: false, error: 'Historia nao encontrada' });
       }
@@ -1012,7 +1020,9 @@ class HistoriaController {
   async obterRoteiro(req, res, next) {
     try {
       const { id } = req.params;
-      const historia = await db.Historia.findById(parseInt(id));
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
+      const historia = await db.Historia.findById(parsedId);
 
       if (!historia) {
         return res.status(404).json({ success: false, error: 'História não encontrada' });
@@ -1053,6 +1063,8 @@ class HistoriaController {
   async atualizarRoteiro(req, res, next) {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
       const { roteiro } = req.body;
 
       if (!roteiro || typeof roteiro !== 'object') {
@@ -1064,7 +1076,7 @@ class HistoriaController {
         return res.status(400).json({ success: false, error: 'Roteiro fora da estrutura esperada' });
       }
 
-      const historia = await db.Historia.findById(parseInt(id));
+      const historia = await db.Historia.findById(parsedId);
       if (!historia) {
         return res.status(404).json({ success: false, error: 'Hist?ria n?o encontrada' });
       }
@@ -1094,7 +1106,9 @@ class HistoriaController {
   async obterProgressao(req, res, next) {
     try {
       const { id } = req.params;
-      const historia = await db.Historia.findById(parseInt(id));
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
+      const historia = await db.Historia.findById(parsedId);
 
       if (!historia) {
         return res.status(404).json({ success: false, error: 'História não encontrada' });
@@ -1119,19 +1133,21 @@ class HistoriaController {
   async atualizarProgressao(req, res, next) {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
       const { progressao } = req.body;
 
       if (!progressao || typeof progressao !== 'object') {
         return res.status(400).json({ success: false, error: 'Progress?o deve ser um objeto JSON v?lido' });
       }
 
-      const historia = await db.Historia.findById(parseInt(id));
+      const historia = await db.Historia.findById(parsedId);
       if (!historia || !historia.roteiro) {
         return res.status(404).json({ success: false, error: 'Hist?ria ou roteiro n?o encontrado' });
       }
 
       const roteiroAtualizado = { ...historia.roteiro, progressao };
-      await db.Historia.updateHistoria(parseInt(id), { roteiro: roteiroAtualizado });
+      await db.Historia.updateHistoria(parsedId, { roteiro: roteiroAtualizado });
       await sincronizarRoteiroNaSessao(
         { ...historia, roteiro: roteiroAtualizado, roteiro_status: historia.roteiro_status || 'completed' },
         roteiroAtualizado,
@@ -1151,8 +1167,10 @@ class HistoriaController {
   async listarVersoesRoteiro(req, res, next) {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
       const versoes = await db.prisma.roteiro_versoes.findMany({
-        where: { historia_id: parseInt(id) },
+        where: { historia_id: parsedId },
         orderBy: { versao: 'desc' },
         select: {
           id: true,
@@ -1178,6 +1196,7 @@ class HistoriaController {
       const { id, versaoId } = req.params;
       const historiaId = parseInt(id);
       const versaoIdInt = parseInt(versaoId);
+      if (!Number.isFinite(historiaId) || !Number.isFinite(versaoIdInt)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
       const versao = await db.prisma.roteiro_versoes.findFirst({
         where: { id: versaoIdInt, historia_id: historiaId }
@@ -1226,6 +1245,7 @@ class HistoriaController {
       const { status, comment } = req.body;
       const historiaId = parseInt(id);
       const versaoIdInt = parseInt(versaoId);
+      if (!Number.isFinite(historiaId) || !Number.isFinite(versaoIdInt)) return res.status(400).json({ success: false, error: 'ID inválido' });
       const userId = req.user?.id;
 
       const validStatuses = ['draft', 'pending', 'approved', 'rejected'];
@@ -1314,8 +1334,11 @@ class HistoriaController {
   async obterVersaoRoteiro(req, res, next) {
     try {
       const { id, versaoId } = req.params;
+      const parsedId = parseInt(id);
+      const parsedVersaoId = parseInt(versaoId);
+      if (!Number.isFinite(parsedId) || !Number.isFinite(parsedVersaoId)) return res.status(400).json({ success: false, error: 'ID inválido' });
       const versao = await db.prisma.roteiro_versoes.findFirst({
-        where: { id: parseInt(versaoId), historia_id: parseInt(id) }
+        where: { id: parsedVersaoId, historia_id: parsedId }
       });
 
       if (!versao) {

@@ -32,6 +32,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@aws-sdk/client-s3": "^3.1009.0",
+    "@google/genai": "^1.46.0",
     "@langchain/anthropic": "^0.3.34",
     "@langchain/core": "^0.3.43",
     "@langchain/google-genai": "^0.2.18",

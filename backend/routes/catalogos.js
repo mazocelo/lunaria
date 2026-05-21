@@ -33,12 +33,12 @@ router.get('/categorias-monstro', async (req, res) => {
   }
 });
 
-// GET /catalogos/habilidades?classe_id=X&nivel=Y
+// GET /catalogos/habilidades?classe_id=X&nivel=Y&sistema=lunaria
 // Retorna habilidades da classe + genéricas (classe_id null)
 router.get('/habilidades', async (req, res) => {
   try {
-    const { classe_id, nivel } = req.query;
-    const where = {};
+    const { classe_id, nivel, sistema = 'lunaria' } = req.query;
+    const where = { sistema };
     if (classe_id) {
       where.OR = [
         { classe_id: parseInt(classe_id) },
@@ -46,7 +46,7 @@ router.get('/habilidades', async (req, res) => {
       ];
     }
     if (nivel) where.nivel_requerido = { lte: parseInt(nivel) };
-    const habilidades = await db.prisma.habilidades.findMany({
+    const habilidades = await db.prisma.habilidades_magias.findMany({
       where,
       orderBy: [{ nivel_requerido: 'asc' }, { nome: 'asc' }],
       include: { classe: { select: { nome: true } } }

@@ -538,7 +538,11 @@ function gerarSQL(stats) {
     ? stats.descricao.substring(0, 1500) + '...'
     : stats.descricao;
 
-  return `INSERT INTO monstros (nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max, hp_base, forca, inteligencia, destreza, constituicao, agilidade, carisma, ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base, tamanho, habitat, resistencias, imunidades, velocidade)
+  const attrInserts = ['forca', 'inteligencia', 'destreza', 'constituicao', 'agilidade', 'carisma']
+    .map(attr => `INSERT INTO atributos_monstro (monstro_id, nome, valor) SELECT id, '${attr}', ${stats[attr]} FROM monstros WHERE nome = ${escapeSQL(stats.nome)} ON CONFLICT (monstro_id, nome) DO UPDATE SET valor = EXCLUDED.valor;`)
+    .join('\n');
+
+  return `INSERT INTO monstros (nome, descricao, tipo, raridade_id, categoria_id, nivel_min, nivel_max, hp_base, ataque_base, defesa_base, dano_base, habilidades, elemento, temas, xp_base, tamanho, habitat, resistencias, imunidades, velocidade)
 VALUES (
     ${escapeSQL(stats.nome)},
     ${escapeSQL(desc)},
@@ -546,7 +550,6 @@ VALUES (
     ${rarId}, ${catId},
     ${stats.nivel_min}, ${stats.nivel_max},
     ${stats.hp_base},
-    ${stats.forca}, ${stats.inteligencia}, ${stats.destreza}, ${stats.constituicao}, ${stats.agilidade}, ${stats.carisma},
     ${stats.ataque_base}, ${stats.defesa_base},
     ${escapeSQL(stats.dano_base)},
     ${toJSON(stats.habilidades)},
@@ -564,7 +567,8 @@ ON CONFLICT (nome) DO UPDATE SET
     habitat = EXCLUDED.habitat,
     resistencias = EXCLUDED.resistencias,
     imunidades = EXCLUDED.imunidades,
-    velocidade = EXCLUDED.velocidade;`;
+    velocidade = EXCLUDED.velocidade;
+${attrInserts}`;
 }
 
 // ========== MAIN ==========

@@ -123,8 +123,8 @@ export async function buildFinalizacaoBase(personagemId) {
 
 export async function buildCatalogoHabilidades(classeId, racaId, nivel) {
   const promises = [];
-  if (classeId) promises.push(db.Habilidade.findByClasse(classeId));
-  if (racaId) promises.push(db.Habilidade.findByRaca(racaId));
+  if (classeId) promises.push(db.HabilidadeMagia.findByClasse(classeId));
+  if (racaId) promises.push(db.HabilidadeMagia.findByRaca(racaId));
 
   const results = await Promise.all(promises);
   const merged = results.flat();

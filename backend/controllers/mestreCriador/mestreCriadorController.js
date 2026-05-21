@@ -3,22 +3,25 @@
  */
 import { interagir } from '../../agents/MestreCriador/MestreCriadorAgent.js';
 import { ETAPAS } from '../../agents/MestreCriador/config.js';
+import { getStagePolicy } from '../../agents/MestreCriador/stages/stagePolicy.js';
 import { sanitizePromptInput } from '../../helpers/sanitize.js';
 
 class MestreCriadorController {
   /**
    * POST /api/mestre-criador/interagir
-   * Body: { etapa, estado, mensagemJogador, historico }
+   * Body: { etapa, estado, mensagemJogador, historico, sistema }
    */
   async interagir(req, res) {
-    const { etapa, estado, mensagemJogador, historico, actionMode } = req.body;
+    const { etapa, estado, mensagemJogador, historico, actionMode, sistema } = req.body;
     const userId = req.user?.id;
+    const sistemaEfetivo = sistema || estado?.sistema || 'lunaria';
+    const { stageOrder } = getStagePolicy(sistemaEfetivo);
 
     // Validação básica
-    if (!etapa || !ETAPAS.includes(etapa)) {
+    if (!etapa || !stageOrder.includes(etapa)) {
       return res.status(400).json({
         success: false,
-        error: `Etapa inválida. Etapas válidas: ${ETAPAS.join(', ')}`,
+        error: `Etapa inválida para sistema ${sistemaEfetivo}. Etapas válidas: ${stageOrder.join(', ')}`,
       });
     }
 
@@ -36,6 +39,7 @@ class MestreCriadorController {
       historico: Array.isArray(historico) ? historico : [],
       userId,
       actionMode: actionMode || 'reply',
+      sistema: sistemaEfetivo,
     });
 
     return res.json({

@@ -45,9 +45,9 @@ async function main() {
   for (const hab of habilidades) {
     try {
       const data = buildData(hab);
-      await prisma.habilidades.upsert({
-        where: { nome: hab.nome },
-        create: data,
+      await prisma.habilidades_magias.upsert({
+        where: { nome_sistema: { nome: hab.nome, sistema: 'lunaria' } },
+        create: { ...data, sistema: 'lunaria' },
         update: data,
       });
       inseridas++;
@@ -59,7 +59,7 @@ async function main() {
 
   console.log(`Concluído: ${inseridas} inseridas/atualizadas, ${puladas} com erro.`);
 
-  const total = await prisma.habilidades.count();
+  const total = await prisma.habilidades_magias.count();
   console.log(`Total no banco: ${total}`);
 }
 

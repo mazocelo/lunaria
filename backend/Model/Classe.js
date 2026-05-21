@@ -14,33 +14,35 @@ const Classe = (prisma) => {
     },
 
     // Buscar classes por custo
-    async findByCusto(custo) {
+    async findByCusto(custo, sistema = 'lunaria') {
       return await model.findMany({
-        where: { custo },
+        where: { custo, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar classes por custo máximo
-    async findByCustoMax(custo) {
+    async findByCustoMax(custo, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           custo: {
             lte: custo
-          }
+          },
+          sistema
         },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar classes por termo
-    async search(termo) {
+    async search(termo, sistema = 'lunaria') {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } }
-          ]
+          ],
+          sistema
         },
         orderBy: { nome: 'asc' }
       });
@@ -69,17 +71,19 @@ const Classe = (prisma) => {
     },
 
     // Listar todas as classes
-    async findAll() {
+    async findAll(sistema = 'lunaria') {
       return await model.findMany({
+        where: { sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Listar classes com paginação DB-level
-    async findPaginated({ limit = 50, offset = 0 } = {}) {
+    async findPaginated({ limit = 50, offset = 0, sistema = 'lunaria' } = {}) {
+      const where = { sistema };
       const [data, total] = await Promise.all([
-        model.findMany({ orderBy: { nome: 'asc' }, take: limit, skip: offset }),
-        model.count()
+        model.findMany({ where, orderBy: { nome: 'asc' }, take: limit, skip: offset }),
+        model.count({ where })
       ]);
       return { data, total };
     },
@@ -92,8 +96,9 @@ const Classe = (prisma) => {
     },
 
     // Buscar classes com personagens
-    async findWithPersonagens() {
+    async findWithPersonagens(sistema = 'lunaria') {
       return await model.findMany({
+        where: { sistema },
         include: {
           personagens: true
         },
@@ -112,20 +117,21 @@ const Classe = (prisma) => {
     },
 
     // Buscar classes gratuitas
-    async findGratuitas() {
+    async findGratuitas(sistema = 'lunaria') {
       return await model.findMany({
-        where: { custo: 0 },
+        where: { custo: 0, sistema },
         orderBy: { nome: 'asc' }
       });
     },
 
     // Buscar classes pagas
-    async findPagas() {
+    async findPagas(sistema = 'lunaria') {
       return await model.findMany({
         where: {
           custo: {
             gt: 0
-          }
+          },
+          sistema
         },
         orderBy: { nome: 'asc' }
       });

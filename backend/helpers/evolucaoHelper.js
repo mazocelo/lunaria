@@ -6,8 +6,8 @@
 /** Orcamento base de pontos de vantagem antes de descontar raca/classe */
 const VANTAGEM_BASE = 10;
 
-/** Pontos de atributo na criacao */
-const ATRIBUTO_BASE = 75;
+/** Pontos de atributo distribuidos na criacao (sem bonus de raca/classe) */
+const ATRIBUTO_BASE = 60;
 
 /** Maximo por stat individual */
 const STAT_MAX = 20;

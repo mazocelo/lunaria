@@ -5,7 +5,7 @@ import { redisClient } from '../redis/redis-config.js';
 import logger from '../helpers/logger.js';
 const log = logger.child({ module: 'imageController' });
 
-const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre', 'npc', 'local', 'cena'];
+const VALID_ENTITY_TYPES = ['personagem', 'monstro', 'equipamento', 'historia', 'historia_mapa', 'mestre', 'npc', 'local', 'cena', 'vantagem', 'desvantagem', 'habilidade', 'raca', 'classe'];
 const LOCK_PREFIX = 'img_lock:';
 const LOCK_TTL_MS = 60000; // 60s (geração de imagem é mais lenta)
 

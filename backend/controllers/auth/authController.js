@@ -375,7 +375,10 @@ class AuthController {
         await enviarEmailResetSenha(usuario.email, usuario.nome, resetToken);
       } catch (emailError) {
         log.error({ err: emailError }, 'Erro ao enviar email de reset');
-        // Não revelar falha de email ao usuário (segurança + SMTP pode não estar configurado)
+        return res.status(503).json({
+          success: false,
+          error: 'Serviço temporariamente indisponível. Tente novamente mais tarde.'
+        });
       }
 
       res.status(200).json({

@@ -203,7 +203,8 @@ export const refreshToken = async (refreshTokenValue) => {
         }
       } catch (redisErr) {
         if (redisErr.message === 'Token revogado') throw redisErr;
-        log.warn({ err: redisErr }, 'Redis indisponivel para blacklist check — permitindo refresh');
+        log.error({ err: redisErr }, 'Redis indisponivel para blacklist check — rejeitando refresh por seguranca');
+        throw new Error('Serviço temporariamente indisponível para validação de token');
       }
     }
 

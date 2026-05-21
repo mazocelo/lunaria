@@ -11,6 +11,8 @@ class FeedController {
   async listarFeed(req, res) {
     const userId = req.user.id;
     const { tab = 'amigos', limit = 20, offset = 0 } = req.query;
+    const parsedLimit = Math.min(parseInt(limit) || 20, 100);
+    const parsedOffset = Math.min(parseInt(offset) || 0, 10000);
 
     if (!['amigos', 'comunidade'].includes(tab)) {
       return res.status(400).json({
@@ -26,16 +28,16 @@ class FeedController {
     }
 
     const result = await db.FeedPost.findFeed(userId, friendIds, tab, {
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: parsedLimit,
+      offset: parsedOffset
     });
 
     return res.json({
       success: true,
       data: result.posts,
       pagination: {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        limit: parsedLimit,
+        offset: parsedOffset,
         hasMore: result.hasMore
       }
     });
@@ -92,9 +94,11 @@ class FeedController {
   async deletarPost(req, res) {
     const userId = req.user.id;
     const { id } = req.params;
+    const parsedId = parseInt(id);
+    if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
     try {
-      await db.FeedPost.softDelete(parseInt(id), userId);
+      await db.FeedPost.softDelete(parsedId, userId);
       return res.json({
         success: true,
         message: 'Post deletado'
@@ -116,9 +120,11 @@ class FeedController {
   async curtir(req, res) {
     const userId = req.user.id;
     const { id } = req.params;
+    const parsedId = parseInt(id);
+    if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
     // Verificar se post existe
-    const post = await db.FeedPost.findById(parseInt(id));
+    const post = await db.FeedPost.findById(parsedId);
     if (!post) {
       return res.status(404).json({
         success: false,
@@ -126,7 +132,7 @@ class FeedController {
       });
     }
 
-    const result = await db.FeedPost.toggleCurtida(parseInt(id), userId);
+    const result = await db.FeedPost.toggleCurtida(parsedId, userId);
 
     return res.json({
       success: true,
@@ -139,19 +145,23 @@ class FeedController {
    */
   async listarComentarios(req, res) {
     const { id } = req.params;
+    const parsedId = parseInt(id);
+    if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
     const { limit = 20, offset = 0 } = req.query;
+    const parsedLimit = Math.min(parseInt(limit) || 20, 100);
+    const parsedOffset = Math.min(parseInt(offset) || 0, 10000);
 
-    const result = await db.FeedPost.getComentarios(parseInt(id), {
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+    const result = await db.FeedPost.getComentarios(parsedId, {
+      limit: parsedLimit,
+      offset: parsedOffset
     });
 
     return res.json({
       success: true,
       data: result.comentarios,
       pagination: {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        limit: parsedLimit,
+        offset: parsedOffset,
         hasMore: result.hasMore
       }
     });
@@ -163,6 +173,8 @@ class FeedController {
   async comentar(req, res) {
     const userId = req.user.id;
     const { id } = req.params;
+    const parsedId = parseInt(id);
+    if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
     const { texto } = req.body;
 
     if (!texto || texto.trim().length === 0) {
@@ -180,7 +192,7 @@ class FeedController {
     }
 
     // Verificar se post existe
-    const post = await db.FeedPost.findById(parseInt(id));
+    const post = await db.FeedPost.findById(parsedId);
     if (!post) {
       return res.status(404).json({
         success: false,
@@ -188,7 +200,7 @@ class FeedController {
       });
     }
 
-    const comentario = await db.FeedPost.addComentario(parseInt(id), userId, texto.trim());
+    const comentario = await db.FeedPost.addComentario(parsedId, userId, texto.trim());
 
     return res.status(201).json({
       success: true,
@@ -202,9 +214,11 @@ class FeedController {
   async deletarComentario(req, res) {
     const userId = req.user.id;
     const { id } = req.params;
+    const parsedId = parseInt(id);
+    if (!Number.isFinite(parsedId)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
     try {
-      await db.FeedPost.deleteComentario(parseInt(id), userId);
+      await db.FeedPost.deleteComentario(parsedId, userId);
       return res.json({
         success: true,
         message: 'Comentario deletado'

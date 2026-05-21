@@ -11,6 +11,7 @@
 
 import { TESTES_CONFIG } from '../config/testesConfig.js';
 import { calcularBonusTeste } from './bonusHelper.js';
+import { getEngine } from '../game-systems/index.js';
 import logger from './logger.js';
 const log = logger.child({ module: 'testeHelper' });
 
@@ -155,13 +156,18 @@ export function calcularModificadorTeste(personagem, nomeTeste) {
 
 /**
  * Calcula a DC de um saving throw de magia
- * Fórmula: 8 + custo_mana da magia
+ * Fórmula: 8 + custo_mana + floor(max(modINT, modCHA) / 2)
  * @param {Object} magia - Objeto da magia com campo custo_mana
+ * @param {Object} [caster] - Dados do conjurador com atributos (opcional)
  * @returns {number} DC do saving throw
  */
-export function calcularDCSavingThrow(magia) {
+export function calcularDCSavingThrow(magia, caster = null) {
   const custoMana = magia?.custo_mana || 0;
-  return 8 + custoMana;
+  const attrs = caster?.atributos || caster || {};
+  const modInt = Math.floor(((attrs.inteligencia || 10) - 10) / 2);
+  const modCha = Math.floor(((attrs.carisma || 10) - 10) / 2);
+  const casterBonus = Math.floor(Math.max(modInt, modCha) / 2);
+  return 8 + custoMana + casterBonus;
 }
 
 /**
@@ -224,4 +230,14 @@ export function resolverTeste(personagem, nomeTeste, rolagemBruta, dificuldade) 
     falha_critica,
     descricaoResultado
   };
+}
+
+// ── System-aware dispatcher ──────────────────────────────────────
+// Delegates to the correct engine based on personagem.sistema.
+// Existing resolverTeste is kept for backward compatibility.
+
+export function resolverTesteSistema(personagem, atributo, dc) {
+  const sistema = personagem.sistema || 'lunaria';
+  const engine = getEngine(sistema);
+  return engine.resolverTeste(personagem, atributo, dc);
 }

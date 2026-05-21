@@ -344,15 +344,10 @@ export default class MasterNarrationEngine {
       decrementCooldowns(sessao, userId);
       const pcId = String(personagem.id || personagem.personagemId);
 
-      // Em combate, o combateHelper._controlarRodada gerencia efeitos dos jogadores.
-      // Decrementar aqui causaria decremento duplo (efeitos durando metade).
-      const combateAtivoGuard = sessao.estadoJogo?.combate?.ativo === true;
-      let efeitosExpirados = [];
-      let efeitosTurno = [];
-      if (!combateAtivoGuard) {
-        efeitosExpirados = decrementEfeitos(sessao, pcId);
-        efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
-      }
+      // _controlarRodada decrementa apenas efeitos de MONSTROS.
+      // Efeitos de jogadores são decrementados aqui pelo effectManager (única vez).
+      let efeitosExpirados = decrementEfeitos(sessao, pcId);
+      let efeitosTurno = aplicarEfeitosPorTurno(sessao, pcId);
 
       const concExpirada = decrementConcentracao(sessao, userId);
       const efTerrenoExpirados = expireEfeitosTerreno(sessao, estadoJogo.rodadaAtual || 1);
@@ -968,13 +963,10 @@ export default class MasterNarrationEngine {
       decrementConcentracao(workingSessao, userId);
       const pcId = String(personagem.id || personagem.personagemId || userId);
 
-      // Em combate, o combateHelper._controlarRodada gerencia efeitos dos jogadores.
-      // Decrementar aqui causaria decremento duplo (efeitos durando metade).
-      const combateAtivoGuard = workingSessao.estadoJogo?.combate?.ativo === true;
-      if (!combateAtivoGuard) {
-        decrementEfeitos(workingSessao, pcId);
-        aplicarEfeitosPorTurno(workingSessao, pcId);
-      }
+      // _controlarRodada decrementa apenas efeitos de MONSTROS.
+      // Efeitos de jogadores são decrementados aqui pelo effectManager (única vez).
+      decrementEfeitos(workingSessao, pcId);
+      aplicarEfeitosPorTurno(workingSessao, pcId);
       expireEfeitosTerreno(workingSessao, workingSessao.estadoJogo?.rodadaAtual || 1);
       migrarEstadoTaticoLegado(workingSessao);
 

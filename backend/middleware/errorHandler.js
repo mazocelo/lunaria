@@ -59,8 +59,8 @@ export const errorHandler = (err, req, res, next) => {
   if (err.message && err.message.includes('Redis')) {
     return res.status(503).json({
       success: false,
-      error: 'Erro de conexão com Redis',
-      message: 'Serviço de sessões temporariamente indisponível'
+      error: 'Serviço temporariamente indisponível',
+      ...(process.env.NODE_ENV === 'development' && { detail: err.message })
     });
   }
   

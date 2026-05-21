@@ -12,6 +12,7 @@ import {
   normalizarTerrenoInput, getTerrenoLabel,
   getBossResumo, getBatalhaGrandeResumo, getMissaoTaticaResumo
 } from '../../../helpers/estadoTatico.js';
+import { getEngine } from '../../../game-systems/index.js';
 import logger from '../../../helpers/logger.js';
 
 const log = logger.child({ module: 'mestreContextBuilder' });
@@ -290,6 +291,13 @@ export function buildJogadoresRuntimeList(sessao = {}) {
   return Array.from(porId.values());
 }
 
+function inferSistema(sessao = {}) {
+  if (sessao.sistema) return sessao.sistema;
+  const completos = sessao.personagensCompletos || {};
+  const primeiro = Object.values(completos)[0];
+  return primeiro?.sistema || 'lunaria';
+}
+
 function inferMestreConfig(sessao = {}, historia = null) {
   return sessao.mestreConfig || historia?.mestres || null;
 }
@@ -375,6 +383,7 @@ export function buildHistoriaContext(sessao = {}, historia = null, roteiroConden
   return {
     historiaId: historia?.id || sessao.historiaId || null,
     nome: historia?.nome || sessao.historiaNome || '',
+    sistema: inferSistema(sessao),
     temas,
     prologo: historia?.prologo || sessao.historiaPrologo || '',
     config: historiaConfig,
@@ -588,6 +597,18 @@ ${formatList('Roleplay recente', sessao.roleplayRecente)}`
   );
   if (blocoMemoria) {
     blocos.push(blocoMemoria);
+  }
+
+  // Append system-specific rules from the game engine
+  const sistema = historia.sistema || 'lunaria';
+  try {
+    const engine = getEngine(sistema);
+    const regrasPrompt = engine.getRegrasMestrePrompt();
+    if (regrasPrompt) {
+      blocos.push(`### REGRAS_SISTEMA\n${regrasPrompt}`);
+    }
+  } catch (err) {
+    log.warn({ sistema, err: err.message }, 'Engine nao encontrada para regras do Mestre');
   }
 
   return blocos.join('\n\n');

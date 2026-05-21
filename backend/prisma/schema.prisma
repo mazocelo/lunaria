@@ -11,19 +11,19 @@ enum Sistema {
   lunaria
   tresdet
   dnd5e
-  daemon
+  daemon // TODO: not yet implemented
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model classes {
-  id          Int           @id(map: "classe_pkey") @default(autoincrement())
-  nome        String        @db.VarChar(100)
-  custo       Int           @default(0)
-  descricao   String?
-  bonus       String?
-  imagem      String?       @db.VarChar(500)
-  sistema     Sistema       @default(lunaria)
-  ferramentas ferramentas[]
+  id                 Int                  @id(map: "classe_pkey") @default(autoincrement())
+  nome               String               @db.VarChar(100)
+  custo              Int                  @default(0)
+  descricao          String?
+  bonus              String?
+  imagem             String?              @db.VarChar(500)
+  sistema            Sistema              @default(lunaria)
+  ferramentas        ferramentas[]
   habilidades_magias habilidades_magias[]
   hm_classe          hm_classe[]
   hm_slots_classe    hm_slots_classe[]
@@ -141,7 +141,7 @@ model historias {
   config                  Json?
   mestre_tier             String?                 @default("poeta") @db.VarChar(20)
   sistema                 Sistema                 @default(lunaria)
-  usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historias_id_usuario")
+  usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_historias_id_usuario")
   mestres                 mestres?                @relation(fields: [mestre_id], references: [id], onUpdate: NoAction, map: "fk_historias_mestre_id")
   historias_convite       historias_convite[]
   historias_personagens   historias_personagens[]
@@ -185,28 +185,28 @@ model personagem_vantagem {
 }
 
 model personagens {
-  id                        Int                      @id(map: "personagem_pkey") @default(autoincrement())
+  id                        Int                        @id(map: "personagem_pkey") @default(autoincrement())
   nome                      String
-  nivel                     Int?                     @default(1)
-  pontos_totais             Int?                     @default(0)
-  pontos_iniciais           Int?                     @default(0)
+  nivel                     Int?                       @default(1)
+  pontos_totais             Int?                       @default(0)
+  pontos_iniciais           Int?                       @default(0)
   background                String?
   raca_id                   Int?
   classe_id                 Int?
-  criado_em                 DateTime?                @db.Timestamptz(6)
-  atualizado_em             DateTime?                @db.Timestamptz(6)
+  criado_em                 DateTime?                  @db.Timestamptz(6)
+  atualizado_em             DateTime?                  @db.Timestamptz(6)
   id_usuario                Int?
-  deleted_at                DateTime?                @db.Timestamptz(6)
-  imagem                    String?                  @db.VarChar(500)
-  pontos_atributo_pendentes Int?                     @default(0)
-  xp_atual                  Int?                     @default(0)
-  xp_proximo_nivel          Int?                     @default(100)
+  deleted_at                DateTime?                  @db.Timestamptz(6)
+  imagem                    String?                    @db.VarChar(500)
+  pontos_atributo_pendentes Int?                       @default(0)
+  xp_atual                  Int?                       @default(0)
+  xp_proximo_nivel          Int?                       @default(100)
   hp_atual                  Int?
   mp_atual                  Int?
-  moedas                    Int                      @default(0)
-  voice_id                  String?                  @db.VarChar(100)
-  voice_provider            String?                  @db.VarChar(50)
-  sistema                   Sistema                  @default(lunaria)
+  moedas                    Int                        @default(0)
+  voice_id                  String?                    @db.VarChar(100)
+  voice_provider            String?                    @db.VarChar(50)
+  sistema                   Sistema                    @default(lunaria)
   stats_sistema             Json?
   atributos_personagem      atributos_personagem[]
   hm_personagem             hm_personagem[]
@@ -217,21 +217,23 @@ model personagens {
   personagem_magia_tresdet  personagem_magia_tresdet[]
   personagem_sessao         personagem_sessao[]
   personagem_vantagem       personagem_vantagem[]
-  usuarios                  usuarios?                @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personagens_id_usuario")
-  classes                   classes?                 @relation(fields: [classe_id], references: [id])
-  racas                     racas?                   @relation(fields: [raca_id], references: [id])
+  usuarios                  usuarios?                  @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_personagens_id_usuario")
+  classes                   classes?                   @relation(fields: [classe_id], references: [id])
+  racas                     racas?                     @relation(fields: [raca_id], references: [id])
 
   @@index([id_usuario])
+  @@index([id_usuario, deleted_at])
   @@index([deleted_at])
   @@index([classe_id])
   @@index([raca_id])
+  @@index([sistema])
 }
 
 model atributos_personagem {
-  id              Int         @id @default(autoincrement())
-  personagem_id   Int
-  nome            String      @db.VarChar(50)
-  valor           Int
+  id            Int    @id @default(autoincrement())
+  personagem_id Int
+  nome          String @db.VarChar(50)
+  valor         Int
 
   personagens personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
 
@@ -241,15 +243,15 @@ model atributos_personagem {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model racas {
-  id          Int           @id(map: "raca_pkey") @default(autoincrement())
-  nome        String        @db.VarChar(100)
-  custo       Int           @default(0)
-  descricao   String?
-  bonus       String?
-  imagem      String?       @db.VarChar(500)
-  sistema     Sistema       @default(lunaria)
-  mult_raca          Int?                @default(5)
-  pode_magia         Boolean             @default(true)
+  id                 Int                  @id(map: "raca_pkey") @default(autoincrement())
+  nome               String               @db.VarChar(100)
+  custo              Int                  @default(0)
+  descricao          String?
+  bonus              String?
+  imagem             String?              @db.VarChar(500)
+  sistema            Sistema              @default(lunaria)
+  mult_raca          Int?                 @default(5)
+  pode_magia         Boolean              @default(true)
   habilidades_magias habilidades_magias[]
   hm_raca            hm_raca[]
   personagens        personagens[]
@@ -293,22 +295,22 @@ model usuarios {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model vantagens {
-  id                  Int                   @id(map: "habilidade_pkey") @default(autoincrement())
-  nome                String
-  descricao           String
-  custo               Int                   @default(0)
-  tipo                String[]              @default(["ativa"]) @db.VarChar(255)
-  bonus               Json?
-  restricao           Json?
-  dano_base           String?
-  efeito              Json?                 @db.Json
-  usar                Int?
-  elemento            String[]              @db.VarChar(255)
-  nivel               Int                   @default(1)
-  requisitos          Json?
-  criada_em           DateTime?             @db.Timestamptz(6)
-  atualizada_em       DateTime?             @db.Timestamptz(6)
-  imagem              String?               @db.VarChar(500)
+  id                    Int                   @id(map: "habilidade_pkey") @default(autoincrement())
+  nome                  String
+  descricao             String
+  custo                 Int                   @default(0)
+  tipo                  String[]              @default(["ativa"]) @db.VarChar(255)
+  bonus                 Json?
+  restricao             Json?
+  dano_base             String?
+  efeito                Json?                 @db.Json
+  usar                  Int?
+  elemento              String[]              @db.VarChar(255)
+  nivel                 Int                   @default(1)
+  requisitos            Json?
+  criada_em             DateTime?             @db.Timestamptz(6)
+  atualizada_em         DateTime?             @db.Timestamptz(6)
+  imagem                String?               @db.VarChar(500)
   sistema               Sistema               @default(lunaria)
   subtipo               String?               @db.VarChar(50)
   vantagens_inclusas    Json?
@@ -368,8 +370,9 @@ model mestres {
   deleted_at       DateTime?   @db.Timestamptz(6)
   tags             String[]    @default([])
   historias        historias[]
-  usuarios         usuarios    @relation(fields: [id_usuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_mestres_id_usuario")
+  usuarios         usuarios    @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mestres_id_usuario")
 
+  @@unique([id_usuario, nome])
   @@index([id_usuario])
   @@index([deleted_at])
 }
@@ -416,10 +419,10 @@ model monstros {
 }
 
 model atributos_monstro {
-  id          Int     @id @default(autoincrement())
-  monstro_id  Int
-  nome        String  @db.VarChar(50)
-  valor       Int
+  id         Int    @id @default(autoincrement())
+  monstro_id Int
+  nome       String @db.VarChar(50)
+  valor      Int
 
   monstros monstros @relation(fields: [monstro_id], references: [id], onDelete: Cascade)
 
@@ -588,34 +591,34 @@ model personagem_sessao {
 }
 
 model habilidades_magias {
-  id                  Int        @id @default(autoincrement())
-  nome                String     @db.VarChar(100)
+  id                  Int             @id @default(autoincrement())
+  nome                String          @db.VarChar(100)
   descricao           String
-  custo_mana          Int        @default(0)
-  dano_base           String?    @db.VarChar(50)
-  tipo                String     @default("dano") @db.VarChar(30)
-  elemento            String?    @db.VarChar(50)
-  nivel_requerido     Int        @default(1)
-  cooldown_turnos     Int        @default(0)
+  custo_mana          Int             @default(0)
+  dano_base           String?         @db.VarChar(50)
+  tipo                String          @default("dano") @db.VarChar(30)
+  elemento            String?         @db.VarChar(50)
+  nivel_requerido     Int             @default(1)
+  cooldown_turnos     Int             @default(0)
   classe_id           Int?
   efeito              Json?
-  alvo                String     @default("inimigo") @db.VarChar(30)
-  alcance             String     @default("medio") @db.VarChar(30)
+  alvo                String          @default("inimigo") @db.VarChar(30)
+  alcance             String          @default("medio") @db.VarChar(30)
   area_efeito         Json?
-  tempo_conjuracao    String     @default("acao") @db.VarChar(30)
-  usa_concentracao    Boolean    @default(false)
-  categoria           String     @default("combate_fisico") @db.VarChar(30)
-  escola_magia        String?    @db.VarChar(30)
+  tempo_conjuracao    String          @default("acao") @db.VarChar(30)
+  usa_concentracao    Boolean         @default(false)
+  categoria           String          @default("combate_fisico") @db.VarChar(30)
+  escola_magia        String?         @db.VarChar(30)
   escalamento         Json?
   pre_requisito       Json?
   raca_id             Int?
   usos_por_descanso   Int?
   componente_material Json?
-  saving_throw        String?    @db.VarChar(30)
-  imagem              String?    @db.VarChar(500)
-  sistema             Sistema    @default(lunaria)
-  classe              classes?   @relation(fields: [classe_id], references: [id])
-  raca                racas?     @relation(fields: [raca_id], references: [id])
+  saving_throw        String?         @db.VarChar(30)
+  imagem              String?         @db.VarChar(500)
+  sistema             Sistema         @default(lunaria)
+  classe              classes?        @relation(fields: [classe_id], references: [id])
+  raca                racas?          @relation(fields: [raca_id], references: [id])
   hm_classe           hm_classe[]
   hm_raca             hm_raca[]
   hm_personagem       hm_personagem[]
@@ -628,48 +631,51 @@ model habilidades_magias {
   @@index([categoria])
   @@index([escola_magia])
   @@index([nome])
-
   @@map("habilidades_magias")
 }
 
 model hm_classe {
-  id             Int                @id @default(autoincrement())
-  habilidade_id  Int
-  classe_id      Int
+  id                 Int                @id @default(autoincrement())
+  habilidade_id      Int
+  classe_id          Int
   habilidades_magias habilidades_magias @relation(fields: [habilidade_id], references: [id], onDelete: Cascade)
   classes            classes            @relation(fields: [classe_id], references: [id], onDelete: Cascade)
+
   @@unique([habilidade_id, classe_id])
   @@index([classe_id])
 }
 
 model hm_raca {
-  id             Int                @id @default(autoincrement())
-  habilidade_id  Int
-  raca_id        Int
+  id                 Int                @id @default(autoincrement())
+  habilidade_id      Int
+  raca_id            Int
   habilidades_magias habilidades_magias @relation(fields: [habilidade_id], references: [id], onDelete: Cascade)
   racas              racas              @relation(fields: [raca_id], references: [id], onDelete: Cascade)
+
   @@unique([habilidade_id, raca_id])
   @@index([raca_id])
 }
 
 model hm_personagem {
-  id             Int                @id @default(autoincrement())
-  personagem_id  Int
-  habilidade_id  Int
-  origem         String             @default("criacao")
-  created_at     DateTime           @default(now())
+  id                 Int                @id @default(autoincrement())
+  personagem_id      Int
+  habilidade_id      Int
+  origem             String             @default("criacao")
+  created_at         DateTime           @default(now())
   personagens        personagens        @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
   habilidades_magias habilidades_magias @relation(fields: [habilidade_id], references: [id], onDelete: Cascade)
+
   @@unique([personagem_id, habilidade_id])
   @@index([personagem_id])
 }
 
 model hm_slots_classe {
-  id         Int      @id @default(autoincrement())
-  classe_id  Int
-  nivel      Int
-  slots      Int      @default(0)
-  classes classes @relation(fields: [classe_id], references: [id], onDelete: Cascade)
+  id        Int     @id @default(autoincrement())
+  classe_id Int
+  nivel     Int
+  slots     Int     @default(0)
+  classes   classes @relation(fields: [classe_id], references: [id], onDelete: Cascade)
+
   @@unique([classe_id, nivel])
 }
 
@@ -702,7 +708,7 @@ model api_usage {
   duracao_ms    Int?
   metadata      Json?    @default("{}")
   criado_em     DateTime @default(now()) @db.Timestamptz(6)
-  usuarios      usuarios @relation(fields: [user_id], references: [id], onDelete: NoAction)
+  usuarios      usuarios @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([provider])
@@ -951,18 +957,18 @@ enum enum_categoria_receita {
 }
 
 model itens_tresdet {
-  id              Int      @id @default(autoincrement())
-  nome            String   @db.VarChar(200)
+  id              Int     @id @default(autoincrement())
+  nome            String  @db.VarChar(200)
   descricao       String?
-  tipo            String   @db.VarChar(30)
-  custo_pe        Int      @default(0)
-  preco_moedas    Int      @default(0)
+  tipo            String  @db.VarChar(30)
+  custo_pe        Int     @default(0)
+  preco_moedas    Int     @default(0)
   poderes         Json?
   efeito          String?
-  empilhavel      Boolean  @default(false)
-  raridade        String?  @db.VarChar(30)
-  imagem          String?  @db.VarChar(500)
-  magia_vinculada String?  @db.VarChar(200)
+  empilhavel      Boolean @default(false)
+  raridade        String? @db.VarChar(30)
+  imagem          String? @db.VarChar(500)
+  magia_vinculada String? @db.VarChar(200)
 
   personagem_item_tresdet personagem_item_tresdet[]
 
@@ -970,23 +976,23 @@ model itens_tresdet {
 }
 
 model personagem_item_tresdet {
-  personagem_id  Int
-  item_id        Int
-  quantidade     Int      @default(1)
-  equipado       Boolean  @default(false)
+  personagem_id Int
+  item_id       Int
+  quantidade    Int     @default(1)
+  equipado      Boolean @default(false)
 
-  personagens    personagens    @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
-  item           itens_tresdet  @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  personagens personagens   @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  item        itens_tresdet @relation(fields: [item_id], references: [id], onDelete: Cascade)
 
   @@id([personagem_id, item_id])
 }
 
 model personagem_magia_tresdet {
-  id                Int             @id @default(autoincrement())
-  personagem_id     Int
-  magia_tresdet_id  Int
-  origem            String          @default("criacao") @db.VarChar(30)
-  created_at        DateTime        @default(now())
+  id               Int      @id @default(autoincrement())
+  personagem_id    Int
+  magia_tresdet_id Int
+  origem           String   @default("criacao") @db.VarChar(30)
+  created_at       DateTime @default(now())
 
   personagens    personagens    @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
   magias_tresdet magias_tresdet @relation(fields: [magia_tresdet_id], references: [id], onDelete: Cascade)

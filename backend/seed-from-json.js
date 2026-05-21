@@ -57,14 +57,14 @@ async function clearAll() {
   await prisma.personagem_vantagem.deleteMany({});
   await prisma.ferramentas.deleteMany({});
 
-  // Tabelas principais (ordem de FK)
-  await prisma.monstros.deleteMany({});
-  await prisma.equipamentos.deleteMany({});
-  await prisma.habilidades.deleteMany({});
-  await prisma.desvantagens.deleteMany({});
-  await prisma.vantagens.deleteMany({});
-  await prisma.racas.deleteMany({});
-  await prisma.classes.deleteMany({});
+  // Tabelas principais (ordem de FK) — filtra por sistema para não apagar dados de outros sistemas
+  await prisma.monstros.deleteMany({ where: { sistema: 'lunaria' } });
+  await prisma.equipamentos.deleteMany({ where: { sistema: 'lunaria' } });
+  await prisma.habilidades_magias.deleteMany({ where: { sistema: 'lunaria' } });
+  await prisma.desvantagens.deleteMany({ where: { sistema: 'lunaria' } });
+  await prisma.vantagens.deleteMany({ where: { sistema: 'lunaria' } });
+  await prisma.racas.deleteMany({ where: { sistema: 'lunaria' } });
+  await prisma.classes.deleteMany({ where: { sistema: 'lunaria' } });
   await prisma.temas.deleteMany({});
 
   // Tabelas de referência
@@ -273,6 +273,7 @@ async function seedClasses() {
         custo: c.custo || 0,
         // classes.bonus é String no DB (não Json)
         bonus: c.bonus ? JSON.stringify(c.bonus) : null,
+        sistema: 'lunaria',
       }
     });
     count++;
@@ -304,6 +305,7 @@ async function seedRacas() {
         custo: r.custo || 0,
         // racas.bonus é String no DB (não Json)
         bonus: r.bonus ? JSON.stringify(r.bonus) : null,
+        sistema: 'lunaria',
       }
     });
     count++;
@@ -340,6 +342,7 @@ async function seedVantagens() {
         elemento: v.elemento || [],
         nivel: v.nivel || 1,
         requisitos: v.requisitos || null,
+        sistema: 'lunaria',
       }
     });
     count++;
@@ -375,6 +378,7 @@ async function seedDesvantagens() {
         elemento: d.elemento || [],
         nivel: d.nivel || 1,
         requisitos: d.requisitos || null,
+        sistema: 'lunaria',
       }
     });
     count++;
@@ -403,7 +407,7 @@ async function seedHabilidades() {
     const id = h.id;
     if (id > maxId) maxId = id;
 
-    await prisma.habilidades.create({
+    await prisma.habilidades_magias.create({
       data: {
         id,
         nome: h.nome,
@@ -429,6 +433,7 @@ async function seedHabilidades() {
         usos_por_descanso: h.usos_por_descanso ?? null,
         componente_material: h.componente_material || null,
         saving_throw: h.saving_throw || null,
+        sistema: 'lunaria',
       }
     });
     count++;
@@ -468,6 +473,7 @@ async function seedEquipamentos() {
         raridade_id: eq.raridade_id || null,
         peso: eq.peso ?? null,
         preco_sugerido: eq.preco_sugerido || null,
+        sistema: 'lunaria',
       }
     });
     count++;
@@ -492,7 +498,7 @@ async function seedMonstros() {
     const id = m.id;
     if (id > maxId) maxId = id;
 
-    await prisma.monstros.create({
+    const monstro = await prisma.monstros.create({
       data: {
         id,
         nome: m.nome,
@@ -501,12 +507,6 @@ async function seedMonstros() {
         nivel_min: m.nivel_min || 1,
         nivel_max: m.nivel_max || 10,
         hp_base: m.hp_base || 15,
-        forca: m.forca || 10,
-        inteligencia: m.inteligencia || 8,
-        destreza: m.destreza || 10,
-        constituicao: m.constituicao || 10,
-        agilidade: m.agilidade || 10,
-        carisma: m.carisma || 5,
         ataque_base: m.ataque_base || 2,
         defesa_base: m.defesa_base || 10,
         dano_base: m.dano_base || '1d6',
@@ -521,7 +521,19 @@ async function seedMonstros() {
         resistencias: m.resistencias || {},
         tamanho: m.tamanho || 'medio',
         velocidade: m.velocidade || { terrestre: 30 },
+        sistema: 'lunaria',
       }
+    });
+
+    await prisma.atributos_monstro.createMany({
+      data: [
+        { monstro_id: monstro.id, nome: 'forca', valor: m.forca || 10 },
+        { monstro_id: monstro.id, nome: 'inteligencia', valor: m.inteligencia || 8 },
+        { monstro_id: monstro.id, nome: 'destreza', valor: m.destreza || 10 },
+        { monstro_id: monstro.id, nome: 'constituicao', valor: m.constituicao || 10 },
+        { monstro_id: monstro.id, nome: 'agilidade', valor: m.agilidade || 10 },
+        { monstro_id: monstro.id, nome: 'carisma', valor: m.carisma || 5 },
+      ]
     });
     count++;
   }

@@ -107,7 +107,7 @@ class HabilidadesController {
       const elemento = parseElementoScalar(Array.isArray(elementoInput) ? elementoInput[0] : elementoInput);
       if (elemento.error) return res.status(400).json({ error: elemento.error });
 
-      const habilidade = await db.Habilidade.create({
+      const habilidade = await db.HabilidadeMagia.create({
         data: buildData({ ...req.body, elemento: elementoInput ?? elemento.value })
       });
       return res.status(201).json(serializarHabilidade(habilidade));
@@ -124,7 +124,7 @@ class HabilidadesController {
       const elementoFiltro = parseElementoScalar(elemento);
       if (elementoFiltro.error) return res.status(400).json({ error: elementoFiltro.error });
 
-      const result = await db.Habilidade.findPaginated({
+      const result = await db.HabilidadeMagia.findPaginated({
         limit: parseInt(limit, 10),
         offset: parseInt(offset, 10),
         tipo,
@@ -153,7 +153,7 @@ class HabilidadesController {
 
   async obterHabilidade(req, res) {
     try {
-      const habilidade = await db.Habilidade.findById(parseInt(req.params.id, 10));
+      const habilidade = await db.HabilidadeMagia.findById(parseInt(req.params.id, 10));
       if (!habilidade) return res.status(404).json({ error: 'Habilidade nao encontrada' });
       return res.json(serializarHabilidade(habilidade));
     } catch (error) {
@@ -168,7 +168,7 @@ class HabilidadesController {
       const elemento = parseElementoScalar(Array.isArray(elementoInput) ? elementoInput[0] : elementoInput);
       if (elemento.error) return res.status(400).json({ error: elemento.error });
 
-      const habilidade = await db.Habilidade.update(
+      const habilidade = await db.HabilidadeMagia.update(
         parseInt(req.params.id, 10),
         buildUpdateData({ ...req.body, elemento: elementoInput ?? elemento.value })
       );
@@ -183,7 +183,7 @@ class HabilidadesController {
 
   async deletarHabilidade(req, res) {
     try {
-      await db.Habilidade.delete(parseInt(req.params.id, 10));
+      await db.HabilidadeMagia.delete(parseInt(req.params.id, 10));
       return res.json({ message: 'Habilidade deletada com sucesso' });
     } catch (error) {
       log.error({ err: error }, 'Erro ao deletar habilidade');
@@ -194,7 +194,7 @@ class HabilidadesController {
 
   async obterEstatisticas(req, res) {
     try {
-      const stats = await db.Habilidade.getEstatisticas();
+      const stats = await db.HabilidadeMagia.getEstatisticas();
       return res.json(stats);
     } catch (error) {
       log.error({ err: error }, 'Erro ao obter estatisticas');

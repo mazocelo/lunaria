@@ -15,6 +15,7 @@
  *   --fix    Re-submit broken monsters to Gemini for correction
  */
 const { PrismaClient } = await import('@prisma/client').then(m => m.default || m);
+const { getAtributo } = await import('../helpers/atributosHelper.js');
 const prisma = new PrismaClient();
 
 const args = process.argv.slice(2);
@@ -30,8 +31,9 @@ function validateMonster(m) {
 
   // 1. Required fields
   for (const f of ['forca', 'constituicao', 'agilidade', 'destreza', 'inteligencia', 'carisma']) {
-    if (m[f] == null || m[f] < 1 || m[f] > 30) {
-      errors.push(`${f}: ${m[f]} (expected 1-30)`);
+    const val = getAtributo(m, f);
+    if (val == null || val < 1 || val > 30) {
+      errors.push(`${f}: ${val} (expected 1-30)`);
     }
   }
 
@@ -39,7 +41,7 @@ function validateMonster(m) {
   if (!m.mult_raca || m.mult_raca < 1) errors.push(`mult_raca: ${m.mult_raca}`);
 
   // 2. HP consistency
-  const modCON = calcMod(m.constituicao);
+  const modCON = calcMod(getAtributo(m, 'constituicao'));
   const expectedHP = (m.mult_raca || 5) * (m.nivel_min + Math.max(1, modCON));
   if (m.hp_base && Math.abs(m.hp_base - expectedHP) > 2) {
     warnings.push(`hp_base ${m.hp_base} != expected ${expectedHP} (mult=${m.mult_raca}, nv=${m.nivel_min}, modCON=${modCON})`);
@@ -52,7 +54,7 @@ function validateMonster(m) {
   }
 
   // 4. Attack consistency (modFOR + floor(nivel/3))
-  const modFOR = calcMod(m.forca);
+  const modFOR = calcMod(getAtributo(m, 'forca'));
   const expectedATK = modFOR + Math.floor(m.nivel_min / 3);
   if (m.ataque_base != null && Math.abs(m.ataque_base - expectedATK) > 2) {
     warnings.push(`ataque_base ${m.ataque_base} != expected ${expectedATK}`);
@@ -99,7 +101,7 @@ async function main() {
   console.log('🔍 Monster Validation');
   console.log(`Mode: ${FIX_MODE ? 'FIX (will re-submit broken)' : 'REPORT ONLY'}\n`);
 
-  const monsters = await prisma.monstros.findMany({ orderBy: { id: 'asc' } });
+  const monsters = await prisma.monstros.findMany({ where: { sistema: 'lunaria' }, orderBy: { id: 'asc' }, include: { atributos_monstro: true } });
   console.log(`Total: ${monsters.length} monsters\n`);
 
   let clean = 0, withWarnings = 0, withErrors = 0;

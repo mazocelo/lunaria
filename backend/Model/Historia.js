@@ -119,12 +119,22 @@ const Historia = (prisma) => {
     },
 
     // Listar todas as histórias
-    async findAll() {
+    async findAll({ take = 50, skip = 0 } = {}) {
       return await prisma.historias.findMany({
         where: { deleted_at: null },
         orderBy: { nome: 'asc' },
+        take,
+        skip,
         include: { mestres: true }
       });
+    },
+
+    async count(where = { deleted_at: null }) {
+      return await prisma.historias.count({ where });
+    },
+
+    async countByUsuario(userId) {
+      return await prisma.historias.count({ where: { id_usuario: userId, deleted_at: null } });
     },
 
     // Listar histórias públicas
@@ -316,7 +326,7 @@ const Historia = (prisma) => {
     },
 
     // Buscar todas as histórias relacionadas ao usuário (criadas por ele + onde seus personagens participam + convites)
-    async findAllByUsuario(usuario_id) {
+    async findAllByUsuario(usuario_id, { take = 50, skip = 0 } = {}) {
       // Buscar histórias criadas pelo usuário
       const historiasCriadas = await this.findByUsuario(usuario_id);
       
@@ -366,7 +376,8 @@ const Historia = (prisma) => {
       const historiasUnicas = Array.from(historiasMap.values());
       
       // Ordenar por data de criação (mais recente primeiro)
-      return historiasUnicas.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+      historiasUnicas.sort((a, b) => new Date(b.criada_em) - new Date(a.criada_em));
+      return historiasUnicas.slice(skip, skip + take);
     }
   };
 

@@ -17,6 +17,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
 import { calcularHP, calcularMana, calcularEsquiva, calcularArmadura } from '../helpers/combateHelper.js';
+import { getAtributo } from '../helpers/atributosHelper.js';
 
 const prisma = new PrismaClient();
 
@@ -59,7 +60,7 @@ async function main() {
 
   const personagem = await prisma.personagens.findFirst({
     where: { id_usuario: usuario.id, deleted_at: null },
-    include: { racas: true, classes: true },
+    include: { racas: true, classes: true, atributos_personagem: true },
   });
 
   await test('demo character exists', async () => {
@@ -69,10 +70,10 @@ async function main() {
   if (!personagem) return;
 
   await test('character has required attributes', async () => {
-    assert.ok(personagem.forca >= 1, 'forca deve ser >= 1');
-    assert.ok(personagem.constituicao >= 1, 'constituicao deve ser >= 1');
-    assert.ok(personagem.destreza >= 1, 'destreza deve ser >= 1');
-    assert.ok(personagem.agilidade >= 1, 'agilidade deve ser >= 1');
+    assert.ok(getAtributo(personagem, 'forca') >= 1, 'forca deve ser >= 1');
+    assert.ok(getAtributo(personagem, 'constituicao') >= 1, 'constituicao deve ser >= 1');
+    assert.ok(getAtributo(personagem, 'destreza') >= 1, 'destreza deve ser >= 1');
+    assert.ok(getAtributo(personagem, 'agilidade') >= 1, 'agilidade deve ser >= 1');
     assert.ok(personagem.nivel >= 1, 'nivel deve ser >= 1');
   });
 
@@ -131,7 +132,7 @@ async function main() {
   // ── Demo Monsters ──
   console.log('\n── Demo Monsters ──');
 
-  const monstros = await prisma.monstros.findMany({ take: 5 });
+  const monstros = await prisma.monstros.findMany({ where: { sistema: 'lunaria' }, take: 5 });
 
   await test('at least 1 monster in DB', async () => {
     assert.ok(monstros.length > 0, 'Nenhum monstro encontrado. Execute: node Backend/scripts/seed-demo.js');

@@ -205,7 +205,7 @@ async function main() {
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE UPDATE'}`);
   if (START_ID) console.log(`Starting from ID: ${START_ID}`);
 
-  const where = START_ID > 0 ? { id: { gte: START_ID } } : {};
+  const where = START_ID > 0 ? { id: { gte: START_ID }, sistema: 'lunaria' } : { sistema: 'lunaria' };
   const monsters = await prisma.monstros.findMany({
     where, orderBy: { id: 'asc' }, ...(LIMIT > 0 ? { take: LIMIT } : {}),
   });
@@ -235,12 +235,6 @@ async function main() {
         await prisma.monstros.update({
           where: { id: monster.id },
           data: {
-            forca: result.forca,
-            constituicao: result.constituicao,
-            agilidade: result.agilidade,
-            destreza: result.destreza,
-            inteligencia: result.inteligencia,
-            carisma: result.carisma,
             hp_base: result.hp_base,
             ataque_base: result.ataque_base,
             defesa_base: result.defesa_base,
@@ -254,6 +248,16 @@ async function main() {
             armadura_natural: result.armadura_natural || 0,
           }
         });
+        // Update atributos_monstro rows
+        for (const attrNome of ['forca', 'constituicao', 'agilidade', 'destreza', 'inteligencia', 'carisma']) {
+          if (result[attrNome] !== undefined) {
+            await prisma.atributos_monstro.upsert({
+              where: { monstro_id_nome: { monstro_id: monster.id, nome: attrNome } },
+              update: { valor: result[attrNome] },
+              create: { monstro_id: monster.id, nome: attrNome, valor: result[attrNome] }
+            });
+          }
+        }
       } catch (e) { failed++; errors.push(`${monster.nome}: DB ${e.message?.slice(0,50)}`); continue; }
     }
     success++;

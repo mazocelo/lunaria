@@ -1,6 +1,9 @@
 import logger from '../helpers/logger.js';
+import { generateImagePollinations } from './pollinationsService.js';
+import { generateImageNanoBanana } from './nanoBananaService.js';
 
 const log = logger.child({ module: 'imageGenerationService' });
+const IMAGE_PROVIDER = process.env.IMAGE_PROVIDER || 'nano_banana'; // 'nano_banana' | 'leonardo' | 'pollinations'
 const LEONARDO_API_URL = 'https://cloud.leonardo.ai/api/rest/v1';
 const LEONARDO_API_KEY = process.env.LEONARDO_API_KEY;
 const FALLBACK_MODEL_ID = process.env.LEONARDO_MODEL_ID || 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3'; // Phoenix/Lucid Origin family
@@ -62,7 +65,6 @@ const STYLE_GENERATION_CONFIG = {
     guidance_scale: 7,
     alchemy: true,
     enhancePrompt: true,
-    contrast: 2,
     presetStyle: 'ILLUSTRATION',
   },
   pixel_art: {
@@ -115,6 +117,27 @@ async function requestGeneration(body) {
 }
 
 async function generateImage(prompt, options = {}) {
+  const provider = options.provider || IMAGE_PROVIDER;
+
+  if (provider === 'pollinations') {
+    return generateImagePollinations(prompt, {
+      width: options.width || 1024,
+      height: options.height || 1024,
+      entityType: options.entityType,
+      entityId: options.entityId,
+    });
+  }
+
+  if (provider === 'nano_banana') {
+    return generateImageNanoBanana(prompt, {
+      entityType: options.entityType,
+      entityId: options.entityId,
+      aspectRatio: options.aspectRatio || '1:1',
+      imageSize: options.imageSize || '1K',
+    });
+  }
+
+  // --- Leonardo path (default) ---
   if (!LEONARDO_API_KEY) {
     throw new Error('LEONARDO_API_KEY não configurada');
   }
@@ -445,6 +468,56 @@ function buildPrompt(entityType, entityData) {
       if (guard) parts.push(guard);
       return parts.join(', ');
     }
+    case 'raca': {
+      const parts = [`${style}, fantasy race portrait, full body character showcase, RPG racial archetype`];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
+      return parts.join(', ');
+    }
+    case 'classe': {
+      const parts = [`${style}, RPG class archetype illustration, iconic pose with signature gear`];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
+      return parts.join(', ');
+    }
+    case 'vantagem': {
+      const parts = [`${style}, magical ability icon art, glowing arcane energy, RPG skill illustration`];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.tipo) parts.push(Array.isArray(entityData.tipo) ? entityData.tipo.join(' ') : entityData.tipo);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      if (entityData.elemento?.length) parts.push(`elements: ${toListText(entityData.elemento, 4)}`);
+      if (entityData.dano_base) parts.push(`power: ${entityData.dano_base}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
+      return parts.join(', ');
+    }
+    case 'desvantagem': {
+      const parts = [`${style}, dark curse icon art, ominous aura, RPG debuff illustration, foreboding atmosphere`];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.tipo) parts.push(Array.isArray(entityData.tipo) ? entityData.tipo.join(' ') : entityData.tipo);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      if (entityData.elemento?.length) parts.push(`elements: ${toListText(entityData.elemento, 4)}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
+      return parts.join(', ');
+    }
+    case 'habilidade': {
+      const parts = [`${style}, epic spell or ability visualization, dynamic energy effects`];
+      if (entityData.nome) parts.push(entityData.nome);
+      if (entityData.escola_magia && entityData.escola_magia !== 'nenhuma') parts.push(`${entityData.escola_magia} magic school`);
+      if (entityData.categoria) parts.push(`${entityData.categoria} ability`);
+      if (entityData.elemento) parts.push(`${entityData.elemento} element`);
+      if (entityData.descricao) parts.push(entityData.descricao.slice(0, 300));
+      if (entityData.dano_base) parts.push(`power: ${entityData.dano_base}`);
+      if (entityData.alcance) parts.push(`range: ${entityData.alcance}`);
+      const guard = realismGuard(entityData.estilo_imagem);
+      if (guard) parts.push(guard);
+      return parts.join(', ');
+    }
     case 'cena': {
       const parts = [
         `${style}, ${stylePhrase(entityData.estilo_imagem, 'scene')}`,
@@ -477,7 +550,7 @@ function buildPrompt(entityType, entityData) {
   }
 }
 
-export { generateImage, buildPrompt, IMAGE_STYLES };
+export { generateImage, buildPrompt, IMAGE_STYLES, IMAGE_PROVIDER };
 
 
 

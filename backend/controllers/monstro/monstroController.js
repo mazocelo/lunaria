@@ -1,6 +1,7 @@
 import db from '../../Model/index.js';
 import { HabilidadeMonstroSchema, ResistenciasSchema, VelocidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
 import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
+import { LUNARIA_ATTRS } from '../../helpers/atributosHelper.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'monstroController' });
 
@@ -171,12 +172,6 @@ class MonstroController {
       if (nivel_min !== undefined) dados.nivel_min = parseInt(nivel_min);
       if (nivel_max !== undefined) dados.nivel_max = parseInt(nivel_max);
       if (hp_base !== undefined) dados.hp_base = parseInt(hp_base);
-      if (forca !== undefined) dados.forca = parseInt(forca);
-      if (inteligencia !== undefined) dados.inteligencia = parseInt(inteligencia);
-      if (destreza !== undefined) dados.destreza = parseInt(destreza);
-      if (constituicao !== undefined) dados.constituicao = parseInt(constituicao);
-      if (agilidade !== undefined) dados.agilidade = parseInt(agilidade);
-      if (carisma !== undefined) dados.carisma = parseInt(carisma);
       if (ataque_base !== undefined) dados.ataque_base = parseInt(ataque_base);
       if (defesa_base !== undefined) dados.defesa_base = parseInt(defesa_base);
       if (dano_base !== undefined) dados.dano_base = dano_base;
@@ -197,7 +192,28 @@ class MonstroController {
       if (xp_base !== undefined) dados.xp_base = parseInt(xp_base);
       if (imagem !== undefined) dados.imagem = imagem;
 
+      // Collect attribute values from request
+      const attrValues = {};
+      if (forca !== undefined) attrValues.forca = parseInt(forca);
+      if (inteligencia !== undefined) attrValues.inteligencia = parseInt(inteligencia);
+      if (destreza !== undefined) attrValues.destreza = parseInt(destreza);
+      if (constituicao !== undefined) attrValues.constituicao = parseInt(constituicao);
+      if (agilidade !== undefined) attrValues.agilidade = parseInt(agilidade);
+      if (carisma !== undefined) attrValues.carisma = parseInt(carisma);
+
       const novoMonstro = await db.Monstro.create(dados);
+
+      // Create atributos_monstro rows
+      const attrRows = Object.entries(attrValues);
+      if (attrRows.length > 0) {
+        await db.prisma.atributos_monstro.createMany({
+          data: attrRows.map(([attrNome, valor]) => ({
+            monstro_id: novoMonstro.id,
+            nome: attrNome,
+            valor
+          }))
+        });
+      }
 
       log.info({ novoMonstro_id: novoMonstro.id }, 'Monstro criado');
 
@@ -252,12 +268,6 @@ class MonstroController {
       if (nivel_min !== undefined) dadosAtualizacao.nivel_min = parseInt(nivel_min);
       if (nivel_max !== undefined) dadosAtualizacao.nivel_max = parseInt(nivel_max);
       if (hp_base !== undefined) dadosAtualizacao.hp_base = parseInt(hp_base);
-      if (forca !== undefined) dadosAtualizacao.forca = parseInt(forca);
-      if (inteligencia !== undefined) dadosAtualizacao.inteligencia = parseInt(inteligencia);
-      if (destreza !== undefined) dadosAtualizacao.destreza = parseInt(destreza);
-      if (constituicao !== undefined) dadosAtualizacao.constituicao = parseInt(constituicao);
-      if (agilidade !== undefined) dadosAtualizacao.agilidade = parseInt(agilidade);
-      if (carisma !== undefined) dadosAtualizacao.carisma = parseInt(carisma);
       if (ataque_base !== undefined) dadosAtualizacao.ataque_base = parseInt(ataque_base);
       if (defesa_base !== undefined) dadosAtualizacao.defesa_base = parseInt(defesa_base);
       if (dano_base !== undefined) dadosAtualizacao.dano_base = dano_base;
@@ -278,7 +288,26 @@ class MonstroController {
       if (xp_base !== undefined) dadosAtualizacao.xp_base = parseInt(xp_base);
       if (imagem !== undefined) dadosAtualizacao.imagem = imagem;
 
-      const monstroAtualizado = await db.Monstro.update(parseInt(id), dadosAtualizacao);
+      // Collect attribute values for atributos_monstro
+      const attrUpdate = {};
+      if (forca !== undefined) attrUpdate.forca = parseInt(forca);
+      if (inteligencia !== undefined) attrUpdate.inteligencia = parseInt(inteligencia);
+      if (destreza !== undefined) attrUpdate.destreza = parseInt(destreza);
+      if (constituicao !== undefined) attrUpdate.constituicao = parseInt(constituicao);
+      if (agilidade !== undefined) attrUpdate.agilidade = parseInt(agilidade);
+      if (carisma !== undefined) attrUpdate.carisma = parseInt(carisma);
+
+      const monstroId = parseInt(id);
+      const monstroAtualizado = await db.Monstro.update(monstroId, dadosAtualizacao);
+
+      // Upsert atributos_monstro rows
+      for (const [attrNome, valor] of Object.entries(attrUpdate)) {
+        await db.prisma.atributos_monstro.upsert({
+          where: { monstro_id_nome: { monstro_id: monstroId, nome: attrNome } },
+          update: { valor },
+          create: { monstro_id: monstroId, nome: attrNome, valor }
+        });
+      }
 
       log.info({ id: id }, 'Monstro atualizado');
 

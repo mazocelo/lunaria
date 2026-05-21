@@ -7,55 +7,68 @@ const Vantagem = (prisma) => {
   // Métodos customizados
   const VantagemMethods = {
     // Buscar vantagem por tipo
-    async findByTipo(tipo) {
+    async findByTipo(tipo, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           tipo: {
             has: tipo
-          }
+          },
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagem por elemento
-    async findByElemento(elemento) {
+    async findByElemento(elemento, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           elemento: {
             has: elemento
-          }
+          },
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagem por nível
-    async findByNivel(nivel) {
+    async findByNivel(nivel, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
-        where: { nivel },
-        orderBy: { nome: 'asc' }
+        where: { nivel, sistema },
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagem por forma de usar
-    async findByUsar(usar) {
+    async findByUsar(usar, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
-        where: { usar },
-        orderBy: { nome: 'asc' }
+        where: { usar, sistema },
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagem por termo
-    async search(termo) {
+    async search(termo, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           OR: [
             { nome: { contains: termo, mode: 'insensitive' } },
             { descricao: { contains: termo, mode: 'insensitive' } }
-          ]
+          ],
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
@@ -96,15 +109,18 @@ const Vantagem = (prisma) => {
     },
 
     // Listar todas as vantagens
-    async findAll() {
+    async findAll(sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
-        orderBy: { nome: 'asc' }
+        where: { sistema },
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Listar vantagens com paginação DB-level
-    async findPaginated({ limit = 50, offset = 0, tipo, elemento, nivel, usar, search } = {}) {
-      const where = {};
+    async findPaginated({ limit = 50, offset = 0, tipo, elemento, nivel, usar, search, sistema = 'lunaria' } = {}) {
+      const where = { sistema };
       if (tipo) where.tipo = { has: tipo };
       if (elemento) where.elemento = { has: elemento };
       if (nivel !== undefined) where.nivel = { lte: parseInt(nivel) };
@@ -130,58 +146,72 @@ const Vantagem = (prisma) => {
     },
 
     // Buscar vantagens por nível máximo
-    async findByNivelMax(nivel) {
+    async findByNivelMax(nivel, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           nivel: {
             lte: nivel
-          }
+          },
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagens por custo
-    async findByCusto(custo) {
+    async findByCusto(custo, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
-        where: { custo },
-        orderBy: { nome: 'asc' }
+        where: { custo, sistema },
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagens por custo máximo
-    async findByCustoMax(custo) {
+    async findByCustoMax(custo, sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           custo: {
             lte: custo
-          }
+          },
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagens ativas
-    async findAtivas() {
+    async findAtivas(sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           tipo: {
             has: 'ativa'
-          }
+          },
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     },
 
     // Buscar vantagens passivas
-    async findPassivas() {
+    async findPassivas(sistema = 'lunaria', { take = 200, skip = 0 } = {}) {
       return await model.findMany({
         where: {
           tipo: {
             has: 'passiva'
-          }
+          },
+          sistema
         },
-        orderBy: { nome: 'asc' }
+        orderBy: { nome: 'asc' },
+        take,
+        skip
       });
     }
   };

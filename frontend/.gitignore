@@ -12,3 +12,11 @@ public/docs-html/
 .playwright-mcp/
 public/screenshot-3det-*.png
 public/mockup-3det.html
+
+# Playwright — artefatos de execução da suite E2E.
+# A suite em si (e2e/) É versionada; apenas os artefatos de run são ignorados.
+playwright-report/
+test-results/
+playwright/.cache/
+e2e/.auth/
+e2e/**/*-snapshots/

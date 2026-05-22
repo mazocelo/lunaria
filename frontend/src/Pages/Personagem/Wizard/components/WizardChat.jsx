@@ -775,6 +775,7 @@ const WizardChat = ({
             imageError={imageError}
             onGerarImagem={onGerarImagem}
             isLight={isLight}
+            exigeComboPreview={sistema !== 'dnd5e'}
           />
         )}
 

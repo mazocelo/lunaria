@@ -67,11 +67,16 @@ const DestinoResolutivaBlock = ({
   imageError = null,
   onGerarImagem,
   isLight = false,
+  exigeComboPreview = true,
 }) => {
   const itensCombo = useMemo(() => buildItensCombo(data?.combo), [data]);
   const snapshot = data?.snapshot || {};
   const meta = data?.meta || {};
   const criando = salvando || creationFlowStatus !== 'idle';
+  // O combo-preview (`data`) so e pre-requisito de criacao em sistemas que o usam (Lunaria).
+  // D&D 5e nao tem etapa de equipamentos, logo nunca carrega `data` — o gate dependeria
+  // apenas de `podeCriar`.
+  const criacaoBloqueada = !podeCriar || criando || loading || (exigeComboPreview && !data);
 
   if (loading && !data) {
     return (
@@ -127,9 +132,9 @@ const DestinoResolutivaBlock = ({
             <button
               type="button"
               onClick={onCriar}
-              disabled={!podeCriar || criando || loading || !data}
+              disabled={criacaoBloqueada}
               className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-modern font-semibold transition-all ${
-                !podeCriar || criando || loading || !data
+                criacaoBloqueada
                   ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
                   : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
               }`}
@@ -343,12 +348,12 @@ const DestinoResolutivaBlock = ({
             <button
               type="button"
               onClick={onCriar}
-              disabled={!podeCriar || criando || loading || !data}
+              disabled={criacaoBloqueada}
               className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-modern font-semibold transition-all ${
-                !podeCriar || criando || loading || !data
+                criacaoBloqueada
                   ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
                   : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl'
-              } ${podeCriar && !criando && !loading && data ? 'animate-pulse shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
+              } ${!criacaoBloqueada ? 'animate-pulse shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
             >
               {criando ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
               {criando ? 'Selando...' : 'Criar personagem'}
@@ -362,12 +367,12 @@ const DestinoResolutivaBlock = ({
             <button
               type="button"
               onClick={onCriar}
-              disabled={!podeCriar || criando || loading || !data}
+              disabled={criacaoBloqueada}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-modern font-semibold transition-all ${
-                !podeCriar || criando || loading || !data
+                criacaoBloqueada
                   ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
                   : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg'
-              } ${podeCriar && !criando && !loading && data ? 'shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
+              } ${!criacaoBloqueada ? 'shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
             >
               {criando ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
               {criando ? 'Selando...' : 'Criar personagem'}

@@ -247,6 +247,7 @@ const WizardView = (props) => {
                 pontosDistribuidos={pontosDistribuidos}
                 pontosTotais={pontosTotais}
                 pontosRestantes={pontosRestantes}
+                sistema={sistema}
                 embedded
               />
             </div>

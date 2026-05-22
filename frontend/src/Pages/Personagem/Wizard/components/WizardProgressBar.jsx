@@ -19,10 +19,11 @@ const WizardProgressBar = ({
   pontosDistribuidos,
   pontosTotais,
   pontosRestantes,
+  sistema,
 }) => {
   const progresso = ((etapaIndex + 1) / etapas.length) * 100;
   const etapaAtual = etapas[etapaIndex];
-  const copy = getStageConfig(etapaAtual?.id);
+  const copy = getStageConfig(etapaAtual?.id, sistema);
 
   return (
     <div className={embedded ? 'px-5 py-4 md:px-6' : 'wa-progress-rail mx-4 mt-4 rounded-2xl px-4 py-3 md:mx-5 md:mt-5 md:px-5'}>

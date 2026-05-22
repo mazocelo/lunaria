@@ -8,13 +8,17 @@ import {
   xpParaNivel,
   verificarLevelUp,
   tierDesbloqueado,
-  maxCustoDesvantagem,
-  EVOLUCAO
+  maxCustoDesvantagem
 } from '../../helpers/evolucaoHelper.js';
 import { buildFinalizacaoBase } from '../../helpers/finalizacaoInicialHelper.js';
 import { buildFinalizacaoPreviewBase } from '../../helpers/finalizacaoPreviewHelper.js';
 import criarFinalizacaoInicialAgent from '../../agents/Personagem/finalizacao/FinalizacaoInicialAgent.js';
-import { getAtributosMap, getAttrNamesForSystem } from '../../helpers/atributosHelper.js';
+import {
+  getAtributosMap,
+  getAttrNamesForSystem,
+  getAttrDefsForSystem,
+  assertAtributoDoSistema,
+} from '../../helpers/atributosHelper.js';
 import { criarPersonagemTresDet } from '../../services/personagemTresDetService.js';
 import { criarPersonagemDnd5e } from '../../services/personagemDnd5eService.js';
 import { criarPersonagemLunaria } from '../../services/personagemLunariaService.js';
@@ -444,20 +448,21 @@ class PersonagemController {
       delete dadosAtualizacao.xp_proximo_nivel; // gerenciado pelo sistema de evolução
       delete dadosAtualizacao.pontos_atributo_pendentes; // gerenciado pelo sistema de evolução
 
-      // Extrair e validar atributos (vao para atributos_personagem, nao para personagens)
+      // Atributos NAO sao atualizaveis pelo PUT: mudam so na criacao e em
+      // distribuir-pontos. Se vierem no body, ignorar (nao persistir) e logar.
       const attrNamesUpdate = getAttrNamesForSystem(personagem.sistema || 'lunaria');
-      const atributosMudar = {};
+      const atributosIgnorados = [];
       for (const atributo of attrNamesUpdate) {
         if (dadosAtualizacao[atributo] !== undefined) {
-          const val = parseInt(dadosAtualizacao[atributo]);
-          if (val < 1 || val > 20) {
-            return res.status(400).json({
-              error: `${atributo} deve estar entre 1 e 20`
-            });
-          }
-          atributosMudar[atributo] = val;
+          atributosIgnorados.push(atributo);
           delete dadosAtualizacao[atributo];
         }
+      }
+      if (atributosIgnorados.length > 0) {
+        log.warn(
+          { id, atributosIgnorados },
+          'PUT /personagens/:id recebeu atributos no body; ignorados (atributos mudam so por criacao e distribuir-pontos)'
+        );
       }
 
       // Converter campos numéricos para inteiros (incluindo classe_id e raca_id)
@@ -514,15 +519,6 @@ class PersonagemController {
         // Atualizar campos escalares do personagem
         if (Object.keys(dadosConvertidos).length > 0) {
           await tx.personagens.update({ where: { id: parseInt(id) }, data: dadosConvertidos });
-        }
-
-        // Atualizar atributos na tabela atributos_personagem
-        for (const [nome, valor] of Object.entries(atributosMudar)) {
-          await tx.atributos_personagem.upsert({
-            where: { personagem_id_nome: { personagem_id: parseInt(id), nome } },
-            update: { valor },
-            create: { personagem_id: parseInt(id), nome, valor }
-          });
         }
 
         // Vantagens
@@ -1494,8 +1490,22 @@ class PersonagemController {
         return res.status(400).json({ success: false, error: 'Nenhum ponto de atributo pendente para distribuir' });
       }
 
+      const sistema = personagem.sistema || 'lunaria';
       const attrMap = getAtributosMap(personagem);
-      const statsNomes = ['forca', 'inteligencia', 'carisma', 'destreza', 'constituicao', 'agilidade'];
+      const attrDefs = getAttrDefsForSystem(sistema);
+      const statsNomes = attrDefs.map(a => a.id);
+      const maxPorAtributo = Object.fromEntries(attrDefs.map(a => [a.id, a.max]));
+      const minPorAtributo = Object.fromEntries(attrDefs.map(a => [a.id, a.min]));
+
+      // Fail loud: toda chave de incrementos deve pertencer ao sistema do personagem.
+      const chavesInvalidas = Object.keys(incrementos).filter(k => !statsNomes.includes(k));
+      if (chavesInvalidas.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Atributo(s) invalido(s) para o sistema "${sistema}": ${chavesInvalidas.join(', ')}. Validos: ${statsNomes.join(', ')}`,
+        });
+      }
+
       let totalGasto = 0;
       const novosStats = {};
 
@@ -1505,10 +1515,11 @@ class PersonagemController {
           return res.status(400).json({ success: false, error: `Incremento de ${stat} nao pode ser negativo` });
         }
         if (inc > 0) {
-          const valorAtual = attrMap[stat] ?? 10;
+          const valorAtual = attrMap[stat] ?? minPorAtributo[stat];
           const novoValor = valorAtual + inc;
-          if (novoValor > EVOLUCAO.STAT_MAX) {
-            return res.status(400).json({ success: false, error: `${stat} excederia o maximo de ${EVOLUCAO.STAT_MAX} (atual: ${valorAtual}, incremento: ${inc})` });
+          const max = maxPorAtributo[stat];
+          if (novoValor > max) {
+            return res.status(400).json({ success: false, error: `${stat} excederia o maximo de ${max} (atual: ${valorAtual}, incremento: ${inc})` });
           }
           novosStats[stat] = novoValor;
           totalGasto += inc;
@@ -1526,6 +1537,8 @@ class PersonagemController {
       // Update atributos_personagem rows and pendentes in a single transaction
       await db.prisma.$transaction(async (tx) => {
         for (const [nome, valor] of Object.entries(novosStats)) {
+          // Guard de integridade: nunca persistir atributo fora do sistema.
+          assertAtributoDoSistema(nome, sistema);
           await tx.atributos_personagem.upsert({
             where: { personagem_id_nome: { personagem_id: parseInt(id), nome } },
             update: { valor },

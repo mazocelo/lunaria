@@ -42,16 +42,49 @@ function getModificador(entity, nome) {
 }
 
 /**
+ * Returns attribute definitions ({ id, nome, sigla, min, max }) for any
+ * supported system. Falls back to the Lunaria engine if the system is unknown.
+ */
+function getAttrDefsForSystem(sistema = 'lunaria') {
+  try {
+    return getEngine(sistema).getAtributosBase();
+  } catch {
+    return getEngine('lunaria').getAtributosBase();
+  }
+}
+
+/**
  * Returns attribute names for any supported system.
  * Falls back to LUNARIA_ATTRS if the system is unknown.
  */
 function getAttrNamesForSystem(sistema = 'lunaria') {
   try {
-    const engine = getEngine(sistema);
-    return engine.getAtributosBase().map(a => a.id);
+    return getEngine(sistema).getAtributosBase().map(a => a.id);
   } catch {
     return LUNARIA_ATTRS;
   }
 }
 
-export { getAtributosMap, getAtributo, getModificador, LUNARIA_ATTRS, getAttrNamesForSystem };
+/**
+ * Integrity guard: throws if `nome` is not a valid attribute of `sistema`.
+ * Use before any write (upsert/createMany) into atributos_personagem so a
+ * foreign-system key can never be persisted (fail loud).
+ */
+function assertAtributoDoSistema(nome, sistema = 'lunaria') {
+  const nomes = getAttrNamesForSystem(sistema);
+  if (!nomes.includes(nome)) {
+    throw new Error(
+      `Atributo "${nome}" nao pertence ao sistema "${sistema}" (validos: ${nomes.join(', ')})`
+    );
+  }
+}
+
+export {
+  getAtributosMap,
+  getAtributo,
+  getModificador,
+  LUNARIA_ATTRS,
+  getAttrNamesForSystem,
+  getAttrDefsForSystem,
+  assertAtributoDoSistema,
+};

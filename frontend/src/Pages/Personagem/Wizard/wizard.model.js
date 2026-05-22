@@ -20,6 +20,7 @@ import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
 
 export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
   const isTresdet = sistema === 'tresdet';
+  const isDnd5e = sistema === 'dnd5e';
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
 
   // --- Zustand store subscriptions ---
@@ -112,6 +113,57 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     setTresdetDesvantagensConfirmadas(true);
   }, []);
 
+  // --- D&D 5e-specific state ---
+  // Wizard D&D 5e tem 7 etapas: sem etapa de magias/spells. Equipamentos e
+  // spellcasting ficam como divida do E-1.
+  const [dndAbilityScores, setDndAbilityScores] = useState(
+    draftInicial?.dndAbilityScores || {}
+  );
+  const [dndAbilitiesConfirmed, setDndAbilitiesConfirmed] = useState(
+    draftInicial?.dndAbilitiesConfirmed || false
+  );
+  const [dndSkillProficiencies, setDndSkillProficiencies] = useState(
+    draftInicial?.dndSkillProficiencies || []
+  );
+  const [dndSkillsConfirmed, setDndSkillsConfirmed] = useState(
+    draftInicial?.dndSkillsConfirmed || false
+  );
+
+  const setDndAbilityScore = useCallback((key, value) => {
+    setDndAbilityScores(prev => {
+      const next = { ...prev };
+      if (value == null) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return next;
+    });
+    setDndAbilitiesConfirmed(false);
+  }, []);
+
+  const resetDndAbilityScores = useCallback(() => {
+    setDndAbilityScores({});
+    setDndAbilitiesConfirmed(false);
+  }, []);
+
+  const confirmarDndAbilities = useCallback(() => {
+    setDndAbilitiesConfirmed(true);
+  }, []);
+
+  const toggleDndSkill = useCallback((skillId) => {
+    setDndSkillProficiencies(prev =>
+      prev.includes(skillId)
+        ? prev.filter(s => s !== skillId)
+        : [...prev, skillId]
+    );
+    setDndSkillsConfirmed(false);
+  }, []);
+
+  const confirmarDndSkills = useCallback(() => {
+    setDndSkillsConfirmed(true);
+  }, []);
+
   // --- Sub-hooks: point system & bonus ---
   const pointSystem = usePointSystem({
     draftInicial, vantagensDisponiveis,
@@ -147,6 +199,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     tresdetCaracteristicas,
     tresdetVantagensIds,
     tresdetDesvantagensIds,
+    dndAbilityScores,
+    dndSkillProficiencies,
   };
   const mensagensRef = useRef();
   mensagensRef.current = mensagens;
@@ -168,8 +222,12 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
       base.tresdet_vantagens_ids = s.tresdetVantagensIds;
       base.tresdet_desvantagens_ids = s.tresdetDesvantagensIds;
     }
+    if (isDnd5e) {
+      base.dnd_ability_scores = s.dndAbilityScores;
+      base.dnd_skill_proficiencies = s.dndSkillProficiencies;
+    }
     return base;
-  }, [isTresdet]);
+  }, [isTresdet, isDnd5e]);
   const getHistorico = useCallback(() => {
     return mensagensRef.current.filter(m => m.role !== 'sistema').map(m => ({
       role: m.role === 'mestre' ? 'assistant' : 'user',
@@ -188,7 +246,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
   });
   const grimorio = useGrimorio({ racaId, racasDisponiveis });
 
-  // Build navigation buildState com extras 3D&T
+  // Build navigation buildState com extras 3D&T e D&D 5e
   const navBuildState = useMemo(() => ({
     nome, racaId, classeId, background,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds,
@@ -199,6 +257,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     vantagensSelecionadas: tresdetVantagensConfirmadas,
     desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
     magiasSelecionadas: grimorio.grimorioSelecionado,
+    dndAbilitiesConfirmed,
+    dndSkillsConfirmed,
   }), [
     nome, racaId, classeId, background,
     pointSystem.vantagensIds, pointSystem.desvantagensIds,
@@ -206,6 +266,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     bonusCalc.bonusAplicados, comboPreview.comboPreviewData,
     grimorio.grimorioSelecionado,
     tresdetCaracteristicasConfirmadas, tresdetVantagensConfirmadas, tresdetDesvantagensConfirmadas,
+    dndAbilitiesConfirmed, dndSkillsConfirmed,
   ]);
 
   const navigation = useWizardNavigation(draftInicial, navBuildState, sistema);
@@ -216,7 +277,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
   const buildDepsRef = useRef({ racaId, classeId,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds });
   useEffect(() => {
-    if (isTresdet) return;
+    if (isTresdet || isDnd5e) return;
     const prev = buildDepsRef.current;
     const changed = prev.racaId !== racaId || prev.classeId !== classeId
       || prev.vantagensIds !== pointSystem.vantagensIds
@@ -229,7 +290,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
       if (navigation.etapaAtual === 'resumo') bonusCalc.setBonusInvalidado(true);
     }
   }, [racaId, classeId, pointSystem.vantagensIds, pointSystem.desvantagensIds,
-      navigation.etapaAtual, bonusCalc.bonusAplicados, isTresdet]);
+      navigation.etapaAtual, bonusCalc.bonusAplicados, isTresdet, isDnd5e]);
 
   // Auto-load combo preview on equipamentos stage
   useEffect(() => {
@@ -287,19 +348,22 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     grimorio.resetGrimorio();
   }, [classeId, isTresdet]);
 
-  // Load catalogs on mount (3D&T busca catalogos nos proprios blocos)
+  // Load catalogs on mount (3D&T busca catalogos nos proprios blocos).
+  // D&D 5e usa racas/classes mas nao vantagens/desvantagens.
   useEffect(() => {
     if (isTresdet) return;
     const loadAll = async () => {
       const promises = [];
       if (!racasCarregadas) promises.push(carregarRacas());
       if (!classesCarregadas) promises.push(carregarClasses());
-      if (!vantagensCarregadas) promises.push(carregarVantagens());
-      if (!desvantagensCarregadas) promises.push(carregarDesvantagens());
+      if (!isDnd5e) {
+        if (!vantagensCarregadas) promises.push(carregarVantagens());
+        if (!desvantagensCarregadas) promises.push(carregarDesvantagens());
+      }
       if (promises.length > 0) await Promise.all(promises);
     };
     loadAll();
-  }, [isTresdet]);
+  }, [isTresdet, isDnd5e]);
 
   // Draft save
   useEffect(() => {
@@ -320,6 +384,12 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
       draft.tresdetDesvantagensIds = tresdetDesvantagensIds;
       draft.tresdetDesvantagensConfirmadas = tresdetDesvantagensConfirmadas;
     }
+    if (isDnd5e) {
+      draft.dndAbilityScores = dndAbilityScores;
+      draft.dndAbilitiesConfirmed = dndAbilitiesConfirmed;
+      draft.dndSkillProficiencies = dndSkillProficiencies;
+      draft.dndSkillsConfirmed = dndSkillsConfirmed;
+    }
     salvarDraft(draft);
   }, [navigation.etapaAtual, nome, racaId, classeId, background,
       pointSystem.vantagensIds, pointSystem.desvantagensIds,
@@ -328,7 +398,9 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
       navigation.etapasVisitadas, navigation.etapasConcluidas,
       tresdetCaracteristicas, tresdetCaracteristicasConfirmadas,
       tresdetVantagensIds, tresdetVantagensConfirmadas,
-      tresdetDesvantagensIds, tresdetDesvantagensConfirmadas, isTresdet]);
+      tresdetDesvantagensIds, tresdetDesvantagensConfirmadas, isTresdet,
+      dndAbilityScores, dndAbilitiesConfirmed,
+      dndSkillProficiencies, dndSkillsConfirmed, isDnd5e]);
 
   // --- Sub-hooks: mestre interaction, character creation, wizard init ---
   const mestreInteraction = useMestreInteraction({
@@ -361,11 +433,20 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     navigation.avancarEtapa();
   }, [grimorio.confirmarGrimorio, navigation.avancarEtapa]);
 
+  // D&D 5e: o slug em ingles da classe (ex.: wizard, barbarian) casa com as
+  // chaves de CLASS_SKILL_OPTIONS consumidas pelo DnDSkillsBlock. As classes
+  // D&D ja sao cadastradas com nome em ingles, entao o slug e o nome normalizado.
+  const classeNomeExposto = useMemo(
+    () => (isDnd5e ? (classeNome || '').toLowerCase().trim() : classeNome),
+    [isDnd5e, classeNome],
+  );
+
   // --- Return ---
   return {
     // Sistema
     sistema,
     isTresdet,
+    isDnd5e,
     // Navigation
     etapas: navigation.etapas, etapaAtual: navigation.etapaAtual,
     etapaIndex: navigation.etapaIndex, etapasVisitadas: navigation.etapasVisitadas,
@@ -387,7 +468,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     confirmarAtributos: bonusCalc.confirmarAtributos, setAtributo: bonusCalc.setAtributo,
     aplicarAtributosSugeridos: mestreInteraction.aplicarSugestaoAtributos,
     // Personagem
-    nome, racaId, racaNome, classeId, classeNome, background,
+    // classeNome: slug em ingles quando D&D 5e (casa com CLASS_SKILL_OPTIONS).
+    nome, racaId, racaNome, classeId, classeNome: classeNomeExposto, background,
     vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
     desvantagensIds: pointSystem.desvantagensIds, desvantagensNomes: pointSystem.desvantagensNomes,
     skipVantagens: pointSystem.skipVantagens, setSkipVantagens: pointSystem.setSkipVantagens,
@@ -455,6 +537,16 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     tresdetDesvantagensConfirmadas,
     toggleTresdetDesvantagem,
     confirmarTresdetDesvantagens,
+    // D&D 5e-specific
+    dndAbilityScores,
+    dndAbilitiesConfirmed,
+    setDndAbilityScore,
+    resetDndAbilityScores,
+    confirmarDndAbilities,
+    dndSkillProficiencies,
+    dndSkillsConfirmed,
+    toggleDndSkill,
+    confirmarDndSkills,
     navigate,
   };
 };

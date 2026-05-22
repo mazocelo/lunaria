@@ -9,6 +9,8 @@ import EquipamentosBlock from './EquipamentosBlock.jsx';
 import GrimorioBlock from './GrimorioBlock.jsx';
 import TresDetCaracteristicasBlock from './TresDetCaracteristicasBlock.jsx';
 import TresDetVantagensBlock from './TresDetVantagensBlock.jsx';
+import DnDAbilityScoreBlock from './DnDAbilityScoreBlock.jsx';
+import DnDSkillsBlock from './DnDSkillsBlock.jsx';
 import { getStageConfig } from '../stages/stageConfig.js';
 import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
 
@@ -90,6 +92,18 @@ const WizardChat = ({
   tresdetDesvantagensConfirmadas,
   onToggleTresdetDesvantagem,
   onConfirmarTresdetDesvantagens,
+  isDnd5e = false,
+  classeNome = '',
+  dndAbilityScores = {},
+  dndAbilitiesConfirmed = false,
+  onSetDndAbilityScore,
+  onResetDndAbilityScores,
+  onConfirmarDndAbilities,
+  dndSkillProficiencies = [],
+  dndSkillsConfirmed = false,
+  onToggleDndSkill,
+  onConfirmarDndSkills,
+  dndRacialBonuses = {},
   onAvancarEtapa,
   embedded = false,
 }) => {
@@ -158,6 +172,8 @@ const WizardChat = ({
   const isTresdetCaracteristicasStage = isTresdet && etapaAtual === 'caracteristicas';
   const isTresdetVantagensStage = isTresdet && etapaAtual === 'vantagens';
   const isTresdetDesvantagensStage = isTresdet && etapaAtual === 'desvantagens';
+  const isDndAtributosStage = isDnd5e && etapaAtual === 'atributos';
+  const isDndSkillsStage = isDnd5e && etapaAtual === 'skills';
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
   /** Seleciona e auto-avanÃƒÂ§a para raca/classe; sÃƒÂ³ seleciona para vantagem/desvantagem */
@@ -688,6 +704,36 @@ const WizardChat = ({
           />
         )}
 
+        {isDndAtributosStage && (
+          <DnDAbilityScoreBlock
+            scores={dndAbilityScores}
+            racialBonuses={dndRacialBonuses}
+            onSetScore={onSetDndAbilityScore}
+            onConfirmar={() => {
+              onConfirmarDndAbilities?.();
+              onAvancarEtapa?.();
+            }}
+            onReset={onResetDndAbilityScores}
+            confirmado={dndAbilitiesConfirmed}
+            isLight={isLight}
+          />
+        )}
+
+        {isDndSkillsStage && (
+          <DnDSkillsBlock
+            selecionadas={dndSkillProficiencies}
+            classeNome={classeNome}
+            abilityScores={dndAbilityScores}
+            onToggle={onToggleDndSkill}
+            onConfirmar={() => {
+              onConfirmarDndSkills?.();
+              onAvancarEtapa?.();
+            }}
+            confirmado={dndSkillsConfirmed}
+            isLight={isLight}
+          />
+        )}
+
         {isEquipamentosStage && (
           <EquipamentosBlock
             data={comboPreviewData}
@@ -747,7 +793,29 @@ const WizardChat = ({
         <div ref={chatEndRef} />
       </div>
 
-      {isTresdetCaracteristicasStage ? (
+      {isDndAtributosStage ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Distribua os valores do Conjunto Padrao entre os seis atributos acima.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Atributos D&D 5e
+            </span>
+          </div>
+        </div>
+      ) : isDndSkillsStage ? (
+        <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Escolha as pericias treinadas concedidas pela sua classe e confirme para avancar.
+            </p>
+            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              Pericias D&D 5e
+            </span>
+          </div>
+        </div>
+      ) : isTresdetCaracteristicasStage ? (
         <div className="wa-dock shrink-0 border-t border-[var(--wa-border)] p-4 md:px-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>

@@ -122,6 +122,17 @@ const WizardView = (props) => {
     tresdetDesvantagensConfirmadas,
     toggleTresdetDesvantagem,
     confirmarTresdetDesvantagens,
+    isDnd5e,
+    classeNome,
+    dndAbilityScores,
+    dndAbilitiesConfirmed,
+    setDndAbilityScore,
+    resetDndAbilityScores,
+    confirmarDndAbilities,
+    dndSkillProficiencies,
+    dndSkillsConfirmed,
+    toggleDndSkill,
+    confirmarDndSkills,
     avancarEtapa,
   } = props;
 
@@ -156,6 +167,8 @@ const WizardView = (props) => {
     vantagensSelecionadas: tresdetVantagensConfirmadas,
     desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
     magiasSelecionadas: grimorioSelecionado,
+    dndAbilitiesConfirmed,
+    dndSkillsConfirmed,
   }), [
     nome, racaId, classeId, background,
     vantagensIds, desvantagensIds,
@@ -167,6 +180,8 @@ const WizardView = (props) => {
     tresdetCaracteristicasConfirmadas,
     tresdetVantagensConfirmadas,
     tresdetDesvantagensConfirmadas,
+    dndAbilitiesConfirmed,
+    dndSkillsConfirmed,
   ]);
 
   const podeCriar = useMemo(() => canCreate(buildState, sistema), [buildState, sistema]);
@@ -372,6 +387,19 @@ const WizardView = (props) => {
                 tresdetDesvantagensConfirmadas={tresdetDesvantagensConfirmadas}
                 onToggleTresdetDesvantagem={toggleTresdetDesvantagem}
                 onConfirmarTresdetDesvantagens={confirmarTresdetDesvantagens}
+                isDnd5e={isDnd5e}
+                classeNome={classeNome}
+                dndAbilityScores={dndAbilityScores}
+                dndAbilitiesConfirmed={dndAbilitiesConfirmed}
+                onSetDndAbilityScore={setDndAbilityScore}
+                onResetDndAbilityScores={resetDndAbilityScores}
+                onConfirmarDndAbilities={confirmarDndAbilities}
+                dndSkillProficiencies={dndSkillProficiencies}
+                dndSkillsConfirmed={dndSkillsConfirmed}
+                onToggleDndSkill={toggleDndSkill}
+                onConfirmarDndSkills={confirmarDndSkills}
+                /* TODO E-1: dndRacialBonuses fixo em {} — bonus racial e divida do epico. */
+                dndRacialBonuses={{}}
                 onAvancarEtapa={avancarEtapa}
                 embedded
               />

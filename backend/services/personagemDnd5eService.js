@@ -4,7 +4,7 @@
  * validados pela regra D&D (point buy / standard array).
  */
 import db from '../Model/index.js';
-import { ABILITY_IDS, SRD_CLASSES } from '../game-systems/dnd5e/constants.js';
+import { ABILITY_IDS, SRD_CLASSES, SKILLS } from '../game-systems/dnd5e/constants.js';
 import { validarCriacao } from '../game-systems/dnd5e/characterEngine.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../helpers/sanitize.js';
 import { xpParaNivel } from '../helpers/evolucaoHelper.js';
@@ -32,6 +32,18 @@ function lerAbilityScores(body) {
   return scores;
 }
 
+const SKILL_IDS = new Set(SKILLS.map(s => s.id));
+
+/**
+ * Le as proficiencias de pericia do body. Aceita apenas ids validos do SRD
+ * (SKILLS); ids desconhecidos sao ignorados silenciosamente.
+ */
+function lerSkillProficiencies(body) {
+  const raw = body.skill_proficiencies;
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter(id => typeof id === 'string' && SKILL_IDS.has(id)))];
+}
+
 export async function criarPersonagemDnd5e(body, userId) {
   const {
     nome, nivel, background, raca_id, classe_id, imagem,
@@ -49,6 +61,7 @@ export async function criarPersonagemDnd5e(body, userId) {
   }
 
   const scores = lerAbilityScores(body);
+  const skillProficiencies = lerSkillProficiencies(body);
 
   // Validacao D&D conforme o metodo informado (point_buy / standard_array).
   // Sem metodo, validarCriacao nao aplica restricao de distribuicao.
@@ -103,7 +116,7 @@ export async function criarPersonagemDnd5e(body, userId) {
         pontos_atributo_pendentes: 0,
         id_usuario: userId || null,
         criado_em: new Date(),
-        stats_sistema: { classeKey, metodo: metodo || null },
+        stats_sistema: { classeKey, metodo: metodo || null, skillProficiencies },
         ...(imagem ? { imagem } : {}),
       },
     });
@@ -125,6 +138,9 @@ export async function criarPersonagemDnd5e(body, userId) {
     return created;
   });
 
-  log.info({ id: personagem.id, nome: nomeSanitizado, classeKey }, 'Personagem D&D 5e criado');
+  log.info(
+    { id: personagem.id, nome: nomeSanitizado, classeKey, skills: skillProficiencies.length },
+    'Personagem D&D 5e criado',
+  );
   return personagem;
 }

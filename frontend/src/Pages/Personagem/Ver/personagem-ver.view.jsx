@@ -22,6 +22,17 @@ const atributosConfig = [
   { key: 'carisma', label: 'Carisma', icon: Sparkles },
 ];
 
+// Icone por key de atributo. Cobre Lunaria, D&D 5e (STR/DEX/...) e 3D&T (F/H/...).
+const atributoIcons = {
+  // Lunaria
+  forca: Swords, inteligencia: Brain, constituicao: ShieldCheck,
+  agilidade: Zap, destreza: Target, carisma: Sparkles,
+  // D&D 5e
+  STR: Swords, DEX: Target, CON: ShieldCheck, INT: Brain, WIS: Sparkles, CHA: Star,
+  // 3D&T
+  F: Swords, H: Target, R: ShieldCheck, A: Shield, PdF: Zap,
+};
+
 const raridadeVariant = {
   'Comum': 'slate', 'Incomum': 'green', 'Raro': 'blue',
   'Muito Raro': 'purple', 'Épico': 'pink', 'Lendário': 'amber', 'Artefato': 'red', 'Variável': 'slate',
@@ -101,6 +112,7 @@ const VerPersonagemView = ({
   loading,
   error,
   navigate,
+  atributosView,
   distribuindo,
   pontosParaDistribuir,
   totalPontosDistribuir,
@@ -368,53 +380,7 @@ const VerPersonagemView = ({
       )}
 
       {/* Attributes */}
-      {(() => {
-        const bonusPorAtributo = calcularBonusAtributos(p);
-        return (
-          <div className="card-rpg">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-                <BarChart3 size={16} className="text-white" />
-              </div>
-              <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                Atributos
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {atributosConfig.map(attr => {
-                const valor = p.atributos?.[attr.key] ?? p[attr.key] ?? 10;
-                const mod = Math.floor((valor - 10) / 2);
-                const AttrIcon = attr.icon;
-                const bonuses = bonusPorAtributo[attr.key] || [];
-                const totalBonus = bonuses.reduce((sum, b) => sum + b.value, 0);
-                const base = valor - totalBonus;
-                return (
-                  <div key={attr.key} className={`p-3 rounded-lg text-center ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
-                    <div className="mb-1 flex justify-center">
-                      <AttrIcon size={20} className={isLight ? 'text-slate-500' : 'text-slate-400'} />
-                    </div>
-                    <div className={`font-modern text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{attr.label}</div>
-                    <div className={`text-2xl font-bold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{valor}</div>
-                    <div className={`text-xs font-modern ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {mod >= 0 ? '+' : ''}{mod}
-                    </div>
-                    <div className="mt-1.5 space-y-0.5">
-                      <div className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Base: {base}
-                      </div>
-                      {bonuses.map((b, i) => (
-                        <div key={i} className={`text-[10px] font-modern ${b.value > 0 ? 'text-cyan-400' : 'text-red-400'}`}>
-                          {b.value > 0 ? '+' : ''}{b.value} {b.label}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      <AtributosSection isLight={isLight} personagem={p} atributosView={atributosView} />
 
       {/* Vantagens & Desvantagens */}
       {((p.vantagens && p.vantagens.length > 0) || (p.desvantagens && p.desvantagens.length > 0)) && (() => {
@@ -584,6 +550,62 @@ const VerPersonagemView = ({
         bonusAgregados={bonusAgregados}
       />
       <ImageLightbox src={lightboxSrc} alt={p.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
+    </div>
+  );
+};
+
+const AtributosSection = ({ isLight, personagem, atributosView }) => {
+  const sistema = atributosView?.sistema || 'lunaria';
+  const atributos = atributosView?.atributos || [];
+
+  // Lunaria detalha a origem dos bonus (Raca, Classe, Vantagens) por atributo.
+  // D&D 5e e 3D&T exibem o valor final direto, sem decomposicao de bonus.
+  const bonusPorAtributo = sistema === 'lunaria' ? calcularBonusAtributos(personagem) : null;
+
+  return (
+    <div className="card-rpg">
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+          <BarChart3 size={16} className="text-white" />
+        </div>
+        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+          Atributos
+        </h2>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {atributos.map(attr => {
+          const AttrIcon = atributoIcons[attr.key] || BarChart3;
+          const bonuses = bonusPorAtributo?.[attr.key] || [];
+          const totalBonus = bonuses.reduce((sum, b) => sum + b.value, 0);
+          const base = attr.valor - totalBonus;
+          return (
+            <div key={attr.key} className={`p-3 rounded-lg text-center ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
+              <div className="mb-1 flex justify-center">
+                <AttrIcon size={20} className={isLight ? 'text-slate-500' : 'text-slate-400'} />
+              </div>
+              <div className={`font-modern text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{attr.label}</div>
+              <div className={`text-2xl font-bold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{attr.valor}</div>
+              {attr.modificador != null && (
+                <div className={`text-xs font-modern ${attr.modificador.startsWith('-') ? 'text-red-400' : 'text-green-400'}`}>
+                  {attr.modificador}
+                </div>
+              )}
+              {bonusPorAtributo && (
+                <div className="mt-1.5 space-y-0.5">
+                  <div className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Base: {base}
+                  </div>
+                  {bonuses.map((b, i) => (
+                    <div key={i} className={`text-[10px] font-modern ${b.value > 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                      {b.value > 0 ? '+' : ''}{b.value} {b.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

@@ -3,6 +3,63 @@ import { useParams } from 'react-router-dom';
 import { personagemService, equipamentoService, historiaService } from '../../../services/index.js';
 import { apiClient } from '../../../services/ApiClient.js';
 import { sanitizeTextForSpeech } from '../../../utils/speechText.js';
+import { ABILITIES } from '../../../utils/dnd5eData.js';
+import { getDnd5eModifier, formatModifier } from '../../../utils/rpgHelpers.js';
+import { TRESDET_ATTR_CONFIG } from '../../../constants/tresdetAtributos.js';
+
+// Atributos do sistema Lunaria (caminho default). Keys casam com o mapa
+// `atributos` retornado pelo backend (e com os campos escalares legados).
+const LUNARIA_ATTRS = [
+  { key: 'forca', label: 'Forca' },
+  { key: 'inteligencia', label: 'Inteligencia' },
+  { key: 'constituicao', label: 'Constituicao' },
+  { key: 'agilidade', label: 'Agilidade' },
+  { key: 'destreza', label: 'Destreza' },
+  { key: 'carisma', label: 'Carisma' },
+];
+
+/**
+ * Monta a lista de atributos a exibir conforme o sistema do personagem.
+ * O backend ja entrega `personagem.atributos` keyed corretamente por sistema
+ * (STR/DEX/... para D&D, F/H/... para 3D&T, forca/... para Lunaria).
+ * Retorna `{ sistema, atributos: [{ key, label, valor, modificador }] }`,
+ * com `modificador` presente apenas onde fizer sentido (Lunaria e D&D 5e).
+ */
+function montarAtributosView(personagem) {
+  if (!personagem) return { sistema: 'lunaria', atributos: [] };
+  const sistema = personagem.sistema || 'lunaria';
+  const mapa = personagem.atributos || {};
+
+  if (sistema === 'dnd5e') {
+    return {
+      sistema,
+      atributos: ABILITIES.map(({ id, nome }) => {
+        const valor = mapa[id] ?? 10;
+        return { key: id, label: nome, valor, modificador: formatModifier(getDnd5eModifier(valor)) };
+      }),
+    };
+  }
+
+  if (sistema === 'tresdet') {
+    return {
+      sistema,
+      atributos: TRESDET_ATTR_CONFIG.map(({ key, label }) => ({
+        key,
+        label,
+        valor: mapa[key] ?? 0,
+        modificador: null,
+      })),
+    };
+  }
+
+  return {
+    sistema: 'lunaria',
+    atributos: LUNARIA_ATTRS.map(({ key, label }) => {
+      const valor = mapa[key] ?? personagem[key] ?? 10;
+      return { key, label, valor, modificador: formatModifier(getDnd5eModifier(valor)) };
+    }),
+  };
+}
 
 export const usePersonagemVerModel = ({ navigate } = {}) => {
   const { id } = useParams();
@@ -47,6 +104,9 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     () => Object.values(pontosParaDistribuir).reduce((a, b) => a + b, 0),
     [pontosParaDistribuir]
   );
+
+  // Atributos a exibir, ja resolvidos por sistema (D&D 5e, 3D&T ou Lunaria).
+  const atributosView = useMemo(() => montarAtributosView(personagem), [personagem]);
 
   // Load character on mount
   useEffect(() => {
@@ -341,6 +401,8 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     loading,
     error,
     navigate,
+    // Atributos resolvidos por sistema
+    atributosView,
     // Background
     gerandoBackground,
     gerarBackground,

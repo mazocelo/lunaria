@@ -20,7 +20,7 @@ function normalizeIds(raw) {
 export async function criarPersonagemTresDet(body, userId) {
   const {
     nome, nivelPoder, caracteristicas, focus,
-    vantagens, desvantagens, magias_ids = [], background, imagem,
+    vantagens, desvantagens, magias_ids = [], itens = [], background, imagem,
   } = body;
 
   // --- Sanitizacao ---
@@ -38,6 +38,7 @@ export async function criarPersonagemTresDet(body, userId) {
   const vantagemIds = normalizeIds(vantagens);
   const desvantagemIds = normalizeIds(desvantagens);
   const magiaIdsSanitizados = normalizeIds(magias_ids);
+  const itemIdsSanitizados = normalizeIds(itens);
 
   // --- Buscar vantagens/desvantagens do banco para validar custos ---
   const [vantagensObj, desvantagensObj] = await Promise.all([
@@ -71,6 +72,19 @@ export async function criarPersonagemTresDet(body, userId) {
     const idsInvalidos = magiaIdsSanitizados.filter(id => !idsValidos.has(id));
     if (idsInvalidos.length > 0) {
       throw Object.assign(new Error(`Magias não encontradas: ${idsInvalidos.join(', ')}`), { statusCode: 400 });
+    }
+  }
+
+  // --- Validar itens ---
+  if (itemIdsSanitizados.length > 0) {
+    const itensExistentes = await db.prisma.itens_tresdet.findMany({
+      where: { id: { in: itemIdsSanitizados } },
+      select: { id: true },
+    });
+    const idsValidos = new Set(itensExistentes.map(i => i.id));
+    const idsInvalidos = itemIdsSanitizados.filter(id => !idsValidos.has(id));
+    if (idsInvalidos.length > 0) {
+      throw Object.assign(new Error(`Itens não encontrados: ${idsInvalidos.join(', ')}`), { statusCode: 400 });
     }
   }
 
@@ -157,6 +171,18 @@ export async function criarPersonagemTresDet(body, userId) {
           personagem_id: created.id,
           magia_tresdet_id: magiaId,
           origem: 'criacao',
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Itens
+    if (itemIdsSanitizados.length > 0) {
+      await tx.personagem_item_tresdet.createMany({
+        data: itemIdsSanitizados.map(itemId => ({
+          personagem_id: created.id,
+          item_id: itemId,
+          quantidade: 1,
         })),
         skipDuplicates: true,
       });

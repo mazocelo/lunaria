@@ -127,7 +127,9 @@ const MagiaTresDetListaView = ({
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {paginatedData.map((row, i) => {
-            const escola = escolaConfig[row.escola] || { variant: 'slate', label: row.escola };
+            const escolaPrincipal = row.escolasNormalizadas?.[0];
+            const escolaCfg = escolaConfig[escolaPrincipal] || { variant: 'slate' };
+            const escola = { variant: escolaCfg.variant, label: row.escola || '-' };
 
             return (
               <CatalogCard

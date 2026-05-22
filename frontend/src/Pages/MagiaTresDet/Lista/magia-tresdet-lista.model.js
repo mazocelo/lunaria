@@ -2,8 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { useMagiasTresDetStore } from '../../../store/magiasTresDet';
 import { magiasTresDetService } from '../../../services/index.js';
 
+// A coluna `escola` da API e texto livre composto (ex.: "Branca Elemental (agua)",
+// "Branca ou Negra"). Uma magia pode pertencer a mais de uma escola base.
+// Os parenteticos sao elementos (agua/ar/fogo/terra/espirito/todas), nao escolas.
+export const ESCOLAS_BASE = ['branca', 'negra', 'elemental'];
+
+const normalizarEscolas = (escola) => {
+  if (!escola) return [];
+  const semParenteses = escola.toLowerCase().replace(/\([^)]*\)/g, ' ');
+  return ESCOLAS_BASE.filter(e => semParenteses.includes(e));
+};
+
 export const useMagiaTresDetListaModel = () => {
-  const magias = useMagiasTresDetStore(s => s.magias);
+  const magiasRaw = useMagiasTresDetStore(s => s.magias);
   const loading = useMagiasTresDetStore(s => s.loading);
   const storeError = useMagiasTresDetStore(s => s.error);
   const magiasCarregadas = useMagiasTresDetStore(s => s.magiasCarregadas);
@@ -23,6 +34,14 @@ export const useMagiaTresDetListaModel = () => {
     if (!magiasCarregadas) carregarMagias();
   }, []);
 
+  const magias = useMemo(
+    () => (magiasRaw || []).map(m => ({
+      ...m,
+      escolasNormalizadas: normalizarEscolas(m.escola),
+    })),
+    [magiasRaw]
+  );
+
   const filteredMagias = useMemo(() => {
     let result = magias;
     if (searchTerm) {
@@ -33,7 +52,7 @@ export const useMagiaTresDetListaModel = () => {
       );
     }
     if (filtroEscola) {
-      result = result.filter(m => m.escola === filtroEscola);
+      result = result.filter(m => m.escolasNormalizadas.includes(filtroEscola));
     }
     if (filtroTipo) {
       result = result.filter(m => m.tipo === filtroTipo);
@@ -44,8 +63,10 @@ export const useMagiaTresDetListaModel = () => {
   const stats = useMemo(() => {
     const escolas = {};
     const tipos = {};
-    (magias || []).forEach(m => {
-      if (m.escola) escolas[m.escola] = (escolas[m.escola] || 0) + 1;
+    magias.forEach(m => {
+      m.escolasNormalizadas.forEach(e => {
+        escolas[e] = (escolas[e] || 0) + 1;
+      });
       if (m.tipo) tipos[m.tipo] = (tipos[m.tipo] || 0) + 1;
     });
     return { escolas, tipos };

@@ -108,6 +108,13 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
   // Atributos a exibir, ja resolvidos por sistema (D&D 5e, 3D&T ou Lunaria).
   const atributosView = useMemo(() => montarAtributosView(personagem), [personagem]);
 
+  // Soma total dos atributos do personagem (transparencia para o jogador
+  // auditar a ficha). Computada no Model — a View so exibe.
+  const somaAtributos = useMemo(
+    () => atributosView.atributos.reduce((sum, a) => sum + (Number(a.valor) || 0), 0),
+    [atributosView]
+  );
+
   // Load character on mount
   useEffect(() => {
     if (id) {
@@ -177,6 +184,14 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     }
   }, [personagem?.id]);
 
+  // Keys de atributo validas para distribuir pontos, ja resolvidas por sistema.
+  // Casam com `getAttrNamesForSystem` do backend (D&D STR/DEX/..., 3D&T F/H/...,
+  // Lunaria forca/...) — o painel de distribuicao nunca envia key de outro sistema.
+  const pontosDistribuicaoAttrs = useMemo(
+    () => atributosView.atributos.map(({ key, label }) => ({ key, label })),
+    [atributosView]
+  );
+
   const setPontoAtributo = useCallback((atributo, valor) => {
     setPontosParaDistribuir(prev => ({
       ...prev,
@@ -186,12 +201,17 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
 
   const distribuirPontos = useCallback(async () => {
     const personagemId = personagem?.id;
-    const total = Object.values(pontosParaDistribuir).reduce((a, b) => a + b, 0);
+    // So envia keys do sistema do personagem (fail loud no backend caso contrario).
+    const keysSistema = new Set(atributosView.atributos.map(a => a.key));
+    const incrementos = Object.fromEntries(
+      Object.entries(pontosParaDistribuir).filter(([k, v]) => keysSistema.has(k) && v > 0)
+    );
+    const total = Object.values(incrementos).reduce((a, b) => a + b, 0);
     if (!personagemId || total === 0) return;
 
     setDistribuindo(true);
     try {
-      await personagemService.distribuirPontos(personagemId, pontosParaDistribuir);
+      await personagemService.distribuirPontos(personagemId, incrementos);
       setPontosParaDistribuir({});
       // Reload character + evolution
       await loadPersonagem(personagemId);
@@ -200,7 +220,7 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     } finally {
       setDistribuindo(false);
     }
-  }, [personagem?.id, pontosParaDistribuir]);
+  }, [personagem?.id, pontosParaDistribuir, atributosView]);
 
   // Equipment methods
   const loadEquipamentos = async (personagemId) => {
@@ -403,6 +423,8 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     navigate,
     // Atributos resolvidos por sistema
     atributosView,
+    somaAtributos,
+    pontosDistribuicaoAttrs,
     // Background
     gerandoBackground,
     gerarBackground,

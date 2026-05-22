@@ -13,14 +13,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme.jsx';
 
-const atributosConfig = [
-  { key: 'forca', label: 'Forca', icon: Swords },
-  { key: 'inteligencia', label: 'Inteligencia', icon: Brain },
-  { key: 'constituicao', label: 'Constituicao', icon: ShieldCheck },
-  { key: 'agilidade', label: 'Agilidade', icon: Zap },
-  { key: 'destreza', label: 'Destreza', icon: Target },
-  { key: 'carisma', label: 'Carisma', icon: Sparkles },
-];
+// Keys de atributo do sistema Lunaria. Usado apenas pela decomposicao de bonus
+// de raca/classe/vantagens, que so se aplica a personagens Lunaria.
+const LUNARIA_ATTR_KEYS = ['forca', 'inteligencia', 'constituicao', 'agilidade', 'destreza', 'carisma'];
 
 // Icone por key de atributo. Cobre Lunaria, D&D 5e (STR/DEX/...) e 3D&T (F/H/...).
 const atributoIcons = {
@@ -58,7 +53,7 @@ const atributoKeys = new Set(BONUS_ATTR_KEYS);
 
 const calcularBonusAtributos = (p) => {
   const result = {};
-  atributosConfig.forEach(a => { result[a.key] = []; });
+  LUNARIA_ATTR_KEYS.forEach(key => { result[key] = []; });
 
   const addBonus = (label, bonus) => {
     const obj = parseBonusMap(bonus, BONUS_ATTR_KEYS);
@@ -113,6 +108,8 @@ const VerPersonagemView = ({
   error,
   navigate,
   atributosView,
+  somaAtributos,
+  pontosDistribuicaoAttrs,
   distribuindo,
   pontosParaDistribuir,
   totalPontosDistribuir,
@@ -336,8 +333,8 @@ const VerPersonagemView = ({
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {atributosConfig.map(attr => {
-              const AttrIcon = attr.icon;
+            {pontosDistribuicaoAttrs.map(attr => {
+              const AttrIcon = atributoIcons[attr.key] || BarChart3;
               return (
                 <div key={attr.key} className={`flex items-center justify-between p-2 rounded-lg ${isLight ? 'bg-slate-100/50' : 'bg-slate-800/50'}`}>
                   <span className={`font-modern text-sm flex items-center gap-1.5 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
@@ -380,7 +377,7 @@ const VerPersonagemView = ({
       )}
 
       {/* Attributes */}
-      <AtributosSection isLight={isLight} personagem={p} atributosView={atributosView} />
+      <AtributosSection isLight={isLight} personagem={p} atributosView={atributosView} somaAtributos={somaAtributos} />
 
       {/* Vantagens & Desvantagens */}
       {((p.vantagens && p.vantagens.length > 0) || (p.desvantagens && p.desvantagens.length > 0)) && (() => {
@@ -554,7 +551,7 @@ const VerPersonagemView = ({
   );
 };
 
-const AtributosSection = ({ isLight, personagem, atributosView }) => {
+const AtributosSection = ({ isLight, personagem, atributosView, somaAtributos }) => {
   const sistema = atributosView?.sistema || 'lunaria';
   const atributos = atributosView?.atributos || [];
 
@@ -564,13 +561,21 @@ const AtributosSection = ({ isLight, personagem, atributosView }) => {
 
   return (
     <div className="card-rpg">
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
-          <BarChart3 size={16} className="text-white" />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+            <BarChart3 size={16} className="text-white" />
+          </div>
+          <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            Atributos
+          </h2>
         </div>
-        <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-          Atributos
-        </h2>
+        {atributos.length > 0 && (
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isLight ? 'bg-slate-100' : 'bg-slate-800/60'}`}>
+            <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Soma total</span>
+            <span className={`text-sm font-bold font-modern ${isLight ? 'text-slate-800' : 'text-white'}`}>{somaAtributos}</span>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {atributos.map(attr => {
@@ -590,7 +595,7 @@ const AtributosSection = ({ isLight, personagem, atributosView }) => {
                   {attr.modificador}
                 </div>
               )}
-              {bonusPorAtributo && (
+              {bonusPorAtributo && bonuses.length > 0 && (
                 <div className="mt-1.5 space-y-0.5">
                   <div className={`text-[10px] font-modern ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
                     Base: {base}
@@ -600,6 +605,9 @@ const AtributosSection = ({ isLight, personagem, atributosView }) => {
                       {b.value > 0 ? '+' : ''}{b.value} {b.label}
                     </div>
                   ))}
+                  <div className={`text-[10px] font-modern font-semibold ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                    = {attr.valor} efetivo
+                  </div>
                 </div>
               )}
             </div>

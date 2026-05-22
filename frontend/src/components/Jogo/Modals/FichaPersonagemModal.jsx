@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '../../LoadingSpinner';
 import { calcularMana, calcularHPMaximo, getDnd5eModifier, getDnd5eProficiencyBonus, formatModifier } from '../../../utils/rpgHelpers';
 
@@ -102,14 +102,20 @@ const FichaPersonagemModal = ({
     const isTresDet = personagem.sistema === 'tresdet';
     const isDnd5e = personagem.sistema === 'dnd5e';
     const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
+    // D&D sem stats_sistema: AC/spell slots/spellcasting degradam para fallback
+    // silencioso. Sinalizar a ficha incompleta em vez de esconder o problema.
+    const fichaDnd5eIncompleta = isDnd5e && !personagem.stats_sistema;
 
     const tresDetR = getTresDetAtributo(personagem, 'R');
     const tresDetHPMax = isTresDet ? Math.max(1, tresDetR * 5) : undefined;
     const tresDetMPMax = isTresDet && personagem.stats_sistema?.temMagia ? tresDetR * 5 : 0;
     const dnd5eHPMax = isDnd5e ? calcularHPMaximo(personagem) : undefined;
+    // Lunaria tambem tem fallback de HP fora de combate (multRaca x (nivel + modCON)).
+    const lunariaHPMax = !isTresDet && !isDnd5e ? calcularHPMaximo(personagem) : undefined;
+    const hpMaxFallback = isTresDet ? tresDetHPMax : isDnd5e ? dnd5eHPMax : lunariaHPMax;
 
-    const hpAtual = combateStats?.hp_atual ?? personagem.hp ?? personagem.hp_atual ?? (isTresDet ? tresDetHPMax : isDnd5e ? dnd5eHPMax : '???');
-    const hpMax = combateStats?.hp_max ?? personagem.hp_max ?? personagem.hp_maximo ?? (isTresDet ? tresDetHPMax : isDnd5e ? dnd5eHPMax : '?');
+    const hpAtual = combateStats?.hp_atual ?? personagem.hp ?? personagem.hp_atual ?? hpMaxFallback;
+    const hpMax = combateStats?.hp_max ?? personagem.hp_max ?? personagem.hp_maximo ?? hpMaxFallback;
 
     return (
       <div className="space-y-6">
@@ -174,6 +180,16 @@ const FichaPersonagemModal = ({
             </div>
           )}
         </div>
+
+        {fichaDnd5eIncompleta && (
+          <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-200">
+            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+            <p className="text-xs leading-relaxed">
+              Ficha incompleta: dados de sistema D&amp;D 5e (CA, conjuracao, espacos de magia)
+              ausentes. Os valores abaixo usam estimativas.
+            </p>
+          </div>
+        )}
 
         {isTresDet ? (
           <div className="game-glass border border-purple-500/20 rounded-2xl p-4">

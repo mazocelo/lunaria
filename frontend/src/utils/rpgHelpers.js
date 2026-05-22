@@ -35,7 +35,7 @@ export function calcularHPMaximo(personagem) {
     const R = Number(personagem?.atributos?.R ?? personagem?.R ?? 0) || 0;
     return Math.max(1, R * 5);
   }
-  const constituicao = personagem?.constituicao || 10;
+  const constituicao = personagem?.atributos?.constituicao ?? personagem?.constituicao ?? 10;
   const nivel = personagem?.nivel || 1;
   const modCon = Math.floor((constituicao - 10) / 2);
   const racaNome = personagem?.raca_nome || personagem?.racas?.nome || personagem?.raca || '';
@@ -55,8 +55,8 @@ export function calcularMana(personagem) {
     const R = Number(personagem?.atributos?.R ?? personagem?.R ?? 0) || 0;
     return Math.max(1, R * 5);
   }
-  const inteligencia = personagem?.inteligencia || 10;
-  const carisma = personagem?.carisma || 10;
+  const inteligencia = personagem?.atributos?.inteligencia ?? personagem?.inteligencia ?? 10;
+  const carisma = personagem?.atributos?.carisma ?? personagem?.carisma ?? 10;
   const nivel = personagem?.nivel || 1;
   const modInt = Math.floor((inteligencia - 10) / 2);
   const modCha = Math.floor((carisma - 10) / 2);

@@ -10,7 +10,6 @@ export const useClasseListaModel = () => {
   const classes = useClasseStore(s => s.classes);
   const loading = useClasseStore(s => s.loading);
   const error = useClasseStore(s => s.error);
-  const classesCarregadas = useClasseStore(s => s.classesCarregadas);
   const carregarClasses = useClasseStore(s => s.carregarClasses);
   const recarregarClasses = useClasseStore(s => s.recarregarClasses);
 
@@ -18,7 +17,9 @@ export const useClasseListaModel = () => {
   const [localError, setLocalError] = useState(null);
 
   useEffect(() => {
-    if (!classesCarregadas) carregarClasses();
+    // Catalogo Lunaria (default): carregarClasses recarrega sozinho caso o cache
+    // esteja preenchido com outro sistema (ex.: apos abrir o wizard D&D).
+    carregarClasses();
   }, []);
 
   const filteredClasses = useMemo(() => {

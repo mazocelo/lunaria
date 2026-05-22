@@ -15,12 +15,17 @@ import { classeService } from '../../services/index.js';
 export const createClasseActions = (set, get) => ({
 
   // ===== CARREGAMENTO ÚNICO DAS CLASSES =====
-  // Usado por: Views e ViewModels que precisam das classes
-  carregarClasses: async (forceReload = false) => {
-    const { classesCarregadas, loading } = get();
-    
-    // Se já foram carregados ou está carregando, não faz nada (exceto se forçar)
-    if ((classesCarregadas || loading) && !forceReload) {
+  // Usado por: Views e ViewModels que precisam das classes.
+  // `sistema` opcional filtra o catálogo (ex.: 'dnd5e'); ausente = default lunaria.
+  carregarClasses: async (forceReload = false, sistema = null) => {
+    const { classesCarregadas, loading, sistemaCarregado } = get();
+
+    // Cache só é válido para o mesmo sistema; troca de sistema força recarga.
+    const sistemaDivergente = sistemaCarregado !== sistema;
+
+    // Se já foram carregados ou está carregando, não faz nada (exceto se forçar
+    // ou se o sistema do cache não bate com o solicitado).
+    if ((classesCarregadas || loading) && !forceReload && !sistemaDivergente) {
       return get().classes;
     }
 
@@ -28,9 +33,9 @@ export const createClasseActions = (set, get) => ({
 
     try {
       // Importar o service dinamicamente
-      
+
       // Buscar classes do backend (carregar todas de uma vez)
-      const response = await classeService.getAll();
+      const response = await classeService.getAll(sistema ? { sistema } : undefined);
 
       // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
       const classesData = response.data || [];
@@ -40,6 +45,7 @@ export const createClasseActions = (set, get) => ({
 
       // Processar e cachear os dados
       get().processarClasses(classesData, total, offset, limit);
+      set({ sistemaCarregado: sistema });
 
       return classesData;
     } catch (error) {

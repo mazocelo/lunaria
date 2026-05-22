@@ -25,10 +25,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
 
   // --- Zustand store subscriptions ---
   const racas = useRacaStore(s => s.racas);
-  const racasCarregadas = useRacaStore(s => s.racasCarregadas);
   const carregarRacas = useRacaStore(s => s.carregarRacas);
   const classes = useClasseStore(s => s.classes);
-  const classesCarregadas = useClasseStore(s => s.classesCarregadas);
   const carregarClasses = useClasseStore(s => s.carregarClasses);
   const vantagens = useVantagemStore(s => s.vantagens);
   const vantagensCarregadas = useVantagemStore(s => s.vantagensCarregadas);
@@ -200,7 +198,9 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     tresdetVantagensIds,
     tresdetDesvantagensIds,
     dndAbilityScores,
+    dndAbilitiesConfirmed,
     dndSkillProficiencies,
+    dndSkillsConfirmed,
   };
   const mensagensRef = useRef();
   mensagensRef.current = mensagens;
@@ -350,17 +350,23 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
 
   // Load catalogs on mount (3D&T busca catalogos nos proprios blocos).
   // D&D 5e usa racas/classes mas nao vantagens/desvantagens.
+  // racas/classes sao filtradas por sistema: o catalogo do wizard D&D mostra
+  // racas/classes de D&D. carregarRacas/carregarClasses recarregam sozinhos
+  // quando o sistema do cache difere do solicitado.
   useEffect(() => {
     if (isTresdet) return;
+    // Lunaria e o default do backend: passa null para nao filtrar.
+    const sistemaCatalogo = isDnd5e ? 'dnd5e' : null;
     const loadAll = async () => {
-      const promises = [];
-      if (!racasCarregadas) promises.push(carregarRacas());
-      if (!classesCarregadas) promises.push(carregarClasses());
+      const promises = [
+        carregarRacas(false, sistemaCatalogo),
+        carregarClasses(false, sistemaCatalogo),
+      ];
       if (!isDnd5e) {
         if (!vantagensCarregadas) promises.push(carregarVantagens());
         if (!desvantagensCarregadas) promises.push(carregarDesvantagens());
       }
-      if (promises.length > 0) await Promise.all(promises);
+      await Promise.all(promises);
     };
     loadAll();
   }, [isTresdet, isDnd5e]);

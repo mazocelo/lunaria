@@ -290,4 +290,33 @@ describe('Classe Store - carregarClasses', () => {
     expect(useClasseStore.getState().error).toBe('Server down');
     expect(useClasseStore.getState().loading).toBe(false);
   });
+
+  it('passes sistema as a query param when provided', async () => {
+    classeService.getAll.mockResolvedValue({ data: SAMPLE_CLASSES });
+    await useClasseStore.getState().carregarClasses(false, 'dnd5e');
+    expect(classeService.getAll).toHaveBeenCalledWith({ sistema: 'dnd5e' });
+    expect(useClasseStore.getState().sistemaCarregado).toBe('dnd5e');
+  });
+
+  it('omits the query param when no sistema is provided', async () => {
+    classeService.getAll.mockResolvedValue({ data: SAMPLE_CLASSES });
+    await useClasseStore.getState().carregarClasses();
+    expect(classeService.getAll).toHaveBeenCalledWith(undefined);
+    expect(useClasseStore.getState().sistemaCarregado).toBeNull();
+  });
+
+  it('reloads when the cached sistema differs from the requested one', async () => {
+    classeService.getAll.mockResolvedValue({ data: SAMPLE_CLASSES });
+    await useClasseStore.getState().carregarClasses();
+    await useClasseStore.getState().carregarClasses(false, 'dnd5e');
+    expect(classeService.getAll).toHaveBeenCalledTimes(2);
+    expect(useClasseStore.getState().sistemaCarregado).toBe('dnd5e');
+  });
+
+  it('skips reload when the cached sistema matches the requested one', async () => {
+    classeService.getAll.mockResolvedValue({ data: SAMPLE_CLASSES });
+    await useClasseStore.getState().carregarClasses(false, 'dnd5e');
+    await useClasseStore.getState().carregarClasses(false, 'dnd5e');
+    expect(classeService.getAll).toHaveBeenCalledTimes(1);
+  });
 });

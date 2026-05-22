@@ -21,6 +21,7 @@ export const racaInitialStates = {
   loading: false,
   error: null,
   lastLoadTime: null, // Quando foi carregado pela última vez
+  sistemaCarregado: null, // Sistema das raças em cache (null = default/lunaria)
   
   // ===== PAGINAÇÃO E METADADOS =====
   total: 0, // Total de raças no backend

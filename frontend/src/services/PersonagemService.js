@@ -75,6 +75,25 @@ export class PersonagemService {
   }
 
   /**
+   * Cria um personagem D&D 5e a partir do payload do wizard.
+   * O payload D&D nao casa com o modelo Lunaria (ability scores STR/DEX/...,
+   * skill proficiencies), entao e enviado direto sem passar pelo toJSON Lunaria.
+   * @param {Object} payload - Payload de criacao D&D 5e
+   * @returns {Promise<Personagem>} Personagem criado
+   */
+  async createDnd5e(payload) {
+    try {
+      const data = await this.apiClient.post(this.baseUrl, payload);
+      if (data.success) {
+        return Personagem.fromAPI(data.data);
+      }
+      throw new Error(data?.message || 'Erro desconhecido');
+    } catch (error) {
+      throw new Error(`Erro ao criar personagem: ${error.message}`);
+    }
+  }
+
+  /**
    * Atualiza um personagem existente
    * @param {number} id - ID do personagem
    * @param {Personagem} personagem - Dados atualizados

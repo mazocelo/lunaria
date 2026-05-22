@@ -38,12 +38,10 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
 
   // Zustand stores
   const racas = useRacaStore(s => s.racas);
-  const racasCarregadas = useRacaStore(s => s.racasCarregadas);
   const carregarRacas = useRacaStore(s => s.carregarRacas);
   const racasLoading = useRacaStore(s => s.loading);
 
   const classes = useClasseStore(s => s.classes);
-  const classesCarregadas = useClasseStore(s => s.classesCarregadas);
   const carregarClasses = useClasseStore(s => s.carregarClasses);
   const classesLoading = useClasseStore(s => s.loading);
 
@@ -86,16 +84,11 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
   }, []);
 
   const loadOpcoes = async () => {
-    const racasJa = racasCarregadas && racas.length > 0;
-    const classesJa = classesCarregadas && classes.length > 0;
-    if (racasJa && classesJa) return;
-
     setLoadingOpcoes(true);
     try {
-      const promises = [];
-      if (!racasJa) promises.push(carregarRacas());
-      if (!classesJa) promises.push(carregarClasses());
-      await Promise.all(promises);
+      // Catalogo Lunaria (default): carregarRacas/carregarClasses recarregam
+      // sozinhos caso o cache esteja preenchido com outro sistema.
+      await Promise.all([carregarRacas(), carregarClasses()]);
     } catch (err) {
       console.error('Erro ao carregar opcoes:', err);
     } finally {

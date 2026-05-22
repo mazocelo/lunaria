@@ -18,6 +18,82 @@ export const useCharacterCreation = ({
   const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
   const [creationResultData, setCreationResultData] = useState(null);
 
+  /** Cria um personagem D&D 5e: valida o estado D&D e envia o payload proprio. */
+  const salvarPersonagemDnd5e = useCallback(async (s) => {
+    const scores = s.dndAbilityScores || {};
+    const abilityIds = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+    const scoresCompletos = abilityIds.every(id => scores[id] != null);
+    if (!s.dndAbilitiesConfirmed || !scoresCompletos) {
+      setError('Confirme a distribuicao dos seis atributos antes de criar.');
+      return;
+    }
+    if (!s.dndSkillsConfirmed) {
+      setError('Confirme as pericias antes de criar.');
+      return;
+    }
+
+    setSalvando(true);
+    setError(null);
+    setCreationFlowStatus('creating_character');
+    setCreationResultModalOpen(false);
+    setCreationResultData(null);
+
+    try {
+      const payload = {
+        nome: s.nome,
+        sistema: 'dnd5e',
+        raca_id: s.racaId,
+        classe_id: s.classeId,
+        background: s.background,
+        nivel: 1,
+        dnd_ability_scores: Object.fromEntries(abilityIds.map(id => [id, scores[id]])),
+        metodo: 'standard_array',
+        skill_proficiencies: s.dndSkillProficiencies || [],
+      };
+
+      const criado = await personagemService.createDnd5e(payload);
+
+      let backgroundResult = null;
+      let backgroundIndisponivel = false;
+      if (criado?.id && s.background) {
+        setCreationFlowStatus('generating_background');
+        try {
+          backgroundResult = await personagemService.gerarBackground(criado.id, s.background);
+        } catch (bgError) {
+          backgroundIndisponivel = true;
+          console.warn('Background IA nao gerado:', bgError.message);
+        }
+      }
+
+      if (criado?.id && imageUrl) {
+        try {
+          await personagemService.update(criado.id, { imagem: imageUrl });
+        } catch { /* non-blocking */ }
+      }
+
+      limparDraft();
+      await recarregarPersonagens();
+
+      setCreationFlowStatus('opening_result');
+      setCreationResultData({
+        personagem: criado,
+        preview: null,
+        background_digitado: s.background,
+        background_gerado: backgroundResult?.background_gerado || null,
+        background_final: backgroundResult?.background_gerado || s.background,
+        background_indisponivel: backgroundIndisponivel || !backgroundResult?.background_gerado,
+      });
+      setCreationResultModalOpen(true);
+      setCreationFlowStatus('idle');
+    } catch (err) {
+      setCreationFlowStatus('error');
+      setError(err.message || 'Erro ao criar personagem');
+      setCreationFlowStatus('idle');
+    } finally {
+      setSalvando(false);
+    }
+  }, [imageUrl, limparDraft, recarregarPersonagens, setError]);
+
   /** Salva o personagem usando o combo atual do preview */
   const salvarPersonagem = useCallback(async () => {
     const s = estadoRef.current;
@@ -25,6 +101,12 @@ export const useCharacterCreation = ({
     if (!s.racaId) { setError('Selecione uma raca antes de salvar'); return; }
     if (!s.classeId) { setError('Selecione uma classe antes de salvar'); return; }
     if (!s.background?.trim()) { setError('Descreva a origem do personagem antes de salvar'); return; }
+
+    if (sistema === 'dnd5e') {
+      await salvarPersonagemDnd5e(s);
+      return;
+    }
+
     if (!bonusCalc.bonusAplicados) {
       setError('Confirme seus atributos antes de salvar.');
       return;
@@ -130,6 +212,7 @@ export const useCharacterCreation = ({
     imageUrl,
     grimorioSelecionadas,
     sistema,
+    salvarPersonagemDnd5e,
   ]);
 
   /** Fecha o modal de resultado de criação */

@@ -10,7 +10,6 @@ export const useRacaListaModel = () => {
   const racas = useRacaStore(s => s.racas);
   const loading = useRacaStore(s => s.loading);
   const error = useRacaStore(s => s.error);
-  const racasCarregadas = useRacaStore(s => s.racasCarregadas);
   const carregarRacas = useRacaStore(s => s.carregarRacas);
   const recarregarRacas = useRacaStore(s => s.recarregarRacas);
 
@@ -18,7 +17,9 @@ export const useRacaListaModel = () => {
   const [localError, setLocalError] = useState(null);
 
   useEffect(() => {
-    if (!racasCarregadas) carregarRacas();
+    // Catalogo Lunaria (default): carregarRacas recarrega sozinho caso o cache
+    // esteja preenchido com outro sistema (ex.: apos abrir o wizard D&D).
+    carregarRacas();
   }, []);
 
   const filteredRacas = useMemo(() => {

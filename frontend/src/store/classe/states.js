@@ -21,6 +21,7 @@ export const classeInitialStates = {
   loading: false,
   error: null,
   lastLoadTime: null, // Quando foi carregado pela última vez
+  sistemaCarregado: null, // Sistema das classes em cache (null = default/lunaria)
   
   // ===== PAGINAÇÃO E METADADOS =====
   total: 0, // Total de classes no backend

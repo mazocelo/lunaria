@@ -21,6 +21,8 @@ export class Personagem {
     this.nivel = data.nivel || 1;
     this.sistema = data.sistema || 'lunaria';
     this.atributos = data.atributos || {};
+    // JSON especifico do sistema (D&D 5e: classeKey, metodo, skillProficiencies).
+    this.stats_sistema = data.stats_sistema || null;
     // Atributos individuais: prioriza o mapa data.atributos (fonte do backend),
     // fallback para campos escalares legados.
     this.forca = data.atributos?.forca ?? data.forca ?? 10;
@@ -168,6 +170,7 @@ export class Personagem {
       nivel: this.nivel,
       sistema: this.sistema,
       atributos: this.atributos,
+      stats_sistema: this.stats_sistema,
       forca: this.forca,
       destreza: this.destreza,
       constituicao: this.constituicao,
@@ -218,6 +221,7 @@ export class Personagem {
       nivel: apiData.nivel,
       sistema: apiData.sistema || 'lunaria',
       atributos: apiData.atributos || {},
+      stats_sistema: apiData.stats_sistema || null,
       forca: apiData.forca,
       destreza: apiData.destreza,
       constituicao: apiData.constituicao,

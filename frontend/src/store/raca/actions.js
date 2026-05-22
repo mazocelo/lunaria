@@ -15,12 +15,17 @@ import { racaService } from '../../services/index.js';
 export const createRacaActions = (set, get) => ({
 
   // ===== CARREGAMENTO ÚNICO DAS RAÇAS =====
-  // Usado por: Views e ViewModels que precisam das raças
-  carregarRacas: async (forceReload = false) => {
-    const { racasCarregadas, loading } = get();
-    
-    // Se já foram carregados ou está carregando, não faz nada (exceto se forçar)
-    if ((racasCarregadas || loading) && !forceReload) {
+  // Usado por: Views e ViewModels que precisam das raças.
+  // `sistema` opcional filtra o catálogo (ex.: 'dnd5e'); ausente = default lunaria.
+  carregarRacas: async (forceReload = false, sistema = null) => {
+    const { racasCarregadas, loading, sistemaCarregado } = get();
+
+    // Cache só é válido para o mesmo sistema; troca de sistema força recarga.
+    const sistemaDivergente = sistemaCarregado !== sistema;
+
+    // Se já foram carregados ou está carregando, não faz nada (exceto se forçar
+    // ou se o sistema do cache não bate com o solicitado).
+    if ((racasCarregadas || loading) && !forceReload && !sistemaDivergente) {
       return get().racas;
     }
 
@@ -28,9 +33,9 @@ export const createRacaActions = (set, get) => ({
 
     try {
       // Importar o service dinamicamente
-      
+
       // Buscar raças do backend (carregar todas de uma vez)
-      const response = await racaService.getAll();
+      const response = await racaService.getAll(sistema ? { sistema } : undefined);
       // A API retorna { success, data, pagination: { total, limit, offset, hasMore } }
       const racasData = response.data || [];
       const total = response.pagination?.total ?? racasData.length;
@@ -39,6 +44,7 @@ export const createRacaActions = (set, get) => ({
 
       // Processar e cachear os dados
       get().processarRacas(racasData, total, offset, limit);
+      set({ sistemaCarregado: sistema });
 
       return racasData;
     } catch (error) {

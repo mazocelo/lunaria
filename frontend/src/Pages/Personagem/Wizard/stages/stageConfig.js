@@ -5,7 +5,6 @@
  * copy de progresso, flags de comportamento) vive aqui.
  *
  * Suporta tres sistemas: lunaria (padrao), tresdet (3D&T Alpha) e dnd5e (D&D 5e).
- * O ramo dnd5e ainda e um STUB (DND5E_STAGES vazio); cai no fallback Lunaria.
  */
 
 // ===== LUNARIA STAGES =====
@@ -444,10 +443,177 @@ export const TRESDET_STAGES = [
   },
 ];
 
-// ===== D&D 5e STAGES (STUB) =====
-// O epico D&D 5e e a proxima onda. Por ora DND5E_STAGES e um stub vazio e
-// getSystemStages('dnd5e') cai controladamente no fallback Lunaria.
-export const DND5E_STAGES = [];
+// ===== D&D 5e STAGES =====
+// Wizard D&D 5e: 7 etapas. Equipamentos e magias ficam como divida futura
+// (o backend D&D ainda nao os persiste).
+
+export const DND5E_STAGES = [
+  {
+    id: 'boas_vindas',
+    label: 'O Chamado',
+    icon: '✨',
+    title: 'Batize o aventureiro',
+    description: 'Escolha um nome que ecoe pelos reinos e abra caminho para o resto da ficha.',
+    placeholder: 'Descreva o nome que voce procura ou aceite uma sugestao...',
+    refreshPrompt: 'Sugira nomes para meu personagem.',
+    next: 'raca',
+    allowRefresh: true,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: 'nome',
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Nome',
+    doneCheck: 'nome',
+  },
+  {
+    id: 'raca',
+    label: 'Raca',
+    icon: '👑',
+    title: 'Escolha a raca',
+    description: 'A raca define tracos, afinidades e como o mundo enxerga seu personagem.',
+    placeholder: 'Peca outra raca ou descreva o heroi que imagina...',
+    refreshPrompt: 'Mostre-me outras racas diferentes para esta etapa. Nao avance para a proxima etapa.',
+    next: 'classe',
+    allowRefresh: true,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: true,
+    suggestionType: 'raca',
+    showCatalog: true,
+    catalogLabel: 'racas',
+    catalogType: 'raca',
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Raca',
+    doneCheck: 'racaId',
+  },
+  {
+    id: 'classe',
+    label: 'Classe',
+    icon: '⚔️',
+    title: 'Escolha a classe',
+    description: 'A classe define papel tatico, recursos e como esse personagem progride.',
+    placeholder: 'Peca outra classe ou descreva como quer jogar...',
+    refreshPrompt: 'Mostre-me outras classes diferentes para esta etapa. Nao avance para a proxima etapa.',
+    next: 'background',
+    allowRefresh: true,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: true,
+    suggestionType: 'classe',
+    showCatalog: true,
+    catalogLabel: 'classes',
+    catalogType: 'classe',
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Classe',
+    doneCheck: 'classeId',
+  },
+  {
+    id: 'background',
+    label: 'Antecedente',
+    icon: '📜',
+    title: 'Amarre o antecedente',
+    description: 'O antecedente explica de onde o heroi veio e o que moldou suas ambicoes.',
+    placeholder: 'Descreva a origem do personagem ou peca ajuda ao Mestre...',
+    refreshPrompt: 'Mostre-me outras sugestoes de antecedente para esta etapa. Nao avance para a proxima etapa.',
+    next: 'atributos',
+    allowRefresh: true,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: 'background',
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    progressLabel: 'Antecedente',
+    doneCheck: 'background',
+  },
+  {
+    id: 'atributos',
+    label: 'Atributos',
+    icon: '🔮',
+    title: 'Distribua os atributos',
+    description: 'Distribua os valores do Conjunto Padrao entre os seis atributos.',
+    placeholder: 'Peca ao Mestre uma sugestao de distribuicao de atributos...',
+    refreshPrompt: null,
+    next: 'skills',
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: true,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    showDndAbilityScores: true,
+    progressLabel: 'Atributos',
+    doneCheck: 'dndAbilitiesConfirmed',
+    continueLabel: 'Confirmar atributos',
+  },
+  {
+    id: 'skills',
+    label: 'Pericias',
+    icon: '🛡️',
+    title: 'Escolha as pericias',
+    description: 'Selecione as proficiencias em pericias concedidas pela sua classe.',
+    placeholder: '',
+    refreshPrompt: null,
+    next: 'resumo',
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: true,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: false,
+    showDndSkills: true,
+    progressLabel: 'Pericias',
+    doneCheck: 'dndSkillsConfirmed',
+    continueLabel: 'Confirmar pericias',
+  },
+  {
+    id: 'resumo',
+    label: 'Destino',
+    icon: '🎯',
+    title: 'Confirme seu heroi',
+    description: 'Revise a ficha completa e sele o aventureiro antes de criar o personagem.',
+    placeholder: 'Revise a ficha antes de criar o personagem...',
+    refreshPrompt: null,
+    next: null,
+    allowRefresh: false,
+    allowSkip: false,
+    requireExplicitContinue: false,
+    autoAdvanceOnSelect: false,
+    suggestionType: null,
+    showCatalog: false,
+    catalogLabel: null,
+    catalogType: null,
+    showAttributePanel: false,
+    showBudgetPanel: false,
+    showFinalAction: true,
+    progressLabel: null,
+    doneCheck: null,
+  },
+];
 
 // ===== BACKWARD-COMPAT: STAGES = LUNARIA_STAGES =====
 export const STAGES = LUNARIA_STAGES;
@@ -464,10 +630,11 @@ function buildDerived(stages) {
 
 const LUNARIA_DERIVED = buildDerived(LUNARIA_STAGES);
 const TRESDET_DERIVED = buildDerived(TRESDET_STAGES);
+const DND5E_DERIVED = buildDerived(DND5E_STAGES);
 
 export function getSystemStages(sistema) {
   if (sistema === 'tresdet') return TRESDET_DERIVED;
-  // dnd5e ainda e stub (DND5E_STAGES vazio): cai no fallback Lunaria.
+  if (sistema === 'dnd5e') return DND5E_DERIVED;
   return LUNARIA_DERIVED;
 }
 

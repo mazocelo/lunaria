@@ -2,8 +2,7 @@
  * stageSelectors.js — Funcoes puras de leitura do estado do wizard
  *
  * Nenhuma dessas funcoes causa side effects. Recebem buildState e retornam dados derivados.
- * Suporta sistemas: lunaria (padrao) e tresdet (3D&T Alpha). O ramo dnd5e ainda
- * nao existe — sistema 'dnd5e' cai controladamente no fallback Lunaria.
+ * Suporta sistemas: lunaria (padrao), tresdet (3D&T Alpha) e dnd5e (D&D 5e).
  */
 import { getStageConfig, getSystemStages } from './stageConfig.js';
 
@@ -24,6 +23,19 @@ export function isStageDone(stageId, buildState, sistema) {
       case 'desvantagens': return !!buildState.desvantagensSelecionadas || !!buildState.skipDesvantagens;
       case 'equipamentos': return !!buildState.comboPreviewData;
       case 'magias': return !!buildState.magiasSelecionadas;
+      case 'resumo': return false;
+      default: return false;
+    }
+  }
+
+  if (sistema === 'dnd5e') {
+    switch (stageId) {
+      case 'boas_vindas': return !!buildState.nome?.trim();
+      case 'raca': return !!buildState.racaId;
+      case 'classe': return !!buildState.classeId;
+      case 'background': return !!buildState.background?.trim();
+      case 'atributos': return !!buildState.dndAbilitiesConfirmed;
+      case 'skills': return !!buildState.dndSkillsConfirmed;
       case 'resumo': return false;
       default: return false;
     }
@@ -75,6 +87,19 @@ export function getStageTooltip(stageId, buildState, sistema) {
         return 'Desvantagens pendentes';
       case 'equipamentos': return buildState.comboPreviewData ? 'Equipamentos definidos' : 'Equipamentos pendentes';
       case 'magias': return buildState.magiasSelecionadas ? 'Magias selecionadas' : 'Magias pendentes';
+      case 'resumo': return podeCriar ? 'Pronto para selar' : 'Em preparo';
+      default: return '';
+    }
+  }
+
+  if (sistema === 'dnd5e') {
+    switch (stageId) {
+      case 'boas_vindas': return nome?.trim() || 'Nome pendente';
+      case 'raca': return racaAtual?.nome || 'Raca pendente';
+      case 'classe': return classeAtual?.nome || 'Classe pendente';
+      case 'background': return background?.trim() ? 'Antecedente definido' : 'Antecedente pendente';
+      case 'atributos': return buildState.dndAbilitiesConfirmed ? 'Atributos confirmados' : 'Atributos pendentes';
+      case 'skills': return buildState.dndSkillsConfirmed ? 'Pericias confirmadas' : 'Pericias pendentes';
       case 'resumo': return podeCriar ? 'Pronto para selar' : 'Em preparo';
       default: return '';
     }
@@ -141,6 +166,13 @@ export function getReadinessState(buildState, sistema) {
     return 'sealed';
   }
 
+  if (sistema === 'dnd5e') {
+    const { nome, racaId, classeId } = buildState;
+    if (!nome?.trim() || !racaId || !classeId) return 'open';
+    if (getPendingCount(buildState, sistema) > 0) return 'shaping';
+    return 'sealed';
+  }
+
   const { nome, racaId, classeId, bonusInvalidado } = buildState;
   if (!nome?.trim() || !racaId || !classeId) return 'open';
   if (getPendingCount(buildState, sistema) > 0 || bonusInvalidado) return 'shaping';
@@ -163,6 +195,19 @@ export function getPendingCount(buildState, sistema) {
     const opcionais = Number(!vantagensSelecionadas && !skipVantagens)
       + Number(!desvantagensSelecionadas && !skipDesvantagens);
     return obrigatorios + opcionais;
+  }
+
+  if (sistema === 'dnd5e') {
+    const { nome, racaId, classeId, background,
+            dndAbilitiesConfirmed, dndSkillsConfirmed } = buildState;
+    return [
+      !nome?.trim(),
+      !racaId,
+      !classeId,
+      !background?.trim(),
+      !dndAbilitiesConfirmed,
+      !dndSkillsConfirmed,
+    ].filter(Boolean).length;
   }
 
   const { nome, racaId, classeId, background, bonusAplicados,
@@ -193,6 +238,19 @@ export function canCreate(buildState, sistema) {
     return !!(nome?.trim() && background?.trim() && caracteristicasDistribuidas);
   }
 
+  if (sistema === 'dnd5e') {
+    const { nome, racaId, classeId, background,
+            dndAbilitiesConfirmed, dndSkillsConfirmed } = buildState;
+    return !!(
+      nome?.trim()
+      && racaId
+      && classeId
+      && background?.trim()
+      && dndAbilitiesConfirmed
+      && dndSkillsConfirmed
+    );
+  }
+
   const { nome, racaId, classeId, background, bonusAplicados, pontosCriacaoRestantes } = buildState;
   return !!(
     nome?.trim()
@@ -221,6 +279,12 @@ export function canContinueStage(stageId, buildState, sistema) {
     if (stageId === 'vantagens') return !!buildState.vantagensSelecionadas || !!buildState.skipVantagens;
     if (stageId === 'desvantagens') return !!buildState.desvantagensSelecionadas || !!buildState.skipDesvantagens;
     if (stageId === 'magias') return !!buildState.magiasSelecionadas;
+    return false;
+  }
+
+  if (sistema === 'dnd5e') {
+    if (stageId === 'atributos') return !!buildState.dndAbilitiesConfirmed;
+    if (stageId === 'skills') return !!buildState.dndSkillsConfirmed;
     return false;
   }
 

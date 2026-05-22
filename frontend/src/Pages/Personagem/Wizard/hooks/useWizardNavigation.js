@@ -29,6 +29,8 @@ export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria
       vantagensSelecionadas,
       desvantagensSelecionadas,
       magiasSelecionadas,
+      dndAbilitiesConfirmed,
+      dndSkillsConfirmed,
     } = buildState;
 
     const concluidas = [];
@@ -41,6 +43,13 @@ export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria
       if (desvantagensSelecionadas || skipDesvantagens) concluidas.push('desvantagens');
       if (comboPreviewData) concluidas.push('equipamentos');
       if (magiasSelecionadas) concluidas.push('magias');
+    } else if (sistema === 'dnd5e') {
+      if (nome?.trim()) concluidas.push('boas_vindas');
+      if (racaId) concluidas.push('raca');
+      if (classeId) concluidas.push('classe');
+      if (background?.trim()) concluidas.push('background');
+      if (dndAbilitiesConfirmed) concluidas.push('atributos');
+      if (dndSkillsConfirmed) concluidas.push('skills');
     } else {
       if (nome?.trim()) concluidas.push('boas_vindas');
       if (racaId) concluidas.push('raca');
@@ -70,6 +79,8 @@ export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria
     buildState.vantagensSelecionadas,
     buildState.desvantagensSelecionadas,
     buildState.magiasSelecionadas,
+    buildState.dndAbilitiesConfirmed,
+    buildState.dndSkillsConfirmed,
   ]);
 
   /** Retorna info da proxima etapa sem navegar (read-only) */

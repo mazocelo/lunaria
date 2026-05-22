@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { vantagemService, desvantagemService, apiClient } from '../../../../services/index.js';
+import { vantagemService, desvantagemService, itemTresDetService, apiClient } from '../../../../services/index.js';
 import { useTresDetFichaModel } from './ficha-livre.model.js';
 import { useMestreFichaLivre } from './hooks/useMestreFichaLivre.js';
 import FichaLivreView from './ficha-livre.view.jsx';
@@ -15,17 +15,19 @@ export default function TresDetFichaLivre() {
     let cancelled = false;
     (async () => {
       try {
-        const [vResp, dResp, fResp, mResp] = await Promise.all([
+        const [vResp, dResp, fResp, mResp, iResp] = await Promise.all([
           vantagemService.getAll({ sistema: 'tresdet' }),
           desvantagemService.getAll({ sistema: 'tresdet' }),
           apiClient.get('/focus-elementais'),
           apiClient.get('/magias-tresdet'),
+          itemTresDetService.getAll(),
         ]);
         if (cancelled) return;
         model.setVantagensCatalogo(vResp.data || vResp || []);
         model.setDesvantagensCatalogo(dResp.data || dResp || []);
         if (fResp?.data) setFocusCatalogo(fResp.data);
         if (mResp?.data) model.setMagiasCatalogo(mResp.data);
+        if (iResp?.data) model.setItensCatalogo(iResp.data);
       } catch { /* ignore */ }
       if (!cancelled) model.setCatalogoLoading(false);
     })();
@@ -65,6 +67,7 @@ export default function TresDetFichaLivre() {
         vantagens: model.vantagensIds.map(Number),
         desvantagens: model.desvantagensIds.map(Number),
         magias_ids: model.magiasIds.map(Number),
+        itens: model.equipamentosIds.map(Number),
         background: model.historia,
       };
       const resp = await apiClient.post('/personagens', payload);

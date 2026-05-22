@@ -43,6 +43,8 @@ export function useTresDetFichaModel({ navigate }) {
   const [catalogoLoading, setCatalogoLoading] = useState(true);
   const [magiasIds, setMagiasIds] = useState([]);
   const [magiasCatalogo, setMagiasCatalogo] = useState([]);
+  const [equipamentosIds, setEquipamentosIds] = useState([]);
+  const [itensCatalogo, setItensCatalogo] = useState([]);
 
   // ---- Pool computations ----
   const pontosTotal = NIVEL_PODER[nivelPoder] || 7;
@@ -180,6 +182,16 @@ export function useTresDetFichaModel({ navigate }) {
     setMagiasIds(prev => prev.filter(x => x !== String(id)));
   }, []);
 
+  const adicionarEquipamento = useCallback((id) => {
+    const sid = String(id);
+    if (equipamentosIds.includes(sid)) return;
+    setEquipamentosIds(prev => [...prev, sid]);
+  }, [equipamentosIds]);
+
+  const removerEquipamento = useCallback((id) => {
+    setEquipamentosIds(prev => prev.filter(x => x !== String(id)));
+  }, []);
+
   // ---- Nível de Poder change with auto-trim ----
   const mudarNivelPoder = useCallback((novoNivel) => {
     setNivelPoder(novoNivel);
@@ -250,17 +262,18 @@ export function useTresDetFichaModel({ navigate }) {
       if (draft.focus) setFocus(draft.focus);
       if (draft.historia) setHistoria(draft.historia);
       if (draft.magiasIds) setMagiasIds(draft.magiasIds);
+      if (draft.equipamentosIds) setEquipamentosIds(draft.equipamentosIds);
     } catch { /* ignore corrupt draft */ }
   }, []);
 
   useEffect(() => {
     clearTimeout(draftTimerRef.current);
     draftTimerRef.current = setTimeout(() => {
-      const draft = { nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia, magiasIds };
+      const draft = { nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia, magiasIds, equipamentosIds };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     }, 1000);
     return () => clearTimeout(draftTimerRef.current);
-  }, [nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia, magiasIds]);
+  }, [nome, nivelPoder, caracteristicas, vantagensIds, desvantagensIds, focus, historia, magiasIds, equipamentosIds]);
 
   const limparDraft = useCallback(() => {
     localStorage.removeItem(DRAFT_KEY);
@@ -290,6 +303,7 @@ export function useTresDetFichaModel({ navigate }) {
     vantagensIds, adicionarVantagem, removerVantagem,
     desvantagensIds, adicionarDesvantagem, removerDesvantagem,
     magiasIds, adicionarMagia, removerMagia,
+    equipamentosIds, adicionarEquipamento, removerEquipamento,
     focus, setFocusNivel,
     historia, setHistoria,
     // Pool
@@ -302,6 +316,7 @@ export function useTresDetFichaModel({ navigate }) {
     vantagensCatalogo, desvantagensCatalogo, catalogoLoading,
     setVantagensCatalogo, setDesvantagensCatalogo, setCatalogoLoading,
     magiasCatalogo, setMagiasCatalogo,
+    itensCatalogo, setItensCatalogo,
     // Actions
     salvando, setSalvando, error, setError, limparDraft,
     navigate,

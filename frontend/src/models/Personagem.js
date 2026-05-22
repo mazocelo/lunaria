@@ -24,13 +24,15 @@ export class Personagem {
     // JSON especifico do sistema (D&D 5e: classeKey, metodo, skillProficiencies).
     this.stats_sistema = data.stats_sistema || null;
     // Atributos individuais: prioriza o mapa data.atributos (fonte do backend),
-    // fallback para campos escalares legados.
-    this.forca = data.atributos?.forca ?? data.forca ?? 10;
-    this.destreza = data.atributos?.destreza ?? data.destreza ?? 10;
-    this.constituicao = data.atributos?.constituicao ?? data.constituicao ?? 10;
-    this.inteligencia = data.atributos?.inteligencia ?? data.inteligencia ?? 10;
-    this.agilidade = data.atributos?.agilidade ?? data.agilidade ?? 10;
-    this.carisma = data.atributos?.carisma ?? data.carisma ?? 10;
+    // fallback para campos escalares (usados na criacao Lunaria).
+    // NAO cair para 10 quando nao ha fonte real: falhar explicito > mascarar
+    // atributo ausente e gravar 10/10/10 silenciosamente.
+    this.forca = data.atributos?.forca ?? data.forca ?? null;
+    this.destreza = data.atributos?.destreza ?? data.destreza ?? null;
+    this.constituicao = data.atributos?.constituicao ?? data.constituicao ?? null;
+    this.inteligencia = data.atributos?.inteligencia ?? data.inteligencia ?? null;
+    this.agilidade = data.atributos?.agilidade ?? data.agilidade ?? null;
+    this.carisma = data.atributos?.carisma ?? data.carisma ?? null;
     this.sugestao_background = data.sugestao_background || 'guiado';
     this.background = data.background || '';
     this.vantagens = data.vantagens || [];
@@ -107,7 +109,14 @@ export class Personagem {
         errors.push('A distribuicao inicial deve somar 60 pontos');
       }
     } else {
-      atributosNumericos.forEach(({ atributo, valor }) => {
+      // Fora da criacao os atributos nao sao editaveis (PUT nao os altera) e
+      // podem estar ausentes quando a ficha foi carregada via mapa `atributos`.
+      // So validar a faixa quando ha um valor escalar real — nunca tratar
+      // ausencia (null/undefined) como erro nem mascarar com default.
+      atributos.forEach((atributo) => {
+        const bruto = this[atributo];
+        if (bruto === null || bruto === undefined) return;
+        const valor = Number(bruto);
         if (!Number.isFinite(valor) || valor < 1 || valor > 20) {
           errors.push(`${atributo.charAt(0).toUpperCase() + atributo.slice(1)} deve estar entre 1 e 20`);
         }
@@ -150,7 +159,29 @@ export class Personagem {
   }
 
   /**
-   * Converte para objeto plano
+   * Payload para o PUT /personagens/:id.
+   * O PUT nao altera mais atributos (mudam so na criacao e em distribuir-pontos),
+   * entao este payload NAO inclui os campos escalares de atributo nem o mapa
+   * `atributos` — apenas os campos que o PUT realmente atualiza. Enviar atributo
+   * aqui seria uma porta de corrupcao da ficha.
+   * @returns {Object} Campos editaveis via PUT
+   */
+  toUpdatePayload() {
+    return {
+      nome: this.nome,
+      imagem: this.imagem,
+      background: this.background,
+      sugestao_background: this.sugestao_background,
+      historias: this.historias,
+      vantagens: this.vantagens,
+      desvantagens: this.desvantagens,
+      equipamentos: this.equipamentos,
+    };
+  }
+
+  /**
+   * Converte para objeto plano. Usado como payload de CRIACAO (POST), que
+   * aceita os atributos escalares. NAO usar para o PUT — use toUpdatePayload().
    * @returns {Object} Dados do personagem
    */
   toJSON() {

@@ -101,14 +101,16 @@ export class PersonagemService {
    */
   async update(id, personagemData) {
     try {
-      // Se for uma instância de Personagem, validar e converter
+      // Se for uma instância de Personagem, validar e converter.
+      // O PUT nao altera atributos: enviar so os campos editaveis (toUpdatePayload),
+      // nunca os escalares de atributo nem o mapa `atributos`.
       let dadosEnvio = personagemData;
-      if (personagemData.validate && personagemData.toJSON) {
+      if (personagemData.validate && personagemData.toUpdatePayload) {
         const validation = personagemData.validate();
         if (!validation.isValid) {
           throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
         }
-        dadosEnvio = personagemData.toJSON();
+        dadosEnvio = personagemData.toUpdatePayload();
       }
 
       const data = await this.apiClient.put(`${this.baseUrl}/${id}`, dadosEnvio);

@@ -1,19 +1,32 @@
 /**
  * Socket Store - Metodos de envio: mensagens, acoes, dados, sessao e turnos
  */
+import type { SocketGetState, SocketSetState } from './types';
 
-export const createSendActions = (set, get) => ({
-  // ===== METODOS DE ENVIO =====
+type AnyObj = Record<string, unknown>;
+
+export type SocketSendActions = {
+  rollDice: (diceData: unknown) => void;
+  rolarDadoInicial: () => boolean;
+  rolarIniciativaCombate: () => boolean;
+  iniciarTurno: () => boolean;
+};
+
+export const createSendActions = (set: SocketSetState, get: SocketGetState): SocketSendActions => ({
   rollDice: (diceData) => {
-    const { socket, isConnected, safeEmit } = get();
+    const state = get();
+    const { socket, isConnected } = state;
+    const safeEmit = state.safeEmit as (event: string, data?: unknown) => boolean;
     if (socket && isConnected) {
       safeEmit('dice_roll', diceData);
     }
   },
 
-  // ===== ACOES DO SISTEMA DE TURNOS =====
   rolarDadoInicial: () => {
-    const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
+    const state = get();
+    const { socket, isConnected, roomId, currentUser } = state;
+    const safeEmit = state.safeEmit as (event: string, data?: unknown) => boolean;
+    const log = state.log as (event: string, data?: AnyObj, level?: string) => void;
 
     if (!socket || !isConnected) {
       log('Nao conectado para rolar dado', {}, 'error');
@@ -28,7 +41,7 @@ export const createSendActions = (set, get) => ({
     const dadoData = {
       roomId,
       userId: currentUser.id,
-      username: currentUser.username || currentUser.nome
+      username: currentUser.username || currentUser.nome,
     };
 
     log('Rolando dado inicial', { userId: currentUser.id });
@@ -36,9 +49,13 @@ export const createSendActions = (set, get) => ({
   },
 
   rolarIniciativaCombate: () => {
-    const { socket, isConnected, roomId, currentUser, safeEmit, log } = get();
+    const state = get();
+    const { socket, isConnected, roomId, currentUser } = state;
+    const safeEmit = state.safeEmit as (event: string, data?: unknown) => boolean;
+    const log = state.log as (event: string, data?: AnyObj, level?: string) => void;
+
     if (!socket || !isConnected || !roomId || !currentUser) {
-      log('Não conectado para rolar iniciativa', {}, 'error');
+      log('Nao conectado para rolar iniciativa', {}, 'error');
       return false;
     }
     log('Rolando iniciativa de combate', { userId: currentUser.id });
@@ -50,10 +67,13 @@ export const createSendActions = (set, get) => ({
   },
 
   iniciarTurno: () => {
+    const state = get();
     const {
-      socket, isConnected, roomId, currentUser, safeEmit, log,
-      pendingMestreRequestId, activeMestreRequestStatus
-    } = get();
+      socket, isConnected, roomId, currentUser,
+      pendingMestreRequestId, activeMestreRequestStatus,
+    } = state;
+    const safeEmit = state.safeEmit as (event: string, data?: unknown) => boolean;
+    const log = state.log as (event: string, data?: AnyObj, level?: string) => void;
 
     if (!socket || !isConnected) {
       log('Nao conectado para iniciar turno', {}, 'error');
@@ -68,7 +88,7 @@ export const createSendActions = (set, get) => ({
     if (pendingMestreRequestId || (activeMestreRequestStatus && !['completed', 'failed', 'timed_out', 'superseded'].includes(activeMestreRequestStatus))) {
       log('Ja existe request do Mestre em andamento para iniciar turno', {
         pendingMestreRequestId,
-        activeMestreRequestStatus
+        activeMestreRequestStatus,
       }, 'warn');
       return false;
     }
@@ -77,7 +97,7 @@ export const createSendActions = (set, get) => ({
       roomId,
       userId: currentUser.id,
       username: currentUser.username || currentUser.nome,
-      requestId: crypto.randomUUID()
+      requestId: crypto.randomUUID(),
     };
 
     log('Iniciando turno', { userId: currentUser.id });
@@ -88,7 +108,7 @@ export const createSendActions = (set, get) => ({
         mestreStale: false,
         pendingMestreRequestId: turnoData.requestId,
         pendingMestreRequestKind: 'turn_start',
-        pendingMestreSentAt: new Date().toISOString()
+        pendingMestreSentAt: new Date().toISOString(),
       });
     }
     return enviado;

@@ -1,11 +1,11 @@
 /**
- * State Machine para transições de fase do jogo
+ * State Machine para transicoes de fase do jogo
  *
- * Valida transições para evitar estados inválidos.
- * Transições server-authoritative (reconnect, reset) devem setar direto sem usar transicaoFase.
+ * Valida transicoes para evitar estados invalidos.
+ * Transicoes server-authoritative (reconnect, reset) devem setar direto sem usar transicaoFase.
  */
 
-const TRANSITIONS = {
+const TRANSITIONS: Record<string, string[]> = {
   aguardando_inicio: ['rolagem_inicial'],
   rolagem_inicial: ['rodada_em_andamento'],
   rodada_em_andamento: ['entre_rodadas', 'combate', 'finalizado'],
@@ -17,15 +17,15 @@ const TRANSITIONS = {
 export const FASES_VALIDAS = Object.keys(TRANSITIONS);
 
 /**
- * Valida e executa transição de fase.
- * Retorna a nova fase se válida, ou a fase atual se inválida.
+ * Valida e executa transicao de fase.
+ * Retorna a nova fase se valida, ou a fase atual se invalida.
  */
-export function transicaoFase(faseAtual, novaFase) {
+export function transicaoFase(faseAtual: string, novaFase: string): string {
   if (faseAtual === novaFase) return faseAtual;
 
   const validas = TRANSITIONS[faseAtual];
   if (!validas?.includes(novaFase)) {
-    console.warn(`⚠️ FaseMachine: Transição inválida: ${faseAtual} → ${novaFase}. Válidas: [${validas?.join(', ')}]`);
+    console.warn(`FaseMachine: Transicao invalida: ${faseAtual} -> ${novaFase}. Validas: [${validas?.join(', ')}]`);
     return faseAtual;
   }
 

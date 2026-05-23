@@ -1,19 +1,21 @@
 const STORAGE_KEY = 'lunaria_notifications_enabled';
 
-export function isNotificationsSupported() {
+export type NotificationPermissionState = NotificationPermission | 'unsupported';
+
+export function isNotificationsSupported(): boolean {
   return 'Notification' in window;
 }
 
-export function isNotificationsEnabled() {
+export function isNotificationsEnabled(): boolean {
   return localStorage.getItem(STORAGE_KEY) === 'true';
 }
 
-export function setNotificationsEnabled(val) {
+export function setNotificationsEnabled(val: boolean): boolean {
   localStorage.setItem(STORAGE_KEY, val ? 'true' : 'false');
   return val;
 }
 
-export async function requestPermission() {
+export async function requestPermission(): Promise<boolean> {
   if (!isNotificationsSupported()) return false;
   const result = await Notification.requestPermission();
   if (result === 'granted') {
@@ -23,15 +25,18 @@ export async function requestPermission() {
   return false;
 }
 
-export function getPermissionState() {
+export function getPermissionState(): NotificationPermissionState {
   if (!isNotificationsSupported()) return 'unsupported';
   return Notification.permission; // 'default' | 'granted' | 'denied'
 }
 
-export function sendNotification(title, options = {}) {
-  if (!isNotificationsSupported() || !isNotificationsEnabled()) return;
-  if (Notification.permission !== 'granted') return;
-  if (document.hasFocus()) return; // don't notify if tab is focused
+export function sendNotification(
+  title: string,
+  options: NotificationOptions = {}
+): Notification | undefined {
+  if (!isNotificationsSupported() || !isNotificationsEnabled()) return undefined;
+  if (Notification.permission !== 'granted') return undefined;
+  if (document.hasFocus()) return undefined; // don't notify if tab is focused
 
   const notification = new Notification(title, {
     icon: '/assets/logo_lunaria.png',

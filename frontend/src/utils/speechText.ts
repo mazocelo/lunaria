@@ -14,6 +14,7 @@ function tryDecodeMojibake(value: string = ''): string {
   try {
     const bytes = Uint8Array.from(Array.from(text).map((char) => char.charCodeAt(0) & 0xff));
     const decoded = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    // eslint-disable-next-line no-control-regex -- detectar NUL explicito sinaliza decode falho
     if (!decoded || /\u0000/.test(decoded)) return text;
     if (decoded.includes('\uFFFD')) return text;
 

@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
-import { monstroInitialStates } from './states.js';
-import { createMonstroActions } from './actions.js';
+import { monstroInitialStates } from './states';
+import { createMonstroActions } from './actions';
 
 export const useMonstroStore = create(
-  combine(monstroInitialStates, createMonstroActions)
+  combine(monstroInitialStates, createMonstroActions),
 );
 
-export const initializeMonstroStore = async () => {
+export const initializeMonstroStore = async (): Promise<void> => {
   const { monstrosCarregados, inicializar } = useMonstroStore.getState();
   if (!monstrosCarregados) {
     await inicializar();

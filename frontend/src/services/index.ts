@@ -1,4 +1,4 @@
-// Importações primeiro
+// Importacoes
 import { apiClient } from './ApiClient';
 import { HistoriaService } from './HistoriaService';
 import { PersonagemService } from './PersonagemService';
@@ -23,8 +23,9 @@ import { MagiasTresDetService } from './MagiasTresDetService';
 
 // Cliente API base
 export { ApiClient, apiClient } from './ApiClient';
+export type { HttpError } from './ApiClient';
 
-// Serviços específicos
+// Servicos especificos
 export { HistoriaService } from './HistoriaService';
 export { NotificationService } from './NotificationService';
 export { PersonagemService } from './PersonagemService';
@@ -46,10 +47,10 @@ export { MestreCriadorService } from './MestreCriadorService';
 export { ItemTresDetService } from './ItemTresDetService';
 export { MagiasTresDetService } from './MagiasTresDetService';
 
-// Instâncias padrão dos serviços
+// Instancias padrao dos servicos
 export const historiaService = new HistoriaService(apiClient);
 export const personagemService = new PersonagemService(apiClient);
-export const temaService = new TemaService(apiClient); 
+export const temaService = new TemaService(apiClient);
 export const vantagemService = new VantagemService(apiClient);
 export const racaService = new RacaService(apiClient);
 export const classeService = new ClasseService(apiClient);
@@ -68,9 +69,10 @@ export const mestreCriadorService = new MestreCriadorService(apiClient);
 export const itemTresDetService = new ItemTresDetService(apiClient);
 export const magiasTresDetService = new MagiasTresDetService(apiClient);
 
-// Catalogos (raridades, categorias)
+// Catalogos (raridades, categorias) — sem schema dedicado na Fase 1.
+// TODO Fase 3: tipar quando schemas de catalogos existirem.
 export const catalogoService = {
-  getRaridades: () => apiClient.get('/catalogos/raridades'),
-  getCategoriasEquipamento: () => apiClient.get('/catalogos/categorias-equipamento'),
-  getCategoriasMonstro: () => apiClient.get('/catalogos/categorias-monstro'),
+  getRaridades: (): Promise<unknown> => apiClient.get('/catalogos/raridades'),
+  getCategoriasEquipamento: (): Promise<unknown> => apiClient.get('/catalogos/categorias-equipamento'),
+  getCategoriasMonstro: (): Promise<unknown> => apiClient.get('/catalogos/categorias-monstro'),
 };

@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
-import { personagemInitialStates } from './states.js';
-import { createPersonagemActions } from './actions.js';
+import { personagemInitialStates } from './states';
+import { createPersonagemActions } from './actions';
 
 export const usePersonagemStore = create(
-  combine(personagemInitialStates, createPersonagemActions)
+  combine(personagemInitialStates, createPersonagemActions),
 );
 
-export const initializePersonagemStore = async () => {
+export const initializePersonagemStore = async (): Promise<void> => {
   const { personagensCarregados, inicializar } = usePersonagemStore.getState();
   if (!personagensCarregados) {
     await inicializar();

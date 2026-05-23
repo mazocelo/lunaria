@@ -6,8 +6,40 @@
  * copy de usuario (`nome`) esta em PT-BR.
  */
 
+export type Dnd5eAbility = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
+
+export interface Dnd5eSkill {
+  id: string;
+  nome: string;
+  ability: Dnd5eAbility;
+}
+
+export interface Dnd5eAbilityOption {
+  id: Dnd5eAbility;
+  nome: string;
+}
+
+export interface Dnd5eClassSkillOption {
+  skills: readonly string[];
+  count: number;
+}
+
+export type Dnd5eClassSlug =
+  | 'barbarian'
+  | 'bard'
+  | 'cleric'
+  | 'druid'
+  | 'fighter'
+  | 'monk'
+  | 'paladin'
+  | 'ranger'
+  | 'rogue'
+  | 'sorcerer'
+  | 'warlock'
+  | 'wizard';
+
 // As 18 pericias D&D 5e. id/ability identicos a SKILLS do backend.
-export const SKILLS = [
+export const SKILLS: readonly Dnd5eSkill[] = [
   { id: 'acrobatics', nome: 'Acrobacia', ability: 'DEX' },
   { id: 'animal_handling', nome: 'Lidar com Animais', ability: 'WIS' },
   { id: 'arcana', nome: 'Arcanismo', ability: 'INT' },
@@ -30,7 +62,7 @@ export const SKILLS = [
 
 // Pericias disponiveis por classe e quantidade escolhivel.
 // Slugs de classe identicos a SRD_CLASSES do backend.
-export const CLASS_SKILL_OPTIONS = {
+export const CLASS_SKILL_OPTIONS: Record<Dnd5eClassSlug, Dnd5eClassSkillOption> = {
   barbarian: { skills: ['animal_handling', 'athletics', 'intimidation', 'nature', 'perception', 'survival'], count: 2 },
   bard: { skills: SKILLS.map((s) => s.id), count: 3 },
   cleric: { skills: ['history', 'insight', 'medicine', 'persuasion', 'religion'], count: 2 },
@@ -46,10 +78,10 @@ export const CLASS_SKILL_OPTIONS = {
 };
 
 // Standard array de atributos D&D 5e.
-export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+export const STANDARD_ARRAY: readonly number[] = [15, 14, 13, 12, 10, 8];
 
 // Os 6 atributos. id identico a ABILITIES do backend.
-export const ABILITIES = [
+export const ABILITIES: readonly Dnd5eAbilityOption[] = [
   { id: 'STR', nome: 'Força' },
   { id: 'DEX', nome: 'Destreza' },
   { id: 'CON', nome: 'Constituição' },
@@ -59,7 +91,7 @@ export const ABILITIES = [
 ];
 
 // Slugs das classes conjuradoras (spellcasting nao-nulo no backend).
-export const SPELLCASTER_CLASSES = [
+export const SPELLCASTER_CLASSES: readonly Dnd5eClassSlug[] = [
   'bard',
   'cleric',
   'druid',

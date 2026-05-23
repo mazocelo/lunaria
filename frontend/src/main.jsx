@@ -11,7 +11,7 @@ import LayoutProvider from './contexts/LayoutContext.jsx'
 import AuthProvider from './contexts/AuthContext.jsx'
 
 // Importar utilitários
-import './utils/EventEmitter.js'
+import './utils/EventEmitter.ts'
 import './services/index.js'
 
 // Registrar Service Worker

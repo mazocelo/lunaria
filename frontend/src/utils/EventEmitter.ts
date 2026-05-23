@@ -2,17 +2,15 @@
  * EventEmitter personalizado para gerenciar eventos internos
  * Implementação simples e eficiente
  */
+type Listener = (...args: unknown[]) => void;
+
 export class EventEmitter {
-  constructor() {
-    this.events = {};
-  }
+  private events: Record<string, Listener[]> = {};
 
   /**
    * Adiciona um listener para um evento
-   * @param {string} event - Nome do evento
-   * @param {Function} callback - Função callback
    */
-  on(event, callback) {
+  on(event: string, callback: Listener): void {
     if (!this.events[event]) {
       this.events[event] = [];
     }
@@ -21,14 +19,12 @@ export class EventEmitter {
 
   /**
    * Remove um listener específico de um evento
-   * @param {string} event - Nome do evento
-   * @param {Function} callback - Função callback a ser removida
    */
-  off(event, callback) {
+  off(event: string, callback: Listener): void {
     if (!this.events[event]) return;
-    
-    this.events[event] = this.events[event].filter(cb => cb !== callback);
-    
+
+    this.events[event] = this.events[event].filter((cb) => cb !== callback);
+
     // Remove o array se estiver vazio
     if (this.events[event].length === 0) {
       delete this.events[event];
@@ -37,11 +33,9 @@ export class EventEmitter {
 
   /**
    * Adiciona um listener que será executado apenas uma vez
-   * @param {string} event - Nome do evento
-   * @param {Function} callback - Função callback
    */
-  once(event, callback) {
-    const onceWrapper = (...args) => {
+  once(event: string, callback: Listener): void {
+    const onceWrapper: Listener = (...args) => {
       callback(...args);
       this.off(event, onceWrapper);
     };
@@ -50,16 +44,14 @@ export class EventEmitter {
 
   /**
    * Emite um evento, chamando todos os listeners
-   * @param {string} event - Nome do evento
-   * @param {...any} args - Argumentos para passar aos listeners
    */
-  emit(event, ...args) {
+  emit(event: string, ...args: unknown[]): void {
     if (!this.events[event]) return;
-    
+
     // Cria uma cópia do array para evitar problemas se listeners forem removidos durante a execução
     const listeners = [...this.events[event]];
-    
-    listeners.forEach(callback => {
+
+    listeners.forEach((callback) => {
       try {
         callback(...args);
       } catch (error) {
@@ -69,10 +61,9 @@ export class EventEmitter {
   }
 
   /**
-   * Remove todos os listeners de um evento específico
-   * @param {string} event - Nome do evento
+   * Remove todos os listeners de um evento específico (ou todos se sem evento)
    */
-  removeAllListeners(event) {
+  removeAllListeners(event?: string): void {
     if (event) {
       delete this.events[event];
     } else {
@@ -82,28 +73,23 @@ export class EventEmitter {
 
   /**
    * Retorna o número de listeners para um evento
-   * @param {string} event - Nome do evento
-   * @returns {number} Número de listeners
    */
-  listenerCount(event) {
+  listenerCount(event: string): number {
     return this.events[event] ? this.events[event].length : 0;
   }
 
   /**
    * Retorna todos os nomes de eventos que têm listeners
-   * @returns {string[]} Array com nomes dos eventos
    */
-  eventNames() {
+  eventNames(): string[] {
     return Object.keys(this.events);
   }
 }
 
 /**
- * Função de compatibilidade para ViewModels que usavam MobX
- * Executa uma função e retorna seu resultado
- * @param {Function} fn - Função a ser executada
- * @returns {any} Resultado da função
+ * Função de compatibilidade para ViewModels que usavam MobX.
+ * Executa uma função e retorna seu resultado.
  */
-export const runInAction = (fn) => {
+export const runInAction = <T>(fn: () => T): T => {
   return fn();
-}; 
+};

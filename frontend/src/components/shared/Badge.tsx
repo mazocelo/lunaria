@@ -1,29 +1,49 @@
-import React from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import type { ComponentType, ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
 
-/**
- * Badge - Reusable tag/label component
- *
- * @param {Object} props
- * @param {string} props.children - Badge content
- * @param {string} props.variant - Color variant: 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink'
- * @param {string} props.size - Size: 'sm' | 'md'
- * @param {boolean} props.dot - Show colored dot before text
- * @param {React.ReactNode} props.icon - Optional Lucide icon before text
- * @param {string} props.className - Additional classes
- */
+type BadgeVariant =
+  | 'purple'
+  | 'blue'
+  | 'green'
+  | 'amber'
+  | 'red'
+  | 'slate'
+  | 'indigo'
+  | 'cyan'
+  | 'pink';
+
+type BadgeSize = 'sm' | 'md';
+
+interface LucideLikeIconProps {
+  size?: number | string;
+  className?: string;
+}
+
+interface BadgeProps {
+  children?: ReactNode;
+  /** Color variant */
+  variant?: BadgeVariant;
+  /** Size variant */
+  size?: BadgeSize;
+  /** Show colored dot before text */
+  dot?: boolean;
+  /** Optional Lucide icon component */
+  icon?: ComponentType<LucideLikeIconProps> | null;
+  className?: string;
+}
+
 const Badge = ({
   children,
   variant = 'purple',
   size = 'sm',
   dot = false,
   icon: Icon = null,
-  className = ''
-}) => {
+  className = '',
+}: BadgeProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  const colors = {
+  const colors: Record<BadgeVariant, string> = {
     purple: isLight ? 'bg-purple-100 text-purple-800' : 'bg-purple-500/20 text-purple-400',
     blue: isLight ? 'bg-blue-100 text-blue-800' : 'bg-blue-500/20 text-blue-400',
     green: isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-500/20 text-emerald-400',
@@ -35,7 +55,7 @@ const Badge = ({
     pink: isLight ? 'bg-pink-100 text-pink-800' : 'bg-pink-500/20 text-pink-400',
   };
 
-  const dotColors = {
+  const dotColors: Record<BadgeVariant, string> = {
     purple: 'bg-purple-500',
     blue: 'bg-blue-500',
     green: 'bg-emerald-500',
@@ -47,7 +67,7 @@ const Badge = ({
     pink: 'bg-pink-500',
   };
 
-  const sizes = {
+  const sizes: Record<BadgeSize, string> = {
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-1 text-sm',
   };

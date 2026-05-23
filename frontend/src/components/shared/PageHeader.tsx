@@ -1,23 +1,30 @@
-import React from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import type { ComponentType, ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
 
-/**
- * PageHeader - Consistent page title + subtitle + actions
- *
- * @param {Object} props
- * @param {string} props.title - Page title
- * @param {string} props.subtitle - Optional subtitle/description
- * @param {React.ReactNode} props.icon - Optional Lucide icon component
- * @param {React.ReactNode} props.actions - Optional right-side content (buttons, etc)
- * @param {string} props.className - Additional classes
- */
+interface LucideLikeIconProps {
+  size?: number | string;
+  className?: string;
+}
+
+interface PageHeaderProps {
+  /** Page title */
+  title: string;
+  /** Optional subtitle/description */
+  subtitle?: string;
+  /** Optional Lucide icon component */
+  icon?: ComponentType<LucideLikeIconProps> | null;
+  /** Optional right-side content (buttons, etc) */
+  actions?: ReactNode;
+  className?: string;
+}
+
 const PageHeader = ({
   title,
   subtitle,
   icon: Icon = null,
   actions = null,
-  className = ''
-}) => {
+  className = '',
+}: PageHeaderProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

@@ -1,17 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useTheme } from '../../contexts/theme';
 import { Search, X } from 'lucide-react';
 
-const SearchBar = ({ placeholder = 'Buscar...', value = '', onChange, className = '' }) => {
+interface SearchBarProps {
+  placeholder?: string;
+  value?: string;
+  onChange: (value: string) => void;
+  className?: string;
+}
+
+const SearchBar = ({
+  placeholder = 'Buscar...',
+  value = '',
+  onChange,
+  className = '',
+}: SearchBarProps) => {
   const { theme } = useTheme();
-  const [localValue, setLocalValue] = useState(value);
-  const debounceRef = useRef(null);
+  const [localValue, setLocalValue] = useState<string>(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
 

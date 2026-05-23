@@ -1,11 +1,11 @@
-import React from 'react';
+interface TableSkeletonProps {
+  /** Número de linhas skeleton (default 5) */
+  rows?: number;
+  /** Número de colunas por linha (default 4) */
+  cols?: number;
+}
 
-/**
- * Skeleton que imita linhas de tabela para loading states em listas.
- * @param {number} rows - Número de linhas skeleton (default 5)
- * @param {number} cols - Número de colunas por linha (default 4)
- */
-const TableSkeleton = ({ rows = 5, cols = 4 }) => {
+const TableSkeleton = ({ rows = 5, cols = 4 }: TableSkeletonProps) => {
   return (
     <div className="animate-fade-in">
       <div className="card-rpg">
@@ -25,7 +25,7 @@ const TableSkeleton = ({ rows = 5, cols = 4 }) => {
                   className="skeleton h-4 rounded"
                   style={{
                     width: j === 0 ? '40px' : j === 1 ? '30%' : `${Math.floor(60 / (cols - 2))}%`,
-                    animationDelay: `${(i * cols + j) * 50}ms`
+                    animationDelay: `${(i * cols + j) * 50}ms`,
                   }}
                 />
               ))}

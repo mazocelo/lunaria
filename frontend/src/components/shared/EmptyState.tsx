@@ -1,23 +1,30 @@
-import React from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import type { ComponentType, ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
 
-/**
- * EmptyState - Placeholder for empty lists/pages
- *
- * @param {Object} props
- * @param {React.ReactNode} props.icon - Lucide icon component
- * @param {string} props.title - Title text
- * @param {string} props.description - Description text
- * @param {React.ReactNode} props.action - Optional action button/link
- * @param {string} props.className - Additional classes
- */
+interface LucideLikeIconProps {
+  size?: number | string;
+  className?: string;
+}
+
+interface EmptyStateProps {
+  /** Lucide icon component */
+  icon?: ComponentType<LucideLikeIconProps> | null;
+  /** Title text */
+  title?: string;
+  /** Description text */
+  description?: string;
+  /** Optional action button/link */
+  action?: ReactNode;
+  className?: string;
+}
+
 const EmptyState = ({
   icon: Icon = null,
   title = 'Nenhum item encontrado',
   description = '',
   action = null,
-  className = ''
-}) => {
+  className = '',
+}: EmptyStateProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

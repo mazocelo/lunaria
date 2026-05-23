@@ -7,16 +7,6 @@ import {
 } from '../types/api';
 import type { ApiClient } from './ApiClient';
 
-/**
- * O Model `Historia` ainda e .js (Fase 3) — descrevemos so o contrato
- * minimo que o service usa, sem `any`. Quando o Model migrar para TS, a
- * uniao de tipos no `create`/`update` pode ser refinada.
- */
-interface HistoriaModelInstance {
-  validate?: () => { isValid: boolean; errors: string[] };
-  toJSON: () => Record<string, unknown>;
-}
-
 interface LegacyEnvelope<T> {
   success: boolean;
   data: T;
@@ -137,13 +127,12 @@ export class HistoriaService {
     try {
       const historiaInstance =
         historia instanceof Historia ? historia : new Historia(historia);
-      const instance = historiaInstance as unknown as HistoriaModelInstance;
-      const validation = instance.validate?.();
-      if (validation && !validation.isValid) {
+      const validation = historiaInstance.validate();
+      if (!validation.isValid) {
         throw new Error(`Dados invalidos: ${validation.errors.join(', ')}`);
       }
 
-      const raw = await this.apiClient.post(`${this.baseUrl}/create`, instance.toJSON());
+      const raw = await this.apiClient.post(`${this.baseUrl}/create`, historiaInstance.toJSON());
       const data = this.asEntityResponse(raw);
       const dto = parseRaw(historiaSchema, data, 'HistoriaService.create');
       return Historia.fromAPI(dto);
@@ -159,12 +148,11 @@ export class HistoriaService {
     try {
       let payload: Record<string, unknown>;
       if (historia instanceof Historia) {
-        const instance = historia as unknown as HistoriaModelInstance;
-        const validation = instance.validate?.();
-        if (validation && !validation.isValid) {
+        const validation = historia.validate();
+        if (!validation.isValid) {
           throw new Error(`Dados invalidos: ${validation.errors.join(', ')}`);
         }
-        payload = instance.toJSON();
+        payload = historia.toJSON();
       } else {
         payload = { ...historia };
       }

@@ -8,21 +8,42 @@
 
 const STORAGE_KEY = 'lunaria_sound_enabled';
 
-let audioCtx = null;
+export type SoundName =
+  | 'dice_roll'
+  | 'my_turn'
+  | 'combat_hit'
+  | 'level_up'
+  | 'notification'
+  | 'heal'
+  | 'death';
 
-function getCtx() {
+// Suporte legado para Safari < 14.
+type WebkitWindow = Window & { webkitAudioContext?: typeof AudioContext };
+
+let audioCtx: AudioContext | null = null;
+
+function getCtx(): AudioContext | null {
   if (!audioCtx) {
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch { return null; }
+      const Ctor = window.AudioContext || (window as WebkitWindow).webkitAudioContext;
+      if (!Ctor) return null;
+      audioCtx = new Ctor();
+    } catch {
+      return null;
+    }
   }
-  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   return audioCtx;
 }
 
 // --- Synth helpers ---
 
-function playTone(freq, duration, type = 'sine', volume = 0.15) {
+function playTone(
+  freq: number,
+  duration: number,
+  type: OscillatorType = 'sine',
+  volume = 0.15
+): void {
   const ctx = getCtx();
   if (!ctx) return;
   const osc = ctx.createOscillator();
@@ -37,7 +58,7 @@ function playTone(freq, duration, type = 'sine', volume = 0.15) {
   osc.stop(ctx.currentTime + duration);
 }
 
-function playNoise(duration, volume = 0.08) {
+function playNoise(duration: number, volume = 0.08): void {
   const ctx = getCtx();
   if (!ctx) return;
   const bufferSize = ctx.sampleRate * duration;
@@ -60,7 +81,7 @@ function playNoise(duration, volume = 0.08) {
 
 // --- Sound definitions ---
 
-const SOUNDS = {
+const SOUNDS: Record<SoundName, () => void> = {
   dice_roll: () => {
     // Rapid clicks simulating dice bouncing
     for (let i = 0; i < 6; i++) {
@@ -112,32 +133,39 @@ const SOUNDS = {
 
 // --- Public API ---
 
-export function isSoundEnabled() {
+export function isSoundEnabled(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY) !== 'false';
-  } catch { return true; }
+  } catch {
+    return true;
+  }
 }
 
-export function setSoundEnabled(enabled) {
+export function setSoundEnabled(enabled: boolean): void {
   try {
     localStorage.setItem(STORAGE_KEY, String(enabled));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
-export function toggleSound() {
+export function toggleSound(): boolean {
   const next = !isSoundEnabled();
   setSoundEnabled(next);
   return next;
 }
 
 /**
- * Play a named sound effect
- * @param {'dice_roll'|'my_turn'|'combat_hit'|'level_up'|'notification'|'heal'|'death'} name
+ * Play a named sound effect.
  */
-export function playSound(name) {
+export function playSound(name: SoundName): void {
   if (!isSoundEnabled()) return;
   const fn = SOUNDS[name];
   if (fn) {
-    try { fn(); } catch { /* ignore audio errors */ }
+    try {
+      fn();
+    } catch {
+      /* ignore audio errors */
+    }
   }
 }

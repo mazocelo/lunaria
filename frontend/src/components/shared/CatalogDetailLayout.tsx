@@ -1,13 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, type CSSProperties, type ComponentType, type ReactNode } from 'react';
 import { ArrowLeft, Pencil, ClipboardList, AlertTriangle, Maximize2 } from 'lucide-react';
-import { useTheme } from '../../contexts/theme.jsx';
-import LoadingSpinner from '../LoadingSpinner.jsx';
-import ImageLightbox from '../ImageLightbox.jsx';
-import { getRaridadeConfig, StatRow } from './catalogDetailHelpers.jsx';
+import { useTheme } from '../../contexts/theme';
+import LoadingSpinner from '../LoadingSpinner';
+import ImageLightbox from '../ImageLightbox';
+import { getRaridadeConfig, StatRow } from './catalogDetailHelpers';
 
 // ===================================================
 // CATALOG DETAIL LAYOUT — "Vitral Arcano" Theme
 // ===================================================
+
+interface LucideLikeIconProps {
+  size?: number | string;
+  className?: string;
+  strokeWidth?: number;
+  style?: CSSProperties;
+}
+
+export interface CatalogDetailSection {
+  title: ReactNode;
+  content: ReactNode;
+  icon?: ComponentType<LucideLikeIconProps>;
+  color?: string;
+  delay?: number;
+}
+
+export interface CatalogDetailStat {
+  icon: ComponentType<LucideLikeIconProps>;
+  label: ReactNode;
+  content: ReactNode;
+}
+
+interface CatalogDetailLayoutProps {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  image?: string | null;
+  icon?: ComponentType<LucideLikeIconProps>;
+  accentColor?: string;
+  rarity?: string | null;
+  badges?: ReactNode[];
+
+  sections?: CatalogDetailSection[];
+
+  sidebarTitle?: ReactNode;
+  sidebarIcon?: ComponentType<LucideLikeIconProps>;
+  stats?: CatalogDetailStat[];
+
+  onBack: () => void;
+  onEdit?: () => void;
+  extraActions?: ReactNode;
+
+  loading?: boolean;
+  loadingText?: string;
+  error?: ReactNode;
+
+  children?: ReactNode;
+  afterSidebar?: ReactNode;
+}
 
 const CatalogDetailLayout = ({
   title,
@@ -34,7 +82,7 @@ const CatalogDetailLayout = ({
 
   children,
   afterSidebar,
-}) => {
+}: CatalogDetailLayoutProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -73,8 +121,10 @@ const CatalogDetailLayout = ({
     );
   }
 
-  const hasSidebar = (stats && stats.length > 0) || afterSidebar;
-  const hasSections = sections && sections.length > 0;
+  const hasSidebar = Boolean((stats && stats.length > 0) || afterSidebar);
+  const hasSections = Boolean(sections && sections.length > 0);
+
+  const titleAlt = typeof title === 'string' ? title : '';
 
   // -------------------------------------------------
   // HERO — Large, impactful
@@ -115,7 +165,7 @@ const CatalogDetailLayout = ({
                 <div className="relative">
                   <img
                     src={image}
-                    alt={title}
+                    alt={titleAlt}
                     className="relative w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                     style={{
                       borderWidth: '3px',
@@ -143,7 +193,7 @@ const CatalogDetailLayout = ({
                   }`}
                   style={{ borderColor: `rgba(${rgb}, 0.3)` }}
                 >
-                  <Icon size={48} style={{ color: effectiveAccent }} strokeWidth={1.2} />
+                  {Icon && <Icon size={48} style={{ color: effectiveAccent }} strokeWidth={1.2} />}
                 </div>
               )}
             </div>
@@ -192,11 +242,24 @@ const CatalogDetailLayout = ({
   // -------------------------------------------------
   // VITRAL SECTION — Rich, colorful
   // -------------------------------------------------
-  const renderSection = (section, index) => {
+  const renderSection = (section: CatalogDetailSection, index: number) => {
     const delay = section.delay ?? (index + 1) * 100;
     const sectionColor = section.color || effectiveAccent;
     const sRgb = hexToRgb(sectionColor);
     const SectionIcon = section.icon;
+
+    // `--vitral-accent` is a CSS custom property; cast keeps strict typing happy.
+    const sectionStyle: CSSProperties = {
+      background: isLight
+        ? `linear-gradient(135deg, rgba(${sRgb}, 0.08), rgba(${sRgb}, 0.02))`
+        : `linear-gradient(135deg, rgba(${sRgb}, 0.1), rgba(${sRgb}, 0.02))`,
+      border: `1px solid rgba(${sRgb}, ${isLight ? '0.2' : '0.15'})`,
+      borderLeftWidth: '3px',
+      borderLeftColor: sectionColor,
+      animation: 'fadeIn 0.6s ease-out both',
+      animationDelay: `${delay}ms`,
+      ['--vitral-accent' as never]: sectionColor,
+    };
 
     return (
       <div
@@ -204,17 +267,7 @@ const CatalogDetailLayout = ({
         className={`vitral-section relative overflow-hidden rounded-xl ${
           isLight ? '' : 'backdrop-blur-sm'
         }`}
-        style={{
-          '--vitral-accent': sectionColor,
-          background: isLight
-            ? `linear-gradient(135deg, rgba(${sRgb}, 0.08), rgba(${sRgb}, 0.02))`
-            : `linear-gradient(135deg, rgba(${sRgb}, 0.1), rgba(${sRgb}, 0.02))`,
-          border: `1px solid rgba(${sRgb}, ${isLight ? '0.2' : '0.15'})`,
-          borderLeftWidth: '3px',
-          borderLeftColor: sectionColor,
-          animation: 'fadeIn 0.6s ease-out both',
-          animationDelay: `${delay}ms`,
-        }}
+        style={sectionStyle}
       >
         {/* Decorative background icon */}
         {SectionIcon && (
@@ -310,7 +363,7 @@ const CatalogDetailLayout = ({
         <div className={`grid gap-6 ${hasSidebar ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
           {(hasSections || children) && (
             <div className={`space-y-6 ${hasSidebar ? 'lg:col-span-2' : ''}`}>
-              {hasSections && sections.map((section, i) => renderSection(section, i))}
+              {hasSections && sections!.map((section, i) => renderSection(section, i))}
               {children}
             </div>
           )}
@@ -319,13 +372,13 @@ const CatalogDetailLayout = ({
       )}
 
       {image && (
-        <ImageLightbox src={image} alt={title} isOpen={lightboxOpen} onClose={() => setLightboxOpen(false)} />
+        <ImageLightbox src={image} alt={titleAlt} isOpen={lightboxOpen} onClose={() => setLightboxOpen(false)} />
       )}
     </div>
   );
 };
 
-function hexToRgb(hex) {
+function hexToRgb(hex: string | null | undefined): string {
   if (!hex || hex.charAt(0) !== '#') return '139, 92, 246';
   const bigint = parseInt(hex.slice(1), 16);
   if (isNaN(bigint)) return '139, 92, 246';

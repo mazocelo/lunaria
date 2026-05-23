@@ -1,10 +1,29 @@
-import React from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 // ===================================================
 // RARIDADE CONFIG — 8 levels (from equipamento-ver)
 // ===================================================
 
-export const RARIDADE_CONFIG = {
+export type Raridade =
+  | 'Comum'
+  | 'Incomum'
+  | 'Raro'
+  | 'Muito Raro'
+  | 'Épico'
+  | 'Lendário'
+  | 'Variável'
+  | 'Artefato';
+
+export interface RaridadeConfig {
+  color: string;
+  badge: string;
+  badgeLight: string;
+  accent: string;
+  glow: string;
+  gradient: string;
+}
+
+export const RARIDADE_CONFIG: Record<Raridade, RaridadeConfig> = {
   'Comum': {
     color: 'slate',
     badge: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
@@ -71,46 +90,75 @@ export const RARIDADE_CONFIG = {
   },
 };
 
-export const getRaridadeConfig = (nome) => RARIDADE_CONFIG[nome] || RARIDADE_CONFIG['Comum'];
+export const getRaridadeConfig = (nome: string | null | undefined): RaridadeConfig => {
+  if (nome && nome in RARIDADE_CONFIG) {
+    return RARIDADE_CONFIG[nome as Raridade];
+  }
+  return RARIDADE_CONFIG['Comum'];
+};
 
 // ===================================================
 // FORMAT HELPERS
 // ===================================================
 
-export const formatJson = (val) => {
+/**
+ * Normaliza um valor JSON-livre vindo do backend (pode ser string com JSON,
+ * objeto, array ou null). Retorna `null` para entradas vazias.
+ */
+export const formatJson = (val: unknown): unknown => {
   if (!val) return null;
-  if (typeof val === 'string') {
-    try { val = JSON.parse(val); } catch { return val; }
+  let parsed: unknown = val;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return parsed;
+    }
   }
-  if (typeof val === 'object' && Object.keys(val).length === 0) return null;
-  return val;
+  if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed as object).length === 0) {
+    return null;
+  }
+  return parsed;
 };
 
-export const formatBonusDisplay = (bonus) => {
+export const formatBonusDisplay = (bonus: unknown): string[] | null => {
   const parsed = formatJson(bonus);
   if (!parsed) return null;
   if (Array.isArray(parsed)) {
-    return parsed.filter(b => b && typeof b === 'object').map((b) => {
-      return Object.entries(b).map(([key, val]) => `${key}: ${val > 0 ? '+' : ''}${val}`).join(', ');
-    }).filter(Boolean);
+    return parsed
+      .filter((b): b is Record<string, unknown> => Boolean(b) && typeof b === 'object')
+      .map((b) =>
+        Object.entries(b)
+          .map(([key, val]) => `${key}: ${typeof val === 'number' && val > 0 ? '+' : ''}${val}`)
+          .join(', '),
+      )
+      .filter(Boolean);
   }
-  if (typeof parsed === 'object') {
-    return Object.entries(parsed).map(([key, val]) => `${key}: ${val > 0 ? '+' : ''}${val}`);
+  if (typeof parsed === 'object' && parsed !== null) {
+    return Object.entries(parsed as Record<string, unknown>).map(
+      ([key, val]) => `${key}: ${typeof val === 'number' && val > 0 ? '+' : ''}${val}`,
+    );
   }
   return [String(parsed)];
 };
 
-export const formatRequisitosDisplay = (requisitos) => {
+export const formatRequisitosDisplay = (requisitos: unknown): string[] | null => {
   const parsed = formatJson(requisitos);
   if (!parsed) return null;
-  if (typeof parsed === 'object') return Object.entries(parsed).map(([key, val]) => `${key}: ${val}`);
+  if (typeof parsed === 'object' && parsed !== null) {
+    return Object.entries(parsed as Record<string, unknown>).map(
+      ([key, val]) => `${key}: ${val}`,
+    );
+  }
   return [String(parsed)];
 };
 
-export const formatObjectDisplay = (obj) => {
+export const formatObjectDisplay = (obj: unknown): string[] | null => {
   const parsed = formatJson(obj);
   if (!parsed) return null;
-  if (typeof parsed === 'object') return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`);
+  if (typeof parsed === 'object' && parsed !== null) {
+    return Object.entries(parsed as Record<string, unknown>).map(([k, v]) => `${k}: ${v}`);
+  }
   return [String(parsed)];
 };
 
@@ -118,7 +166,19 @@ export const formatObjectDisplay = (obj) => {
 // SUB-COMPONENTS
 // ===================================================
 
-export const StatRow = ({ icon: Icon, label, children, isLight }) => (
+interface LucideLikeIconProps {
+  size?: number | string;
+  className?: string;
+}
+
+interface StatRowProps {
+  icon: ComponentType<LucideLikeIconProps>;
+  label: ReactNode;
+  children?: ReactNode;
+  isLight: boolean;
+}
+
+export const StatRow = ({ icon: Icon, label, children, isLight }: StatRowProps) => (
   <div className={`flex items-start gap-3 py-3 border-b border-dashed last:border-0 ${
     isLight ? 'border-slate-200/70' : 'border-slate-700/50'
   }`}>
@@ -134,7 +194,12 @@ export const StatRow = ({ icon: Icon, label, children, isLight }) => (
   </div>
 );
 
-export const ChipGroup = ({ items, colorClass }) => (
+interface ChipGroupProps {
+  items: ReactNode[];
+  colorClass: string;
+}
+
+export const ChipGroup = ({ items, colorClass }: ChipGroupProps) => (
   <div className="flex flex-wrap gap-1.5">
     {items.map((item, i) => (
       <span key={i} className={`px-2 py-0.5 rounded-full text-[11px] font-modern ${colorClass}`}>
@@ -144,7 +209,15 @@ export const ChipGroup = ({ items, colorClass }) => (
   </div>
 );
 
-export const AtributoBar = ({ label, value, max = 20, color, isLight }) => {
+interface AtributoBarProps {
+  label: ReactNode;
+  value: number;
+  max?: number;
+  color: string;
+  isLight: boolean;
+}
+
+export const AtributoBar = ({ label, value, max = 20, color, isLight }: AtributoBarProps) => {
   const pct = Math.min(100, (value / max) * 100);
   return (
     <div className="flex items-center gap-3">

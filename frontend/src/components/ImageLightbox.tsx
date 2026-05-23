@@ -1,9 +1,27 @@
-import React, { useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const ImageLightbox = ({ src, alt, title, isOpen, onClose, onPrev, onNext }) => {
-  const handleKey = useCallback((e) => {
+interface ImageLightboxProps {
+  src: string;
+  alt?: string;
+  title?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+}
+
+const ImageLightbox = ({
+  src,
+  alt,
+  title,
+  isOpen,
+  onClose,
+  onPrev,
+  onNext,
+}: ImageLightboxProps) => {
+  const handleKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
     if (e.key === 'ArrowLeft' && onPrev) onPrev();
     if (e.key === 'ArrowRight' && onNext) onNext();
@@ -76,7 +94,7 @@ const ImageLightbox = ({ src, alt, title, isOpen, onClose, onPrev, onNext }) => 
         </div>
       )}
     </div>,
-    document.body
+    document.body,
   );
 };
 

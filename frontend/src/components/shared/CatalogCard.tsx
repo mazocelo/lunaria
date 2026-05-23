@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useState, type CSSProperties, type ComponentType, type MouseEvent, type ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
 import { Maximize2 } from 'lucide-react';
-import ImageLightbox from '../ImageLightbox.jsx';
+import ImageLightbox from '../ImageLightbox';
 
-const rarityBorderColors = {
+interface LucideLikeIconProps {
+  size?: number | string;
+  className?: string;
+  strokeWidth?: number;
+}
+
+const rarityBorderColors: Record<string, string> = {
   'Comum': '#94a3b8',
   'Incomum': '#22c55e',
   'Raro': '#3b82f6',
@@ -12,6 +18,27 @@ const rarityBorderColors = {
   'Lendário': '#eab308',
   'Artefato': '#ef4444',
 };
+
+export interface CatalogCardAction {
+  icon: ComponentType<LucideLikeIconProps>;
+  label: string;
+  onClick: () => void;
+}
+
+interface CatalogCardProps {
+  image?: string | null;
+  icon?: ComponentType<LucideLikeIconProps>;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  headerBadge?: ReactNode;
+  children?: ReactNode;
+  rarity?: string | null;
+  actions?: CatalogCardAction[];
+  onClick?: () => void;
+  onImageClick?: () => void;
+  delay?: number;
+  className?: string;
+}
 
 const CatalogCard = ({
   image,
@@ -26,9 +53,9 @@ const CatalogCard = ({
   onImageClick,
   delay = 0,
   className = '',
-}) => {
+}: CatalogCardProps) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const handleImageClick = (e) => {
+  const handleImageClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (onImageClick) onImageClick();
     else setLightboxOpen(true);
@@ -37,13 +64,15 @@ const CatalogCard = ({
   const isLight = theme === 'light';
   const borderColor = rarity ? rarityBorderColors[rarity] : null;
 
-  const cardStyle = {
+  const cardStyle: CSSProperties = {
     animationDelay: `${delay * 50}ms`,
   };
   if (borderColor) {
     cardStyle.borderTopWidth = '3px';
     cardStyle.borderTopColor = borderColor;
   }
+
+  const titleAlt = typeof title === 'string' ? title : '';
 
   return (
     <div
@@ -75,7 +104,7 @@ const CatalogCard = ({
             {/* Sharp image on top */}
             <img
               src={image}
-              alt={title}
+              alt={titleAlt}
               className="relative w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-110"
               loading="lazy"
             />
@@ -173,7 +202,7 @@ const CatalogCard = ({
       {image && (
         <ImageLightbox
           src={image}
-          alt={title}
+          alt={titleAlt}
           isOpen={lightboxOpen}
           onClose={() => setLightboxOpen(false)}
         />
@@ -203,6 +232,15 @@ export const CatalogCardSkeleton = () => {
   );
 };
 
+interface CatalogPaginationProps {
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  pageSizeOptions?: number[];
+}
+
 export const CatalogPagination = ({
   currentPage,
   pageSize,
@@ -210,7 +248,7 @@ export const CatalogPagination = ({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [12, 24, 48],
-}) => {
+}: CatalogPaginationProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -230,7 +268,7 @@ export const CatalogPagination = ({
               : 'bg-slate-800 border border-slate-700 text-slate-300'
           }`}
         >
-          {pageSizeOptions.map(s => (
+          {pageSizeOptions.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>

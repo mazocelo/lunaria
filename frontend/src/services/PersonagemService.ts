@@ -9,18 +9,6 @@ import {
 import type { ApiClient } from './ApiClient';
 
 /**
- * O Model `Personagem` ainda e .js (Fase 3) — ate la, descrevemos so o
- * contrato minimo que o service usa. Isso evita `any` e mantem o
- * boundary tipado nas duas pontas (entrada via Zod, saida via instancia).
- */
-interface PersonagemModelInstance {
-  id: number | null;
-  validate?: (options?: Record<string, unknown>) => { isValid: boolean; errors: string[] };
-  toJSON: () => Record<string, unknown>;
-  toUpdatePayload?: () => PersonagemUpdatePayload;
-}
-
-/**
  * Envelope LEGADO dos controllers do backend hoje:
  * `{ success, data, message?, pagination?, historia? }`. Os schemas Zod da
  * Fase 1 modelam o `data` cru — `parseRaw` valida apenas o payload, nao o
@@ -135,15 +123,13 @@ export class PersonagemService {
    * Cria um novo personagem.
    */
   async create(
-    personagem: PersonagemModelInstance,
+    personagem: Personagem,
     validationOptions: Record<string, unknown> = {},
   ): Promise<Personagem> {
     try {
-      if (typeof personagem.validate === 'function') {
-        const validation = personagem.validate(validationOptions);
-        if (!validation.isValid) {
-          throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
-        }
+      const validation = personagem.validate(validationOptions);
+      if (!validation.isValid) {
+        throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
       }
 
       const raw = await this.apiClient.post(this.baseUrl, personagem.toJSON());
@@ -181,26 +167,24 @@ export class PersonagemService {
    * Atualiza um personagem existente. Aceita uma instancia do Model
    * (que sera validada e convertida via `toUpdatePayload()`) ou um payload
    * plano com os campos editaveis.
-   *
-   * Quando o Model `Personagem` for migrado para TS (Fase 3), o tipo da
-   * uniao pode ser refinado removendo o duck typing.
    */
   async update(
     id: number,
-    personagemData: PersonagemModelInstance | PersonagemUpdatePayload,
+    personagemData: Personagem | PersonagemUpdatePayload,
   ): Promise<Personagem> {
     try {
       // Se for uma instancia de Personagem, validar e converter.
       // O PUT nao altera atributos: enviar so os campos editaveis (toUpdatePayload),
       // nunca os escalares de atributo nem o mapa `atributos`.
-      let dadosEnvio: Record<string, unknown> = personagemData as Record<string, unknown>;
-      const instancia = personagemData as PersonagemModelInstance;
-      if (typeof instancia.validate === 'function' && typeof instancia.toUpdatePayload === 'function') {
-        const validation = instancia.validate();
+      let dadosEnvio: Record<string, unknown>;
+      if (personagemData instanceof Personagem) {
+        const validation = personagemData.validate();
         if (!validation.isValid) {
           throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
         }
-        dadosEnvio = instancia.toUpdatePayload();
+        dadosEnvio = personagemData.toUpdatePayload() as Record<string, unknown>;
+      } else {
+        dadosEnvio = personagemData as Record<string, unknown>;
       }
 
       const raw = await this.apiClient.put(`${this.baseUrl}/${id}`, dadosEnvio);

@@ -16,7 +16,6 @@ export const useGameStore = create(
   ),
 );
 
-/* eslint-disable react-hooks/rules-of-hooks */
 export const useGameSelectors = {
   dadosSessao: () => {
     const { historiaAtual, personagemSelecionado, sessaoId, participantes, isDonoSala } = useGameStore.getState();

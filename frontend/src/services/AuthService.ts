@@ -4,7 +4,7 @@ import type { ApiClient, HttpError } from './ApiClient';
  * Tipos locais minimos para o auth flow. TODO Fase 3: criar
  * `usuarioSchema` Zod em `src/types/api/usuario.ts` (fora do escopo da Fase 1).
  */
-interface UsuarioPayload {
+export interface UsuarioPayload {
   id: number | string;
   nome?: string;
   email?: string;
@@ -12,20 +12,20 @@ interface UsuarioPayload {
   [key: string]: unknown;
 }
 
-interface AuthResponseData {
+export interface AuthResponseData {
   socketToken?: string;
   usuario?: UsuarioPayload;
   lembrarDeMim?: boolean;
   [key: string]: unknown;
 }
 
-interface LoginCredentials {
+export interface LoginCredentials {
   email: string;
   password: string;
   lembrarDeMim?: boolean;
 }
 
-interface RegisterData {
+export interface RegisterData {
   name?: string;
   nome?: string;
   email: string;
@@ -33,7 +33,7 @@ interface RegisterData {
   [key: string]: unknown;
 }
 
-interface ResetPasswordData {
+export interface ResetPasswordData {
   token: string;
   password: string;
   [key: string]: unknown;

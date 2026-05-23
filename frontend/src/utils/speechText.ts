@@ -1,11 +1,11 @@
 const MOJIBAKE_MARKERS = /(?:Ã.|Â.|â.|ðŸ|ï¿½)/g;
 const DECORATIVE_SYMBOLS = /[•▪▸▶►◆◇◦○●■□]/g;
 
-function countMojibakeArtifacts(value = '') {
+function countMojibakeArtifacts(value: string = ''): number {
   return (String(value).match(MOJIBAKE_MARKERS) || []).length;
 }
 
-function tryDecodeMojibake(value = '') {
+function tryDecodeMojibake(value: string = ''): string {
   const text = String(value || '');
   if (!text || typeof TextDecoder === 'undefined' || !/[ÃÂâðï]/.test(text)) {
     return text;
@@ -25,7 +25,7 @@ function tryDecodeMojibake(value = '') {
   }
 }
 
-export function sanitizeTextForSpeech(input = '') {
+export function sanitizeTextForSpeech(input: string | null | undefined = ''): string {
   let text = tryDecodeMojibake(String(input || ''));
   if (!text.trim()) return '';
 

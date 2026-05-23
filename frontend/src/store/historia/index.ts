@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
-import { historiaInitialStates } from './states.js';
-import { createHistoriaActions } from './actions.js';
+import { historiaInitialStates } from './states';
+import { createHistoriaActions } from './actions';
 
 export const useHistoriaStore = create(
-  combine(historiaInitialStates, createHistoriaActions)
+  combine(historiaInitialStates, createHistoriaActions),
 );
 
-export const initializeHistoriaStore = async () => {
+export const initializeHistoriaStore = async (): Promise<void> => {
   const { historiasCarregadas, inicializar } = useHistoriaStore.getState();
   if (!historiasCarregadas) {
     await inicializar();

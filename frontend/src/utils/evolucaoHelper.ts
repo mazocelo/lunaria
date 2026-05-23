@@ -9,7 +9,7 @@ export const NIVEL_MAX = 20;
  * XP necessario para ir do nivel atual para o proximo
  * Escala exponencial: 100 * 1.5^(nivel-1)
  */
-export function xpParaNivel(nivel) {
+export function xpParaNivel(nivel: number): number {
   if (nivel >= NIVEL_MAX) return Number.POSITIVE_INFINITY;
   return Math.round(100 * Math.pow(1.5, nivel - 1));
 }
@@ -18,20 +18,20 @@ export function xpParaNivel(nivel) {
  * Tier maximo de vantagens/desvantagens desbloqueado
  * Nv1: 1, Nv5: 2, Nv9: 3, Nv13: 4, Nv17: 5
  */
-export function tierDesbloqueado(nivel) {
+export function tierDesbloqueado(nivel: number): number {
   return 1 + Math.floor((Math.min(nivel, NIVEL_MAX) - 1) / 4);
 }
 
 /**
  * Nome do tier para exibicao
  */
-export function nomeTier(tier) {
-  const nomes = {
+export function nomeTier(tier: number): string {
+  const nomes: Record<number, string> = {
     1: 'Iniciante',
     2: 'Veterano',
     3: 'Elite',
     4: 'Mestre',
-    5: 'Lendário'
+    5: 'Lendário',
   };
   return nomes[tier] || `Tier ${tier}`;
 }

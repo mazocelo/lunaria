@@ -24,6 +24,12 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/ban-ts-comment': ['error', {
+        'ts-ignore': 'allow-with-description',
+        'ts-expect-error': 'allow-with-description',
+        minimumDescriptionLength: 10,
+      }],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

@@ -1,24 +1,23 @@
 import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
-import { gameInitialStates } from './states.js';
-import { createGameActions } from './actions.js';
+import { gameInitialStates } from './states';
+import { createGameActions } from './actions';
 
 /**
- * 🎮 GAME STORE - Store principal da sessão de jogo
- * 
- * Combina os estados iniciais com as ações usando o padrão moderno do Zustand.
+ * GAME STORE - Store principal da sessao de jogo
+ *
+ * Combina os estados iniciais com as acoes usando o padrao moderno do Zustand.
  * Utiliza o middleware `combine` para separar estado das actions.
  */
 export const useGameStore = create(
   combine(
     gameInitialStates,
-    createGameActions
-  )
+    createGameActions,
+  ),
 );
 
-// ===== COMPUTED STATES (SELECTORS) =====
+/* eslint-disable react-hooks/rules-of-hooks */
 export const useGameSelectors = {
-  // Estados computados para dados da sessão
   dadosSessao: () => {
     const { historiaAtual, personagemSelecionado, sessaoId, participantes, isDonoSala } = useGameStore.getState();
     return {
@@ -26,24 +25,22 @@ export const useGameSelectors = {
       personagemSelecionado,
       sessaoId,
       participantes,
-      isDonoSala
+      isDonoSala,
     };
   },
-  
-  // Estado computado da sala
+
   estadoSala: () => {
     const { salaAberta, podeIniciarJogo, participantes } = useGameStore.getState();
     return {
       salaAberta,
       podeIniciarJogo,
-      totalParticipantes: participantes.length
+      totalParticipantes: participantes.length,
     };
   },
-  
-  // Validação para avançar etapa
-  podeAvancarEtapa: (etapa) => {
+
+  podeAvancarEtapa: (etapa: string) => {
     const { historiaAtual, personagemSelecionado, salaAberta } = useGameStore.getState();
-    
+
     switch (etapa) {
       case 'selecao-personagem':
         return !!historiaAtual;
@@ -56,7 +53,6 @@ export const useGameSelectors = {
     }
   },
 
-  // Estado de prontidão para jogo
   estadoProntidao: () => {
     const { historiaAtual, personagemSelecionado, participantes, salaAberta } = useGameStore.getState();
     return {
@@ -64,37 +60,30 @@ export const useGameSelectors = {
       temPersonagem: !!personagemSelecionado,
       temParticipantes: participantes.length > 0,
       salaAberta,
-      prontoParaJogar: !!(historiaAtual && personagemSelecionado && salaAberta)
+      prontoParaJogar: !!(historiaAtual && personagemSelecionado && salaAberta),
     };
   },
 
-  // Dados para persistência (apenas dados críticos)
   dadosParaPersistir: () => {
     const { personagemSelecionado } = useGameStore.getState();
     return {
-      personagemSelecionado, // Mais crítico - escolha do usuário
-      // historiaAtual,       // Pode ser recuperado via API
+      personagemSelecionado,
     };
   },
-  
-  // Estado completo para debugging
+
   estadoCompleto: () => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       return useGameStore.getState();
     }
     return null;
-  }
+  },
 };
 
-// ===== UTILITIES PARA INICIALIZAÇÃO =====
-export const initializeGameStore = () => {
-  
-  // Hidratar com dados do localStorage
+export const initializeGameStore = (): void => {
   const { hidrataDoLocalStorage } = useGameStore.getState();
   hidrataDoLocalStorage();
 };
 
-// ===== EXPORTS =====
 export default useGameStore;
-export { gameInitialStates } from './states.js';
-export { createGameActions } from './actions.js'; 
+export { gameInitialStates } from './states';
+export { createGameActions } from './actions';

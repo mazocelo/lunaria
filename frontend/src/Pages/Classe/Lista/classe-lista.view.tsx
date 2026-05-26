@@ -1,10 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
+import { useState, useEffect, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
 import { PageHeader, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import Notification from '../../../components/Notification.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
 import { Shield, Gift, Coins } from 'lucide-react';
+import type { Classe } from '../../../types/api';
+
+interface ClasseListaViewProps {
+  classes: Classe[];
+  filteredClasses: Classe[];
+  loading: boolean;
+  error: string | null;
+  gratuitas: number;
+  pagas: number;
+  buscarClasses: (term: string) => void;
+  clearError: () => void;
+  onVerClasse: (id: number | string) => void;
+}
 
 const ClasseListaView = ({
   classes,
@@ -16,7 +29,7 @@ const ClasseListaView = ({
   buscarClasses,
   clearError,
   onVerClasse,
-}) => {
+}: ClasseListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -33,7 +46,7 @@ const ClasseListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const displayClasses = filteredClasses?.length > 0 ? filteredClasses : classes;
 
@@ -128,9 +141,9 @@ const ClasseListaView = ({
       {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayClasses[galleryIndex] && (
         <ImageLightbox
-          src={displayClasses[galleryIndex].imagem}
-          alt={displayClasses[galleryIndex].nome}
-          title={displayClasses[galleryIndex].nome}
+          src={displayClasses[galleryIndex].imagem ?? ''}
+          alt={displayClasses[galleryIndex].nome ?? ''}
+          title={displayClasses[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

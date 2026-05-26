@@ -1,15 +1,47 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { Shield, Sparkles, Loader2 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme';
+import { Shield, Save, Loader2 } from 'lucide-react';
 
-const NovaClasseView = ({
-  nome, descricao, custo, bonus, saving, error,
-  setField, handleSubmit, handleCancel, clearError,
-}) => {
+type ClasseField = 'nome' | 'descricao' | 'custo' | 'bonus';
+
+interface EditarClasseViewProps {
+  nome: string;
+  descricao: string;
+  custo: number | string;
+  bonus: string;
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  setField: (name: ClasseField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
+const EditarClasseView = ({
+  nome, descricao, custo, bonus, loading, saving, error,
+  setField, handleSubmit, handleCancel,
+}: EditarClasseViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  if (loading) {
+    return (
+      <div className="animate-fade-in">
+        <div className="card-rpg">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
+                <Shield size={24} className="text-white" />
+              </div>
+              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando classe...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -17,8 +49,8 @@ const NovaClasseView = ({
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
           <Shield size={32} className="text-white" />
         </div>
-        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Criar Nova Classe</h1>
-        <p className="text-slate-400 font-modern">Adicione uma nova classe ao catalogo</p>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Classe</h1>
+        <p className="text-slate-400 font-modern">Atualize os dados da classe</p>
       </div>
       <form onSubmit={handleSubmit} className="card-rpg space-y-6">
         {error && (
@@ -48,9 +80,9 @@ const NovaClasseView = ({
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">
             {saving ? (
-              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>
+              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>
             ) : (
-              <div className="flex items-center space-x-2"><Sparkles size={16} /><span>Criar Classe</span></div>
+              <div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Classe</span></div>
             )}
           </Button>
         </div>
@@ -59,4 +91,4 @@ const NovaClasseView = ({
   );
 };
 
-export default NovaClasseView;
+export default EditarClasseView;

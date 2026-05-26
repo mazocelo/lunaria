@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useClasseVerModel } from './classe-ver.model';
 import VerClasseView from './classe-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function ClasseVerPage() {
   const model = useClasseVerModel();
   const navigate = useNavigate();

@@ -2,6 +2,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/ApiClient';
 
+export interface PerfilPreferencias {
+  tema?: string;
+  notificacoes?: {
+    convites?: boolean;
+    amizades?: boolean;
+    sessoes?: boolean;
+  };
+}
+
+export interface PerfilPrivacidade {
+  perfil_publico?: boolean;
+  mostrar_estatisticas?: boolean;
+}
+
+export interface PerfilEstatisticas {
+  totalHistorias?: number;
+  totalPersonagens?: number;
+  totalSessoes?: number;
+  totalMensagens?: number;
+}
+
 export const usePerfilModel = () => {
   const { user, updateUser } = useAuth();
 
@@ -9,45 +30,49 @@ export const usePerfilModel = () => {
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState('');
-  const [preferencias, setPreferencias] = useState({
+  const [preferencias, setPreferencias] = useState<PerfilPreferencias>({
     tema: 'escuro',
     notificacoes: { convites: true, amizades: true, sessoes: true },
   });
-  const [privacidade, setPrivacidade] = useState({
+  const [privacidade, setPrivacidade] = useState<PerfilPrivacidade>({
     perfil_publico: true,
     mostrar_estatisticas: true,
   });
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
-  const [estatisticas, setEstatisticas] = useState(null);
+  const [estatisticas, setEstatisticas] = useState<PerfilEstatisticas | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      setNome(user.nome || '');
-      setEmail(user.email || '');
-      setBio(user.bio || '');
-      setAvatar(user.avatar || '');
-      if (user.preferencias) setPreferencias(prev => ({ ...prev, ...user.preferencias }));
-      if (user.privacidade) setPrivacidade(prev => ({ ...prev, ...user.privacidade }));
+      setNome((user.nome as string) || '');
+      setEmail((user.email as string) || '');
+      setBio((user.bio as string) || '');
+      setAvatar((user.avatar as string) || '');
+      if (user.preferencias) setPreferencias(prev => ({ ...prev, ...(user.preferencias as PerfilPreferencias) }));
+      if (user.privacidade) setPrivacidade(prev => ({ ...prev, ...(user.privacidade as PerfilPrivacidade) }));
     }
     if (user?.id) {
       apiClient.get(`/usuarios/${user.id}/estatisticas`)
-        .then(response => setEstatisticas(response.data || response))
+        .then((response: unknown) => {
+          const res = response as { data?: PerfilEstatisticas } & PerfilEstatisticas;
+          setEstatisticas(res.data || res);
+        })
         .catch(() => { /* silencioso */ });
     }
   }, [user]);
 
-  const salvarPerfil = useCallback(async (e) => {
+  const salvarPerfil = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim()) {
       setError('Nome e obrigatorio');
       return;
     }
+    if (!user) return;
     setSavingProfile(true);
     setError(null);
     setSuccessMessage(null);
@@ -58,12 +83,13 @@ export const usePerfilModel = () => {
       setSuccessMessage('Perfil atualizado com sucesso!');
       updateUser({ ...user, nome, email, bio, avatar, preferencias, privacidade });
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar perfil';
       setSavingProfile(false);
-      setError(err.message || 'Erro ao atualizar perfil');
+      setError(message);
     }
-  }, [nome, email, user, updateUser]);
+  }, [nome, email, bio, avatar, preferencias, privacidade, user, updateUser]);
 
-  const alterarSenha = useCallback(async (e) => {
+  const alterarSenha = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!senhaAtual) {
       setError('Senha atual e obrigatoria');
@@ -77,6 +103,7 @@ export const usePerfilModel = () => {
       setError('Senhas nao conferem');
       return;
     }
+    if (!user) return;
     setSavingPassword(true);
     setError(null);
     setSuccessMessage(null);
@@ -91,8 +118,9 @@ export const usePerfilModel = () => {
       setConfirmarSenha('');
       setSuccessMessage('Senha alterada com sucesso!');
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao alterar senha';
       setSavingPassword(false);
-      setError(err.message || 'Erro ao alterar senha');
+      setError(message);
     }
   }, [senhaAtual, novaSenha, confirmarSenha, user]);
 

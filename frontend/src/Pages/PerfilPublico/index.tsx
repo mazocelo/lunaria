@@ -1,32 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTheme } from '../../contexts/theme.jsx';
-import { User, Shield, Sword, Calendar, Lock, Loader2, ArrowLeft } from 'lucide-react';
-import { apiClient } from '../../services/ApiClient.js';
+import { useTheme } from '../../contexts/theme';
+import { Sword, Calendar, Lock, Loader2, ArrowLeft } from 'lucide-react';
+import { apiClient } from '../../services/ApiClient';
+
+interface PerfilPersonagem {
+  id: number;
+  nome: string;
+  imagem?: string;
+  raca_nome?: string;
+  classe_nome?: string;
+  nivel?: number;
+}
+
+interface PerfilPublicoData {
+  nome: string;
+  bio?: string;
+  avatar?: string;
+  criado_em: string;
+  estatisticas?: Record<string, number | string>;
+  personagens?: PerfilPersonagem[];
+}
 
 const PerfilPublicoPage = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const isLight = theme === 'light';
 
-  const [perfil, setPerfil] = useState(null);
+  const [perfil, setPerfil] = useState<PerfilPublicoData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPerfil = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await apiClient.get(`/usuarios/publico/${id}`);
+        const res = await apiClient.get(`/usuarios/publico/${id}`) as { success?: boolean; data?: PerfilPublicoData; error?: string };
         if (res.success) {
-          setPerfil(res.data);
+          setPerfil(res.data || null);
         } else {
           setError(res.error || 'Erro ao carregar perfil');
         }
       } catch (err) {
-        setError(err.message || 'Perfil não encontrado');
+        const message = err instanceof Error ? err.message : 'Perfil não encontrado';
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -64,7 +83,6 @@ const PerfilPublicoPage = () => {
 
   return (
     <div className="animate-fade-in max-w-3xl mx-auto p-6">
-      {/* Back */}
       <button
         onClick={() => navigate(-1)}
         className={`flex items-center gap-1.5 mb-6 text-sm font-modern transition-colors cursor-pointer ${
@@ -75,7 +93,6 @@ const PerfilPublicoPage = () => {
         Voltar
       </button>
 
-      {/* Profile Header */}
       <div className="card-rpg p-6 text-center mb-6">
         <div className={`w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold ${
           isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-900/60 text-purple-300'
@@ -102,7 +119,6 @@ const PerfilPublicoPage = () => {
         </div>
       </div>
 
-      {/* Stats */}
       {perfil.estatisticas && (
         <div className="card-rpg p-6 mb-6">
           <h2 className={`text-lg font-fantasy font-bold mb-4 ${isLight ? 'text-slate-800' : 'text-white'}`}>
@@ -125,8 +141,7 @@ const PerfilPublicoPage = () => {
         </div>
       )}
 
-      {/* Characters */}
-      {perfil.personagens?.length > 0 && (
+      {perfil.personagens && perfil.personagens.length > 0 && (
         <div className="card-rpg p-6">
           <h2 className={`text-lg font-fantasy font-bold mb-4 ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Personagens

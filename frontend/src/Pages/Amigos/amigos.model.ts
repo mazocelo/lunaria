@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAmizadeStore } from '../../store/amizade/index.js';
+import { useAmizadeStore } from '../../store/amizade/index';
 import { amizadeService } from '../../services';
+import type { Sugestao } from '../../store/amizade/states';
+
+type AmigosTab = 'amigos' | 'pendentes' | 'buscar';
 
 export const useAmigosModel = () => {
-
-  // Amizade store
   const friends = useAmizadeStore(s => s.amigos);
   const pending = useAmizadeStore(s => s.pendentes);
   const suggestions = useAmizadeStore(s => s.sugestoes);
@@ -18,15 +19,14 @@ export const useAmigosModel = () => {
   const removerAmigoDaLista = useAmizadeStore(s => s.removerAmigoDaLista);
   const removerPendenteDaLista = useAmizadeStore(s => s.removerPendenteDaLista);
 
-  // Local state
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<Sugestao[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [activeTab, setActiveTabState] = useState('amigos');
+  const [activeTab, setActiveTabState] = useState<AmigosTab>('amigos');
   const [loading, setLoading] = useState(false);
-  const [loadingAction, setLoadingAction] = useState(null);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [loadingAction, setLoadingAction] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const clearMessages = useCallback(() => {
     setError(null);
@@ -36,9 +36,10 @@ export const useAmigosModel = () => {
   useEffect(() => {
     carregarAmigos();
     carregarPendentes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setActiveTab = useCallback((tab) => {
+  const setActiveTab = useCallback((tab: AmigosTab) => {
     setActiveTabState(tab);
     setError(null);
     setSuccessMessage(null);
@@ -47,7 +48,7 @@ export const useAmigosModel = () => {
     if (tab === 'buscar') recarregarSugestoes();
   }, [recarregarAmigos, recarregarPendentes, recarregarSugestoes]);
 
-  const search = useCallback(async (query) => {
+  const search = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
       setSearchResults([]);
       return;
@@ -55,7 +56,7 @@ export const useAmigosModel = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await amizadeService.searchUsers(query);
+      const response = await amizadeService.searchUsers(query) as { data?: Sugestao[] };
       setSearchResults(response.data || []);
     } catch {
       setError('Erro na busca');
@@ -69,14 +70,14 @@ export const useAmigosModel = () => {
     setSearchQuery(searchInput);
   }, [searchInput, search]);
 
-  const handleSearchKeyDown = useCallback((e) => {
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       search(searchInput);
       setSearchQuery(searchInput);
     }
   }, [searchInput, search]);
 
-  const sendRequest = useCallback(async (receiverId) => {
+  const sendRequest = useCallback(async (receiverId: number) => {
     setLoadingAction(receiverId);
     setError(null);
     try {
@@ -86,12 +87,13 @@ export const useAmigosModel = () => {
       if (searchQuery) await search(searchQuery);
       await recarregarSugestoes();
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao enviar solicitacao';
       setLoadingAction(null);
-      setError(err.message || 'Erro ao enviar solicitacao');
+      setError(message);
     }
   }, [searchQuery, search, recarregarSugestoes]);
 
-  const acceptRequest = useCallback(async (amizadeId) => {
+  const acceptRequest = useCallback(async (amizadeId: number) => {
     setLoadingAction(amizadeId);
     setError(null);
     try {
@@ -100,12 +102,13 @@ export const useAmigosModel = () => {
       setSuccessMessage('Amizade aceita!');
       removerPendenteDaLista(amizadeId);
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao aceitar';
       setLoadingAction(null);
-      setError(err.message || 'Erro ao aceitar');
+      setError(message);
     }
   }, [removerPendenteDaLista]);
 
-  const rejectRequest = useCallback(async (amizadeId) => {
+  const rejectRequest = useCallback(async (amizadeId: number) => {
     setLoadingAction(amizadeId);
     setError(null);
     try {
@@ -113,12 +116,13 @@ export const useAmigosModel = () => {
       setLoadingAction(null);
       removerPendenteDaLista(amizadeId);
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao rejeitar';
       setLoadingAction(null);
-      setError(err.message || 'Erro ao rejeitar');
+      setError(message);
     }
   }, [removerPendenteDaLista]);
 
-  const removeFriend = useCallback(async (amizadeId) => {
+  const removeFriend = useCallback(async (amizadeId: number) => {
     setLoadingAction(amizadeId);
     setError(null);
     try {
@@ -126,8 +130,9 @@ export const useAmigosModel = () => {
       setLoadingAction(null);
       removerAmigoDaLista(amizadeId);
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao remover amigo';
       setLoadingAction(null);
-      setError(err.message || 'Erro ao remover amigo');
+      setError(message);
     }
   }, [removerAmigoDaLista]);
 

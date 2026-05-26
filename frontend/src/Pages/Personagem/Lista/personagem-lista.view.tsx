@@ -1,12 +1,48 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
-import StatCard from '../../../components/StatCard.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import Notification from '../../../components/Notification.jsx';
+import type { TabelaColumn, TabelaAction } from '../../../components/shared/TabelaList';
+import StatCard from '../../../components/StatCard';
+import ConfirmationModal from '../../../components/ConfirmationModal';
+import Notification from '../../../components/Notification';
 import { Users, Plus, Eye, Trash2, Shield, Sparkles } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+import type { Personagem } from '../../../models/Personagem';
+
+interface PersonagemListaEstatisticas {
+  total: number;
+  guerreiros: number;
+  magos: number;
+}
+
+interface PersonagemListaViewProps {
+  personagens: Personagem[];
+  loading: boolean;
+  error: string | null;
+  estatisticas: PersonagemListaEstatisticas;
+  buscarPersonagens: (term: string) => void;
+  clearError: () => void;
+  navigate?: (path: string) => void;
+  // Delete individual
+  showDeleteModal: boolean;
+  personagemToDelete: Personagem | null;
+  deleteLoading: boolean;
+  handleDeleteClick: (row: Personagem) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  // Bulk delete
+  showBulkDeleteModal: boolean;
+  bulkDeleteIds: Array<number | string>;
+  bulkDeleteLoading: boolean;
+  handleBulkDeleteClick: (ids: Array<number | string>) => void;
+  handleConfirmBulkDelete: () => void;
+  handleCancelBulkDelete: () => void;
+}
+
+interface HistoriaVinculo {
+  id?: number | string;
+  nome?: string;
+}
 
 const PersonagemListaView = ({
   personagens,
@@ -30,7 +66,7 @@ const PersonagemListaView = ({
   handleBulkDeleteClick,
   handleConfirmBulkDelete,
   handleCancelBulkDelete,
-}) => {
+}: PersonagemListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -38,7 +74,7 @@ const PersonagemListaView = ({
     return <TableSkeleton cols={7} />;
   }
 
-  const renderClasseIcon = (personagem) => (
+  const renderClasseIcon = (personagem: Personagem) => (
     <div className="flex items-center space-x-3">
       {personagem.imagem ? (
         <img src={personagem.imagem} alt={personagem.nome} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
@@ -55,7 +91,7 @@ const PersonagemListaView = ({
     </div>
   );
 
-  const renderNivel = (personagem) => (
+  const renderNivel = (personagem: Personagem) => (
     <div className="flex items-center space-x-2">
       <span className="text-cyan-400 font-semibold">
         {personagem.nivel || 1}
@@ -64,7 +100,7 @@ const PersonagemListaView = ({
     </div>
   );
 
-  const renderHP = (personagem) => (
+  const renderHP = (personagem: Personagem) => (
     <div className="flex items-center space-x-2">
       <span className="text-red-400 font-semibold">
         {personagem.hp || 100}
@@ -77,20 +113,20 @@ const PersonagemListaView = ({
     {
       key: 'id',
       label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
+      align: 'left' as const,
+      render: (row: Personagem) => <span className="font-mono text-purple-400">#{row.id}</span>
     },
     {
       key: 'nome',
       label: 'Nome',
-      align: 'left',
+      align: 'left' as const,
       render: renderClasseIcon
     },
     {
       key: 'classe',
       label: 'Classe',
-      align: 'left',
-      render: (row) => (
+      align: 'left' as const,
+      render: (row: Personagem) => (
         <span className={`${isLight ? 'text-slate-700' : 'text-white'} font-semibold font-modern`}>
           {row.classe || 'Aventureiro'}
         </span>
@@ -99,8 +135,8 @@ const PersonagemListaView = ({
     {
       key: 'raca',
       label: 'Raca',
-      align: 'left',
-      render: (row) => (
+      align: 'left' as const,
+      render: (row: Personagem) => (
         <span className={`${isLight ? 'text-slate-600' : 'text-slate-300'} font-modern`}>
           {row.raca || 'Humano'}
         </span>
@@ -109,10 +145,11 @@ const PersonagemListaView = ({
     {
       key: 'historias',
       label: 'Historias',
-      align: 'left',
-      render: (row) => {
-        const historias = Array.isArray(row.historias) && row.historias.length > 0
-          ? row.historias
+      align: 'left' as const,
+      render: (row: Personagem) => {
+        const rawHistorias = (row.historias ?? []) as HistoriaVinculo[];
+        const historias = Array.isArray(rawHistorias) && rawHistorias.length > 0
+          ? rawHistorias
           : row.historia_nome
             ? [{ nome: row.historia_nome }]
             : [];
@@ -137,13 +174,13 @@ const PersonagemListaView = ({
     {
       key: 'nivel',
       label: 'Nivel',
-      align: 'left',
+      align: 'left' as const,
       render: renderNivel
     },
     {
       key: 'hp',
       label: 'HP',
-      align: 'left',
+      align: 'left' as const,
       render: renderHP
     }
   ];
@@ -153,14 +190,16 @@ const PersonagemListaView = ({
       label: 'Ver',
       icon: <Eye size={18} />,
       color: 'purple',
-      onClick: (row) => navigate(generateRoute.verPersonagem(row.id))
+      onClick: (row: Personagem) => {
+        if (row.id != null) navigate?.(generateRoute.verPersonagem(row.id));
+      },
     },
     {
       label: 'Deletar',
       icon: <Trash2 size={18} />,
       color: 'red',
-      onClick: handleDeleteClick
-    }
+      onClick: (row: Personagem) => handleDeleteClick(row),
+    },
   ];
 
   return (
@@ -191,14 +230,14 @@ const PersonagemListaView = ({
 
       <SearchBar
         placeholder="Buscar personagens por nome..."
-        onChange={(texto) => buscarPersonagens(texto)}
+        onChange={(texto: string) => buscarPersonagens(texto)}
       />
 
       <TabelaList
         header="Lista de Personagens"
-        columns={columns}
-        data={personagens}
-        actions={actions}
+        columns={columns as unknown as TabelaColumn<Record<string, unknown>>[]}
+        data={personagens as unknown as Record<string, unknown>[]}
+        actions={actions as unknown as TabelaAction<Record<string, unknown>>[]}
         loading={loading}
         pagination={true}
         initialPageSize={10}

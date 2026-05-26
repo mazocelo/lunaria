@@ -1,8 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { usePersonagemStore } from '../../../store/personagem/index.js';
-import { personagemService } from '../../../services/index.js';
+import { usePersonagemStore } from '../../../store/personagem/index';
+import { personagemService } from '../../../services/index';
+import type { Personagem } from '../../../models/Personagem';
 
-export const usePersonagemListaModel = ({ navigate } = {}) => {
+interface UsePersonagemListaModelParams {
+  navigate?: (path: string) => void;
+}
+
+export const usePersonagemListaModel = ({ navigate }: UsePersonagemListaModelParams = {}) => {
 
   // Personagem store
   const personagens = usePersonagemStore(s => s.personagens);
@@ -12,21 +17,22 @@ export const usePersonagemListaModel = ({ navigate } = {}) => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
 
   // Local state
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Estado para delete individual
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [personagemToDelete, setPersonagemToDelete] = useState(null);
+  const [personagemToDelete, setPersonagemToDelete] = useState<Personagem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Estado para bulk delete
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<Array<number | string>>([]);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   useEffect(() => {
     carregarPersonagens();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredPersonagens = useMemo(() => {
@@ -44,19 +50,19 @@ export const usePersonagemListaModel = ({ navigate } = {}) => {
     return { total, guerreiros, magos };
   }, [personagens]);
 
-  const deletePersonagem = useCallback(async (id) => {
-    await personagemService.delete(id);
+  const deletePersonagem = useCallback(async (id: number | string) => {
+    await personagemService.delete(Number(id));
     await recarregarPersonagens();
   }, [recarregarPersonagens]);
 
   // Handlers de delete individual
-  const handleDeleteClick = useCallback((row) => {
+  const handleDeleteClick = useCallback((row: Personagem) => {
     setPersonagemToDelete(row);
     setShowDeleteModal(true);
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
-    if (!personagemToDelete) return;
+    if (!personagemToDelete || personagemToDelete.id == null) return;
     setDeleteLoading(true);
     try {
       await deletePersonagem(personagemToDelete.id);
@@ -64,7 +70,8 @@ export const usePersonagemListaModel = ({ navigate } = {}) => {
       setPersonagemToDelete(null);
     } catch (err) {
       console.error("Erro ao deletar personagem:", err);
-      setError(err.message || 'Erro ao deletar personagem');
+      const message = err instanceof Error ? err.message : 'Erro ao deletar personagem';
+      setError(message);
     } finally {
       setDeleteLoading(false);
     }
@@ -77,7 +84,7 @@ export const usePersonagemListaModel = ({ navigate } = {}) => {
   }, []);
 
   // Handlers de bulk delete
-  const handleBulkDeleteClick = useCallback((ids) => {
+  const handleBulkDeleteClick = useCallback((ids: Array<number | string>) => {
     setBulkDeleteIds(ids);
     setShowBulkDeleteModal(true);
   }, []);
@@ -86,14 +93,15 @@ export const usePersonagemListaModel = ({ navigate } = {}) => {
     setBulkDeleteLoading(true);
     try {
       for (const id of bulkDeleteIds) {
-        await personagemService.delete(id);
+        await personagemService.delete(Number(id));
       }
       await recarregarPersonagens();
       setShowBulkDeleteModal(false);
       setBulkDeleteIds([]);
     } catch (err) {
       console.error('Erro ao deletar personagens em lote:', err);
-      setError(err.message || 'Erro ao deletar personagens em lote');
+      const message = err instanceof Error ? err.message : 'Erro ao deletar personagens em lote';
+      setError(message);
     } finally {
       setBulkDeleteLoading(false);
     }
@@ -132,3 +140,5 @@ export const usePersonagemListaModel = ({ navigate } = {}) => {
     handleCancelBulkDelete,
   };
 };
+
+export type PersonagemListaModel = ReturnType<typeof usePersonagemListaModel>;

@@ -1,4 +1,9 @@
-const INTERNO_ITEMS = [
+export interface DocsSidebarItem {
+  slug: string;
+  label: string;
+}
+
+const INTERNO_ITEMS: DocsSidebarItem[] = [
   { slug: 'index', label: 'Início' },
   { slug: 'formulas', label: 'Fórmulas' },
   { slug: 'engine', label: 'Game Engine' },
@@ -6,7 +11,7 @@ const INTERNO_ITEMS = [
   { slug: 'combate-engine', label: 'Combat Engine' },
 ];
 
-const JOGADOR_ITEMS = [
+const JOGADOR_ITEMS: DocsSidebarItem[] = [
   { slug: 'como-jogar', label: 'Como Jogar' },
   { slug: 'atributos', label: 'Atributos' },
   { slug: 'combate', label: 'Combate' },

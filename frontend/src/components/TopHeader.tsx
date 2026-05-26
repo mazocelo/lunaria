@@ -1,28 +1,33 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTheme } from '../contexts/theme.jsx';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useLayout } from '../contexts/LayoutContext';
 import { Sun, Moon, Skull, Bell, BellRing, BellOff, LogOut, User, ChevronDown, Settings, PanelLeftClose, PanelLeft, Volume2, VolumeX } from 'lucide-react';
-import { isSoundEnabled, toggleSound } from '../utils/audio.js';
-import { isNotificationsEnabled, requestPermission, getPermissionState, setNotificationsEnabled } from '../utils/notifications.js';
+import { isSoundEnabled, toggleSound } from '../utils/audio';
+import { isNotificationsEnabled, requestPermission, getPermissionState, setNotificationsEnabled } from '../utils/notifications';
 
-const TopHeader = ({ notificationCount, onOpenNotifications }) => {
+interface TopHeaderProps {
+  notificationCount?: number;
+  onOpenNotifications?: () => void;
+}
+
+const TopHeader = ({ notificationCount = 0, onOpenNotifications }: TopHeaderProps) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useLayout();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
   const [notifOn, setNotifOn] = useState(() => isNotificationsEnabled() && getPermissionState() === 'granted');
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
   const isLight = theme === 'light';
 
   // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
     };
@@ -120,8 +125,8 @@ const TopHeader = ({ notificationCount, onOpenNotifications }) => {
               isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800'
             }`}
           >
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.nome} className="w-8 h-8 rounded-full object-cover" />
+            {typeof user?.avatar === 'string' && user.avatar ? (
+              <img src={user.avatar} alt={user.nome ?? ''} className="w-8 h-8 rounded-full object-cover" />
             ) : (
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                 isLight

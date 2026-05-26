@@ -1,24 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/theme';
 import { personagemService } from '../services';
 import { useTemaStore } from '../store/tema';
 
+export type ConviteStatus = 'pendente' | 'aceito' | 'rejeitado' | 'expirado';
+
+export interface ConviteHistoriaPreview {
+  nome: string;
+  descricao?: string | null;
+  temas?: Array<string | number> | null;
+}
+
+export interface ConviteRemetentePreview {
+  nome: string;
+}
+
+export interface ConvitePayload {
+  id: number | string;
+  status: ConviteStatus;
+  criado_em: string;
+  aceito_em?: string | null;
+  rejeitado_em?: string | null;
+  expirado_em?: string | null;
+  remetente: ConviteRemetentePreview;
+  historia: ConviteHistoriaPreview;
+}
+
+interface PersonagemPreview {
+  id: number | string;
+  nome: string;
+  raca?: { nome?: string | null } | null;
+  classe?: { nome?: string | null } | null;
+}
+
+interface ConviteItemProps {
+  convite: ConvitePayload;
+  onAccept: (convite: ConvitePayload, personagemId: number | string) => void;
+  onReject: (convite: ConvitePayload) => void;
+  onGoToGame: (convite: ConvitePayload) => void;
+  onCreatePersonagem?: () => void;
+}
+
 /**
- * 🎮 Componente de Item de Convite
- * 
- * Exibe um convite individual com:
- * - Informações da história
- * - Status do convite
- * - Ações de aceitar/rejeitar
- * - Design responsivo
+ * Componente de Item de Convite
+ *
+ * Exibe um convite individual com informações da historia, status, e acoes
+ * de aceitar/rejeitar com modal de selecao de personagem.
  */
-const ConviteItem = ({ 
-  convite, 
-  onAccept, 
-  onReject, 
+const ConviteItem = ({
+  convite,
+  onAccept,
+  onReject,
   onGoToGame,
-  onCreatePersonagem
-}) => {
+  onCreatePersonagem,
+}: ConviteItemProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   
@@ -36,17 +71,18 @@ const ConviteItem = ({
     }
   }, [temasCarregados, inicializar]);
   
-  // Estado para seleção de personagem
-  const [personagens, setPersonagens] = useState([]);
-  const [selectedPersonagem, setSelectedPersonagem] = useState('');
+  // Estado para selecao de personagem
+  const [personagens, setPersonagens] = useState<PersonagemPreview[]>([]);
+  const [selectedPersonagem, setSelectedPersonagem] = useState<number | string>('');
   const [showPersonagemModal, setShowPersonagemModal] = useState(false);
   const [loadingPersonagens, setLoadingPersonagens] = useState(false);
 
-  // 🎯 FORMATAR DATA
-  const formatDate = (dateString) => {
+  // FORMATAR DATA
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now - date;
+    const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
     if (diffHours < 1) return 'Agora há pouco';
@@ -54,8 +90,8 @@ const ConviteItem = ({
     return date.toLocaleDateString('pt-BR');
   };
 
-  // 🎯 OBTER ÍCONE E COR POR STATUS
-  const getStatusInfo = (status) => {
+  // OBTER ICONE E COR POR STATUS
+  const getStatusInfo = (status: ConviteStatus) => {
     switch (status) {
       case 'pendente':
         return { icon: '⏳', color: 'yellow', text: 'Pendente' };
@@ -72,12 +108,15 @@ const ConviteItem = ({
 
   const statusInfo = getStatusInfo(convite.status);
 
-  // 🎯 CARREGAR PERSONAGENS
+  // CARREGAR PERSONAGENS
+  // NOTE 2026-05-26: callsite legado consome `response` direto (envelope completo),
+  // mas o uso real esperaria `response.data`. Preservado por compatibilidade
+  // (TODO: corrigir em ticket separado).
   const loadPersonagens = async () => {
     try {
       setLoadingPersonagens(true);
       const response = await personagemService.getAll();
-      setPersonagens(response || []);
+      setPersonagens((response as unknown as PersonagemPreview[]) || []);
     } catch (error) {
       console.error('Erro ao carregar personagens:', error);
     } finally {
@@ -162,24 +201,20 @@ const ConviteItem = ({
           {convite.historia.descricao}
         </p>
         
-        {/* Temas da história */}
+        {/* Temas da historia */}
         {convite.historia.temas && convite.historia.temas.length > 0 && (() => {
-          // Converter IDs de temas em nomes usando o store
-          const temas = Array.isArray(convite.historia.temas) 
-            ? convite.historia.temas 
+          const temas: Array<string | number> = Array.isArray(convite.historia.temas)
+            ? convite.historia.temas
             : [];
-          
-          // Verificar se são IDs (números) ou nomes (strings)
-          // Se todos os valores são números ou strings numéricas, são IDs
-          const saoIds = temas.every(t => {
+
+          const saoIds = temas.every((t) => {
             const num = Number(t);
-            return !isNaN(num) && num > 0;
+            return !Number.isNaN(num) && num > 0;
           });
-          
-          // Converter IDs para nomes se necessário
-          const temasNomes = saoIds 
-            ? getNomesDeTemas(temas.map(t => Number(t)))
-            : temas;
+
+          const temasNomes = saoIds
+            ? getNomesDeTemas(temas.map((t) => Number(t)))
+            : (temas as string[]);
           
           return (
             <div className="flex flex-wrap gap-1 mt-2">

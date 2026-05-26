@@ -1,32 +1,46 @@
-import React from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import React, { type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
-class RouteErrorBoundaryInner extends React.Component {
-  constructor(props) {
+interface RouteErrorBoundaryProps {
+  children?: ReactNode;
+  fallback?: (error: Error | null, retry: () => void) => ReactNode;
+}
+
+interface RouteErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class RouteErrorBoundaryInner extends React.Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
+  constructor(props: RouteErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): RouteErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error(`[RouteErrorBoundary] Erro na rota:`, error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[RouteErrorBoundary] Erro na rota:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
+      const retry = () => this.setState({ hasError: false, error: null });
       return this.props.fallback
-        ? this.props.fallback(this.state.error, () => this.setState({ hasError: false, error: null }))
-        : <DefaultFallback onRetry={() => this.setState({ hasError: false, error: null })} />;
+        ? this.props.fallback(this.state.error, retry)
+        : <DefaultFallback onRetry={retry} />;
     }
     return this.props.children;
   }
 }
 
-function DefaultFallback({ onRetry }) {
+interface DefaultFallbackProps {
+  onRetry: () => void;
+}
+
+function DefaultFallback({ onRetry }: DefaultFallbackProps) {
   return (
     <div className="flex items-center justify-center h-full min-h-[400px] p-8">
       <div className="text-center space-y-4 max-w-md">
@@ -44,7 +58,7 @@ function DefaultFallback({ onRetry }) {
             Tentar novamente
           </button>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => { window.location.href = '/'; }}
             className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm"
           >
             <Home size={14} />

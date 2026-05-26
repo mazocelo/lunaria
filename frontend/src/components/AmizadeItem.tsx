@@ -1,23 +1,35 @@
 import React from 'react';
 import { UserMinus, Check, X, UserPlus, Loader2, Clock } from 'lucide-react';
 
-/**
- * Card reutilizavel para amigo, solicitacao ou resultado de busca
- * @param {Object} usuario - { id, nome, email }
- * @param {string} tipo - amigo | pendente | busca | sugestao
- * @param {string} relacao - null | pendente | aceita | bloqueada (para tipo busca)
- * @param {number} amizadeId
- * @param {string} desde - data de amizade
- * @param {string} criado_em - data da solicitacao
- * @param {boolean} loading
- * @param {Function} onRemove, onAccept, onReject, onAdd
- * @param {boolean} isDark
- */
+export type AmizadeItemTipo = 'amigo' | 'pendente' | 'busca' | 'sugestao';
+export type AmizadeRelacao = 'pendente' | 'aceita' | 'bloqueada' | null;
+
+export interface AmizadeUsuario {
+  id: number | string;
+  nome?: string | null;
+  email?: string | null;
+}
+
+interface AmizadeItemProps {
+  usuario: AmizadeUsuario | null | undefined;
+  tipo: AmizadeItemTipo;
+  relacao?: AmizadeRelacao;
+  amizadeId?: number | string;
+  desde?: string | null;
+  /** snake_case por compatibilidade com payload da API */
+  criado_em?: string | null;
+  loading?: boolean;
+  onRemove?: () => void;
+  onAccept?: () => void;
+  onReject?: () => void;
+  onAdd?: () => void;
+  isDark?: boolean;
+}
+
 const AmizadeItem = ({
   usuario,
   tipo,
   relacao,
-  amizadeId,
   desde,
   criado_em,
   loading,
@@ -25,17 +37,17 @@ const AmizadeItem = ({
   onAccept,
   onReject,
   onAdd,
-  isDark
-}) => {
+  isDark,
+}: AmizadeItemProps) => {
   if (!usuario) return null;
 
   const initial = (usuario.nome || '?')[0].toUpperCase();
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     const now = new Date();
-    const diffMs = now - d;
+    const diffMs = now.getTime() - d.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return 'Hoje';
     if (diffDays === 1) return 'Ontem';

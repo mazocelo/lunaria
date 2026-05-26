@@ -1,10 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useTheme } from '../contexts/theme';
 import { Heart, Shield, Eye, EyeOff, Sparkles, User, AlertTriangle, SkipForward, CheckCircle2, Clock3, ShieldCheck, ScrollText } from 'lucide-react';
 import WizardReadinessSeal from '../Pages/Personagem/Wizard/components/WizardReadinessSeal.jsx';
-import { BONUS_ATTR_KEYS, parseRacaClasseBonus, somarBonusAtributos } from '../utils/personagemBonus.js';
+import { BONUS_ATTR_KEYS, parseRacaClasseBonus, somarBonusAtributos, type BonusMap } from '../utils/personagemBonus';
 
-const ATTR_LABELS = {
+type AttrKey = 'forca' | 'inteligencia' | 'constituicao' | 'agilidade' | 'destreza' | 'carisma';
+
+interface AttrLabelConfig {
+  label: string;
+  color: string;
+}
+
+const ATTR_LABELS: Record<AttrKey, AttrLabelConfig> = {
   forca: { label: 'FOR', color: 'bg-red-500' },
   inteligencia: { label: 'INT', color: 'bg-blue-500' },
   constituicao: { label: 'CON', color: 'bg-green-500' },
@@ -15,17 +22,22 @@ const ATTR_LABELS = {
 
 const ATRIBUTOS_DEFAULT_SUM = 60;
 
-function calcMod(val) {
+function calcMod(val: number | string | null | undefined): number {
   const v = Number(val) || 10;
   return Math.floor((v - 10) / 2);
 }
 
-function calcHP(con, nivel, multRaca = 5) {
+function calcHP(con: number | string | null | undefined, nivel: number, multRaca = 5): number {
   const mod = calcMod(con);
   return multRaca * (nivel + Math.max(1, mod));
 }
 
-const PendingBadge = ({ children, isLight }) => (
+interface BadgeProps {
+  children: ReactNode;
+  isLight: boolean;
+}
+
+const PendingBadge = ({ children, isLight }: BadgeProps) => (
   <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-modern ${
     isLight ? 'bg-purple-100 text-purple-600' : 'bg-purple-500/15 text-purple-400'
   }`}>
@@ -34,7 +46,7 @@ const PendingBadge = ({ children, isLight }) => (
   </span>
 );
 
-const SkippedBadge = ({ children, isLight }) => (
+const SkippedBadge = ({ children, isLight }: BadgeProps) => (
   <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-modern ${
     isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-700/30 text-slate-500'
   }`}>
@@ -43,11 +55,53 @@ const SkippedBadge = ({ children, isLight }) => (
   </span>
 );
 
-const getReadinessState = ({ pendingCount, bonusAplicados, nome, raca, classe }) => {
+type ReadinessState = 'open' | 'shaping' | 'sealed';
+
+interface ReadinessInput {
+  pendingCount: number;
+  bonusAplicados: boolean;
+  nome?: string | null;
+  raca?: string | number | null;
+  classe?: string | number | null;
+}
+
+const getReadinessState = ({ pendingCount, bonusAplicados, nome, raca, classe }: ReadinessInput): ReadinessState => {
   if (!nome || !raca || !classe) return 'open';
   if (pendingCount > 0 || !bonusAplicados) return 'shaping';
   return 'sealed';
 };
+
+interface RacaClasseOption {
+  id: number | string;
+  nome?: string | null;
+  bonus?: unknown;
+  mult_raca?: number | null;
+}
+
+interface VantagemOption {
+  id: number | string;
+  nome: string;
+  custo?: number | null;
+}
+
+interface PersonagemPreviewCardProps {
+  nome?: string | null;
+  raca?: string | number | null;
+  classe?: string | number | null;
+  atributos?: Partial<Record<AttrKey, number | string>>;
+  vantagensSelecionadas?: Array<string | number>;
+  vantagensDisponiveis?: VantagemOption[];
+  racasDisponiveis?: RacaClasseOption[];
+  classesDisponiveis?: RacaClasseOption[];
+  imagem?: string | null;
+  bonusJaAplicado?: boolean;
+  mostrarPendencias?: boolean;
+  bonusAplicados?: boolean;
+  skipVantagens?: boolean;
+  skipDesvantagens?: boolean;
+  variant?: 'default' | 'wizard';
+  readinessState?: ReadinessState;
+}
 
 const PersonagemPreviewCard = ({
   nome,
@@ -66,7 +120,7 @@ const PersonagemPreviewCard = ({
   skipDesvantagens = false,
   variant = 'default',
   readinessState,
-}) => {
+}: PersonagemPreviewCardProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [collapsed, setCollapsed] = useState(false);
@@ -80,23 +134,23 @@ const PersonagemPreviewCard = ({
   const classeBonus = parseRacaClasseBonus(classeObj?.bonus);
   const temBonus = racaBonus || classeBonus;
 
-  const mergedAttrBonus = useMemo(() => {
+  const mergedAttrBonus = useMemo<BonusMap>(() => {
     const selecionados = (vantagensSelecionadas || [])
-      .map(id => (vantagensDisponiveis || []).find(item => String(item.id) === String(id)))
-      .filter(Boolean);
-    const tracosBonus = somarBonusAtributos(selecionados, BONUS_ATTR_KEYS);
+      .map((id) => (vantagensDisponiveis || []).find((item) => String(item.id) === String(id)))
+      .filter((item): item is VantagemOption => Boolean(item));
+    const tracosBonus = somarBonusAtributos(selecionados, BONUS_ATTR_KEYS) as BonusMap;
 
-    const merged = {};
-    for (const key of Object.keys(ATTR_LABELS)) {
+    const merged: BonusMap = {};
+    for (const key of Object.keys(ATTR_LABELS) as AttrKey[]) {
       const bonus = (Number(racaBonus?.[key]) || 0) + (Number(classeBonus?.[key]) || 0) + (Number(tracosBonus[key]) || 0);
       if (bonus !== 0) merged[key] = bonus;
     }
     return merged;
   }, [racaBonus, classeBonus, vantagensSelecionadas, vantagensDisponiveis]);
 
-  const atributosEfetivos = useMemo(() => {
-    const result = {};
-    for (const key of Object.keys(ATTR_LABELS)) {
+  const atributosEfetivos = useMemo<Record<AttrKey, number>>(() => {
+    const result = {} as Record<AttrKey, number>;
+    for (const key of Object.keys(ATTR_LABELS) as AttrKey[]) {
       result[key] = bonusJaAplicado
         ? Number(atributos[key]) || 0
         : (Number(atributos[key]) || 0) + (mergedAttrBonus[key] || 0);
@@ -108,20 +162,21 @@ const PersonagemPreviewCard = ({
 
   const atributosPendentes = mostrarPendencias
     ? !bonusAplicados
-    : Object.values(atributos || {}).map(v => Number(v) || 0).reduce((acc, curr) => acc + curr, 0) === ATRIBUTOS_DEFAULT_SUM;
+    : Object.values(atributos || {}).map((v) => Number(v) || 0).reduce((acc, curr) => acc + curr, 0) === ATRIBUTOS_DEFAULT_SUM;
 
-  const vantagensNomes = (vantagensSelecionadas || []).map(id => {
-    const item = vantagensDisponiveis?.find(v => String(v.id) === String(id));
+  type VantagemEntry = { nome: string; isDesvantagem: boolean; custo: number | null | undefined };
+  const vantagensNomes: VantagemEntry[] = (vantagensSelecionadas || []).map((id) => {
+    const item = vantagensDisponiveis?.find((v) => String(v.id) === String(id));
     if (!item) return null;
     return {
       nome: item.nome,
       isDesvantagem: item.custo != null && item.custo < 0,
       custo: item.custo,
     };
-  }).filter(Boolean);
+  }).filter((entry): entry is VantagemEntry => Boolean(entry));
 
-  const temVantagens = vantagensNomes.some(item => !item.isDesvantagem);
-  const temDesvantagens = vantagensNomes.some(item => item.isDesvantagem);
+  const temVantagens = vantagensNomes.some((item) => !item.isDesvantagem);
+  const temDesvantagens = vantagensNomes.some((item) => item.isDesvantagem);
 
   const pendingCount = [
     mostrarPendencias && !nome,
@@ -132,7 +187,8 @@ const PersonagemPreviewCard = ({
     mostrarPendencias && !temDesvantagens && !skipDesvantagens,
   ].filter(Boolean).length;
 
-  const statusLabel = !mostrarPendencias
+  type StatusLabel = { label: string; icon: ComponentType<{ size?: number }>; className: string };
+  const statusLabel: StatusLabel | null = !mostrarPendencias
     ? null
     : pendingCount > 0
       ? { label: 'Em montagem', icon: Clock3, className: isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/15 text-purple-300' }
@@ -192,7 +248,7 @@ const PersonagemPreviewCard = ({
               <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Atributos finais</span>
               {mostrarPendencias && atributosPendentes && <PendingBadge isLight={isLight}>Distribuicao pendente</PendingBadge>}
             </div>
-            {Object.entries(ATTR_LABELS).map(([key, cfg]) => {
+            {(Object.entries(ATTR_LABELS) as [AttrKey, AttrLabelConfig][]).map(([key, cfg]) => {
               const efetivo = atributosEfetivos[key];
               const bonusDisplay = mergedAttrBonus[key] || 0;
               const pct = Math.min(100, (efetivo / 20) * 100);
@@ -308,7 +364,7 @@ const PersonagemPreviewCard = ({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {Object.entries(ATTR_LABELS).map(([key, cfg]) => {
+              {(Object.entries(ATTR_LABELS) as [AttrKey, AttrLabelConfig][]).map(([key, cfg]) => {
                 const efetivo = atributosEfetivos[key];
                 const bonusDisplay = mergedAttrBonus[key] || 0;
                 const mod = calcMod(efetivo);

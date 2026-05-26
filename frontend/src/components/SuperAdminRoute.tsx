@@ -1,8 +1,12 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const SuperAdminRoute = ({ children }) => {
+interface SuperAdminRouteProps {
+  children: ReactNode;
+}
+
+const SuperAdminRoute = ({ children }: SuperAdminRouteProps) => {
   const { isSuperAdmin, loading } = useAuth();
 
   if (loading) return null;
@@ -11,7 +15,7 @@ const SuperAdminRoute = ({ children }) => {
     return <Navigate to="/historias" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 export default SuperAdminRoute;

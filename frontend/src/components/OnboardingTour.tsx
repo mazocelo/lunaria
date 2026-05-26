@@ -1,14 +1,24 @@
-import React, { useState, useCallback } from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import { useState, useCallback, type ComponentType } from 'react';
+import { useTheme } from '../contexts/theme';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, Sword, BookOpen, Users,
-  ChevronRight, ChevronLeft, X
+  ChevronRight, ChevronLeft, X,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'lunaria_onboarding_completed';
 
-const STEPS = [
+interface OnboardingStep {
+  icon: ComponentType<{ size?: number; className?: string }>;
+  iconColor: string;
+  iconBg: string;
+  title: string;
+  description: string;
+  tip: string;
+  route?: string;
+}
+
+const STEPS: OnboardingStep[] = [
   {
     icon: Sparkles,
     iconColor: 'text-yellow-400',
@@ -47,9 +57,9 @@ const STEPS = [
 ];
 
 /**
- * Verifica se o onboarding já foi concluído
+ * Verifica se o onboarding ja foi concluido
  */
-export function isOnboardingCompleted() {
+export function isOnboardingCompleted(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY) === 'true';
   } catch {
@@ -58,15 +68,19 @@ export function isOnboardingCompleted() {
 }
 
 /**
- * Marca o onboarding como concluído
+ * Marca o onboarding como concluido
  */
-export function markOnboardingCompleted() {
+export function markOnboardingCompleted(): void {
   try {
     localStorage.setItem(STORAGE_KEY, 'true');
   } catch { /* ignore */ }
 }
 
-const OnboardingTour = ({ onComplete }) => {
+interface OnboardingTourProps {
+  onComplete?: () => void;
+}
+
+const OnboardingTour = ({ onComplete }: OnboardingTourProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const { theme } = useTheme();
   const navigate = useNavigate();

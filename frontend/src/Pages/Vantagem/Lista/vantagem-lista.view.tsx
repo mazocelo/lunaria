@@ -1,12 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
+import { useState, useEffect, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import Notification from '../../../components/Notification.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
 import { Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
+import type { VantagemDesvantagem } from '../../../types/api';
 
-const tipoVariant = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const tipoVariant: Record<string, BadgeVariant> = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
+
+interface VantagemListaViewProps {
+  vantagens: VantagemDesvantagem[];
+  filteredVantagens: VantagemDesvantagem[];
+  loading: boolean;
+  error: string | null;
+  positivas: number;
+  negativas: number;
+  buscarVantagens: (term: string) => void;
+  clearError: () => void;
+  onVerVantagem: (id: number | string) => void;
+}
 
 const VantagemListaView = ({
   vantagens,
@@ -18,7 +33,7 @@ const VantagemListaView = ({
   buscarVantagens,
   clearError,
   onVerVantagem,
-}) => {
+}: VantagemListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -35,7 +50,7 @@ const VantagemListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const displayVantagens = filteredVantagens?.length > 0 ? filteredVantagens : vantagens;
 
@@ -148,9 +163,9 @@ const VantagemListaView = ({
       {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayVantagens[galleryIndex] && (
         <ImageLightbox
-          src={displayVantagens[galleryIndex].imagem}
-          alt={displayVantagens[galleryIndex].nome}
-          title={displayVantagens[galleryIndex].nome}
+          src={displayVantagens[galleryIndex].imagem ?? ''}
+          alt={displayVantagens[galleryIndex].nome ?? ''}
+          title={displayVantagens[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

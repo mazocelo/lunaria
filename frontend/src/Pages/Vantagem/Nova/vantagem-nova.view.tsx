@@ -1,42 +1,49 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { Sparkles, Save, Loader2 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme';
+import { Sparkles, Loader2 } from 'lucide-react';
 
-const EditarVantagemView = ({
+type VantagemField =
+  | 'nome' | 'descricao' | 'custo' | 'tipo' | 'elemento' | 'nivel'
+  | 'dano_base' | 'usar' | 'bonus' | 'restricao' | 'efeito' | 'requisitos';
+
+interface NovaVantagemViewProps {
+  nome: string;
+  descricao: string;
+  custo: number | string;
+  tipo: string;
+  elemento: string;
+  nivel: number | string;
+  dano_base: number | string;
+  usar: number | string;
+  bonus: string;
+  restricao: string;
+  efeito: string;
+  requisitos: string;
+  saving: boolean;
+  error: string | null;
+  setField: (name: VantagemField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
+const NovaVantagemView = ({
   nome, descricao, custo, tipo, elemento, nivel, dano_base, usar,
-  bonus, efeito, loading, saving, error,
+  bonus, efeito, saving, error,
   setField, handleSubmit, handleCancel,
-}) => {
+}: NovaVantagemViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
   const inputCls = `w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`;
 
-  if (loading) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <Sparkles size={24} className="text-white" />
-              </div>
-              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando vantagem...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><Sparkles size={32} className="text-white" /></div>
-        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Vantagem</h1>
-        <p className="text-slate-400 font-modern">Atualize os dados da vantagem</p>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Criar Nova Vantagem</h1>
+        <p className="text-slate-400 font-modern">Adicione uma nova vantagem ao catalogo</p>
       </div>
       <form onSubmit={handleSubmit} className="card-rpg space-y-6">
         {error && (
@@ -79,9 +86,9 @@ const EditarVantagemView = ({
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">
             {saving ? (
-              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>
+              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>
             ) : (
-              <div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Vantagem</span></div>
+              <div className="flex items-center space-x-2"><Sparkles size={16} /><span>Criar Vantagem</span></div>
             )}
           </Button>
         </div>
@@ -90,4 +97,4 @@ const EditarVantagemView = ({
   );
 };
 
-export default EditarVantagemView;
+export default NovaVantagemView;

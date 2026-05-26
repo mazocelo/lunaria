@@ -1,15 +1,18 @@
-import React from 'react';
 import { Sparkles, BookOpen, Zap, Coins, BarChart3, Tag, Swords, Shield } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { CatalogDetailLayout, ChipGroup } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { VantagemNormalizada } from './vantagem-ver.model';
 
-/**
- * View: apresentacao completa.
- * Recebe dados normalizados do Model (via ViewModel) e monta toda a UI.
- * Resolve tema, badges, sections, stats — tudo visual vive aqui.
- */
+interface VerVantagemViewProps {
+  vantagem: VantagemNormalizada | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
 
-const VerVantagemView = ({ vantagem: v, loading, error, onBack, onEdit }) => {
+const VerVantagemView = ({ vantagem: v, loading, error, onBack, onEdit }: VerVantagemViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -23,7 +26,6 @@ const VerVantagemView = ({ vantagem: v, loading, error, onBack, onEdit }) => {
     );
   }
 
-  // -- Badges --
   const badges = [
     <span key="cost" className={`px-3 py-1 rounded-full text-xs font-semibold ${
       v.custo > 0 ? (isLight ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400')
@@ -40,21 +42,19 @@ const VerVantagemView = ({ vantagem: v, loading, error, onBack, onEdit }) => {
     v.usar && <span key="usar" className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-500/15 text-indigo-400'}`}>{v.usar}</span>,
   ].filter(Boolean);
 
-  // -- Sections --
   const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
-  const sections = [
+  const sections: CatalogDetailSection[] = [
     v.descricao && { title: 'Descricao', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${textCls}`}>{v.descricao}</p> },
-    v.efeito?.length > 0 && { title: 'Efeito', icon: Zap, color: '#22c55e',
+    v.efeito && v.efeito.length > 0 && { title: 'Efeito', icon: Zap, color: '#22c55e',
       content: <div className="space-y-2">{v.efeito.map((e, i) => <p key={i} className={`font-mono text-sm ${textCls}`}>{e}</p>)}</div> },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailSection[];
 
-  // -- Stats --
-  const monoBlock = (items, cls) => (
+  const monoBlock = (items: string[], cls: string) => (
     <div className="space-y-1">{items.map((a, i) => <span key={i} className={`block font-mono text-xs ${cls}`}>{a}</span>)}</div>
   );
 
-  const stats = [
+  const stats: CatalogDetailStat[] = ([
     { icon: Coins, label: 'Custo', content: (
       <span className={`font-mono font-semibold ${
         v.custo > 0 ? (isLight ? 'text-green-600' : 'text-green-400')
@@ -66,10 +66,10 @@ const VerVantagemView = ({ vantagem: v, loading, error, onBack, onEdit }) => {
     v.tipos.length > 0 && { icon: Tag, label: 'Tipo', content: <ChipGroup items={v.tipos} colorClass={isLight ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/15 text-blue-400'} /> },
     v.elementos.length > 0 && { icon: Zap, label: 'Elemento', content: <ChipGroup items={v.elementos} colorClass={isLight ? 'bg-purple-50 text-purple-700' : 'bg-purple-500/15 text-purple-400'} /> },
     v.danoBase && { icon: Swords, label: 'Dano Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{v.danoBase}</span> },
-    v.bonus?.length > 0 && { icon: Shield, label: 'Bonus', content: monoBlock(v.bonus, isLight ? 'text-cyan-700' : 'text-cyan-400') },
-    v.restricao?.length > 0 && { icon: Shield, label: 'Restricao', content: monoBlock(v.restricao, isLight ? 'text-amber-700' : 'text-amber-400') },
-    v.requisitos?.length > 0 && { icon: Shield, label: 'Requisitos', content: monoBlock(v.requisitos, isLight ? 'text-amber-700' : 'text-amber-400') },
-  ].filter(Boolean);
+    v.bonus && v.bonus.length > 0 && { icon: Shield, label: 'Bonus', content: monoBlock(v.bonus, isLight ? 'text-cyan-700' : 'text-cyan-400') },
+    v.restricao && v.restricao.length > 0 && { icon: Shield, label: 'Restricao', content: monoBlock(v.restricao, isLight ? 'text-amber-700' : 'text-amber-400') },
+    v.requisitos && v.requisitos.length > 0 && { icon: Shield, label: 'Requisitos', content: monoBlock(v.requisitos, isLight ? 'text-amber-700' : 'text-amber-400') },
+  ].filter(Boolean) as CatalogDetailStat[]);
 
   return (
     <CatalogDetailLayout

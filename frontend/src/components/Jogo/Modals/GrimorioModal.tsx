@@ -1,7 +1,13 @@
 import { useState, useMemo } from 'react';
 import { X, Search } from 'lucide-react';
 
-const ELEMENT_COLORS = {
+interface ElementColorEntry {
+  border: string;
+  bg: string;
+  text: string;
+}
+
+const ELEMENT_COLORS: Record<string, ElementColorEntry> = {
   fogo:   { border: '#f97316', bg: 'rgba(124,45,18,0.25)', text: '#fb923c' },
   agua:   { border: '#3b82f6', bg: 'rgba(30,58,138,0.25)', text: '#60a5fa' },
   terra:  { border: '#10b981', bg: 'rgba(6,78,59,0.25)',   text: '#34d399' },
@@ -10,7 +16,13 @@ const ELEMENT_COLORS = {
   trevas: { border: '#a855f7', bg: 'rgba(88,28,135,0.25)', text: '#c084fc' },
 };
 
-const ELEMENT_CHIPS = [
+interface ElementChipDef {
+  key: string;
+  label: string;
+  color: string;
+}
+
+const ELEMENT_CHIPS: ElementChipDef[] = [
   { key: 'fogo',   label: 'Fogo',   color: '#f97316' },
   { key: 'agua',   label: 'Agua',   color: '#3b82f6' },
   { key: 'terra',  label: 'Terra',  color: '#10b981' },
@@ -19,7 +31,28 @@ const ELEMENT_CHIPS = [
   { key: 'trevas', label: 'Trevas', color: '#a855f7' },
 ];
 
-function FocusChips({ focusRequisito }) {
+type FocusRequisito = Record<string, number | string>;
+
+interface MagiaPayload {
+  id?: string | number;
+  nome?: string;
+  descricao?: string;
+  efeito?: string;
+  custo_pm?: number | string;
+  custo_mana?: number | string;
+  focus_requisito?: FocusRequisito[];
+  alcance?: string;
+  duracao?: string;
+  classes?: string[];
+  conjuracao?: string;
+  componentes?: string[];
+  escola_magia?: string;
+  imagem?: string;
+  usa_concentracao?: boolean;
+  [key: string]: unknown;
+}
+
+function FocusChips({ focusRequisito }: { focusRequisito?: FocusRequisito[] }) {
   if (!Array.isArray(focusRequisito) || focusRequisito.length === 0) return null;
 
   return (
@@ -43,25 +76,36 @@ function FocusChips({ focusRequisito }) {
   );
 }
 
-function parseCustoPm(magia) {
+function parseCustoPm(magia: MagiaPayload): number {
   const raw = magia.custo_pm ?? magia.custo_mana ?? 0;
   if (typeof raw === 'number') return raw;
   const match = String(raw).match(/(\d+)/);
   return match ? parseInt(match[1], 10) : 0;
 }
 
+interface GrimorioModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  magias?: MagiaPayload[];
+  manaAtual?: number;
+  manaMax?: number;
+  combateAtivo?: boolean;
+  onUsarMagia?: (magia: MagiaPayload) => void;
+  sistema?: string;
+}
+
 const GrimorioModal = ({
   isOpen,
   onClose,
   magias,
-  manaAtual,
-  manaMax,
+  manaAtual = 0,
+  manaMax = 0,
   combateAtivo,
   onUsarMagia,
   sistema,
-}) => {
+}: GrimorioModalProps) => {
   const [busca, setBusca] = useState('');
-  const [filtroElemento, setFiltroElemento] = useState(null);
+  const [filtroElemento, setFiltroElemento] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -178,8 +222,8 @@ const GrimorioModal = ({
             {magiasFiltradas.map(magia => {
               const custo = parseCustoPm(magia);
               const semMana = custo > manaAtual;
-              const escola = magia.escola_magia || magia.escola || '';
-              const escolaColor = ELEMENT_COLORS[escola.toLowerCase()] || null;
+              const escola = String(magia.escola_magia || (magia as { escola?: string }).escola || '');
+              const escolaColor = escola ? ELEMENT_COLORS[escola.toLowerCase()] : null;
               const isClickable = combateAtivo && !semMana;
               const isDisabled = combateAtivo && semMana;
 

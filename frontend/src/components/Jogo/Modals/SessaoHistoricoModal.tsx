@@ -1,10 +1,16 @@
-﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
+﻿import { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Filter, Clock, Users, ScrollText, MessageCircle, Dice1, ArrowDown, Swords, Shield, TrendingUp, Package, Volume2, Square, Loader2, Mic } from 'lucide-react';
-import { useTTS } from '../../../hooks/useTTS.js';
-import ConfirmationModal from '../../ConfirmationModal.jsx';
-import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
+import { useTTS } from '../../../hooks/useTTS';
+import ConfirmationModal from '../../ConfirmationModal';
+import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments';
 
-const tipoConfig = {
+interface TipoConfigEntry {
+  label: string;
+  color: string;
+  icon: string;
+}
+
+const tipoConfig: Record<string, TipoConfigEntry> = {
   mestre: { label: 'Mestre', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: '\u{1F3AD}' },
   roleplay: { label: 'Roleplay', color: 'bg-slate-500/20 text-slate-300 border-slate-500/30', icon: '\u{1F4AC}' },
   dado: { label: 'Dados', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: '\u{1F3B2}' },
@@ -12,40 +18,70 @@ const tipoConfig = {
   entre_rodadas: { label: 'Transicao', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', icon: '\u{1F4D6}' },
 };
 
-function formatTimestamp(ts) {
+function formatTimestamp(ts?: string | number | null): string {
   if (!ts) return '';
   const d = new Date(ts);
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatDuration(start, end) {
+function formatDuration(start?: string | number | null, end?: string | number | null): string {
   if (!start) return '-';
   const s = new Date(start);
   const e = end ? new Date(end) : new Date();
-  const diff = Math.floor((e - s) / 1000 / 60);
+  const diff = Math.floor((e.getTime() - s.getTime()) / 1000 / 60);
   if (diff < 60) return `${diff}min`;
   return `${Math.floor(diff / 60)}h ${diff % 60}min`;
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr?: string | number | null): string {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
+    hour: '2-digit', minute: '2-digit',
   });
 }
 
-function getParticipantes(jogadores) {
-  if (!jogadores) return [];
-  if (Array.isArray(jogadores)) return jogadores;
-  return Object.values(jogadores).map(j => j.personagemNome || j.username || j.nome || 'Jogador');
+interface JogadorEntry {
+  personagemNome?: string;
+  username?: string;
+  nome?: string;
 }
 
-function getConteudo(msg) {
+function getParticipantes(jogadores?: JogadorEntry[] | Record<string, JogadorEntry> | null): string[] {
+  if (!jogadores) return [];
+  const list: JogadorEntry[] = Array.isArray(jogadores) ? jogadores : Object.values(jogadores);
+  return list.map((j) => j?.personagemNome || j?.username || j?.nome || 'Jogador');
+}
+
+interface HistoricoMensagem {
+  id?: string | number;
+  tipo?: string;
+  mensagem?: string;
+  message?: string;
+  conteudo?: string;
+  voice_id?: string;
+  voice_provider?: string;
+  segmentos?: unknown[];
+  audio_cache_key?: string;
+  audio_url?: string;
+  audioUrl?: string;
+  timestamp?: string | number;
+  username?: string;
+  npc_nome?: string;
+  speech_text?: string;
+  [key: string]: unknown;
+}
+
+function getConteudo(msg: HistoricoMensagem): string {
   return msg.mensagem || msg.message || msg.conteudo || '';
 }
 
-const MensagemItem = ({ msg, tts }) => {
+interface MensagemItemProps {
+  msg: HistoricoMensagem;
+  tts: ReturnType<typeof useTTS>;
+}
+
+const MensagemItem = ({ msg, tts }: MensagemItemProps) => {
   const tipo = msg.tipo || 'roleplay';
   const config = tipoConfig[tipo] || tipoConfig.roleplay;
   const conteudo = getConteudo(msg);
@@ -54,8 +90,13 @@ const MensagemItem = ({ msg, tts }) => {
   if (tipo === 'mestre') {
     const voiceId = msg.voice_id;
     const voiceProvider = msg.voice_provider;
-    const sequenceKey = `historico:${msg.id}`;
-    const segmentItems = buildNarrationSequenceItems(msg.segmentos || [], msg.id, voiceId, voiceProvider);
+    const sequenceKey = `historico:${msg.id ?? ''}`;
+    const segmentItems = buildNarrationSequenceItems(
+      (msg.segmentos as unknown as Parameters<typeof buildNarrationSequenceItems>[0]) || [],
+      msg.id ?? '',
+      voiceId,
+      voiceProvider,
+    );
     const hasSegmentedNarration = segmentItems.length > 0;
     const isThisSequenceActive = tts?.currentSequenceKey === sequenceKey;
     const isThisPlaying = Boolean(isThisSequenceActive ? tts?.isPlaying : String(tts?.currentMessageId) === String(msg.id) && tts?.isPlaying);
@@ -71,7 +112,7 @@ const MensagemItem = ({ msg, tts }) => {
       && !tts?.isPlaying
       && !tts?.canTogglePlayback
     );
-    const hasCachedAudio = !!tts?.hasAudioForMessage?.(msg.id);
+    const hasCachedAudio = msg.id != null ? !!tts?.hasAudioForMessage?.(msg.id) : false;
     const hasPersistedAudio = Boolean(
       msg.audio_cache_key
       || msg.audio_url
@@ -89,16 +130,16 @@ const MensagemItem = ({ msg, tts }) => {
       }
 
       if (hasSegmentedNarration) {
-        await tts.playSequence(segmentItems, msg.id, {
+        await tts.playSequence(segmentItems as unknown as Parameters<typeof tts.playSequence>[0], msg.id ?? '', {
           allowGenerate: hasPersistedAudio,
-          sequenceKey
+          sequenceKey,
         });
         return;
       }
 
       if (!voiceId) return;
 
-      await tts.play(conteudo, voiceId, msg.id, voiceProvider, {
+      await tts.play(conteudo, voiceId, msg.id ?? '', voiceProvider, {
         allowGenerate: hasPersistedAudio,
         speechText: msg.speech_text || conteudo,
       });
@@ -113,17 +154,17 @@ const MensagemItem = ({ msg, tts }) => {
       setShowConfirmAudio(false);
 
       if (hasSegmentedNarration) {
-        await tts.playSequence(segmentItems, msg.id, {
+        await tts.playSequence(segmentItems as unknown as Parameters<typeof tts.playSequence>[0], msg.id ?? '', {
           allowGenerate: true,
           forceRegenerate: hasAnyAudio,
-          sequenceKey
+          sequenceKey,
         });
         return;
       }
 
       if (!voiceId) return;
 
-      await tts.play(conteudo, voiceId, msg.id, voiceProvider, {
+      await tts.play(conteudo, voiceId, msg.id ?? '', voiceProvider, {
         allowGenerate: true,
         forceRegenerate: hasAnyAudio,
         speechText: msg.speech_text || conteudo,
@@ -173,9 +214,9 @@ const MensagemItem = ({ msg, tts }) => {
         </div>
         {hasSegmentedNarration ? (
           <NarrationSegments
-            segments={msg.segmentos || []}
-            messageId={msg.id}
-            tts={tts}
+            segments={(msg.segmentos as unknown as Parameters<typeof NarrationSegments>[0]['segments']) || []}
+            messageId={msg.id ?? ''}
+            tts={tts as unknown as Parameters<typeof NarrationSegments>[0]['tts']}
             defaultVoiceId={voiceId}
             defaultVoiceProvider={voiceProvider}
             compact
@@ -193,8 +234,8 @@ const MensagemItem = ({ msg, tts }) => {
       <div className="flex items-center gap-2 py-1">
         <span className="text-xs">{'??'}</span>
         <span className="text-xs text-slate-400 font-modern">{msg.username || 'Jogador'}</span>
-        <span className="text-sm font-bold text-amber-400">{msg.dice || conteudo}</span>
-        {msg.result != null && <span className="text-lg font-bold text-amber-300">{'?'} {msg.result}</span>}
+        <span className="text-sm font-bold text-amber-400">{(msg.dice as string) || conteudo}</span>
+        {msg.result != null && <span className="text-lg font-bold text-amber-300">{'?'} {String(msg.result)}</span>}
         <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
       </div>
     );
@@ -206,7 +247,7 @@ const MensagemItem = ({ msg, tts }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs">{'??'}</span>
           <span className="text-sm text-red-300 font-modern">{conteudo}</span>
-          {msg.dano && <span className="text-sm font-bold text-red-400">-{msg.dano} HP</span>}
+          {Boolean(msg.dano) && <span className="text-sm font-bold text-red-400">-{String(msg.dano)} HP</span>}
           <span className="text-[10px] text-slate-500 ml-auto">{formatTimestamp(msg.timestamp)}</span>
         </div>
       </div>
@@ -232,7 +273,22 @@ const MensagemItem = ({ msg, tts }) => {
   );
 };
 
-const PersonagemCard = ({ personagem }) => {
+interface HistoricoPersonagem {
+  nome?: string;
+  classe_nome?: string;
+  raca_nome?: string;
+  status?: string;
+  nivel_inicio?: number;
+  nivel_fim?: number;
+  itens_ganhos?: Array<{ nome?: string }>;
+  itens_perdidos?: Array<{ nome?: string }>;
+  xp_ganho?: number;
+  abandonado_em?: string | null;
+  derrotado_em?: string | null;
+  [key: string]: unknown;
+}
+
+const PersonagemCard = ({ personagem }: { personagem: HistoricoPersonagem }) => {
   const levelUp = personagem.nivel_fim && personagem.nivel_inicio && personagem.nivel_fim > personagem.nivel_inicio;
   const itensGanhos = Array.isArray(personagem.itens_ganhos) ? personagem.itens_ganhos : [];
   const itensPerdidos = Array.isArray(personagem.itens_perdidos) ? personagem.itens_perdidos : [];
@@ -283,14 +339,14 @@ const PersonagemCard = ({ personagem }) => {
           </div>
         </div>
 
-        {personagem.hp_max > 0 && (
+        {((personagem.hp_max as number | undefined) ?? 0) > 0 && (
           <div className="glass rounded px-3 py-2 border border-slate-700/30">
             <div className="flex items-center gap-1.5">
               <Swords size={12} className="text-red-400" />
               <span className="text-[10px] text-slate-400 font-modern uppercase">HP Final</span>
             </div>
             <div className="text-sm font-modern font-semibold text-white mt-0.5">
-              {personagem.hp_atual}/{personagem.hp_max}
+              {String(personagem.hp_atual ?? '')}/{String(personagem.hp_max ?? '')}
             </div>
           </div>
         )}
@@ -303,12 +359,15 @@ const PersonagemCard = ({ personagem }) => {
             <span className="text-[10px] text-green-400 font-modern uppercase font-semibold">Itens Ganhos</span>
           </div>
           <div className="flex flex-wrap gap-1">
-            {itensGanhos.map((item, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 rounded bg-green-500/10 text-green-300 border border-green-500/20 font-modern">
-                {item.nome || item.itemNome || 'Item'}
-                {item.quantidade > 1 && ` x${item.quantidade}`}
-              </span>
-            ))}
+            {itensGanhos.map((item, i) => {
+              const it = item as { nome?: string; itemNome?: string; quantidade?: number };
+              return (
+                <span key={i} className="text-xs px-2 py-0.5 rounded bg-green-500/10 text-green-300 border border-green-500/20 font-modern">
+                  {it.nome || it.itemNome || 'Item'}
+                  {(it.quantidade ?? 0) > 1 && ` x${it.quantidade}`}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -320,11 +379,14 @@ const PersonagemCard = ({ personagem }) => {
             <span className="text-[10px] text-red-400 font-modern uppercase font-semibold">Itens Perdidos</span>
           </div>
           <div className="flex flex-wrap gap-1">
-            {itensPerdidos.map((item, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 rounded bg-red-500/10 text-red-300 border border-red-500/20 font-modern">
-                {item.nome || item.itemNome || 'Item'}
-              </span>
-            ))}
+            {itensPerdidos.map((item, i) => {
+              const it = item as { nome?: string; itemNome?: string };
+              return (
+                <span key={i} className="text-xs px-2 py-0.5 rounded bg-red-500/10 text-red-300 border border-red-500/20 font-modern">
+                  {it.nome || it.itemNome || 'Item'}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -332,24 +394,47 @@ const PersonagemCard = ({ personagem }) => {
   );
 };
 
-const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
-  const [filtros, setFiltros] = useState(new Set());
-  const [abaAtiva, setAbaAtiva] = useState('mensagens');
-  const scrollRef = useRef(null);
+interface SessaoHistorico {
+  id?: string | number;
+  status?: string;
+  nome?: string;
+  iniciada_em?: string | number;
+  finalizada_em?: string | number;
+  duracao?: string;
+  participantes?: number;
+  resumo?: string;
+  jogadores?: JogadorEntry[] | Record<string, JogadorEntry>;
+  mensagens?: HistoricoMensagem[];
+  personagens?: HistoricoPersonagem[];
+  [key: string]: unknown;
+}
+
+interface SessaoHistoricoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  sessao?: SessaoHistorico | null;
+}
+
+type AbaAtiva = 'mensagens' | 'resumo' | 'personagens';
+
+const SessaoHistoricoModal = ({ isOpen, onClose, sessao }: SessaoHistoricoModalProps) => {
+  const [filtros, setFiltros] = useState<Set<string>>(new Set());
+  const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>('mensagens');
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const tts = useTTS();
 
   const mensagens = useMemo(() => {
     const msgs = Array.isArray(sessao?.mensagens) ? sessao.mensagens : [];
     if (filtros.size === 0) return msgs;
-    return msgs.filter(m => filtros.has(m.tipo));
+    return msgs.filter((m) => m.tipo != null && filtros.has(m.tipo));
   }, [sessao?.mensagens, filtros]);
 
   const personagens = useMemo(() => {
     return Array.isArray(sessao?.personagens) ? sessao.personagens : [];
   }, [sessao?.personagens]);
 
-  const toggleFiltro = (tipo) => {
+  const toggleFiltro = (tipo: string) => {
     setFiltros(prev => {
       const next = new Set(prev);
       if (next.has(tipo)) next.delete(tipo);
@@ -407,7 +492,7 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
               <MessageCircle size={12} /> {(sessao.mensagens || []).length} mensagens
             </span>
             <span className="flex items-center gap-1">
-              <Dice1 size={12} /> {sessao.rodada_atual || 0} rodadas
+              <Dice1 size={12} /> {Number((sessao as { rodada_atual?: number }).rodada_atual ?? 0)} rodadas
             </span>
             {participantes.length > 0 && (
               <span className="flex items-center gap-1">
@@ -498,7 +583,7 @@ const SessaoHistoricoModal = ({ isOpen, onClose, sessao }) => {
               </div>
             ) : (
               <div className="grid gap-3">
-                {personagens.map(p => <PersonagemCard key={p.id} personagem={p} />)}
+                {personagens.map((p) => <PersonagemCard key={String((p as { id?: string | number }).id ?? p.nome ?? Math.random())} personagem={p} />)}
               </div>
             )
           )}

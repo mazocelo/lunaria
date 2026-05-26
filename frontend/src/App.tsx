@@ -1,35 +1,43 @@
-import { useTheme } from './contexts/theme.jsx'
+import { useTheme } from './contexts/theme'
 import { useAuth } from './contexts/AuthContext'
 import { useLayout } from './contexts/LayoutContext'
 import { GameLoadingProvider } from './contexts/GameLoadingContext'
 import Sidebar from './components/sidebar'
 import TopHeader from './components/TopHeader'
-import ParticlesBackground from './components/ParticlesBackground.jsx'
-import GothicDecorations from './components/GothicDecorations.jsx'
+import ParticlesBackground from './components/ParticlesBackground'
+import GothicDecorations from './components/GothicDecorations'
 import LoadingSpinner from './components/LoadingSpinner'
 import NotificationsModal from './components/NotificationsModal'
 import { AuthContainer } from './components/Auth'
 import ResetPasswordPage from './Pages/ResetPassword'
-import AppRoutes from './routes.jsx'
+import AppRoutes from './routes'
 import ScrollToTop from './components/shared/ScrollToTop'
 import OnboardingTour, { isOnboardingCompleted } from './components/OnboardingTour'
 
-// 🚀 STORE INITIALIZATION - Cache de dados estáticos em background
-import React, { useEffect, useState } from 'react'
+// STORE INITIALIZATION - Cache de dados estaticos em background
+import React, { useEffect, useState, type ErrorInfo, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
-import { initializeAllStores } from './store/index.js'
+import { initializeAllStores } from './store/index'
 import { notificationService } from './services'
 
+interface ErrorBoundaryProps {
+  children?: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
 // ErrorBoundary para capturar crashes em componentes
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(): ErrorBoundaryState {
     return { hasError: true };
   }
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
   }
   render() {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRacaStore } from '../../../store/raca';
-import { racaService } from '../../../services/index.js';
+import { racaService } from '../../../services/index';
 
 /**
  * Model: estado, sincronizacao, normalizacao e metodos da entidade.
@@ -14,33 +14,33 @@ export const useRacaListaModel = () => {
   const recarregarRacas = useRacaStore(s => s.recarregarRacas);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Catalogo Lunaria (default): carregarRacas recarrega sozinho caso o cache
-    // esteja preenchido com outro sistema (ex.: apos abrir o wizard D&D).
     carregarRacas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredRacas = useMemo(() => {
     if (!searchTerm) return racas;
     const term = searchTerm.toLowerCase();
-    return racas.filter(r =>
+    return racas.filter((r) =>
       r.nome?.toLowerCase().includes(term) ||
-      r.descricao?.toLowerCase().includes(term)
+      r.descricao?.toLowerCase().includes(term),
     );
   }, [racas, searchTerm]);
 
-  const gratuitas = useMemo(() => (racas || []).filter(r => r.custo === 0).length, [racas]);
+  const gratuitas = useMemo(() => (racas || []).filter((r) => r.custo === 0).length, [racas]);
   const pagas = useMemo(() => (racas || []).length - gratuitas, [racas, gratuitas]);
 
-  const deleteRaca = async (id) => {
+  const deleteRaca = async (id: number | string) => {
     try {
-      await racaService.delete(id);
+      await racaService.delete(Number(id));
       await recarregarRacas();
       return { success: true };
     } catch (err) {
-      setLocalError(`Erro ao remover raca: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setLocalError(`Erro ao remover raca: ${message}`);
       return { success: false };
     }
   };

@@ -4,10 +4,10 @@ import SuperAdminRoute from './components/SuperAdminRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 
-// Re-export constantes de rotas (fonte: constants/routes.js)
-// Mantém backward-compatibility para quem importa de routes.jsx
-export { ROUTES, generateRoute } from './constants/routes.js';
-import { ROUTES } from './constants/routes.js';
+// Re-export constantes de rotas (fonte: constants/routes)
+// Mantem backward-compatibility para quem importa de routes
+export { ROUTES, generateRoute } from './constants/routes';
+import { ROUTES } from './constants/routes';
 
 // Lazy loading de todas as páginas
 const HistoriaListaPage = React.lazy(() => import('./Pages/Historia/Lista'));

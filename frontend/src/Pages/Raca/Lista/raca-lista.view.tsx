@@ -1,10 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
-import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import Notification from '../../../components/Notification.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useState, useEffect, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
+import { PageHeader, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
 import { Dna, Gift, Coins } from 'lucide-react';
+import type { Raca } from '../../../types/api';
+
+interface RacaListaViewProps {
+  racas: Raca[];
+  filteredRacas: Raca[];
+  loading: boolean;
+  error: string | null;
+  gratuitas: number;
+  pagas: number;
+  buscarRacas: (term: string) => void;
+  clearError: () => void;
+  onVerRaca: (id: number | string) => void;
+}
 
 const RacaListaView = ({
   racas,
@@ -16,7 +29,7 @@ const RacaListaView = ({
   buscarRacas,
   clearError,
   onVerRaca,
-}) => {
+}: RacaListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -33,7 +46,7 @@ const RacaListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const displayRacas = filteredRacas?.length > 0 ? filteredRacas : racas;
 
@@ -128,9 +141,9 @@ const RacaListaView = ({
       {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayRacas[galleryIndex] && (
         <ImageLightbox
-          src={displayRacas[galleryIndex].imagem}
-          alt={displayRacas[galleryIndex].nome}
-          title={displayRacas[galleryIndex].nome}
+          src={displayRacas[galleryIndex].imagem ?? ''}
+          alt={displayRacas[galleryIndex].nome ?? ''}
+          title={displayRacas[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

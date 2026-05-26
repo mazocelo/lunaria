@@ -1,15 +1,16 @@
-import React from 'react';
 import { Skull, BookOpen, BarChart3, Zap, Heart, Swords, Shield, Star, Tag } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { CatalogDetailLayout, ChipGroup, AtributoBar, getRaridadeConfig } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { MonstroNormalizado } from './monstro-ver.model';
 
-/**
- * View: apresentacao completa.
- * Recebe dados normalizados do Model (via ViewModel) e monta toda a UI.
- * Resolve tema, badges, sections, stats — tudo visual vive aqui.
- */
+interface AttrBarConfig {
+  key: keyof MonstroNormalizado['atributos'];
+  label: string;
+  color: string;
+}
 
-const ATTR_BARS = [
+const ATTR_BARS: AttrBarConfig[] = [
   { key: 'forca', label: 'FOR', color: 'bg-red-500' },
   { key: 'inteligencia', label: 'INT', color: 'bg-blue-500' },
   { key: 'destreza', label: 'DEX', color: 'bg-green-500' },
@@ -18,7 +19,15 @@ const ATTR_BARS = [
   { key: 'carisma', label: 'CAR', color: 'bg-pink-500' },
 ];
 
-const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
+interface VerMonstroViewProps {
+  monstro: MonstroNormalizado | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }: VerMonstroViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -34,7 +43,6 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
 
   const raridadeConfig = getRaridadeConfig(m.raridade);
 
-  // Badges
   const badges = [
     <span key="rar" className={`px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? raridadeConfig.badgeLight : raridadeConfig.badge}`}>
       {m.raridade}
@@ -49,8 +57,7 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
     </span>,
   ].filter(Boolean);
 
-  // Sections
-  const sections = [
+  const sections: CatalogDetailSection[] = ([
     m.descricao && {
       title: 'Descrição', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{m.descricao}</p>,
@@ -77,10 +84,9 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
         </div>
       ),
     },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailSection[]);
 
-  // Stats sidebar
-  const stats = [
+  const stats: CatalogDetailStat[] = ([
     { icon: Heart, label: 'HP Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{m.combate.hpBase}</span> },
     { icon: Swords, label: 'Ataque Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-orange-600' : 'text-orange-400'}`}>{m.combate.ataqueBase}</span> },
     { icon: Shield, label: 'Defesa Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{m.combate.defesaBase}</span> },
@@ -89,8 +95,8 @@ const VerMonstroView = ({ monstro: m, loading, error, onBack, onEdit }) => {
     { icon: BarChart3, label: 'Nivel', content: <span className="text-cyan-400 font-semibold">{m.nivelMin} - {m.nivelMax}</span> },
     m.tipos.length > 0 && { icon: Tag, label: 'Tipo', content: <ChipGroup items={m.tipos} colorClass={isLight ? 'bg-amber-50 text-amber-700' : 'bg-amber-500/15 text-amber-400'} /> },
     m.elementos.length > 0 && { icon: Zap, label: 'Elemento', content: <ChipGroup items={m.elementos} colorClass={isLight ? 'bg-purple-50 text-purple-700' : 'bg-purple-500/15 text-purple-400'} /> },
-    m.temas.length > 0 && { icon: Tag, label: 'Temas', content: <ChipGroup items={m.temas} colorClass={isLight ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-500/15 text-indigo-400'} /> },
-  ].filter(Boolean);
+    m.temas.length > 0 && { icon: Tag, label: 'Temas', content: <ChipGroup items={m.temas.map(String)} colorClass={isLight ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-500/15 text-indigo-400'} /> },
+  ].filter(Boolean) as CatalogDetailStat[]);
 
   return (
     <CatalogDetailLayout

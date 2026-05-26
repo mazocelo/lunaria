@@ -1,12 +1,15 @@
-import React, { useState, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
+import { useState, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import Notification from '../../../components/Notification.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
 import { Skull, Circle, Gem, Leaf } from 'lucide-react';
+import type { Monstro } from '../../../types/api';
 
-const raridadeVariant = {
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const raridadeVariant: Record<string, BadgeVariant> = {
   'Comum': 'slate',
   'Incomum': 'green',
   'Raro': 'blue',
@@ -15,6 +18,23 @@ const raridadeVariant = {
   'Lendário': 'amber',
   'Artefato': 'red',
 };
+
+interface MonstroListaViewProps {
+  monstros: Monstro[];
+  filteredMonstros: Monstro[];
+  loading: boolean;
+  error: string | null;
+  searchTerm: string;
+  totalCount?: number;
+  currentPage?: number;
+  pageSize?: number;
+  raridades: Record<string, number>;
+  handlePageChange?: (page: number) => void;
+  handlePageSizeChange?: (size: number) => void;
+  buscarMonstros: (term: string) => void;
+  clearError: () => void;
+  onVerMonstro: (id: number | string) => void;
+}
 
 const MonstroListaView = ({
   monstros,
@@ -31,16 +51,15 @@ const MonstroListaView = ({
   buscarMonstros,
   clearError,
   onVerMonstro,
-}) => {
+}: MonstroListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const hasFilters = !!searchTerm;
   const displayMonstros = hasFilters ? filteredMonstros : monstros;
 
-  // Build list of items with images for gallery navigation
   const itemsWithImages = displayMonstros
     .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
     .filter(item => item.src);
@@ -147,21 +166,22 @@ const MonstroListaView = ({
         </div>
       )}
 
-      <CatalogPagination
-        currentPage={currentPage}
-        pageSize={pageSize}
-        totalCount={totalCount}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        pageSizeOptions={[12, 24, 48, 100]}
-      />
+      {currentPage !== undefined && pageSize !== undefined && totalCount !== undefined && handlePageChange && handlePageSizeChange && (
+        <CatalogPagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={[12, 24, 48, 100]}
+        />
+      )}
 
-      {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayMonstros[galleryIndex] && (
         <ImageLightbox
-          src={displayMonstros[galleryIndex].imagem}
-          alt={displayMonstros[galleryIndex].nome}
-          title={displayMonstros[galleryIndex].nome}
+          src={displayMonstros[galleryIndex].imagem ?? ''}
+          alt={displayMonstros[galleryIndex].nome ?? ''}
+          title={displayMonstros[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

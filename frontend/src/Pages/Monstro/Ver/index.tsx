@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useMonstroVerModel } from './monstro-ver.model';
 import VerMonstroView from './monstro-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function MonstroVerPage() {
   const model = useMonstroVerModel();
   const navigate = useNavigate();

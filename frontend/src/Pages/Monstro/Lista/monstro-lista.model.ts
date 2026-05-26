@@ -1,29 +1,29 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useMonstroStore } from '../../../store/monstro/index.js';
+import { useMonstroStore } from '../../../store/monstro/index';
+import type { Monstro } from '../../../types/api';
 
 /**
  * Model: estado, sincronizacao, normalizacao e metodos da entidade.
  * Tudo que diz respeito aos DADOS dos monstros vive aqui.
  */
 export const useMonstroListaModel = () => {
-  // Monstro store
   const allMonstros = useMonstroStore(s => s.monstros);
   const storeLoading = useMonstroStore(s => s.loading);
   const storeError = useMonstroStore(s => s.error);
   const carregarMonstros = useMonstroStore(s => s.carregarMonstros);
 
-  // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     carregarMonstros();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const hasFilters = !!searchTerm;
 
-  const filteredMonstros = useMemo(() => {
+  const filteredMonstros = useMemo<Monstro[]>(() => {
     if (!searchTerm) return [];
     const term = searchTerm.toLowerCase();
     return allMonstros.filter(m =>
@@ -34,8 +34,7 @@ export const useMonstroListaModel = () => {
     );
   }, [allMonstros, searchTerm]);
 
-  // Paginated view
-  const paginatedMonstros = useMemo(() => {
+  const paginatedMonstros = useMemo<Monstro[]>(() => {
     if (hasFilters) return filteredMonstros;
     const start = (currentPage - 1) * pageSize;
     return allMonstros.slice(start, start + pageSize);
@@ -43,24 +42,24 @@ export const useMonstroListaModel = () => {
 
   const totalCount = allMonstros.length;
 
-  const raridades = useMemo(() => {
+  const raridades = useMemo<Record<string, number>>(() => {
     return (allMonstros || []).reduce((acc, m) => {
       const r = m.raridade_rel?.nome || 'Comum';
       acc[r] = (acc[r] || 0) + 1;
       return acc;
-    }, {});
+    }, {} as Record<string, number>);
   }, [allMonstros]);
 
-  const handlePageChange = useCallback((newPage) => {
+  const handlePageChange = useCallback((newPage: number) => {
     setCurrentPage(newPage);
   }, []);
 
-  const handlePageSizeChange = useCallback((newSize) => {
+  const handlePageSizeChange = useCallback((newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1);
   }, []);
 
-  const buscarMonstros = useCallback((term) => {
+  const buscarMonstros = useCallback((term: string) => {
     setSearchTerm(term);
   }, []);
 

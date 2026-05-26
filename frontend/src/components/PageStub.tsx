@@ -1,6 +1,12 @@
-import React from 'react';
+interface PageStubProps {
+  title?: string;
+  message?: string;
+}
 
-const PageStub = ({ title = "Página", message = "Esta página será migrada em breve." }) => {
+const PageStub = ({
+  title = 'Página',
+  message = 'Esta página será migrada em breve.',
+}: PageStubProps) => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="card-rpg text-center p-8">
@@ -13,4 +19,3 @@ const PageStub = ({ title = "Página", message = "Esta página será migrada em 
 };
 
 export default PageStub;
-

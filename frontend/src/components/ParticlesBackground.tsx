@@ -1,16 +1,27 @@
-import React, { useEffect, useRef } from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import { useEffect, useRef } from 'react';
+import { useTheme } from '../contexts/theme';
+
+interface Drawable {
+  update(): void;
+  draw(): void;
+  x: number;
+  y: number;
+}
 
 const ParticlesBackground = () => {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const isGothic = theme === 'gothic';
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let animId;
+    const canvasEl: HTMLCanvasElement | null = canvasRef.current;
+    if (!canvasEl) return;
+    const ctxRaw = canvasEl.getContext('2d');
+    if (!ctxRaw) return;
+    const canvas: HTMLCanvasElement = canvasEl;
+    const ctx: CanvasRenderingContext2D = ctxRaw;
+    let animId = 0;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
@@ -20,10 +31,21 @@ const ParticlesBackground = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    const particles = [];
+    const particles: Drawable[] = [];
 
     // ─── LIGHT: Nature elements ─────────────────────────────
-    class NatureElement {
+    class NatureElement implements Drawable {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      type: number;
+      opacity: number;
+      palette: string[];
+      color: string;
+      flowerPetal: string;
+      flowerCenter: string;
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
@@ -84,7 +106,14 @@ const ParticlesBackground = () => {
     }
 
     // ─── DARK: Magical particles ────────────────────────────
-    class Particle {
+    class Particle implements Drawable {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      opacity: number;
+      color: string;
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
@@ -114,7 +143,14 @@ const ParticlesBackground = () => {
     }
 
     // ─── GOTHIC: Blood drops + embers ───────────────────────
-    class BloodDrop {
+    class BloodDrop implements Drawable {
+      x: number;
+      y: number;
+      vy: number;
+      vx: number;
+      w: number;
+      h: number;
+      opacity: number;
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height * -0.3;
@@ -143,7 +179,17 @@ const ParticlesBackground = () => {
       }
     }
 
-    class Ember {
+    class Ember implements Drawable {
+      x: number;
+      y: number;
+      vy: number;
+      vx: number;
+      size: number;
+      opacity: number;
+      glow: boolean;
+      color: string;
+      life: number;
+      maxLife: number;
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = canvas.height + Math.random() * 50;

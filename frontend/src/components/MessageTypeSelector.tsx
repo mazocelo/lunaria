@@ -1,15 +1,35 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTheme } from '../contexts/theme';
+
+export type MessageType = 'chat' | 'ic' | 'ooc' | 'action' | 'gm';
+
+interface MessageTypeOption {
+  value: MessageType;
+  label: string;
+  icon: string;
+  description: string;
+  tooltip: string;
+}
+
+interface MessageTypeSelectorProps {
+  selectedType: MessageType;
+  onTypeChange: (value: MessageType) => void;
+  className?: string;
+}
 
 /**
  * Seletor de tipo de mensagem para chat RPG
  */
-export const MessageTypeSelector = ({ selectedType, onTypeChange, className = '' }) => {
+export const MessageTypeSelector = ({
+  selectedType,
+  onTypeChange,
+  className = '',
+}: MessageTypeSelectorProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const [hoveredType, setHoveredType] = useState(null);
+  const [hoveredType, setHoveredType] = useState<MessageType | null>(null);
 
-  const messageTypes = [
+  const messageTypes: MessageTypeOption[] = [
     {
       value: 'chat',
       label: 'Chat',
@@ -47,7 +67,7 @@ export const MessageTypeSelector = ({ selectedType, onTypeChange, className = ''
     }
   ];
 
-  const handleTypeChange = (value) => {
+  const handleTypeChange = (value: MessageType) => {
     onTypeChange(value);
   };
 

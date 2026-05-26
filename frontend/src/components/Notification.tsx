@@ -1,20 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import { useState, useEffect, type ReactNode } from 'react';
+import { useTheme } from '../contexts/theme';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
-const iconMap = {
+type NotificationType = 'success' | 'error' | 'warning' | 'info';
+
+const iconMap: Record<NotificationType, typeof Info> = {
   success: CheckCircle,
   error: XCircle,
   warning: AlertTriangle,
   info: Info,
 };
 
-const iconColorMap = {
+const iconColorMap: Record<NotificationType, string> = {
   success: 'text-green-400',
   error: 'text-red-400',
   warning: 'text-yellow-400',
   info: 'text-blue-400',
 };
+
+interface NotificationProps {
+  message: ReactNode;
+  type?: NotificationType;
+  duration?: number;
+  onClose?: () => void;
+  show?: boolean;
+}
 
 const Notification = ({
   message,
@@ -22,7 +32,7 @@ const Notification = ({
   duration = 5000,
   onClose,
   show = true,
-}) => {
+}: NotificationProps) => {
   const [isVisible, setIsVisible] = useState(show);
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -40,7 +50,7 @@ const Notification = ({
 
   if (!isVisible) return null;
 
-  const typeClasses = {
+  const typeClasses: Record<NotificationType, string> = {
     success: isLight
       ? 'bg-green-500/10 border-green-500/20 text-green-700'
       : 'bg-green-500/20 border-green-500/30 text-green-300',

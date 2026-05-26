@@ -1,20 +1,38 @@
-import React from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import type { ReactNode } from 'react';
+import { useTheme } from '../contexts/theme';
 import { AlertTriangle, Info } from 'lucide-react';
 
-const ConfirmationModal = ({ 
-    isOpen, 
+type ConfirmationModalType = 'danger' | 'warning' | 'info';
+
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    onClose?: () => void;
+    /** Alias para onClose, mantido por compatibilidade. */
+    onCancel?: () => void;
+    onConfirm?: () => void;
+    title?: string;
+    message?: ReactNode;
+    confirmText?: string;
+    cancelText?: string;
+    type?: ConfirmationModalType;
+    /** Alias para type. */
+    variant?: ConfirmationModalType;
+    loading?: boolean;
+}
+
+const ConfirmationModal = ({
+    isOpen,
     onClose,
-    onCancel, // Aceitar ambas props para compatibilidade
-    onConfirm, 
-    title = "Confirmar Ação", 
-    message = "Tem certeza que deseja realizar esta ação?",
-    confirmText = "Confirmar",
-    cancelText = "Cancelar",
-    type = "danger",
-    variant, // Alias para type
-    loading = false
-}) => {
+    onCancel,
+    onConfirm,
+    title = 'Confirmar Ação',
+    message = 'Tem certeza que deseja realizar esta ação?',
+    confirmText = 'Confirmar',
+    cancelText = 'Cancelar',
+    type = 'danger',
+    variant,
+    loading = false,
+}: ConfirmationModalProps) => {
     // Usar onCancel se fornecido, senão usar onClose
     const handleClose = onCancel || onClose;
     // Usar variant se fornecido, senão usar type
@@ -24,7 +42,7 @@ const ConfirmationModal = ({
 
     if (!isOpen) return null;
 
-    const typeClasses = {
+    const typeClasses: Record<ConfirmationModalType, { icon: ReactNode; button: string; border: string }> = {
         danger: {
             icon: <AlertTriangle size={20} className="text-red-500" />,
             button: isLight

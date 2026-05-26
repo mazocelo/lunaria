@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useTheme } from '../contexts/theme.jsx';
+import { useTheme } from '../contexts/theme';
 import { useLocation } from 'react-router-dom';
 
 /**
@@ -8,7 +8,14 @@ import { useLocation } from 'react-router-dom';
  * Bats fly in front of content (high z-index), flap wings via CSS.
  */
 
-const BloodDrip = ({ left, delay = 0, duration = 8, height = 60 }) => (
+interface BloodDripProps {
+  left: number;
+  delay?: number;
+  duration?: number;
+  height?: number;
+}
+
+const BloodDrip = ({ left, delay = 0, duration = 8, height = 60 }: BloodDripProps) => (
   <div
     className="fixed pointer-events-none z-[3]"
     style={{ left: `${left}%`, top: '56px' }}
@@ -38,10 +45,16 @@ const BloodDrip = ({ left, delay = 0, duration = 8, height = 60 }) => (
   </div>
 );
 
-const SpiderWeb = ({ side = 'left', position = 'top', size = 140 }) => {
+interface SpiderWebProps {
+  side?: 'left' | 'right';
+  position?: 'top' | 'bottom';
+  size?: number;
+}
+
+const SpiderWeb = ({ side = 'left', position = 'top', size = 140 }: SpiderWebProps) => {
   const isBottom = position === 'bottom';
   const isRight = side === 'right';
-  const transforms = [];
+  const transforms: string[] = [];
   if (isRight) transforms.push('scaleX(-1)');
   if (isBottom) transforms.push('scaleY(-1)');
 
@@ -66,8 +79,13 @@ const SpiderWeb = ({ side = 'left', position = 'top', size = 140 }) => {
   );
 };
 
+interface BatSvgProps {
+  size?: number;
+  color?: string;
+}
+
 // Bat SVG — more detailed with wing membrane lines
-const BatSvg = ({ size = 50, color = '#cc3333' }) => (
+const BatSvg = ({ size = 50, color = '#cc3333' }: BatSvgProps) => (
   <svg width={size} height={size * 0.45} viewBox="0 0 60 27">
     {/* Body */}
     <ellipse cx="30" cy="14" rx="4" ry="3" fill={color} />
@@ -78,12 +96,27 @@ const BatSvg = ({ size = 50, color = '#cc3333' }) => (
   </svg>
 );
 
-const BatSwarm = ({ count = 6, trigger }) => {
-  const [bats, setBats] = useState([]);
+interface BatSwarmProps {
+  count?: number;
+  trigger?: number;
+}
+
+interface BatInstance {
+  id: number;
+  y: number;
+  duration: number;
+  delay: number;
+  size: number;
+  flapSpeed: number;
+  fromRight: boolean;
+}
+
+const BatSwarm = ({ count = 6, trigger }: BatSwarmProps) => {
+  const [bats, setBats] = useState<BatInstance[]>([]);
 
   useEffect(() => {
     if (!trigger) return;
-    const newBats = Array.from({ length: count }, (_, i) => ({
+    const newBats: BatInstance[] = Array.from({ length: count }, (_, i) => ({
       id: Date.now() + i,
       y: 5 + Math.random() * 30,
       duration: 2.5 + Math.random() * 2,
@@ -99,7 +132,7 @@ const BatSwarm = ({ count = 6, trigger }) => {
 
   return (
     <>
-      {bats.map(bat => (
+      {bats.map((bat) => (
         <div
           key={bat.id}
           className="fixed pointer-events-none z-[100]"
@@ -126,13 +159,14 @@ const GothicDecorations = () => {
   const [batTrigger, setBatTrigger] = useState(0);
 
   useEffect(() => {
-    if (theme === 'gothic') setBatTrigger(t => t + 1);
+    if (theme === 'gothic') setBatTrigger((t) => t + 1);
   }, [theme]);
 
   useEffect(() => {
     if (theme !== 'gothic') return;
-    setBatTrigger(t => t + 1);
-  }, [location.pathname.split('/').filter(Boolean)[0]]);
+    setBatTrigger((t) => t + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname.split('/').filter(Boolean)[0], theme]);
 
   if (theme !== 'gothic') return null;
 

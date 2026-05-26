@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTemaStore } from '../../../store/tema';
-import { temaService } from '../../../services/index.js';
+import { temaService } from '../../../services/index';
+import type { Tema } from '../../../store/tema/states';
 
-/**
- * Model: estado, sincronizacao, normalizacao e metodos da entidade.
- * Tudo que diz respeito aos DADOS dos temas vive aqui.
- */
 export const useTemaListaModel = () => {
   const temas = useTemaStore(s => s.temas);
   const loading = useTemaStore(s => s.loading);
@@ -15,15 +12,16 @@ export const useTemaListaModel = () => {
   const recarregarTemas = useTemaStore(s => s.recarregarTemas);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [temaToDelete, setTemaToDelete] = useState(null);
+  const [temaToDelete, setTemaToDelete] = useState<Tema | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!temasCarregados) carregarTemas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDeleteClick = (row) => {
+  const handleDeleteClick = (row: Tema) => {
     setTemaToDelete(row);
     setShowDeleteModal(true);
   };
@@ -37,7 +35,8 @@ export const useTemaListaModel = () => {
       setShowDeleteModal(false);
       setTemaToDelete(null);
     } catch (err) {
-      setLocalError(`Erro ao deletar tema: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setLocalError(`Erro ao deletar tema: ${message}`);
     } finally {
       setDeleteLoading(false);
     }

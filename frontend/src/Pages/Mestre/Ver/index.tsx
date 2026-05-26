@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { generateRoute } from '../../../constants/routes.js';
+import { generateRoute } from '../../../constants/routes';
 import { useMestreVerModel } from './mestre-ver.model';
 import VerMestreView from './mestre-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function MestreVerPage() {
   const model = useMestreVerModel();
   const navigate = useNavigate();

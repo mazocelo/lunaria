@@ -1,10 +1,25 @@
-import React from 'react';
-import StatCard from '../../../components/StatCard.jsx';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import StatCard from '../../../components/StatCard';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { PageHeader, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
+import type { Tema } from '../../../store/tema/states';
+
+interface TemaListaViewProps {
+  temas: Tema[];
+  loading: boolean;
+  error: string | null;
+  showDeleteModal: boolean;
+  temaToDelete: Tema | null;
+  deleteLoading: boolean;
+  handleDeleteClick: (row: Tema) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  clearError: () => void;
+  onEditarTema: (id: number | string) => void;
+  onNovoTema: () => void;
+}
 
 const TemaListaView = ({
   temas,
@@ -19,7 +34,7 @@ const TemaListaView = ({
   clearError,
   onEditarTema,
   onNovoTema,
-}) => {
+}: TemaListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -66,10 +81,10 @@ const TemaListaView = ({
           {temas.map((row, i) => (
             <CatalogCard
               key={row.id}
-              image={row.imagem}
+              image={row.imagem as string | undefined}
               icon={Palette}
               title={row.nome}
-              subtitle={row.descricao}
+              subtitle={row.descricao as string | undefined}
               delay={i}
               onClick={() => onEditarTema(row.id)}
               actions={[

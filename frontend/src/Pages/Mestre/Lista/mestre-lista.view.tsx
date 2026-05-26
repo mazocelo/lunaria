@@ -1,10 +1,30 @@
-import React from 'react';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
-import StatCard from '../../../components/StatCard.jsx';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import StatCard from '../../../components/StatCard';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
+import { useTheme } from '../../../contexts/theme';
 import { Crown, Plus, Eye, Pencil, Trash2, Volume2 } from 'lucide-react';
+import type { MestreItem } from '../../../store/mestre/states';
+
+interface MestreListaViewProps {
+  mestres: MestreItem[];
+  filteredMestres: MestreItem[];
+  loading: boolean;
+  error: string | null;
+  showDeleteModal: boolean;
+  mestreToDelete: MestreItem | null;
+  deleteLoading: boolean;
+  buscarMestres: (term: string) => void;
+  handleDeleteClick: (mestre: MestreItem) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  handlePreviewVoz: (mestre: MestreItem) => void;
+  playingMestreId: number | null;
+  clearError: () => void;
+  onVerMestre: (id: number | string) => void;
+  onEditarMestre: (id: number | string) => void;
+  onNovoMestre: () => void;
+}
 
 const MestreListaView = ({
   mestres,
@@ -23,7 +43,7 @@ const MestreListaView = ({
   onVerMestre,
   onEditarMestre,
   onNovoMestre,
-}) => {
+}: MestreListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -87,10 +107,12 @@ const MestreListaView = ({
             }
             actions.push({ label: 'Deletar', icon: Trash2, onClick: () => handleDeleteClick(row) });
 
+            const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
+
             return (
               <CatalogCard
                 key={row.id}
-                image={row.imagem}
+                image={row.imagem as string | undefined}
                 icon={Crown}
                 title={row.nome}
                 delay={i}
@@ -98,21 +120,21 @@ const MestreListaView = ({
                 actions={actions}
                 headerBadge={
                   <Badge variant="slate" className="shadow-sm backdrop-blur-sm">
-                    {row.modelo || 'Padrao'}
+                    {(row.modelo as string | undefined) || 'Padrao'}
                   </Badge>
                 }
               >
-                {row.tom_narrativo && (
+                {row.tom_narrativo ? (
                   <p className={`text-[11px] font-modern line-clamp-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {row.tom_narrativo}
+                    {String(row.tom_narrativo)}
                   </p>
-                )}
+                ) : null}
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {(Array.isArray(row.tags) ? row.tags : []).slice(0, 3).map((tag) => (
+                  {tags.slice(0, 3).map((tag) => (
                     <Badge key={`${row.id}-${tag}`} variant="purple">{tag}</Badge>
                   ))}
-                  {Array.isArray(row.tags) && row.tags.length > 3 && (
-                    <Badge variant="slate">+{row.tags.length - 3}</Badge>
+                  {tags.length > 3 && (
+                    <Badge variant="slate">+{tags.length - 3}</Badge>
                   )}
                 </div>
               </CatalogCard>

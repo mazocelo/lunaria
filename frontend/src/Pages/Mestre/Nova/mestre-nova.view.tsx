@@ -1,9 +1,15 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Crown, Sparkles, Loader2, Volume2 } from 'lucide-react';
-import { apiClient } from '../../../services/ApiClient.js';
+import { apiClient } from '../../../services/ApiClient';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+import type { VoiceOption } from '../Editar/mestre-editar.model';
+
+type MestreField =
+  | 'nome' | 'descricao' | 'personalidade' | 'modelo' | 'temperatura'
+  | 'tom_narrativo' | 'regras_especiais' | 'tags_input' | 'imagem'
+  | 'voice_id' | 'voice_provider';
 
 const EMOTION_OPTIONS = [
   { value: '', label: 'Nenhuma' },
@@ -15,14 +21,24 @@ const EMOTION_OPTIONS = [
   { value: 'anger:low', label: 'Serio' },
 ];
 
-const PROVIDER_LABELS = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia', opensource: 'Open Source' };
+const PROVIDER_LABELS: Record<string, string> = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia', opensource: 'Open Source' };
 
-const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoices, isLight, setField }) => {
-  const previewAudioRef = useRef(null);
+interface VoiceSelectorProps {
+  voice_id: string;
+  voice_provider: string;
+  voices: VoiceOption[];
+  providers: string[];
+  loadingVoices: boolean;
+  isLight: boolean;
+  setField: (name: MestreField, value: string | number) => void;
+}
+
+const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoices, isLight, setField }: VoiceSelectorProps) => {
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [emotion, setEmotion] = useState('');
 
-  const handlePreview = async (voiceId) => {
+  const handlePreview = async (voiceId: string) => {
     if (!voiceId || loadingPreview) return;
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
@@ -30,17 +46,18 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
     }
     setLoadingPreview(true);
     try {
-      const body = { voiceId, provider: voice_provider };
+      const body: Record<string, string> = { voiceId, provider: voice_provider };
       if (voice_provider === 'cartesia' && emotion) body.emotion = emotion;
       const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const blob = response instanceof Blob ? response : new Blob([response as BlobPart], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audio.onended = () => URL.revokeObjectURL(url);
       previewAudioRef.current = audio;
       await audio.play();
     } catch (err) {
-      console.error('TTS preview error:', err.message);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('TTS preview error:', message);
     }
     setLoadingPreview(false);
   };
@@ -140,13 +157,37 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
   );
 };
 
+interface NovaMestreViewProps {
+  nome: string;
+  descricao: string;
+  personalidade: string;
+  modelo: string;
+  temperatura: number | string;
+  max_tokens: number;
+  tom_narrativo: string;
+  regras_especiais: string;
+  tagsInput: string;
+  imagem: string;
+  voice_id: string;
+  voice_provider: string;
+  voices: VoiceOption[];
+  providers: string[];
+  loadingVoices: boolean;
+  saving: boolean;
+  error: string | null;
+  setField: (name: MestreField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
 const NovaMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
-  max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
+  tom_narrativo, regras_especiais, tagsInput,
   voice_id, voice_provider, voices, providers, loadingVoices,
   saving, error,
-  setField, handleSubmit, handleCancel, clearError,
-}) => {
+  setField, handleSubmit, handleCancel,
+}: NovaMestreViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -179,104 +220,33 @@ const NovaMestreView = ({
           </div>
         )}
 
-        <InputSimples
-          label="Nome do Mestre"
-          name="nome"
-          value={nome}
-          onChange={e => setField('nome', e.target.value)}
-          placeholder="Ex: Mestre Arcano, Narrador das Sombras..."
-          required
-        />
+        <InputSimples label="Nome do Mestre" name="nome" value={nome} onChange={e => setField('nome', e.target.value)} placeholder="Ex: Mestre Arcano, Narrador das Sombras..." required />
 
         <div>
-          <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-            Descricao
-          </label>
-          <textarea
-            name="descricao"
-            value={descricao}
-            onChange={e => setField('descricao', e.target.value)}
-            placeholder="Descreva o mestre e seu estilo de narracao..."
-            rows={3}
-            className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${
-              isLight
-                ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'
-                : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'
-            } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-          />
+          <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Descricao</label>
+          <textarea name="descricao" value={descricao} onChange={e => setField('descricao', e.target.value)} placeholder="Descreva o mestre e seu estilo de narracao..." rows={3} className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`} />
         </div>
 
         <div>
-          <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-            Personalidade
-          </label>
-          <textarea
-            name="personalidade"
-            value={personalidade}
-            onChange={e => setField('personalidade', e.target.value)}
-            placeholder="Defina a personalidade e comportamento do mestre..."
-            rows={3}
-            className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${
-              isLight
-                ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'
-                : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'
-            } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-          />
+          <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Personalidade</label>
+          <textarea name="personalidade" value={personalidade} onChange={e => setField('personalidade', e.target.value)} placeholder="Defina a personalidade e comportamento do mestre..." rows={3} className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`} />
         </div>
 
-        <InputSimples
-          label="Tom Narrativo"
-          name="tom_narrativo"
-          value={tom_narrativo}
-          onChange={e => setField('tom_narrativo', e.target.value)}
-          placeholder="Ex: Sombrio, Epico, Comico, Misterioso..."
-        />
+        <InputSimples label="Tom Narrativo" name="tom_narrativo" value={tom_narrativo} onChange={e => setField('tom_narrativo', e.target.value)} placeholder="Ex: Sombrio, Epico, Comico, Misterioso..." />
 
-        <InputSimples
-          label="Etiquetas (2-6, separadas por virgula)"
-          name="tags_input"
-          value={tagsInput}
-          onChange={e => setField('tags_input', e.target.value)}
-          placeholder="Ex: kids, historias longas, poucas palavras"
-        />
+        <InputSimples label="Etiquetas (2-6, separadas por virgula)" name="tags_input" value={tagsInput} onChange={e => setField('tags_input', e.target.value)} placeholder="Ex: kids, historias longas, poucas palavras" />
 
         <div>
-          <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-            Regras Especiais
-          </label>
-          <textarea
-            name="regras_especiais"
-            value={regras_especiais}
-            onChange={e => setField('regras_especiais', e.target.value)}
-            placeholder="Regras ou instrucoes especiais para o mestre seguir..."
-            rows={3}
-            className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${
-              isLight
-                ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500'
-                : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'
-            } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-          />
+          <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Regras Especiais</label>
+          <textarea name="regras_especiais" value={regras_especiais} onChange={e => setField('regras_especiais', e.target.value)} placeholder="Regras ou instrucoes especiais para o mestre seguir..." rows={3} className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 resize-none ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 placeholder-slate-400 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white placeholder-slate-500 focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`} />
         </div>
 
         <div className={`p-4 rounded-lg ${isLight ? 'bg-slate-50 border border-slate-200' : 'bg-slate-800/30 border border-slate-700'}`}>
-          <h3 className={`text-sm font-semibold font-modern mb-4 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-            Configuracoes Tecnicas
-          </h3>
+          <h3 className={`text-sm font-semibold font-modern mb-4 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Configuracoes Tecnicas</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-                Modelo de IA
-              </label>
-              <select
-                name="modelo"
-                value={modelo}
-                onChange={e => setField('modelo', e.target.value)}
-                className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 ${
-                  isLight
-                    ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500'
-                    : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'
-                } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-              >
+              <label className={`block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>Modelo de IA</label>
+              <select name="modelo" value={modelo} onChange={e => setField('modelo', e.target.value)} className={`w-full px-4 py-3 rounded-lg font-modern transition-all duration-200 ${isLight ? 'bg-slate-100 border border-slate-300 text-slate-800 focus:border-purple-500' : 'bg-slate-800/50 border border-slate-600 text-white focus:border-purple-500'} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}>
                 <optgroup label="Google Gemini">
                   <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</option>
                   <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Economico)</option>
@@ -294,54 +264,19 @@ const NovaMestreView = ({
                 </optgroup>
               </select>
             </div>
-            <InputSimples
-              label="Temperatura"
-              name="temperatura"
-              type="number"
-              value={temperatura}
-              onChange={e => setField('temperatura', e.target.value)}
-              min={0}
-              max={2}
-              step={0.1}
-            />
+            <InputSimples label="Temperatura" name="temperatura" type="number" value={temperatura} onChange={e => setField('temperatura', e.target.value)} min={0} max={2} step={0.1} />
           </div>
         </div>
 
-        <VoiceSelector
-          voice_id={voice_id}
-          voice_provider={voice_provider}
-          voices={voices}
-          providers={providers}
-          loadingVoices={loadingVoices}
-          isLight={isLight}
-          setField={setField}
-        />
+        <VoiceSelector voice_id={voice_id} voice_provider={voice_provider} voices={voices} providers={providers} loadingVoices={loadingVoices} isLight={isLight} setField={setField} />
 
         <div className="flex space-x-4 pt-4">
-          <Button
-            variant="ghost"
-            onClick={handleCancel}
-            className="flex-1"
-            type="button"
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={saving}
-            className="flex-1"
-          >
+          <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
+          <Button variant="primary" type="submit" disabled={saving} className="flex-1">
             {saving ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 size={16} className="animate-spin" />
-                <span>Criando...</span>
-              </div>
+              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Sparkles size={16} />
-                <span>Criar Mestre</span>
-              </div>
+              <div className="flex items-center space-x-2"><Sparkles size={16} /><span>Criar Mestre</span></div>
             )}
           </Button>
         </div>

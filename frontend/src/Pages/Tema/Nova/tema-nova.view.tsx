@@ -1,32 +1,27 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { Palette, Save, Loader2 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme';
+import { Palette, Sparkles, Loader2 } from 'lucide-react';
 
-const EditarTemaView = ({
-  nome, descricao, loading, saving, error,
-  setField, handleSubmit, handleCancel, clearError,
-}) => {
+type TemaField = 'nome' | 'descricao';
+
+interface NovoTemaViewProps {
+  nome: string;
+  descricao: string;
+  saving: boolean;
+  error: string | null;
+  setField: (name: TemaField, value: string) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
+const NovoTemaView = ({
+  nome, descricao, saving, error,
+  setField, handleSubmit, handleCancel,
+}: NovoTemaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-
-  if (loading) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <Palette size={24} className="text-white" />
-              </div>
-              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando tema...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -34,8 +29,8 @@ const EditarTemaView = ({
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
           <Palette size={32} className="text-white" />
         </div>
-        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Tema</h1>
-        <p className="text-slate-400 font-modern">Atualize os dados do tema</p>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Criar Novo Tema</h1>
+        <p className="text-slate-400 font-modern">Adicione um novo tema ao catalogo</p>
       </div>
       <form onSubmit={handleSubmit} className="card-rpg space-y-6">
         {error && (
@@ -60,9 +55,9 @@ const EditarTemaView = ({
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">
             {saving ? (
-              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>
+              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>
             ) : (
-              <div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Tema</span></div>
+              <div className="flex items-center space-x-2"><Sparkles size={16} /><span>Criar Tema</span></div>
             )}
           </Button>
         </div>
@@ -71,4 +66,4 @@ const EditarTemaView = ({
   );
 };
 
-export default EditarTemaView;
+export default NovoTemaView;

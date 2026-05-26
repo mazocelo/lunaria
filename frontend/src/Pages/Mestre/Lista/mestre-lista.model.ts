@@ -1,13 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMestreStore } from '../../../store/mestre';
-import { apiClient, mestreService } from '../../../services/index.js';
+import { apiClient, mestreService } from '../../../services/index';
+import type { MestreItem } from '../../../store/mestre/states';
 
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-/**
- * Model: estado, sincronizacao, normalizacao e metodos da entidade.
- * Tudo que diz respeito aos DADOS dos mestres vive aqui.
- */
 export const useMestreListaModel = () => {
   const mestres = useMestreStore(s => s.mestresAtivos);
   const loading = useMestreStore(s => s.loading);
@@ -17,17 +14,18 @@ export const useMestreListaModel = () => {
   const recarregarMestres = useMestreStore(s => s.recarregarMestres);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [mestreToDelete, setMestreToDelete] = useState(null);
+  const [mestreToDelete, setMestreToDelete] = useState<MestreItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [playingMestreId, setPlayingMestreId] = useState(null);
+  const [playingMestreId, setPlayingMestreId] = useState<number | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const previewAudioRef = useRef(null);
-  const previewUrlRef = useRef(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!mestresCarregados) carregarMestres();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopPreview = () => {
@@ -50,25 +48,26 @@ export const useMestreListaModel = () => {
     if (!searchTerm) return mestres;
     const term = searchTerm.toLowerCase();
     return mestres.filter(m =>
-      m.nome?.toLowerCase().includes(term) ||
-      m.modelo?.toLowerCase().includes(term) ||
-      m.tom_narrativo?.toLowerCase().includes(term) ||
+      (m.nome as string | undefined)?.toLowerCase().includes(term) ||
+      (m.modelo as string | undefined)?.toLowerCase().includes(term) ||
+      (m.tom_narrativo as string | undefined)?.toLowerCase().includes(term) ||
       (Array.isArray(m.tags) && m.tags.some((tag) => String(tag).toLowerCase().includes(term)))
     );
   }, [mestres, searchTerm]);
 
-  const deleteMestre = async (id) => {
+  const deleteMestre = async (id: number) => {
     try {
       await mestreService.delete(id);
       await recarregarMestres();
       return { success: true };
     } catch (err) {
-      setLocalError(`Erro ao deletar mestre: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setLocalError(`Erro ao deletar mestre: ${message}`);
       return { success: false };
     }
   };
 
-  const handleDeleteClick = (mestre) => {
+  const handleDeleteClick = (mestre: MestreItem) => {
     setMestreToDelete(mestre);
     setShowDeleteModal(true);
   };
@@ -90,8 +89,9 @@ export const useMestreListaModel = () => {
     setDeleteLoading(false);
   };
 
-  const handlePreviewVoz = async (mestre) => {
-    if (!mestre?.voice_id || previewLoading) return;
+  const handlePreviewVoz = async (mestre: MestreItem) => {
+    const voiceId = mestre.voice_id as string | undefined;
+    if (!voiceId || previewLoading) return;
 
     if (playingMestreId && String(playingMestreId) === String(mestre.id)) {
       stopPreview();
@@ -102,11 +102,11 @@ export const useMestreListaModel = () => {
     setPreviewLoading(true);
     try {
       const body = {
-        voiceId: mestre.voice_id,
-        provider: mestre.voice_provider || DEFAULT_TTS_PROVIDER,
+        voiceId,
+        provider: (mestre.voice_provider as string | undefined) || DEFAULT_TTS_PROVIDER,
       };
       const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const blob = response instanceof Blob ? response : new Blob([response as BlobPart], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       previewUrlRef.current = url;
@@ -116,7 +116,8 @@ export const useMestreListaModel = () => {
       await audio.play();
       setPlayingMestreId(mestre.id);
     } catch (err) {
-      console.error('TTS preview error:', err.message);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('TTS preview error:', message);
       stopPreview();
     } finally {
       setPreviewLoading(false);

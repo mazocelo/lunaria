@@ -1,10 +1,16 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Crown, Save, Loader2, Volume2 } from 'lucide-react';
-import { apiClient } from '../../../services/ApiClient.js';
+import { apiClient } from '../../../services/ApiClient';
 import InputSimples from '../../../components/form/inputSimples';
 import ImageGenerator from '../../../components/form/ImageGenerator';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+import type { VoiceOption } from './mestre-editar.model';
+
+type MestreField =
+  | 'nome' | 'descricao' | 'personalidade' | 'modelo' | 'temperatura'
+  | 'tom_narrativo' | 'regras_especiais' | 'tags_input' | 'imagem'
+  | 'voice_id' | 'voice_provider';
 
 const EMOTION_OPTIONS = [
   { value: '', label: 'Nenhuma' },
@@ -16,14 +22,24 @@ const EMOTION_OPTIONS = [
   { value: 'anger:low', label: 'Serio' },
 ];
 
-const PROVIDER_LABELS = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia', opensource: 'Open Source' };
+const PROVIDER_LABELS: Record<string, string> = { elevenlabs: 'ElevenLabs', cartesia: 'Cartesia', opensource: 'Open Source' };
 
-const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoices, isLight, setField }) => {
-  const previewAudioRef = useRef(null);
+interface VoiceSelectorProps {
+  voice_id: string;
+  voice_provider: string;
+  voices: VoiceOption[];
+  providers: string[];
+  loadingVoices: boolean;
+  isLight: boolean;
+  setField: (name: MestreField, value: string | number) => void;
+}
+
+const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoices, isLight, setField }: VoiceSelectorProps) => {
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [emotion, setEmotion] = useState('');
 
-  const handlePreview = async (voiceId) => {
+  const handlePreview = async (voiceId: string) => {
     if (!voiceId || loadingPreview) return;
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
@@ -31,17 +47,18 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
     }
     setLoadingPreview(true);
     try {
-      const body = { voiceId, provider: voice_provider };
+      const body: Record<string, string> = { voiceId, provider: voice_provider };
       if (voice_provider === 'cartesia' && emotion) body.emotion = emotion;
       const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const blob = response instanceof Blob ? response : new Blob([response as BlobPart], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audio.onended = () => URL.revokeObjectURL(url);
       previewAudioRef.current = audio;
       await audio.play();
     } catch (err) {
-      console.error('TTS preview error:', err.message);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('TTS preview error:', message);
     }
     setLoadingPreview(false);
   };
@@ -141,13 +158,38 @@ const VoiceSelector = ({ voice_id, voice_provider, voices, providers, loadingVoi
   );
 };
 
+interface EditarMestreViewProps {
+  nome: string;
+  descricao: string;
+  personalidade: string;
+  modelo: string;
+  temperatura: number | string;
+  max_tokens: number;
+  tom_narrativo: string;
+  regras_especiais: string;
+  tagsInput: string;
+  imagem: string;
+  voice_id: string;
+  voice_provider: string;
+  voices: VoiceOption[];
+  providers: string[];
+  loadingVoices: boolean;
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  setField: (name: MestreField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
 const EditarMestreView = ({
   nome, descricao, personalidade, modelo, temperatura,
-  max_tokens, tom_narrativo, regras_especiais, tagsInput, imagem,
+  tom_narrativo, regras_especiais, tagsInput, imagem,
   voice_id, voice_provider, voices, providers, loadingVoices,
   loading, saving, error,
-  setField, handleSubmit, handleCancel, clearError,
-}) => {
+  setField, handleSubmit, handleCancel,
+}: EditarMestreViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

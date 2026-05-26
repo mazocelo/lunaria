@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { temaService } from '../../../services/index.js';
+import { temaService } from '../../../services/index';
 import { useTemaStore } from '../../../store/tema';
+
+type TemaField = 'nome' | 'descricao';
 
 export const useTemaNovaModel = () => {
   const recarregarTemas = useTemaStore(s => s.recarregarTemas);
@@ -8,14 +10,17 @@ export const useTemaNovaModel = () => {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => setError(null);
   }, []);
 
-  const setField = (name, value) => {
-    const setters = { nome: setNome, descricao: setDescricao };
+  const setField = (name: TemaField, value: string) => {
+    const setters: Record<TemaField, (value: string) => void> = {
+      nome: setNome,
+      descricao: setDescricao,
+    };
     setters[name]?.(value);
   };
 
@@ -29,8 +34,9 @@ export const useTemaNovaModel = () => {
       setSaving(false);
       return { success: true };
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setSaving(false);
-      setError(`Erro ao criar tema: ${err.message}`);
+      setError(`Erro ao criar tema: ${message}`);
       return { success: false };
     }
   };

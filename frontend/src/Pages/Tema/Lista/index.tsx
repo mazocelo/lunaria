@@ -1,17 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useTemaListaModel } from './tema-lista.model';
 import TemaListaView from './tema-lista.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao.
- */
 export default function TemaListaPage() {
   const model = useTemaListaModel();
   const navigate = useNavigate();
 
-  const handleEditarTema = (id) => navigate(generateRoute.editarTema(id));
+  const handleEditarTema = (id: number | string) => navigate(generateRoute.editarTema(id));
   const handleNovoTema = () => navigate(ROUTES.NOVO_TEMA);
 
   return (

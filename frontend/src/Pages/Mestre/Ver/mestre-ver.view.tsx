@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Crown, BookOpen, Theater, ScrollText, Settings, Terminal, Volume2,
   ChevronDown, ChevronUp, Copy, Check,
 } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { CatalogDetailLayout, Badge } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { MestreNormalizado } from './mestre-ver.model';
 
-/**
- * View: apresentacao completa.
- * Recebe dados normalizados do Model (via ViewModel) e monta toda a UI.
- * Resolve tema, badges, sections, stats — tudo visual vive aqui.
- */
-
-// PAGE-SPECIFIC: Prompt preview builder (presentation logic)
-const buildPromptPreview = ({ nome, personalidade, tomNarrativo, regrasEspeciais }) => [
+const buildPromptPreview = ({ nome, personalidade, tomNarrativo, regrasEspeciais }: {
+  nome?: string;
+  personalidade?: string | null;
+  tomNarrativo?: string | null;
+  regrasEspeciais?: string | null;
+}) => [
   'Voce e um Mestre de RPG envolvente e criativo. Narre uma aventura textual interativa em portugues brasileiro.',
   nome && `Seu nome como Mestre e "${nome}".`,
   personalidade && `PERSONALIDADE: ${personalidade}`,
@@ -37,15 +37,19 @@ const buildPromptPreview = ({ nome, personalidade, tomNarrativo, regrasEspeciais
   '',
   '## FORMATO DE RESPOSTA (JSON)',
   '{ "narrativa": "...", "fimDeTurno": false, "solicitaDados": { "solicita": false, "tipo": "d20", "teste": "", "dificuldade": "" }, "combate": null, "acoes": [] }',
-].filter(v => v !== false).join('\n');
+].filter(Boolean).join('\n');
 
-// PAGE-SPECIFIC: Collapsible prompt preview with copy-to-clipboard
-const PromptPreviewSection = ({ promptPreview, isLight }) => {
+interface PromptPreviewSectionProps {
+  promptPreview: string;
+  isLight: boolean;
+}
+
+const PromptPreviewSection = ({ promptPreview, isLight }: PromptPreviewSectionProps) => {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const handleCopy = async (e) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try { await navigator.clipboard.writeText(promptPreview); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+    try { await navigator.clipboard.writeText(promptPreview); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard nao disponivel */ }
   };
   const lt = isLight;
   return (
@@ -71,8 +75,16 @@ const PromptPreviewSection = ({ promptPreview, isLight }) => {
   );
 };
 
-// MAIN VIEW
-const VerMestreView = ({ mestre: m, loading, error, voiceName, onBack, onEdit }) => {
+interface VerMestreViewProps {
+  mestre: MestreNormalizado | null;
+  loading: boolean;
+  error: string | null;
+  voiceName: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+const VerMestreView = ({ mestre: m, loading, error, voiceName, onBack, onEdit }: VerMestreViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -98,7 +110,6 @@ const VerMestreView = ({ mestre: m, loading, error, voiceName, onBack, onEdit })
   const voiceProviderLabel = m.voiceProvider === 'cartesia' ? 'Cartesia'
     : m.voiceProvider === 'opensource' ? 'Open Source' : 'ElevenLabs';
 
-  // -- Badges --
   const badges = [
     <Badge key="model" variant="slate">{m.modelo || 'Padrao'}</Badge>,
     m.voiceId && (
@@ -112,9 +123,8 @@ const VerMestreView = ({ mestre: m, loading, error, voiceName, onBack, onEdit })
     ),
   ].filter(Boolean);
 
-  // -- Sections --
   const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
-  const sections = [];
+  const sections: CatalogDetailSection[] = [];
 
   if (m.descricao) {
     sections.push({
@@ -142,8 +152,7 @@ const VerMestreView = ({ mestre: m, loading, error, voiceName, onBack, onEdit })
     content: <PromptPreviewSection promptPreview={promptPreview} isLight={isLight} />,
   });
 
-  // -- Stats (sidebar) --
-  const stats = [
+  const stats: CatalogDetailStat[] = [
     { icon: Settings, label: 'Modelo', content: m.modelo || 'Padrao' },
     { icon: Settings, label: 'Temperatura', content: m.temperatura ?? 'Nao definido' },
     { icon: Settings, label: 'Max Tokens', content: m.maxTokens ?? 'Nao definido' },

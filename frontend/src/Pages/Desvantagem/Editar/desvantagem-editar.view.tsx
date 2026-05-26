@@ -1,14 +1,35 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { AlertTriangle, Save, Loader2 } from 'lucide-react';
+
+type DesvantagemField =
+  | 'nome' | 'descricao' | 'custo' | 'tipo' | 'elemento'
+  | 'nivel' | 'usar' | 'dano_base';
+
+interface EditarDesvantagemViewProps {
+  nome: string;
+  descricao: string;
+  custo: number | string;
+  tipo: string | string[];
+  elemento: string | string[];
+  nivel: number | string;
+  usar: number | string;
+  dano_base: string;
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  setField: (name: DesvantagemField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
 
 const EditarDesvantagemView = ({
   nome, descricao, custo, tipo, elemento, nivel, usar, dano_base,
   loading, saving, error,
-  setField, handleSubmit, handleCancel, clearError,
-}) => {
+  setField, handleSubmit, handleCancel,
+}: EditarDesvantagemViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -37,6 +58,9 @@ const EditarDesvantagemView = ({
       </div>
     );
   }
+
+  const tipoStr = Array.isArray(tipo) ? tipo.join(', ') : tipo;
+  const elementoStr = Array.isArray(elemento) ? elemento.join(', ') : elemento;
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -67,102 +91,32 @@ const EditarDesvantagemView = ({
           </div>
         )}
 
-        <InputSimples
-          label="Nome"
-          name="nome"
-          value={nome}
-          onChange={e => setField('nome', e.target.value)}
-          placeholder="Nome da desvantagem"
-          required
-        />
+        <InputSimples label="Nome" name="nome" value={nome} onChange={e => setField('nome', e.target.value)} placeholder="Nome da desvantagem" required />
 
         <div>
           <label className={labelCls}>Descricao</label>
-          <textarea
-            name="descricao"
-            value={descricao}
-            onChange={e => setField('descricao', e.target.value)}
-            placeholder="Descricao da desvantagem..."
-            rows={3}
-            className={inputCls}
-          />
+          <textarea name="descricao" value={descricao} onChange={e => setField('descricao', e.target.value)} placeholder="Descricao da desvantagem..." rows={3} className={inputCls} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <InputSimples
-            label="Custo"
-            name="custo"
-            type="number"
-            value={custo}
-            onChange={e => setField('custo', e.target.value)}
-          />
-          <InputSimples
-            label="Tipo"
-            name="tipo"
-            value={tipo}
-            onChange={e => setField('tipo', e.target.value)}
-            placeholder="Tipo da desvantagem"
-          />
-          <InputSimples
-            label="Elemento"
-            name="elemento"
-            value={elemento}
-            onChange={e => setField('elemento', e.target.value)}
-            placeholder="Elemento"
-          />
+          <InputSimples label="Custo" name="custo" type="number" value={custo} onChange={e => setField('custo', e.target.value)} />
+          <InputSimples label="Tipo" name="tipo" value={tipoStr} onChange={e => setField('tipo', e.target.value)} placeholder="Tipo da desvantagem" />
+          <InputSimples label="Elemento" name="elemento" value={elementoStr} onChange={e => setField('elemento', e.target.value)} placeholder="Elemento" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <InputSimples
-            label="Nivel"
-            name="nivel"
-            type="number"
-            value={nivel}
-            onChange={e => setField('nivel', e.target.value)}
-            min={1}
-          />
-          <InputSimples
-            label="Usar"
-            name="usar"
-            type="number"
-            value={usar}
-            onChange={e => setField('usar', e.target.value)}
-            min={0}
-          />
-          <InputSimples
-            label="Dano Base"
-            name="dano_base"
-            value={dano_base}
-            onChange={e => setField('dano_base', e.target.value)}
-            placeholder="Dano base"
-          />
+          <InputSimples label="Nivel" name="nivel" type="number" value={nivel} onChange={e => setField('nivel', e.target.value)} min={1} />
+          <InputSimples label="Usar" name="usar" type="number" value={usar} onChange={e => setField('usar', e.target.value)} min={0} />
+          <InputSimples label="Dano Base" name="dano_base" value={dano_base} onChange={e => setField('dano_base', e.target.value)} placeholder="Dano base" />
         </div>
 
         <div className="flex space-x-4 pt-4">
-          <Button
-            variant="ghost"
-            onClick={handleCancel}
-            className="flex-1"
-            type="button"
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={saving}
-            className="flex-1"
-          >
+          <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
+          <Button variant="primary" type="submit" disabled={saving} className="flex-1">
             {saving ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 size={16} className="animate-spin" />
-                <span>Salvando...</span>
-              </div>
+              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Save size={16} />
-                <span>Salvar Desvantagem</span>
-              </div>
+              <div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Desvantagem</span></div>
             )}
           </Button>
         </div>

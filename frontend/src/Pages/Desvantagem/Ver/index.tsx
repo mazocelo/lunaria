@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useDesvantagemVerModel } from './desvantagem-ver.model';
 import VerDesvantagemView from './desvantagem-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function DesvantagemVerPage() {
   const model = useDesvantagemVerModel();
   const navigate = useNavigate();

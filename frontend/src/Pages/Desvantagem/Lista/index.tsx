@@ -1,17 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { generateRoute } from '../../../constants/routes.js';
+import { generateRoute } from '../../../constants/routes';
 import { useDesvantagemListaModel } from './desvantagem-lista.model';
 import DesvantagemListaView from './desvantagem-lista.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao.
- */
 export default function DesvantagemListaPage() {
   const model = useDesvantagemListaModel();
   const navigate = useNavigate();
 
-  const handleVerDesvantagem = (id) => navigate(generateRoute.verDesvantagem(id));
+  const handleVerDesvantagem = (id: number | string) => navigate(generateRoute.verDesvantagem(id));
 
   return (
     <DesvantagemListaView

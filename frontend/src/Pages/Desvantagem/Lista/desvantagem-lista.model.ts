@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDesvantagemStore } from '../../../store/desvantagem';
-import { desvantagemService } from '../../../services/index.js';
+import { desvantagemService } from '../../../services/index';
 
 /**
  * Model: estado, sincronizacao, normalizacao e metodos da entidade.
@@ -17,29 +17,31 @@ export const useDesvantagemListaModel = () => {
   const tipoMaisComum = useDesvantagemStore(s => s.tipoMaisComum);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!desvantagensCarregadas) carregarDesvantagens();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredDesvantagens = useMemo(() => {
     if (!searchTerm) return desvantagens;
     const term = searchTerm.toLowerCase();
-    return desvantagens.filter(d =>
+    return desvantagens.filter((d) =>
       d.nome?.toLowerCase().includes(term) ||
       d.descricao?.toLowerCase().includes(term) ||
-      (Array.isArray(d.tipo) && d.tipo.some(t => t.toLowerCase().includes(term)))
+      (Array.isArray(d.tipo) && d.tipo.some((t) => t.toLowerCase().includes(term))),
     );
   }, [desvantagens, searchTerm]);
 
-  const deleteDesvantagem = async (id) => {
+  const deleteDesvantagem = async (id: number | string) => {
     try {
-      await desvantagemService.delete(id);
+      await desvantagemService.delete(Number(id));
       await recarregarDesvantagens();
       return { success: true };
     } catch (err) {
-      setLocalError(`Erro ao remover desvantagem: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setLocalError(`Erro ao remover desvantagem: ${message}`);
       return { success: false };
     }
   };

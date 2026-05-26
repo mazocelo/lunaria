@@ -1,12 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
+import { useState, useEffect, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import Notification from '../../../components/Notification.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
 import { AlertTriangle, BarChart3, Tag } from 'lucide-react';
+import type { VantagemDesvantagem } from '../../../types/api';
 
-const tipoVariant = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const tipoVariant: Record<string, BadgeVariant> = { 'ativa': 'blue', 'passiva': 'green', 'reacao': 'amber' };
+
+interface DesvantagemListaViewProps {
+  desvantagens: VantagemDesvantagem[];
+  filteredDesvantagens: VantagemDesvantagem[];
+  loading: boolean;
+  error: string | null;
+  nivelMaisComum: number | null;
+  tipoMaisComum: string | null;
+  buscarDesvantagens: (term: string) => void;
+  clearError: () => void;
+  onVerDesvantagem: (id: number | string) => void;
+}
 
 const DesvantagemListaView = ({
   desvantagens,
@@ -18,7 +33,7 @@ const DesvantagemListaView = ({
   buscarDesvantagens,
   clearError,
   onVerDesvantagem,
-}) => {
+}: DesvantagemListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -35,7 +50,7 @@ const DesvantagemListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const displayDesvantagens = filteredDesvantagens?.length > 0 ? filteredDesvantagens : desvantagens;
 
@@ -43,7 +58,6 @@ const DesvantagemListaView = ({
 
   const paginatedDesvantagens = displayDesvantagens.slice((page - 1) * perPage, page * perPage);
 
-  // Build list of items with images for gallery navigation
   const itemsWithImages = displayDesvantagens
     .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
     .filter(item => item.src);
@@ -141,12 +155,11 @@ const DesvantagemListaView = ({
         pageSizeOptions={[12, 24, 48]}
       />
 
-      {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayDesvantagens[galleryIndex] && (
         <ImageLightbox
-          src={displayDesvantagens[galleryIndex].imagem}
-          alt={displayDesvantagens[galleryIndex].nome}
-          title={displayDesvantagens[galleryIndex].nome}
+          src={displayDesvantagens[galleryIndex].imagem ?? ''}
+          alt={displayDesvantagens[galleryIndex].nome ?? ''}
+          title={displayDesvantagens[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

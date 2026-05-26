@@ -1,10 +1,17 @@
-import React from 'react';
 import { useParams } from 'react-router-dom';
-import DocsSidebar from './DocsSidebar';
+import DocsSidebar, { type DocsSidebarItem } from './DocsSidebar';
 import DocsContent from './DocsContent';
 
-export default function DocsLayout({ section, title, items }) {
-  const { slug } = useParams();
+export type DocsSection = 'jogador' | 'interno';
+
+export interface DocsLayoutProps {
+  section: DocsSection;
+  title: string;
+  items: DocsSidebarItem[];
+}
+
+export default function DocsLayout({ section, title, items }: DocsLayoutProps) {
+  const { slug } = useParams<{ slug?: string }>();
   const activeSlug = slug || 'index';
 
   return (

@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useState, useEffect } from 'react';
+import { useTheme } from '../../contexts/theme';
 
-export default function DocsContent({ section, slug }) {
+interface DocsContentProps {
+  section: string;
+  slug: string;
+}
+
+export default function DocsContent({ section, slug }: DocsContentProps) {
   const [html, setHtml] = useState('');
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();

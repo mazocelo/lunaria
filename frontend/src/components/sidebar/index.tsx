@@ -1,14 +1,21 @@
-import React from 'react';
+import type { ComponentType } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useTheme } from '../../contexts/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useSocketStore } from '../../store';
 import {
   BookOpen, Users, Dna, Shield, Star, AlertTriangle,
   Sword, Skull, Palette, Crown, User, AlertCircle, RefreshCw,
-  UserPlus, Rss, Globe, BarChart3, Zap, ScrollText
+  UserPlus, Rss, Globe, BarChart3, Zap, ScrollText,
 } from 'lucide-react';
+
+interface NavItemEntry {
+  path: string;
+  label: string;
+  icon: ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  description: string;
+}
 
 const Sidebar = () => {
   const location = useLocation();
@@ -21,7 +28,7 @@ const Sidebar = () => {
 
   const collapsed = sidebarCollapsed;
 
-  const playerItems = [
+  const playerItems: NavItemEntry[] = [
     { path: '/historias', label: 'Historias', icon: BookOpen, description: 'Gerencie suas aventuras' },
     { path: '/explorar', label: 'Explorar', icon: Globe, description: 'Descubra aventuras publicas' },
     { path: '/personagens', label: 'Personagens', icon: Users, description: 'Crie e edite personagens' },
@@ -29,12 +36,12 @@ const Sidebar = () => {
     { path: '/docs', label: 'Documentação', icon: BookOpen, description: 'Guia do jogador' },
   ];
 
-  const socialItems = [
+  const socialItems: NavItemEntry[] = [
     { path: '/amigos', label: 'Amigos', icon: UserPlus, description: 'Gerencie seus amigos' },
     { path: '/feed', label: 'Feed', icon: Rss, description: 'Feed social' },
   ];
 
-  const catalogItems = [
+  const catalogItems: NavItemEntry[] = [
     { path: '/racas', label: 'Racas', icon: Dna, description: 'Gerencie as racas' },
     { path: '/classes', label: 'Classes', icon: Shield, description: 'Gerencie as classes' },
     { path: '/vantagens', label: 'Vantagens', icon: Star, description: 'Gerencie as vantagens' },
@@ -47,9 +54,9 @@ const Sidebar = () => {
     { path: '/admin/docs', label: 'Docs Interno', icon: ScrollText, description: 'Base de conhecimento' },
   ];
 
-  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  const NavItem = ({ item }) => {
+  const NavItem = ({ item }: { item: NavItemEntry }) => {
     const Icon = item.icon;
     const active = isActive(item.path);
 
@@ -163,7 +170,7 @@ const Sidebar = () => {
             </div>
             <p className={`text-xs ${isLight ? 'text-red-700' : 'text-red-400'} mb-2`}>{error}</p>
             <button
-              onClick={connectToSocket}
+              onClick={() => { connectToSocket(); }}
               className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-semibold transition-colors cursor-pointer ${
                 isLight
                   ? 'bg-red-200 hover:bg-red-300 text-red-800'

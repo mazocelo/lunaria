@@ -1,10 +1,20 @@
-import React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useTheme } from '../../contexts/theme';
 import { BookOpen, ChevronRight } from 'lucide-react';
 
-export default function DocsSidebar({ items, baseUrl, title }) {
-  const { slug } = useParams();
+export interface DocsSidebarItem {
+  slug: string;
+  label: string;
+}
+
+interface DocsSidebarProps {
+  items: DocsSidebarItem[];
+  baseUrl: string;
+  title: string;
+}
+
+export default function DocsSidebar({ items, baseUrl, title }: DocsSidebarProps) {
+  const { slug } = useParams<{ slug?: string }>();
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

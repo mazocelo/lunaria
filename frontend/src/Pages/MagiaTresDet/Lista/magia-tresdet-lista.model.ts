@@ -1,13 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMagiasTresDetStore } from '../../../store/magiasTresDet';
-import { magiasTresDetService } from '../../../services/index.js';
+import { magiasTresDetService } from '../../../services/index';
+import type { MagiaTresdet } from '../../../types/api';
 
 // A coluna `escola` da API e texto livre composto (ex.: "Branca Elemental (agua)",
 // "Branca ou Negra"). Uma magia pode pertencer a mais de uma escola base.
-// Os parenteticos sao elementos (agua/ar/fogo/terra/espirito/todas), nao escolas.
-export const ESCOLAS_BASE = ['branca', 'negra', 'elemental'];
+export const ESCOLAS_BASE = ['branca', 'negra', 'elemental'] as const;
 
-const normalizarEscolas = (escola) => {
+export interface MagiaTresdetWithEscolas extends MagiaTresdet {
+  escolasNormalizadas: string[];
+}
+
+const normalizarEscolas = (escola: string | null | undefined): string[] => {
   if (!escola) return [];
   const semParenteses = escola.toLowerCase().replace(/\([^)]*\)/g, ' ');
   return ESCOLAS_BASE.filter(e => semParenteses.includes(e));
@@ -25,16 +29,17 @@ export const useMagiaTresDetListaModel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEscola, setFiltroEscola] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [magiaToDelete, setMagiaToDelete] = useState(null);
+  const [magiaToDelete, setMagiaToDelete] = useState<MagiaTresdetWithEscolas | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (!magiasCarregadas) carregarMagias();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const magias = useMemo(
+  const magias = useMemo<MagiaTresdetWithEscolas[]>(
     () => (magiasRaw || []).map(m => ({
       ...m,
       escolasNormalizadas: normalizarEscolas(m.escola),
@@ -61,8 +66,8 @@ export const useMagiaTresDetListaModel = () => {
   }, [magias, searchTerm, filtroEscola, filtroTipo]);
 
   const stats = useMemo(() => {
-    const escolas = {};
-    const tipos = {};
+    const escolas: Record<string, number> = {};
+    const tipos: Record<string, number> = {};
     magias.forEach(m => {
       m.escolasNormalizadas.forEach(e => {
         escolas[e] = (escolas[e] || 0) + 1;
@@ -72,7 +77,7 @@ export const useMagiaTresDetListaModel = () => {
     return { escolas, tipos };
   }, [magias]);
 
-  const handleDeleteClick = (row) => {
+  const handleDeleteClick = (row: MagiaTresdetWithEscolas) => {
     setMagiaToDelete(row);
     setShowDeleteModal(true);
   };
@@ -86,7 +91,8 @@ export const useMagiaTresDetListaModel = () => {
       setShowDeleteModal(false);
       setMagiaToDelete(null);
     } catch (err) {
-      setLocalError(`Erro ao deletar magia: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setLocalError(`Erro ao deletar magia: ${message}`);
     } finally {
       setDeleteLoading(false);
     }

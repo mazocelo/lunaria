@@ -1,24 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import { useState, useEffect } from 'react';
+import StatCard from '../../../components/StatCard';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { Sparkles, Eye, Pencil, Trash2, Sun, Moon, Flame } from 'lucide-react';
+import type { ComponentType } from 'react';
+import type { MagiaTresdetWithEscolas } from './magia-tresdet-lista.model';
 
-const escolaConfig = {
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+interface EscolaConfig {
+  variant: BadgeVariant;
+  icon: ComponentType<{ size?: number; className?: string }>;
+  label: string;
+}
+
+const escolaConfig: Record<string, EscolaConfig> = {
   branca: { variant: 'amber', icon: Sun, label: 'Branca' },
   negra: { variant: 'purple', icon: Moon, label: 'Negra' },
   elemental: { variant: 'red', icon: Flame, label: 'Elemental' },
 };
 
-const tipoVariant = {
+const tipoVariant: Record<string, BadgeVariant> = {
   dano: 'red',
   cura: 'green',
   suporte: 'cyan',
   controle: 'amber',
   utilidade: 'slate',
 };
+
+interface MagiaTresDetStats {
+  escolas: Record<string, number>;
+  tipos: Record<string, number>;
+}
+
+interface MagiaTresDetListaViewProps {
+  magias: MagiaTresdetWithEscolas[];
+  filteredMagias: MagiaTresdetWithEscolas[];
+  loading: boolean;
+  error: string | null;
+  total: number;
+  stats: MagiaTresDetStats;
+  filtroEscola: string;
+  filtroTipo: string;
+  showDeleteModal: boolean;
+  magiaToDelete: MagiaTresdetWithEscolas | null;
+  deleteLoading: boolean;
+  setSearchTerm: (term: string) => void;
+  setFiltroEscola: (escola: string) => void;
+  setFiltroTipo: (tipo: string) => void;
+  handleDeleteClick: (row: MagiaTresdetWithEscolas) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  clearError: () => void;
+  onVerMagia: (id: number | string) => void;
+  onEditarMagia: (id: number | string) => void;
+}
 
 const MagiaTresDetListaView = ({
   magias,
@@ -41,7 +79,7 @@ const MagiaTresDetListaView = ({
   clearError,
   onVerMagia,
   onEditarMagia,
-}) => {
+}: MagiaTresDetListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -95,21 +133,13 @@ const MagiaTresDetListaView = ({
             onChange={(texto) => setSearchTerm(texto)}
           />
         </div>
-        <select
-          value={filtroEscola}
-          onChange={(e) => setFiltroEscola(e.target.value)}
-          className={selectCls}
-        >
+        <select value={filtroEscola} onChange={(e) => setFiltroEscola(e.target.value)} className={selectCls}>
           <option value="">Todas as escolas</option>
           <option value="branca">Branca</option>
           <option value="negra">Negra</option>
           <option value="elemental">Elemental</option>
         </select>
-        <select
-          value={filtroTipo}
-          onChange={(e) => setFiltroTipo(e.target.value)}
-          className={selectCls}
-        >
+        <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className={selectCls}>
           <option value="">Todos os tipos</option>
           <option value="dano">Dano</option>
           <option value="cura">Cura</option>
@@ -127,8 +157,8 @@ const MagiaTresDetListaView = ({
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {paginatedData.map((row, i) => {
-            const escolaPrincipal = row.escolasNormalizadas?.[0];
-            const escolaCfg = escolaConfig[escolaPrincipal] || { variant: 'slate' };
+            const escolaPrincipal = row.escolasNormalizadas[0];
+            const escolaCfg = escolaConfig[escolaPrincipal] || ({ variant: 'slate' as BadgeVariant });
             const escola = { variant: escolaCfg.variant, label: row.escola || '-' };
 
             return (

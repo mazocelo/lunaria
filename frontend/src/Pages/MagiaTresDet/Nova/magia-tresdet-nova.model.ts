@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { magiasTresDetService } from '../../../services/index.js';
+import { magiasTresDetService } from '../../../services/index';
 import { useMagiasTresDetStore } from '../../../store/magiasTresDet';
+
+type MagiaField =
+  | 'nome' | 'descricao' | 'escola' | 'custo_pm' | 'alcance' | 'duracao'
+  | 'tipo' | 'exigencias' | 'focus_requisito' | 'efeito' | 'nivel_minimo';
 
 export const useMagiaTresDetNovaModel = () => {
   const recarregarMagias = useMagiasTresDetStore(s => s.recarregarMagias);
@@ -15,25 +19,32 @@ export const useMagiaTresDetNovaModel = () => {
   const [exigencias, setExigencias] = useState('');
   const [focus_requisito, setFocusRequisito] = useState('');
   const [efeito, setEfeito] = useState('');
-  const [nivel_minimo, setNivelMinimo] = useState(1);
+  const [nivel_minimo, setNivelMinimo] = useState<number | string>(1);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => setError(null);
   }, []);
 
-  const setField = (name, value) => {
-    const setters = {
-      nome: setNome, descricao: setDescricao, escola: setEscola,
-      custo_pm: setCustoPm, alcance: setAlcance, duracao: setDuracao,
-      tipo: setTipo, exigencias: setExigencias, focus_requisito: setFocusRequisito,
-      efeito: setEfeito, nivel_minimo: setNivelMinimo,
+  const setField = (name: MagiaField, value: string | number) => {
+    const setters: Record<MagiaField, (value: never) => void> = {
+      nome: setNome as (v: never) => void,
+      descricao: setDescricao as (v: never) => void,
+      escola: setEscola as (v: never) => void,
+      custo_pm: setCustoPm as (v: never) => void,
+      alcance: setAlcance as (v: never) => void,
+      duracao: setDuracao as (v: never) => void,
+      tipo: setTipo as (v: never) => void,
+      exigencias: setExigencias as (v: never) => void,
+      focus_requisito: setFocusRequisito as (v: never) => void,
+      efeito: setEfeito as (v: never) => void,
+      nivel_minimo: setNivelMinimo as (v: never) => void,
     };
-    setters[name]?.(value);
+    setters[name]?.(value as never);
   };
 
-  const _parseJson = (str) => {
+  const _parseJson = (str: string): unknown => {
     if (!str) return null;
     try { return JSON.parse(str); } catch { return str; }
   };
@@ -49,7 +60,7 @@ export const useMagiaTresDetNovaModel = () => {
     exigencias: exigencias || null,
     focus_requisito: _parseJson(focus_requisito),
     efeito: _parseJson(efeito),
-    nivel_minimo: parseInt(nivel_minimo) || 1,
+    nivel_minimo: parseInt(String(nivel_minimo)) || 1,
   });
 
   const criarMagia = async () => {
@@ -66,8 +77,9 @@ export const useMagiaTresDetNovaModel = () => {
       setSaving(false);
       return { success: true };
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setSaving(false);
-      setError(`Erro ao criar magia: ${err.message}`);
+      setError(`Erro ao criar magia: ${message}`);
       return { success: false };
     }
   };

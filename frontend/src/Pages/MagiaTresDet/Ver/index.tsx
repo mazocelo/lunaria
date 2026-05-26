@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useMagiaTresDetVerModel } from './magia-tresdet-ver.model';
 import VerMagiaTresDetView from './magia-tresdet-ver.view';
 

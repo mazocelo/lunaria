@@ -1,8 +1,11 @@
-import React from 'react';
 import { Sparkles, Save, Loader2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+
+type MagiaField =
+  | 'nome' | 'descricao' | 'escola' | 'custo_pm' | 'alcance' | 'duracao'
+  | 'tipo' | 'exigencias' | 'focus_requisito' | 'efeito' | 'nivel_minimo';
 
 const escolaOptions = [
   { value: 'branca', label: 'Branca' },
@@ -26,12 +29,33 @@ const tipoOptions = [
   { value: 'utilidade', label: 'Utilidade' },
 ];
 
+interface EditarMagiaTresDetViewProps {
+  nome: string;
+  descricao: string;
+  escola: string;
+  custo_pm: string;
+  alcance: string;
+  duracao: string;
+  tipo: string;
+  exigencias: string;
+  focus_requisito: string;
+  efeito: string;
+  nivel_minimo: number | string;
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  setField: (name: MagiaField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
 const EditarMagiaTresDetView = ({
   nome, descricao, escola, custo_pm, alcance, duracao, tipo,
   exigencias, focus_requisito, efeito, nivel_minimo,
   loading, saving, error,
   setField, handleSubmit, handleCancel,
-}) => {
+}: EditarMagiaTresDetViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

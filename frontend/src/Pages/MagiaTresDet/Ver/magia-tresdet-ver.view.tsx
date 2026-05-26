@@ -1,21 +1,30 @@
-import React from 'react';
 import { Sparkles, BookOpen, Target, Clock, Zap, Shield, Tag, BarChart3 } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { CatalogDetailLayout } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { MagiaTresDetNormalizada } from './magia-tresdet-ver.model';
 
-const escolaColors = {
+const escolaColors: Record<string, string> = {
   branca: '#f59e0b',
   negra: '#8b5cf6',
   elemental: '#ef4444',
 };
 
-const escolaLabels = {
+const escolaLabels: Record<string, string> = {
   branca: 'Branca',
   negra: 'Negra',
   elemental: 'Elemental',
 };
 
-const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }) => {
+interface VerMagiaTresDetViewProps {
+  magia: MagiaTresDetNormalizada | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }: VerMagiaTresDetViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -45,12 +54,12 @@ const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }) => {
 
   const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
 
-  const sections = [
+  const sections: CatalogDetailSection[] = ([
     m.descricao && {
       title: 'Descricao', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${textCls}`}>{m.descricao}</p>,
     },
-    m.efeito?.length > 0 && {
+    m.efeito && m.efeito.length > 0 && {
       title: 'Efeito Mecanico', icon: Sparkles, color: '#8b5cf6',
       content: (
         <div className="space-y-2">
@@ -58,15 +67,15 @@ const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }) => {
         </div>
       ),
     },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailSection[]);
 
-  const monoBlock = (items, cls) => (
+  const monoBlock = (items: string[], cls: string) => (
     <div className="space-y-1">
       {items.map((a, i) => <span key={i} className={`block font-mono text-xs ${cls}`}>{a}</span>)}
     </div>
   );
 
-  const stats = [
+  const stats: CatalogDetailStat[] = ([
     { icon: Tag, label: 'Escola', content: (
       <span className="px-3 py-1 rounded-full text-xs font-semibold"
         style={{ background: `${accent}20`, color: accent }}>
@@ -79,8 +88,8 @@ const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }) => {
     { icon: Clock, label: 'Duracao', content: m.duracao },
     m.nivelMinimo > 1 && { icon: BarChart3, label: 'Nivel Minimo', content: <span className="text-cyan-400 font-semibold">{m.nivelMinimo}</span> },
     m.exigencias && { icon: Shield, label: 'Exigencias', content: m.exigencias },
-    m.focusRequisito?.length > 0 && { icon: Sparkles, label: 'Focus Requisito', content: monoBlock(m.focusRequisito, isLight ? 'text-amber-700' : 'text-amber-400') },
-  ].filter(Boolean);
+    m.focusRequisito && m.focusRequisito.length > 0 && { icon: Sparkles, label: 'Focus Requisito', content: monoBlock(m.focusRequisito, isLight ? 'text-amber-700' : 'text-amber-400') },
+  ].filter(Boolean) as CatalogDetailStat[]);
 
   return (
     <CatalogDetailLayout

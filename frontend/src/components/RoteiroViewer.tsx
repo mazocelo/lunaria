@@ -1,18 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ComponentType, type ReactNode } from 'react';
 import {
   ChevronDown, ChevronRight, Scroll, Sword, MapPin, Users, Gem,
   Zap, Swords, Flag, BookOpen, Compass, CheckCircle2, Circle,
-  ImagePlus, Loader2, X
+  ImagePlus, Loader2, X,
 } from 'lucide-react';
 import { imageGenerationService } from '../services';
-import ImageLightbox from './ImageLightbox.jsx';
-import NarrationAudioButton from './shared/NarrationAudioButton.jsx';
-import VoicePicker from './shared/VoicePicker.jsx';
-import { useVoiceCatalog } from '../hooks/useVoiceCatalog.js';
+import ImageLightbox from './ImageLightbox';
+import NarrationAudioButton, { type NarrationTtsController } from './shared/NarrationAudioButton';
+import VoicePicker, { type VoicePickerChangePayload } from './shared/VoicePicker';
+import { useVoiceCatalog } from '../hooks/useVoiceCatalog';
 
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) => {
+interface SectionProps {
+  title: ReactNode;
+  icon: ComponentType<{ size?: number; className?: string }>;
+  children?: ReactNode;
+  defaultOpen?: boolean;
+  isLight?: boolean;
+}
+
+const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }: SectionProps) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={`rounded-lg border ${isLight ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/30'}`}>
@@ -35,21 +43,34 @@ const Section = ({ title, icon: Icon, children, defaultOpen = false, isLight }) 
   );
 };
 
-const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) => {
+interface ImagemCardProps {
+  imageUrl?: string | null;
+  entityType: string;
+  entityData: Record<string, unknown>;
+  isLight?: boolean;
+  onGenerated: (url: string) => void;
+}
+
+interface ImageGenerationResponse {
+  data?: { url?: string | null } | null;
+}
+
+const ImagemCard = ({ imageUrl, entityType, entityData, onGenerated }: ImagemCardProps) => {
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleGenerate = async () => {
     setGenerating(true);
     setError(null);
     try {
-      const response = await imageGenerationService.generate({ entityType, entityData });
-      const url = response.data?.url;
+      const response = (await imageGenerationService.generate({ entityType, entityData })) as ImageGenerationResponse | null;
+      const url = response?.data?.url;
       if (url) onGenerated(url);
       else setError('Nenhuma imagem retornada');
     } catch (err) {
-      setError(err.message || 'Erro ao gerar');
+      const message = err instanceof Error ? err.message : 'Erro ao gerar';
+      setError(message);
     } finally {
       setGenerating(false);
     }
@@ -58,7 +79,14 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   if (imageUrl) {
     return (
       <div className="relative group mt-2">
-        <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg cursor-pointer select-none caret-transparent" draggable={false} onError={(e) => { e.target.style.display = 'none'; }} onClick={() => setLightboxOpen(true)} />
+        <img
+          src={imageUrl}
+          alt="Preview"
+          className="w-full h-32 object-cover rounded-lg cursor-pointer select-none caret-transparent"
+          draggable={false}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          onClick={() => setLightboxOpen(true)}
+        />
         <button onClick={() => onGenerated('')} className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity select-none caret-transparent" title="Remover">
           <X size={12} />
         </button>
@@ -83,9 +111,9 @@ const ImagemCard = ({ imageUrl, entityType, entityData, isLight, onGenerated }) 
   );
 };
 
-const joinNarrationParts = (...parts) => parts.filter(Boolean).join(' ');
+const joinNarrationParts = (...parts: Array<string | undefined | null | false>) => parts.filter(Boolean).join(' ');
 
-const slugify = (value, fallback = 'npc') => {
+const slugify = (value: unknown, fallback = 'npc') => {
   const normalized = String(value || '')
     .trim()
     .normalize('NFD')
@@ -97,7 +125,53 @@ const slugify = (value, fallback = 'npc') => {
   return normalized || fallback;
 };
 
-const buildAntagonistaNarration = (antagonista) => {
+interface RoteiroAntagonista {
+  nome?: string;
+  titulo?: string;
+  descricao?: string;
+  motivacao?: string;
+  poderes?: string[];
+  fraquezas?: string[];
+}
+
+interface RoteiroLocal {
+  nome?: string;
+  tipo?: string;
+  perigo?: string;
+  descricao?: string;
+  imagem?: string | null;
+}
+
+interface RoteiroNpc {
+  id?: string;
+  nome?: string;
+  papel?: string;
+  descricao?: string;
+  motivacao?: string;
+  local?: string;
+  segredo?: string;
+  dialogo_exemplo?: string;
+  imagem?: string | null;
+  voice_id?: string | null;
+  voice_provider?: string | null;
+}
+
+interface RoteiroPayload {
+  sinopse?: string;
+  antagonista?: RoteiroAntagonista;
+  arcos?: Array<{ numero?: number; titulo?: string; descricao?: string; nivel_sugerido?: string | number; objetivos?: string[] }>;
+  mapaMundi?: { descricao_geral?: string; regioes?: Array<{ nome?: string; perigo?: string; descricao?: string }> };
+  locais?: RoteiroLocal[];
+  npcs?: RoteiroNpc[];
+  tesourosSegretos?: Array<{ nome?: string; tipo?: string; descricao?: string }>;
+  plotTwists?: Array<{ momento?: string; revelacao?: string; impacto?: string }>;
+  encontrosChave?: Array<{ nome?: string; tipo?: string; dificuldade?: string; descricao?: string }>;
+  desfechosPossiveis?: Array<{ tipo?: string; descricao?: string }>;
+  instrucoesGeraisParaOMestre?: { tom_narrativo?: string; ritmo?: string; adaptacao?: string; dicas_imersao?: string[] };
+  progressao?: { marcos?: Array<{ concluido?: boolean; descricao?: string }>; porcentagem_estimada?: number };
+}
+
+const buildAntagonistaNarration = (antagonista?: RoteiroAntagonista) => {
   if (!antagonista) return '';
   return joinNarrationParts(
     `Antagonista ${antagonista.nome}.`,
@@ -109,7 +183,7 @@ const buildAntagonistaNarration = (antagonista) => {
   );
 };
 
-const buildLocalNarration = (local) => {
+const buildLocalNarration = (local?: RoteiroLocal) => {
   if (!local) return '';
   return joinNarrationParts(
     `Local ${local.nome}.`,
@@ -119,7 +193,7 @@ const buildLocalNarration = (local) => {
   );
 };
 
-const buildNpcNarration = (npc) => {
+const buildNpcNarration = (npc?: RoteiroNpc) => {
   if (!npc) return '';
   return joinNarrationParts(
     `NPC ${npc.nome}.`,
@@ -131,6 +205,21 @@ const buildNpcNarration = (npc) => {
   );
 };
 
+interface RoteiroViewerProps {
+  roteiro?: RoteiroPayload | null;
+  isLight?: boolean;
+  historiaId: string | number;
+  onRoteiroUpdate?: (next: RoteiroPayload) => void;
+  estiloImagem?: string | null;
+  temasHistoria?: Array<string | number>;
+  historiaContexto?: string;
+  tts?: NarrationTtsController | null;
+  mestreVoiceId?: string | null;
+  mestreVoiceProvider?: string;
+}
+
+type RoteiroArrayKey = 'locais' | 'npcs';
+
 const RoteiroViewer = ({
   roteiro,
   isLight,
@@ -141,45 +230,49 @@ const RoteiroViewer = ({
   historiaContexto = '',
   tts = null,
   mestreVoiceId = null,
-  mestreVoiceProvider = DEFAULT_TTS_PROVIDER
-}) => {
+  mestreVoiceProvider = DEFAULT_TTS_PROVIDER,
+}: RoteiroViewerProps) => {
   const voiceCatalog = useVoiceCatalog();
 
   // Ref para manter versao mais recente do roteiro (evita race condition em geracoes paralelas)
-  const roteiroRef = useRef(roteiro);
+  const roteiroRef = useRef<RoteiroPayload | null | undefined>(roteiro);
   useEffect(() => { roteiroRef.current = roteiro; }, [roteiro]);
 
   if (!roteiro) return null;
 
-  const updateArrayItem = (arrayKey, index, updater) => {
+  const updateArrayItem = <K extends RoteiroArrayKey>(
+    arrayKey: K,
+    index: number,
+    updater: ((item: NonNullable<RoteiroPayload[K]>[number]) => NonNullable<RoteiroPayload[K]>[number]) | Partial<NonNullable<RoteiroPayload[K]>[number]>,
+  ) => {
     if (!onRoteiroUpdate) return;
     const current = roteiroRef.current || roteiro;
     const currentItems = Array.isArray(current?.[arrayKey]) ? current[arrayKey] : [];
-    const updated = {
+    const updated: RoteiroPayload = {
       ...current,
-      [arrayKey]: currentItems.map((item, i) => {
+      [arrayKey]: (currentItems as Array<NonNullable<RoteiroPayload[K]>[number]>).map((item, i) => {
         if (i !== index) return item;
         return typeof updater === 'function'
           ? updater(item)
           : { ...item, ...(updater || {}) };
-      })
+      }),
     };
     roteiroRef.current = updated;
     onRoteiroUpdate(updated);
   };
 
-  const updateItemImage = (arrayKey, index, url) => {
-    updateArrayItem(arrayKey, index, { imagem: url });
+  const updateItemImage = (arrayKey: RoteiroArrayKey, index: number, url: string) => {
+    updateArrayItem(arrayKey, index, { imagem: url } as Partial<RoteiroLocal & RoteiroNpc>);
   };
 
-  const updateNpcVoice = (index, nextVoice = {}) => {
+  const updateNpcVoice = (index: number, nextVoice: Partial<VoicePickerChangePayload> = {}) => {
     updateArrayItem('npcs', index, (npc) => {
       const nome = npc?.nome || `NPC ${index + 1}`;
       return {
         ...npc,
         id: npc?.id || `npc_${slugify(nome, `npc_${index + 1}`)}`,
         voice_id: nextVoice.voice_id || null,
-        voice_provider: nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || DEFAULT_TTS_PROVIDER
+        voice_provider: nextVoice.voice_provider || voiceCatalog.defaultProvider || mestreVoiceProvider || DEFAULT_TTS_PROVIDER,
       };
     });
   };
@@ -208,10 +301,10 @@ const RoteiroViewer = ({
             {roteiro.antagonista.titulo && <p className="font-semibold italic">{roteiro.antagonista.titulo}</p>}
             <p>{roteiro.antagonista.descricao}</p>
             {roteiro.antagonista.motivacao && <p><span className="font-semibold">Motivacao:</span> {roteiro.antagonista.motivacao}</p>}
-            {roteiro.antagonista.poderes?.length > 0 && (
+            {roteiro.antagonista.poderes?.length && (
               <p><span className="font-semibold">Poderes:</span> {roteiro.antagonista.poderes.join(', ')}</p>
             )}
-            {roteiro.antagonista.fraquezas?.length > 0 && (
+            {roteiro.antagonista.fraquezas?.length && (
               <p><span className="font-semibold">Fraquezas:</span> {roteiro.antagonista.fraquezas.join(', ')}</p>
             )}
             <NarrationAudioButton
@@ -227,7 +320,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Arcos Narrativos */}
-      {roteiro.arcos?.length > 0 && (
+      {roteiro.arcos?.length && (
         <Section title={`Arcos Narrativos (${roteiro.arcos.length})`} icon={Compass} isLight={isLight}>
           <div className="space-y-3">
             {roteiro.arcos.map((arco, i) => (
@@ -238,7 +331,7 @@ const RoteiroViewer = ({
                   {arco.nivel_sugerido && <span className="text-xs text-slate-400">Nv {arco.nivel_sugerido}</span>}
                 </div>
                 <p className="text-xs">{arco.descricao}</p>
-                {arco.objetivos?.length > 0 && (
+                {arco.objetivos?.length && (
                   <ul className="mt-1 text-xs list-disc list-inside opacity-80">
                     {arco.objetivos.map((obj, j) => <li key={j}>{obj}</li>)}
                   </ul>
@@ -253,7 +346,7 @@ const RoteiroViewer = ({
       {roteiro.mapaMundi && (
         <Section title="Mapa Mundi" icon={MapPin} isLight={isLight}>
           <p className="mb-2">{roteiro.mapaMundi.descricao_geral}</p>
-          {roteiro.mapaMundi.regioes?.length > 0 && (
+          {roteiro.mapaMundi.regioes?.length && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
               {roteiro.mapaMundi.regioes.map((r, i) => (
                 <div key={i} className={`p-2 rounded text-xs ${isLight ? 'bg-slate-50' : 'bg-slate-800/50'}`}>
@@ -273,7 +366,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Locais */}
-      {roteiro.locais?.length > 0 && (
+      {roteiro.locais?.length && (
         <Section title={`Locais (${roteiro.locais.length})`} icon={MapPin} isLight={isLight}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {roteiro.locais.map((local, i) => (
@@ -282,7 +375,7 @@ const RoteiroViewer = ({
                   <span className="font-semibold">{local.nome}</span>
                   <span className="text-purple-400">({local.tipo})</span>
                 </div>
-                <p className="opacity-80">{local.descricao?.substring(0, 120)}{local.descricao?.length > 120 ? '...' : ''}</p>
+                <p className="opacity-80">{local.descricao?.substring(0, 120)}{(local.descricao?.length || 0) > 120 ? '...' : ''}</p>
                 <NarrationAudioButton
                   tts={tts}
                   text={buildLocalNarration(local)}
@@ -315,7 +408,7 @@ const RoteiroViewer = ({
       )}
 
       {/* NPCs */}
-      {roteiro.npcs?.length > 0 && (
+      {roteiro.npcs?.length && (
         <Section title={`NPCs (${roteiro.npcs.length})`} icon={Users} isLight={isLight}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {roteiro.npcs.map((npc, i) => (
@@ -328,7 +421,7 @@ const RoteiroViewer = ({
                     'bg-blue-500/20 text-blue-400'
                   }`}>{npc.papel}</span>
                 </div>
-                <p className="opacity-80">{npc.descricao?.substring(0, 100)}{npc.descricao?.length > 100 ? '...' : ''}</p>
+                <p className="opacity-80">{npc.descricao?.substring(0, 100)}{(npc.descricao?.length || 0) > 100 ? '...' : ''}</p>
                 {npc.dialogo_exemplo && (
                   <p className="mt-1 italic opacity-60">"{npc.dialogo_exemplo}"</p>
                 )}
@@ -381,7 +474,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Tesouros e Segredos */}
-      {roteiro.tesourosSegretos?.length > 0 && (
+      {roteiro.tesourosSegretos?.length && (
         <Section title={`Tesouros e Segredos (${roteiro.tesourosSegretos.length})`} icon={Gem} isLight={isLight}>
           <div className="space-y-2">
             {roteiro.tesourosSegretos.map((t, i) => (
@@ -395,7 +488,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Plot Twists */}
-      {roteiro.plotTwists?.length > 0 && (
+      {roteiro.plotTwists?.length && (
         <Section title={`Plot Twists (${roteiro.plotTwists.length})`} icon={Zap} isLight={isLight}>
           <div className="space-y-2">
             {roteiro.plotTwists.map((tw, i) => (
@@ -410,7 +503,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Encontros-Chave */}
-      {roteiro.encontrosChave?.length > 0 && (
+      {roteiro.encontrosChave?.length && (
         <Section title={`Encontros-Chave (${roteiro.encontrosChave.length})`} icon={Swords} isLight={isLight}>
           <div className="space-y-2">
             {roteiro.encontrosChave.map((e, i) => (
@@ -424,7 +517,7 @@ const RoteiroViewer = ({
                     'bg-yellow-500/20 text-yellow-400'
                   }`}>{e.dificuldade}</span>
                 </div>
-                <p className="opacity-80">{e.descricao?.substring(0, 150)}{e.descricao?.length > 150 ? '...' : ''}</p>
+                <p className="opacity-80">{e.descricao?.substring(0, 150)}{(e.descricao?.length || 0) > 150 ? '...' : ''}</p>
               </div>
             ))}
           </div>
@@ -432,7 +525,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Desfechos Possiveis */}
-      {roteiro.desfechosPossiveis?.length > 0 && (
+      {roteiro.desfechosPossiveis?.length && (
         <Section title={`Desfechos Possiveis (${roteiro.desfechosPossiveis.length})`} icon={Flag} isLight={isLight}>
           <div className="space-y-2">
             {roteiro.desfechosPossiveis.map((d, i) => (
@@ -458,7 +551,7 @@ const RoteiroViewer = ({
             {roteiro.instrucoesGeraisParaOMestre.adaptacao && (
               <p><span className="font-semibold">Adaptacao:</span> {roteiro.instrucoesGeraisParaOMestre.adaptacao}</p>
             )}
-            {roteiro.instrucoesGeraisParaOMestre.dicas_imersao?.length > 0 && (
+            {roteiro.instrucoesGeraisParaOMestre.dicas_imersao?.length && (
               <ul className="list-disc list-inside opacity-80">
                 {roteiro.instrucoesGeraisParaOMestre.dicas_imersao.map((d, i) => <li key={i}>{d}</li>)}
               </ul>
@@ -468,7 +561,7 @@ const RoteiroViewer = ({
       )}
 
       {/* Progressao */}
-      {roteiro.progressao?.marcos?.length > 0 && (
+      {roteiro.progressao?.marcos?.length && (
         <Section title={`Progressao (${roteiro.progressao.marcos.filter(m => m.concluido).length}/${roteiro.progressao.marcos.length})`} icon={Flag} defaultOpen isLight={isLight}>
           <div className="space-y-1">
             {roteiro.progressao.marcos.map((marco, i) => (
@@ -482,7 +575,7 @@ const RoteiroViewer = ({
               </div>
             ))}
           </div>
-          {roteiro.progressao.porcentagem_estimada > 0 && (
+          {(roteiro.progressao.porcentagem_estimada || 0) > 0 && (
             <div className="mt-3">
               <div className="w-full h-2 rounded-full bg-slate-700">
                 <div

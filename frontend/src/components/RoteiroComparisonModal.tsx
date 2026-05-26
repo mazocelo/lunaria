@@ -1,11 +1,19 @@
-import React from 'react';
+import { useState, type ComponentType, type ReactNode } from 'react';
 import {
   X, BookOpen, Sword, MapPin, Users, Gem, Zap, Swords, Flag, Compass,
-  ChevronDown, ChevronRight, GitCompareArrows
+  ChevronDown, ChevronRight, GitCompareArrows,
 } from 'lucide-react';
 
-const CompactSection = ({ title, icon: Icon, children, isLight, changed }) => {
-  const [open, setOpen] = React.useState(false);
+interface CompactSectionProps {
+  title: ReactNode;
+  icon: ComponentType<{ size?: number; className?: string }>;
+  children?: ReactNode;
+  isLight?: boolean;
+  changed?: boolean;
+}
+
+const CompactSection = ({ title, icon: Icon, children, isLight, changed }: CompactSectionProps) => {
+  const [open, setOpen] = useState(false);
   return (
     <div className={`rounded-lg border ${
       changed
@@ -32,7 +40,22 @@ const CompactSection = ({ title, icon: Icon, children, isLight, changed }) => {
   );
 };
 
-const MetadataHeader = ({ label, metadados, isLight, isActive }) => (
+export interface RoteiroMetadados {
+  modo?: string;
+  temperatura?: number | string;
+  modelo?: string;
+  criado_em?: string;
+  versao?: number | string;
+}
+
+interface MetadataHeaderProps {
+  label: string;
+  metadados?: RoteiroMetadados | null;
+  isLight?: boolean;
+  isActive?: boolean;
+}
+
+const MetadataHeader = ({ label, metadados, isLight, isActive }: MetadataHeaderProps) => (
   <div className={`px-3 py-2 rounded-lg text-xs font-modern ${
     isActive
       ? (isLight ? 'bg-purple-50 border border-purple-200' : 'bg-purple-500/10 border border-purple-500/30')
@@ -51,9 +74,26 @@ const MetadataHeader = ({ label, metadados, isLight, isActive }) => (
   </div>
 );
 
-const hasChanged = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
+const hasChanged = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
 
-const RoteiroColumn = ({ roteiro, isLight }) => {
+interface RoteiroColumnPayload {
+  sinopse?: string;
+  antagonista?: { nome?: string; titulo?: string; descricao?: string; motivacao?: string };
+  arcos?: Array<{ titulo?: string; descricao?: string }>;
+  locais?: Array<{ nome?: string; descricao?: string }>;
+  npcs?: Array<{ nome?: string; descricao?: string; papel?: string }>;
+  tesourosSegretos?: Array<{ nome?: string; descricao?: string }>;
+  plotTwists?: Array<{ titulo?: string; descricao?: string }>;
+  encontrosChave?: Array<{ nome?: string; descricao?: string }>;
+  desfechosPossiveis?: Array<{ nome?: string; titulo?: string; descricao?: string }>;
+}
+
+interface RoteiroColumnProps {
+  roteiro?: RoteiroColumnPayload | null;
+  isLight?: boolean;
+}
+
+const RoteiroColumn = ({ roteiro, isLight }: RoteiroColumnProps) => {
   if (!roteiro) return <p className={`text-xs italic ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Sem dados</p>;
 
   return (
@@ -70,7 +110,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           {roteiro.antagonista.motivacao && <p><strong>Motivacao:</strong> {roteiro.antagonista.motivacao}</p>}
         </CompactSection>
       )}
-      {roteiro.arcos?.length > 0 && (
+      {roteiro.arcos?.length && (
         <CompactSection title={`Arcos (${roteiro.arcos.length})`} icon={Compass} isLight={isLight}>
           {roteiro.arcos.map((arco, i) => (
             <div key={i} className="mb-2">
@@ -80,7 +120,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           ))}
         </CompactSection>
       )}
-      {roteiro.locais?.length > 0 && (
+      {roteiro.locais?.length && (
         <CompactSection title={`Locais (${roteiro.locais.length})`} icon={MapPin} isLight={isLight}>
           {roteiro.locais.map((local, i) => (
             <div key={i} className="mb-2">
@@ -90,7 +130,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           ))}
         </CompactSection>
       )}
-      {roteiro.npcs?.length > 0 && (
+      {roteiro.npcs?.length && (
         <CompactSection title={`NPCs (${roteiro.npcs.length})`} icon={Users} isLight={isLight}>
           {roteiro.npcs.map((npc, i) => (
             <div key={i} className="mb-2">
@@ -100,7 +140,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           ))}
         </CompactSection>
       )}
-      {roteiro.tesourosSegretos?.length > 0 && (
+      {roteiro.tesourosSegretos?.length && (
         <CompactSection title={`Tesouros (${roteiro.tesourosSegretos.length})`} icon={Gem} isLight={isLight}>
           {roteiro.tesourosSegretos.map((t, i) => (
             <div key={i} className="mb-1">
@@ -110,7 +150,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           ))}
         </CompactSection>
       )}
-      {roteiro.plotTwists?.length > 0 && (
+      {roteiro.plotTwists?.length && (
         <CompactSection title={`Plot Twists (${roteiro.plotTwists.length})`} icon={Zap} isLight={isLight}>
           {roteiro.plotTwists.map((tw, i) => (
             <div key={i} className="mb-1">
@@ -120,7 +160,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           ))}
         </CompactSection>
       )}
-      {roteiro.encontrosChave?.length > 0 && (
+      {roteiro.encontrosChave?.length && (
         <CompactSection title={`Encontros (${roteiro.encontrosChave.length})`} icon={Swords} isLight={isLight}>
           {roteiro.encontrosChave.map((e, i) => (
             <div key={i} className="mb-1">
@@ -130,7 +170,7 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
           ))}
         </CompactSection>
       )}
-      {roteiro.desfechosPossiveis?.length > 0 && (
+      {roteiro.desfechosPossiveis?.length && (
         <CompactSection title={`Desfechos (${roteiro.desfechosPossiveis.length})`} icon={Flag} isLight={isLight}>
           {roteiro.desfechosPossiveis.map((d, i) => (
             <div key={i} className="mb-1">
@@ -146,9 +186,18 @@ const RoteiroColumn = ({ roteiro, isLight }) => {
 
 const SECTIONS = ['sinopse', 'antagonista', 'arcos', 'locais', 'npcs', 'tesourosSegretos', 'plotTwists', 'encontrosChave', 'desfechosPossiveis'];
 
-const DiffSummary = ({ roteiroA, roteiroB, isLight }) => {
+interface DiffSummaryProps {
+  roteiroA?: RoteiroColumnPayload | null;
+  roteiroB?: RoteiroColumnPayload | null;
+  isLight?: boolean;
+}
+
+const DiffSummary = ({ roteiroA, roteiroB, isLight }: DiffSummaryProps) => {
   if (!roteiroA || !roteiroB) return null;
-  const diffs = SECTIONS.filter(s => hasChanged(roteiroA[s], roteiroB[s]));
+  const diffs = SECTIONS.filter((s) => hasChanged(
+    (roteiroA as Record<string, unknown>)[s],
+    (roteiroB as Record<string, unknown>)[s],
+  ));
   if (diffs.length === 0) return (
     <p className={`text-xs font-modern px-3 py-1.5 rounded ${isLight ? 'bg-green-50 text-green-600' : 'bg-green-500/10 text-green-400'}`}>
       Versoes identicas em todas as secoes.
@@ -161,7 +210,27 @@ const DiffSummary = ({ roteiroA, roteiroB, isLight }) => {
   );
 };
 
-const RoteiroComparisonModal = ({ isOpen, onClose, roteiroAtivo, versaoComparacao, metadadosAtiva, metadadosComparacao, onAtivarVersao, isLight }) => {
+interface RoteiroComparisonModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  roteiroAtivo?: RoteiroColumnPayload | null;
+  versaoComparacao?: RoteiroColumnPayload | null;
+  metadadosAtiva?: RoteiroMetadados | null;
+  metadadosComparacao?: RoteiroMetadados | null;
+  onAtivarVersao?: () => void;
+  isLight?: boolean;
+}
+
+const RoteiroComparisonModal = ({
+  isOpen,
+  onClose,
+  roteiroAtivo,
+  versaoComparacao,
+  metadadosAtiva,
+  metadadosComparacao,
+  onAtivarVersao,
+  isLight,
+}: RoteiroComparisonModalProps) => {
   if (!isOpen) return null;
 
   return (

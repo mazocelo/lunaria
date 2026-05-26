@@ -1,35 +1,50 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/theme';
 import { notificationService, amizadeService } from '../services';
-import ConviteItem from './ConviteItem';
+import ConviteItem, { type ConvitePayload } from './ConviteItem';
 import { UserPlus, Check, X } from 'lucide-react';
 
+interface FriendRequest {
+  id: number | string;
+  requester?: { nome?: string | null } | null;
+}
+
+interface NotificationsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onNotificationUpdate?: () => void;
+}
+
+interface NotificationsResponseData {
+  convites?: ConvitePayload[];
+  solicitacoes_amizade?: FriendRequest[];
+}
+
 /**
- * 🔔 Modal de Notificações Simples
- * 
- * Modal simples que busca e exibe notificações usando estado local
+ * Modal de notificacoes — convites de historia + solicitacoes de amizade.
  */
-const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
+const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }: NotificationsModalProps) => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [friendRequests, setFriendRequests] = useState([]);
+  const [notifications, setNotifications] = useState<ConvitePayload[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const isLight = theme === 'light';
 
-  // 🎯 BUSCAR NOTIFICAÇÕES QUANDO O MODAL ABRIR
+  // BUSCAR NOTIFICACOES QUANDO O MODAL ABRIR
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // 🎯 FECHAR MODAL COM TECLA ESC
+  // FECHAR MODAL COM TECLA ESC
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         onClose();
       }
@@ -44,37 +59,37 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
     };
   }, [isOpen, onClose]);
 
-  // 🎯 BUSCAR NOTIFICAÇÕES
+  // BUSCAR NOTIFICACOES
   const fetchNotifications = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await notificationService.fetchNotifications();
-      
+
       if (response.success) {
-        setNotifications(response.data.convites || []);
-        setFriendRequests(response.data.solicitacoes_amizade || []);
+        const data = (response.data ?? {}) as NotificationsResponseData;
+        setNotifications(data.convites || []);
+        setFriendRequests(data.solicitacoes_amizade || []);
       } else {
-        setError('Erro ao carregar notificações');
+        setError('Erro ao carregar notificacoes');
       }
     } catch (err) {
-      console.error('Erro ao buscar notificações:', err);
-      setError(err.message || 'Erro ao carregar notificações');
+      const message = err instanceof Error ? err.message : 'Erro ao carregar notificacoes';
+      console.error('Erro ao buscar notificacoes:', err);
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🎯 LIDAR COM CONVITE
-  const handleAcceptInvite = async (convite, personagemId) => {
+  // CONVITE: callbacks recebem o convite e (opcionalmente) o personagem
+  const handleAcceptInvite = async (convite: ConvitePayload, personagemId: number | string) => {
     try {
-      await notificationService.acceptInvite(convite.id, personagemId);
-      // Atualizar lista local
-      setNotifications(prev => 
-        prev.map(n => n.id === convite.id ? { ...n, status: 'aceito' } : n)
+      await notificationService.acceptInvite(convite.id, Number(personagemId));
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === convite.id ? { ...n, status: 'aceito' } : n))
       );
-      // Notificar App para atualizar contador
       if (onNotificationUpdate) {
         onNotificationUpdate();
       }
@@ -83,14 +98,12 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
     }
   };
 
-  const handleRejectInvite = async (convite) => {
+  const handleRejectInvite = async (convite: ConvitePayload) => {
     try {
       await notificationService.rejectInvite(convite.id);
-      // Atualizar lista local
-      setNotifications(prev => 
-        prev.map(n => n.id === convite.id ? { ...n, status: 'rejeitado' } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === convite.id ? { ...n, status: 'rejeitado' } : n))
       );
-      // Notificar App para atualizar contador
       if (onNotificationUpdate) {
         onNotificationUpdate();
       }
@@ -99,28 +112,29 @@ const NotificationsModal = ({ isOpen, onClose, onNotificationUpdate }) => {
     }
   };
 
-  const handleGoToGame = (convite) => {
+  const handleGoToGame = (convite: ConvitePayload) => {
     onClose();
-    navigate(`/jogo/sala-espera/${convite.historia.id}`);
+    const historiaId = (convite.historia as { id?: number | string }).id;
+    navigate(`/jogo/sala-espera/${historiaId}`);
   };
 
-  const handleAcceptFriend = async (solicitacao) => {
+  const handleAcceptFriend = async (solicitacao: FriendRequest) => {
     try {
       await amizadeService.acceptRequest(solicitacao.id);
-      setFriendRequests(prev => prev.filter(s => s.id !== solicitacao.id));
+      setFriendRequests((prev) => prev.filter((s) => s.id !== solicitacao.id));
       if (onNotificationUpdate) onNotificationUpdate();
     } catch (error) {
-      console.error('Erro ao aceitar solicitação:', error);
+      console.error('Erro ao aceitar solicitacao:', error);
     }
   };
 
-  const handleRejectFriend = async (solicitacao) => {
+  const handleRejectFriend = async (solicitacao: FriendRequest) => {
     try {
       await amizadeService.rejectRequest(solicitacao.id);
-      setFriendRequests(prev => prev.filter(s => s.id !== solicitacao.id));
+      setFriendRequests((prev) => prev.filter((s) => s.id !== solicitacao.id));
       if (onNotificationUpdate) onNotificationUpdate();
     } catch (error) {
-      console.error('Erro ao rejeitar solicitação:', error);
+      console.error('Erro ao rejeitar solicitacao:', error);
     }
   };
 

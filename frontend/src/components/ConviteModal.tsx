@@ -1,16 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useTheme } from '../contexts/theme.jsx';
+import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useTheme } from '../contexts/theme';
+
+export interface ConviteModalHistoria {
+  nome?: string | null;
+  maximo_de_participantes?: number | string | null;
+}
+
+interface ConviteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (email: string) => void;
+  historia?: ConviteModalHistoria | null;
+  loading?: boolean;
+}
 
 /**
- * Modal para convidar jogadores por email para uma história
- * 
- * @param {boolean} isOpen - Se o modal está aberto
- * @param {function} onClose - Função para fechar o modal
- * @param {function} onConfirm - Função para enviar o convite (recebe email)
- * @param {object} historia - Dados da história
- * @param {boolean} loading - Se está enviando o convite
+ * Modal para convidar jogadores por email para uma historia.
  */
-const ConviteModal = ({ isOpen, onClose, onConfirm, historia, loading = false }) => {
+const ConviteModal = ({ isOpen, onClose, onConfirm, historia, loading = false }: ConviteModalProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -27,7 +34,7 @@ const ConviteModal = ({ isOpen, onClose, onConfirm, historia, loading = false })
 
   // Fechar modal com ESC
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && !loading) {
         onClose();
       }
@@ -43,23 +50,23 @@ const ConviteModal = ({ isOpen, onClose, onConfirm, historia, loading = false })
   }, [isOpen, onClose, loading]);
 
   // Validar email
-  const validateEmail = (email) => {
+  const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(value);
   };
 
-  // Lidar com mudança no input
-  const handleEmailChange = (e) => {
+  // Lidar com mudanca no input
+  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
-    
+
     if (emailError && value) {
       setEmailError('');
     }
   };
 
-  // Lidar com envio do formulário
-  const handleSubmit = (e) => {
+  // Lidar com envio do formulario
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!email.trim()) {

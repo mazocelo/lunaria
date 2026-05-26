@@ -10,9 +10,10 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export interface VoiceOption {
-  voice_id: string;
-  name: string;
+  voice_id?: string;
+  name?: string;
   category?: string;
+  [key: string]: unknown;
 }
 
 export interface VoicePickerChangePayload {
@@ -27,7 +28,7 @@ interface VoicePickerProps {
   providers?: string[];
   voices?: VoiceOption[];
   loadingVoices?: boolean;
-  ensureVoices?: ((provider: string) => void | Promise<void>) | null;
+  ensureVoices?: ((provider?: string) => unknown) | null;
   onChange?: (payload: VoicePickerChangePayload) => void;
   isLight?: boolean;
   compact?: boolean;

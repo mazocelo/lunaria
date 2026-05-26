@@ -1,8 +1,43 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Coins, Package, ShoppingCart, X, Plus, Minus, Loader2 } from 'lucide-react';
-import { apiClient } from '../services/ApiClient.js';
+import { apiClient } from '../services/ApiClient';
 
-const TIPO_TABS = [
+type TipoTabKey = 'todos' | 'arma' | 'armadura' | 'acessorio' | 'consumivel' | 'pergaminho';
+
+interface TipoTab {
+  key: TipoTabKey;
+  label: string;
+}
+
+interface RaridadeStyle {
+  text: string;
+  border: string;
+  bg: string;
+  label: string;
+}
+
+interface ItemLoja {
+  id: number;
+  nome: string;
+  efeito?: string | null;
+  poderes?: { descricao?: string | null } | null;
+  preco_moedas?: number;
+  tipo?: string | string[] | null;
+  raridade?: string | { nome?: string | null } | null;
+  empilhavel?: boolean;
+  imagem?: string | null;
+}
+
+interface ListItemEnvelope {
+  success?: boolean;
+  data?: ItemLoja[];
+}
+
+interface CompraEnvelope {
+  success?: boolean;
+}
+
+const TIPO_TABS: TipoTab[] = [
   { key: 'todos', label: 'Todos' },
   { key: 'arma', label: 'Armas' },
   { key: 'armadura', label: 'Armaduras' },
@@ -11,7 +46,7 @@ const TIPO_TABS = [
   { key: 'pergaminho', label: 'Pergaminhos' },
 ];
 
-const raridadeStyles = {
+const raridadeStyles: Record<string, RaridadeStyle> = {
   comum: { text: 'text-slate-400', border: 'border-slate-500/40', bg: 'bg-slate-500/20', label: 'Comum' },
   incomum: { text: 'text-green-400', border: 'border-green-500/40', bg: 'bg-green-500/20', label: 'Incomum' },
   raro: { text: 'text-blue-400', border: 'border-blue-500/40', bg: 'bg-blue-500/20', label: 'Raro' },
@@ -21,42 +56,51 @@ const raridadeStyles = {
   'lendário': { text: 'text-yellow-400', border: 'border-yellow-500/40', bg: 'bg-yellow-500/20', label: 'Lendário' },
 };
 
-function getRaridade(item) {
+function getRaridade(item: ItemLoja): RaridadeStyle {
+  const raridadeObj = item.raridade && typeof item.raridade === 'object' ? item.raridade : null;
   const nome =
-    item.raridade?.nome?.toLowerCase() ||
+    raridadeObj?.nome?.toLowerCase() ||
     (typeof item.raridade === 'string' ? item.raridade.toLowerCase() : null) ||
     'comum';
   return raridadeStyles[nome] || raridadeStyles.comum;
 }
 
-function getTipoNormalizado(item) {
+function getTipoNormalizado(item: ItemLoja): string {
   if (!item.tipo) return '';
   const tipo = typeof item.tipo === 'string' ? item.tipo : item.tipo[0] || '';
   return tipo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-function getDescricaoTruncada(item) {
+function getDescricaoTruncada(item: ItemLoja): string | null {
   const texto = item.efeito || item.poderes?.descricao || '';
   if (!texto) return null;
-  return texto.length > 120 ? texto.slice(0, 120) + '...' : texto;
+  return texto.length > 120 ? `${texto.slice(0, 120)}...` : texto;
 }
 
-const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }) => {
-  const [itens, setItens] = useState([]);
+interface LojaMestreModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  personagemId: number | string;
+  moedas: number;
+}
+
+const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }: LojaMestreModalProps) => {
+  const [itens, setItens] = useState<ItemLoja[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tabAtiva, setTabAtiva] = useState('todos');
-  const [carrinho, setCarrinho] = useState({});
+  const [tabAtiva, setTabAtiva] = useState<TipoTabKey>('todos');
+  const [carrinho, setCarrinho] = useState<Record<string, number>>({});
   const [comprando, setComprando] = useState(false);
-  const [erro, setErro] = useState(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
     setErro(null);
     apiClient.get('/itens-tresdet')
-      .then(res => {
-        if (res.data?.success) {
-          setItens(res.data.data || []);
+      .then((res) => {
+        const envelope = (res as { data?: ListItemEnvelope } | undefined)?.data;
+        if (envelope?.success) {
+          setItens(envelope.data || []);
         } else {
           setErro('Falha ao carregar itens da loja.');
         }
@@ -83,36 +127,37 @@ const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }) => {
 
   const totalCarrinho = useMemo(() => {
     return Object.entries(carrinho).reduce((sum, [itemId, qtd]) => {
-      const item = itens.find(i => i.id === Number(itemId));
-      return sum + (item ? item.preco_moedas * qtd : 0);
+      const item = itens.find((i) => i.id === Number(itemId));
+      return sum + (item ? (item.preco_moedas ?? 0) * qtd : 0);
     }, 0);
   }, [carrinho, itens]);
 
   const saldo = moedas - totalCarrinho;
 
-  const itensNoCarrinho = useMemo(() => {
+  type CarrinhoItem = ItemLoja & { quantidade: number };
+  const itensNoCarrinho = useMemo<CarrinhoItem[]>(() => {
     return Object.entries(carrinho)
       .filter(([, qtd]) => qtd > 0)
-      .map(([itemId, qtd]) => {
-        const item = itens.find(i => i.id === Number(itemId));
+      .map(([itemId, qtd]): CarrinhoItem | null => {
+        const item = itens.find((i) => i.id === Number(itemId));
         return item ? { ...item, quantidade: qtd } : null;
       })
-      .filter(Boolean);
+      .filter((entry): entry is CarrinhoItem => Boolean(entry));
   }, [carrinho, itens]);
 
-  const adicionarAoCarrinho = useCallback((item) => {
-    setCarrinho(prev => {
+  const adicionarAoCarrinho = useCallback((item: ItemLoja) => {
+    setCarrinho((prev) => {
       const qtdAtual = prev[item.id] || 0;
       if (!item.empilhavel && qtdAtual >= 1) return prev;
       return { ...prev, [item.id]: qtdAtual + 1 };
     });
   }, []);
 
-  const alterarQuantidade = useCallback((itemId, delta) => {
-    setCarrinho(prev => {
+  const alterarQuantidade = useCallback((itemId: number | string, delta: number) => {
+    setCarrinho((prev) => {
       const novaQtd = (prev[itemId] || 0) + delta;
       if (novaQtd <= 0) {
-        const { [itemId]: _, ...rest } = prev;
+        const { [itemId]: _removed, ...rest } = prev;
         return rest;
       }
       return { ...prev, [itemId]: novaQtd };
@@ -125,18 +170,19 @@ const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }) => {
     setErro(null);
     try {
       for (const item of itensNoCarrinho) {
-        const res = await apiClient.post(`/personagens/${personagemId}/comprar`, {
+        const res = (await apiClient.post(`/personagens/${personagemId}/comprar`, {
           itemId: item.id,
           quantidade: item.quantidade,
           sistema: 'tresdet',
-        });
-        if (!res.data?.success) {
+        })) as { data?: CompraEnvelope } | undefined;
+        if (!res?.data?.success) {
           throw new Error(`Falha ao comprar ${item.nome}`);
         }
       }
       onClose();
     } catch (e) {
-      setErro(e.message || 'Erro ao processar compras.');
+      const message = e instanceof Error ? e.message : 'Erro ao processar compras.';
+      setErro(message);
     } finally {
       setComprando(false);
     }
@@ -261,7 +307,7 @@ const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }) => {
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <Coins size={11} className="text-amber-400" />
                           <span className="text-xs font-bold text-amber-300 font-modern">
-                            {item.preco_moedas.toLocaleString('pt-BR')}
+                            {(item.preco_moedas ?? 0).toLocaleString('pt-BR')}
                           </span>
                         </div>
 
@@ -323,7 +369,7 @@ const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }) => {
                       </button>
                     )}
                     <span className="text-xs text-amber-300 font-semibold w-14 text-right">
-                      {(item.preco_moedas * item.quantidade).toLocaleString('pt-BR')}
+                      {((item.preco_moedas ?? 0) * item.quantidade).toLocaleString('pt-BR')}
                     </span>
                   </div>
                 </div>
@@ -372,4 +418,4 @@ const LojaMestreModal = ({ isOpen, onClose, personagemId, moedas }) => {
   );
 };
 
-export default React.memo(LojaMestreModal);
+export default memo(LojaMestreModal);

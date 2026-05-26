@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import InputSimples from '../../components/form/inputSimples';
@@ -6,10 +6,41 @@ import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
-import { ROUTES } from '../../constants/routes.js';
+import { ROUTES } from '../../constants/routes';
 import { Eye, EyeOff } from 'lucide-react';
 
-const getPasswordStrength = (password) => {
+interface RegisterViewProps {
+  onSwitchToLogin: () => void;
+}
+
+interface RegisterFormData {
+  nome: string;
+  email: string;
+  senha: string;
+  confirmSenha: string;
+}
+
+interface RegisterFormErrors {
+  nome?: string;
+  email?: string;
+  senha?: string;
+  confirmSenha?: string;
+}
+
+type StrengthColor = 'red' | 'yellow' | 'green';
+
+interface PasswordStrength {
+  level: 1 | 2 | 3;
+  label: string;
+  color: StrengthColor;
+}
+
+interface NotificationState {
+  type: 'success' | 'error';
+  message: string;
+}
+
+const getPasswordStrength = (password: string): PasswordStrength | null => {
   if (!password || password.length === 0) return null;
   const hasLetters = /[a-zA-Z]/.test(password);
   const hasNumbers = /[0-9]/.test(password);
@@ -19,17 +50,17 @@ const getPasswordStrength = (password) => {
   return { level: 1, label: 'Fraca', color: 'red' };
 };
 
-const RegisterView = ({ onSwitchToLogin }) => {
+const RegisterView = ({ onSwitchToLogin }: RegisterViewProps) => {
   const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     nome: '',
     email: '',
     senha: '',
-    confirmSenha: ''
+    confirmSenha: '',
   });
-  const [errors, setErrors] = useState({});
-  const [notification, setNotification] = useState(null);
+  const [errors, setErrors] = useState<RegisterFormErrors>({});
+  const [notification, setNotification] = useState<NotificationState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -42,25 +73,24 @@ const RegisterView = ({ onSwitchToLogin }) => {
   }, [isAuthenticated]);
 
   /**
-   * Atualizar dados do formulário
+   * Atualizar dados do formulario
    */
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
-    // Limpar erro do campo
-    if (errors[name]) {
-      setErrors(prev => ({
+
+    if (errors[name as keyof RegisterFormErrors]) {
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
 
-  const validateField = (name) => {
+  const validateField = (name: keyof RegisterFormErrors) => {
     setErrors(prev => {
       const next = { ...prev };
       if (name === 'nome') {
@@ -102,7 +132,7 @@ const RegisterView = ({ onSwitchToLogin }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: RegisterFormErrors = {};
 
     // Validação do nome
     if (!formData.nome.trim()) {
@@ -139,53 +169,57 @@ const RegisterView = ({ onSwitchToLogin }) => {
   };
 
   /**
-   * Submeter formulário de registro
+   * Submeter formulario de registro
    */
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    // Remover confirmSenha dos dados enviados
-    const { confirmSenha, ...registerData } = formData;
-    
+    // Backend espera `password` (RegisterData); o form usa `senha`. Mapear.
+    const registerPayload = {
+      nome: formData.nome,
+      email: formData.email,
+      password: formData.senha,
+    };
+
     try {
       setSubmitting(true);
-      // Se o contexto não tiver função register, simular por enquanto
       const result = register
-        ? await register(registerData)
-        : { success: false, error: 'Funcionalidade de registro em desenvolvimento' };
+        ? await register(registerPayload)
+        : { success: false, error: 'Funcionalidade de registro em desenvolvimento' } as const;
 
       if (result.success) {
+        const userNome = 'user' in result ? result.user?.nome ?? formData.nome : formData.nome;
         setNotification({
           type: 'success',
-          message: `Conta criada com sucesso! Bem-vindo, ${result.user?.nome || formData.nome}!`
+          message: `Conta criada com sucesso! Bem-vindo, ${userNome}!`,
         });
 
-        // Limpar formulário após sucesso
+        // Limpar formulario apos sucesso
         setFormData({
           nome: '',
           email: '',
           senha: '',
-          confirmSenha: ''
+          confirmSenha: '',
         });
 
-        // Auto-login: redirecionar diretamente para histórias
+        // Auto-login: redirecionar diretamente para historias
         setTimeout(() => {
           navigate(ROUTES.HISTORIAS);
         }, 800);
       } else {
         setNotification({
           type: 'error',
-          message: result.error || 'Erro ao criar conta'
+          message: ('error' in result && result.error) || 'Erro ao criar conta',
         });
       }
-    } catch (error) {
+    } catch {
       setNotification({
         type: 'error',
-        message: 'Erro inesperado ao criar conta'
+        message: 'Erro inesperado ao criar conta',
       });
     } finally {
       setSubmitting(false);
@@ -327,8 +361,8 @@ const RegisterView = ({ onSwitchToLogin }) => {
               {formData.senha && (() => {
                 const strength = getPasswordStrength(formData.senha);
                 if (!strength) return null;
-                const colors = { red: 'bg-red-500', yellow: 'bg-yellow-500', green: 'bg-green-500' };
-                const textColors = { red: 'text-red-400', yellow: 'text-yellow-400', green: 'text-green-400' };
+                const colors: Record<StrengthColor, string> = { red: 'bg-red-500', yellow: 'bg-yellow-500', green: 'bg-green-500' };
+                const textColors: Record<StrengthColor, string> = { red: 'text-red-400', yellow: 'text-yellow-400', green: 'text-green-400' };
                 return (
                   <div className="mt-2">
                     <div className="flex gap-1 h-1.5 rounded-full overflow-hidden">

@@ -1,10 +1,31 @@
-import React, { useState } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useState, type ChangeEventHandler, type FocusEventHandler, type KeyboardEvent, type ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
 import { HelpCircle } from 'lucide-react';
+
+export interface InputSimplesProps {
+    label?: ReactNode;
+    type?: string;
+    value?: string | number | readonly string[];
+    onChange?: ChangeEventHandler<HTMLInputElement>;
+    onBlur?: FocusEventHandler<HTMLInputElement>;
+    htmlFor?: string;
+    placeholder?: string;
+    required?: boolean;
+    disabled?: boolean;
+    className?: string;
+    error?: string | null;
+    name?: string;
+    min?: number | string;
+    max?: number | string;
+    step?: number | string;
+    id?: string;
+    autoComplete?: string;
+    tooltip?: ReactNode;
+}
 
 const InputSimples = ({
     label,
-    type = "text",
+    type = 'text',
     value,
     onChange,
     onBlur,
@@ -12,7 +33,7 @@ const InputSimples = ({
     placeholder,
     required = false,
     disabled = false,
-    className = "",
+    className = '',
     error,
     name,
     min,
@@ -20,16 +41,15 @@ const InputSimples = ({
     step,
     id,
     autoComplete,
-    tooltip
-}) => {
+    tooltip,
+}: InputSimplesProps) => {
     const { theme } = useTheme();
     const isLight = theme === 'light';
-    
-    // ✅ CORRIGIDO: Gerar ID único e seguro
+
     const inputId = id || htmlFor || (name ? `input-${name}` : `input-${Math.random().toString(36).substr(2, 9)}`);
 
-    // Handler para aceitar apenas números
-    const handleKeyDown = (e) => {
+    // Handler para aceitar apenas numeros
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (type === 'number') {
             // Permite: backspace, delete, tab, escape, enter, setas
             if (["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight",".",","].includes(e.key)) return;
@@ -95,7 +115,12 @@ const InputSimples = ({
     );
 };
 
-function TooltipIcon({ text, isLight }) {
+interface TooltipIconProps {
+    text: ReactNode;
+    isLight: boolean;
+}
+
+function TooltipIcon({ text, isLight }: TooltipIconProps) {
     const [show, setShow] = useState(false);
     return (
         <span className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>

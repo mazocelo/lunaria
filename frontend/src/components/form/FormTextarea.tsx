@@ -1,5 +1,18 @@
-import React from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import type { ChangeEventHandler, ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
+
+export interface FormTextareaProps {
+  label?: ReactNode;
+  value?: string;
+  onChange?: ChangeEventHandler<HTMLTextAreaElement>;
+  name?: string;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  error?: string | null;
+  rows?: number;
+}
 
 const FormTextarea = ({
   label,
@@ -11,8 +24,8 @@ const FormTextarea = ({
   disabled = false,
   className = '',
   error,
-  rows = 3
-}) => {
+  rows = 3,
+}: FormTextareaProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const textareaId = `textarea-${name}`;

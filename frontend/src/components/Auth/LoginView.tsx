@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import InputSimples from '../../components/form/inputSimples';
@@ -6,19 +6,41 @@ import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
-import { ROUTES } from '../../constants/routes.js';
+import { ROUTES } from '../../constants/routes';
 import { Eye, EyeOff } from 'lucide-react';
 
-const LoginView = ({ onSwitchToRegister }) => {
+interface LoginViewProps {
+  onSwitchToRegister: () => void;
+}
+
+interface LoginFormData {
+  email: string;
+  senha: string;
+  lembrarDeMim: boolean;
+}
+
+interface LoginFormErrors {
+  email?: string;
+  senha?: string;
+}
+
+type NotificationKind = 'success' | 'error';
+
+interface NotificationState {
+  type: NotificationKind;
+  message: string;
+}
+
+const LoginView = ({ onSwitchToRegister }: LoginViewProps) => {
   const { login, authService, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     senha: '',
-    lembrarDeMim: false
+    lembrarDeMim: false,
   });
-  const [errors, setErrors] = useState({});
-  const [notification, setNotification] = useState(null);
+  const [errors, setErrors] = useState<LoginFormErrors>({});
+  const [notification, setNotification] = useState<NotificationState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -39,25 +61,25 @@ const LoginView = ({ onSwitchToRegister }) => {
   }, [isAuthenticated, navigate]);
 
   /**
-   * Atualizar dados do formulário
+   * Atualizar dados do formulario
    */
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Limpar erro do campo
-    if (errors[name]) {
-      setErrors(prev => ({
+    if (errors[name as keyof LoginFormErrors]) {
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
 
-  const validateField = (name) => {
+  const validateField = (name: keyof LoginFormErrors) => {
     setErrors(prev => {
       const next = { ...prev };
       if (name === 'email') {
@@ -79,7 +101,7 @@ const LoginView = ({ onSwitchToRegister }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: LoginFormErrors = {};
 
     if (!formData.email.trim()) {
       newErrors.email = 'Email é obrigatório';
@@ -100,24 +122,28 @@ const LoginView = ({ onSwitchToRegister }) => {
   /**
    * Submeter formulário de login
    */
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    // Limpar notificação anterior
+    // Limpar notificacao anterior
     setNotification(null);
 
     setSubmitting(true);
-    const result = await login(formData);
+    const result = await login({
+      email: formData.email,
+      password: formData.senha,
+      lembrarDeMim: formData.lembrarDeMim,
+    });
     setSubmitting(false);
 
     if (result.success) {
       setNotification({
         type: 'success',
-        message: `Bem-vindo, ${result.user.nome}! Redirecionando...`
+        message: `Bem-vindo, ${result.user?.nome ?? ''}! Redirecionando...`,
       });
 
       // Redirect rápido após mostrar toast de sucesso
@@ -148,7 +174,7 @@ const LoginView = ({ onSwitchToRegister }) => {
     setForgotEmail('');
   };
 
-  const handleForgotSubmit = async (e) => {
+  const handleForgotSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
       setNotification({ type: 'error', message: 'Informe seu email' });

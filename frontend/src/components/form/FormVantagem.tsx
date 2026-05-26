@@ -1,5 +1,32 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
+
+export interface FormVantagemOption {
+  value: string | number;
+  label: ReactNode;
+  custo?: number | null;
+  tipo?: string | null;
+  descricao?: string | null;
+}
+
+export interface FormVantagemChangeEvent {
+  target: { name?: string; value: string[] };
+}
+
+export interface FormVantagemProps {
+  label?: ReactNode;
+  value?: Array<string | number>;
+  onChange?: (event: FormVantagemChangeEvent) => void;
+  name?: string;
+  options?: FormVantagemOption[];
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  error?: string | null;
+  pontosRestantes?: number;
+  vantagemError?: string | null;
+}
 
 const FormVantagem = ({
   label,
@@ -7,29 +34,28 @@ const FormVantagem = ({
   onChange,
   name,
   options = [],
-            placeholder = 'Selecione as vantagens e desvantagens',
+  placeholder = 'Selecione as vantagens e desvantagens',
   required = false,
   disabled = false,
   className = '',
   error,
-  pontosRestantes = 0,
-  vantagemError = null
-}) => {
+  vantagemError = null,
+}: FormVantagemProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const selectId = `vantagem-${name}`;
   const [isOpen, setIsOpen] = useState(false);
-  const [hoveredOption, setHoveredOption] = useState(null);
+  const [hoveredOption, setHoveredOption] = useState<FormVantagemOption | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  // Garantir que value seja sempre um array
-  const safeValue = Array.isArray(value) ? value : [];
+  // Garantir que value seja sempre um array de strings
+  const safeValue: string[] = Array.isArray(value) ? value.map(String) : [];
 
   // Fechar dropdown quando clicar fora
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -41,29 +67,25 @@ const FormVantagem = ({
 
   // Soma custo das vantagens selecionadas
   const custoTotal = safeValue.reduce((acc, id) => {
-    const vant = options.find(v => String(v.value) === String(id));
+    const vant = options.find((v) => String(v.value) === String(id));
     return acc + (vant ? Number(vant.custo) || 0 : 0);
   }, 0);
 
-  // Handler de seleção múltipla
-  const handleSelect = (option) => {
+  // Handler de selecao multipla
+  const handleSelect = (option: FormVantagemOption) => {
     if (disabled) return;
     const isSelected = safeValue.includes(String(option.value));
-    let newValue;
-    if (isSelected) {
-      newValue = safeValue.filter(id => String(id) !== String(option.value));
-    } else {
-      // Sem restrição de pontos - permitir qualquer seleção
-      newValue = [...safeValue, String(option.value)];
-    }
-    onChange({ target: { name, value: newValue } });
+    const newValue = isSelected
+      ? safeValue.filter((id) => id !== String(option.value))
+      : [...safeValue, String(option.value)];
+    onChange?.({ target: { name, value: newValue } });
   };
 
   // Handler para remover vantagem pelo chip
-  const handleRemoveChip = (id) => {
+  const handleRemoveChip = (id: string) => {
     if (disabled) return;
-    const newValue = safeValue.filter(vantId => vantId !== id);
-    onChange({ target: { name, value: newValue } });
+    const newValue = safeValue.filter((vantId) => vantId !== id);
+    onChange?.({ target: { name, value: newValue } });
   };
 
   return (

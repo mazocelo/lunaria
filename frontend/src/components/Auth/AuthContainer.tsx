@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import LoginView from './LoginView';
 import RegisterView from './RegisterView';
 
+type AuthView = 'login' | 'register';
+
 const AuthContainer = () => {
-  const [currentView, setCurrentView] = useState('login'); // 'login' ou 'register'
+  const [currentView, setCurrentView] = useState<AuthView>('login');
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleSwitchToRegister = () => {

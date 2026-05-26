@@ -1,20 +1,36 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronsUpDown, Check } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { Label } from '../ui/label';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useTheme } from '../../contexts/theme';
+
+export interface ComboboxOption {
+  value: string | number;
+  label: string;
+}
+
+export interface ComboboxProps {
+  selected?: string | number | null;
+  onChange: (value: string) => void;
+  options?: ComboboxOption[];
+  label?: string;
+  placeholder?: string;
+  emptyText?: string;
+  id?: string;
+  containerClass?: string;
+}
 
 function Combobox({
   selected,
   onChange,
   options = [],
-  label = "Selecione",
-  placeholder = "Buscar...",
-  emptyText = "Nenhum resultado.",
-  id = "combobox",
-  containerClass = "",
-}) {
+  label = 'Selecione',
+  placeholder = 'Buscar...',
+  emptyText = 'Nenhum resultado.',
+  id = 'combobox',
+  containerClass = '',
+}: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const { theme } = useTheme();
   const isLight = theme === 'light';

@@ -1,5 +1,24 @@
-import React from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import type { ChangeEventHandler, ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
+
+export type FormSelectOption =
+  | string
+  | number
+  | { value: string | number; label: ReactNode };
+
+export interface FormSelectProps {
+  label?: ReactNode;
+  value?: string | number | readonly string[];
+  onChange?: ChangeEventHandler<HTMLSelectElement>;
+  name?: string;
+  options?: FormSelectOption[];
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  error?: string | null;
+  multiple?: boolean;
+}
 
 const FormSelect = ({
   label,
@@ -12,8 +31,8 @@ const FormSelect = ({
   disabled = false,
   className = '',
   error,
-  multiple = false
-}) => {
+  multiple = false,
+}: FormSelectProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const selectId = `select-${name}`;
@@ -49,11 +68,16 @@ const FormSelect = ({
         }}
       >
         <option value="" disabled={!multiple}>{placeholder}</option>
-        {options.map((opt) => (
-          <option key={String(opt.value ?? opt)} value={String(opt.value ?? opt)}>
-            {opt.label ?? opt}
-          </option>
-        ))}
+        {options.map((opt) => {
+          const isObj = typeof opt === 'object' && opt !== null;
+          const optionValue = isObj ? opt.value : opt;
+          const optionLabel = isObj ? opt.label : opt;
+          return (
+            <option key={String(optionValue)} value={String(optionValue)}>
+              {optionLabel}
+            </option>
+          );
+        })}
       </select>
       {/* Remove setas do select no Chrome/Edge */}
       <style>{`

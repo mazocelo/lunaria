@@ -1,21 +1,38 @@
-import React, { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { ChevronsUpDown, Check, X } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { Label } from '../ui/label';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useTheme } from '../../contexts/theme';
+
+export interface MultiSelectOption {
+  value: string | number;
+  label: string;
+}
+
+export interface MultiSelectProps {
+  selected?: Array<string | number>;
+  onChange: (next: string[]) => void;
+  options?: MultiSelectOption[];
+  label?: string;
+  placeholder?: string;
+  emptyText?: string;
+  max?: number | null;
+  id?: string;
+  containerClass?: string;
+}
 
 function MultiSelect({
   selected = [],
   onChange,
   options = [],
-  label = "Selecione",
-  placeholder = "Buscar...",
-  emptyText = "Nenhum resultado.",
+  label = 'Selecione',
+  placeholder = 'Buscar...',
+  emptyText = 'Nenhum resultado.',
   max = null,
-  id = "multiselect",
-  containerClass = "",
-}) {
+  id = 'multiselect',
+  containerClass = '',
+}: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -24,18 +41,18 @@ function MultiSelect({
   const selectedOptions = options.filter(opt => selectedValues.includes(String(opt.value)));
   const atLimit = max && selectedValues.length >= max;
 
-  const handleToggle = (value) => {
+  const handleToggle = (value: string | number) => {
     const strValue = String(value);
     if (selectedValues.includes(strValue)) {
-      onChange(selectedValues.filter(v => v !== strValue));
+      onChange(selectedValues.filter((v) => v !== strValue));
     } else if (!atLimit) {
       onChange([...selectedValues, strValue]);
     }
   };
 
-  const handleRemove = (value, e) => {
+  const handleRemove = (value: string | number, e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    onChange(selectedValues.filter(v => v !== String(value)));
+    onChange(selectedValues.filter((v) => v !== String(value)));
   };
 
   return (
@@ -128,7 +145,7 @@ function MultiSelect({
               <CommandGroup>
                 {options.map((opt) => {
                   const isSelected = selectedValues.includes(String(opt.value));
-                  const isDisabled = atLimit && !isSelected;
+                  const isDisabled = Boolean(atLimit) && !isSelected;
                   return (
                     <CommandItem
                       key={opt.value}

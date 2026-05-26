@@ -1,11 +1,35 @@
-import React, { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ImagePlus, Loader2, X, Link2 } from 'lucide-react';
 import { imageGenerationService } from '../../services';
-import ImageLightbox from '../ImageLightbox.jsx';
+import ImageLightbox from '../ImageLightbox';
 
-const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, isLight, label = 'Imagem', imageOptions, imageClassName }) => {
+export interface ImageGeneratorProps {
+  imageUrl?: string | null;
+  onImageGenerated: (url: string) => void;
+  entityType: string;
+  entityData: Record<string, unknown>;
+  isLight?: boolean;
+  label?: ReactNode;
+  imageOptions?: Record<string, unknown>;
+  imageClassName?: string;
+}
+
+interface ImageGenerationResponse {
+  data?: { url?: string | null } | null;
+}
+
+const ImageGenerator = ({
+  imageUrl,
+  onImageGenerated,
+  entityType,
+  entityData,
+  isLight,
+  label = 'Imagem',
+  imageOptions,
+  imageClassName,
+}: ImageGeneratorProps) => {
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -14,15 +38,16 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
     setGenerating(true);
     setError(null);
     try {
-      const response = await imageGenerationService.generate({ entityType, entityData, options: imageOptions });
-      const url = response.data?.url;
+      const response = (await imageGenerationService.generate({ entityType, entityData, options: imageOptions })) as ImageGenerationResponse | null;
+      const url = response?.data?.url;
       if (url) {
         onImageGenerated(url);
       } else {
         setError('Nenhuma imagem retornada');
       }
     } catch (err) {
-      setError(err.message || 'Erro ao gerar imagem');
+      const message = err instanceof Error ? err.message : 'Erro ao gerar imagem';
+      setError(message);
     } finally {
       setGenerating(false);
     }
@@ -59,7 +84,7 @@ const ImageGenerator = ({ imageUrl, onImageGenerated, entityType, entityData, is
             alt="Preview"
             className={`cursor-pointer select-none caret-transparent ${imageClassName || `w-full max-w-xs h-48 object-cover rounded-lg border ${isLight ? 'border-gray-200' : 'border-gray-700'}`}`}
             draggable={false}
-            onError={(e) => { e.target.style.display = 'none'; }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             onClick={() => setLightboxOpen(true)}
           />
           <button

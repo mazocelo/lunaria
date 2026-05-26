@@ -1,6 +1,6 @@
-import React from 'react';
+import type { MotorSessao, MotorJob } from './admin-motor.model';
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '-';
   try {
     return new Date(dateStr).toLocaleString('pt-BR');
@@ -9,20 +9,22 @@ function formatDate(dateStr) {
   }
 }
 
-function truncate(str, max = 80) {
+function truncate(str: string | undefined, max = 80): string {
   if (!str) return '-';
   const s = String(str);
   return s.length > max ? s.slice(0, max) + '...' : s;
 }
 
-function StatusBadge({ status, isDark }) {
-  const colors = {
+interface StatusBadgeProps { status: string | undefined; isDark: boolean }
+
+function StatusBadge({ status, isDark }: StatusBadgeProps) {
+  const colors: Record<string, string> = {
     active: 'bg-green-500/20 text-green-400',
     completed: 'bg-blue-500/20 text-blue-400',
     failed: 'bg-red-500/20 text-red-400',
     queued: 'bg-yellow-500/20 text-yellow-400',
   };
-  const color = colors[status] || (isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600');
+  const color = (status && colors[status]) || (isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600');
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
       {status || 'unknown'}
@@ -30,7 +32,9 @@ function StatusBadge({ status, isDark }) {
   );
 }
 
-function JsonBlock({ data, isDark }) {
+interface JsonBlockProps { data: unknown; isDark: boolean }
+
+function JsonBlock({ data, isDark }: JsonBlockProps) {
   if (!data) return <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Sem dados</p>;
   return (
     <pre className={`text-xs p-3 rounded-lg overflow-auto max-h-64 ${isDark ? 'bg-gray-900 text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
@@ -39,7 +43,15 @@ function JsonBlock({ data, isDark }) {
   );
 }
 
-function SessoesTab({ sessoes, loading, isDark, fetchSessaoDetalhe, selectedRoomId }) {
+interface SessoesTabProps {
+  sessoes: MotorSessao[];
+  loading: boolean;
+  isDark: boolean;
+  fetchSessaoDetalhe: (id: string) => void;
+  selectedRoomId: string | null;
+}
+
+function SessoesTab({ sessoes, loading, isDark, fetchSessaoDetalhe, selectedRoomId }: SessoesTabProps) {
   if (loading && sessoes.length === 0) {
     return <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Carregando...</div>;
   }
@@ -65,7 +77,7 @@ function SessoesTab({ sessoes, loading, isDark, fetchSessaoDetalhe, selectedRoom
           {sessoes.map((s, i) => (
             <tr
               key={s.id || i}
-              onClick={() => fetchSessaoDetalhe(s.id)}
+              onClick={() => s.id && fetchSessaoDetalhe(s.id)}
               className={`cursor-pointer transition-colors ${
                 selectedRoomId === s.id
                   ? isDark ? 'bg-indigo-900/30' : 'bg-indigo-50'
@@ -86,10 +98,18 @@ function SessoesTab({ sessoes, loading, isDark, fetchSessaoDetalhe, selectedRoom
   );
 }
 
-function JobsTab({ jobs, loading, isDark, jobFilters, handleJobFilterChange, retryJob }) {
+interface JobsTabProps {
+  jobs: MotorJob[];
+  loading: boolean;
+  isDark: boolean;
+  jobFilters: { status: string; queue: string };
+  handleJobFilterChange: (field: 'status' | 'queue', value: string) => void;
+  retryJob: (id: string) => void;
+}
+
+function JobsTab({ jobs, loading, isDark, jobFilters, handleJobFilterChange, retryJob }: JobsTabProps) {
   return (
     <div>
-      {/* Filter bar */}
       <div className="flex gap-3 items-end mb-4 flex-wrap">
         <div>
           <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Status</label>
@@ -152,9 +172,9 @@ function JobsTab({ jobs, loading, isDark, jobFilters, handleJobFilterChange, ret
                   </td>
                   <td className="py-2 px-2 text-xs">{formatDate(job.created_at)}</td>
                   <td className="py-2 pl-2 text-center">
-                    {job.status === 'failed' && (
+                    {job.status === 'failed' && job.id && (
                       <button
-                        onClick={() => retryJob(job.id)}
+                        onClick={() => retryJob(job.id!)}
                         className="px-3 py-1 rounded-md bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-500 transition-colors"
                       >
                         Retry
@@ -171,7 +191,13 @@ function JobsTab({ jobs, loading, isDark, jobFilters, handleJobFilterChange, ret
   );
 }
 
-function DetailPanel({ sessaoDetalhe, isDark, closeSessaoDetalhe }) {
+interface DetailPanelProps {
+  sessaoDetalhe: MotorSessao | null;
+  isDark: boolean;
+  closeSessaoDetalhe: () => void;
+}
+
+function DetailPanel({ sessaoDetalhe, isDark, closeSessaoDetalhe }: DetailPanelProps) {
   if (!sessaoDetalhe) return null;
 
   return (
@@ -206,22 +232,38 @@ function DetailPanel({ sessaoDetalhe, isDark, closeSessaoDetalhe }) {
   );
 }
 
+interface AdminMotorViewProps {
+  sessoes: MotorSessao[];
+  jobs: MotorJob[];
+  sessaoDetalhe: MotorSessao | null;
+  loading: boolean;
+  error: string | null;
+  activeTab: 'sessoes' | 'jobs';
+  setActiveTab: (tab: 'sessoes' | 'jobs') => void;
+  jobFilters: { status: string; queue: string };
+  handleJobFilterChange: (field: 'status' | 'queue', value: string) => void;
+  selectedRoomId: string | null;
+  fetchSessaoDetalhe: (id: string) => void;
+  retryJob: (id: string) => void;
+  closeSessaoDetalhe: () => void;
+  isDark: boolean;
+}
+
 export default function AdminMotorView({
   sessoes, jobs, sessaoDetalhe, loading, error,
   activeTab, setActiveTab, jobFilters, handleJobFilterChange,
   selectedRoomId, fetchSessaoDetalhe, retryJob, closeSessaoDetalhe,
   isDark
-}) {
+}: AdminMotorViewProps) {
   return (
     <div className={`max-w-5xl mx-auto ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
       <h1 className="text-2xl font-bold mb-6">Admin - Motor do Jogo</h1>
 
-      {/* Tabs */}
       <div className={`flex gap-1 mb-6 p-1 rounded-lg w-fit ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-        {[
-          { key: 'sessoes', label: 'Sessoes Ativas' },
-          { key: 'jobs', label: 'Jobs IA' },
-        ].map(tab => (
+        {([
+          { key: 'sessoes' as const, label: 'Sessoes Ativas' },
+          { key: 'jobs' as const, label: 'Jobs IA' },
+        ]).map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -236,12 +278,10 @@ export default function AdminMotorView({
         ))}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Tab content */}
       <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
         {activeTab === 'sessoes' && (
           <SessoesTab
@@ -264,7 +304,6 @@ export default function AdminMotorView({
         )}
       </div>
 
-      {/* Detail panel */}
       {activeTab === 'sessoes' && (
         <DetailPanel
           sessaoDetalhe={sessaoDetalhe}

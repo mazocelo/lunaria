@@ -1,6 +1,6 @@
 import { useAdminMotorModel } from './admin-motor.model';
 import AdminMotorView from './admin-motor.view';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 
 export default function AdminMotorPage() {
   const props = useAdminMotorModel();

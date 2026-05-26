@@ -1,23 +1,31 @@
-import React from 'react';
-import LoadingSpinner from '../../components/LoadingSpinner.jsx';
-import Notification from '../../components/Notification.jsx';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Notification from '../../components/Notification';
+import type { UsuarioPayload } from '../../services/AuthService';
 
-/**
- * View pura para a pagina de Convite de Jogo.
- * Recebe tudo via props - zero logica.
- */
+interface HistoriaConvite {
+  id?: number;
+  nome?: string;
+  titulo?: string;
+  descricao?: string | null;
+}
+
+interface ConviteJogoViewProps {
+  user: UsuarioPayload | null | undefined;
+  historia: HistoriaConvite | null;
+  error: string | null;
+  redirecting: boolean;
+  handleRetry: () => void;
+  handleGoToHistorias: () => void;
+}
+
 const ConviteJogoView = ({
-  // State
   user,
   historia,
   error,
   redirecting,
-
-  // Handlers
   handleRetry,
   handleGoToHistorias,
-}) => {
-  // Loading de autenticacao
+}: ConviteJogoViewProps) => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -34,7 +42,6 @@ const ConviteJogoView = ({
     );
   }
 
-  // Estado de erro
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
@@ -71,10 +78,10 @@ const ConviteJogoView = ({
     );
   }
 
-  // Estado principal - Processando convite
+  const nomeUsuario = (user.nome as string) || (user.name as string) || '';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
-      {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(50)].map((_, i) => (
           <div
@@ -93,7 +100,6 @@ const ConviteJogoView = ({
       <div className="relative z-10 glass p-8 rounded-2xl border border-purple-500/20 text-center max-w-md w-full">
         {!redirecting ? (
           <>
-            {/* Estado de carregamento */}
             <div className="mb-6">
               <LoadingSpinner size="lg" />
             </div>
@@ -111,14 +117,13 @@ const ConviteJogoView = ({
                 </h3>
                 <p className="text-cyan-300 text-sm">
                   {historia.descricao?.substring(0, 100)}
-                  {historia.descricao?.length > 100 ? '...' : ''}
+                  {(historia.descricao?.length || 0) > 100 ? '...' : ''}
                 </p>
               </div>
             )}
           </>
         ) : (
           <>
-            {/* Estado de redirecionamento */}
             <div className="mb-6">
               <div className="w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl">OK</span>
@@ -144,10 +149,9 @@ const ConviteJogoView = ({
           </>
         )}
 
-        {/* Informacoes do usuario */}
         <div className="mt-6 pt-4 border-t border-purple-500/20">
           <p className="text-purple-400 text-sm">
-            Conectado como: <span className="text-white font-semibold">{user?.nome || user?.name}</span>
+            Conectado como: <span className="text-white font-semibold">{nomeUsuario}</span>
           </p>
         </div>
       </div>

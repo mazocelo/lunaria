@@ -1,33 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import type { NavigateFunction } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useGameLoading } from '../../contexts/GameLoadingContext';
-import { historiaService } from '../../services/index.js';
+import { historiaService } from '../../services/index';
+import type { Historia } from '../../types/api';
 
-/**
- * Model hook para a pagina de Convite de Jogo.
- * Redireciona usuario que entrou via convite para a sala.
- *
- * Fluxo:
- * 1. Recebe ID da historia via URL (/convite-jogo/:id)
- * 2. Valida se usuario esta autenticado
- * 3. Carrega dados da historia
- * 4. Salva selecoes no GameLoadingContext
- * 5. Redireciona para /jogo/:id com estado otimizado
- */
-export const useConviteJogoModel = ({ navigate } = {}) => {
+interface UseConviteJogoModelArgs {
+  navigate: NavigateFunction;
+}
+
+interface HistoriaConvite extends Partial<Historia> {
+  titulo?: string;
+}
+
+export const useConviteJogoModel = ({ navigate }: UseConviteJogoModelArgs) => {
   const { user } = useAuth();
   const { hideSidebar, openSidebar } = useLayout();
   const { saveSelection, setLoading: setContextLoading, startTransition } = useGameLoading();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
 
-  // Estados locais
-  const [historia, setHistoria] = useState(null);
-  const [error, setError] = useState(null);
+  const [historia, setHistoria] = useState<HistoriaConvite | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
 
-  // Verificar autenticacao
   useEffect(() => {
     if (!user) {
       const targetUrl = `/convite-jogo/${id}`;
@@ -36,14 +33,12 @@ export const useConviteJogoModel = ({ navigate } = {}) => {
     }
   }, [user, navigate, id]);
 
-  // Configurar layout
   useEffect(() => {
     hideSidebar();
     return () => openSidebar();
   }, [hideSidebar, openSidebar]);
 
-  // Redirecionar para o jogo
-  const handleRedirectToGame = useCallback((historiaData) => {
+  const handleRedirectToGame = useCallback((historiaData: HistoriaConvite) => {
     setRedirecting(true);
     startTransition('convite', 'selecao-personagem');
     navigate(`/jogo/${historiaData.id}/selecao-personagem`, {
@@ -55,18 +50,20 @@ export const useConviteJogoModel = ({ navigate } = {}) => {
     });
   }, [navigate, startTransition]);
 
-  // Carregar dados da historia
   useEffect(() => {
     if (!id || !user) return;
 
     setContextLoading('historia', true);
     setError(null);
 
-    historiaService.getById(id)
-      .then(historiaData => {
-        setHistoria(historiaData);
+    historiaService.getById(Number(id))
+      .then((historiaData) => {
+        const data = historiaData as unknown as HistoriaConvite;
+        setHistoria(data);
 
-        saveSelection('historiaId', historiaData.id);
+        if (data.id != null) {
+          saveSelection('historiaId', data.id);
+        }
         saveSelection('configuracoes', {
           viaConvite: true,
           timestamp: new Date().toISOString(),
@@ -75,36 +72,31 @@ export const useConviteJogoModel = ({ navigate } = {}) => {
 
         setContextLoading('historia', false);
 
-        // Iniciar redirecionamento apos breve delay para UX
         setTimeout(() => {
-          handleRedirectToGame(historiaData);
+          handleRedirectToGame(data);
         }, 1500);
       })
-      .catch(err => {
-        setError(err.message || 'Erro ao carregar historia');
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : 'Erro ao carregar historia';
+        setError(message);
         setContextLoading('historia', false);
       });
   }, [id, user, setContextLoading, saveSelection, handleRedirectToGame]);
 
-  // Tentar novamente
   const handleRetry = useCallback(() => {
     setError(null);
     window.location.reload();
   }, []);
 
-  // Voltar para historias
   const handleGoToHistorias = useCallback(() => {
     navigate('/historias');
   }, [navigate]);
 
   return {
-    // State
     user,
     historia,
     error,
     redirecting,
-
-    // Handlers
     handleRetry,
     handleGoToHistorias,
   };

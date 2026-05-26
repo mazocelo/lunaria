@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTemaStore } from '../../../store/tema/index.js';
-import { useMestreStore } from '../../../store/mestre/index.js';
-import { useAuth } from '../../../contexts/AuthContext.jsx';
-import { historiaService } from '../../../services/index.js';
-import { sessaoService } from '../../../services/index.js';
-import { apiClient } from '../../../services/ApiClient.js';
-import { useTTS } from '../../../hooks/useTTS.js';
-import { mergeHistoriaConfig, resolveHistoriaConfig } from '../../../utils/historiaConfig.js';
+import type { NavigateFunction } from 'react-router-dom';
+import { useTemaStore } from '../../../store/tema/index';
+import { useMestreStore } from '../../../store/mestre/index';
+import { useAuth } from '../../../contexts/AuthContext';
+import { historiaService } from '../../../services/index';
+import { sessaoService } from '../../../services/index';
+import { apiClient } from '../../../services/ApiClient';
+import { useTTS, type UseTTSResult } from '../../../hooks/useTTS';
+import { mergeHistoriaConfig, resolveHistoriaConfig } from '../../../utils/historiaConfig';
+import type { Historia } from '../../../types/api';
+import type { MestreItem } from '../../../store/mestre/states';
 
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-const PROVIDER_LABELS = {
+const PROVIDER_LABELS: Record<string, string> = {
   elevenlabs: 'ElevenLabs',
   cartesia: 'Cartesia',
   opensource: 'Open Source',
@@ -39,74 +42,96 @@ export const MODOS_ROTEIRO = [
   { value: 'political', label: 'Político', desc: 'Facções, poder, diplomacia' },
 ];
 
-export const useHistoriaVerModel = ({ navigate } = {}) => {
-  const { id } = useParams();
-  const { user } = useAuth();
-  const tts = useTTS();
+export interface HistoriaExtendida extends Historia {
+  mestre?: MestreItem | null;
+  mestres?: MestreItem | null;
+  usuarios?: { id?: number; nome?: string } | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
 
-  // Tema store
+export interface SessaoItem {
+  id: number;
+  iniciada_em?: string;
+  status?: string;
+  totalMensagens?: number;
+  rodada_atual?: number;
+  jogadores?: Record<string, { personagemNome?: string; username?: string }>;
+}
+
+export interface VersaoRoteiro {
+  id: number;
+  versao: number;
+  modo?: string;
+  temperatura?: number;
+  modelo?: string;
+  criado_em?: string;
+  ativa?: boolean;
+}
+
+interface UseHistoriaVerModelArgs {
+  navigate: NavigateFunction;
+}
+
+export const useHistoriaVerModel = ({ navigate }: UseHistoriaVerModelArgs) => {
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const tts: UseTTSResult = useTTS();
+
   const carregarTemas = useTemaStore(s => s.carregarTemas);
   const mapearTemasDeHistoria = useTemaStore(s => s.mapearTemasDeHistoria);
 
-  // Mestre store
   const mestresAtivos = useMestreStore(s => s.mestresAtivos);
   const carregarMestres = useMestreStore(s => s.carregarMestres);
 
-  // State
-  const [historiaAtual, setHistoriaAtual] = useState(null);
+  const [historiaAtual, setHistoriaAtual] = useState<HistoriaExtendida | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Lightbox
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  // Mestre editing
   const [editandoMestre, setEditandoMestre] = useState(false);
-  const [mestreSelecionadoId, setMestreSelecionadoId] = useState(null);
-  const [mestreTierSelecionado, setMestreTierSelecionado] = useState(null);
+  const [mestreSelecionadoId, setMestreSelecionadoId] = useState<number | null>(null);
+  const [mestreTierSelecionado, setMestreTierSelecionado] = useState<string | null>(null);
   const [salvandoMestre, setSalvandoMestre] = useState(false);
 
-  // Voice preview
   const [loadingPreview, setLoadingPreview] = useState(false);
-  const [playingMestreId, setPlayingMestreId] = useState(null);
-  const previewAudioRef = useRef(null);
-  const previewUrlRef = useRef(null);
+  const [playingMestreId, setPlayingMestreId] = useState<number | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
-  // Sessoes anteriores
-  const [sessoes, setSessoes] = useState([]);
+  const [sessoes, setSessoes] = useState<SessaoItem[]>([]);
   const [loadingSessoes, setLoadingSessoes] = useState(false);
-  const [sessaoSelecionada, setSessaoSelecionada] = useState(null);
+  const [sessaoSelecionada, setSessaoSelecionada] = useState<unknown>(null);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
 
-  // Roteiro (Story Blueprint)
-  const [roteiro, setRoteiro] = useState(null);
-  const [roteiroStatus, setRoteiroStatus] = useState(null);
+  const [roteiro, setRoteiro] = useState<Record<string, unknown> | null>(null);
+  const [roteiroStatus, setRoteiroStatus] = useState<string | null>(null);
   const [roteiroLoading, setRoteiroLoading] = useState(false);
-  const [selectedMode, setSelectedMode] = useState(null);
-  const [versoes, setVersoes] = useState([]);
+  const [selectedMode, setSelectedMode] = useState<string | null>(null);
+  const [versoes, setVersoes] = useState<VersaoRoteiro[]>([]);
   const [versoesOpen, setVersoesOpen] = useState(false);
   const [versoesLoading, setVersoesLoading] = useState(false);
-  const roteiroPollRef = useRef(null);
-  const roteiroTimeoutRef = useRef(null);
+  const roteiroPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const roteiroTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Comparacao de versoes
-  const [versaoComparacao, setVersaoComparacao] = useState(null);
-  const [metadadosComparacao, setMetadadosComparacao] = useState(null);
+  const [versaoComparacao, setVersaoComparacao] = useState<Record<string, unknown> | null>(null);
+  const [metadadosComparacao, setMetadadosComparacao] = useState<Record<string, unknown> | null>(null);
   const [loadingComparacao, setLoadingComparacao] = useState(false);
   const [comparacaoOpen, setComparacaoOpen] = useState(false);
 
-  // Carregar historia
-  const loadHistoria = useCallback(async (historiaId) => {
+  const loadHistoria = useCallback(async (historiaId: number) => {
     setLoading(true);
     setError(null);
     try {
       await carregarTemas();
       await carregarMestres();
-      const historia = await historiaService.getById(historiaId);
+      const historia = (await historiaService.getById(historiaId)) as unknown as HistoriaExtendida;
       setHistoriaAtual(historia);
     } catch (err) {
       console.error('Erro ao carregar historia:', err);
-      setError(err.message);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -116,18 +141,17 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     if (id) {
       loadHistoria(parseInt(id));
       loadRoteiro(parseInt(id));
-      // Carregar sessoes anteriores
       setLoadingSessoes(true);
-      sessaoService.getSessoesByHistoria(id)
-        .then(data => setSessoes(data || []))
+      sessaoService.getSessoesByHistoria(Number(id))
+        .then(data => setSessoes((data as SessaoItem[]) || []))
         .catch(() => setSessoes([]))
         .finally(() => setLoadingSessoes(false));
     }
     return () => { setError(null); stopRoteiroPoll(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Obter nomes dos temas
-  const getNomesTemas = useCallback((historia) => {
+  const getNomesTemas = useCallback((historia: Historia | null | undefined) => {
     if (!historia) return [];
     return mapearTemasDeHistoria(historia);
   }, [mapearTemasDeHistoria]);
@@ -142,27 +166,26 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     )
   );
 
-  // Obter nome do mestre
-  const getMestreNome = useCallback((historia) => {
+  const getMestreNome = useCallback((historia: HistoriaExtendida | null): string => {
     if (!historia) return 'Mestre Padrao';
     if (historia.mestre?.nome) return historia.mestre.nome;
     if (historia.mestres?.nome) return historia.mestres.nome;
     return 'Mestre Padrao';
   }, []);
 
-  // Atualizar mestre
   const handleSalvarMestre = useCallback(async () => {
     if (!historiaAtual) return;
     setSalvandoMestre(true);
     try {
-      const updateData = { mestre_id: mestreSelecionadoId };
+      const updateData: Record<string, unknown> = { mestre_id: mestreSelecionadoId };
       if (mestreTierSelecionado) updateData.mestre_tier = mestreTierSelecionado;
       await historiaService.update(historiaAtual.id, updateData);
       await loadHistoria(historiaAtual.id);
       setEditandoMestre(false);
     } catch (err) {
       console.error('Erro ao salvar mestre:', err);
-      setError(err.message || 'Erro ao salvar mestre');
+      const message = err instanceof Error ? err.message : 'Erro ao salvar mestre';
+      setError(message);
     } finally {
       setSalvandoMestre(false);
     }
@@ -180,19 +203,19 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     setEditandoMestre(false);
   }, []);
 
-  const handleMestreSelecionadoChange = useCallback((e) => {
+  const handleMestreSelecionadoChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setMestreSelecionadoId(e.target.value ? parseInt(e.target.value) : null);
   }, []);
 
-  // Abrir historico de sessao
-  const abrirHistorico = useCallback(async (sessao) => {
+  const abrirHistorico = useCallback(async (sessao: SessaoItem) => {
     setLoadingHistorico(true);
     try {
       const completa = await sessaoService.getSessaoHistorico(sessao.id);
       setSessaoSelecionada(completa);
     } catch (err) {
       console.error('Erro ao carregar historico:', err);
-      setError(err.message || 'Erro ao carregar histórico da sessão');
+      const message = err instanceof Error ? err.message : 'Erro ao carregar histórico da sessão';
+      setError(message);
     } finally {
       setLoadingHistorico(false);
     }
@@ -202,31 +225,29 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     setSessaoSelecionada(null);
   }, []);
 
-  // Formatar data de sessao
-  const formatSessaoDate = useCallback((dateStr) => {
-    if (!dateStr) return '\u2014';
+  const formatSessaoDate = useCallback((dateStr: string | null | undefined): string => {
+    if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
   }, []);
 
-  // Helpers de polling (sem useCallback para evitar dependência circular)
   function stopRoteiroPoll() {
     if (roteiroPollRef.current) { clearInterval(roteiroPollRef.current); roteiroPollRef.current = null; }
     if (roteiroTimeoutRef.current) { clearTimeout(roteiroTimeoutRef.current); roteiroTimeoutRef.current = null; }
   }
 
-  function startRoteiroPoll(historiaId) {
+  function startRoteiroPoll(historiaId: number) {
     stopRoteiroPoll();
     setRoteiroLoading(true);
     roteiroPollRef.current = setInterval(async () => {
       try {
-        const updated = await historiaService.getRoteiro(historiaId);
-        if (!['queued', 'generating'].includes(updated.roteiro_status)) {
+        const updated = await historiaService.getRoteiro(historiaId) as { roteiro?: Record<string, unknown>; roteiro_status?: string };
+        if (!['queued', 'generating'].includes(updated.roteiro_status || '')) {
           stopRoteiroPoll();
           setRoteiro(updated.roteiro || null);
-          setRoteiroStatus(updated.roteiro_status);
+          setRoteiroStatus(updated.roteiro_status || null);
           setRoteiroLoading(false);
         }
       } catch (err) {
@@ -236,13 +257,12 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     roteiroTimeoutRef.current = setTimeout(() => { stopRoteiroPoll(); setRoteiroLoading(false); }, 200000);
   }
 
-  // Roteiro handlers
-  const loadRoteiro = useCallback(async (historiaId) => {
+  const loadRoteiro = useCallback(async (historiaId: number) => {
     try {
-      const data = await historiaService.getRoteiro(historiaId);
+      const data = await historiaService.getRoteiro(historiaId) as { roteiro?: Record<string, unknown>; roteiro_status?: string };
       setRoteiro(data.roteiro || null);
       setRoteiroStatus(data.roteiro_status || null);
-      if (['queued', 'generating'].includes(data.roteiro_status)) {
+      if (['queued', 'generating'].includes(data.roteiro_status || '')) {
         startRoteiroPoll(historiaId);
       }
     } catch (err) {
@@ -261,13 +281,15 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
       startRoteiroPoll(historiaAtual.id);
     } catch (err) {
       console.error('Erro ao gerar roteiro:', err);
-      setError(err.message || 'Erro ao gerar roteiro');
+      const message = err instanceof Error ? err.message : 'Erro ao gerar roteiro';
+      setError(message);
       setRoteiroStatus('error');
       setRoteiroLoading(false);
     }
-  }, [historiaAtual]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historiaAtual, selectedMode, roteiro]);
 
-  const handleRoteiroUpdate = useCallback(async (updatedRoteiro) => {
+  const handleRoteiroUpdate = useCallback(async (updatedRoteiro: Record<string, unknown>) => {
     if (!historiaAtual) return;
     setRoteiro(updatedRoteiro);
     try {
@@ -281,7 +303,7 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     if (!historiaAtual) return;
     setVersoesLoading(true);
     try {
-      const data = await historiaService.listarVersoesRoteiro(historiaAtual.id);
+      const data = await historiaService.listarVersoesRoteiro(historiaAtual.id) as VersaoRoteiro[] | undefined;
       setVersoes(data || []);
     } catch (err) {
       console.error('Erro ao carregar versões:', err);
@@ -296,10 +318,10 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     if (next) loadVersoes();
   }, [versoesOpen, loadVersoes]);
 
-  const handleAtivarVersao = useCallback(async (versaoId) => {
+  const handleAtivarVersao = useCallback(async (versaoId: number) => {
     if (!historiaAtual) return;
     try {
-      const response = await historiaService.ativarVersaoRoteiro(historiaAtual.id, versaoId);
+      const response = await historiaService.ativarVersaoRoteiro(historiaAtual.id, versaoId) as { data?: { roteiro?: Record<string, unknown> } } | undefined;
       if (response?.data?.roteiro) {
         setRoteiro(response.data.roteiro);
       }
@@ -309,12 +331,11 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     }
   }, [historiaAtual, loadVersoes]);
 
-  // Comparacao handlers
-  const handleCompararVersao = useCallback(async (versao) => {
+  const handleCompararVersao = useCallback(async (versao: VersaoRoteiro) => {
     if (!historiaAtual) return;
     setLoadingComparacao(true);
     try {
-      const data = await historiaService.obterVersaoRoteiro(historiaAtual.id, versao.id);
+      const data = await historiaService.obterVersaoRoteiro(historiaAtual.id, versao.id) as { roteiro?: Record<string, unknown> } | undefined;
       setVersaoComparacao(data?.roteiro || null);
       setMetadadosComparacao({ modo: versao.modo, temperatura: versao.temperatura, modelo: versao.modelo, criado_em: versao.criado_em, versao: versao.versao });
       setComparacaoOpen(true);
@@ -331,41 +352,44 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     setMetadadosComparacao(null);
   }, []);
 
-  // Imagem handlers
-  const handleCapaGenerated = useCallback(async (url) => {
+  const handleCapaGenerated = useCallback(async (url: string) => {
     if (!historiaAtual) return;
     try {
       await historiaService.update(historiaAtual.id, { imagem: url });
-      setHistoriaAtual(prev => ({ ...prev, imagem: url }));
+      setHistoriaAtual(prev => prev ? { ...prev, imagem: url } : prev);
     } catch (err) {
-      setError(err.message || 'Erro ao salvar capa');
+      const message = err instanceof Error ? err.message : 'Erro ao salvar capa';
+      setError(message);
     }
   }, [historiaAtual]);
 
-  const handleMapaGenerated = useCallback(async (url) => {
+  const handleMapaGenerated = useCallback(async (url: string) => {
     if (!historiaAtual) return;
-    const novoMapa = { url, nome: `Mapa ${(historiaAtual.mapas?.length || 0) + 1}` };
-    const novosMapas = [...(historiaAtual.mapas || []), novoMapa];
+    const mapasAtuais = Array.isArray(historiaAtual.mapas) ? (historiaAtual.mapas as Array<{ url: string; nome: string }>) : [];
+    const novoMapa = { url, nome: `Mapa ${mapasAtuais.length + 1}` };
+    const novosMapas = [...mapasAtuais, novoMapa];
     try {
       await historiaService.update(historiaAtual.id, { mapas: novosMapas });
-      setHistoriaAtual(prev => ({ ...prev, mapas: novosMapas }));
+      setHistoriaAtual(prev => prev ? { ...prev, mapas: novosMapas } : prev);
     } catch (err) {
-      setError(err.message || 'Erro ao salvar mapa');
+      const message = err instanceof Error ? err.message : 'Erro ao salvar mapa';
+      setError(message);
     }
   }, [historiaAtual]);
 
-  const handleRemoveMapa = useCallback(async (index) => {
+  const handleRemoveMapa = useCallback(async (index: number) => {
     if (!historiaAtual) return;
-    const novosMapas = (historiaAtual.mapas || []).filter((_, i) => i !== index);
+    const mapasAtuais = Array.isArray(historiaAtual.mapas) ? (historiaAtual.mapas as Array<{ url: string; nome: string }>) : [];
+    const novosMapas = mapasAtuais.filter((_, i) => i !== index);
     try {
       await historiaService.update(historiaAtual.id, { mapas: novosMapas });
-      setHistoriaAtual(prev => ({ ...prev, mapas: novosMapas }));
+      setHistoriaAtual(prev => prev ? { ...prev, mapas: novosMapas } : prev);
     } catch (err) {
-      setError(err.message || 'Erro ao remover mapa');
+      const message = err instanceof Error ? err.message : 'Erro ao remover mapa';
+      setError(message);
     }
   }, [historiaAtual]);
 
-  // Navegacao
   const handleIniciarSessao = useCallback(() => {
     if (historiaAtual) {
       navigate(`/jogo/${historiaAtual.id}/selecao-personagem`);
@@ -376,106 +400,103 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     navigate('/historias');
   }, [navigate]);
 
-  const handleEstiloImagemChange = useCallback(async (estilo) => {
+  const handleEstiloImagemChange = useCallback(async (estilo: string) => {
     if (!historiaAtual) return;
-    setHistoriaAtual(prev => ({ ...prev, estilo_imagem: estilo }));
+    const estiloAnterior = historiaAtual.estilo_imagem;
+    setHistoriaAtual(prev => prev ? { ...prev, estilo_imagem: estilo } : prev);
     try {
       await historiaService.update(historiaAtual.id, { estilo_imagem: estilo });
     } catch (err) {
-      setHistoriaAtual(prev => ({ ...prev, estilo_imagem: historiaAtual.estilo_imagem }));
-      setError(err.message || 'Erro ao salvar estilo');
+      setHistoriaAtual(prev => prev ? { ...prev, estilo_imagem: estiloAnterior } : prev);
+      const message = err instanceof Error ? err.message : 'Erro ao salvar estilo';
+      setError(message);
     }
   }, [historiaAtual]);
 
   const clearError = useCallback(() => setError(null), []);
 
-  // Lightbox handlers
-  const handleOpenLightbox = useCallback((src) => setLightboxSrc(src), []);
+  const handleOpenLightbox = useCallback((src: string) => setLightboxSrc(src), []);
   const handleCloseLightbox = useCallback(() => setLightboxSrc(null), []);
 
-  // Selected mestre (derived)
-  const selectedMestre = useMemo(() => {
+  const selectedMestre = useMemo<MestreItem | null>(() => {
     if (!mestreSelecionadoId) return null;
     return (mestresAtivos || []).find((m) => String(m.id) === String(mestreSelecionadoId)) || null;
   }, [mestresAtivos, mestreSelecionadoId]);
 
-  // Effective voice (for narration buttons)
-  const effectiveMestreVoiceId = selectedMestre?.voice_id || historiaAtual?.mestre?.voice_id || historiaAtual?.mestres?.voice_id || null;
-  const effectiveMestreVoiceProvider = selectedMestre?.voice_provider || historiaAtual?.mestre?.voice_provider || historiaAtual?.mestres?.voice_provider || DEFAULT_TTS_PROVIDER;
+  const effectiveMestreVoiceId = (selectedMestre?.voice_id as string | null)
+    || (historiaAtual?.mestre?.voice_id as string | null)
+    || (historiaAtual?.mestres?.voice_id as string | null)
+    || null;
+  const effectiveMestreVoiceProvider = (selectedMestre?.voice_provider as string | null)
+    || (historiaAtual?.mestre?.voice_provider as string | null)
+    || (historiaAtual?.mestres?.voice_provider as string | null)
+    || DEFAULT_TTS_PROVIDER;
 
-  // Provider label for display
   const mestreProviderLabel = PROVIDER_LABELS[effectiveMestreVoiceProvider] || effectiveMestreVoiceProvider;
 
-  // Estilo imagem atual
   const estiloAtual = historiaAtual?.estilo_imagem || 'fantasy_painting';
 
-  // Modo de abertura de sessao
   const configHistoriaAtual = resolveHistoriaConfig(historiaAtual?.config);
-  const modoAberturaAtual = configHistoriaAtual.session_opening_mode ?? 'direto';
+  const modoAberturaAtual = (configHistoriaAtual.session_opening_mode as string | undefined) ?? 'direto';
   const velocidadeNarrativaAtual = configHistoriaAtual.ritmo.velocidade;
   const orcamentoDeBeatsAtual = configHistoriaAtual.ritmo.orcamento_de_beats;
   const maxAcoesPorTurnoAtual = configHistoriaAtual.regras_de_turno.max_acoes_por_turno;
   const [salvandoAbertura, setSalvandoAbertura] = useState(false);
   const [salvandoConfiguracaoNarrativa, setSalvandoConfiguracaoNarrativa] = useState(false);
 
-  const salvarConfigHistoria = useCallback(async (configPatch, errorMessage) => {
+  const salvarConfigHistoria = useCallback(async (configPatch: Record<string, unknown>, errorMessage: string) => {
     if (!historiaAtual || salvandoConfiguracaoNarrativa) return;
 
     const configAnterior = historiaAtual.config;
     const proximoConfig = mergeHistoriaConfig(historiaAtual.config, configPatch);
 
     setSalvandoConfiguracaoNarrativa(true);
-    setHistoriaAtual(prev => ({ ...prev, config: proximoConfig }));
+    setHistoriaAtual(prev => prev ? { ...prev, config: proximoConfig } : prev);
     try {
       await historiaService.update(historiaAtual.id, { config: configPatch });
     } catch (err) {
-      setHistoriaAtual(prev => ({ ...prev, config: configAnterior }));
-      setError(err.message || errorMessage);
+      setHistoriaAtual(prev => prev ? { ...prev, config: configAnterior } : prev);
+      const message = err instanceof Error ? err.message : errorMessage;
+      setError(message);
     } finally {
       setSalvandoConfiguracaoNarrativa(false);
     }
   }, [historiaAtual, salvandoConfiguracaoNarrativa]);
 
-  const handleModoAberturaChange = useCallback(async (modo) => {
+  const handleModoAberturaChange = useCallback(async (modo: string) => {
     if (!historiaAtual || salvandoAbertura) return;
     setSalvandoAbertura(true);
     const configAnterior = historiaAtual.config;
-    setHistoriaAtual(prev => ({ ...prev, config: mergeHistoriaConfig(prev?.config, { session_opening_mode: modo }) }));
+    setHistoriaAtual(prev => prev ? { ...prev, config: mergeHistoriaConfig(prev?.config, { session_opening_mode: modo }) } : prev);
     try {
       await historiaService.update(historiaAtual.id, { config: { session_opening_mode: modo } });
     } catch (err) {
-      setHistoriaAtual(prev => ({ ...prev, config: configAnterior }));
-      setError(err.message || 'Erro ao salvar modo de abertura');
+      setHistoriaAtual(prev => prev ? { ...prev, config: configAnterior } : prev);
+      const message = err instanceof Error ? err.message : 'Erro ao salvar modo de abertura';
+      setError(message);
     } finally {
       setSalvandoAbertura(false);
     }
   }, [historiaAtual, salvandoAbertura]);
 
-  const handleVelocidadeNarrativaChange = useCallback(async (velocidade) => {
+  const handleVelocidadeNarrativaChange = useCallback(async (velocidade: string) => {
     await salvarConfigHistoria({
-      ritmo: {
-        velocidade
-      }
+      ritmo: { velocidade }
     }, 'Erro ao salvar velocidade narrativa');
   }, [salvarConfigHistoria]);
 
-  const handleOrcamentoDeBeatsChange = useCallback(async (value) => {
+  const handleOrcamentoDeBeatsChange = useCallback(async (value: number | string) => {
     await salvarConfigHistoria({
-      ritmo: {
-        orcamento_de_beats: Number(value)
-      }
+      ritmo: { orcamento_de_beats: Number(value) }
     }, 'Erro ao salvar orcamento de beats');
   }, [salvarConfigHistoria]);
 
-  const handleMaxAcoesPorTurnoChange = useCallback(async (value) => {
+  const handleMaxAcoesPorTurnoChange = useCallback(async (value: number | string) => {
     await salvarConfigHistoria({
-      regras_de_turno: {
-        max_acoes_por_turno: Number(value)
-      }
+      regras_de_turno: { max_acoes_por_turno: Number(value) }
     }, 'Erro ao salvar regra de turno');
   }, [salvarConfigHistoria]);
 
-  // Voice preview
   const stopPreview = useCallback(() => {
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
@@ -504,7 +525,7 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
         provider: selectedMestre.voice_provider || DEFAULT_TTS_PROVIDER,
       };
       const response = await apiClient.post('/tts/preview', body, { responseType: 'blob' });
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const blob = response instanceof Blob ? response : new Blob([response as BlobPart], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       previewUrlRef.current = url;
@@ -515,26 +536,24 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
       setPlayingMestreId(selectedMestre.id);
     } catch (err) {
       stopPreview();
-      setError(err.message || 'Erro ao gerar preview de voz');
+      const message = err instanceof Error ? err.message : 'Erro ao gerar preview de voz';
+      setError(message);
     } finally {
       setLoadingPreview(false);
     }
   }, [selectedMestre, loadingPreview, playingMestreId, stopPreview]);
 
-  // Cleanup preview on unmount
   useEffect(() => {
     return () => stopPreview();
   }, [stopPreview]);
 
   return {
-    // Data
     historiaAtual,
     loading,
     error,
     nomesTemas,
     canMutateHistoria,
 
-    // Mestre
     mestresAtivos,
     editandoMestre,
     mestreSelecionadoId,
@@ -549,22 +568,18 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     selectedMestre,
     mestreProviderLabel,
 
-    // Voice preview
     loadingPreview,
     playingMestreId,
     handlePreviewMestre,
 
-    // TTS
     tts,
     effectiveMestreVoiceId,
     effectiveMestreVoiceProvider,
 
-    // Lightbox
     lightboxSrc,
     handleOpenLightbox,
     handleCloseLightbox,
 
-    // Sessoes
     sessoes,
     loadingSessoes,
     sessaoSelecionada,
@@ -573,11 +588,9 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     fecharHistorico,
     formatSessaoDate,
 
-    // Navegacao
     handleIniciarSessao,
     handleVoltar,
 
-    // Roteiro
     roteiro,
     roteiroStatus,
     roteiroLoading,
@@ -597,14 +610,12 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     loadingComparacao,
     comparacaoOpen,
 
-    // Imagens
     estiloAtual,
     handleCapaGenerated,
     handleMapaGenerated,
     handleRemoveMapa,
     handleEstiloImagemChange,
 
-    // Abertura de sessao
     modoAberturaAtual,
     velocidadeNarrativaAtual,
     orcamentoDeBeatsAtual,
@@ -616,7 +627,6 @@ export const useHistoriaVerModel = ({ navigate } = {}) => {
     handleOrcamentoDeBeatsChange,
     handleMaxAcoesPorTurnoChange,
 
-    // Utils
     clearError,
   };
 };

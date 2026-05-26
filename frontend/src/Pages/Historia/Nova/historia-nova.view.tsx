@@ -1,4 +1,3 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Selector from '../../../components/form/Selector';
@@ -7,8 +6,9 @@ import {
   OPCOES_MAX_ACOES_TURNO,
   OPCOES_ORCAMENTO_BEATS,
   VELOCIDADES_NARRATIVA
-} from '../../../utils/historiaConfig.js';
-import { useTheme } from '../../../contexts/theme.jsx';
+} from '../../../utils/historiaConfig';
+import { useTheme } from '../../../contexts/theme';
+import type { MestreItem } from '../../../store/mestre/states';
 
 const PROMPT_SUGGESTIONS = [
   'Uma maldição antiga desperta em uma floresta proibida. Os aventureiros devem encontrar a fonte antes que ela consuma o reino.',
@@ -18,8 +18,42 @@ const PROMPT_SUGGESTIONS = [
   'Portais dimensionais estão se abrindo aleatoriamente, trazendo criaturas de outros planos. A causa está nas ruínas de um mago louco.',
 ];
 
+interface TemaOption { id: number; nome: string; cor: string }
+
+interface NovaHistoriaViewProps {
+  nome: string;
+  temasSelecionados: number[];
+  maximo_de_participantes: number;
+  descricao: string;
+  mestreSelecionado: number | null;
+  velocidadeNarrativa: string;
+  orcamentoDeBeats: number;
+  maxAcoesPorTurno: number;
+  nomeError: string;
+  loading: boolean;
+  error: string | null;
+  temas: TemaOption[];
+  mestres: MestreItem[];
+  handleNomeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleNomeBlur: () => void;
+  handleTemasChange: (selected: number[]) => void;
+  handleMaxParticipantesChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleDescricaoChange: (e: { target: { value: string } }) => void;
+  handleMestreChange: (id: number | null) => void;
+  handleVelocidadeNarrativaChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  handleOrcamentoDeBeatsChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  handleMaxAcoesPorTurnoChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  criarHistoria: (e: React.FormEvent) => void | Promise<void>;
+  handleCancelar: () => void;
+  publica: boolean;
+  setPublica: (publica: boolean) => void;
+  mestreTier: string;
+  setMestreTier: (tier: string) => void;
+  clearError: () => void;
+  temasLoading: boolean;
+}
+
 const NovaHistoriaView = ({
-  // Form data
   nome,
   temasSelecionados,
   maximo_de_participantes,
@@ -31,12 +65,8 @@ const NovaHistoriaView = ({
   nomeError,
   loading,
   error,
-
-  // Options
   temas,
   mestres,
-
-  // Handlers
   handleNomeChange,
   handleNomeBlur,
   handleTemasChange,
@@ -52,13 +82,12 @@ const NovaHistoriaView = ({
   setPublica,
   mestreTier,
   setMestreTier,
-}) => {
+}: NovaHistoriaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
-      {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
           <BookOpen size={32} className="text-white" />
@@ -72,7 +101,6 @@ const NovaHistoriaView = ({
       </div>
 
       <form onSubmit={criarHistoria} className="card-rpg space-y-6">
-        {/* Mensagem de erro */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <div className="flex items-start space-x-3">
@@ -100,9 +128,12 @@ const NovaHistoriaView = ({
 
         <Selector
           label="Escolha os Temas"
-          options={temas?.map((tema) => ({ value: tema.id, label: tema.nome })) || []}
-          selected={temasSelecionados}
-          onChange={handleTemasChange}
+          options={temas?.map((tema) => ({ value: String(tema.id), label: tema.nome })) || []}
+          selected={temasSelecionados.map(String)}
+          onChange={(value) => {
+            const arr = Array.isArray(value) ? value : [value];
+            handleTemasChange(arr.map(Number));
+          }}
           type="multiple"
           max={3}
           containerClass="mb-2"
@@ -111,7 +142,6 @@ const NovaHistoriaView = ({
           Selecione ate 3 temas para categorizar sua historia
         </p>
 
-        {/* Prompt da Aventura */}
         <div className="flex flex-col gap-2">
           <label className={`text-sm font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
             <ScrollText size={16} className="text-purple-400" />
@@ -132,7 +162,6 @@ const NovaHistoriaView = ({
           Quanto mais detalhado, melhor sera o prologo e o roteiro gerados pela IA
         </p>
 
-          {/* Sugestoes de prompt */}
           {!descricao && (
             <div className="mt-1">
               <p className={`text-xs font-semibold mb-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -265,7 +294,6 @@ const NovaHistoriaView = ({
           </p>
         </div>
 
-        {/* Tier do Mestre */}
         <div className="flex flex-col gap-2 mb-2">
           <label className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
             Qualidade do Mestre
@@ -312,7 +340,6 @@ const NovaHistoriaView = ({
           </p>
         </div>
 
-        {/* Toggle pública */}
         <div className="flex items-center justify-between">
           <div>
             <label className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
@@ -335,7 +362,6 @@ const NovaHistoriaView = ({
           </button>
         </div>
 
-        {/* Botoes de acao */}
         <div className="flex space-x-4 pt-4">
           <Button
             variant="ghost"
@@ -366,7 +392,6 @@ const NovaHistoriaView = ({
         </div>
       </form>
 
-      {/* Dicas */}
       <div className="mt-6 card-rpg">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center flex-shrink-0">

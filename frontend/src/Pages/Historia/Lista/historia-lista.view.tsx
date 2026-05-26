@@ -1,58 +1,92 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import StatCard from '../../../components/StatCard.jsx';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
-import ConviteModal from '../../../components/ConviteModal.jsx';
+import StatCard from '../../../components/StatCard';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
+import ConviteModal from '../../../components/ConviteModal';
 import { TabelaList, SearchBar, PageHeader, Badge, TableSkeleton } from '../../../components/shared';
 import { BookOpen, Plus, Eye, Mail, Play, Target, RotateCcw, StopCircle, Trash2 } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { ROUTES } from '../../../constants/routes.js';
+import { useTheme } from '../../../contexts/theme';
+import { ROUTES } from '../../../constants/routes';
+import type { Historia } from '../../../types/api';
+import type { HistoriaComTemas } from './historia-lista.model';
+
+interface HistoriaListaViewProps {
+  historias: HistoriaComTemas[];
+  historiasFiltradasComTemas: HistoriaComTemas[];
+  estatisticas: { total: number; comTemas: number; totalParticipantes: number; mediaParticipantes: number };
+  loading: boolean;
+  error: string | null;
+  aplicarFiltros: (filtros: { busca?: string; tema?: number | null; participantes?: number | null }) => void;
+  getNomesTemas: (historia: Historia | null | undefined) => unknown[];
+  isOwner: (historia: Historia | null | undefined) => boolean;
+  showDeleteModal: boolean;
+  historiaToDelete: Historia | null;
+  deleteLoading: boolean;
+  handleDeleteClick: (historia: Historia) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  showConviteModal: boolean;
+  historiaParaConvite: Historia | null;
+  conviteLoading: boolean;
+  handleConviteClick: (historia: Historia) => void;
+  handleEnviarConvite: (email: string) => void;
+  handleCancelConvite: () => void;
+  showResetModal: boolean;
+  historiaToReset: Historia | null;
+  resetLoading: boolean;
+  handleResetarSessao: (historia: Historia) => void;
+  handleConfirmReset: () => void;
+  handleCancelReset: () => void;
+  showEncerrarModal: boolean;
+  historiaToEncerrar: Historia | null;
+  encerrarLoading: boolean;
+  handleEncerrarSessao: (historia: Historia) => void;
+  handleConfirmEncerrar: () => void;
+  handleCancelEncerrar: () => void;
+  showBulkDeleteModal: boolean;
+  bulkDeleteIds: Array<number | string>;
+  bulkDeleteIgnoredCount: number;
+  bulkDeleteLoading: boolean;
+  handleBulkDeleteClick: (ids: Array<number | string>) => void;
+  handleConfirmBulkDelete: () => void;
+  handleCancelBulkDelete: () => void;
+  handleViewHistoria: (historia: Historia) => void;
+  handlePlayHistoria: (historia: Historia) => void;
+  handleEntrarPartida: (historia: Historia) => void;
+  clearError: () => void;
+}
 
 const HistoriaListaView = ({
-  // Data
   historias,
   historiasFiltradasComTemas,
   estatisticas,
   loading,
   error,
-
-  // Filtros
   aplicarFiltros,
   getNomesTemas,
   isOwner,
-
-  // Delete
   showDeleteModal,
   historiaToDelete,
   deleteLoading,
   handleDeleteClick,
   handleConfirmDelete,
   handleCancelDelete,
-
-  // Convite
   showConviteModal,
   historiaParaConvite,
   conviteLoading,
   handleConviteClick,
   handleEnviarConvite,
   handleCancelConvite,
-
-  // Reset sessao
   showResetModal,
   historiaToReset,
   resetLoading,
   handleConfirmReset,
   handleCancelReset,
-
-  // Encerrar sessao
   showEncerrarModal,
   historiaToEncerrar,
   encerrarLoading,
   handleConfirmEncerrar,
   handleCancelEncerrar,
-
-  // Bulk delete
   showBulkDeleteModal,
   bulkDeleteIds,
   bulkDeleteIgnoredCount,
@@ -60,23 +94,18 @@ const HistoriaListaView = ({
   handleBulkDeleteClick,
   handleConfirmBulkDelete,
   handleCancelBulkDelete,
-
-  // Navegacao
   handleViewHistoria,
   handlePlayHistoria,
   handleEntrarPartida,
   handleResetarSessao,
   handleEncerrarSessao,
-
-  // Utils
   clearError,
-}) => {
+}: HistoriaListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Renderizador para temas
-  const renderTemas = (historia) => {
-    const nomesTemas = getNomesTemas ? getNomesTemas(historia) : [];
+  const renderTemas = (historia: HistoriaComTemas) => {
+    const nomesTemas = (getNomesTemas ? getNomesTemas(historia) : []) as string[];
     return (
       <div className="flex flex-wrap gap-1">
         {nomesTemas.length > 0
@@ -89,8 +118,7 @@ const HistoriaListaView = ({
     );
   };
 
-  // Renderizador para maximo de participantes
-  const renderMaxParticipantes = (historia) => (
+  const renderMaxParticipantes = (historia: HistoriaComTemas) => (
     <div className="flex items-center space-x-2">
       <span className="text-cyan-400 font-semibold">
         {historia.maximo_de_participantes || 0}
@@ -99,12 +127,11 @@ const HistoriaListaView = ({
     </div>
   );
 
-  // Renderizador para status de sessao
-  const renderStatusSessao = (historia) => {
+  const renderStatusSessao = (historia: HistoriaComTemas) => {
     if (historia.sessaoAtiva) {
       return (
         <Badge variant="green" dot>
-          Em Andamento {historia.totalJogadores > 0 ? `(${historia.totalJogadores})` : ''}
+          Em Andamento {(historia.totalJogadores ?? 0) > 0 ? `(${historia.totalJogadores})` : ''}
         </Badge>
       );
     }
@@ -115,14 +142,14 @@ const HistoriaListaView = ({
     {
       key: 'id',
       label: 'ID',
-      align: 'left',
-      render: (row) => <span className="font-mono text-purple-400">#{row.id}</span>
+      align: 'left' as const,
+      render: (row: HistoriaComTemas) => <span className="font-mono text-purple-400">#{row.id}</span>
     },
     {
       key: 'nome',
       label: 'Nome da Historia',
-      align: 'left',
-      render: (row) => (
+      align: 'left' as const,
+      render: (row: HistoriaComTemas) => (
         <div className="flex items-center space-x-3">
           {row.imagem ? (
             <img src={row.imagem} alt={row.nome} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
@@ -137,76 +164,19 @@ const HistoriaListaView = ({
         </div>
       )
     },
-    {
-      key: 'temas',
-      label: 'Temas',
-      align: 'left',
-      render: renderTemas
-    },
-    {
-      key: 'status_sessao',
-      label: 'Status',
-      align: 'left',
-      render: renderStatusSessao
-    },
-    {
-      key: 'maximo_de_participantes',
-      label: 'Maximo de Participantes',
-      align: 'left',
-      render: renderMaxParticipantes
-    }
+    { key: 'temas', label: 'Temas', align: 'left' as const, render: renderTemas },
+    { key: 'status_sessao', label: 'Status', align: 'left' as const, render: renderStatusSessao },
+    { key: 'maximo_de_participantes', label: 'Maximo de Participantes', align: 'left' as const, render: renderMaxParticipantes }
   ];
 
   const actions = [
-    {
-      label: 'Entrar na Partida',
-      icon: <Target size={18} />,
-      color: 'orange',
-      onClick: (row) => handleEntrarPartida(row),
-      show: (row) => row.sessaoAtiva === true
-    },
-    {
-      label: 'Iniciar Sessao',
-      icon: <Play size={18} />,
-      color: 'green',
-      onClick: (row) => handlePlayHistoria(row),
-      show: (row) => !row.sessaoAtiva
-    },
-    {
-      label: 'Ver',
-      icon: <Eye size={18} />,
-      color: 'purple',
-      onClick: (row) => handleViewHistoria(row),
-      show: (row) => isOwner(row)
-    },
-    {
-      label: 'Convidar',
-      icon: <Mail size={18} />,
-      color: 'blue',
-      onClick: (row) => handleConviteClick(row),
-      show: (row) => isOwner(row)
-    },
-    {
-      label: 'Resetar Sessao',
-      icon: <RotateCcw size={18} />,
-      color: 'orange',
-      onClick: (row) => handleResetarSessao(row),
-      show: (row) => isOwner(row) && row.sessaoAtiva === true
-    },
-    {
-      label: 'Encerrar Sessao',
-      icon: <StopCircle size={18} />,
-      color: 'red',
-      onClick: (row) => handleEncerrarSessao(row),
-      show: (row) => isOwner(row) && row.sessaoAtiva === true
-    },
-    {
-      label: 'Deletar',
-      icon: <Trash2 size={18} />,
-      color: 'red',
-      onClick: (row) => handleDeleteClick(row),
-      show: (row) => isOwner(row)
-    }
+    { label: 'Entrar na Partida', icon: <Target size={18} />, color: 'orange', onClick: (row: HistoriaComTemas) => handleEntrarPartida(row), show: (row: HistoriaComTemas) => row.sessaoAtiva === true },
+    { label: 'Iniciar Sessao', icon: <Play size={18} />, color: 'green', onClick: (row: HistoriaComTemas) => handlePlayHistoria(row), show: (row: HistoriaComTemas) => !row.sessaoAtiva },
+    { label: 'Ver', icon: <Eye size={18} />, color: 'purple', onClick: (row: HistoriaComTemas) => handleViewHistoria(row), show: (row: HistoriaComTemas) => isOwner(row) },
+    { label: 'Convidar', icon: <Mail size={18} />, color: 'blue', onClick: (row: HistoriaComTemas) => handleConviteClick(row), show: (row: HistoriaComTemas) => isOwner(row) },
+    { label: 'Resetar Sessao', icon: <RotateCcw size={18} />, color: 'orange', onClick: (row: HistoriaComTemas) => handleResetarSessao(row), show: (row: HistoriaComTemas) => isOwner(row) && row.sessaoAtiva === true },
+    { label: 'Encerrar Sessao', icon: <StopCircle size={18} />, color: 'red', onClick: (row: HistoriaComTemas) => handleEncerrarSessao(row), show: (row: HistoriaComTemas) => isOwner(row) && row.sessaoAtiva === true },
+    { label: 'Deletar', icon: <Trash2 size={18} />, color: 'red', onClick: (row: HistoriaComTemas) => handleDeleteClick(row), show: (row: HistoriaComTemas) => isOwner(row) }
   ];
 
   if (loading && historias.length === 0) {
@@ -215,16 +185,10 @@ const HistoriaListaView = ({
 
   return (
     <div className="animate-fade-in space-y-6">
-      {/* Notificacao de erro */}
       {error && (
-        <Notification
-          message={error}
-          type="error"
-          onClose={clearError}
-        />
+        <Notification message={error} type="error" onClose={clearError} />
       )}
 
-      {/* Header da pagina */}
       <PageHeader
         title="Historias & Aventuras"
         subtitle="Gerencie suas campanhas e aventuras epicas"
@@ -239,30 +203,17 @@ const HistoriaListaView = ({
         }
       />
 
-      {/* Cards de estatisticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          title="Total de Historias"
-          value={estatisticas?.total || 0}
-          icon={BookOpen}
-          variant="primary"
-        />
-        <StatCard
-          title="Vagas Disponiveis"
-          value={estatisticas?.totalParticipantes || 0}
-          icon={Target}
-          variant="secondary"
-        />
+        <StatCard title="Total de Historias" value={estatisticas?.total || 0} icon={BookOpen} variant="primary" />
+        <StatCard title="Vagas Disponiveis" value={estatisticas?.totalParticipantes || 0} icon={Target} variant="secondary" />
       </div>
 
-      {/* Busca */}
       <SearchBar
         placeholder="Buscar historias por nome..."
         onChange={(texto) => aplicarFiltros({ busca: texto })}
         className="mb-4"
       />
 
-      {/* Tabela de historias */}
       <TabelaList
         header="Lista de Historias"
         columns={columns}
@@ -281,7 +232,6 @@ const HistoriaListaView = ({
         ]}
       />
 
-      {/* Modal de Confirmacao */}
       <ConfirmationModal
         isOpen={showDeleteModal}
         title="Deletar Historia"
@@ -294,7 +244,6 @@ const HistoriaListaView = ({
         variant="danger"
       />
 
-      {/* Modal de Convite */}
       <ConviteModal
         isOpen={showConviteModal}
         onClose={handleCancelConvite}
@@ -303,7 +252,6 @@ const HistoriaListaView = ({
         loading={conviteLoading}
       />
 
-      {/* Modal de Bulk Delete */}
       <ConfirmationModal
         isOpen={showBulkDeleteModal}
         title="Deletar Historias Selecionadas"
@@ -316,7 +264,6 @@ const HistoriaListaView = ({
         variant="danger"
       />
 
-      {/* Modal de Resetar Sessao */}
       <ConfirmationModal
         isOpen={showResetModal}
         title="Resetar Sessao de Jogo"
@@ -339,7 +286,6 @@ Esta acao nao pode ser desfeita.`}
         variant="danger"
       />
 
-      {/* Modal de Encerrar Sessao */}
       <ConfirmationModal
         isOpen={showEncerrarModal}
         title="Encerrar Sessao de Jogo"

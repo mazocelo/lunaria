@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { historiaService } from '../../../services/index.js';
-import { generateRoute } from '../../../constants/routes.js';
+import { useTheme } from '../../../contexts/theme';
+import { historiaService } from '../../../services/index';
+import { generateRoute } from '../../../constants/routes';
 import { Search, Globe, Users, BookOpen, Loader2, RefreshCw } from 'lucide-react';
+import type { Historia } from '../../../types/api';
+
+interface HistoriaPublica extends Historia {
+  usuarios?: { id?: number; nome?: string };
+  _count?: { historias_personagens?: number };
+}
 
 const ExplorarHistoriasPage = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const navigate = useNavigate();
 
-  const [historias, setHistorias] = useState([]);
+  const [historias, setHistorias] = useState<HistoriaPublica[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
   const [total, setTotal] = useState(0);
@@ -18,7 +24,7 @@ const ExplorarHistoriasPage = () => {
   const fetchHistorias = async () => {
     setLoading(true);
     try {
-      const res = await historiaService.getPublicas({ limit: 50 });
+      const res = await historiaService.getPublicas({ limit: '50' }) as { data?: HistoriaPublica[]; pagination?: { total?: number } };
       setHistorias(res.data || []);
       setTotal(res.pagination?.total || 0);
     } catch (err) {
@@ -39,7 +45,6 @@ const ExplorarHistoriasPage = () => {
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto p-6">
-      {/* Header */}
       <div className="text-center mb-8">
         <div className="w-16 h-16 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
           <Globe size={28} className="text-white" />
@@ -52,7 +57,6 @@ const ExplorarHistoriasPage = () => {
         </p>
       </div>
 
-      {/* Search + Stats */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1 relative">
           <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
@@ -83,7 +87,6 @@ const ExplorarHistoriasPage = () => {
         {busca ? filtradas.length : total} {(busca ? filtradas.length : total) === 1 ? 'aventura disponível' : 'aventuras disponíveis'}
       </p>
 
-      {/* Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={32} className="animate-spin text-purple-400" />
@@ -105,21 +108,18 @@ const ExplorarHistoriasPage = () => {
                 isLight ? 'hover:border-purple-400/40' : 'hover:border-purple-500/40'
               }`}
             >
-              {/* Image */}
               {historia.imagem && (
                 <div className="w-full h-32 rounded-lg overflow-hidden mb-3">
                   <img src={historia.imagem} alt={historia.nome} className="w-full h-full object-cover" />
                 </div>
               )}
 
-              {/* Title */}
               <h3 className={`font-fantasy font-bold text-lg mb-1 line-clamp-1 ${
                 isLight ? 'text-slate-800' : 'text-white'
               }`}>
                 {historia.nome}
               </h3>
 
-              {/* Description */}
               {historia.descricao && (
                 <p className={`text-xs font-modern line-clamp-2 mb-3 ${
                   isLight ? 'text-slate-500' : 'text-slate-400'
@@ -128,7 +128,6 @@ const ExplorarHistoriasPage = () => {
                 </p>
               )}
 
-              {/* Meta */}
               <div className="flex items-center gap-3 text-xs font-modern">
                 <span className={`flex items-center gap-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   <Users size={12} />

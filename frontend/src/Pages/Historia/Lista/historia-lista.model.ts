@@ -1,76 +1,78 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useTemaStore } from '../../../store/tema/index.js';
-import { useHistoriaStore } from '../../../store/historia/index.js';
-import { useAuth } from '../../../contexts/AuthContext.jsx';
-import { historiaService } from '../../../services/index.js';
-import { generateRoute } from '../../../constants/routes.js';
+import type { NavigateFunction } from 'react-router-dom';
+import { useTemaStore } from '../../../store/tema/index';
+import { useHistoriaStore } from '../../../store/historia/index';
+import { useAuth } from '../../../contexts/AuthContext';
+import { historiaService } from '../../../services/index';
+import { generateRoute } from '../../../constants/routes';
+import type { Historia } from '../../../types/api';
 
-export const useHistoriaListaModel = ({ navigate } = {}) => {
+export interface HistoriaComTemas extends Historia {
+  temasNomes: unknown[];
+}
+
+interface UseHistoriaListaModelArgs {
+  navigate: NavigateFunction;
+}
+
+export const useHistoriaListaModel = ({ navigate }: UseHistoriaListaModelArgs) => {
   const { user } = useAuth();
 
-  // Tema store
   const carregarTemas = useTemaStore(s => s.carregarTemas);
   const mapearTemasDeHistoria = useTemaStore(s => s.mapearTemasDeHistoria);
 
-  // Historia store
   const historias = useHistoriaStore(s => s.historias);
   const loading = useHistoriaStore(s => s.loading);
   const storeError = useHistoriaStore(s => s.error);
-  const carregarHistorias = useHistoriaStore(s => s.carregarHistorias);
   const recarregarHistorias = useHistoriaStore(s => s.recarregarHistorias);
 
-  // Local state
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filtros
-  const [filtros, setFiltros] = useState({
+  const [filtros, setFiltros] = useState<{
+    tema: number | null;
+    participantes: number | null;
+    busca: string;
+  }>({
     tema: null,
     participantes: null,
     busca: ''
   });
 
-  // Modal de delete
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [historiaToDelete, setHistoriaToDelete] = useState(null);
+  const [historiaToDelete, setHistoriaToDelete] = useState<Historia | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Modal de convite
   const [showConviteModal, setShowConviteModal] = useState(false);
-  const [historiaParaConvite, setHistoriaParaConvite] = useState(null);
+  const [historiaParaConvite, setHistoriaParaConvite] = useState<Historia | null>(null);
   const [conviteLoading, setConviteLoading] = useState(false);
 
-  // Modal de reset de sessao
   const [showResetModal, setShowResetModal] = useState(false);
-  const [historiaToReset, setHistoriaToReset] = useState(null);
+  const [historiaToReset, setHistoriaToReset] = useState<Historia | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
 
-  // Modal de encerrar sessao
   const [showEncerrarModal, setShowEncerrarModal] = useState(false);
-  const [historiaToEncerrar, setHistoriaToEncerrar] = useState(null);
+  const [historiaToEncerrar, setHistoriaToEncerrar] = useState<Historia | null>(null);
   const [encerrarLoading, setEncerrarLoading] = useState(false);
 
-  // Bulk delete
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  const [bulkDeleteIds, setBulkDeleteIds] = useState([]);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<Array<number | string>>([]);
   const [bulkDeleteIgnoredCount, setBulkDeleteIgnoredCount] = useState(0);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
-  // Carregar historias do store (forceReload para refletir mudanças de sessão)
   useEffect(() => {
     carregarTemas();
     recarregarHistorias();
     return () => setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Historias com temas mapeados
-  const historiasComTemas = useMemo(() => {
+  const historiasComTemas = useMemo<HistoriaComTemas[]>(() => {
     return historias.map(historia => ({
       ...historia,
       temasNomes: mapearTemasDeHistoria(historia)
     }));
   }, [historias, mapearTemasDeHistoria]);
 
-  // Estatisticas
   const estatisticas = useMemo(() => {
     const total = historias.length;
     const comTemas = historias.filter(h => h.temas && h.temas.length > 0).length;
@@ -83,7 +85,6 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     };
   }, [historias]);
 
-  // Historias filtradas
   const historiasFiltradasComTemas = useMemo(() => {
     let resultado = historiasComTemas;
 
@@ -92,44 +93,40 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
       resultado = resultado.filter(h => Array.isArray(h.temas) && h.temas.includes(temaFiltro));
     }
     if (filtros.participantes) {
-      resultado = resultado.filter(h => h.maximo_de_participantes >= filtros.participantes);
+      resultado = resultado.filter(h => (h.maximo_de_participantes ?? 0) >= (filtros.participantes ?? 0));
     }
     if (filtros.busca) {
       const termo = filtros.busca.toLowerCase();
       resultado = resultado.filter(h =>
         h.nome.toLowerCase().includes(termo) ||
-        (h.temasNomes && h.temasNomes.some(t => t.toLowerCase().includes(termo)))
+        (Array.isArray(h.temasNomes) && h.temasNomes.some(t => typeof t === 'string' && t.toLowerCase().includes(termo)))
       );
     }
     return resultado;
   }, [historiasComTemas, filtros]);
 
-  // Aplicar filtros
-  const aplicarFiltros = useCallback((novosFiltros) => {
+  const aplicarFiltros = useCallback((novosFiltros: Partial<typeof filtros>) => {
     setFiltros(prev => ({ ...prev, ...novosFiltros }));
   }, []);
 
-  // Obter nomes dos temas de uma historia
-  const getNomesTemas = useCallback((historia) => {
+  const getNomesTemas = useCallback((historia: Historia | null | undefined) => {
     if (!historia) return [];
     return mapearTemasDeHistoria(historia);
   }, [mapearTemasDeHistoria]);
 
-  // Verificar se usuario e dono da historia
-  const isOwner = useCallback((historia) => {
+  const isOwner = useCallback((historia: Historia | null | undefined) => {
     if (user && historia) {
       return String(historia.id_usuario) === String(user.id) || user.role === 'superadmin';
     }
     return false;
   }, [user]);
 
-  // Delete
-  const deleteHistoria = useCallback(async (id) => {
-    await historiaService.delete(id);
+  const deleteHistoria = useCallback(async (id: number | string) => {
+    await historiaService.delete(Number(id));
     await recarregarHistorias();
   }, [recarregarHistorias]);
 
-  const handleDeleteClick = useCallback((historia) => {
+  const handleDeleteClick = useCallback((historia: Historia) => {
     setHistoriaToDelete(historia);
     setShowDeleteModal(true);
   }, []);
@@ -143,7 +140,8 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
       setHistoriaToDelete(null);
     } catch (err) {
       console.error('Erro ao deletar historia:', err);
-      setError(err.message || 'Erro ao deletar história');
+      const message = err instanceof Error ? err.message : 'Erro ao deletar história';
+      setError(message);
     } finally {
       setDeleteLoading(false);
     }
@@ -155,26 +153,24 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     setDeleteLoading(false);
   }, []);
 
-  // Navegacao
-  const handleViewHistoria = useCallback((historia) => {
+  const handleViewHistoria = useCallback((historia: Historia) => {
     navigate(generateRoute.verHistoria(historia.id));
   }, [navigate]);
 
-  const handlePlayHistoria = useCallback((historia) => {
+  const handlePlayHistoria = useCallback((historia: Historia) => {
     navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
   }, [navigate]);
 
-  const handleEntrarPartida = useCallback((historia) => {
+  const handleEntrarPartida = useCallback((historia: Historia) => {
     navigate(generateRoute.jogoSelecaoPersonagem(historia.id));
   }, [navigate]);
 
-  // Convite
-  const handleConviteClick = useCallback((historia) => {
+  const handleConviteClick = useCallback((historia: Historia) => {
     setHistoriaParaConvite(historia);
     setShowConviteModal(true);
   }, []);
 
-  const handleEnviarConvite = useCallback(async (email) => {
+  const handleEnviarConvite = useCallback(async (email: string) => {
     if (!historiaParaConvite) return;
     setConviteLoading(true);
     try {
@@ -183,7 +179,8 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
       setHistoriaParaConvite(null);
     } catch (err) {
       console.error('Erro ao enviar convite:', err);
-      setError(err.message || 'Erro ao enviar convite');
+      const message = err instanceof Error ? err.message : 'Erro ao enviar convite';
+      setError(message);
     } finally {
       setConviteLoading(false);
     }
@@ -195,8 +192,7 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     setConviteLoading(false);
   }, []);
 
-  // Reset sessao
-  const handleResetarSessao = useCallback((historia) => {
+  const handleResetarSessao = useCallback((historia: Historia) => {
     setHistoriaToReset(historia);
     setShowResetModal(true);
   }, []);
@@ -205,7 +201,7 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     if (!historiaToReset) return;
     setResetLoading(true);
     try {
-      const response = await historiaService.resetarSessao(historiaToReset.id);
+      const response = await historiaService.resetarSessao(historiaToReset.id) as { success?: boolean; message?: string } | undefined;
       if (response && response.success) {
         await recarregarHistorias();
         setShowResetModal(false);
@@ -217,7 +213,8 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
       }
     } catch (err) {
       console.error('Erro ao resetar sessao:', err);
-      setError(err.message || 'Erro ao resetar sessão');
+      const message = err instanceof Error ? err.message : 'Erro ao resetar sessão';
+      setError(message);
     } finally {
       setResetLoading(false);
     }
@@ -229,8 +226,7 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     setResetLoading(false);
   }, []);
 
-  // Encerrar sessao
-  const handleEncerrarSessao = useCallback((historia) => {
+  const handleEncerrarSessao = useCallback((historia: Historia) => {
     setHistoriaToEncerrar(historia);
     setShowEncerrarModal(true);
   }, []);
@@ -239,7 +235,7 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     if (!historiaToEncerrar) return;
     setEncerrarLoading(true);
     try {
-      const response = await historiaService.encerrarSessao(historiaToEncerrar.id);
+      const response = await historiaService.encerrarSessao(historiaToEncerrar.id) as { success?: boolean; message?: string } | undefined;
       if (response && response.success) {
         await recarregarHistorias();
         setShowEncerrarModal(false);
@@ -251,7 +247,8 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
       }
     } catch (err) {
       console.error('Erro ao encerrar sessao:', err);
-      setError(err.message || 'Erro ao encerrar sessão');
+      const message = err instanceof Error ? err.message : 'Erro ao encerrar sessão';
+      setError(message);
     } finally {
       setEncerrarLoading(false);
     }
@@ -263,8 +260,7 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     setEncerrarLoading(false);
   }, []);
 
-  // Bulk delete
-  const handleBulkDeleteClick = useCallback((ids) => {
+  const handleBulkDeleteClick = useCallback((ids: Array<number | string>) => {
     const idsDeletaveis = ids.filter((selectedId) => {
       const historia = historiasComTemas.find((item) => String(item.id) === String(selectedId));
       return historia ? isOwner(historia) : false;
@@ -289,7 +285,7 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     setBulkDeleteLoading(true);
     try {
       for (const id of bulkDeleteIds) {
-        await historiaService.delete(id);
+        await historiaService.delete(Number(id));
       }
       await recarregarHistorias();
       setShowBulkDeleteModal(false);
@@ -297,7 +293,8 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
       setBulkDeleteIgnoredCount(0);
     } catch (err) {
       console.error('Erro ao deletar historias em lote:', err);
-      setError(err.message || 'Erro ao deletar histórias em lote');
+      const message = err instanceof Error ? err.message : 'Erro ao deletar histórias em lote';
+      setError(message);
       setShowBulkDeleteModal(false);
       setBulkDeleteIds([]);
       setBulkDeleteIgnoredCount(0);
@@ -316,19 +313,16 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
   const clearError = useCallback(() => setError(null), []);
 
   return {
-    // Data
     historias: historiasComTemas,
     historiasFiltradasComTemas,
     estatisticas,
     loading,
     error: error || storeError,
 
-    // Filtros
     aplicarFiltros,
     getNomesTemas,
     isOwner,
 
-    // Delete
     showDeleteModal,
     historiaToDelete,
     deleteLoading,
@@ -336,7 +330,6 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     handleConfirmDelete,
     handleCancelDelete,
 
-    // Convite
     showConviteModal,
     historiaParaConvite,
     conviteLoading,
@@ -344,7 +337,6 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     handleEnviarConvite,
     handleCancelConvite,
 
-    // Reset sessao
     showResetModal,
     historiaToReset,
     resetLoading,
@@ -352,7 +344,6 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     handleConfirmReset,
     handleCancelReset,
 
-    // Encerrar sessao
     showEncerrarModal,
     historiaToEncerrar,
     encerrarLoading,
@@ -360,7 +351,6 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     handleConfirmEncerrar,
     handleCancelEncerrar,
 
-    // Bulk delete
     showBulkDeleteModal,
     bulkDeleteIds,
     bulkDeleteIgnoredCount,
@@ -369,12 +359,10 @@ export const useHistoriaListaModel = ({ navigate } = {}) => {
     handleConfirmBulkDelete,
     handleCancelBulkDelete,
 
-    // Navegacao
     handleViewHistoria,
     handlePlayHistoria,
     handleEntrarPartida,
 
-    // Utils
     clearError,
   };
 };

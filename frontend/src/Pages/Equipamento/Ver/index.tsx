@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useEquipamentoVerModel } from './equipamento-ver.model';
 import VerEquipamentoView from './equipamento-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function EquipamentoVerPage() {
   const model = useEquipamentoVerModel();
   const navigate = useNavigate();

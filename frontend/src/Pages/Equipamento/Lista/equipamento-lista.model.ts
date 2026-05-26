@@ -1,34 +1,59 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useEquipamentoStore } from '../../../store/equipamento/index.js';
-import { equipamentoService, catalogoService } from '../../../services/index.js';
+import { useState, useEffect, useMemo } from 'react';
+import { useEquipamentoStore } from '../../../store/equipamento/index';
+import { equipamentoService, catalogoService } from '../../../services/index';
+import type { VantagemDesvantagem } from '../../../types/api';
+
+export interface EquipamentoRel { id: number; nome: string }
+
+export interface Equipamento extends VantagemDesvantagem {
+  raridade_rel?: EquipamentoRel | null;
+  categoria_rel?: EquipamentoRel | null;
+  raridade_id?: number | null;
+  categoria_id?: number | null;
+  origem_lore?: string | null;
+  vinculo?: {
+    requer?: boolean;
+    restricao_tipo?: string | null;
+    restricao?: string[] | null;
+    descricao?: string | null;
+  } | null;
+  propriedades?: string[] | null;
+  cargas?: number | null;
+  usos_por_dia?: number | null;
+  numero?: number | null;
+  peso?: number | null;
+  preco_sugerido?: string | null;
+}
 
 export const useEquipamentoListaModel = () => {
-
-  // Equipamento store
-  const allEquipamentos = useEquipamentoStore(s => s.equipamentos);
+  const allEquipamentos = useEquipamentoStore(s => s.equipamentos) as Equipamento[];
   const storeLoading = useEquipamentoStore(s => s.loading);
   const storeError = useEquipamentoStore(s => s.error);
   const carregarEquipamentos = useEquipamentoStore(s => s.carregarEquipamentos);
   const recarregarEquipamentos = useEquipamentoStore(s => s.recarregarEquipamentos);
 
-  // Local state
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('');
   const [raridadeFilter, setRaridadeFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [raridades, setRaridades] = useState([]);
-  const [categorias, setCategorias] = useState([]);
+  const [raridades, setRaridades] = useState<EquipamentoRel[]>([]);
+  const [categorias, setCategorias] = useState<EquipamentoRel[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [equipToDelete, setEquipToDelete] = useState(null);
+  const [equipToDelete, setEquipToDelete] = useState<Equipamento | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     carregarEquipamentos();
-    catalogoService.getRaridades().then(r => setRaridades(r.data || [])).catch(() => {});
-    catalogoService.getCategoriasEquipamento().then(r => setCategorias(r.data || [])).catch(() => {});
+    catalogoService.getRaridades()
+      .then((r) => setRaridades(((r as { data?: EquipamentoRel[] }).data) || []))
+      .catch(() => {});
+    catalogoService.getCategoriasEquipamento()
+      .then((r) => setCategorias(((r as { data?: EquipamentoRel[] }).data) || []))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const hasFilters = !!(searchTerm || categoriaFilter || raridadeFilter);
@@ -55,7 +80,6 @@ export const useEquipamentoListaModel = () => {
     return filtered;
   }, [allEquipamentos, searchTerm, categoriaFilter, raridadeFilter]);
 
-  // Paginated view of data
   const paginatedEquipamentos = useMemo(() => {
     if (hasFilters) return filteredEquipamentos;
     const start = (currentPage - 1) * pageSize;
@@ -64,16 +88,13 @@ export const useEquipamentoListaModel = () => {
 
   const totalCount = hasFilters ? filteredEquipamentos.length : allEquipamentos.length;
 
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-  };
-
-  const handlePageSizeChange = (newSize) => {
+  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
+  const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1);
   };
 
-  const handleDeleteClick = (row) => {
+  const handleDeleteClick = (row: Equipamento) => {
     setEquipToDelete(row);
     setShowDeleteModal(true);
   };
@@ -87,7 +108,8 @@ export const useEquipamentoListaModel = () => {
       setShowDeleteModal(false);
       setEquipToDelete(null);
     } catch (err) {
-      setDeleteError(`Erro ao deletar equipamento: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setDeleteError(`Erro ao deletar equipamento: ${message}`);
     } finally {
       setDeleteLoading(false);
     }
@@ -99,7 +121,8 @@ export const useEquipamentoListaModel = () => {
     setDeleteLoading(false);
   };
 
-  const countByRaridade = (nome) => (allEquipamentos || []).filter(e => e.raridade_rel?.nome === nome).length;
+  const countByRaridade = (nome: string) =>
+    (allEquipamentos || []).filter(e => e.raridade_rel?.nome === nome).length;
 
   const clearError = () => {
     setError(null);

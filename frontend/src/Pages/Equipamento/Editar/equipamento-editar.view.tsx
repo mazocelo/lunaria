@@ -1,18 +1,57 @@
-import React from 'react';
-import { Sword, Loader2 } from 'lucide-react';
+import { Sword, Save, Loader2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageGenerator from '../../../components/form/ImageGenerator';
+import { useTheme } from '../../../contexts/theme';
+import type { EquipamentoRel } from '../Lista/equipamento-lista.model';
 
-const NovoEquipamentoView = ({
+type EquipField =
+  | 'nome' | 'descricao' | 'tipo' | 'elemento' | 'bonus' | 'dano_base' | 'requisitos'
+  | 'numero' | 'raridade_id' | 'origem_lore' | 'categoria_id'
+  | 'vinculo_requer' | 'vinculo_restricao_tipo' | 'vinculo_restricao' | 'vinculo_descricao'
+  | 'propriedades' | 'cargas' | 'usos_por_dia';
+
+interface EditarEquipamentoViewProps {
+  nome: string;
+  descricao: string;
+  tipo: string;
+  elemento: string;
+  bonus: string;
+  dano_base: string;
+  requisitos: string;
+  numero: number | string;
+  raridade_id: number | string;
+  origem_lore: string;
+  categoria_id: number | string;
+  vinculo_requer: boolean;
+  vinculo_restricao_tipo: string;
+  vinculo_restricao: string;
+  vinculo_descricao: string;
+  propriedades: string;
+  cargas: number | string;
+  usos_por_dia: number | string;
+  raridades: EquipamentoRel[];
+  categorias: EquipamentoRel[];
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  imagem: string;
+  setImagem: (url: string) => void;
+  setField: (name: EquipField, value: string | number | boolean) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
+const EditarEquipamentoView = ({
   nome, descricao, tipo, elemento, bonus, dano_base, requisitos, numero,
   raridade_id, origem_lore, categoria_id,
   vinculo_requer, vinculo_restricao_tipo, vinculo_restricao, vinculo_descricao,
   propriedades, cargas, usos_por_dia,
-  raridades, categorias, saving, error,
+  raridades, categorias, loading, saving, error,
   imagem, setImagem,
   setField, handleSubmit, handleCancel,
-}) => {
+}: EditarEquipamentoViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -20,17 +59,29 @@ const NovoEquipamentoView = ({
   const labelCls = `block text-sm font-semibold font-modern mb-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`;
   const sectionCls = `text-lg font-fantasy font-bold mb-4 ${isLight ? 'text-slate-700' : 'text-slate-200'}`;
 
+  if (loading) return (
+    <div className="animate-fade-in">
+      <div className="card-rpg">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow"><Sword size={24} className="text-white" /></div>
+            <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando equipamento...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center"><Sword size={32} className="text-white" /></div>
-        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Criar Novo Equipamento</h1>
-        <p className="text-slate-400 font-modern">Adicione um novo equipamento ao catalogo</p>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Equipamento</h1>
+        <p className="text-slate-400 font-modern">Atualize os dados do equipamento</p>
       </div>
       <form onSubmit={handleSubmit} className="card-rpg space-y-6">
         {error && (<div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg"><div className="flex items-start space-x-3"><div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-white text-sm">!</span></div><div><div className="font-semibold text-red-400 font-modern">Erro</div><p className="text-red-300 text-sm font-modern mt-1">{error}</p></div></div></div>)}
 
-        {/* Secao: Identificacao */}
         <div>
           <h3 className={sectionCls}>Identificacao</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -55,14 +106,12 @@ const NovoEquipamentoView = ({
           </div>
         </div>
 
-        {/* Secao: Descricao */}
         <div>
           <h3 className={sectionCls}>Descricao</h3>
           <div><label className={labelCls}>Descricao</label><textarea name="descricao" value={descricao} onChange={e => setField('descricao', e.target.value)} placeholder="Descricao do equipamento..." rows={3} className={inputCls} /></div>
           <div className="mt-4"><label className={labelCls}>Origem / Lore</label><textarea name="origem_lore" value={origem_lore} onChange={e => setField('origem_lore', e.target.value)} placeholder="Historia e origem do item..." rows={3} className={inputCls} /></div>
         </div>
 
-        {/* Secao: Vinculo Magico */}
         <div>
           <h3 className={sectionCls}>Vinculo Magico</h3>
           <p className={`text-xs font-modern mb-3 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -97,7 +146,6 @@ const NovoEquipamentoView = ({
           )}
         </div>
 
-        {/* Secao: Combate */}
         <div>
           <h3 className={sectionCls}>Combate</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -109,7 +157,6 @@ const NovoEquipamentoView = ({
           </div>
         </div>
 
-        {/* Secao: Propriedades */}
         <div>
           <h3 className={sectionCls}>Propriedades</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -121,7 +168,6 @@ const NovoEquipamentoView = ({
           </div>
         </div>
 
-        {/* Secao: Dados Avancados */}
         <div>
           <h3 className={sectionCls}>Dados Avancados</h3>
           <div className="space-y-4">
@@ -130,13 +176,20 @@ const NovoEquipamentoView = ({
           </div>
         </div>
 
+        <ImageGenerator
+          imageUrl={imagem}
+          onImageGenerated={setImagem}
+          entityType="equipamento"
+          entityData={{ nome, tipo, descricao, raridade: raridades?.find(r => String(r.id) === String(raridade_id))?.nome }}
+          isLight={isLight}
+        />
         <div className="flex space-x-4 pt-4">
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
-          <Button variant="primary" type="submit" disabled={saving} className="flex-1">{saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>) : (<div className="flex items-center space-x-2"><Sword size={16} /><span>Criar Equipamento</span></div>)}</Button>
+          <Button variant="primary" type="submit" disabled={saving} className="flex-1">{saving ? (<div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>) : (<div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Equipamento</span></div>)}</Button>
         </div>
       </form>
     </div>
   );
 };
 
-export default NovoEquipamentoView;
+export default EditarEquipamentoView;

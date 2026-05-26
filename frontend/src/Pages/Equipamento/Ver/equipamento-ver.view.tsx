@@ -1,18 +1,26 @@
-import React from 'react';
 import { BookOpen, ScrollText, Sparkles, Swords, Shield, Zap, Tag, Link2, Package, Weight, Coins } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import type { ComponentType } from 'react';
+import { useTheme } from '../../../contexts/theme';
 import { CatalogDetailLayout, ChipGroup, getRaridadeConfig } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { EquipamentoNormalizado } from './equipamento-ver.model';
 
-// ── Category icons (visual config, local to View) ────────
-const CATEGORIA_ICONS = {
+const CATEGORIA_ICONS: Record<string, ComponentType<{ size?: number | string; className?: string }>> = {
   'Armas Corpo a Corpo': Swords, 'Armas a Distancia': Swords,
   'Armaduras': Shield, 'Escudos': Shield,
   'Amuletos e Colares': Sparkles, 'Aneis': Sparkles,
   'Pocoes': Zap, 'Cajados e Varinhas': Zap, 'Pergaminhos': ScrollText,
 };
 
-// ── Main view ─────────────────────────────────────────────
-const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit }) => {
+interface VerEquipamentoViewProps {
+  equipamento: EquipamentoNormalizado | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit }: VerEquipamentoViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -28,7 +36,6 @@ const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit })
 
   const raridadeConfig = getRaridadeConfig(eq.raridade);
 
-  // -- Badges --
   const badges = [
     <span key="rar" className={`relative overflow-hidden px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? raridadeConfig.badgeLight : raridadeConfig.badge}`}>
       {eq.raridade}
@@ -45,9 +52,8 @@ const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit })
     ),
   ].filter(Boolean);
 
-  // -- Sections --
   const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
-  const sections = [
+  const sections: CatalogDetailSection[] = ([
     eq.descricao && {
       title: 'Descricao', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${textCls}`}>{eq.descricao}</p>,
@@ -78,20 +84,19 @@ const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit })
               <span>Restricao: <strong className={isLight ? 'text-slate-700' : 'text-white'}>
                 {eq.vinculo.restricaoTipo}
               </strong></span>
-              {eq.vinculo.restricao?.length > 0 && <span>({eq.vinculo.restricao.join(', ')})</span>}
+              {eq.vinculo.restricao.length > 0 && <span>({eq.vinculo.restricao.join(', ')})</span>}
             </div>
           )}
         </div>
       ),
     },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailSection[]);
 
-  // -- Stats (sidebar) --
-  const monoBlock = (items, cls) => (
+  const monoBlock = (items: string[], cls: string) => (
     <div className="space-y-1">{items.map((a, i) => <span key={i} className={`block font-mono text-xs ${cls}`}>{a}</span>)}</div>
   );
 
-  const stats = [
+  const stats: CatalogDetailStat[] = ([
     eq.tipos.length > 0 && { icon: Swords, label: 'Slot / Tipo', content: <ChipGroup items={eq.tipos} colorClass={isLight ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/15 text-blue-400'} /> },
     { icon: Tag, label: 'Raridade', content: <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? raridadeConfig.badgeLight : raridadeConfig.badge}`}>{eq.raridade}</span> },
     eq.categoria && { icon: Package, label: 'Categoria', content: eq.categoria },
@@ -103,20 +108,20 @@ const VerEquipamentoView = ({ equipamento: eq, loading, error, onBack, onEdit })
     eq.elementos.length > 0 && { icon: Zap, label: 'Elemento', content: <ChipGroup items={eq.elementos} colorClass={isLight ? 'bg-purple-50 text-purple-700' : 'bg-purple-500/15 text-purple-400'} /> },
     eq.danoBase && { icon: Swords, label: 'Dano Base', content: <span className={`font-mono font-semibold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{eq.danoBase}</span> },
     eq.propriedades.length > 0 && { icon: Tag, label: 'Propriedades', content: <ChipGroup items={eq.propriedades} colorClass={isLight ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'} /> },
-    eq.bonus?.length > 0 && { icon: Shield, label: 'Bonus', content: monoBlock(eq.bonus, isLight ? 'text-cyan-700' : 'text-cyan-400') },
-    eq.requisitos?.length > 0 && { icon: Shield, label: 'Requisitos', content: monoBlock(eq.requisitos, isLight ? 'text-amber-700' : 'text-amber-400') },
+    eq.bonus && eq.bonus.length > 0 && { icon: Shield, label: 'Bonus', content: monoBlock(eq.bonus, isLight ? 'text-cyan-700' : 'text-cyan-400') },
+    eq.requisitos && eq.requisitos.length > 0 && { icon: Shield, label: 'Requisitos', content: monoBlock(eq.requisitos, isLight ? 'text-amber-700' : 'text-amber-400') },
     eq.cargas && { icon: Zap, label: 'Cargas', content: eq.cargas },
     eq.usosPorDia && { icon: Zap, label: 'Usos por Dia', content: eq.usosPorDia },
     eq.peso && { icon: Weight, label: 'Peso', content: `${eq.peso} kg` },
     eq.precoSugerido && { icon: Coins, label: 'Preco Sugerido', content: eq.precoSugerido },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailStat[]);
 
   return (
     <CatalogDetailLayout
       title={eq.nome}
       subtitle={eq.numero ? `#${eq.numero}` : undefined}
       image={eq.imagem}
-      icon={CATEGORIA_ICONS[eq.categoria] || Package}
+      icon={(eq.categoria && CATEGORIA_ICONS[eq.categoria]) || Package}
       rarity={eq.raridade}
       accentColor={raridadeConfig.accent}
       badges={badges}

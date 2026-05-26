@@ -1,13 +1,16 @@
-import React, { useState, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import { useState, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { PageHeader, Badge, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import { useTheme } from '../../../contexts/theme';
 import { Sword, Eye, Pencil, Trash2, Gem, Trophy, Flame, Sparkles } from 'lucide-react';
+import type { Equipamento, EquipamentoRel } from './equipamento-lista.model';
 
-const raridadeVariant = {
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const raridadeVariant: Record<string, BadgeVariant> = {
   'Comum': 'slate',
   'Incomum': 'green',
   'Raro': 'blue',
@@ -17,6 +20,34 @@ const raridadeVariant = {
   'Artefato': 'red',
   'Variável': 'slate',
 };
+
+interface EquipamentoListaViewProps {
+  equipamentos: Equipamento[];
+  displayEquipamentos: Equipamento[];
+  loading: boolean;
+  error: string | null;
+  categoriaFilter: string;
+  raridadeFilter: string;
+  currentPage?: number;
+  pageSize?: number;
+  totalCount?: number;
+  raridades: EquipamentoRel[];
+  categorias: EquipamentoRel[];
+  showDeleteModal: boolean;
+  equipToDelete: Equipamento | null;
+  deleteLoading: boolean;
+  setCategoriaFilter: (value: string) => void;
+  setRaridadeFilter: (value: string) => void;
+  handlePageChange?: (page: number) => void;
+  handlePageSizeChange?: (size: number) => void;
+  handleDeleteClick: (row: Equipamento) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  countByRaridade: (nome: string) => number;
+  clearError: () => void;
+  onVerEquipamento: (id: number | string) => void;
+  onEditarEquipamento: (id: number | string) => void;
+}
 
 const EquipamentoListaView = ({
   equipamentos,
@@ -44,7 +75,7 @@ const EquipamentoListaView = ({
   clearError,
   onVerEquipamento,
   onEditarEquipamento,
-}) => {
+}: EquipamentoListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   if (loading && equipamentos.length === 0) {
@@ -58,9 +89,8 @@ const EquipamentoListaView = ({
     );
   }
 
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
-  // Build list of items with images for gallery navigation (server-side paginated, current page only)
   const itemsWithImages = displayEquipamentos
     .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
     .filter(item => item.src);
@@ -107,22 +137,14 @@ const EquipamentoListaView = ({
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <select
-          value={categoriaFilter}
-          onChange={(e) => setCategoriaFilter(e.target.value)}
-          className={selectCls}
-        >
+        <select value={categoriaFilter} onChange={(e) => setCategoriaFilter(e.target.value)} className={selectCls}>
           <option value="">Todas as Categorias</option>
           {categorias.map(cat => (
             <option key={cat.id} value={cat.nome}>{cat.nome}</option>
           ))}
         </select>
 
-        <select
-          value={raridadeFilter}
-          onChange={(e) => setRaridadeFilter(e.target.value)}
-          className={selectCls}
-        >
+        <select value={raridadeFilter} onChange={(e) => setRaridadeFilter(e.target.value)} className={selectCls}>
           <option value="">Todas as Raridades</option>
           {raridades.map(rar => (
             <option key={rar.id} value={rar.nome}>{rar.nome}</option>
@@ -180,21 +202,22 @@ const EquipamentoListaView = ({
         </div>
       )}
 
-      <CatalogPagination
-        currentPage={currentPage}
-        pageSize={pageSize}
-        totalCount={totalCount}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        pageSizeOptions={[12, 24, 48, 100]}
-      />
+      {currentPage !== undefined && pageSize !== undefined && totalCount !== undefined && handlePageChange && handlePageSizeChange && (
+        <CatalogPagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={[12, 24, 48, 100]}
+        />
+      )}
 
-      {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayEquipamentos[galleryIndex] && (
         <ImageLightbox
-          src={displayEquipamentos[galleryIndex].imagem}
-          alt={displayEquipamentos[galleryIndex].nome}
-          title={displayEquipamentos[galleryIndex].nome}
+          src={displayEquipamentos[galleryIndex].imagem ?? ''}
+          alt={displayEquipamentos[galleryIndex].nome ?? ''}
+          title={displayEquipamentos[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

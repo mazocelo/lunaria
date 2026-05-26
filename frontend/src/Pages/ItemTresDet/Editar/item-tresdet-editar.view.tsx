@@ -1,17 +1,45 @@
-import React from 'react';
 import { Package, Save, Loader2 } from 'lucide-react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+
+type ItemField =
+  | 'nome' | 'descricao' | 'tipo' | 'custo_pe' | 'preco_moedas'
+  | 'poderes' | 'efeito' | 'empilhavel' | 'raridade' | 'magia_vinculada';
+
+interface SelectOption { value: string; label: string }
+
+interface EditarItemTresDetViewProps {
+  nome: string;
+  descricao: string;
+  tipo: string;
+  custo_pe: number | string;
+  preco_moedas: number | string;
+  poderes: string;
+  efeito: string;
+  empilhavel: boolean;
+  raridade: string;
+  magia_vinculada: string;
+  tiposOptions: SelectOption[];
+  raridadeOptions: SelectOption[];
+  imagem: string;
+  setImagem: (url: string) => void;
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  setField: (name: ItemField, value: string | number | boolean) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
 
 const EditarItemTresDetView = ({
   nome, descricao, tipo, custo_pe, preco_moedas,
   poderes, efeito, empilhavel, raridade, magia_vinculada,
   tiposOptions, raridadeOptions,
-  imagem, setImagem,
   loading, saving, error,
   setField, handleSubmit, handleCancel,
-}) => {
+}: EditarItemTresDetViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

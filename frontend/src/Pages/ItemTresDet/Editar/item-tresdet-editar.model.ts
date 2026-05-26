@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { itemTresDetService } from '../../../services/index.js';
+import { itemTresDetService } from '../../../services/index';
+
+type ItemField =
+  | 'nome' | 'descricao' | 'tipo' | 'custo_pe' | 'preco_moedas'
+  | 'poderes' | 'efeito' | 'empilhavel' | 'raridade' | 'magia_vinculada';
 
 const TIPOS_OPTIONS = [
   { value: 'arma', label: 'Arma' },
@@ -20,13 +24,13 @@ const RARIDADE_OPTIONS = [
 ];
 
 export const useItemTresDetEditarModel = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [tipo, setTipo] = useState('');
-  const [custo_pe, setCustoPe] = useState(0);
-  const [preco_moedas, setPrecoMoedas] = useState(0);
+  const [custo_pe, setCustoPe] = useState<number | string>(0);
+  const [preco_moedas, setPrecoMoedas] = useState<number | string>(0);
   const [poderes, setPoderes] = useState('');
   const [efeito, setEfeito] = useState('');
   const [empilhavel, setEmpilhavel] = useState(false);
@@ -35,9 +39,9 @@ export const useItemTresDetEditarModel = () => {
   const [magia_vinculada, setMagiaVinculada] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const _jsonToStr = (val) => {
+  const _jsonToStr = (val: unknown): string => {
     if (!val) return '';
     return typeof val === 'string' ? val : JSON.stringify(val, null, 2);
   };
@@ -45,43 +49,51 @@ export const useItemTresDetEditarModel = () => {
   useEffect(() => {
     if (id) loadItem(id);
     return () => setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const loadItem = async (itemId) => {
+  const loadItem = async (itemId: string) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await itemTresDetService.getById(itemId);
-      setNome(data.nome || '');
-      setDescricao(data.descricao || '');
-      setTipo(data.tipo || '');
-      setCustoPe(data.custo_pe ?? 0);
-      setPrecoMoedas(data.preco_moedas ?? 0);
-      setPoderes(_jsonToStr(data.poderes));
-      setEfeito(data.efeito || '');
-      setEmpilhavel(data.empilhavel ?? false);
-      setRaridade(data.raridade || '');
-      setImagem(data.imagem || '');
-      setMagiaVinculada(data.magia_vinculada || '');
+      const { data } = await itemTresDetService.getById(Number(itemId));
+      const d = data as Record<string, unknown>;
+      setNome((d.nome as string) || '');
+      setDescricao((d.descricao as string) || '');
+      setTipo((d.tipo as string) || '');
+      setCustoPe((d.custo_pe as number) ?? 0);
+      setPrecoMoedas((d.preco_moedas as number) ?? 0);
+      setPoderes(_jsonToStr(d.poderes));
+      setEfeito((d.efeito as string) || '');
+      setEmpilhavel((d.empilhavel as boolean) ?? false);
+      setRaridade((d.raridade as string) || '');
+      setImagem((d.imagem as string) || '');
+      setMagiaVinculada((d.magia_vinculada as string) || '');
       setLoading(false);
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setLoading(false);
-      setError(`Erro ao carregar item: ${err.message}`);
+      setError(`Erro ao carregar item: ${message}`);
     }
   };
 
-  const setField = (name, value) => {
-    const setters = {
-      nome: setNome, descricao: setDescricao, tipo: setTipo,
-      custo_pe: setCustoPe, preco_moedas: setPrecoMoedas,
-      poderes: setPoderes, efeito: setEfeito,
-      empilhavel: setEmpilhavel, raridade: setRaridade,
-      magia_vinculada: setMagiaVinculada,
+  const setField = (name: ItemField, value: string | number | boolean) => {
+    const setters: Record<ItemField, (value: never) => void> = {
+      nome: setNome as (v: never) => void,
+      descricao: setDescricao as (v: never) => void,
+      tipo: setTipo as (v: never) => void,
+      custo_pe: setCustoPe as (v: never) => void,
+      preco_moedas: setPrecoMoedas as (v: never) => void,
+      poderes: setPoderes as (v: never) => void,
+      efeito: setEfeito as (v: never) => void,
+      empilhavel: setEmpilhavel as (v: never) => void,
+      raridade: setRaridade as (v: never) => void,
+      magia_vinculada: setMagiaVinculada as (v: never) => void,
     };
-    setters[name]?.(value);
+    setters[name]?.(value as never);
   };
 
-  const _parseJson = (str) => {
+  const _parseJson = (str: string): unknown => {
     if (!str) return null;
     try { return JSON.parse(str); } catch { return str; }
   };
@@ -90,8 +102,8 @@ export const useItemTresDetEditarModel = () => {
     nome,
     descricao: descricao || null,
     tipo,
-    custo_pe: custo_pe ? parseInt(custo_pe) : 0,
-    preco_moedas: preco_moedas ? parseInt(preco_moedas) : 0,
+    custo_pe: custo_pe ? parseInt(String(custo_pe)) : 0,
+    preco_moedas: preco_moedas ? parseInt(String(preco_moedas)) : 0,
     poderes: _parseJson(poderes),
     efeito: efeito || null,
     empilhavel,
@@ -103,15 +115,17 @@ export const useItemTresDetEditarModel = () => {
   const saveItem = async () => {
     if (!nome.trim()) { setError('Nome e obrigatorio'); return { success: false }; }
     if (!tipo) { setError('Tipo e obrigatorio'); return { success: false }; }
+    if (!id) { setError('ID nao informado'); return { success: false }; }
     setSaving(true);
     setError(null);
     try {
-      await itemTresDetService.update(id, _buildData());
+      await itemTresDetService.update(Number(id), _buildData());
       setSaving(false);
       return { success: true };
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setSaving(false);
-      setError(`Erro ao salvar item: ${err.message}`);
+      setError(`Erro ao salvar item: ${message}`);
       return { success: false };
     }
   };

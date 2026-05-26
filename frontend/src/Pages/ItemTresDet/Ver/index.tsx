@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useItemTresDetVerModel } from './item-tresdet-ver.model';
 import VerItemTresDetView from './item-tresdet-ver.view';
 

@@ -1,13 +1,17 @@
-import React, { useState, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import { useState, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { PageHeader, Badge, CatalogCard, CatalogCardSkeleton } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import { useTheme } from '../../../contexts/theme';
 import { Package, Eye, Pencil, Trash2, Sword, Shield, Sparkles, ScrollText } from 'lucide-react';
+import type { ComponentType } from 'react';
+import type { ItemTresDet } from './item-tresdet-lista.model';
 
-const raridadeVariant = {
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const raridadeVariant: Record<string, BadgeVariant> = {
   'comum': 'slate',
   'incomum': 'green',
   'raro': 'blue',
@@ -15,7 +19,7 @@ const raridadeVariant = {
   'variavel': 'purple',
 };
 
-const tipoIcon = {
+const tipoIcon: Record<string, ComponentType<{ size?: number | string; className?: string }>> = {
   'arma': Sword,
   'armadura': Shield,
   'acessorio': Sparkles,
@@ -23,6 +27,31 @@ const tipoIcon = {
   'pergaminho': ScrollText,
   'mecha': Package,
 };
+
+interface SelectOption { value: string; label: string }
+
+interface ItemTresDetListaViewProps {
+  itens: ItemTresDet[];
+  displayItens: ItemTresDet[];
+  loading: boolean;
+  error: string | null;
+  tipoFilter: string;
+  raridadeFilter: string;
+  tiposOptions: SelectOption[];
+  raridadeOptions: SelectOption[];
+  showDeleteModal: boolean;
+  itemToDelete: ItemTresDet | null;
+  deleteLoading: boolean;
+  setTipoFilter: (tipo: string) => void;
+  setRaridadeFilter: (raridade: string) => void;
+  handleDeleteClick: (row: ItemTresDet) => void;
+  handleConfirmDelete: () => void;
+  handleCancelDelete: () => void;
+  countByTipo: (tipo: string) => number;
+  clearError: () => void;
+  onVerItem: (id: number | string) => void;
+  onEditarItem: (id: number | string) => void;
+}
 
 const ItemTresDetListaView = ({
   itens,
@@ -45,7 +74,7 @@ const ItemTresDetListaView = ({
   clearError,
   onVerItem,
   onEditarItem,
-}) => {
+}: ItemTresDetListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -60,7 +89,7 @@ const ItemTresDetListaView = ({
     );
   }
 
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const itemsWithImages = displayItens
     .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
@@ -108,22 +137,14 @@ const ItemTresDetListaView = ({
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <select
-          value={tipoFilter}
-          onChange={(e) => setTipoFilter(e.target.value)}
-          className={selectCls}
-        >
+        <select value={tipoFilter} onChange={(e) => setTipoFilter(e.target.value)} className={selectCls}>
           <option value="">Todos os Tipos</option>
           {tiposOptions.map(t => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
 
-        <select
-          value={raridadeFilter}
-          onChange={(e) => setRaridadeFilter(e.target.value)}
-          className={selectCls}
-        >
+        <select value={raridadeFilter} onChange={(e) => setRaridadeFilter(e.target.value)} className={selectCls}>
           <option value="">Todas as Raridades</option>
           {raridadeOptions.map(r => (
             <option key={r.value} value={r.value}>{r.label}</option>
@@ -140,7 +161,7 @@ const ItemTresDetListaView = ({
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {displayItens.map((row, i) => {
             const raridade = row.raridade || 'comum';
-            const TipoIcon = tipoIcon[row.tipo] || Package;
+            const TipoIcon = (row.tipo && tipoIcon[row.tipo]) || Package;
 
             return (
               <CatalogCard
@@ -164,8 +185,8 @@ const ItemTresDetListaView = ({
                 ]}
               >
                 <div className="flex flex-wrap gap-1 mt-1">
-                  <Badge variant="indigo">{row.tipo}</Badge>
-                  {row.custo_pe > 0 && (
+                  {row.tipo && <Badge variant="indigo">{row.tipo}</Badge>}
+                  {(row.custo_pe ?? 0) > 0 && (
                     <Badge variant="amber">{row.custo_pe} PE</Badge>
                   )}
                 </div>
@@ -180,9 +201,9 @@ const ItemTresDetListaView = ({
 
       {galleryIndex !== null && displayItens[galleryIndex] && (
         <ImageLightbox
-          src={displayItens[galleryIndex].imagem}
-          alt={displayItens[galleryIndex].nome}
-          title={displayItens[galleryIndex].nome}
+          src={displayItens[galleryIndex].imagem ?? ''}
+          alt={displayItens[galleryIndex].nome ?? ''}
+          title={displayItens[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

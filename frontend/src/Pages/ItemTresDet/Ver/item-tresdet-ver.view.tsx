@@ -1,9 +1,10 @@
-import React from 'react';
 import { BookOpen, Tag, Coins, Zap, Package, Layers, Sparkles, ScrollText } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { CatalogDetailLayout, ChipGroup, formatJson } from '../../../components/shared';
+import { useTheme } from '../../../contexts/theme';
+import { CatalogDetailLayout, formatJson } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { ItemTresDetNormalizado } from './item-tresdet-ver.model';
 
-const TIPO_LABELS = {
+const TIPO_LABELS: Record<string, string> = {
   'arma': 'Arma',
   'armadura': 'Armadura',
   'acessorio': 'Acessorio',
@@ -12,7 +13,9 @@ const TIPO_LABELS = {
   'mecha': 'Mecha',
 };
 
-const RARIDADE_COLORS = {
+interface RaridadeConfig { badge: string; badgeLight: string; accent: string }
+
+const RARIDADE_COLORS: Record<string, RaridadeConfig> = {
   'comum': { badge: 'bg-slate-500/20 text-slate-300 border-slate-500/30', badgeLight: 'bg-gray-100 text-gray-700 border-gray-300', accent: '#64748b' },
   'incomum': { badge: 'bg-green-500/20 text-green-400 border-green-500/30', badgeLight: 'bg-green-100 text-green-700 border-green-300', accent: '#22c55e' },
   'raro': { badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30', badgeLight: 'bg-blue-100 text-blue-700 border-blue-300', accent: '#3b82f6' },
@@ -20,9 +23,18 @@ const RARIDADE_COLORS = {
   'variavel': { badge: 'bg-purple-500/20 text-purple-400 border-purple-500/30', badgeLight: 'bg-purple-100 text-purple-700 border-purple-300', accent: '#8b5cf6' },
 };
 
-const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+const capitalize = (str: string | undefined | null): string =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 
-const VerItemTresDetView = ({ item, loading, error, onBack, onEdit }) => {
+interface VerItemTresDetViewProps {
+  item: ItemTresDetNormalizado | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+const VerItemTresDetView = ({ item, loading, error, onBack, onEdit }: VerItemTresDetViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -53,7 +65,7 @@ const VerItemTresDetView = ({ item, loading, error, onBack, onEdit }) => {
   ].filter(Boolean);
 
   const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
-  const sections = [
+  const sections: CatalogDetailSection[] = ([
     item.descricao && {
       title: 'Descricao', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${textCls}`}>{item.descricao}</p>,
@@ -75,16 +87,16 @@ const VerItemTresDetView = ({ item, loading, error, onBack, onEdit }) => {
       title: 'Magia Vinculada', icon: ScrollText, color: '#c2410c',
       content: <p className={`font-modern leading-relaxed italic ${textCls}`}>{item.magiaVinculada}</p>,
     },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailSection[]);
 
-  const stats = [
+  const stats: CatalogDetailStat[] = ([
     { icon: Tag, label: 'Tipo', content: TIPO_LABELS[item.tipo] || item.tipo },
     { icon: Tag, label: 'Raridade', content: <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? raridadeConfig.badgeLight : raridadeConfig.badge}`}>{capitalize(item.raridade)}</span> },
     item.custoPe > 0 && { icon: Zap, label: 'Custo PE', content: <span className={`font-mono font-semibold ${isLight ? 'text-purple-600' : 'text-purple-400'}`}>{item.custoPe}</span> },
     item.precoMoedas > 0 && { icon: Coins, label: 'Preco (Moedas)', content: <span className={`font-mono font-semibold ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>{item.precoMoedas}</span> },
     { icon: Layers, label: 'Empilhavel', content: item.empilhavel ? 'Sim' : 'Nao' },
     item.magiaVinculada && { icon: ScrollText, label: 'Magia Vinculada', content: item.magiaVinculada },
-  ].filter(Boolean);
+  ].filter(Boolean) as CatalogDetailStat[]);
 
   return (
     <CatalogDetailLayout

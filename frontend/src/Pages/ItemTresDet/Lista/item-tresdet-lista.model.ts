@@ -1,6 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useItemTresDetStore } from '../../../store/itemTresDet/index.js';
-import { itemTresDetService } from '../../../services/index.js';
+import { useItemTresDetStore } from '../../../store/itemTresDet/index';
+import { itemTresDetService } from '../../../services/index';
+import type { ItemTresDet as ItemTresDetBase } from '../../../store/itemTresDet/states';
+
+export interface ItemTresDet extends ItemTresDetBase {
+  nome?: string;
+  descricao?: string | null;
+  imagem?: string | null;
+  tipo?: string;
+  raridade?: string;
+  custo_pe?: number;
+  preco_moedas?: number;
+  poderes?: unknown;
+  efeito?: string | null;
+  empilhavel?: boolean;
+  magia_vinculada?: string | null;
+}
 
 const TIPOS_OPTIONS = [
   { value: 'arma', label: 'Arma' },
@@ -20,7 +35,7 @@ const RARIDADE_OPTIONS = [
 ];
 
 export const useItemTresDetListaModel = () => {
-  const allItens = useItemTresDetStore(s => s.itens);
+  const allItens = useItemTresDetStore(s => s.itens) as ItemTresDet[];
   const storeLoading = useItemTresDetStore(s => s.loading);
   const storeError = useItemTresDetStore(s => s.error);
   const carregarItens = useItemTresDetStore(s => s.carregarItens);
@@ -30,12 +45,13 @@ export const useItemTresDetListaModel = () => {
   const [tipoFilter, setTipoFilter] = useState('');
   const [raridadeFilter, setRaridadeFilter] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState<ItemTresDet | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     carregarItens();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredItens = useMemo(() => {
@@ -60,7 +76,7 @@ export const useItemTresDetListaModel = () => {
     return filtered;
   }, [allItens, searchTerm, tipoFilter, raridadeFilter]);
 
-  const handleDeleteClick = (row) => {
+  const handleDeleteClick = (row: ItemTresDet) => {
     setItemToDelete(row);
     setShowDeleteModal(true);
   };
@@ -74,7 +90,8 @@ export const useItemTresDetListaModel = () => {
       setShowDeleteModal(false);
       setItemToDelete(null);
     } catch (err) {
-      setDeleteError(`Erro ao deletar item: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setDeleteError(`Erro ao deletar item: ${message}`);
     } finally {
       setDeleteLoading(false);
     }
@@ -86,7 +103,8 @@ export const useItemTresDetListaModel = () => {
     setDeleteLoading(false);
   };
 
-  const countByTipo = (tipo) => (allItens || []).filter(i => i.tipo === tipo).length;
+  const countByTipo = (tipo: string) =>
+    (allItens || []).filter(i => i.tipo === tipo).length;
 
   const clearError = () => setDeleteError(null);
 

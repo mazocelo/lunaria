@@ -2,32 +2,63 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../services/ApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 
+export interface BillingUsageRow {
+  provider?: string;
+  tipo?: string;
+  nome?: string;
+  chamadas?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  caracteres?: number;
+  custo_usd?: number;
+  dia?: string;
+  custo?: number;
+}
+
+export interface BillingUsage {
+  totais?: {
+    chamadas?: number;
+    custo_usd?: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    caracteres?: number;
+  };
+  porDia?: BillingUsageRow[];
+  porProvider?: BillingUsageRow[];
+  porTipo?: BillingUsageRow[];
+  porUsuario?: BillingUsageRow[];
+}
+
+type ViewMode = 'pessoal' | 'global';
+type DateField = 'from' | 'to';
+
 export function useBillingModel() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [usage, setUsage] = useState(null);
-  const [globalUsage, setGlobalUsage] = useState(null);
-  const [viewMode, setViewMode] = useState('pessoal'); // 'pessoal' | 'global'
-  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<BillingUsage | null>(null);
+  const [globalUsage, setGlobalUsage] = useState<BillingUsage | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('pessoal');
+  const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
 
   const carregarUsage = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params: Record<string, string> = {};
       if (dateRange.from) params.from = dateRange.from;
       if (dateRange.to) params.to = dateRange.to;
 
       const queryString = new URLSearchParams(params).toString();
       const suffix = queryString ? `?${queryString}` : '';
 
-      const response = await apiClient.get(`/billing/usage${suffix}`);
-      if (response.success) setUsage(response.data);
+      const response = await apiClient.get(`/billing/usage${suffix}`) as { success?: boolean; data?: BillingUsage };
+      if (response.success) setUsage(response.data || null);
     } catch (err) {
-      setError(err.message || 'Erro ao carregar consumo');
+      const message = err instanceof Error ? err.message : 'Erro ao carregar consumo';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -38,17 +69,18 @@ export function useBillingModel() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params: Record<string, string> = {};
       if (dateRange.from) params.from = dateRange.from;
       if (dateRange.to) params.to = dateRange.to;
 
       const queryString = new URLSearchParams(params).toString();
       const suffix = queryString ? `?${queryString}` : '';
 
-      const response = await apiClient.get(`/billing/global${suffix}`);
-      if (response.success) setGlobalUsage(response.data);
+      const response = await apiClient.get(`/billing/global${suffix}`) as { success?: boolean; data?: BillingUsage };
+      if (response.success) setGlobalUsage(response.data || null);
     } catch (err) {
-      setError(err.message || 'Erro ao carregar consumo global');
+      const message = err instanceof Error ? err.message : 'Erro ao carregar consumo global';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -62,7 +94,7 @@ export function useBillingModel() {
     }
   }, [viewMode, carregarUsage, carregarGlobal, isAdmin]);
 
-  const handleDateChange = (field, value) => {
+  const handleDateChange = (field: DateField, value: string) => {
     setDateRange(prev => ({ ...prev, [field]: value }));
   };
 

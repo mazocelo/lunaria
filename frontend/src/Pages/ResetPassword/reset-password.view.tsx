@@ -1,10 +1,43 @@
-import React from 'react';
 import InputSimples from '../../components/form/inputSimples';
 import Button from '../../components/form/button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Notification from '../../components/Notification';
 import ParticlesBackground from '../../components/ParticlesBackground';
 import { Eye, EyeOff } from 'lucide-react';
+
+interface ResetPasswordFormData {
+  senha: string;
+  confirmarSenha: string;
+}
+
+interface ResetPasswordErrors {
+  senha?: string;
+  confirmarSenha?: string;
+}
+
+interface NotificationState {
+  type: 'success' | 'error';
+  message: string;
+}
+
+type FieldName = keyof ResetPasswordFormData;
+
+interface ResetPasswordViewProps {
+  token: string | null;
+  formData: ResetPasswordFormData;
+  errors: ResetPasswordErrors;
+  notification: NotificationState | null;
+  submitLoading: boolean;
+  success: boolean;
+  showPassword: boolean;
+  showConfirm: boolean;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  validateField: (name: FieldName) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  toggleShowPassword: () => void;
+  toggleShowConfirm: () => void;
+  clearNotification: () => void;
+}
 
 const ResetPasswordView = ({
   token,
@@ -21,7 +54,7 @@ const ResetPasswordView = ({
   toggleShowPassword,
   toggleShowConfirm,
   clearNotification,
-}) => {
+}: ResetPasswordViewProps) => {
   if (!token) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -188,7 +221,7 @@ const ResetPasswordView = ({
           type={notification.type}
           message={notification.message}
           onClose={clearNotification}
-          autoClose={5000}
+          duration={5000}
         />
       )}
 

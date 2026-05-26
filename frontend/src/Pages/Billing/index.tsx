@@ -1,6 +1,6 @@
 import { useBillingModel } from './billing.model';
 import BillingView from './billing.view';
-import { useTheme } from '../../contexts/theme.jsx';
+import { useTheme } from '../../contexts/theme';
 
 export default function BillingPage() {
   const props = useBillingModel();

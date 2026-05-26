@@ -1,6 +1,6 @@
-import React from 'react';
+import type { BillingUsage, BillingUsageRow } from './billing.model';
 
-const PROVIDER_LABELS = {
+const PROVIDER_LABELS: Record<string, string> = {
   groq: 'Groq (Llama)',
   gemini: 'Gemini',
   anthropic: 'Anthropic (Claude)',
@@ -10,25 +10,32 @@ const PROVIDER_LABELS = {
   leonardo: 'Leonardo AI',
 };
 
-const TIPO_LABELS = {
+const TIPO_LABELS: Record<string, string> = {
   text: 'Texto (LLM)',
   blueprint: 'Roteiro (Blueprint)',
   tts: 'Voz (TTS)',
   image: 'Imagem',
 };
 
-function formatCurrency(val) {
+function formatCurrency(val: number | undefined): string {
   return `$${(val || 0).toFixed(4)}`;
 }
 
-function formatNumber(val) {
+function formatNumber(val: number | undefined): string {
   if (!val) return '0';
   if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
   if (val >= 1000) return `${(val / 1000).toFixed(1)}K`;
   return val.toString();
 }
 
-function StatCard({ label, value, sub, isDark }) {
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  sub?: string;
+  isDark: boolean;
+}
+
+function StatCard({ label, value, sub, isDark }: StatCardProps) {
   return (
     <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
       <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
@@ -38,7 +45,9 @@ function StatCard({ label, value, sub, isDark }) {
   );
 }
 
-function ProviderTable({ data, isDark }) {
+interface TableProps { data?: BillingUsageRow[]; isDark: boolean }
+
+function ProviderTable({ data, isDark }: TableProps) {
   if (!data || data.length === 0) return <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Nenhum dado</p>;
   return (
     <div className="overflow-x-auto">
@@ -55,7 +64,7 @@ function ProviderTable({ data, isDark }) {
         <tbody>
           {data.map((row, i) => (
             <tr key={i} className={isDark ? 'border-b border-gray-800' : 'border-b border-gray-100'}>
-              <td className="py-2 pr-4 font-medium">{PROVIDER_LABELS[row.provider] || row.provider}</td>
+              <td className="py-2 pr-4 font-medium">{(row.provider && PROVIDER_LABELS[row.provider]) || row.provider}</td>
               <td className="text-right py-2 px-2">{formatNumber(row.chamadas)}</td>
               <td className="text-right py-2 px-2">{formatNumber((row.input_tokens || 0) + (row.output_tokens || 0))}</td>
               <td className="text-right py-2 px-2">{formatNumber(row.caracteres)}</td>
@@ -68,7 +77,7 @@ function ProviderTable({ data, isDark }) {
   );
 }
 
-function TipoTable({ data, isDark }) {
+function TipoTable({ data, isDark }: TableProps) {
   if (!data || data.length === 0) return null;
   return (
     <div className="overflow-x-auto">
@@ -83,7 +92,7 @@ function TipoTable({ data, isDark }) {
         <tbody>
           {data.map((row, i) => (
             <tr key={i} className={isDark ? 'border-b border-gray-800' : 'border-b border-gray-100'}>
-              <td className="py-2 pr-4 font-medium">{TIPO_LABELS[row.tipo] || row.tipo}</td>
+              <td className="py-2 pr-4 font-medium">{(row.tipo && TIPO_LABELS[row.tipo]) || row.tipo}</td>
               <td className="text-right py-2 px-2">{formatNumber(row.chamadas)}</td>
               <td className="text-right py-2 pl-2 font-mono">{formatCurrency(row.custo_usd)}</td>
             </tr>
@@ -94,7 +103,7 @@ function TipoTable({ data, isDark }) {
   );
 }
 
-function UserTable({ data, isDark }) {
+function UserTable({ data, isDark }: TableProps) {
   if (!data || data.length === 0) return null;
   return (
     <div className="overflow-x-auto">
@@ -120,7 +129,7 @@ function UserTable({ data, isDark }) {
   );
 }
 
-function DailyChart({ data, isDark }) {
+function DailyChart({ data, isDark }: TableProps) {
   if (!data || data.length === 0) return null;
   const maxCusto = Math.max(...data.map(d => d.custo || 0), 0.001);
   const days = data.slice(0, 30).reverse();
@@ -128,7 +137,7 @@ function DailyChart({ data, isDark }) {
   return (
     <div className="flex items-end gap-1 h-32">
       {days.map((d, i) => {
-        const height = Math.max(2, (d.custo / maxCusto) * 100);
+        const height = Math.max(2, ((d.custo || 0) / maxCusto) * 100);
         return (
           <div key={i} className="flex-1 flex flex-col items-center group relative" title={`${d.dia}: ${formatCurrency(d.custo)} (${d.chamadas} chamadas)`}>
             <div
@@ -142,21 +151,34 @@ function DailyChart({ data, isDark }) {
   );
 }
 
+interface BillingViewProps {
+  loading: boolean;
+  error: string | null;
+  usage: BillingUsage | null;
+  globalUsage: BillingUsage | null;
+  viewMode: 'pessoal' | 'global';
+  setViewMode: (mode: 'pessoal' | 'global') => void;
+  dateRange: { from: string; to: string };
+  handleDateChange: (field: 'from' | 'to', value: string) => void;
+  handleApplyFilter: () => void;
+  isAdmin: boolean;
+  isDark: boolean;
+}
+
 export default function BillingView({
   loading, error, usage, globalUsage,
   viewMode, setViewMode, dateRange, handleDateChange, handleApplyFilter,
   isAdmin, isDark
-}) {
+}: BillingViewProps) {
   const currentData = viewMode === 'global' ? globalUsage : usage;
 
   return (
     <div className={`max-w-4xl mx-auto ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
       <h1 className="text-2xl font-bold mb-6">Consumo de API</h1>
 
-      {/* Tabs pessoal/global */}
       {isAdmin && (
         <div className={`flex gap-1 mb-6 p-1 rounded-lg w-fit ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-          {['pessoal', 'global'].map(mode => (
+          {(['pessoal', 'global'] as const).map(mode => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
@@ -172,7 +194,6 @@ export default function BillingView({
         </div>
       )}
 
-      {/* Date filter */}
       <div className={`flex gap-3 items-end mb-6 flex-wrap`}>
         <div>
           <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>De</label>
@@ -200,20 +221,16 @@ export default function BillingView({
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Carregando...</div>
       )}
 
-      {/* Content */}
       {!loading && currentData && (
         <div className="space-y-6">
-          {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard isDark={isDark} label="Total Chamadas" value={formatNumber(currentData.totais?.chamadas)} />
             <StatCard isDark={isDark} label="Custo Total" value={formatCurrency(currentData.totais?.custo_usd)} />
@@ -221,7 +238,6 @@ export default function BillingView({
             <StatCard isDark={isDark} label="Caracteres TTS" value={formatNumber(currentData.totais?.caracteres)} />
           </div>
 
-          {/* Daily chart */}
           {currentData.porDia && currentData.porDia.length > 0 && (
             <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
               <h3 className="text-sm font-semibold mb-3">Custo Diario (ultimos 30 dias)</h3>
@@ -229,19 +245,16 @@ export default function BillingView({
             </div>
           )}
 
-          {/* Provider breakdown */}
           <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
             <h3 className="text-sm font-semibold mb-3">Por Provider</h3>
             <ProviderTable data={currentData.porProvider} isDark={isDark} />
           </div>
 
-          {/* Type breakdown */}
           <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
             <h3 className="text-sm font-semibold mb-3">Por Tipo</h3>
             <TipoTable data={currentData.porTipo} isDark={isDark} />
           </div>
 
-          {/* User breakdown (admin global only) */}
           {viewMode === 'global' && currentData.porUsuario && (
             <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
               <h3 className="text-sm font-semibold mb-3">Por Usuario</h3>

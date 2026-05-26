@@ -2,30 +2,47 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
+interface ResetPasswordFormData {
+  senha: string;
+  confirmarSenha: string;
+}
+
+interface ResetPasswordErrors {
+  senha?: string;
+  confirmarSenha?: string;
+}
+
+type FieldName = keyof ResetPasswordFormData;
+
+interface NotificationState {
+  type: 'success' | 'error';
+  message: string;
+}
+
 export const useResetPasswordModel = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const { resetPassword } = useAuth();
 
-  const [formData, setFormData] = useState({ senha: '', confirmarSenha: '' });
-  const [errors, setErrors] = useState({});
-  const [notification, setNotification] = useState(null);
+  const [formData, setFormData] = useState<ResetPasswordFormData>({ senha: '', confirmarSenha: '' });
+  const [errors, setErrors] = useState<ResetPasswordErrors>({});
+  const [notification, setNotification] = useState<NotificationState | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
+    if (errors[name as FieldName]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const validateField = (name) => {
+  const validateField = (name: FieldName) => {
     setErrors(prev => {
-      const next = { ...prev };
+      const next: ResetPasswordErrors = { ...prev };
       if (name === 'senha') {
         if (formData.senha && formData.senha.length < 6) {
           next.senha = 'Senha deve ter pelo menos 6 caracteres';
@@ -44,9 +61,9 @@ export const useResetPasswordModel = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors = {};
+    const newErrors: ResetPasswordErrors = {};
 
     if (!formData.senha.trim()) {
       newErrors.senha = 'Senha e obrigatoria';
@@ -67,7 +84,9 @@ export const useResetPasswordModel = () => {
 
     setSubmitLoading(true);
     try {
-      const result = await resetPassword({ token, senha: formData.senha });
+      // FIXME pre-existente: AuthService.resetPassword tipa o campo da senha
+      // como `password`, mas o backend recebia `senha`. Enviamos ambos.
+      const result = await resetPassword({ token: token || '', password: formData.senha, senha: formData.senha }) as { success?: boolean; error?: string };
       if (result.success) {
         setSuccess(true);
         setNotification({ type: 'success', message: 'Senha redefinida com sucesso!' });

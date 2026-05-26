@@ -1,12 +1,27 @@
-import { apiClient } from '../../services/ApiClient.js';
-import { AudioRegistry } from './audioRegistry.js';
-import { createAudioPlaylist } from '../domain/playlist.js';
-import { createNarrationTrackRef, getTrackDisplayLabel, normalizeLegacyNarrationItem } from '../domain/trackRef.js';
+import { apiClient } from '../../services/ApiClient';
+import { AudioRegistry, type PreparedAudioEntry } from './audioRegistry';
+import { createAudioPlaylist, type AudioPlaylist, type AudioPlaylistInput } from '../domain/playlist';
+import {
+  createNarrationTrackRef,
+  getTrackDisplayLabel,
+  normalizeLegacyNarrationItem,
+  type AudioTrackRef,
+  type AudioTrackRefInput,
+} from '../domain/trackRef';
 
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 const SPEED_STEPS = [1, 1.25, 1.5, 1.75, 2];
 const MAX_TTS_TEXT_LENGTH = 4500;
-const EMPTY_SEQUENCE_STATE = {
+
+interface SequenceState {
+  token: number | null;
+  preparing: boolean;
+  waitingForNext: boolean;
+  lastFinishedIndex: number;
+  playlistId: string | null;
+}
+
+const EMPTY_SEQUENCE_STATE: SequenceState = {
   token: null,
   preparing: false,
   waitingForNext: false,
@@ -14,7 +29,91 @@ const EMPTY_SEQUENCE_STATE = {
   playlistId: null,
 };
 
-function splitTextForTts(text, maxLength = MAX_TTS_TEXT_LENGTH) {
+export interface QueueItem {
+  trackId: string;
+  label: string;
+  speakerLabel: string | null;
+  kindLabel: string;
+  status: 'pending' | 'active' | 'completed' | 'preparing' | 'ready';
+  isPlaying: boolean;
+}
+
+export interface AudioControllerState {
+  isPlaying: boolean;
+  isLoading: boolean;
+  canTogglePlayback: boolean;
+  currentTime: number;
+  duration: number;
+  playbackRate: number;
+  currentMessageId: string | null;
+  currentSegmentId: string | null;
+  currentTrackId: string | null;
+  currentPlaylistId: string | null;
+  currentPlaylist: AudioPlaylist | null;
+  currentTrack: AudioTrackRef | null;
+  currentSequenceKey: string | null;
+  queueIndex: number;
+  currentChunkIndex: number;
+  isSequence: boolean;
+  generatingMessageId: string | null;
+  loadingTargetId: string | null;
+  loadingSegmentId: string | null;
+  loadingSequenceKey: string | null;
+  preparingOwnerId: string | null;
+  waitingForNext: boolean;
+  lastError: string | null;
+  errorMessageId: string | null;
+  queueItems: QueueItem[];
+  queueOpen: boolean;
+}
+
+interface QueueEntry extends PreparedAudioEntry {
+  queueIndex: number;
+}
+
+interface PlayOptions {
+  forceRegenerate?: boolean;
+  allowGenerate?: boolean;
+  playlistId?: string | null;
+  title?: string | null;
+  source?: string | null;
+  contextLabel?: string | null;
+  segmentId?: string | number | null;
+  sequenceKey?: string | null;
+  hasPersistedAudio?: boolean;
+  emotion?: string | null;
+  kind?: string;
+  speakerLabel?: string | null;
+  [key: string]: unknown;
+}
+
+interface PrepareOptions {
+  allowGenerate?: boolean;
+  forceRegenerate?: boolean;
+  requestToken?: number | null;
+}
+
+interface PreparedEntryInput {
+  trackId?: string | number | null;
+  messageId?: string | number | null;
+  segmentId?: string | number | null;
+  speakerLabel?: string | null;
+  text?: string;
+  speechText?: string;
+  urls?: string[];
+}
+
+interface RegisterPlaylistInput {
+  playlistId: string;
+  ownerId: string | null;
+  ownerType?: string;
+  tracks?: AudioTrackRefInput[];
+  title?: string;
+  source?: string;
+  contextLabel?: string | null;
+}
+
+function splitTextForTts(text: string | null | undefined, maxLength: number = MAX_TTS_TEXT_LENGTH): string[] {
   const normalized = String(text || '').trim();
   if (!normalized) return [];
   if (normalized.length <= maxLength) return [normalized];
@@ -24,7 +123,7 @@ function splitTextForTts(text, maxLength = MAX_TTS_TEXT_LENGTH) {
     .map((part) => part.trim())
     .filter(Boolean);
 
-  const chunks = [];
+  const chunks: string[] = [];
   let current = '';
 
   const pushChunk = () => {
@@ -34,7 +133,7 @@ function splitTextForTts(text, maxLength = MAX_TTS_TEXT_LENGTH) {
     }
   };
 
-  const appendPiece = (piece) => {
+  const appendPiece = (piece: string) => {
     const trimmed = piece.trim();
     if (!trimmed) return;
 
@@ -79,23 +178,32 @@ function splitTextForTts(text, maxLength = MAX_TTS_TEXT_LENGTH) {
   return chunks;
 }
 
-function createAudioUrlsFromBlob(blob) {
+function createAudioUrlsFromBlob(blob: Blob): string {
   return URL.createObjectURL(blob);
 }
 
-function flattenPreparedEntries(entries = []) {
+function flattenPreparedEntries(entries: PreparedEntryInput[] = []): PreparedAudioEntry[] {
   return (Array.isArray(entries) ? entries : []).map((entry) => ({
-    trackId: entry.trackId,
-    messageId: entry.messageId,
-    segmentId: entry.segmentId || null,
+    trackId: String(entry.trackId ?? ''),
+    messageId: entry.messageId == null ? null : String(entry.messageId),
+    segmentId: entry.segmentId == null ? null : String(entry.segmentId),
     speakerLabel: entry.speakerLabel || null,
-    text: entry.text,
-    speechText: entry.speechText || entry.text,
+    text: entry.text || '',
+    speechText: entry.speechText || entry.text || '',
     urls: Array.isArray(entry.urls) ? entry.urls : [],
   }));
 }
 
 class AudioController {
+  registry: AudioRegistry;
+  listeners: Set<() => void>;
+  audio: HTMLAudioElement | null;
+  playToken: number;
+  queue: QueueEntry[];
+  preparingTrackIds: Set<string>;
+  sequenceState: SequenceState;
+  state: AudioControllerState;
+
   constructor() {
     this.registry = new AudioRegistry();
     this.listeners = new Set();
@@ -113,17 +221,22 @@ class AudioController {
     }
   }
 
-  buildQueueItems(playlist, currentTrackId, queueIndex, isPlaying) {
+  buildQueueItems(
+    playlist: AudioPlaylist | null,
+    currentTrackId: string | null,
+    queueIndex: number,
+    isPlaying: boolean
+  ): QueueItem[] {
     if (!playlist?.trackIds?.length) return [];
 
-    return playlist.trackIds.map((trackId, index) => {
+    return playlist.trackIds.map((trackId, index): QueueItem => {
       const track = this.registry.getTrack(trackId);
       const isPrepared = this.registry.hasPrepared(trackId);
       const isActive = String(trackId) === String(currentTrackId);
       const isCompleted = queueIndex > index;
       const isPreparing = this.preparingTrackIds.has(String(trackId));
 
-      let status = 'pending';
+      let status: QueueItem['status'] = 'pending';
       if (isActive) status = 'active';
       else if (isCompleted) status = 'completed';
       else if (isPreparing) status = 'preparing';
@@ -140,14 +253,14 @@ class AudioController {
     });
   }
 
-  buildState(patch = {}) {
-    const previous = this.state || {};
+  buildState(patch: Partial<AudioControllerState> = {}): AudioControllerState {
+    const previous = this.state || ({} as Partial<AudioControllerState>);
     const currentPlaylistId = patch.currentPlaylistId ?? previous.currentPlaylistId ?? null;
     const currentTrackId = patch.currentTrackId ?? previous.currentTrackId ?? null;
     const currentPlaylist = currentPlaylistId ? this.registry.getPlaylist(currentPlaylistId) : null;
     const currentTrack = currentTrackId ? this.registry.getTrack(currentTrackId) : null;
 
-    return {
+    const defaults: AudioControllerState = {
       isPlaying: false,
       isLoading: false,
       canTogglePlayback: false,
@@ -174,56 +287,67 @@ class AudioController {
       errorMessageId: null,
       queueItems: [],
       queueOpen: false,
+    };
+
+    const merged: AudioControllerState = {
+      ...defaults,
       ...previous,
       ...patch,
-      currentPlaylistId,
-      currentTrackId,
-        currentPlaylist,
-        currentTrack,
-        currentSequenceKey: patch.currentSequenceKey ?? currentPlaylistId,
-      isSequence: patch.isSequence ?? Boolean(currentPlaylist && currentPlaylist.trackIds.length > 1),
-      queueItems: this.buildQueueItems(
-        currentPlaylist,
-        currentTrackId,
-        patch.queueIndex ?? previous.queueIndex ?? -1,
-        patch.isPlaying ?? previous.isPlaying ?? false
-      ),
     };
+
+    merged.currentPlaylistId = currentPlaylistId;
+    merged.currentTrackId = currentTrackId;
+    merged.currentPlaylist = currentPlaylist;
+    merged.currentTrack = currentTrack;
+    merged.currentSequenceKey = patch.currentSequenceKey ?? currentPlaylistId;
+    merged.isSequence = patch.isSequence ?? Boolean(currentPlaylist && currentPlaylist.trackIds.length > 1);
+    merged.queueItems = this.buildQueueItems(
+      currentPlaylist,
+      currentTrackId,
+      patch.queueIndex ?? previous.queueIndex ?? -1,
+      patch.isPlaying ?? previous.isPlaying ?? false
+    );
+
+    return merged;
   }
 
-  subscribe = (listener) => {
+  subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
 
-  emit = () => {
+  emit = (): void => {
     this.listeners.forEach((listener) => listener());
   };
 
-  getState = () => this.state;
+  getState = (): AudioControllerState => this.state;
 
-  setState = (patch = {}) => {
+  setState = (patch: Partial<AudioControllerState> = {}): void => {
     this.state = this.buildState(patch);
     this.emit();
   };
 
-  clearError = () => {
+  clearError = (): void => {
     this.setState({ lastError: null, errorMessageId: null });
   };
 
-  setQueueOpen = (value) => {
+  setQueueOpen = (value: boolean): void => {
     this.setState({ queueOpen: Boolean(value) });
   };
 
-  toggleQueue = () => {
+  toggleQueue = (): void => {
     this.setState({ queueOpen: !this.state.queueOpen });
   };
 
-  getTrack = (trackId) => this.registry.getTrack(trackId);
+  getTrack = (trackId: string | number | null | undefined): AudioTrackRef | null =>
+    this.registry.getTrack(trackId);
 
-  getPlaylist = (playlistId) => this.registry.getPlaylist(playlistId);
+  getPlaylist = (playlistId: string | number | null | undefined): AudioPlaylist | null =>
+    this.registry.getPlaylist(playlistId);
 
-  detachAudioHandlers(audio) {
+  detachAudioHandlers(audio: HTMLAudioElement | null): void {
     if (!audio) return;
     audio.onended = null;
     audio.onerror = null;
@@ -233,7 +357,7 @@ class AudioController {
     audio.onloadedmetadata = null;
   }
 
-  resetAudio(resetProgress = true) {
+  resetAudio(resetProgress = true): void {
     if (this.audio) {
       this.audio.pause();
       this.detachAudioHandlers(this.audio);
@@ -249,14 +373,14 @@ class AudioController {
     }
   }
 
-  clearPlayback = (clearMessage = true) => {
+  clearPlayback = (clearMessage = true): void => {
     this.playToken += 1;
     this.resetAudio(true);
     this.queue = [];
     this.sequenceState = { ...EMPTY_SEQUENCE_STATE };
     this.preparingTrackIds.clear();
 
-    const patch = {
+    const patch: Partial<AudioControllerState> = {
       isLoading: false,
       canTogglePlayback: false,
       currentPlaylistId: null,
@@ -283,16 +407,21 @@ class AudioController {
     this.setState(patch);
   };
 
-  applyPlaybackRate = (audio) => {
+  applyPlaybackRate = (audio: HTMLAudioElement | null): void => {
     if (!audio) return;
     const rate = this.state.playbackRate || 1;
     audio.playbackRate = rate;
-    audio.preservesPitch = true;
-    audio.webkitPreservesPitch = true;
-    audio.mozPreservesPitch = true;
+    const ext = audio as HTMLAudioElement & {
+      preservesPitch?: boolean;
+      webkitPreservesPitch?: boolean;
+      mozPreservesPitch?: boolean;
+    };
+    ext.preservesPitch = true;
+    ext.webkitPreservesPitch = true;
+    ext.mozPreservesPitch = true;
   };
 
-  playQueueEntry = (entry, token, chunkIndex = 0) => {
+  playQueueEntry = (entry: QueueEntry | null, token: number, chunkIndex = 0): void => {
     if (!entry || token !== this.playToken) return;
     const urls = Array.isArray(entry.urls) ? entry.urls : [];
     const currentUrl = urls[chunkIndex];
@@ -380,7 +509,10 @@ class AudioController {
       .catch(() => this.clearPlayback(true));
   };
 
-  async prepareTrack(track, options = {}) {
+  async prepareTrack(
+    track: AudioTrackRef,
+    options: PrepareOptions = {}
+  ): Promise<(PreparedAudioEntry & AudioTrackRef) | null> {
     const {
       allowGenerate = true,
       forceRegenerate = false,
@@ -409,7 +541,7 @@ class AudioController {
 
     const spokenText = String(track.speechText || track.text || '').trim();
     const chunks = splitTextForTts(spokenText);
-    const urls = [];
+    const urls: string[] = [];
 
     try {
       for (const chunk of chunks) {
@@ -418,7 +550,7 @@ class AudioController {
           return null;
         }
 
-        const body = {
+        const body: Record<string, unknown> = {
           text: chunk,
           voiceId: track.voiceId,
           provider: track.provider || DEFAULT_TTS_PROVIDER,
@@ -426,7 +558,9 @@ class AudioController {
         if (track.emotion) body.emotion = track.emotion;
 
         const response = await apiClient.post('/tts/generate', body, { responseType: 'blob' });
-        const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+        const blob = response instanceof Blob
+          ? response
+          : new Blob([response as BlobPart], { type: 'audio/mpeg' });
         urls.push(createAudioUrlsFromBlob(blob));
       }
 
@@ -435,7 +569,7 @@ class AudioController {
         return null;
       }
 
-      const entry = {
+      const entry: PreparedAudioEntry = {
         trackId: track.trackId,
         messageId: track.messageId,
         segmentId: track.segmentId,
@@ -457,14 +591,14 @@ class AudioController {
     }
   }
 
-  buildQueueEntries(entries = []) {
+  buildQueueEntries(entries: PreparedEntryInput[] = []): QueueEntry[] {
     return flattenPreparedEntries(entries).map((entry, index) => ({
       ...entry,
       queueIndex: index,
     }));
   }
 
-  appendQueueEntries(entries = []) {
+  appendQueueEntries(entries: PreparedEntryInput[] = []): QueueEntry[] {
     const flattened = flattenPreparedEntries(entries);
     if (!flattened.length) return this.queue;
 
@@ -478,7 +612,15 @@ class AudioController {
     return this.queue;
   }
 
-  registerPlaylistWithTracks({ playlistId, ownerId, ownerType = 'playlist', tracks = [], title = 'Narracao', source = 'custom', contextLabel = null }) {
+  registerPlaylistWithTracks({
+    playlistId,
+    ownerId,
+    ownerType = 'playlist',
+    tracks = [],
+    title = 'Narracao',
+    source = 'custom',
+    contextLabel = null,
+  }: RegisterPlaylistInput): { playlist: AudioPlaylist; tracks: AudioTrackRef[] } {
     const normalizedTracks = this.registry.registerTracks(
       tracks.map((track, index) => normalizeLegacyNarrationItem(track, {
         ownerId,
@@ -505,7 +647,7 @@ class AudioController {
     return { playlist, tracks: normalizedTracks };
   }
 
-  playTrack = async (trackInput, options = {}) => {
+  playTrack = async (trackInput: AudioTrackRefInput, options: PlayOptions = {}): Promise<boolean> => {
     const normalizedTrack = normalizeLegacyNarrationItem(trackInput, {
       ownerId: trackInput?.ownerId ?? trackInput?.messageId,
       ownerType: trackInput?.segmentId ? 'segment' : 'message',
@@ -525,13 +667,19 @@ class AudioController {
     return this.playPlaylist(playlist, tracks, options);
   };
 
-  playPlaylist = async (playlistInput, tracksInput = [], options = {}) => {
-    const normalizedPlaylist = playlistInput?.playlistId
-      ? playlistInput
+  playPlaylist = async (
+    playlistInput: AudioPlaylist | AudioPlaylistInput,
+    tracksInput: AudioTrackRef[] = [],
+    options: PlayOptions = {}
+  ): Promise<boolean> => {
+    const normalizedPlaylist: AudioPlaylist = ('playlistId' in playlistInput) && playlistInput.playlistId
+      ? (playlistInput as AudioPlaylist)
       : createAudioPlaylist(playlistInput || {});
     const tracks = tracksInput.length > 0
       ? tracksInput
-      : normalizedPlaylist.trackIds.map((trackId) => this.registry.getTrack(trackId)).filter(Boolean);
+      : normalizedPlaylist.trackIds
+          .map((trackId) => this.registry.getTrack(trackId))
+          .filter((track): track is AudioTrackRef => track !== null);
 
     const validTracks = tracks.filter((track) => track?.text && track?.voiceId);
     if (!validTracks.length) return false;
@@ -572,13 +720,13 @@ class AudioController {
       isSequence: validTracks.length > 1,
     });
 
-    let firstPrepared = null;
+    let firstPrepared: (PreparedAudioEntry & AudioTrackRef) | null = null;
     let firstPreparedIndex = -1;
 
     try {
       for (let index = 0; index < validTracks.length; index += 1) {
         const track = validTracks[index];
-        let prepared = null;
+        let prepared: (PreparedAudioEntry & AudioTrackRef) | null = null;
 
         try {
           prepared = await this.prepareTrack(track, {
@@ -588,7 +736,7 @@ class AudioController {
           });
         } catch (error) {
           if (requestToken !== this.playToken) return false;
-          console.error('Audio playlist prepare error:', error.message);
+          console.error('Audio playlist prepare error:', (error as Error).message);
           continue;
         }
 
@@ -625,7 +773,7 @@ class AudioController {
       const prepareRemainingTracks = async () => {
         for (let index = firstPreparedIndex + 1; index < validTracks.length; index += 1) {
           const track = validTracks[index];
-          let prepared = null;
+          let prepared: (PreparedAudioEntry & AudioTrackRef) | null = null;
 
           try {
             prepared = await this.prepareTrack(track, {
@@ -635,7 +783,7 @@ class AudioController {
             });
           } catch (error) {
             if (requestToken !== this.playToken) return;
-            console.error('Audio playlist prepare error:', error.message);
+            console.error('Audio playlist prepare error:', (error as Error).message);
             continue;
           }
 
@@ -690,10 +838,11 @@ class AudioController {
       return true;
     } catch (error) {
       if (requestToken !== this.playToken) return false;
-      console.error('Audio playlist error:', error.message);
+      const err = error as Error;
+      console.error('Audio playlist error:', err.message);
       this.sequenceState = { ...EMPTY_SEQUENCE_STATE };
       this.setState({
-        lastError: error.message || 'Erro ao reproduzir audio',
+        lastError: err.message || 'Erro ao reproduzir audio',
         errorMessageId: normalizedPlaylist.ownerId,
       });
       this.clearPlayback(true);
@@ -701,7 +850,7 @@ class AudioController {
     }
   };
 
-  generateTrack = async (trackInput, options = {}) => {
+  generateTrack = async (trackInput: AudioTrackRefInput, options: PlayOptions = {}): Promise<boolean> => {
     const track = normalizeLegacyNarrationItem(trackInput, {
       ownerId: trackInput?.ownerId ?? trackInput?.messageId,
       ownerType: trackInput?.segmentId ? 'segment' : 'message',
@@ -721,8 +870,9 @@ class AudioController {
       });
       return Boolean(prepared);
     } catch (error) {
+      const err = error as Error;
       this.setState({
-        lastError: error.message || 'Erro ao gerar audio',
+        lastError: err.message || 'Erro ao gerar audio',
         errorMessageId: track.ownerId || track.messageId,
       });
       return false;
@@ -731,7 +881,11 @@ class AudioController {
     }
   };
 
-  generatePlaylist = async (items = [], ownerId, options = {}) => {
+  generatePlaylist = async (
+    items: AudioTrackRefInput[] = [],
+    ownerId: string | number | null,
+    options: PlayOptions = {}
+  ): Promise<boolean> => {
     const tracks = items
       .map((item, index) => normalizeLegacyNarrationItem(item, {
         ownerId,
@@ -744,7 +898,7 @@ class AudioController {
 
     this.registry.registerTracks(tracks);
     this.setState({
-      generatingMessageId: ownerId,
+      generatingMessageId: ownerId == null ? null : String(ownerId),
       lastError: null,
       errorMessageId: null,
     });
@@ -758,9 +912,10 @@ class AudioController {
       }
       return true;
     } catch (error) {
+      const err = error as Error;
       this.setState({
-        lastError: error.message || 'Erro ao gerar audio',
-        errorMessageId: ownerId,
+        lastError: err.message || 'Erro ao gerar audio',
+        errorMessageId: ownerId == null ? null : String(ownerId),
       });
       return false;
     } finally {
@@ -768,7 +923,13 @@ class AudioController {
     }
   };
 
-  play = async (text, voiceId, messageId, provider = DEFAULT_TTS_PROVIDER, options = {}) => {
+  play = async (
+    text: string,
+    voiceId: string,
+    messageId: string | number,
+    provider: string = DEFAULT_TTS_PROVIDER,
+    options: PlayOptions = {}
+  ): Promise<boolean> => {
     const track = createNarrationTrackRef({
       messageId,
       segmentId: options.segmentId || null,
@@ -799,14 +960,18 @@ class AudioController {
     });
   };
 
-  playSequence = async (items = [], ownerId, options = {}) => {
+  playSequence = async (
+    items: AudioTrackRefInput[] = [],
+    ownerId: string | number | null,
+    options: PlayOptions = {}
+  ): Promise<boolean> => {
     const sequenceKey = options.sequenceKey || `sequence:${ownerId}`;
     const title = options.title || 'Narracao';
     const source = options.source || 'sequence';
 
     const { playlist, tracks } = this.registerPlaylistWithTracks({
       playlistId: sequenceKey,
-      ownerId,
+      ownerId: ownerId == null ? null : String(ownerId),
       ownerType: 'playlist',
       tracks: items,
       title,
@@ -817,7 +982,13 @@ class AudioController {
     return this.playPlaylist(playlist, tracks, options);
   };
 
-  generate = async (text, voiceId, messageId, provider = DEFAULT_TTS_PROVIDER, options = {}) => {
+  generate = async (
+    text: string,
+    voiceId: string,
+    messageId: string | number,
+    provider: string = DEFAULT_TTS_PROVIDER,
+    options: PlayOptions = {}
+  ): Promise<boolean> => {
     const track = createNarrationTrackRef({
       messageId,
       segmentId: options.segmentId || null,
@@ -834,11 +1005,15 @@ class AudioController {
     return this.generateTrack(track, options);
   };
 
-  generateSequence = async (items = [], ownerId, options = {}) => {
+  generateSequence = async (
+    items: AudioTrackRefInput[] = [],
+    ownerId: string | number | null,
+    options: PlayOptions = {}
+  ): Promise<boolean> => {
     return this.generatePlaylist(items, ownerId, options);
   };
 
-  togglePause = () => {
+  togglePause = (): void => {
     if (!this.audio) return;
 
     if (this.audio.paused) {
@@ -849,18 +1024,18 @@ class AudioController {
     this.audio.pause();
   };
 
-  stop = () => {
+  stop = (): void => {
     if (this.audio) {
       try {
         this.audio.currentTime = 0;
-      } catch (_) {
+      } catch {
         // no-op
       }
     }
     this.clearPlayback(true);
   };
 
-  seekTo = (value) => {
+  seekTo = (value: number | string): void => {
     if (!this.audio) return;
     const next = Number(value);
     if (!Number.isFinite(next)) return;
@@ -868,7 +1043,7 @@ class AudioController {
     this.setState({ currentTime: next });
   };
 
-  cyclePlaybackRate = () => {
+  cyclePlaybackRate = (): void => {
     const currentIndex = SPEED_STEPS.indexOf(this.state.playbackRate);
     const nextRate = currentIndex === -1 || currentIndex === SPEED_STEPS.length - 1
       ? SPEED_STEPS[0]
@@ -877,14 +1052,14 @@ class AudioController {
     this.applyPlaybackRate(this.audio);
   };
 
-  next = () => {
+  next = (): void => {
     if (!this.queue.length) return;
     const nextEntry = this.queue[(this.state.queueIndex ?? -1) + 1] || null;
     if (!nextEntry) return;
     this.playQueueEntry(nextEntry, this.playToken);
   };
 
-  previous = () => {
+  previous = (): void => {
     if (!this.queue.length) return;
 
     const currentEntry = this.queue[this.state.queueIndex] || null;
@@ -901,9 +1076,10 @@ class AudioController {
     this.playQueueEntry(previousEntry, this.playToken);
   };
 
-  hasAudioForItem = (itemKey) => this.registry.hasPrepared(itemKey);
+  hasAudioForItem = (itemKey: string | number | null | undefined): boolean =>
+    this.registry.hasPrepared(itemKey);
 
-  hasAudioForMessage = (messageId) => {
+  hasAudioForMessage = (messageId: string | number | null | undefined): boolean => {
     if (this.registry.hasPreparedForMessage(messageId)) return true;
     return String(this.state.currentMessageId) === String(messageId);
   };

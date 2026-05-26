@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
-// `useAudioController` ainda esta em JS (escopo separado), entao o `audio`
-// chega como tipo permissivo. Tipamos o retorno DESTE hook explicitamente para
-// que os consumidores (ChatArea, EtapaJogoRPG, SessaoHistoricoModal,
-// historia-ver) tenham contrato claro.
-import useAudioController from '../audio/hooks/useAudioController.js';
-import { createNarrationTrackRef, normalizeLegacyNarrationItem } from '../audio/domain/trackRef.js';
+// Contrato explicito do useTTS para os consumidores (ChatArea, EtapaJogoRPG,
+// SessaoHistoricoModal, historia-ver).
+import useAudioController from '../audio/hooks/useAudioController';
+import { createNarrationTrackRef, normalizeLegacyNarrationItem } from '../audio/domain/trackRef';
 
 const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -129,20 +127,8 @@ export interface UseTTSResult {
   clearError: () => void;
 }
 
-/**
- * Shape do controller subjacente — tem mais metodos do que o useTTS expoe
- * (playTrack/playPlaylist/generateTrack/generatePlaylist). Cast pontual porque
- * `useAudioController` ainda esta em JS sem tipos.
- */
-type AudioControllerShape = UseTTSResult & {
-  playTrack: (track: unknown, options: unknown) => Promise<unknown>;
-  playPlaylist: (info: unknown, items: unknown[], options: unknown) => Promise<unknown>;
-  generateTrack: (track: unknown, options: unknown) => Promise<unknown>;
-  generatePlaylist: (items: unknown[], messageId: unknown, options: unknown) => Promise<unknown>;
-};
-
 export const useTTS = (): UseTTSResult => {
-  const audio = useAudioController() as AudioControllerShape;
+  const audio = useAudioController();
 
   return useMemo<UseTTSResult>(
     () => ({

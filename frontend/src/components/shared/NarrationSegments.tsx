@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { Loader2, Square, Volume2 } from 'lucide-react';
 import MarkdownRenderer from '../MarkdownRenderer';
-import { createNarrationTrackRef } from '../../audio/domain/trackRef.js';
+import { createNarrationTrackRef } from '../../audio/domain/trackRef';
 
 const DEFAULT_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -22,8 +22,8 @@ interface RawNarrationSegment {
 }
 
 /**
- * Forma do track gerado por createNarrationTrackRef. Mantido local enquanto
- * audio/domain/trackRef nao for migrado para TS (Fase 6c/utils).
+ * Item de track usado pela narrativa em segmentos. Espelha o subset dos campos
+ * que o ChatArea/renderers consomem do AudioTrackRef + campo legacy `tipo`.
  */
 export interface NarrationTrackItem {
   trackId: string;
@@ -81,11 +81,25 @@ export const buildNarrationSequenceItems = (
         ownerType: 'segment',
         kind: tipo,
         hasPersistedAudio: Boolean(segment?.audio_cache_key || segment?.audio_url || segment?.audioUrl),
-      }) as unknown as NarrationTrackItem;
+      });
 
       // tipo nao e produzido por createNarrationTrackRef; preservar para consumers
-      ref.tipo = tipo;
-      return ref;
+      const item: NarrationTrackItem = {
+        trackId: ref.trackId,
+        itemKey: ref.itemKey,
+        messageId: ref.messageId,
+        segmentId: ref.segmentId,
+        text: ref.text,
+        speechText: ref.speechText,
+        voiceId: ref.voiceId,
+        provider: ref.provider,
+        emotion: ref.emotion,
+        speakerLabel: ref.speakerLabel,
+        kind: ref.kind,
+        hasPersistedAudio: ref.hasPersistedAudio,
+        tipo,
+      };
+      return item;
     })
     .filter((item): item is NarrationTrackItem => Boolean(item));
 };

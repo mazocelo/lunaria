@@ -1,12 +1,76 @@
-import { buildTtsItemKey, resolveTtsEmotion } from '../../utils/ttsKeys.js';
-import { sanitizeTextForSpeech } from '../../utils/speechText.js';
+import { buildTtsItemKey, resolveTtsEmotion } from '../../utils/ttsKeys';
+import { sanitizeTextForSpeech } from '../../utils/speechText';
 
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-export function createAudioTrackRef(input = {}) {
+export interface AudioTrackRef {
+  trackId: string;
+  itemKey: string;
+  sourceType: string;
+  ownerType: string;
+  ownerId: string | null;
+  messageId: string | null;
+  segmentId: string | null;
+  playlistId: string | null;
+  text: string;
+  speechText: string;
+  speakerLabel: string | null;
+  voiceId: string | null;
+  provider: string;
+  emotion: string | null;
+  audioCacheKey: string | null;
+  audioUrl: string | null;
+  hasPersistedAudio: boolean;
+  kind: string;
+  order: number;
+  meta: {
+    sequenceKey: string | null;
+    source: string | null;
+    label: string | null;
+    title: string | null;
+  };
+}
+
+export interface AudioTrackRefInput {
+  trackId?: string | number | null;
+  itemKey?: string | number | null;
+  id?: string | number | null;
+  sourceType?: string;
+  ownerType?: string;
+  ownerId?: string | number | null;
+  messageId?: string | number | null;
+  segmentId?: string | number | null;
+  playlistId?: string | number | null;
+  text?: string | null;
+  speechText?: string | null;
+  speech_text?: string | null;
+  speaker?: string | null;
+  speakerLabel?: string | null;
+  speaker_label?: string | null;
+  voiceId?: string | null;
+  voiceProvider?: string;
+  provider?: string;
+  emotion?: string | null;
+  audioCacheKey?: string | null;
+  audio_cache_key?: string | null;
+  audioUrl?: string | null;
+  audio_url?: string | null;
+  hasPersistedAudio?: boolean;
+  kind?: string;
+  tipo?: string;
+  order?: number;
+  sequenceKey?: string | null;
+  source?: string | null;
+  label?: string | null;
+  title?: string | null;
+  itemId?: string | number | null;
+}
+
+export function createAudioTrackRef(input: AudioTrackRefInput = {}): AudioTrackRef {
   const speechText = sanitizeTextForSpeech(input.speechText ?? input.speech_text ?? input.text ?? '');
-  const track = {
+  const track: AudioTrackRef = {
     trackId: String(input.trackId || input.itemKey || input.id || ''),
+    itemKey: '',
     sourceType: input.sourceType || 'tts',
     ownerType: input.ownerType || 'message',
     ownerId: input.ownerId == null ? null : String(input.ownerId),
@@ -21,9 +85,15 @@ export function createAudioTrackRef(input = {}) {
     emotion: resolveTtsEmotion(input.provider || DEFAULT_TTS_PROVIDER, input.emotion || null),
     audioCacheKey: input.audioCacheKey || input.audio_cache_key || null,
     audioUrl: input.audioUrl || input.audio_url || null,
-    hasPersistedAudio: Boolean(input.hasPersistedAudio || input.audioCacheKey || input.audio_cache_key || input.audioUrl || input.audio_url),
+    hasPersistedAudio: Boolean(
+      input.hasPersistedAudio ||
+      input.audioCacheKey ||
+      input.audio_cache_key ||
+      input.audioUrl ||
+      input.audio_url
+    ),
     kind: input.kind || input.tipo || 'narration',
-    order: Number.isFinite(input.order) ? input.order : 0,
+    order: Number.isFinite(input.order) ? (input.order as number) : 0,
     meta: {
       sequenceKey: input.sequenceKey || null,
       source: input.source || null,
@@ -33,14 +103,21 @@ export function createAudioTrackRef(input = {}) {
   };
 
   if (!track.trackId && track.messageId) {
-    track.trackId = buildTtsItemKey(track.messageId, track.segmentId, track.voiceId, track.provider, track.emotion, track.speechText);
+    track.trackId = buildTtsItemKey(
+      track.messageId,
+      track.segmentId,
+      track.voiceId,
+      track.provider,
+      track.emotion,
+      track.speechText
+    );
   }
 
   track.itemKey = track.trackId;
   return track;
 }
 
-export function createNarrationTrackRef(input = {}) {
+export function createNarrationTrackRef(input: AudioTrackRefInput = {}): AudioTrackRef {
   const provider = input.provider || DEFAULT_TTS_PROVIDER;
   const emotion = resolveTtsEmotion(provider, input.emotion || null);
 
@@ -49,7 +126,7 @@ export function createNarrationTrackRef(input = {}) {
     sourceType: 'tts',
     ownerType: input.ownerType || (input.segmentId ? 'segment' : 'message'),
     trackId: input.trackId || buildTtsItemKey(
-      input.messageId ?? input.ownerId ?? input.itemId ?? 'track',
+      (input.messageId ?? input.ownerId ?? input.itemId ?? 'track') as string | number,
       input.segmentId || null,
       input.voiceId || null,
       provider,
@@ -61,7 +138,10 @@ export function createNarrationTrackRef(input = {}) {
   });
 }
 
-export function normalizeLegacyNarrationItem(item = {}, fallback = {}) {
+export function normalizeLegacyNarrationItem(
+  item: AudioTrackRefInput = {},
+  fallback: AudioTrackRefInput = {}
+): AudioTrackRef {
   return createNarrationTrackRef({
     trackId: item.trackId || item.itemKey,
     ownerId: item.ownerId ?? fallback.ownerId ?? item.messageId,
@@ -86,7 +166,7 @@ export function normalizeLegacyNarrationItem(item = {}, fallback = {}) {
   });
 }
 
-export function getTrackDisplayLabel(track) {
+export function getTrackDisplayLabel(track: AudioTrackRef | null | undefined): string {
   if (!track) return 'Faixa de audio';
   if (track.speakerLabel && track.text) return `${track.speakerLabel}: ${track.text}`;
   if (track.speakerLabel) return track.speakerLabel;

@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useRacaVerModel } from './raca-ver.model';
 import VerRacaView from './raca-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function RacaVerPage() {
   const model = useRacaVerModel();
   const navigate = useNavigate();

@@ -1,32 +1,29 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
-import { useTheme } from '../../../contexts/theme.jsx';
-import { Dna, Save, Loader2 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme';
+import { Dna, Sparkles, Loader2 } from 'lucide-react';
 
-const EditarRacaView = ({
-  nome, descricao, custo, bonus, loading, saving, error,
-  setField, handleSubmit, handleCancel, clearError,
-}) => {
+type RacaField = 'nome' | 'descricao' | 'custo' | 'bonus';
+
+interface NovaRacaViewProps {
+  nome: string;
+  descricao: string;
+  custo: number | string;
+  bonus: string;
+  saving: boolean;
+  error: string | null;
+  setField: (name: RacaField, value: string | number) => void;
+  handleSubmit: (e: React.FormEvent) => void | Promise<void>;
+  handleCancel: () => void;
+  clearError: () => void;
+}
+
+const NovaRacaView = ({
+  nome, descricao, custo, bonus, saving, error,
+  setField, handleSubmit, handleCancel,
+}: NovaRacaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-
-  if (loading) {
-    return (
-      <div className="animate-fade-in">
-        <div className="card-rpg">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-16 h-16 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse-slow">
-                <Dna size={24} className="text-white" />
-              </div>
-              <div className={`font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>Carregando raca...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
@@ -34,8 +31,8 @@ const EditarRacaView = ({
         <div className="w-20 h-20 gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
           <Dna size={32} className="text-white" />
         </div>
-        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Editar Raca</h1>
-        <p className="text-slate-400 font-modern">Atualize os dados da raca</p>
+        <h1 className={`text-3xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'} mb-2`}>Criar Nova Raca</h1>
+        <p className="text-slate-400 font-modern">Adicione uma nova raca ao catalogo</p>
       </div>
       <form onSubmit={handleSubmit} className="card-rpg space-y-6">
         {error && (
@@ -65,9 +62,9 @@ const EditarRacaView = ({
           <Button variant="ghost" onClick={handleCancel} className="flex-1" type="button">Cancelar</Button>
           <Button variant="primary" type="submit" disabled={saving} className="flex-1">
             {saving ? (
-              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Salvando...</span></div>
+              <div className="flex items-center space-x-2"><Loader2 size={16} className="animate-spin" /><span>Criando...</span></div>
             ) : (
-              <div className="flex items-center space-x-2"><Save size={16} /><span>Salvar Raca</span></div>
+              <div className="flex items-center space-x-2"><Sparkles size={16} /><span>Criar Raca</span></div>
             )}
           </Button>
         </div>
@@ -76,4 +73,4 @@ const EditarRacaView = ({
   );
 };
 
-export default EditarRacaView;
+export default NovaRacaView;

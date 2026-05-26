@@ -1,7 +1,36 @@
-import React from 'react';
 import { Loader2, Pause, Volume2 } from 'lucide-react';
 
-const DEFAULT_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+
+/**
+ * Contrato minimo do controlador de TTS consumido pelo botao. O objeto real e
+ * exportado por `src/audio/` mas mantemos o tipo aqui para evitar acoplamento
+ * forte durante a migracao para TS.
+ */
+export interface NarrationTtsController {
+  currentMessageId?: string | number | null;
+  loadingTargetId?: string | number | null;
+  isPlaying?: boolean;
+  hasAudioForMessage?: (itemId: string | number) => boolean;
+  play: (
+    text: string,
+    voiceId: string,
+    itemId: string | number,
+    voiceProvider: string,
+    options?: { allowGenerate?: boolean; speechText?: string | null },
+  ) => Promise<void> | void;
+}
+
+interface NarrationAudioButtonProps {
+  tts?: NarrationTtsController | null;
+  text?: string | null;
+  speechText?: string | null;
+  itemId?: string | number | null;
+  voiceId?: string | null;
+  voiceProvider?: string;
+  isLight?: boolean;
+  className?: string;
+}
 
 const NarrationAudioButton = ({
   tts,
@@ -12,7 +41,7 @@ const NarrationAudioButton = ({
   voiceProvider = DEFAULT_PROVIDER,
   isLight = false,
   className = '',
-}) => {
+}: NarrationAudioButtonProps) => {
   const normalizedText = typeof text === 'string' ? text.trim() : '';
 
   if (!tts || !voiceId || !normalizedText || !itemId) return null;

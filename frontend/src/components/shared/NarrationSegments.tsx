@@ -1,20 +1,61 @@
-import React, { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Loader2, Square, Volume2 } from 'lucide-react';
-import MarkdownRenderer from '../MarkdownRenderer.jsx';
+import MarkdownRenderer from '../MarkdownRenderer';
 import { createNarrationTrackRef } from '../../audio/domain/trackRef.js';
 
-const DEFAULT_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const DEFAULT_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_PROVIDER) => {
-  const usedIds = new Set();
+interface RawNarrationSegment {
+  id?: string | number;
+  text?: string;
+  message?: string;
+  mensagem?: string;
+  speech_text?: string | null;
+  voice_id?: string | null;
+  voice_provider?: string | null;
+  speaker_label?: string | null;
+  tipo?: string;
+  narracao?: { emocao?: string | null } | null;
+  audio_cache_key?: string | null;
+  audio_url?: string | null;
+  audioUrl?: string | null;
+}
+
+/**
+ * Forma do track gerado por createNarrationTrackRef. Mantido local enquanto
+ * audio/domain/trackRef nao for migrado para TS (Fase 6c/utils).
+ */
+export interface NarrationTrackItem {
+  trackId: string;
+  itemKey: string;
+  messageId: string | null;
+  segmentId: string | null;
+  text: string;
+  speechText: string;
+  voiceId: string | null;
+  provider: string;
+  emotion: string | null;
+  speakerLabel: string | null;
+  kind: string;
+  hasPersistedAudio: boolean;
+  tipo: string;
+}
+
+export const buildNarrationSequenceItems = (
+  segments: RawNarrationSegment[] = [],
+  messageId: string | number,
+  defaultVoiceId: string | null = null,
+  defaultVoiceProvider: string = DEFAULT_PROVIDER,
+): NarrationTrackItem[] => {
+  const usedIds = new Set<string>();
 
   return (Array.isArray(segments) ? segments : [])
-    .map((segment, index) => {
+    .map((segment, index): NarrationTrackItem | null => {
       const text = String(segment?.text || segment?.message || segment?.mensagem || '').trim();
       if (!text) return null;
 
-      const baseSegmentId = segment?.id || `seg_${index + 1}`;
-      let segmentId = baseSegmentId;
+      const baseSegmentId = segment?.id ?? `seg_${index + 1}`;
+      let segmentId: string | number = baseSegmentId;
       let suffix = 2;
 
       while (usedIds.has(String(segmentId))) {
@@ -25,8 +66,9 @@ export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoi
 
       const voiceId = segment?.voice_id || defaultVoiceId || null;
       const provider = segment?.voice_provider || defaultVoiceProvider || DEFAULT_PROVIDER;
+      const tipo = segment?.tipo || 'narracao';
 
-      return createNarrationTrackRef({
+      const ref = createNarrationTrackRef({
         messageId,
         segmentId,
         text,
@@ -37,12 +79,52 @@ export const buildNarrationSequenceItems = (segments = [], messageId, defaultVoi
         speakerLabel: segment?.speaker_label || (segment?.tipo === 'fala_npc' ? 'NPC' : 'Mestre'),
         ownerId: messageId,
         ownerType: 'segment',
-        tipo: segment?.tipo || 'narracao',
-        hasPersistedAudio: Boolean(segment?.audio_cache_key || segment?.audio_url || segment?.audioUrl)
-      });
+        kind: tipo,
+        hasPersistedAudio: Boolean(segment?.audio_cache_key || segment?.audio_url || segment?.audioUrl),
+      }) as unknown as NarrationTrackItem;
+
+      // tipo nao e produzido por createNarrationTrackRef; preservar para consumers
+      ref.tipo = tipo;
+      return ref;
     })
-    .filter(Boolean);
+    .filter((item): item is NarrationTrackItem => Boolean(item));
 };
+
+export interface NarrationSegmentsTtsController {
+  currentTrackId?: string | null;
+  loadingTargetId?: string | number | null;
+  loadingSegmentId?: string | number | null;
+  isPlaying?: boolean;
+  hasAudioForItem?: (itemKey: string) => boolean;
+  play: (
+    text: string,
+    voiceId: string,
+    messageId: string | number,
+    provider: string,
+    options?: {
+      allowGenerate?: boolean;
+      segmentId?: string | number | null;
+      speechText?: string | null;
+      emotion?: string | null;
+      speakerLabel?: string | null;
+      kind?: string;
+      source?: string;
+      contextLabel?: ReactNode;
+    },
+  ) => Promise<void> | void;
+}
+
+interface NarrationSegmentsProps {
+  segments?: RawNarrationSegment[];
+  messageId: string | number;
+  tts?: NarrationSegmentsTtsController | null;
+  defaultVoiceId?: string | null;
+  defaultVoiceProvider?: string;
+  compact?: boolean;
+  isLight?: boolean;
+  variant?: 'default' | 'game';
+  className?: string;
+}
 
 const NarrationSegments = ({
   segments = [],
@@ -53,23 +135,23 @@ const NarrationSegments = ({
   compact = false,
   isLight = false,
   variant = 'default',
-  className = ''
-}) => {
+  className = '',
+}: NarrationSegmentsProps) => {
   const sequenceItems = useMemo(
     () => buildNarrationSequenceItems(segments, messageId, defaultVoiceId, defaultVoiceProvider),
-    [segments, messageId, defaultVoiceId, defaultVoiceProvider]
+    [segments, messageId, defaultVoiceId, defaultVoiceProvider],
   );
   const useGameVariant = variant === 'game';
 
   if (sequenceItems.length === 0) return null;
 
-  const renderSegmentButton = (segmentItem) => {
+  const renderSegmentButton = (segmentItem: NarrationTrackItem) => {
     if (!tts || !segmentItem.voiceId) return null;
 
     const isCurrent = String(tts.currentTrackId || '') === String(segmentItem.trackId || segmentItem.itemKey || '');
     const isLoading = Boolean(
       String(tts.loadingTargetId || '') === String(messageId)
-      && String(tts.loadingSegmentId || '') === String(segmentItem.segmentId || '')
+      && String(tts.loadingSegmentId || '') === String(segmentItem.segmentId || ''),
     );
     const isPlaying = Boolean(tts.isPlaying && isCurrent);
     const hasCachedAudio = Boolean(tts.hasAudioForItem?.(segmentItem.itemKey));
@@ -87,7 +169,7 @@ const NarrationSegments = ({
           : 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20';
 
     const handlePlay = async () => {
-      await tts.play(segmentItem.text, segmentItem.voiceId, messageId, segmentItem.provider, {
+      await tts.play(segmentItem.text, segmentItem.voiceId as string, messageId, segmentItem.provider, {
         allowGenerate: true,
         segmentId: segmentItem.segmentId,
         speechText: segmentItem.speechText,
@@ -117,8 +199,7 @@ const NarrationSegments = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {sequenceItems.map((segmentItem, index) => {
-        const segment = segments[index] || {};
+      {sequenceItems.map((segmentItem) => {
         const isNpc = segmentItem.tipo === 'fala_npc';
 
         return (

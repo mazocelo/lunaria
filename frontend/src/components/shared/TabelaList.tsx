@@ -1,45 +1,71 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { useTheme } from '../../contexts/theme.jsx';
+import React, { useState, useMemo, useCallback, type ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
 import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Loader2, Inbox } from 'lucide-react';
 
-/**
- * Componente TabelaList genérico para exibição padronizada de listas
- * 
- * @param {Object} props - Propriedades do componente
- * @param {Array} props.columns - Definição das colunas [{key, label, align?, width?, render?}]
- * @param {string|React.ReactNode} props.header - Título ou descrição da tabela (opcional)
- * @param {Array} props.data - Array de objetos que populam as linhas
- * @param {Array} props.actions - Ações customizáveis para cada linha [{label, icon?, onClick, color?, show?}]
- * @param {boolean} props.loading - Estado de carregamento (opcional)
- * @param {string} props.emptyMessage - Mensagem quando data está vazio (opcional)
- * @param {string} props.emptyIcon - Ícone para estado vazio (opcional)
- * @param {string} props.className - Classes CSS adicionais (opcional)
- * @param {string} props.keyField - Campo chave para identificação das linhas (padrão: 'id')
- * @param {boolean} props.striped - Alternar cores das linhas (opcional)
- * @param {boolean} props.hoverable - Efeito hover nas linhas (opcional)
- * @param {boolean} props.pagination - Habilitar paginação (opcional)
- * @param {number} props.initialPageSize - Tamanho inicial da página (padrão: 10)
- * @param {Array} props.pageSizeOptions - Opções de tamanho de página (padrão: [5, 10, 25, 50])
- * @param {number} props.currentPage - Página atual controlada externamente (opcional)
- * @param {number} props.pageSize - Tamanho da página controlado externamente (opcional)
- * @param {Function} props.onPageChange - Callback para mudança de página (opcional)
- * @param {Function} props.onPageSizeChange - Callback para mudança de tamanho (opcional)
- * @param {boolean} props.showPageSizeSelector - Mostrar seletor de tamanho de página (padrão: true)
- * @param {boolean} props.showPaginationInfo - Mostrar informações de paginação (padrão: true)
- * @param {boolean} props.selectable - Habilitar checkboxes de seleção (opcional)
- * @param {Array} props.bulkActions - Ações em lote [{label, icon?, onClick, color?}] (opcional)
- */
-const TabelaList = ({
+type ColumnAlign = 'left' | 'center' | 'right';
+
+export interface TabelaColumn<T> {
+  key?: string;
+  label: ReactNode;
+  align?: ColumnAlign;
+  width?: string | number;
+  render?: (row: T, index: number) => ReactNode;
+}
+
+export interface TabelaAction<T> {
+  label: string;
+  icon?: ReactNode;
+  onClick?: (row: T, index: number) => void;
+  color?: string;
+  show?: (row: T) => boolean;
+}
+
+export interface TabelaBulkAction {
+  label: string;
+  icon?: ReactNode;
+  onClick: (selectedIds: Array<string | number>) => void;
+  color?: string;
+}
+
+interface TabelaListProps<T> {
+  columns?: Array<TabelaColumn<T>>;
+  header?: ReactNode;
+  data?: T[];
+  actions?: Array<TabelaAction<T>>;
+  loading?: boolean;
+  emptyMessage?: string;
+  emptyIcon?: ReactNode;
+  className?: string;
+  keyField?: keyof T | string;
+  striped?: boolean;
+  hoverable?: boolean;
+  pagination?: boolean;
+  initialPageSize?: number;
+  pageSizeOptions?: number[];
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  showPageSizeSelector?: boolean;
+  showPaginationInfo?: boolean;
+  selectable?: boolean;
+  bulkActions?: TabelaBulkAction[];
+  totalCount?: number;
+}
+
+type TabelaRow = Record<string, unknown>;
+
+const TabelaList = <T extends TabelaRow>({
   columns = [],
   header,
   data = [],
   actions = [],
   loading = false,
-  emptyMessage = "Nenhum registro encontrado",
-  emptyIcon = "📋",
-  className = "",
+  emptyMessage = 'Nenhum registro encontrado',
+  emptyIcon = '📋',
+  className = '',
   keyField = 'id',
-  striped = false,
+  striped: _striped = false,
   hoverable = true,
   pagination = false,
   initialPageSize = 10,
@@ -53,7 +79,8 @@ const TabelaList = ({
   selectable = false,
   bulkActions = [],
   totalCount,
-}) => {
+}: TabelaListProps<T>) => {
+  void _striped;
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -66,7 +93,7 @@ const TabelaList = ({
   const pageSize = externalPageSize ?? internalPageSize;
 
   // Estado de seleção para bulk actions
-  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
 
   // Modo server-side: quando totalCount é fornecido, o servidor já paginou os dados
   const isServerSide = totalCount != null;
@@ -82,13 +109,13 @@ const TabelaList = ({
   }, [data, currentPage, pageSize, pagination, isServerSide]);
 
   // Calcular informações de paginação
-  const totalItems = isServerSide ? totalCount : data.length;
+  const totalItems = isServerSide ? (totalCount as number) : data.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
   // Handlers de paginação
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage: number) => {
     if (onPageChange) {
       onPageChange(newPage);
     } else {
@@ -96,10 +123,10 @@ const TabelaList = ({
     }
   };
 
-  const handlePageSizeChange = (newPageSize) => {
+  const handlePageSizeChange = (newPageSize: number) => {
     const newTotalPages = Math.ceil(totalItems / newPageSize);
     const adjustedCurrentPage = Math.min(currentPage, newTotalPages);
-    
+
     if (onPageSizeChange) {
       onPageSizeChange(newPageSize);
       if (onPageChange && adjustedCurrentPage !== currentPage) {
@@ -114,10 +141,10 @@ const TabelaList = ({
   };
 
   // Gerar números de páginas para exibição
-  const getPageNumbers = () => {
-    const pages = [];
+  const getPageNumbers = (): number[] => {
+    const pages: number[] = [];
     const maxPagesToShow = 5;
-    
+
     if (totalPages <= maxPagesToShow) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -125,38 +152,41 @@ const TabelaList = ({
     } else {
       const half = Math.floor(maxPagesToShow / 2);
       let start = Math.max(1, currentPage - half);
-      let end = Math.min(totalPages, start + maxPagesToShow - 1);
-      
+      const end = Math.min(totalPages, start + maxPagesToShow - 1);
+
       if (end - start + 1 < maxPagesToShow) {
         start = Math.max(1, end - maxPagesToShow + 1);
       }
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
     }
-    
+
     return pages;
   };
+
+  const rowId = (row: T): string | number => row[keyField as string] as string | number;
 
   // Handlers de seleção
   const toggleSelectAll = useCallback(() => {
     const currentData = pagination ? paginatedData : data;
-    const allIds = currentData.map(row => row[keyField]);
-    const allSelected = allIds.every(id => selectedIds.has(id));
-    setSelectedIds(prev => {
+    const allIds = currentData.map((row) => rowId(row));
+    const allSelected = allIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (allSelected) {
-        allIds.forEach(id => next.delete(id));
+        allIds.forEach((id) => next.delete(id));
       } else {
-        allIds.forEach(id => next.add(id));
+        allIds.forEach((id) => next.add(id));
       }
       return next;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, paginatedData, pagination, keyField, selectedIds]);
 
-  const toggleSelectRow = useCallback((id) => {
-    setSelectedIds(prev => {
+  const toggleSelectRow = useCallback((id: string | number) => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -171,11 +201,12 @@ const TabelaList = ({
 
   const isAllSelected = useMemo(() => {
     const currentData = pagination ? paginatedData : data;
-    return currentData.length > 0 && currentData.every(row => selectedIds.has(row[keyField]));
+    return currentData.length > 0 && currentData.every((row) => selectedIds.has(rowId(row)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, paginatedData, pagination, keyField, selectedIds]);
 
   // Função para obter classes de alinhamento
-  const getAlignmentClass = (align) => {
+  const getAlignmentClass = (align?: ColumnAlign): string => {
     switch (align) {
       case 'center': return 'text-center';
       case 'right': return 'text-right';
@@ -184,8 +215,8 @@ const TabelaList = ({
   };
 
   // Função para obter classes de cores das ações (estilo RPG)
-  const getActionColorClass = (color) => {
-    const colors = {
+  const getActionColorClass = (color?: string): string => {
+    const colors: Record<string, string> = {
       green: isLight ? 'hover:bg-green-500/20' : 'hover:bg-green-500/20',
       blue: isLight ? 'hover:bg-blue-500/20' : 'hover:bg-blue-500/20',
       purple: isLight ? 'hover:bg-purple-500/20' : 'hover:bg-purple-500/20',
@@ -197,9 +228,9 @@ const TabelaList = ({
       danger: isLight ? 'hover:bg-red-500/20' : 'hover:bg-red-500/20',
       info: isLight ? 'hover:bg-blue-500/20' : 'hover:bg-blue-500/20',
       success: isLight ? 'hover:bg-green-500/20' : 'hover:bg-green-500/20',
-      default: isLight ? 'hover:bg-slate-500/20' : 'hover:bg-slate-700/50'
+      default: isLight ? 'hover:bg-slate-500/20' : 'hover:bg-slate-700/50',
     };
-    return colors[color] || colors.default;
+    return color && colors[color] ? colors[color] : colors.default;
   };
 
   // Renderizar estado de carregamento
@@ -218,6 +249,14 @@ const TabelaList = ({
     );
   }
 
+  const rowLabel = (row: T, rowIndex: number): string => {
+    const nome = row['nome'];
+    const title = row['title'];
+    if (typeof nome === 'string') return nome;
+    if (typeof title === 'string') return title;
+    return `item ${rowIndex + 1}`;
+  };
+
   return (
     <div className={`card-rpg ${className}`} role="region" aria-label="Tabela de dados">
       {/* Header opcional */}
@@ -230,11 +269,11 @@ const TabelaList = ({
           ) : (
             header
           )}
-          {(isServerSide ? totalCount : data.length) > 0 && (
+          {(isServerSide ? (totalCount as number) : data.length) > 0 && (
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse-slow" />
               <span className="text-sm text-slate-400 font-modern">
-                {isServerSide ? totalCount : data.length} {(isServerSide ? totalCount : data.length) === 1 ? 'item encontrado' : 'itens encontrados'}
+                {isServerSide ? totalCount : data.length} {(isServerSide ? (totalCount as number) : data.length) === 1 ? 'item encontrado' : 'itens encontrados'}
               </span>
             </div>
           )}
@@ -267,7 +306,7 @@ const TabelaList = ({
         <div>
           {/* Tabela com dados */}
           <div className="overflow-x-auto">
-            <table 
+            <table
               className={`${isLight ? 'table-rpg-light' : 'table-rpg'} w-full`}
               role="table"
               aria-label="Dados da tabela"
@@ -313,72 +352,74 @@ const TabelaList = ({
 
               {/* Corpo da tabela */}
               <tbody>
-                {paginatedData.map((row, rowIndex) => (
-                  <tr
-                    key={row[keyField] || rowIndex}
-                    className={`${hoverable ? 'hover-lift' : ''}`}
-                    role="row"
-                  >
-                    {/* Checkbox de seleção */}
-                    {selectable && (
-                      <td className="px-3 py-3 w-10" role="cell">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(row[keyField])}
-                          onChange={() => toggleSelectRow(row[keyField])}
-                          className="w-4 h-4 text-purple-600 bg-slate-800/50 border-purple-500/30 rounded focus:ring-purple-400 cursor-pointer"
-                          aria-label={`Selecionar ${row.nome || row.title || `item ${rowIndex + 1}`}`}
-                        />
-                      </td>
-                    )}
-                    {/* Células de dados */}
-                    {columns.map((column, colIndex) => (
-                      <td
-                        key={`${row[keyField] || rowIndex}-${column.key || colIndex}`}
-                        className={`px-4 py-3 ${getAlignmentClass(column.align)}`}
-                        role="cell"
-                      >
-                        {column.render 
-                          ? column.render(row, rowIndex) 
-                          : row[column.key] || '-'
-                        }
-                      </td>
-                    ))}
-
-                    {/* Célula de ações */}
-                    {actions.length > 0 && (
-                      <td
-                        className="px-4 py-3 text-center whitespace-nowrap"
-                        role="cell"
-                      >
-                        <div 
-                          className="flex items-center justify-center space-x-2"
-                          role="group"
-                          aria-label="Ações da linha"
+                {paginatedData.map((row, rowIndex) => {
+                  const id = rowId(row);
+                  return (
+                    <tr
+                      key={id ?? rowIndex}
+                      className={`${hoverable ? 'hover-lift' : ''}`}
+                      role="row"
+                    >
+                      {/* Checkbox de seleção */}
+                      {selectable && (
+                        <td className="px-3 py-3 w-10" role="cell">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(id)}
+                            onChange={() => toggleSelectRow(id)}
+                            className="w-4 h-4 text-purple-600 bg-slate-800/50 border-purple-500/30 rounded focus:ring-purple-400 cursor-pointer"
+                            aria-label={`Selecionar ${rowLabel(row, rowIndex)}`}
+                          />
+                        </td>
+                      )}
+                      {/* Células de dados */}
+                      {columns.map((column, colIndex) => (
+                        <td
+                          key={`${id ?? rowIndex}-${column.key || colIndex}`}
+                          className={`px-4 py-3 ${getAlignmentClass(column.align)}`}
+                          role="cell"
                         >
-                          {actions
-                            .filter(action => !action.show || action.show(row))
-                            .map((action, actionIndex) => (
-                              <button
-                                key={actionIndex}
-                                type="button"
-                                className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                                  isLight 
-                                    ? 'bg-slate-200/50' 
-                                    : 'bg-slate-700/50'
-                                } ${getActionColorClass(action.color)}`}
-                                title={action.label}
-                                aria-label={`${action.label} ${row.nome || row.title || `item ${rowIndex + 1}`}`}
-                                onClick={() => action.onClick && action.onClick(row, rowIndex)}
-                              >
-                                <span className="text-lg">{action.icon || action.label?.charAt(0)}</span>
-                              </button>
-                            ))}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
+                          {column.render
+                            ? column.render(row, rowIndex)
+                            : (row[column.key as string] as ReactNode) || '-'}
+                        </td>
+                      ))}
+
+                      {/* Célula de ações */}
+                      {actions.length > 0 && (
+                        <td
+                          className="px-4 py-3 text-center whitespace-nowrap"
+                          role="cell"
+                        >
+                          <div
+                            className="flex items-center justify-center space-x-2"
+                            role="group"
+                            aria-label="Ações da linha"
+                          >
+                            {actions
+                              .filter((action) => !action.show || action.show(row))
+                              .map((action, actionIndex) => (
+                                <button
+                                  key={actionIndex}
+                                  type="button"
+                                  className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                                    isLight
+                                      ? 'bg-slate-200/50'
+                                      : 'bg-slate-700/50'
+                                  } ${getActionColorClass(action.color)}`}
+                                  title={action.label}
+                                  aria-label={`${action.label} ${rowLabel(row, rowIndex)}`}
+                                  onClick={() => action.onClick && action.onClick(row, rowIndex)}
+                                >
+                                  <span className="text-lg">{action.icon || action.label?.charAt(0)}</span>
+                                </button>
+                              ))}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -465,7 +506,7 @@ const TabelaList = ({
                       `}
                       aria-label="Selecionar quantidade de itens por página"
                     >
-                      {pageSizeOptions.map(option => (
+                      {pageSizeOptions.map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>
@@ -519,7 +560,7 @@ const TabelaList = ({
 
                     {/* Números das páginas */}
                     <div className="flex items-center gap-1">
-                      {getPageNumbers().map(pageNum => (
+                      {getPageNumbers().map((pageNum) => (
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}

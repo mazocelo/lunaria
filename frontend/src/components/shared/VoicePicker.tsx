@@ -1,13 +1,38 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Play, Volume2 } from 'lucide-react';
-import { apiClient } from '../../services/ApiClient.js';
+import { apiClient } from '../../services/ApiClient';
 
-const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
-const PROVIDER_LABELS = {
+const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
+const PROVIDER_LABELS: Record<string, string> = {
   elevenlabs: 'ElevenLabs',
   cartesia: 'Cartesia',
   opensource: 'Open Source'
 };
+
+export interface VoiceOption {
+  voice_id: string;
+  name: string;
+  category?: string;
+}
+
+export interface VoicePickerChangePayload {
+  voice_id: string | null;
+  voice_provider: string | null;
+}
+
+interface VoicePickerProps {
+  label?: string;
+  voiceId?: string | null;
+  voiceProvider?: string;
+  providers?: string[];
+  voices?: VoiceOption[];
+  loadingVoices?: boolean;
+  ensureVoices?: ((provider: string) => void | Promise<void>) | null;
+  onChange?: (payload: VoicePickerChangePayload) => void;
+  isLight?: boolean;
+  compact?: boolean;
+  helperText?: string;
+}
 
 const VoicePicker = ({
   label = 'Voz',
@@ -20,10 +45,10 @@ const VoicePicker = ({
   onChange,
   isLight = false,
   compact = false,
-  helperText = ''
-}) => {
-  const previewAudioRef = useRef(null);
-  const previewUrlRef = useRef(null);
+  helperText = '',
+}: VoicePickerProps) => {
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
@@ -78,17 +103,17 @@ const VoicePicker = ({
           : 'bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30'
       }`;
 
-  const handleProviderChange = (provider) => {
+  const handleProviderChange = (provider: string) => {
     onChange?.({
-      voice_id: '',
-      voice_provider: provider || DEFAULT_TTS_PROVIDER
+      voice_id: null,
+      voice_provider: provider || DEFAULT_TTS_PROVIDER,
     });
   };
 
-  const handleVoiceChange = (value) => {
+  const handleVoiceChange = (value: string) => {
     onChange?.({
       voice_id: value || null,
-      voice_provider: value ? (voiceProvider || DEFAULT_TTS_PROVIDER) : null
+      voice_provider: value ? (voiceProvider || DEFAULT_TTS_PROVIDER) : null,
     });
   };
 
@@ -108,10 +133,12 @@ const VoicePicker = ({
     try {
       const response = await apiClient.post('/tts/preview', {
         voiceId,
-        provider: voiceProvider || DEFAULT_TTS_PROVIDER
+        provider: voiceProvider || DEFAULT_TTS_PROVIDER,
       }, { responseType: 'blob' });
 
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'audio/mpeg' });
+      const blob = response instanceof Blob
+        ? response
+        : new Blob([response as BlobPart], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
 
@@ -126,7 +153,8 @@ const VoicePicker = ({
 
       await audio.play();
     } catch (err) {
-      console.error('TTS preview error:', err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('TTS preview error:', message);
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = null;

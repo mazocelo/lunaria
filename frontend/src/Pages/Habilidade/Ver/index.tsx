@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES, generateRoute } from '../../../constants/routes.js';
+import { ROUTES, generateRoute } from '../../../constants/routes';
 import { useHabilidadeVerModel } from './habilidade-ver.model';
 import VerHabilidadeView from './habilidade-ver.view';
 
-/**
- * ViewModel: orquestracao pura.
- * Conecta Model e View. Handlers de navegacao e logica de negocio.
- */
 export default function HabilidadeVerPage() {
   const model = useHabilidadeVerModel();
   const navigate = useNavigate();

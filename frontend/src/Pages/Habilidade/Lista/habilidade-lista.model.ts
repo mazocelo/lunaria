@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useHabilidadeStore } from '../../../store/habilidade';
-import { habilidadeService } from '../../../services/index.js';
+import { habilidadeService } from '../../../services/index';
+import type { Habilidade as HabilidadeBase } from '../../../types/api';
+
+export interface HabilidadeWithRel extends HabilidadeBase {
+  classe?: { nome?: string } | null;
+  raca?: { nome?: string } | null;
+}
 
 export const useHabilidadeListaModel = () => {
-
-  const habilidades = useHabilidadeStore(s => s.habilidades);
+  const habilidades = useHabilidadeStore(s => s.habilidades) as HabilidadeWithRel[];
   const loading = useHabilidadeStore(s => s.loading);
   const error = useHabilidadeStore(s => s.error);
   const habilidadesCarregadas = useHabilidadeStore(s => s.habilidadesCarregadas);
@@ -14,10 +19,11 @@ export const useHabilidadeListaModel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroElemento, setFiltroElemento] = useState('');
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!habilidadesCarregadas) carregarHabilidades({ limit: 500 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredHabilidades = useMemo(() => {
@@ -39,8 +45,8 @@ export const useHabilidadeListaModel = () => {
   }, [habilidades, searchTerm, filtroCategoria, filtroElemento]);
 
   const stats = useMemo(() => {
-    const categorias = {};
-    const elementos = {};
+    const categorias: Record<string, number> = {};
+    const elementos: Record<string, number> = {};
     (habilidades || []).forEach(h => {
       if (h.categoria) categorias[h.categoria] = (categorias[h.categoria] || 0) + 1;
       if (h.elemento) elementos[h.elemento] = (elementos[h.elemento] || 0) + 1;
@@ -48,13 +54,14 @@ export const useHabilidadeListaModel = () => {
     return { categorias, elementos };
   }, [habilidades]);
 
-  const deleteHabilidade = async (id) => {
+  const deleteHabilidade = async (id: number | string) => {
     try {
-      await habilidadeService.delete(id);
+      await habilidadeService.delete(Number(id));
       await carregarHabilidades({ limit: 500 }, true);
       return { success: true };
     } catch (err) {
-      setLocalError(`Erro ao remover habilidade: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setLocalError(`Erro ao remover habilidade: ${message}`);
       return { success: false };
     }
   };

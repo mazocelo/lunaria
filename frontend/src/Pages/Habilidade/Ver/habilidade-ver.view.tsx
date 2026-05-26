@@ -1,22 +1,21 @@
-import React from 'react';
 import { Zap, BookOpen, Sparkles, BarChart3, FlaskConical, Swords, Tag, Shield, Target, Clock, Flame, Brain, ClipboardList } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import { CatalogDetailLayout } from '../../../components/shared';
+import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
+import type { HabilidadeNormalizada, Receita } from './habilidade-ver.model';
 
-// ── Category mappings (visual config, local to View) ─────
-const categoriaColors = {
+const categoriaColors: Record<string, string> = {
   combate_fisico: '#ef4444', magia_ofensiva: '#8b5cf6', magia_defensiva: '#3b82f6',
   cura: '#22c55e', suporte: '#06b6d4', controle: '#f59e0b',
   utilidade: '#64748b', social: '#ec4899', crafting: '#f97316',
 };
-const categoriaLabels = {
+const categoriaLabels: Record<string, string> = {
   combate_fisico: 'Combate Físico', magia_ofensiva: 'Magia Ofensiva', magia_defensiva: 'Magia Defensiva',
   cura: 'Cura', suporte: 'Suporte', controle: 'Controle',
   utilidade: 'Utilidade', social: 'Social', crafting: 'Crafting',
 };
 
-// ── Badge helpers ─────────────────────────────────────────
-const catBadge = (categoria) => {
+const catBadge = (categoria: string) => {
   const color = categoriaColors[categoria] || '#8b5cf6';
   return (
     <span key="cat" className="px-3 py-1 rounded-full text-xs font-semibold"
@@ -24,12 +23,16 @@ const catBadge = (categoria) => {
   );
 };
 
-const simpleBadge = (key, label, isLight, light, dark) => (
+const simpleBadge = (key: string, label: string, isLight: boolean, light: string, dark: string) => (
   <span key={key} className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? light : dark}`}>{label}</span>
 );
 
-// ── Crafting recipe card ──────────────────────────────────
-const RecipeCard = ({ receita, isLight }) => (
+interface RecipeCardProps {
+  receita: Receita;
+  isLight: boolean;
+}
+
+const RecipeCard = ({ receita, isLight }: RecipeCardProps) => (
   <div className={`p-4 rounded-lg ${isLight ? 'bg-white border border-orange-200/50' : 'bg-slate-800/50 border border-orange-500/10'}`}>
     <div className="flex items-center justify-between mb-2">
       <span className={`font-modern font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{receita.nome}</span>
@@ -40,7 +43,7 @@ const RecipeCard = ({ receita, isLight }) => (
     {receita.descricao && (
       <p className={`text-xs font-modern mb-2 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{receita.descricao}</p>
     )}
-    {receita.ingredientes?.length > 0 && (
+    {receita.ingredientes.length > 0 && (
       <div className="mt-2">
         <span className={`text-[10px] uppercase tracking-widest ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Ingredientes</span>
         <div className="flex flex-wrap gap-1 mt-1">
@@ -52,7 +55,7 @@ const RecipeCard = ({ receita, isLight }) => (
         </div>
       </div>
     )}
-    {receita.ferramentas?.length > 0 && (
+    {receita.ferramentas.length > 0 && (
       <div className="mt-2">
         <span className={`text-[10px] uppercase tracking-widest ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Ferramentas</span>
         <div className="flex flex-wrap gap-1 mt-1">
@@ -67,8 +70,15 @@ const RecipeCard = ({ receita, isLight }) => (
   </div>
 );
 
-// ── Main view ─────────────────────────────────────────────
-const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) => {
+interface VerHabilidadeViewProps {
+  habilidade: HabilidadeNormalizada | null;
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }: VerHabilidadeViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -84,13 +94,12 @@ const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) =>
 
   const accent = categoriaColors[h.categoria] || '#8b5cf6';
 
-  const mono = (items, color) => (
+  const mono = (items: string[], color: string) => (
     <div className="space-y-2">
       {items.map((e, i) => <p key={i} className={`font-mono text-sm ${color}`}>{e}</p>)}
     </div>
   );
 
-  // ── Badges ──
   const badges = [
     catBadge(h.categoria),
     h.tipo && simpleBadge('tipo', h.tipo, isLight, 'bg-blue-50 text-blue-700', 'bg-blue-500/15 text-blue-400'),
@@ -98,23 +107,21 @@ const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) =>
     h.usaConcentracao && simpleBadge('conc', 'Concentração', isLight, 'bg-amber-50 text-amber-700', 'bg-amber-500/15 text-amber-400'),
   ].filter(Boolean);
 
-  // ── Sections ──
   const textCls = isLight ? 'text-slate-700' : 'text-slate-300';
-  const sections = [
+  const sections: CatalogDetailSection[] = ([
     h.descricao && { title: 'Descrição', icon: BookOpen, color: '#d97706',
       content: <p className={`font-modern leading-relaxed ${textCls}`}>{h.descricao}</p> },
-    h.efeito?.length > 0 && { title: 'Efeito', icon: Sparkles, color: '#8b5cf6',
+    h.efeito && h.efeito.length > 0 && { title: 'Efeito', icon: Sparkles, color: '#8b5cf6',
       content: mono(h.efeito, textCls) },
-    h.escalamento?.length > 0 && { title: 'Escalamento', icon: BarChart3, color: '#3b82f6',
+    h.escalamento && h.escalamento.length > 0 && { title: 'Escalamento', icon: BarChart3, color: '#3b82f6',
       content: mono(h.escalamento, textCls) },
-    h.receitas?.length > 0 && { title: `Receitas de Crafting (${h.receitas.length})`, icon: FlaskConical, color: '#22c55e',
-      content: <div className="space-y-4">{h.receitas.map((r, i) => <RecipeCard key={r.id || i} receita={r} isLight={isLight} />)}</div> },
-  ].filter(Boolean);
+    h.receitas.length > 0 && { title: `Receitas de Crafting (${h.receitas.length})`, icon: FlaskConical, color: '#22c55e',
+      content: <div className="space-y-4">{h.receitas.map((r, i) => <RecipeCard key={i} receita={r} isLight={isLight} />)}</div> },
+  ].filter(Boolean) as CatalogDetailSection[]);
 
-  // ── Stats ──
-  const monoBlock = (items, cls) => <div className="space-y-1">{items.map((a, i) => <span key={i} className={`block font-mono text-xs ${cls}`}>{a}</span>)}</div>;
+  const monoBlock = (items: string[], cls: string) => <div className="space-y-1">{items.map((a, i) => <span key={i} className={`block font-mono text-xs ${cls}`}>{a}</span>)}</div>;
 
-  const stats = [
+  const stats: CatalogDetailStat[] = ([
     { icon: Tag, label: 'Categoria', content: catBadge(h.categoria) },
     h.tipo && { icon: Swords, label: 'Tipo', content: h.tipo },
     h.nivelRequerido && { icon: BarChart3, label: 'Nível Requerido', content: <span className="text-cyan-400 font-semibold">{h.nivelRequerido}</span> },
@@ -130,10 +137,10 @@ const VerHabilidadeView = ({ habilidade: h, loading, error, onBack, onEdit }) =>
     h.savingThrow && { icon: Shield, label: 'Saving Throw', content: h.savingThrow },
     h.classeNome && { icon: Shield, label: 'Classe', content: h.classeNome },
     h.racaNome && { icon: Tag, label: 'Raça', content: h.racaNome },
-    h.areaEfeito?.length > 0 && { icon: Target, label: 'Área de Efeito', content: monoBlock(h.areaEfeito, isLight ? 'text-cyan-700' : 'text-cyan-400') },
-    h.componenteMaterial?.length > 0 && { icon: Sparkles, label: 'Componente Material', content: monoBlock(h.componenteMaterial, isLight ? 'text-amber-700' : 'text-amber-400') },
-    h.preRequisitoItems?.length > 0 && { icon: ClipboardList, label: 'Pré-requisitos', content: monoBlock(h.preRequisitoItems, isLight ? 'text-amber-700' : 'text-amber-400') },
-  ].filter(Boolean);
+    h.areaEfeito && h.areaEfeito.length > 0 && { icon: Target, label: 'Área de Efeito', content: monoBlock(h.areaEfeito, isLight ? 'text-cyan-700' : 'text-cyan-400') },
+    h.componenteMaterial && h.componenteMaterial.length > 0 && { icon: Sparkles, label: 'Componente Material', content: monoBlock(h.componenteMaterial, isLight ? 'text-amber-700' : 'text-amber-400') },
+    h.preRequisitoItems && h.preRequisitoItems.length > 0 && { icon: ClipboardList, label: 'Pré-requisitos', content: monoBlock(h.preRequisitoItems, isLight ? 'text-amber-700' : 'text-amber-400') },
+  ].filter(Boolean) as CatalogDetailStat[]);
 
   return (
     <CatalogDetailLayout

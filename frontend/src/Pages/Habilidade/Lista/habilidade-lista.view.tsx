@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import StatCard from '../../../components/StatCard.jsx';
+import { useState, useEffect, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
 import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
-import Notification from '../../../components/Notification.jsx';
-import { useTheme } from '../../../contexts/theme.jsx';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
 import { Wand2, Swords, Heart, Flame } from 'lucide-react';
+import type { HabilidadeWithRel } from './habilidade-lista.model';
 
-const categoriaLabels = {
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const categoriaLabels: Record<string, string> = {
   combate_fisico: 'Combate Físico',
   magia_ofensiva: 'Magia Ofensiva',
   magia_defensiva: 'Magia Defensiva',
@@ -18,7 +21,7 @@ const categoriaLabels = {
   crafting: 'Crafting',
 };
 
-const categoriaVariant = {
+const categoriaVariant: Record<string, BadgeVariant> = {
   combate_fisico: 'red',
   magia_ofensiva: 'purple',
   magia_defensiva: 'blue',
@@ -30,7 +33,26 @@ const categoriaVariant = {
   crafting: 'amber',
 };
 
-const tipoVariant = { dano: 'red', cura: 'green', buff: 'cyan', debuff: 'amber', controle: 'purple' };
+const tipoVariant: Record<string, BadgeVariant> = { dano: 'red', cura: 'green', buff: 'cyan', debuff: 'amber', controle: 'purple' };
+
+interface HabilidadeListStats {
+  categorias: Record<string, number>;
+  elementos: Record<string, number>;
+}
+
+interface HabilidadeListaViewProps {
+  habilidades: HabilidadeWithRel[];
+  filteredHabilidades: HabilidadeWithRel[];
+  loading: boolean;
+  error: string | null;
+  total: number;
+  stats: HabilidadeListStats;
+  buscarHabilidades: (term: string) => void;
+  filtroCategoria: string;
+  setFiltroCategoria: (cat: string) => void;
+  clearError: () => void;
+  onVerHabilidade: (id: number | string) => void;
+}
 
 const HabilidadeListaView = ({
   habilidades,
@@ -44,7 +66,7 @@ const HabilidadeListaView = ({
   setFiltroCategoria,
   clearError,
   onVerHabilidade,
-}) => {
+}: HabilidadeListaViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   if (loading && habilidades.length === 0) {
@@ -60,7 +82,7 @@ const HabilidadeListaView = ({
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(12);
-  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const displayData = filteredHabilidades?.length > 0 || filteredHabilidades?.length === 0
     ? filteredHabilidades
@@ -70,7 +92,6 @@ const HabilidadeListaView = ({
 
   const paginatedData = displayData.slice((page - 1) * perPage, page * perPage);
 
-  // Build list of items with images for gallery navigation
   const itemsWithImages = displayData
     .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
     .filter(item => item.src);
@@ -166,7 +187,7 @@ const HabilidadeListaView = ({
                 }`}>
                   {row.custo_mana} MP
                 </span>
-                {row.classe && (
+                {row.classe?.nome && (
                   <span className={isLight ? 'text-slate-400' : 'text-slate-500'}>{row.classe.nome}</span>
                 )}
               </div>
@@ -184,12 +205,11 @@ const HabilidadeListaView = ({
         pageSizeOptions={[12, 24, 48]}
       />
 
-      {/* Gallery lightbox with prev/next navigation */}
       {galleryIndex !== null && displayData[galleryIndex] && (
         <ImageLightbox
-          src={displayData[galleryIndex].imagem}
-          alt={displayData[galleryIndex].nome}
-          title={displayData[galleryIndex].nome}
+          src={displayData[galleryIndex].imagem ?? ''}
+          alt={displayData[galleryIndex].nome ?? ''}
+          title={displayData[galleryIndex].nome ?? undefined}
           isOpen={true}
           onClose={() => setGalleryIndex(null)}
           onPrev={currentGalleryPos > 0 ? handlePrev : undefined}

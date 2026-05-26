@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../../constants/routes.js';
+import { ROUTES } from '../../../constants/routes';
 import { useHabilidadeEditarModel } from './habilidade-editar.model';
 import EditarHabilidadeView from './habilidade-editar.view';
 
@@ -7,7 +7,7 @@ export default function HabilidadeEditarPage() {
   const model = useHabilidadeEditarModel();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await model.saveHabilidade();
     if (result.success) navigate(ROUTES.HABILIDADES);

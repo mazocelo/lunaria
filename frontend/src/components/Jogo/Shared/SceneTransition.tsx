@@ -1,18 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
 
-/**
- * SceneTransition — overlay fullscreen com fade-in/out ao entrar em um local.
- *
- * Props:
- *   image   { url, nome, tipo } | null   — entidade a exibir. null fecha.
- *   onDone  () => void                   — chamado após o fade-out completar.
- */
+interface SceneTransitionImage {
+  url: string;
+  nome: string;
+  tipo?: 'local' | 'encontro' | string;
+}
+
+interface SceneTransitionProps {
+  image: SceneTransitionImage | null;
+  onDone?: () => void;
+}
+
+type ScenePhase = 'hidden' | 'enter' | 'visible' | 'exit';
+
 const FADE_MS = 800;
 const HOLD_MS = 2200;
 
-const SceneTransition = ({ image, onDone }) => {
-  const [phase, setPhase] = useState('hidden'); // hidden | enter | visible | exit
+const SceneTransition = ({ image, onDone }: SceneTransitionProps) => {
+  const [phase, setPhase] = useState<ScenePhase>('hidden');
 
   useEffect(() => {
     if (!image) return;
@@ -31,6 +37,7 @@ const SceneTransition = ({ image, onDone }) => {
       clearTimeout(exitTimer);
       clearTimeout(doneTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
 
   if (phase === 'hidden' || !image) return null;

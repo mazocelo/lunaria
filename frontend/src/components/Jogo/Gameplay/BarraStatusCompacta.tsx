@@ -1,38 +1,71 @@
-import React from 'react';
-import { Heart, Shield, Zap, Droplets } from 'lucide-react';
+import { Heart, Shield, Droplets } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
 import { calcularMana, calcularHPMaximo } from '../../../utils/rpgHelpers';
 
-const BARRA_DEATH_LABELS = {
-  muito_fraco:  { label: 'Muito Fraco', className: 'text-yellow-400', barColor: 'from-yellow-500 to-yellow-400' },
+interface DeathLabelEntry {
+  label: string;
+  className: string;
+  barColor: string;
+}
+
+const BARRA_DEATH_LABELS: Record<string, DeathLabelEntry> = {
+  muito_fraco:  { label: 'Muito Fraco',  className: 'text-yellow-400', barColor: 'from-yellow-500 to-yellow-400' },
   inconsciente: { label: 'Inconsciente', className: 'text-orange-400', barColor: 'from-orange-500 to-orange-400' },
   quase_morto:  { label: 'Quase Morto',  className: 'text-red-400 animate-pulse', barColor: 'from-red-600 to-red-400' },
-  morto:        { label: 'Morto',         className: 'text-slate-500', barColor: 'from-slate-600 to-slate-500' },
-  derrotado:    { label: 'Derrotado',     className: 'text-slate-500', barColor: 'from-slate-600 to-slate-500' },
+  morto:        { label: 'Morto',        className: 'text-slate-500', barColor: 'from-slate-600 to-slate-500' },
+  derrotado:    { label: 'Derrotado',    className: 'text-slate-500', barColor: 'from-slate-600 to-slate-500' },
 };
+
+interface BarraPersonagem {
+  nome?: string;
+  imagem?: string | null;
+  nivel?: number;
+  hp_atual?: number;
+  hp_max?: number;
+  hp?: number;
+  xp_atual?: number;
+  xp?: number;
+  xp_proximo_nivel?: number;
+  [key: string]: unknown;
+}
+
+interface BarraJogadorCombate {
+  hp_atual?: number;
+  hp_max?: number;
+  mana_atual?: number;
+  mana_max?: number;
+  status?: string;
+}
+
+interface BarraStatusCompactaProps {
+  personagem?: BarraPersonagem | null;
+  combateAtivo?: boolean;
+  combateJogadores?: Record<string, BarraJogadorCombate> | null;
+  userId?: number | string;
+}
 
 /**
  * Barra de HP/XP/Mana compacta sempre visivel acima do chat.
  * Mostra HP live durante combate (via combateJogadores) ou HP estatico fora de combate.
  */
-const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userId }) => {
+const BarraStatusCompacta = ({ personagem, combateAtivo, combateJogadores, userId }: BarraStatusCompactaProps) => {
   if (!personagem) return null;
 
   // HP: combate usa dados live, fora de combate usa personagem
   const jogadorCombate = combateAtivo ? combateJogadores?.[String(userId)] : null;
-  const hpMaxCalculado = personagem.hp_max || calcularHPMaximo(personagem);
+  const hpMaxCalculado = personagem.hp_max || calcularHPMaximo(personagem as unknown as Parameters<typeof calcularHPMaximo>[0]);
   const hpAtual = jogadorCombate?.hp_atual ?? personagem.hp_atual ?? personagem.hp ?? 0;
   const hpMax = jogadorCombate?.hp_max ?? hpMaxCalculado;
   const hpPercent = Math.max(0, Math.min(100, (hpAtual / hpMax) * 100));
 
   // Mana: combate usa dados live, fora de combate calcula pela formula
-  const manaMax = jogadorCombate?.mana_max ?? calcularMana(personagem);
+  const manaMax = jogadorCombate?.mana_max ?? calcularMana(personagem as unknown as Parameters<typeof calcularMana>[0]);
   const manaAtual = jogadorCombate?.mana_atual ?? manaMax;
   const manaPercent = manaMax > 0 ? Math.max(0, Math.min(100, (manaAtual / manaMax) * 100)) : 0;
 
   // Death state override for HP bar color
   const combateStatus = jogadorCombate?.status;
-  const deathInfo = BARRA_DEATH_LABELS[combateStatus];
+  const deathInfo = combateStatus ? BARRA_DEATH_LABELS[combateStatus] : undefined;
 
   // Cor da barra HP baseada na porcentagem (overridden by death state)
   const hpColor = deathInfo

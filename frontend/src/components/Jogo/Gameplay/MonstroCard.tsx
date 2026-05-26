@@ -1,7 +1,7 @@
-import React from 'react';
+import type { ComponentType } from 'react';
 import { Ghost, Skull, Sword, Trees, User, Waves, Bot, FlameKindling } from 'lucide-react';
 
-const TIPO_ICONS = {
+const TIPO_ICONS: Record<string, ComponentType<{ size?: number; className?: string }>> = {
   besta: Ghost,
   'morto-vivo': Skull,
   demonio: FlameKindling,
@@ -15,23 +15,47 @@ const TIPO_ICONS = {
   gigante: Sword,
   monstrosity: Ghost,
   fiend: FlameKindling,
-  plant: Trees
+  plant: Trees,
 };
 
-const MONSTRO_STATUS_LABELS = {
-  muito_fraco:  { label: 'MUITO FRACO', icon: '\u26A0\uFE0F', textClass: 'text-yellow-400' },
+interface MonstroStatusLabel {
+  label: string;
+  icon: string;
+  textClass: string;
+}
+
+const MONSTRO_STATUS_LABELS: Record<string, MonstroStatusLabel> = {
+  muito_fraco:  { label: 'MUITO FRACO',  icon: '\u26A0\uFE0F', textClass: 'text-yellow-400' },
   inconsciente: { label: 'INCONSCIENTE', icon: '\u{1F4A4}', textClass: 'text-orange-400' },
-  quase_morto:  { label: 'QUASE MORTO', icon: '\u{1F480}', textClass: 'text-red-400 animate-pulse' },
-  morto:        { label: 'MORTO', icon: '\u{1F480}', textClass: 'text-slate-500' },
+  quase_morto:  { label: 'QUASE MORTO',  icon: '\u{1F480}', textClass: 'text-red-400 animate-pulse' },
+  morto:        { label: 'MORTO',        icon: '\u{1F480}', textClass: 'text-slate-500' },
 };
 
-const MonstroCard = ({ monstro, compact = false, hpLabel = 'HP' }) => {
+export interface MonstroCardPayload {
+  nome?: string;
+  nivel?: number;
+  tipo?: string;
+  imagem?: string | null;
+  hp_atual?: number;
+  hp_max?: number;
+  status?: string;
+}
+
+interface MonstroCardProps {
+  monstro?: MonstroCardPayload | null;
+  compact?: boolean;
+  hpLabel?: string;
+}
+
+const MonstroCard = ({ monstro, compact = false, hpLabel = 'HP' }: MonstroCardProps) => {
   if (!monstro) return null;
 
-  const hpPercentage = Math.max(0, (monstro.hp_atual / monstro.hp_max) * 100);
-  const isDerrotado = monstro.status === 'derrotado' || monstro.status === 'morto' || monstro.hp_atual <= 0;
-  const statusInfo = MONSTRO_STATUS_LABELS[monstro.status];
-  const Icon = TIPO_ICONS[monstro.tipo] || Ghost;
+  const hpAtual = monstro.hp_atual ?? 0;
+  const hpMax = monstro.hp_max ?? 1;
+  const hpPercentage = Math.max(0, (hpAtual / hpMax) * 100);
+  const isDerrotado = monstro.status === 'derrotado' || monstro.status === 'morto' || hpAtual <= 0;
+  const statusInfo = monstro.status ? MONSTRO_STATUS_LABELS[monstro.status] : undefined;
+  const Icon = (monstro.tipo && TIPO_ICONS[monstro.tipo]) || Ghost;
 
   const hpColor = hpPercentage > 60
     ? 'from-green-500 to-green-400'
@@ -71,7 +95,7 @@ const MonstroCard = ({ monstro, compact = false, hpLabel = 'HP' }) => {
                 ? `\u{1F480} ${statusInfo?.label || 'DERROTADO'}`
                 : statusInfo
                   ? `${statusInfo.icon} ${statusInfo.label}`
-                  : `${monstro.hp_atual}/${monstro.hp_max}`}
+                  : `${hpAtual}/${hpMax}`}
             </span>
           </div>
           <div className="w-full bg-gray-700/50 rounded-full h-1 mt-0.5 overflow-hidden">
@@ -129,7 +153,7 @@ const MonstroCard = ({ monstro, compact = false, hpLabel = 'HP' }) => {
               ? `\u{1F480} ${statusInfo?.label || 'DERROTADO'}`
               : statusInfo
                 ? `${statusInfo.icon} ${statusInfo.label}`
-                : `${monstro.hp_atual}/${monstro.hp_max}`}
+                : `${hpAtual}/${hpMax}`}
           </span>
         </div>
         <div className="w-full bg-gray-700/50 rounded-full h-2 overflow-hidden">

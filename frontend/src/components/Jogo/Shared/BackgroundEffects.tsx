@@ -1,14 +1,17 @@
-import React, { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
+
+interface BackgroundEffectsProps {
+  particleCount?: number;
+}
 
 /**
  * Componente para efeitos de background animados
  * Posicoes memoizadas com seed deterministico para evitar reposicionamento em re-renders
  */
-const BackgroundEffects = ({ particleCount = 30 }) => {
-  const particles = useMemo(() => {
-    // Seed deterministico baseado em particleCount
-    const seed = (n) => {
-      let x = Math.sin(n * 9301 + 49297) * 233280;
+const BackgroundEffects = ({ particleCount = 30 }: BackgroundEffectsProps) => {
+  const particles = useMemo<CSSProperties[]>(() => {
+    const seed = (n: number) => {
+      const x = Math.sin(n * 9301 + 49297) * 233280;
       return x - Math.floor(x);
     };
 

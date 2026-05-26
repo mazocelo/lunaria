@@ -1,9 +1,15 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { Gem, Package, Shield, Sword, X, Zap } from 'lucide-react';
 import { agregarBonusEquipamentos as agregarBonus } from '../../../utils/personagemBonus';
-import { apiClient } from '../../../services/ApiClient.js';
+import { apiClient } from '../../../services/ApiClient';
 
-const raridadeStyles = {
+interface RaridadeStyle {
+  border: string;
+  text: string;
+  label: string;
+}
+
+const raridadeStyles: Record<string, RaridadeStyle> = {
   comum: { border: 'border-slate-500/40', text: 'text-slate-400', label: 'Comum' },
   incomum: { border: 'border-green-500/40', text: 'text-green-400', label: 'Incomum' },
   raro: { border: 'border-blue-500/40', text: 'text-blue-400', label: 'Raro' },
@@ -17,7 +23,7 @@ const raridadeStyles = {
   'muito raro': { border: 'border-purple-500/40', text: 'text-purple-400', label: 'Muito Raro' },
 };
 
-const elementoColors = {
+const elementoColors: Record<string, string> = {
   fogo: 'bg-red-500/20 text-red-300',
   gelo: 'bg-cyan-500/20 text-cyan-300',
   eletrico: 'bg-yellow-500/20 text-yellow-300',
@@ -41,28 +47,78 @@ const elementoColors = {
 
 const TIPOS_CONSUMIVEL = ['consumivel', 'consumível', 'pergaminho'];
 
-function getRaridadeFromItem(item) {
+interface InventarioItemRaw {
+  id?: number | string;
+  nome?: string;
+  tipo?: string | string[] | null;
+  raridade?: string | { nome?: string } | null;
+  raridade_nome?: string;
+  imagem?: string | null;
+  bonus?: Record<string, unknown>;
+  dano_base?: string | null;
+  elemento?: string | string[] | null;
+  efeito?: string | null;
+  poderes?: { descricao?: string | null } | null;
+  descricao?: string | null;
+  [key: string]: unknown;
+}
+
+interface InventarioEntry {
+  item?: InventarioItemRaw;
+  equipamentos?: InventarioItemRaw;
+  equipado?: boolean;
+  quantidade?: number;
+}
+
+interface NormalizedItem {
+  id?: number | string;
+  nome?: string;
+  tipo: string[];
+  raridade?: string | { nome?: string } | null;
+  imagem?: string | null;
+  bonus: Record<string, unknown>;
+  dano_base: string | null;
+  elemento: string[];
+  equipado?: boolean;
+  quantidade?: number;
+  efeito?: string | null;
+  poderes?: { descricao?: string | null } | null;
+  descricao?: string | null;
+}
+
+interface SaldoEnvelope {
+  success?: boolean;
+  data?: { moedas?: number };
+}
+
+interface InventarioEnvelope {
+  success?: boolean;
+  data?: InventarioEntry[];
+}
+
+function getRaridadeFromItem(item: { raridade?: unknown; raridade_nome?: string }): RaridadeStyle {
+  const raridadeObj = item.raridade && typeof item.raridade === 'object' ? (item.raridade as { nome?: string }) : null;
   const nome =
-    item.raridade?.nome?.toLowerCase() ||
+    raridadeObj?.nome?.toLowerCase() ||
     item.raridade_nome?.toLowerCase() ||
     (typeof item.raridade === 'string' ? item.raridade.toLowerCase() : null) ||
     'comum';
   return raridadeStyles[nome] || raridadeStyles.comum;
 }
 
-function isConsumivel(item) {
+function isConsumivel(item: NormalizedItem): boolean {
   const tipos = Array.isArray(item.tipo) ? item.tipo : (item.tipo ? [item.tipo] : []);
-  return tipos.some((t) => TIPOS_CONSUMIVEL.includes(t?.toLowerCase()));
+  return tipos.some((t) => t && TIPOS_CONSUMIVEL.includes(t.toLowerCase()));
 }
 
 // Normalise inventario entries from both sistemas into a consistent shape
-function normalizeInventarioItem(entry, sistema) {
+function normalizeInventarioItem(entry: InventarioEntry, sistema: string): NormalizedItem {
   if (sistema === 'tresdet') {
     const item = entry.item || {};
     return {
       id: item.id,
       nome: item.nome,
-      tipo: item.tipo ? [item.tipo] : [],
+      tipo: item.tipo ? [item.tipo as string] : [],
       raridade: item.raridade,
       imagem: item.imagem,
       bonus: {},
@@ -80,32 +136,50 @@ function normalizeInventarioItem(entry, sistema) {
   return {
     id: equip.id,
     nome: equip.nome,
-    tipo: Array.isArray(equip.tipo) ? equip.tipo : (equip.tipo ? [equip.tipo] : []),
-    raridade: equip.raridade_rel || equip.raridade,
+    tipo: Array.isArray(equip.tipo) ? equip.tipo : (equip.tipo ? [equip.tipo as string] : []),
+    raridade: (equip as { raridade_rel?: unknown }).raridade_rel as (string | { nome?: string } | null) || equip.raridade,
     imagem: equip.imagem,
     bonus: equip.bonus || {},
-    dano_base: equip.dano_base,
-    elemento: Array.isArray(equip.elemento) ? equip.elemento : (equip.elemento ? [equip.elemento] : []),
+    dano_base: equip.dano_base ?? null,
+    elemento: Array.isArray(equip.elemento) ? equip.elemento : (equip.elemento ? [equip.elemento as string] : []),
     equipado: entry.equipado,
     quantidade: entry.quantidade,
   };
 }
 
-const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, personagemId, sistema, onUsarItem }) => {
-  const [inventario, setInventario] = useState(null);
-  const [moedas, setMoedas] = useState(null);
-  const [loadingAction, setLoadingAction] = useState(null); // itemId being toggled
-  const [erro, setErro] = useState(null);
+interface InventarioPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  equipamentos?: InventarioItemRaw[];
+  personagemNome?: string;
+  personagemId?: number | string;
+  sistema?: string;
+  onUsarItem?: (item: NormalizedItem) => void;
+}
+
+const InventarioPanel = ({
+  isOpen,
+  onClose,
+  equipamentos = [],
+  personagemNome,
+  personagemId,
+  sistema,
+  onUsarItem,
+}: InventarioPanelProps) => {
+  const [inventario, setInventario] = useState<InventarioEntry[] | null>(null);
+  const [moedas, setMoedas] = useState<number | null>(null);
+  const [loadingAction, setLoadingAction] = useState<number | string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   const fetchInventario = useCallback(async () => {
     if (!personagemId) return;
     try {
       const [invRes, saldoRes] = await Promise.all([
-        apiClient.get(`/personagens/${personagemId}/inventario`),
-        apiClient.get(`/personagens/${personagemId}/saldo`),
+        apiClient.get(`/personagens/${personagemId}/inventario`) as Promise<InventarioEnvelope>,
+        apiClient.get(`/personagens/${personagemId}/saldo`) as Promise<SaldoEnvelope>,
       ]);
-      if (invRes.success) setInventario(invRes.data);
-      if (saldoRes.success) setMoedas(saldoRes.data.moedas);
+      if (invRes?.success) setInventario(invRes.data || []);
+      if (saldoRes?.success) setMoedas(saldoRes.data?.moedas ?? null);
     } catch {
       // fall back to prop-based equipamentos silently
     }
@@ -117,42 +191,44 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, p
     }
   }, [isOpen, personagemId, fetchInventario]);
 
-  const itens = useMemo(() => {
+  const itens = useMemo<NormalizedItem[]>(() => {
     if (inventario && sistema) {
       return inventario.map((entry) => normalizeInventarioItem(entry, sistema));
     }
     // fallback: treat prop equipamentos as already-equipped items
-    return equipamentos.map((eq) => ({ ...eq, equipado: true, quantidade: 1 }));
+    return equipamentos.map((eq) => normalizeInventarioItem({ equipamentos: eq, equipado: true, quantidade: 1 }, sistema || 'lunaria'));
   }, [inventario, sistema, equipamentos]);
 
   const equipados = useMemo(() => itens.filter((i) => i.equipado), [itens]);
   const mochila = useMemo(() => itens.filter((i) => !i.equipado), [itens]);
 
-  const bonus = useMemo(() => agregarBonus(equipados), [equipados]);
+  const bonus = useMemo(() => agregarBonus(equipados as unknown as Parameters<typeof agregarBonus>[0]), [equipados]);
 
-  const handleEquipar = useCallback(async (itemId) => {
+  const handleEquipar = useCallback(async (itemId: number | string) => {
     if (!personagemId || !sistema) return;
     setLoadingAction(itemId);
     setErro(null);
     try {
-      const res = await apiClient.post(`/personagens/${personagemId}/equipar`, { itemId, sistema });
-      if (res.success) await fetchInventario();
+      const res = await apiClient.post(`/personagens/${personagemId}/equipar`, { itemId, sistema }) as { success?: boolean };
+      if (res?.success) await fetchInventario();
     } catch (e) {
-      setErro(e.message || 'Erro ao equipar');
+      const message = e instanceof Error ? e.message : 'Erro ao equipar';
+      setErro(message);
     } finally {
       setLoadingAction(null);
     }
   }, [personagemId, sistema, fetchInventario]);
 
-  const handleDesequipar = useCallback(async (itemId) => {
+  const handleDesequipar = useCallback(async (itemId: number | string) => {
     if (!personagemId || !sistema) return;
     setLoadingAction(itemId);
     setErro(null);
     try {
-      const res = await apiClient.post(`/personagens/${personagemId}/desequipar`, { itemId, sistema });
-      if (res.success) await fetchInventario();
+      const res = await apiClient.post(`/personagens/${personagemId}/desequipar`, { itemId, sistema }) as { success?: boolean };
+      if (res?.success) await fetchInventario();
     } catch (e) {
-      setErro(e.message || 'Erro ao desequipar');
+      const message = e instanceof Error ? e.message : 'Erro ao desequipar';
+      setErro(message);
     } finally {
       setLoadingAction(null);
     }
@@ -233,7 +309,7 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, p
                           item={item}
                           acao="desequipar"
                           carregando={loadingAction === item.id}
-                          onAcao={() => handleDesequipar(item.id)}
+                          onAcao={() => item.id != null && handleDesequipar(item.id)}
                           semBotao={!personagemId}
                         />
                       ))}
@@ -257,7 +333,7 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, p
                           carregando={loadingAction === item.id}
                           onAcao={isConsumivel(item)
                             ? () => onUsarItem?.(item)
-                            : () => handleEquipar(item.id)
+                            : () => item.id != null && handleEquipar(item.id)
                           }
                           semBotao={!personagemId || (isConsumivel(item) && !onUsarItem)}
                         />
@@ -304,11 +380,19 @@ const InventarioPanel = ({ isOpen, onClose, equipamentos = [], personagemNome, p
   );
 };
 
-function ItemCard({ item, acao, carregando, onAcao, semBotao }) {
+interface ItemCardProps {
+  item: NormalizedItem;
+  acao: 'usar' | 'equipar' | 'desequipar';
+  carregando?: boolean;
+  onAcao?: () => void;
+  semBotao?: boolean;
+}
+
+function ItemCard({ item, acao, carregando, onAcao, semBotao }: ItemCardProps) {
   const raridade = getRaridadeFromItem(item);
-  const elementos = item.elemento || [];
-  const tipos = item.tipo || [];
-  const b = item.bonus || {};
+  const elementos: string[] = item.elemento || [];
+  const tipos: string[] = item.tipo || [];
+  const b = (item.bonus || {}) as Record<string, number>;
 
   return (
     <div className={`game-glass-subtle p-3 rounded-lg border ${raridade.border}`}>
@@ -319,7 +403,7 @@ function ItemCard({ item, acao, carregando, onAcao, semBotao }) {
         <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <span className="text-sm font-semibold text-white font-modern truncate block">{item.nome}</span>
-            {item.quantidade > 1 && (
+            {(item.quantidade ?? 0) > 1 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-300 font-modern">
                 x{item.quantidade}
               </span>
@@ -394,4 +478,4 @@ function ItemCard({ item, acao, carregando, onAcao, semBotao }) {
   );
 }
 
-export default React.memo(InventarioPanel);
+export default memo(InventarioPanel);

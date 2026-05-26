@@ -1,4 +1,13 @@
-export const ELEMENT_COLORS = {
+export interface ElementColorEntry {
+  border: string;
+  glow: string;
+  bg: string;
+  bgLight: string;
+  text: string;
+  textLight: string;
+}
+
+export const ELEMENT_COLORS: Record<string, ElementColorEntry> = {
   fogo:   { border: '#f97316', glow: 'rgba(249,115,22,0.35)', bg: 'rgba(124,45,18,0.20)',  bgLight: 'rgba(249,115,22,0.08)', text: '#fb923c', textLight: '#c2410c' },
   agua:   { border: '#3b82f6', glow: 'rgba(59,130,246,0.35)',  bg: 'rgba(30,58,138,0.20)',  bgLight: 'rgba(59,130,246,0.08)', text: '#60a5fa', textLight: '#1d4ed8' },
   terra:  { border: '#10b981', glow: 'rgba(16,185,129,0.35)',  bg: 'rgba(6,78,59,0.20)',    bgLight: 'rgba(16,185,129,0.08)', text: '#34d399', textLight: '#047857' },

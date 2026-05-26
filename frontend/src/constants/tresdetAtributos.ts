@@ -5,7 +5,19 @@
  * camada View quanto pela camada Model. As `key` casam com o mapa `atributos`
  * retornado pelo backend para personagens 3D&T.
  */
-export const TRESDET_ATTR_CONFIG = [
+export type TresdetAttrKey = 'F' | 'H' | 'R' | 'A' | 'PdF';
+
+export interface TresdetAttrConfig {
+  key: TresdetAttrKey;
+  label: string;
+  sigla: string;
+  min: number;
+  max: number;
+  desc: string;
+  bar: string;
+}
+
+export const TRESDET_ATTR_CONFIG: TresdetAttrConfig[] = [
   { key: 'F', label: 'Forca', sigla: 'F', min: 0, max: 5, desc: 'Dano corpo a corpo', bar: 'bg-red-500' },
   { key: 'H', label: 'Habilidade', sigla: 'H', min: 0, max: 5, desc: 'Acerto, esquiva, iniciativa', bar: 'bg-purple-500' },
   { key: 'R', label: 'Resistencia', sigla: 'R', min: 0, max: 5, desc: 'HP e PM', bar: 'bg-green-500' },

@@ -1,6 +1,114 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { Fragment, memo, useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import MonstroCard from './MonstroCard';
+import MonstroCard, { type MonstroCardPayload } from './MonstroCard';
+
+interface BatalhaMonstro extends MonstroCardPayload {
+  id?: number | string;
+}
+
+interface BatalhaJogador {
+  id?: number | string;
+  nome?: string;
+  hp_atual?: number;
+  hp_max?: number;
+  status?: string;
+}
+
+interface BatalhaAlvo {
+  nome?: string;
+  hp_atual?: number;
+  hp_max?: number;
+}
+
+interface BatalhaLogEntry {
+  id?: number | string;
+  tipo?: string;
+  nome?: string;
+  rolagem?: number | string;
+  modificador?: number;
+  iniciativa?: number;
+  texto?: string;
+  mensagem?: string;
+  status?: string;
+  efeito?: { nome?: string; descricao?: string };
+  alvo?: BatalhaAlvo | string;
+  alvoNome?: string;
+  atacante?: BatalhaAlvo | string;
+  atacanteNome?: string;
+  alvos?: BatalhaAlvo[];
+  habilidade?: { nome?: string } | string;
+  arma?: { nome?: string };
+  bonusAtaque?: number;
+  esquivou?: boolean;
+  critico?: boolean;
+  acertou?: boolean;
+  dano?: number;
+  cura?: number;
+  custoMana?: number;
+  emoji?: string;
+  classe?: string;
+  motivo?: string;
+  resultado?: number | string;
+  modificadores?: Array<{ tipo?: string; valor?: number; descricao?: string }>;
+  total?: number;
+  cd?: number;
+  vantagem?: string;
+  personagem?: string;
+  hpRestante?: number;
+  hpMax?: number;
+  monstro?: { nome?: string };
+  acao?: string;
+  atributo?: string;
+  natural?: number;
+  duracao?: number;
+  detalhes?: string;
+  desistencia?: boolean;
+  origem?: string;
+  esquivaBonus?: number;
+  reducaoDano?: number;
+  sucesso?: boolean;
+  dc?: number | string;
+  habilidadeNome?: string;
+  ataque?: {
+    dano?: number;
+    alvo?: string;
+    hpRestante?: number;
+    hpMax?: number;
+  };
+  efeitoAplicado?: { status?: string; duracao?: number };
+  erro?: string;
+  // entradas variadas do log — flag-permissive
+  [key: string]: unknown;
+}
+
+interface BatalhaOrdemEntry {
+  id?: number | string;
+  tipo?: string;
+  nome?: string;
+  iniciativa?: number;
+  rolagem?: number | string;
+  modificador?: number;
+}
+
+type BatalhaFase = 'iniciativa' | 'combate' | 'ordem_definida';
+type BatalhaResultado = 'vitoria' | 'derrota' | 'fuga' | null;
+
+interface BatalhaUIProps {
+  monstros?: BatalhaMonstro[];
+  jogadores?: Record<string, BatalhaJogador>;
+  rodada?: number;
+  log?: BatalhaLogEntry[];
+  resultado?: BatalhaResultado;
+  xpGanho?: number;
+  userId?: number | string;
+  fase?: BatalhaFase;
+  iniciativaPendente?: boolean;
+  iniciativaModificador?: number;
+  ordemIniciativa?: BatalhaOrdemEntry[];
+  turnoAtual?: BatalhaOrdemEntry | null;
+  onRolarIniciativa?: (() => void) | null;
+  sistema?: string;
+}
 
 /**
  * UI completa de batalha — iniciativa, painel de combate, log, e resultado.
@@ -13,7 +121,6 @@ const BatalhaUI = ({
   log = [],
   resultado = null,
   xpGanho = 0,
-  userId,
   fase = 'combate',
   iniciativaPendente = false,
   iniciativaModificador = 0,
@@ -21,13 +128,13 @@ const BatalhaUI = ({
   turnoAtual = null,
   onRolarIniciativa = null,
   sistema = 'lunaria',
-}) => {
+}: BatalhaUIProps) => {
   const isDnd5e = sistema === 'dnd5e';
   const hpLabel = sistema === 'tresdet' ? 'PV' : 'HP';
   const [collapsed, setCollapsed] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
-  const logRef = useRef(null);
-  const monstrosVivos = monstros.filter(m => m.status !== 'derrotado' && m.hp_atual > 0);
+  const logRef = useRef<HTMLDivElement | null>(null);
+  const monstrosVivos = monstros.filter((m) => m.status !== 'derrotado' && (m.hp_atual ?? 0) > 0);
 
   // Auto-scroll log when new entries arrive
   useEffect(() => {
@@ -92,7 +199,7 @@ const BatalhaUI = ({
         </div>
         {iniciativaPendente ? (
           <button
-            onClick={onRolarIniciativa}
+            onClick={onRolarIniciativa ?? undefined}
             className="w-full py-2 px-4 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
           >
             {'\u{1F3B2}'} Rolar Iniciativa (d20 {iniciativaModificador >= 0 ? '+' : ''}{iniciativaModificador} {isDnd5e ? 'DEX' : 'Agi'})
@@ -125,7 +232,7 @@ const BatalhaUI = ({
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-gray-400">d20:{e.rolagem}</span>
-                <span className="text-xs text-gray-500">{e.modificador >= 0 ? '+' : ''}{e.modificador}</span>
+                <span className="text-xs text-gray-500">{(e.modificador ?? 0) >= 0 ? '+' : ''}{e.modificador ?? 0}</span>
                 <span className="text-xs font-bold text-amber-300">= {e.iniciativa}</span>
               </div>
             </div>
@@ -179,13 +286,13 @@ const BatalhaUI = ({
             <span className="text-xs text-gray-500">Ordem:</span>
             {ordemIniciativa.map((e, i) => {
               const isCurrent = turnoAtual?.id === e.id;
-              const isDerrotado = e.tipo === 'monstro' && monstros.find(m => m.id === e.id && (m.status === 'derrotado' || m.hp_atual <= 0));
+              const isDerrotado = e.tipo === 'monstro' && monstros.find((m) => m.id === e.id && (m.status === 'derrotado' || (m.hp_atual ?? 0) <= 0));
               const playerStatus = e.tipo === 'jogador' && jogadores[String(e.id)]?.status;
               const isPlayerDead = playerStatus === 'morto' || playerStatus === 'derrotado';
               const isPlayerIncapacitated = playerStatus === 'inconsciente' || playerStatus === 'quase_morto';
               const isOut = isDerrotado || isPlayerDead;
               return (
-                <React.Fragment key={e.id}>
+                <Fragment key={e.id}>
                   {i > 0 && <span className="text-gray-600 text-xs">{'\u2192'}</span>}
                   <span className={`text-xs px-1 rounded ${
                     isOut
@@ -200,7 +307,7 @@ const BatalhaUI = ({
                   }`}>
                     {e.nome}({e.iniciativa})
                   </span>
-                </React.Fragment>
+                </Fragment>
               );
             })}
           </div>
@@ -239,14 +346,20 @@ const BatalhaUI = ({
 // ── LogEntry ─────────────────────────────────────────────────────────
 // Handles all combat log entry types with rich formatting.
 
-const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
+interface LogEntryProps {
+  entry?: BatalhaLogEntry | null;
+  hpLabel?: string;
+  isDnd5e?: boolean;
+}
+
+const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }: LogEntryProps) => {
   if (!entry) return null;
 
   // ── Status Effect Applied ──
   if (entry.tipo === 'status_efeito') {
     return (
       <div className="text-xs text-purple-400">
-        {'\u{1F4AB}'} {entry.personagem || entry.alvo?.nome} — <strong>{entry.status}</strong>
+        {'\u{1F4AB}'} {entry.personagem || (typeof entry.alvo === 'object' ? entry.alvo?.nome : entry.alvo)} — <strong>{entry.status}</strong>
       </div>
     );
   }
@@ -255,7 +368,7 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
   if (entry.tipo === 'status_dano') {
     return (
       <div className="text-xs text-orange-400">
-        {entry.status === 'queimando' ? '\u{1F525}' : '\u{1F9EA}'} {entry.alvo?.nome || entry.personagem} <span className="text-red-300">-{entry.dano}</span> ({entry.status})
+        {entry.status === 'queimando' ? '\u{1F525}' : '\u{1F9EA}'} {(typeof entry.alvo === 'object' ? entry.alvo?.nome : entry.alvo) || entry.personagem} <span className="text-red-300">-{entry.dano}</span> ({entry.status})
         {entry.hpRestante != null && entry.hpMax != null && (
           <span className="text-gray-500"> ({hpLabel}: {entry.hpRestante}/{entry.hpMax})</span>
         )}
@@ -270,7 +383,7 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
         {'\u{1F6E1}\uFE0F'} <span className="text-cyan-400 font-semibold">{entry.personagem}</span> {isDnd5e ? 'takes the Dodge action!' : 'defende!'}{' '}
         {isDnd5e
           ? <span className="text-blue-200">Attacks against have disadvantage</span>
-          : <span className="text-blue-200">Esquiva +{entry.esquivaBonus}%, Dano -{Math.round((entry.reducaoDano ?? 0.5) * 100)}%</span>
+          : <span className="text-blue-200">Esquiva +{entry.esquivaBonus ?? 0}%, Dano -{Math.round((entry.reducaoDano ?? 0.5) * 100)}%</span>
         }
       </div>
     );
@@ -297,7 +410,7 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
         <div className="text-purple-300">
           {'\u2728'} <span className="text-cyan-400 font-semibold">{entry.personagem}</span> usa{' '}
           <strong>{entry.habilidadeNome}</strong>
-          {entry.custoMana > 0 && <span className="text-blue-300"> (-{entry.custoMana} MP)</span>}
+          {(entry.custoMana ?? 0) > 0 && <span className="text-blue-300"> (-{entry.custoMana} MP)</span>}
           {entry.rolagem != null && <span className="text-gray-400"> {'\u2192'} d20:{entry.rolagem}</span>}
           {entry.acertou != null && (
             <span className={entry.acertou ? 'text-green-300' : 'text-red-400'}>
@@ -305,7 +418,7 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
             </span>
           )}
         </div>
-        {atkData?.dano > 0 && (
+        {(atkData?.dano ?? 0) > 0 && atkData && (
           <div className="text-orange-300 pl-4">
             {'\u{1F3AF}'} Dano: {atkData.dano}
             {atkData.alvo && <span> {'\u2192'} {atkData.alvo}</span>}
@@ -329,7 +442,7 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
       <div className="text-xs text-gray-500">
         {'\u274C'} <span className="text-cyan-400">{entry.personagem}</span> tentou <strong>{entry.habilidadeNome}</strong>
         {' '}{'\u2014'} {entry.erro || (entry.tipo === 'habilidade_teste_falhou' ? 'falhou no teste' : 'falhou')}
-        {entry.custoMana > 0 && <span className="text-blue-300"> (-{entry.custoMana} MP)</span>}
+        {(entry.custoMana ?? 0) > 0 && <span className="text-blue-300"> (-{entry.custoMana} MP)</span>}
       </div>
     );
   }
@@ -337,10 +450,14 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
   // ── Monster Attack (from combat_monster_action) ──
   // Data fields: atacanteNome, alvoNome, rolagem, acertou, esquivou, critico, dano, hpRestante, hpMax, habilidade
   if (entry.tipo === 'ataque_monstro') {
-    const atacante = entry.atacanteNome || entry.atacante?.nome || entry.atacante || '???';
-    const alvo = entry.alvoNome || entry.alvo?.nome || entry.alvo || '???';
+    const atacanteRaw = entry.atacante;
+    const atacanteObj = atacanteRaw && typeof atacanteRaw === 'object' ? atacanteRaw : null;
+    const atacante = entry.atacanteNome || atacanteObj?.nome || (typeof atacanteRaw === 'string' ? atacanteRaw : '???');
+    const alvoRaw = entry.alvo;
+    const alvoObj = alvoRaw && typeof alvoRaw === 'object' ? alvoRaw : null;
+    const alvo = entry.alvoNome || alvoObj?.nome || (typeof alvoRaw === 'string' ? alvoRaw : '???');
     const bonusAtaque = entry.bonusAtaque ?? 0;
-    const totalAtaque = entry.rolagem != null ? entry.rolagem + bonusAtaque : null;
+    const totalAtaque = entry.rolagem != null ? Number(entry.rolagem) + bonusAtaque : null;
 
     // Monster hit and dealt damage
     if (entry.acertou && !entry.esquivou) {
@@ -364,9 +481,11 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
               <span className="text-gray-500"> ({hpLabel}: {entry.hpRestante}/{entry.hpMax})</span>
             )}
           </div>
-          {entry.habilidade && entry.habilidade !== 'Ataque basico' && entry.habilidade !== 'Ataque básico' && (
-            <div className="text-xs text-red-300/60 pl-4">{'\u{1F525}'} {entry.habilidade}</div>
-          )}
+          {entry.habilidade && (() => {
+            const hab = typeof entry.habilidade === 'string' ? entry.habilidade : entry.habilidade?.nome ?? '';
+            if (!hab || hab === 'Ataque basico' || hab === 'Ataque básico') return null;
+            return <div className="text-xs text-red-300/60 pl-4">{'\u{1F525}'} {hab}</div>;
+          })()}
         </div>
       );
     }
@@ -404,8 +523,12 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
 
   // ── Player Attack ──
   if (entry.tipo === 'ataque_jogador') {
-    const atacante = entry.atacante?.nome || entry.atacante || entry.personagem || '???';
-    const alvo = entry.alvo?.nome || entry.alvo || '???';
+    const atacanteRaw = entry.atacante;
+    const atacanteObj = atacanteRaw && typeof atacanteRaw === 'object' ? atacanteRaw : null;
+    const atacante = atacanteObj?.nome || (typeof atacanteRaw === 'string' ? atacanteRaw : entry.personagem) || '???';
+    const alvoRaw = entry.alvo;
+    const alvoObj = alvoRaw && typeof alvoRaw === 'object' ? alvoRaw : null;
+    const alvo = alvoObj?.nome || (typeof alvoRaw === 'string' ? alvoRaw : '???');
 
     if (entry.acertou) {
       return (
@@ -422,7 +545,7 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
               {entry.critico ? 'CRIT! ' : ''}Sucesso!
             </span>
           </div>
-          {entry.dano > 0 && (
+          {(entry.dano ?? 0) > 0 && (
             <div className="text-orange-300 pl-4">
               {'\u{1F3AF}'} Dano: {entry.dano}
               {entry.hpRestante != null && entry.hpMax != null && (
@@ -461,4 +584,4 @@ const LogEntry = ({ entry, hpLabel = 'HP', isDnd5e = false }) => {
   );
 };
 
-export default React.memo(BatalhaUI);
+export default memo(BatalhaUI);

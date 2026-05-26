@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock3 } from 'lucide-react';
 import { ROLEPLAY_COOLDOWN_SECONDS, TIMEOUTS } from '../../../constants/game';
 
+interface CooldownRoleplayProps {
+  segundosRestantes?: number;
+  ativo?: boolean;
+}
+
 const CooldownRoleplay = ({
   segundosRestantes = 0,
-  ativo = false
-}) => {
+  ativo = false,
+}: CooldownRoleplayProps) => {
   const [segundos, setSegundos] = useState(segundosRestantes);
 
   useEffect(() => {

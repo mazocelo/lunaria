@@ -1,35 +1,36 @@
-import React from 'react';
 import { xpParaNivel, tierDesbloqueado, nomeTier, NIVEL_MAX } from '../../../utils/evolucaoHelper';
 import { Star, Trophy } from 'lucide-react';
 
-const tierColors = {
+type Tier = 1 | 2 | 3 | 4 | 5;
+
+const tierColors: Record<Tier, string> = {
   1: 'text-slate-400',
   2: 'text-green-400',
   3: 'text-blue-400',
   4: 'text-purple-400',
-  5: 'text-yellow-400'
+  5: 'text-yellow-400',
 };
 
-const tierBgColors = {
+const tierBgColors: Record<Tier, string> = {
   1: 'bg-slate-500/20 border-slate-500/30',
   2: 'bg-green-500/20 border-green-500/30',
   3: 'bg-blue-500/20 border-blue-500/30',
   4: 'bg-purple-500/20 border-purple-500/30',
-  5: 'bg-yellow-500/20 border-yellow-500/30'
+  5: 'bg-yellow-500/20 border-yellow-500/30',
 };
 
-/**
- * Barra de progresso de XP com tier badge
- * @param {number} xpAtual - XP atual no nivel
- * @param {number} xpProximoNivel - XP necessario para proximo nivel (ou usar calculo)
- * @param {number} nivel - Nivel atual do personagem
- * @param {boolean} compact - Layout compacto para sidebar
- */
-const XPProgressBar = ({ xpAtual = 0, xpProximoNivel, nivel = 1, compact = false }) => {
+interface XPProgressBarProps {
+  xpAtual?: number;
+  xpProximoNivel?: number;
+  nivel?: number;
+  compact?: boolean;
+}
+
+const XPProgressBar = ({ xpAtual = 0, xpProximoNivel, nivel = 1, compact = false }: XPProgressBarProps) => {
   const isMaxLevel = nivel >= NIVEL_MAX;
   const xpNeeded = xpProximoNivel || xpParaNivel(nivel);
   const percentage = isMaxLevel ? 100 : Math.min(100, Math.max(0, (xpAtual / xpNeeded) * 100));
-  const tier = tierDesbloqueado(nivel);
+  const tier = tierDesbloqueado(nivel) as Tier;
 
   if (compact) {
     return (

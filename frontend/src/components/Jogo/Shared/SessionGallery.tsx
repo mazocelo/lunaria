@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
-import { Images, X, ChevronRight, Map, User, Landmark, Film } from 'lucide-react';
-import ImageLightbox from '../../ImageLightbox.jsx';
+import { useState, type ComponentType } from 'react';
+import { Images, X, Map, User, Landmark, Film } from 'lucide-react';
+import ImageLightbox from '../../ImageLightbox';
 
-const TYPE_ICON = {
+export type SessionGalleryTipo = 'local' | 'npc' | 'mapa' | 'cena' | string;
+
+export interface SessionGalleryImage {
+  url: string;
+  nome: string;
+  tipo?: SessionGalleryTipo;
+}
+
+interface SessionGalleryProps {
+  images?: SessionGalleryImage[];
+}
+
+const TYPE_ICON: Record<string, ComponentType<{ size?: number; className?: string }>> = {
   local: Landmark,
   npc: User,
   mapa: Map,
   cena: Film,
 };
 
-const TYPE_LABEL = {
+const TYPE_LABEL: Record<string, string> = {
   local: 'Local',
   npc: 'NPC',
   mapa: 'Mapa',
@@ -17,14 +29,11 @@ const TYPE_LABEL = {
 };
 
 /**
- * SessionGallery — painel lateral com todas as imagens acumuladas na sessão.
- *
- * Props:
- *   images  Array<{ url, nome, tipo }> — imagens da sessão
+ * SessionGallery — painel lateral com todas as imagens acumuladas na sessao.
  */
-const SessionGallery = ({ images = [] }) => {
+const SessionGallery = ({ images = [] }: SessionGalleryProps) => {
   const [open, setOpen] = useState(false);
-  const [lightbox, setLightbox] = useState(null);
+  const [lightbox, setLightbox] = useState<SessionGalleryImage | null>(null);
 
   if (images.length === 0) return null;
 
@@ -71,7 +80,7 @@ const SessionGallery = ({ images = [] }) => {
             {/* Grid de imagens */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {images.map((img, i) => {
-                const Icon = TYPE_ICON[img.tipo] || Film;
+                const Icon = (img.tipo && TYPE_ICON[img.tipo]) || Film;
                 return (
                   <button
                     key={i}
@@ -95,7 +104,7 @@ const SessionGallery = ({ images = [] }) => {
                         </span>
                       </div>
                       <div className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-black/50 text-purple-300 font-mono">
-                        {TYPE_LABEL[img.tipo] || img.tipo}
+                        {(img.tipo && TYPE_LABEL[img.tipo]) || img.tipo}
                       </div>
                     </div>
                   </button>

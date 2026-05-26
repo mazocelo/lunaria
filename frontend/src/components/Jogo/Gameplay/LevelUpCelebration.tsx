@@ -1,7 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { nomeTier } from '../../../utils/evolucaoHelper';
 
-const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
+export interface LevelUpGanhos {
+  pontosAtributo?: number;
+  pontosVantagem?: number;
+  tierMudou?: boolean;
+  novoTier?: number;
+}
+
+interface LevelUpCelebrationProps {
+  isVisible?: boolean;
+  novoNivel?: number;
+  ganhos?: LevelUpGanhos | null;
+  onClose?: () => void;
+}
+
+const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }: LevelUpCelebrationProps) => {
   const [fase, setFase] = useState(0);
 
   useEffect(() => {
@@ -59,14 +73,14 @@ const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
 
         {fase >= 3 && ganhos && (
           <div className="space-y-2 animate-fade-in">
-            {ganhos.pontosAtributo > 0 && (
+            {(ganhos.pontosAtributo ?? 0) > 0 && (
               <div className="game-glass px-6 py-2 rounded-lg border border-green-500/30 inline-block mx-1">
                 <span className="text-green-400 font-modern font-semibold">
                   +{ganhos.pontosAtributo} Pontos de Atributo
                 </span>
               </div>
             )}
-            {ganhos.pontosVantagem > 0 && (
+            {(ganhos.pontosVantagem ?? 0) > 0 && (
               <div className="game-glass px-6 py-2 rounded-lg border border-blue-500/30 inline-block mx-1">
                 <span className="text-blue-400 font-modern font-semibold">
                   +{ganhos.pontosVantagem} Ponto de Vantagem
@@ -76,7 +90,7 @@ const LevelUpCelebration = ({ isVisible, novoNivel, ganhos, onClose }) => {
             {ganhos.tierMudou && (
               <div className="game-glass px-6 py-2 rounded-lg border border-purple-500/30 inline-block mx-1">
                 <span className="text-purple-400 font-modern font-semibold">
-                  Novo Tier: {nomeTier(ganhos.novoTier)}!
+                  Novo Tier: {nomeTier(ganhos.novoTier ?? 1)}!
                 </span>
               </div>
             )}

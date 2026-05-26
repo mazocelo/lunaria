@@ -1,23 +1,74 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { memo, useRef, useState, useEffect } from 'react';
 import { Package, Shield } from 'lucide-react';
 import XPProgressBar from './XPProgressBar';
 import { calcularMana, calcularHPMaximo, getDnd5eModifier, getDnd5eProficiencyBonus } from '../../../utils/rpgHelpers';
 
-const DEATH_STATES = {
+interface DeathStateEntry {
+  text: string;
+  border: string;
+  label: string;
+  grayscale: boolean;
+  pulse: boolean;
+}
+
+const DEATH_STATES: Record<string, DeathStateEntry> = {
   muito_fraco:  { text: 'text-yellow-400', border: 'border-yellow-600', label: 'Muito Fraco', grayscale: false, pulse: false },
   inconsciente: { text: 'text-orange-400', border: 'border-orange-600', label: 'Inconsciente', grayscale: false, pulse: false },
   quase_morto:  { text: 'text-red-400',    border: 'border-red-600',    label: 'Quase Morto',  grayscale: false, pulse: true },
-  morto:        { text: 'text-slate-500',   border: 'border-gray-600',   label: 'Morto',        grayscale: true,  pulse: false },
-  derrotado:    { text: 'text-gray-500',    border: 'border-gray-600',   label: 'Derrotado',    grayscale: true,  pulse: false },
+  morto:        { text: 'text-slate-500',  border: 'border-gray-600',   label: 'Morto',        grayscale: true,  pulse: false },
+  derrotado:    { text: 'text-gray-500',   border: 'border-gray-600',   label: 'Derrotado',    grayscale: true,  pulse: false },
 };
 
-const STATUS_BADGE_STYLES = {
+const STATUS_BADGE_STYLES: Record<string, string> = {
   muito_fraco:  'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   inconsciente: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   quase_morto:  'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse',
   morto:        'bg-slate-700/30 text-slate-500 border-slate-600/30',
   derrotado:    'bg-slate-600/20 text-slate-500 border-slate-600/30',
 };
+
+interface StatusPersonagemPayload {
+  nome?: string;
+  imagem?: string | null;
+  classe?: string | { nome?: string } | null;
+  raca?: string | { nome?: string } | null;
+  sistema?: 'lunaria' | 'dnd5e' | 'tresdet' | string;
+  nivel?: number;
+  hp?: number;
+  hp_max?: number;
+  xp?: number;
+  xp_atual?: number;
+  xp_proximo_nivel?: number;
+  atributos?: Record<string, number | string>;
+  stats_sistema?: { ac?: number; spellSlots?: number[]; [key: string]: unknown };
+  habilidades?: Record<string, unknown> | unknown[];
+  equipamentos?: unknown[];
+  vantagens?: unknown[];
+  desvantagens?: unknown[];
+  [key: string]: unknown;
+}
+
+interface StatusCombateStats {
+  hp_atual?: number;
+  hp_max?: number;
+  mana_atual?: number;
+  mana_max?: number;
+  ac?: number;
+  esquiva?: number;
+  armadura?: number;
+  status?: string;
+  deathSaves?: { successes?: number; failures?: number };
+}
+
+interface StatusPersonagemProps {
+  personagemSelecionado?: StatusPersonagemPayload | null;
+  onRolarDados?: (dado: string, label: string) => void;
+  onToggleInventario?: () => void;
+  compact?: boolean;
+  combateAtivo?: boolean;
+  combateJogadores?: Record<string, StatusCombateStats>;
+  userId?: number | string;
+}
 
 const StatusPersonagem = ({
   personagemSelecionado,
@@ -26,8 +77,8 @@ const StatusPersonagem = ({
   compact = false,
   combateAtivo = false,
   combateJogadores = {},
-  userId
-}) => {
+  userId,
+}: StatusPersonagemProps) => {
   if (!personagemSelecionado) {
     return (
       <div className={compact ? 'p-3' : 'p-4 game-glass-subtle border-t border-white/[0.04]'}>
@@ -42,7 +93,7 @@ const StatusPersonagem = ({
     );
   }
 
-  const combateStats = combateAtivo && userId ? combateJogadores[String(userId)] : null;
+  const combateStats: StatusCombateStats | null = combateAtivo && userId ? combateJogadores[String(userId)] : null;
   const hpAtualNum = combateStats?.hp_atual ?? personagemSelecionado?.hp ?? 0;
   const prevHpRef = useRef(hpAtualNum);
   const [hpFlash, setHpFlash] = useState(false);
@@ -56,27 +107,28 @@ const StatusPersonagem = ({
   }, [hpAtualNum]);
   const hpDisplay = combateStats
     ? `${combateStats.hp_atual}/${combateStats.hp_max}`
-    : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || calcularHPMaximo(personagemSelecionado)}` : '???');
-  const hpBaixo = combateStats && combateStats.hp_max > 0 ? (combateStats.hp_atual / combateStats.hp_max) <= 0.3 : false;
+    : (personagemSelecionado.hp != null ? `${personagemSelecionado.hp}/${personagemSelecionado.hp_max || calcularHPMaximo(personagemSelecionado as unknown as Parameters<typeof calcularHPMaximo>[0])}` : '???');
+  const hpBaixo = combateStats && (combateStats.hp_max ?? 0) > 0 ? ((combateStats.hp_atual ?? 0) / (combateStats.hp_max ?? 1)) <= 0.3 : false;
   const combateStatus = combateStats?.status;
-  const deathState = DEATH_STATES[combateStatus];
+  const deathState = combateStatus ? DEATH_STATES[combateStatus] : undefined;
   const derrotado = deathState?.grayscale ?? false;
   const isIncapacitated = !!deathState;
 
   const isTresDet = personagemSelecionado?.sistema === 'tresdet';
   const isDnd5e = personagemSelecionado?.sistema === 'dnd5e';
-  const manaMax = combateStats?.mana_max ?? calcularMana(personagemSelecionado);
+  const manaMax = combateStats?.mana_max ?? calcularMana(personagemSelecionado as unknown as Parameters<typeof calcularMana>[0]);
   const manaAtual = combateStats?.mana_atual ?? manaMax;
   const mpDisplay = `${manaAtual}/${manaMax}`;
   const hpLabel = isTresDet ? 'PV' : 'HP';
   const mpLabel = isTresDet ? 'PM' : 'MP';
 
+  const dexValue = personagemSelecionado?.atributos?.DEX;
   const dnd5eAC = isDnd5e
-    ? (combateStats?.ac ?? personagemSelecionado?.stats_sistema?.ac ?? (10 + getDnd5eModifier(personagemSelecionado?.atributos?.DEX)))
+    ? (combateStats?.ac ?? personagemSelecionado?.stats_sistema?.ac ?? (10 + getDnd5eModifier(typeof dexValue === 'number' ? dexValue : Number(dexValue) || 10)))
     : null;
   const dnd5eProfBonus = isDnd5e ? getDnd5eProficiencyBonus(personagemSelecionado?.nivel || 1) : null;
-  const dnd5eSpellSlots = isDnd5e ? (personagemSelecionado?.stats_sistema?.spellSlots || []) : [];
-  const dnd5eHasSlots = dnd5eSpellSlots.some(s => s > 0);
+  const dnd5eSpellSlots: number[] = isDnd5e ? (personagemSelecionado?.stats_sistema?.spellSlots || []) : [];
+  const dnd5eHasSlots = dnd5eSpellSlots.some((s) => s > 0);
   const dnd5eDeathSaves = isDnd5e && combateStats?.hp_atual === 0 ? (combateStats?.deathSaves || { successes: 0, failures: 0 }) : null;
 
   const topContainerClass = compact
@@ -97,7 +149,7 @@ const StatusPersonagem = ({
         {personagemSelecionado.nome || 'Personagem sem nome'}
       </h3>
       <p className={`${compact ? 'text-xs' : 'text-sm'} text-cyan-300 ${compact ? 'mt-1' : ''}`}>
-        {personagemSelecionado.classe || 'Classe desconhecida'} · {personagemSelecionado.raca || 'Raca desconhecida'} · Nivel {personagemSelecionado.nivel || '1'}
+        {(typeof personagemSelecionado.classe === 'object' ? personagemSelecionado.classe?.nome : personagemSelecionado.classe) || 'Classe desconhecida'} · {(typeof personagemSelecionado.raca === 'object' ? personagemSelecionado.raca?.nome : personagemSelecionado.raca) || 'Raca desconhecida'} · Nivel {personagemSelecionado.nivel || '1'}
       </p>
     </>
   );
@@ -123,7 +175,7 @@ const StatusPersonagem = ({
             <div className="flex items-center gap-2">
               {baseInfo}
               {deathState && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${STATUS_BADGE_STYLES[combateStatus]}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${combateStatus ? STATUS_BADGE_STYLES[combateStatus] : ''}`}>
                   {deathState.label}
                 </span>
               )}
@@ -181,12 +233,12 @@ const StatusPersonagem = ({
                   <span className="text-[10px] text-red-400 uppercase font-semibold">Death Saves</span>
                   <div className="flex gap-0.5">
                     {[0,1,2].map(i => (
-                      <span key={`s${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < dnd5eDeathSaves.successes ? 'bg-green-500 border-green-400' : 'border-green-500/30'}`} />
+                      <span key={`s${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < (dnd5eDeathSaves.successes ?? 0) ? 'bg-green-500 border-green-400' : 'border-green-500/30'}`} />
                     ))}
                   </div>
                   <div className="flex gap-0.5">
                     {[0,1,2].map(i => (
-                      <span key={`f${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < dnd5eDeathSaves.failures ? 'bg-red-500 border-red-400' : 'border-red-500/30'}`} />
+                      <span key={`f${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < (dnd5eDeathSaves.failures ?? 0) ? 'bg-red-500 border-red-400' : 'border-red-500/30'}`} />
                     ))}
                   </div>
                 </div>
@@ -238,7 +290,7 @@ const StatusPersonagem = ({
               <div className="flex items-center gap-2">
                 {baseInfo}
                 {deathState && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${STATUS_BADGE_STYLES[combateStatus]}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${combateStatus ? STATUS_BADGE_STYLES[combateStatus] : ''}`}>
                     {deathState.label}
                   </span>
                 )}
@@ -339,4 +391,4 @@ const StatusPersonagem = ({
   );
 };
 
-export default React.memo(StatusPersonagem);
+export default memo(StatusPersonagem);

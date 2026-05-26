@@ -20,7 +20,7 @@
  */
 
 // ===== ROTAS PRINCIPAIS =====
-export const ROUTES = {
+export const ROUTES: Record<string, string> = {
   HOME: '/',
   HISTORIAS: '/historias',
   EXPLORAR_HISTORIAS: '/explorar',
@@ -133,39 +133,41 @@ export const ROUTES = {
  * ============================================================================
  * Funções utilitárias para gerar rotas dinâmicas com type-safety
  */
+type RouteId = string | number;
+
 export const generateRoute = {
-  // Histórias
-  verHistoria: (id) => `/historias/${id}`,
+  // Historias
+  verHistoria: (id: RouteId) => `/historias/${id}`,
 
   // Jogo
-  jogoSelecaoPersonagem: (id) => `/jogo/${id}/selecao-personagem`,
-  jogoSalaEspera: (id) => `/jogo/${id}/sala-espera`,
-  jogoAtivo: (id) => `/jogo/${id}/jogo-ativo`,
-  conviteJogo: (id) => `/convite-jogo/${id}`,
+  jogoSelecaoPersonagem: (id: RouteId) => `/jogo/${id}/selecao-personagem`,
+  jogoSalaEspera: (id: RouteId) => `/jogo/${id}/sala-espera`,
+  jogoAtivo: (id: RouteId) => `/jogo/${id}/jogo-ativo`,
+  conviteJogo: (id: RouteId) => `/convite-jogo/${id}`,
 
   // Personagens
-  verPersonagem: (id) => `/ver-personagem/${id}`,
+  verPersonagem: (id: RouteId) => `/ver-personagem/${id}`,
 
   // Sistema
-  editarRaca: (id) => `/editar-raca/${id}`,
-  verRaca: (id) => `/ver-raca/${id}`,
-  editarClasse: (id) => `/editar-classe/${id}`,
-  verClasse: (id) => `/ver-classe/${id}`,
-  verVantagem: (id) => `/ver-vantagem/${id}`,
-  editarVantagem: (id) => `/editar-vantagem/${id}`,
-  editarTema: (id) => `/editar-tema/${id}`,
-  editarDesvantagem: (id) => `/editar-desvantagem/${id}`,
-  verDesvantagem: (id) => `/ver-desvantagem/${id}`,
-  editarEquipamento: (id) => `/editar-equipamento/${id}`,
-  verEquipamento: (id) => `/ver-equipamento/${id}`,
-  editarMonstro: (id) => `/editar-monstro/${id}`,
-  verMonstro: (id) => `/ver-monstro/${id}`,
-  editarMestre: (id) => `/editar-mestre/${id}`,
-  verMestre: (id) => `/ver-mestre/${id}`,
-  verHabilidade: (id) => `/ver-habilidade/${id}`,
-  editarHabilidade: (id) => `/editar-habilidade/${id}`,
-  verItemTresDet: (id) => `/ver-item-tresdet/${id}`,
-  editarItemTresDet: (id) => `/editar-item-tresdet/${id}`,
-  verMagiaTresDet: (id) => `/ver-magia-tresdet/${id}`,
-  editarMagiaTresDet: (id) => `/editar-magia-tresdet/${id}`,
+  editarRaca: (id: RouteId) => `/editar-raca/${id}`,
+  verRaca: (id: RouteId) => `/ver-raca/${id}`,
+  editarClasse: (id: RouteId) => `/editar-classe/${id}`,
+  verClasse: (id: RouteId) => `/ver-classe/${id}`,
+  verVantagem: (id: RouteId) => `/ver-vantagem/${id}`,
+  editarVantagem: (id: RouteId) => `/editar-vantagem/${id}`,
+  editarTema: (id: RouteId) => `/editar-tema/${id}`,
+  editarDesvantagem: (id: RouteId) => `/editar-desvantagem/${id}`,
+  verDesvantagem: (id: RouteId) => `/ver-desvantagem/${id}`,
+  editarEquipamento: (id: RouteId) => `/editar-equipamento/${id}`,
+  verEquipamento: (id: RouteId) => `/ver-equipamento/${id}`,
+  editarMonstro: (id: RouteId) => `/editar-monstro/${id}`,
+  verMonstro: (id: RouteId) => `/ver-monstro/${id}`,
+  editarMestre: (id: RouteId) => `/editar-mestre/${id}`,
+  verMestre: (id: RouteId) => `/ver-mestre/${id}`,
+  verHabilidade: (id: RouteId) => `/ver-habilidade/${id}`,
+  editarHabilidade: (id: RouteId) => `/editar-habilidade/${id}`,
+  verItemTresDet: (id: RouteId) => `/ver-item-tresdet/${id}`,
+  editarItemTresDet: (id: RouteId) => `/editar-item-tresdet/${id}`,
+  verMagiaTresDet: (id: RouteId) => `/ver-magia-tresdet/${id}`,
+  editarMagiaTresDet: (id: RouteId) => `/editar-magia-tresdet/${id}`,
 };

@@ -1,5 +1,5 @@
-import React from 'react';
-import LoadingSpinner from '../../LoadingSpinner.jsx';
+import { useMemo } from 'react';
+import LoadingSpinner from '../../LoadingSpinner';
 
 /**
  * Estados de loading para o jogo
@@ -36,12 +36,25 @@ export const AuthError = () => (
   </div>
 );
 
+interface GameTransitionLoadingProps {
+  historiaNome?: string | null;
+  message?: string | null;
+}
+
+interface ParticleSpec {
+  id: number;
+  left: string;
+  top: string;
+  delay: string;
+  duration: string;
+}
+
 /**
  * Tela de transicao tematica para retomar sessao ativa.
  * Fullscreen com particulas, glass card e mensagem animada.
  */
-export const GameTransitionLoading = ({ historiaNome, message }) => {
-  const particles = React.useMemo(() =>
+export const GameTransitionLoading = ({ historiaNome, message }: GameTransitionLoadingProps) => {
+  const particles = useMemo<ParticleSpec[]>(() =>
     Array.from({ length: 50 }, (_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,

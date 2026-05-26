@@ -1,11 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+export interface SessionRecapLootItem {
+  nome?: string;
+  itemNome?: string;
+  quantidade?: number;
+}
+
+export interface SessionRecapData {
+  resumo?: string;
+  historiaNome?: string;
+  xpGanho?: number;
+  loot?: SessionRecapLootItem[];
+}
+
+interface SessionRecapProps {
+  isVisible?: boolean;
+  recapData?: SessionRecapData | null;
+  onClose?: () => void;
+}
+
 /**
- * Overlay de recap ao final da sessao
- * Mostra resumo IA, XP ganho, loot obtido
+ * Overlay de recap ao final da sessao.
+ * Mostra resumo IA, XP ganho, loot obtido.
  */
-const SessionRecap = ({ isVisible, recapData, onClose }) => {
+const SessionRecap = ({ isVisible, recapData, onClose }: SessionRecapProps) => {
   const [fase, setFase] = useState(0); // 0=hidden, 1=fade-in, 2=content
   const navigate = useNavigate();
 
@@ -67,7 +86,7 @@ const SessionRecap = ({ isVisible, recapData, onClose }) => {
             )}
 
             {/* XP Ganho */}
-            {xpGanho > 0 && (
+            {(xpGanho ?? 0) > 0 && (
               <div className="game-glass px-4 py-3 rounded-lg border border-yellow-500/30">
                 <span className="text-yellow-400 font-modern font-semibold">
                   +{xpGanho} XP ganho nesta sessao
@@ -87,7 +106,7 @@ const SessionRecap = ({ isVisible, recapData, onClose }) => {
                       <span className="text-green-400 text-sm">
                         {item.nome || item.itemNome || 'Item'}
                       </span>
-                      {item.quantidade > 1 && (
+                      {(item.quantidade ?? 0) > 1 && (
                         <span className="text-slate-400 text-xs">x{item.quantidade}</span>
                       )}
                     </div>

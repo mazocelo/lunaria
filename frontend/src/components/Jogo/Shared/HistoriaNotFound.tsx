@@ -1,10 +1,13 @@
-import React from 'react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+
+interface HistoriaNotFoundProps {
+  onVoltarHistorias: () => void;
+}
 
 /**
- * Componente exibido quando a história não é encontrada
+ * Componente exibido quando a historia nao e encontrada
  */
-const HistoriaNotFound = ({ onVoltarHistorias }) => {
+const HistoriaNotFound = ({ onVoltarHistorias }: HistoriaNotFoundProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

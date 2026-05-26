@@ -1,6 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dice6, Trophy } from 'lucide-react';
 import { DICE_ANIMATION } from '../../../constants/game';
+
+export interface RolagemJogador {
+  userId: number | string;
+  username?: string;
+  nome?: string;
+  personagemNome?: string;
+}
+
+export interface RolagemOrdemJogador extends RolagemJogador {
+  valorDado: number;
+}
+
+export interface RolagemResultado {
+  valor: number;
+}
+
+interface RolagemDadosInicialProps {
+  jogadores?: RolagemJogador[];
+  resultados?: Record<string | number, RolagemResultado>;
+  ordemDefinida?: boolean;
+  ordemJogadores?: RolagemOrdemJogador[];
+  usuarioAtual?: { id?: number | string } | null;
+  onRolarDado?: () => void;
+}
 
 const RolagemDadosInicial = ({
   jogadores = [],
@@ -8,11 +32,11 @@ const RolagemDadosInicial = ({
   ordemDefinida = false,
   ordemJogadores = [],
   usuarioAtual,
-  onRolarDado
-}) => {
+  onRolarDado,
+}: RolagemDadosInicialProps) => {
   const [animando, setAnimando] = useState(false);
-  const [dadoLocal, setDadoLocal] = useState(null);
-  const intervaloRef = useRef(null);
+  const [dadoLocal, setDadoLocal] = useState<number | null>(null);
+  const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -20,7 +44,7 @@ const RolagemDadosInicial = ({
     };
   }, []);
 
-  const jaRolou = resultados[usuarioAtual?.id] !== undefined;
+  const jaRolou = usuarioAtual?.id != null && resultados[usuarioAtual.id] !== undefined;
   const totalRolagens = Object.keys(resultados).length;
   const totalJogadores = jogadores.length;
 
@@ -33,7 +57,7 @@ const RolagemDadosInicial = ({
       setDadoLocal(Math.floor(Math.random() * 20) + 1);
       contador += 1;
       if (contador >= DICE_ANIMATION.TOTAL_FRAMES) {
-        clearInterval(intervaloRef.current);
+        if (intervaloRef.current) clearInterval(intervaloRef.current);
         intervaloRef.current = null;
         setAnimando(false);
         setDadoLocal(null);
@@ -100,7 +124,7 @@ const RolagemDadosInicial = ({
         {jaRolou ? (
           <div className="p-4 game-glass-subtle border border-cyan-400/30 rounded-lg">
             <p className="text-cyan-300">
-              Voce rolou <span className="font-bold text-cyan-200">{resultados[usuarioAtual.id]?.valor}</span>. Aguardando outros jogadores...
+              Voce rolou <span className="font-bold text-cyan-200">{usuarioAtual?.id != null ? resultados[usuarioAtual.id]?.valor : ''}</span>. Aguardando outros jogadores...
             </p>
           </div>
         ) : (

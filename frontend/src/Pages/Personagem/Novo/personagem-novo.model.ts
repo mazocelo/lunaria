@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { personagemService, historiaService } from '../../../services/index.js';
+import { personagemService, historiaService } from '../../../services/index';
 import { usePersonagemStore } from '../../../store/personagem';
 import { useVantagemStore } from '../../../store/vantagem';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
 import { Personagem } from '../../../models/Personagem';
-import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
+import { tierDesbloqueado } from '../../../utils/evolucaoHelper';
+import type { VantagemDesvantagem, Raca, Classe } from '../../../types/api';
 
 const PONTOS_ATRIBUTO_CRIACAO = 60;
 const ATTR_MIN_CRIACAO = 5;
@@ -14,7 +15,10 @@ const ATTR_MAX_CRIACAO = 16;
 const PONTOS_CRIACAO_BASE = 10;
 const MAX_CUSTO_DESVANTAGEM = 3;
 
-const atributosIniciais = {
+type AtributoKey = 'forca' | 'inteligencia' | 'constituicao' | 'agilidade' | 'destreza' | 'carisma';
+type AtributosForm = Record<AtributoKey, string | number>;
+
+const atributosIniciais: AtributosForm = {
   forca: '',
   inteligencia: '',
   constituicao: '',
@@ -23,17 +27,26 @@ const atributosIniciais = {
   carisma: '',
 };
 
-function somaAtributos(atributos) {
+interface HistoriaDisponivel {
+  id: number | string;
+  nome?: string;
+}
+
+interface UsePersonagemNovoModelParams {
+  navigate?: (path: string) => void;
+}
+
+function somaAtributos(atributos: Record<string, string | number>): number {
   return Object.values(atributos)
     .map((v) => Number(v) || 0)
     .reduce((a, b) => a + b, 0);
 }
 
-function toNumericCost(value) {
+function toNumericCost(value: unknown): number {
   return Number(value) || 0;
 }
 
-export const usePersonagemNovoModel = ({ navigate } = {}) => {
+export const usePersonagemNovoModel = ({ navigate }: UsePersonagemNovoModelParams = {}) => {
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
 
   // Zustand stores
@@ -58,29 +71,30 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
   const [nome, setNome] = useState('');
   const [raca, setRaca] = useState('');
   const [classe, setClasse] = useState('');
-  const [backgroundTipo, setBackgroundTipo] = useState('guiado');
+  const [backgroundTipo, setBackgroundTipo] = useState<'guiado' | 'personalizado'>('guiado');
   const [background, setBackground] = useState('');
-  const [historias, setHistorias] = useState([]);
-  const [atributos, setAtributos] = useState({ ...atributosIniciais });
-  const [vantagensSelecionadas, setVantagensSelecionadas] = useState([]);
+  const [historias, setHistorias] = useState<Array<number | string>>([]);
+  const [atributos, setAtributos] = useState<AtributosForm>({ ...atributosIniciais });
+  const [vantagensSelecionadas, setVantagensSelecionadas] = useState<Array<number | string>>([]);
 
   // Async state
   const [imagem, setImagem] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [gerandoBackground, setGerandoBackground] = useState(false);
 
   // Options loading
   const [loadingOpcoes, setLoadingOpcoes] = useState(false);
   const [loadingVantagens, setLoadingVantagens] = useState(false);
   const [loadingHistorias, setLoadingHistorias] = useState(false);
-  const [historiasDisponiveis, setHistoriasDisponiveis] = useState([]);
+  const [historiasDisponiveis, setHistoriasDisponiveis] = useState<HistoriaDisponivel[]>([]);
 
   // Load options on mount
   useEffect(() => {
     loadOpcoes();
     loadVantagensData();
     loadHistoriasData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadOpcoes = async () => {
@@ -103,7 +117,7 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
 
     setLoadingVantagens(true);
     try {
-      const promises = [];
+      const promises: Array<Promise<unknown>> = [];
       if (!vantagensJa) promises.push(carregarVantagens());
       if (!desvantagensJa) promises.push(carregarDesvantagens());
       await Promise.all(promises);
@@ -117,8 +131,10 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
   const loadHistoriasData = async () => {
     setLoadingHistorias(true);
     try {
-      const response = await historiaService.getAll();
-      const data = response.data || [];
+      const response = await historiaService.getAll() as { data?: HistoriaDisponivel[] } | HistoriaDisponivel[];
+      const data: HistoriaDisponivel[] = Array.isArray(response)
+        ? response
+        : (response?.data ?? []);
       setHistoriasDisponiveis(data);
     } catch (err) {
       console.error('Erro ao carregar historias:', err);
@@ -130,13 +146,13 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
 
   // Combine vantagens + desvantagens for the MultiSelect, filtered by creation tier
   const tierCriacao = tierDesbloqueado(1);
-  const vantagensDisponiveis = useMemo(() => {
+  const vantagensDisponiveis = useMemo<VantagemDesvantagem[]>(() => {
     const todas = [...(vantagens || []), ...(desvantagens || [])];
     return todas.filter(item => (item.nivel || 1) <= tierCriacao);
-  }, [vantagens, desvantagens]);
+  }, [vantagens, desvantagens, tierCriacao]);
 
-  const racasDisponiveis = racas || [];
-  const classesDisponiveis = classes || [];
+  const racasDisponiveis: Raca[] = racas || [];
+  const classesDisponiveis: Classe[] = classes || [];
 
   const pontosDistribuidos = useMemo(() => somaAtributos(atributos), [atributos]);
 
@@ -152,10 +168,10 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
     new Set((desvantagens || []).map(item => String(item.id)))
   ), [desvantagens]);
 
-  const tracosSelecionados = useMemo(() => (
+  const tracosSelecionados = useMemo<VantagemDesvantagem[]>(() => (
     (vantagensSelecionadas || [])
       .map((id) => (vantagensDisponiveis || []).find(item => String(item.id) === String(id)))
-      .filter(Boolean)
+      .filter((item): item is VantagemDesvantagem => Boolean(item))
   ), [vantagensSelecionadas, vantagensDisponiveis]);
 
   const pontosDesvantagem = useMemo(() => (
@@ -170,8 +186,8 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
       .reduce((sum, item) => sum + toNumericCost(item.custo), 0)
   ), [tracosSelecionados, desvantagemIdSet]);
 
-  const custoRaca = useMemo(() => toNumericCost(racaSelecionada?.custo), [racaSelecionada]);
-  const custoClasse = useMemo(() => toNumericCost(classeSelecionada?.custo), [classeSelecionada]);
+  const custoRaca = useMemo(() => toNumericCost((racaSelecionada as { custo?: unknown } | undefined)?.custo), [racaSelecionada]);
+  const custoClasse = useMemo(() => toNumericCost((classeSelecionada as { custo?: unknown } | undefined)?.custo), [classeSelecionada]);
   const pontosDevolvidos = useMemo(() => (
     Math.min(MAX_CUSTO_DESVANTAGEM, Math.abs(Math.min(0, pontosDesvantagem)))
   ), [pontosDesvantagem]);
@@ -180,11 +196,11 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
   const pontosCriacaoRestantes = useMemo(() => pontosCriacaoTotal - pontosGastos, [pontosCriacaoTotal, pontosGastos]);
   const orcamentoCriacaoValido = pontosCriacaoRestantes >= 0;
 
-  const setAtributo = useCallback((key, value) => {
+  const setAtributo = useCallback((key: AtributoKey, value: string | number) => {
     setAtributos(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const criarPersonagem = useCallback(async (e) => {
+  const criarPersonagem = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!nome.trim()) {
@@ -227,11 +243,10 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const vantagensIds = [];
-      const desvantagensIds = [];
+      const vantagensIds: number[] = [];
+      const desvantagensIds: number[] = [];
 
       if (Array.isArray(vantagensSelecionadas)) {
-        // Criar set de IDs que vieram da store de desvantagens para separação correta
         vantagensSelecionadas.forEach(id => {
           if (desvantagemIdSet.has(String(id))) {
             desvantagensIds.push(Number(id));
@@ -242,7 +257,7 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
       }
 
       // Validacao defensiva de tier (protege contra estado contaminado)
-      const todosTracos = [...(vantagens || []), ...(desvantagens || [])];
+      const todosTracos: VantagemDesvantagem[] = [...(vantagens || []), ...(desvantagens || [])];
       const idsSelecionados = [...vantagensIds, ...desvantagensIds];
       for (const selId of idsSelecionados) {
         const traco = todosTracos.find(t => t.id === selId);
@@ -272,7 +287,7 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
       };
 
       const personagem = new Personagem(dados);
-      const criado = await personagemService.create(personagem, { context: 'criacao' });
+      const criado = await personagemService.create(personagem, { context: 'criacao' }) as { id?: number | null } | null;
 
       // Se modo guiado, gerar background via IA apos criacao
       if (backgroundTipo === 'guiado' && criado?.id) {
@@ -280,20 +295,22 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
           setGerandoBackground(true);
           await personagemService.gerarBackground(criado.id, background);
         } catch (bgError) {
-          console.warn('Background IA nao gerado:', bgError.message);
+          const msg = bgError instanceof Error ? bgError.message : String(bgError);
+          console.warn('Background IA nao gerado:', msg);
         } finally {
           setGerandoBackground(false);
         }
       }
 
       await recarregarPersonagens();
-      navigate('/personagens');
+      navigate?.('/personagens');
     } catch (err) {
-      setError(err.message || 'Erro ao criar personagem');
+      const message = err instanceof Error ? err.message : 'Erro ao criar personagem';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }, [nome, raca, classe, backgroundTipo, background, historias, atributos, vantagensSelecionadas, desvantagemIdSet, orcamentoCriacaoValido, pontosCriacaoRestantes, imagem, recarregarPersonagens, navigate]);
+  }, [nome, raca, classe, backgroundTipo, background, historias, atributos, vantagensSelecionadas, desvantagemIdSet, orcamentoCriacaoValido, pontosCriacaoRestantes, imagem, recarregarPersonagens, navigate, vantagens, desvantagens, tierCriacao]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -310,7 +327,7 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
     background,
     setBackground,
     historias,
-    setHistorias: (val) => setHistorias(Array.isArray(val) ? val : []),
+    setHistorias: (val: unknown) => setHistorias(Array.isArray(val) ? (val as Array<number | string>) : []),
     atributos,
     setAtributo,
     vantagens: vantagensSelecionadas,
@@ -347,3 +364,4 @@ export const usePersonagemNovoModel = ({ navigate } = {}) => {
   };
 };
 
+export type PersonagemNovoModel = ReturnType<typeof usePersonagemNovoModel>;

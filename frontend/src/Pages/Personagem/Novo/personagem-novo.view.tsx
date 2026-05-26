@@ -1,15 +1,19 @@
-import React from 'react';
 import InputSimples from '../../../components/form/inputSimples';
 import Button from '../../../components/form/button';
 import Combobox from '../../../components/form/Combobox';
 import MultiSelect from '../../../components/form/MultiSelect';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
-import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2, ImagePlus, Link2, X } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { User, BarChart3, Sparkles, Wand2, ScrollText, BookOpen, Lightbulb, Loader2 } from 'lucide-react';
+import { useTheme } from '../../../contexts/theme';
+import type { PersonagemNovoModel } from './personagem-novo.model';
+
+type NovoPersonagemViewProps = PersonagemNovoModel;
 
 const PONTOS_MAXIMO = 60;
 
-const atributosConfig = [
+type AtributoKey = 'forca' | 'inteligencia' | 'constituicao' | 'agilidade' | 'destreza' | 'carisma';
+
+const atributosConfig: Array<{ key: AtributoKey; label: string; tooltip: string }> = [
   { key: 'forca', label: 'Forca', tooltip: 'Poder fisico bruto.\nHabilidades: Atletismo, Intimidacao' },
   { key: 'inteligencia', label: 'Inteligencia', tooltip: 'Raciocinio e conhecimento.\nHabilidades: Investigacao, Percepcao, Conhecimento, Arcano' },
   { key: 'constituicao', label: 'Constituicao', tooltip: 'Resistencia e vitalidade. Afeta HP.\nHabilidades: Resistencia, Fortitude, Vigor, Sobrevivencia' },
@@ -39,7 +43,7 @@ const NovoPersonagemView = ({
   custoRaca,
   custoClasse,
   pontosVantagem,
-  pontosDesvantagem,
+  pontosDesvantagem: _pontosDesvantagem,
   pontosDevolvidos,
   pontosCriacaoTotal,
   pontosGastos,
@@ -57,11 +61,11 @@ const NovoPersonagemView = ({
   error,
   gerandoBackground,
   criarPersonagem,
-  clearError,
+  clearError: _clearError,
   navigate,
   imagem,
-  setImagem,
-}) => {
+  setImagem: _setImagem,
+}: NovoPersonagemViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const saldoCriacaoNegativo = pontosCriacaoRestantes < 0;
@@ -390,7 +394,7 @@ const NovoPersonagemView = ({
           ) : (historiasDisponiveis || []).length > 0 ? (
             <MultiSelect
               label="Vincular a Historias (opcional)"
-              options={historiasDisponiveis.map(h => ({ value: String(h.id), label: h.nome }))}
+              options={historiasDisponiveis.map(h => ({ value: String(h.id), label: h.nome ?? '' }))}
               selected={historias || []}
               onChange={(selected) => setHistorias(Array.isArray(selected) ? selected : [])}
               max={3}
@@ -411,7 +415,7 @@ const NovoPersonagemView = ({
         <div className="flex space-x-4 pt-4">
           <Button
             variant="ghost"
-            onClick={() => navigate('/personagens')}
+            onClick={() => navigate?.('/personagens')}
             className="flex-1"
             type="button"
           >

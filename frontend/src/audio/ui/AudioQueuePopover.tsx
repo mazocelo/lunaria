@@ -1,12 +1,27 @@
-import React from 'react';
 import { CheckCircle2, Circle, ListMusic, Loader2, PauseCircle, PlayCircle, Radio } from 'lucide-react';
+
+export interface AudioQueueItem {
+  trackId?: string;
+  status?: 'active' | 'ready' | 'preparing' | 'completed' | string;
+  isPlaying?: boolean;
+  speakerLabel?: string;
+  kindLabel?: string;
+  label?: string;
+}
+
+interface AudioQueuePopoverProps {
+  isOpen: boolean;
+  onClose: () => void;
+  queueItems?: AudioQueueItem[];
+  title?: string;
+}
 
 const AudioQueuePopover = ({
   isOpen,
   onClose,
   queueItems = [],
   title = 'Fila de narracao',
-}) => {
+}: AudioQueuePopoverProps) => {
   if (!isOpen) return null;
 
   return (

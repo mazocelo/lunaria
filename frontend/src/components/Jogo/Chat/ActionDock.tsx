@@ -1,7 +1,78 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useSocketStore } from '../../../store/index.js';
+import { useState, useRef, useCallback, useEffect, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
+import { useSocketStore } from '../../../store/index';
 import CooldownRoleplay from '../Gameplay/CooldownRoleplay';
-import { TIMEOUTS } from '../../../constants/game';
+
+interface HabilidadePersonagem {
+  id?: string | number;
+  nome?: string;
+  custo_mana?: number;
+  custo_pm?: number;
+  cooldown_max?: number;
+  cooldown?: number;
+  descricao?: string;
+  escola_magia?: string;
+  usa_concentracao?: boolean;
+  [key: string]: unknown;
+}
+
+interface CombateMonstro {
+  id?: string | number;
+  nome?: string;
+  hp_atual?: number;
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface DadoSolicitadoInfo {
+  dado?: string;
+  motivo?: string;
+  tipoDado?: string;
+  tipo?: string;
+  teste?: string;
+  [key: string]: unknown;
+}
+
+interface CombatIntent {
+  acao?: string;
+  alvo?: string;
+  alvoId?: string | number | null;
+  tipo?: 'atacar' | 'defender' | 'fugir' | 'usar_habilidade' | 'conjurar_magia' | string;
+  habilidadeNome?: string;
+  magiaNome?: string;
+  magiaId?: string | number;
+  habilidadeId?: string | number;
+  [key: string]: unknown;
+}
+
+interface ActionDockProps {
+  mensagemAtual?: string;
+  onMensagemChange?: (event: ChangeEvent<HTMLTextAreaElement> | { target: { value: string } }, intent?: CombatIntent | null) => void;
+  onKeyPress?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onEnviarMensagem: () => void | Promise<void>;
+  onRolarDados?: (dado: string, label: string, info?: DadoSolicitadoInfo | null) => void;
+  onExecutarAcao?: (acao: string) => void;
+  faseJogo?: string;
+  ehMeuTurno?: boolean;
+  turnoIniciado?: boolean;
+  turnoStatus?: string;
+  cooldownRoleplay?: number;
+  onIniciarTurno?: () => void | Promise<void>;
+  dadosSolicitados?: boolean;
+  dadoSolicitadoInfo?: DadoSolicitadoInfo | null;
+  aguardandoMestre?: boolean;
+  combateAtivo?: boolean;
+  combateMonstros?: CombateMonstro[];
+  habilidadesPersonagem?: HabilidadePersonagem[];
+  magiasPersonagem?: HabilidadePersonagem[];
+  manaAtual?: number;
+  manaMax?: number;
+  cooldownsHabilidades?: Record<string, number>;
+  concentracaoAtiva?: { nome?: string; habilidade?: string } | null;
+  onUsarMagia?: (magia: HabilidadePersonagem) => void;
+  combatIntentAtual?: CombatIntent | null;
+  onClearCombatIntent?: () => void;
+  rolando?: boolean;
+}
 
 /**
  * Dock compacto de acoes do jogador.
@@ -12,7 +83,6 @@ const ActionDock = ({
   onKeyPress,
   onEnviarMensagem,
   onRolarDados,
-  onExecutarAcao,
   faseJogo = 'aguardando_inicio',
   ehMeuTurno = false,
   turnoIniciado = false,
@@ -32,9 +102,9 @@ const ActionDock = ({
   concentracaoAtiva = null,
   onUsarMagia,
   combatIntentAtual = null,
-  onClearCombatIntent = null,
+  onClearCombatIntent,
   rolando = false,
-}) => {
+}: ActionDockProps) => {
   const isConnected = useSocketStore((s) => s.isConnected);
   const inRoom = useSocketStore((s) => s.inRoom);
 
@@ -42,8 +112,8 @@ const ActionDock = ({
   const [iniciandoTurno, setIniciandoTurno] = useState(false);
   const [showSkillMenu, setShowSkillMenu] = useState(false);
   const [showSpellMenu, setShowSpellMenu] = useState(false);
-  const lastSentTimeRef = useRef(null);
-  const textareaRef = useRef(null);
+  const lastSentTimeRef = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const getConnectionStatus = useCallback(() => {
     if (!isConnected) return { status: 'error', text: 'Desconectado', color: 'text-red-400' };
@@ -79,10 +149,10 @@ const ActionDock = ({
     }
   };
 
-  const handleTextareaInput = useCallback((e) => {
-    const el = e.target;
+  const handleTextareaInput = useCallback((e: FormEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
   }, []);
 
   useEffect(() => {
@@ -91,7 +161,7 @@ const ActionDock = ({
     }
   }, [mensagemAtual]);
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       enviarMensagemComTipo();
@@ -123,7 +193,7 @@ const ActionDock = ({
     return 'Digite sua mensagem...';
   };
 
-  const fillInput = (text, intent = null) => {
+  const fillInput = (text: string, intent: CombatIntent | null = null) => {
     if (onMensagemChange) onMensagemChange({ target: { value: text } }, intent);
   };
 
@@ -133,15 +203,16 @@ const ActionDock = ({
   const hasOwnedSkills = habilidadesPersonagem.length > 0;
   const hasOwnedSpells = magiasPersonagem.length > 0;
   const hasOwnedCombatActions = hasOwnedSkills || hasOwnedSpells;
+  const intentLabels: Record<string, string> = {
+    atacar: 'Atacar',
+    defender: 'Defender',
+    fugir: 'Fugir',
+    usar_habilidade: 'Habilidade',
+    conjurar_magia: 'Magia',
+  };
   const combatIntentLabel = combatIntentAtual?.habilidadeNome
     || combatIntentAtual?.magiaNome
-    || ({
-      atacar: 'Atacar',
-      defender: 'Defender',
-      fugir: 'Fugir',
-      usar_habilidade: 'Habilidade',
-      conjurar_magia: 'Magia'
-    }[combatIntentAtual?.tipo] || 'Acao selecionada');
+    || (combatIntentAtual?.tipo ? (intentLabels[combatIntentAtual.tipo] || 'Acao selecionada') : 'Acao selecionada');
 
   return (
     <div className="px-4 py-3 game-glass-solid border-t border-white/[0.08]">
@@ -206,8 +277,9 @@ const ActionDock = ({
               {showSkillMenu && habilidadesPersonagem.length > 0 && (
                 <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto game-glass-solid border border-purple-500/30 rounded-xl shadow-lg z-50">
                   {habilidadesPersonagem.map((hab) => {
-                    const cdRestante = cooldownsHabilidades[`hab_${hab.id}`] || cooldownsHabilidades[hab.id] || 0;
-                    const semMana = hab.custo_mana > manaAtual;
+                    const habId = hab.id != null ? String(hab.id) : '';
+                    const cdRestante = cooldownsHabilidades[`hab_${habId}`] || cooldownsHabilidades[habId] || 0;
+                    const semMana = (hab.custo_mana ?? 0) > manaAtual;
                     const desabilitada = cdRestante > 0 || semMana;
                     return (
                       <button
@@ -230,7 +302,7 @@ const ActionDock = ({
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{hab.nome}</span>
                           <div className="flex items-center gap-1.5 text-xs">
-                            {hab.custo_mana > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{hab.custo_mana} MP</span>}
+                            {(hab.custo_mana ?? 0) > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{hab.custo_mana} MP</span>}
                             {cdRestante > 0 && <span className="text-yellow-400">{cdRestante}t</span>}
                           </div>
                         </div>
@@ -262,10 +334,10 @@ const ActionDock = ({
                       </div>
                     )}
                     {magiasPersonagem.map((mag) => {
-                      const cdKey = `mag_${mag.id}`;
+                      const cdKey = `mag_${mag.id ?? ''}`;
                       const cdRestante = cooldownsHabilidades[cdKey] || 0;
-                      const semMana = mag.custo_mana > manaAtual;
-                      const bloqueioConcentracao = mag.usa_concentracao && concentracaoAtiva;
+                      const semMana = (mag.custo_mana ?? 0) > manaAtual;
+                      const bloqueioConcentracao = Boolean(mag.usa_concentracao && concentracaoAtiva);
                       const desabilitada = cdRestante > 0 || semMana || bloqueioConcentracao;
                       let motivo = '';
                       if (cdRestante > 0) motivo = `CD: ${cdRestante}t`;
@@ -307,7 +379,7 @@ const ActionDock = ({
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 text-xs">
-                              {mag.custo_mana > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{mag.custo_mana} MP</span>}
+                              {(mag.custo_mana ?? 0) > 0 && <span className={semMana ? 'text-red-400' : 'text-blue-300'}>{mag.custo_mana} MP</span>}
                               {cdRestante > 0 && <span className="text-yellow-400">{cdRestante}t</span>}
                               {motivo && desabilitada && cdRestante === 0 && <span className="text-red-400/70 text-[10px]">{motivo}</span>}
                             </div>
@@ -371,7 +443,11 @@ const ActionDock = ({
           {dadosSolicitados && (
             <button
               type="button"
-              onClick={() => !rolando && onRolarDados(dadoSolicitadoInfo?.tipoDado || 'd20', dadoSolicitadoInfo?.teste || '', dadoSolicitadoInfo)}
+              onClick={() => !rolando && onRolarDados?.(
+                String(dadoSolicitadoInfo?.tipoDado || 'd20'),
+                String(dadoSolicitadoInfo?.teste || ''),
+                dadoSolicitadoInfo,
+              )}
               disabled={rolando}
               className={`flex-shrink-0 px-4 py-2.5 text-sm bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-bold transition-all shadow-lg whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed ${rolando ? '' : 'hover:from-yellow-500 hover:to-orange-500 animate-pulse'}`}
             >

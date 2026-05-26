@@ -1,6 +1,43 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Crown, Dice6, ScrollText, Users, Zap } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+
+interface ParticipanteEntry {
+  userId?: number | string;
+  id?: number | string;
+  username?: string;
+  nome?: string;
+  personagemNome?: string;
+  personagem?: string;
+  valorDado?: number;
+  isOwner?: boolean;
+  status?: string;
+  classe?: string;
+  raca?: string;
+  [key: string]: unknown;
+}
+
+interface CombateOrdemEntry {
+  id: string | number;
+  nome?: string;
+  iniciativa?: number;
+}
+
+interface ResultadoDadoEntry {
+  valor?: number;
+}
+
+interface PainelJogadoresProps {
+  participantes: ParticipanteEntry[];
+  ordemJogadores?: ParticipanteEntry[];
+  resultadosDados?: Record<string | number, ResultadoDadoEntry>;
+  turnoAtual?: number | null;
+  faseJogo?: string;
+  onVerFichaJogador?: (jogador: ParticipanteEntry) => void;
+  compactMode?: boolean;
+  combateAtivo?: boolean;
+  combateOrdemIniciativa?: CombateOrdemEntry[];
+}
 
 const PainelJogadores = ({
   participantes,
@@ -11,8 +48,8 @@ const PainelJogadores = ({
   onVerFichaJogador,
   compactMode = false,
   combateAtivo = false,
-  combateOrdemIniciativa = []
-}) => {
+  combateOrdemIniciativa = [],
+}: PainelJogadoresProps) => {
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -26,12 +63,14 @@ const PainelJogadores = ({
         ? { label: 'Entre Rodadas', className: 'bg-purple-900/30 text-purple-400 border border-purple-500/30' }
         : { label: 'Aguardando', className: 'bg-purple-900/30 text-purple-400 border border-purple-500/30' };
 
-  const renderJogador = (jogador, index) => {
+  const renderJogador = (jogador: ParticipanteEntry, index: number) => {
     const userId = jogador.userId || jogador.id;
     const username = jogador.username || jogador.nome;
     const personagem = jogador.personagemNome || jogador.personagem;
-    const combateInit = combateAtivo && combateOrdemIniciativa.find(o => String(o.id).includes(String(userId)) || o.nome === personagem);
-    const valorDado = combateInit ? combateInit.iniciativa : (jogador.valorDado || resultadosDados[userId]?.valor);
+    const combateInit = combateAtivo && combateOrdemIniciativa.find((o) => String(o.id).includes(String(userId)) || o.nome === personagem);
+    const valorDado: number | undefined = combateInit
+      ? combateInit.iniciativa
+      : (jogador.valorDado || (userId != null ? resultadosDados[userId]?.valor : undefined));
     const ehTurnoAtual = turnoAtual === index;
     const ehUsuarioAtual = String(userId) === String(user?.id);
 

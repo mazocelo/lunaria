@@ -1,82 +1,132 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+﻿import { Fragment, useState, useMemo, useEffect } from 'react';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { imageGenerationService } from '../../../services';
-import ImageLightbox from '../../ImageLightbox.jsx';
-import NarrationSegments, { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
+import ImageLightbox from '../../ImageLightbox';
+import NarrationSegments, { buildNarrationSequenceItems, type NarrationTrackItem, type NarrationSegmentsTtsController } from '../../shared/NarrationSegments';
 import { ImageIcon, Play, Pause } from 'lucide-react';
-import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
+import { buildTtsItemKey } from '../../../utils/ttsKeys';
 
-const getConteudo = (msg) => {
-  const text = msg.message || msg.mensagem || '';
+/**
+ * Mensagem de chat — payload extremamente flexivel (vem do socket, do backend
+ * legado e ate de fallback in-memory). Mantemos como `Record<string, unknown>`
+ * com narrowing local em cada renderer.
+ */
+export type ChatMensagem = Record<string, unknown>;
+
+interface MensagemSegmento {
+  id?: string | number;
+  text?: string;
+  message?: string;
+  mensagem?: string;
+  speech_text?: string | null;
+  speaker_label?: string;
+  speakerLabel?: string;
+  tipo?: string;
+}
+
+const asMsg = (m: ChatMensagem) => m as Record<string, unknown> & {
+  id?: string | number;
+  message?: string;
+  mensagem?: string;
+  speech_text?: string;
+  voice_id?: string;
+  voice_provider?: string;
+  npc_nome?: string;
+  speaker_label?: string;
+  audio_cache_key?: string;
+  audio_url?: string;
+  audioUrl?: string;
+  segmentos?: MensagemSegmento[];
+};
+
+const getConteudo = (msg: ChatMensagem): string => {
+  const m = asMsg(msg);
+  const text = m.message || m.mensagem || '';
   // Sanitize legacy [object Object] from old dice roll messages
   return typeof text === 'string' ? text.replace(/\[object Object\]/g, 'd20') : String(text);
 };
 const RE_SOLICITACAO_DADOS = /(\u{1F3B2}\s*)?[Rr]ole/iu;
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-const buildFallbackNarrationItem = (mensagem, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_TTS_PROVIDER) => {
+const buildFallbackNarrationItem = (
+  mensagem: ChatMensagem,
+  defaultVoiceId: string | null = null,
+  defaultVoiceProvider: string = DEFAULT_TTS_PROVIDER,
+): NarrationTrackItem | null => {
   const text = String(getConteudo(mensagem) || '').trim();
-  const voiceId = mensagem?.voice_id || defaultVoiceId || null;
-  const provider = mensagem?.voice_provider || defaultVoiceProvider || DEFAULT_TTS_PROVIDER;
+  const m = asMsg(mensagem);
+  const voiceId = m.voice_id || defaultVoiceId || null;
+  const provider = m.voice_provider || defaultVoiceProvider || DEFAULT_TTS_PROVIDER;
 
   if (!text || !voiceId) return null;
 
   return {
-    itemKey: buildTtsItemKey(
-      mensagem.id,
+    trackId: buildTtsItemKey(
+      m.id ?? '',
       null,
       voiceId,
       provider,
       null,
-      mensagem?.speech_text || text
+      m.speech_text || text,
     ),
-    messageId: mensagem.id,
+    itemKey: buildTtsItemKey(
+      m.id ?? '',
+      null,
+      voiceId,
+      provider,
+      null,
+      m.speech_text || text,
+    ),
+    messageId: m.id != null ? String(m.id) : null,
     segmentId: null,
     text,
-    speech_text: mensagem?.speech_text || null,
+    speechText: m.speech_text || text,
     voiceId,
     provider,
     emotion: null,
-    speakerLabel: mensagem?.npc_nome || mensagem?.speaker_label || 'Mestre',
-    tipo: mensagem?.npc_nome ? 'fala_npc' : 'narracao',
-    hasPersistedAudio: Boolean(mensagem?.audio_cache_key || mensagem?.audio_url || mensagem?.audioUrl)
+    speakerLabel: m.npc_nome || m.speaker_label || 'Mestre',
+    kind: m.npc_nome ? 'fala_npc' : 'narracao',
+    tipo: m.npc_nome ? 'fala_npc' : 'narracao',
+    hasPersistedAudio: Boolean(m.audio_cache_key || m.audio_url || m.audioUrl),
   };
 };
 
-const buildMessageSequenceItems = (mensagem, defaultVoiceId = null, defaultVoiceProvider = DEFAULT_TTS_PROVIDER) => {
+const buildMessageSequenceItems = (
+  mensagem: ChatMensagem,
+  defaultVoiceId: string | null = null,
+  defaultVoiceProvider: string = DEFAULT_TTS_PROVIDER,
+): NarrationTrackItem[] => {
+  const m = asMsg(mensagem);
   const segmentItems = buildNarrationSequenceItems(
-    mensagem?.segmentos || [],
-    mensagem?.id,
-    mensagem?.voice_id || defaultVoiceId || null,
-    mensagem?.voice_provider || defaultVoiceProvider || DEFAULT_TTS_PROVIDER
+    m.segmentos || [],
+    m.id ?? '',
+    m.voice_id || defaultVoiceId || null,
+    m.voice_provider || defaultVoiceProvider || DEFAULT_TTS_PROVIDER,
   );
 
   if (segmentItems.length > 0) return segmentItems;
 
-  const fallbackItem = buildFallbackNarrationItem(
-    mensagem,
-    defaultVoiceId,
-    defaultVoiceProvider
-  );
-
+  const fallbackItem = buildFallbackNarrationItem(mensagem, defaultVoiceId, defaultVoiceProvider);
   return fallbackItem ? [fallbackItem] : [];
 };
 
-const buildSequenceKey = (prefix, items = []) => {
+const buildSequenceKey = (prefix: string, items: NarrationTrackItem[] = []): string | null => {
   if (!Array.isArray(items) || items.length === 0) return null;
   return `${prefix}:${items.map((item) => item.itemKey).join('|')}`;
 };
 
-const extractSegmentText = (segment) => String(segment?.text || segment?.message || segment?.mensagem || '').trim();
+const extractSegmentText = (segment: MensagemSegmento): string =>
+  String(segment?.text || segment?.message || segment?.mensagem || '').trim();
 
-const resolveSpeakerLabel = (segment) => (
+const resolveSpeakerLabel = (segment: MensagemSegmento): string => (
   segment?.speaker_label
   || segment?.speakerLabel
   || (segment?.tipo === 'fala_npc' ? 'NPC' : 'Mestre')
 );
 
-const buildBalloonPromptText = (mensagem) => {
-  const segmentos = Array.isArray(mensagem?.segmentos) ? mensagem.segmentos : [];
+const buildBalloonPromptText = (mensagem: ChatMensagem): string => {
+  const m = asMsg(mensagem);
+  const segmentos: MensagemSegmento[] = Array.isArray(m.segmentos) ? m.segmentos : [];
   const segmentTexts = segmentos
     .map((segment) => {
       const text = extractSegmentText(segment);
@@ -92,32 +142,58 @@ const buildBalloonPromptText = (mensagem) => {
   return String(getConteudo(mensagem) || '').trim();
 };
 
-const buildPendingTestSummary = (mensagem) => {
-  const payload = mensagem?.payload || {};
+interface TestePendenteShape {
+  tipoDado?: string;
+  teste?: string;
+  dificuldade?: string | number;
+}
+
+interface MensagemPayload {
+  testePendente?: TestePendenteShape;
+  tipoDado?: string;
+  teste?: string;
+  dificuldade?: string | number;
+  dice?: string;
+  rolagemBruta?: number;
+  resultado?: number | string;
+  [key: string]: unknown;
+}
+
+const buildPendingTestSummary = (mensagem: ChatMensagem): string => {
+  const payload = (mensagem as { payload?: MensagemPayload })?.payload || {};
   const testePendente = payload?.testePendente || {};
   const tipoDado = payload?.tipoDado || testePendente?.tipoDado || 'd20';
   const teste = payload?.teste || testePendente?.teste || 'Teste';
   const dificuldade = payload?.dificuldade || testePendente?.dificuldade || null;
 
   const parts = [`Teste pendente: role ${tipoDado}`];
-  if (teste) {
-    parts.push(`para ${teste}`);
-  }
-  if (dificuldade) {
-    parts.push(`(${dificuldade})`);
-  }
-
+  if (teste) parts.push(`para ${teste}`);
+  if (dificuldade) parts.push(`(${dificuldade})`);
   return parts.join(' ');
 };
 
-const buildGroupPromptText = (mensagens = []) => (
+const buildGroupPromptText = (mensagens: ChatMensagem[] = []): string => (
   (Array.isArray(mensagens) ? mensagens : [])
     .map((mensagem) => buildBalloonPromptText(mensagem))
     .filter(Boolean)
     .join('\n\n')
 );
 
-const buildEntityPayload = (entidades = []) => entidades.map((e) => ({
+export interface EntidadeComImagem {
+  tipo?: string;
+  nome: string;
+  descricao?: string;
+  papel?: string;
+  local?: string;
+  categoria?: string;
+  perigo?: string;
+  motivacao?: string;
+  segredo?: string;
+  url?: string;
+  imagem?: string;
+}
+
+const buildEntityPayload = (entidades: EntidadeComImagem[] = []) => entidades.map((e) => ({
   tipo: e.tipo,
   nome: e.nome,
   descricao: e.descricao || '',
@@ -126,30 +202,36 @@ const buildEntityPayload = (entidades = []) => entidades.map((e) => ({
   categoria: e.categoria || '',
   perigo: e.perigo || '',
   motivacao: e.motivacao || '',
-  segredo: e.segredo || ''
+  segredo: e.segredo || '',
 }));
 
-export const findMentionedEntities = (text, entidadesComImagem = []) => {
+export const findMentionedEntities = (text: string, entidadesComImagem: EntidadeComImagem[] = []): EntidadeComImagem[] => {
   if (!entidadesComImagem?.length || !text) return [];
   const normalized = text.toLowerCase();
   return entidadesComImagem.filter((entidade) => normalized.includes(entidade.nome.toLowerCase()));
 };
 
-export const renderDado = (mensagem, key) => {
-  // Resolve fields from top-level or payload (persisted resultado_teste messages
-  // store dice/roll fields inside payload, while live messages have them at the top level)
-  const p = mensagem.payload || {};
-  const rawDice = (typeof mensagem.dice === 'string' ? mensagem.dice : null) || (typeof p.dice === 'string' ? p.dice : null) || 'd20';
+type Key = string | number;
+
+interface DetalheBonus {
+  valor: number;
+  fonte: string;
+}
+
+export const renderDado = (mensagem: ChatMensagem, key: Key) => {
+  const m = mensagem as Record<string, unknown> & { username?: string };
+  const p = (m.payload as Record<string, unknown>) || {};
+  const rawDice = (typeof m.dice === 'string' ? m.dice : null) || (typeof p.dice === 'string' ? p.dice : null) || 'd20';
   const dice = rawDice.includes('[object Object]') ? 'd20' : rawDice;
-  const rolagemBruta = mensagem.rolagemBruta ?? p.rolagemBruta ?? mensagem.result ?? p.resultado ?? mensagem.valor ?? '?';
-  const modificador = mensagem.modificador ?? p.modificador ?? 0;
-  const bonusNivel = mensagem.bonusNivel ?? p.bonusNivel ?? 0;
-  const atributoNome = mensagem.atributoNome || p.atributoNome || 'Sorte';
-  const detalhes = mensagem.detalhesBonus || p.detalhesBonus || [];
-  const total = mensagem.total ?? p.total;
-  const dc = mensagem.dc ?? p.dc;
-  const sucesso = mensagem.sucesso ?? p.sucesso;
-  const descricaoResultado = mensagem.descricaoResultado || p.descricaoResultado || null;
+  const rolagemBruta = m.rolagemBruta ?? p.rolagemBruta ?? m.result ?? p.resultado ?? m.valor ?? '?';
+  const modificador = (m.modificador ?? p.modificador ?? 0) as number;
+  const bonusNivel = (m.bonusNivel ?? p.bonusNivel ?? 0) as number;
+  const atributoNome = (m.atributoNome || p.atributoNome || 'Sorte') as string;
+  const detalhes = (m.detalhesBonus || p.detalhesBonus || []) as DetalheBonus[];
+  const total = m.total ?? p.total;
+  const dc = (m.dc ?? p.dc) as number | undefined;
+  const sucesso = (m.sucesso ?? p.sucesso) as boolean | undefined;
+  const descricaoResultado = (m.descricaoResultado || p.descricaoResultado || null) as string | null;
 
   const modBase = (modificador || 0) + (bonusNivel || 0);
   const temModBase = modBase !== 0;
@@ -162,23 +244,23 @@ export const renderDado = (mensagem, key) => {
           <span className="text-xl">{'\u{1F3B2}'}</span>
           <div className="text-center">
             <p className="text-amber-200/80 text-sm">
-              <span className="font-semibold text-amber-100">{mensagem.username}</span> rolou {dice}
+              <span className="font-semibold text-amber-100">{String(m.username ?? '')}</span> rolou {dice}
               {' — '}
               <span className="text-amber-300 font-bold text-base">
-                {rolagemBruta}
+                {String(rolagemBruta)}
               </span>
               {temModBase && (
                 <span className="text-amber-200/70">
                   {' '}{modBase > 0 ? '+' : ''}{modBase} ({atributoNome})
                 </span>
               )}
-              {temDetalhes && detalhes.map((d, i) => (
+              {temDetalhes && detalhes.map((d: DetalheBonus, i: number) => (
                 <span key={i} className="text-cyan-300/80">
                   {' '}{d.valor > 0 ? '+' : ''}{d.valor} ({d.fonte})
                 </span>
               ))}
               {(temModBase || temDetalhes) && (
-                <span className="text-amber-100 font-bold"> = {total}</span>
+                <span className="text-amber-100 font-bold"> = {String(total)}</span>
               )}
             </p>
             {descricaoResultado && (
@@ -193,7 +275,7 @@ export const renderDado = (mensagem, key) => {
   );
 };
 
-export const renderRoleplay = (mensagem, key) => (
+export const renderRoleplay = (mensagem: ChatMensagem, key: Key) => (
   <div key={key} className="max-w-[80%] ml-auto animate-fade-in">
     <div className="game-glass-subtle p-4 rounded-xl border border-purple-500/20">
       <div className="flex items-start space-x-3">
@@ -202,7 +284,7 @@ export const renderRoleplay = (mensagem, key) => (
         </div>
         <div className="flex-1">
           <p className="text-purple-300 text-sm font-semibold mb-1">
-            {mensagem.username} <span className="italic text-purple-400/60 text-xs">(roleplay)</span>
+            {String((mensagem as { username?: unknown }).username ?? '')} <span className="italic text-purple-400/60 text-xs">(roleplay)</span>
           </p>
           <p className="text-white/90 text-base italic leading-relaxed">
             {getConteudo(mensagem)}
@@ -213,7 +295,7 @@ export const renderRoleplay = (mensagem, key) => (
   </div>
 );
 
-export const renderLoading = (mensagem, key) => (
+export const renderLoading = (mensagem: ChatMensagem, key: Key) => (
   <div key={key} className="max-w-[60%] mx-auto animate-fade-in my-2">
     <div className="game-glass-subtle px-4 py-2.5 rounded-full border border-purple-500/20">
       <div className="flex items-center justify-center gap-2.5">
@@ -230,7 +312,7 @@ export const renderLoading = (mensagem, key) => (
   </div>
 );
 
-export const renderCombate = (mensagem, key) => (
+export const renderCombate = (mensagem: ChatMensagem, key: Key) => (
   <div key={key} className="max-w-[75%] mx-auto animate-fade-in my-2">
     <div className="game-glass-subtle p-4 rounded-xl border border-red-500/30">
       <div className="flex items-start gap-2.5">
@@ -238,14 +320,14 @@ export const renderCombate = (mensagem, key) => (
         <div className="flex-1">
           <p className="text-red-300/80 font-semibold text-xs uppercase tracking-wide mb-1">
             Combate
-            {mensagem.critico && <span className="text-yellow-300 ml-2 normal-case">Acerto Critico!</span>}
+            {Boolean((mensagem as { critico?: unknown }).critico) && <span className="text-yellow-300 ml-2 normal-case">Acerto Critico!</span>}
           </p>
           <p className="text-white/90 text-sm leading-relaxed">
             {getConteudo(mensagem)}
           </p>
-          {mensagem.dano > 0 && (
+          {((mensagem as { dano?: number }).dano ?? 0) > 0 && (
             <p className="text-orange-300 text-xs mt-1 font-semibold">
-              -{mensagem.dano} HP
+              -{(mensagem as { dano?: number }).dano} HP
             </p>
           )}
         </div>
@@ -254,7 +336,7 @@ export const renderCombate = (mensagem, key) => (
   </div>
 );
 
-export const renderTransicaoTurno = (mensagem, key) => (
+export const renderTransicaoTurno = (mensagem: ChatMensagem, key: Key) => (
   <div key={key} className="max-w-[60%] mx-auto animate-fade-in my-3">
     <div className="game-glass-subtle px-4 py-2 rounded-full border border-cyan-500/20">
       <p className="text-cyan-300/80 text-xs text-center font-medium">
@@ -264,9 +346,10 @@ export const renderTransicaoTurno = (mensagem, key) => (
   </div>
 );
 
-export const renderAguardandoDados = (mensagem, key) => {
+export const renderAguardandoDados = (mensagem: ChatMensagem, key: Key) => {
   const resumo = buildPendingTestSummary(mensagem);
-  const contexto = mensagem?.payload?.contexto || mensagem?.payload?.testePendente?.contexto || null;
+  const payload = (mensagem as { payload?: { contexto?: string; testePendente?: { contexto?: string } } }).payload;
+  const contexto = payload?.contexto || payload?.testePendente?.contexto || null;
 
   return (
     <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-3">
@@ -287,9 +370,9 @@ export const renderAguardandoDados = (mensagem, key) => {
   );
 };
 
-export const renderAcaoMestre = (mensagem, key) => {
+export const renderAcaoMestre = (mensagem: ChatMensagem, key: Key) => {
   const conteudo = getConteudo(mensagem);
-  const payload = mensagem.payload || {};
+  const payload = ((mensagem as { payload?: { personagem?: string } }).payload || {}) as { personagem?: string };
   return (
     <div key={key} className="max-w-[70%] mx-auto animate-fade-in my-2">
       <div className="game-glass-subtle px-4 py-2.5 rounded-xl border border-emerald-500/20">
@@ -314,30 +397,34 @@ export const renderAcaoMestre = (mensagem, key) => {
   );
 };
 
-export const renderEntreRodadas = (mensagem, key) => (
+export const renderEntreRodadas = (mensagem: ChatMensagem, key: Key) => {
+  const m = mensagem as { titulo?: string; narrativa?: string };
+  return (
   <div key={key} className="max-w-[80%] mx-auto animate-fade-in my-6">
     <div className="game-glass-subtle p-6 rounded-2xl border border-cyan-400/30">
       <div className="text-center mb-3">
         <span className="text-4xl">{'\u{1F31F}'}</span>
         <h3 className="text-xl font-fantasy font-bold text-cyan-300 mt-2">
-          {mensagem.titulo || 'Fim de Rodada'}
+          {m.titulo || 'Fim de Rodada'}
         </h3>
       </div>
       <p className="text-white/90 text-base leading-relaxed text-center">
-        {getConteudo(mensagem) || mensagem.narrativa}
+        {getConteudo(mensagem) || m.narrativa}
       </p>
     </div>
   </div>
-);
+  );
+};
 
-export const renderMestre = (mensagem, key) => {
+export const renderMestre = (mensagem: ChatMensagem, key: Key) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = RE_SOLICITACAO_DADOS.test(conteudo);
+  const destaque = (mensagem as { destaque?: boolean }).destaque;
 
   return (
     <div key={key} className="max-w-[88%] animate-fade-in">
       <div className={`game-glass p-4 rounded-xl border shadow-[0_0_20px_rgba(139,92,246,0.08)] border-l-4 ${
-        temSolicitacaoDados || mensagem.destaque
+        temSolicitacaoDados || destaque
           ? 'border-amber-400/60 border-l-amber-400/60 bg-gradient-to-br from-amber-900/40 to-orange-900/30'
           : 'border-purple-400/40 border-l-purple-400/40 bg-gradient-to-br from-purple-900/20 to-pink-900/15'
       }`}>
@@ -365,26 +452,78 @@ export const renderMestre = (mensagem, key) => {
  * MestreMessage - Componente React para mensagens do mestre com TTS
  * Recebe instancia compartilhada de useTTS via props (do ChatArea)
  */
-export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, grouped = false, isFirst = false, hideHeaderControls = false }) => {
+interface MestreMessageTtsController extends NarrationSegmentsTtsController {
+  currentSequenceKey?: string | null;
+  loadingSequenceKey?: string | null;
+  loadingTargetId?: string | number | null;
+  isPlaying?: boolean;
+  canTogglePlayback?: boolean;
+  togglePause?: () => void | Promise<void>;
+  playSequence?: (items: NarrationTrackItem[], options: { sequenceKey: string | null; messageId: string | number; contextLabel?: string }) => void | Promise<void>;
+  lastError?: string | null;
+  errorMessageId?: string | number | null;
+  hasAudioForItem?: (itemKey: string) => boolean;
+  toggleSequence?: (items: NarrationTrackItem[], options: { sequenceKey: string | null; messageId: string | number; contextLabel?: string }) => void | Promise<void>;
+}
+
+export interface ContextoImagemCena {
+  temas?: string[];
+  historiaNome?: string;
+  historiaDescricao?: string;
+  historiaPrologo?: string;
+}
+
+interface MestreMessageProps {
+  mensagem: ChatMensagem;
+  voiceId?: string | null;
+  voiceProvider?: string;
+  tts: MestreMessageTtsController;
+  entidadesComImagem?: EntidadeComImagem[];
+  contextoImagemCena?: ContextoImagemCena;
+  onSceneImageGenerated?: (id: string | number, url: string) => void;
+  estiloImagem?: string | null;
+  grouped?: boolean;
+  isFirst?: boolean;
+  hideHeaderControls?: boolean;
+}
+
+export const MestreMessage = ({
+  mensagem,
+  voiceId,
+  voiceProvider,
+  tts,
+  entidadesComImagem,
+  contextoImagemCena,
+  onSceneImageGenerated,
+  estiloImagem,
+  grouped = false,
+  isFirst = false,
+  hideHeaderControls = false,
+}: MestreMessageProps) => {
   const conteudo = getConteudo(mensagem);
   const temSolicitacaoDados = RE_SOLICITACAO_DADOS.test(conteudo);
-  const effectiveVoiceId = mensagem.voice_id || voiceId;
-  const effectiveVoiceProvider = mensagem.voice_provider || voiceProvider;
+  const m = asMsg(mensagem) as ReturnType<typeof asMsg> & {
+    scene_image?: string | null;
+    sceneImage?: string | null;
+    imagem_cena?: string | null;
+  };
+  const effectiveVoiceId: string | null = m.voice_id || voiceId || null;
+  const effectiveVoiceProvider: string = m.voice_provider || voiceProvider || DEFAULT_TTS_PROVIDER;
   const segmentItems = useMemo(
-    () => buildNarrationSequenceItems(mensagem.segmentos || [], mensagem.id, effectiveVoiceId, effectiveVoiceProvider),
-    [mensagem.segmentos, mensagem.id, effectiveVoiceId, effectiveVoiceProvider]
+    () => buildNarrationSequenceItems(m.segmentos || [], m.id ?? '', effectiveVoiceId, effectiveVoiceProvider),
+    [m.segmentos, m.id, effectiveVoiceId, effectiveVoiceProvider],
   );
   const messageSequenceItems = useMemo(
     () => buildMessageSequenceItems(mensagem, effectiveVoiceId, effectiveVoiceProvider),
-    [mensagem, effectiveVoiceId, effectiveVoiceProvider]
+    [mensagem, effectiveVoiceId, effectiveVoiceProvider],
   );
   const messageSequenceKey = useMemo(
-    () => buildSequenceKey(`message:${mensagem.id}`, messageSequenceItems),
-    [mensagem.id, messageSequenceItems]
+    () => buildSequenceKey(`message:${m.id ?? ''}`, messageSequenceItems),
+    [m.id, messageSequenceItems],
   );
   const balloonPromptText = useMemo(
     () => buildBalloonPromptText(mensagem),
-    [mensagem]
+    [mensagem],
   );
   const hasSegmentedNarration = segmentItems.length > 0;
   const isThisSequenceActive = Boolean(
@@ -395,7 +534,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const isPreparingThisAudio = Boolean(
     messageSequenceKey
     && tts.loadingSequenceKey === messageSequenceKey
-    && String(tts.loadingTargetId || '') === String(mensagem.id)
+    && String(tts.loadingTargetId || '') === String(m.id ?? '')
     && !tts.canTogglePlayback
     && !isThisSequenceActive
   );
@@ -409,17 +548,17 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
   const hasPersistedAudio = messageSequenceItems.some((item) => item.hasPersistedAudio);
   const hasAnyAudio = hasCachedAudio || hasPersistedAudio;
 
-  const [sceneImage, setSceneImage] = useState(
-    mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null
+  const [sceneImage, setSceneImage] = useState<string | null>(
+    m.scene_image || m.sceneImage || m.imagem_cena || null,
   );
   const [generatingScene, setGeneratingScene] = useState(false);
   const [sceneLightbox, setSceneLightbox] = useState(false);
-  const [activeLightbox, setActiveLightbox] = useState(null);
+  const [activeLightbox, setActiveLightbox] = useState<EntidadeComImagem | null>(null);
 
   useEffect(() => {
-    const persistedSceneImage = mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null;
+    const persistedSceneImage = m.scene_image || m.sceneImage || m.imagem_cena || null;
     setSceneImage(persistedSceneImage);
-  }, [mensagem.id, mensagem.scene_image, mensagem.sceneImage, mensagem.imagem_cena]);
+  }, [m.id, m.scene_image, m.sceneImage, m.imagem_cena]);
 
   const entidadesMencionadas = useMemo(
     () => findMentionedEntities(balloonPromptText, entidadesComImagem),
@@ -436,7 +575,7 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
 
     setGeneratingScene(true);
     try {
-      const response = await imageGenerationService.generate({
+      const response = (await imageGenerationService.generate({
         entityType: 'cena',
         entityData: {
           narracao: balloonPromptText,
@@ -445,15 +584,15 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
           contexto_historia: [
             contextoImagemCena?.historiaNome,
             contextoImagemCena?.historiaDescricao,
-            contextoImagemCena?.historiaPrologo
+            contextoImagemCena?.historiaPrologo,
           ].filter(Boolean).join(' | '),
-          entidades: buildEntityPayload(entidadesMencionadas)
-        }
-      });
-      const url = response.data?.url;
-      if (url) {
+          entidades: buildEntityPayload(entidadesMencionadas),
+        },
+      })) as { data?: { url?: string } } | null;
+      const url = response?.data?.url;
+      if (url && m.id != null) {
         setSceneImage(url);
-        onSceneImageGenerated?.(mensagem.id, url);
+        onSceneImageGenerated?.(m.id, url);
       }
     } catch (_) {
       // silent
@@ -466,20 +605,17 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
     if (!hasVoiceControls) return;
 
     if (isThisSequenceActive) {
-      tts.togglePause();
+      await tts.togglePause?.();
       return;
     }
 
-    await tts.playSequence(
+    await tts.playSequence?.(
       messageSequenceItems,
-      mensagem.id,
       {
-        allowGenerate: true,
-        sequenceKey: messageSequenceKey || `message:${mensagem.id}`,
-        title: mensagem?.npc_nome ? `Balao ${mensagem.npc_nome}` : 'Balao do Mestre',
-        source: 'message_balloon',
-        contextLabel: 'Balao completo'
-      }
+        sequenceKey: messageSequenceKey || `message:${m.id ?? ''}`,
+        messageId: m.id ?? '',
+        contextLabel: 'Balao completo',
+      },
     );
   };
 
@@ -554,13 +690,13 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
           </div>
         </div>
       )}
-      {!hideHeaderControls && tts.lastError && tts.errorMessageId === mensagem.id && (
+      {!hideHeaderControls && tts.lastError && tts.errorMessageId === m.id && (
         <p className="text-red-400 text-xs mb-2 text-right">{tts.lastError}</p>
       )}
       {hasSegmentedNarration ? (
         <NarrationSegments
-          segments={mensagem.segmentos || []}
-          messageId={mensagem.id}
+          segments={m.segmentos || []}
+          messageId={m.id ?? ''}
           tts={tts}
           defaultVoiceId={effectiveVoiceId}
           defaultVoiceProvider={effectiveVoiceProvider}
@@ -580,14 +716,14 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
                 alt={e.nome}
                 className="h-24 w-24 object-cover rounded-lg border border-purple-500/30 cursor-pointer hover:border-purple-400/60 transition-all select-none caret-transparent"
                 draggable={false}
-                onClick={() => setActiveLightbox(e.imagem)}
+                onClick={() => setActiveLightbox(e)}
               />
               <span className="absolute bottom-0 left-0 right-0 text-xs text-center bg-black/60 text-white rounded-b-lg px-1 py-0.5 truncate">
                 {e.nome}
               </span>
             </div>
           ))}
-          <ImageLightbox src={activeLightbox} alt="" isOpen={!!activeLightbox} onClose={() => setActiveLightbox(null)} />
+          <ImageLightbox src={activeLightbox?.imagem ?? ''} alt={activeLightbox?.nome ?? ''} isOpen={!!activeLightbox} onClose={() => setActiveLightbox(null)} />
         </div>
       )}
       {!hideHeaderControls && sceneImage && (
@@ -632,7 +768,27 @@ export const MestreMessage = ({ mensagem, voiceId, voiceProvider, tts, entidades
 /**
  * MestreMessageGroup - Agrupa 2+ mensagens consecutivas do mestre em um unico card
  */
-export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem }) => {
+interface MestreMessageGroupProps {
+  mensagens: ChatMensagem[];
+  voiceId?: string | null;
+  voiceProvider?: string;
+  tts: MestreMessageTtsController;
+  entidadesComImagem?: EntidadeComImagem[];
+  contextoImagemCena?: ContextoImagemCena;
+  onSceneImageGenerated?: (id: string | number, url: string) => void;
+  estiloImagem?: string | null;
+}
+
+export const MestreMessageGroup = ({
+  mensagens,
+  voiceId,
+  voiceProvider,
+  tts,
+  entidadesComImagem,
+  contextoImagemCena,
+  onSceneImageGenerated,
+  estiloImagem,
+}: MestreMessageGroupProps) => {
   const groupSequenceItems = useMemo(
     () => (Array.isArray(mensagens) ? mensagens : []).flatMap((mensagem) => (
       buildMessageSequenceItems(mensagem, voiceId, voiceProvider)
@@ -678,16 +834,22 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
     [groupPromptText, entidadesComImagem]
   );
   const [sceneLightbox, setSceneLightbox] = useState(false);
-  const [groupSceneImage, setGroupSceneImage] = useState(
+  const [groupSceneImage, setGroupSceneImage] = useState<string | null>(
     () => (Array.isArray(mensagens) ? mensagens : [])
-      .map((mensagem) => mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null)
-      .find(Boolean) || null
+      .map((mensagem) => {
+        const mm = mensagem as Record<string, unknown>;
+        return (mm.scene_image as string | null) || (mm.sceneImage as string | null) || (mm.imagem_cena as string | null) || null;
+      })
+      .find(Boolean) || null,
   );
   const [generatingScene, setGeneratingScene] = useState(false);
 
   useEffect(() => {
     const persistedSceneImage = (Array.isArray(mensagens) ? mensagens : [])
-      .map((mensagem) => mensagem.scene_image || mensagem.sceneImage || mensagem.imagem_cena || null)
+      .map((mensagem) => {
+        const mm = mensagem as Record<string, unknown>;
+        return (mm.scene_image as string | null) || (mm.sceneImage as string | null) || (mm.imagem_cena as string | null) || null;
+      })
       .find(Boolean) || null;
     setGroupSceneImage(persistedSceneImage);
   }, [mensagens]);
@@ -702,7 +864,7 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
 
     setGeneratingScene(true);
     try {
-      const response = await imageGenerationService.generate({
+      const response = (await imageGenerationService.generate({
         entityType: 'cena',
         entityData: {
           narracao: groupPromptText,
@@ -711,17 +873,18 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
           contexto_historia: [
             contextoImagemCena?.historiaNome,
             contextoImagemCena?.historiaDescricao,
-            contextoImagemCena?.historiaPrologo
+            contextoImagemCena?.historiaPrologo,
           ].filter(Boolean).join(' | '),
-          entidades: buildEntityPayload(groupEntityMentions)
-        }
-      });
-      const url = response.data?.url;
-      if (url) {
+          entidades: buildEntityPayload(groupEntityMentions),
+        },
+      })) as { data?: { url?: string } } | null;
+      const url = response?.data?.url;
+      const firstId = (mensagens[0] as { id?: string | number } | undefined)?.id;
+      if (url && firstId != null) {
         setGroupSceneImage(url);
-        onSceneImageGenerated?.(mensagens[0]?.id, url);
+        onSceneImageGenerated?.(firstId, url);
       }
-    } catch (_) {
+    } catch {
       // silent
     } finally {
       setGeneratingScene(false);
@@ -732,16 +895,14 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
     if (!groupOwnerId) return;
 
     if (groupSequenceKey && tts.currentSequenceKey === groupSequenceKey) {
-      tts.togglePause();
+      await tts.togglePause?.();
       return;
     }
 
-    tts.playSequence(groupSequenceItems, groupOwnerId, {
-      allowGenerate: true,
+    await tts.playSequence?.(groupSequenceItems, {
       sequenceKey: groupSequenceKey || groupOwnerId,
-      title: 'Sequencia do Mestre',
-      source: 'message_group',
-      contextLabel: 'Grupo de balaos'
+      messageId: groupOwnerId,
+      contextLabel: 'Grupo de balaos',
     });
   };
 
@@ -816,7 +977,7 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
               <p className="text-red-400 text-xs mb-2 text-right">{tts.lastError}</p>
             )}
             {mensagens.map((msg, i) => (
-              <React.Fragment key={msg.id || i}>
+              <Fragment key={(msg as { id?: string | number }).id ?? i}>
                 {i > 0 && <hr className="border-purple-500/20 my-3" />}
                 <MestreMessage
                   mensagem={msg}
@@ -831,7 +992,7 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
                   onSceneImageGenerated={onSceneImageGenerated}
                   estiloImagem={estiloImagem}
                 />
-              </React.Fragment>
+              </Fragment>
             ))}
             {groupSceneImage && (
               <div className="mt-3">
@@ -856,41 +1017,54 @@ export const MestreMessageGroup = ({ mensagens, voiceId, voiceProvider, tts, ent
  * JogadorMessage — Balão do jogador com suporte a TTS.
  * Se a mensagem tiver voice_id, exibe botão de play.
  */
-export const JogadorMessage = ({ mensagem, tts }) => {
-  const voiceId = mensagem.voice_id;
-  const voiceProvider = mensagem.voice_provider || 'opensource';
-  const messageText = mensagem.speech_text || getConteudo(mensagem);
+interface JogadorMessageProps {
+  mensagem: ChatMensagem;
+  tts: (MestreMessageTtsController & { isLoading?: boolean; isGenerating?: boolean }) | null;
+}
+
+export const JogadorMessage = ({ mensagem, tts }: JogadorMessageProps) => {
+  const m = mensagem as ChatMensagem & {
+    voice_id?: string;
+    voice_provider?: string;
+    speech_text?: string;
+    id?: string | number;
+    username?: string;
+    personagem?: string;
+  };
+  const voiceId = m.voice_id;
+  const voiceProvider = m.voice_provider || 'opensource';
+  const messageText = m.speech_text || getConteudo(mensagem);
   const hasVoice = Boolean(voiceId && tts && messageText);
 
-  const messageSequenceKey = `jogador:${mensagem.id}`;
+  const messageSequenceKey = `jogador:${m.id ?? ''}`;
   const isThisActive = tts?.currentSequenceKey === messageSequenceKey;
   const isThisPlaying = isThisActive && tts?.isPlaying;
   const isThisLoading = isThisActive && (tts?.isLoading || tts?.isGenerating);
 
   const handlePlay = async () => {
-    if (!hasVoice) return;
-    if (isThisActive) { tts.togglePause(); return; }
+    if (!hasVoice || !tts) return;
+    if (isThisActive) { await tts.togglePause?.(); return; }
 
-    const items = [{
-      itemKey: buildTtsItemKey(mensagem.id, null, voiceId, voiceProvider, null, messageText),
-      messageId: mensagem.id,
+    const items: NarrationTrackItem[] = [{
+      trackId: buildTtsItemKey(m.id ?? '', null, voiceId ?? null, voiceProvider, null, messageText),
+      itemKey: buildTtsItemKey(m.id ?? '', null, voiceId ?? null, voiceProvider, null, messageText),
+      messageId: m.id != null ? String(m.id) : null,
       segmentId: null,
       text: messageText,
-      speech_text: messageText,
-      voiceId,
+      speechText: messageText,
+      voiceId: voiceId ?? null,
       provider: voiceProvider,
       emotion: null,
-      speakerLabel: mensagem.username || 'Jogador',
+      speakerLabel: m.username || 'Jogador',
+      kind: 'fala_jogador',
       tipo: 'fala_jogador',
       hasPersistedAudio: false,
     }];
 
-    await tts.playSequence(items, mensagem.id, {
-      allowGenerate: true,
+    await tts.playSequence?.(items, {
       sequenceKey: messageSequenceKey,
-      title: mensagem.username || 'Jogador',
-      source: 'message_balloon',
-      contextLabel: `Fala de ${mensagem.username || 'Jogador'}`
+      messageId: m.id ?? '',
+      contextLabel: `Fala de ${m.username || 'Jogador'}`,
     });
   };
 
@@ -899,15 +1073,15 @@ export const JogadorMessage = ({ mensagem, tts }) => {
       <div className="game-glass p-4 rounded-xl border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 text-sm font-bold">
-            {mensagem.username?.charAt(0)?.toUpperCase() || '?'}
+            {m.username?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <p className="text-cyan-300 font-semibold text-sm">
-                {mensagem.username}
-                {mensagem.personagem && (
+                {m.username}
+                {m.personagem && (
                   <span className="text-cyan-400/70 text-xs ml-1.5">
-                    {mensagem.personagem}
+                    {m.personagem}
                   </span>
                 )}
               </p>
@@ -939,12 +1113,12 @@ export const JogadorMessage = ({ mensagem, tts }) => {
   );
 };
 
-/** Fallback renderer sem TTS (para MESSAGE_RENDERERS registry) */
-export const renderJogador = (mensagem, key) => (
+/** Fallback renderer sem TTS (para MESSAGE_RENDERERS registry). */
+export const renderJogador = (mensagem: ChatMensagem, key: Key) => (
   <JogadorMessage key={key} mensagem={mensagem} tts={null} />
 );
 
-export const renderMestreStreaming = (mensagem, key) => {
+export const renderMestreStreaming = (mensagem: ChatMensagem, key: Key) => {
   const conteudo = getConteudo(mensagem);
 
   return (
@@ -977,7 +1151,7 @@ export const renderMestreStreaming = (mensagem, key) => {
   );
 };
 
-export const renderCombatMonster = (mensagem, key) => {
+export const renderCombatMonster = (mensagem: ChatMensagem, key: Key) => {
   // Simple markdown: **bold** → <strong>
   const text = getConteudo(mensagem)
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-red-300">$1</strong>')

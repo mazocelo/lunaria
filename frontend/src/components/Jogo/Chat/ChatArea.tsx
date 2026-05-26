@@ -1,20 +1,25 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, type ReactNode } from 'react';
 import { ListMusic, Loader2, Pause, Play, ScrollText, SkipBack, SkipForward, Square, Volume2 } from 'lucide-react';
 import { RPGMessage } from '../../RPGMessage';
-import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup, JogadorMessage } from './renderers';
+import { MESSAGE_RENDERERS, MestreMessage, MestreMessageGroup, JogadorMessage, type ChatMensagem, type EntidadeComImagem, type ContextoImagemCena } from './renderers';
 import { useTTS } from '../../../hooks/useTTS';
-import { buildNarrationSequenceItems } from '../../shared/NarrationSegments.jsx';
-import { buildTtsItemKey } from '../../../utils/ttsKeys.js';
+import { buildNarrationSequenceItems, type NarrationTrackItem } from '../../shared/NarrationSegments';
+import { buildTtsItemKey } from '../../../utils/ttsKeys';
 import AudioQueuePopover from '../../../audio/ui/AudioQueuePopover.jsx';
 
 const GAME_AUDIO_SOURCES = new Set(['chat_global', 'message_balloon', 'message_group', 'game_segment']);
 
-function groupConsecutiveMessages(mensagens) {
-  const groups = [];
-  let currentMestreGroup = [];
+type MessageGroup =
+  | { type: 'single'; mensagem: ChatMensagem }
+  | { type: 'mestre_group'; mensagens: ChatMensagem[] };
+
+function groupConsecutiveMessages(mensagens: ChatMensagem[]): MessageGroup[] {
+  const groups: MessageGroup[] = [];
+  let currentMestreGroup: ChatMensagem[] = [];
 
   for (const msg of mensagens) {
-    const tipo = msg.tipo || msg.type;
+    const m = msg as { tipo?: string; type?: string };
+    const tipo = m.tipo || m.type;
     if (tipo === 'mestre') {
       currentMestreGroup.push(msg);
       continue;
@@ -24,7 +29,7 @@ function groupConsecutiveMessages(mensagens) {
       groups.push(
         currentMestreGroup.length === 1
           ? { type: 'single', mensagem: currentMestreGroup[0] }
-          : { type: 'mestre_group', mensagens: [...currentMestreGroup] }
+          : { type: 'mestre_group', mensagens: [...currentMestreGroup] },
       );
       currentMestreGroup = [];
     }
@@ -36,15 +41,39 @@ function groupConsecutiveMessages(mensagens) {
     groups.push(
       currentMestreGroup.length === 1
         ? { type: 'single', mensagem: currentMestreGroup[0] }
-        : { type: 'mestre_group', mensagens: [...currentMestreGroup] }
+        : { type: 'mestre_group', mensagens: [...currentMestreGroup] },
     );
   }
 
   return groups;
 }
 
-const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entidadesComImagem, contextoImagemCena, onSceneImageGenerated, estiloImagem, prologo, imagemCapa }) => {
-  const chatEndRef = useRef(null);
+interface ChatAreaProps {
+  mensagens: ChatMensagem[];
+  usuariosDigitando: Array<{ username?: string; nome?: string }>;
+  voiceId?: string | null;
+  voiceProvider?: string;
+  entidadesComImagem?: EntidadeComImagem[];
+  contextoImagemCena?: ContextoImagemCena;
+  onSceneImageGenerated?: (id: string | number, url: string) => void;
+  estiloImagem?: string | null;
+  prologo?: string | null;
+  imagemCapa?: string | null;
+}
+
+const ChatArea = ({
+  mensagens,
+  usuariosDigitando,
+  voiceId,
+  voiceProvider,
+  entidadesComImagem,
+  contextoImagemCena,
+  onSceneImageGenerated,
+  estiloImagem,
+  prologo,
+  imagemCapa,
+}: ChatAreaProps) => {
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const tts = useTTS();
 
   const currentTtsMessage = useMemo(
@@ -52,69 +81,97 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     [mensagens, tts.currentMessageId]
   );
 
+  type Segmento = { id?: string | number; speakerLabel?: string; text?: string };
   const currentTtsSegment = useMemo(
-    () => currentTtsMessage?.segmentos?.find((segmento) => String(segmento.id) === String(tts.currentSegmentId)) || null,
-    [currentTtsMessage, tts.currentSegmentId]
+    () => {
+      const segmentos = ((currentTtsMessage as { segmentos?: Segmento[] } | undefined)?.segmentos) || [];
+      return segmentos.find((segmento) => String(segmento.id) === String(tts.currentSegmentId)) || null;
+    },
+    [currentTtsMessage, tts.currentSegmentId],
   );
 
   const groupedMessages = useMemo(() => groupConsecutiveMessages(mensagens), [mensagens]);
 
-  const mestreNarrationItems = useMemo(() => {
-    const items = [];
+  type LocalSequenceItem = NarrationTrackItem & { speech_text?: string | null };
+  const mestreNarrationItems = useMemo<LocalSequenceItem[]>(() => {
+    const items: LocalSequenceItem[] = [];
 
     if (prologo && voiceId) {
+      const trackId = buildTtsItemKey('prologo', null, voiceId, voiceProvider, null, prologo);
       items.push({
-        itemKey: buildTtsItemKey('prologo', null, voiceId, voiceProvider, null, prologo),
+        trackId,
+        itemKey: trackId,
         messageId: 'prologo',
         segmentId: null,
         text: prologo,
+        speechText: prologo,
         speech_text: prologo,
         voiceId,
-        provider: voiceProvider,
+        provider: voiceProvider || 'elevenlabs',
         emotion: null,
         speakerLabel: 'Prologo',
+        kind: 'narracao',
         tipo: 'narracao',
-        hasPersistedAudio: false
+        hasPersistedAudio: false,
       });
     }
 
     (Array.isArray(mensagens) ? mensagens : []).forEach((mensagem) => {
-      const tipo = mensagem?.tipo || mensagem?.type;
+      const m = mensagem as Record<string, unknown> & {
+        tipo?: string;
+        type?: string;
+        voice_id?: string;
+        voice_provider?: string;
+        id?: string | number;
+        message?: string;
+        mensagem?: string;
+        speech_text?: string;
+        npc_nome?: string;
+        segmentos?: unknown[];
+        audio_cache_key?: string;
+        audio_url?: string;
+        audioUrl?: string;
+      };
+      const tipo = m.tipo || m.type;
       if (tipo !== 'mestre') return;
 
-      const effectiveVoiceId = mensagem?.voice_id || voiceId || null;
-      const effectiveVoiceProvider = mensagem?.voice_provider || voiceProvider || null;
+      const effectiveVoiceId: string | null = m.voice_id || voiceId || null;
+      const effectiveVoiceProvider: string = m.voice_provider || voiceProvider || 'elevenlabs';
       const segmentItems = buildNarrationSequenceItems(
-        mensagem?.segmentos || [],
-        mensagem?.id,
+        (m.segmentos as unknown as Parameters<typeof buildNarrationSequenceItems>[0]) || [],
+        m.id ?? '',
         effectiveVoiceId,
-        effectiveVoiceProvider
+        effectiveVoiceProvider,
       );
 
       if (segmentItems.length > 0) { items.push(...segmentItems); return; }
 
-      const text = String(mensagem?.message || mensagem?.mensagem || '').trim();
+      const text = String(m.message || m.mensagem || '').trim();
       if (!text || !effectiveVoiceId) return;
 
+      const trackId = buildTtsItemKey(
+        m.id ?? '',
+        null,
+        effectiveVoiceId,
+        effectiveVoiceProvider,
+        null,
+        m.speech_text || text,
+      );
       items.push({
-        itemKey: buildTtsItemKey(
-          mensagem.id,
-          null,
-          effectiveVoiceId,
-          effectiveVoiceProvider,
-          null,
-          mensagem?.speech_text || text
-        ),
-        messageId: mensagem.id,
+        trackId,
+        itemKey: trackId,
+        messageId: m.id != null ? String(m.id) : null,
         segmentId: null,
         text,
-        speech_text: mensagem?.speech_text || null,
+        speechText: m.speech_text || text,
+        speech_text: m.speech_text || null,
         voiceId: effectiveVoiceId,
         provider: effectiveVoiceProvider,
         emotion: null,
-        speakerLabel: mensagem?.npc_nome || 'Mestre',
+        speakerLabel: m.npc_nome || 'Mestre',
+        kind: 'narracao',
         tipo: 'narracao',
-        hasPersistedAudio: Boolean(mensagem?.audio_cache_key || mensagem?.audio_url || mensagem?.audioUrl)
+        hasPersistedAudio: Boolean(m.audio_cache_key || m.audio_url || m.audioUrl),
       });
     });
 
@@ -153,10 +210,12 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     isGlobalNarrationActive
     && tts.waitingForNext
   );
-  const isGameAudioContext = GAME_AUDIO_SOURCES.has(tts.currentPlaylist?.source || tts.currentTrack?.meta?.source || '');
+  const currentPlaylist = tts.currentPlaylist as { source?: string } | null | undefined;
+  const currentTrack = tts.currentTrack as { meta?: { source?: string }; speakerLabel?: string; text?: string } | null | undefined;
+  const isGameAudioContext = GAME_AUDIO_SOURCES.has(currentPlaylist?.source || currentTrack?.meta?.source || '');
   const canShowQueue = isGameAudioContext && (tts.queueItems?.length || 0) > 0;
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
     const min = Math.floor(safe / 60);
     const sec = String(safe % 60).padStart(2, '0');
@@ -175,18 +234,23 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
 
   const handlePlayAllNarration = async () => {
     if (!mestreNarrationItems.length || !globalNarrationSequenceKey || !globalNarrationOwnerId) return;
-    await tts.playSequence(mestreNarrationItems, globalNarrationOwnerId, {
+    // playSequence do hook tem assinatura propria; cast defensivo p/ items
+    await tts.playSequence(mestreNarrationItems as unknown as Parameters<typeof tts.playSequence>[0], globalNarrationOwnerId, {
       allowGenerate: true,
       sequenceKey: globalNarrationSequenceKey,
       title: 'Cena completa',
       source: 'chat_global',
-      contextLabel: 'Narracao da cena'
+      contextLabel: 'Narracao da cena',
     });
   };
 
-  const renderMensagem = (mensagem, index) => {
-    const tipo = mensagem.tipo || mensagem.type;
-    const key = mensagem.id || index;
+  const ttsForMestre = tts as unknown as Parameters<typeof MestreMessage>[0]['tts'];
+  const ttsForJogador = tts as unknown as Parameters<typeof JogadorMessage>[0]['tts'];
+
+  const renderMensagem = (mensagem: ChatMensagem, index: number) => {
+    const m = mensagem as { tipo?: string; type?: string; id?: string | number };
+    const tipo = m.tipo || m.type;
+    const key = m.id ?? index;
 
     if (tipo === 'mestre') {
       return (
@@ -195,7 +259,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
           mensagem={mensagem}
           voiceId={voiceId}
           voiceProvider={voiceProvider}
-          tts={tts}
+          tts={ttsForMestre}
           entidadesComImagem={entidadesComImagem}
           contextoImagemCena={contextoImagemCena}
           onSceneImageGenerated={onSceneImageGenerated}
@@ -205,26 +269,28 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
     }
 
     if (tipo === 'jogador' || tipo === 'player') {
-      return <JogadorMessage key={key} mensagem={mensagem} tts={tts} />;
+      return <JogadorMessage key={key} mensagem={mensagem} tts={ttsForJogador} />;
     }
 
-    const renderer = MESSAGE_RENDERERS[tipo];
+    const renderer = tipo ? (MESSAGE_RENDERERS as Record<string, ((m: ChatMensagem, key: string | number) => ReactNode) | undefined>)[tipo] : null;
     if (renderer) return renderer(mensagem, key);
 
     return (
       <RPGMessage
         key={key}
-        message={{ ...mensagem, type: tipo }}
+        message={{ ...(mensagem as Record<string, unknown>), type: tipo } as Parameters<typeof RPGMessage>[0]['message']}
         className="animate-fade-in"
       />
     );
   };
 
   const currentLabel = currentTtsSegment
-    ? `${currentTtsSegment.speaker_label || currentTtsSegment.speakerLabel || 'Trecho'}: ${currentTtsSegment.text || ''}`
-    : tts.currentTrack?.speakerLabel && tts.currentTrack?.text
-      ? `${tts.currentTrack.speakerLabel}: ${tts.currentTrack.text}`
-      : currentTtsMessage?.message || currentTtsMessage?.mensagem || 'Narracao';
+    ? `${(currentTtsSegment as { speaker_label?: string }).speaker_label || currentTtsSegment.speakerLabel || 'Trecho'}: ${currentTtsSegment.text || ''}`
+    : currentTrack?.speakerLabel && currentTrack?.text
+      ? `${currentTrack.speakerLabel}: ${currentTrack.text}`
+      : (currentTtsMessage as { message?: string; mensagem?: string } | undefined)?.message
+        || (currentTtsMessage as { message?: string; mensagem?: string } | undefined)?.mensagem
+        || 'Narracao';
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -298,13 +364,14 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
             {mensagens.length > 0 ? (
               groupedMessages.map((group, idx) => {
                 if (group.type === 'mestre_group') {
+                  const firstId = (group.mensagens[0] as { id?: string | number }).id;
                   return (
                     <MestreMessageGroup
-                      key={group.mensagens[0].id || idx}
+                      key={firstId ?? idx}
                       mensagens={group.mensagens}
                       voiceId={voiceId}
                       voiceProvider={voiceProvider}
-                      tts={tts}
+                      tts={ttsForMestre}
                       entidadesComImagem={entidadesComImagem}
                       contextoImagemCena={contextoImagemCena}
                       onSceneImageGenerated={onSceneImageGenerated}
@@ -312,7 +379,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                     />
                   );
                 }
-                return renderMensagem(group.mensagem, group.mensagem.id || idx);
+                return renderMensagem(group.mensagem, idx);
               })
             ) : (
               <div className="text-center py-12">
@@ -418,7 +485,7 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
                 max={tts.duration || 0}
                 step="0.1"
                 value={Math.min(tts.currentTime || 0, tts.duration || 0)}
-                onChange={(e) => tts.seekTo(e.target.value)}
+                onChange={(e) => tts.seekTo(Number(e.target.value))}
                 className="tts-slider w-32 flex-shrink-0"
                 disabled={!tts.duration || !tts.canTogglePlayback}
                 aria-label="Avancar ou voltar narracao"
@@ -442,8 +509,8 @@ const ChatArea = ({ mensagens, usuariosDigitando, voiceId, voiceProvider, entida
       <AudioQueuePopover
         isOpen={canShowQueue && tts.queueOpen}
         onClose={() => tts.setQueueOpen(false)}
-        queueItems={tts.queueItems}
-        title={tts.currentPlaylist?.title || 'Fila de narracao'}
+        queueItems={(tts.queueItems ?? []) as Parameters<typeof AudioQueuePopover>[0]['queueItems']}
+        title={(tts.currentPlaylist as { title?: string } | null | undefined)?.title || 'Fila de narracao'}
       />
     </div>
   );

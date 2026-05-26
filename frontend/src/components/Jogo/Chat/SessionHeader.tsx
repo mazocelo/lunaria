@@ -1,8 +1,65 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, type RefObject } from 'react';
 import { BookOpen, DoorOpen, ScrollText, Swords, Users, ListMusic, ChevronDown, Sparkles } from 'lucide-react';
 
+interface OrdemJogadorEntry {
+  userId: number | string;
+  username?: string;
+  personagemNome?: string;
+}
+
+interface CombateMonstroEntry {
+  id?: number | string;
+  nome: string;
+  status?: string;
+  hp_atual?: number;
+  hp_max?: number;
+  hp_base?: number;
+}
+
+interface QueueItem {
+  trackId?: string;
+  status?: 'active' | string;
+  speakerLabel?: string;
+  kindLabel?: string;
+  label?: string;
+}
+
+interface TtsController {
+  queueItems?: QueueItem[];
+  currentPlaylist?: { title?: string } | null;
+  isSequence?: boolean;
+}
+
+type MobileDrawer = 'jogadores' | 'acoes' | null;
+
+interface SessionHeaderProps {
+  faseJogo?: string;
+  rodadaAtual?: number;
+  turnoAtual?: number;
+  ehMeuTurno?: boolean;
+  ordemJogadores: OrdemJogadorEntry[];
+  jogadoresExibir: Array<unknown>;
+  showActions?: boolean;
+  toggleActions: () => void;
+  showRodadaInfo?: boolean;
+  setShowRodadaInfo: (open: boolean) => void;
+  rodadaDropdownRef: RefObject<HTMLDivElement | null>;
+  handleVerMinhaFicha: () => void;
+  onAbrirGrimorio?: () => void;
+  temMagias?: boolean;
+  onSair: () => void;
+  mobileDrawer?: MobileDrawer;
+  setMobileDrawer: (drawer: MobileDrawer) => void;
+  tts?: TtsController | null;
+  voiceId?: string | null;
+  voiceProvider?: string;
+  combateAtivo?: boolean;
+  combateRodada?: number;
+  combateMonstros?: CombateMonstroEntry[];
+}
+
 /**
- * Header compacto da sessao de jogo RPG
+ * Header compacto da sessao de jogo RPG.
  */
 const SessionHeader = ({
   faseJogo,
@@ -23,16 +80,14 @@ const SessionHeader = ({
   mobileDrawer,
   setMobileDrawer,
   tts,
-  voiceId,
-  voiceProvider,
   combateAtivo,
   combateRodada,
   combateMonstros = [],
-}) => {
+}: SessionHeaderProps) => {
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [openSceneId, setOpenSceneId] = useState('scene-0');
-  const playlistRef = useRef(null);
-  const queueItems = tts?.queueItems || [];
+  const [openSceneId, setOpenSceneId] = useState<string | null>('scene-0');
+  const playlistRef = useRef<HTMLDivElement | null>(null);
+  const queueItems: QueueItem[] = tts?.queueItems || [];
   const playlistTitle = tts?.currentPlaylist?.title || (tts?.isSequence ? 'Cena em reproducao' : 'Fila de narracao');
   const scenes = useMemo(() => ([
     {
@@ -43,8 +98,8 @@ const SessionHeader = ({
   ]), [playlistTitle, queueItems]);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (playlistRef.current && !playlistRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (playlistRef.current && !playlistRef.current.contains(e.target as Node)) {
         setShowPlaylist(false);
       }
     };

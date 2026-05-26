@@ -1,7 +1,20 @@
-import React from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 
-const MestrePensandoBanner = ({ ativo, timedOut = false, stale = false, status = null, onAction }) => {
+interface MestrePensandoBannerProps {
+  ativo?: boolean;
+  timedOut?: boolean;
+  stale?: boolean;
+  status?: string | null;
+  onAction?: () => void;
+}
+
+const MestrePensandoBanner = ({
+  ativo,
+  timedOut = false,
+  stale = false,
+  status = null,
+  onAction,
+}: MestrePensandoBannerProps) => {
   const mostrar = ativo || timedOut || stale;
   const terminal = status === 'failed' || status === 'timed_out' || timedOut;
   const actionLabel = stale ? 'Verificar status' : (terminal ? 'Gerar novamente' : null);

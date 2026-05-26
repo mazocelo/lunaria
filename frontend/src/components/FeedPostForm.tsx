@@ -1,8 +1,28 @@
-import React from 'react';
+import type { KeyboardEventHandler } from 'react';
 import { Send, Users, Globe, Loader2 } from 'lucide-react';
 
-const FeedPostForm = ({ text, visibility, creating, onTextChange, onVisibilityChange, onSubmit, isDark }) => {
-  const handleKeyDown = (e) => {
+export type FeedVisibility = 'amigos' | 'comunidade';
+
+interface FeedPostFormProps {
+  text: string;
+  visibility: FeedVisibility;
+  creating?: boolean;
+  onTextChange: (value: string) => void;
+  onVisibilityChange: (value: FeedVisibility) => void;
+  onSubmit: () => void;
+  isDark?: boolean;
+}
+
+const FeedPostForm = ({
+  text,
+  visibility,
+  creating,
+  onTextChange,
+  onVisibilityChange,
+  onSubmit,
+  isDark,
+}: FeedPostFormProps) => {
+  const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       onSubmit();
     }

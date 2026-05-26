@@ -1,4 +1,34 @@
-import React, { useState, useRef } from 'react';
+import { useState, type ReactNode } from 'react';
+
+interface RPGActionVantagem {
+  nome: string;
+  descricao?: string | null;
+  usar?: number | null;
+  dano_base?: string | null;
+  elemento?: string[] | string | null;
+}
+
+interface RPGActionEquipamento {
+  nome: string;
+  descricao?: string | null;
+  tipo?: string | string[] | null;
+  dano_base?: string | null;
+}
+
+interface RPGActionPersonagem {
+  vantagens?: RPGActionVantagem[] | null;
+  desvantagens?: RPGActionVantagem[] | null;
+  equipamentos?: RPGActionEquipamento[] | null;
+}
+
+interface RPGActionsProps {
+  onRollDice?: (dice: string, label: string) => void;
+  onUsarHabilidade?: (vantagem: RPGActionVantagem) => void;
+  onUsarEquipamento?: (equip: RPGActionEquipamento) => void;
+  personagem?: RPGActionPersonagem | null;
+  rolando?: boolean;
+  className?: string;
+}
 
 /**
  * Componente para acoes RPG na sidebar (sempre dark/game context)
@@ -10,8 +40,8 @@ export const RPGActions = ({
   onUsarEquipamento,
   personagem,
   rolando = false,
-  className = ''
-}) => {
+  className = '',
+}: RPGActionsProps) => {
   const [customDice, setCustomDice] = useState('1d20');
 
   // Dados comuns
@@ -27,7 +57,7 @@ export const RPGActions = ({
     { label: '3d6', value: '3d6' }
   ];
 
-  const handleDiceRoll = (dice) => {
+  const handleDiceRoll = (dice: string) => {
     if (rolando) return;
     if (onRollDice) {
       onRollDice(dice, `Rolagem de ${dice}`);
@@ -42,15 +72,15 @@ export const RPGActions = ({
   };
 
   // Filtrar vantagens ativas (usar >= 1)
-  const vantagensAtivas = (personagem?.vantagens || []).filter(v => v.usar >= 1);
-  const vantagensPassivas = (personagem?.vantagens || []).filter(v => !v.usar || v.usar === 0);
+  const vantagensAtivas = (personagem?.vantagens || []).filter((v) => (v.usar ?? 0) >= 1);
+  const vantagensPassivas = (personagem?.vantagens || []).filter((v) => !v.usar || v.usar === 0);
   const desvantagens = personagem?.desvantagens || [];
   const equipamentos = personagem?.equipamentos || [];
 
-  const getElementColor = (elemento) => {
+  const getElementColor = (elemento: string[] | string | null | undefined) => {
     if (!elemento || elemento.length === 0) return 'bg-slate-500/15 text-slate-400';
     const el = Array.isArray(elemento) ? elemento[0]?.toLowerCase() : elemento.toLowerCase();
-    const colors = {
+    const colors: Record<string, string> = {
       fogo: 'bg-red-500/20 text-red-300',
       gelo: 'bg-sky-500/20 text-sky-300',
       eletrico: 'bg-yellow-500/20 text-yellow-300',
@@ -71,11 +101,11 @@ export const RPGActions = ({
       cortante: 'bg-red-500/20 text-red-300',
       perfurante: 'bg-gray-500/20 text-gray-300',
     };
-    return colors[el] || 'bg-slate-500/15 text-slate-400';
+    return colors[el || ''] || 'bg-slate-500/15 text-slate-400';
   };
 
-  /** Separador de seção */
-  const SectionHeader = ({ title }) => (
+  /** Separador de secao */
+  const SectionHeader = ({ title }: { title: ReactNode }) => (
     <div className="flex items-center gap-2 mb-2">
       <span className="text-purple-300/60 font-fantasy text-xs uppercase tracking-widest">{title}</span>
       <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent" />
@@ -134,7 +164,7 @@ export const RPGActions = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm text-purple-100">{vantagem.nome}</span>
-                  {vantagem.usar > 1 && (
+                  {(vantagem.usar ?? 0) > 1 && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
                       x{vantagem.usar}
                     </span>
@@ -145,7 +175,7 @@ export const RPGActions = ({
                     <span className="text-xs text-red-400">{vantagem.dano_base}</span>
                   )}
                   {vantagem.elemento && vantagem.elemento.length > 0 && (
-                    vantagem.elemento.map((el, j) => (
+                    (Array.isArray(vantagem.elemento) ? vantagem.elemento : [vantagem.elemento]).map((el, j) => (
                       <span key={j} className={`text-xs px-1.5 py-0.5 rounded ${getElementColor([el])}`}>
                         {el}
                       </span>

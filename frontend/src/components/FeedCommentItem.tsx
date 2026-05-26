@@ -1,12 +1,25 @@
-import React from 'react';
 import { Trash2 } from 'lucide-react';
 
-const FeedCommentItem = ({ comment, isOwner, onDelete, isDark }) => {
-  const formatDate = (dateStr) => {
+export interface FeedCommentPayload {
+  id?: number | string;
+  texto: string;
+  criado_em?: string | null;
+  usuario?: { id?: number | string; nome?: string | null } | null;
+}
+
+interface FeedCommentItemProps {
+  comment: FeedCommentPayload;
+  isOwner?: boolean;
+  onDelete?: () => void;
+  isDark?: boolean;
+}
+
+const FeedCommentItem = ({ comment, isOwner, onDelete, isDark }: FeedCommentItemProps) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     const now = new Date();
-    const diffMs = now - d;
+    const diffMs = now.getTime() - d.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     if (diffHours < 1) return 'Agora';
     if (diffHours < 24) return `${diffHours}h`;

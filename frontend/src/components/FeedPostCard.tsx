@@ -1,18 +1,69 @@
-import React, { useState } from 'react';
+import { memo, useState, type ComponentType } from 'react';
 import { Heart, MessageCircle, Trash2, Loader2, Users, Globe, Zap, Sword, BookOpen, User } from 'lucide-react';
 import { feedService } from '../services';
-import FeedCommentItem from './FeedCommentItem';
+import FeedCommentItem, { type FeedCommentPayload } from './FeedCommentItem';
 
-const EVENT_CONFIG = {
+type FeedEventType = 'personagem_criado' | 'historia_criada' | 'level_up' | 'combate_finalizado';
+
+interface FeedEventConfig {
+  icon: ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  color: string;
+}
+
+const EVENT_CONFIG: Record<FeedEventType, FeedEventConfig> = {
   personagem_criado: { icon: User, label: 'Criou um personagem', color: 'text-blue-400' },
   historia_criada: { icon: BookOpen, label: 'Criou uma historia', color: 'text-purple-400' },
   level_up: { icon: Zap, label: 'Subiu de nivel', color: 'text-yellow-400' },
   combate_finalizado: { icon: Sword, label: 'Finalizou um combate', color: 'text-red-400' },
 };
 
-const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
+interface FeedEventDados {
+  nome?: string;
+  personagem?: string;
+  nivel?: number | string;
+  resultado?: string;
+}
+
+export interface FeedPostPayload {
+  id: number | string;
+  tipo?: string;
+  criado_em?: string | null;
+  visibilidade?: 'amigos' | 'comunidade';
+  curtidoPorMim?: boolean;
+  curtidas?: number;
+  comentarios?: number;
+  usuario?: {
+    id?: number | string;
+    nome?: string | null;
+    avatar?: string | null;
+  } | null;
+  conteudo?: {
+    texto?: string | null;
+    evento_tipo?: FeedEventType;
+    evento_dados?: FeedEventDados;
+  } | null;
+}
+
+interface FeedPostCardProps {
+  post: FeedPostPayload;
+  currentUserId?: number | string;
+  onLike?: () => void;
+  onDelete?: () => void;
+  isDark?: boolean;
+}
+
+interface CommentResponse {
+  data?: FeedCommentPayload[];
+}
+
+interface AddCommentResponse {
+  data?: FeedCommentPayload;
+}
+
+const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }: FeedPostCardProps) => {
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState<FeedCommentPayload[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -22,11 +73,11 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
   const eventType = post.conteudo?.evento_tipo;
   const eventConfig = eventType ? EVENT_CONFIG[eventType] : null;
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     const now = new Date();
-    const diffMs = now - d;
+    const diffMs = now.getTime() - d.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     if (diffHours < 1) return 'Agora';
     if (diffHours < 24) return `${diffHours}h`;
@@ -36,7 +87,7 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
   };
 
   const renderEventContent = () => {
-    const dados = post.conteudo?.evento_dados || {};
+    const dados: FeedEventDados = post.conteudo?.evento_dados || {};
     switch (eventType) {
       case 'personagem_criado':
         return `Criou o personagem "${dados.nome}"`;
@@ -59,8 +110,8 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
     setLoadingComments(true);
     setShowComments(true);
     try {
-      const response = await feedService.fetchComments(post.id);
-      setComments(response.data || []);
+      const response = (await feedService.fetchComments(post.id)) as CommentResponse | null | undefined;
+      setComments(response?.data || []);
     } catch {
       // silencioso
     }
@@ -71,8 +122,8 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
     if (!commentText.trim()) return;
     setSubmittingComment(true);
     try {
-      const response = await feedService.addComment(post.id, commentText.trim());
-      if (response.data) {
+      const response = (await feedService.addComment(post.id, commentText.trim())) as AddCommentResponse | null | undefined;
+      if (response?.data) {
         setComments([...comments, response.data]);
       }
       setCommentText('');
@@ -82,10 +133,10 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
     setSubmittingComment(false);
   };
 
-  const deleteComment = async (commentId) => {
+  const deleteComment = async (commentId: number | string) => {
     try {
       await feedService.deleteComment(commentId);
-      setComments(comments.filter(c => c.id !== commentId));
+      setComments(comments.filter((c) => c.id !== commentId));
     } catch {
       // silencioso
     }
@@ -100,7 +151,7 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
       {/* Header */}
       <div className="flex items-center gap-3 p-4 pb-2">
         {post.usuario?.avatar ? (
-          <img src={post.usuario.avatar} alt={post.usuario.nome} className="w-9 h-9 rounded-full object-cover shrink-0" />
+          <img src={post.usuario.avatar} alt={post.usuario.nome ?? ''} className="w-9 h-9 rounded-full object-cover shrink-0" />
         ) : (
           <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
             {initial}
@@ -157,7 +208,7 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
           }`}
         >
           <Heart size={16} fill={post.curtidoPorMim ? 'currentColor' : 'none'} />
-          {post.curtidas > 0 && post.curtidas}
+          {(post.curtidas ?? 0) > 0 && post.curtidas}
         </button>
 
         <button
@@ -167,7 +218,7 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
           }`}
         >
           <MessageCircle size={16} />
-          {post.comentarios > 0 && post.comentarios}
+          {(post.comentarios ?? 0) > 0 && post.comentarios}
         </button>
       </div>
 
@@ -181,15 +232,18 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
           ) : (
             <>
               <div className="space-y-2 mt-3">
-                {comments.map(c => (
-                  <FeedCommentItem
-                    key={c.id}
-                    comment={c}
-                    isOwner={c.usuario?.id === currentUserId || c.user_id === currentUserId}
-                    onDelete={() => deleteComment(c.id)}
-                    isDark={isDark}
-                  />
-                ))}
+                {comments.map((c) => {
+                  const ownerByUserId = (c as { user_id?: number | string }).user_id === currentUserId;
+                  return (
+                    <FeedCommentItem
+                      key={c.id}
+                      comment={c}
+                      isOwner={c.usuario?.id === currentUserId || ownerByUserId}
+                      onDelete={() => c.id != null && deleteComment(c.id)}
+                      isDark={isDark}
+                    />
+                  );
+                })}
               </div>
 
               {/* Comment input */}
@@ -223,4 +277,4 @@ const FeedPostCard = ({ post, currentUserId, onLike, onDelete, isDark }) => {
   );
 };
 
-export default React.memo(FeedPostCard);
+export default memo(FeedPostCard);

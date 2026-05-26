@@ -1,16 +1,54 @@
-import React from 'react';
 import { useTheme } from '../contexts/theme';
+
+export type RPGMessageType =
+  | 'chat'
+  | 'ic'
+  | 'ooc'
+  | 'action'
+  | 'system'
+  | 'gm'
+  | 'mestre'
+  | 'jogador'
+  | 'rpg_action'
+  | 'dice_roll';
+
+export interface RPGMessagePayload {
+  type?: RPGMessageType;
+  tipo?: string;
+  username?: string | null;
+  user?: string | null;
+  message?: string | null;
+  timestamp?: string | number;
+  dice?: string | null;
+  result?: string | number | null;
+  target?: string | null;
+  description?: string | null;
+}
+
+interface RPGMessageProps {
+  message: RPGMessagePayload;
+  className?: string;
+}
+
+interface MessageConfig {
+  icon: string;
+  label: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  highlight?: boolean;
+}
 
 /**
  * Componente para exibir mensagens RPG com diferentes tipos
  */
-export const RPGMessage = ({ message, className = '' }) => {
+export const RPGMessage = ({ message, className = '' }: RPGMessageProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Obter configuração do tipo de mensagem
-  const getMessageConfig = (type) => {
-    const configs = {
+  // Obter configuracao do tipo de mensagem
+  const getMessageConfig = (type?: RPGMessageType): MessageConfig => {
+    const configs: Record<RPGMessageType, MessageConfig> = {
       chat: {
         icon: '💬',
         label: 'Chat',
@@ -84,17 +122,18 @@ export const RPGMessage = ({ message, className = '' }) => {
       }
     };
 
-    return configs[type] || configs.chat;
+    return (type && configs[type]) || configs.chat;
   };
 
   const config = getMessageConfig(message.type);
 
   // Formatar timestamp
-  const formatTime = (timestamp) => {
-    const date = new Date(typeof timestamp === 'string' ? parseInt(timestamp) : timestamp);
+  const formatTime = (timestamp?: string | number) => {
+    const numeric = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp ?? 0;
+    const date = new Date(numeric);
     return date.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 

@@ -1,24 +1,74 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { ComponentType } from 'react';
 import Button from '../../../components/form/button';
-import ImageGenerator from '../../../components/form/ImageGenerator.jsx';
-import ImageLightbox from '../../../components/ImageLightbox.jsx';
+import ImageGenerator from '../../../components/form/ImageGenerator';
+import ImageLightbox from '../../../components/ImageLightbox';
 import { Badge } from '../../../components/shared';
-import { BONUS_ATTR_KEYS, parseBonusMap } from '../../../utils/personagemBonus.js';
-import { isSpellAction } from '../../../utils/isSpellAction.js';
+import { BONUS_ATTR_KEYS, parseBonusMap } from '../../../utils/personagemBonus';
+import { isSpellAction } from '../../../utils/isSpellAction';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
   Package, X, Loader2, BookOpen, Plus, Trash2, ImagePlus, Crown, Shield,
   Wand2, Volume2, Download, Check
 } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
+import type { PersonagemVerModel } from './personagem-ver.model';
+
+type IconComponent = ComponentType<{ size?: number; className?: string }>;
+
+interface RacaClasseInfo {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo?: number;
+  bonus?: unknown;
+}
+
+interface VantagemDesvantagemInfo {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo?: number;
+  tipo?: string;
+  bonus?: unknown;
+  acoes?: unknown;
+}
+
+interface HistoriaVinculoInfo {
+  id?: number | string;
+  nome?: string;
+  papel?: string;
+}
+
+interface PersonagemRaw {
+  id?: number | null;
+  nome?: string;
+  imagem?: string | null;
+  raca?: string | null;
+  classe?: string | null;
+  nivel?: number;
+  sistema?: string;
+  background?: string | null;
+  xp_atual?: number;
+  xp_proximo_nivel?: number;
+  pontos_atributo_pendentes?: number;
+  racas?: RacaClasseInfo | null;
+  classes?: RacaClasseInfo | null;
+  vantagens?: VantagemDesvantagemInfo[];
+  desvantagens?: VantagemDesvantagemInfo[];
+  historias?: HistoriaVinculoInfo[];
+  [key: string]: unknown;
+}
+
+type NavigateFn = (path: string) => void;
 
 // Keys de atributo do sistema Lunaria. Usado apenas pela decomposicao de bonus
 // de raca/classe/vantagens, que so se aplica a personagens Lunaria.
 const LUNARIA_ATTR_KEYS = ['forca', 'inteligencia', 'constituicao', 'agilidade', 'destreza', 'carisma'];
 
 // Icone por key de atributo. Cobre Lunaria, D&D 5e (STR/DEX/...) e 3D&T (F/H/...).
-const atributoIcons = {
+const atributoIcons: Record<string, IconComponent> = {
   // Lunaria
   forca: Swords, inteligencia: Brain, constituicao: ShieldCheck,
   agilidade: Zap, destreza: Target, carisma: Sparkles,
@@ -28,12 +78,12 @@ const atributoIcons = {
   F: Swords, H: Target, R: ShieldCheck, A: Shield, PdF: Zap,
 };
 
-const raridadeVariant = {
+const raridadeVariant: Record<string, string> = {
   'Comum': 'slate', 'Incomum': 'green', 'Raro': 'blue',
   'Muito Raro': 'purple', 'Épico': 'pink', 'Lendário': 'amber', 'Artefato': 'red', 'Variável': 'slate',
 };
 
-const bonusLabels = {
+const bonusLabels: Record<string, string> = {
   ataque: 'Ataque', dano: 'Dano', armadura: 'Armadura',
   esquiva_bonus: 'Esquiva', esquiva_penalidade: 'Pen. Esquiva',
   ca: 'Armadura', ca_base: 'Armadura Base',
@@ -41,7 +91,7 @@ const bonusLabels = {
   agilidade: 'Agilidade', destreza: 'Destreza', carisma: 'Carisma',
 };
 
-const formatBonus = (bonus) => {
+const formatBonus = (bonus: unknown): string | null => {
   const obj = parseBonusMap(bonus);
   if (!obj) return null;
   const parts = Object.entries(obj)
@@ -49,13 +99,15 @@ const formatBonus = (bonus) => {
   return parts.length > 0 ? parts.join(', ') : null;
 };
 
-const atributoKeys = new Set(BONUS_ATTR_KEYS);
+const atributoKeys = new Set<string>(BONUS_ATTR_KEYS);
 
-const calcularBonusAtributos = (p) => {
-  const result = {};
+interface BonusItem { label: string; value: number; }
+
+const calcularBonusAtributos = (p: PersonagemRaw): Record<string, BonusItem[]> => {
+  const result: Record<string, BonusItem[]> = {};
   LUNARIA_ATTR_KEYS.forEach(key => { result[key] = []; });
 
-  const addBonus = (label, bonus) => {
+  const addBonus = (label: string, bonus: unknown) => {
     const obj = parseBonusMap(bonus, BONUS_ATTR_KEYS);
     if (!obj) return;
     Object.entries(obj).forEach(([k, v]) => {
@@ -65,34 +117,41 @@ const calcularBonusAtributos = (p) => {
     });
   };
 
-  addBonus('Raca', p.racas?.bonus);
-  addBonus('Classe', p.classes?.bonus);
-  (p.vantagens || []).forEach(v => addBonus(v.nome, v.bonus));
-  (p.desvantagens || []).forEach(d => addBonus(d.nome, d.bonus));
+  const racas = p.racas as { bonus?: unknown } | null | undefined;
+  const classes = p.classes as { bonus?: unknown } | null | undefined;
+  addBonus('Raca', racas?.bonus);
+  addBonus('Classe', classes?.bonus);
+  ((p.vantagens as Array<{ nome?: string; bonus?: unknown }>) || []).forEach(v => addBonus(v.nome || '', v.bonus));
+  ((p.desvantagens as Array<{ nome?: string; bonus?: unknown }>) || []).forEach(d => addBonus(d.nome || '', d.bonus));
 
   return result;
 };
 
-const parseBonusVantagens = (bonus) => {
-  const obj = typeof bonus === 'string' ? (() => { try { return JSON.parse(bonus); } catch { return null; } })() : bonus;
-  if (!obj) return { vantagens: [], desvantagens: [] };
+interface VantagemDesvantagemRef { id?: number | string; nome?: string; }
+
+const parseBonusVantagens = (bonus: unknown): { vantagens: VantagemDesvantagemRef[]; desvantagens: VantagemDesvantagemRef[] } => {
+  const obj = typeof bonus === 'string'
+    ? (() => { try { return JSON.parse(bonus); } catch { return null; } })()
+    : bonus;
+  if (!obj || typeof obj !== 'object') return { vantagens: [], desvantagens: [] };
+  const o = obj as { vantagens?: unknown; desvantagens?: unknown };
   return {
-    vantagens: Array.isArray(obj.vantagens) ? obj.vantagens : [],
-    desvantagens: Array.isArray(obj.desvantagens) ? obj.desvantagens : [],
+    vantagens: Array.isArray(o.vantagens) ? (o.vantagens as VantagemDesvantagemRef[]) : [],
+    desvantagens: Array.isArray(o.desvantagens) ? (o.desvantagens as VantagemDesvantagemRef[]) : [],
   };
 };
 
-const BonusTraitTags = ({ bonus, isLight }) => {
+const BonusTraitTags = ({ bonus, isLight }: { bonus: unknown; isLight: boolean }) => {
   const { vantagens, desvantagens } = parseBonusVantagens(bonus);
   if (vantagens.length === 0 && desvantagens.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1.5 mt-1.5">
-      {vantagens.map((v, i) => (
+      {vantagens.map((v, i: number) => (
         <span key={`v-${v.id || i}`} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-modern ${isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'}`}>
           <Check size={9} /> {v.nome}
         </span>
       ))}
-      {desvantagens.map((d, i) => (
+      {desvantagens.map((d, i: number) => (
         <span key={`d-${d.id || i}`} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-modern ${isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/15 text-red-400'}`}>
           <X size={9} /> {d.nome}
         </span>
@@ -100,6 +159,8 @@ const BonusTraitTags = ({ bonus, isLight }) => {
     </div>
   );
 };
+
+type VerPersonagemViewProps = PersonagemVerModel;
 
 const VerPersonagemView = ({
   personagem,
@@ -129,10 +190,12 @@ const VerPersonagemView = ({
   gerandoAudio,
   gerarAudioBackground,
   clearError,
-}) => {
+}: VerPersonagemViewProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const nav: NavigateFn = (path: string) => navigate?.(path);
+  const evol = evolucao as Record<string, unknown> | null;
 
   if (loading) {
     return (
@@ -154,19 +217,19 @@ const VerPersonagemView = ({
           </div>
           <h2 className={`text-xl font-bold mb-2 ${isLight ? 'text-slate-800' : 'text-white'}`}>Erro</h2>
           <p className="text-slate-400 mb-4">{error}</p>
-          <Button variant="ghost" onClick={() => navigate('/personagens')}>Voltar</Button>
+          <Button variant="ghost" onClick={() => nav('/personagens')}>Voltar</Button>
         </div>
       </div>
     );
   }
 
-  const p = personagem;
+  const p = personagem as unknown as PersonagemRaw | null;
   if (!p) return null;
 
-  const xpAtual = p.xp_atual || evolucao?.xp_atual || 0;
-  const xpProximo = p.xp_proximo_nivel || evolucao?.xp_proximo_nivel || 100;
+  const xpAtual = Number(p.xp_atual ?? evol?.xp_atual ?? 0);
+  const xpProximo = Number(p.xp_proximo_nivel ?? evol?.xp_proximo_nivel ?? 100);
   const xpPercent = Math.min(100, Math.round((xpAtual / xpProximo) * 100));
-  const pontosPendentes = p.pontos_atributo_pendentes || evolucao?.pontos_atributo_pendentes || 0;
+  const pontosPendentes = Number(p.pontos_atributo_pendentes ?? evol?.pontos_atributo_pendentes ?? 0);
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto space-y-6">
@@ -179,7 +242,7 @@ const VerPersonagemView = ({
                 src={p.imagem}
                 alt={p.nome}
                 className="w-16 h-16 rounded-full object-cover border-2 border-purple-500 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => setLightboxSrc(p.imagem)}
+                onClick={() => setLightboxSrc(p.imagem ?? null)}
               />
             ) : (
               <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center">
@@ -196,7 +259,7 @@ const VerPersonagemView = ({
             </div>
           </div>
           <button
-            onClick={() => navigate('/personagens')}
+            onClick={() => nav('/personagens')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
               isLight
                 ? 'border border-slate-300 text-slate-600 hover:bg-slate-50'
@@ -387,7 +450,8 @@ const VerPersonagemView = ({
         const racaDesvIds = new Set(rb.desvantagens.map(d => d.id));
         const classeVantIds = new Set(cb.vantagens.map(v => v.id));
         const classeDesvIds = new Set(cb.desvantagens.map(d => d.id));
-        const origemBadge = (id, isVant) => {
+        const origemBadge = (id: number | string | undefined, isVant: boolean) => {
+          if (id == null) return null;
           if ((isVant ? racaVantIds : racaDesvIds).has(id)) return <span className="text-[9px] px-1 py-0.5 rounded font-mono bg-purple-500/15 text-purple-400">Raca</span>;
           if ((isVant ? classeVantIds : classeDesvIds).has(id)) return <span className="text-[9px] px-1 py-0.5 rounded font-mono bg-blue-500/15 text-blue-400">Classe</span>;
           return null;
@@ -546,12 +610,19 @@ const VerPersonagemView = ({
         loadingEquipamentos={loadingEquipamentos}
         bonusAgregados={bonusAgregados}
       />
-      <ImageLightbox src={lightboxSrc} alt={p.nome} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      <ImageLightbox src={lightboxSrc ?? ''} alt={p.nome ?? ''} isOpen={!!lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };
 
-const AtributosSection = ({ isLight, personagem, atributosView, somaAtributos }) => {
+interface AtributosSectionProps {
+  isLight: boolean;
+  personagem: PersonagemRaw;
+  atributosView: { sistema: string; atributos: Array<{ key: string; label: string; valor: number; modificador: string | null }> };
+  somaAtributos: number;
+}
+
+const AtributosSection = ({ isLight, personagem, atributosView, somaAtributos }: AtributosSectionProps) => {
   const sistema = atributosView?.sistema || 'lunaria';
   const atributos = atributosView?.atributos || [];
 
@@ -618,12 +689,20 @@ const AtributosSection = ({ isLight, personagem, atributosView, somaAtributos })
   );
 };
 
-const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }) => {
+interface MagiasHabilidadesProps {
+  isLight: boolean;
+  vantagens: VantagemDesvantagemInfo[];
+  desvantagens: VantagemDesvantagemInfo[];
+}
+
+const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }: MagiasHabilidadesProps) => {
   const todos = [...vantagens, ...desvantagens];
   const magias = todos.filter(item => isSpellAction(item));
-  const habilidades = todos.filter(item =>
-    item.tipo?.some(t => ['ativa', 'passiva'].includes(t)) && !isSpellAction(item)
-  );
+  const habilidades = todos.filter(item => {
+    const tipos = item.tipo as unknown;
+    const tipoArr = Array.isArray(tipos) ? tipos as string[] : [];
+    return tipoArr.some((t: string) => ['ativa', 'passiva'].includes(t)) && !isSpellAction(item);
+  });
 
   if (magias.length === 0 && habilidades.length === 0) return null;
 
@@ -655,10 +734,14 @@ const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }) => {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-1">
-                    {item.elemento?.length > 0 && item.elemento.map(el => (
-                      <Badge key={el} variant="purple">{el}</Badge>
-                    ))}
-                    {item.dano_base && <span className="text-xs font-modern text-red-400">Dano: {item.dano_base}</span>}
+                    {(() => {
+                      const elementos = (item as { elemento?: unknown }).elemento;
+                      const elementoArr = Array.isArray(elementos) ? elementos as string[] : [];
+                      return elementoArr.length > 0 ? elementoArr.map((el: string) => (
+                        <Badge key={el} variant="purple">{el}</Badge>
+                      )) : null;
+                    })()}
+                    {(item as { dano_base?: string }).dano_base && <span className="text-xs font-modern text-red-400">Dano: {(item as { dano_base?: string }).dano_base}</span>}
                   </div>
                   {item.descricao && (
                     <p className={`text-xs font-modern mt-1 line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{item.descricao}</p>
@@ -685,9 +768,13 @@ const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }) => {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {item.tipo?.map(t => (
-                      <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-700/50 text-slate-400'}`}>{t}</span>
-                    ))}
+                    {(() => {
+                      const tipos = item.tipo as unknown;
+                      const tipoArr = Array.isArray(tipos) ? tipos as string[] : [];
+                      return tipoArr.map((t: string) => (
+                        <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-700/50 text-slate-400'}`}>{t}</span>
+                      ));
+                    })()}
                   </div>
                   {item.descricao && (
                     <p className={`text-xs font-modern mt-1 line-clamp-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{item.descricao}</p>
@@ -702,6 +789,17 @@ const MagiasHabilidadesSection = ({ isLight, vantagens, desvantagens }) => {
   );
 };
 
+interface HistoriasSectionProps {
+  isLight: boolean;
+  historias: HistoriaVinculoInfo[];
+  mostrarSeletorHistoria: boolean;
+  toggleSeletorHistoria: () => void;
+  historiasNaoVinculadas: HistoriaVinculoInfo[];
+  loadingHistorias: boolean;
+  vincularHistoria: (id: number | string) => void;
+  desvincularHistoria: (id: number | string) => void;
+}
+
 const HistoriasSection = ({
   isLight,
   historias,
@@ -711,7 +809,7 @@ const HistoriasSection = ({
   loadingHistorias,
   vincularHistoria,
   desvincularHistoria,
-}) => {
+}: HistoriasSectionProps) => {
   return (
     <div className="card-rpg">
       <div className="flex items-center justify-between mb-4">
@@ -753,10 +851,10 @@ const HistoriasSection = ({
           )}
           {historiasNaoVinculadas.length > 0 ? (
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {historiasNaoVinculadas.map(h => (
+              {historiasNaoVinculadas.map((h: HistoriaVinculoInfo) => (
                 <button
                   key={h.id}
-                  onClick={() => vincularHistoria(h.id)}
+                  onClick={() => h.id != null && vincularHistoria(h.id)}
                   disabled={loadingHistorias}
                   className={`w-full text-left p-2 rounded-lg text-sm font-modern transition-all cursor-pointer ${
                     isLight
@@ -779,7 +877,7 @@ const HistoriasSection = ({
       {/* Historias vinculadas */}
       {historias.length > 0 ? (
         <div className="space-y-2">
-          {historias.map(h => (
+          {historias.map((h: HistoriaVinculoInfo) => (
             <div
               key={h.id}
               className={`flex items-center justify-between p-3 rounded-lg border ${
@@ -793,7 +891,7 @@ const HistoriasSection = ({
                 </span>
               </div>
               <button
-                onClick={() => desvincularHistoria(h.id)}
+                onClick={() => h.id != null && desvincularHistoria(h.id)}
                 disabled={loadingHistorias}
                 className="text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
                 title="Desvincular"
@@ -812,12 +910,31 @@ const HistoriasSection = ({
   );
 };
 
+interface EquipamentoCompleto {
+  id?: number;
+  nome?: string;
+  descricao?: string;
+  tipo?: unknown;
+  raridade_rel?: { nome?: string } | null;
+  dano_base?: string | null;
+  bonus?: unknown;
+}
+
+interface InventarioSectionProps {
+  isLight: boolean;
+  equipamentos: EquipamentoCompleto[];
+  loadingEquipamentos: boolean;
+  bonusAgregados: Record<string, number>;
+}
+
+type BadgeVariant = 'slate' | 'green' | 'blue' | 'purple' | 'pink' | 'amber' | 'red';
+
 const InventarioSection = ({
   isLight,
   equipamentos,
   loadingEquipamentos,
   bonusAgregados,
-}) => {
+}: InventarioSectionProps) => {
   const bonusStr = formatBonus(bonusAgregados);
 
   return (
@@ -843,9 +960,9 @@ const InventarioSection = ({
 
       {equipamentos.length > 0 ? (
         <div className="space-y-3 mb-4">
-          {equipamentos.map(eq => {
+          {equipamentos.map((eq: EquipamentoCompleto) => {
             const raridade = eq.raridade_rel?.nome || 'Comum';
-            const tipo = Array.isArray(eq.tipo) ? eq.tipo.join(', ') : eq.tipo || '';
+            const tipo = Array.isArray(eq.tipo) ? (eq.tipo as string[]).join(', ') : (eq.tipo as string | undefined) || '';
             const bonusText = formatBonus(eq.bonus);
 
             return (
@@ -857,7 +974,7 @@ const InventarioSection = ({
                   <span className={`font-modern text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>
                     {eq.nome}
                   </span>
-                  <Badge variant={raridadeVariant[raridade] || 'slate'}>{raridade}</Badge>
+                  <Badge variant={(raridadeVariant[raridade] || 'slate') as BadgeVariant}>{raridade}</Badge>
                 </div>
                 {tipo && (
                   <p className={`text-xs font-modern mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{tipo}</p>

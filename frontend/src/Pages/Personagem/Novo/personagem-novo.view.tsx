@@ -43,7 +43,6 @@ const NovoPersonagemView = ({
   custoRaca,
   custoClasse,
   pontosVantagem,
-  pontosDesvantagem: _pontosDesvantagem,
   pontosDevolvidos,
   pontosCriacaoTotal,
   pontosGastos,

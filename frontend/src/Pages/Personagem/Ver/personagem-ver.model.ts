@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { personagemService, equipamentoService, historiaService } from '../../../services/index.js';
-import { apiClient } from '../../../services/ApiClient.js';
-import { sanitizeTextForSpeech } from '../../../utils/speechText.js';
-import { ABILITIES } from '../../../utils/dnd5eData.js';
-import { getDnd5eModifier, formatModifier } from '../../../utils/rpgHelpers.js';
-import { TRESDET_ATTR_CONFIG } from '../../../constants/tresdetAtributos.js';
+import { personagemService, equipamentoService, historiaService } from '../../../services/index';
+import { apiClient } from '../../../services/ApiClient';
+import { sanitizeTextForSpeech } from '../../../utils/speechText';
+import { ABILITIES } from '../../../utils/dnd5eData';
+import { getDnd5eModifier, formatModifier } from '../../../utils/rpgHelpers';
+import { TRESDET_ATTR_CONFIG } from '../../../constants/tresdetAtributos';
 
 // Atributos do sistema Lunaria (caminho default). Keys casam com o mapa
 // `atributos` retornado pelo backend (e com os campos escalares legados).
@@ -18,14 +18,50 @@ const LUNARIA_ATTRS = [
   { key: 'carisma', label: 'Carisma' },
 ];
 
+interface PersonagemRaw {
+  id?: number | null;
+  sistema?: string;
+  atributos?: Record<string, number>;
+  background?: string | null;
+  historias?: Array<{ id?: number | string } & Record<string, unknown>>;
+  imagem?: string | null;
+  [key: string]: unknown;
+}
+
+interface AtributoView {
+  key: string;
+  label: string;
+  valor: number;
+  modificador: string | null;
+}
+
+interface AtributosViewResult {
+  sistema: string;
+  atributos: AtributoView[];
+}
+
+interface EquipamentoRaw {
+  id?: number;
+  nome?: string;
+  descricao?: string;
+  bonus?: Record<string, number | string> | null;
+  [key: string]: unknown;
+}
+
+interface HistoriaRaw {
+  id?: number | string;
+  nome?: string;
+  [key: string]: unknown;
+}
+
+interface UsePersonagemVerModelParams {
+  navigate?: (path: string) => void;
+}
+
 /**
  * Monta a lista de atributos a exibir conforme o sistema do personagem.
- * O backend ja entrega `personagem.atributos` keyed corretamente por sistema
- * (STR/DEX/... para D&D, F/H/... para 3D&T, forca/... para Lunaria).
- * Retorna `{ sistema, atributos: [{ key, label, valor, modificador }] }`,
- * com `modificador` presente apenas onde fizer sentido (Lunaria e D&D 5e).
  */
-function montarAtributosView(personagem) {
+function montarAtributosView(personagem: PersonagemRaw | null): AtributosViewResult {
   if (!personagem) return { sistema: 'lunaria', atributos: [] };
   const sistema = personagem.sistema || 'lunaria';
   const mapa = personagem.atributos || {};
@@ -55,47 +91,47 @@ function montarAtributosView(personagem) {
   return {
     sistema: 'lunaria',
     atributos: LUNARIA_ATTRS.map(({ key, label }) => {
-      const valor = mapa[key] ?? personagem[key] ?? 10;
+      const valor = mapa[key] ?? (personagem[key] as number | undefined) ?? 10;
       return { key, label, valor, modificador: formatModifier(getDnd5eModifier(valor)) };
     }),
   };
 }
 
-export const usePersonagemVerModel = ({ navigate } = {}) => {
-  const { id } = useParams();
+export const usePersonagemVerModel = ({ navigate }: UsePersonagemVerModelParams = {}) => {
+  const { id } = useParams<{ id: string }>();
 
   // Core state
-  const [personagem, setPersonagem] = useState(null);
-  const [evolucao, setEvolucao] = useState(null);
+  const [personagem, setPersonagem] = useState<PersonagemRaw | null>(null);
+  const [evolucao, setEvolucao] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Background generation
   const [gerandoBackground, setGerandoBackground] = useState(false);
 
   // Validation
-  const [validacao, setValidacao] = useState(null);
+  const [validacao, setValidacao] = useState<unknown>(null);
   const [validando, setValidando] = useState(false);
 
   // Point distribution
   const [distribuindo, setDistribuindo] = useState(false);
-  const [pontosParaDistribuir, setPontosParaDistribuir] = useState({});
+  const [pontosParaDistribuir, setPontosParaDistribuir] = useState<Record<string, number>>({});
 
   // Equipment / Inventory
-  const [equipamentos, setEquipamentos] = useState([]);
-  const [catalogoEquipamentos, setCatalogoEquipamentos] = useState([]);
+  const [equipamentos, setEquipamentos] = useState<EquipamentoRaw[]>([]);
+  const [catalogoEquipamentos, setCatalogoEquipamentos] = useState<EquipamentoRaw[]>([]);
   const [loadingEquipamentos, setLoadingEquipamentos] = useState(false);
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
   const [buscaCatalogo, setBuscaCatalogo] = useState('');
-  const [confirmRemove, setConfirmRemove] = useState(null);
+  const [confirmRemove, setConfirmRemove] = useState<EquipamentoRaw | null>(null);
 
   // Audio background
-  const [audioUrl, setAudioUrl] = useState(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [gerandoAudio, setGerandoAudio] = useState(false);
-  const audioUrlRef = useRef(null);
+  const audioUrlRef = useRef<string | null>(null);
 
   // Historias
-  const [historiasDisponiveis, setHistoriasDisponiveis] = useState([]);
+  const [historiasDisponiveis, setHistoriasDisponiveis] = useState<HistoriaRaw[]>([]);
   const [mostrarSeletorHistoria, setMostrarSeletorHistoria] = useState(false);
   const [loadingHistorias, setLoadingHistorias] = useState(false);
 
@@ -120,14 +156,15 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     if (id) {
       loadPersonagem(id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const loadPersonagem = async (personagemId) => {
+  const loadPersonagem = async (personagemId: string | number) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await personagemService.getById(personagemId);
-      const data = response?.data || response;
+      const response = await personagemService.getById(Number(personagemId)) as PersonagemRaw | { data?: PersonagemRaw };
+      const data = (response as { data?: PersonagemRaw })?.data || (response as PersonagemRaw);
       setPersonagem(data);
       setLoading(false);
 
@@ -135,35 +172,38 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
       loadEvolucao(personagemId);
       loadEquipamentos(personagemId);
     } catch (err) {
-      setError(err.message);
+      const message = err instanceof Error ? err.message : 'Erro ao carregar personagem';
+      setError(message);
       setLoading(false);
     }
   };
 
-  const loadEvolucao = async (personagemId) => {
+  const loadEvolucao = async (personagemId: string | number) => {
     try {
-      const data = await personagemService.obterEvolucao(personagemId);
+      const data = await personagemService.obterEvolucao(Number(personagemId));
       setEvolucao(data);
     } catch (err) {
-      console.warn('Evolucao not available:', err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Evolucao not available:', message);
     }
   };
 
-  const gerarBackground = useCallback(async (sugestao = '') => {
+  const gerarBackground = useCallback(async (sugestao: string = '') => {
     const personagemId = personagem?.id;
     if (!personagemId) return;
 
     setGerandoBackground(true);
     try {
-      const resultado = await personagemService.gerarBackground(personagemId, sugestao);
+      const resultado = await personagemService.gerarBackground(personagemId, sugestao) as { background?: string } | null;
       if (resultado?.background) {
-        setPersonagem(prev => ({
+        setPersonagem(prev => prev ? ({
           ...prev,
-          background: resultado.background,
-        }));
+          background: resultado.background ?? prev.background,
+        }) : prev);
       }
     } catch (err) {
-      setError(`Erro ao gerar background: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao gerar background: ${message}`);
     } finally {
       setGerandoBackground(false);
     }
@@ -178,21 +218,20 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
       const data = await personagemService.validarCoerencia(personagemId);
       setValidacao(data);
     } catch (err) {
-      setError(`Erro ao validar: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao validar: ${message}`);
     } finally {
       setValidando(false);
     }
   }, [personagem?.id]);
 
   // Keys de atributo validas para distribuir pontos, ja resolvidas por sistema.
-  // Casam com `getAttrNamesForSystem` do backend (D&D STR/DEX/..., 3D&T F/H/...,
-  // Lunaria forca/...) — o painel de distribuicao nunca envia key de outro sistema.
   const pontosDistribuicaoAttrs = useMemo(
     () => atributosView.atributos.map(({ key, label }) => ({ key, label })),
     [atributosView]
   );
 
-  const setPontoAtributo = useCallback((atributo, valor) => {
+  const setPontoAtributo = useCallback((atributo: string, valor: number) => {
     setPontosParaDistribuir(prev => ({
       ...prev,
       [atributo]: Math.max(0, valor),
@@ -216,24 +255,26 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
       // Reload character + evolution
       await loadPersonagem(personagemId);
     } catch (err) {
-      setError(`Erro ao distribuir pontos: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao distribuir pontos: ${message}`);
     } finally {
       setDistribuindo(false);
     }
   }, [personagem?.id, pontosParaDistribuir, atributosView]);
 
   // Equipment methods
-  const loadEquipamentos = async (personagemId) => {
+  const loadEquipamentos = async (personagemId?: string | number) => {
     const pid = personagemId || personagem?.id;
     if (!pid) return;
 
     setLoadingEquipamentos(true);
     try {
-      const raw = await personagemService.listarEquipamentos(pid);
+      const raw = await personagemService.listarEquipamentos(Number(pid)) as Array<{ equipamento?: EquipamentoRaw } & EquipamentoRaw> | null;
       const data = (raw || []).map(item => item.equipamento || item);
       setEquipamentos(data);
     } catch (err) {
-      console.warn('Erro ao carregar equipamentos:', err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Erro ao carregar equipamentos:', message);
       setEquipamentos([]);
     } finally {
       setLoadingEquipamentos(false);
@@ -242,15 +283,16 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
 
   const loadCatalogo = async () => {
     try {
-      const response = await equipamentoService.getAll();
-      const catalogo = response?.data || response || [];
+      const response = await equipamentoService.getAll() as { data?: EquipamentoRaw[] } | EquipamentoRaw[];
+      const catalogo = (response as { data?: EquipamentoRaw[] })?.data || (response as EquipamentoRaw[]) || [];
       setCatalogoEquipamentos(Array.isArray(catalogo) ? catalogo : []);
     } catch (err) {
-      console.warn('Erro ao carregar catalogo:', err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Erro ao carregar catalogo:', message);
     }
   };
 
-  const adicionarEquipamento = useCallback(async (equipamentoId) => {
+  const adicionarEquipamento = useCallback(async (equipamentoId: number) => {
     const personagemId = personagem?.id;
     if (!personagemId) return;
 
@@ -259,12 +301,14 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
       await personagemService.adicionarEquipamento(personagemId, equipamentoId);
       await loadEquipamentos(personagemId);
     } catch (err) {
-      setError(`Erro ao adicionar equipamento: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao adicionar equipamento: ${message}`);
       setLoadingEquipamentos(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personagem?.id]);
 
-  const removerEquipamento = useCallback(async (equipamentoId) => {
+  const removerEquipamento = useCallback(async (equipamentoId: number) => {
     const personagemId = personagem?.id;
     if (!personagemId) return;
 
@@ -273,9 +317,11 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
       await personagemService.removerEquipamento(personagemId, equipamentoId);
       await loadEquipamentos(personagemId);
     } catch (err) {
-      setError(`Erro ao remover equipamento: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao remover equipamento: ${message}`);
       setLoadingEquipamentos(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personagem?.id]);
 
   const toggleCatalogo = useCallback(() => {
@@ -307,9 +353,9 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
   }, [catalogoEquipamentos, equipamentos, buscaCatalogo]);
 
   const bonusAgregados = useMemo(() => {
-    if (!equipamentos?.length) return {};
+    if (!equipamentos?.length) return {} as Record<string, number>;
 
-    const totais = {};
+    const totais: Record<string, number> = {};
     equipamentos.forEach(eq => {
       if (eq.bonus && typeof eq.bonus === 'object') {
         Object.entries(eq.bonus).forEach(([key, value]) => {
@@ -323,11 +369,12 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
   // Historia methods
   const loadHistoriasDisponiveis = async () => {
     try {
-      const response = await historiaService.getAll();
-      const historias = Array.isArray(response) ? response : response?.data || [];
+      const response = await historiaService.getAll() as HistoriaRaw[] | { data?: HistoriaRaw[] };
+      const historias = Array.isArray(response) ? response : (response as { data?: HistoriaRaw[] })?.data || [];
       setHistoriasDisponiveis(historias);
     } catch (err) {
-      console.warn('Erro ao carregar historias:', err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Erro ao carregar historias:', message);
     }
   };
 
@@ -341,35 +388,39 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     });
   }, [historiasDisponiveis.length]);
 
-  const vincularHistoria = useCallback(async (historiaId) => {
+  const vincularHistoria = useCallback(async (historiaId: number | string) => {
     const personagemId = personagem?.id;
     if (!personagemId) return;
 
     setLoadingHistorias(true);
     try {
-      await personagemService.vincularHistoria(personagemId, historiaId);
+      await personagemService.vincularHistoria(personagemId, Number(historiaId));
       await loadPersonagem(personagemId);
       setMostrarSeletorHistoria(false);
     } catch (err) {
-      setError(`Erro ao vincular historia: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao vincular historia: ${message}`);
     } finally {
       setLoadingHistorias(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personagem?.id]);
 
-  const desvincularHistoria = useCallback(async (historiaId) => {
+  const desvincularHistoria = useCallback(async (historiaId: number | string) => {
     const personagemId = personagem?.id;
     if (!personagemId) return;
 
     setLoadingHistorias(true);
     try {
-      await personagemService.desvincularHistoria(personagemId, historiaId);
+      await personagemService.desvincularHistoria(personagemId, Number(historiaId));
       await loadPersonagem(personagemId);
     } catch (err) {
-      setError(`Erro ao desvincular historia: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao desvincular historia: ${message}`);
     } finally {
       setLoadingHistorias(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personagem?.id]);
 
   const historiasNaoVinculadas = useMemo(() => {
@@ -378,14 +429,15 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
   }, [historiasDisponiveis, personagem?.historias]);
 
   // Imagem handler
-  const handleImagemGenerated = useCallback(async (url) => {
+  const handleImagemGenerated = useCallback(async (url: string) => {
     const personagemId = personagem?.id;
     if (!personagemId) return;
     try {
       await personagemService.update(personagemId, { imagem: url });
-      setPersonagem(prev => ({ ...prev, imagem: url }));
+      setPersonagem(prev => prev ? ({ ...prev, imagem: url }) : prev);
     } catch (err) {
-      setError(err.message || 'Erro ao salvar imagem');
+      const message = err instanceof Error ? err.message : 'Erro ao salvar imagem';
+      setError(message);
     }
   }, [personagem?.id]);
 
@@ -396,18 +448,20 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
 
     setGerandoAudio(true);
     try {
-      const response = await apiClient.client.post('/tts/generate', {
+      const response = await apiClient.post('/tts/generate', {
         text: speechText,
         provider: 'opensource',
         voiceId: 'pt-br-kokoro-santa',
       }, { responseType: 'blob' });
 
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
-      const url = URL.createObjectURL(response.data);
+      const blob = response instanceof Blob ? response : new Blob([response as BlobPart], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
       audioUrlRef.current = url;
       setAudioUrl(url);
     } catch (err) {
-      setError(`Erro ao gerar audio: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Erro ao gerar audio: ${message}`);
     } finally {
       setGerandoAudio(false);
     }
@@ -468,3 +522,5 @@ export const usePersonagemVerModel = ({ navigate } = {}) => {
     clearError,
   };
 };
+
+export type PersonagemVerModel = ReturnType<typeof usePersonagemVerModel>;

@@ -178,11 +178,10 @@ const RegisterView = ({ onSwitchToLogin }: RegisterViewProps) => {
       return;
     }
 
-    // Backend espera `password` (RegisterData); o form usa `senha`. Mapear.
     const registerPayload = {
       nome: formData.nome,
       email: formData.email,
-      password: formData.senha,
+      senha: formData.senha,
     };
 
     try {

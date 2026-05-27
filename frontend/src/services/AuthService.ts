@@ -21,21 +21,20 @@ export interface AuthResponseData {
 
 export interface LoginCredentials {
   email: string;
-  password: string;
+  senha: string;
   lembrarDeMim?: boolean;
 }
 
 export interface RegisterData {
-  name?: string;
   nome?: string;
   email: string;
-  password: string;
+  senha: string;
   [key: string]: unknown;
 }
 
 export interface ResetPasswordData {
   token: string;
-  password: string;
+  senha: string;
   [key: string]: unknown;
 }
 

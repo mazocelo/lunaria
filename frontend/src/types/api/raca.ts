@@ -7,12 +7,13 @@ import { z } from 'zod';
 export const sistemaSchema = z.enum(['lunaria', 'tresdet', 'dnd5e']);
 
 /**
- * Bonus de atributos do catalogo (Raca/Classe). Tipado livre porque
- * a chave varia por sistema (forca/FOR/F/H/PdF/STR/DEX...) e o backend
- * serializa via `decorarBonusEntidade` (catalogJsonHelper). Os valores
- * sao sempre numericos.
+ * Bonus do catalogo (Raca/Classe). Chave varia por sistema
+ * (forca/FOR/F/H/PdF/STR/DEX...). Valores sao normalmente numericos, MAS o
+ * backend tambem injeta arrays especiais (ex.: `vantagens: [{id, nome}]`)
+ * via `decorarBonusEntidade` (catalogJsonHelper), entao o valor real e
+ * `unknown` — narrow no consumer quando precisar.
  */
-export const bonusAtributosSchema = z.record(z.string(), z.number());
+export const bonusAtributosSchema = z.record(z.string(), z.unknown());
 
 /**
  * Schema de Raca conforme retornado por `GET /racas` e `GET /racas/:id`

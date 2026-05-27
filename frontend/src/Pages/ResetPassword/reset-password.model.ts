@@ -84,9 +84,7 @@ export const useResetPasswordModel = () => {
 
     setSubmitLoading(true);
     try {
-      // FIXME pre-existente: AuthService.resetPassword tipa o campo da senha
-      // como `password`, mas o backend recebia `senha`. Enviamos ambos.
-      const result = await resetPassword({ token: token || '', password: formData.senha, senha: formData.senha }) as { success?: boolean; error?: string };
+      const result = await resetPassword({ token: token || '', senha: formData.senha }) as { success?: boolean; error?: string };
       if (result.success) {
         setSuccess(true);
         setNotification({ type: 'success', message: 'Senha redefinida com sucesso!' });

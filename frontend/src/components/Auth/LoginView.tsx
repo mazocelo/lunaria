@@ -135,7 +135,7 @@ const LoginView = ({ onSwitchToRegister }: LoginViewProps) => {
     setSubmitting(true);
     const result = await login({
       email: formData.email,
-      password: formData.senha,
+      senha: formData.senha,
       lembrarDeMim: formData.lembrarDeMim,
     });
     setSubmitting(false);

@@ -50,7 +50,11 @@ export const vantagemDesvantagemSchema = z
     descricao: z.string(),
     custo: z.number().int().default(0),
     tipo: z.array(z.string()).default([]),
-    bonus: bonusCombateSchema.nullable().optional(),
+    // Backend serializa `bonus` em 3 formas: (a) objeto plano `{ ataque, dano, ... }`
+    // (forma canonica bonusCombateSchema), (b) array de bonus extra-combat
+    // (`[{ valor, atributo }]`, ex.: absorcao elemental), (c) `{}` vazio.
+    // Aceitar a uniao p/ nao rejeitar fichas reais.
+    bonus: z.union([bonusCombateSchema, z.array(z.unknown()), z.record(z.string(), z.unknown())]).nullable().optional(),
     restricao: z.record(z.string(), z.unknown()).optional(),
     dano_base: z.string().nullable().optional(),
     efeito: efeitoCatalogoSchema.nullable().optional(),

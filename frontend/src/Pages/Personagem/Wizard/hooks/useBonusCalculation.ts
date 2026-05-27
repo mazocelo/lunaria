@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
-import { BONUS_ATTR_KEYS, parseRacaClasseBonus, somarBonusAtributos } from '../../../../utils/personagemBonus.js';
+import { BONUS_ATTR_KEYS, parseRacaClasseBonus, somarBonusAtributos } from '../../../../utils/personagemBonus';
+import type { WizardDraft } from './useDraftPersistence';
 
 const PONTOS_TOTAIS = 60;
 const ATTR_MIN = 5;
 const ATTR_MAX = 16;
 
-const ATRIBUTOS_INICIAIS = {
+const ATRIBUTOS_INICIAIS: Record<string, number> = {
   forca: 10,
   destreza: 10,
   constituicao: 10,
@@ -14,20 +15,49 @@ const ATRIBUTOS_INICIAIS = {
   carisma: 10,
 };
 
-function somaAtributos(atributos) {
+interface CatalogoItem {
+  id?: number | string;
+  nome?: string;
+  bonus?: unknown;
+}
+
+interface BonusFonte {
+  label: string;
+  valor: number;
+}
+
+interface NormalizacaoResultado {
+  applied: boolean;
+  reason?: string;
+  atributos?: Record<string, number>;
+}
+
+interface UseBonusCalculationParams {
+  draftInicial?: WizardDraft | null;
+  racaId?: number | string | null;
+  classeId?: number | string | null;
+  vantagensIds: Array<number | string>;
+  desvantagensIds: Array<number | string>;
+  racasDisponiveis?: CatalogoItem[];
+  classesDisponiveis?: CatalogoItem[];
+  vantagensDisponiveis?: CatalogoItem[];
+}
+
+function somaAtributos(atributos: Record<string, number | string>): number {
   return Object.values(atributos)
     .map((v) => Number(v) || 0)
     .reduce((a, b) => a + b, 0);
 }
 
-function normalizarAtributosSugeridos(raw) {
+function normalizarAtributosSugeridos(raw: unknown): NormalizacaoResultado {
   if (!raw || typeof raw !== 'object') {
     return { applied: false, reason: 'Sugestao ausente ou invalida.' };
   }
 
-  const normalizados = {};
+  const rawObj = raw as Record<string, unknown>;
+  const normalizados: Record<string, number> = {};
   for (const key of BONUS_ATTR_KEYS) {
-    const value = Number(raw[key]);
+    const value = Number(rawObj[key]);
     if (!Number.isFinite(value)) {
       return { applied: false, reason: `Sugestao invalida para ${key}.` };
     }
@@ -55,14 +85,14 @@ export const useBonusCalculation = ({
   racasDisponiveis,
   classesDisponiveis,
   vantagensDisponiveis,
-}) => {
-  const [atributosBase, setAtributosBase] = useState(
+}: UseBonusCalculationParams) => {
+  const [atributosBase, setAtributosBase] = useState<Record<string, number>>(
     draftInicial?.atributosBase || { ...ATRIBUTOS_INICIAIS }
   );
 
-  const [bonusAplicados, setBonusAplicados] = useState(draftInicial?.bonusAplicados || false);
+  const [bonusAplicados, setBonusAplicados] = useState<boolean>(draftInicial?.bonusAplicados || false);
   const [bonusInvalidado, setBonusInvalidado] = useState(false);
-  const [atributosSugeridos, setAtributosSugeridos] = useState(null);
+  const [atributosSugeridos, setAtributosSugeridos] = useState<unknown>(null);
 
   const { bonusDetalhes, bonusFontes } = useMemo(() => {
     const racaObj = (racasDisponiveis || []).find((r) => String(r.id) === String(racaId));
@@ -75,8 +105,8 @@ export const useBonusCalculation = ({
     const tracosSelecionados = allItems.filter((item) => selectedIds.has(String(item.id)));
     const tracosBonus = somarBonusAtributos(tracosSelecionados);
 
-    const detalhes = {};
-    const fontes = {};
+    const detalhes: Record<string, number> = {};
+    const fontes: Record<string, BonusFonte[]> = {};
 
     for (const key of BONUS_ATTR_KEYS) {
       const rVal = Number(racaBonus[key]) || 0;
@@ -85,7 +115,7 @@ export const useBonusCalculation = ({
       const total = rVal + cVal + tVal;
       if (total !== 0) detalhes[key] = total;
 
-      const keyFontes = [];
+      const keyFontes: BonusFonte[] = [];
       if (rVal !== 0) keyFontes.push({ label: racaObj?.nome || 'Raça', valor: rVal });
       if (cVal !== 0) keyFontes.push({ label: classeObj?.nome || 'Classe', valor: cVal });
 
@@ -103,7 +133,7 @@ export const useBonusCalculation = ({
   }, [racaId, classeId, vantagensIds, desvantagensIds, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
 
   const atributosFinal = useMemo(() => {
-    const result = { ...atributosBase };
+    const result: Record<string, number> = { ...atributosBase };
     for (const [key, val] of Object.entries(bonusDetalhes)) {
       result[key] = (result[key] || 10) + val;
     }
@@ -120,15 +150,15 @@ export const useBonusCalculation = ({
     setBonusInvalidado(false);
   }, [bonusAplicados, pontosRestantes]);
 
-  const setAtributo = useCallback((key, value) => {
-    if (!BONUS_ATTR_KEYS.includes(key)) return;
+  const setAtributo = useCallback((key: string, value: number | string) => {
+    if (!(BONUS_ATTR_KEYS as readonly string[]).includes(key)) return;
     const val = Math.min(ATTR_MAX, Math.max(ATTR_MIN, Number(value) || ATTR_MIN));
     setAtributosBase((prev) => ({ ...prev, [key]: val }));
   }, []);
 
-  const aplicarAtributosSugeridos = useCallback(() => {
+  const aplicarAtributosSugeridos = useCallback((): NormalizacaoResultado => {
     const resultado = normalizarAtributosSugeridos(atributosSugeridos);
-    if (!resultado.applied) return resultado;
+    if (!resultado.applied || !resultado.atributos) return resultado;
     setAtributosBase(resultado.atributos);
     return { applied: true };
   }, [atributosSugeridos]);
@@ -162,3 +192,5 @@ export const useBonusCalculation = ({
     setBonusInvalidado,
   };
 };
+
+export type BonusCalculationApi = ReturnType<typeof useBonusCalculation>;

@@ -1,10 +1,30 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { tierDesbloqueado } from '../../../../utils/evolucaoHelper.js';
+import { tierDesbloqueado } from '../../../../utils/evolucaoHelper';
+import type { WizardDraft } from './useDraftPersistence';
 
 // Alinhado com Backend/helpers/evolucaoHelper.js
 const MAX_CUSTO_DESVANTAGEM = -3; // maxCustoDesvantagem(nivel=1) = 3
 const PONTOS_CRIACAO_BASE = 10;   // pontosVantagemBase(nivel=1) = 10
 const TIER_CRIACAO = tierDesbloqueado(1);
+
+interface CatalogoItem {
+  id?: number | string;
+  nome?: string;
+  custo?: number;
+  nivel?: number;
+  compravel?: boolean;
+}
+
+interface UsePointSystemParams {
+  draftInicial?: WizardDraft | null;
+  vantagensDisponiveis?: CatalogoItem[];
+  vantagensStore?: CatalogoItem[];
+  desvantagensStore?: CatalogoItem[];
+  racaId?: number | string | null;
+  classeId?: number | string | null;
+  racasDisponiveis?: CatalogoItem[];
+  classesDisponiveis?: CatalogoItem[];
+}
 
 /**
  * Gerencia pontos de criação, seleção de vantagens/desvantagens e limites.
@@ -19,14 +39,14 @@ export const usePointSystem = ({
   classeId,
   racasDisponiveis,
   classesDisponiveis,
-}) => {
-  const [vantagensIds, setVantagensIds] = useState(draftInicial?.vantagensIds || []);
-  const [vantagensNomes, setVantagensNomes] = useState(draftInicial?.vantagensNomes || []);
-  const [desvantagensIds, setDesvantagensIds] = useState(draftInicial?.desvantagensIds || []);
-  const [desvantagensNomes, setDesvantagensNomes] = useState(draftInicial?.desvantagensNomes || []);
+}: UsePointSystemParams) => {
+  const [vantagensIds, setVantagensIds] = useState<Array<number | string>>(draftInicial?.vantagensIds || []);
+  const [vantagensNomes, setVantagensNomes] = useState<string[]>(draftInicial?.vantagensNomes || []);
+  const [desvantagensIds, setDesvantagensIds] = useState<Array<number | string>>(draftInicial?.desvantagensIds || []);
+  const [desvantagensNomes, setDesvantagensNomes] = useState<string[]>(draftInicial?.desvantagensNomes || []);
 
-  const [skipVantagens, setSkipVantagens] = useState(draftInicial?.skipVantagens || false);
-  const [skipDesvantagens, setSkipDesvantagens] = useState(draftInicial?.skipDesvantagens || false);
+  const [skipVantagens, setSkipVantagens] = useState<boolean>(draftInicial?.skipVantagens || false);
+  const [skipDesvantagens, setSkipDesvantagens] = useState<boolean>(draftInicial?.skipDesvantagens || false);
 
   // Sanear IDs de draft restaurado: remover itens fora do catálogo filtrado
   const draftSaneado = useRef(false);
@@ -40,7 +60,7 @@ export const usePointSystem = ({
       return filtrados.length === prev.length ? prev : filtrados;
     });
     setVantagensNomes(prev => {
-      const nomesValidos = new Set(vantagensDisponiveis.filter(v => v.custo > 0 || v.compravel !== false).map(v => v.nome));
+      const nomesValidos = new Set(vantagensDisponiveis.filter(v => (v.custo ?? 0) > 0 || v.compravel !== false).map(v => v.nome).filter((n): n is string => !!n));
       const filtrados = prev.filter(n => nomesValidos.has(n));
       return filtrados.length === prev.length ? prev : filtrados;
     });
@@ -49,38 +69,38 @@ export const usePointSystem = ({
       return filtrados.length === prev.length ? prev : filtrados;
     });
     setDesvantagensNomes(prev => {
-      const nomesValidos = new Set(vantagensDisponiveis.filter(v => v.custo < 0).map(v => v.nome));
+      const nomesValidos = new Set(vantagensDisponiveis.filter(v => (v.custo ?? 0) < 0).map(v => v.nome).filter((n): n is string => !!n));
       const filtrados = prev.filter(n => nomesValidos.has(n));
       return filtrados.length === prev.length ? prev : filtrados;
     });
   }, [vantagensDisponiveis]);
 
   // Pontos de desvantagem usados (soma dos custos negativos)
-  const pontosDesvantagem = useMemo(() => {
+  const pontosDesvantagem = useMemo<number>(() => {
     const allItems = vantagensDisponiveis || [];
-    return desvantagensIds.reduce((sum, id) => {
+    return desvantagensIds.reduce<number>((sum, id) => {
       const item = allItems.find(v => String(v.id) === String(id));
       return sum + (item ? Number(item.custo) || 0 : 0);
     }, 0);
   }, [desvantagensIds, vantagensDisponiveis]);
 
   // Pontos de vantagem usados (soma dos custos positivos)
-  const pontosVantagem = useMemo(() => {
+  const pontosVantagem = useMemo<number>(() => {
     const allItems = vantagensDisponiveis || [];
-    return vantagensIds.reduce((sum, id) => {
+    return vantagensIds.reduce<number>((sum, id) => {
       const item = allItems.find(v => String(v.id) === String(id));
       return sum + (item ? Number(item.custo) || 0 : 0);
     }, 0);
   }, [vantagensIds, vantagensDisponiveis]);
 
   // Custo de raça e classe
-  const custoRaca = useMemo(() => {
+  const custoRaca = useMemo<number>(() => {
     if (!racaId) return 0;
     const raca = (racasDisponiveis || []).find(r => String(r.id) === String(racaId));
     return raca ? Number(raca.custo) || 0 : 0;
   }, [racaId, racasDisponiveis]);
 
-  const custoClasse = useMemo(() => {
+  const custoClasse = useMemo<number>(() => {
     if (!classeId) return 0;
     const classe = (classesDisponiveis || []).find(c => String(c.id) === String(classeId));
     return classe ? Number(classe.custo) || 0 : 0;
@@ -94,7 +114,7 @@ export const usePointSystem = ({
   const pontosCriacaoRestantes = pontosCriacaoTotal - pontosGastos;
 
   /** Remove uma vantagem/desvantagem selecionada */
-  const removerSelecao = useCallback((tipo, id) => {
+  const removerSelecao = useCallback((tipo: 'vantagem' | 'desvantagem', id: number | string) => {
     if (tipo === 'vantagem') {
       setVantagensIds(prev => prev.filter(v => String(v) !== String(id)));
       setVantagensNomes(prev => {
@@ -111,8 +131,8 @@ export const usePointSystem = ({
   }, [vantagensStore, desvantagensStore]);
 
   /** Seleciona ou desseleciona uma vantagem/desvantagem, validando limites. Retorna erro string ou null. */
-  const selecionarVantagemDesvantagem = useCallback((tipo, id, nome, custo) => {
-    const matchId = (stored) => String(stored) === String(id);
+  const selecionarVantagemDesvantagem = useCallback((tipo: 'vantagem' | 'desvantagem', id: number | string, nome: string, custo: number | string): string | null => {
+    const matchId = (stored: number | string) => String(stored) === String(id);
 
     // Permitir toggle (desseleção) mesmo para itens fora do catálogo
     if (tipo === 'vantagem') {

@@ -1,13 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
-import { getSystemStages } from '../stages/stageConfig.js';
+import { getSystemStages } from '../stages/stageConfig';
+import type { BuildState } from '../stages/stageSelectors';
+import type { WizardDraft } from './useDraftPersistence';
 
-export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria') => {
+export const useWizardNavigation = (draftInicial: WizardDraft | null, buildState: BuildState, sistema: string = 'lunaria') => {
   const { etapas: ETAPAS, ids: ETAPAS_IDS } = useMemo(() => getSystemStages(sistema), [sistema]);
 
-  const etapaInicial = ETAPAS_IDS.has(draftInicial?.etapaAtual) ? draftInicial.etapaAtual : 'boas_vindas';
-  const [etapaAtual, setEtapaAtual] = useState(etapaInicial);
-  const [etapasVisitadas, setEtapasVisitadas] = useState(
-    (draftInicial?.etapasVisitadas || [etapaInicial]).filter((etapa) => ETAPAS_IDS.has(etapa))
+  const etapaInicial: string = (draftInicial?.etapaAtual && ETAPAS_IDS.has(draftInicial.etapaAtual)) ? draftInicial.etapaAtual : 'boas_vindas';
+  const [etapaAtual, setEtapaAtual] = useState<string>(etapaInicial);
+  const [etapasVisitadas, setEtapasVisitadas] = useState<string[]>(
+    (draftInicial?.etapasVisitadas || [etapaInicial]).filter((etapa: string) => ETAPAS_IDS.has(etapa))
   );
 
   const etapaIndex = useMemo(() => ETAPAS.findIndex((e) => e.id === etapaAtual), [etapaAtual, ETAPAS]);
@@ -33,7 +35,7 @@ export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria
       dndSkillsConfirmed,
     } = buildState;
 
-    const concluidas = [];
+    const concluidas: string[] = [];
 
     if (sistema === 'tresdet') {
       if (nome?.trim()) concluidas.push('boas_vindas');
@@ -55,8 +57,8 @@ export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria
       if (racaId) concluidas.push('raca');
       if (classeId) concluidas.push('classe');
       if (background?.trim()) concluidas.push('background');
-      if (desvantagensIds?.length > 0 || skipDesvantagens) concluidas.push('desvantagens');
-      if (vantagensIds?.length > 0 || skipVantagens) concluidas.push('vantagens');
+      if ((desvantagensIds?.length ?? 0) > 0 || skipDesvantagens) concluidas.push('desvantagens');
+      if ((vantagensIds?.length ?? 0) > 0 || skipVantagens) concluidas.push('vantagens');
       if (bonusAplicados) concluidas.push('atributos');
       if (comboPreviewData) concluidas.push('equipamentos');
       if (grimorioSelecionado) concluidas.push('grimorio');
@@ -100,14 +102,14 @@ export const useWizardNavigation = (draftInicial, buildState, sistema = 'lunaria
     return info;
   }, [getProximaEtapa]);
 
-  const navegarParaEtapa = useCallback((etapaId) => {
+  const navegarParaEtapa = useCallback((etapaId: string) => {
     if (!ETAPAS_IDS.has(etapaId)) return;
     if (!etapasConcluidas.includes(etapaId) && !etapasVisitadas.includes(etapaId)) return;
     setEtapaAtual(etapaId);
     setEtapasVisitadas((prev) => (prev.includes(etapaId) ? prev : [...prev, etapaId]));
   }, [etapasConcluidas, etapasVisitadas, ETAPAS_IDS]);
 
-  const registrarVisita = useCallback((etapaId) => {
+  const registrarVisita = useCallback((etapaId: string) => {
     if (!ETAPAS_IDS.has(etapaId)) return false;
     setEtapaAtual(etapaId);
     setEtapasVisitadas((prev) => (prev.includes(etapaId) ? prev : [...prev, etapaId]));

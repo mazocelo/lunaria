@@ -1,16 +1,32 @@
 import { useState, useCallback, useRef } from 'react';
-import { apiClient } from '../../../../services/index.js';
+import { apiClient } from '../../../../services/index';
 
-export const useGrimorio = ({ racaId, racasDisponiveis }) => {
-  const [magias, setMagias] = useState([]);
+interface RacaItem {
+  id?: number | string;
+  pode_magia?: boolean;
+}
+
+interface MagiaItem {
+  id?: number | string;
+  nome?: string;
+  [key: string]: unknown;
+}
+
+interface UseGrimorioParams {
+  racaId?: number | string | null;
+  racasDisponiveis?: RacaItem[];
+}
+
+export const useGrimorio = ({ racaId, racasDisponiveis }: UseGrimorioParams) => {
+  const [magias, setMagias] = useState<MagiaItem[]>([]);
   const [slots, setSlots] = useState(0);
-  const [selecionadas, setSelecionadas] = useState([]);
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [carregado, setCarregado] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [grimorioSelecionado, setGrimorioSelecionado] = useState(false);
 
-  const loadedClasseRef = useRef(null);
+  const loadedClasseRef = useRef<number | string | null>(null);
 
   const racaPodeMagia = (() => {
     if (!racaId || !racasDisponiveis?.length) return true;
@@ -18,7 +34,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
     return raca?.pode_magia !== false;
   })();
 
-  const carregarGrimorio = useCallback(async (classeId) => {
+  const carregarGrimorio = useCallback(async (classeId: number | string) => {
     if (!classeId) return;
     if (loadedClasseRef.current === classeId) return;
 
@@ -27,11 +43,11 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
 
     try {
       const [slotsRes, magiasRes] = await Promise.all([
-        apiClient.get(`/habilidades-magias/slots?classe_id=${classeId}&nivel=1`),
-        apiClient.get(`/habilidades-magias/disponiveis?classe_id=${classeId}&nivel=1`),
+        apiClient.get(`/habilidades-magias/slots?classe_id=${classeId}&nivel=1`) as Promise<{ slots?: number } | null>,
+        apiClient.get(`/habilidades-magias/disponiveis?classe_id=${classeId}&nivel=1`) as Promise<MagiaItem[] | null>,
       ]);
 
-      const slotsCount = slotsRes.slots || 0;
+      const slotsCount = slotsRes?.slots || 0;
       setSlots(slotsCount);
       setMagias(Array.isArray(magiasRes) ? magiasRes : []);
       loadedClasseRef.current = classeId;
@@ -41,7 +57,8 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
         setGrimorioSelecionado(true);
       }
     } catch (err) {
-      setError(err.message || 'Erro ao carregar grimorio');
+      const message = err instanceof Error ? err.message : 'Erro ao carregar grimorio';
+      setError(message);
       setSlots(0);
       setMagias([]);
     } finally {
@@ -50,7 +67,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
     }
   }, [racaPodeMagia]);
 
-  const toggleMagia = useCallback((magiaId) => {
+  const toggleMagia = useCallback((magiaId: number | string) => {
     const id = String(magiaId);
     setSelecionadas(prev => {
       if (prev.includes(id)) return prev.filter(s => s !== id);
@@ -86,3 +103,5 @@ export const useGrimorio = ({ racaId, racasDisponiveis }) => {
     racaPodeMagia,
   };
 };
+
+export type GrimorioApi = ReturnType<typeof useGrimorio>;

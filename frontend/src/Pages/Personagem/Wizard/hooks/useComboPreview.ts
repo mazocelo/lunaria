@@ -1,6 +1,49 @@
+import { useState, useEffect, useMemo, useCallback, useRef, type MutableRefObject } from 'react';
+import { personagemService } from '../../../../services/index';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { personagemService } from '../../../../services/index.js';
+interface ComboItem {
+  id?: number | string;
+  nome?: string;
+  [key: string]: unknown;
+}
+
+interface ComboPreviewData {
+  combo?: {
+    equipamentos?: ComboItem[];
+    habilidades?: ComboItem[];
+    magias?: ComboItem[];
+  };
+  [key: string]: unknown;
+}
+
+interface ComboPreviewState {
+  nome?: string;
+  racaId?: number | string | null;
+  classeId?: number | string | null;
+  background?: string;
+  atributosBase?: Record<string, number>;
+  vantagensIds?: Array<number | string>;
+  desvantagensIds?: Array<number | string>;
+}
+
+interface UseComboPreviewParams {
+  nome?: string;
+  racaId?: number | string | null;
+  classeId?: number | string | null;
+  background?: string;
+  bonusAplicados?: boolean;
+  pontosCriacaoRestantes: number;
+  vantagensIds: Array<number | string>;
+  desvantagensIds: Array<number | string>;
+  atributosBase: Record<string, number>;
+  estadoRef: MutableRefObject<ComboPreviewState>;
+}
+
+interface FlatComboEntry {
+  grupo: 'equipamento' | 'habilidade' | 'magia';
+  id?: number | string;
+  nome?: string;
+}
 
 export const useComboPreview = ({
   nome, racaId, classeId, background,
@@ -8,13 +51,13 @@ export const useComboPreview = ({
   vantagensIds, desvantagensIds,
   atributosBase,
   estadoRef,
-}) => {
-  const [comboPreviewData, setComboPreviewData] = useState(null);
+}: UseComboPreviewParams) => {
+  const [comboPreviewData, setComboPreviewData] = useState<ComboPreviewData | null>(null);
   const [comboPreviewLoading, setComboPreviewLoading] = useState(false);
-  const [comboPreviewErro, setComboPreviewErro] = useState(null);
+  const [comboPreviewErro, setComboPreviewErro] = useState<string | null>(null);
   const [comboPreviewTentativa, setComboPreviewTentativa] = useState(0);
   const previewRequestRef = useRef(0);
-  const comboPreviewLoadedKeyRef = useRef(null);
+  const comboPreviewLoadedKeyRef = useRef<string | null>(null);
 
   const podeGerarPreview = useMemo(() => (
     !!nome?.trim()
@@ -66,15 +109,16 @@ export const useComboPreview = ({
       vantagens_ids: s.vantagensIds,
       desvantagens_ids: s.desvantagensIds,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const flattenComboPreview = useCallback((combo) => ([
-    ...((combo?.equipamentos || []).map(item => ({ grupo: 'equipamento', id: item.id, nome: item.nome }))),
-    ...((combo?.habilidades || []).map(item => ({ grupo: 'habilidade', id: item.id, nome: item.nome }))),
-    ...((combo?.magias || []).map(item => ({ grupo: 'magia', id: item.id, nome: item.nome }))),
+  const flattenComboPreview = useCallback((combo: ComboPreviewData['combo']): FlatComboEntry[] => ([
+    ...((combo?.equipamentos || []).map(item => ({ grupo: 'equipamento' as const, id: item.id, nome: item.nome }))),
+    ...((combo?.habilidades || []).map(item => ({ grupo: 'habilidade' as const, id: item.id, nome: item.nome }))),
+    ...((combo?.magias || []).map(item => ({ grupo: 'magia' as const, id: item.id, nome: item.nome }))),
   ]), []);
 
-  const carregarComboPreview = useCallback(async (tentativa = 0, comboAnterior = []) => {
+  const carregarComboPreview = useCallback(async (tentativa: number = 0, comboAnterior: FlatComboEntry[] = []): Promise<ComboPreviewData | null> => {
     if (!podeGerarPreview) return null;
 
     const requestId = previewRequestRef.current + 1;
@@ -89,7 +133,7 @@ export const useComboPreview = ({
         montarDraftPreview(),
         tentativa,
         comboAnterior
-      );
+      ) as ComboPreviewData;
 
       if (previewRequestRef.current !== requestId) return null;
 
@@ -98,7 +142,8 @@ export const useComboPreview = ({
       return resultado;
     } catch (err) {
       if (previewRequestRef.current !== requestId) return null;
-      setComboPreviewErro(err.message || 'Nao foi possivel gerar a resolutiva final.');
+      const message = err instanceof Error ? err.message : 'Nao foi possivel gerar a resolutiva final.';
+      setComboPreviewErro(message);
       if (tentativa === 0) {
         setComboPreviewData(null);
       }
@@ -163,3 +208,5 @@ export const useComboPreview = ({
     jaCarregouBuildAtual,
   };
 };
+
+export type ComboPreviewApi = ReturnType<typeof useComboPreview>;

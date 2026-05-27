@@ -248,7 +248,7 @@ const EtapaSalaEspera = ({
       if (copiarTimeoutRef.current) clearTimeout(copiarTimeoutRef.current);
       copiarTimeoutRef.current = setTimeout(() => setLinkCopiado(false), 2000);
       return true;
-    } catch (error) {
+    } catch {
       try {
         const textArea = document.createElement('textarea');
         textArea.value = window.location.href;
@@ -260,7 +260,7 @@ const EtapaSalaEspera = ({
         if (copiarTimeoutRef.current) clearTimeout(copiarTimeoutRef.current);
         copiarTimeoutRef.current = setTimeout(() => setLinkCopiado(false), 2000);
         return true;
-      } catch (fallbackError) {
+      } catch {
         return false;
       }
     }
@@ -280,7 +280,7 @@ const EtapaSalaEspera = ({
     setIniciandoJogo(true);
     try {
       await onIniciarJogo();
-    } catch (error) {
+    } catch {
       // silenced
     } finally {
       setIniciandoJogo(false);

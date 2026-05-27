@@ -121,7 +121,7 @@ export const useDiceAndTurns = (
           rolandoTimeoutRef.current = null;
         }
       }
-    } catch (error) {
+    } catch {
       const resultado = rolarDados(tipoDado, descricao);
       onAdicionarMensagem(resultado.mensagem);
       setRolando(false);
@@ -137,7 +137,7 @@ export const useDiceAndTurns = (
       if (socketStoreRolarDadoInicial) {
         socketStoreRolarDadoInicial();
       }
-    } catch (error) {
+    } catch {
       // silenced
     }
   }, [socketStoreRolarDadoInicial]);
@@ -147,7 +147,7 @@ export const useDiceAndTurns = (
       if (socketStoreIniciarTurno) {
         socketStoreIniciarTurno();
       }
-    } catch (error) {
+    } catch {
       // silenced
     }
   }, [socketStoreIniciarTurno]);
@@ -204,7 +204,7 @@ export const useDiceAndTurns = (
           pendingMestreSentAt: new Date().toISOString()
         });
       }
-    } catch (error) {
+    } catch {
       // silenced
     }
   }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
@@ -259,7 +259,7 @@ export const useDiceAndTurns = (
           pendingMestreSentAt: new Date().toISOString()
         });
       }
-    } catch (error) {
+    } catch {
       // silenced
     }
   }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
@@ -303,7 +303,7 @@ export const useDiceAndTurns = (
           pendingMestreSentAt: new Date().toISOString()
         });
       }
-    } catch (error) {
+    } catch {
       // silenced
     }
   }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);

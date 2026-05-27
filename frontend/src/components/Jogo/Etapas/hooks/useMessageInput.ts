@@ -145,7 +145,7 @@ export const useMessageInput = (
         pendingMestreRequestKind: 'player_action',
         pendingMestreSentAt: new Date().toISOString()
       });
-    } catch (error) {
+    } catch {
       // silenced
     } finally {
       setTimeout(() => {

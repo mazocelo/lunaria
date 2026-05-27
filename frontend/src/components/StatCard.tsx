@@ -46,8 +46,12 @@ const StatCard = ({
     neutral: isLight ? 'text-slate-500' : 'text-slate-400',
   };
 
-  // Support both emoji/text icons and Lucide-like components.
-  const isComponentIcon = typeof icon === 'function';
+  // Support both emoji/text icons and React components — Lucide gera os icones
+  // via React.forwardRef(), que retorna OBJETO ({$$typeof, render, displayName}),
+  // nao funcao. Detectar ambos.
+  const isComponentIcon =
+    typeof icon === 'function' ||
+    (typeof icon === 'object' && icon !== null && '$$typeof' in icon);
   const IconComponent = isComponentIcon
     ? (icon as ComponentType<{ size?: number; className?: string }>)
     : null;

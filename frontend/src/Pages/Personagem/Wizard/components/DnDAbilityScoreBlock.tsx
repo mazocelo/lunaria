@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ChevronRight, CheckCircle2, Sparkles, Info, RotateCcw } from 'lucide-react';
-import { ABILITIES, STANDARD_ARRAY } from '../../../../utils/dnd5eData.js';
+import { ABILITIES, STANDARD_ARRAY } from '../../../../utils/dnd5eData';
+
+interface AbilityMeta { bar: string; desc: string; }
 
 // Cor da barra e descricao por atributo. Os labels (nome) vem de ABILITIES.
-const ABILITY_META = {
+const ABILITY_META: Record<string, AbilityMeta> = {
   STR: { bar: 'bg-red-500', desc: 'Poder fisico, ataques corpo a corpo e capacidade de carga.' },
   DEX: { bar: 'bg-green-500', desc: 'Agilidade, reflexos, ataques a distancia e Classe de Armadura.' },
   CON: { bar: 'bg-yellow-500', desc: 'Vigor, resistencia, pontos de vida e concentracao.' },
@@ -12,9 +14,19 @@ const ABILITY_META = {
   CHA: { bar: 'bg-pink-500', desc: 'Presenca, persuasao, enganacao e conjuracao de algumas classes.' },
 };
 
-const calcModificador = (valor) => Math.floor((valor - 10) / 2);
+const calcModificador = (valor: number) => Math.floor((valor - 10) / 2);
 
-const formatMod = (mod) => (mod >= 0 ? `+${mod}` : `${mod}`);
+const formatMod = (mod: number) => (mod >= 0 ? `+${mod}` : `${mod}`);
+
+interface DnDAbilityScoreBlockProps {
+  scores?: Record<string, number | null | undefined>;
+  racialBonuses?: Record<string, number>;
+  onSetScore: (abilityId: string, valor: number | null) => void;
+  onConfirmar?: () => void;
+  onReset?: () => void;
+  confirmado?: boolean;
+  isLight?: boolean;
+}
 
 const DnDAbilityScoreBlock = ({
   scores = {},
@@ -24,11 +36,11 @@ const DnDAbilityScoreBlock = ({
   onReset,
   confirmado = false,
   isLight = false,
-}) => {
-  const [infoAberta, setInfoAberta] = useState(null);
+}: DnDAbilityScoreBlockProps) => {
+  const [infoAberta, setInfoAberta] = useState<string | null>(null);
 
-  const valoresAtribuidos = useMemo(() => {
-    const vals = [];
+  const valoresAtribuidos = useMemo<number[]>(() => {
+    const vals: number[] = [];
     ABILITIES.forEach((ab) => {
       const v = scores[ab.id];
       if (v != null) vals.push(v);
@@ -49,14 +61,14 @@ const DnDAbilityScoreBlock = ({
   const totalAtribuidos = valoresAtribuidos.length;
 
   const handleSelecionar = useCallback(
-    (abilityId, valor) => {
+    (abilityId: string, valor: number) => {
       onSetScore(abilityId, valor);
     },
     [onSetScore],
   );
 
   const handleLimpar = useCallback(
-    (abilityId) => {
+    (abilityId: string) => {
       onSetScore(abilityId, null);
     },
     [onSetScore],
@@ -239,9 +251,11 @@ const DnDAbilityScoreBlock = ({
                     )}
                     <div className={`text-center ${isLight ? 'text-slate-900' : 'text-white'}`}>
                       <div className="text-lg font-mono font-bold">{total}</div>
-                      <div className={`text-xs font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatMod(mod)}
-                      </div>
+                      {mod != null && (
+                        <div className={`text-xs font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatMod(mod)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

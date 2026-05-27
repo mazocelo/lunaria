@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Check, ChevronRight, Sparkles, CheckCircle2, Lock } from 'lucide-react';
-import { SKILLS, CLASS_SKILL_OPTIONS } from '../../../../utils/dnd5eData.js';
+import { SKILLS, CLASS_SKILL_OPTIONS } from '../../../../utils/dnd5eData';
 
 // Ordem de exibicao dos atributos e cores de chip do tema Vitral Arcano.
-const ORDEM_ATRIBUTOS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+const ORDEM_ATRIBUTOS: readonly string[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
-const COR_ATRIBUTO = {
+const COR_ATRIBUTO: Record<string, string> = {
   STR: 'wa-ember-chip',
   DEX: 'wa-emerald-chip',
   CON: 'wa-forge-chip',
@@ -15,7 +15,7 @@ const COR_ATRIBUTO = {
 };
 
 // Nomes de classe em PT-BR. A chave casa com os slugs de CLASS_SKILL_OPTIONS.
-const NOME_CLASSE = {
+const NOME_CLASSE: Record<string, string> = {
   barbarian: 'Barbaro',
   bard: 'Bardo',
   cleric: 'Clerigo',
@@ -33,7 +33,17 @@ const NOME_CLASSE = {
 // Conjunto padrao para classes sem mapeamento (todas as pericias, 2 escolhas).
 const CLASSE_PADRAO = { skills: SKILLS.map((s) => s.id), count: 2 };
 
-const calcModificador = (valor) => Math.floor((valor - 10) / 2);
+const calcModificador = (valor: number) => Math.floor((valor - 10) / 2);
+
+interface DnDSkillsBlockProps {
+  selecionadas?: string[];
+  classeNome?: string;
+  abilityScores?: Record<string, number>;
+  onToggle?: (skillId: string) => void;
+  onConfirmar?: () => void;
+  confirmado?: boolean;
+  isLight?: boolean;
+}
 
 const DnDSkillsBlock = ({
   selecionadas = [],
@@ -43,17 +53,17 @@ const DnDSkillsBlock = ({
   onConfirmar,
   confirmado = false,
   isLight = false,
-}) => {
+}: DnDSkillsBlockProps) => {
   const classKey = classeNome?.toLowerCase()?.trim() || '';
-  const classConfig = CLASS_SKILL_OPTIONS[classKey] || CLASSE_PADRAO;
+  const classConfig = (CLASS_SKILL_OPTIONS as Record<string, { skills: string[]; count: number }>)[classKey] || CLASSE_PADRAO;
   const maxSelecoes = classConfig.count;
   const periciasPermitidas = useMemo(() => new Set(classConfig.skills), [classConfig.skills]);
   const classLabel = NOME_CLASSE[classKey] || (classKey ? classKey.charAt(0).toUpperCase() + classKey.slice(1) : 'Sem classe');
 
   const selecionadasSet = useMemo(() => new Set(selecionadas), [selecionadas]);
 
-  const agrupadas = useMemo(() => {
-    const grupos = {};
+  const agrupadas = useMemo<Record<string, typeof SKILLS[number][]>>(() => {
+    const grupos: Record<string, typeof SKILLS[number][]> = {};
     ORDEM_ATRIBUTOS.forEach((ab) => {
       grupos[ab] = SKILLS.filter((s) => s.ability === ab);
     });
@@ -161,7 +171,7 @@ const DnDSkillsBlock = ({
                       <button
                         key={skill.id}
                         type="button"
-                        onClick={() => !desabilitada && onToggle(skill.id)}
+                        onClick={() => !desabilitada && onToggle?.(skill.id)}
                         disabled={desabilitada}
                         aria-pressed={selecionada}
                         title={

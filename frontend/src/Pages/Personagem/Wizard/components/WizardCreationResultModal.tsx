@@ -1,8 +1,60 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BookOpen, CheckCircle2, Shield, Sparkles, ScrollText, Swords, ShoppingBag } from 'lucide-react';
-import LojaMestreModal from '../../../../components/LojaMestreModal.jsx';
+import LojaMestreModal from '../../../../components/LojaMestreModal';
 
-const ATTR_LABELS = {
+interface ComboItem {
+  id?: number | string;
+  nome?: string;
+  motivo?: string;
+  [key: string]: unknown;
+}
+
+interface ComboItemEnriched extends ComboItem {
+  grupo: string;
+  badge: string;
+  badgeClass: string;
+}
+
+interface PreviewCombo {
+  equipamentos?: ComboItem[];
+  habilidades?: ComboItem[];
+  magias?: ComboItem[];
+}
+
+interface PreviewSnapshot {
+  nome?: string;
+  raca?: string;
+  classe?: string;
+  atributos?: Record<string, number>;
+  vantagens?: Array<{ id?: number | string; nome?: string }>;
+  desvantagens?: Array<{ id?: number | string; nome?: string }>;
+}
+
+interface PreviewData {
+  combo?: PreviewCombo;
+  snapshot?: PreviewSnapshot;
+  fala_personagem?: string;
+  leitura_ficha?: string;
+}
+
+interface PersonagemResultado {
+  id?: number;
+  nome?: string;
+  sistema?: string;
+  moedas?: number;
+  [key: string]: unknown;
+}
+
+interface ResultadoData {
+  personagem?: PersonagemResultado | null;
+  preview?: PreviewData | null;
+  background_digitado?: string;
+  background_gerado?: string | null;
+  background_final?: string;
+  background_indisponivel?: boolean;
+}
+
+const ATTR_LABELS: Record<string, string> = {
   forca: 'FOR',
   destreza: 'DES',
   constituicao: 'CON',
@@ -11,12 +63,20 @@ const ATTR_LABELS = {
   carisma: 'CAR',
 };
 
-function buildItensCombo(combo = {}) {
+function buildItensCombo(combo: PreviewCombo = {}): ComboItemEnriched[] {
   return [
     ...(combo.equipamentos || []).map((item) => ({ ...item, grupo: 'Equipamento', badge: 'Inventario', badgeClass: 'wa-forge-chip' })),
     ...(combo.habilidades || []).map((item) => ({ ...item, grupo: 'Habilidade', badge: 'Recomendacao', badgeClass: 'wa-teal-chip' })),
     ...(combo.magias || []).map((item) => ({ ...item, grupo: 'Magia', badge: 'Recomendacao', badgeClass: 'wa-accent-chip' })),
   ];
+}
+
+interface WizardCreationResultModalProps {
+  open?: boolean;
+  data?: ResultadoData | null;
+  onViewSheet: () => void;
+  onGoToCharacters: () => void;
+  isLight?: boolean;
 }
 
 const WizardCreationResultModal = ({
@@ -25,7 +85,7 @@ const WizardCreationResultModal = ({
   onViewSheet,
   onGoToCharacters,
   isLight = false,
-}) => {
+}: WizardCreationResultModalProps) => {
   const itensCombo = useMemo(() => buildItensCombo(data?.preview?.combo), [data]);
   const [lojaAberta, setLojaAberta] = useState(false);
 
@@ -186,7 +246,7 @@ const WizardCreationResultModal = ({
               >
                 Ir para personagens
               </button>
-              {isTresDet && personagem.moedas > 0 && (
+              {isTresDet && (personagem.moedas ?? 0) > 0 && (
                 <button
                   type="button"
                   onClick={() => setLojaAberta(true)}
@@ -209,7 +269,7 @@ const WizardCreationResultModal = ({
               <LojaMestreModal
                 isOpen={lojaAberta}
                 onClose={() => setLojaAberta(false)}
-                personagemId={personagem.id}
+                personagemId={personagem.id ?? 0}
                 moedas={personagem.moedas || 0}
               />
             )}

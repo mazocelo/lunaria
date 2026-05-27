@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   AlertTriangle,
   BookOpen,
@@ -12,13 +12,55 @@ import {
   Swords,
 } from 'lucide-react';
 
-const PERFIL_LABELS = {
+interface ComboItem {
+  id?: number | string;
+  nome?: string;
+  motivo?: string;
+  [key: string]: unknown;
+}
+
+interface ComboItemEnriched extends ComboItem {
+  grupo: string;
+  badge: string;
+  badgeClass: string;
+  barClass: string;
+}
+
+interface Combo {
+  equipamentos?: ComboItem[];
+  habilidades?: ComboItem[];
+  magias?: ComboItem[];
+}
+
+interface Snapshot {
+  nome?: string;
+  raca?: string;
+  classe?: string;
+  atributos?: Record<string, number>;
+  vantagens?: Array<{ id?: number | string; nome?: string }>;
+  desvantagens?: Array<{ id?: number | string; nome?: string }>;
+}
+
+interface Meta {
+  perfil?: string;
+  [key: string]: unknown;
+}
+
+interface ResolutivaData {
+  combo?: Combo;
+  snapshot?: Snapshot;
+  meta?: Meta;
+  fala_personagem?: string;
+  leitura_ficha?: string;
+}
+
+const PERFIL_LABELS: Record<string, string> = {
   contido: 'Combo contido',
   equilibrado: 'Combo equilibrado',
   amplo: 'Combo amplo',
 };
 
-const ATTR_LABELS = {
+const ATTR_LABELS: Record<string, string> = {
   forca: 'FOR',
   destreza: 'DES',
   constituicao: 'CON',
@@ -27,7 +69,7 @@ const ATTR_LABELS = {
   carisma: 'CAR',
 };
 
-function buildItensCombo(combo = {}) {
+function buildItensCombo(combo: Combo = {}): ComboItemEnriched[] {
   return [
     ...(combo.equipamentos || []).map((item) => ({
       ...item,
@@ -53,6 +95,23 @@ function buildItensCombo(combo = {}) {
   ];
 }
 
+interface DestinoResolutivaBlockProps {
+  data?: ResolutivaData | null;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  onCriar?: () => void;
+  podeCriar?: boolean;
+  salvando?: boolean;
+  creationFlowStatus?: string;
+  imageUrl?: string | null;
+  imageLoading?: boolean;
+  imageError?: string | null;
+  onGerarImagem?: () => void;
+  isLight?: boolean;
+  exigeComboPreview?: boolean;
+}
+
 const DestinoResolutivaBlock = ({
   data,
   loading = false,
@@ -68,7 +127,7 @@ const DestinoResolutivaBlock = ({
   onGerarImagem,
   isLight = false,
   exigeComboPreview = true,
-}) => {
+}: DestinoResolutivaBlockProps) => {
   const itensCombo = useMemo(() => buildItensCombo(data?.combo), [data]);
   const snapshot = data?.snapshot || {};
   const meta = data?.meta || {};
@@ -113,7 +172,7 @@ const DestinoResolutivaBlock = ({
               </span>
               <span className="wa-teal-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                 <Shield size={12} />
-                {PERFIL_LABELS[meta.perfil_combo] || 'Combo equilibrado'}
+                {PERFIL_LABELS[String(meta.perfil_combo ?? '')] || 'Combo equilibrado'}
               </span>
             </div>
             <h3 className={`mt-3 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
@@ -193,13 +252,13 @@ const DestinoResolutivaBlock = ({
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="wa-forge-chip rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
-                  Saldo de criacao {meta.pontos_restantes ?? 0}
+                  Saldo de criacao {String(meta.pontos_restantes ?? 0)}
                 </span>
                 <span className="wa-accent-chip rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
-                  Nivel {meta.nivel ?? 1}
+                  Nivel {String(meta.nivel ?? 1)}
                 </span>
                 <span className="wa-teal-chip rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
-                  Tier {meta.tier ?? 1}
+                  Tier {String(meta.tier ?? 1)}
                 </span>
               </div>
             </div>

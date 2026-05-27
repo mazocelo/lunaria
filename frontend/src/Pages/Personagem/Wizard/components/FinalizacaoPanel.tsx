@@ -1,5 +1,42 @@
-import React from 'react';
 import { Shield, Swords, Wand2, Feather, BookOpen, Gem, RefreshCw, Check, ArrowRight } from 'lucide-react';
+
+interface ComboItem {
+  id?: number | string;
+  nome?: string;
+  motivo?: string;
+  [key: string]: unknown;
+}
+
+interface FinalizacaoData {
+  fala_personagem?: string;
+  leitura_ficha?: string;
+  combo?: {
+    equipamentos?: ComboItem[];
+    habilidades?: ComboItem[];
+    magias?: ComboItem[];
+  };
+  meta?: {
+    nivel?: number | string;
+    tier?: number | string;
+    pontos_restantes?: number | string;
+    [key: string]: unknown;
+  };
+  snapshot?: { nome?: string; [key: string]: unknown };
+}
+
+interface FinalizacaoPanelProps {
+  data?: FinalizacaoData | null;
+  onFechar: () => void;
+  onUpdate: (updater: (prev: FinalizacaoData) => FinalizacaoData) => void;
+  isLight: boolean;
+  onAplicarEquipamentos?: () => void;
+  aplicandoEquipamentos?: boolean;
+  equipamentosAplicados?: boolean;
+  equipamentosFalhas?: { falhas?: number; total?: number } | null;
+  onRegenerarEquipamentos?: () => void;
+  regeneracoesUsadas?: number;
+  regenerando?: boolean;
+}
 
 /**
  * Painel de finalizacao pos-criacao de personagem.
@@ -20,7 +57,7 @@ const FinalizacaoPanel = ({
   onRegenerarEquipamentos,
   regeneracoesUsadas,
   regenerando,
-}) => {
+}: FinalizacaoPanelProps) => {
   if (!data) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
@@ -44,7 +81,7 @@ const FinalizacaoPanel = ({
     ...magias.map(m => ({ ...m, _tipo: 'magia' })),
   ];
 
-  const handleFalaChange = (e) => {
+  const handleFalaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onUpdate(prev => ({ ...prev, fala_personagem: e.target.value }));
   };
 
@@ -136,7 +173,7 @@ const FinalizacaoPanel = ({
                 : equipamentosFalhas
                   ? equipamentosFalhas.falhas === equipamentosFalhas.total
                     ? 'Falha ao aplicar equipamentos — tente novamente.'
-                    : `${equipamentosFalhas.total - equipamentosFalhas.falhas} de ${equipamentosFalhas.total} aplicados — ${equipamentosFalhas.falhas} falharam. Tente novamente.`
+                    : `${(equipamentosFalhas.total ?? 0) - (equipamentosFalhas.falhas ?? 0)} de ${equipamentosFalhas.total ?? 0} aplicados — ${equipamentosFalhas.falhas ?? 0} falharam. Tente novamente.`
                   : 'Sugestao baseada na sua build — aplique para adicionar ao inventario.'}
             </p>
           </div>
@@ -279,7 +316,13 @@ const FinalizacaoPanel = ({
 
 // ── Subcomponente interno ──
 
-const MetaBadge = ({ label, value, isLight }) => (
+interface MetaBadgeProps {
+  label: string;
+  value?: number | string | null;
+  isLight: boolean;
+}
+
+const MetaBadge = ({ label, value, isLight }: MetaBadgeProps) => (
   <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-modern ${
     isLight ? 'bg-slate-100 text-slate-700' : 'bg-[rgba(255,255,255,0.05)] text-slate-300'
   }`}>

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   AlertTriangle,
   Loader2,
@@ -8,13 +8,31 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
-const PERFIL_LABELS = {
+interface ComboItem {
+  id?: number | string;
+  nome?: string;
+  motivo?: string;
+  [key: string]: unknown;
+}
+
+interface Combo {
+  equipamentos?: ComboItem[];
+  habilidades?: ComboItem[];
+  magias?: ComboItem[];
+}
+
+interface EquipamentosData {
+  combo?: Combo;
+  meta?: Record<string, unknown>;
+}
+
+const PERFIL_LABELS: Record<string, string> = {
   contido: 'Combo contido',
   equilibrado: 'Combo equilibrado',
   amplo: 'Combo amplo',
 };
 
-function buildItensAgrupados(combo = {}) {
+function buildItensAgrupados(combo: Combo = {}) {
   const inventario = (combo.equipamentos || []).map((item) => ({
     ...item,
     grupo: 'Equipamento',
@@ -43,6 +61,17 @@ function buildItensAgrupados(combo = {}) {
   return { inventario, recomendacoes };
 }
 
+interface EquipamentosBlockProps {
+  data?: EquipamentosData | null;
+  loading?: boolean;
+  error?: string | null;
+  tentativasUsadas?: number;
+  onRegenerar?: () => void;
+  onRetry?: () => void;
+  onContinuar?: () => void;
+  isLight?: boolean;
+}
+
 const EquipamentosBlock = ({
   data,
   loading = false,
@@ -52,7 +81,7 @@ const EquipamentosBlock = ({
   onRetry,
   onContinuar,
   isLight = false,
-}) => {
+}: EquipamentosBlockProps) => {
   const { inventario, recomendacoes } = useMemo(() => buildItensAgrupados(data?.combo), [data]);
   const meta = data?.meta || {};
   const tentativasRestantes = Math.max(0, 3 - tentativasUsadas);
@@ -92,7 +121,7 @@ const EquipamentosBlock = ({
               </span>
               <span className="wa-teal-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
                 <Sparkles size={12} />
-                {PERFIL_LABELS[meta.perfil_combo] || 'Combo equilibrado'}
+                {PERFIL_LABELS[String(meta.perfil_combo ?? '')] || 'Combo equilibrado'}
               </span>
             </div>
             <h3 className={`mt-3 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>

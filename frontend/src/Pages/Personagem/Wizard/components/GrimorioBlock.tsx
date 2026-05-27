@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Loader2,
   AlertTriangle,
@@ -10,7 +10,24 @@ import {
   BookOpen,
 } from 'lucide-react';
 
-const ESCOLA_LABELS = {
+interface Magia {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  escola_magia?: string;
+  nivel?: number;
+  custo_mana?: number;
+  dano_base?: string;
+  alcance?: string;
+  duracao?: string;
+  componentes?: string;
+  tipo?: string;
+  alvo?: string;
+  tempo_conjuracao?: string;
+  [key: string]: unknown;
+}
+
+const ESCOLA_LABELS: Record<string, string> = {
   evocacao: 'Evocacao',
   abjuracao: 'Abjuracao',
   conjuracao: 'Conjuracao',
@@ -21,7 +38,7 @@ const ESCOLA_LABELS = {
   necromancia: 'Necromancia',
 };
 
-const ESCOLA_COLORS = {
+const ESCOLA_COLORS: Record<string, string> = {
   evocacao: 'wa-ember-chip',
   abjuracao: 'wa-teal-chip',
   conjuracao: 'wa-accent-chip',
@@ -32,6 +49,17 @@ const ESCOLA_COLORS = {
   necromancia: 'wa-ember-chip',
 };
 
+interface GrimorioBlockProps {
+  magias?: Magia[];
+  slots?: number;
+  selecionadas?: Array<number | string>;
+  onToggleMagia?: (id: number | string) => void;
+  onContinuar?: () => void;
+  loading?: boolean;
+  error?: string | null;
+  isLight?: boolean;
+}
+
 const GrimorioBlock = ({
   magias = [],
   slots = 0,
@@ -41,14 +69,14 @@ const GrimorioBlock = ({
   loading = false,
   error = null,
   isLight = false,
-}) => {
+}: GrimorioBlockProps) => {
   const [busca, setBusca] = useState('');
-  const [escolaFiltro, setEscolaFiltro] = useState(null);
+  const [escolaFiltro, setEscolaFiltro] = useState<string | null>(null);
 
   const selecionadasSet = useMemo(() => new Set(selecionadas.map(String)), [selecionadas]);
 
-  const escolas = useMemo(() => {
-    const set = new Set();
+  const escolas = useMemo<string[]>(() => {
+    const set = new Set<string>();
     magias.forEach(m => { if (m.escola_magia) set.add(m.escola_magia); });
     return [...set].sort();
   }, [magias]);
@@ -210,7 +238,7 @@ const GrimorioBlock = ({
                   <button
                     key={magia.id}
                     type="button"
-                    onClick={() => onToggleMagia(magia.id)}
+                    onClick={() => magia.id != null && onToggleMagia?.(magia.id)}
                     disabled={disabled}
                     className={`group relative rounded-2xl border border-l-4 p-4 text-left transition-all cursor-pointer ${
                       selected
@@ -242,7 +270,7 @@ const GrimorioBlock = ({
                           {ESCOLA_LABELS[magia.escola_magia] || magia.escola_magia}
                         </span>
                       )}
-                      {magia.custo_mana > 0 && (
+                      {(magia.custo_mana ?? 0) > 0 && (
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/15 text-blue-300'}`}>
                           {magia.custo_mana} mana
                         </span>

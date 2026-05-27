@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Loader2,
   AlertTriangle,
@@ -9,9 +9,18 @@ import {
   Sparkles,
   Shield,
 } from 'lucide-react';
-import { vantagemService, desvantagemService } from '../../../../services/index.js';
+import { vantagemService, desvantagemService } from '../../../../services/index';
 
-const TIPO_LABELS = {
+interface TresDetItem {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo?: number;
+  tipo?: string | string[];
+  [key: string]: unknown;
+}
+
+const TIPO_LABELS: Record<string, string> = {
   ofensiva: 'Ofensiva',
   defensiva: 'Defensiva',
   passiva: 'Passiva',
@@ -24,7 +33,7 @@ const TIPO_LABELS = {
   fisica: 'Fisica',
 };
 
-const TIPO_COLORS = {
+const TIPO_COLORS: Record<string, string> = {
   ofensiva: 'wa-ember-chip',
   defensiva: 'wa-teal-chip',
   passiva: 'wa-accent-chip',
@@ -37,19 +46,28 @@ const TIPO_COLORS = {
   fisica: 'wa-ember-chip',
 };
 
+interface TresDetVantagensBlockProps {
+  modo?: 'vantagens' | 'desvantagens';
+  selecionadas?: Array<number | string>;
+  onToggle?: (id: number | string, custo: number) => void;
+  onConfirmar?: () => void;
+  pontosDisponiveis?: number;
+  isLight?: boolean;
+}
+
 const TresDetVantagensBlock = ({
   modo = 'vantagens',
   selecionadas = [],
   onToggle,
   onConfirmar,
-  pontosDisponiveis = 0,
+  pontosDisponiveis: _pontosDisponiveis = 0,
   isLight = false,
-}) => {
-  const [itens, setItens] = useState([]);
+}: TresDetVantagensBlockProps) => {
+  const [itens, setItens] = useState<TresDetItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
-  const [tipoFiltro, setTipoFiltro] = useState(null);
+  const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
 
   const isDesvantagem = modo === 'desvantagens';
 
@@ -60,13 +78,15 @@ const TresDetVantagensBlock = ({
       setError(null);
       try {
         const service = isDesvantagem ? desvantagemService : vantagemService;
-        const response = await service.getAll({ sistema: 'tresdet' });
+        const response = await service.getAll({ sistema: 'tresdet' }) as { data?: TresDetItem[] } | TresDetItem[];
         if (!cancelled) {
-          setItens(response.data || []);
+          const data = Array.isArray(response) ? response : (response as { data?: TresDetItem[] }).data || [];
+          setItens(data);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err.message || 'Erro ao carregar catalogo');
+          const message = err instanceof Error ? err.message : 'Erro ao carregar catalogo';
+          setError(message);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -78,8 +98,8 @@ const TresDetVantagensBlock = ({
 
   const selecionadasSet = useMemo(() => new Set(selecionadas.map(String)), [selecionadas]);
 
-  const tipos = useMemo(() => {
-    const set = new Set();
+  const tipos = useMemo<string[]>(() => {
+    const set = new Set<string>();
     itens.forEach((item) => {
       const tipoArr = Array.isArray(item.tipo) ? item.tipo : item.tipo ? [item.tipo] : [];
       tipoArr.forEach((t) => set.add(t));
@@ -106,16 +126,16 @@ const TresDetVantagensBlock = ({
     return resultado;
   }, [itens, busca, tipoFiltro]);
 
-  const custoSelecionado = useMemo(() => {
-    return selecionadas.reduce((acc, id) => {
+  const custoSelecionado = useMemo<number>(() => {
+    return selecionadas.reduce<number>((acc, id) => {
       const item = itens.find((i) => String(i.id) === String(id));
-      return acc + Math.abs(item?.custo || 0);
+      return acc + Math.abs(Number(item?.custo) || 0);
     }, 0);
   }, [selecionadas, itens]);
 
   const handleToggle = useCallback(
-    (id) => {
-      onToggle(id);
+    (id: number | string, custo: number) => {
+      onToggle?.(id, custo);
     },
     [onToggle],
   );
@@ -266,7 +286,7 @@ const TresDetVantagensBlock = ({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => handleToggle(item.id)}
+                    onClick={() => item.id != null && handleToggle(item.id, Number(item.custo) || 0)}
                     className={`group relative rounded-2xl border border-l-4 p-4 text-left transition-all cursor-pointer ${
                       selected
                         ? isDesvantagem

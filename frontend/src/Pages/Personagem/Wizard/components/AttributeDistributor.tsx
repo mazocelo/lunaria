@@ -1,41 +1,91 @@
-import React, { useState, useMemo } from 'react';
-import { Minus, Plus, Sparkles, Info, CheckCircle2, ChevronRight } from 'lucide-react';
-import { TRESDET_ATTR_CONFIG } from '../../../../constants/tresdetAtributos.js';
+import { useState, useMemo } from 'react';
+import { Minus, Plus, Wand2, Info, Sparkles, CheckCircle2 } from 'lucide-react';
 
-export { TRESDET_ATTR_CONFIG };
+interface AttrConfig {
+  label: string;
+  abbr: string;
+  bar: string;
+  desc: string;
+}
+
+const ATTR_CONFIG: Record<string, AttrConfig> = {
+  forca: {
+    label: 'Forca', abbr: 'FOR', bar: 'bg-red-500',
+    desc: 'Poder fisico bruto. Afeta dano corpo-a-corpo, carga e testes de forca.',
+  },
+  destreza: {
+    label: 'Destreza', abbr: 'DES', bar: 'bg-purple-500',
+    desc: 'Precisao e coordenacao. Afeta ataques a distancia, furtividade e trabalhos manuais.',
+  },
+  constituicao: {
+    label: 'Constituicao', abbr: 'CON', bar: 'bg-green-500',
+    desc: 'Resistencia e vitalidade. Aumenta pontos de vida e suportes de fadiga.',
+  },
+  inteligencia: {
+    label: 'Inteligencia', abbr: 'INT', bar: 'bg-blue-500',
+    desc: 'Raciocinio e estudo. Afeta magia arcana, investigacao e conhecimento.',
+  },
+  agilidade: {
+    label: 'Agilidade', abbr: 'AGI', bar: 'bg-yellow-500',
+    desc: 'Velocidade e reflexos. Afeta esquiva, iniciativa e movimento.',
+  },
+  carisma: {
+    label: 'Carisma', abbr: 'CAR', bar: 'bg-pink-500',
+    desc: 'Presenca e influencia. Afeta persuasao, intimidacao e lideranca.',
+  },
+};
+
+/* ---------- Radar Chart ---------- */
+
+const RADAR_AXES = [
+  { key: 'forca', abbr: 'FOR' },
+  { key: 'destreza', abbr: 'DES' },
+  { key: 'constituicao', abbr: 'CON' },
+  { key: 'inteligencia', abbr: 'INT' },
+  { key: 'agilidade', abbr: 'AGI' },
+  { key: 'carisma', abbr: 'CAR' },
+];
 
 const RADAR_SIZE = 200;
 const RADAR_CX = RADAR_SIZE / 2;
 const RADAR_CY = RADAR_SIZE / 2;
-const RADAR_R = 72;
-const LABEL_R = RADAR_R + 22;
+const RADAR_R = 72; // max radius for the outermost hexagon
+const LABEL_R = RADAR_R + 18;
 
-const polyPoint = (i, total, radius) => {
-  const angle = (Math.PI / 2) + (2 * Math.PI * i) / total;
+/** Return {x, y} for a hex vertex at index i (0=top, clockwise). */
+const hexPoint = (i: number, radius: number) => {
+  const angle = (Math.PI / 2) + (2 * Math.PI * i) / 6; // start from top
   return {
     x: RADAR_CX + radius * Math.cos(angle),
     y: RADAR_CY - radius * Math.sin(angle),
   };
 };
 
-const polyPath = (total, radius) =>
-  Array.from({ length: total }, (_, i) => {
-    const { x, y } = polyPoint(i, total, radius);
+const hexPath = (radius: number): string =>
+  RADAR_AXES.map((_, i) => {
+    const { x, y } = hexPoint(i, radius);
     return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
   }).join(' ') + ' Z';
 
-const TresDetRadar = ({ valores, isLight }) => {
-  const total = TRESDET_ATTR_CONFIG.length;
-  const maxVal = 5;
+interface RadarChartProps {
+  atributos: Record<string, number>;
+  attrMin: number;
+  attrMax: number;
+  isLight: boolean;
+}
+
+const RadarChart = ({ atributos, attrMin, attrMax, isLight }: RadarChartProps) => {
+  const range = attrMax - attrMin || 1;
 
   const dataPoints = useMemo(
     () =>
-      TRESDET_ATTR_CONFIG.map((cfg, i) => {
-        const raw = valores[cfg.key] || 0;
-        const norm = Math.max(0, Math.min(1, raw / maxVal));
-        return polyPoint(i, total, norm * RADAR_R);
+      RADAR_AXES.map((axis, i) => {
+        const raw = atributos[axis.key] || 0;
+        const norm = Math.max(0, Math.min(1, (raw - attrMin) / range));
+        const r = norm * RADAR_R;
+        return hexPoint(i, r);
       }),
-    [valores],
+    [atributos, attrMin, range],
   );
 
   const dataPath =
@@ -43,7 +93,7 @@ const TresDetRadar = ({ valores, isLight }) => {
       .map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`)
       .join(' ') + ' Z';
 
-  const gridLevels = [0.2, 0.4, 0.6, 0.8, 1];
+  const gridLevels = [0.25, 0.5, 0.75, 1];
   const gridColor = isLight ? 'rgba(100,116,139,0.18)' : 'var(--wa-teal)';
   const gridOpacity = isLight ? 1 : 0.18;
 
@@ -55,10 +105,11 @@ const TresDetRadar = ({ valores, isLight }) => {
         viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}
         className="overflow-visible"
       >
+        {/* Concentric hexagonal grid */}
         {gridLevels.map((pct) => (
           <path
             key={pct}
-            d={polyPath(total, RADAR_R * pct)}
+            d={hexPath(RADAR_R * pct)}
             fill="none"
             stroke={gridColor}
             strokeWidth={pct === 1 ? 1.2 : 0.7}
@@ -66,8 +117,9 @@ const TresDetRadar = ({ valores, isLight }) => {
           />
         ))}
 
-        {TRESDET_ATTR_CONFIG.map((_, i) => {
-          const { x, y } = polyPoint(i, total, RADAR_R);
+        {/* Axis spokes */}
+        {RADAR_AXES.map((_, i) => {
+          const { x, y } = hexPoint(i, RADAR_R);
           return (
             <line
               key={`spoke-${i}`}
@@ -82,6 +134,7 @@ const TresDetRadar = ({ valores, isLight }) => {
           );
         })}
 
+        {/* Filled data polygon */}
         <path
           d={dataPath}
           fill="var(--wa-accent)"
@@ -92,6 +145,7 @@ const TresDetRadar = ({ valores, isLight }) => {
           style={{ transition: 'd 0.35s ease' }}
         />
 
+        {/* Data point dots */}
         {dataPoints.map(({ x, y }, i) => (
           <circle
             key={`dot-${i}`}
@@ -103,8 +157,9 @@ const TresDetRadar = ({ valores, isLight }) => {
           />
         ))}
 
-        {TRESDET_ATTR_CONFIG.map((cfg, i) => {
-          const { x, y } = polyPoint(i, total, LABEL_R);
+        {/* Axis labels */}
+        {RADAR_AXES.map((axis, i) => {
+          const { x, y } = hexPoint(i, LABEL_R);
           return (
             <text
               key={`label-${i}`}
@@ -115,7 +170,7 @@ const TresDetRadar = ({ valores, isLight }) => {
               className="text-[10px] font-mono font-bold"
               fill={isLight ? '#475569' : '#94a3b8'}
             >
-              {cfg.sigla}
+              {axis.abbr}
             </text>
           );
         })}
@@ -124,65 +179,57 @@ const TresDetRadar = ({ valores, isLight }) => {
   );
 };
 
-const TresDetCaracteristicasBlock = ({
-  valores = {},
-  pontosTotais = 5,
-  onSetValor,
-  onConfirmar,
-  confirmado = false,
-  isLight = false,
-}) => {
-  const [infoAberta, setInfoAberta] = useState(null);
+/* ---------- Attribute Distributor ---------- */
 
-  const pontosUsados = useMemo(
-    () => TRESDET_ATTR_CONFIG.reduce((acc, cfg) => acc + (valores[cfg.key] || 0), 0),
-    [valores],
-  );
+interface AttributeDistributorProps {
+  atributos: Record<string, number>;
+  setAtributo: (key: string, value: number) => void;
+  pontosDistribuidos: number;
+  pontosRestantes: number;
+  pontosTotais: number;
+  atributosSugeridos?: unknown;
+  aplicarAtributosSugeridos?: () => void;
+  isLight: boolean;
+  disabled?: boolean;
+  attrMin?: number;
+  attrMax?: number;
+}
 
-  const pontosRestantes = pontosTotais - pontosUsados;
+const AttributeDistributor = ({
+  atributos,
+  setAtributo,
+  pontosDistribuidos,
+  pontosRestantes,
+  pontosTotais,
+  atributosSugeridos,
+  aplicarAtributosSugeridos,
+  isLight,
+  disabled = false,
+  attrMin = 5,
+  attrMax = 16,
+}: AttributeDistributorProps) => {
+  const [infoAberta, setInfoAberta] = useState<string | null>(null);
   const pronto = pontosRestantes === 0;
-  const erro = pontosRestantes < 0;
-  const progressPct = pontosTotais > 0 ? Math.min(100, (pontosUsados / pontosTotais) * 100) : 0;
 
-  if (confirmado) {
-    return (
-      <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <Sparkles size={18} className="text-[var(--wa-teal)]" />
-          <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-            Caracteristicas confirmadas
-          </span>
-          <CheckCircle2 size={16} className="ml-auto text-[var(--wa-teal)]" />
-        </div>
-        <div className="grid grid-cols-5 gap-2">
-          {TRESDET_ATTR_CONFIG.map((cfg) => {
-            const val = valores[cfg.key] || 0;
-            return (
-              <div key={cfg.key} className={`rounded-xl border px-2 py-2.5 text-center ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}>
-                <div className={`text-[11px] font-mono font-semibold tracking-wide ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{cfg.sigla}</div>
-                <div className={`mt-1 text-xl font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{val}</div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-    );
-  }
+  const progressPct = pontosTotais > 0 ? Math.min(100, (pontosDistribuidos / pontosTotais) * 100) : 0;
+  const erro = pontosRestantes < 0;
 
   return (
-    <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+    <div className="wa-panel wa-etched rounded-[22px] p-4 md:p-5">
+      {/* --- Centered prominent points counter --- */}
       <div className="mb-5 flex flex-col items-center gap-2">
         <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
           <Sparkles size={11} />
-          Caracteristicas 3D&T
+          Mesa de calibracao
         </div>
         <h4 className={`mt-2 text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-          Distribuir Caracteristicas
+          Distribuir Atributos
         </h4>
-        <p className={`text-sm font-modern text-center ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-          Distribua {pontosTotais} pontos entre as 5 caracteristicas (0-5 cada).
+        <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
+          Ajuste o corpo mecanico da ficha antes de aplicar os bonus finais.
         </p>
 
+        {/* Big points badge */}
         <div className={`mt-2 flex flex-col items-center gap-1.5 rounded-2xl px-6 py-3 transition-all duration-300 ${
           pronto ? 'bg-emerald-500/15 ring-2 ring-emerald-400/50 animate-pulse' : erro ? 'bg-red-500/15 ring-2 ring-red-400/50' : isLight ? 'bg-slate-100' : 'bg-slate-800/60'
         }`}>
@@ -190,15 +237,16 @@ const TresDetCaracteristicasBlock = ({
             pronto ? 'text-emerald-400' : erro ? 'text-red-400' : isLight ? 'text-slate-900' : 'text-white'
           }`}>
             {pronto ? <CheckCircle2 size={22} /> : <Sparkles size={22} />}
-            {pontosUsados} / {pontosTotais}
+            {pontosDistribuidos} / {pontosTotais}
           </span>
           <span className={`text-xs font-modern font-medium ${
             pronto ? 'text-emerald-400' : erro ? 'text-red-400' : 'text-[var(--wa-muted)]'
           }`}>
-            {pronto ? 'Todos os pontos distribuidos!' : erro ? `${Math.abs(pontosRestantes)} pontos acima do limite!` : `${pontosRestantes} pontos restantes`}
+            {pronto ? 'Todos os pontos distribuidos — pronto para confirmar!' : erro ? `${Math.abs(pontosRestantes)} pontos acima do limite!` : `${pontosRestantes} pontos restantes`}
           </span>
         </div>
 
+        {/* Progress bar */}
         <div className={`mt-1 h-2 w-full max-w-xs overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
           <div
             className={`h-full rounded-full transition-all duration-300 ${
@@ -209,22 +257,39 @@ const TresDetCaracteristicasBlock = ({
         </div>
       </div>
 
-      <TresDetRadar valores={valores} isLight={isLight} />
+      {!!atributosSugeridos && !disabled && (
+        <button
+          onClick={aplicarAtributosSugeridos}
+          className="wa-panel-soft mb-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+        >
+          <Wand2 size={15} className="text-[var(--wa-forge-gold)]" />
+          Aplicar sugestao do Mestre
+        </button>
+      )}
+
+      <RadarChart
+        atributos={atributos}
+        attrMin={attrMin}
+        attrMax={attrMax}
+        isLight={isLight}
+      />
 
       <div className="space-y-3">
-        {TRESDET_ATTR_CONFIG.map((cfg) => {
-          const val = valores[cfg.key] || 0;
-          const showInfo = infoAberta === cfg.key;
+        {Object.entries(ATTR_CONFIG).map(([key, cfg]) => {
+          const val = atributos[key] || 0;
+          const mod = Math.floor((val - 10) / 2);
+          const showInfo = infoAberta === key;
+          const modClass = mod >= 0 ? 'wa-emerald-chip' : 'wa-ember-chip';
 
           return (
-            <div key={cfg.key} className="wa-panel-soft rounded-2xl px-3 py-3">
+            <div key={key} className="wa-panel-soft rounded-2xl px-3 py-3">
               <div className="flex items-center gap-2">
                 <div className="w-14 shrink-0">
                   <div className="flex items-center gap-1">
-                    <span className={`text-xs font-mono font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>{cfg.sigla}</span>
+                    <span className={`text-xs font-mono font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>{cfg.abbr}</span>
                     <button
                       type="button"
-                      onClick={() => setInfoAberta(showInfo ? null : cfg.key)}
+                      onClick={() => setInfoAberta(showInfo ? null : key)}
                       className={`rounded p-0.5 transition-colors cursor-pointer ${showInfo ? 'text-[var(--wa-accent)]' : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                       <Info size={12} />
@@ -233,11 +298,10 @@ const TresDetCaracteristicasBlock = ({
                 </div>
 
                 <button
-                  type="button"
-                  onClick={() => onSetValor(cfg.key, val - 1)}
-                  disabled={val <= cfg.min}
+                  onClick={() => setAtributo(key, val - 1)}
+                  disabled={disabled || val <= attrMin}
                   className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 cursor-pointer ${
-                    val <= cfg.min
+                    disabled || val <= attrMin
                       ? 'opacity-35 cursor-not-allowed'
                       : isLight ? 'border-slate-300 text-slate-600 hover:bg-white hover:border-slate-400' : 'border-slate-700 text-slate-300 hover:bg-slate-900 hover:border-slate-500'
                   }`}
@@ -248,11 +312,10 @@ const TresDetCaracteristicasBlock = ({
                 <div className={`w-10 text-center text-lg font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{val}</div>
 
                 <button
-                  type="button"
-                  onClick={() => onSetValor(cfg.key, val + 1)}
-                  disabled={val >= cfg.max || pontosRestantes <= 0}
+                  onClick={() => setAtributo(key, val + 1)}
+                  disabled={disabled || val >= attrMax || pontosRestantes <= 0}
                   className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 cursor-pointer ${
-                    val >= cfg.max || pontosRestantes <= 0
+                    disabled || val >= attrMax || pontosRestantes <= 0
                       ? 'opacity-35 cursor-not-allowed'
                       : isLight ? 'border-slate-300 text-slate-600 hover:bg-white hover:border-slate-400' : 'border-slate-700 text-slate-300 hover:bg-slate-900 hover:border-slate-500'
                   }`}
@@ -260,8 +323,12 @@ const TresDetCaracteristicasBlock = ({
                   <Plus size={16} />
                 </button>
 
+                <span className={`${modClass} inline-flex min-w-[3.25rem] items-center justify-center rounded-full px-2 py-1 text-xs font-mono font-semibold`}>
+                  {mod >= 0 ? '+' : ''}{mod}
+                </span>
+
                 <div className={`h-2.5 flex-1 overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
-                  <div className={`h-full rounded-full ${cfg.bar} transition-all duration-300`} style={{ width: `${(val / cfg.max) * 100}%` }} />
+                  <div className={`h-full rounded-full ${cfg.bar} transition-all duration-300`} style={{ width: `${Math.min(100, (val / 20) * 100)}%` }} />
                 </div>
               </div>
 
@@ -275,35 +342,8 @@ const TresDetCaracteristicasBlock = ({
           );
         })}
       </div>
-
-      <div className="mt-5 border-t border-[var(--wa-border)] pt-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Ficha mecanica
-            </p>
-            <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-              {pronto ? 'Caracteristicas distribuidas. Confirme para avancar.' : `Distribua os ${pontosRestantes} pontos restantes.`}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onConfirmar}
-            disabled={!pronto}
-            className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
-              !pronto
-                ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
-            }`}
-          >
-            <ChevronRight size={16} />
-            Confirmar caracteristicas ({pontosUsados}/{pontosTotais})
-          </button>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 };
 
-export default TresDetCaracteristicasBlock;
+export default AttributeDistributor;

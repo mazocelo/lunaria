@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 
 export interface WizardMessage {
-  id?: string;
+  id?: string | number;
   origem?: string;
   texto?: string;
+  role?: string;
+  content?: string;
+  etapa?: string;
+  timestamp?: Date | string | number;
+  sugestoes?: unknown[];
   [key: string]: unknown;
 }
 

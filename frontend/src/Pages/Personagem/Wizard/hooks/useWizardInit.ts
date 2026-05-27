@@ -1,8 +1,58 @@
-
 import { useEffect, useRef, useCallback } from 'react';
-import { mestreCriadorService } from '../../../../services/index.js';
+import { mestreCriadorService } from '../../../../services/index';
+import type { ChatStateApi } from './useChatState';
+import type { BonusCalculationApi } from './useBonusCalculation';
+import type { ComboPreviewApi } from './useComboPreview';
+import type { WizardDraft } from './useDraftPersistence';
 
-const SISTEMA_LABELS = { lunaria: 'Lunaria RPG', tresdet: '3D&T Alpha', dnd5e: 'D&D 5e' };
+const SISTEMA_LABELS: Record<string, string> = { lunaria: 'Lunaria RPG', tresdet: '3D&T Alpha', dnd5e: 'D&D 5e' };
+
+interface NavigationApi {
+  etapaAtual: string;
+  resetarNavegacao: () => void;
+  [key: string]: unknown;
+}
+
+interface PointSystemApi {
+  resetarSelecoes: () => void;
+  [key: string]: unknown;
+}
+
+interface CreationApi {
+  setCreationFlowStatus: (status: string) => void;
+  setCreationResultModalOpen: (open: boolean) => void;
+  setCreationResultData: (data: unknown) => void;
+  [key: string]: unknown;
+}
+
+interface MestreResposta {
+  mensagem?: string;
+  sugestoes?: Array<Record<string, unknown>>;
+  atributos_sugeridos?: unknown;
+  [key: string]: unknown;
+}
+
+interface UseWizardInitParams {
+  chat: ChatStateApi;
+  navigation: NavigationApi;
+  nome: string;
+  racaId: number | string | null;
+  setNome: (v: string) => void;
+  setRacaId: (v: number | string | null) => void;
+  setRacaNome: (v: string) => void;
+  setClasseId: (v: number | string | null) => void;
+  setClasseNome: (v: string) => void;
+  setBackground: (v: string) => void;
+  pointSystem: PointSystemApi;
+  bonusCalc: BonusCalculationApi;
+  creation: CreationApi;
+  draftInicial: WizardDraft | null;
+  limparDraft: () => void;
+  setDraftRestaurado: (v: boolean) => void;
+  getEstado: () => Record<string, unknown>;
+  comboPreview: ComboPreviewApi;
+  sistema?: string;
+}
 
 /**
  * Handles wizard initialization (first-time start or draft restoration),
@@ -31,7 +81,7 @@ export const useWizardInit = ({
   comboPreview,
   // Sistema
   sistema,
-}) => {
+}: UseWizardInitParams) => {
   const {
     setMensagens, setEnviando, enviandoRef,
     setSugestoes, setError,
@@ -62,7 +112,7 @@ export const useWizardInit = ({
         historico: [],
         actionMode: 'enter_stage',
         sistema: sistemaEfetivo,
-      });
+      }) as MestreResposta;
       setMensagens([mensagemSistema, {
         id: Date.now() + 1,
         role: 'mestre',
@@ -73,7 +123,8 @@ export const useWizardInit = ({
       }]);
       if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
     } catch (err) {
-      setError(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       setMensagens([mensagemSistema, {
         id: Date.now() + 1,
         role: 'mestre',
@@ -102,7 +153,7 @@ export const useWizardInit = ({
         historico: [],
         actionMode: 'enter_stage',
         sistema: sistema || 'lunaria',
-      });
+      }) as MestreResposta;
 
       setMensagens(prev => [...prev, {
         id: Date.now(),
@@ -117,7 +168,7 @@ export const useWizardInit = ({
       if (resultado.atributos_sugeridos) {
         bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
       }
-    } catch (err) {
+    } catch (_err) {
       setMensagens(prev => [...prev, {
         id: Date.now(),
         role: 'sistema',
@@ -157,7 +208,7 @@ export const useWizardInit = ({
 
   // ---- beforeunload warning ----
   useEffect(() => {
-    const handler = (e) => {
+    const handler = (e: BeforeUnloadEvent) => {
       if (nome || racaId) {
         e.preventDefault();
         e.returnValue = '';

@@ -49,7 +49,7 @@ const Sidebar = () => {
     { path: '/equipamentos', label: 'Equipamentos', icon: Sword, description: 'Armas e itens magicos' },
     { path: '/monstros', label: 'Monstros', icon: Skull, description: 'Bestiario de Lunaria' },
     { path: '/temas', label: 'Temas', icon: Palette, description: 'Gerencie os temas' },
-    { path: '/habilidades', label: 'Habilidades', icon: Zap, description: 'Gerencie as habilidades' },
+    { path: '/habilidades-magias', label: 'Habilidades', icon: Zap, description: 'Gerencie as habilidades' },
     { path: '/mestres', label: 'Mestres', icon: Crown, description: 'Gerencie seus mestres' },
     { path: '/admin/docs', label: 'Docs Interno', icon: ScrollText, description: 'Base de conhecimento' },
   ];

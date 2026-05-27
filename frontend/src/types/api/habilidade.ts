@@ -67,7 +67,8 @@ export const habilidadeSchema = z
     pre_requisito: preRequisitosSchema.nullable().optional(),
     pre_requisitos: preRequisitosSchema.nullable().optional(),
     usos_por_descanso: z.number().int().nullable().optional(),
-    componente_material: z.record(z.string(), z.unknown()).nullable().optional(),
+    // Backend serializa em formas variadas (objeto/string/array). Aceitar unknown.
+    componente_material: z.unknown().nullable().optional(),
     saving_throw: z.string().nullable().optional(),
     imagem: z.string().nullable().optional(),
     sistema: sistemaSchema,

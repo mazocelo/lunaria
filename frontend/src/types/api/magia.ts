@@ -27,8 +27,9 @@ export const magiaTresdetSchema = z
     duracao: z.string(),
     tipo: z.string().default('dano'),
     exigencias: z.string().nullable().optional(),
-    focus_requisito: z.record(z.string(), z.unknown()).nullable().optional(),
-    efeito: z.record(z.string(), z.unknown()).nullable().optional(),
+    // Backend serializa em formas variadas (objeto/string/null). Aceitar unknown.
+    focus_requisito: z.unknown().nullable().optional(),
+    efeito: z.unknown().nullable().optional(),
     nivel_minimo: z.number().int().default(1),
   })
   .passthrough();

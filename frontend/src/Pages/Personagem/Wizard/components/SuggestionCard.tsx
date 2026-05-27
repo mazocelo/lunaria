@@ -1,6 +1,28 @@
 import { Sparkles, Shield, Sword, Zap } from 'lucide-react';
+import type { ComponentType } from 'react';
 
-const TIPO_CONFIG = {
+type IconComponent = ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>;
+
+interface TipoConfig {
+  icon: IconComponent;
+  label: string;
+  helper: string;
+  cta: string;
+  accent: string;
+  costClass: string;
+}
+
+export interface Sugestao {
+  tipo?: string;
+  id?: number | string;
+  nome?: string;
+  custo?: number;
+  descricao?: string;
+  imagem?: string | null;
+  [key: string]: unknown;
+}
+
+const TIPO_CONFIG: Record<string, TipoConfig> = {
   raca: {
     icon: Sparkles,
     label: 'Linhagem',
@@ -35,11 +57,19 @@ const TIPO_CONFIG = {
   },
 };
 
-const hasVisualImage = (sugestao) =>
-  sugestao.imagem && (sugestao.tipo === 'raca' || sugestao.tipo === 'classe');
+const hasVisualImage = (sugestao: Sugestao): boolean =>
+  Boolean(sugestao.imagem) && (sugestao.tipo === 'raca' || sugestao.tipo === 'classe');
 
-const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant = 'default' }) => {
-  const config = TIPO_CONFIG[sugestao.tipo] || TIPO_CONFIG.vantagem;
+interface SuggestionCardProps {
+  sugestao: Sugestao;
+  onSelect: (s: Sugestao) => void;
+  isLight: boolean;
+  selected?: boolean;
+  variant?: 'default' | 'atelier';
+}
+
+const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant = 'default' }: SuggestionCardProps) => {
+  const config = TIPO_CONFIG[sugestao.tipo || 'vantagem'] || TIPO_CONFIG.vantagem;
   const Icon = config.icon;
   const showImage = hasVisualImage(sugestao);
 
@@ -58,10 +88,10 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
         <div className="flex items-start gap-3">
           {showImage ? (
             <img
-              src={sugestao.imagem}
+              src={sugestao.imagem ?? undefined}
               alt={sugestao.nome}
               className="h-10 w-10 shrink-0 rounded-lg object-cover ring-2"
-              style={{ ringColor: `${config.accent}66` }}
+              style={{ '--tw-ring-color': `${config.accent}66` } as React.CSSProperties}
             />
           ) : (
             <div className="rounded-lg p-2" style={{ backgroundColor: isLight ? `${config.accent}18` : `${config.accent}22` }}>
@@ -105,10 +135,10 @@ const SuggestionCard = ({ sugestao, onSelect, isLight, selected = false, variant
       <div className="flex items-start gap-3">
         {showImage ? (
           <img
-            src={sugestao.imagem}
+            src={sugestao.imagem ?? undefined}
             alt={sugestao.nome}
             className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-2 transition-transform duration-200 group-hover:scale-105"
-            style={{ '--tw-ring-color': `${config.accent}66` }}
+            style={{ '--tw-ring-color': `${config.accent}66` } as React.CSSProperties}
           />
         ) : (
           <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border" style={{ borderColor: `${config.accent}55`, background: isLight ? `${config.accent}10` : `${config.accent}18` }}>

@@ -1,6 +1,10 @@
-import React from 'react';
+interface StageCopy {
+  title: string;
+  description: string;
+  action: string;
+}
 
-const STAGE_COPY = {
+const STAGE_COPY: Record<string, StageCopy> = {
   boas_vindas: {
     title: 'Batize a centelha do heroi',
     description: 'Escolha um nome que abra caminho para o resto da identidade do personagem.',
@@ -58,13 +62,21 @@ const STAGE_COPY = {
   }
 };
 
+interface WizardStageHeroProps {
+  etapas?: Array<{ id: string; label: string; icon: string }>;
+  etapaAtual: string;
+  etapaIndex?: number;
+  isLight: boolean;
+  embedded?: boolean;
+}
+
 const WizardStageHero = ({
-  etapas,
+  etapas: _etapas,
   etapaAtual,
-  etapaIndex,
+  etapaIndex: _etapaIndex,
   isLight,
   embedded = false,
-}) => {
+}: WizardStageHeroProps) => {
   const copy = STAGE_COPY[etapaAtual] || STAGE_COPY.boas_vindas;
 
   return (

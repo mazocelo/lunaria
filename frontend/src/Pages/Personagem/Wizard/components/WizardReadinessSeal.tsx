@@ -1,7 +1,17 @@
-import React from 'react';
+import type { ComponentType } from 'react';
 import { Flame, Hammer, ShieldCheck } from 'lucide-react';
 
-const READINESS_CONFIG = {
+type ReadinessState = 'open' | 'shaping' | 'sealed';
+type IconComponent = ComponentType<{ size?: number; className?: string }>;
+
+interface ReadinessConfig {
+  label: string;
+  hint: string;
+  icon: IconComponent;
+  className: string;
+}
+
+const READINESS_CONFIG: Record<ReadinessState, ReadinessConfig> = {
   open: {
     label: 'Forja aberta',
     hint: 'Base em preparacao',
@@ -22,7 +32,12 @@ const READINESS_CONFIG = {
   },
 };
 
-const WizardReadinessSeal = ({ readinessState = 'open', compact = false }) => {
+interface WizardReadinessSealProps {
+  readinessState?: ReadinessState;
+  compact?: boolean;
+}
+
+const WizardReadinessSeal = ({ readinessState = 'open', compact = false }: WizardReadinessSealProps) => {
   const config = READINESS_CONFIG[readinessState] || READINESS_CONFIG.open;
   const Icon = config.icon;
 

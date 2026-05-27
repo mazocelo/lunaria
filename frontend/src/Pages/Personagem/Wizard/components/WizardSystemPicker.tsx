@@ -1,7 +1,26 @@
 import { ArrowLeft, Dices, Sparkles, Swords, Shield } from 'lucide-react';
-import { useTheme } from '../../../../contexts/theme.jsx';
+import type { ComponentType } from 'react';
+import { useTheme } from '../../../../contexts/theme';
 
-const SYSTEMS = [
+type IconComponent = ComponentType<{ size?: number; className?: string }>;
+
+interface SystemColor {
+  active: string;
+  hover: string;
+  icon: string;
+  label: string;
+  labelLight: string;
+}
+
+interface SystemDef {
+  id: string;
+  label: string;
+  desc: string;
+  icon: IconComponent;
+  color: SystemColor;
+}
+
+const SYSTEMS: SystemDef[] = [
   {
     id: 'lunaria',
     label: 'Lunaria RPG',
@@ -43,7 +62,12 @@ const SYSTEMS = [
   },
 ];
 
-export default function WizardSystemPicker({ onSelect, onBack }) {
+interface WizardSystemPickerProps {
+  onSelect: (id: string) => void;
+  onBack: () => void;
+}
+
+export default function WizardSystemPicker({ onSelect, onBack }: WizardSystemPickerProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

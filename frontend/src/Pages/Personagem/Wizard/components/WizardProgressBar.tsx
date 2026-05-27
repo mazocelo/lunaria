@@ -1,6 +1,26 @@
-import React from 'react';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
-import { getStageConfig } from '../stages/stageConfig.js';
+import { getStageConfig } from '../stages/stageConfig';
+import type { StageEtapa } from '../stages/stageConfig';
+
+interface WizardProgressBarProps {
+  etapas: StageEtapa[];
+  etapaIndex: number;
+  isLight: boolean;
+  onEtapaClick?: (id: string) => void;
+  etapasConcluidas?: string[];
+  etapasVisitadas?: string[];
+  tooltipMap?: Record<string, string>;
+  onBack?: () => void;
+  onToggleFicha?: () => void;
+  fichaAberta?: boolean;
+  embedded?: boolean;
+  pontosCriacaoRestantes?: number;
+  pontosCriacaoTotal?: number;
+  pontosDistribuidos?: number;
+  pontosTotais?: number;
+  pontosRestantes?: number;
+  sistema?: string;
+}
 
 const WizardProgressBar = ({
   etapas,
@@ -20,7 +40,7 @@ const WizardProgressBar = ({
   pontosTotais,
   pontosRestantes,
   sistema,
-}) => {
+}: WizardProgressBarProps) => {
   const progresso = ((etapaIndex + 1) / etapas.length) * 100;
   const etapaAtual = etapas[etapaIndex];
   const copy = getStageConfig(etapaAtual?.id, sistema);
@@ -56,9 +76,9 @@ const WizardProgressBar = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {['vantagens', 'desvantagens'].includes(etapaAtual?.id) && pontosCriacaoTotal != null && (
+          {etapaAtual?.id && ['vantagens', 'desvantagens'].includes(etapaAtual.id) && pontosCriacaoTotal != null && (
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-mono font-semibold ${
-              pontosCriacaoRestantes <= 0 ? 'wa-ember-chip' : 'wa-accent-chip'
+              (pontosCriacaoRestantes ?? 0) <= 0 ? 'wa-ember-chip' : 'wa-accent-chip'
             }`}>
               {pontosCriacaoRestantes}/{pontosCriacaoTotal} pts
             </span>

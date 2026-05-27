@@ -1,11 +1,17 @@
-import React from 'react';
+interface MasterAvatarGlyphProps {
+  size?: 'sm' | 'md' | 'lg';
+  isLight?: boolean;
+  glow?: boolean;
+  className?: string;
+}
 
-const MasterAvatarGlyph = ({ size = 'md', isLight = false, glow = false, className = '' }) => {
-  const sizeClass = {
+const MasterAvatarGlyph = ({ size = 'md', isLight = false, glow = false, className = '' }: MasterAvatarGlyphProps) => {
+  const sizeMap: Record<string, string> = {
     sm: 'h-8 w-8 text-[11px]',
     md: 'h-10 w-10 text-[12px]',
     lg: 'h-12 w-12 text-[13px]',
-  }[size] || 'h-10 w-10 text-[12px]';
+  };
+  const sizeClass = sizeMap[size] || 'h-10 w-10 text-[12px]';
 
   return (
     <div

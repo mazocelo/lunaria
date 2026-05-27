@@ -9,7 +9,52 @@
 
 // ===== LUNARIA STAGES =====
 
-export const LUNARIA_STAGES = [
+export interface StageConfig {
+  id: string;
+  label: string;
+  icon: string;
+  title: string;
+  description: string;
+  placeholder: string;
+  refreshPrompt: string | null;
+  next: string | null;
+  allowRefresh: boolean;
+  allowSkip: boolean;
+  requireExplicitContinue: boolean;
+  autoAdvanceOnSelect: boolean;
+  suggestionType: string | null;
+  showCatalog: boolean;
+  catalogLabel: string | null;
+  catalogType: string | null;
+  showAttributePanel: boolean;
+  showBudgetPanel: boolean;
+  showFinalAction: boolean;
+  showTresdetCaracteristicas?: boolean;
+  showTresdetVantagens?: boolean;
+  showTresdetDesvantagens?: boolean;
+  showDndAbilityScores?: boolean;
+  showDndSkills?: boolean;
+  progressLabel: string | null;
+  doneCheck: string | null;
+  continueLabel?: string;
+  condicao?: (dados: Record<string, unknown>) => boolean;
+}
+
+export interface StageEtapa {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+export interface StageDerived {
+  stages: StageConfig[];
+  order: string[];
+  ids: Set<string>;
+  map: Record<string, StageConfig>;
+  etapas: StageEtapa[];
+}
+
+export const LUNARIA_STAGES: StageConfig[] = [
   {
     id: 'boas_vindas',
     label: 'O Chamado',
@@ -248,7 +293,7 @@ export const LUNARIA_STAGES = [
 
 // ===== 3D&T STAGES =====
 
-export const TRESDET_STAGES = [
+export const TRESDET_STAGES: StageConfig[] = [
   {
     id: 'boas_vindas',
     label: 'O Chamado',
@@ -416,7 +461,7 @@ export const TRESDET_STAGES = [
     progressLabel: 'Magias',
     doneCheck: 'magiasSelecionadas',
     continueLabel: 'Confirmar magias',
-    condicao: (dados) => dados.temMagia,
+    condicao: (dados: Record<string, unknown>) => Boolean(dados.temMagia),
   },
   {
     id: 'resumo',
@@ -447,7 +492,7 @@ export const TRESDET_STAGES = [
 // Wizard D&D 5e: 7 etapas. Equipamentos e magias ficam como divida futura
 // (o backend D&D ainda nao os persiste).
 
-export const DND5E_STAGES = [
+export const DND5E_STAGES: StageConfig[] = [
   {
     id: 'boas_vindas',
     label: 'O Chamado',
@@ -620,7 +665,7 @@ export const STAGES = LUNARIA_STAGES;
 
 // ===== SISTEMA-AWARE GETTERS =====
 
-function buildDerived(stages) {
+function buildDerived(stages: StageConfig[]): StageDerived {
   const order = stages.map((s) => s.id);
   const ids = new Set(order);
   const map = Object.fromEntries(stages.map((s) => [s.id, s]));
@@ -632,7 +677,7 @@ const LUNARIA_DERIVED = buildDerived(LUNARIA_STAGES);
 const TRESDET_DERIVED = buildDerived(TRESDET_STAGES);
 const DND5E_DERIVED = buildDerived(DND5E_STAGES);
 
-export function getSystemStages(sistema) {
+export function getSystemStages(sistema: string | undefined): StageDerived {
   if (sistema === 'tresdet') return TRESDET_DERIVED;
   if (sistema === 'dnd5e') return DND5E_DERIVED;
   return LUNARIA_DERIVED;
@@ -643,7 +688,7 @@ export const STAGE_ORDER = LUNARIA_DERIVED.order;
 export const STAGE_IDS = LUNARIA_DERIVED.ids;
 export const STAGE_MAP = LUNARIA_DERIVED.map;
 
-export function getStageConfig(id, sistema) {
+export function getStageConfig(id: string, sistema?: string): StageConfig {
   const derived = getSystemStages(sistema);
   return derived.map[id] || derived.stages[0];
 }

@@ -1,12 +1,52 @@
+import { useCallback, type MutableRefObject } from 'react';
+import { mestreCriadorService } from '../../../../services/index';
+import type { ChatStateApi, WizardMessage } from './useChatState';
+import type { BonusCalculationApi } from './useBonusCalculation';
 
-import { useCallback } from 'react';
-import { mestreCriadorService } from '../../../../services/index.js';
+interface DeveDefinirNomeOptions {
+  aceitarNome?: boolean;
+  manterEtapa?: boolean;
+}
+
+interface MestreResposta {
+  mensagem?: string;
+  sugestoes?: WizardSuggestion[];
+  atributos_sugeridos?: unknown;
+  etapa_proxima?: string;
+  [key: string]: unknown;
+}
+
+interface WizardSuggestion {
+  tipo?: string;
+  id?: number | string;
+  nome?: string;
+  custo?: number | string;
+  [key: string]: unknown;
+}
+
+interface NavigationApi {
+  etapaAtual: string;
+  registrarVisita: (etapaId: string) => boolean;
+  getProximaEtapa: () => { etapa: string; primeiraVisita: boolean } | null;
+  avancarEtapa: () => { etapa: string; primeiraVisita: boolean } | null;
+  [key: string]: unknown;
+}
+
+interface PointSystemApi {
+  vantagensIds: Array<number | string>;
+  desvantagensIds: Array<number | string>;
+  selecionarVantagemDesvantagem: (tipo: 'vantagem' | 'desvantagem', id: number | string, nome: string, custo: number | string) => string | null;
+  removerSelecao: (tipo: 'vantagem' | 'desvantagem', id: number | string) => void;
+  setSkipVantagens: (v: boolean) => void;
+  setSkipDesvantagens: (v: boolean) => void;
+  [key: string]: unknown;
+}
 
 /**
  * Validates whether a text input should be interpreted as the character's name.
  * Pure function — exported separately from the hook.
  */
-export function deveDefinirNomeInicial(texto, options = {}) {
+export function deveDefinirNomeInicial(texto: string, options: DeveDefinirNomeOptions = {}): boolean {
   if (options.aceitarNome) return true;
   if (options.manterEtapa) return false;
 
@@ -42,6 +82,37 @@ export function deveDefinirNomeInicial(texto, options = {}) {
  * Encapsulates core mestre interaction: sending messages, advancing stages,
  * selecting suggestions, and skipping stages.
  */
+interface UseMestreInteractionParams {
+  setMensagens: ChatStateApi['setMensagens'];
+  setEnviando: ChatStateApi['setEnviando'];
+  enviandoRef: MutableRefObject<boolean>;
+  setSugestoes: ChatStateApi['setSugestoes'];
+  setError: ChatStateApi['setError'];
+  setInputTexto: ChatStateApi['setInputTexto'];
+  navigation: NavigationApi;
+  nome: string;
+  setNome: (v: string) => void;
+  racaId: number | string | null;
+  classeId: number | string | null;
+  background: string;
+  setBackground: (v: string) => void;
+  setRacaId: (v: number | string | null) => void;
+  setRacaNome: (v: string) => void;
+  setClasseId: (v: number | string | null) => void;
+  setClasseNome: (v: string) => void;
+  pointSystem: PointSystemApi;
+  bonusCalc: BonusCalculationApi;
+  getEstado: () => Record<string, unknown>;
+  getHistorico: () => WizardMessage[];
+  estadoRef: MutableRefObject<{ nome?: string; [key: string]: unknown }>;
+  sistema?: string;
+}
+
+interface EnviarMensagemOptions {
+  manterEtapa?: boolean;
+  aceitarNome?: boolean;
+}
+
 export const useMestreInteraction = ({
   // Chat state (from useChatState)
   setMensagens, setEnviando, enviandoRef, setSugestoes, setError,
@@ -50,7 +121,7 @@ export const useMestreInteraction = ({
   // Navigation (from useWizardNavigation)
   navigation,
   // Character state
-  nome, setNome, racaId, classeId, background, setBackground,
+  nome: _nome, setNome, racaId: _racaId, classeId: _classeId, background: _background, setBackground,
   // Raca / Classe setters
   setRacaId, setRacaNome, setClasseId, setClasseNome,
   // Point system
@@ -63,14 +134,14 @@ export const useMestreInteraction = ({
   estadoRef,
   // Sistema
   sistema,
-}) => {
+}: UseMestreInteractionParams) => {
 
   /** Envia mensagem textual do jogador */
-  const enviarMensagem = useCallback(async (texto, options = {}) => {
+  const enviarMensagem = useCallback(async (texto: string, options: EnviarMensagemOptions = {}) => {
     if (!texto?.trim() || enviandoRef.current) return;
     const mensagemJogador = texto.trim();
     const manterEtapa = options?.manterEtapa === true;
-    const estadoOverride = {};
+    const estadoOverride: Record<string, unknown> = {};
 
     if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome && deveDefinirNomeInicial(mensagemJogador, options)) {
       setNome(mensagemJogador);
@@ -101,7 +172,7 @@ export const useMestreInteraction = ({
         historico: getHistorico(),
         actionMode: manterEtapa ? 'refresh_options' : 'reply',
         sistema: sistema || 'lunaria',
-      });
+      }) as MestreResposta;
 
       const etapaMensagem = manterEtapa
         ? navigation.etapaAtual
@@ -123,11 +194,13 @@ export const useMestreInteraction = ({
         navigation.registrarVisita(resultado.etapa_proxima);
       }
     } catch (err) {
-      setError(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       enviandoRef.current = false;
       setEnviando(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation.etapaAtual, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, navigation.registrarVisita, sistema]);
 
   /** Aplica sugestão de atributos do Mestre */
@@ -139,11 +212,13 @@ export const useMestreInteraction = ({
     }
     setError(null);
     return resultado;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bonusCalc.aplicarAtributosSugeridos]);
 
   /** Seleciona sugestão silenciosamente (T1) */
-  const selecionarSugestao = useCallback((sugestao) => {
+  const selecionarSugestao = useCallback((sugestao: WizardSuggestion) => {
     const { tipo, id, nome: sugestaoNome, custo } = sugestao;
+    if (id == null || !sugestaoNome) return;
 
     switch (tipo) {
       case 'raca':
@@ -155,27 +230,28 @@ export const useMestreInteraction = ({
         setClasseNome(sugestaoNome);
         break;
       case 'vantagem': {
-        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
+        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo ?? 0);
         if (erro) { setError(erro); return; }
         // P2: reset skip ao selecionar manualmente
         pointSystem.setSkipVantagens(false);
         break;
       }
       case 'desvantagem': {
-        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo);
+        const erro = pointSystem.selecionarVantagemDesvantagem(tipo, id, sugestaoNome, custo ?? 0);
         if (erro) { setError(erro); return; }
         // P2: reset skip ao selecionar manualmente
         pointSystem.setSkipDesvantagens(false);
         break;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pointSystem.selecionarVantagemDesvantagem, pointSystem.setSkipVantagens, pointSystem.setSkipDesvantagens]);
 
   /** P3: Chama backend com continue_stage e avanca somente apos resposta.
    *  Se backend rejeitar avanco (etapa_proxima === etapa_atual), permanece.
    *  Se backend falhar, avanca localmente como fallback.
    *  @param {Object} [estadoOverride] - sobrescreve campos em getEstado() (ex: skip limpa selecoes) */
-  const avancarComMestre = useCallback(async (estadoOverride) => {
+  const avancarComMestre = useCallback(async (estadoOverride?: Record<string, unknown>) => {
     if (enviandoRef.current) return;
 
     // Calcular destino esperado (read-only) para fallback e deteccao de revisit
@@ -206,7 +282,7 @@ export const useMestreInteraction = ({
         historico: getHistorico(),
         actionMode: 'continue_stage',
         sistema: sistema || 'lunaria',
-      });
+      }) as MestreResposta;
 
       // Consumir etapa_proxima do backend como fonte de verdade
       const destino = resultado.etapa_proxima || info.etapa;
@@ -226,7 +302,7 @@ export const useMestreInteraction = ({
 
       setSugestoes(resultado.sugestoes || []);
       if (resultado.atributos_sugeridos) bonusCalc.setAtributosSugeridos(resultado.atributos_sugeridos);
-    } catch (err) {
+    } catch (_err) {
       // Fallback: avancar localmente se backend falhar
       navigation.avancarEtapa();
       setMensagens(prev => [...prev, {
@@ -240,12 +316,13 @@ export const useMestreInteraction = ({
       enviandoRef.current = false;
       setEnviando(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation.getProximaEtapa, navigation.etapaAtual, navigation.registrarVisita, navigation.avancarEtapa, getEstado, getHistorico, bonusCalc.setAtributosSugeridos, sistema]);
 
   /** Pular etapa de vantagens ou desvantagens — limpa seleções + avança com estado correto */
-  const pularEtapa = useCallback((tipo) => {
+  const pularEtapa = useCallback((tipo: 'vantagens' | 'desvantagens') => {
     if (tipo !== 'vantagens' && tipo !== 'desvantagens') return;
-    const override = {};
+    const override: Record<string, unknown> = {};
     if (tipo === 'vantagens') {
       pointSystem.vantagensIds.forEach(id => pointSystem.removerSelecao('vantagem', id));
       pointSystem.setSkipVantagens(true);

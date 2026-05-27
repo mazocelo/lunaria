@@ -2,12 +2,32 @@ import { useState, useRef, useCallback } from 'react';
 
 const DRAFT_KEY = 'lunaria_wizard_draft_v2';
 
-function loadDraftFromStorage() {
+export interface WizardDraft {
+  etapaAtual?: string;
+  nome?: string;
+  racaId?: number | string | null;
+  racaNome?: string | null;
+  classeId?: number | string | null;
+  classeNome?: string | null;
+  background?: string;
+  vantagensIds?: Array<number | string>;
+  vantagensNomes?: string[];
+  desvantagensIds?: Array<number | string>;
+  desvantagensNomes?: string[];
+  atributosBase?: Record<string, number>;
+  bonusAplicados?: boolean;
+  skipVantagens?: boolean;
+  skipDesvantagens?: boolean;
+  etapasVisitadas?: string[];
+  etapasConcluidas?: string[];
+}
+
+function loadDraftFromStorage(): WizardDraft | null {
   try {
     localStorage.removeItem('lunaria_wizard_draft_v1');
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    return JSON.parse(raw) as WizardDraft;
   } catch { return null; }
 }
 
@@ -16,11 +36,11 @@ function loadDraftFromStorage() {
  * Responsabilidades: load, save, clear, flag de restauração.
  */
 export const useDraftPersistence = () => {
-  const draft = useRef(loadDraftFromStorage());
+  const draft = useRef<WizardDraft | null>(loadDraftFromStorage());
   const [draftRestaurado, setDraftRestaurado] = useState(false);
 
   /** Salva estado atual como draft v2 */
-  const salvarDraft = useCallback((state) => {
+  const salvarDraft = useCallback((state: WizardDraft) => {
     if (state.etapaAtual === 'boas_vindas' && !state.nome) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
@@ -58,3 +78,5 @@ export const useDraftPersistence = () => {
     limparDraft,
   };
 };
+
+export type DraftPersistenceApi = ReturnType<typeof useDraftPersistence>;

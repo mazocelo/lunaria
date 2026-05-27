@@ -1,12 +1,60 @@
 import { useState, useCallback, useRef } from 'react';
-import { historiaService, personagemService } from '../../../services/index.js';
+import { historiaService, personagemService } from '../../../services/index';
 import useGameStore from '../../../store/game';
 import useSocketStore from '../../../store/socket';
-import { useTemaStore } from '../../../store/tema/index.js';
+import { useTemaStore } from '../../../store/tema/index';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-async function extrairMensagemErroResponse(response, fallback = 'Erro ao iniciar partida') {
+interface User {
+  id?: number | string;
+  nome?: string;
+  name?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
+interface PersonagemBasico {
+  id?: number | string;
+  nome?: string;
+  classe?: string;
+  classe_nome?: string;
+  raca?: string;
+  raca_nome?: string;
+  nivel?: number | string;
+  hp?: number | string;
+  hp_atual?: number | string;
+  hp_maximo?: number | string;
+  mp?: number | string;
+  mp_atual?: number | string;
+  xp?: number | string;
+  [key: string]: unknown;
+}
+
+interface HistoriaBasica {
+  id?: number | string;
+  id_usuario?: number | string;
+  nome?: string;
+  titulo?: string;
+  descricao?: string;
+  prologo?: string;
+  maximo_de_participantes?: number;
+  temas?: unknown;
+  [key: string]: unknown;
+}
+
+interface ParticipanteBasico {
+  userId?: number | string;
+  username?: string;
+  personagem?: string;
+  personagemId?: number | string;
+  personagemNome?: string;
+  isOwner?: boolean;
+  status?: string;
+  [key: string]: unknown;
+}
+
+async function extrairMensagemErroResponse(response: Response, fallback = 'Erro ao iniciar partida'): Promise<string> {
   try {
     const errorData = await response.json();
 
@@ -63,13 +111,13 @@ export const useJogo = () => {
 
   // === LOCAL STATE ===
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
 
   // === REFS ===
   const isInitializingRef = useRef(false);
   const isLoadingHistoriaRef = useRef(false);
-  const copiarTimeoutRef = useRef(null);
+  const copiarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // === GAME STORE ACTIONS (stable references) ===
   const storeSetHistoriaAtual = useGameStore(s => s.setHistoriaAtual);
@@ -83,7 +131,6 @@ export const useJogo = () => {
   const storeSetStatusPersonagem = useGameStore(s => s.setStatusPersonagem);
   const storeResetGameState = useGameStore(s => s.resetGameState);
   const storeSetLoading = useGameStore(s => s.setLoading);
-  const storeSetError = useGameStore(s => s.setError);
   const storeClearErrors = useGameStore(s => s.clearErrors);
   const storeSetLoadingPersonagens = useGameStore(s => s.setLoadingPersonagens);
   const storeSetErrorPersonagens = useGameStore(s => s.setErrorPersonagens);
@@ -91,7 +138,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // CARREGAR HISTORIA
   // ------------------------------------------------------------------
-  const carregarHistoria = useCallback(async (historiaId) => {
+  const carregarHistoria = useCallback(async (historiaId: number | string) => {
     if (isLoadingHistoriaRef.current) return;
     try {
       isLoadingHistoriaRef.current = true;
@@ -99,10 +146,11 @@ export const useJogo = () => {
       storeSetLoading(true);
       setError(null);
 
-      const historia = await historiaService.getById(historiaId);
-      storeSetHistoriaAtual(historia);
+      const historia = await historiaService.getById(Number(historiaId));
+      storeSetHistoriaAtual(historia as unknown as Parameters<typeof storeSetHistoriaAtual>[0]);
     } catch (err) {
-      setError('Erro ao carregar historia: ' + err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setError('Erro ao carregar historia: ' + message);
     } finally {
       setLoading(false);
       storeSetLoading(false);
@@ -113,7 +161,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // CARREGAR PERSONAGENS
   // ------------------------------------------------------------------
-  const carregarPersonagens = useCallback(async (userId) => {
+  const carregarPersonagens = useCallback(async (userId: number | string) => {
     const historia = useGameStore.getState().historiaAtual;
     if (!historia || !userId) return;
 
@@ -121,13 +169,14 @@ export const useJogo = () => {
       storeSetLoadingPersonagens(true);
       storeSetErrorPersonagens(null);
 
-      const response = await personagemService.getByUsuarioEHistoria(userId, historia.id);
-      const personagens = response.personagens || [];
+      const response = await personagemService.getByUsuarioEHistoria(Number(userId), Number(historia.id)) as unknown as { personagens?: PersonagemBasico[] } | null;
+      const personagens = response?.personagens || [];
 
-      storeSetPersonagensDaHistoria(personagens);
+      storeSetPersonagensDaHistoria(personagens as unknown as Parameters<typeof storeSetPersonagensDaHistoria>[0]);
       storeSetLoadingPersonagens(false);
     } catch (err) {
-      storeSetErrorPersonagens(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      storeSetErrorPersonagens(message);
       storeSetLoadingPersonagens(false);
     }
   }, [storeSetPersonagensDaHistoria, storeSetLoadingPersonagens, storeSetErrorPersonagens]);
@@ -135,7 +184,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // RECARREGAR PERSONAGENS (forca recarga)
   // ------------------------------------------------------------------
-  const recarregarPersonagens = useCallback(async (userId) => {
+  const recarregarPersonagens = useCallback(async (userId: number | string) => {
     const historia = useGameStore.getState().historiaAtual;
     if (!historia || !userId) return;
 
@@ -143,13 +192,14 @@ export const useJogo = () => {
       storeSetLoadingPersonagens(true);
       storeSetErrorPersonagens(null);
 
-      const response = await personagemService.getByUsuarioEHistoria(userId, historia.id);
-      const personagens = response.personagens || [];
+      const response = await personagemService.getByUsuarioEHistoria(Number(userId), Number(historia.id)) as unknown as { personagens?: PersonagemBasico[] } | null;
+      const personagens = response?.personagens || [];
 
-      storeSetPersonagensDaHistoria(personagens);
+      storeSetPersonagensDaHistoria(personagens as unknown as Parameters<typeof storeSetPersonagensDaHistoria>[0]);
       storeSetLoadingPersonagens(false);
     } catch (err) {
-      storeSetErrorPersonagens(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      storeSetErrorPersonagens(message);
       storeSetLoadingPersonagens(false);
     }
   }, [storeSetPersonagensDaHistoria, storeSetLoadingPersonagens, storeSetErrorPersonagens]);
@@ -157,7 +207,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // INICIALIZAR JOGO (historia + temas)
   // ------------------------------------------------------------------
-  const initializeGame = useCallback(async (historiaId, options = {}) => {
+  const initializeGame = useCallback(async (historiaId: number | string, _options: { fromInvite?: boolean } = {}) => {
     if (isInitializingRef.current) return;
     try {
       isInitializingRef.current = true;
@@ -177,7 +227,8 @@ export const useJogo = () => {
 
       isInitializingRef.current = false;
     } catch (err) {
-      setError('Erro ao inicializar jogo: ' + err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setError('Erro ao inicializar jogo: ' + message);
       isInitializingRef.current = false;
     }
   }, [carregarHistoria, temasCarregados, carregarTemas, storeSelecionarPersonagem]);
@@ -185,16 +236,16 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // SELECIONAR PERSONAGEM
   // ------------------------------------------------------------------
-  const selecionarPersonagem = useCallback(async (personagem, user) => {
+  const selecionarPersonagem = useCallback(async (personagem: PersonagemBasico, user: User | null | undefined) => {
     const historia = useGameStore.getState().historiaAtual;
     const isDono = String(historia?.id_usuario) === String(user?.id);
 
-    storeSelecionarPersonagem(personagem);
+    storeSelecionarPersonagem(personagem as unknown as Parameters<typeof storeSelecionarPersonagem>[0]);
     storeSetIsDonoSala(isDono);
     storeAbrirSala();
 
     // Adicionar usuario como participante
-    const novoParticipante = {
+    const novoParticipante: ParticipanteBasico = {
       userId: user?.id,
       username: user?.nome || user?.name,
       personagem: personagem.nome,
@@ -203,7 +254,7 @@ export const useJogo = () => {
       isOwner: isDono,
       status: 'pronto',
     };
-    storeSetParticipantes([novoParticipante]);
+    storeSetParticipantes([novoParticipante] as unknown as Parameters<typeof storeSetParticipantes>[0]);
 
     // Recarregar personagens
     if (user?.id) {
@@ -214,14 +265,14 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // INICIAR PARTIDA VIA API
   // ------------------------------------------------------------------
-  const iniciarPartidaViaAPI = useCallback(async (historiaId, mensagemInicial = null) => {
+  const iniciarPartidaViaAPI = useCallback(async (historiaId: number | string, mensagemInicial: string | null = null) => {
     try {
       const response = await fetch(`${API_URL}/jogo/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          historiaId: parseInt(historiaId),
+          historiaId: parseInt(String(historiaId), 10),
           mensagemInicial: mensagemInicial || 'A aventura comeca agora!',
         }),
       });
@@ -242,13 +293,18 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   const iniciarJogo = useCallback(async () => {
     const historia = useGameStore.getState().historiaAtual;
+    if (historia?.id == null) {
+      setError('Historia nao carregada');
+      throw new Error('Historia nao carregada');
+    }
     try {
       await iniciarPartidaViaAPI(
-        historia?.id,
-        `Bem-vindos a aventura "${historia?.nome}"! Que a jornada comece!`
+        historia.id,
+        `Bem-vindos a aventura "${historia.nome}"! Que a jornada comece!`
       );
     } catch (err) {
-      setError(err.message || 'Erro ao iniciar jogo');
+      const message = err instanceof Error ? err.message : 'Erro ao iniciar jogo';
+      setError(message);
       throw err;
     }
   }, [iniciarPartidaViaAPI]);
@@ -256,30 +312,30 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // CARREGAR MENSAGENS SALVAS (do Redis via API)
   // ------------------------------------------------------------------
-  const carregarMensagensSalvas = useCallback(async (historiaId) => {
+  const carregarMensagensSalvas = useCallback(async (historiaId: number | string) => {
     try {
-      const statusData = await historiaService.getStatusJogo(historiaId);
-      const { sessao } = statusData || {};
+      const statusData = await historiaService.getStatusJogo(Number(historiaId)) as { sessao?: { jogadores?: Record<string, { id?: number | string; nome?: string; personagemNome?: string; personagemId?: number | string }>; mensagens?: Array<Record<string, unknown>>; mestreConfig?: { voice_id?: string | null; voice_provider?: string | null } } } | null;
+      const sessao = statusData?.sessao;
 
       // Carregar participantes da sessao
       if (sessao?.jogadores) {
         const jogadoresArray = Object.values(sessao.jogadores);
         if (jogadoresArray.length > 0) {
-          const participantesFormatados = jogadoresArray.map(j => ({
+          const participantesFormatados: ParticipanteBasico[] = jogadoresArray.map(j => ({
             userId: j.id,
             username: j.nome,
             personagem: j.personagemNome,
             personagemId: j.personagemId,
             personagemNome: j.personagemNome,
           }));
-          storeSetParticipantes(participantesFormatados);
+          storeSetParticipantes(participantesFormatados as unknown as Parameters<typeof storeSetParticipantes>[0]);
         }
       }
 
       if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
         const fallbackVoiceId = sessao?.mestreConfig?.voice_id || null;
         const fallbackVoiceProvider = sessao?.mestreConfig?.voice_provider || null;
-        const mensagensFormatadas = sessao.mensagens.map((m, index) => ({
+        const mensagensFormatadas = sessao.mensagens.map((m, index: number) => ({
           ...m,
           id: m.id ?? m.timestamp ?? `msg_${Date.now()}_${index}`,
           message: m.mensagem || m.message,
@@ -288,7 +344,7 @@ export const useJogo = () => {
           voice_provider: m.voice_provider || fallbackVoiceProvider,
         }));
 
-        storeSetMensagens(mensagensFormatadas);
+        storeSetMensagens(mensagensFormatadas as unknown as Parameters<typeof storeSetMensagens>[0]);
         return sessao.mensagens.length;
       }
 
@@ -301,7 +357,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // RETOMAR JOGO ATIVO
   // ------------------------------------------------------------------
-  const retomarJogo = useCallback(async (historiaId, user) => {
+  const retomarJogo = useCallback(async (historiaId: number | string, user: User | null | undefined) => {
     try {
       setLoading(true);
       storeSetLoading(true);
@@ -311,8 +367,8 @@ export const useJogo = () => {
       await carregarHistoria(historiaId);
 
       // 2. Buscar dados da sessao
-      const statusData = await historiaService.getStatusJogo(historiaId);
-      const { sessao } = statusData || {};
+      const statusData = await historiaService.getStatusJogo(Number(historiaId)) as { sessao?: { jogadores?: Record<string, { personagemId?: number | string }> } } | null;
+      const sessao = statusData?.sessao;
 
       if (!sessao) {
         throw new Error('Sessao nao encontrada');
@@ -323,8 +379,8 @@ export const useJogo = () => {
 
       if (dadosJogador?.personagemId) {
         try {
-          const personagem = await personagemService.getById(dadosJogador.personagemId);
-          storeSelecionarPersonagem(personagem);
+          const personagem = await personagemService.getById(Number(dadosJogador.personagemId));
+          storeSelecionarPersonagem(personagem as unknown as Parameters<typeof storeSelecionarPersonagem>[0]);
 
           const historia = useGameStore.getState().historiaAtual;
           const isDono = String(historia?.id_usuario) === String(user?.id);
@@ -354,7 +410,8 @@ export const useJogo = () => {
       }
 
     } catch (err) {
-      setError('Erro ao retomar jogo: ' + err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setError('Erro ao retomar jogo: ' + message);
       throw err;
     } finally {
       setLoading(false);
@@ -373,11 +430,11 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // MENSAGENS
   // ------------------------------------------------------------------
-  const adicionarMensagem = useCallback((mensagem) => {
+  const adicionarMensagem = useCallback((mensagem: Parameters<typeof storeAdicionarMensagem>[0]) => {
     storeAdicionarMensagem(mensagem);
   }, [storeAdicionarMensagem]);
 
-  const limparMensagensDados = useCallback((mensagensFiltradas = null) => {
+  const limparMensagensDados = useCallback((mensagensFiltradas: Parameters<typeof storeSetMensagens>[0] | null = null) => {
     if (mensagensFiltradas) {
       storeSetMensagens(mensagensFiltradas);
     } else {
@@ -390,21 +447,21 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // STATUS DO PERSONAGEM
   // ------------------------------------------------------------------
-  const atualizarStatusPersonagem = useCallback((status) => {
+  const atualizarStatusPersonagem = useCallback((status: Parameters<typeof storeSetStatusPersonagem>[0]) => {
     storeSetStatusPersonagem(status);
   }, [storeSetStatusPersonagem]);
 
   // ------------------------------------------------------------------
   // PARTICIPANTES
   // ------------------------------------------------------------------
-  const atualizarParticipantes = useCallback((lista) => {
+  const atualizarParticipantes = useCallback((lista: Parameters<typeof storeSetParticipantes>[0]) => {
     storeSetParticipantes(lista);
   }, [storeSetParticipantes]);
 
   // ------------------------------------------------------------------
   // TEMAS
   // ------------------------------------------------------------------
-  const obterTemasNomes = useCallback((historia) => {
+  const obterTemasNomes = useCallback((historia: HistoriaBasica | null | undefined): string[] => {
     if (!historia?.temas) return [];
     if (Array.isArray(historia.temas)) {
       return getNomesDeTemas(historia.temas);
@@ -415,7 +472,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // FORMATADORES
   // ------------------------------------------------------------------
-  const formatarInformacoesHistoria = useCallback((historia) => {
+  const formatarInformacoesHistoria = useCallback((historia: HistoriaBasica | null | undefined) => {
     if (!historia) {
       return { nome: 'Historia sem nome', descricao: '', maximoParticipantes: 0, temas: [] };
     }
@@ -427,7 +484,7 @@ export const useJogo = () => {
     };
   }, [obterTemasNomes]);
 
-  const formatarInformacoesHistoriaSala = useCallback((historia) => {
+  const formatarInformacoesHistoriaSala = useCallback((historia: HistoriaBasica | null | undefined) => {
     if (!historia) {
       return { titulo: 'Historia sem nome', descricao: 'Uma aventura epica esta prestes a comecar...', temas: [] };
     }
@@ -438,7 +495,7 @@ export const useJogo = () => {
     };
   }, [obterTemasNomes]);
 
-  const formatarInformacoesPersonagem = useCallback((personagem) => {
+  const formatarInformacoesPersonagem = useCallback((personagem: PersonagemBasico | null | undefined) => {
     if (!personagem) {
       return { nome: 'Personagem nao encontrado', classe: 'Desconhecida', raca: 'Desconhecida', nivel: '1', hp: '???', hpMaximo: '???', mp: '???', xp: '0' };
     }
@@ -455,7 +512,7 @@ export const useJogo = () => {
     };
   }, []);
 
-  const formatarParticipantes = useCallback((participantesList, user) => {
+  const formatarParticipantes = useCallback((participantesList: ParticipanteBasico[] | null | undefined, user: User | null | undefined) => {
     if (!Array.isArray(participantesList)) return [];
     return participantesList.map(p => ({
       ...p,
@@ -466,7 +523,7 @@ export const useJogo = () => {
     }));
   }, []);
 
-  const formatarParticipantesJogo = useCallback((participantesList, user) => {
+  const formatarParticipantesJogo = useCallback((participantesList: ParticipanteBasico[] | null | undefined, user: User | null | undefined) => {
     if (!Array.isArray(participantesList)) return [];
     return participantesList
       .filter(p => p.userId !== user?.id)
@@ -482,7 +539,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // VALIDADORES
   // ------------------------------------------------------------------
-  const validarPersonagem = useCallback((personagem) => {
+  const validarPersonagem = useCallback((personagem: PersonagemBasico | null | undefined) => {
     if (!personagem) return { valido: false, erro: 'Personagem nao encontrado' };
     if (!personagem.nome) return { valido: false, erro: 'Personagem sem nome' };
     if (!personagem.classe_nome && !personagem.classe) return { valido: false, erro: 'Personagem sem classe definida' };
@@ -490,7 +547,7 @@ export const useJogo = () => {
     return { valido: true, erro: null };
   }, []);
 
-  const validarIniciarJogo = useCallback((isDono, sala, iniciando) => {
+  const validarIniciarJogo = useCallback((isDono: boolean, sala: boolean, iniciando: boolean) => {
     if (!isDono) return { podeIniciar: false, motivo: 'Apenas o Mestre pode iniciar o jogo' };
     if (iniciando) return { podeIniciar: false, motivo: 'Jogo ja esta sendo iniciado...' };
     if (!sala) return { podeIniciar: false, motivo: 'Sala nao esta aberta' };
@@ -535,7 +592,7 @@ export const useJogo = () => {
   // ------------------------------------------------------------------
   // CONNECTION STATUS (formatado para exibicao)
   // ------------------------------------------------------------------
-  const getConnectionStatus = useCallback((socketConnected) => {
+  const getConnectionStatus = useCallback((socketConnected: boolean) => {
     if (!socketConnected) {
       return {
         text: 'Desconectado',

@@ -1,8 +1,29 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useSocketStore } from '../../../store/socket/index.js';
-import { historiaService } from '../../../services/index.js';
-import { apiClient } from '../../../services/ApiClient.js';
+import { useSocketStore } from '../../../store/socket/index';
+import { historiaService } from '../../../services/index';
+import { apiClient } from '../../../services/ApiClient';
 import useGameStore from '../../../store/game';
+
+interface ConnectionData {
+  userId: number | string;
+  username: string;
+  email?: string;
+}
+
+interface User {
+  id?: number | string;
+  nome?: string;
+  name?: string;
+  email?: string;
+}
+
+interface JogadorConectado {
+  userId: number | string;
+  username: string;
+  personagemNome?: string;
+  personagemId?: number | string;
+  status?: string;
+}
 
 /**
  * Hook compartilhado para gerenciar conexao WebSocket do jogo.
@@ -39,14 +60,13 @@ export const useJogoSocket = () => {
   // Game store actions
   const storeSetParticipantes = useGameStore(s => s.setParticipantes);
   const storeSetMensagens = useGameStore(s => s.setMensagens);
-  const storeAbrirSala = useGameStore(s => s.abrirSala);
 
   // === LOCAL STATE ===
-  const [localSocketError, setLocalSocketError] = useState(null);
+  const [localSocketError, setLocalSocketError] = useState<string | null>(null);
   const [localIsConnecting, setLocalIsConnecting] = useState(false);
 
   // === REFS ===
-  const socketStoreUnsubscribeRef = useRef(null);
+  const socketStoreUnsubscribeRef = useRef<(() => void) | null>(null);
 
   // ------------------------------------------------------------------
   // VALIDAR AUTENTICACAO
@@ -59,7 +79,7 @@ export const useJogoSocket = () => {
     return true;
   }, []);
 
-  const obterSocketTokenValido = useCallback(async () => {
+  const obterSocketTokenValido = useCallback(async (): Promise<string> => {
     try {
       const socketState = useSocketStore.getState();
 
@@ -67,9 +87,9 @@ export const useJogoSocket = () => {
         return socketState.socketToken;
       }
 
-      const response = await apiClient.post('/auth/renovar');
-      const payload = response?.data || response;
-      const refreshedSocketToken = payload?.socketToken;
+      const response = await apiClient.post('/auth/renovar') as { data?: { socketToken?: string }; socketToken?: string } | null;
+      const payload = (response as { data?: { socketToken?: string } } | null)?.data || response;
+      const refreshedSocketToken = (payload as { socketToken?: string } | null)?.socketToken;
 
       if (!refreshedSocketToken) {
         throw new Error('Nao foi possivel renovar a autenticacao do socket');
@@ -78,7 +98,8 @@ export const useJogoSocket = () => {
       socketState.setSocketToken(refreshedSocketToken);
       return refreshedSocketToken;
     } catch (error) {
-      if (error?.message === 'Não autorizado') {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === 'Não autorizado') {
         throw new Error('Sessao expirada. Faca login novamente.');
       }
 
@@ -86,7 +107,7 @@ export const useJogoSocket = () => {
     }
   }, []);
 
-  const aguardarAutenticacaoSocket = useCallback(() => new Promise((resolve, reject) => {
+  const aguardarAutenticacaoSocket = useCallback(() => new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Auth timeout')), 5000);
     const check = () => {
       const state = useSocketStore.getState();
@@ -103,7 +124,7 @@ export const useJogoSocket = () => {
   // ------------------------------------------------------------------
   // GARANTIR ENTRADA NA SALA ATUAL
   // ------------------------------------------------------------------
-  const garantirEntradaSala = useCallback(async (connectionData = null) => {
+  const garantirEntradaSala = useCallback(async (connectionData: ConnectionData | null = null) => {
     const gameState = useGameStore.getState();
     const historia = gameState.historiaAtual;
     const personagem = gameState.personagemSelecionado;
@@ -112,7 +133,7 @@ export const useJogoSocket = () => {
       return { joined: false, sessionAlreadyStarted: false };
     }
 
-    const fallbackUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const fallbackUser: User = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = connectionData?.userId || fallbackUser?.id;
     const username = connectionData?.username || fallbackUser?.nome || fallbackUser?.name;
 
@@ -131,10 +152,10 @@ export const useJogoSocket = () => {
       personagemNome: personagem.nome || 'Personagem',
     });
 
-    const roomState = useSocketStore.getState();
+    const roomState = useSocketStore.getState() as unknown as { session?: { jogadoresConectados?: JogadorConectado[]; status?: string }; participantes?: unknown };
     if (roomState.session?.jogadoresConectados) {
-      const participantesAtuais = gameState.participantes;
-      const participantesFormatados = roomState.session.jogadoresConectados.map(j => {
+      const participantesAtuais = (gameState.participantes ?? []) as Array<{ userId?: number | string; [key: string]: unknown }>;
+      const participantesFormatados = roomState.session.jogadoresConectados.map((j: JogadorConectado) => {
         const participanteExistente = participantesAtuais.find(
           p => String(p.userId) === String(j.userId)
         );
@@ -155,28 +176,28 @@ export const useJogoSocket = () => {
         };
       });
 
-      storeSetParticipantes(participantesFormatados);
+      storeSetParticipantes(participantesFormatados as unknown as Parameters<typeof storeSetParticipantes>[0]);
     }
 
     if (socketStoreUnsubscribeRef.current) {
       socketStoreUnsubscribeRef.current();
     }
 
-    const unsubscribe = useSocketStore.subscribe((state, prevState) => {
+    const unsubscribe = (useSocketStore as unknown as { subscribe: (cb: (s: { participantes?: unknown }, prev: { participantes?: unknown }) => void) => () => void }).subscribe((state, prevState) => {
       if (state.participantes && state.participantes !== prevState?.participantes) {
-        storeSetParticipantes(state.participantes);
+        storeSetParticipantes(state.participantes as Parameters<typeof storeSetParticipantes>[0]);
       }
     });
     socketStoreUnsubscribeRef.current = unsubscribe;
 
     if (roomState.session?.status === 'iniciada') {
       try {
-        const statusData = await historiaService.getStatusJogo(historia.id);
-        const { sessao } = statusData || {};
+        const statusData = await historiaService.getStatusJogo(Number(historia.id)) as { sessao?: { mensagens?: Array<Record<string, unknown>>; mestreConfig?: { voice_id?: string | null; voice_provider?: string | null } } } | null;
+        const sessao = statusData?.sessao;
         if (sessao?.mensagens && Array.isArray(sessao.mensagens)) {
           const fallbackVoiceId = sessao?.mestreConfig?.voice_id || null;
           const fallbackVoiceProvider = sessao?.mestreConfig?.voice_provider || null;
-          const mensagensFormatadas = sessao.mensagens.map((m, index) => ({
+          const mensagensFormatadas = sessao.mensagens.map((m, index: number) => ({
             ...m,
             id: m.id ?? m.timestamp ?? `msg_${Date.now()}_${index}`,
             message: m.mensagem || m.message,
@@ -184,7 +205,7 @@ export const useJogoSocket = () => {
             voice_id: m.voice_id || fallbackVoiceId,
             voice_provider: m.voice_provider || fallbackVoiceProvider,
           }));
-          storeSetMensagens(mensagensFormatadas);
+          storeSetMensagens(mensagensFormatadas as unknown as Parameters<typeof storeSetMensagens>[0]);
         }
       } catch {
         // noop
@@ -198,7 +219,7 @@ export const useJogoSocket = () => {
   // ------------------------------------------------------------------
   // CONECTAR SOCKET (anfitriao)
   // ------------------------------------------------------------------
-  const conectarSocket = useCallback(async (connectionData) => {
+  const conectarSocket = useCallback(async (connectionData: ConnectionData) => {
     try {
       setLocalIsConnecting(true);
       setLocalSocketError(null);
@@ -228,7 +249,8 @@ export const useJogoSocket = () => {
       setLocalIsConnecting(false);
       return { sessionAlreadyStarted: false };
     } catch (err) {
-      setLocalSocketError(err.message || 'Erro ao conectar');
+      const message = err instanceof Error ? err.message : 'Erro ao conectar';
+      setLocalSocketError(message);
       setLocalIsConnecting(false);
       throw err;
     }
@@ -237,14 +259,14 @@ export const useJogoSocket = () => {
   // ------------------------------------------------------------------
   // CONECTAR COMO CONVIDADO
   // ------------------------------------------------------------------
-  const conectarComoConvidado = useCallback(async (historiaId, personagemId, user) => {
+  const conectarComoConvidado = useCallback(async (historiaId: number | string, personagemId: number | string, user: User) => {
     try {
       setLocalIsConnecting(true);
       setLocalSocketError(null);
 
       // 1. Buscar dados da sessao
-      const statusData = await historiaService.getStatusJogo(historiaId);
-      const { sessao } = statusData || {};
+      const statusData = await historiaService.getStatusJogo(Number(historiaId)) as { sessao?: { historiaNome?: string } } | null;
+      const sessao = statusData?.sessao;
 
       if (!sessao) {
         throw new Error('Sala nao encontrada ou ainda nao foi criada');
@@ -260,7 +282,7 @@ export const useJogoSocket = () => {
       await socketAuthenticate({
         token: socketToken,
         userId: String(user.id),
-        username: user.nome || user.name,
+        username: user.nome || user.name || '',
         email: user.email,
       });
 
@@ -271,19 +293,20 @@ export const useJogoSocket = () => {
       const personagem = gameState.personagemSelecionado;
 
       await socketJoinRoom({
-        id: parseInt(historiaId),
+        id: parseInt(String(historiaId), 10),
         historiaId: String(historiaId),
         nome: gameState.historiaAtual?.nome || sessao.historiaNome || 'Historia',
         titulo: gameState.historiaAtual?.nome || sessao.historiaNome || 'Historia',
         userId: String(user.id),
-        username: user.nome || user.name,
+        username: user.nome || user.name || '',
         personagemId: String(personagemId),
         personagemNome: personagem?.nome || 'Personagem',
       });
 
       setLocalIsConnecting(false);
     } catch (err) {
-      setLocalSocketError(err.message || 'Erro ao conectar a sala');
+      const message = err instanceof Error ? err.message : 'Erro ao conectar a sala';
+      setLocalSocketError(message);
       setLocalIsConnecting(false);
       throw err;
     }
@@ -292,11 +315,11 @@ export const useJogoSocket = () => {
   // ------------------------------------------------------------------
   // LISTENERS (on/off)
   // ------------------------------------------------------------------
-  const onSocketEvent = useCallback((event, handler) => {
+  const onSocketEvent = useCallback((event: string, handler: (...args: unknown[]) => void) => {
     if (socketOn) socketOn(event, handler);
   }, [socketOn]);
 
-  const offSocketEvent = useCallback((event, handler) => {
+  const offSocketEvent = useCallback((event: string, handler: (...args: unknown[]) => void) => {
     if (socketOff) socketOff(event, handler);
   }, [socketOff]);
 

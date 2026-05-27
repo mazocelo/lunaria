@@ -119,9 +119,9 @@ export function useActiveModel({ navigate }: UseActiveModelParams) {
     const connect = async () => {
       try {
         await conectarSocket({
-          userId: user.id,
-          username: user.nome || user.name,
-          email: user.email,
+          userId: user.id as number | string,
+          username: (user.nome || user.name) as string,
+          email: user.email as string | undefined,
         });
         connectBackoffRef.current = 0;
       } catch (err) {

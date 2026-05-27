@@ -108,9 +108,9 @@ export function useLobbyModel({ navigate }: UseLobbyModelParams) {
           setResumeMessage('Estabelecendo conexao...');
           try {
             await conectarSocket({
-              userId: user.id,
-              username: user.nome || user.name,
-              email: user.email,
+              userId: user.id as number | string,
+              username: (user.nome || user.name) as string,
+              email: user.email as string | undefined,
             });
           } catch {
             // Socket pode ja estar conectado
@@ -150,6 +150,7 @@ export function useLobbyModel({ navigate }: UseLobbyModelParams) {
         sel?.fromInvite;
 
       if (fromInvite && historiaAtual?.id) {
+        if (personagemSelecionado?.id == null) return;
         conectarComoConvidado(
           historiaAtual.id,
           personagemSelecionado.id,
@@ -158,10 +159,11 @@ export function useLobbyModel({ navigate }: UseLobbyModelParams) {
           setTimeout(() => { tentouConectarRef.current = false; }, 10000);
         });
       } else {
+        if (!user?.id) return;
         conectarSocket({
-          userId: user?.id,
-          username: user?.nome || user?.name,
-          email: user?.email,
+          userId: user.id as number | string,
+          username: (user.nome || user.name) as string,
+          email: user.email as string | undefined,
         })
           .then((result) => {
             if (result?.sessionAlreadyStarted) {

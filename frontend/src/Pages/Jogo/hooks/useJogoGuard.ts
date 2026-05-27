@@ -1,20 +1,14 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useGameStore from '../../../store/game';
-import { getPhaseByRoute } from '../../../features/gameSession/config/phaseConfig.js';
-import { resolvePhaseRedirect } from '../../../features/gameSession/config/routeRules.js';
+import { getPhaseByRoute } from '../../../features/gameSession/config/phaseConfig';
+import { resolvePhaseRedirect } from '../../../features/gameSession/config/routeRules';
 
 /**
  * Hook para validacao de acesso as etapas do jogo.
  * Redireciona automaticamente quando os pre-requisitos da etapa nao sao atendidos.
- *
- * Internamente delega para resolvePhaseRedirect (single source of truth).
- * Preserva: timeout 150ms (anti-flash), loading guard, cleanup.
- *
- * @param {string} requiredStep
- * 'selecao-personagem' | 'sala-espera' | 'jogo-ativo'
  */
-export const useJogoGuard = (requiredStep) => {
+export const useJogoGuard = (requiredStep: string) => {
   const { personagemSelecionado, salaAberta, historiaAtual, loading } = useGameStore();
   const navigate = useNavigate();
   const { id } = useParams();

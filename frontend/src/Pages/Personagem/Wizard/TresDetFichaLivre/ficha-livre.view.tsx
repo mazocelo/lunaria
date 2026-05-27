@@ -1,17 +1,27 @@
 import { useState } from 'react';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
-import { useTheme } from '../../../../contexts/theme.jsx';
+import { useTheme } from '../../../../contexts/theme';
 import '../wizard-theme.css';
-import PointsBar from './components/PointsBar.jsx';
-import CaracteristicasSection from './components/CaracteristicasSection.jsx';
-import VantagensDesvantagensSection from './components/VantagensDesvantagensSection.jsx';
-import FocusSection from './components/FocusSection.jsx';
-import GrimorioTresDetSection from './components/GrimorioTresDetSection.jsx';
-import EquipamentosTresDetSection from './components/EquipamentosTresDetSection.jsx';
-import HistoriaSection from './components/HistoriaSection.jsx';
-import MestrePanelLateral from './components/MestrePanelLateral.jsx';
+import PointsBar from './components/PointsBar';
+import CaracteristicasSection from './components/CaracteristicasSection';
+import VantagensDesvantagensSection from './components/VantagensDesvantagensSection';
+import FocusSection from './components/FocusSection';
+import GrimorioTresDetSection from './components/GrimorioTresDetSection';
+import EquipamentosTresDetSection from './components/EquipamentosTresDetSection';
+import HistoriaSection from './components/HistoriaSection';
+import MestrePanelLateral from './components/MestrePanelLateral';
+import type { TresDetFichaModel } from './ficha-livre.model';
 
-export default function FichaLivreView(props) {
+interface FichaLivreViewProps extends TresDetFichaModel {
+  focusCatalogo?: Array<{ nome: string; label: string; emoji?: string; descricao?: string }>;
+  onCriar: () => void;
+  mestreMensagens: Array<{ id?: number | string; role?: string; content?: string; sugestoes?: unknown[] }>;
+  mestreEnviando: boolean;
+  mestreEnviarMensagem: (texto: string) => void;
+  mestreOnSugestao?: (s: { nome?: string; [key: string]: unknown }) => void;
+}
+
+export default function FichaLivreView(props: FichaLivreViewProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [mestreAberto, setMestreAberto] = useState(false);
@@ -31,7 +41,7 @@ export default function FichaLivreView(props) {
     pontosTotal, pontosCaracteristicas, pontosVantagens, pontosDesvantagens,
     pontosFocus, pontosRestantes,
     temMagia, pv, pm, podeCriar, maxAttr,
-    vantagensCatalogo, desvantagensCatalogo, catalogoLoading, focusCatalogo,
+    vantagensCatalogo, desvantagensCatalogo, focusCatalogo,
     salvando, error, setError,
     onCriar, navigate,
     // Mestre
@@ -184,7 +194,7 @@ export default function FichaLivreView(props) {
 
             <div className="wa-stage-enter wa-stagger-6">
               <EquipamentosTresDetSection
-                itensCatalogo={itensCatalogo}
+                itensCatalogo={itensCatalogo as unknown as Parameters<typeof EquipamentosTresDetSection>[0]['itensCatalogo']}
                 equipamentosIds={equipamentosIds}
                 adicionarEquipamento={adicionarEquipamento}
                 removerEquipamento={removerEquipamento}
@@ -228,7 +238,7 @@ export default function FichaLivreView(props) {
           <MestrePanelLateral
             aberto={mestreAberto}
             onToggle={() => setMestreAberto(v => !v)}
-            mensagens={mestreMensagens}
+            mensagens={mestreMensagens as unknown as Parameters<typeof MestrePanelLateral>[0]['mensagens']}
             enviando={mestreEnviando}
             enviarMensagem={mestreEnviarMensagem}
             onSugestaoClick={mestreOnSugestao}

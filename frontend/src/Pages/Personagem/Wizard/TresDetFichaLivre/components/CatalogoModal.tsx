@@ -1,16 +1,35 @@
 import { useState, useMemo, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
 
-const TIPO_LABELS = {
+interface CatalogoItem {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo?: number;
+  tipo?: string | string[];
+  [key: string]: unknown;
+}
+
+interface CatalogoModalProps {
+  aberto: boolean;
+  onFechar: () => void;
+  itens: CatalogoItem[];
+  selecionados: string[];
+  onAdicionar: (id: number | string) => void;
+  titulo: string;
+  pontosRestantes: number;
+}
+
+const TIPO_LABELS: Record<string, string> = {
   ofensiva: 'Ofensiva', defensiva: 'Defensiva', magico: 'Magica',
   passiva: 'Passiva', movimento: 'Movimento', social: 'Social',
   comportamental: 'Comportamental', sobrenatural: 'Sobrenatural',
   mental: 'Mental', fisica: 'Fisica',
 };
 
-export default function CatalogoModal({ aberto, onFechar, itens, selecionados, onAdicionar, titulo, pontosRestantes }) {
+export default function CatalogoModal({ aberto, onFechar, itens, selecionados, onAdicionar, titulo, pontosRestantes }: CatalogoModalProps) {
   const [busca, setBusca] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState(null);
+  const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -21,21 +40,21 @@ export default function CatalogoModal({ aberto, onFechar, itens, selecionados, o
     }
   }, [aberto]);
 
-  const tipos = useMemo(() => {
-    const set = new Set();
+  const tipos = useMemo<string[]>(() => {
+    const set = new Set<string>();
     itens.forEach(i => {
-      const t = Array.isArray(i.tipo) ? i.tipo : [i.tipo];
-      t.forEach(x => x && set.add(x));
+      const t = Array.isArray(i.tipo) ? i.tipo : i.tipo ? [i.tipo] : [];
+      t.forEach((x: string) => x && set.add(x));
     });
     return [...set].sort();
   }, [itens]);
 
-  const filtrados = useMemo(() => {
+  const filtrados = useMemo<CatalogoItem[]>(() => {
     return itens.filter(i => {
       if (selecionados.includes(String(i.id))) return false;
-      if (busca && !i.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (busca && !i.nome?.toLowerCase().includes(busca.toLowerCase())) return false;
       if (filtroTipo) {
-        const t = Array.isArray(i.tipo) ? i.tipo : [i.tipo];
+        const t = Array.isArray(i.tipo) ? i.tipo : i.tipo ? [i.tipo] : [];
         if (!t.includes(filtroTipo)) return false;
       }
       return true;
@@ -145,7 +164,7 @@ export default function CatalogoModal({ aberto, onFechar, itens, selecionados, o
               <button
                 key={item.id}
                 disabled={semPontos}
-                onClick={() => { onAdicionar(item.id); onFechar(); }}
+                onClick={() => { if (item.id != null) onAdicionar(item.id); onFechar(); }}
                 className="wa-catalogo-item wa-choice-card w-full text-left rounded-xl border p-3.5 cursor-pointer backdrop-blur-[18px] disabled:cursor-not-allowed"
                 style={{
                   background: 'var(--wa-panel)',

@@ -1,19 +1,31 @@
-import { useTheme } from '../../../../../contexts/theme.jsx';
+import { useTheme } from '../../../../../contexts/theme';
 
-const NIVEIS = [
+interface NivelDef { id: string; label: string; pts: number; }
+
+const NIVEIS: NivelDef[] = [
   { id: 'novato', label: 'Novato', pts: 5 },
   { id: 'lutador', label: 'Lutador', pts: 7 },
   { id: 'campeao', label: 'Campeao', pts: 10 },
   { id: 'lenda', label: 'Lenda', pts: 12 },
 ];
 
+interface PointsBarProps {
+  nivelPoder: string;
+  mudarNivelPoder: (n: string) => void;
+  pontosTotal: number;
+  pontosRestantes: number;
+  pontosCaracteristicas: number;
+  pontosVantagens: number;
+  pontosFocus: number;
+  pontosDesvantagens: number;
+}
+
 export default function PointsBar({
   nivelPoder, mudarNivelPoder,
   pontosTotal, pontosRestantes,
   pontosCaracteristicas, pontosVantagens, pontosFocus, pontosDesvantagens,
-}) {
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
+}: PointsBarProps) {
+  useTheme();
 
   const isOver = pontosRestantes < 0;
 

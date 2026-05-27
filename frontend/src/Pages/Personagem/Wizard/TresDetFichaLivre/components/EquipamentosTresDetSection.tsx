@@ -1,6 +1,23 @@
 import { useState, useMemo } from 'react';
 import { Search, Check } from 'lucide-react';
-import { useTheme } from '../../../../../contexts/theme.jsx';
+import { useTheme } from '../../../../../contexts/theme';
+
+interface ItemCatalogo {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  tipo?: string;
+  raridade?: string;
+  custo_pe?: number;
+  [key: string]: unknown;
+}
+
+interface EquipamentosTresDetSectionProps {
+  itensCatalogo: ItemCatalogo[];
+  equipamentosIds: string[];
+  adicionarEquipamento: (id: number | string) => void;
+  removerEquipamento: (id: number | string) => void;
+}
 
 const TIPO_CHIPS = [
   { key: 'consumivel', label: 'Consumiveis', emoji: '🧪' },
@@ -10,7 +27,7 @@ const TIPO_CHIPS = [
   { key: 'acessorio',  label: 'Acessorios',  emoji: '💍' },
 ];
 
-const RARIDADE_COR = {
+const RARIDADE_COR: Record<string, string> = {
   comum:    'var(--wa-muted)',
   incomum:  'var(--wa-teal)',
   raro:     'var(--wa-accent-bright, var(--wa-accent))',
@@ -22,16 +39,16 @@ export default function EquipamentosTresDetSection({
   equipamentosIds,
   adicionarEquipamento,
   removerEquipamento,
-}) {
+}: EquipamentosTresDetSectionProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
   const [busca, setBusca] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState(null);
+  const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
 
-  const itensFiltrados = useMemo(() => {
+  const itensFiltrados = useMemo<ItemCatalogo[]>(() => {
     return itensCatalogo.filter(item => {
-      if (busca && !item.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (busca && !item.nome?.toLowerCase().includes(busca.toLowerCase())) return false;
       if (filtroTipo && item.tipo !== filtroTipo) return false;
       return true;
     });
@@ -39,7 +56,7 @@ export default function EquipamentosTresDetSection({
 
   const selecionadosCount = equipamentosIds.length;
 
-  const handleToggle = (id) => {
+  const handleToggle = (id: number | string) => {
     const sid = String(id);
     if (equipamentosIds.includes(sid)) {
       removerEquipamento(sid);
@@ -136,13 +153,13 @@ export default function EquipamentosTresDetSection({
         {itensFiltrados.map(item => {
           const sid = String(item.id);
           const selecionado = equipamentosIds.includes(sid);
-          const corRaridade = RARIDADE_COR[item.raridade] || 'var(--wa-muted)';
+          const corRaridade = RARIDADE_COR[item.raridade ?? ''] || 'var(--wa-muted)';
 
           return (
             <button
               key={item.id}
               type="button"
-              onClick={() => handleToggle(item.id)}
+              onClick={() => { if (item.id != null) handleToggle(item.id); }}
               className="wa-equip-card relative text-left rounded-xl border p-3 transition-all duration-200 cursor-pointer"
               style={{
                 background: selecionado
@@ -182,7 +199,7 @@ export default function EquipamentosTresDetSection({
 
               {/* Cost chip + raridade */}
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {item.custo_pe > 0 && (
+                {(item.custo_pe ?? 0) > 0 && (
                   <span className="wa-teal-chip text-[10px] font-bold px-1.5 py-0.5 rounded-md border">
                     {item.custo_pe} PE
                   </span>

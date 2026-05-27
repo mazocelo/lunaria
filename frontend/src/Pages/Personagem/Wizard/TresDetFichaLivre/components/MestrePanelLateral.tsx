@@ -1,10 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Sparkles } from 'lucide-react';
 
-export default function MestrePanelLateral({ aberto, onToggle, mensagens, enviando, enviarMensagem, onSugestaoClick }) {
+interface Mensagem {
+  id?: number | string;
+  role?: string;
+  content?: string;
+  sugestoes?: Array<{ nome?: string; descricao?: string; [key: string]: unknown }>;
+  timestamp?: Date;
+}
+
+interface MestrePanelLateralProps {
+  aberto: boolean;
+  onToggle: () => void;
+  mensagens: Mensagem[];
+  enviando: boolean;
+  enviarMensagem: (texto: string) => void;
+  onSugestaoClick?: (s: { nome?: string; [key: string]: unknown }) => void;
+}
+
+export default function MestrePanelLateral({ aberto, onToggle, mensagens, enviando, enviarMensagem, onSugestaoClick }: MestrePanelLateralProps) {
   const [input, setInput] = useState('');
   const [visible, setVisible] = useState(false);
-  const endRef = useRef(null);
+  const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens]);
 
@@ -99,15 +116,15 @@ export default function MestrePanelLateral({ aberto, onToggle, mensagens, envian
               </div>
             )}
 
-            {msg.sugestoes?.length > 0 && (
+            {(msg.sugestoes?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2 ml-1">
-                {msg.sugestoes.map((s, i) => (
+                {msg.sugestoes!.map((s, i: number) => (
                   <button
                     key={i}
-                    onClick={() => onSugestaoClick(s)}
+                    onClick={() => onSugestaoClick?.(s)}
                     className="wa-sugestao-btn wa-forge-chip px-3 py-1.5 rounded-lg font-modern text-xs font-semibold cursor-pointer border transition-all duration-200"
                   >
-                    + {s.nome} ({s.custo || 0}pt)
+                    + {s.nome} ({String(s.custo ?? 0)}pt)
                   </button>
                 ))}
               </div>

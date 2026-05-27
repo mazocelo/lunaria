@@ -1,7 +1,21 @@
 import { useState, useMemo } from 'react';
 import { Search, Check } from 'lucide-react';
-import { useTheme } from '../../../../../contexts/theme.jsx';
-import { ELEMENT_COLORS } from '../../../../../constants/tresdetElements.js';
+import { useTheme } from '../../../../../contexts/theme';
+import { ELEMENT_COLORS } from '../../../../../constants/tresdetElements';
+
+interface Magia {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo_pe?: number;
+  custo_pm?: number;
+  escola?: string;
+  alcance?: string;
+  duracao?: string;
+  focus_requisito?: Array<Record<string, number>>;
+  elemento?: string | string[];
+  [key: string]: unknown;
+}
 
 const ELEMENT_CHIPS = [
   { key: 'fogo',   label: 'Fogo',   emoji: '🔥' },
@@ -12,7 +26,7 @@ const ELEMENT_CHIPS = [
   { key: 'trevas', label: 'Trevas', emoji: '🌑' },
 ];
 
-function FocusReqChips({ focusRequisito, isLight }) {
+function FocusReqChips({ focusRequisito, isLight }: { focusRequisito?: Array<Record<string, number>> | null; isLight: boolean }) {
   if (!focusRequisito || !Array.isArray(focusRequisito) || focusRequisito.length === 0) return null;
 
   return (
@@ -40,7 +54,7 @@ function FocusReqChips({ focusRequisito, isLight }) {
   );
 }
 
-function MissingReqText({ focusRequisito, magiasDisponiveis, magiaId }) {
+function MissingReqText({ focusRequisito, magiasDisponiveis, magiaId }: { focusRequisito?: Array<Record<string, number>> | null; magiasDisponiveis: Magia[]; magiaId: number | string | undefined }) {
   if (!focusRequisito || !Array.isArray(focusRequisito)) return null;
   const isAvailable = magiasDisponiveis.some(m => String(m.id) === String(magiaId));
   if (isAvailable) return null;
@@ -57,18 +71,26 @@ function MissingReqText({ focusRequisito, magiasDisponiveis, magiaId }) {
   );
 }
 
+interface GrimorioTresDetSectionProps {
+  magiasDisponiveis: Magia[];
+  magiasCatalogo: Magia[];
+  magiasIds: string[];
+  adicionarMagia: (id: number | string) => void;
+  removerMagia: (id: number | string) => void;
+}
+
 export default function GrimorioTresDetSection({
   magiasDisponiveis,
   magiasCatalogo,
   magiasIds,
   adicionarMagia,
   removerMagia,
-}) {
+}: GrimorioTresDetSectionProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
   const [busca, setBusca] = useState('');
-  const [filtroElemento, setFiltroElemento] = useState(null);
+  const [filtroElemento, setFiltroElemento] = useState<string | null>(null);
 
   const disponiveisSet = useMemo(
     () => new Set(magiasDisponiveis.map(m => String(m.id))),
@@ -77,7 +99,7 @@ export default function GrimorioTresDetSection({
 
   const magiasFiltradas = useMemo(() => {
     return magiasCatalogo.filter(m => {
-      if (busca && !m.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (busca && !m.nome?.toLowerCase().includes(busca.toLowerCase())) return false;
       if (filtroElemento) {
         if (!m.focus_requisito || !Array.isArray(m.focus_requisito)) return false;
         const matchEl = m.focus_requisito.some(req => Object.keys(req)[0] === filtroElemento);
@@ -89,7 +111,7 @@ export default function GrimorioTresDetSection({
 
   const selecionadasCount = magiasIds.length;
 
-  const handleToggle = (id) => {
+  const handleToggle = (id: number | string) => {
     const sid = String(id);
     if (!disponiveisSet.has(sid)) return;
     if (magiasIds.includes(sid)) {
@@ -195,7 +217,7 @@ export default function GrimorioTresDetSection({
               key={magia.id}
               type="button"
               disabled={!disponivel}
-              onClick={() => handleToggle(magia.id)}
+              onClick={() => { if (magia.id != null) handleToggle(magia.id); }}
               className="wa-grimorio-card relative text-left rounded-xl border p-3 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
               style={{
                 background: selecionada

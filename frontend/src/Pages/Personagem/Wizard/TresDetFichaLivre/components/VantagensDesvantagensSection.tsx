@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
-import CatalogoModal from './CatalogoModal.jsx';
+import CatalogoModal from './CatalogoModal';
 
-function ItemCard({ item, onRemover }) {
+interface CatalogoItem {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo?: number;
+  [key: string]: unknown;
+}
+
+function ItemCard({ item, onRemover }: { item?: CatalogoItem | null; onRemover: (id: number | string) => void }) {
   if (!item) return null;
   const custo = item.custo || 0;
   const isPositive = custo > 0;
@@ -31,7 +39,7 @@ function ItemCard({ item, onRemover }) {
       </span>
 
       <button
-        onClick={() => onRemover(item.id)}
+        onClick={() => { if (item.id != null) onRemover(item.id); }}
         className="wa-item-remove shrink-0 cursor-pointer rounded-md p-1 transition-all duration-200"
         style={{ color: 'rgba(244,63,94,0.4)' }}
       >
@@ -53,17 +61,31 @@ function ItemCard({ item, onRemover }) {
   );
 }
 
+interface VantagensDesvantagensSectionProps {
+  vantagensIds: string[];
+  desvantagensIds: string[];
+  vantagensCatalogo: CatalogoItem[];
+  desvantagensCatalogo: CatalogoItem[];
+  adicionarVantagem: (id: number | string) => void;
+  removerVantagem: (id: number | string) => void;
+  adicionarDesvantagem: (id: number | string) => void;
+  removerDesvantagem: (id: number | string) => void;
+  pontosVantagens: number;
+  pontosDesvantagens: number;
+  pontosRestantes: number;
+}
+
 export default function VantagensDesvantagensSection({
   vantagensIds, desvantagensIds,
   vantagensCatalogo, desvantagensCatalogo,
   adicionarVantagem, removerVantagem,
   adicionarDesvantagem, removerDesvantagem,
   pontosVantagens, pontosDesvantagens, pontosRestantes,
-}) {
-  const [modalAberto, setModalAberto] = useState(null);
+}: VantagensDesvantagensSectionProps) {
+  const [modalAberto, setModalAberto] = useState<'vantagens' | 'desvantagens' | null>(null);
 
-  const vantagensSelecionadas = vantagensIds.map(id => vantagensCatalogo.find(v => String(v.id) === id)).filter(Boolean);
-  const desvantagensSelecionadas = desvantagensIds.map(id => desvantagensCatalogo.find(d => String(d.id) === id)).filter(Boolean);
+  const vantagensSelecionadas = vantagensIds.map(id => vantagensCatalogo.find(v => String(v.id) === id)).filter((x): x is CatalogoItem => Boolean(x));
+  const desvantagensSelecionadas = desvantagensIds.map(id => desvantagensCatalogo.find(d => String(d.id) === id)).filter((x): x is CatalogoItem => Boolean(x));
 
   return (
     <>

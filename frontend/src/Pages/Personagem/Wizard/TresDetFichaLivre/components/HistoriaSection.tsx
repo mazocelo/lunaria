@@ -1,9 +1,14 @@
 import { useState } from 'react';
 
-export default function HistoriaSection({ historia, setHistoria }) {
+interface HistoriaSectionProps {
+  historia: string;
+  setHistoria: (v: string) => void;
+}
+
+export default function HistoriaSection({ historia, setHistoria }: HistoriaSectionProps) {
   const [charCount, setCharCount] = useState(historia?.length || 0);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setHistoria(e.target.value);
     setCharCount(e.target.value.length);
   };

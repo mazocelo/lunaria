@@ -1,7 +1,8 @@
-// components/CaracteristicasSection.jsx
-import { useTheme } from '../../../../../contexts/theme.jsx';
+import { useTheme } from '../../../../../contexts/theme';
 
-const ATTRS = [
+type CharKey = 'F' | 'H' | 'R' | 'A' | 'PdF';
+
+const ATTRS: Array<{ key: CharKey; label: string; sigla: string }> = [
   { key: 'F', label: 'Forca', sigla: 'F' },
   { key: 'H', label: 'Habilidade', sigla: 'H' },
   { key: 'R', label: 'Resistencia', sigla: 'R' },
@@ -11,10 +12,21 @@ const ATTRS = [
 
 const STAGGER = ['wa-stagger-1', 'wa-stagger-2', 'wa-stagger-3', 'wa-stagger-4', 'wa-stagger-5'];
 
+interface CaracteristicasSectionProps {
+  caracteristicas: Record<CharKey, number>;
+  setCaracteristica: (key: CharKey, valor: number) => void;
+  pontosCaracteristicas: number;
+  pontosRestantes: number;
+  pv: number;
+  pm: number;
+  temMagia: boolean;
+  maxAttr?: number;
+}
+
 export default function CaracteristicasSection({
   caracteristicas, setCaracteristica, pontosCaracteristicas,
   pontosRestantes, pv, pm, temMagia, maxAttr = 3,
-}) {
+}: CaracteristicasSectionProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

@@ -1,7 +1,33 @@
-// components/FocusSection.jsx
-import { useTheme } from '../../../../../contexts/theme.jsx';
+import { useTheme } from '../../../../../contexts/theme';
 
-const FOCUS_FALLBACK = [
+type FocusKey = 'fogo' | 'agua' | 'terra' | 'ar' | 'luz' | 'trevas';
+
+interface FocusCatalogoItem {
+  nome: string;
+  label: string;
+  emoji?: string;
+  descricao?: string;
+}
+
+interface FocusSectionProps {
+  focus: Record<FocusKey, number>;
+  setFocusNivel: (key: FocusKey, value: number) => void;
+  pontosFocus: number;
+  pontosRestantes: number;
+  maxAttr?: number;
+  focusCatalogo?: FocusCatalogoItem[];
+}
+
+interface ElementColor {
+  border: string;
+  glow: string;
+  bg: string;
+  bgLight: string;
+  text: string;
+  textLight: string;
+}
+
+const FOCUS_FALLBACK: FocusCatalogoItem[] = [
   { nome: 'fogo', label: 'Fogo', emoji: '🔥' },
   { nome: 'agua', label: 'Agua', emoji: '💧' },
   { nome: 'terra', label: 'Terra', emoji: '🍃' },
@@ -10,7 +36,7 @@ const FOCUS_FALLBACK = [
   { nome: 'trevas', label: 'Trevas', emoji: '🌑' },
 ];
 
-const ELEMENT_COLORS = {
+const ELEMENT_COLORS: Record<string, ElementColor> = {
   fogo:   { border: '#f97316', glow: 'rgba(249,115,22,0.35)', bg: 'rgba(124,45,18,0.20)',  bgLight: 'rgba(249,115,22,0.08)', text: '#fb923c', textLight: '#c2410c' },
   agua:   { border: '#3b82f6', glow: 'rgba(59,130,246,0.35)',  bg: 'rgba(30,58,138,0.20)',  bgLight: 'rgba(59,130,246,0.08)', text: '#60a5fa', textLight: '#1d4ed8' },
   terra:  { border: '#10b981', glow: 'rgba(16,185,129,0.35)',  bg: 'rgba(6,78,59,0.20)',    bgLight: 'rgba(16,185,129,0.08)', text: '#34d399', textLight: '#047857' },
@@ -21,9 +47,9 @@ const ELEMENT_COLORS = {
 
 const STAGGER = ['wa-stagger-1', 'wa-stagger-2', 'wa-stagger-3', 'wa-stagger-4', 'wa-stagger-5', 'wa-stagger-6'];
 
-export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontosRestantes, maxAttr = 3, focusCatalogo }) {
-  const focusConfig = (focusCatalogo?.length > 0 ? focusCatalogo : FOCUS_FALLBACK)
-    .map(f => ({ key: f.nome, label: f.label, emoji: f.emoji, descricao: f.descricao }));
+export default function FocusSection({ focus, setFocusNivel, pontosFocus, pontosRestantes, maxAttr = 3, focusCatalogo }: FocusSectionProps) {
+  const focusConfig = ((focusCatalogo?.length ?? 0) > 0 ? focusCatalogo! : FOCUS_FALLBACK)
+    .map(f => ({ key: f.nome as FocusKey, label: f.label, emoji: f.emoji, descricao: f.descricao }));
   const { theme } = useTheme();
   const isLight = theme === 'light';
 

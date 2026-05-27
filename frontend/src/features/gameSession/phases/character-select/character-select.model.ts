@@ -7,7 +7,11 @@ import { useGameLoading } from '../../../../contexts/GameLoadingContext';
 // Legado — acao + erro/loading devem vir do MESMO hook
 // para evitar instancias separadas de error/loading state.
 // Sera consolidado em fase futura quando as acoes migrarem para o core.
-import { useJogo } from '../../../../Pages/Jogo/hooks/index.js';
+import { useJogo } from '../../../../Pages/Jogo/hooks/index';
+
+interface UseCharacterSelectModelParams {
+  navigate: (path: string) => void;
+}
 
 /**
  * Model hook da selecao de personagem (primeira etapa).
@@ -20,7 +24,7 @@ import { useJogo } from '../../../../Pages/Jogo/hooks/index.js';
  *
  * Retorna o MESMO shape que useSelecaoPersonagemModel original.
  */
-export function useCharacterSelectModel({ navigate }) {
+export function useCharacterSelectModel({ navigate }: UseCharacterSelectModelParams) {
   // === LEGADO (acao + erro/loading acoplados na mesma instancia) ===
   const {
     historiaAtual,
@@ -59,25 +63,28 @@ export function useCharacterSelectModel({ navigate }) {
       try {
         jogoInicializadoRef.current = true;
 
-        const fromInvite = location.state?.fromInvite || getSelection('configuracoes')?.fromInvite;
+        const locState = location.state as { fromInvite?: boolean } | null;
+        const sel = getSelection('configuracoes') as { fromInvite?: boolean } | null | undefined;
+        const fromInvite = locState?.fromInvite || sel?.fromInvite;
 
         // Verificar se ha sessao ativa
-        const { historiaService } = await import('../../../../services/index.js');
-        const sessaoData = await historiaService.verificarSessaoAtiva(id);
+        const { historiaService } = await import('../../../../services/index');
+        const sessaoData = await historiaService.verificarSessaoAtiva(id!) as { hasActiveSession?: boolean; isPlaying?: boolean } | null;
 
         if (sessaoData && sessaoData.hasActiveSession && sessaoData.isPlaying) {
           // Sessao ativa - RETOMAR JOGO
-          await retomarJogo(id, user);
+          await retomarJogo(id!, user);
           await new Promise(resolve => setTimeout(resolve, 150));
           navigate(`/jogo/${id}/jogo-ativo`);
           return;
         }
 
         // Inicializar jogo
-        await initializeGame(id, { fromInvite });
+        await initializeGame(id!, { fromInvite });
         hideSidebar();
       } catch {
-        await initializeGame(id, { fromInvite: location.state?.fromInvite });
+        const locStateCatch = location.state as { fromInvite?: boolean } | null;
+        await initializeGame(id!, { fromInvite: locStateCatch?.fromInvite });
         hideSidebar();
       }
     };
@@ -104,7 +111,7 @@ export function useCharacterSelectModel({ navigate }) {
   // HANDLERS
   // ------------------------------------------------------------------
 
-  const handleSelecionarPersonagem = useCallback(async (personagem) => {
+  const handleSelecionarPersonagem = useCallback(async (personagem: Parameters<typeof selecionarPersonagem>[0]) => {
     try {
       await selecionarPersonagem(personagem, user);
       navigate(`/jogo/${id}/sala-espera`);

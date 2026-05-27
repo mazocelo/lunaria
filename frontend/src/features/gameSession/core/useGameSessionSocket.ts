@@ -1,6 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useSocketStore } from '../../../store/socket/index.js';
-import { apiClient } from '../../../services/ApiClient.js';
+import { useSocketStore } from '../../../store/socket/index';
+import { apiClient } from '../../../services/ApiClient';
+
+interface UserData {
+  userId: number | string;
+  username: string;
+  email?: string;
+}
+
+interface SocketSubscription {
+  eventName: string;
+  handler: (...args: unknown[]) => void;
+}
 
 /**
  * Hook de socket para sessao de jogo.
@@ -32,11 +43,11 @@ export function useGameSessionSocket() {
   const socketOff = useSocketStore(s => s.off);
 
   // === LOCAL STATE ===
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [localConnecting, setLocalConnecting] = useState(false);
-  const subscriptionsRef = useRef([]);
+  const subscriptionsRef = useRef<SocketSubscription[]>([]);
 
-  const obterSocketTokenValido = useCallback(async () => {
+  const obterSocketTokenValido = useCallback(async (): Promise<string> => {
     try {
       const socketState = useSocketStore.getState();
 
@@ -44,9 +55,9 @@ export function useGameSessionSocket() {
         return socketState.socketToken;
       }
 
-      const response = await apiClient.post('/auth/renovar');
-      const payload = response?.data || response;
-      const refreshedSocketToken = payload?.socketToken;
+      const response = await apiClient.post('/auth/renovar') as { data?: { socketToken?: string }; socketToken?: string } | null;
+      const payload = (response as { data?: { socketToken?: string } } | null)?.data || response;
+      const refreshedSocketToken = (payload as { socketToken?: string } | null)?.socketToken;
 
       if (!refreshedSocketToken) {
         throw new Error('Nao foi possivel renovar a autenticacao do socket');
@@ -55,7 +66,8 @@ export function useGameSessionSocket() {
       socketState.setSocketToken(refreshedSocketToken);
       return refreshedSocketToken;
     } catch (error) {
-      if (error?.message === 'Não autorizado') {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === 'Não autorizado') {
         throw new Error('Sessao expirada. Faca login novamente.');
       }
 
@@ -63,7 +75,7 @@ export function useGameSessionSocket() {
     }
   }, []);
 
-  const aguardarAutenticacaoSocket = useCallback(() => new Promise((resolve, reject) => {
+  const aguardarAutenticacaoSocket = useCallback(() => new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Auth timeout')), 5000);
     const check = () => {
       const state = useSocketStore.getState();
@@ -80,7 +92,7 @@ export function useGameSessionSocket() {
   // ------------------------------------------------------------------
   // connectAndAuth — conectar ao WebSocket e autenticar em sequencia
   // ------------------------------------------------------------------
-  const connectAndAuth = useCallback(async (userData) => {
+  const connectAndAuth = useCallback(async (userData: UserData) => {
     try {
       setLocalConnecting(true);
       setLocalError(null);
@@ -102,7 +114,7 @@ export function useGameSessionSocket() {
 
       setLocalConnecting(false);
     } catch (err) {
-      const message = err.message || 'Erro ao conectar e autenticar';
+      const message = err instanceof Error ? err.message : 'Erro ao conectar e autenticar';
       setLocalError(message);
       setLocalConnecting(false);
       throw err;
@@ -112,12 +124,12 @@ export function useGameSessionSocket() {
   // ------------------------------------------------------------------
   // joinGameRoom — entrar na sala do jogo
   // ------------------------------------------------------------------
-  const joinGameRoom = useCallback(async (roomData) => {
+  const joinGameRoom = useCallback(async (roomData: Parameters<typeof socketJoinRoom>[0]) => {
     try {
       setLocalError(null);
       await socketJoinRoom(roomData);
     } catch (err) {
-      const message = err.message || 'Erro ao entrar na sala';
+      const message = err instanceof Error ? err.message : 'Erro ao entrar na sala';
       setLocalError(message);
       throw err;
     }
@@ -126,7 +138,7 @@ export function useGameSessionSocket() {
   // ------------------------------------------------------------------
   // onEvent — registrar listener e rastrear para cleanup
   // ------------------------------------------------------------------
-  const onEvent = useCallback((eventName, handler) => {
+  const onEvent = useCallback((eventName: string, handler: (...args: unknown[]) => void) => {
     if (socketOn) {
       socketOn(eventName, handler);
       subscriptionsRef.current.push({ eventName, handler });
@@ -136,7 +148,7 @@ export function useGameSessionSocket() {
   // ------------------------------------------------------------------
   // offEvent — remover listener especifico
   // ------------------------------------------------------------------
-  const offEvent = useCallback((eventName, handler) => {
+  const offEvent = useCallback((eventName: string, handler: (...args: unknown[]) => void) => {
     if (socketOff) {
       socketOff(eventName, handler);
       subscriptionsRef.current = subscriptionsRef.current.filter(

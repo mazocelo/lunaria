@@ -3,15 +3,19 @@ import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLayout } from '../../../../contexts/LayoutContext';
 import { useGameLoading } from '../../../../contexts/GameLoadingContext';
-import { historiaService } from '../../../../services/index.js';
+import { historiaService } from '../../../../services/index';
 
 // Core novo (Fase 1) — apenas leitura de state store-backed
-import { useGameSessionCore } from '../../core/useGameSessionCore.js';
+import { useGameSessionCore } from '../../core/useGameSessionCore';
 
 // Hooks legados — acao + erro/loading devem vir do MESMO hook
 // para evitar instancias separadas de error/loading state.
 // Sera consolidado em fase futura quando as acoes migrarem para o core.
-import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hooks/index.js';
+import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hooks/index';
+
+interface UseLobbyModelParams {
+  navigate: (path: string) => void;
+}
 
 /**
  * Model hook do lobby (sala de espera).
@@ -23,7 +27,7 @@ import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hoo
  *
  * Retorna o MESMO shape que useSalaEsperaModel original.
  */
-export function useLobbyModel({ navigate }) {
+export function useLobbyModel({ navigate }: UseLobbyModelParams) {
   // === CORE (leitura de state store-backed + helpers puros) ===
   const core = useGameSessionCore();
 
@@ -88,7 +92,7 @@ export function useLobbyModel({ navigate }) {
 
     const verificar = async () => {
       try {
-        const data = await historiaService.verificarSessaoAtiva(id);
+        const data = await historiaService.verificarSessaoAtiva(id) as { isPlaying?: boolean } | null;
 
         if (data?.isPlaying) {
           setIsResumingSession(true);
@@ -139,9 +143,11 @@ export function useLobbyModel({ navigate }) {
     ) {
       tentouConectarRef.current = true;
 
+      const locState = location.state as { fromInvite?: boolean } | null;
+      const sel = getSelection('configuracoes') as { fromInvite?: boolean } | null | undefined;
       const fromInvite =
-        location.state?.fromInvite ||
-        getSelection('configuracoes')?.fromInvite;
+        locState?.fromInvite ||
+        sel?.fromInvite;
 
       if (fromInvite && historiaAtual?.id) {
         conectarComoConvidado(
@@ -183,7 +189,7 @@ export function useLobbyModel({ navigate }) {
   // EFFECT 4: Listeners WS — aventura_iniciada, room_joined
   // ------------------------------------------------------------------
   useEffect(() => {
-    const cleanupFns = [];
+    const cleanupFns: Array<() => void> = [];
 
     const handleAventuraIniciada = () => {
       setIsResumingSession(true);
@@ -191,8 +197,9 @@ export function useLobbyModel({ navigate }) {
       setTimeout(() => navigate(`/jogo/${id}/jogo-ativo`), 1200);
     };
 
-    const handleRoomJoined = (data) => {
-      if (data?.sessao?.status === 'iniciada') {
+    const handleRoomJoined = (data: { sessao?: { status?: string } } | unknown) => {
+      const d = data as { sessao?: { status?: string } } | undefined;
+      if (d?.sessao?.status === 'iniciada') {
         setIsResumingSession(true);
         setResumeMessage('Entrando na aventura...');
         setTimeout(() => navigate(`/jogo/${id}/jogo-ativo`), 1500);

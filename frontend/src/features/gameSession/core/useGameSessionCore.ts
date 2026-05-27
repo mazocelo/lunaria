@@ -1,8 +1,17 @@
 import { useState, useCallback, useRef } from 'react';
-import { historiaService } from '../../../services/index.js';
-import useGameStore from '../../../store/game/index.js';
-import useSocketStore from '../../../store/socket/index.js';
-import { useTemaStore } from '../../../store/tema/index.js';
+import { historiaService } from '../../../services/index';
+import useGameStore from '../../../store/game/index';
+import useSocketStore from '../../../store/socket/index';
+import { useTemaStore } from '../../../store/tema/index';
+
+interface HistoriaInfo {
+  nome?: string;
+  titulo?: string;
+  descricao?: string;
+  maximo_de_participantes?: number;
+  temas?: unknown;
+  [key: string]: unknown;
+}
 
 /**
  * Core hook para sessao de jogo.
@@ -36,7 +45,7 @@ export function useGameSessionCore() {
 
   // ===== LOCAL STATE =====
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // ===== REFS (guards contra chamadas duplicadas) =====
   const isInitializingRef = useRef(false);
@@ -63,7 +72,7 @@ export function useGameSessionCore() {
   // CARREGAR HISTORIA
   // ------------------------------------------------------------------
   const carregarHistoria = useCallback(
-    async (historiaId) => {
+    async (historiaId: number | string) => {
       if (isLoadingHistoriaRef.current) return;
       try {
         isLoadingHistoriaRef.current = true;
@@ -71,10 +80,11 @@ export function useGameSessionCore() {
         storeSetLoading(true);
         setError(null);
 
-        const historia = await historiaService.getById(historiaId);
-        storeSetHistoriaAtual(historia);
+        const historia = await historiaService.getById(Number(historiaId));
+        storeSetHistoriaAtual(historia as unknown as Parameters<typeof storeSetHistoriaAtual>[0]);
       } catch (err) {
-        setError('Erro ao carregar historia: ' + err.message);
+        const message = err instanceof Error ? err.message : String(err);
+        setError('Erro ao carregar historia: ' + message);
       } finally {
         setLoading(false);
         storeSetLoading(false);
@@ -92,7 +102,7 @@ export function useGameSessionCore() {
   //   false no resume para preservar o personagem ja escolhido.
   // ------------------------------------------------------------------
   const initializeGame = useCallback(
-    async (historiaId, { clearCharacter = true } = {}) => {
+    async (historiaId: number | string, { clearCharacter = true }: { clearCharacter?: boolean } = {}) => {
       if (isInitializingRef.current) return;
       try {
         isInitializingRef.current = true;
@@ -113,7 +123,8 @@ export function useGameSessionCore() {
 
         isInitializingRef.current = false;
       } catch (err) {
-        setError('Erro ao inicializar jogo: ' + err.message);
+        const message = err instanceof Error ? err.message : String(err);
+        setError('Erro ao inicializar jogo: ' + message);
         isInitializingRef.current = false;
       }
     },
@@ -133,7 +144,7 @@ export function useGameSessionCore() {
   // TEMAS — helper reutilizado pelos formatadores
   // ------------------------------------------------------------------
   const obterTemasNomes = useCallback(
-    (historia) => {
+    (historia: HistoriaInfo | null | undefined): string[] => {
       if (!historia?.temas) return [];
       if (Array.isArray(historia.temas)) {
         return getNomesDeTemas(historia.temas);
@@ -152,7 +163,7 @@ export function useGameSessionCore() {
    * Usado por: selecao-personagem, sala-espera
    */
   const formatarInformacoesHistoria = useCallback(
-    (historia) => {
+    (historia: HistoriaInfo | null | undefined) => {
       if (!historia) {
         return {
           nome: 'Historia sem nome',

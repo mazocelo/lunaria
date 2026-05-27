@@ -1,4 +1,13 @@
-export const PHASES = {
+export interface PhaseDef {
+  id: string;
+  routeSegment: string;
+  pageTitle: string;
+  requiresCharacter: boolean;
+  requiresRoomJoin: boolean;
+  nextPhase: string | null;
+}
+
+export const PHASES: Record<'CHARACTER_SELECT' | 'LOBBY' | 'ACTIVE', PhaseDef> = {
   CHARACTER_SELECT: {
     id: 'character_select',
     routeSegment: 'selecao-personagem',
@@ -25,10 +34,11 @@ export const PHASES = {
   },
 };
 
-export const getPhaseByRoute = (segment) =>
+export const getPhaseByRoute = (segment: string): PhaseDef | null =>
   Object.values(PHASES).find((p) => p.routeSegment === segment) || null;
 
-export const getNextPhase = (currentId) => {
+export const getNextPhase = (currentId: string): PhaseDef | null => {
   const current = Object.values(PHASES).find((p) => p.id === currentId);
-  return current?.nextPhase ? PHASES[current.nextPhase] : null;
+  if (!current?.nextPhase) return null;
+  return (PHASES as Record<string, PhaseDef>)[current.nextPhase] ?? null;
 };

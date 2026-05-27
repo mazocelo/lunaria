@@ -4,12 +4,16 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useLayout } from '../../../../contexts/LayoutContext';
 
 // Core novo (Fase 1) — apenas sairDoJogo (store-backed, sem local state)
-import { useGameSessionCore } from '../../core/useGameSessionCore.js';
+import { useGameSessionCore } from '../../core/useGameSessionCore';
 
 // Hooks legados — acao + erro/loading devem vir do MESMO hook
 // para evitar instancias separadas de error/loading state.
 // Sera consolidado em fase futura quando as acoes migrarem para o core.
-import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hooks/index.js';
+import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hooks/index';
+
+interface UseActiveModelParams {
+  navigate: (path: string) => void;
+}
 
 /**
  * Model hook do jogo ativo (terceira etapa).
@@ -21,7 +25,7 @@ import { useJogo, useJogoSocket, useJogoGuard } from '../../../../Pages/Jogo/hoo
  *
  * Retorna o MESMO shape que useJogoAtivoModel original.
  */
-export function useActiveModel({ navigate }) {
+export function useActiveModel({ navigate }: UseActiveModelParams) {
   // === CORE (apenas sairDoJogo — store-backed) ===
   const core = useGameSessionCore();
 
@@ -63,8 +67,8 @@ export function useActiveModel({ navigate }) {
 
   // === LOCAL STATE ===
   const [showConfirmSair, setShowConfirmSair] = useState(false);
-  const resumeAttemptKeyRef = useRef(null);
-  const joinAttemptKeyRef = useRef(null);
+  const resumeAttemptKeyRef = useRef<string | null>(null);
+  const joinAttemptKeyRef = useRef<string | null>(null);
 
   // ------------------------------------------------------------------
   // EFFECT 1: Layout — esconder sidebar na entrada, restaurar na saida
@@ -86,8 +90,8 @@ export function useActiveModel({ navigate }) {
 
     const tryResume = async () => {
       try {
-        const { historiaService } = await import('../../../../services/index.js');
-        const sessaoData = await historiaService.verificarSessaoAtiva(id);
+        const { historiaService } = await import('../../../../services/index');
+        const sessaoData = await historiaService.verificarSessaoAtiva(id) as { hasActiveSession?: boolean } | null;
         if (sessaoData?.hasActiveSession) {
           await retomarJogo(id, user);
         }
@@ -146,9 +150,9 @@ export function useActiveModel({ navigate }) {
 
     const ensureJoin = async () => {
       try {
-        await garantirEntradaSala({
+        await (garantirEntradaSala as unknown as (data: { userId: number | string; username?: string; email?: string }) => Promise<unknown>)({
           userId: user.id,
-          username: user.nome || user.name,
+          username: (user.nome || user.name) as string | undefined,
           email: user.email,
         });
       } catch (err) {
@@ -200,11 +204,11 @@ export function useActiveModel({ navigate }) {
     setShowConfirmSair(false);
   }, []);
 
-  const handleAdicionarMensagem = useCallback((mensagem) => {
+  const handleAdicionarMensagem = useCallback((mensagem: Parameters<typeof adicionarMensagem>[0]) => {
     adicionarMensagem(mensagem);
   }, [adicionarMensagem]);
 
-  const handleAtualizarStatus = useCallback((status) => {
+  const handleAtualizarStatus = useCallback((status: Parameters<typeof atualizarStatusPersonagem>[0]) => {
     atualizarStatusPersonagem(status);
   }, [atualizarStatusPersonagem]);
 

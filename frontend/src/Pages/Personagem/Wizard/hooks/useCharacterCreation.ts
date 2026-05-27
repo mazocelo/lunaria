@@ -1,25 +1,79 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type MutableRefObject } from 'react';
 import { Personagem } from '../../../../models/Personagem';
-import { personagemService, apiClient } from '../../../../services/index.js';
+import { personagemService, apiClient } from '../../../../services/index';
+import type { BonusCalculationApi } from './useBonusCalculation';
+
+interface CreationEstado {
+  nome?: string;
+  racaId?: number | string | null;
+  classeId?: number | string | null;
+  background?: string;
+  atributosBase?: Record<string, number>;
+  vantagensIds?: Array<number | string>;
+  desvantagensIds?: Array<number | string>;
+  dndAbilityScores?: Record<string, number>;
+  dndAbilitiesConfirmed?: boolean;
+  dndSkillsConfirmed?: boolean;
+  dndSkillProficiencies?: string[];
+  [key: string]: unknown;
+}
+
+interface ComboPreviewData {
+  combo?: {
+    equipamentos?: Array<{ id?: number | string }>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface PointSystemMin {
+  pontosCriacaoRestantes: number;
+  [key: string]: unknown;
+}
+
+interface UseCharacterCreationParams {
+  getEstado: () => CreationEstado;
+  navigate: (path: string) => void;
+  comboPreviewData: ComboPreviewData | null;
+  comboPreviewLoading: boolean;
+  navigation: { etapaAtual?: string; [key: string]: unknown };
+  bonusCalc: BonusCalculationApi;
+  pointSystem: PointSystemMin;
+  estadoRef: MutableRefObject<CreationEstado>;
+  setError: (msg: string | null) => void;
+  limparDraft: () => void;
+  recarregarPersonagens: () => Promise<void>;
+  imageUrl?: string | null;
+  grimorioSelecionadas?: Array<number | string>;
+  sistema?: string;
+}
+
+interface CreationResultData {
+  personagem: { id?: number | null } | null;
+  preview: unknown;
+  background_digitado?: string;
+  background_gerado?: string | null;
+  background_final?: string;
+  background_indisponivel?: boolean;
+}
 
 /**
  * Encapsulates the character save flow: validation, creation, background
  * generation, result modal state, and post-creation navigation.
  */
 export const useCharacterCreation = ({
-  getEstado, navigate, comboPreviewData, comboPreviewLoading,
-  navigation, bonusCalc, pointSystem,
+  getEstado: _getEstado, navigate, comboPreviewData, comboPreviewLoading,
+  navigation: _navigation, bonusCalc, pointSystem,
   estadoRef, setError, limparDraft, recarregarPersonagens,
   imageUrl, grimorioSelecionadas, sistema = 'lunaria',
-}) => {
+}: UseCharacterCreationParams) => {
   const [salvando, setSalvando] = useState(false);
-  const [creationFlowStatus, setCreationFlowStatus] = useState('idle');
+  const [creationFlowStatus, setCreationFlowStatus] = useState<string>('idle');
   const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
-  const [creationResultData, setCreationResultData] = useState(null);
+  const [creationResultData, setCreationResultData] = useState<CreationResultData | null>(null);
 
   /** Cria um personagem D&D 5e: valida o estado D&D e envia o payload proprio. */
-  const salvarPersonagemDnd5e = useCallback(async (s) => {
+  const salvarPersonagemDnd5e = useCallback(async (s: CreationEstado) => {
     const scores = s.dndAbilityScores || {};
     const abilityIds = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
     const scoresCompletos = abilityIds.every(id => scores[id] != null);
@@ -51,17 +105,18 @@ export const useCharacterCreation = ({
         skill_proficiencies: s.dndSkillProficiencies || [],
       };
 
-      const criado = await personagemService.createDnd5e(payload);
+      const criado = await personagemService.createDnd5e(payload) as { id?: number | null } | null;
 
-      let backgroundResult = null;
+      let backgroundResult: { background_gerado?: string } | null = null;
       let backgroundIndisponivel = false;
       if (criado?.id && s.background) {
         setCreationFlowStatus('generating_background');
         try {
-          backgroundResult = await personagemService.gerarBackground(criado.id, s.background);
+          backgroundResult = await personagemService.gerarBackground(criado.id, s.background) as { background_gerado?: string };
         } catch (bgError) {
           backgroundIndisponivel = true;
-          console.warn('Background IA nao gerado:', bgError.message);
+          const msg = bgError instanceof Error ? bgError.message : String(bgError);
+          console.warn('Background IA nao gerado:', msg);
         }
       }
 
@@ -87,7 +142,8 @@ export const useCharacterCreation = ({
       setCreationFlowStatus('idle');
     } catch (err) {
       setCreationFlowStatus('error');
-      setError(err.message || 'Erro ao criar personagem');
+      const message = err instanceof Error ? err.message : 'Erro ao criar personagem';
+      setError(message);
       setCreationFlowStatus('idle');
     } finally {
       setSalvando(false);
@@ -131,7 +187,7 @@ export const useCharacterCreation = ({
     setCreationResultData(null);
 
     try {
-      const base = s.atributosBase;
+      const base = s.atributosBase || {};
       const dados = {
         nome: s.nome,
         raca_id: s.racaId,
@@ -147,22 +203,23 @@ export const useCharacterCreation = ({
         carisma: base.carisma,
         vantagens: s.vantagensIds,
         desvantagens: s.desvantagensIds,
-        equipamentos: (comboPreviewData.combo.equipamentos || []).map((item) => item.id),
+        equipamentos: (comboPreviewData?.combo?.equipamentos || []).map((item) => item.id),
         nivel: 1,
       };
 
       const personagem = new Personagem(dados);
-      const criado = await personagemService.create(personagem, { context: 'criacao' });
+      const criado = await personagemService.create(personagem, { context: 'criacao' }) as { id?: number | null } | null;
 
-      let backgroundResult = null;
+      let backgroundResult: { background_gerado?: string } | null = null;
       let backgroundIndisponivel = false;
       if (criado?.id && s.background) {
         setCreationFlowStatus('generating_background');
         try {
-          backgroundResult = await personagemService.gerarBackground(criado.id, s.background);
+          backgroundResult = await personagemService.gerarBackground(criado.id, s.background) as { background_gerado?: string };
         } catch (bgError) {
           backgroundIndisponivel = true;
-          console.warn('Background IA nao gerado:', bgError.message);
+          const msg = bgError instanceof Error ? bgError.message : String(bgError);
+          console.warn('Background IA nao gerado:', msg);
         }
       }
 
@@ -172,10 +229,10 @@ export const useCharacterCreation = ({
         } catch { /* non-blocking */ }
       }
 
-      if (criado?.id && grimorioSelecionadas?.length > 0) {
+      if (criado?.id && (grimorioSelecionadas?.length ?? 0) > 0) {
         try {
           await apiClient.post(`/personagens/${criado.id}/magias`, {
-            habilidade_ids: grimorioSelecionadas.map(id => parseInt(id, 10)),
+            habilidade_ids: (grimorioSelecionadas || []).map(id => parseInt(String(id), 10)),
             origem: 'criacao',
           });
         } catch { /* non-blocking — magias podem ser adicionadas depois */ }
@@ -197,11 +254,13 @@ export const useCharacterCreation = ({
       setCreationFlowStatus('idle');
     } catch (err) {
       setCreationFlowStatus('error');
-      setError(err.message || 'Erro ao criar personagem');
+      const message = err instanceof Error ? err.message : 'Erro ao criar personagem';
+      setError(message);
       setCreationFlowStatus('idle');
     } finally {
       setSalvando(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     bonusCalc.bonusAplicados,
     pointSystem.pontosCriacaoRestantes,

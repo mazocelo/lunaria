@@ -2,9 +2,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useWizardModel } from './wizard.model';
 import WizardView from './wizard.view';
 import WizardSystemPicker from './components/WizardSystemPicker';
-import TresDetFichaLivre from './TresDetFichaLivre/index.jsx';
+import TresDetFichaLivre from './TresDetFichaLivre/index';
 
-function WizardWithSystem({ sistema }) {
+function WizardWithSystem({ sistema }: { sistema: string }) {
   const navigate = useNavigate();
   const props = useWizardModel({ navigate, sistema });
   return (

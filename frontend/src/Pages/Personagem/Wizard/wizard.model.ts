@@ -16,9 +16,14 @@ import { useCharacterCreation } from './hooks/useCharacterCreation';
 import { useCharacterImage } from './hooks/useCharacterImage';
 import { useGrimorio } from './hooks/useGrimorio';
 import { useWizardInit } from './hooks/useWizardInit';
-import { tierDesbloqueado } from '../../../utils/evolucaoHelper.js';
+import { tierDesbloqueado } from '../../../utils/evolucaoHelper';
 
-export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
+interface UseWizardModelParams {
+  navigate: (path: string) => void;
+  sistema?: string;
+}
+
+export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModelParams) => {
   const isTresdet = sistema === 'tresdet';
   const isDnd5e = sistema === 'dnd5e';
   const recarregarPersonagens = usePersonagemStore(s => s.recarregarPersonagens);
@@ -47,36 +52,37 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
   // --- Draft ---
   const { draftInicial, draftRestaurado, setDraftRestaurado, salvarDraft, limparDraft } = useDraftPersistence();
 
+  const draftAny = draftInicial as Record<string, unknown> | null;
   // --- Personagem state ---
-  const [nome, setNome] = useState(draftInicial?.nome || '');
-  const [racaId, setRacaId] = useState(draftInicial?.racaId || null);
-  const [racaNome, setRacaNome] = useState(draftInicial?.racaNome || '');
-  const [classeId, setClasseId] = useState(draftInicial?.classeId || null);
-  const [classeNome, setClasseNome] = useState(draftInicial?.classeNome || '');
-  const [background, setBackground] = useState(draftInicial?.background || '');
+  const [nome, setNome] = useState<string>((draftAny?.nome as string | undefined) || '');
+  const [racaId, setRacaId] = useState<number | string | null>((draftAny?.racaId as number | string | null | undefined) || null);
+  const [racaNome, setRacaNome] = useState<string>((draftAny?.racaNome as string | undefined) || '');
+  const [classeId, setClasseId] = useState<number | string | null>((draftAny?.classeId as number | string | null | undefined) || null);
+  const [classeNome, setClasseNome] = useState<string>((draftAny?.classeNome as string | undefined) || '');
+  const [background, setBackground] = useState<string>((draftAny?.background as string | undefined) || '');
 
   // --- 3D&T-specific state ---
-  const [tresdetCaracteristicas, setTresdetCaracteristicas] = useState(
-    draftInicial?.tresdetCaracteristicas || { F: 0, H: 0, R: 0, A: 0, PdF: 0 }
+  const [tresdetCaracteristicas, setTresdetCaracteristicas] = useState<Record<string, number>>(
+    (draftAny?.tresdetCaracteristicas as Record<string, number> | undefined) || { F: 0, H: 0, R: 0, A: 0, PdF: 0 }
   );
-  const [tresdetCaracteristicasConfirmadas, setTresdetCaracteristicasConfirmadas] = useState(
-    draftInicial?.tresdetCaracteristicasConfirmadas || false
+  const [tresdetCaracteristicasConfirmadas, setTresdetCaracteristicasConfirmadas] = useState<boolean>(
+    (draftAny?.tresdetCaracteristicasConfirmadas as boolean | undefined) || false
   );
-  const [tresdetVantagensIds, setTresdetVantagensIds] = useState(
-    draftInicial?.tresdetVantagensIds || []
+  const [tresdetVantagensIds, setTresdetVantagensIds] = useState<string[]>(
+    (draftAny?.tresdetVantagensIds as string[] | undefined) || []
   );
-  const [tresdetVantagensConfirmadas, setTresdetVantagensConfirmadas] = useState(
-    draftInicial?.tresdetVantagensConfirmadas || false
+  const [tresdetVantagensConfirmadas, setTresdetVantagensConfirmadas] = useState<boolean>(
+    (draftAny?.tresdetVantagensConfirmadas as boolean | undefined) || false
   );
-  const [tresdetDesvantagensIds, setTresdetDesvantagensIds] = useState(
-    draftInicial?.tresdetDesvantagensIds || []
+  const [tresdetDesvantagensIds, setTresdetDesvantagensIds] = useState<string[]>(
+    (draftAny?.tresdetDesvantagensIds as string[] | undefined) || []
   );
-  const [tresdetDesvantagensConfirmadas, setTresdetDesvantagensConfirmadas] = useState(
-    draftInicial?.tresdetDesvantagensConfirmadas || false
+  const [tresdetDesvantagensConfirmadas, setTresdetDesvantagensConfirmadas] = useState<boolean>(
+    (draftAny?.tresdetDesvantagensConfirmadas as boolean | undefined) || false
   );
   const tresdetPontosTotais = 5;
 
-  const setTresdetCaracteristica = useCallback((key, valor) => {
+  const setTresdetCaracteristica = useCallback((key: string, valor: number) => {
     setTresdetCaracteristicas(prev => ({ ...prev, [key]: Math.max(0, Math.min(5, valor)) }));
     setTresdetCaracteristicasConfirmadas(false);
   }, []);
@@ -85,7 +91,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     setTresdetCaracteristicasConfirmadas(true);
   }, []);
 
-  const toggleTresdetVantagem = useCallback((id) => {
+  const toggleTresdetVantagem = useCallback((id: number | string) => {
     setTresdetVantagensIds(prev =>
       prev.includes(String(id))
         ? prev.filter(v => v !== String(id))
@@ -98,7 +104,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     setTresdetVantagensConfirmadas(true);
   }, []);
 
-  const toggleTresdetDesvantagem = useCallback((id) => {
+  const toggleTresdetDesvantagem = useCallback((id: number | string) => {
     setTresdetDesvantagensIds(prev =>
       prev.includes(String(id))
         ? prev.filter(v => v !== String(id))
@@ -114,20 +120,20 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
   // --- D&D 5e-specific state ---
   // Wizard D&D 5e tem 7 etapas: sem etapa de magias/spells. Equipamentos e
   // spellcasting ficam como divida do E-1.
-  const [dndAbilityScores, setDndAbilityScores] = useState(
-    draftInicial?.dndAbilityScores || {}
+  const [dndAbilityScores, setDndAbilityScores] = useState<Record<string, number>>(
+    (draftAny?.dndAbilityScores as Record<string, number> | undefined) || {}
   );
-  const [dndAbilitiesConfirmed, setDndAbilitiesConfirmed] = useState(
-    draftInicial?.dndAbilitiesConfirmed || false
+  const [dndAbilitiesConfirmed, setDndAbilitiesConfirmed] = useState<boolean>(
+    (draftAny?.dndAbilitiesConfirmed as boolean | undefined) || false
   );
-  const [dndSkillProficiencies, setDndSkillProficiencies] = useState(
-    draftInicial?.dndSkillProficiencies || []
+  const [dndSkillProficiencies, setDndSkillProficiencies] = useState<string[]>(
+    (draftAny?.dndSkillProficiencies as string[] | undefined) || []
   );
-  const [dndSkillsConfirmed, setDndSkillsConfirmed] = useState(
-    draftInicial?.dndSkillsConfirmed || false
+  const [dndSkillsConfirmed, setDndSkillsConfirmed] = useState<boolean>(
+    (draftAny?.dndSkillsConfirmed as boolean | undefined) || false
   );
 
-  const setDndAbilityScore = useCallback((key, value) => {
+  const setDndAbilityScore = useCallback((key: string, value: number | null) => {
     setDndAbilityScores(prev => {
       const next = { ...prev };
       if (value == null) {
@@ -149,7 +155,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     setDndAbilitiesConfirmed(true);
   }, []);
 
-  const toggleDndSkill = useCallback((skillId) => {
+  const toggleDndSkill = useCallback((skillId: string) => {
     setDndSkillProficiencies(prev =>
       prev.includes(skillId)
         ? prev.filter(s => s !== skillId)
@@ -182,18 +188,18 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     sugestoes, setSugestoes, error, setError, chatEndRef } = chat;
 
   // --- estadoRef / mensagensRef (always-fresh snapshots) ---
-  const estadoRef = useRef();
-  const racaSelecionada = racaId ? racas.find(r => String(r.id) === String(racaId)) : null;
-  const classeSelecionada = classeId ? classes.find(c => String(c.id) === String(classeId)) : null;
+  const estadoRef = useRef<Record<string, unknown>>({});
+  const racaSelecionada = racaId ? racas.find(r => String(r.id) === String(racaId)) as { vantagens?: Array<{ nome?: string } | string>; desvantagens?: Array<{ nome?: string } | string>; [key: string]: unknown } | undefined : null;
+  const classeSelecionada = classeId ? classes.find(c => String(c.id) === String(classeId)) as { vantagens?: Array<{ nome?: string } | string>; desvantagens?: Array<{ nome?: string } | string>; [key: string]: unknown } | undefined : null;
   estadoRef.current = {
     nome, racaId, racaNome, classeId, classeNome, background,
     vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
     desvantagensIds: pointSystem.desvantagensIds, desvantagensNomes: pointSystem.desvantagensNomes,
     atributosBase: bonusCalc.atributosBase, atributosFinal: bonusCalc.atributosFinal,
-    vantagensDaRaca: racaSelecionada?.vantagens?.map(v => v.nome || v) || [],
-    desvantagensDaRaca: racaSelecionada?.desvantagens?.map(d => d.nome || d) || [],
-    vantagensDaClasse: classeSelecionada?.vantagens?.map(v => v.nome || v) || [],
-    desvantagensDaClasse: classeSelecionada?.desvantagens?.map(d => d.nome || d) || [],
+    vantagensDaRaca: racaSelecionada?.vantagens?.map((v) => (typeof v === 'string' ? v : (v?.nome || v))) || [],
+    desvantagensDaRaca: racaSelecionada?.desvantagens?.map((d) => (typeof d === 'string' ? d : (d?.nome || d))) || [],
+    vantagensDaClasse: classeSelecionada?.vantagens?.map((v) => (typeof v === 'string' ? v : (v?.nome || v))) || [],
+    desvantagensDaClasse: classeSelecionada?.desvantagens?.map((d) => (typeof d === 'string' ? d : (d?.nome || d))) || [],
     tresdetCaracteristicas,
     tresdetVantagensIds,
     tresdetDesvantagensIds,
@@ -202,13 +208,13 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     dndSkillProficiencies,
     dndSkillsConfirmed,
   };
-  const mensagensRef = useRef();
+  const mensagensRef = useRef<typeof mensagens>([]);
   mensagensRef.current = mensagens;
 
   // --- getEstado / getHistorico ---
   const getEstado = useCallback(() => {
-    const s = estadoRef.current;
-    const base = {
+    const s = estadoRef.current as Record<string, unknown>;
+    const base: Record<string, unknown> = {
       nome: s.nome, raca_id: s.racaId, raca_nome: s.racaNome,
       classe_id: s.classeId, classe_nome: s.classeNome, background: s.background,
       vantagens_ids: s.vantagensIds, vantagens_nomes: s.vantagensNomes,
@@ -229,7 +235,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     return base;
   }, [isTresdet, isDnd5e]);
   const getHistorico = useCallback(() => {
-    return mensagensRef.current.filter(m => m.role !== 'sistema').map(m => ({
+    const messages = mensagensRef.current ?? [];
+    return messages.filter(m => m.role !== 'sistema').map(m => ({
       role: m.role === 'mestre' ? 'assistant' : 'user',
       content: m.content,
     }));
@@ -242,7 +249,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     pontosCriacaoRestantes: pointSystem.pontosCriacaoRestantes,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds,
     atributosBase: bonusCalc.atributosBase,
-    etapaAtual: null, estadoRef,
+    estadoRef: estadoRef as unknown as Parameters<typeof useComboPreview>[0]['estadoRef'],
   });
   const grimorio = useGrimorio({ racaId, racasDisponiveis });
 
@@ -358,7 +365,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     // Lunaria e o default do backend: passa null para nao filtrar.
     const sistemaCatalogo = isDnd5e ? 'dnd5e' : null;
     const loadAll = async () => {
-      const promises = [
+      const promises: Array<Promise<unknown>> = [
         carregarRacas(false, sistemaCatalogo),
         carregarClasses(false, sistemaCatalogo),
       ];
@@ -373,7 +380,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
 
   // Draft save
   useEffect(() => {
-    const draft = {
+    const draft: Record<string, unknown> = {
       etapaAtual: navigation.etapaAtual,
       nome, racaId, racaNome, classeId, classeNome, background,
       vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
@@ -396,7 +403,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
       draft.dndSkillProficiencies = dndSkillProficiencies;
       draft.dndSkillsConfirmed = dndSkillsConfirmed;
     }
-    salvarDraft(draft);
+    salvarDraft(draft as unknown as Parameters<typeof salvarDraft>[0]);
   }, [navigation.etapaAtual, nome, racaId, classeId, background,
       pointSystem.vantagensIds, pointSystem.desvantagensIds,
       bonusCalc.atributosBase, bonusCalc.bonusAplicados,
@@ -413,24 +420,29 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     setMensagens, setEnviando, enviandoRef, setSugestoes, setError, setInputTexto,
     navigation, nome, setNome, racaId, classeId, background, setBackground,
     setRacaId, setRacaNome, setClasseId, setClasseNome,
-    pointSystem, bonusCalc, getEstado, getHistorico, estadoRef, sistema,
+    pointSystem, bonusCalc, getEstado, getHistorico,
+    estadoRef: estadoRef as unknown as Parameters<typeof useMestreInteraction>[0]['estadoRef'],
+    sistema,
   });
   const characterImage = useCharacterImage();
   const characterCreation = useCharacterCreation({
-    getEstado, navigate, comboPreviewData: comboPreview.comboPreviewData,
+    getEstado: getEstado as unknown as Parameters<typeof useCharacterCreation>[0]['getEstado'],
+    navigate, comboPreviewData: comboPreview.comboPreviewData as Parameters<typeof useCharacterCreation>[0]['comboPreviewData'],
     comboPreviewLoading: comboPreview.comboPreviewLoading,
     navigation, bonusCalc, pointSystem,
-    estadoRef, setError, limparDraft, recarregarPersonagens,
+    estadoRef: estadoRef as unknown as Parameters<typeof useCharacterCreation>[0]['estadoRef'],
+    setError, limparDraft, recarregarPersonagens,
     imageUrl: characterImage.imageUrl,
     grimorioSelecionadas: grimorio.grimorioSelecionadas,
     sistema,
   });
   const { descartarDraft } = useWizardInit({
-    chat, navigation, nome, racaId,
+    chat, navigation, nome, racaId: racaId as number | string | null,
     setNome, setRacaId, setRacaNome, setClasseId, setClasseNome, setBackground,
-    pointSystem, bonusCalc, creation: characterCreation,
+    pointSystem, bonusCalc, creation: characterCreation as unknown as Parameters<typeof useWizardInit>[0]['creation'],
     draftInicial, limparDraft, setDraftRestaurado,
-    getEstado, comboPreview, sistema,
+    getEstado: getEstado as unknown as Parameters<typeof useWizardInit>[0]['getEstado'],
+    comboPreview, sistema,
   });
 
   // Grimorio: confirmar selecao e avancar
@@ -556,3 +568,5 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }) => {
     navigate,
   };
 };
+
+export type WizardModel = ReturnType<typeof useWizardModel>;

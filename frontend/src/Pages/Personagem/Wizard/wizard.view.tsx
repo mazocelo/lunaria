@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -9,20 +9,23 @@ import {
   Hammer,
   Loader2,
 } from 'lucide-react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useTheme } from '../../../contexts/theme';
 import './wizard-theme.css';
-import WizardProgressBar from './components/WizardProgressBar.jsx';
-import WizardChat from './components/WizardChat.jsx';
-import WizardCreationResultModal from './components/WizardCreationResultModal.jsx';
-import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard.jsx';
+import WizardProgressBar from './components/WizardProgressBar';
+import WizardChat from './components/WizardChat';
+import WizardCreationResultModal from './components/WizardCreationResultModal';
+import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
 import {
   getProgressItems,
   getTooltipMap,
   getReadinessState,
   canCreate,
-} from './stages/stageSelectors.js';
+} from './stages/stageSelectors';
+import type { WizardModel } from './wizard.model';
 
-const WizardView = (props) => {
+type WizardViewProps = WizardModel;
+
+const WizardView = (props: WizardViewProps) => {
   const {
     etapas,
     etapaAtual,
@@ -85,13 +88,13 @@ const WizardView = (props) => {
     comboPreviewLoading,
     comboPreviewErro,
     comboPreviewTentativa,
-    comboPreviewBuildKey,
+    comboPreviewBuildKey: _comboPreviewBuildKey,
     recarregarComboPreview,
     regenerarComboPreview,
     creationFlowStatus,
     creationResultModalOpen,
     creationResultData,
-    fecharResultadoCriacao,
+    fecharResultadoCriacao: _fecharResultadoCriacao,
     irParaPersonagens,
     verFichaCriada,
     imageUrl,
@@ -314,9 +317,9 @@ const WizardView = (props) => {
                 vantagensIds={vantagensIds}
                 desvantagensIds={desvantagensIds}
                 etapaAtual={etapaAtual}
-                racasDisponiveis={racasDisponiveis}
-                classesDisponiveis={classesDisponiveis}
-                vantagensDisponiveis={vantagensDisponiveis}
+                racasDisponiveis={racasDisponiveis as unknown as Parameters<typeof WizardChat>[0]['racasDisponiveis']}
+                classesDisponiveis={classesDisponiveis as unknown as Parameters<typeof WizardChat>[0]['classesDisponiveis']}
+                vantagensDisponiveis={vantagensDisponiveis as unknown as Parameters<typeof WizardChat>[0]['vantagensDisponiveis']}
                 chatEndRef={chatEndRef}
                 isLight={isLight}
                 podeCriar={podeCriar}
@@ -350,7 +353,6 @@ const WizardView = (props) => {
                 comboPreviewLoading={comboPreviewLoading}
                 comboPreviewErro={comboPreviewErro}
                 comboPreviewTentativa={comboPreviewTentativa}
-                comboPreviewBuildKey={comboPreviewBuildKey}
                 onRegenerarComboPreview={regenerarComboPreview}
                 onRecarregarComboPreview={recarregarComboPreview}
                 creationFlowStatus={creationFlowStatus}
@@ -370,8 +372,8 @@ const WizardView = (props) => {
                   racaNome: racaAtual?.nome,
                   classeNome: classeAtual?.nome,
                   background,
-                  vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter(Boolean),
-                  desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter(Boolean),
+                  vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
+                  desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
                 })}
                 sistema={sistema}
                 isTresdet={isTresdet}
@@ -534,8 +536,7 @@ const WizardView = (props) => {
 
       <WizardCreationResultModal
         open={creationResultModalOpen}
-        data={creationResultData}
-        onClose={fecharResultadoCriacao}
+        data={creationResultData as unknown as Parameters<typeof WizardCreationResultModal>[0]['data']}
         onViewSheet={verFichaCriada}
         onGoToCharacters={irParaPersonagens}
         isLight={isLight}

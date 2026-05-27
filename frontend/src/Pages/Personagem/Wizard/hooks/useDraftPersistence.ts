@@ -20,6 +20,7 @@ export interface WizardDraft {
   skipDesvantagens?: boolean;
   etapasVisitadas?: string[];
   etapasConcluidas?: string[];
+  [key: string]: unknown;
 }
 
 function loadDraftFromStorage(): WizardDraft | null {

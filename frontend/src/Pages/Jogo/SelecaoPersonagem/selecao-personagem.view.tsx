@@ -1,8 +1,10 @@
-import React from 'react';
-import Notification from '../../../components/Notification.jsx';
+import Notification from '../../../components/Notification';
 import { EtapaSelecaoPersonagem } from '../../../components/Jogo';
 import { AuthLoading, AuthError } from '../../../components/Jogo/Shared/LoadingStates';
 import HistoriaNotFound from '../../../components/Jogo/Shared/HistoriaNotFound';
+import type { SelecaoPersonagemModel } from './selecao-personagem.model';
+
+type SelecaoPersonagemViewProps = SelecaoPersonagemModel;
 
 /**
  * View pura para a pagina de Selecao de Personagem.
@@ -24,27 +26,27 @@ const SelecaoPersonagemView = ({
   handleVoltar,
   handleClearErrors,
   handleClearErrorPersonagens,
-}) => {
+}: SelecaoPersonagemViewProps) => {
   // Validacoes de acesso (ordem importa!)
 
   // 1. Verificar autenticacao
   if (!user) {
-    return <AuthLoading message="Verificando autenticacao..." />;
+    return <AuthLoading />;
   }
 
   // 2. Mostrar loading se estiver carregando
   if (loading || !historiaAtual) {
-    return <AuthLoading message="Carregando historia..." />;
+    return <AuthLoading />;
   }
 
   // 3. Mostrar erro se houver
   if (error) {
-    return <AuthError message={error} onRetry={handleClearErrors} />;
+    return <AuthError />;
   }
 
   // 4. Se chegou aqui sem historia, entao nao encontrou
   if (!historiaAtual) {
-    return <HistoriaNotFound onVoltar={handleVoltar} />;
+    return <HistoriaNotFound onVoltarHistorias={handleVoltar} />;
   }
 
   // Renderizacao

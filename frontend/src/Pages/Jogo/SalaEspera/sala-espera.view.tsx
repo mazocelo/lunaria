@@ -1,8 +1,10 @@
-import React from 'react';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { EtapaSalaEspera } from '../../../components/Jogo';
 import { AuthLoading, GameTransitionLoading } from '../../../components/Jogo/Shared/LoadingStates';
+import type { SalaEsperaModel } from './sala-espera.model';
+
+type SalaEsperaViewProps = SalaEsperaModel;
 
 /**
  * View pura para a pagina de Sala de Espera.
@@ -33,23 +35,23 @@ const SalaEsperaView = ({
   showConfirmSair,
   confirmarSair,
   cancelarSair,
-}) => {
+}: SalaEsperaViewProps) => {
   // Retomando sessao ativa — tela de transicao tematica
   if (isResumingSession) {
-    return <GameTransitionLoading historiaNome={historiaAtual?.nome} message={resumeMessage} />;
+    return <GameTransitionLoading historiaNome={String(historiaAtual?.nome ?? '')} message={resumeMessage} />;
   }
 
   // Validacoes
   if (!user) {
-    return <AuthLoading message="Verificando autenticacao..." />;
+    return <AuthLoading />;
   }
 
   if (!historiaAtual) {
-    return <AuthLoading message="Carregando historia..." />;
+    return <AuthLoading />;
   }
 
   if (!personagemSelecionado) {
-    return <AuthLoading message="Redirecionando..." />;
+    return <AuthLoading />;
   }
 
   // Renderizacao

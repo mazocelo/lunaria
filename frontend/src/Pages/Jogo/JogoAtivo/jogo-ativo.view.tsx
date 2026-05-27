@@ -1,9 +1,11 @@
-import React from 'react';
 import { Loader2 } from 'lucide-react';
-import Notification from '../../../components/Notification.jsx';
-import ConfirmationModal from '../../../components/ConfirmationModal.jsx';
+import Notification from '../../../components/Notification';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { EtapaJogoRPG } from '../../../components/Jogo';
 import { AuthLoading } from '../../../components/Jogo/Shared/LoadingStates';
+import type { JogoAtivoModel } from './jogo-ativo.model';
+
+type JogoAtivoViewProps = JogoAtivoModel;
 
 /**
  * View pura para a pagina de Jogo Ativo.
@@ -32,22 +34,22 @@ const JogoAtivoView = ({
   handleAdicionarMensagem,
   handleAtualizarStatus,
   handleClearErrors,
-}) => {
+}: JogoAtivoViewProps) => {
   // Validacoes
   if (!user) {
-    return <AuthLoading message="Verificando autenticacao..." />;
+    return <AuthLoading />;
   }
 
   if (!historiaAtual) {
-    return <AuthLoading message="Carregando historia..." />;
+    return <AuthLoading />;
   }
 
   if (!personagemSelecionado) {
-    return <AuthLoading message="Redirecionando..." />;
+    return <AuthLoading />;
   }
 
   if (!salaAberta) {
-    return <AuthLoading message="Aguardando sala..." />;
+    return <AuthLoading />;
   }
 
   // Renderizacao

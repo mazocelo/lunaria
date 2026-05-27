@@ -1,5 +1,5 @@
-import React from 'react';
-import { useSocketStore } from '../../../store/index.js';
+import { useSocketStore } from '../../../store/index';
+import type { EtapaJogoRPGModel } from './EtapaJogoRPG.model';
 import { BarChart3, ChevronLeft, ChevronRight, Swords, Users, X } from 'lucide-react';
 import { RPGActions } from '../../RPGActions';
 import BackgroundEffects from '../Shared/BackgroundEffects';
@@ -23,7 +23,9 @@ import SessionGallery from '../Shared/SessionGallery';
 import { PARTICLES } from '../../../constants/game';
 import { useTTS } from '../../../hooks/useTTS';
 
-const EtapaJogoRPGView = (props) => {
+type EtapaJogoRPGViewProps = EtapaJogoRPGModel & { [key: string]: unknown };
+
+const EtapaJogoRPGView = (props: EtapaJogoRPGViewProps) => {
   const tts = useTTS();
   const {
     historia,
@@ -105,7 +107,7 @@ const EtapaJogoRPGView = (props) => {
     activeMestreRequestStatus,
     mestreRequestIsMine,
     handleMestreBannerAction,
-    jaRolouDadoInicial,
+    jaRolouDadoInicial: _jaRolouDadoInicial,
     cooldownLocal,
     rolando,
     entidadesComImagem,
@@ -126,68 +128,76 @@ const EtapaJogoRPGView = (props) => {
   return (
     <div className="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
       <NotificationManager />
-      <SceneTransition image={sceneTransitionImage} onDone={handleSceneTransitionDone} />
-      <SessionGallery images={sessionImages} />
+      <SceneTransition image={sceneTransitionImage as unknown as Parameters<typeof SceneTransition>[0]['image']} onDone={handleSceneTransitionDone} />
+      <SessionGallery images={sessionImages as unknown as Parameters<typeof SessionGallery>[0]['images']} />
       <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
 
       <div className="relative z-10 h-screen flex flex-col">
         <SessionHeader
-          faseJogo={faseJogo}
-          rodadaAtual={rodadaAtual}
-          turnoAtual={turnoAtual}
-          ehMeuTurno={ehMeuTurno}
-          ordemJogadores={ordemJogadores}
-          jogadoresExibir={jogadoresExibir}
-          showActions={showActions}
-          toggleActions={toggleActions}
-          showRodadaInfo={showRodadaInfo}
-          setShowRodadaInfo={setShowRodadaInfo}
-          rodadaDropdownRef={rodadaDropdownRef}
-          handleVerMinhaFicha={handleVerMinhaFicha}
-          onAbrirGrimorio={() => setGrimorioAberto(true)}
-          temMagias={magiasPersonagem?.length > 0}
-          onSair={onSair}
-          mobileDrawer={mobileDrawer}
-          setMobileDrawer={setMobileDrawer}
-          prologo={historia?.prologo}
-          tts={tts}
-          voiceId={effectiveVoiceId}
-          voiceProvider={effectiveVoiceProvider}
-          combateAtivo={combateAtivo}
-          combateRodada={combateRodada}
-          combateMonstros={combateMonstros}
+          {...({
+            faseJogo,
+            rodadaAtual,
+            turnoAtual,
+            ehMeuTurno,
+            ordemJogadores,
+            jogadoresExibir,
+            showActions,
+            toggleActions,
+            showRodadaInfo,
+            setShowRodadaInfo,
+            rodadaDropdownRef,
+            handleVerMinhaFicha,
+            onAbrirGrimorio: () => setGrimorioAberto(true),
+            temMagias: (magiasPersonagem?.length ?? 0) > 0,
+            onSair,
+            mobileDrawer,
+            setMobileDrawer,
+            prologo: (historia as { prologo?: string } | undefined)?.prologo,
+            tts,
+            voiceId: effectiveVoiceId,
+            voiceProvider: effectiveVoiceProvider,
+            combateAtivo,
+            combateRodada,
+            combateMonstros,
+          } as unknown as Parameters<typeof SessionHeader>[0])}
         />
 
         <div className="flex-1 flex overflow-hidden">
           <PainelJogadores
-            participantes={jogadoresExibir}
-            ordemJogadores={ordemJogadores}
-            resultadosDados={resultadosDados}
-            turnoAtual={turnoAtual}
-            faseJogo={faseJogo}
-            onVerFichaJogador={handleVerFichaJogador}
-            compactMode={jogadoresExibir.length <= 2}
-            combateAtivo={combateAtivo}
-            combateOrdemIniciativa={combateOrdemIniciativa}
+            {...({
+              participantes: jogadoresExibir,
+              ordemJogadores,
+              resultadosDados,
+              turnoAtual,
+              faseJogo,
+              onVerFichaJogador: handleVerFichaJogador,
+              compactMode: jogadoresExibir.length <= 2,
+              combateAtivo,
+              combateOrdemIniciativa,
+            } as unknown as Parameters<typeof PainelJogadores>[0])}
           />
 
           <div className="flex-1 flex flex-col min-w-0">
             <BarraStatusCompacta
-              personagem={personagemSelecionado}
-              combateAtivo={combateAtivo}
-              combateJogadores={combateJogadores}
-              userId={user?.id}
+              {...({
+                personagem: personagemSelecionado,
+                combateAtivo,
+                combateJogadores,
+                userId: user?.id,
+              } as unknown as Parameters<typeof BarraStatusCompacta>[0])}
             />
 
             {faseJogo === 'rolagem_inicial' && (
               <div className="p-6">
                 <RolagemDadosInicial
-                  jogadores={Object.values(participantes || {})}
-                  resultados={resultadosDados}
-                  ordemDefinida={ordemDefinida}
-                  ordemJogadores={ordemJogadores}
-                  usuarioAtual={user}
-                  onRolarDado={handleRolarDadoInicial}
+                  {...({
+                    jogadores: Object.values(participantes || {}),
+                    resultados: resultadosDados,
+                    ordemDefinida,
+                    ordemJogadores,
+                    usuarioAtual: user,
+                    onRolarDado: handleRolarDadoInicial,
+                  } as unknown as Parameters<typeof RolagemDadosInicial>[0])}
                 />
               </div>
             )}
@@ -195,76 +205,84 @@ const EtapaJogoRPGView = (props) => {
             {(combateAtivo || combateResultado) && (
               <div className="px-4 pt-4">
                 <BatalhaUI
-                  monstros={combateMonstros}
-                  jogadores={combateJogadores}
-                  rodada={combateRodada}
-                  log={combateLog}
-                  resultado={combateResultado}
-                  xpGanho={combateXpGanho}
-                  userId={String(user?.id)}
-                  fase={combateFase}
-                  iniciativaPendente={combateIniciativaPendente}
-                  iniciativaModificador={combateIniciativaModificador}
-                  ordemIniciativa={combateOrdemIniciativa}
-                  turnoAtual={combateTurnoAtual}
-                  onRolarIniciativa={() => useSocketStore.getState().rolarIniciativaCombate()}
-                  sistema={personagemSelecionado?.sistema}
+                  {...({
+                    monstros: combateMonstros,
+                    jogadores: combateJogadores,
+                    rodada: combateRodada,
+                    log: combateLog,
+                    resultado: combateResultado,
+                    xpGanho: combateXpGanho,
+                    userId: String(user?.id),
+                    fase: combateFase,
+                    iniciativaPendente: combateIniciativaPendente,
+                    iniciativaModificador: combateIniciativaModificador,
+                    ordemIniciativa: combateOrdemIniciativa,
+                    turnoAtual: combateTurnoAtual,
+                    onRolarIniciativa: () => useSocketStore.getState().rolarIniciativaCombate(),
+                    sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+                  } as unknown as Parameters<typeof BatalhaUI>[0])}
                 />
               </div>
             )}
 
             <ChatArea
-              mensagens={mensagens}
-              usuariosDigitando={[]}
-              mensagensRef={null}
-              voiceId={effectiveVoiceId}
-              voiceProvider={effectiveVoiceProvider}
-              entidadesComImagem={entidadesComImagem}
-              contextoImagemCena={contextoImagemCena}
-              onSceneImageGenerated={handleSceneImageGenerated}
-              estiloImagem={historia?.estilo_imagem}
-              prologo={historia?.prologo}
-              imagemCapa={historia?.imagem}
+              {...({
+                mensagens,
+                usuariosDigitando: [],
+                mensagensRef: null,
+                voiceId: effectiveVoiceId,
+                voiceProvider: effectiveVoiceProvider,
+                entidadesComImagem,
+                contextoImagemCena,
+                onSceneImageGenerated: handleSceneImageGenerated,
+                estiloImagem: (historia as { estilo_imagem?: string } | undefined)?.estilo_imagem,
+                prologo: (historia as { prologo?: string } | undefined)?.prologo,
+                imagemCapa: (historia as { imagem?: string } | undefined)?.imagem,
+              } as unknown as Parameters<typeof ChatArea>[0])}
             />
 
             <MestrePensandoBanner
-              ativo={mestrePensando || aguardandoMestre}
-              timedOut={mestreTimedOut}
-              stale={mestreStale}
-              status={activeMestreRequestStatus}
-              onAction={mestreRequestIsMine ? handleMestreBannerAction : null}
+              {...({
+                ativo: mestrePensando || aguardandoMestre,
+                timedOut: mestreTimedOut,
+                stale: mestreStale,
+                status: activeMestreRequestStatus,
+                onAction: mestreRequestIsMine ? handleMestreBannerAction : null,
+              } as unknown as Parameters<typeof MestrePensandoBanner>[0])}
             />
 
             <ActionDock
-              mensagemAtual={mensagemAtual}
-              onMensagemChange={handleMensagemChange}
-              onKeyPress={handleKeyPress}
-              onEnviarMensagem={handleEnviarMensagem}
-              onRolarDados={handleRolarDados}
-              onExecutarAcao={handleExecutarAcao}
-              faseJogo={faseJogo}
-              ehMeuTurno={ehMeuTurno}
-              turnoIniciado={turnoIniciado}
-              turnoStatus={turnoStatus}
-              cooldownRoleplay={cooldownLocal}
-              onIniciarTurno={handleIniciarTurno}
-              dadosSolicitados={dadosSolicitados}
-              dadoSolicitadoInfo={dadoSolicitadoInfo}
-              aguardandoMestre={aguardandoMestre}
-              combateAtivo={combateAtivo}
-              combateMonstros={combateMonstros}
-              rolando={rolando}
-              habilidadesPersonagem={habilidadesPersonagem}
-              magiasPersonagem={magiasPersonagem}
-              manaAtual={manaAtual}
-              manaMax={manaMax}
-              cooldownsHabilidades={cooldownsHabilidades}
-              concentracaoAtiva={concentracaoAtiva}
-              onUsarMagia={handleUsarMagia}
-              combatIntentAtual={combatIntentAtual}
-              onClearCombatIntent={clearCombatIntent}
-              sistema={personagemSelecionado?.sistema}
-              personagemAtributos={personagemSelecionado?.atributos}
+              {...({
+                mensagemAtual,
+                onMensagemChange: handleMensagemChange,
+                onKeyPress: handleKeyPress,
+                onEnviarMensagem: handleEnviarMensagem,
+                onRolarDados: handleRolarDados,
+                onExecutarAcao: handleExecutarAcao,
+                faseJogo,
+                ehMeuTurno,
+                turnoIniciado,
+                turnoStatus,
+                cooldownRoleplay: cooldownLocal,
+                onIniciarTurno: handleIniciarTurno,
+                dadosSolicitados,
+                dadoSolicitadoInfo,
+                aguardandoMestre,
+                combateAtivo,
+                combateMonstros,
+                rolando,
+                habilidadesPersonagem,
+                magiasPersonagem,
+                manaAtual,
+                manaMax,
+                cooldownsHabilidades,
+                concentracaoAtiva,
+                onUsarMagia: handleUsarMagia,
+                combatIntentAtual,
+                onClearCombatIntent: clearCombatIntent,
+                sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+                personagemAtributos: (personagemSelecionado as { atributos?: unknown } | undefined)?.atributos,
+              } as unknown as Parameters<typeof ActionDock>[0])}
             />
           </div>
 
@@ -295,11 +313,13 @@ const EtapaJogoRPGView = (props) => {
               {rightPanelExpanded ? (
                 <div className="space-y-4">
                   <RPGActions
-                    onRollDice={handleRolarDados}
-                    onUsarHabilidade={handleUsarHabilidade}
-                    onUsarEquipamento={handleUsarEquipamento}
-                    personagem={personagemSelecionado}
-                    rolando={rolando}
+                    {...({
+                      onRollDice: handleRolarDados,
+                      onUsarHabilidade: handleUsarHabilidade,
+                      onUsarEquipamento: handleUsarEquipamento,
+                      personagem: personagemSelecionado,
+                      rolando,
+                    } as unknown as Parameters<typeof RPGActions>[0])}
                   />
                   <div className="border-t border-purple-500/20 pt-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -307,13 +327,15 @@ const EtapaJogoRPGView = (props) => {
                       <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent" />
                     </div>
                     <StatusPersonagem
-                      personagemSelecionado={infoPersonagem}
-                      onRolarDados={handleRolarDados}
-                      onToggleInventario={() => setInventarioAberto(!inventarioAberto)}
-                      compact
-                      combateAtivo={combateAtivo}
-                      combateJogadores={combateJogadores}
-                      userId={String(user.id)}
+                      {...({
+                        personagemSelecionado: infoPersonagem,
+                        onRolarDados: handleRolarDados,
+                        onToggleInventario: () => setInventarioAberto(!inventarioAberto),
+                        compact: true,
+                        combateAtivo,
+                        combateJogadores,
+                        userId: String(user.id ?? ''),
+                      } as unknown as Parameters<typeof StatusPersonagem>[0])}
                     />
                   </div>
                 </div>
@@ -368,10 +390,10 @@ const EtapaJogoRPGView = (props) => {
             <div className="p-4">
               {mobileDrawer === 'jogadores' && (
                 <div className="space-y-3">
-                  {(ordemJogadores.length > 0 ? ordemJogadores : jogadoresExibir).map((jogador, i) => {
-                    const uid = jogador.userId || jogador.id;
-                    const nome = jogador.username || jogador.nome;
-                    const pNome = jogador.personagemNome || jogador.personagem;
+                  {(ordemJogadores.length > 0 ? ordemJogadores : jogadoresExibir).map((jogador: Record<string, unknown>, i: number) => {
+                    const uid = (jogador.userId || jogador.id) as number | string | undefined;
+                    const nome = (jogador.username || jogador.nome) as string | undefined;
+                    const pNome = (jogador.personagemNome || jogador.personagem) as string | undefined;
                     const ehTurno = turnoAtual === i;
                     return (
                       <div
@@ -384,8 +406,8 @@ const EtapaJogoRPGView = (props) => {
                       >
                         <div className="text-white font-medium text-sm">{nome}</div>
                         <div className="text-purple-300 text-xs">{pNome}</div>
-                        {jogador.valorDado && (
-                          <div className="text-yellow-300 text-xs mt-1">Dado {jogador.valorDado}</div>
+                        {Boolean(jogador.valorDado) && (
+                          <div className="text-yellow-300 text-xs mt-1">Dado {String(jogador.valorDado)}</div>
                         )}
                       </div>
                     );
@@ -395,24 +417,28 @@ const EtapaJogoRPGView = (props) => {
               {mobileDrawer === 'acoes' && (
                 <div className="space-y-4">
                   <RPGActions
-                    onRollDice={handleRolarDados}
-                    onUsarHabilidade={handleUsarHabilidade}
-                    onUsarEquipamento={handleUsarEquipamento}
-                    personagem={personagemSelecionado}
-                    rolando={rolando}
+                    {...({
+                      onRollDice: handleRolarDados,
+                      onUsarHabilidade: handleUsarHabilidade,
+                      onUsarEquipamento: handleUsarEquipamento,
+                      personagem: personagemSelecionado,
+                      rolando,
+                    } as unknown as Parameters<typeof RPGActions>[0])}
                   />
                   <div className="border-t border-purple-500/20 pt-4">
                     <StatusPersonagem
-                      personagemSelecionado={infoPersonagem}
-                      onRolarDados={handleRolarDados}
-                      onToggleInventario={() => {
-                        setInventarioAberto(!inventarioAberto);
-                        setMobileDrawer(null);
-                      }}
-                      compact
-                      combateAtivo={combateAtivo}
-                      combateJogadores={combateJogadores}
-                      userId={String(user.id)}
+                      {...({
+                        personagemSelecionado: infoPersonagem,
+                        onRolarDados: handleRolarDados,
+                        onToggleInventario: () => {
+                          setInventarioAberto(!inventarioAberto);
+                          setMobileDrawer(null);
+                        },
+                        compact: true,
+                        combateAtivo,
+                        combateJogadores,
+                        userId: String(user.id ?? ''),
+                      } as unknown as Parameters<typeof StatusPersonagem>[0])}
                     />
                   </div>
                 </div>
@@ -423,46 +449,54 @@ const EtapaJogoRPGView = (props) => {
       )}
 
       <FichaPersonagemModal
-        isOpen={fichaModalAberta}
-        onClose={fecharFichaModal}
-        personagem={fichaSelecionada}
-        loading={fichaCarregando}
-        error={fichaErro}
-        titulo={tituloFicha}
-        combateAtivo={combateAtivo}
-        combateJogadores={combateJogadores}
-        userId={user?.id}
+        {...({
+          isOpen: fichaModalAberta,
+          onClose: fecharFichaModal,
+          personagem: fichaSelecionada,
+          loading: fichaCarregando,
+          error: fichaErro,
+          titulo: tituloFicha,
+          combateAtivo,
+          combateJogadores,
+          userId: user?.id,
+        } as unknown as Parameters<typeof FichaPersonagemModal>[0])}
       />
 
       <GrimorioModal
-        isOpen={grimorioAberto}
-        onClose={() => setGrimorioAberto(false)}
-        magias={magiasPersonagem}
-        manaAtual={manaAtual}
-        manaMax={manaMax}
-        combateAtivo={combateAtivo}
-        onUsarMagia={(magia) => {
-          handleUsarMagia(magia);
-          setGrimorioAberto(false);
-        }}
-        sistema={personagemSelecionado?.sistema}
+        {...({
+          isOpen: grimorioAberto,
+          onClose: () => setGrimorioAberto(false),
+          magias: magiasPersonagem,
+          manaAtual,
+          manaMax,
+          combateAtivo,
+          onUsarMagia: (magia: unknown) => {
+            handleUsarMagia(magia as Parameters<typeof handleUsarMagia>[0]);
+            setGrimorioAberto(false);
+          },
+          sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+        } as unknown as Parameters<typeof GrimorioModal>[0])}
       />
 
       <InventarioPanel
-        isOpen={inventarioAberto}
-        onClose={() => setInventarioAberto(false)}
-        equipamentos={personagemSelecionado?.equipamentos || []}
-        personagemNome={personagemSelecionado?.nome || 'Aventureiro'}
-        personagemId={personagemSelecionado?.id}
-        sistema={personagemSelecionado?.sistema}
-        onUsarItem={handleUsarEquipamento}
+        {...({
+          isOpen: inventarioAberto,
+          onClose: () => setInventarioAberto(false),
+          equipamentos: (personagemSelecionado as { equipamentos?: unknown[] } | undefined)?.equipamentos || [],
+          personagemNome: (personagemSelecionado as { nome?: string } | undefined)?.nome || 'Aventureiro',
+          personagemId: (personagemSelecionado as { id?: number | string } | undefined)?.id,
+          sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+          onUsarItem: handleUsarEquipamento,
+        } as unknown as Parameters<typeof InventarioPanel>[0])}
       />
 
       <LevelUpCelebration
-        isVisible={!!levelUpData}
-        novoNivel={levelUpData?.novoNivel}
-        ganhos={levelUpData?.ganhos}
-        onClose={() => setLevelUpData(null)}
+        {...({
+          isVisible: !!levelUpData,
+          novoNivel: (levelUpData as { novoNivel?: number } | null | undefined)?.novoNivel,
+          ganhos: (levelUpData as { ganhos?: unknown } | null | undefined)?.ganhos,
+          onClose: () => setLevelUpData(null),
+        } as unknown as Parameters<typeof LevelUpCelebration>[0])}
       />
 
       <SessionRecap

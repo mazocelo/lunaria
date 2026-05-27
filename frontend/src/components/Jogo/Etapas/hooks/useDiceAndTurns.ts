@@ -1,9 +1,49 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { showGameNotification } from '../../NotificationManager';
-import { useSocketStore } from '../../../../store/index.js';
-import { rolarDados } from '../EtapaJogoRPG.utils.js';
+import { useSocketStore } from '../../../../store/index';
+import { rolarDados } from '../EtapaJogoRPG.utils';
 
-export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicionarMensagem) => {
+interface BasicEntity {
+  id?: number | string;
+  nome?: string;
+  [key: string]: unknown;
+}
+
+interface PersonagemBasico {
+  id?: number | string;
+  personagemId?: number | string;
+  personagem_id?: number | string;
+  nome?: string;
+  classe?: string;
+  classe_nome?: string;
+  nivel?: number | string;
+  [key: string]: unknown;
+}
+
+interface UserBasico {
+  id?: number | string;
+  nome?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface DadoSolicitadoInfo {
+  testeId?: number | string | null;
+  groupId?: number | string | null;
+  tipoDado?: string;
+  teste?: string;
+  atributo?: unknown;
+  contexto?: unknown;
+  modificador?: unknown;
+  dificuldade?: string;
+}
+
+export const useDiceAndTurns = (
+  historia: BasicEntity | null | undefined,
+  personagemSelecionado: PersonagemBasico | null | undefined,
+  user: UserBasico | null | undefined,
+  onAdicionarMensagem: (msg: unknown) => void,
+) => {
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
   const socketStoreRolarDadoInicial = useSocketStore(s => s.rolarDadoInicial);
   const socketStoreIniciarTurno = useSocketStore(s => s.iniciarTurno);
@@ -12,7 +52,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
 
   // Anti-spam: lock dice roll until server responds
   const [rolando, setRolando] = useState(false);
-  const rolandoTimeoutRef = useRef(null);
+  const rolandoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync ref lock — prevents double-click in same frame (state is async)
   const rolandoLockRef = useRef(false);
@@ -43,7 +83,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     nivel: personagemSelecionado?.nivel || 1
   }), [personagemSelecionado]);
 
-  const handleRolarDados = useCallback(async (tipoDado = 'd20', descricao = '', dadoSolicitadoInfo = null) => {
+  const handleRolarDados = useCallback(async (tipoDado: string = 'd20', descricao: string = '', dadoSolicitadoInfo: DadoSolicitadoInfo | null = null) => {
     if (rolando || rolandoLockRef.current) return;
     rolandoLockRef.current = true;
     setRolando(true);
@@ -112,7 +152,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     }
   }, [socketStoreIniciarTurno]);
 
-  const handleExecutarAcao = useCallback((acao, target = null, description = null) => {
+  const handleExecutarAcao = useCallback((acao: string, _target: unknown = null, description: string | null = null) => {
     const textoAcao = description || acao;
     const mensagemAcao = {
       id: Date.now() + Math.random(),
@@ -124,7 +164,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     onAdicionarMensagem(mensagemAcao);
   }, [onAdicionarMensagem]);
 
-  const handleUsarHabilidade = useCallback(async (vantagem) => {
+  const handleUsarHabilidade = useCallback(async (vantagem: { id?: number | string; nome?: string; dano_base?: string; elemento?: string[]; descricao?: string }) => {
     try {
       const roomId = `historia_${historia?.id}`;
       const requestId = crypto.randomUUID();
@@ -169,7 +209,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     }
   }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
 
-  const handleUsarMagia = useCallback(async (magia) => {
+  const handleUsarMagia = useCallback(async (magia: { id?: number | string; nome?: string; escola_magia?: string; custo_mana?: number; dano_base?: string; descricao?: string; usa_concentracao?: boolean; cooldown_turnos?: number; elemento?: string[] }) => {
     try {
       const roomId = `historia_${historia?.id}`;
       const requestId = crypto.randomUUID();
@@ -224,7 +264,7 @@ export const useDiceAndTurns = (historia, personagemSelecionado, user, onAdicion
     }
   }, [historia?.id, user, socketStoreSafeEmit, onAdicionarMensagem, buildPersonagemPayload]);
 
-  const handleUsarEquipamento = useCallback(async (equipamento) => {
+  const handleUsarEquipamento = useCallback(async (equipamento: { id?: number | string; nome?: string; dano_base?: string; elemento?: string[]; descricao?: string }) => {
     try {
       const roomId = `historia_${historia?.id}`;
       const requestId = crypto.randomUUID();

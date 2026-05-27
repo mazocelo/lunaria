@@ -1,13 +1,45 @@
-import React, { useEffect } from 'react';
-import { useTheme } from '../../../contexts/theme.jsx';
-import LoadingSpinner from '../../LoadingSpinner.jsx';
-import { useTemaStore } from '../../../store/index.js';
+import { useEffect } from 'react';
+import { useTheme } from '../../../contexts/theme';
+import LoadingSpinner from '../../LoadingSpinner';
+import { useTemaStore } from '../../../store/index';
 
-/**
- * Componente para a etapa de selecao de personagem
- * Usado por: JogoView (etapa 'selecao-personagem')
- * Refatorado: Usa hooks diretos (useTemaStore) no lugar de ViewModel
- */
+interface HistoriaBasica {
+  id?: number | string;
+  nome?: string;
+  titulo?: string;
+  descricao?: string;
+  prologo?: string;
+  imagem?: string | null;
+  maximo_de_participantes?: number;
+  temas?: Array<{ id?: number }>;
+  [key: string]: unknown;
+}
+
+interface PersonagemBasico {
+  id?: number | string;
+  nome?: string;
+  classe?: string;
+  classe_nome?: string;
+  raca?: string;
+  raca_nome?: string;
+  imagem?: string | null;
+  nivel?: number | string;
+  hp?: number | string;
+  hp_atual?: number | string;
+  hp_maximo?: number | string;
+  [key: string]: unknown;
+}
+
+interface EtapaSelecaoPersonagemProps {
+  historia?: HistoriaBasica | null;
+  personagens: PersonagemBasico[];
+  personagemSelecionado?: PersonagemBasico | null;
+  loading: boolean;
+  error?: string | null;
+  onSelecionarPersonagem: (p: PersonagemBasico) => void;
+  onVoltar: () => void;
+}
+
 const EtapaSelecaoPersonagem = ({
   historia,
   personagens,
@@ -16,7 +48,7 @@ const EtapaSelecaoPersonagem = ({
   error,
   onSelecionarPersonagem,
   onVoltar
-}) => {
+}: EtapaSelecaoPersonagemProps) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -34,12 +66,12 @@ const EtapaSelecaoPersonagem = ({
   }, [temasCarregados, carregarTemas]);
 
   // Helpers inline (antes no ViewModel)
-  const obterTemasNomes = (hist) => {
+  const obterTemasNomes = (hist: HistoriaBasica | null | undefined): string[] => {
     if (!hist?.temas || !Array.isArray(hist.temas)) return [];
     return getNomesDeTemas(hist.temas);
   };
 
-  const formatarInformacoesHistoria = (hist) => {
+  const formatarInformacoesHistoria = (hist: HistoriaBasica | null | undefined) => {
     if (!hist) return { nome: 'Historia sem nome', descricao: '', maximoParticipantes: 0 };
     return {
       nome: hist.nome || hist.titulo || 'Historia sem nome',
@@ -48,7 +80,7 @@ const EtapaSelecaoPersonagem = ({
     };
   };
 
-  const formatarInformacoesPersonagem = (p) => {
+  const formatarInformacoesPersonagem = (p: PersonagemBasico | null | undefined) => {
     if (!p) return { nome: 'Personagem nao encontrado', classe: 'Desconhecida', raca: 'Desconhecida', nivel: '1', hp: '???', hpMaximo: '???' };
     return {
       nome: p.nome || 'Personagem sem nome',
@@ -60,8 +92,8 @@ const EtapaSelecaoPersonagem = ({
     };
   };
 
-  const temPersonagensDisponiveis = (list) => Array.isArray(list) && list.length > 0;
-  const isPersonagemSelecionadoFn = (p, sel) => p && sel && p.id === sel.id;
+  const temPersonagensDisponiveis = (list: unknown[] | null | undefined): boolean => Array.isArray(list) && list.length > 0;
+  const isPersonagemSelecionadoFn = (p: PersonagemBasico | null | undefined, sel: PersonagemBasico | null | undefined): boolean => Boolean(p && sel && p.id === sel.id);
 
   const temasNomes = obterTemasNomes(historia);
   const infoHistoria = formatarInformacoesHistoria(historia);
@@ -196,12 +228,20 @@ const EtapaSelecaoPersonagem = ({
 /**
  * Card individual de personagem
  */
-const PersonagemCard = ({ personagem, isSelected, onSelect, isLight, formatarInfo }) => {
+interface PersonagemCardProps {
+  personagem: PersonagemBasico;
+  isSelected: boolean;
+  onSelect: (p: PersonagemBasico) => void;
+  isLight: boolean;
+  formatarInfo: (p: PersonagemBasico | null | undefined) => Record<string, string | number>;
+}
+
+const PersonagemCard = ({ personagem, isSelected, onSelect, isLight, formatarInfo }: PersonagemCardProps) => {
   const infoPersonagem = formatarInfo(personagem);
 
   return (
     <div
-      onClick={onSelect}
+      onClick={() => onSelect(personagem)}
       className={`
         card-rpg cursor-pointer transition-all duration-300 hover:scale-105 p-4 border-2
         ${isSelected
@@ -215,7 +255,7 @@ const PersonagemCard = ({ personagem, isSelected, onSelect, isLight, formatarInf
           {personagem.imagem ? (
             <img
               src={personagem.imagem}
-              alt={infoPersonagem.nome}
+              alt={String(infoPersonagem.nome ?? '')}
               className={`w-16 h-16 rounded-full object-cover border-2 ${isSelected ? 'border-cyan-500' : 'border-purple-500'}`}
             />
           ) : (

@@ -1,12 +1,48 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { showGameNotification } from '../../NotificationManager';
-import { useSocketStore } from '../../../../store/index.js';
+import { useSocketStore } from '../../../../store/index';
 import { TIMEOUTS, ROLEPLAY_COOLDOWN_SECONDS } from '../../../../constants/game';
 
-export const useMessageInput = (historia, personagemSelecionado, user, onAdicionarMensagem, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, combateAtivo = false) => {
+interface BasicEntity {
+  id?: number | string;
+  [key: string]: unknown;
+}
+
+interface PersonagemBasico {
+  id?: number | string;
+  personagemId?: number | string;
+  personagem_id?: number | string;
+  nome?: string;
+  classe?: string;
+  classe_nome?: string;
+  nivel?: number | string;
+}
+
+interface UserBasico {
+  id?: number | string;
+  nome?: string;
+  name?: string;
+}
+
+interface CombatIntent {
+  tipo?: string;
+  [key: string]: unknown;
+}
+
+export const useMessageInput = (
+  historia: BasicEntity | null | undefined,
+  personagemSelecionado: PersonagemBasico | null | undefined,
+  user: UserBasico | null | undefined,
+  _onAdicionarMensagem: (msg: unknown) => void,
+  faseJogo: string | null | undefined,
+  ehMeuTurno: boolean,
+  cooldownLocal: number,
+  setCooldownLocal: (n: number) => void,
+  combateAtivo: boolean = false,
+) => {
   const [mensagemAtual, setMensagemAtual] = useState('');
-  const [combatIntentAtual, setCombatIntentAtual] = useState(null);
-  const combatIntentRef = useRef(null);
+  const [combatIntentAtual, setCombatIntentAtual] = useState<CombatIntent | null>(null);
+  const combatIntentRef = useRef<CombatIntent | null>(null);
   const enviandoRef = useRef(false);
 
   const socketStoreSafeEmit = useSocketStore((s) => s.safeEmit);
@@ -19,7 +55,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
     nivel: personagemSelecionado?.nivel || 1
   }), [personagemSelecionado]);
 
-  const setCombatIntent = useCallback((intent) => {
+  const setCombatIntent = useCallback((intent: CombatIntent | null | undefined) => {
     combatIntentRef.current = intent || null;
     setCombatIntentAtual(intent || null);
   }, []);
@@ -35,7 +71,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
     }
   }, [combateAtivo, clearCombatIntent]);
 
-  const handleMensagemChange = useCallback((e, intent) => {
+  const handleMensagemChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>, intent?: CombatIntent | null) => {
     setMensagemAtual(e.target.value);
     if (intent !== undefined) {
       setCombatIntent(intent);
@@ -81,7 +117,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
         return;
       }
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         roomId,
         userId: String(user?.id),
         username: user?.nome || user?.name,
@@ -118,7 +154,7 @@ export const useMessageInput = (historia, personagemSelecionado, user, onAdicion
     }
   }, [mensagemAtual, historia?.id, user, faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, socketStoreSafeEmit, buildPersonagemPayload, clearCombatIntent]);
 
-  const handleKeyPress = useCallback((e) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleEnviarMensagem();

@@ -1,17 +1,65 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { apiClient, personagemService } from '../../../services';
-import { useSocketStore, useGameStore } from '../../../store/index.js';
-import { TIMEOUTS, PARTICLES } from '../../../constants/game';
+import { personagemService } from '../../../services';
+import { useSocketStore, useGameStore } from '../../../store/index';
+import { TIMEOUTS } from '../../../constants/game';
 import { calcularMana } from '../../../utils/rpgHelpers';
-import { getOwnedCombatActions } from '../../../utils/characterOwnedActions.js';
-import { formatarInformacoesPersonagem, formatarParticipantes } from './EtapaJogoRPG.utils.js';
-import { findMentionedEntities } from '../Chat/renderers.jsx';
+import { getOwnedCombatActions } from '../../../utils/characterOwnedActions';
+import { formatarInformacoesPersonagem, formatarParticipantes } from './EtapaJogoRPG.utils';
+import { findMentionedEntities } from '../Chat/renderers';
 
-import { useVoice } from './hooks/useVoice.js';
-import { useSocketMirror } from './hooks/useSocketMirror.js';
-import { useMessageInput } from './hooks/useMessageInput.js';
-import { useDiceAndTurns } from './hooks/useDiceAndTurns.js';
-import { useFichaModal } from './hooks/useFichaModal.js';
+import { useVoice } from './hooks/useVoice';
+import { useSocketMirror } from './hooks/useSocketMirror';
+import { useMessageInput } from './hooks/useMessageInput';
+import { useDiceAndTurns } from './hooks/useDiceAndTurns';
+import { useFichaModal } from './hooks/useFichaModal';
+
+interface User {
+  id?: number | string;
+  nome?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface Historia {
+  id?: number | string;
+  nome?: string;
+  [key: string]: unknown;
+}
+
+interface PersonagemSel {
+  id?: number | string;
+  nome?: string;
+  [key: string]: unknown;
+}
+
+interface Participante {
+  userId?: number | string;
+  username?: string;
+  [key: string]: unknown;
+}
+
+interface Mensagem {
+  id?: number | string;
+  tipo?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+interface SceneImage {
+  url?: string;
+  nome: string;
+  tipo: string;
+}
+
+interface UseEtapaJogoRPGModelParams {
+  historia: Historia;
+  personagemSelecionado: PersonagemSel;
+  participantes: Participante[];
+  mensagens: Mensagem[];
+  user: User;
+  onAdicionarMensagem: (m: Mensagem) => void;
+  onSair: () => void;
+}
 
 export const useEtapaJogoRPGModel = ({
   historia,
@@ -21,7 +69,7 @@ export const useEtapaJogoRPGModel = ({
   user,
   onAdicionarMensagem,
   onSair
-}) => {
+}: UseEtapaJogoRPGModelParams) => {
   // Ref para evitar stale closure no onAdicionarMensagem
   const onAdicionarMensagemRef = useRef(onAdicionarMensagem);
   useEffect(() => {
@@ -31,13 +79,13 @@ export const useEtapaJogoRPGModel = ({
   // === Sub-hooks ===
   const { effectiveVoiceId, effectiveVoiceProvider } = useVoice(historia, mensagens);
 
-  const socketMirror = useSocketMirror(user, onAdicionarMensagemRef);
+  const socketMirror = useSocketMirror(user, onAdicionarMensagemRef as unknown as Parameters<typeof useSocketMirror>[1]);
   const {
     faseJogo, rodadaAtual, turnoAtual, jogadorAtual,
     ordemJogadores, ordemDefinida, resultadosDados,
     ehMeuTurno, turnoIniciado, turnoStatus,
     testePendente, testesPendentes,
-    cooldownRoleplay, combateAtivo, combateFase, combateMonstros,
+    cooldownRoleplay: _cooldownRoleplay, combateAtivo, combateFase, combateMonstros,
     combateJogadores, combateRodada, combateResultado,
     combateLog, combateXpGanho, combateOrdemIniciativa,
     combateTurnoAtual, combateIniciativaPendente, combateIniciativaModificador,
@@ -54,7 +102,7 @@ export const useEtapaJogoRPGModel = ({
 
   // Domain G: Cooldown roleplay local timer
   const [cooldownLocal, setCooldownLocal] = useState(0);
-  const cooldownIntervalRef = useRef(null);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (cooldownLocal > 0) {
@@ -74,26 +122,27 @@ export const useEtapaJogoRPGModel = ({
   }, [cooldownLocal]);
 
   const messageInput = useMessageInput(
-    historia, personagemSelecionado, user, onAdicionarMensagem,
+    historia, personagemSelecionado, user, onAdicionarMensagem as Parameters<typeof useMessageInput>[3],
     faseJogo, ehMeuTurno, cooldownLocal, setCooldownLocal, combateAtivo
   );
 
-  const diceAndTurns = useDiceAndTurns(historia, personagemSelecionado, user, onAdicionarMensagem);
+  const diceAndTurns = useDiceAndTurns(historia, personagemSelecionado, user, onAdicionarMensagem as Parameters<typeof useDiceAndTurns>[3]);
 
   const fichaModal = useFichaModal(personagemSelecionado, user);
 
   // Domain K: Habilidades e Magias (hidratação do personagem completo)
   useEffect(() => {
     if (!personagemSelecionado?.id) return;
-    personagemService.getById(personagemSelecionado.id).then(res => {
-      const data = res.data?.data || res.data;
+    personagemService.getById(Number(personagemSelecionado.id)).then((res) => {
+      const r = res as { data?: { data?: unknown } | unknown };
+      const data = (r?.data && typeof r.data === 'object' && 'data' in r.data) ? (r.data as { data?: unknown }).data : (r?.data ?? r);
       if (data) {
         useGameStore.setState({
           personagemSelecionado: {
             ...personagemSelecionado,
-            ...data,
-          }
-        });
+            ...(data as Record<string, unknown>),
+          },
+        } as unknown as Parameters<typeof useGameStore.setState>[0]);
       }
     }).catch(() => {});
   }, [personagemSelecionado?.id]);
@@ -106,23 +155,24 @@ export const useEtapaJogoRPGModel = ({
   const magiasPersonagem = ownedCombatActions.magias;
 
   // Cooldowns e concentração do combate
-  const combateStats = combateJogadores?.[user?.id] || {};
+  const combateJogadoresMap = (combateJogadores ?? {}) as Record<string, { cooldowns?: Record<string, unknown>; concentracao?: unknown }>;
+  const combateStats = combateJogadoresMap[String(user?.id ?? '')] || {};
   const cooldownsHabilidades = combateStats.cooldowns || {};
   const concentracaoAtiva = combateStats.concentracao || null;
 
   // Domain L: UI Layout
-  const [mobileDrawer, setMobileDrawer] = useState(null);
+  const [mobileDrawer, setMobileDrawer] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [rightPanelExpanded, setRightPanelExpanded] = useState(true);
   const [showRodadaInfo, setShowRodadaInfo] = useState(false);
-  const rodadaDropdownRef = useRef(null);
+  const rodadaDropdownRef = useRef<HTMLDivElement | null>(null);
   const [inventarioAberto, setInventarioAberto] = useState(false);
   const [grimorioAberto, setGrimorioAberto] = useState(false);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (rodadaDropdownRef.current && !rodadaDropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (rodadaDropdownRef.current && !rodadaDropdownRef.current.contains(event.target as Node)) {
         setShowRodadaInfo(false);
       }
     };
@@ -138,11 +188,24 @@ export const useEtapaJogoRPGModel = ({
   }, []);
 
   // Domain M: Image context
-  const entidadesComImagem = useMemo(() => {
-    const roteiro = historia?.roteiro;
+  interface EntidadeComImagem {
+    nome: string;
+    imagem: string;
+    tipo: string;
+    descricao?: string;
+    papel?: string;
+    local?: string;
+    motivacao?: string;
+    segredo?: string;
+    categoria?: string;
+    perigo?: string;
+  }
+
+  const entidadesComImagem = useMemo<EntidadeComImagem[]>(() => {
+    const roteiro = historia?.roteiro as { npcs?: Array<Record<string, string>>; locais?: Array<Record<string, string>> } | undefined;
     if (!roteiro) return [];
-    const itens = [];
-    (roteiro.npcs || []).forEach(npc => {
+    const itens: EntidadeComImagem[] = [];
+    (roteiro.npcs || []).forEach((npc) => {
       if (npc.imagem) {
         itens.push({
           nome: npc.nome, imagem: npc.imagem, tipo: 'npc',
@@ -152,7 +215,7 @@ export const useEtapaJogoRPGModel = ({
         });
       }
     });
-    (roteiro.locais || []).forEach(local => {
+    (roteiro.locais || []).forEach((local) => {
       if (local.imagem) {
         itens.push({
           nome: local.nome, imagem: local.imagem, tipo: 'local',
@@ -182,9 +245,9 @@ export const useEtapaJogoRPGModel = ({
   }, [historia?.temas, historia?.nome, historia?.descricao, historia?.prologo]);
 
   // Domain M2: Scene transition + session gallery
-  const [sceneTransitionImage, setSceneTransitionImage] = useState(null);
-  const [sessionImages, setSessionImages] = useState([]);
-  const seenMessageIdsRef = useRef(new Set());
+  const [sceneTransitionImage, setSceneTransitionImage] = useState<SceneImage | null>(null);
+  const [sessionImages, setSessionImages] = useState<SceneImage[]>([]);
+  const seenMessageIdsRef = useRef<Set<number | string>>(new Set());
 
   // Detecta novos locais/NPCs mencionados nas mensagens do Mestre e dispara transição
   useEffect(() => {
@@ -193,16 +256,16 @@ export const useEtapaJogoRPGModel = ({
     // Inicializa o set de IDs já vistos (sem disparar transição no carregamento inicial)
     const isFirstLoad = seenMessageIdsRef.current.size === 0 && mensagens.length > 0;
     if (isFirstLoad) {
-      mensagens.forEach(m => seenMessageIdsRef.current.add(m.id));
+      mensagens.forEach(m => { if (m.id != null) seenMessageIdsRef.current.add(m.id); });
       return;
     }
 
     const newMestreMsgs = mensagens.filter(
-      m => (m.tipo || m.type) === 'mestre' && !seenMessageIdsRef.current.has(m.id)
+      m => (m.tipo || (m as { type?: string }).type) === 'mestre' && m.id != null && !seenMessageIdsRef.current.has(m.id)
     );
     if (!newMestreMsgs.length) return;
 
-    newMestreMsgs.forEach(m => seenMessageIdsRef.current.add(m.id));
+    newMestreMsgs.forEach(m => { if (m.id != null) seenMessageIdsRef.current.add(m.id); });
 
     // Procura só locais (tipo: 'local') para trigger de transição
     for (const msg of newMestreMsgs) {
@@ -224,7 +287,7 @@ export const useEtapaJogoRPGModel = ({
   const handleSceneTransitionDone = useCallback(() => setSceneTransitionImage(null), []);
 
   // Acumula imagens de cena geradas durante a sessão na galeria
-  const handleSceneImageGenerated = useCallback(async (mensagemId, url) => {
+  const handleSceneImageGenerated = useCallback(async (mensagemId: number | string, url: string) => {
     const salaId = `historia_${historia?.id}`;
     gameStoreAtualizarMensagem(mensagemId, { scene_image: url });
     setSessionImages(prev => {
@@ -234,7 +297,7 @@ export const useEtapaJogoRPGModel = ({
     try {
       const { apiClient: api } = await import('../../../services');
       await api.patch(`/sessoes/${salaId}/mensagem/${mensagemId}`, { campos: { scene_image: url } });
-    } catch (_) { /* silent */ }
+    } catch { /* silent */ }
   }, [historia?.id, gameStoreAtualizarMensagem]);
 
   // Domain N: Participants display
@@ -256,13 +319,13 @@ export const useEtapaJogoRPGModel = ({
   const dadoSolicitadoInfo = meuTestePendente
     ? {
         testeId: meuTestePendente.id || null,
-        groupId: meuTestePendente.groupId || null,
-        tipoDado: meuTestePendente.tipoDado || 'd20',
-        teste: meuTestePendente.teste || '',
-        dificuldade: meuTestePendente.metadata?.dificuldadeLabel || meuTestePendente.dificuldade || 'Media',
-        atributo: meuTestePendente.atributo || null,
-        contexto: meuTestePendente.contexto || null,
-        modificador: meuTestePendente.modificador ?? null
+        groupId: (meuTestePendente as { groupId?: unknown }).groupId || null,
+        tipoDado: (meuTestePendente as { tipoDado?: string }).tipoDado || 'd20',
+        teste: (meuTestePendente as { teste?: string }).teste || '',
+        dificuldade: ((meuTestePendente as { metadata?: { dificuldadeLabel?: string } }).metadata?.dificuldadeLabel) || (meuTestePendente as { dificuldade?: string }).dificuldade || 'Media',
+        atributo: (meuTestePendente as { atributo?: unknown }).atributo || null,
+        contexto: (meuTestePendente as { contexto?: unknown }).contexto || null,
+        modificador: (meuTestePendente as { modificador?: unknown }).modificador ?? null
       }
     : null;
   const aguardandoRespostaMestre = useSocketStore(s => s.aguardandoRespostaMestre);
@@ -278,9 +341,9 @@ export const useEtapaJogoRPGModel = ({
   const mestreRequestIsMine = !!activeMestreRequestUserId && String(activeMestreRequestUserId) === String(user?.id);
   const aguardandoMestre = turnoStatus === 'resolving_roll'
     || !!pendingMestreRequestId
-    || (!!activeMestreRequestId && ['accepted', 'processing', 'streaming', 'reviewing'].includes(activeMestreRequestStatus))
+    || (!!activeMestreRequestId && ['accepted', 'processing', 'streaming', 'reviewing'].includes(String(activeMestreRequestStatus ?? '')))
     || aguardandoRespostaMestre;
-  const jaRolouDadoInicial = !!resultadosDados[user?.id];
+  const jaRolouDadoInicial = !!(resultadosDados as Record<string, unknown>)[String(user?.id ?? '')];
   const socketStoreSafeEmit = useSocketStore(s => s.safeEmit);
 
   const handleMestreBannerAction = useCallback(() => {
@@ -296,14 +359,14 @@ export const useEtapaJogoRPGModel = ({
       return;
     }
 
-    if (['failed', 'timed_out'].includes(activeMestreRequestStatus)) {
+    if (['failed', 'timed_out'].includes(String(activeMestreRequestStatus ?? ''))) {
       useSocketStore.setState({
         mestreTimedOut: false,
         mestreStale: false,
         pendingMestreRequestId: activeMestreRequestId,
-        pendingMestreRequestKind: lastRegenerableMestreRequest?.kind || pendingMestreRequestKind || 'player_action',
+        pendingMestreRequestKind: ((lastRegenerableMestreRequest as { kind?: string } | null | undefined)?.kind) || pendingMestreRequestKind || 'player_action',
         pendingMestreSentAt: new Date().toISOString()
-      });
+      } as unknown as Parameters<typeof useSocketStore.setState>[0]);
       socketStoreSafeEmit('regenerar_resposta_mestre', {
         roomId,
         userId: String(user?.id),
@@ -376,7 +439,9 @@ export const useEtapaJogoRPGModel = ({
     sessionImages,
 
     // Mana (computed)
-    manaAtual: combateJogadores?.[user?.id]?.mana_atual ?? calcularMana(personagemSelecionado),
-    manaMax: combateJogadores?.[user?.id]?.mana_max ?? calcularMana(personagemSelecionado),
+    manaAtual: (combateJogadoresMap[String(user?.id ?? '')] as { mana_atual?: number } | undefined)?.mana_atual ?? calcularMana(personagemSelecionado as unknown as Parameters<typeof calcularMana>[0]),
+    manaMax: (combateJogadoresMap[String(user?.id ?? '')] as { mana_max?: number } | undefined)?.mana_max ?? calcularMana(personagemSelecionado as unknown as Parameters<typeof calcularMana>[0]),
   };
 };
+
+export type EtapaJogoRPGModel = ReturnType<typeof useEtapaJogoRPGModel>;

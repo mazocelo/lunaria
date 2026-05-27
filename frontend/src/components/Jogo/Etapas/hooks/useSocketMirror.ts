@@ -1,13 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useSocketStore, useGameStore } from '../../../../store/index.js';
+import { useSocketStore, useGameStore } from '../../../../store/index';
 import { showGameNotification } from '../../NotificationManager';
+import type { MutableRefObject } from 'react';
+
+interface UserBasico {
+  id?: number | string;
+}
 
 /**
  * Substitui o anti-pattern de `useSocketStore.subscribe()` + setState mirror.
  * Lê estados diretamente do store com useShallow e registra os 14 socket listeners.
  */
-export const useSocketMirror = (user, onAdicionarMensagemRef) => {
+export const useSocketMirror = (
+  user: UserBasico | null | undefined,
+  onAdicionarMensagemRef: MutableRefObject<(msg: unknown) => void>,
+) => {
   // Ler estados do socket store diretamente (elimina mirror anti-pattern)
   const gameState = useSocketStore(useShallow(s => ({
     faseJogo: s.faseJogo ?? 'aguardando_inicio',
@@ -58,8 +66,9 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
   const gameStoreAtualizarMensagem = useGameStore(s => s.atualizarMensagem);
 
   // Level up queue
-  const [levelUpData, setLevelUpData] = useState(null);
-  const [levelUpQueue, setLevelUpQueue] = useState([]);
+  interface LevelUpEntry { novoNivel?: number; ganhos: Record<string, unknown>; }
+  const [levelUpData, setLevelUpData] = useState<LevelUpEntry | null>(null);
+  const [levelUpQueue, setLevelUpQueue] = useState<LevelUpEntry[]>([]);
 
   useEffect(() => {
     if (!levelUpData && levelUpQueue.length > 0) {
@@ -144,16 +153,32 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
   // 14 socket listeners
   useEffect(() => {
-    const updateRequestState = (data = {}, overrides = {}) => {
-      const state = useSocketStore.getState();
+    interface MestreEventData {
+      status?: string;
+      requestId?: string | null;
+      attempt?: number;
+      userId?: string | number;
+      playerMessageId?: string | number | null;
+      updatedAt?: string;
+      kind?: string;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+      [key: string]: unknown;
+    }
+    interface MestreEventOverrides {
+      status?: string;
+      updatedAt?: string;
+    }
+    const updateRequestState = (data: MestreEventData = {}, overrides: MestreEventOverrides = {}) => {
+      const state = useSocketStore.getState() as Record<string, unknown>;
       const status = overrides.status || data.status || null;
-      const terminal = ['completed', 'failed', 'timed_out', 'superseded'].includes(status);
+      const terminal = ['completed', 'failed', 'timed_out', 'superseded'].includes(String(status));
       const requestId = data.requestId || state.activeMestreRequestId || state.pendingMestreRequestId || null;
-      const attempt = data.attempt || state.activeMestreRequestAttempt || 0;
+      const attempt = data.attempt || (state.activeMestreRequestAttempt as number | undefined) || 0;
       const requestUserId = data.userId || state.activeMestreRequestUserId || null;
-      const playerMessageId = data.playerMessageId || state.activeMestrePlayerMessageId || null;
+      const playerMessageId = data.playerMessageId || (state.activeMestrePlayerMessageId as string | number | null | undefined) || null;
       const updatedAt = overrides.updatedAt || data.updatedAt || new Date().toISOString();
-      const nextState = {
+      const nextState: Record<string, unknown> = {
         pendingMestreRequestId: requestId === state.pendingMestreRequestId ? null : state.pendingMestreRequestId,
         pendingMestreRequestKind: requestId === state.pendingMestreRequestId ? null : state.pendingMestreRequestKind,
         pendingMestreSentAt: requestId === state.pendingMestreRequestId ? null : state.pendingMestreSentAt,
@@ -169,10 +194,11 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         mestreStale: false
       };
 
+      const lastReq = state.lastRegenerableMestreRequest as { requestId?: string; kind?: string } | null | undefined;
       if (status === 'failed' || status === 'timed_out') {
         nextState.lastRegenerableMestreRequest = {
           requestId,
-          kind: data.kind || state.pendingMestreRequestKind || state.lastRegenerableMestreRequest?.kind || 'player_action',
+          kind: data.kind || state.pendingMestreRequestKind || lastReq?.kind || 'player_action',
           status,
           attempt,
           userId: requestUserId,
@@ -181,15 +207,15 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
           errorCode: data.errorCode || null,
           errorMessage: data.errorMessage || null
         };
-      } else if (!terminal && requestId === state.lastRegenerableMestreRequest?.requestId) {
+      } else if (!terminal && requestId === lastReq?.requestId) {
         nextState.lastRegenerableMestreRequest = null;
-      } else if (status === 'completed' && requestId === state.lastRegenerableMestreRequest?.requestId) {
+      } else if (status === 'completed' && requestId === lastReq?.requestId) {
         nextState.lastRegenerableMestreRequest = null;
       }
 
       useSocketStore.setState({
         ...nextState
-      });
+      } as unknown as Parameters<typeof useSocketStore.setState>[0]);
     };
 
     const clearAnonymousMestreState = () => {
@@ -211,7 +237,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       });
     };
 
-    const handleMestrePensando = (data) => {
+    const handleMestrePensando = (data: { ativo?: boolean } | undefined) => {
       const state = useSocketStore.getState();
       if (state.pendingMestreRequestId || state.activeMestreRequestId) {
         return;
@@ -219,7 +245,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       useSocketStore.setState({ mestrePensando: !!data?.ativo });
     };
 
-    const handleMestreRequestStatus = (data) => {
+    const handleMestreRequestStatus = (data: MestreEventData) => {
       if (!data?.requestId) return;
       if (data.status === 'rejected_busy' && data.errorMessage) {
         const state = useSocketStore.getState();
@@ -239,7 +265,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       updateRequestState(data);
     };
 
-    const handleMensagemMestre = (data) => {
+    const handleMensagemMestre = (data: MestreEventData & { requestId?: string }) => {
       const state = useSocketStore.getState();
       const activeRequestId = state.activeMestreRequestId;
       const pendingRequestId = state.pendingMestreRequestId;
@@ -267,7 +293,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
 
       const mensagensAtuais = useGameStore.getState().mensagens || [];
       const mensagensLimpas = mensagensAtuais.filter((m) => {
-        if (!['mestre_streaming', 'loading'].includes(m.tipo)) return true;
+        if (!['mestre_streaming', 'loading'].includes(String(m.tipo))) return true;
         if (!data?.requestId) return false;
         return String(m.requestId) !== String(data.requestId);
       });
@@ -290,7 +316,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleChatMessage = (data) => {
+    const handleChatMessage = (data: Record<string, unknown>) => {
       if (!data?.tipo) return;
       if (data.userId !== 'mestre' && data.tipo !== 'mestre') {
         if (onAdicionarMensagemRef.current) {
@@ -299,7 +325,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleResultadoDado = (data) => {
+    const handleResultadoDado = (data: Record<string, unknown>) => {
       const mensagem = {
         id: data.id || `dado_${Date.now()}`,
         userId: data.userId,
@@ -315,7 +341,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleMensagemRoleplay = (data) => {
+    const handleMensagemRoleplay = (data: Record<string, unknown>) => {
       const mensagem = {
         id: data.id || Date.now(),
         userId: data.userId,
@@ -329,7 +355,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleRodadaFinalizada = (data) => {
+    const handleRodadaFinalizada = (data: Record<string, unknown>) => {
       const mensagem = {
         id: `rodada_${data.rodada}_fim`,
         tipo: 'entre_rodadas',
@@ -346,7 +372,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       window.dispatchEvent(new CustomEvent('limparMensagensDados'));
     };
 
-    const handleDiceRoll = (data) => {
+    const handleDiceRoll = (data: Record<string, unknown>) => {
       if (data.dadosSolicitados) return;
       const mensagem = {
         id: data.id || `dice_${Date.now()}`,
@@ -362,7 +388,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleResultadoTeste = (data) => {
+    const handleResultadoTeste = (data: Record<string, unknown> & { groupId?: string | number; remainingGroupTests?: unknown[]; nextTestePendente?: unknown; groupResolved?: boolean; testePendente?: unknown; teste_pendente?: unknown }) => {
       const resolvedGroupId = data?.groupId || null;
       if (resolvedGroupId) {
         const promptId = `solicitacao_${resolvedGroupId}`;
@@ -370,26 +396,29 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         const nextTestePendente = data?.nextTestePendente || remainingGroupTests[0] || null;
         const mensagensAtuais = useGameStore.getState().mensagens || [];
         const promptExistente = mensagensAtuais.find(
-          (mensagem) => String(mensagem.id) === String(promptId)
-            || (
-              mensagem?.tipo === 'solicitacao_dados'
-              && String(mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || '') === String(resolvedGroupId)
-            )
+          (mensagem) => {
+            const m = mensagem as { id?: number | string; tipo?: string; payload?: { groupId?: number | string; testePendente?: { groupId?: number | string } } };
+            return String(m.id) === String(promptId)
+              || (m.tipo === 'solicitacao_dados'
+                && String(m.payload?.groupId || m.payload?.testePendente?.groupId || '') === String(resolvedGroupId));
+          }
         );
 
         if (data?.groupResolved) {
           const mensagensFiltradas = mensagensAtuais.filter((mensagem) => {
-            if (mensagem?.tipo !== 'solicitacao_dados') return true;
-            const payloadGroupId = mensagem?.payload?.groupId || mensagem?.payload?.testePendente?.groupId || null;
+            const m = mensagem as { tipo?: string; payload?: { groupId?: number | string; testePendente?: { groupId?: number | string } } };
+            if (m.tipo !== 'solicitacao_dados') return true;
+            const payloadGroupId = m.payload?.groupId || m.payload?.testePendente?.groupId || null;
             return String(payloadGroupId || '') !== String(resolvedGroupId);
           });
           if (mensagensFiltradas.length !== mensagensAtuais.length) {
             gameStoreSetMensagens(mensagensFiltradas);
           }
         } else if (promptExistente) {
-          gameStoreAtualizarMensagem(promptExistente.id, {
+          const promptExistenteAny = promptExistente as { id?: number | string; payload?: Record<string, unknown> };
+          gameStoreAtualizarMensagem((promptExistenteAny.id ?? ''), {
             payload: {
-              ...(promptExistente.payload || {}),
+              ...(promptExistenteAny.payload || {}),
               groupId: resolvedGroupId,
               testePendente: nextTestePendente,
               testesPendentes: remainingGroupTests
@@ -437,19 +466,23 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleMestreSolicitaDados = (data) => {
+    const handleMestreSolicitaDados = (data: Record<string, unknown> & { testePendente?: { groupId?: string | number }; testesPendentes?: Array<{ groupId?: string | number }>; narrativa?: string }) => {
       const groupId = data?.testePendente?.groupId || data?.testesPendentes?.[0]?.groupId || null;
       if (groupId) {
         const mensagensAtuais = useGameStore.getState().mensagens || [];
         const mensagemExistente = mensagensAtuais.find(
-          (m) => m.tipo === 'solicitacao_dados'
-            && String(m.payload?.groupId || m.payload?.testePendente?.groupId) === String(groupId)
+          (m) => {
+            const msg = m as { tipo?: string; payload?: { groupId?: string | number; testePendente?: { groupId?: string | number } } };
+            return msg.tipo === 'solicitacao_dados'
+              && String(msg.payload?.groupId || msg.payload?.testePendente?.groupId) === String(groupId);
+          }
         );
         if (mensagemExistente) {
-          gameStoreAtualizarMensagem(mensagemExistente.id, {
-            message: data.narrativa || mensagemExistente.message || 'O Mestre solicita uma rolagem de dados.',
+          const msgExistAny = mensagemExistente as { id?: number | string; message?: string; payload?: Record<string, unknown> };
+          gameStoreAtualizarMensagem((msgExistAny.id ?? ''), {
+            message: data.narrativa || msgExistAny.message || 'O Mestre solicita uma rolagem de dados.',
             payload: {
-              ...(mensagemExistente.payload || {}),
+              ...(msgExistAny.payload || {}),
               groupId,
               testePendente: data.testePendente || null,
               testesPendentes: data.testesPendentes || []
@@ -473,7 +506,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleLevelUp = (data) => {
+    const handleLevelUp = (data: Record<string, unknown> & { personagemNome?: string; username?: string; novoNivel?: number; nivel?: number; userId?: string | number; ganhos?: Record<string, unknown> }) => {
       const personagemNome = data.personagemNome || data.username || 'Jogador';
       const novoNivel = data.novoNivel || data.nivel;
 
@@ -496,7 +529,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleAcaoMestre = (data) => {
+    const handleAcaoMestre = (data: Record<string, unknown> & { userId?: string | number; tipo?: string; item?: { nome?: string }; itemNome?: string; hp_restaurado?: number; dano?: number; elemento?: string; derrotado?: boolean; status?: string; duracao?: number; fonte?: string; imune?: boolean; hp_atual?: number; message?: string; mensagem?: string }) => {
       const ehMeu = String(data.userId) === String(user?.id);
       if (onAdicionarMensagemRef.current) {
         onAdicionarMensagemRef.current({
@@ -537,7 +570,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleCombateFinalizado = (data) => {
+    const handleCombateFinalizado = (data: Record<string, unknown> & { xpPorJogador?: number; resultado?: string }) => {
       const xpPorJogador = data.xpPorJogador || 0;
       if (xpPorJogador > 0) {
         showGameNotification(`+${xpPorJogador} XP ganho no combate!`, 'success');
@@ -556,14 +589,14 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleCombateLoot = (data) => {
+    const handleCombateLoot = (data: { lootPorJogador?: Record<string, Array<{ nome?: string }>>; todosItens?: Array<{ nome?: string }> }) => {
       const meusItens = data.lootPorJogador?.[String(user?.id)] || [];
       if (meusItens.length > 0) {
-        const nomes = meusItens.map(i => i.nome).join(', ');
+        const nomes = meusItens.map((i: { nome?: string }) => i.nome).join(', ');
         showGameNotification(`Loot recebido: ${nomes}`, 'success');
       }
-      if (onAdicionarMensagemRef.current && data.todosItens?.length > 0) {
-        const listaItens = data.todosItens.map(i => i.nome).join(', ');
+      if (onAdicionarMensagemRef.current && (data.todosItens?.length ?? 0) > 0) {
+        const listaItens = (data.todosItens || []).map((i: { nome?: string }) => i.nome).join(', ');
         onAdicionarMensagemRef.current({
           id: `loot_${Date.now()}`,
           tipo: 'acao_mestre',
@@ -576,7 +609,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleErroMensagem = (data) => {
+    const handleErroMensagem = (data: { requestId?: string; mensagem?: string; message?: string }) => {
       const state = useSocketStore.getState();
       const currentStatus = state.activeMestreRequestStatus;
       if (!currentStatus || !['failed', 'timed_out'].includes(currentStatus)) {
@@ -592,12 +625,12 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
       if (data?.message) showGameNotification(data.message, 'warning');
       const msgs = useGameStore.getState().mensagens || [];
-      const semLoading = msgs.filter(m => !['mestre_streaming', 'loading'].includes(m.tipo));
+      const semLoading = msgs.filter(m => !['mestre_streaming', 'loading'].includes(String(m.tipo)));
       if (msgs.length !== semLoading.length) gameStoreSetMensagens(semLoading);
     };
 
     // --- Streaming handlers ---
-    const handleMestreStreamStart = (data) => {
+    const handleMestreStreamStart = (data: Record<string, unknown> & { requestId?: string; attempt?: number; streamId?: string }) => {
       if (data?.requestId) {
         updateRequestState(data, { status: 'streaming', updatedAt: new Date().toISOString() });
       } else {
@@ -622,7 +655,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       }
     };
 
-    const handleMestreStreamChunk = (data) => {
+    const handleMestreStreamChunk = (data: Record<string, unknown> & { requestId?: string; attempt?: number; streamId?: string; accumulated?: string }) => {
       if (data?.requestId) {
         updateRequestState(data, { status: 'streaming', updatedAt: new Date().toISOString() });
       }
@@ -633,7 +666,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       });
     };
 
-    const handleMestreStreamEnd = (data) => {
+    const handleMestreStreamEnd = (data: { requestId?: string; attempt?: number; streamId?: string }) => {
       if (!data?.requestId) {
         clearAnonymousMestreState();
       }
@@ -655,7 +688,7 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       if (msgs.length !== sem.length || updated.some((m, i) => m !== msgs[i])) gameStoreSetMensagens(sem);
     };
 
-    const handleMestreStreamError = (data) => {
+    const handleMestreStreamError = (data: { requestId?: string; attempt?: number; streamId?: string }) => {
       if (data?.requestId) {
         updateRequestState(data, { status: 'processing', updatedAt: new Date().toISOString() });
       } else {
@@ -670,37 +703,46 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
       if (msgs.length !== sem.length) gameStoreSetMensagens(sem);
     };
 
+    type SocketListenerCb = (...args: unknown[]) => void;
+    const onCb = (event: string, fn: (data: never) => void) => socketStoreOn(event, fn as unknown as SocketListenerCb);
+
     // Register all 17 listeners
-    socketStoreOn('mestre_request_status', handleMestreRequestStatus);
-    socketStoreOn('mensagem_mestre', handleMensagemMestre);
-    socketStoreOn('chat_message', handleChatMessage);
-    socketStoreOn('resultado_dado_inicial', handleResultadoDado);
-    socketStoreOn('mensagem_roleplay', handleMensagemRoleplay);
-    socketStoreOn('rodada_finalizada', handleRodadaFinalizada);
+    onCb('mestre_request_status', handleMestreRequestStatus as unknown as (data: never) => void);
+    onCb('mensagem_mestre', handleMensagemMestre as unknown as (data: never) => void);
+    onCb('chat_message', handleChatMessage as unknown as (data: never) => void);
+    onCb('resultado_dado_inicial', handleResultadoDado as unknown as (data: never) => void);
+    onCb('mensagem_roleplay', handleMensagemRoleplay as unknown as (data: never) => void);
+    onCb('rodada_finalizada', handleRodadaFinalizada as unknown as (data: never) => void);
     socketStoreOn('ordem_definida', handleOrdemDefinida);
-    socketStoreOn('dice_roll', handleDiceRoll);
-    socketStoreOn('resultado_teste', handleResultadoTeste);
-    socketStoreOn('mestre_solicita_dados', handleMestreSolicitaDados);
-    socketStoreOn('level_up', handleLevelUp);
-    socketStoreOn('acao_mestre', handleAcaoMestre);
+    onCb('dice_roll', handleDiceRoll as unknown as (data: never) => void);
+    onCb('resultado_teste', handleResultadoTeste as unknown as (data: never) => void);
+    onCb('mestre_solicita_dados', handleMestreSolicitaDados as unknown as (data: never) => void);
+    onCb('level_up', handleLevelUp as unknown as (data: never) => void);
+    onCb('acao_mestre', handleAcaoMestre as unknown as (data: never) => void);
 
     // Monster action → chat message
-    const handleCombatMonsterAction = (data) => {
+    const handleCombatMonsterAction = (rawData: Record<string, unknown>) => {
+      const data = rawData as {
+        atacanteNome?: string; alvoNome?: string; bonusAtaque?: number;
+        rolagem?: number; defesaJogador?: number | string; acertou?: boolean;
+        esquivou?: boolean; critico?: boolean; dano?: number; hpRestante?: number;
+        hpMax?: number; habilidade?: string;
+      };
       if (!data || !onAdicionarMensagemRef.current) return;
       const atacante = data.atacanteNome || 'Monstro';
       const alvo = data.alvoNome || 'Jogador';
       const bonus = data.bonusAtaque || 0;
-      const total = data.rolagem != null ? data.rolagem + bonus : '?';
+      const total = data.rolagem != null ? (data.rolagem + bonus) : '?';
       const defesa = data.defesaJogador || '?';
 
-      let texto;
+      let texto: string;
       if (!data.acertou && !data.esquivou) {
         texto = `**${atacante}** ataca ${alvo}! d20:${data.rolagem}${bonus ? `+${bonus}=${total}` : ''} vs DEF ${defesa} — **ERROU**`;
       } else if (data.esquivou) {
         texto = `**${atacante}** ataca ${alvo}! d20:${data.rolagem}${bonus ? `+${bonus}=${total}` : ''} — ${alvo} **ESQUIVOU!**`;
       } else {
         const critico = data.critico ? ' **CRÍTICO!**' : '';
-        const danoTexto = data.dano > 0 ? ` Dano: ${data.dano}` : ' Golpe fraco!';
+        const danoTexto = (data.dano ?? 0) > 0 ? ` Dano: ${data.dano}` : ' Golpe fraco!';
         const hpTexto = data.hpRestante != null && data.hpMax != null ? ` (HP: ${data.hpRestante}/${data.hpMax})` : '';
         texto = `**${atacante}** ataca ${alvo}! d20:${data.rolagem}${bonus ? `+${bonus}=${total}` : ''} vs DEF ${defesa} — **HIT!**${critico}${danoTexto}${hpTexto}`;
       }
@@ -718,39 +760,40 @@ export const useSocketMirror = (user, onAdicionarMensagemRef) => {
         timestamp: Date.now()
       });
     };
-    socketStoreOn('combat_monster_action', handleCombatMonsterAction);
+    onCb('combat_monster_action', handleCombatMonsterAction as unknown as (data: never) => void);
 
-    socketStoreOn('combate_finalizado', handleCombateFinalizado);
-    socketStoreOn('combate_loot', handleCombateLoot);
-    socketStoreOn('erro_mensagem', handleErroMensagem);
-    socketStoreOn('mestre_pensando', handleMestrePensando);
-    socketStoreOn('mestre_stream_start', handleMestreStreamStart);
-    socketStoreOn('mestre_stream_chunk', handleMestreStreamChunk);
-    socketStoreOn('mestre_stream_end', handleMestreStreamEnd);
-    socketStoreOn('mestre_stream_error', handleMestreStreamError);
+    onCb('combate_finalizado', handleCombateFinalizado as unknown as (data: never) => void);
+    onCb('combate_loot', handleCombateLoot as unknown as (data: never) => void);
+    onCb('erro_mensagem', handleErroMensagem as unknown as (data: never) => void);
+    onCb('mestre_pensando', handleMestrePensando as unknown as (data: never) => void);
+    onCb('mestre_stream_start', handleMestreStreamStart as unknown as (data: never) => void);
+    onCb('mestre_stream_chunk', handleMestreStreamChunk as unknown as (data: never) => void);
+    onCb('mestre_stream_end', handleMestreStreamEnd as unknown as (data: never) => void);
+    onCb('mestre_stream_error', handleMestreStreamError as unknown as (data: never) => void);
 
+    const offCb = (event: string, fn: (data: never) => void) => socketStoreOff(event, fn as unknown as SocketListenerCb);
     return () => {
-      socketStoreOff('mestre_request_status', handleMestreRequestStatus);
-      socketStoreOff('mensagem_mestre', handleMensagemMestre);
-      socketStoreOff('chat_message', handleChatMessage);
-      socketStoreOff('resultado_dado_inicial', handleResultadoDado);
-      socketStoreOff('mensagem_roleplay', handleMensagemRoleplay);
-      socketStoreOff('rodada_finalizada', handleRodadaFinalizada);
+      offCb('mestre_request_status', handleMestreRequestStatus as unknown as (data: never) => void);
+      offCb('mensagem_mestre', handleMensagemMestre as unknown as (data: never) => void);
+      offCb('chat_message', handleChatMessage as unknown as (data: never) => void);
+      offCb('resultado_dado_inicial', handleResultadoDado as unknown as (data: never) => void);
+      offCb('mensagem_roleplay', handleMensagemRoleplay as unknown as (data: never) => void);
+      offCb('rodada_finalizada', handleRodadaFinalizada as unknown as (data: never) => void);
       socketStoreOff('ordem_definida', handleOrdemDefinida);
-      socketStoreOff('dice_roll', handleDiceRoll);
-      socketStoreOff('resultado_teste', handleResultadoTeste);
-      socketStoreOff('mestre_solicita_dados', handleMestreSolicitaDados);
-      socketStoreOff('level_up', handleLevelUp);
-      socketStoreOff('acao_mestre', handleAcaoMestre);
-      socketStoreOff('combat_monster_action', handleCombatMonsterAction);
-      socketStoreOff('combate_finalizado', handleCombateFinalizado);
-      socketStoreOff('combate_loot', handleCombateLoot);
-      socketStoreOff('erro_mensagem', handleErroMensagem);
-      socketStoreOff('mestre_pensando', handleMestrePensando);
-      socketStoreOff('mestre_stream_start', handleMestreStreamStart);
-      socketStoreOff('mestre_stream_chunk', handleMestreStreamChunk);
-      socketStoreOff('mestre_stream_end', handleMestreStreamEnd);
-      socketStoreOff('mestre_stream_error', handleMestreStreamError);
+      offCb('dice_roll', handleDiceRoll as unknown as (data: never) => void);
+      offCb('resultado_teste', handleResultadoTeste as unknown as (data: never) => void);
+      offCb('mestre_solicita_dados', handleMestreSolicitaDados as unknown as (data: never) => void);
+      offCb('level_up', handleLevelUp as unknown as (data: never) => void);
+      offCb('acao_mestre', handleAcaoMestre as unknown as (data: never) => void);
+      offCb('combat_monster_action', handleCombatMonsterAction as unknown as (data: never) => void);
+      offCb('combate_finalizado', handleCombateFinalizado as unknown as (data: never) => void);
+      offCb('combate_loot', handleCombateLoot as unknown as (data: never) => void);
+      offCb('erro_mensagem', handleErroMensagem as unknown as (data: never) => void);
+      offCb('mestre_pensando', handleMestrePensando as unknown as (data: never) => void);
+      offCb('mestre_stream_start', handleMestreStreamStart as unknown as (data: never) => void);
+      offCb('mestre_stream_chunk', handleMestreStreamChunk as unknown as (data: never) => void);
+      offCb('mestre_stream_end', handleMestreStreamEnd as unknown as (data: never) => void);
+      offCb('mestre_stream_error', handleMestreStreamError as unknown as (data: never) => void);
     };
   }, [socketStoreOn, socketStoreOff, gameStoreSetMensagens, user?.id]);
 

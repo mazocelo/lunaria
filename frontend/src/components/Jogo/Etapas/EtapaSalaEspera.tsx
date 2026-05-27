@@ -1,13 +1,78 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useTheme } from '../../../contexts/theme.jsx';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTheme } from '../../../contexts/theme';
 import { useAuth } from '../../../contexts/AuthContext';
-import LoadingSpinner from '../../LoadingSpinner.jsx';
-import { useSocketStore, useGameStore, useTemaStore } from '../../../store/index.js';
+import LoadingSpinner from '../../LoadingSpinner';
+import { useSocketStore, useGameStore, useTemaStore } from '../../../store/index';
+
+interface Participante {
+  userId?: number | string;
+  username?: string;
+  personagem?: string;
+  personagemNome?: string;
+  personagemId?: number | string;
+  status?: string;
+  isOwner?: boolean;
+  [key: string]: unknown;
+}
+
+interface HistoriaBasica {
+  id?: number | string;
+  nome?: string;
+  prologo?: string;
+  imagem?: string | null;
+  id_usuario?: number | string;
+  estilo_imagem?: string;
+  maximo_de_participantes?: number;
+  temas?: unknown[];
+  [key: string]: unknown;
+}
+
+interface PersonagemBasico {
+  id?: number | string;
+  nome?: string;
+  classe?: string;
+  classe_nome?: string;
+  raca?: string;
+  raca_nome?: string;
+  imagem?: string | null;
+  nivel?: number | string;
+  hp?: number | string;
+  hp_atual?: number | string;
+  [key: string]: unknown;
+}
+
+interface SocketEventData {
+  userId?: number | string;
+  username?: string;
+  personagemNome?: string;
+  personagemId?: number | string;
+  status?: string;
+  sessao?: {
+    jogadoresConectados?: Array<{
+      userId?: number | string;
+      username?: string;
+      personagemNome?: string;
+      personagemId?: number | string;
+    }>;
+    donoId?: number | string;
+  };
+}
+
+interface EtapaSalaEsperaProps {
+  historia?: HistoriaBasica | null;
+  personagemSelecionado?: PersonagemBasico | null;
+  participantes: Participante[];
+  isDonoSala: boolean;
+  salaAberta: boolean;
+  socketConnected: boolean;
+  roomUsers?: unknown[];
+  onIniciarJogo: () => Promise<void> | void;
+  onSair: () => void;
+  onVoltar: () => void;
+}
 
 /**
  * Componente para sala de espera antes do jogo iniciar
- * Usado por: JogoView (etapa 'sala-espera')
- * Refatorado: Usa hooks diretos (useSocketStore, useGameStore, useTemaStore) no lugar de ViewModels
  */
 const EtapaSalaEspera = ({
   historia,
@@ -16,14 +81,13 @@ const EtapaSalaEspera = ({
   isDonoSala,
   salaAberta,
   socketConnected,
-  roomUsers,
+  roomUsers: _roomUsers,
   onIniciarJogo,
   onSair,
   onVoltar
-}) => {
-  const { theme } = useTheme();
+}: EtapaSalaEsperaProps) => {
+  useTheme();
   const { user } = useAuth();
-  const isLight = theme === 'light';
 
   // Stores diretos
   const getNomesDeTemas = useTemaStore(s => s.getNomesDeTemas);
@@ -36,7 +100,7 @@ const EtapaSalaEspera = ({
   // Estado local
   const [iniciandoJogo, setIniciandoJogo] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
-  const copiarTimeoutRef = useRef(null);
+  const copiarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -52,7 +116,8 @@ const EtapaSalaEspera = ({
     if (!socketConnected) return;
 
     // Listener para quando um jogador entra na sala
-    const handleUserJoined = (data) => {
+    const handleUserJoined = (...args: unknown[]) => {
+      const data = args[0] as SocketEventData;
       const isOwner = historia?.id_usuario ? String(data.userId) === String(historia.id_usuario) : false;
 
       const novoParticipante = {
@@ -68,23 +133,25 @@ const EtapaSalaEspera = ({
       // Adicionar via gameStore (equivalente ao antigo jogoViewModel.adicionarParticipante)
       // O parent page hook gerencia participantes via gameStore
       if (gameStoreAdicionarParticipante) {
-        gameStoreAdicionarParticipante(novoParticipante);
+        gameStoreAdicionarParticipante(novoParticipante as unknown as Parameters<typeof gameStoreAdicionarParticipante>[0]);
       }
     };
 
     // Listener para quando um jogador sai da sala
-    const handleUserLeft = (data) => {
-      if (gameStoreRemoverParticipante) {
-        gameStoreRemoverParticipante(data.userId);
+    const handleUserLeft = (...args: unknown[]) => {
+      const data = args[0] as SocketEventData;
+      if (gameStoreRemoverParticipante && data.userId != null) {
+        gameStoreRemoverParticipante(String(data.userId));
       }
     };
 
     // Listener para carregar lista inicial ao entrar na sala
-    const handleRoomJoined = (data) => {
+    const handleRoomJoined = (...args: unknown[]) => {
+      const data = args[0] as SocketEventData;
       if (data.sessao?.jogadoresConectados && Array.isArray(data.sessao.jogadoresConectados)) {
         const donoId = data.sessao.donoId;
 
-        const jogadoresFormatados = data.sessao.jogadoresConectados.map(j => {
+        const jogadoresFormatados: Participante[] = data.sessao.jogadoresConectados.map((j) => {
           const isOwner = String(j.userId) === String(donoId);
           return {
             userId: j.userId,
@@ -96,7 +163,7 @@ const EtapaSalaEspera = ({
         });
 
         if (gameStoreSetParticipantes) {
-          gameStoreSetParticipantes(jogadoresFormatados);
+          gameStoreSetParticipantes(jogadoresFormatados as unknown as Parameters<typeof gameStoreSetParticipantes>[0]);
         }
       }
     };
@@ -115,17 +182,17 @@ const EtapaSalaEspera = ({
 
   // --- Helpers inline (antes no ViewModel) ---
 
-  const formatarInformacoesHistoria = useCallback((hist) => {
+  const formatarInformacoesHistoria = useCallback((hist: HistoriaBasica | null | undefined) => {
     if (!hist) {
       return { titulo: 'Historia sem nome', descricao: 'Uma aventura epica esta prestes a comecar...', temas: null };
     }
-    const titulo = hist.nome || hist.titulo || 'Historia sem nome';
+    const titulo = hist.nome || (hist as { titulo?: string }).titulo || 'Historia sem nome';
     const descricao = hist.prologo || 'Uma aventura epica esta prestes a comecar...';
-    const temas = getNomesDeTemas(hist.temas);
+    const temas = getNomesDeTemas((hist.temas as Array<{ id?: number }> | undefined) || []);
     return { titulo, descricao, temas };
   }, [getNomesDeTemas]);
 
-  const formatarInformacoesPersonagem = useCallback((p) => {
+  const formatarInformacoesPersonagem = useCallback((p: PersonagemBasico | null | undefined) => {
     if (!p) {
       return { nome: 'Carregando personagem...', classe: 'Aguarde um momento', raca: '', nivel: '', hp: '???', mp: '???' };
     }
@@ -135,11 +202,11 @@ const EtapaSalaEspera = ({
       raca: p.raca_nome || p.raca || 'Desconhecida',
       nivel: p.nivel || '1',
       hp: p.hp_atual || p.hp || '???',
-      mp: p.mp_atual || p.mp || '???',
+      mp: (p as { mp_atual?: number | string; mp?: number | string }).mp_atual || (p as { mp?: number | string }).mp || '???',
     };
   }, []);
 
-  const formatarParticipantes = useCallback((parts, usr) => {
+  const formatarParticipantes = useCallback((parts: Participante[] | null | undefined, usr: { id?: number | string } | null | undefined) => {
     if (!Array.isArray(parts)) return [];
     return parts.map(participante => {
       const personagemExibicao = participante.personagem || participante.personagemNome || 'Selecionando personagem...';
@@ -153,21 +220,21 @@ const EtapaSalaEspera = ({
     });
   }, []);
 
-  const getConnectionStatus = useCallback((connected) => {
+  const getConnectionStatus = useCallback((connected: boolean) => {
     if (!connected) {
       return { text: 'Desconectado', color: 'text-red-400', bgColor: 'bg-red-500/20', borderColor: 'border-red-500/30', icon: '🔴' };
     }
     return { text: 'Conectado a Sala', color: 'text-green-400', bgColor: 'bg-green-500/20', borderColor: 'border-green-500/30', icon: '🟢' };
   }, []);
 
-  const validarIniciarJogo = useCallback((isDono, sala, iniciando) => {
+  const validarIniciarJogo = useCallback((isDono: boolean, sala: boolean, iniciando: boolean) => {
     if (!isDono) return { podeIniciar: false, motivo: 'Apenas o Mestre pode iniciar o jogo' };
     if (iniciando) return { podeIniciar: false, motivo: 'Jogo ja esta sendo iniciado...' };
     if (!sala) return { podeIniciar: false, motivo: 'Sala nao esta aberta' };
     return { podeIniciar: true, motivo: null };
   }, []);
 
-  const validarTrocarPersonagem = useCallback((sel) => {
+  const validarTrocarPersonagem = useCallback((sel: PersonagemBasico | null | undefined) => {
     if (!sel) return { podeTrocar: true, acao: 'Selecionar personagem' };
     return { podeTrocar: true, acao: 'Trocar personagem' };
   }, []);

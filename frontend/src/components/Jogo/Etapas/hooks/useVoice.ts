@@ -1,13 +1,32 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '../../../../services';
-import { useSocketStore } from '../../../../store/index.js';
+import { useSocketStore } from '../../../../store/index';
+
+interface VoiceConfig {
+  voice_id?: string | null;
+  voice_provider?: string | null;
+}
+
+interface HistoriaComMestre {
+  mestre?: VoiceConfig;
+  mestres?: VoiceConfig;
+  [key: string]: unknown;
+}
+
+interface MensagemComVoz {
+  tipo?: string;
+  type?: string;
+  voice_id?: string | null;
+  voice_provider?: string | null;
+  [key: string]: unknown;
+}
 
 const DEFAULT_TTS_PROVIDER = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
-export const useVoice = (historia, mensagens) => {
-  const socketSession = useSocketStore(s => s.session);
+export const useVoice = (historia: HistoriaComMestre | null | undefined, mensagens: MensagemComVoz[] | null | undefined) => {
+  const socketSession = useSocketStore(s => s.session) as { mestreConfig?: VoiceConfig } | null | undefined;
 
-  const fallbackMensagemMestreComVoz = useMemo(() => (
+  const fallbackMensagemMestreComVoz = useMemo<MensagemComVoz | null>(() => (
     (mensagens || []).find((mensagem) => {
       const tipoMensagem = mensagem?.tipo || mensagem?.type;
       return tipoMensagem === 'mestre' && (mensagem?.voice_id || mensagem?.voice_provider);
@@ -40,7 +59,7 @@ export const useVoice = (historia, mensagens) => {
     socketSession?.mestreConfig?.voice_provider
   ]);
 
-  const [defaultNarrationVoice, setDefaultNarrationVoice] = useState({ voiceId: null, provider: null });
+  const [defaultNarrationVoice, setDefaultNarrationVoice] = useState<{ voiceId: string | null; provider: string | null }>({ voiceId: null, provider: null });
 
   useEffect(() => {
     let active = true;
@@ -57,7 +76,7 @@ export const useVoice = (historia, mensagens) => {
     const carregarVoicePadrao = async () => {
       try {
         const query = baseVoiceProvider ? `?provider=${encodeURIComponent(baseVoiceProvider)}` : '';
-        const response = await apiClient.get(`/tts/voices${query}`);
+        const response = await apiClient.get(`/tts/voices${query}`) as { data?: Array<{ voice_id?: string }>; provider?: string } | null;
         const voices = Array.isArray(response?.data) ? response.data : [];
         const firstVoice = voices[0];
 
@@ -67,7 +86,7 @@ export const useVoice = (historia, mensagens) => {
           voiceId: firstVoice.voice_id,
           provider: response?.provider || baseVoiceProvider || null,
         });
-      } catch (_) {
+      } catch {
         if (!active) return;
         setDefaultNarrationVoice({ voiceId: null, provider: null });
       }

@@ -94,17 +94,19 @@ const JogoAtivoView = ({
 
       {/* Componente de Jogo Ativo */}
       <EtapaJogoRPG
-        historia={historiaAtual}
-        personagemSelecionado={personagemSelecionado}
-        participantes={participantes}
-        mensagens={mensagens}
-        statusPersonagem={statusPersonagem}
-        isDonoSala={isDonoSala}
-        socketConnected={isConnected}
-        user={user}
-        onAdicionarMensagem={handleAdicionarMensagem}
-        onAtualizarStatus={handleAtualizarStatus}
-        onSair={handleSair}
+        {...({
+          historia: historiaAtual,
+          personagemSelecionado,
+          participantes,
+          mensagens,
+          statusPersonagem,
+          isDonoSala,
+          socketConnected: isConnected,
+          user,
+          onAdicionarMensagem: handleAdicionarMensagem,
+          onAtualizarStatus: handleAtualizarStatus,
+          onSair: handleSair,
+        } as unknown as Parameters<typeof EtapaJogoRPG>[0])}
       />
     </div>
   );

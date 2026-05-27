@@ -1,18 +1,122 @@
-﻿import React, { useMemo, useState } from 'react';
-import { Send, Loader2, Sparkles, Search, X, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight, Save } from 'lucide-react';
-import MarkdownRenderer from '../../../../components/MarkdownRenderer.jsx';
-import SuggestionCard from './SuggestionCard.jsx';
-import AttributeDistributor from './AttributeDistributor.jsx';
-import MasterAvatarGlyph from './MasterAvatarGlyph.jsx';
-import DestinoResolutivaBlock from './DestinoResolutivaBlock.jsx';
-import EquipamentosBlock from './EquipamentosBlock.jsx';
-import GrimorioBlock from './GrimorioBlock.jsx';
-import TresDetCaracteristicasBlock from './TresDetCaracteristicasBlock.jsx';
-import TresDetVantagensBlock from './TresDetVantagensBlock.jsx';
-import DnDAbilityScoreBlock from './DnDAbilityScoreBlock.jsx';
-import DnDSkillsBlock from './DnDSkillsBlock.jsx';
-import { getStageConfig } from '../stages/stageConfig.js';
-import { canContinueStage, getContinueLabel } from '../stages/stageSelectors.js';
+﻿import { useMemo, useState } from 'react';
+import { Send, Loader2, Search, X, Check, Info, RefreshCw, Shield, CheckCircle2, ScrollText, ArrowRight, Save } from 'lucide-react';
+import MarkdownRenderer from '../../../../components/MarkdownRenderer';
+import SuggestionCard from './SuggestionCard';
+import AttributeDistributor from './AttributeDistributor';
+import MasterAvatarGlyph from './MasterAvatarGlyph';
+import DestinoResolutivaBlock from './DestinoResolutivaBlock';
+import EquipamentosBlock from './EquipamentosBlock';
+import GrimorioBlock from './GrimorioBlock';
+import TresDetCaracteristicasBlock from './TresDetCaracteristicasBlock';
+import TresDetVantagensBlock from './TresDetVantagensBlock';
+import DnDAbilityScoreBlock from './DnDAbilityScoreBlock';
+import DnDSkillsBlock from './DnDSkillsBlock';
+import { getStageConfig } from '../stages/stageConfig';
+import { canContinueStage, getContinueLabel } from '../stages/stageSelectors';
+import type { WizardMessage, WizardSuggestion } from '../hooks/useChatState';
+
+interface CatalogoItem {
+  id?: number | string;
+  nome?: string;
+  descricao?: string;
+  custo?: number;
+  imagem?: string | null;
+  [key: string]: unknown;
+}
+
+interface WizardChatProps {
+  mensagens: WizardMessage[];
+  inputTexto: string;
+  setInputTexto: (v: string) => void;
+  enviando: boolean;
+  sugestoes?: WizardSuggestion[];
+  onEnviar: (text: string, options?: Record<string, unknown>) => void;
+  onSelecionarSugestao: (s: WizardSuggestion) => void;
+  onAvancarComMestre?: (override?: Record<string, unknown>) => void;
+  onPularEtapa?: (tipo: 'vantagens' | 'desvantagens') => void;
+  vantagensIds: Array<number | string>;
+  desvantagensIds: Array<number | string>;
+  etapaAtual: string;
+  racasDisponiveis?: CatalogoItem[];
+  classesDisponiveis?: CatalogoItem[];
+  vantagensDisponiveis?: CatalogoItem[];
+  chatEndRef?: React.RefObject<HTMLDivElement | null>;
+  isLight: boolean;
+  podeCriar?: boolean;
+  atributos?: Record<string, number>;
+  atributosFinal?: Record<string, number>;
+  setAtributo?: (key: string, value: number) => void;
+  pontosDistribuidos?: number;
+  pontosRestantes?: number;
+  pontosTotais?: number;
+  atributosSugeridos?: unknown;
+  aplicarAtributosSugeridos?: () => void;
+  bonusAplicados?: boolean;
+  bonusDetalhes?: Record<string, number>;
+  bonusFontes?: Record<string, Array<{ label: string; valor: number }>>;
+  pontosCriacaoTotal?: number;
+  pontosCriacaoRestantes?: number;
+  pontosGastos?: number;
+  pontosVantagem?: number;
+  pontosDesvantagem?: number;
+  custoRaca?: number;
+  custoClasse?: number;
+  maxCustoDesvantagem?: number;
+  skipVantagens?: boolean;
+  skipDesvantagens?: boolean;
+  attrMin?: number;
+  attrMax?: number;
+  onConfirmarAtributos?: () => void;
+  onSalvarPersonagem?: () => void;
+  salvando?: boolean;
+  comboPreviewData?: unknown;
+  comboPreviewLoading?: boolean;
+  comboPreviewErro?: string | null;
+  comboPreviewTentativa?: number;
+  onRegenerarComboPreview?: () => void;
+  onRecarregarComboPreview?: () => void;
+  creationFlowStatus?: string;
+  imageUrl?: string | null;
+  imageLoading?: boolean;
+  imageError?: string | null;
+  onGerarImagem?: () => void;
+  grimorioMagias?: Array<Record<string, unknown>>;
+  grimorioSlots?: number;
+  grimorioSelecionadas?: Array<number | string>;
+  grimorioLoading?: boolean;
+  grimorioError?: string | null;
+  onToggleGrimorioMagia?: (id: number | string) => void;
+  onConfirmarGrimorio?: () => void;
+  sistema?: string;
+  isTresdet?: boolean;
+  tresdetCaracteristicas?: Record<string, number>;
+  tresdetCaracteristicasConfirmadas?: boolean;
+  tresdetPontosTotais?: number;
+  onSetTresdetCaracteristica?: (key: string, value: number) => void;
+  onConfirmarTresdetCaracteristicas?: () => void;
+  tresdetVantagensIds?: Array<number | string>;
+  tresdetVantagensConfirmadas?: boolean;
+  onToggleTresdetVantagem?: (id: number | string, custo: number) => void;
+  onConfirmarTresdetVantagens?: () => void;
+  tresdetDesvantagensIds?: Array<number | string>;
+  tresdetDesvantagensConfirmadas?: boolean;
+  onToggleTresdetDesvantagem?: (id: number | string, custo: number) => void;
+  onConfirmarTresdetDesvantagens?: () => void;
+  isDnd5e?: boolean;
+  classeNome?: string;
+  dndAbilityScores?: Record<string, number | null>;
+  dndAbilitiesConfirmed?: boolean;
+  onSetDndAbilityScore?: (id: string, value: number | null) => void;
+  onResetDndAbilityScores?: () => void;
+  onConfirmarDndAbilities?: () => void;
+  dndSkillProficiencies?: string[];
+  dndSkillsConfirmed?: boolean;
+  onToggleDndSkill?: (id: string) => void;
+  onConfirmarDndSkills?: () => void;
+  dndRacialBonuses?: Record<string, number>;
+  onAvancarEtapa?: () => void;
+  embedded?: boolean;
+}
 
 const WizardChat = ({
   mensagens,
@@ -42,7 +146,7 @@ const WizardChat = ({
   atributosSugeridos,
   aplicarAtributosSugeridos,
   bonusAplicados,
-  bonusDetalhes,
+  bonusDetalhes: _bonusDetalhes,
   bonusFontes,
   pontosCriacaoTotal,
   pontosCriacaoRestantes,
@@ -106,25 +210,25 @@ const WizardChat = ({
   dndRacialBonuses = {},
   onAvancarEtapa,
   embedded = false,
-}) => {
+}: WizardChatProps) => {
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [filtro, setFiltro] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
     if (inputTexto.trim() && !enviando) {
       onEnviar(inputTexto);
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
-  const isSugestaoSelecionada = (sugestao) => {
+  const isSugestaoSelecionada = (sugestao: WizardSuggestion) => {
     if (sugestao.tipo === 'vantagem') return vantagensIds.some(id => String(id) === String(sugestao.id));
     if (sugestao.tipo === 'desvantagem') return desvantagensIds.some(id => String(id) === String(sugestao.id));
     return false;
@@ -136,11 +240,11 @@ const WizardChat = ({
   const tipoAtual = config.catalogType || 'raca';
   const labelAtual = config.catalogLabel || '';
 
-  const catalogoAtual = useMemo(() => {
+  const catalogoAtual = useMemo<CatalogoItem[]>(() => {
     if (tipoAtual === 'raca') return racasDisponiveis || [];
     if (tipoAtual === 'classe') return classesDisponiveis || [];
-    if (tipoAtual === 'vantagem') return (vantagensDisponiveis || []).filter(v => v.custo > 0);
-    if (tipoAtual === 'desvantagem') return (vantagensDisponiveis || []).filter(v => v.custo < 0);
+    if (tipoAtual === 'vantagem') return (vantagensDisponiveis || []).filter(v => (v.custo ?? 0) > 0);
+    if (tipoAtual === 'desvantagem') return (vantagensDisponiveis || []).filter(v => (v.custo ?? 0) < 0);
     return [];
   }, [tipoAtual, racasDisponiveis, classesDisponiveis, vantagensDisponiveis]);
 
@@ -155,11 +259,11 @@ const WizardChat = ({
 
   const ultimaMensagem = mensagens[mensagens.length - 1];
   const ultimaMensagemEhMestreDaEtapa = ultimaMensagem?.role === 'mestre' && ultimaMensagem?.etapa === etapaAtual;
-  const saldoCriacaoInvalido = pontosCriacaoRestantes < 0;
+  const saldoCriacaoInvalido = (pontosCriacaoRestantes ?? 0) < 0;
   const refreshPrompt = config.refreshPrompt || 'Mostre-me outras opcoes diferentes para esta etapa sem avancar.';
   const buildStateChat = {
     vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens, bonusAplicados,
-    grimorioSelecionado: grimorioSelecionadas?.length > 0,
+    grimorioSelecionado: (grimorioSelecionadas?.length ?? 0) > 0,
     caracteristicasDistribuidas: tresdetCaracteristicasConfirmadas,
     vantagensSelecionadas: tresdetVantagensConfirmadas,
     desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
@@ -177,7 +281,7 @@ const WizardChat = ({
 
   const backgroundSugestoesAtuais = useMemo(() => (sugestoes || []).filter((item) => item.tipo === 'background'), [sugestoes]);
   /** Seleciona e auto-avanÃƒÂ§a para raca/classe; sÃƒÂ³ seleciona para vantagem/desvantagem */
-  const handleSelectAndAdvance = (sugestao) => {
+  const handleSelectAndAdvance = (sugestao: WizardSuggestion) => {
     onSelecionarSugestao(sugestao);
     if (sugestao.tipo === 'raca') {
       onAvancarComMestre?.({ raca_id: sugestao.id, raca_nome: sugestao.nome });
@@ -186,8 +290,8 @@ const WizardChat = ({
     }
   };
 
-  const handleSelecionarCatalogo = (item) => {
-    const payload = {
+  const handleSelecionarCatalogo = (item: CatalogoItem) => {
+    const payload: WizardSuggestion = {
       tipo: tipoAtual,
       id: item.id,
       nome: item.nome,
@@ -245,41 +349,41 @@ const WizardChat = ({
                   </div>
                 </div>
 
-                {isUltimaMensagemMestre && msg.sugestoes?.some(s => s.tipo === 'nome') && (
+                {isUltimaMensagemMestre && (msg.sugestoes as WizardSuggestion[] | undefined)?.some(s => s.tipo === 'nome') && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {msg.sugestoes.filter(s => s.tipo === 'nome').map((sug, i) => (
+                    {(msg.sugestoes as WizardSuggestion[]).filter(s => s.tipo === 'nome').map((sug, i) => (
                       <button
                         key={`nome-${i}`}
                         type="button"
-                        onClick={() => onEnviar(sug.nome, { aceitarNome: true })}
+                        onClick={() => onEnviar(sug.nome ?? '', { aceitarNome: true })}
                         className="wa-panel-soft rounded-full px-3.5 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
-                        title={sug.descricao || ''}
+                        title={String(sug.descricao ?? '')}
                       >
-                        {sug.nome}
+                        {String(sug.nome ?? '')}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {isUltimaMensagemMestre && msg.sugestoes?.some(s => s.tipo === 'background') && (
+                {isUltimaMensagemMestre && (msg.sugestoes as WizardSuggestion[] | undefined)?.some(s => s.tipo === 'background') && (
                   <div className="mt-3 grid grid-cols-1 gap-2">
-                    {msg.sugestoes.filter(s => s.tipo === 'background').map((sug, i) => (
+                    {(msg.sugestoes as WizardSuggestion[]).filter(s => s.tipo === 'background').map((sug, i) => (
                       <button
                         key={`bg-${i}`}
                         type="button"
-                        onClick={() => onEnviar(sug.nome)}
+                        onClick={() => onEnviar(sug.nome ?? '')}
                         className="wa-choice-card rounded-2xl border p-3 text-left cursor-pointer"
                       >
-                        <span className={`block text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{sug.nome}</span>
-                        {sug.descricao && <span className={`mt-1 block text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{sug.descricao}</span>}
+                        <span className={`block text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{String(sug.nome ?? '')}</span>
+                        {Boolean(sug.descricao) && <span className={`mt-1 block text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{String(sug.descricao)}</span>}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {isUltimaMensagemMestre && msg.sugestoes?.some(s => !['nome', 'background'].includes(s.tipo)) && (
+                {isUltimaMensagemMestre && (msg.sugestoes as WizardSuggestion[] | undefined)?.some(s => !['nome', 'background'].includes(String(s.tipo ?? ''))) && (
                   <div className="mt-3 grid grid-cols-1 gap-2.5">
-                    {msg.sugestoes.filter(s => !['nome', 'background'].includes(s.tipo)).map((sug, i) => (
+                    {(msg.sugestoes as WizardSuggestion[]).filter(s => !['nome', 'background'].includes(String(s.tipo ?? ''))).map((sug, i) => (
                       <SuggestionCard
                         key={`${sug.id}-${i}`}
                         sugestao={sug}
@@ -317,7 +421,7 @@ const WizardChat = ({
                     {config.allowSkip && (
                       <button
                         type="button"
-                        onClick={() => onPularEtapa?.(etapaAtual)}
+                        onClick={() => onPularEtapa?.(etapaAtual as 'vantagens' | 'desvantagens')}
                         disabled={enviando}
                         className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
                       >
@@ -339,7 +443,7 @@ const WizardChat = ({
                         </div>
                         <div className="grid grid-cols-6 gap-2">
                           {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
-                            const finalVal = atributosFinal?.[key] ?? (atributos[key] || 10);
+                            const finalVal = atributosFinal?.[key] ?? (atributos?.[key] || 10);
                             const mod = Math.floor((finalVal - 10) / 2);
                             const fontes = bonusFontes?.[key] || [];
                             return (
@@ -367,11 +471,11 @@ const WizardChat = ({
                     ) : (
                       <>
                         <AttributeDistributor
-                          atributos={atributos}
-                          setAtributo={setAtributo}
-                          pontosDistribuidos={pontosDistribuidos}
-                          pontosRestantes={pontosRestantes}
-                          pontosTotais={pontosTotais}
+                          atributos={atributos ?? {}}
+                          setAtributo={setAtributo ?? (() => {})}
+                          pontosDistribuidos={pontosDistribuidos ?? 0}
+                          pontosRestantes={pontosRestantes ?? 0}
+                          pontosTotais={pontosTotais ?? 0}
                           atributosSugeridos={atributosSugeridos}
                           aplicarAtributosSugeridos={aplicarAtributosSugeridos}
                           isLight={isLight}
@@ -477,7 +581,7 @@ const WizardChat = ({
                 {config.allowSkip && (
                   <button
                     type="button"
-                    onClick={() => onPularEtapa?.(etapaAtual)}
+                    onClick={() => onPularEtapa?.(etapaAtual as 'vantagens' | 'desvantagens')}
                     disabled={enviando}
                     className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
                   >
@@ -494,11 +598,11 @@ const WizardChat = ({
                   <button
                     key={`bg-stage-${i}`}
                     type="button"
-                    onClick={() => onEnviar(sug.nome)}
+                    onClick={() => onEnviar(sug.nome ?? '')}
                     className="wa-choice-card rounded-2xl border p-3 text-left cursor-pointer"
                   >
-                    <span className={`block text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{sug.nome}</span>
-                    {sug.descricao && <span className={`mt-1 block text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{sug.descricao}</span>}
+                    <span className={`block text-sm font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{String(sug.nome ?? '')}</span>
+                    {Boolean(sug.descricao) && <span className={`mt-1 block text-xs font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{String(sug.descricao)}</span>}
                   </button>
                 ))}
               </div>
@@ -514,7 +618,7 @@ const WizardChat = ({
                   </div>
                   <div className="grid grid-cols-6 gap-2">
                     {Object.entries({ forca: 'FOR', destreza: 'DES', constituicao: 'CON', inteligencia: 'INT', agilidade: 'AGI', carisma: 'CAR' }).map(([key, abbr]) => {
-                      const finalVal = atributosFinal?.[key] ?? (atributos[key] || 10);
+                      const finalVal = atributosFinal?.[key] ?? (atributos?.[key] || 10);
                       const mod = Math.floor((finalVal - 10) / 2);
                       const fontes = bonusFontes?.[key] || [];
                       return (
@@ -542,11 +646,11 @@ const WizardChat = ({
               ) : (
                 <>
                   <AttributeDistributor
-                    atributos={atributos}
-                    setAtributo={setAtributo}
-                    pontosDistribuidos={pontosDistribuidos}
-                    pontosRestantes={pontosRestantes}
-                    pontosTotais={pontosTotais}
+                    atributos={atributos ?? {}}
+                    setAtributo={setAtributo ?? (() => {})}
+                    pontosDistribuidos={pontosDistribuidos ?? 0}
+                    pontosRestantes={pontosRestantes ?? 0}
+                    pontosTotais={pontosTotais ?? 0}
                     atributosSugeridos={atributosSugeridos}
                     aplicarAtributosSugeridos={aplicarAtributosSugeridos}
                     isLight={isLight}
@@ -634,7 +738,7 @@ const WizardChat = ({
                 <span className="wa-ember-chip rounded-full px-2 py-1">Raca {custoRaca}</span>
                 <span className="wa-ember-chip rounded-full px-2 py-1">Classe {custoClasse}</span>
                 <span className="wa-ember-chip rounded-full px-2 py-1">Vantagens {pontosVantagem}</span>
-                <span className="wa-emerald-chip rounded-full px-2 py-1">Desvantagens +{Math.min(maxCustoDesvantagem, Math.abs(pontosDesvantagem))}</span>
+                <span className="wa-emerald-chip rounded-full px-2 py-1">Desvantagens +{Math.min(maxCustoDesvantagem ?? 0, Math.abs(pontosDesvantagem ?? 0))}</span>
               </div>
             </div>
           </div>
@@ -668,7 +772,7 @@ const WizardChat = ({
             pontosTotais={tresdetPontosTotais}
             onSetValor={onSetTresdetCaracteristica}
             onConfirmar={() => {
-              onConfirmarTresdetCaracteristicas();
+              onConfirmarTresdetCaracteristicas?.();
               onAvancarEtapa?.();
             }}
             confirmado={tresdetCaracteristicasConfirmadas}
@@ -682,7 +786,7 @@ const WizardChat = ({
             selecionadas={tresdetVantagensIds}
             onToggle={onToggleTresdetVantagem}
             onConfirmar={() => {
-              onConfirmarTresdetVantagens();
+              onConfirmarTresdetVantagens?.();
               onAvancarEtapa?.();
             }}
             pontosDisponiveis={tresdetPontosTotais}
@@ -696,7 +800,7 @@ const WizardChat = ({
             selecionadas={tresdetDesvantagensIds}
             onToggle={onToggleTresdetDesvantagem}
             onConfirmar={() => {
-              onConfirmarTresdetDesvantagens();
+              onConfirmarTresdetDesvantagens?.();
               onAvancarEtapa?.();
             }}
             pontosDisponiveis={0}
@@ -708,7 +812,7 @@ const WizardChat = ({
           <DnDAbilityScoreBlock
             scores={dndAbilityScores}
             racialBonuses={dndRacialBonuses}
-            onSetScore={onSetDndAbilityScore}
+            onSetScore={onSetDndAbilityScore ?? (() => {})}
             onConfirmar={() => {
               onConfirmarDndAbilities?.();
               onAvancarEtapa?.();
@@ -723,7 +827,7 @@ const WizardChat = ({
           <DnDSkillsBlock
             selecionadas={dndSkillProficiencies}
             classeNome={classeNome}
-            abilityScores={dndAbilityScores}
+            abilityScores={Object.fromEntries(Object.entries(dndAbilityScores ?? {}).filter(([, v]) => v != null)) as Record<string, number>}
             onToggle={onToggleDndSkill}
             onConfirmar={() => {
               onConfirmarDndSkills?.();
@@ -736,7 +840,7 @@ const WizardChat = ({
 
         {isEquipamentosStage && (
           <EquipamentosBlock
-            data={comboPreviewData}
+            data={comboPreviewData as Parameters<typeof EquipamentosBlock>[0]['data']}
             loading={comboPreviewLoading}
             error={comboPreviewErro}
             tentativasUsadas={comboPreviewTentativa}
@@ -762,7 +866,7 @@ const WizardChat = ({
 
         {isDestinoResolutivo && (
           <DestinoResolutivaBlock
-            data={comboPreviewData}
+            data={comboPreviewData as Parameters<typeof DestinoResolutivaBlock>[0]['data']}
             loading={comboPreviewLoading}
             error={comboPreviewErro}
             onRetry={onRecarregarComboPreview}
@@ -888,8 +992,9 @@ const WizardChat = ({
             }`}
             style={{ maxHeight: '132px' }}
             onInput={(e) => {
-              e.target.style.height = 'auto';
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 132)}px`;
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = `${Math.min(target.scrollHeight, 132)}px`;
             }}
           />
 

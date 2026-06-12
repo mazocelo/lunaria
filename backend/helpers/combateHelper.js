@@ -28,8 +28,21 @@ import { checkDanoConcentracao, quebrarConcentracao } from './concentrationManag
 import { getAtributo, getAtributosMap } from './atributosHelper.js';
 import { getEngine } from '../game-systems/index.js';
 import { resolverSistema } from './sistemaHelper.js';
+import {
+  calcularHP,
+  calcularMP,
+  calcularEsquiva,
+  calcularArmadura,
+  calcularAbsorcao,
+  getMultRaca,
+} from '../game-systems/lunaria/characterEngine.js';
 import db from '../Model/index.js';
 const log = logger.child({ module: 'combateHelper' });
+
+// Formulas do sistema Lunaria vivem no engine; o helper apenas orquestra e
+// reexporta para manter a API publica historica (calcularMana = calcularMP).
+export { calcularHP, calcularEsquiva, calcularArmadura, calcularAbsorcao, getMultRaca };
+export const calcularMana = calcularMP;
 
 /**
  * Normaliza uma entrada de log de combate no momento da escrita.
@@ -228,63 +241,6 @@ export function rolarDado(notacao) {
   return Math.max(0, total + modificador);
 }
 
-/**
- * Mapa estático de mult_raca por nome de raça.
- * Valores espelham a coluna mult_raca da tabela `racas`.
- * Fallback: 5 (Humano) quando a raça não for encontrada.
- */
-const MULT_RACA_MAP = {
-  'Humano': 5, 'Anão': 6, 'Elfo': 4, 'Elfo Negro': 4, 'Meio-Elfo': 5,
-  'Halfling': 4, 'Gnomo': 4, 'Orc': 7, 'Meio-Orc': 6, 'Tiefling': 5,
-  'Draconato': 7, 'Aasimar': 5, 'Primordiano': 5, 'Anfíbio': 5, 'Centauro': 7,
-  'Minotauro': 7, 'Kythari': 5, 'Kemono': 5, 'Pardalino': 4, 'Kobold': 3,
-  'Goblin': 3, 'Hobgoblin': 5, 'Bugbear': 6, 'Meio-Dragão': 7,
-  'Ogro': 8, 'Meio-Ogro': 7, 'Troglodita': 5, 'Verdeante': 5,
-  'Cristálide': 5, 'Anjo': 6, 'Demônio': 6, 'Meio-Abissal': 6,
-  'Meio-Celestial': 6, 'Fada': 3, 'Licantropo': 7, 'Meio-Gênio': 6,
-  'Silvagante': 7, 'Deva': 6, 'Androide': 6, 'Golem': 9,
-};
-
-/**
- * Retorna o multiplicador de HP da raça pelo nome.
- * @param {string|null|undefined} racaNome - Nome da raça do personagem
- * @returns {number} mult_raca (fallback: 5)
- */
-export function getMultRaca(racaNome) {
-  if (!racaNome) return 5;
-  return MULT_RACA_MAP[racaNome] || 5;
-}
-
-/**
- * Calcula HP maximo de um personagem jogador
- * Formula: mult_raca * (nivel + max(1, modCON))
- * @param {Object} personagem - Dados do personagem
- * @param {number} multRaca - Multiplicador da raca (default 5 para humano)
- * @returns {number} HP maximo
- */
-export function calcularHP(personagem, multRaca = 5) {
-  const attrs = personagem.atributos || {};
-  const constituicao = personagem.constituicao ?? attrs.constituicao ?? getAtributo(personagem, 'constituicao');
-  const nivel = personagem.nivel || 1;
-  const modCON = Math.floor((constituicao - 10) / 2);
-  return multRaca * (nivel + Math.max(1, modCON));
-}
-
-/**
- * Calcula mana maxima de um personagem
- * Formula: 10 + nivel + max(modINT, modCHA) * 2
- */
-export function calcularMana(personagem) {
-  const attrs = personagem.atributos || {};
-  const inteligencia = personagem.inteligencia ?? attrs.inteligencia ?? getAtributo(personagem, 'inteligencia');
-  const nivel = personagem.nivel || 1;
-  const modInt = Math.floor((inteligencia - 10) / 2);
-  const carisma = personagem.carisma ?? attrs.carisma ?? getAtributo(personagem, 'carisma');
-  const modCha = Math.floor((carisma - 10) / 2);
-  const modCaster = Math.max(modInt, modCha);
-  return Math.max(5, 10 + nivel + modCaster * 2);
-}
-
 function parseDiceNotation(notacao) {
   if (!notacao || typeof notacao !== 'string') return null;
   const match = String(notacao).trim().match(/^(\d+)d(\d+)([+-]\d+)?$/i);
@@ -456,41 +412,6 @@ export function processarHabilidade(habilidade, jogadorState, options = {}) {
 }
 
 /**
- * Calcula taxa de esquiva de um personagem (%)
- * Formula: (ModAGI + floor(ModDEX/2)) * 5 + floor(nivel*0.5) + equip_bonus - equip_penalidade
- * Cap: 0-50%
- * @param {Object} personagem - Dados do personagem
- * @param {Object} bonusEquip - Bonus agregados { esquiva_bonus, esquiva_penalidade }
- * @returns {number} Taxa de esquiva em porcentagem (0-50)
- */
-export function calcularEsquiva(personagem, bonusEquip = {}) {
-  const attrs = personagem.atributos || {};
-  const agilidade = personagem.agilidade ?? attrs.agilidade ?? getAtributo(personagem, 'agilidade');
-  const destreza = personagem.destreza ?? attrs.destreza ?? getAtributo(personagem, 'destreza');
-  const nivel = personagem.nivel || 1;
-
-  const modAgi = Math.floor((agilidade - 10) / 2);
-  const modDex = Math.floor((destreza - 10) / 2);
-
-  const baseEsquiva = (modAgi + Math.floor(modDex / 2)) * 5;
-  const bonusNivel = Math.floor(nivel * 0.5);
-  const bonusEquipamento = bonusEquip.esquiva_bonus || 0;
-  const penalidadeEquipamento = bonusEquip.esquiva_penalidade || 0;
-
-  const total = baseEsquiva + bonusNivel + bonusEquipamento - penalidadeEquipamento;
-  return Math.min(50, Math.max(0, total));
-}
-
-/**
- * Calcula armadura total de equipamentos (reducao flat de dano)
- * @param {Object} bonusEquip - Bonus agregados { armadura }
- * @returns {number} Valor de armadura
- */
-export function calcularArmadura(bonusEquip = {}) {
-  return bonusEquip.armadura || 0;
-}
-
-/**
  * @deprecated O sistema de esquiva por % foi substituído pelo sistema DC (10 + modAGI).
  * A função verificarAcerto já lida com o desvio via DC. Esta função não deve ser usada
  * em novos fluxos de combate.
@@ -601,22 +522,6 @@ export function calcularDano(dano_base, modForca = 0, critico = false) {
     dano *= 2;
   }
   return Math.max(0, dano);
-}
-
-/**
- * Calcula absorcao (TA) baseada em CON e armadura.
- * TA = floor(modCON / 2) + armadura (flat, previsível, não escala exponencialmente)
- *
- * CON 10 = 0, CON 14 = 1, CON 16 = 1, CON 18 = 2, CON 20 = 2
- * Com armadura 3: range 3-5 (vs antigo 3-13 com dados)
- *
- * @param {number} constituicao - Valor de constituicao do alvo
- * @param {number} armadura - Armadura fixa do alvo
- * @returns {number} Valor de absorcao
- */
-export function calcularAbsorcao(constituicao, armadura = 0) {
-  const modCON = Math.floor(((constituicao || 10) - 10) / 2);
-  return Math.floor(modCON / 2) + (armadura || 0);
 }
 
 /**
@@ -1182,23 +1087,22 @@ function _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIn
   if (resultado.acertou) {
     monstroAlvo.hp = Math.max(0, (monstroAlvo.hp ?? monstroAlvo.hp_atual ?? 0) - resultado.dano);
 
-    // 3D&T: track absorbed damage for Absorção power
-    if (sistema === 'tresdet' && engine.temPoder(monstroAlvo, 'Absorção')) {
-      monstroAlvo._danoAbsorvido = (monstroAlvo._danoAbsorvido || 0) + resultado.dano;
-      log.warn({ monstroNome: monstroAlvo.nome, danoAbsorvido: monstroAlvo._danoAbsorvido }, 'MONSTER_POWER: Absorção acumulou dano');
+    // Poderes pos-dano (Absorção/Ressurreição) sao regras do sistema: o engine
+    // resolve e muta o estado do monstro; aqui so orquestramos e logamos.
+    const poderes = typeof engine.aplicarPoderesPosDano === 'function'
+      ? engine.aplicarPoderesPosDano(monstroAlvo, resultado.dano)
+      : null;
+    ressurreicao = poderes?.ressurreicao || null;
+
+    if (poderes?.danoAbsorvidoTotal != null) {
+      log.warn({ monstroNome: monstroAlvo.nome, danoAbsorvido: poderes.danoAbsorvidoTotal }, 'MONSTER_POWER: Absorção acumulou dano');
+    }
+    if (ressurreicao) {
+      log.warn({ monstroNome: monstroAlvo.nome, hpRestaurado: ressurreicao.hpRestaurado }, 'MONSTER_POWER: Ressurreição');
     }
 
-    if (monstroAlvo.hp <= 0) {
-      // 3D&T: check Ressurreição before marking as derrotado
-      if (sistema === 'tresdet' && engine.temPoder(monstroAlvo, 'Ressurreição') && !monstroAlvo._jaRessuscitou) {
-        ressurreicao = engine.resolverRessurreicao(monstroAlvo);
-        monstroAlvo.hp = ressurreicao.hpRestaurado;
-        monstroAlvo.status = 'vivo';
-        monstroAlvo._jaRessuscitou = true;
-        log.warn({ monstroNome: monstroAlvo.nome, hpRestaurado: ressurreicao.hpRestaurado }, 'MONSTER_POWER: Ressurreição');
-      } else {
-        monstroAlvo.status = 'derrotado';
-      }
+    if (!poderes && monstroAlvo.hp <= 0) {
+      monstroAlvo.status = 'derrotado';
     }
   }
 

@@ -8,11 +8,11 @@
 import { agregarBonusEquipamentos } from '../../helpers/bonusHelper.js';
 import {
   calcularHP as calcularHPHelper,
-  calcularMana,
+  calcularMP,
   calcularEsquiva,
   calcularArmadura,
   getMultRaca,
-} from '../../helpers/combateHelper.js';
+} from './characterEngine.js';
 
 function mod(valor) {
   return Math.floor(((valor || 10) - 10) / 2);
@@ -166,7 +166,7 @@ export function buildCombatState(personagemCompleto, bonusEquip = {}) {
   };
   const multRaca = getMultRaca(personagemCompleto.raca_nome || personagemCompleto.raca || '');
   const hpMax = calcularHPHelper(personagemStats, multRaca);
-  const manaMax = calcularMana({
+  const manaMax = calcularMP({
     inteligencia: attrs.inteligencia || 10,
     carisma: attrs.carisma || 10,
     nivel: personagemCompleto.nivel || 1,

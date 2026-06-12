@@ -30,7 +30,13 @@ import { extrairBonusEquipamentos } from './equipmentEngine.js';
 
 import { resolverTeste } from './testEngine.js';
 
-import { resolverAbsorcao, resolverRessurreicao, temPoder } from './monsterPowerEngine.js';
+import {
+  resolverAbsorcao,
+  resolverRessurreicao,
+  temPoder,
+  aplicarPoderesPosDano,
+  consumirDanoAbsorvido,
+} from './monsterPowerEngine.js';
 
 import { calcularPECombate, calcularConversoesPE, converterPE } from './progressionEngine.js';
 
@@ -87,6 +93,8 @@ const tresdetEngine = {
   resolverAbsorcao,
   resolverRessurreicao,
   temPoder,
+  aplicarPoderesPosDano,
+  consumirDanoAbsorvido,
   // progression (PE)
   calcularPECombate,
   calcularConversoesPE,

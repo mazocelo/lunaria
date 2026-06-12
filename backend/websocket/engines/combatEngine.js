@@ -469,12 +469,14 @@ export default class CombatEngine {
     if (sistema !== 'lunaria') {
       const engine = getEngine(sistema);
 
-      // Absorção: deal back damage absorbed in previous turns
-      let danoAbsorcao = 0;
-      if (sistema === 'tresdet' && engine.temPoder(monstro, 'Absorção') && monstro._danoAbsorvido > 0) {
-        danoAbsorcao = monstro._danoAbsorvido;
+      // Absorção: devolve no inicio do turno o dano absorvido em turnos anteriores.
+      // A regra (e o acumulador) vive no engine; aqui so aplicamos ao alvo.
+      const absorvido = typeof engine.consumirDanoAbsorvido === 'function'
+        ? engine.consumirDanoAbsorvido(monstro)
+        : { dano: 0 };
+      const danoAbsorcao = absorvido.dano;
+      if (danoAbsorcao > 0) {
         alvoStats.hp_atual = Math.max(0, alvoStats.hp_atual - danoAbsorcao);
-        monstro._danoAbsorvido = 0;
         log.warn({ monstroNome: monstro.nome, danoAbsorcao, alvoNome: alvoStats.personagemNome }, 'MONSTER_POWER: Absorção devolveu dano');
       }
 

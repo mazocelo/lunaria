@@ -23,6 +23,7 @@ import { criarPersonagemTresDet } from '../../services/personagemTresDetService.
 import { criarPersonagemDnd5e } from '../../services/personagemDnd5eService.js';
 import { criarPersonagemLunaria } from '../../services/personagemLunariaService.js';
 import { getEngine } from '../../game-systems/index.js';
+import { resolverSistema } from '../../helpers/sistemaHelper.js';
 import { ABILITY_IDS } from '../../game-systems/dnd5e/constants.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'personagemController' });
@@ -1412,7 +1413,32 @@ class PersonagemController {
       const xpAtual = (personagem.xp_atual || 0) + parseInt(xp);
       const nivelAtual = personagem.nivel || 1;
 
-      // Verificar se pode subir de nivel
+      // Progressao depende do sistema: a curva de XP/nivel abaixo e exclusiva do
+      // Lunaria. 3D&T usa PE (Pontos de Experiencia) e D&D 5e ainda nao tem
+      // progressao implementada — antes ambos caiam na curva Lunaria por engano.
+      const sistema = resolverSistema(personagem.sistema);
+
+      if (sistema === 'dnd5e') {
+        return res.status(501).json({ success: false, error: 'progressão D&D 5e não implementada' });
+      }
+
+      if (sistema === 'tresdet') {
+        // O XP ganho e acumulado como PE; calcularConversoesPE mostra o que o
+        // saldo de PE pode comprar (caracteristicas, moedas, magias, auto-sucessos).
+        const conversoes = getEngine('tresdet').calcularConversoesPE(xpAtual);
+        await db.Personagem.updatePersonagem(parseInt(id), {
+          xp_atual: xpAtual,
+          atualizado_em: new Date()
+        });
+        return res.status(200).json({
+          success: true,
+          levelUp: false,
+          message: `+${xp} PE ganho`,
+          data: { peTotal: xpAtual, conversoes }
+        });
+      }
+
+      // Verificar se pode subir de nivel (curva Lunaria)
       const resultado = verificarLevelUp(nivelAtual, xpAtual);
 
       if (resultado.podeEvoluir) {

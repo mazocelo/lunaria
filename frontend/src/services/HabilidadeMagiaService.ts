@@ -3,6 +3,8 @@ import {
   habilidadeSchema,
   habilidadeListSchema,
   type Habilidade,
+  assertLegacyEnvelope,
+  type LegacyEnvelope,
 } from '../types/api';
 import type { ApiClient } from './ApiClient';
 import generateGETparams from './generateGETparams';
@@ -32,13 +34,6 @@ interface PaginatedListResponse {
   hasMore?: boolean;
 }
 
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
 interface GetAllParams {
   sistema?: string;
   categoria?: string;
@@ -54,13 +49,6 @@ function assertObject(raw: unknown, ctx: string): Record<string, unknown> {
     throw new Error(`[contract:${ctx}] resposta da API nao e objeto`);
   }
   return raw as Record<string, unknown>;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
 }
 
 export class HabilidadeMagiaService {

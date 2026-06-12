@@ -29,7 +29,9 @@ export const monstroCategoriaRelSchema = z
  * resistencias. Tipados como records abertos.
  */
 export const monstroVelocidadeSchema = z.record(z.string(), z.number());
-export const monstroResistenciasSchema = z.record(z.string(), z.unknown());
+// Resistencias: mapa elemento -> multiplicador (ex.: `{ fogo: 0.5 }`). Valores
+// sempre numericos no banco (confirmado em monstros.resistencias).
+export const monstroResistenciasSchema = z.record(z.string(), z.number());
 
 /**
  * Habilidade do monstro (estrutura solta — coluna `habilidades` e Json[]).

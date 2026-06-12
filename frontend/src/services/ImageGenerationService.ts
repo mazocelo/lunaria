@@ -1,4 +1,5 @@
 import type { ApiClient } from './ApiClient';
+import { assertLegacyEnvelope, type LegacyEnvelope } from '../types/api';
 
 /**
  * Servico para gerar imagens via IA (Nano Banana 2 / fallback Leonardo).
@@ -6,24 +7,10 @@ import type { ApiClient } from './ApiClient';
  * TODO Fase 3: criar `imageGenerationResponseSchema`.
  */
 
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
 interface GenerateParams {
   entityType: string;
   entityData: Record<string, unknown>;
   options?: Record<string, unknown>;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
 }
 
 export class ImageGenerationService {

@@ -5,27 +5,10 @@ import {
   personagemListSchema,
   type Personagem as PersonagemDTO,
   type PersonagemUpdatePayload,
+  assertLegacyEnvelope,
+  type LegacyEnvelope,
 } from '../types/api';
 import type { ApiClient } from './ApiClient';
-
-/**
- * Envelope LEGADO dos controllers do backend hoje:
- * `{ success, data, message?, pagination?, historia? }`. Os schemas Zod da
- * Fase 1 modelam o `data` cru — `parseRaw` valida apenas o payload, nao o
- * envelope. Vide nota em `src/types/api/zod-envelope.ts` sobre o drift.
- */
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-  pagination?: {
-    total?: number;
-    offset?: number;
-    limit?: number;
-  } | null;
-  historia?: unknown;
-}
 
 interface GetByHistoriaOptions {
   search?: string;
@@ -41,24 +24,14 @@ interface GetByHistoriaResult {
   total: number;
 }
 
-/**
- * Resposta do `getAll()` preservada por compatibilidade: o store
- * (`store/personagem/actions.js`) le `response.data` e `response.pagination`
- * diretamente — qualquer mudanca de shape aqui quebra o carregamento.
- */
-interface GetAllResult extends LegacyEnvelope<Personagem[]> {
+/** `getAll` devolve o envelope legado com `data` ja mapeado para o Model. */
+interface GetAllResult extends LegacyEnvelope<unknown> {
   data: Personagem[];
 }
 
-/**
- * Garante que `raw` tem a forma do envelope legado `{ success, data, ... }`.
- * Fail-loud antes de tentar acessar `.success` ou `.data`.
- */
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
+/** Endpoint por historia anexa um campo `historia` extra ao envelope legado. */
+interface PersonagemHistoriaEnvelope extends LegacyEnvelope<unknown> {
+  historia?: unknown;
 }
 
 /**
@@ -225,7 +198,7 @@ export class PersonagemService {
 
       const url = `${this.baseUrl}/historia/${historiaId}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const raw = await this.apiClient.get(url);
-      const env = assertLegacyEnvelope<unknown>(raw, 'PersonagemService.getByHistoria');
+      const env = assertLegacyEnvelope<unknown>(raw, 'PersonagemService.getByHistoria') as PersonagemHistoriaEnvelope;
       if (!env.success) {
         throw new Error(env.message || env.error || 'Erro desconhecido');
       }
@@ -261,7 +234,7 @@ export class PersonagemService {
 
       const url = `${this.baseUrl}/historia/${historiaId}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const raw = await this.apiClient.get(url);
-      const env = assertLegacyEnvelope<unknown>(raw, 'PersonagemService.getByUsuarioEHistoria');
+      const env = assertLegacyEnvelope<unknown>(raw, 'PersonagemService.getByUsuarioEHistoria') as PersonagemHistoriaEnvelope;
       if (!env.success) {
         throw new Error(env.message || env.error || 'Erro desconhecido');
       }

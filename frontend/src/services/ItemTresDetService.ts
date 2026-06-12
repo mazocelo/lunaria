@@ -1,24 +1,5 @@
 import type { ApiClient } from './ApiClient';
-
-/**
- * Itens 3D&T ainda nao tem schema Zod dedicado (fora do escopo da Fase 1).
- * Mantemos `Promise<unknown>` no boundary e o envelope legado validado para
- * fail-loud em drift estrutural. TODO Fase 3: criar `itemTresdetSchema` se
- * o catalogo de itens 3D&T ganhar uso real no frontend.
- */
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
-}
+import { assertLegacyEnvelope, type LegacyEnvelope } from '../types/api';
 
 export class ItemTresDetService {
   private readonly apiClient: ApiClient;

@@ -16,6 +16,24 @@ export const magiaDnd5eSchema = habilidadeSchema;
  * ("2 PM"), `escola` e string livre (`VarChar(50)` no schema), e nao tem
  * sistema (a propria tabela e exclusiva do 3D&T).
  */
+/**
+ * `focus_requisito`: lista de mapas focus/elemento -> quantidade exigida
+ * (ex.: `[{ fogo: 1 }]`). Valores sempre numericos
+ * (confirmado em magias_tresdet.focus_requisito).
+ */
+export const focusRequisitoTresdetSchema = z.array(z.record(z.string(), z.number()));
+
+/**
+ * `efeito`: descritor de efeito da magia (coluna `Json?`). Sem dados em
+ * producao hoje; o controller normaliza a entrada para objeto/null
+ * (catalogJsonHelper.normalizarJsonCatalogo). Modelado como mapa de valores
+ * primitivos.
+ */
+export const efeitoTresdetSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean(), z.null()]),
+);
+
 export const magiaTresdetSchema = z
   .object({
     id: z.number().int(),
@@ -27,9 +45,8 @@ export const magiaTresdetSchema = z
     duracao: z.string(),
     tipo: z.string().default('dano'),
     exigencias: z.string().nullable().optional(),
-    // Backend serializa em formas variadas (objeto/string/null). Aceitar unknown.
-    focus_requisito: z.unknown().nullable().optional(),
-    efeito: z.unknown().nullable().optional(),
+    focus_requisito: focusRequisitoTresdetSchema.nullable().optional(),
+    efeito: efeitoTresdetSchema.nullable().optional(),
     nivel_minimo: z.number().int().default(1),
   })
   .passthrough();

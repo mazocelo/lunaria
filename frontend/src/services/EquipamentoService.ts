@@ -3,29 +3,11 @@ import {
   vantagemDesvantagemSchema,
   vantagemDesvantagemListSchema,
   type VantagemDesvantagem,
+  assertLegacyEnvelope,
+  type LegacyEnvelope,
 } from '../types/api';
 import type { ApiClient } from './ApiClient';
 import generateGETparams from './generateGETparams';
-
-/**
- * Envelope LEGADO dos controllers de catalogo: `{ success, data, message?, pagination? }`.
- * Helper local seguindo o padrao da Fase 2a (PersonagemService).
- *
- * Equipamento compartilha o shape da tabela `vantagens`/`desvantagens` (mesmas
- * colunas de catalogo) — por isso reusa `vantagemDesvantagemSchema`.
- * Ver `types/api/vantagem-desvantagem.ts`.
- */
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-  pagination?: {
-    total?: number;
-    offset?: number;
-    limit?: number;
-  } | null;
-}
 
 interface EquipamentoListResponse extends LegacyEnvelope<VantagemDesvantagem[]> {
   data: VantagemDesvantagem[];
@@ -39,13 +21,6 @@ interface GetAllParams {
   sistema?: string;
   categoria?: string;
   [key: string]: unknown;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
 }
 
 /**

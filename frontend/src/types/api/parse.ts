@@ -46,3 +46,33 @@ export function parseRaw<T extends z.ZodTypeAny>(
   }
   return result.data;
 }
+
+/**
+ * Envelope LEGADO dos controllers de catalogo: `{ success, data, message?,
+ * pagination? }`. A maioria dos controllers reais ainda devolve este shape (e
+ * nao o canonico `{ data, meta }`). `pagination` so aparece em endpoints de
+ * listagem paginada — por isso e opcional.
+ */
+export interface LegacyEnvelope<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+  pagination?: {
+    total?: number;
+    offset?: number;
+    limit?: number;
+  } | null;
+}
+
+/**
+ * Guard fail-loud do envelope legado: garante que `raw` e um objeto com a chave
+ * `success` antes do service extrair `data` e validar com `parseRaw`. Lanca
+ * `[contract:ctx]` quando o backend foge do shape esperado.
+ */
+export function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
+  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
+    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
+  }
+  return raw as LegacyEnvelope<T>;
+}

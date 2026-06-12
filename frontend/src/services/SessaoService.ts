@@ -1,4 +1,5 @@
 import type { ApiClient } from './ApiClient';
+import { assertLegacyEnvelope } from '../types/api';
 
 /**
  * SessaoService toca apenas endpoints REST (`/sessoes/historia/:id` para listar
@@ -12,20 +13,6 @@ import type { ApiClient } from './ApiClient';
  * dedicado para esses payloads administrativos, retornamos `unknown` no
  * boundary e deixamos `TODO Fase 3` para tipar quando o schema existir.
  */
-
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
-}
 
 export class SessaoService {
   private readonly apiClient: ApiClient;

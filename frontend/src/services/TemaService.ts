@@ -1,24 +1,11 @@
 import type { ApiClient } from './ApiClient';
+import { assertLegacyEnvelope, type LegacyEnvelope } from '../types/api';
 
 /**
  * Servico para gerenciar operacoes de Tema.
  * Sem schema Zod dedicado na Fase 1.
  * TODO Fase 3: criar `temaSchema` em `src/types/api/tema.ts`.
  */
-
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
-}
 
 export class TemaService {
   private readonly apiClient: ApiClient;

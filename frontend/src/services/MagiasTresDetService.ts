@@ -3,20 +3,11 @@ import {
   magiaTresdetSchema,
   magiaTresdetListSchema,
   type MagiaTresdet,
+  assertLegacyEnvelope,
+  type LegacyEnvelope,
 } from '../types/api';
 import type { ApiClient } from './ApiClient';
 import generateGETparams from './generateGETparams';
-
-/**
- * Envelope LEGADO dos controllers: `{ success, data, message?, pagination? }`.
- * Helper local seguindo o padrao da Fase 2a (PersonagemService).
- */
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
 
 interface MagiaListResponse extends LegacyEnvelope<MagiaTresdet[]> {
   data: MagiaTresdet[];
@@ -29,13 +20,6 @@ interface MagiaItemResponse extends LegacyEnvelope<MagiaTresdet> {
 interface GetAllParams {
   escola?: string;
   [key: string]: unknown;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
 }
 
 /**

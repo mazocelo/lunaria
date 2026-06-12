@@ -1,4 +1,5 @@
 import type { ApiClient } from './ApiClient';
+import { assertLegacyEnvelope, type LegacyEnvelope } from '../types/api';
 import generateGETparams from './generateGETparams';
 
 /**
@@ -7,24 +8,10 @@ import generateGETparams from './generateGETparams';
  * TODO Fase 3: criar `mestreSchema` em `src/types/api/mestre.ts`.
  */
 
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
 interface GetAllParams {
   sistema?: string;
   ativo?: boolean;
   [key: string]: unknown;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
 }
 
 export class MestreService {

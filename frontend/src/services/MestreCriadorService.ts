@@ -1,4 +1,5 @@
 import type { ApiClient } from './ApiClient';
+import { assertLegacyEnvelope } from '../types/api';
 
 /**
  * Servico do Mestre Criador (assistente de IA para o wizard de criacao de
@@ -14,20 +15,6 @@ interface InteragirParams {
   historico: unknown[];
   actionMode?: 'reply' | string;
   sistema?: string;
-}
-
-interface LegacyEnvelope<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
-}
-
-function assertLegacyEnvelope<T>(raw: unknown, ctx: string): LegacyEnvelope<T> {
-  if (typeof raw !== 'object' || raw === null || !('success' in raw)) {
-    throw new Error(`[contract:${ctx}] resposta da API nao trouxe { success, data }`);
-  }
-  return raw as LegacyEnvelope<T>;
 }
 
 export class MestreCriadorService {

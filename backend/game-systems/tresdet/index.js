@@ -76,6 +76,8 @@ const tresdetEngine = {
   buildCombatState,
   getIniciativaConfig,
   resolverConsumo,
+  // suporta o motor de combate em sala (contrato v2)
+  suportaCombateSala: true,
   processarDescansoTresDet,
   parseCustoPM,
   resolverTesteMorte,

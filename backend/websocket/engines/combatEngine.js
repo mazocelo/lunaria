@@ -3,6 +3,7 @@ const log = logger.child({ module: 'combatEngine' });
 
 import db from '../../Model/index.js';
 import { getEngine } from '../../game-systems/index.js';
+import { resolverSistema } from '../../helpers/sistemaHelper.js';
 import {
   calcularHP,
   calcularEsquiva,
@@ -45,8 +46,22 @@ export default class CombatEngine {
     const sm = this.manager;
 
     try {
-      const sistema = sessao.sistema || 'lunaria';
+      const sistema = resolverSistema(sessao.sistema);
       log.warn({ roomId, sistema, motivo: combateData.motivo, monstrosIA: combateData.monstros }, 'COMBAT_INIT: inicio');
+
+      // Guard: alguns sistemas (ex.: D&D 5e) ainda nao implementam o motor de
+      // combate em sala. Avisa a sala de forma amigavel e aborta SEM derrubar o
+      // socket — a aventura continua na narrativa.
+      if (!getEngine(sistema).suportaCombateSala) {
+        log.warn({ roomId, sistema }, 'COMBAT_INIT: sistema nao suporta combate em sala — abortando');
+        sm.sendToRoom(roomId, 'server_message', {
+          tipo: 'combate_indisponivel',
+          sistema,
+          mensagem: `O combate em sala ainda nao esta disponivel para ${sistema === 'dnd5e' ? 'D&D 5e' : sistema}. A aventura continua na narrativa.`,
+          timestamp: Date.now()
+        });
+        return;
+      }
 
       const monstrosIA = combateData.monstros || [];
       const dificuldade = combateData.dificuldade || 'media';
@@ -75,7 +90,7 @@ export default class CombatEngine {
       const monstrosBanco = [];
       for (const sugestao of monstrosIA) {
         log.warn({ nome: sugestao.nome }, 'COMBAT_INIT: buscando monstro');
-        const encontrado = await db.Monstro.buscarPorNomeSimilar(sugestao.nome);
+        const encontrado = await db.Monstro.buscarPorNomeSimilar(sugestao.nome, sistema);
         log.warn({ nome: sugestao.nome, encontrado: !!encontrado, encontradoNome: encontrado?.nome }, 'COMBAT_INIT: resultado busca');
         if (encontrado) {
           monstrosBanco.push(encontrado);
@@ -229,7 +244,7 @@ export default class CombatEngine {
       const jogadorStats = combate.jogadores[userId];
       const personagensCompletos = sessao.personagensCompletos || {};
       const pc = personagensCompletos[jogadorStats?.personagemId] || personagensCompletos[String(jogadorStats?.personagemId)] || {};
-      const sistemaAtual = combate.sistema || sessao.sistema || 'lunaria';
+      const sistemaAtual = resolverSistema(combate.sistema, sessao.sistema);
       const inicConfig = getEngine(sistemaAtual).getIniciativaConfig(pc);
 
       const roll = parseInt(valorDado, 10) || 1;
@@ -450,7 +465,7 @@ export default class CombatEngine {
     const [alvoId, alvoStats] = jogadoresVivos[Math.floor(Math.random() * jogadoresVivos.length)];
 
     // System-aware attack resolution
-    const sistema = sessao?.sistema || combate?.sistema || 'lunaria';
+    const sistema = resolverSistema(sessao?.sistema, combate?.sistema);
     if (sistema !== 'lunaria') {
       const engine = getEngine(sistema);
 
@@ -607,7 +622,7 @@ export default class CombatEngine {
       if (!combate) return;
 
       // Calcular XP/PE total
-      const sistema = sessao.sistema || 'lunaria';
+      const sistema = resolverSistema(sessao.sistema);
       let xpTotal = 0;
       if (resultado === 'vitoria') {
         if (sistema === 'tresdet') {

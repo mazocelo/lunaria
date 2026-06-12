@@ -67,6 +67,8 @@ const dnd5eEngine = {
   getMagiasConhecidas,
   getMagiasDisponiveis,
   getSlotsInfo,
+  // combate em sala (contrato v2) ainda nao implementado para D&D 5e
+  suportaCombateSala: false,
   // v2 interface stubs
   extrairBonusEquipamentos: () => { throw new Error('Not implemented: dnd5e.extrairBonusEquipamentos'); },
   buildCombatState: () => { throw new Error('Not implemented: dnd5e.buildCombatState'); },

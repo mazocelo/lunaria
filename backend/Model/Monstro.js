@@ -189,9 +189,13 @@ const Monstro = (prisma) => {
     /**
      * Busca monstro por nome similar (para quando a IA sugere um nome)
      * @param {string} nomeSugerido - Nome sugerido pela IA
+     * @param {string} sistema - Sistema de jogo (obrigatorio; ex.: 'lunaria', 'tresdet')
      * @returns {Object|null} Monstro encontrado ou null
      */
-    async buscarPorNomeSimilar(nomeSugerido, sistema = 'lunaria') {
+    async buscarPorNomeSimilar(nomeSugerido, sistema) {
+      if (!sistema) {
+        throw new Error('buscarPorNomeSimilar: parametro "sistema" e obrigatorio');
+      }
       // Busca exata primeiro
       let monstro = await model.findFirst({
         where: { nome: { equals: nomeSugerido, mode: 'insensitive' }, sistema },

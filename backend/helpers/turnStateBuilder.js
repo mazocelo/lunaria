@@ -4,6 +4,7 @@
  * Inclui HP, mana, cooldowns, concentração, alertas de vantagens/desvantagens.
  */
 import { calcularHP, calcularMana, getMultRaca, calcularHPSistema, calcularManaSistema } from './combateHelper.js';
+import { resolverSistema } from './sistemaHelper.js';
 import { getOwnedCombatActions } from './ownedActionsHelper.js';
 import db from '../Model/index.js';
 import {
@@ -132,7 +133,7 @@ export async function buildTurnState(sessao, userId, personagem = {}) {
 
   // HP (dispatch via engine when personagem carries sistema)
   const racaNome = pcCompleto.raca_nome || pcCompleto.raca || '';
-  const hpPersonagem = { atributos: attrs, nivel, sistema: pcCompleto.sistema || 'lunaria' };
+  const hpPersonagem = { atributos: attrs, nivel, sistema: resolverSistema(pcCompleto.sistema) };
   const hpMax = pSessao.hp_max ?? calcularHPSistema(hpPersonagem, getMultRaca(racaNome));
   const hpAtual = pSessao.hp_atual ?? pcCompleto.hp ?? hpMax;
 

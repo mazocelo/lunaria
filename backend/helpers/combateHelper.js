@@ -27,6 +27,7 @@ import { getOwnedCombatActions } from './ownedActionsHelper.js';
 import { checkDanoConcentracao, quebrarConcentracao } from './concentrationManager.js';
 import { getAtributo, getAtributosMap } from './atributosHelper.js';
 import { getEngine } from '../game-systems/index.js';
+import { resolverSistema } from './sistemaHelper.js';
 import db from '../Model/index.js';
 const log = logger.child({ module: 'combateHelper' });
 
@@ -1034,7 +1035,7 @@ function _resolveCombatStatusEffects(sessao, userId, personagem, jogadorStats, r
       const danoPorTurno = rolarDado(STATUS_DANO_POR_TURNO[efeito.nome]);
       jogadorStats.hp_atual = Math.max(0, jogadorStats.hp_atual - danoPorTurno);
       if (jogadorStats.hp_atual <= 0 && jogadorStats.status === STATUS_COMBATENTE.VIVO) {
-        const sistema = sessao?.sistema || 'lunaria';
+        const sistema = resolverSistema(sessao?.sistema);
         if (sistema === 'tresdet') {
           const engine = getEngine(sistema);
           const testeMorte = engine.resolverTesteMorte(jogadorStats);
@@ -1135,7 +1136,7 @@ export async function resolverMecanicaCombate(combate, userId, sessao, personage
  * Resolve ataque basico do jogador contra primeiro monstro vivo
  */
 function _resolverAtaque(combate, userId, sessao, personagem, jogadorStats, statusEfeitos, combatIntent = null) {
-  const sistema = sessao?.sistema || 'lunaria';
+  const sistema = resolverSistema(sessao?.sistema);
 
   if (sistema !== 'lunaria') {
     return _resolverAtaqueSistema(sistema, combate, userId, jogadorStats, combatIntent);
@@ -1332,7 +1333,7 @@ function _executarContraAtaques(combate, sessao, resultados) {
       }
 
       if (alvoStats.hp_atual <= 0 && alvoStats.status === 'vivo') {
-        const sistemaCA = combate?.sistema || 'lunaria';
+        const sistemaCA = resolverSistema(combate?.sistema);
         if (sistemaCA === 'tresdet') {
           const engineCA = getEngine(sistemaCA);
           const testeMorte = engineCA.resolverTesteMorte(alvoStats);
@@ -1828,7 +1829,7 @@ export function finalizarAcaoCombatePosTeste(sessao, acaoPendente, resultadoTest
     let danoFinal = critico ? Math.max(0, danoRolado * 2) : danoRolado;
     // Apply absorption: max(0, modCON-1)d4 + armadura — crits ignore absorption
     // Absorption is Lunaria-only
-    const sistema = sessao?.sistema || 'lunaria';
+    const sistema = resolverSistema(sessao?.sistema);
     if (!critico && sistema === 'lunaria') {
       const absorcao = calcularAbsorcao(monstroAlvo.constituicao || 10, monstroAlvo.armadura || 0);
       danoFinal = Math.max(0, danoFinal - absorcao);
@@ -2194,25 +2195,25 @@ export function avancarTurno(combate) {
 // Existing functions are kept for backward compatibility.
 
 export function calcularHPSistema(personagem, multRaca = 5) {
-  const sistema = personagem.sistema || 'lunaria';
+  const sistema = resolverSistema(personagem.sistema);
   const engine = getEngine(sistema);
   return engine.calcularHP(personagem, multRaca);
 }
 
 export function calcularManaSistema(personagem) {
-  const sistema = personagem.sistema || 'lunaria';
+  const sistema = resolverSistema(personagem.sistema);
   const engine = getEngine(sistema);
   return engine.calcularMP(personagem);
 }
 
 export function calcularAtaqueSistema(personagem) {
-  const sistema = personagem.sistema || 'lunaria';
+  const sistema = resolverSistema(personagem.sistema);
   const engine = getEngine(sistema);
   return engine.calcularAtaque(personagem);
 }
 
 export function calcularDefesaSistema(personagem) {
-  const sistema = personagem.sistema || 'lunaria';
+  const sistema = resolverSistema(personagem.sistema);
   const engine = getEngine(sistema);
   return engine.calcularDefesa(personagem);
 }

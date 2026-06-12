@@ -66,6 +66,8 @@ const lunariaEngine = {
   buildCombatState,
   getIniciativaConfig,
   resolverConsumo,
+  // suporta o motor de combate em sala (contrato v2)
+  suportaCombateSala: true,
   // contrato de magias (§5 spec H&M)
   getMagiasConhecidas,
   getMagiasDisponiveis,

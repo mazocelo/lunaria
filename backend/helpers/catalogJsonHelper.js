@@ -26,6 +26,26 @@ function parseJsonObject(raw) {
   }
 }
 
+/**
+ * Normaliza um campo Json de catalogo na ENTRADA: garante objeto ou array
+ * (nunca string JSON) ou null. Strings JSON validas sao parseadas; objetos e
+ * arrays passam direto; qualquer outra coisa vira null. Use ao persistir
+ * colunas `Json?` a partir de `req.body` cru.
+ */
+export function normalizarJsonCatalogo(raw) {
+  if (raw === undefined || raw === null || raw === '') return null;
+  if (typeof raw === 'object') return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed !== null && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 function normalizeStringArray(raw) {
   if (raw === undefined || raw === null || raw === '') return [];
   const values = Array.isArray(raw) ? raw : [raw];
@@ -57,11 +77,6 @@ export function extrairAtributosBonus(raw) {
   }
 
   return atributos;
-}
-
-export function serializarBonusEntidade(raw) {
-  const normalized = normalizarBonusEntidade(raw);
-  return normalized ? JSON.stringify(normalized) : null;
 }
 
 export function decorarBonusEntidade(raw) {

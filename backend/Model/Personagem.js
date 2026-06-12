@@ -261,7 +261,7 @@ const Personagem = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, PersonagemMethods);
+  return Object.assign({ ...model }, PersonagemMethods);
 };
 
 export default Personagem; 

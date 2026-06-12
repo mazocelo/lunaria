@@ -1,5 +1,6 @@
 import db from '../../Model/index.js';
 import logger from '../../helpers/logger.js';
+import { normalizarJsonCatalogo } from '../../helpers/catalogJsonHelper.js';
 const log = logger.child({ module: 'magiasTresDetController' });
 
 class MagiasTresDetController {
@@ -55,8 +56,9 @@ class MagiasTresDetController {
         duracao: duracao.trim(),
         tipo: req.body.tipo || 'dano',
         exigencias: req.body.exigencias || null,
-        focus_requisito: req.body.focus_requisito || null,
-        efeito: req.body.efeito || null,
+        // Colunas Json: persiste sempre objeto/array (nunca string JSON).
+        focus_requisito: normalizarJsonCatalogo(req.body.focus_requisito),
+        efeito: normalizarJsonCatalogo(req.body.efeito),
         nivel_minimo: parseInt(req.body.nivel_minimo) || 1,
       };
 
@@ -85,6 +87,9 @@ class MagiasTresDetController {
       if (dados.duracao !== undefined) dados.duracao = dados.duracao.trim();
       if (dados.exigencias !== undefined) dados.exigencias = dados.exigencias?.trim() || null;
       if (dados.nivel_minimo !== undefined) dados.nivel_minimo = parseInt(dados.nivel_minimo) || 1;
+      // Colunas Json: nunca persistir string JSON.
+      if (dados.focus_requisito !== undefined) dados.focus_requisito = normalizarJsonCatalogo(dados.focus_requisito);
+      if (dados.efeito !== undefined) dados.efeito = normalizarJsonCatalogo(dados.efeito);
 
       const atualizado = await db.MagiasTresDet.atualizar(parseInt(id), dados);
       res.json({ success: true, message: 'Magia atualizada com sucesso', data: atualizado });

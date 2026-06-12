@@ -85,7 +85,7 @@ const Temas = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, TemasMethods);
+  return Object.assign({ ...model }, TemasMethods);
 };
 
 export default Temas;

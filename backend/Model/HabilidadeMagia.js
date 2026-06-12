@@ -152,7 +152,7 @@ const HabilidadeMagia = (prisma) => {
     }
   };
 
-  return Object.assign(model, HabilidadeMethods);
+  return Object.assign({ ...model }, HabilidadeMethods);
 };
 
 export default HabilidadeMagia;

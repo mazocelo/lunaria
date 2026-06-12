@@ -57,7 +57,9 @@ const PersonagemSessao = (prisma) => {
       const equipamentos = personagem.personagem_equipamento.map(pe => pe.equipamentos);
       const nivel = personagem.nivel || 1;
 
-      const multRaca = getMultRaca(personagem.racas?.nome);
+      // Raca carregada (racas: true) traz a coluna mult_raca; getMultRaca a usa
+      // como fonte primaria e so cai no mapa estatico quando ela falta.
+      const multRaca = getMultRaca(personagem.racas ?? personagem.racas?.nome);
       const hpMax = calcularHP(personagem, multRaca);
 
       try {
@@ -252,7 +254,7 @@ const PersonagemSessao = (prisma) => {
     }
   };
 
-  return Object.assign(model, methods);
+  return Object.assign({ ...model }, methods);
 };
 
 export default PersonagemSessao;

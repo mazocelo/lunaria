@@ -164,7 +164,7 @@ const SessaoJogo = (prisma) => {
     }
   };
 
-  return Object.assign(model, SessaoJogoMethods);
+  return Object.assign({ ...model }, SessaoJogoMethods);
 };
 
 export default SessaoJogo;

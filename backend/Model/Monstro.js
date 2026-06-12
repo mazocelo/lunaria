@@ -305,7 +305,7 @@ const Monstro = (prisma) => {
 
   };
 
-  return Object.assign(model, MonstroMethods);
+  return Object.assign({ ...model }, MonstroMethods);
 };
 
 export default Monstro;

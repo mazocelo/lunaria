@@ -67,7 +67,7 @@ const MonstroLoot = (prisma) => {
     }
   };
 
-  return Object.assign(model, methods);
+  return Object.assign({ ...model }, methods);
 };
 
 export default MonstroLoot;

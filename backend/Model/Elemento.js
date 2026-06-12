@@ -53,7 +53,7 @@ const Elemento = (prisma) => {
 
   };
 
-  return Object.assign(model, ElementoMethods);
+  return Object.assign({ ...model }, ElementoMethods);
 };
 
 export default Elemento;

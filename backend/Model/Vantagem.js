@@ -217,7 +217,7 @@ const Vantagem = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, VantagemMethods);
+  return Object.assign({ ...model }, VantagemMethods);
 };
 
 export default Vantagem; 

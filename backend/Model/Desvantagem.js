@@ -217,7 +217,7 @@ const Desvantagem = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, DesvantagemMethods);
+  return Object.assign({ ...model }, DesvantagemMethods);
 };
 
 export default Desvantagem; 

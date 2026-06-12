@@ -139,7 +139,7 @@ const Classe = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, ClasseMethods);
+  return Object.assign({ ...model }, ClasseMethods);
 };
 
 export default Classe; 

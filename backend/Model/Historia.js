@@ -378,7 +378,7 @@ const Historia = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, HistoriaMethods);
+  return Object.assign({ ...model }, HistoriaMethods);
 };
 
 export default Historia;

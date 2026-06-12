@@ -182,7 +182,7 @@ const Equipamento = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, EquipamentoMethods);
+  return Object.assign({ ...model }, EquipamentoMethods);
 };
 
 export default Equipamento;

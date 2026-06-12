@@ -139,7 +139,7 @@ const Raca = (prisma) => {
   };
 
   // Retornar o modelo com métodos customizados
-  return Object.assign(model, RacaMethods);
+  return Object.assign({ ...model }, RacaMethods);
 };
 
 export default Raca; 

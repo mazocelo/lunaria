@@ -100,7 +100,7 @@ const Mestre = (prisma) => {
     }
   };
 
-  return Object.assign(model, MestreMethods);
+  return Object.assign({ ...model }, MestreMethods);
 };
 
 export default Mestre;

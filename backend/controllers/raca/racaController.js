@@ -1,6 +1,6 @@
 import db from '../../Model/index.js';
 import logger from '../../helpers/logger.js';
-import { serializarBonusEntidade, serializarClasseOuRaca } from '../../helpers/catalogJsonHelper.js';
+import { normalizarBonusEntidade, serializarClasseOuRaca } from '../../helpers/catalogJsonHelper.js';
 import { getAvailableSystems } from '../../game-systems/index.js';
 
 const log = logger.child({ module: 'racaController' });
@@ -17,9 +17,10 @@ function resolveSistemaQuery(raw) {
 function validateBonusPayload(body = {}) {
   const raw = body.bonus !== undefined ? body.bonus : body.atributos_bonus;
   if (raw === undefined || raw === null || raw === '') return { value: null };
-  const serialized = serializarBonusEntidade(raw);
-  if (!serialized) return { error: 'bonus/atributos_bonus deve ser um objeto JSON valido' };
-  return { value: serialized };
+  const normalized = normalizarBonusEntidade(raw);
+  if (!normalized) return { error: 'bonus/atributos_bonus deve ser um objeto JSON valido' };
+  // Coluna `racas.bonus` e String no schema: persiste o objeto como JSON string.
+  return { value: JSON.stringify(normalized) };
 }
 
 class RacaController {

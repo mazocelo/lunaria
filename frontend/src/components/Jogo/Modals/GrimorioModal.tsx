@@ -222,7 +222,8 @@ const GrimorioModal = ({
             {magiasFiltradas.map(magia => {
               const custo = parseCustoPm(magia);
               const semMana = custo > manaAtual;
-              const escola = String(magia.escola_magia || (magia as { escola?: string }).escola || '');
+              const escola = String(magia.escola_magia || (magia as { escola?: string }).escola || '').trim();
+              const escolaLabel = escola || '—';
               const escolaColor = escola ? ELEMENT_COLORS[escola.toLowerCase()] : null;
               const isClickable = combateAtivo && !semMana;
               const isDisabled = combateAtivo && semMana;
@@ -232,18 +233,16 @@ const GrimorioModal = ({
                   {/* Nome + Escola */}
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-fantasy font-bold text-white text-sm leading-tight">{magia.nome}</span>
-                    {escola && (
-                      <span
-                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border"
-                        style={{
-                          color: escolaColor?.text || '#c4b5fd',
-                          borderColor: escolaColor?.border || 'rgba(139,92,246,0.3)',
-                          background: escolaColor?.bg || 'rgba(88,28,135,0.2)',
-                        }}
-                      >
-                        {escola}
-                      </span>
-                    )}
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border"
+                      style={{
+                        color: escolaColor?.text || '#c4b5fd',
+                        borderColor: escolaColor?.border || 'rgba(139,92,246,0.3)',
+                        background: escolaColor?.bg || 'rgba(88,28,135,0.2)',
+                      }}
+                    >
+                      {escolaLabel}
+                    </span>
                   </div>
 
                   {/* Custo PM */}

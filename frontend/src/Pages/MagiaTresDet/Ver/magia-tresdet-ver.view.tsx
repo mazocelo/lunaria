@@ -4,18 +4,6 @@ import { CatalogDetailLayout } from '../../../components/shared';
 import type { CatalogDetailSection, CatalogDetailStat } from '../../../components/shared/CatalogDetailLayout';
 import type { MagiaTresDetNormalizada } from './magia-tresdet-ver.model';
 
-const escolaColors: Record<string, string> = {
-  branca: '#f59e0b',
-  negra: '#8b5cf6',
-  elemental: '#ef4444',
-};
-
-const escolaLabels: Record<string, string> = {
-  branca: 'Branca',
-  negra: 'Negra',
-  elemental: 'Elemental',
-};
-
 interface VerMagiaTresDetViewProps {
   magia: MagiaTresDetNormalizada | null;
   loading: boolean;
@@ -38,12 +26,12 @@ const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }: VerMa
     );
   }
 
-  const accent = escolaColors[m.escola] || '#8b5cf6';
+  const accent = m.escolaColor;
 
   const badges = [
     <span key="escola" className="px-3 py-1 rounded-full text-xs font-semibold"
       style={{ background: `${accent}20`, color: accent }}>
-      {escolaLabels[m.escola] || m.escola}
+      {m.escolaLabel}
     </span>,
     m.tipo && (
       <span key="tipo" className={`px-3 py-1 rounded-full text-xs font-modern ${isLight ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/15 text-blue-400'}`}>
@@ -79,7 +67,7 @@ const VerMagiaTresDetView = ({ magia: m, loading, error, onBack, onEdit }: VerMa
     { icon: Tag, label: 'Escola', content: (
       <span className="px-3 py-1 rounded-full text-xs font-semibold"
         style={{ background: `${accent}20`, color: accent }}>
-        {escolaLabels[m.escola] || m.escola}
+        {m.escolaLabel}
       </span>
     )},
     m.tipo && { icon: Shield, label: 'Tipo', content: m.tipo },

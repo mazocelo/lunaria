@@ -9,6 +9,8 @@ export interface MagiaTresDetNormalizada {
   nome: string;
   descricao: string;
   escola: string;
+  escolaLabel: string;
+  escolaColor: string;
   custoPm: string;
   alcance: string;
   duracao: string;
@@ -17,6 +19,17 @@ export interface MagiaTresDetNormalizada {
   nivelMinimo: number;
   focusRequisito: string[] | null;
   efeito: string[] | null;
+}
+
+const ESCOLA_CONFIG: Record<string, { label: string; color: string }> = {
+  branca: { label: 'Branca', color: '#f59e0b' },
+  negra: { label: 'Negra', color: '#8b5cf6' },
+  elemental: { label: 'Elemental', color: '#ef4444' },
+};
+const ESCOLA_COR_PADRAO = '#8b5cf6';
+
+function capitalizar(valor: string): string {
+  return valor ? valor.charAt(0).toUpperCase() + valor.slice(1) : '';
 }
 
 export const useMagiaTresDetVerModel = () => {
@@ -43,11 +56,15 @@ export const useMagiaTresDetVerModel = () => {
 };
 
 function normalizarMagia(m: MagiaTresdet): MagiaTresDetNormalizada {
+  const escola = (m.escola || '').toLowerCase().trim();
+  const config = ESCOLA_CONFIG[escola];
   return {
     id: m.id,
     nome: m.nome,
     descricao: m.descricao,
-    escola: m.escola,
+    escola,
+    escolaLabel: config?.label || capitalizar(escola) || '—',
+    escolaColor: config?.color || ESCOLA_COR_PADRAO,
     custoPm: m.custo_pm,
     alcance: m.alcance,
     duracao: m.duracao,
